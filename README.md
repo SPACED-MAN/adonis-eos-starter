@@ -26,12 +26,22 @@ How to test:
 1. Install deps:
    - `npm install`
 2. Configure environment:
-   - `cp .env.example .env` (if present)
-   - Set `DB_*` for PostgreSQL
-   - `node ace generate:key`
-3. Run dev server: `npm run dev`
-4. Visit admin entry (e.g., `/admin/login`) and confirm login flow works.
-5. Confirm site entry renders a basic page.
+   - Copy `.env.example` to `.env` if needed
+   - Set `DB_*` variables for PostgreSQL connection
+   - Run `node ace generate:key` to generate APP_KEY
+3. Set up database:
+   - Run `node ace migration:run` to create users table
+   - Run `node ace db:seed` to create admin user
+4. Start dev server:
+   - `npm run dev`
+5. Test site entry:
+   - Visit `http://localhost:3333/`
+   - Confirm Tailwind styles are applied
+6. Test admin auth:
+   - Click "Admin login" or visit `http://localhost:3333/admin/login`
+   - Login with: `i@modernaut.com` / `supersecret`
+   - Confirm redirect to `/admin` dashboard
+   - Test logout
 
 ### Milestone 2 — Database Schema
 - Create migrations for:

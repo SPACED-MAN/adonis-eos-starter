@@ -6,8 +6,32 @@ export default function render(page: any) {
     page,
     render: ReactDOMServer.renderToString,
     resolve: (name) => {
-      const pages = import.meta.glob('../pages/**/*.tsx', { eager: true })
-      return pages[`../pages/${name}.tsx`]
+      const sitePages = import.meta.glob('../site/pages/**/*.tsx', { eager: true })
+      const adminPages = import.meta.glob('../admin/pages/**/*.tsx', { eager: true })
+      
+      // Handle both "site/home" and "admin/dashboard" formats
+      let modulePath: string
+      let module: any
+      
+      if (name.startsWith('site/')) {
+        const pageName = name.replace('site/', '')
+        modulePath = `../site/pages/${pageName}.tsx`
+        module = sitePages[modulePath]
+      } else if (name.startsWith('admin/')) {
+        const pageName = name.replace('admin/', '')
+        modulePath = `../admin/pages/${pageName}.tsx`
+        module = adminPages[modulePath]
+      } else {
+        // Fallback: try both locations
+        modulePath = `../site/pages/${name}.tsx`
+        module = sitePages[modulePath] ?? adminPages[`../admin/pages/${name}.tsx`]
+      }
+      
+      if (!module) {
+        throw new Error(`Page not found: ${name} (looking for: ${modulePath})`)
+      }
+      
+      return (module as any).default
     },
     setup: ({ App, props }) => <App {...props} />,
   })

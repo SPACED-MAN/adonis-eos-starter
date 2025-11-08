@@ -27,43 +27,19 @@
     }
   </style>
 
-  <script src="https://cdn.tailwindcss.com"></script>
+  {{-- Tailwind compiled via Vite (class strategy) --}}
 
-  <script>
-    tailwind.config = {
-      theme: {
-        extend: {
-          fontFamily: {
-            sans: ['Instrument Sans', 'sans-serif'],
-          },
-          colors: {
-            primary: {
-              DEFAULT: '#5A45FF',
-            },
-            sand: {
-              1: 'var(--sand-1)',
-              2: 'var(--sand-2)',
-              3: 'var(--sand-3)',
-              4: 'var(--sand-4)',
-              5: 'var(--sand-5)',
-              6: 'var(--sand-6)',
-              7: 'var(--sand-7)',
-              8: 'var(--sand-8)',
-              9: 'v and import it herear(--sand-9)',
-              10: 'var(--sand-10)',
-              11: 'var(--sand-11)',
-              12: 'var(--sand-12)',
-            },
-          },
-        },
-      },
-    }
-  </script>
+  {{-- Tailwind theme is configured via tailwind.config.js and compiled by Vite --}}
 
   @stack('dumper')
   @viteReactRefresh()
   @inertiaHead()
-  @vite(['inertia/app/app.tsx', `inertia/pages/${page.component}.tsx`])
+  {{-- Load the correct entrypoint based on the page namespace --}}
+  @if(page.component && page.component.startsWith('admin/'))
+    @vite(['inertia/admin/app.tsx'])
+  @else
+    @vite(['inertia/site/app.tsx'])
+  @endif
 </head>
 
 <body class="min-h-screen w-screen font-sans">

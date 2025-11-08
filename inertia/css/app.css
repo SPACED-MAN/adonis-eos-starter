@@ -1,10 +1,20 @@
-* {
-  margin: 0;
-  padding: 0;
-}
+@import "tailwindcss";
 
-html,
-body {
-  height: 100%;
-  width: 100%;
+@theme {
+  --font-sans: 'Instrument Sans', sans-serif;
+
+  --color-primary: #5A45FF;
+
+  --color-sand-1: #fdfdfc;
+  --color-sand-2: #f9f9f8;
+  --color-sand-3: #f1f0ef;
+  --color-sand-4: #e9e8e6;
+  --color-sand-5: #e2e1de;
+  --color-sand-6: #dad9d6;
+  --color-sand-7: #cfceca;
+  --color-sand-8: #bcbbb5;
+  --color-sand-9: #8d8d86;
+  --color-sand-10: #82827c;
+  --color-sand-11: #63635e;
+  --color-sand-12: #21201c;
 }
