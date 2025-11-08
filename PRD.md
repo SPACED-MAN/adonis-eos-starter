@@ -33,8 +33,8 @@ inertia/
     components/
     layouts/SiteLayout.tsx
 ```
-- **Vite entries:** two inputs (admin, site) for code splitting.
-- **Policies:** Admin-only pages guarded via Bouncer roles.
+ - **Vite entries:** two inputs (admin, site) for code splitting.
+ - **Policies:** Admin-only pages guarded via authentication and Bouncer policies (RBAC to be added in a later milestone).
 
 ---
 
@@ -217,9 +217,12 @@ inertia/
 - **Permalinks:** auto 301 when slugs change
 - **Redirects:** middleware lookup, short-circuit before controller
 
----
-
-## Next Steps
+ ---
+ 
+ ## Out of Scope (Initial Release)
+ - **Role-Based Access Control (RBAC):** User roles (e.g., Admin, Editor) and granular permissions are not included in the initial scope and will be implemented in a later milestone. Initial admin access will be protected via authentication without role differentiation.
+ 
+ ## Next Steps
 1. Implement migrations (including permalinks, redirects, custom fields)
 2. Build ModuleModel base + `ModuleHero` + `ModuleProse` (Lexical)
 3. Implement locked template & module logic
