@@ -25,6 +25,39 @@
       --sand-11: #63635e;
       --sand-12: #21201c;
     }
+
+    /* Ensure body styling is always present to prevent flicker */
+    body {
+      min-height: 100vh;
+      width: 100vw;
+      font-family: 'Instrument Sans', sans-serif;
+    }
+
+    /* Prevent flash of unstyled content during navigation */
+    #app {
+      min-height: 100vh;
+    }
+
+    /* Ensure smooth page transitions */
+    #app > div {
+      animation: fadeIn 0.15s ease-in;
+    }
+
+    @keyframes fadeIn {
+      from {
+        opacity: 0.98;
+      }
+      to {
+        opacity: 1;
+      }
+    }
+
+    /* Respect user's motion preferences for accessibility */
+    @media (prefers-reduced-motion: reduce) {
+      #app > div {
+        animation: none;
+      }
+    }
   </style>
 
   {{-- Tailwind compiled via Vite (class strategy) --}}
@@ -42,7 +75,7 @@
   @endif
 </head>
 
-<body class="min-h-screen w-screen font-sans">
+<body>
   @inertia()
 </body>
 
