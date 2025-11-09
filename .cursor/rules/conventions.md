@@ -30,6 +30,13 @@ Ask yourself:
 2. "Am I breaking any established conventions?"
 3. "Is there a built-in way to do this?"
 4. "Does this fit the existing architecture?"
+5. "Do I need to write tests for this?" (Answer: Yes!)
 
 **When in doubt, check the official docs!**
+
+## Related Guidelines
+
+- **Testing:** See `.cursor/rules/testing.md` for comprehensive testing guidelines
+- **Documentation:** See `.cursor/rules/documentation.md` for documentation standards
+- **UI Components:** See `.cursor/rules/ui-components.md` for component patterns
 
