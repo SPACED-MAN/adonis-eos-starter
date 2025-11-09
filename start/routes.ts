@@ -27,3 +27,23 @@ router.get('/admin', async ({ inertia }) => {
 	return inertia.render('admin/dashboard')
 }).use(middleware.auth())
 
+/**
+ * API Routes - Locales
+ */
+const LocalesController = () => import('#controllers/locales_controller')
+router.group(() => {
+	router.get('/locales', [LocalesController, 'index'])
+	router.get('/locales/:locale', [LocalesController, 'show'])
+}).prefix('/api')
+
+/**
+ * API Routes - Translations
+ */
+const TranslationsController = () => import('#controllers/translations_controller')
+router.group(() => {
+	router.get('/posts/:id/translations', [TranslationsController, 'index'])
+	router.post('/posts/:id/translations', [TranslationsController, 'store'])
+	router.get('/posts/:id/translations/:locale', [TranslationsController, 'show'])
+	router.delete('/posts/:id/translations/:locale', [TranslationsController, 'destroy'])
+}).prefix('/api').use(middleware.auth())
+

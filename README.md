@@ -63,23 +63,51 @@ How to test:
 3. Run smoke test: `node ace db:seed --files database/seeders/smoke_test_seeder.ts`
 4. Verify i18n: Check that posts can have translations, URL patterns are locale-specific.
 
-### Milestone 3 — Internationalization (i18n)
-- Locale detection middleware (URL prefix, domain, headers, session)
-- Translation UI in admin editor
-- hreflang tag generation
-- Locale-aware URL routing and redirects
-- Fallback logic for missing translations
+### Milestone 3 — Internationalization (i18n) (✅ Complete)
+- Locale configuration and detection
+  - Environment-based configuration (DEFAULT_LOCALE, SUPPORTED_LOCALES)
+  - LocaleService for managing locales
+  - Locale detection middleware (URL prefix, domain, headers, session)
+  - Locale stored in HTTP context for request-scoped access
+- Post model with translation support
+  - Translation relationships (originalPost, translations)
+  - Query scopes (byLocale, originals, published)
+  - Helper methods (getAllTranslations, getTranslation, hasTranslation)
 - API endpoints:
-  - `GET /api/locales` – list configured locales
-  - `GET /api/posts/:id/translations` – list translations
-  - `POST /api/posts/:id/translations` – create translation
+  - `GET /api/locales` – list configured locales (public)
+  - `GET /api/locales/:locale` – get locale info (public)
+  - `GET /api/posts/:id/translations` – list translations (auth required)
+  - `POST /api/posts/:id/translations` – create translation (auth required)
+  - `GET /api/posts/:id/translations/:locale` – get specific translation (auth required)
+  - `DELETE /api/posts/:id/translations/:locale` – delete translation (auth required)
+- Helper utilities:
+  - hreflang tag generation
+  - Locale-aware URL generation
+  - Locale switcher builder
+  - Content fallback logic
+  - Locale extraction and validation
 
 How to test:
-1. Configure multiple locales via environment (e.g., `LOCALES=en,es,fr`)
-2. Create a post and add translations
-3. Visit locale-specific URLs (e.g., `/blog/post` vs `/es/blog/publicacion`)
-4. Verify hreflang tags in page source
-5. Test fallback: remove translation and verify default locale is used
+1. Run automated tests:
+   - `node ace test` – Run all tests (✅ All 26 tests passing)
+     - 16 i18n tests (Locale service, Post model, Helper functions)
+     - 10 Actions tests (CreateTranslation, DeleteTranslation)
+   - Test files:
+     - `tests/unit/i18n.spec.ts` – i18n functionality
+     - `tests/unit/actions/translation_actions.spec.ts` – Translation actions
+   - **Note:** Functional API tests will be implemented in Milestone 5 with the admin UI
+2. Test public API endpoints manually:
+   - `curl http://localhost:3333/api/locales` – List locales
+   - `curl http://localhost:3333/api/locales/en` – Get locale info
+   - `curl http://localhost:3333/api/locales/fr` – Test unsupported locale
+3. Verify locale configuration:
+   - Check `.env` for DEFAULT_LOCALE and SUPPORTED_LOCALES
+   - Default: en,es (can be extended to fr,de,etc.)
+4. Test with smoke test data:
+   - `node ace db:seed --files database/seeders/smoke_test_seeder.ts`
+   - Smoke test creates posts in both 'en' and 'es' locales
+5. Watch mode for TDD:
+   - `node ace test --watch` – Re-run tests on file changes
 
 ### Milestone 4 — Module System (Backend & SSR)
 - Implement ModuleModel base + registry
