@@ -11,21 +11,62 @@ This directory contains coding guidelines and conventions for the Adonis EOS pro
    - When to check official documentation
    - Project architecture guidelines
 
-2. **[testing.md](./testing.md)** - Comprehensive testing guidelines
+2. **[actions.md](./actions.md)** - Action-based controller patterns
+   - Single-responsibility action classes
+   - Avoiding fat controllers
+   - Dependency injection patterns
+   - When to use actions vs services
+
+3. **[testing.md](./testing.md)** - Comprehensive testing guidelines
    - Unit and functional test patterns
    - Test organization and structure
    - Database testing strategies
    - Common testing patterns
 
-3. **[documentation.md](./documentation.md)** - Documentation standards
+4. **[documentation.md](./documentation.md)** - Documentation standards
    - Code documentation requirements
    - README and API documentation
    - Comment guidelines
 
-4. **[ui-components.md](./ui-components.md)** - UI/UX patterns
+5. **[ui-components.md](./ui-components.md)** - UI/UX patterns
    - Component structure
    - Styling conventions
    - Accessibility guidelines
+
+## Actions Quick Start
+
+**For complex operations, use action classes:**
+```bash
+# 1. Create action directory and file
+mkdir -p app/actions/posts
+touch app/actions/posts/create_post_action.ts
+
+# 2. Define action class
+import { inject } from '@adonisjs/core'
+
+export default class CreatePostAction {
+  async handle(data: CreatePostData): Promise<Post> {
+    // Business logic here
+  }
+}
+
+# 3. Use in controller
+@inject()
+export default class PostsController {
+  constructor(private createPost: CreatePostAction) {}
+  
+  async store({ request, response }: HttpContext) {
+    const post = await this.createPost.handle(request.all())
+    return response.created({ data: post })
+  }
+}
+```
+
+**When to use actions:**
+- ✅ Complex business logic (>30 lines)
+- ✅ Multi-step operations
+- ✅ Reusable logic
+- ✅ Background jobs
 
 ## Testing Quick Start
 
@@ -48,17 +89,18 @@ node ace test unit
 ```
 
 **Required test coverage:**
-- ✅ Unit tests for all models, services, helpers
+- ✅ Unit tests for all models, services, helpers, actions
 - ✅ Functional tests for all API endpoints
 - ✅ Both success and error cases
 
 ## Key Principles
 
 1. **Follow Official Docs** - AdonisJS, React, Japa conventions
-2. **Test Everything** - Write tests before or alongside code
-3. **Use Built-in Features** - Don't reinvent framework features
-4. **Maintain Consistency** - Follow existing patterns
-5. **Document Intent** - Clear names, helpful comments
+2. **Use Actions for Complex Logic** - Keep controllers thin
+3. **Test Everything** - Write tests before or alongside code
+4. **Use Built-in Features** - Don't reinvent framework features
+5. **Maintain Consistency** - Follow existing patterns
+6. **Document Intent** - Clear names, helpful comments
 
 ## Before Committing
 

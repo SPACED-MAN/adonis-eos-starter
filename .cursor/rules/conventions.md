@@ -36,6 +36,7 @@ Ask yourself:
 
 ## Related Guidelines
 
+- **Actions:** See `.cursor/rules/actions.md` for action-based controller patterns
 - **Testing:** See `.cursor/rules/testing.md` for comprehensive testing guidelines
 - **Documentation:** See `.cursor/rules/documentation.md` for documentation standards
 - **UI Components:** See `.cursor/rules/ui-components.md` for component patterns
