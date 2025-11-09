@@ -35,28 +35,28 @@ This directory contains coding guidelines and conventions for the Adonis EOS pro
 
 ## Actions Quick Start
 
-**For complex operations, use action classes:**
+**For complex operations, use action classes with static methods:**
 ```bash
-# 1. Create action directory and file
-mkdir -p app/actions/posts
-touch app/actions/posts/create_post_action.ts
+# 1. Create action using Ace command
+node ace make:action posts/CreatePost
 
-# 2. Define action class
-import { inject } from '@adonisjs/core'
+# 2. Define action with static handle method
+type CreatePostParams = {
+  title: string
+  slug: string
+}
 
 export default class CreatePostAction {
-  async handle(data: CreatePostData): Promise<Post> {
+  static async handle({ title, slug }: CreatePostParams): Promise<Post> {
     // Business logic here
+    return Post.create({ title, slug, status: 'draft' })
   }
 }
 
-# 3. Use in controller
-@inject()
+# 3. Use in controller (call static method directly)
 export default class PostsController {
-  constructor(private createPost: CreatePostAction) {}
-  
   async store({ request, response }: HttpContext) {
-    const post = await this.createPost.handle(request.all())
+    const post = await CreatePostAction.handle(request.all())
     return response.created({ data: post })
   }
 }

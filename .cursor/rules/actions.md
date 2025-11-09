@@ -1,389 +1,261 @@
-# Actions Pattern
+# Actions Pattern Guidelines
+
+This document outlines the conventions for implementing the Actions pattern in Adonis EOS using the `@adocasts.com/actions` package.
 
 ## Core Principle
-**Use single-responsibility action classes to avoid fat controllers. Actions keep your code organized, testable, and maintainable.**
+**Use single-responsibility action classes with static methods to avoid fat controllers. Actions keep your code organized, testable, and reusable.**
 
-## Package
-- **Package:** `@adocasts.com/actions`
+## Package Information
+- **Package:** `@adocasts.com/actions` v1.0.5
 - **Repository:** https://github.com/adocasts/package-actions
 - **Docs:** https://adocasts.com/lessons/creating-our-own-actions-package
 
-## What Are Actions?
+## What are Actions?
 
-Actions are single-purpose classes that handle a specific operation or use case. Instead of having large controller methods with complex logic, actions encapsulate that logic into focused, reusable classes.
+Actions are plain TypeScript classes with a static `handle` method that encapsulate a single business operation. They provide:
+- **Single Responsibility** - Each action does one thing
+- **Reusability** - Use in controllers, CLI, jobs, etc.
+- **Testability** - Easy to test in isolation
+- **Maintainability** - Business logic separate from HTTP concerns
 
-**Traditional Controller (Fat Controller):**
+## Key Conventions
+
+### 1. Static Methods
+Actions use **static** methods, not instance methods:
+
 ```typescript
-// ❌ BAD: Fat controller with business logic
-export default class PostsController {
-  async store({ request, response, auth }: HttpContext) {
-    // Validation
-    const data = await request.validateUsing(createPostValidator)
-    
-    // Business logic
-    const post = await Post.create({
-      ...data,
-      userId: auth.user!.id,
-    })
-    
-    // Send notifications
-    await notificationService.notifyFollowers(post)
-    
-    // Update search index
-    await searchService.indexPost(post)
-    
-    // Return response
-    return response.created({ data: post })
+// ✅ CORRECT: Static method
+export default class CreatePostAction {
+  static async handle(params: CreatePostParams): Promise<Post> {
+    // business logic
+  }
+}
+
+// ❌ WRONG: Instance method with dependency injection
+@inject()
+export default class CreatePostAction {
+  constructor(private service: SomeService) {}
+  
+  async handle(params: CreatePostParams): Promise<Post> {
+    // Don't do this
   }
 }
 ```
 
-**Action-Based (Thin Controller):**
+### 2. Type Definitions
+Use `type` for parameters, not interfaces:
+
 ```typescript
-// ✅ GOOD: Thin controller delegates to action
-export default class PostsController {
-  async store({ request, response }: HttpContext) {
-    const post = await CreatePostAction.handle(request)
-    return response.created({ data: post })
+// ✅ CORRECT: Type definition
+type CreatePostParams = {
+  title: string
+  slug: string
+  type: string
+}
+
+// ❌ WRONG: Interface
+interface CreatePostParams {
+  title: string
+  slug: string
+}
+```
+
+### 3. Direct Imports
+Import services and models directly, no constructor injection:
+
+```typescript
+// ✅ CORRECT: Direct imports
+import Post from '#models/post'
+import localeService from '#services/locale_service'
+
+export default class CreatePostAction {
+  static async handle(params: CreatePostParams): Promise<Post> {
+    localeService.isLocaleSupported(params.locale)
+    return Post.create(params)
+  }
+}
+
+// ❌ WRONG: Constructor injection
+@inject()
+export default class CreatePostAction {
+  constructor(private localeService: LocaleService) {}
+}
+```
+
+## Action Structure
+
+### Basic Template
+
+```bash
+# Always start by generating the action
+node ace make:action posts/CreatePost
+```
+
+```typescript
+// app/actions/posts/create_post.ts
+import Post from '#models/post'
+
+/**
+ * Parameters for creating a post
+ */
+type CreatePostParams = {
+  title: string
+  slug: string
+  type: string
+}
+
+/**
+ * Action to create a new blog post
+ */
+export default class CreatePost {
+  /**
+   * Create a new blog post
+   * 
+   * @param params - Post creation parameters
+   * @returns The newly created post
+   */
+  static async handle({ title, slug, type }: CreatePostParams): Promise<Post> {
+    // Business logic here
+    return Post.create({ title, slug, type, status: 'draft' })
+  }
+}
+```
+
+### Action with Private Methods
+
+```typescript
+export default class CreateTranslation {
+  static async handle({ postId, locale, title, slug }: CreateTranslationParams): Promise<Post> {
+    // Step 1: Find and validate base post
+    const basePost = await this.getBasePost(postId)
+    
+    // Step 2: Validate locale
+    this.validateLocale(locale)
+    
+    // Step 3: Check for duplicates
+    await this.checkDuplicateTranslation(basePost, locale)
+    
+    // Step 4: Create translation
+    return this.createTranslation(basePost, { locale, title, slug })
+  }
+
+  /**
+   * Private helper methods
+   */
+  private static async getBasePost(postId: string): Promise<Post> {
+    const post = await Post.find(postId)
+    if (!post) {
+      throw new CreateTranslationException('Post not found', 404)
+    }
+    return post.isTranslation() ? await post.getOriginal() : post
+  }
+
+  private static validateLocale(locale: string): void {
+    if (!localeService.isLocaleSupported(locale)) {
+      throw new CreateTranslationException('Unsupported locale', 400)
+    }
+  }
+
+  private static async checkDuplicateTranslation(post: Post, locale: string): Promise<void> {
+    const existing = await post.getTranslation(locale)
+    if (existing) {
+      throw new CreateTranslationException('Translation already exists', 409)
+    }
+  }
+
+  private static async createTranslation(
+    basePost: Post,
+    data: { locale: string; title: string; slug: string }
+  ): Promise<Post> {
+    return Post.create({
+      type: basePost.type,
+      ...data,
+      translationOfId: basePost.id,
+      status: 'draft',
+    })
   }
 }
 ```
 
 ## When to Use Actions
 
-### ✅ USE Actions For:
-- **Complex business logic** - Multi-step operations
-- **Reusable operations** - Logic used in multiple places
-- **API endpoints** - Each endpoint can have its own action
-- **Background jobs** - Actions can be called from queues
-- **Command handlers** - CLI commands can use actions
-- **Testing** - Actions are easier to test in isolation
+### ✅ USE Actions When:
+- **Complex business logic** - Operation involves multiple steps (>30 lines)
+- **Reusability needed** - Logic used in controllers, CLI, jobs, etc.
+- **Transaction management** - Operation requires database transaction
+- **Multiple data sources** - Operation involves multiple models/services
+- **Background jobs** - Operation might be moved to queue later
+- **Testing important** - Need isolated unit tests for business logic
 
-### ❌ DON'T Use Actions For:
-- **Simple CRUD** - Basic show/index methods can stay in controllers
-- **One-line operations** - No need for action if it's trivial
-- **View rendering only** - Inertia renders don't need actions
+### ❌ AVOID Actions When:
+- **Simple CRUD** - Basic `Post.find(id)` or `Post.all()`
+- **Purely HTTP concerns** - Request parsing, response formatting
+- **View rendering** - Simple Inertia renders
+- **One-line operations** - Trivial operations that don't need abstraction
 
-## Action Structure
+## Error Handling
 
-### Basic Action
+Actions should throw custom exceptions for business logic errors:
+
 ```typescript
-// app/actions/posts/create_post_action.ts
-import { inject } from '@adonisjs/core'
-import Post from '#models/post'
-import type { HttpContext } from '@adonisjs/core/http'
-
-@inject()
-export default class CreatePostAction {
-  /**
-   * Create a new blog post with all associated data
-   */
-  async handle(request: HttpContext['request']): Promise<Post> {
-    // Validation
-    const data = await request.validateUsing(createPostValidator)
-    
-    // Business logic
-    const post = await Post.create(data)
-    
-    // Additional operations
-    await this.notifyFollowers(post)
-    await this.indexForSearch(post)
-    
-    return post
-  }
-  
-  private async notifyFollowers(post: Post): Promise<void> {
-    // Notification logic
-  }
-  
-  private async indexForSearch(post: Post): Promise<void> {
-    // Search indexing logic
-  }
-}
-```
-
-### Action with Dependencies
-```typescript
-// app/actions/posts/create_post_action.ts
-import { inject } from '@adonisjs/core'
-import Post from '#models/post'
-import NotificationService from '#services/notification_service'
-import SearchService from '#services/search_service'
-
-@inject()
-export default class CreatePostAction {
+// app/actions/translations/exceptions.ts
+export class CreateTranslationException extends Error {
   constructor(
-    private notificationService: NotificationService,
-    private searchService: SearchService
-  ) {}
-
-  async handle(data: CreatePostData): Promise<Post> {
-    const post = await Post.create(data)
-    
-    // Dependencies are injected
-    await this.notificationService.notifyFollowers(post)
-    await this.searchService.indexPost(post)
-    
-    return post
+    message: string,
+    public statusCode: number = 400,
+    public meta?: Record<string, any>
+  ) {
+    super(message)
+    this.name = 'CreateTranslationException'
   }
 }
-```
 
-## File Organization
-
-```
-app/
-├── actions/
-│   ├── auth/
-│   │   ├── login_action.ts
-│   │   ├── register_action.ts
-│   │   └── logout_action.ts
-│   ├── posts/
-│   │   ├── create_post_action.ts
-│   │   ├── update_post_action.ts
-│   │   ├── delete_post_action.ts
-│   │   └── publish_post_action.ts
-│   └── translations/
-│       ├── create_translation_action.ts
-│       └── sync_translations_action.ts
-├── controllers/
-│   ├── auth_controller.ts      # Thin - delegates to actions
-│   ├── posts_controller.ts     # Thin - delegates to actions
-│   └── translations_controller.ts
-└── services/
-    ├── notification_service.ts  # Can be injected into actions
-    └── search_service.ts
-```
-
-## Controller Usage
-
-### Basic Usage
-```typescript
-// app/controllers/posts_controller.ts
-import { inject } from '@adonisjs/core'
-import type { HttpContext } from '@adonisjs/core/http'
-import CreatePostAction from '#actions/posts/create_post_action'
-import UpdatePostAction from '#actions/posts/update_post_action'
-
-@inject()
-export default class PostsController {
-  constructor(
-    private createPost: CreatePostAction,
-    private updatePost: UpdatePostAction
-  ) {}
-
-  async store({ request, response }: HttpContext) {
-    const post = await this.createPost.handle(request)
-    return response.created({ data: post })
-  }
-
-  async update({ request, response, params }: HttpContext) {
-    const post = await this.updatePost.handle(params.id, request)
-    return response.ok({ data: post })
-  }
+// In action:
+if (!localeService.isLocaleSupported(locale)) {
+  throw new CreateTranslationException(
+    `Unsupported locale: ${locale}`,
+    400,
+    { locale }
+  )
 }
-```
 
-### Static Usage (for simple cases)
-```typescript
-// app/controllers/posts_controller.ts
-import CreatePostAction from '#actions/posts/create_post_action'
-
-export default class PostsController {
-  async store({ request, response }: HttpContext) {
-    // Can also use static methods
-    const post = await CreatePostAction.handle(request)
-    return response.created({ data: post })
-  }
-}
-```
-
-## Testing Actions
-
-Actions are much easier to test than fat controllers:
-
-```typescript
-// tests/unit/actions/create_post_action.spec.ts
-import { test } from '@japa/runner'
-import CreatePostAction from '#actions/posts/create_post_action'
-import Post from '#models/post'
-
-test.group('CreatePostAction', (group) => {
-  group.each.setup(async () => {
-    await db.beginGlobalTransaction()
-  })
-
-  group.each.teardown(async () => {
-    await db.rollbackGlobalTransaction()
-  })
-
-  test('should create post with valid data', async ({ assert }) => {
-    const action = new CreatePostAction()
-    
-    const post = await action.handle({
-      title: 'Test Post',
-      slug: 'test-post',
-      type: 'blog',
-      locale: 'en',
+// In controller:
+try {
+  const translation = await CreateTranslationAction.handle(params)
+  return response.created({ data: translation })
+} catch (error) {
+  if (error instanceof CreateTranslationException) {
+    return response.status(error.statusCode).json({
+      error: error.message,
+      ...error.meta,
     })
-
-    assert.exists(post.id)
-    assert.equal(post.title, 'Test Post')
-  })
-
-  test('should notify followers after creating post', async ({ assert }) => {
-    // Test the notification logic
-  })
-
-  test('should index post in search', async ({ assert }) => {
-    // Test the search indexing
-  })
-})
+  }
+  throw error // Re-throw unknown errors
+}
 ```
 
-## Migration Strategy
+## Using Actions in Controllers
 
-### Refactoring Existing Controllers
+Controllers should call actions directly (static method):
 
-**Before (Fat Controller):**
 ```typescript
 // app/controllers/translations_controller.ts
+import CreateTranslationAction, {
+  CreateTranslationException,
+} from '#actions/translations/create_translation_action'
+
 export default class TranslationsController {
   async store({ params, request, response }: HttpContext) {
-    const { id } = params
-    
-    // Find original post
-    const originalPost = await Post.find(id)
-    if (!originalPost) {
-      return response.notFound({ error: 'Post not found' })
-    }
+    const { locale, slug, title } = request.only(['locale', 'slug', 'title'])
 
-    // Get base post
-    const basePost = originalPost.isTranslation()
-      ? await originalPost.getOriginal()
-      : originalPost
-
-    // Validate
-    const { locale, slug, title, metaTitle, metaDescription } = request.only([
-      'locale', 'slug', 'title', 'metaTitle', 'metaDescription'
-    ])
-
-    // Validate locale
-    if (!localeService.isLocaleSupported(locale)) {
-      return response.badRequest({ error: 'Unsupported locale', locale })
-    }
-
-    // Check existing
-    const existingTranslation = await basePost.getTranslation(locale)
-    if (existingTranslation) {
-      return response.conflict({
-        error: 'Translation already exists',
-        locale,
-        translationId: existingTranslation.id,
-      })
-    }
-
-    // Create translation
-    const translation = await Post.create({
-      type: basePost.type,
-      slug,
-      title,
-      status: 'draft',
-      locale,
-      translationOfId: basePost.id,
-      templateId: basePost.templateId,
-      metaTitle: metaTitle || null,
-      metaDescription: metaDescription || null,
-    })
-
-    return response.created({ data: translation })
-  }
-}
-```
-
-**After (Thin Controller with Action):**
-```typescript
-// app/actions/translations/create_translation_action.ts
-import { inject } from '@adonisjs/core'
-import Post from '#models/post'
-import localeService from '#services/locale_service'
-import { CreateTranslationException } from '#exceptions/translation_exceptions'
-
-export default class CreateTranslationAction {
-  async handle(postId: string, data: CreateTranslationData): Promise<Post> {
-    // Find and validate post
-    const basePost = await this.getBasePost(postId)
-    
-    // Validate locale
-    this.validateLocale(data.locale)
-    
-    // Check for duplicates
-    await this.checkDuplicateTranslation(basePost, data.locale)
-    
-    // Create translation
-    return this.createTranslation(basePost, data)
-  }
-
-  private async getBasePost(postId: string): Promise<Post> {
-    const post = await Post.find(postId)
-    if (!post) {
-      throw new CreateTranslationException('Post not found', 404)
-    }
-    
-    return post.isTranslation() ? await post.getOriginal() : post
-  }
-
-  private validateLocale(locale: string): void {
-    if (!localeService.isLocaleSupported(locale)) {
-      throw new CreateTranslationException(`Unsupported locale: ${locale}`, 400)
-    }
-  }
-
-  private async checkDuplicateTranslation(basePost: Post, locale: string): Promise<void> {
-    const existing = await basePost.getTranslation(locale)
-    if (existing) {
-      throw new CreateTranslationException(
-        `Translation already exists for locale: ${locale}`,
-        409,
-        { translationId: existing.id }
-      )
-    }
-  }
-
-  private async createTranslation(
-    basePost: Post,
-    data: CreateTranslationData
-  ): Promise<Post> {
-    return Post.create({
-      type: basePost.type,
-      slug: data.slug,
-      title: data.title,
-      status: 'draft',
-      locale: data.locale,
-      translationOfId: basePost.id,
-      templateId: basePost.templateId,
-      metaTitle: data.metaTitle || null,
-      metaDescription: data.metaDescription || null,
-    })
-  }
-}
-
-// app/controllers/translations_controller.ts
-import { inject } from '@adonisjs/core'
-import CreateTranslationAction from '#actions/translations/create_translation_action'
-
-@inject()
-export default class TranslationsController {
-  constructor(private createTranslation: CreateTranslationAction) {}
-
-  async store({ params, request, response }: HttpContext) {
     try {
-      const data = request.only([
-        'locale', 'slug', 'title', 'metaTitle', 'metaDescription'
-      ])
-      
-      const translation = await this.createTranslation.handle(params.id, data)
-      
+      const translation = await CreateTranslationAction.handle({
+        postId: params.id,
+        locale,
+        slug,
+        title,
+      })
+
       return response.created({ data: translation })
     } catch (error) {
       if (error instanceof CreateTranslationException) {
@@ -398,79 +270,346 @@ export default class TranslationsController {
 }
 ```
 
-## Benefits
+## Testing Actions
 
-### 1. **Single Responsibility**
-Each action does one thing and does it well.
+Actions are ideal for unit testing:
 
-### 2. **Testability**
-Actions can be tested in isolation without HTTP context.
+```typescript
+// tests/unit/actions/create_translation_action.spec.ts
+import { test } from '@japa/runner'
+import CreateTranslationAction, {
+  CreateTranslationException,
+} from '#actions/translations/create_translation_action'
+import Post from '#models/post'
+import testUtils from '@adonisjs/core/services/test_utils'
 
-### 3. **Reusability**
-Actions can be called from controllers, commands, jobs, or other actions.
+test.group('CreateTranslationAction', (group) => {
+  group.each.setup(async () => {
+    await testUtils.db().truncate()
+  })
 
-### 4. **Maintainability**
-Complex logic is organized and easy to find.
+  test('should create translation for a post', async ({ assert }) => {
+    const originalPost = await Post.create({
+      type: 'blog',
+      slug: `test-post-${Date.now()}`,
+      title: 'Test Post',
+      status: 'draft',
+      locale: 'en',
+    })
 
-### 5. **Dependency Injection**
-Actions can inject services cleanly using AdonisJS container.
+    const translation = await CreateTranslationAction.handle({
+      postId: originalPost.id,
+      locale: 'es',
+      slug: `publicacion-${Date.now()}`,
+      title: 'Publicación',
+    })
 
-### 6. **Readability**
-Controllers become simple routing layers.
+    assert.isNotNull(translation.id)
+    assert.equal(translation.locale, 'es')
+    assert.equal(translation.translationOfId, originalPost.id)
+  })
+
+  test('should throw exception when post not found', async ({ assert }) => {
+    try {
+      await CreateTranslationAction.handle({
+        postId: '00000000-0000-0000-0000-000000000000',
+        locale: 'es',
+        slug: 'test',
+        title: 'Test',
+      })
+      assert.fail('Should have thrown CreateTranslationException')
+    } catch (error) {
+      assert.instanceOf(error, CreateTranslationException)
+      assert.equal(error.message, 'Post not found')
+      assert.equal(error.statusCode, 404)
+    }
+  })
+})
+```
+
+## File Organization
+
+```
+app/actions/
+├── translations/
+│   ├── create_translation.ts        (CreateTranslation class)
+│   ├── delete_translation.ts        (DeleteTranslation class)
+│   └── exceptions.ts
+├── posts/
+│   ├── create_post.ts               (CreatePost class)
+│   ├── update_post.ts               (UpdatePost class)
+│   ├── publish_post.ts              (PublishPost class)
+│   └── exceptions.ts
+└── modules/
+    ├── create_module.ts             (CreateModule class)
+    ├── attach_module.ts             (AttachModule class)
+    └── exceptions.ts
+```
+
+## Naming Conventions
+
+### Action Classes
+- Use verb-noun pattern: `CreatePost`, `UpdateUser`, `DeleteComment`
+- No `Action` suffix needed (Ace command handles this)
+- Use PascalCase
+
+### Files
+- Use snake_case for files: `create_post.ts`, `delete_comment.ts`
+- Generated automatically by `node ace make:action` command
+- Group related actions in directories (e.g., `app/actions/posts/`)
+
+### Methods
+- Main method: `static async handle(params: TypeName): Promise<ReturnType>`
+- Private helpers: `private static async helperName()`
+- All methods should be async if they do I/O
 
 ## Best Practices
 
-### ✅ DO:
-- Use actions for complex business logic
-- Name actions as verbs (CreatePost, SendEmail, ProcessPayment)
-- Keep actions focused on one task
-- Inject dependencies through constructor
-- Return domain objects (models, DTOs)
-- Throw exceptions for error cases
-- Write unit tests for each action
+### 1. Keep Actions Focused
+```typescript
+// ✅ GOOD: Single responsibility
+class CreatePostAction {
+  static async handle(params: CreatePostParams): Promise<Post> {
+    return Post.create(params)
+  }
+}
 
-### ❌ DON'T:
-- Don't access HTTP context directly in actions (pass what's needed)
-- Don't return HTTP responses from actions
-- Don't make actions too granular (not every method needs an action)
-- Don't put view rendering logic in actions
-- Don't forget to add actions to imports in package.json
+// ❌ BAD: Multiple responsibilities
+class PostAction {
+  static async create() {}
+  static async update() {}
+  static async delete() {}
+}
+```
 
-## Package.json Import
+### 2. Use Descriptive Types
+```typescript
+// ✅ GOOD: Clear parameter types
+type CreateTranslationParams = {
+  postId: string
+  locale: string
+  slug: string
+  title: string
+  metaTitle?: string | null
+  metaDescription?: string | null
+}
 
-Add actions to your imports:
+// ❌ BAD: Generic or unclear types
+type Params = {
+  id: string
+  data: any
+}
+```
 
-```json
-{
-  "imports": {
-    "#actions/*": "./app/actions/*.js",
-    "#controllers/*": "./app/controllers/*.js",
-    // ... other imports
+### 3. Document Public Methods
+```typescript
+/**
+ * Create a new translation for a post
+ *
+ * @param params - Translation creation parameters
+ * @returns The newly created translation post
+ * @throws CreateTranslationException if validation fails
+ */
+static async handle(params: CreateTranslationParams): Promise<Post> {
+  // implementation
+}
+```
+
+### 4. Extract Complex Logic to Private Methods
+```typescript
+static async handle(params: CreateTranslationParams): Promise<Post> {
+  const basePost = await this.getBasePost(params.postId)
+  this.validateLocale(params.locale)
+  await this.checkDuplicates(basePost, params.locale)
+  return this.createTranslation(basePost, params)
+}
+
+private static async getBasePost(postId: string): Promise<Post> {
+  // Complex logic extracted
+}
+```
+
+## Creating New Actions
+
+### ⚠️ Always Use the Ace Command
+
+**IMPORTANT:** Always create actions using `node ace make:action` to ensure correct naming:
+
+```bash
+# Create action for translations
+node ace make:action translations/CreateTranslation
+# Generates: app/actions/translations/create_translation.ts
+# Class name: CreateTranslation
+
+# Create action for posts
+node ace make:action posts/UpdatePost
+# Generates: app/actions/posts/update_post.ts
+# Class name: UpdatePost
+```
+
+### Workflow
+1. **Generate action:** `node ace make:action feature/ActionName`
+2. **Define parameter type:** `type ActionNameParams = { ... }`
+3. **Define custom exception (if needed):** `export class ActionNameException extends Error { ... }`
+4. **Implement business logic** in the `static async handle()` method
+5. **Extract complex logic** to private static methods
+6. **Write unit tests** in `tests/unit/actions/`
+7. **Use in controller** by calling `ActionName.handle(params)`
+
+### Example Workflow
+
+```bash
+# Step 1: Generate action
+node ace make:action posts/CreatePost
+
+# Step 2: Implement the action
+# File: app/actions/posts/create_post.ts
+```
+
+```typescript
+import Post from '#models/post'
+
+type CreatePostParams = {
+  title: string
+  slug: string
+  content: string
+}
+
+export class CreatePostException extends Error {
+  constructor(message: string, public statusCode: number = 400) {
+    super(message)
+    this.name = 'CreatePostException'
+  }
+}
+
+export default class CreatePost {
+  static async handle({ title, slug, content }: CreatePostParams): Promise<Post> {
+    // Business logic
+    return Post.create({ title, slug, content, status: 'draft' })
   }
 }
 ```
 
-## When to Refactor
+```bash
+# Step 3: Write tests
+# File: tests/unit/actions/create_post.spec.ts
 
-**Immediate candidates for actions:**
-- Controllers with methods > 30 lines
-- Logic used in multiple places
-- Complex validation or business rules
-- Multi-step operations
-- Background job logic
+# Step 4: Use in controller
+# File: app/controllers/posts_controller.ts
+```
 
-**Can wait:**
-- Simple CRUD operations
-- Single database queries
-- Basic Inertia renders
+```typescript
+import CreatePost from '#actions/posts/create_post'
 
-## Resources
+export default class PostsController {
+  async store({ request, response }: HttpContext) {
+    const post = await CreatePost.handle(request.all())
+    return response.created({ data: post })
+  }
+}
+```
 
-- [Adocasts Actions Package](https://github.com/adocasts/package-actions)
-- [Adocasts Lesson](https://adocasts.com/lessons/creating-our-own-actions-package)
-- [AdonisJS Dependency Injection](https://docs.adonisjs.com/guides/concepts/dependency-injection)
+## Migration Strategy
+
+### Current Status
+- ✅ Actions package installed
+- ✅ Import path configured (`#actions/*`)
+- ✅ Documentation complete
+- ✅ 2 refactorings complete (Translations controller)
+
+### For New Features (Milestone 4+)
+- Start with actions for complex operations
+- Keep simple CRUD in controllers
+- Use actions for multi-step workflows
+
+### For Existing Code
+- Refactor as needed when adding features
+- No rush to refactor working code
+- Focus on pain points (fat controllers, hard to test)
+
+## Examples in Codebase
+
+### Completed Refactorings
+
+#### 1. CreateTranslation
+**File:** `app/actions/translations/create_translation.ts`
+**Class:** `CreateTranslation`
+- Creates post translations
+- Validates locale support
+- Checks for duplicates
+- Handles nested translations
+
+#### 2. DeleteTranslation
+**File:** `app/actions/translations/delete_translation.ts`
+**Class:** `DeleteTranslation`
+- Deletes translations
+- Protects original posts
+- Proper error handling
+
+## Common Patterns
+
+### Pattern 1: Multi-Step Operation
+```typescript
+static async handle(params: Params): Promise<Result> {
+  const step1 = await this.doStep1(params)
+  const step2 = await this.doStep2(step1)
+  const step3 = await this.doStep3(step2)
+  return step3
+}
+```
+
+### Pattern 2: Validation Before Action
+```typescript
+static async handle(params: Params): Promise<Result> {
+  this.validateInput(params)
+  await this.checkPreconditions(params)
+  return this.performAction(params)
+}
+```
+
+### Pattern 3: Transaction Wrapper
+```typescript
+static async handle(params: Params): Promise<Result> {
+  const trx = await db.transaction()
+  try {
+    const result = await this.performInTransaction(params, trx)
+    await trx.commit()
+    return result
+  } catch (error) {
+    await trx.rollback()
+    throw error
+  }
+}
+```
+
+## FAQs
+
+**Q: Why static methods instead of instance methods?**
+A: Static methods keep actions stateless and simple. No need for dependency injection or complex setup.
+
+**Q: Can I use dependency injection?**
+A: No, the Adocasts Actions convention uses direct imports instead of constructor injection.
+
+**Q: How do I share logic between actions?**
+A: Create utility functions or services that multiple actions can import and use.
+
+**Q: Should I always use actions?**
+A: No, simple CRUD operations can stay in controllers. Use actions for complex logic.
+
+**Q: Can actions call other actions?**
+A: Yes, actions can call other actions: `await OtherAction.handle(params)`
+
+**Q: How do I test actions that use external services?**
+A: Mock the service imports in your tests, or create test doubles.
+
+## Related Documentation
+
+- **Testing:** See `.cursor/rules/testing.md` for testing guidelines
+- **Conventions:** See `.cursor/rules/conventions.md` for general patterns
+- **Package:** https://github.com/adocasts/package-actions
 
 ---
 
-**Use actions to keep controllers thin and business logic organized!**
-
+**Last Updated:** 2025-11-09  
+**Package Version:** @adocasts.com/actions@1.0.5  
+**Status:** Active (Milestone 3+)
