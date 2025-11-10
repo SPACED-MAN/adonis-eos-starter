@@ -16,6 +16,9 @@ export default class Post extends BaseModel {
   declare title: string
 
   @column()
+  declare excerpt: string | null
+
+  @column()
   declare status: 'draft' | 'review' | 'scheduled' | 'published' | 'archived'
 
   @column()
@@ -41,6 +44,9 @@ export default class Post extends BaseModel {
 
   @column()
   declare templateId: string | null
+
+  @column()
+  declare userId: number
 
   @column.dateTime()
   declare publishedAt: DateTime | null

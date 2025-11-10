@@ -10,12 +10,19 @@ export default class extends BaseSchema {
         .references('id')
         .inTable('templates')
         .onDelete('SET NULL')
+      
+      // Add foreign key constraint to users
+      table.foreign('user_id')
+        .references('id')
+        .inTable('users')
+        .onDelete('CASCADE')
     })
   }
 
   async down() {
     this.schema.alterTable(this.tableName, (table) => {
       table.dropForeign(['template_id'])
+      table.dropForeign(['user_id'])
     })
   }
 }

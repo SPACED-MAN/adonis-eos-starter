@@ -12,8 +12,10 @@ Key priorities:
 ---
 
 ## Technical Stack
-- **Backend:** AdonisJS 6 (Lucid ORM, Validator, Bouncer)
-- **Frontend:** Inertia + React
+- **Server:** AdonisJS 6 (Lucid ORM, Validator, Bouncer, SSR)
+- **Client:** Inertia + React
+  - Admin Panel: `inertia/admin/*` (content management)
+  - Public Site: `inertia/site/*` (visitor-facing)
 - **Styling:** Tailwind (dark/light modes via `class` strategy)
 - **Forms:** ShadCN + Zod for validation
 - **DnD:** dnd-kit (sortable)

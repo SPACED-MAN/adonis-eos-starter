@@ -154,6 +154,7 @@ export default class CreateTranslation {
       locale: data.locale,
       translationOfId: basePost.id,
       templateId: basePost.templateId,
+      userId: basePost.userId,
       metaTitle: data.metaTitle || null,
       metaDescription: data.metaDescription || null,
       canonicalUrl: null,

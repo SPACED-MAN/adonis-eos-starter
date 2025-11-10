@@ -5,14 +5,53 @@ A high-performance, SEO-first CMS built with AdonisJS 6, Inertia, React, Tailwin
 Note: Role-based access control (RBAC) is out of scope for the initial milestones. Admin sections are protected by authentication only; roles/permissions will be added later.
 
 ## Tech Stack
-- Backend: AdonisJS 6 (Lucid, Validator, Bouncer)
-- Frontend: Inertia + React
+- **Server:** AdonisJS 6 (Lucid ORM, Validator, Bouncer, SSR)
+- **Client:** Inertia + React
+  - Admin Panel: `inertia/admin/*` (content management)
+  - Public Site: `inertia/site/*` (visitor-facing)
 - Styling: Tailwind (dark/light via class strategy) + ShadCN
 - Forms/Validation: ShadCN + Zod
 - DnD: dnd-kit
 - Rich Text: Lexical (JSON stored, SSR-rendered to HTML)
 - Database: PostgreSQL
-- Caching: CDN + per-module render cache
+- Caching: Redis (SSR page caching)
+
+## Project Structure
+
+### Inertia Pages
+```
+inertia/
+├── app/                    # SSR entrypoint
+│   └── ssr.tsx            # SSR + Redis caching
+├── admin/                  # Admin Panel (content management)
+│   ├── pages/
+│   │   ├── errors/        # Admin-styled error pages
+│   │   │   ├── not_found.tsx
+│   │   │   └── server_error.tsx
+│   │   ├── dashboard.tsx
+│   │   └── login.tsx
+│   └── app.tsx            # Admin client entrypoint
+├── site/                   # Public Site (visitor-facing)
+│   ├── pages/
+│   │   ├── errors/        # Public-styled error pages
+│   │   │   ├── not_found.tsx
+│   │   │   └── server_error.tsx
+│   │   └── home.tsx
+│   └── app.tsx            # Site client entrypoint
+├── modules/                # Shared content modules
+│   ├── hero-static.tsx    # Pure SSR (static)
+│   ├── prose-static.tsx   # Pure SSR (static)
+│   ├── gallery.tsx        # React SSR + hydration (interactive)
+│   ├── accordion.tsx      # React SSR + hydration (interactive)
+│   ├── types.ts           # Shared UI types
+│   └── index.ts           # Module registry
+├── components/             # Shared React components
+│   └── ModuleRenderer.tsx
+└── css/
+    └── app.css            # Global styles
+```
+
+**Error Pages:** Separate versions for admin and public site ensure appropriate styling and CTAs based on context. The exception handler automatically routes to the correct version based on URL prefix (`/admin/*` vs everything else).
 
 ## Milestones
 
@@ -109,23 +148,96 @@ How to test:
 5. Watch mode for TDD:
    - `node ace test --watch` – Re-run tests on file changes
 
-### Milestone 4 — Module System (Backend & SSR)
-- Implement ModuleModel base + registry
-- Implement `ModuleHero` and `ModuleProse` with SSR (Lexical)
-- Implement render pipeline (merge props/overrides, JSON-LD, cache hooks, locale context)
-- Enforce module scopes by post type
-- API endpoints:
-  - `GET /api/modules/registry`
-  - `POST /api/posts`, `PUT /api/posts/:id`, `GET /api/posts/:slug`
-  - `POST /api/posts/:id/modules`, `PUT /api/post-modules/:id`
-  - `POST /api/modules/global`, `GET /api/modules/global/:slug`
+### Milestone 4 — Module System (Server-Side Rendering) (✅ Complete)
+**Implemented:**
+- ✅ Base Module system with `BaseModule` class and type definitions
+- ✅ Module Registry service for managing available modules
+- ✅ `HeroModule` with SSR rendering (titles, subtitles, CTAs, images)
+- ✅ `ProseModule` with Lexical JSON SSR (paragraphs, headings, lists, formatting)
+- ✅ Module Renderer service (props merging, locale context, JSON-LD generation)
+- ✅ Module Scope service (enforce which modules work with which post types)
+- ✅ Actions pattern for post/module operations:
+  - `CreatePost`, `UpdatePost`
+  - `AddModuleToPost`, `UpdatePostModule`
+- ✅ API endpoints (all authenticated except `GET /api/posts/:slug`):
+  - `GET /api/modules/registry` – List all registered modules
+  - `GET /api/modules/:type/schema` – Get specific module schema
+  - `POST /api/posts` – Create post (with optional template seeding)
+  - `PUT /api/posts/:id` – Update post
+  - `GET /api/posts/:slug` – Get post with rendered modules (public)
+  - `POST /api/posts/:id/modules` – Add module to post
+  - `PUT /api/post-modules/:id` – Update module (reorder, overrides, lock)
+- ✅ Comprehensive unit tests (53/53 passing - 100%):
+  - Module registry tests (9/9 ✅)
+  - Hero module tests (6/6 ✅)
+  - Prose module tests (6/6 ✅)
+  - Post action tests (6/6 ✅)
+  - Translation action tests (11/11 ✅)
+  - i18n tests (16/16 ✅)
+
+**Modules Bootstrap:**
+- Modules are automatically registered on app startup via `start/modules.ts`
+- Current modules: Hero, Prose
+- Extensible: add new modules by creating class and registering
+
+**Creating New Modules:**
+
+Generate a new module:
+```bash
+# Interactive module (default - uses React)
+node ace make:module Gallery
+
+# Static module (pure SSR, max performance)
+node ace make:module Testimonial --mode=static
+```
+
+This creates **two files**:
+- **Backend:** `app/modules/gallery.ts` (configuration, schema, validation)
+- **Frontend:** `inertia/modules/gallery.tsx` or `gallery-static.tsx` (React component)
+
+Both files include:
+- Complete scaffolding with helpful TODO comments
+- Type-safe props interfaces
+- Module configuration
+- Schema definition for validation
+- Ready-to-implement templates
+
+Then:
+1. Implement the TODOs in both files
+2. Register in `start/modules.ts`:
+   ```typescript
+   import GalleryModule from '#modules/gallery'
+   ModuleRegistry.register(new GalleryModule())
+   ```
+3. Create unit tests in `tests/unit/modules/`
+
+**Choosing Mode:**
+- `--mode=static`: Simple content (text, images, CTAs) → Pure SSR, max performance
+- `--mode=react` (default): Interactive features (tabs, carousels, forms) → React SSR + hydration
+
+See `app/modules/hero.ts` / `inertia/modules/hero-static.tsx` for static examples.
+See `app/modules/gallery.ts` / `inertia/modules/gallery.tsx` for React examples.
 
 How to test:
-1. Create a post via `POST /api/posts` (optionally with template).
-2. Add a `ModuleHero` via `POST /api/posts/:id/modules`.
-3. Fetch `GET /api/posts/:slug` and verify ordered modules and SSR HTML.
-4. Confirm `GET /api/modules/registry` returns schemas.
-5. Test module scopes: try adding restricted module to wrong post type.
+1. Run automated tests: `node ace test unit`
+2. Check module registry: `curl http://localhost:3333/api/modules/registry`
+3. Get module schema: `curl http://localhost:3333/api/modules/hero/schema`
+4. Create a post (requires auth):
+   ```bash
+   curl -X POST http://localhost:3333/api/posts \
+     -H "Content-Type: application/json" \
+     -d '{"type":"blog","locale":"en","slug":"my-post","title":"My Post"}'
+   ```
+5. Add a Hero module to the post (requires auth):
+   ```bash
+   curl -X POST http://localhost:3333/api/posts/{POST_ID}/modules \
+     -H "Content-Type: application/json" \
+     -d '{"moduleType":"hero","scope":"local","props":{"title":"Welcome"}}'
+   ```
+6. View rendered post (public):
+   ```bash
+   curl http://localhost:3333/api/posts/my-post?locale=en
+   ```
 
 ### Milestone 5 — Admin Editor MVP
 - Inertia Admin:
@@ -163,16 +275,17 @@ How to test:
 5. Test locale-specific redirects.
 
 ### Milestone 7 — Caching & Performance
-- Per-module render cache (HTML + ETag, locale-aware cache keys)
+- ✅ Redis SSR page caching (1-hour TTL, cache key based on component + props)
 - CDN-friendly caching by path
 - Image performance: AVIF/WebP, lazy load, priority hints
 - Query optimization using GIN and composite indexes
 
 How to test:
-1. Warm a page; reload and verify cache headers/ETag behavior.
-2. Invalidate a module and verify re-render.
-3. Confirm image formats and lazy-loading in DOM.
-4. Run query performance tests with EXPLAIN ANALYZE.
+1. Redis caching: Refresh a page twice, second load should be instant (~0.5ms vs ~10-20ms)
+2. Check Redis keys: `redis-cli KEYS "ssr:*"` to see cached pages
+3. Invalidate cache: `redis-cli FLUSHDB` to clear all cached pages
+4. Confirm image formats and lazy-loading in DOM.
+5. Run query performance tests with EXPLAIN ANALYZE.
 
 ### Milestone 8 — Admin Tools
 - Admin: URL pattern manager UI

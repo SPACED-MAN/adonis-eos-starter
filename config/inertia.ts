@@ -13,10 +13,10 @@ const inertiaConfig = defineConfig({
   sharedData: {
     // user: (ctx) => ctx.inertia.always(() => ctx.auth.user),
     csrf: (ctx) => ctx.request.csrfToken,
-    errors: (ctx) => ctx.session.flashMessages.get('errors'),
-    errorsBag: (ctx) => ctx.session.flashMessages.get('errorsBag'),
-    error: (ctx) => ctx.session.flashMessages.get('error'),
-    success: (ctx) => ctx.session.flashMessages.get('success'),
+    errors: (ctx) => ctx.session?.flashMessages?.get('errors') ?? {},
+    errorsBag: (ctx) => ctx.session?.flashMessages?.get('errorsBag') ?? {},
+    error: (ctx) => ctx.session?.flashMessages?.get('error') ?? null,
+    success: (ctx) => ctx.session?.flashMessages?.get('success') ?? null,
   },
 
   /**
@@ -24,7 +24,12 @@ const inertiaConfig = defineConfig({
    */
   ssr: {
     enabled: true,
-    entrypoint: 'inertia/app/ssr.tsx'
+    entrypoint: 'inertia/app/ssr.tsx',
+    /**
+     * Only SSR public pages for SEO benefits.
+     * Admin pages don't need SSR (behind auth, no SEO value)
+     */
+    pages: (ctx, page) => !page.startsWith('admin')
   }
 })
 

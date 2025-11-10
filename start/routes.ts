@@ -47,3 +47,26 @@ router.group(() => {
 	router.delete('/posts/:id/translations/:locale', [TranslationsController, 'destroy'])
 }).prefix('/api').use(middleware.auth())
 
+/**
+ * API Routes - Modules
+ */
+const ModulesController = () => import('#controllers/modules_controller')
+router.group(() => {
+	router.get('/modules/registry', [ModulesController, 'registry'])
+	router.get('/modules/:type/schema', [ModulesController, 'schema'])
+}).prefix('/api')
+
+/**
+ * API Routes - Posts
+ */
+const PostsController = () => import('#controllers/posts_controller')
+router.group(() => {
+	router.post('/posts', [PostsController, 'store'])
+	router.put('/posts/:id', [PostsController, 'update'])
+	router.post('/posts/:id/modules', [PostsController, 'storeModule'])
+	router.put('/post-modules/:id', [PostsController, 'updateModule'])
+}).prefix('/api').use(middleware.auth())
+
+// Public post viewing endpoint
+router.get('/api/posts/:slug', [PostsController, 'show'])
+

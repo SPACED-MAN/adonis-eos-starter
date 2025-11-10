@@ -6,12 +6,18 @@ This directory contains coding guidelines and conventions for the Adonis EOS pro
 
 ### 📋 Available Rules
 
-1. **[conventions.md](./conventions.md)** - Core coding standards and framework conventions
+1. **[terminology.md](./terminology.md)** - **⭐ START HERE** - Project terminology guide
+   - Admin vs Public Site vs Server
+   - Clear naming conventions
+   - Avoiding ambiguous terms
+   - Quick decision tree for code placement
+
+2. **[conventions.md](./conventions.md)** - Core coding standards and framework conventions
    - AdonisJS patterns and best practices
    - When to check official documentation
    - Project architecture guidelines
 
-2. **[actions.md](./actions.md)** - Action-based controller patterns
+3. **[actions.md](./actions.md)** - Action-based controller patterns
    - Single-responsibility action classes
    - Avoiding fat controllers
    - Dependency injection patterns
@@ -23,12 +29,19 @@ This directory contains coding guidelines and conventions for the Adonis EOS pro
    - Database testing strategies
    - Common testing patterns
 
-4. **[documentation.md](./documentation.md)** - Documentation standards
+4. **[modules.md](./modules.md)** - Module system development guide
+   - Creating content modules
+   - Module architecture and rationale
+   - SSR rendering patterns
+   - i18n support in modules
+   - Testing modules
+
+5. **[documentation.md](./documentation.md)** - Documentation standards
    - Code documentation requirements
    - README and API documentation
    - Comment guidelines
 
-5. **[ui-components.md](./ui-components.md)** - UI/UX patterns
+6. **[ui-components.md](./ui-components.md)** - UI/UX patterns
    - Component structure
    - Styling conventions
    - Accessibility guidelines
@@ -67,6 +80,64 @@ export default class PostsController {
 - ✅ Multi-step operations
 - ✅ Reusable logic
 - ✅ Background jobs
+
+## Module Quick Start
+
+**Creating a content module:**
+```bash
+# 1. Generate module files (backend + frontend)
+node ace make:module VideoEmbed --mode=react  # Interactive (default)
+# OR
+node ace make:module Testimonial --mode=static  # Simple/static
+
+# Creates TWO files:
+#   app/modules/video_embed.ts (backend: config, schema, validation)
+#   inertia/modules/video-embed.tsx (frontend: React component)
+
+# 2. Implement backend (app/modules/video_embed.ts)
+export default class VideoEmbedModule extends BaseModule {
+  getRenderingMode() {
+    return 'react' as const  // or 'static'
+  }
+
+  getConfig(): ModuleConfig {
+    return {
+      type: 'video-embed',
+      name: 'Video Embed',
+      icon: 'video',
+      propsSchema: {
+        videoUrl: { type: 'string', required: true },
+        title: { type: 'string', translatable: true },
+      },
+      defaultProps: { videoUrl: '', title: '' },
+    }
+  }
+}
+
+# 3. Implement frontend (inertia/modules/video-embed.tsx)
+export default function VideoEmbed({ videoUrl, title }: VideoEmbedProps) {
+  return (
+    <div className="video-embed">
+      <h2>{title}</h2>
+      <iframe src={videoUrl} />
+    </div>
+  )
+}
+
+# 4. Register in start/modules.ts
+import VideoEmbedModule from '#modules/video_embed'
+ModuleRegistry.register(new VideoEmbedModule())
+
+# 5. Test
+node ace test tests/unit/modules/video_embed.spec.ts
+```
+
+**Module philosophy:**
+- Backend defines structure (config, schema, validation)
+- Frontend handles rendering (React components)
+- Data lives in `post_modules.props` (JSONB)
+- No migrations needed to add/update modules
+- Choose static for performance, React for interactivity
 
 ## Testing Quick Start
 

@@ -1,19 +1,34 @@
 import '../css/app.css'
 import ReactDOMServer from 'react-dom/server'
 import { createInertiaApp } from '@inertiajs/react'
+import redis from '@adonisjs/redis/services/main'
+import crypto from 'node:crypto'
 
-export default function render(page: any) {
-  return createInertiaApp({
+export default async function render(page: any) {
+  // Generate cache key from page component and props
+  const cacheKey = `ssr:${page.component}:${crypto
+    .createHash('md5')
+    .update(JSON.stringify(page.props))
+    .digest('hex')}`
+
+  // Check cache first
+  const cached = await redis.get(cacheKey)
+  if (cached) {
+    return cached
+  }
+
+  // Render if not cached
+  const html = await createInertiaApp({
     page,
     render: ReactDOMServer.renderToString,
     resolve: (name) => {
       const sitePages = import.meta.glob('../site/pages/**/*.tsx', { eager: true })
       const adminPages = import.meta.glob('../admin/pages/**/*.tsx', { eager: true })
-      
+
       // Handle both "site/home" and "admin/dashboard" formats
       let modulePath: string
       let module: any
-      
+
       if (name.startsWith('site/')) {
         const pageName = name.replace('site/', '')
         modulePath = `../site/pages/${pageName}.tsx`
@@ -27,13 +42,18 @@ export default function render(page: any) {
         modulePath = `../site/pages/${name}.tsx`
         module = sitePages[modulePath] ?? adminPages[`../admin/pages/${name}.tsx`]
       }
-      
+
       if (!module) {
         throw new Error(`Page not found: ${name} (looking for: ${modulePath})`)
       }
-      
+
       return (module as any).default
     },
     setup: ({ App, props }) => <App {...props} />,
   })
+
+  // Cache the rendered HTML for 1 hour
+  await redis.setex(cacheKey, 3600, html)
+
+  return html
 }

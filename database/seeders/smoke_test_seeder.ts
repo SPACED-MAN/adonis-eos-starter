@@ -1,5 +1,6 @@
 import { BaseSeeder } from '@adonisjs/lucid/seeders'
 import db from '@adonisjs/lucid/services/db'
+import User from '#models/user'
 
 export default class extends BaseSeeder {
   async run() {
@@ -7,6 +8,15 @@ export default class extends BaseSeeder {
     await db.rawQuery('TRUNCATE posts, module_instances, post_modules, templates, template_modules, url_patterns, url_redirects, module_scopes, custom_fields, post_type_custom_fields, post_custom_field_values CASCADE')
     
     console.log('🧪 Running smoke tests for database schema (with i18n support)...')
+    
+    // Get or create a test user for posts
+    let user = await User.findBy('email', 'test@example.com')
+    if (!user) {
+      user = await User.create({
+        email: 'test@example.com',
+        password: 'password',
+      })
+    }
     
     // Test 1: Create a template
     const [template] = await db.table('templates').insert({
@@ -39,6 +49,7 @@ export default class extends BaseSeeder {
       status: 'draft',
       locale: 'en',
       template_id: template.id,
+      user_id: user.id,
       meta_title: 'Test Meta Title',
       meta_description: 'Test meta description',
       robots_json: JSON.stringify({ index: true, follow: true }),
@@ -56,6 +67,7 @@ export default class extends BaseSeeder {
       locale: 'es',
       translation_of_id: post.id,
       template_id: template.id,
+      user_id: user.id,
       meta_title: 'Título Meta de Prueba',
       meta_description: 'Descripción meta de prueba',
       created_at: new Date(),

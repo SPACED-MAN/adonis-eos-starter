@@ -21,6 +21,7 @@ test.group('CreateTranslationAction', (group) => {
       title: 'Test Post',
       status: 'draft',
       locale: 'en',
+      userId: 1,
     })
 
     // Execute action
@@ -70,6 +71,7 @@ test.group('CreateTranslationAction', (group) => {
       title: 'Test Post',
       status: 'draft',
       locale: 'en',
+      userId: 1,
     })
 
     try {
@@ -94,6 +96,7 @@ test.group('CreateTranslationAction', (group) => {
       title: 'Test Post',
       status: 'draft',
       locale: 'en',
+      userId: 1,
     })
 
     // Create first translation
@@ -104,6 +107,7 @@ test.group('CreateTranslationAction', (group) => {
       status: 'draft',
       locale: 'es',
       translationOfId: originalPost.id,
+      userId: 1,
     })
 
     try {
@@ -128,6 +132,7 @@ test.group('CreateTranslationAction', (group) => {
       title: 'Test Post',
       status: 'draft',
       locale: 'en',
+      userId: 1,
     })
 
     const esTranslation = await Post.create({
@@ -137,6 +142,7 @@ test.group('CreateTranslationAction', (group) => {
       status: 'draft',
       locale: 'es',
       translationOfId: originalPost.id,
+      userId: 1,
     })
 
     // Try to create French translation from Spanish translation
@@ -165,6 +171,7 @@ test.group('DeleteTranslationAction', (group) => {
       title: 'Test Post',
       status: 'draft',
       locale: 'en',
+      userId: 1,
     })
 
     const translation = await Post.create({
@@ -174,6 +181,7 @@ test.group('DeleteTranslationAction', (group) => {
       status: 'draft',
       locale: 'es',
       translationOfId: originalPost.id,
+      userId: 1,
     })
 
     const deleted = await DeleteTranslation.handle({
@@ -212,6 +220,7 @@ test.group('DeleteTranslationAction', (group) => {
       title: 'Test Post',
       status: 'draft',
       locale: 'en',
+      userId: 1,
     })
 
     try {
@@ -234,6 +243,7 @@ test.group('DeleteTranslationAction', (group) => {
       title: 'Test Post',
       status: 'draft',
       locale: 'en',
+      userId: 1,
     })
 
     try {
@@ -260,6 +270,7 @@ test.group('DeleteTranslationAction', (group) => {
       title: 'Test Post',
       status: 'draft',
       locale: 'en',
+      userId: 1,
     })
 
     const translation = await Post.create({
@@ -269,6 +280,7 @@ test.group('DeleteTranslationAction', (group) => {
       status: 'draft',
       locale: 'es',
       translationOfId: originalPost.id,
+      userId: 1,
     })
 
     // Call with translation ID (not original ID)
