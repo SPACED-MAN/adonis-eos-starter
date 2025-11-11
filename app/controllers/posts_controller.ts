@@ -4,7 +4,7 @@ import CreatePost, { CreatePostException } from '#actions/posts/create_post'
 import UpdatePost, { UpdatePostException } from '#actions/posts/update_post'
 import AddModuleToPost, { AddModuleToPostException } from '#actions/posts/add_module_to_post'
 import UpdatePostModule, { UpdatePostModuleException } from '#actions/posts/update_post_module'
-import moduleRenderer from '#services/module_renderer'
+import db from '@adonisjs/lucid/services/db'
 
 /**
  * Posts Controller
@@ -121,13 +121,16 @@ export default class PostsController {
    *
    * Get a post by slug with rendered modules.
    */
-  async show({ params, request, response }: HttpContext) {
+  async show({ params, request, response, inertia }: HttpContext) {
     const { slug } = params
     const locale = request.input('locale', 'en')
 
     try {
       // Find post by slug and locale
-      const post = await Post.query().where('slug', slug).where('locale', locale).first()
+      const post = await Post.query()
+        .where('slug', slug)
+        .where('locale', locale)
+        .first()
 
       if (!post) {
         return response.notFound({
@@ -137,28 +140,48 @@ export default class PostsController {
         })
       }
 
-      // Render the post with its modules
-      const rendered = await moduleRenderer.renderPost(post.id, locale, {
-        postType: post.type,
-        isPreview: false,
+      // Load post modules with their data
+      const postModules = await db
+        .from('post_modules')
+        .join('module_instances', 'post_modules.module_id', 'module_instances.id')
+        .where('post_modules.post_id', post.id)
+        .select(
+          'post_modules.id as postModuleId',
+          'module_instances.type',
+          'module_instances.scope',
+          'module_instances.props',
+          'post_modules.overrides',
+          'post_modules.locked',
+          'post_modules.order_index as orderIndex'
+        )
+        .orderBy('post_modules.order_index', 'asc')
+
+      // Merge props with overrides for each module
+      const modules = postModules.map((pm) => {
+        const baseProps = pm.props || {}
+        const overrides = pm.overrides || {}
+
+        return {
+          id: pm.postModuleId,
+          type: pm.type,
+          props: { ...baseProps, ...overrides }, // Merge base props with overrides
+        }
       })
 
-      return response.ok({
-        data: {
-          post: {
-            id: post.id,
-            type: post.type,
-            locale: post.locale,
-            slug: post.slug,
-            title: post.title,
-            excerpt: post.excerpt,
-            metaTitle: post.metaTitle,
-            metaDescription: post.metaDescription,
-            status: post.status,
-          },
-          html: rendered.html,
-          jsonLd: rendered.jsonLd,
+      // Return as Inertia page for public viewing
+      return inertia.render('site/post', {
+        post: {
+          id: post.id,
+          type: post.type,
+          locale: post.locale,
+          slug: post.slug,
+          title: post.title,
+          excerpt: post.excerpt,
+          metaTitle: post.metaTitle,
+          metaDescription: post.metaDescription,
+          status: post.status,
         },
+        modules,
       })
     } catch (error) {
       return response.internalServerError({

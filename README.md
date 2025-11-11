@@ -148,7 +148,7 @@ How to test:
 5. Watch mode for TDD:
    - `node ace test --watch` – Re-run tests on file changes
 
-### Milestone 4 — Module System (Server-Side Rendering) (✅ Complete)
+### Milestone 4 — Module System & Public Post Viewing (✅ Complete)
 **Implemented:**
 - ✅ Base Module system with `BaseModule` class and type definitions
 - ✅ Module Registry service for managing available modules
@@ -159,14 +159,18 @@ How to test:
 - ✅ Actions pattern for post/module operations:
   - `CreatePost`, `UpdatePost`
   - `AddModuleToPost`, `UpdatePostModule`
-- ✅ API endpoints (all authenticated except `GET /api/posts/:slug`):
+- ✅ API endpoints (authenticated):
   - `GET /api/modules/registry` – List all registered modules
   - `GET /api/modules/:type/schema` – Get specific module schema
   - `POST /api/posts` – Create post (with optional template seeding)
   - `PUT /api/posts/:id` – Update post
-  - `GET /api/posts/:slug` – Get post with rendered modules (public)
   - `POST /api/posts/:id/modules` – Add module to post
   - `PUT /api/post-modules/:id` – Update module (reorder, overrides, lock)
+- ✅ Public post viewing:
+  - `GET /posts/:slug` – View post with SSR modules (public, SEO-optimized)
+  - Server-side rendering with Redis caching
+  - JSON-LD structured data for rich search results
+  - Locale-aware (pass `?locale=es` for translations)
 - ✅ Comprehensive unit tests (53/53 passing - 100%):
   - Module registry tests (9/9 ✅)
   - Hero module tests (6/6 ✅)
@@ -222,22 +226,30 @@ How to test:
 1. Run automated tests: `node ace test unit`
 2. Check module registry: `curl http://localhost:3333/api/modules/registry`
 3. Get module schema: `curl http://localhost:3333/api/modules/hero/schema`
-4. Create a post (requires auth):
+4. Create test data:
    ```bash
+   node ace db:seed --files database/seeders/smoke_test_seeder.ts
+   ```
+5. View a post in the browser:
+   - Visit `http://localhost:3333/posts/test-post` (English version)
+   - Visit `http://localhost:3333/posts/publicacion-de-prueba?locale=es` (Spanish version)
+   - View page source to see JSON-LD structured data
+6. Test via API (requires auth):
+   ```bash
+   # Create a new post
    curl -X POST http://localhost:3333/api/posts \
      -H "Content-Type: application/json" \
      -d '{"type":"blog","locale":"en","slug":"my-post","title":"My Post"}'
-   ```
-5. Add a Hero module to the post (requires auth):
-   ```bash
+   
+   # Add a Hero module to the post
    curl -X POST http://localhost:3333/api/posts/{POST_ID}/modules \
      -H "Content-Type: application/json" \
      -d '{"moduleType":"hero","scope":"local","props":{"title":"Welcome"}}'
    ```
-6. View rendered post (public):
-   ```bash
-   curl http://localhost:3333/api/posts/my-post?locale=en
-   ```
+7. Verify caching:
+   - First page load: ~10-20ms (SSR + module rendering)
+   - Subsequent loads: ~0.5ms (Redis cache hit)
+   - Clear cache: `redis-cli FLUSHDB`
 
 ### Milestone 5 — Admin Editor MVP
 - Inertia Admin:

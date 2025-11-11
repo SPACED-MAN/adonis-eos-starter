@@ -57,7 +57,7 @@ router.group(() => {
 }).prefix('/api')
 
 /**
- * API Routes - Posts
+ * API Routes - Posts (Admin)
  */
 const PostsController = () => import('#controllers/posts_controller')
 router.group(() => {
@@ -67,6 +67,8 @@ router.group(() => {
 	router.put('/post-modules/:id', [PostsController, 'updateModule'])
 }).prefix('/api').use(middleware.auth())
 
-// Public post viewing endpoint
-router.get('/api/posts/:slug', [PostsController, 'show'])
+/**
+ * Public Routes - Posts
+ */
+router.get('/posts/:slug', [PostsController, 'show'])
 
