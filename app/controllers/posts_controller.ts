@@ -13,6 +13,35 @@ import db from '@adonisjs/lucid/services/db'
  */
 export default class PostsController {
   /**
+   * GET /admin/posts/:id/edit
+   *
+   * Show the post editor
+   */
+  async edit({ params, inertia, response }: HttpContext) {
+    try {
+      const post = await Post.findOrFail(params.id)
+      
+      return inertia.render('admin/posts/editor', {
+        post: {
+          id: post.id,
+          type: post.type,
+          slug: post.slug,
+          title: post.title,
+          excerpt: post.excerpt,
+          status: post.status,
+          locale: post.locale,
+          metaTitle: post.metaTitle,
+          metaDescription: post.metaDescription,
+          createdAt: post.createdAt.toISO(),
+          updatedAt: post.updatedAt.toISO(),
+        },
+      })
+    } catch (error) {
+      return response.notFound({ error: 'Post not found' })
+    }
+  }
+
+  /**
    * POST /api/posts
    *
    * Create a new post, optionally with a template.
@@ -85,7 +114,7 @@ export default class PostsController {
     ])
 
     try {
-      const post = await UpdatePost.handle({
+      await UpdatePost.handle({
         postId: id,
         slug,
         title,
@@ -95,22 +124,13 @@ export default class PostsController {
         metaDescription,
       })
 
-      return response.ok({
-        data: {
-          id: post.id,
-          slug: post.slug,
-          title: post.title,
-          status: post.status,
-          updatedAt: post.updatedAt,
-        },
-        message: 'Post updated successfully',
-      })
+      // For Inertia requests, redirect back to editor
+      // Toast notification is handled client-side
+      return response.redirect().back()
     } catch (error) {
       if (error instanceof UpdatePostException) {
-        return response.status(error.statusCode).json({
-          error: error.message,
-          ...error.meta,
-        })
+        // Return error for Inertia to handle
+        return response.redirect().back()
       }
       throw error
     }

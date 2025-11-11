@@ -4,7 +4,7 @@ type UpdatePostParams = {
   postId: string
   slug?: string
   title?: string
-  status?: 'draft' | 'published' | 'archived'
+  status?: 'draft' | 'review' | 'scheduled' | 'published' | 'archived'
   excerpt?: string | null
   metaTitle?: string | null
   metaDescription?: string | null

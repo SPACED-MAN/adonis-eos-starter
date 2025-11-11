@@ -10,6 +10,25 @@
   <link rel="preconnect" href="https://fonts.bunny.net">
   <link href="https://fonts.bunny.net/css?family=instrument-sans:400,400i,500,500i,600,600i,700,700i" rel="stylesheet" />
 
+  {{-- Theme Detection Script (runs before page render to prevent flicker) --}}
+  <script>
+    (function() {
+      // Detect theme context (admin vs site) from URL
+      const isAdmin = window.location.pathname.startsWith('/admin')
+      const theme = isAdmin ? 'admin' : 'site'
+      
+      // Detect dark mode preference
+      const isDark = localStorage.getItem('theme-mode') === 'dark' ||
+        (!localStorage.getItem('theme-mode') && window.matchMedia('(prefers-color-scheme: dark)').matches)
+      
+      // Apply theme to html element before page renders
+      document.documentElement.setAttribute('data-theme', theme)
+      if (isDark) {
+        document.documentElement.classList.add('dark')
+      }
+    })()
+  </script>
+
   <style>
     :root {
       --sand-1: #fdfdfc;

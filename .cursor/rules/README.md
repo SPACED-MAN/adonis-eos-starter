@@ -23,25 +23,33 @@ This directory contains coding guidelines and conventions for the Adonis EOS pro
    - Dependency injection patterns
    - When to use actions vs services
 
-3. **[testing.md](./testing.md)** - Comprehensive testing guidelines
+4. **[testing.md](./testing.md)** - Comprehensive testing guidelines
    - Unit and functional test patterns
    - Test organization and structure
    - Database testing strategies
    - Common testing patterns
 
-4. **[modules.md](./modules.md)** - Module system development guide
+5. **[modules.md](./modules.md)** - Module system development guide
    - Creating content modules
    - Module architecture and rationale
    - SSR rendering patterns
    - i18n support in modules
    - Testing modules
 
-5. **[documentation.md](./documentation.md)** - Documentation standards
+6. **[theming.md](./theming.md)** - **⭐ DESIGN SYSTEM** - Theming and color palette
+   - Centralized theme configuration
+   - Semantic color tokens
+   - Admin vs Site themes
+   - Dark/light mode support
+   - Migration guide
+
+7. **[documentation.md](./documentation.md)** - Documentation standards
    - Code documentation requirements
    - README and API documentation
    - Comment guidelines
 
-6. **[ui-components.md](./ui-components.md)** - UI/UX patterns
+8. **[ui-components.md](./ui-components.md)** - UI/UX patterns
+   - Sonner toast notifications
    - Component structure
    - Styling conventions
    - Accessibility guidelines

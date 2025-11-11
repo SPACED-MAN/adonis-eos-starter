@@ -23,9 +23,28 @@ router.post('/admin/logout', [AuthController, 'logout']).use(middleware.auth())
 /**
  * Admin home (protected)
  */
+const Post = () => import('#models/post')
 router.get('/admin', async ({ inertia }) => {
-	return inertia.render('admin/dashboard')
+	const PostModel = await Post()
+	const posts = await PostModel.default.query().orderBy('updated_at', 'desc').limit(10)
+	
+	return inertia.render('admin/dashboard', {
+		posts: posts.map(p => ({
+			id: p.id,
+			title: p.title,
+			slug: p.slug,
+			status: p.status,
+			locale: p.locale,
+			updatedAt: p.updatedAt.toISO(),
+		}))
+	})
 }).use(middleware.auth())
+
+/**
+ * Admin - Posts
+ */
+const PostsController = () => import('#controllers/posts_controller')
+router.get('/admin/posts/:id/edit', [PostsController, 'edit']).use(middleware.auth())
 
 /**
  * API Routes - Locales
@@ -59,7 +78,6 @@ router.group(() => {
 /**
  * API Routes - Posts (Admin)
  */
-const PostsController = () => import('#controllers/posts_controller')
 router.group(() => {
 	router.post('/posts', [PostsController, 'store'])
 	router.put('/posts/:id', [PostsController, 'update'])

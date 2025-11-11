@@ -1,5 +1,72 @@
 # UI & Component Guidelines
 
+## Notifications
+
+### Always Use Sonner for Toasts
+**Official Docs:** https://sonner.emilkowal.ski/
+
+- ✅ Use `toast.success()` for successful operations
+- ✅ Use `toast.error()` for errors and validation failures
+- ✅ Use `toast.info()` for informational messages
+- ✅ Use `toast.warning()` for warnings
+- ✅ Use `toast.promise()` for async operations
+- ✅ Use `toast()` with options for rich toasts (description, actions)
+- ❌ Don't use alert() or console.log() for user notifications
+- ❌ Don't create custom toast components
+
+**Examples:**
+```tsx
+import { toast } from 'sonner'
+
+// Basic toast
+toast('Event has been created')
+
+// Success/Error/Info/Warning
+toast.success('Post updated successfully')
+toast.error('Failed to update post')
+toast.info('New updates available')
+toast.warning('Unsaved changes')
+
+// With description
+toast('Post published', {
+  description: 'Your post is now visible to everyone',
+})
+
+// With action button
+toast('Post deleted', {
+  action: {
+    label: 'Undo',
+    onClick: () => console.log('Undo'),
+  },
+})
+
+// Promise-based (auto loading/success/error)
+toast.promise(
+  updatePost(id, data),
+  {
+    loading: 'Saving...',
+    success: 'Post saved!',
+    error: 'Failed to save post',
+  }
+)
+
+// With Inertia forms
+put('/api/posts/1', {
+  onSuccess: () => toast.success('Post updated'),
+  onError: (errors) => toast.error(Object.values(errors)[0]),
+})
+```
+
+**Features Enabled:**
+- ✅ Rich colors (colored backgrounds for success/error/etc.)
+- ✅ Close button (manual dismissal)
+- ✅ Auto-dismiss after ~4 seconds
+- ✅ Dark mode support
+- ✅ Position: bottom-right
+- ✅ Custom icons (via Lucide React)
+
+**Setup:** The `<Toaster />` component is already added to the admin app layout (`inertia/admin/app.tsx`). No additional setup needed.
+
 ## Styling
 
 ### Always Use Tailwind CSS

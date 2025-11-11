@@ -5,6 +5,15 @@ import redis from '@adonisjs/redis/services/main'
 import crypto from 'node:crypto'
 
 export default async function render(page: any) {
+  const componentName = String(page?.component ?? '')
+  const isAdminPage = componentName.startsWith('admin/')
+
+  // Never SSR admin pages (extra guard in addition to config)
+  if (isAdminPage) {
+    // Return empty string so the client fully renders
+    return ''
+  }
+
   // Generate cache key from page component and props
   const cacheKey = `ssr:${page.component}:${crypto
     .createHash('md5')
@@ -12,9 +21,11 @@ export default async function render(page: any) {
     .digest('hex')}`
 
   // Check cache first
-  const cached = await redis.get(cacheKey)
-  if (cached) {
-    return cached
+  if (!isAdminPage) {
+    const cached = await redis.get(cacheKey)
+    if (cached) {
+      return cached
+    }
   }
 
   // Render if not cached

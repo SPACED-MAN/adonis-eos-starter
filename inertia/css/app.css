@@ -1,20 +1,234 @@
 @import "tailwindcss";
 
+/**
+ * Theme System
+ * 
+ * Centralized design tokens for admin and site.
+ * Configure colors in: config/theme.ts
+ * 
+ * Usage:
+ * - Admin pages automatically use admin theme
+ * - Site pages automatically use site theme
+ * - All components reference semantic tokens (bg-*, text-*, border-*)
+ */
+
 @theme {
   --font-sans: 'Instrument Sans', sans-serif;
+  /**
+   * Register a "primary" color scale so utilities like bg-primary-600 are generated.
+   * These root values are defaults and will be overridden by the theme-specific
+   * variables defined below under [data-theme="admin" | "site"] and their dark variants.
+   */
+  --color-primary-50: var(--color-indigo-50);
+  --color-primary-100: var(--color-indigo-100);
+  --color-primary-200: var(--color-indigo-200);
+  --color-primary-300: var(--color-indigo-300);
+  --color-primary-400: var(--color-indigo-400);
+  --color-primary-500: var(--color-indigo-500);
+  --color-primary-600: var(--color-indigo-600);
+  --color-primary-700: var(--color-indigo-700);
+  --color-primary-800: var(--color-indigo-800);
+  --color-primary-900: var(--color-indigo-900);
+  --color-primary-950: var(--color-indigo-950);
 
-  --color-primary: #5A45FF;
+  /**
+   * Neutral scale used for text/borders (text-neutral-*, border-neutral-*)
+   * Defaults map to Slate, overridden per theme below.
+   */
+  --color-neutral-50: var(--color-slate-50);
+  --color-neutral-100: var(--color-slate-100);
+  --color-neutral-200: var(--color-slate-200);
+  --color-neutral-300: var(--color-slate-300);
+  --color-neutral-400: var(--color-slate-400);
+  --color-neutral-500: var(--color-slate-500);
+  --color-neutral-600: var(--color-slate-600);
+  --color-neutral-700: var(--color-slate-700);
+  --color-neutral-800: var(--color-slate-800);
+  --color-neutral-900: var(--color-slate-900);
+  --color-neutral-950: var(--color-slate-950);
 
-  --color-sand-1: #fdfdfc;
-  --color-sand-2: #f9f9f8;
-  --color-sand-3: #f1f0ef;
-  --color-sand-4: #e9e8e6;
-  --color-sand-5: #e2e1de;
-  --color-sand-6: #dad9d6;
-  --color-sand-7: #cfceca;
-  --color-sand-8: #bcbbb5;
-  --color-sand-9: #8d8d86;
-  --color-sand-10: #82827c;
-  --color-sand-11: #63635e;
-  --color-sand-12: #21201c;
+  /**
+   * Background semantic scale (bg-bg-*)
+   * Defaults map to Slate, overridden per theme below.
+   */
+  --color-bg-50: var(--color-slate-50);
+  --color-bg-100: var(--color-slate-100);
+  --color-bg-200: var(--color-slate-200);
+  --color-bg-800: var(--color-slate-800);
+  --color-bg-900: var(--color-slate-900);
+  --color-bg-950: var(--color-slate-950);
+}
+
+/**
+ * Admin Theme - Light Mode
+ * Professional, clean interface for content management
+ */
+[data-theme="admin"] {
+  /* Primary brand color */
+  --color-primary: var(--color-primary-600);
+  --color-primary-50: var(--color-zinc-50);
+  --color-primary-100: var(--color-zinc-100);
+  --color-primary-200: var(--color-zinc-200);
+  --color-primary-300: var(--color-zinc-300);
+  --color-primary-400: var(--color-zinc-400);
+  --color-primary-500: var(--color-zinc-500);
+  --color-primary-600: var(--color-zinc-600);
+  --color-primary-700: var(--color-zinc-700);
+  --color-primary-800: var(--color-zinc-800);
+  --color-primary-900: var(--color-zinc-900);
+  --color-primary-950: var(--color-zinc-950);
+
+  /* Background colors */
+  --color-bg-50: var(--color-zinc-50);
+  --color-bg-100: var(--color-zinc-100);
+  --color-bg-200: var(--color-zinc-200);
+  --color-bg-800: var(--color-zinc-800);
+  --color-bg-900: var(--color-zinc-900);
+  --color-bg-950: var(--color-zinc-950);
+
+  /* Neutral colors (text, borders) */
+  --color-neutral-50: var(--color-zinc-50);
+  --color-neutral-100: var(--color-zinc-100);
+  --color-neutral-200: var(--color-zinc-200);
+  --color-neutral-300: var(--color-zinc-300);
+  --color-neutral-400: var(--color-zinc-400);
+  --color-neutral-500: var(--color-zinc-500);
+  --color-neutral-600: var(--color-zinc-600);
+  --color-neutral-700: var(--color-zinc-700);
+  --color-neutral-800: var(--color-zinc-800);
+  --color-neutral-900: var(--color-zinc-900);
+  --color-neutral-950: var(--color-zinc-950);
+
+  /* Semantic colors */
+  --color-success: var(--color-emerald-500);
+  --color-error: var(--color-red-500);
+  --color-warning: var(--color-amber-500);
+  --color-info: var(--color-blue-500);
+}
+
+/**
+ * Admin Theme - Dark Mode
+ */
+[data-theme="admin"].dark {
+  /* Primary brand color (same as light mode for consistency) */
+  --color-primary: var(--color-primary-600);
+  --color-primary-50: var(--color-zinc-50);
+  --color-primary-100: var(--color-zinc-100);
+  --color-primary-200: var(--color-zinc-200);
+  --color-primary-300: var(--color-zinc-300);
+  --color-primary-400: var(--color-zinc-400);
+  --color-primary-500: var(--color-zinc-500);
+  --color-primary-600: var(--color-zinc-600);
+  --color-primary-700: var(--color-zinc-700);
+  --color-primary-800: var(--color-zinc-800);
+  --color-primary-900: var(--color-zinc-900);
+  --color-primary-950: var(--color-zinc-950);
+
+  /* Dark mode backgrounds */
+  --color-bg-50: var(--color-zinc-950);
+  --color-bg-100: var(--color-zinc-900);
+  --color-bg-200: var(--color-zinc-800);
+  --color-bg-800: var(--color-zinc-200);
+  --color-bg-900: var(--color-zinc-100);
+  --color-bg-950: var(--color-zinc-50);
+
+  /* Dark mode neutral colors */
+  --color-neutral-50: var(--color-zinc-950);
+  --color-neutral-100: var(--color-zinc-900);
+  --color-neutral-200: var(--color-zinc-800);
+  --color-neutral-300: var(--color-zinc-700);
+  --color-neutral-400: var(--color-zinc-600);
+  --color-neutral-500: var(--color-zinc-500);
+  --color-neutral-600: var(--color-zinc-400);
+  --color-neutral-700: var(--color-zinc-300);
+  --color-neutral-800: var(--color-zinc-200);
+  --color-neutral-900: var(--color-zinc-100);
+  --color-neutral-950: var(--color-zinc-50);
+}
+
+/**
+ * Site Theme - Light Mode
+ * Brand-focused, visitor-facing design
+ */
+[data-theme="site"] {
+  /* Primary brand color */
+  --color-primary: var(--color-primary-600);
+  --color-primary-50: var(--color-violet-50);
+  --color-primary-100: var(--color-violet-100);
+  --color-primary-200: var(--color-violet-200);
+  --color-primary-300: var(--color-violet-300);
+  --color-primary-400: var(--color-violet-400);
+  --color-primary-500: var(--color-violet-500);
+  --color-primary-600: var(--color-violet-600);
+  --color-primary-700: var(--color-violet-700);
+  --color-primary-800: var(--color-violet-800);
+  --color-primary-900: var(--color-violet-900);
+  --color-primary-950: var(--color-violet-950);
+
+  /* Background colors */
+  --color-bg-50: var(--color-stone-50);
+  --color-bg-100: var(--color-stone-100);
+  --color-bg-200: var(--color-stone-200);
+  --color-bg-800: var(--color-stone-800);
+  --color-bg-900: var(--color-stone-900);
+  --color-bg-950: var(--color-stone-950);
+
+  /* Neutral colors (text, borders) */
+  --color-neutral-50: var(--color-stone-50);
+  --color-neutral-100: var(--color-stone-100);
+  --color-neutral-200: var(--color-stone-200);
+  --color-neutral-300: var(--color-stone-300);
+  --color-neutral-400: var(--color-stone-400);
+  --color-neutral-500: var(--color-stone-500);
+  --color-neutral-600: var(--color-stone-600);
+  --color-neutral-700: var(--color-stone-700);
+  --color-neutral-800: var(--color-stone-800);
+  --color-neutral-900: var(--color-stone-900);
+  --color-neutral-950: var(--color-stone-950);
+
+  /* Semantic colors */
+  --color-success: var(--color-emerald-500);
+  --color-error: var(--color-red-500);
+  --color-warning: var(--color-amber-500);
+  --color-info: var(--color-blue-500);
+}
+
+/**
+ * Site Theme - Dark Mode
+ */
+[data-theme="site"].dark {
+  /* Primary brand color (same as light mode for consistency) */
+  --color-primary: var(--color-primary-600);
+  --color-primary-50: var(--color-violet-50);
+  --color-primary-100: var(--color-violet-100);
+  --color-primary-200: var(--color-violet-200);
+  --color-primary-300: var(--color-violet-300);
+  --color-primary-400: var(--color-violet-400);
+  --color-primary-500: var(--color-violet-500);
+  --color-primary-600: var(--color-violet-600);
+  --color-primary-700: var(--color-violet-700);
+  --color-primary-800: var(--color-violet-800);
+  --color-primary-900: var(--color-violet-900);
+  --color-primary-950: var(--color-violet-950);
+
+  /* Dark mode backgrounds */
+  --color-bg-50: var(--color-stone-950);
+  --color-bg-100: var(--color-stone-900);
+  --color-bg-200: var(--color-stone-800);
+  --color-bg-800: var(--color-stone-200);
+  --color-bg-900: var(--color-stone-100);
+  --color-bg-950: var(--color-stone-50);
+
+  /* Dark mode neutral colors */
+  --color-neutral-50: var(--color-stone-950);
+  --color-neutral-100: var(--color-stone-900);
+  --color-neutral-200: var(--color-stone-800);
+  --color-neutral-300: var(--color-stone-700);
+  --color-neutral-400: var(--color-stone-600);
+  --color-neutral-500: var(--color-stone-500);
+  --color-neutral-600: var(--color-stone-400);
+  --color-neutral-700: var(--color-stone-300);
+  --color-neutral-800: var(--color-stone-200);
+  --color-neutral-900: var(--color-stone-100);
+  --color-neutral-950: var(--color-stone-50);
 }
