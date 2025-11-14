@@ -299,12 +299,26 @@ export default class PostsController {
       const family = await Post.query().where((q) => {
         q.where('translationOfId', baseId).orWhere('id', baseId)
       })
+      const protocol = (request as any).protocol ? (request as any).protocol() : (request.secure ? 'https' : 'http')
+      const host = (request as any).host ? (request as any).host() : request.header('host')
+      const makeUrl = (slug: string, loc: string) => `${protocol}://${host}/posts/${slug}?locale=${encodeURIComponent(loc)}`
       const alternates = family.map((p) => ({
         locale: p.locale,
-        // Build locale-specific URL (current routing uses query param)
-        href: `/posts/${p.slug}?locale=${encodeURIComponent(p.locale)}`,
+        href: makeUrl(p.slug, p.locale),
       }))
-      const canonical = `/posts/${post.slug}?locale=${encodeURIComponent(post.locale)}`
+      const canonical = makeUrl(post.slug, post.locale)
+      // Robots: noindex,nofollow for non-published, else index,follow
+      const robotsContent = post.status === 'published' ? 'index,follow' : 'noindex,nofollow'
+      // Merge default JSON-LD with post-level overrides (if any)
+      const defaultJsonLd: Record<string, any> = {
+        '@context': 'https://schema.org',
+        '@type': 'BlogPosting',
+        headline: post.metaTitle || post.title,
+        inLanguage: post.locale,
+        mainEntityOfPage: canonical,
+        description: post.metaDescription || undefined,
+      }
+      const jsonLd = { ...defaultJsonLd, ...(post.jsonldOverrides || {}) }
 
       // Load post modules with their data
       const postModules = await db
@@ -350,6 +364,19 @@ export default class PostsController {
         seo: {
           canonical,
           alternates,
+          robots: robotsContent,
+          jsonLd,
+          og: {
+            title: post.metaTitle || post.title,
+            description: post.metaDescription || undefined,
+            url: canonical,
+            type: 'article',
+          },
+          twitter: {
+            card: 'summary_large_image',
+            title: post.metaTitle || post.title,
+            description: post.metaDescription || undefined,
+          },
         },
         modules,
       })

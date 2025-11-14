@@ -6,6 +6,7 @@
  */
 
 import * as Modules from '../../modules'
+import { Head } from '@inertiajs/react'
 import { SiteFooter } from '../components/SiteFooter'
 
 interface PostPageProps {
@@ -25,20 +26,45 @@ interface PostPageProps {
 		type: string
 		props: Record<string, any>
 	}>
+	seo?: {
+		canonical: string
+		alternates: Array<{ locale: string; href: string }>
+	}
 }
 
-export default function Post({ post, modules }: PostPageProps) {
+export default function Post({ post, modules, seo }: PostPageProps) {
 	return (
 		<>
+			<Head title={post.metaTitle || post.title}>
+				{seo?.canonical && <link rel="canonical" href={seo.canonical} />}
+				{seo?.alternates?.map((alt) => (
+					<link key={alt.locale} rel="alternate" hrefLang={alt.locale} href={alt.href} />
+				))}
+				{post.metaDescription && <meta name="description" content={post.metaDescription} />}
+				{seo?.robots && <meta name="robots" content={seo.robots} />}
+				{/* OpenGraph */}
+				{seo?.og?.title && <meta property="og:title" content={seo.og.title} />}
+				{seo?.og?.description && <meta property="og:description" content={seo.og.description} />}
+				{seo?.og?.url && <meta property="og:url" content={seo.og.url} />}
+				{seo?.og?.type && <meta property="og:type" content={seo.og.type} />}
+				{/* Twitter */}
+				{seo?.twitter?.card && <meta name="twitter:card" content={seo.twitter.card} />}
+				{seo?.twitter?.title && <meta name="twitter:title" content={seo.twitter.title} />}
+				{seo?.twitter?.description && <meta name="twitter:description" content={seo.twitter.description} />}
+				{/* JSON-LD */}
+				{seo?.jsonLd && (
+					<script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(seo.jsonLd) }} />
+				)}
+			</Head>
 			{/* Post Header */}
-			<header className="bg-bg-50 py-12">
+			<header className="bg-bg-50 dark:bg-bg-100 py-12">
 				<div className="container mx-auto px-4 sm:px-6 lg:px-8">
 					<div className="max-w-4xl mx-auto">
-						<h1 className="text-4xl sm:text-5xl font-bold text-neutral-900 mb-4">
+						<h1 className="text-4xl sm:text-5xl font-bold text-neutral-900 dark:text-neutral-50 mb-4">
 							{post.title}
 						</h1>
 						{post.excerpt && (
-							<p className="text-xl text-neutral-600">{post.excerpt}</p>
+							<p className="text-xl text-neutral-600 dark:text-neutral-500">{post.excerpt}</p>
 						)}
 					</div>
 				</div>

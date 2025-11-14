@@ -273,23 +273,33 @@ How to test:
 5. Toggle dark/light in footer; confirm backgrounds, borders, and text adjust correctly in admin and site.
 6. View a public post and check SEO alternates/canonical are present (see Milestone 6).
 
-### Milestone 6 — SEO & Routing
-- Canonical/robots management; OG/Twitter metadata (locale-specific)
-- JSON-LD per module + post-level SEO merge
-- hreflang tags for all translations (✅ canonical + alternates implemented for posts)
-- URL patterns:
-  - `GET /api/url-patterns`, `PUT /api/url-patterns/:id`
-  - Apply URL generation and automatic 301 on slug change
-- Redirects middleware and APIs (locale-aware)
+### Milestone 6 — SEO (✅ Complete) & Routing (Next)
+**Implemented (SEO):**
+- ✅ Absolute canonical URL per post/locale
+- ✅ hreflang alternates for all translations
+- ✅ Robots meta (index,follow for published; noindex,nofollow otherwise)
+- ✅ OpenGraph tags (title, description, url, type=article)
+- ✅ Twitter card tags (summary_large_image; title, description)
+- ✅ JSON-LD (BlogPosting) merged with post-level overrides
 
-How to test:
-1. View a post page and inspect `<head>`:
-   - `<link rel="canonical" ...>` present for current locale
-   - `<link rel="alternate" hreflang="..." ...>` present for sibling locales
-2. Configure URL patterns for different locales; create posts and verify URLs. (upcoming)
-3. Change slug; confirm 301 is issued and destination resolves. (upcoming)
-4. Create redirect rules; verify middleware short-circuits with expected status. (upcoming)
-5. View page source; verify meta tags and JSON-LD. (ongoing)
+How to test (SEO):
+1. Open any public post page (`/posts/:slug?locale=xx`) and inspect `<head>`:
+   - `<link rel="canonical" href="https://your-host/posts/:slug?locale=xx" />`
+   - `<link rel="alternate" hreflang="en|es|…">` for sibling locales
+   - `<meta name="robots" content="index,follow">` for published, or `noindex,nofollow` otherwise
+   - `<meta property="og:title" ...>`, `<meta property="og:description" ...>`, `<meta property="og:url" ...>`, `<meta property="og:type" content="article">`
+   - `<meta name="twitter:card" content="summary_large_image">`, `<meta name="twitter:title" ...>`, `<meta name="twitter:description" ...>`
+   - `<script type="application/ld+json">` contains BlogPosting JSON-LD (with overrides merged)
+2. Toggle post status to `draft` and reload: robots should switch to `noindex,nofollow`.
+3. Change post meta title/description and verify OG/Twitter and JSON-LD reflect changes.
+
+**Routing (Upcoming):**
+- URL pattern management APIs/UI
+- Automatic 301 on slug change based on patterns
+- Redirects middleware and management UI
+
+Notes:
+- Canonical/alternate URLs are built from request protocol/host; ensure your dev/prod host is correct when testing. 
 
 ### Milestone 7 — Caching & Performance
 - ✅ Redis SSR page caching (1-hour TTL, cache key based on component + props)
