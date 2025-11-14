@@ -251,40 +251,45 @@ How to test:
    - Subsequent loads: ~0.5ms (Redis cache hit)
    - Clear cache: `redis-cli FLUSHDB`
 
-### Milestone 5 — Admin Editor MVP
-- Inertia Admin:
-  - DnD sortable module list (local/global/static)
+### Milestone 5 — Admin Editor MVP (✅ Complete)
+- Admin editor:
   - Module picker (local/global/static)
-  - Locks UI (module-level, template-level)
-  - Overrides panel
-  - Custom fields panel
-  - Translation editor (side-by-side with fallback preview)
-  - Locale switcher
-  - Dark/Light toggle (persisted per user)
+  - DnD sortable module list (pointer handle)
+  - Module editor panel (schema-free MVP, overrides saved; local modules persist to props)
+  - Custom fields panel (post-level metadata)
+  - Translation editor (side-by-side original fallback for post fields)
+  - Locale switcher (create missing translation; navigate to existing)
+  - Dark/Light theme (class strategy, persisted; accessible contrast across UI)
+  - Status toasts using Sonner (theme-aware)
+- Public site:
+  - Consistent dark/light styles, corrected neutral scale in dark mode
+  - Hero/Prose modules updated to neutral tokens for reliable dark variants
 
 How to test:
-1. Login and visit admin editor for a post.
-2. Add/reorder modules (local/global/static) and verify persistence.
-3. Apply locks; ensure locked behavior is enforced.
-4. Edit overrides; confirm merged output in render.
-5. Switch locales and edit translations; verify fallback preview.
-6. Toggle dark/light and confirm persistence.
+1. Login and open `/admin/posts/:id/edit`.
+2. Use “Add Module” to insert modules; re-order via drag handle; refresh to confirm order persists.
+3. Click “Edit” on a module, change fields, Save; verify changes render on public page.
+4. Switch locale via the selector; if missing, click “Create Translation”, then edit the new locale.
+5. Toggle dark/light in footer; confirm backgrounds, borders, and text adjust correctly in admin and site.
+6. View a public post and check SEO alternates/canonical are present (see Milestone 6).
 
 ### Milestone 6 — SEO & Routing
 - Canonical/robots management; OG/Twitter metadata (locale-specific)
 - JSON-LD per module + post-level SEO merge
-- hreflang tags for all translations
+- hreflang tags for all translations (✅ canonical + alternates implemented for posts)
 - URL patterns:
   - `GET /api/url-patterns`, `PUT /api/url-patterns/:id`
   - Apply URL generation and automatic 301 on slug change
 - Redirects middleware and APIs (locale-aware)
 
 How to test:
-1. Configure URL patterns for different locales; create posts and verify URLs.
-2. Change slug; confirm 301 is issued and destination resolves.
-3. Create redirect rules; verify middleware short-circuits with expected status.
-4. View page source; verify meta tags, JSON-LD, and hreflang tags.
-5. Test locale-specific redirects.
+1. View a post page and inspect `<head>`:
+   - `<link rel="canonical" ...>` present for current locale
+   - `<link rel="alternate" hreflang="..." ...>` present for sibling locales
+2. Configure URL patterns for different locales; create posts and verify URLs. (upcoming)
+3. Change slug; confirm 301 is issued and destination resolves. (upcoming)
+4. Create redirect rules; verify middleware short-circuits with expected status. (upcoming)
+5. View page source; verify meta tags and JSON-LD. (ongoing)
 
 ### Milestone 7 — Caching & Performance
 - ✅ Redis SSR page caching (1-hour TTL, cache key based on component + props)

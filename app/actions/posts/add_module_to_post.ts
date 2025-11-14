@@ -55,18 +55,20 @@ export default class AddModuleToPost {
 
     // Validate scope-specific requirements
     if (scope === 'global' && !globalSlug) {
-      throw new AddModuleToPostException(
-        'Global modules require a globalSlug',
-        400,
-        { scope, globalSlug }
-      )
+      throw new AddModuleToPostException('Global modules require a globalSlug', 400, {
+        scope,
+        globalSlug,
+      })
     }
+
+    // Normalize scope for database (DB enum uses 'post' instead of 'local')
+    const dbScope = scope === 'local' ? ('post' as ModuleScope) : scope
 
     // Use transaction
     const result = await db.transaction(async (trx) => {
       let moduleInstanceId: string
 
-      if (scope === 'global' && globalSlug) {
+      if (dbScope === 'global' && globalSlug) {
         // Find or create global module instance
         const existingGlobal = await trx
           .from('module_instances')
@@ -79,6 +81,12 @@ export default class AddModuleToPost {
         } else {
           // Create new global module
           const moduleConfig = moduleRegistry.get(moduleType).getConfig()
+          const initialProps =
+            props === null ||
+              props === undefined ||
+              (typeof props === 'object' && Object.keys(props).length === 0)
+              ? moduleConfig.defaultProps
+              : props
           const [newGlobal] = await trx
             .table('module_instances')
             .insert({
@@ -86,7 +94,7 @@ export default class AddModuleToPost {
               scope: 'global',
               type: moduleType,
               global_slug: globalSlug,
-              props: props || moduleConfig.defaultProps,
+              props: initialProps,
               created_at: new Date(),
               updated_at: new Date(),
             })
@@ -97,14 +105,20 @@ export default class AddModuleToPost {
       } else {
         // Create local or static module instance
         const moduleConfig = moduleRegistry.get(moduleType).getConfig()
+        const initialProps =
+          props === null ||
+            props === undefined ||
+            (typeof props === 'object' && Object.keys(props).length === 0)
+            ? moduleConfig.defaultProps
+            : props
         const [newInstance] = await trx
           .table('module_instances')
           .insert({
             id: randomUUID(),
-            scope,
+            scope: dbScope,
             type: moduleType,
             global_slug: null,
-            props: props || moduleConfig.defaultProps,
+            props: initialProps,
             created_at: new Date(),
             updated_at: new Date(),
           })
@@ -115,7 +129,7 @@ export default class AddModuleToPost {
 
       // Determine order index
       let finalOrderIndex = orderIndex
-      if (finalOrderIndex === undefined) {
+      if (finalOrderIndex === undefined || finalOrderIndex === null) {
         // Get max order index for this post
         const maxOrder = await trx
           .from('post_modules')
@@ -123,7 +137,11 @@ export default class AddModuleToPost {
           .max('order_index as max')
           .first()
 
-        finalOrderIndex = (maxOrder?.max || -1) + 1
+        const maxIndex = Number(
+          // handle null | string | number from DB adapter
+          maxOrder?.max ?? -1
+        )
+        finalOrderIndex = (Number.isNaN(maxIndex) ? -1 : maxIndex) + 1
       }
 
       // Create post_module join

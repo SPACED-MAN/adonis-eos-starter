@@ -30,7 +30,7 @@ export default function HeroStatic({
   imagePosition = 'center',
   primaryCta,
   secondaryCta,
-  backgroundColor = 'bg-sand-50 dark:bg-sand-900',
+  backgroundColor = 'bg-neutral-50 dark:bg-neutral-900',
   minHeight = 'min-h-[70vh]',
 }: HeroStaticProps) {
   const alignmentClasses = {
@@ -47,7 +47,7 @@ export default function HeroStatic({
 
   return (
     <section
-      className={`relative ${backgroundColor} ${minHeight} flex items-center justify-center overflow-hidden`}
+      className={`relative ${backgroundColor.includes('dark:') ? backgroundColor : `${backgroundColor} dark:bg-neutral-900`} ${minHeight} flex items-center justify-center overflow-hidden`}
       data-module="hero"
     >
       {/* Background Image */}
@@ -59,7 +59,7 @@ export default function HeroStatic({
             className={`w-full h-full object-cover object-${imagePosition}`}
             loading="lazy"
           />
-          <div className="absolute inset-0 bg-sand-900/20 dark:bg-sand-900/40"></div>
+          <div className="absolute inset-0 bg-neutral-900/20 dark:bg-neutral-900/40"></div>
         </div>
       )}
 
@@ -67,13 +67,13 @@ export default function HeroStatic({
       <div className="relative z-10 container mx-auto px-4 sm:px-6 lg:px-8">
         <div className={`flex flex-col ${alignmentClasses} max-w-4xl mx-auto`}>
           {/* Title */}
-          <h1 className="text-4xl sm:text-5xl md:text-6xl font-bold text-sand-900 dark:text-sand-50 mb-6">
+          <h1 className="text-4xl sm:text-5xl md:text-6xl font-bold text-neutral-900 dark:text-neutral-50 mb-6">
             {title}
           </h1>
 
           {/* Subtitle */}
           {subtitle && (
-            <p className="text-xl sm:text-2xl text-sand-700 dark:text-sand-300 mb-8 max-w-2xl">
+            <p className="text-xl sm:text-2xl text-neutral-700 dark:text-neutral-300 mb-8 max-w-2xl">
               {subtitle}
             </p>
           )}
@@ -98,11 +98,11 @@ export default function HeroStatic({
 function ButtonComponent({ label, url, style = 'primary', target = '_self', rel }: Button) {
   const styleClasses = {
     primary:
-      'bg-sand-900 hover:bg-sand-800 text-sand-50 dark:bg-sand-50 dark:hover:bg-sand-100 dark:text-sand-900',
+      'bg-neutral-900 hover:bg-neutral-800 text-neutral-50 dark:bg-neutral-50 dark:hover:bg-neutral-100 dark:text-neutral-900',
     secondary:
-      'bg-sand-700 hover:bg-sand-600 text-sand-50 dark:bg-sand-300 dark:hover:bg-sand-200 dark:text-sand-900',
+      'bg-neutral-700 hover:bg-neutral-600 text-neutral-50 dark:bg-neutral-300 dark:hover:bg-neutral-200 dark:text-neutral-900',
     outline:
-      'border-2 border-sand-900 hover:bg-sand-900 text-sand-900 hover:text-sand-50 dark:border-sand-50 dark:hover:bg-sand-50 dark:text-sand-50 dark:hover:text-sand-900',
+      'border-2 border-neutral-900 hover:bg-neutral-900 text-neutral-900 hover:text-neutral-50 dark:border-neutral-50 dark:hover:bg-neutral-50 dark:text-neutral-50 dark:hover:text-neutral-900',
   }[style]
 
   return (

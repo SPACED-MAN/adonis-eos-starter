@@ -20,7 +20,29 @@ export default class PostsController {
   async edit({ params, inertia, response }: HttpContext) {
     try {
       const post = await Post.findOrFail(params.id)
-      
+      // Load post modules for editor
+      const postModules = await db
+        .from('post_modules')
+        .join('module_instances', 'post_modules.module_id', 'module_instances.id')
+        .where('post_modules.post_id', post.id)
+        .select(
+          'post_modules.id as postModuleId',
+          'module_instances.type',
+          'module_instances.scope',
+          'module_instances.props',
+          'post_modules.overrides',
+          'post_modules.locked',
+          'post_modules.order_index as orderIndex'
+        )
+        .orderBy('post_modules.order_index', 'asc')
+
+      // Load translations for this post family
+      const baseId = post.translationOfId || post.id
+      const family = await Post.query().where((q) => {
+        q.where('translationOfId', baseId).orWhere('id', baseId)
+      })
+      const translations = family.map((p) => ({ id: p.id, locale: p.locale }))
+
       return inertia.render('admin/posts/editor', {
         post: {
           id: post.id,
@@ -32,9 +54,22 @@ export default class PostsController {
           locale: post.locale,
           metaTitle: post.metaTitle,
           metaDescription: post.metaDescription,
+          canonicalUrl: post.canonicalUrl,
+          robotsJson: post.robotsJson,
+          jsonldOverrides: post.jsonldOverrides,
           createdAt: post.createdAt.toISO(),
           updatedAt: post.updatedAt.toISO(),
         },
+        modules: postModules.map((pm) => ({
+          id: pm.postModuleId,
+          type: pm.type,
+          scope: pm.scope,
+          props: pm.props || {},
+          overrides: pm.overrides || null,
+          locked: pm.locked,
+          orderIndex: pm.orderIndex,
+        })),
+        translations,
       })
     } catch (error) {
       return response.notFound({ error: 'Post not found' })
@@ -98,22 +133,121 @@ export default class PostsController {
   }
 
   /**
+   * POST /api/posts/:id/translations
+   *
+   * Create a translation for the given post family in the specified locale.
+   */
+  async createTranslation({ params, request, response, auth }: HttpContext) {
+    const { id } = params
+    const locale = request.input('locale')
+    if (!locale) {
+      return response.badRequest({ error: 'locale is required' })
+    }
+    const source = await Post.find(id)
+    if (!source) {
+      return response.notFound({ error: 'Post not found' })
+    }
+    if (source.locale === locale) {
+      return response.badRequest({ error: 'Translation locale must differ from source locale' })
+    }
+    // Determine family base
+    const baseId = source.translationOfId || source.id
+    // Check if translation exists
+    const existing = await Post.query()
+      .where('translationOfId', baseId)
+      .where('locale', locale)
+      .first()
+    if (existing) {
+      // For Inertia, redirect to editor
+      if (request.header('x-inertia')) {
+        return response.redirect().toPath(`/admin/posts/${existing.id}/edit`)
+      }
+      return response.conflict({ error: 'Translation already exists', id: existing.id })
+    }
+    // Create translation (basic fields only for now)
+    const newPost = await Post.create({
+      type: source.type,
+      locale,
+      slug: `${source.slug}-${locale}-${Date.now()}`,
+      title: source.title,
+      status: 'draft',
+      excerpt: source.excerpt,
+      metaTitle: source.metaTitle,
+      metaDescription: source.metaDescription,
+      canonicalUrl: source.canonicalUrl,
+      robotsJson: source.robotsJson,
+      jsonldOverrides: source.jsonldOverrides,
+      translationOfId: baseId,
+      templateId: source.templateId,
+      userId: auth.user!.id,
+    })
+    // Redirect back to editor for the new translation
+    if (request.header('x-inertia')) {
+      return response.redirect().toPath(`/admin/posts/${newPost.id}/edit`)
+    }
+    return response.created({ id: newPost.id })
+  }
+
+  /**
    * PUT /api/posts/:id
    *
    * Update an existing post.
    */
   async update({ params, request, response }: HttpContext) {
     const { id } = params
-    const { slug, title, status, excerpt, metaTitle, metaDescription } = request.only([
+    const {
+      slug,
+      title,
+      status,
+      excerpt,
+      metaTitle,
+      metaDescription,
+      canonicalUrl,
+      robotsJson,
+      jsonldOverrides,
+    } = request.only([
       'slug',
       'title',
       'status',
       'excerpt',
       'metaTitle',
       'metaDescription',
+      'canonicalUrl',
+      'robotsJson',
+      'jsonldOverrides',
     ])
 
     try {
+      // Parse JSON fields when provided as strings
+      let robotsJsonParsed: Record<string, any> | null | undefined
+      if (robotsJson !== undefined) {
+        if (typeof robotsJson === 'string' && robotsJson.trim() !== '') {
+          try {
+            robotsJsonParsed = JSON.parse(robotsJson)
+          } catch {
+            robotsJsonParsed = null
+          }
+        } else if (robotsJson === '') {
+          robotsJsonParsed = null
+        } else {
+          robotsJsonParsed = robotsJson
+        }
+      }
+      let jsonldOverridesParsed: Record<string, any> | null | undefined
+      if (jsonldOverrides !== undefined) {
+        if (typeof jsonldOverrides === 'string' && jsonldOverrides.trim() !== '') {
+          try {
+            jsonldOverridesParsed = JSON.parse(jsonldOverrides)
+          } catch {
+            jsonldOverridesParsed = null
+          }
+        } else if (jsonldOverrides === '') {
+          jsonldOverridesParsed = null
+        } else {
+          jsonldOverridesParsed = jsonldOverrides
+        }
+      }
+
       await UpdatePost.handle({
         postId: id,
         slug,
@@ -122,6 +256,9 @@ export default class PostsController {
         excerpt,
         metaTitle,
         metaDescription,
+        canonicalUrl,
+        robotsJson: robotsJsonParsed,
+        jsonldOverrides: jsonldOverridesParsed,
       })
 
       // For Inertia requests, redirect back to editor
@@ -147,10 +284,7 @@ export default class PostsController {
 
     try {
       // Find post by slug and locale
-      const post = await Post.query()
-        .where('slug', slug)
-        .where('locale', locale)
-        .first()
+      const post = await Post.query().where('slug', slug).where('locale', locale).first()
 
       if (!post) {
         return response.notFound({
@@ -159,6 +293,18 @@ export default class PostsController {
           locale,
         })
       }
+
+      // Load translations for hreflang/alternate
+      const baseId = post.translationOfId || post.id
+      const family = await Post.query().where((q) => {
+        q.where('translationOfId', baseId).orWhere('id', baseId)
+      })
+      const alternates = family.map((p) => ({
+        locale: p.locale,
+        // Build locale-specific URL (current routing uses query param)
+        href: `/posts/${p.slug}?locale=${encodeURIComponent(p.locale)}`,
+      }))
+      const canonical = `/posts/${post.slug}?locale=${encodeURIComponent(post.locale)}`
 
       // Load post modules with their data
       const postModules = await db
@@ -201,6 +347,10 @@ export default class PostsController {
           metaDescription: post.metaDescription,
           status: post.status,
         },
+        seo: {
+          canonical,
+          alternates,
+        },
         modules,
       })
     } catch (error) {
@@ -238,6 +388,14 @@ export default class PostsController {
         locked,
       })
 
+      // If this is an Inertia request, redirect back to the editor
+      if (request.header('x-inertia')) {
+        // Optional: flash success (editor toasts can read shared flash)
+        // request.session.flash({ success: 'Module added to post successfully' })
+        return response.redirect().back()
+      }
+
+      // Fallback for non-Inertia/API clients
       return response.created({
         data: {
           postModuleId: result.postModule.id,
@@ -248,6 +406,12 @@ export default class PostsController {
       })
     } catch (error) {
       if (error instanceof AddModuleToPostException) {
+        // For Inertia requests, redirect back (optionally with flash)
+        if (request.header('x-inertia')) {
+          // request.session.flash({ error: error.message })
+          return response.redirect().back()
+        }
+        // For API clients, return JSON error
         return response.status(error.statusCode).json({
           error: error.message,
           ...error.meta,

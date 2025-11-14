@@ -32,16 +32,7 @@ export default class UpdatePostModule {
       throw new UpdatePostModuleException('Post module not found', 404, { postModuleId })
     }
 
-    // Check if module is locked and trying to change important properties
-    if (postModule.locked && locked === false) {
-      throw new UpdatePostModuleException(
-        'Cannot unlock a locked module',
-        403,
-        { postModuleId }
-      )
-    }
-
-    // Build update object
+    // Build update object for post_modules
     const updateData: Record<string, any> = {
       updated_at: new Date(),
     }
@@ -50,8 +41,22 @@ export default class UpdatePostModule {
       updateData.order_index = orderIndex
     }
 
+    // If overrides provided and module is local (scope='post'), merge into module props instead
+    // to reflect that local modules own their props rather than using per-post overrides.
     if (overrides !== undefined) {
-      updateData.overrides = overrides
+      const moduleInstance = await db.from('module_instances').where('id', postModule.module_id).first()
+      if (moduleInstance && moduleInstance.scope === 'post') {
+        const baseProps = moduleInstance.props || {}
+        const mergedProps = { ...baseProps, ...(overrides || {}) }
+        await db
+          .from('module_instances')
+          .where('id', postModule.module_id)
+          .update({ props: mergedProps, updated_at: new Date() })
+        // ensure post_modules overrides cleared for local modules
+        updateData.overrides = null
+      } else {
+        updateData.overrides = overrides
+      }
     }
 
     if (locked !== undefined) {

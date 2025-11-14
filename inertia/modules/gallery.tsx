@@ -78,7 +78,7 @@ export default function Gallery({
               loading="lazy"
             />
             {image.caption && (
-              <figcaption className="p-2 text-sm text-sand-600 dark:text-sand-400">
+              <figcaption className="p-2 text-sm text-neutral-600 dark:text-neutral-400">
                 {image.caption}
               </figcaption>
             )}
@@ -99,7 +99,7 @@ export default function Gallery({
           {/* Close Button */}
           <button
             onClick={closeLightbox}
-            className="absolute top-4 right-4 text-white text-4xl hover:text-sand-300 transition"
+            className="absolute top-4 right-4 text-white text-4xl hover:text-neutral-300 transition"
             aria-label="Close lightbox"
           >
             ×
@@ -112,7 +112,7 @@ export default function Gallery({
                 e.stopPropagation()
                 prevImage()
               }}
-              className="absolute left-4 text-white text-4xl hover:text-sand-300 transition"
+              className="absolute left-4 text-white text-4xl hover:text-neutral-300 transition"
               aria-label="Previous image"
             >
               ‹
@@ -138,7 +138,7 @@ export default function Gallery({
                 e.stopPropagation()
                 nextImage()
               }}
-              className="absolute right-4 text-white text-4xl hover:text-sand-300 transition"
+              className="absolute right-4 text-white text-4xl hover:text-neutral-300 transition"
               aria-label="Next image"
             >
               ›

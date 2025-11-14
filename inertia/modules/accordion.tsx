@@ -61,14 +61,14 @@ export default function Accordion({
               {/* Header */}
               <button
                 onClick={() => toggleItem(index)}
-                className="w-full flex items-center justify-between p-4 text-left bg-sand-50 dark:bg-sand-800 hover:bg-sand-100 dark:hover:bg-sand-700 transition-colors"
+                className="w-full flex items-center justify-between p-4 text-left bg-neutral-50 dark:bg-neutral-800 hover:bg-neutral-100 dark:hover:bg-neutral-700 transition-colors"
                 aria-expanded={isOpen}
               >
-                <span className="font-semibold text-sand-900 dark:text-sand-50">
+                <span className="font-semibold text-neutral-900 dark:text-neutral-50">
                   {item.title}
                 </span>
                 <svg
-                  className={`w-5 h-5 text-sand-600 dark:text-sand-400 transition-transform ${
+                  className={`w-5 h-5 text-neutral-600 dark:text-neutral-400 transition-transform ${
                     isOpen ? 'rotate-180' : ''
                   }`}
                   fill="none"
@@ -88,7 +88,7 @@ export default function Accordion({
               {isOpen && (
                 <div className="p-4 bg-white dark:bg-sand-900 border-t border-sand-200 dark:border-sand-700">
                   <div
-                    className="text-sand-700 dark:text-sand-300 prose prose-sand dark:prose-invert max-w-none"
+                    className="text-neutral-700 dark:text-neutral-300 prose dark:prose-invert max-w-none"
                     dangerouslySetInnerHTML={{ __html: item.content }}
                   />
                 </div>

@@ -21,10 +21,13 @@
       const isDark = localStorage.getItem('theme-mode') === 'dark' ||
         (!localStorage.getItem('theme-mode') && window.matchMedia('(prefers-color-scheme: dark)').matches)
       
-      // Apply theme to html element before page renders
-      document.documentElement.setAttribute('data-theme', theme)
+      // Apply theme to html element before page renders (class strategy)
+      const root = document.documentElement
+      root.setAttribute('data-theme', theme)
       if (isDark) {
-        document.documentElement.classList.add('dark')
+        root.classList.add('dark')
+      } else {
+        root.classList.remove('dark')
       }
     })()
   </script>

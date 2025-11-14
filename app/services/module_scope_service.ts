@@ -35,15 +35,20 @@ class ModuleScopeService {
       }
     }
 
-    // Check database restrictions
+    // If there are no scope restrictions for this post type, allow by default
+    const [{ total }] = await db.from('module_scopes').where('post_type', postType).count('* as total')
+    const restrictionsForPostType = Number(total) > 0
+    if (!restrictionsForPostType) {
+      return true
+    }
+
+    // When restrictions exist for this post type, allow only if an explicit allow record exists
     const restriction = await db
       .from('module_scopes')
       .where('module_type', moduleType)
       .where('post_type', postType)
       .first()
 
-    // If restriction exists in DB, honor it
-    // If no restriction, it's allowed by default
     return restriction !== null
   }
 

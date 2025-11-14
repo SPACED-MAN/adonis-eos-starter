@@ -1,5 +1,8 @@
 @import "tailwindcss";
 
+/* Use class strategy for dark mode: dark:* applies when an ancestor has .dark */
+@custom-variant dark (&:where(.dark, .dark *));
+
 /**
  * Theme System
  * 
@@ -220,15 +223,29 @@
   --color-bg-950: var(--color-stone-50);
 
   /* Dark mode neutral colors */
-  --color-neutral-50: var(--color-stone-950);
-  --color-neutral-100: var(--color-stone-900);
-  --color-neutral-200: var(--color-stone-800);
-  --color-neutral-300: var(--color-stone-700);
-  --color-neutral-400: var(--color-stone-600);
+  /* Keep scale semantics consistent: 50 = lightest, 950 = darkest */
+  --color-neutral-50: var(--color-stone-50);
+  --color-neutral-100: var(--color-stone-100);
+  --color-neutral-200: var(--color-stone-200);
+  --color-neutral-300: var(--color-stone-300);
+  --color-neutral-400: var(--color-stone-400);
   --color-neutral-500: var(--color-stone-500);
-  --color-neutral-600: var(--color-stone-400);
-  --color-neutral-700: var(--color-stone-300);
-  --color-neutral-800: var(--color-stone-200);
-  --color-neutral-900: var(--color-stone-100);
-  --color-neutral-950: var(--color-stone-50);
+  --color-neutral-600: var(--color-stone-600);
+  --color-neutral-700: var(--color-stone-700);
+  --color-neutral-800: var(--color-stone-800);
+  --color-neutral-900: var(--color-stone-900);
+  --color-neutral-950: var(--color-stone-950);
+}
+
+/* Global base defaults for background and text to avoid white bleed-through */
+@layer base {
+  body {
+    background-color: var(--color-bg-50);
+    color: var(--color-neutral-900);
+  }
+
+  .dark body {
+    background-color: var(--color-bg-100);
+    color: var(--color-neutral-50);
+  }
 }

@@ -51,7 +51,7 @@ export default class ProseModule extends BaseModule {
         },
         textColor: {
           type: 'string',
-          default: 'text-sand-900 dark:text-sand-50',
+          default: 'text-neutral-900 dark:text-neutral-50',
           description: 'Tailwind text color classes',
         },
         padding: {
@@ -80,7 +80,7 @@ export default class ProseModule extends BaseModule {
         maxWidth: 'max-w-4xl',
         fontSize: 'text-base',
         backgroundColor: 'bg-transparent',
-        textColor: 'text-sand-900 dark:text-sand-50',
+        textColor: 'text-neutral-900 dark:text-neutral-50',
         padding: 'py-12',
       },
       allowedPostTypes: [], // Available for all post types

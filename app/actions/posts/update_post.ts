@@ -8,6 +8,9 @@ type UpdatePostParams = {
   excerpt?: string | null
   metaTitle?: string | null
   metaDescription?: string | null
+  canonicalUrl?: string | null
+  robotsJson?: Record<string, any> | null
+  jsonldOverrides?: Record<string, any> | null
 }
 
 export class UpdatePostException extends Error {
@@ -30,6 +33,9 @@ export default class UpdatePost {
     excerpt,
     metaTitle,
     metaDescription,
+    canonicalUrl,
+    robotsJson,
+    jsonldOverrides,
   }: UpdatePostParams): Promise<Post> {
     // Find the post
     const post = await Post.find(postId)
@@ -63,6 +69,9 @@ export default class UpdatePost {
     if (excerpt !== undefined) post.excerpt = excerpt
     if (metaTitle !== undefined) post.metaTitle = metaTitle
     if (metaDescription !== undefined) post.metaDescription = metaDescription
+    if (canonicalUrl !== undefined) post.canonicalUrl = canonicalUrl
+    if (robotsJson !== undefined) post.robotsJson = robotsJson
+    if (jsonldOverrides !== undefined) post.jsonldOverrides = jsonldOverrides
 
     await post.save()
 
