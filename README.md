@@ -273,7 +273,7 @@ How to test:
 5. Toggle dark/light in footer; confirm backgrounds, borders, and text adjust correctly in admin and site.
 6. View a public post and check SEO alternates/canonical are present (see Milestone 6).
 
-### Milestone 6 — SEO (✅ Complete) & Routing (Next)
+### Milestone 6 — SEO & Routing (✅ Complete)
 **Implemented (SEO):**
 - ✅ Absolute canonical URL per post/locale
 - ✅ hreflang alternates for all translations
@@ -293,13 +293,36 @@ How to test (SEO):
 2. Toggle post status to `draft` and reload: robots should switch to `noindex,nofollow`.
 3. Change post meta title/description and verify OG/Twitter and JSON-LD reflect changes.
 
-**Routing (Upcoming):**
-- URL pattern management APIs/UI
-- Automatic 301 on slug change based on patterns
-- Redirects middleware and management UI
+**Implemented (Routing):**
+- ✅ Redirects middleware (locale-aware) with `url_redirects` table
+- ✅ Auto-create 301 redirect on post slug change (pattern-based)
+- ✅ URL Patterns
+  - Table: `url_patterns` with `locale`, `pattern` (e.g., `/:locale/posts/:slug` or `/posts/:slug`)
+  - APIs (auth required):
+    - `GET /api/url-patterns` → list patterns
+    - `PUT /api/url-patterns/:locale { pattern }` → upsert locale pattern
+  - Used for canonical and hreflang URL generation
+  - Used when generating 301 redirects after slug change
 
 Notes:
 - Canonical/alternate URLs are built from request protocol/host; ensure your dev/prod host is correct when testing. 
+- Default pattern is `/:locale/posts/:slug` when none is set for a locale.
+
+How to test (Routing):
+1. Auto 301 on slug change:
+   - Edit a post in Admin, change the slug, Save.
+   - Visit the old URL (pattern-based path) — should 301 to the new URL.
+   - Check DB: `select * from url_redirects where from_path like '%OLD-SLUG%';`
+2. Manual redirect:
+   - Insert into `url_redirects (from_path, to_path, locale, status_code)` and request the `from_path`.
+   - Confirm the middleware issues the configured redirect (default 301).
+3. Locale behavior:
+   - Create a redirect with a specific `locale`, and one with `locale = null`.
+   - Requests with `?locale=xx` should prefer the locale-specific record, else fallback to the null-locale record.
+4. URL Patterns:
+   - `PUT /api/url-patterns/en { "pattern": "/blog/:slug" }`
+   - Reload a post (en): canonical and alternates use `/blog/:slug` for `en`.
+   - Change a slug; verify the created redirect uses the updated pattern in `from_path` and `to_path`.
 
 ### Milestone 7 — Caching & Performance
 - ✅ Redis SSR page caching (1-hour TTL, cache key based on component + props)

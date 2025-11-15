@@ -76,6 +76,15 @@ router.group(() => {
 }).prefix('/api')
 
 /**
+ * API Routes - URL Patterns (Admin)
+ */
+const PatternsController = () => import('#controllers/patterns_controller')
+router.group(() => {
+  router.get('/url-patterns', [PatternsController, 'index'])
+  router.put('/url-patterns/:locale', [PatternsController, 'upsert'])
+}).prefix('/api').use(middleware.auth())
+
+/**
  * API Routes - Posts (Admin)
  */
 router.group(() => {

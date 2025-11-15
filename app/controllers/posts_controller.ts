@@ -5,6 +5,7 @@ import UpdatePost, { UpdatePostException } from '#actions/posts/update_post'
 import AddModuleToPost, { AddModuleToPostException } from '#actions/posts/add_module_to_post'
 import UpdatePostModule, { UpdatePostModuleException } from '#actions/posts/update_post_module'
 import db from '@adonisjs/lucid/services/db'
+import urlPatternService from '#services/url_pattern_service'
 
 /**
  * Posts Controller
@@ -301,12 +302,19 @@ export default class PostsController {
       })
       const protocol = (request as any).protocol ? (request as any).protocol() : (request.secure ? 'https' : 'http')
       const host = (request as any).host ? (request as any).host() : request.header('host')
-      const makeUrl = (slug: string, loc: string) => `${protocol}://${host}/posts/${slug}?locale=${encodeURIComponent(loc)}`
+      const makeUrl = (slug: string, loc: string) => urlPatternService.buildPostUrl(slug, loc, protocol, host)
       const alternates = family.map((p) => ({
         locale: p.locale,
-        href: makeUrl(p.slug, p.locale),
+        href: '',
       }))
-      const canonical = makeUrl(post.slug, post.locale)
+      // Build URLs (async)
+      const alternatesBuilt = await Promise.all(
+        alternates.map(async (a, idx) => ({
+          locale: family[idx].locale,
+          href: await makeUrl(family[idx].slug, family[idx].locale),
+        }))
+      )
+      const canonical = await makeUrl(post.slug, post.locale)
       // Robots: noindex,nofollow for non-published, else index,follow
       const robotsContent = post.status === 'published' ? 'index,follow' : 'noindex,nofollow'
       // Merge default JSON-LD with post-level overrides (if any)
@@ -363,7 +371,7 @@ export default class PostsController {
         },
         seo: {
           canonical,
-          alternates,
+          alternates: alternatesBuilt,
           robots: robotsContent,
           jsonLd,
           og: {

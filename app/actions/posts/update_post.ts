@@ -1,4 +1,6 @@
 import Post from '#models/post'
+import db from '@adonisjs/lucid/services/db'
+import urlPatternService from '#services/url_pattern_service'
 
 type UpdatePostParams = {
   postId: string
@@ -46,6 +48,7 @@ export default class UpdatePost {
 
     // If slug is being changed, check uniqueness
     if (slug && slug !== post.slug) {
+      const oldSlug = post.slug
       const existingPost = await Post.query()
         .where('slug', slug)
         .where('locale', post.locale)
@@ -60,7 +63,25 @@ export default class UpdatePost {
         )
       }
 
+      // Save new slug
       post.slug = slug
+      // Create a 301 redirect from old path to new path (locale-aware)
+      const fromPath = await urlPatternService.buildPostPath(oldSlug, post.locale)
+      const toPath = await urlPatternService.buildPostPath(slug, post.locale)
+      try {
+        await db
+          .table('url_redirects')
+          .insert({
+            from_path: fromPath,
+            to_path: toPath,
+            locale: post.locale,
+            status_code: 301,
+          })
+          .onConflict(['from_path', 'locale'])
+          .ignore()
+      } catch {
+        // ignore redirect insert errors
+      }
     }
 
     // Update other fields if provided
