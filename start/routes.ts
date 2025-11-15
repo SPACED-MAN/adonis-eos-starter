@@ -27,7 +27,7 @@ const Post = () => import('#models/post')
 router.get('/admin', async ({ inertia }) => {
 	const PostModel = await Post()
 	const posts = await PostModel.default.query().orderBy('updated_at', 'desc').limit(10)
-	
+
 	return inertia.render('admin/dashboard', {
 		posts: posts.map(p => ({
 			id: p.id,
@@ -80,8 +80,8 @@ router.group(() => {
  */
 const PatternsController = () => import('#controllers/patterns_controller')
 router.group(() => {
-  router.get('/url-patterns', [PatternsController, 'index'])
-  router.put('/url-patterns/:locale', [PatternsController, 'upsert'])
+	router.get('/url-patterns', [PatternsController, 'index'])
+	router.put('/url-patterns/:locale', [PatternsController, 'upsert'])
 }).prefix('/api').use(middleware.auth())
 
 /**
