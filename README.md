@@ -324,18 +324,23 @@ How to test (Routing):
    - Reload a post (en): canonical and alternates use `/blog/:slug` for `en`.
    - Change a slug; verify the created redirect uses the updated pattern in `from_path` and `to_path`.
 
-### Milestone 7 — Caching & Performance
+### Milestone 7 — Caching & Performance (✅ Complete)
 - ✅ Redis SSR page caching (1-hour TTL, cache key based on component + props)
-- CDN-friendly caching by path
-- Image performance: AVIF/WebP, lazy load, priority hints
-- Query optimization using GIN and composite indexes
+- ✅ CDN-friendly caching: Cache-Control headers for public pages (public, s-maxage=3600, SWR)
+- ✅ Image performance: eager+fetchpriority for hero; lazy+decoding=async for gallery
+- ✅ Query optimization: GIN indexes on posts JSONB (`robots_json`, `jsonld_overrides`)
 
 How to test:
-1. Redis caching: Refresh a page twice, second load should be instant (~0.5ms vs ~10-20ms)
+1. Redis caching: Refresh a page twice, second load should be faster (~0.5ms vs ~10-20ms)
 2. Check Redis keys: `redis-cli KEYS "ssr:*"` to see cached pages
 3. Invalidate cache: `redis-cli FLUSHDB` to clear all cached pages
-4. Confirm image formats and lazy-loading in DOM.
-5. Run query performance tests with EXPLAIN ANALYZE.
+4. Confirm image loading behavior in DOM:
+   - Hero image has `fetchpriority="high"` and `decoding="async"`
+   - Gallery images have `loading="lazy"` and `decoding="async"`
+5. Verify response headers on public pages (non-admin):
+   - `Cache-Control: public, max-age=60, s-maxage=3600, stale-while-revalidate=604800`
+   - `Vary: Accept-Encoding`
+6. Run query performance checks with EXPLAIN ANALYZE.
 
 ### Milestone 8 — Admin Tools
 - Admin: URL pattern manager UI

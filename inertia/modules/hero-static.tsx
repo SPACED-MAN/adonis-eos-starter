@@ -57,7 +57,9 @@ export default function HeroStatic({
             src={image}
             alt=""
             className={`w-full h-full object-cover object-${imagePosition}`}
-            loading="lazy"
+            loading="eager"
+            decoding="async"
+            fetchPriority="high"
           />
           <div className="absolute inset-0 bg-neutral-900/20 dark:bg-neutral-900/40"></div>
         </div>

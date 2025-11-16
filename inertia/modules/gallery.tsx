@@ -76,6 +76,7 @@ export default function Gallery({
               alt={image.alt}
               className="w-full h-auto object-cover"
               loading="lazy"
+              decoding="async"
             />
             {image.caption && (
               <figcaption className="p-2 text-sm text-neutral-600 dark:text-neutral-400">
@@ -125,6 +126,7 @@ export default function Gallery({
               src={images[currentIndex].url}
               alt={images[currentIndex].alt}
               className="max-w-full max-h-[90vh] object-contain"
+              decoding="async"
             />
             {images[currentIndex].caption && (
               <p className="text-center text-white mt-4">{images[currentIndex].caption}</p>
