@@ -66,8 +66,8 @@ export default class UpdatePost {
       // Save new slug
       post.slug = slug
       // Create a 301 redirect from old path to new path (locale-aware)
-      const fromPath = await urlPatternService.buildPostPath(oldSlug, post.locale)
-      const toPath = await urlPatternService.buildPostPath(slug, post.locale)
+      const fromPath = await urlPatternService.buildPostPath(post.type, oldSlug, post.locale)
+      const toPath = await urlPatternService.buildPostPath(post.type, slug, post.locale)
       try {
         await db
           .table('url_redirects')
@@ -75,9 +75,9 @@ export default class UpdatePost {
             from_path: fromPath,
             to_path: toPath,
             locale: post.locale,
-            status_code: 301,
+            http_status: 301,
           })
-          .onConflict(['from_path', 'locale'])
+          .onConflict('from_path')
           .ignore()
       } catch {
         // ignore redirect insert errors

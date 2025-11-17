@@ -8,6 +8,18 @@ export function AdminHeader({ title = 'Admin' }: { title?: string }) {
 					<h1 className="text-2xl font-bold text-neutral-900">{title}</h1>
 					<div className="flex items-center gap-3">
 						<Link
+							href="/admin/settings/url-patterns"
+							className="text-sm text-neutral-600 hover:text-neutral-900"
+						>
+							URL Patterns
+						</Link>
+						<Link
+							href="/admin/settings/redirects"
+							className="text-sm text-neutral-600 hover:text-neutral-900"
+						>
+							Redirects
+						</Link>
+						<Link
 							href="/"
 							className="text-sm text-neutral-600 hover:text-neutral-900"
 						>

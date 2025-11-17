@@ -85,6 +85,17 @@ router.group(() => {
 }).prefix('/api').use(middleware.auth())
 
 /**
+ * API Routes - Redirects (Admin)
+ */
+const RedirectsController = () => import('#controllers/redirects_controller')
+router.group(() => {
+	router.get('/redirects', [RedirectsController, 'index'])
+	router.post('/redirects', [RedirectsController, 'store'])
+	router.put('/redirects/:id', [RedirectsController, 'update'])
+	router.delete('/redirects/:id', [RedirectsController, 'destroy'])
+}).prefix('/api').use(middleware.auth())
+
+/**
  * API Routes - Posts (Admin)
  */
 router.group(() => {
@@ -98,4 +109,15 @@ router.group(() => {
  * Public Routes - Posts
  */
 router.get('/posts/:slug', [PostsController, 'show'])
+
+/**
+ * Admin Settings Pages
+ */
+router.get('/admin/settings/url-patterns', async ({ inertia }) => {
+	return inertia.render('admin/settings/url-patterns')
+}).use(middleware.auth())
+
+router.get('/admin/settings/redirects', async ({ inertia }) => {
+	return inertia.render('admin/settings/redirects')
+}).use(middleware.auth())
 

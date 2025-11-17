@@ -302,7 +302,8 @@ export default class PostsController {
       })
       const protocol = (request as any).protocol ? (request as any).protocol() : (request.secure ? 'https' : 'http')
       const host = (request as any).host ? (request as any).host() : request.header('host')
-      const makeUrl = (slug: string, loc: string) => urlPatternService.buildPostUrl(slug, loc, protocol, host)
+      const makeUrl = (slug: string, loc: string) =>
+        urlPatternService.buildPostUrl(post.type, slug, loc, protocol, host)
       const alternates = family.map((p) => ({
         locale: p.locale,
         href: '',

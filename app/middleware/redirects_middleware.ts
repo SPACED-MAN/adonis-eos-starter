@@ -18,7 +18,7 @@ export default class RedirectsMiddleware {
       (await db.from('url_redirects').where({ from_path: path, locale: null }).first())
 
     if (redirect) {
-      return ctx.response.redirect(redirect.status_code || 301, redirect.to_path)
+      return ctx.response.redirect(redirect.http_status || 301, redirect.to_path)
     }
 
     await next()

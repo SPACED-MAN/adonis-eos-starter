@@ -297,16 +297,16 @@ How to test (SEO):
 - ✅ Redirects middleware (locale-aware) with `url_redirects` table
 - ✅ Auto-create 301 redirect on post slug change (pattern-based)
 - ✅ URL Patterns
-  - Table: `url_patterns` with `locale`, `pattern` (e.g., `/:locale/posts/:slug` or `/posts/:slug`)
+  - Table: `url_patterns` with `locale`, `pattern` (e.g., `/{locale}/posts/{slug}` or `/posts/{slug}`)
   - APIs (auth required):
     - `GET /api/url-patterns` → list patterns
-    - `PUT /api/url-patterns/:locale { pattern }` → upsert locale pattern
+    - `PUT /api/url-patterns/:locale { postType, pattern }` → upsert default pattern for postType+locale
   - Used for canonical and hreflang URL generation
   - Used when generating 301 redirects after slug change
 
 Notes:
 - Canonical/alternate URLs are built from request protocol/host; ensure your dev/prod host is correct when testing. 
-- Default pattern is `/:locale/posts/:slug` when none is set for a locale.
+- Default pattern is `/{locale}/posts/{slug}` when none is set for a locale.
 
 How to test (Routing):
 1. Auto 301 on slug change:
@@ -320,8 +320,8 @@ How to test (Routing):
    - Create a redirect with a specific `locale`, and one with `locale = null`.
    - Requests with `?locale=xx` should prefer the locale-specific record, else fallback to the null-locale record.
 4. URL Patterns:
-   - `PUT /api/url-patterns/en { "pattern": "/blog/:slug" }`
-   - Reload a post (en): canonical and alternates use `/blog/:slug` for `en`.
+   - `PUT /api/url-patterns/en { "postType":"blog", "pattern": "/blog/{slug}" }`
+   - Reload a post (en): canonical and alternates use `/blog/{slug}` for `en`.
    - Change a slug; verify the created redirect uses the updated pattern in `from_path` and `to_path`.
 
 ### Milestone 7 — Caching & Performance (✅ Complete)
@@ -342,15 +342,21 @@ How to test:
    - `Vary: Accept-Encoding`
 6. Run query performance checks with EXPLAIN ANALYZE.
 
-### Milestone 8 — Admin Tools
-- Admin: URL pattern manager UI
-- Admin: Redirects manager UI
-- Admin: Template builder
-- Admin: Locale configuration
+### Milestone 8 — Admin Tools (✅ Partially Complete)
+- ✅ Admin: URL pattern manager UI
+- ✅ Admin: Redirects manager UI
+- ⏳ Admin: Template builder
+- ⏳ Admin: Locale configuration
 
 How to test:
-1. Change URL patterns via UI; verify affected routes.
-2. Create/delete redirects via UI; verify middleware behavior.
+1. URL Patterns:
+   - Visit `http://localhost:3333/admin/settings/url-patterns`
+   - Edit default pattern per post type and locale. Must include `{slug}`.
+   - Save and reload a public post; canonical/alternates and redirect generation will use updated patterns.
+2. Redirects:
+   - Visit `http://localhost:3333/admin/settings/redirects`
+   - Create a redirect (optionally set locale). Test the `from_path` in browser; confirm 301 to `to_path`.
+   - Delete a redirect and verify it no longer applies.
 3. Build templates with locked modules; verify enforcement.
 4. Add/remove locales; verify system behavior.
 

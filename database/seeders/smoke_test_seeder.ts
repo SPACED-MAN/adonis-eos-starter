@@ -6,9 +6,9 @@ export default class extends BaseSeeder {
   async run() {
     // Clean up existing test data
     await db.rawQuery('TRUNCATE posts, module_instances, post_modules, templates, template_modules, url_patterns, url_redirects, module_scopes, custom_fields, post_type_custom_fields, post_custom_field_values CASCADE')
-    
+
     console.log('🧪 Running smoke tests for database schema (with i18n support)...')
-    
+
     // Get or create a test user for posts
     let user = await User.findBy('email', 'test@example.com')
     if (!user) {
@@ -17,7 +17,7 @@ export default class extends BaseSeeder {
         password: 'password',
       })
     }
-    
+
     // Test 1: Create a template
     const [template] = await db.table('templates').insert({
       name: 'test-blog-template',
@@ -28,7 +28,7 @@ export default class extends BaseSeeder {
       updated_at: new Date(),
     }).returning('*')
     console.log('✅ Created template:', template.name)
-    
+
     // Test 2: Add modules to template
     await db.table('template_modules').insert({
       template_id: template.id,
@@ -40,7 +40,7 @@ export default class extends BaseSeeder {
       updated_at: new Date(),
     })
     console.log('✅ Created template module')
-    
+
     // Test 3: Create a post with template (default locale)
     const [post] = await db.table('posts').insert({
       type: 'blog',
@@ -57,7 +57,7 @@ export default class extends BaseSeeder {
       updated_at: new Date(),
     }).returning('*')
     console.log('✅ Created post (en):', post.slug)
-    
+
     // Test 3b: Create a Spanish translation
     const [postEs] = await db.table('posts').insert({
       type: 'blog',
@@ -74,7 +74,7 @@ export default class extends BaseSeeder {
       updated_at: new Date(),
     }).returning('*')
     console.log('✅ Created post translation (es):', postEs.slug)
-    
+
     // Test 4: Create global module
     const [globalModule] = await db.table('module_instances').insert({
       scope: 'global',
@@ -85,7 +85,7 @@ export default class extends BaseSeeder {
       updated_at: new Date(),
     }).returning('*')
     console.log('✅ Created global module:', globalModule.global_slug)
-    
+
     // Test 5: Attach module to post
     await db.table('post_modules').insert({
       post_id: post.id,
@@ -96,7 +96,7 @@ export default class extends BaseSeeder {
       updated_at: new Date(),
     })
     console.log('✅ Attached module to post')
-    
+
     // Test 6: Create URL patterns (with locale support)
     await db.table('url_patterns').insert([
       {
@@ -117,7 +117,7 @@ export default class extends BaseSeeder {
       },
     ])
     console.log('✅ Created URL patterns (en, es)')
-    
+
     // Test 7: Create redirects (with locale support)
     await db.table('url_redirects').insert([
       {
@@ -140,7 +140,7 @@ export default class extends BaseSeeder {
       },
     ])
     console.log('✅ Created URL redirects (en, es)')
-    
+
     // Test 8: Create custom fields (translatable and non-translatable)
     const [field] = await db.table('custom_fields').insert({
       slug: 'author-bio',
@@ -152,14 +152,14 @@ export default class extends BaseSeeder {
       updated_at: new Date(),
     }).returning('*')
     console.log('✅ Created translatable custom field:', field.slug)
-    
+
     // Test 9: Attach field to post type
     await db.table('post_type_custom_fields').insert({
       post_type: 'blog',
       field_id: field.id,
     })
     console.log('✅ Attached field to post type')
-    
+
     // Test 10: Set field value for post (with translations)
     await db.table('post_custom_field_values').insert([
       {
@@ -174,14 +174,14 @@ export default class extends BaseSeeder {
       },
     ])
     console.log('✅ Set translatable custom field value (en, es)')
-    
+
     // Test 11: Create module scope
     await db.table('module_scopes').insert({
       module_type: 'testimonial-grid',
       post_type: 'testimonial',
     })
     console.log('✅ Created module scope restriction')
-    
+
     console.log('\n✨ All smoke tests passed! Database schema with i18n is working correctly.')
     console.log('📊 Summary: 11 tests passed')
     console.log('  - Templates: ✓')

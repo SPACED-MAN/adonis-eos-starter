@@ -1,5 +1,7 @@
 import Post from '#models/post'
 import db from '@adonisjs/lucid/services/db'
+import urlPatternService from '#services/url_pattern_service'
+import LocaleService from '#services/locale_service'
 import { randomUUID } from 'node:crypto'
 
 type CreatePostParams = {
@@ -75,6 +77,11 @@ export default class CreatePost {
 
       return newPost
     })
+
+    // Ensure default URL patterns for this post type across supported locales
+    try {
+      await urlPatternService.ensureDefaultsForPostType(type, LocaleService.getSupportedLocales())
+    } catch { }
 
     return post
   }
