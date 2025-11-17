@@ -102,28 +102,28 @@ export default function UrlPatternsPage() {
 	}
 
 	return (
-		<div className="min-h-screen bg-bg-50">
+		<div className="min-h-screen bg-backdrop-low">
 			<Head title="URL Patterns" />
 			<AdminHeader title="URL Patterns" />
 			<main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
 				<div className="mb-6">
-					<Link href="/admin" className="text-sm text-neutral-600 hover:text-neutral-900">
+					<Link href="/admin" className="text-sm text-neutral-low hover:text-standout">
 						← Back to Dashboard
 					</Link>
 				</div>
-				<div className="bg-bg-100 border border-neutral-200 rounded-lg">
-					<div className="px-6 py-4 border-b border-neutral-200 flex items-center justify-between">
-						<h2 className="text-lg font-semibold text-neutral-900">Default Patterns by Post Type and Locale</h2>
-						{loading && <span className="text-sm text-neutral-500">Loading…</span>}
+				<div className="bg-backdrop-low border border-border rounded-lg">
+					<div className="px-6 py-4 border-b border-border flex items-center justify-between">
+						<h2 className="text-lg font-semibold text-neutral-high">Default Patterns by Post Type and Locale</h2>
+						{loading && <span className="text-sm text-neutral-low">Loading…</span>}
 					</div>
 					<div className="p-6">
 						<section className="mb-10 opacity-60 pointer-events-none">
-							<h3 className="text-base font-semibold text-neutral-900 mb-1">Add Pattern</h3>
-							<p className="text-sm text-neutral-600 mb-3">Disabled: defaults are auto-created for all post types and locales.</p>
+							<h3 className="text-base font-semibold text-neutral-high mb-1">Add Pattern</h3>
+							<p className="text-sm text-neutral-low mb-3">Disabled: defaults are auto-created for all post types and locales.</p>
 							<div className="flex flex-col md:flex-row gap-3">
 								<input
 									type="text"
-									className="md:w-48 px-3 py-2 border border-neutral-300 rounded bg-bg-100 text-neutral-900"
+									className="md:w-48 px-3 py-2 border border-border rounded bg-backdrop-low text-neutral-high"
 									placeholder="postType (e.g., blog)"
 									value={newPattern.postType}
 									onChange={(e) => setNewPattern((s) => ({ ...s, postType: e.target.value }))}
@@ -131,7 +131,7 @@ export default function UrlPatternsPage() {
 								/>
 								<input
 									type="text"
-									className="md:w-28 px-3 py-2 border border-neutral-300 rounded bg-bg-100 text-neutral-900"
+									className="md:w-28 px-3 py-2 border border-border rounded bg-backdrop-low text-neutral-high"
 									placeholder="locale (e.g., en)"
 									value={newPattern.locale}
 									onChange={(e) => setNewPattern((s) => ({ ...s, locale: e.target.value }))}
@@ -139,7 +139,7 @@ export default function UrlPatternsPage() {
 								/>
 								<input
 									type="text"
-									className="flex-1 px-3 py-2 border border-neutral-300 rounded bg-bg-100 text-neutral-900"
+									className="flex-1 px-3 py-2 border border-border rounded bg-backdrop-low text-neutral-high"
 									placeholder="/:locale/posts/:slug"
 									value={newPattern.pattern}
 									onChange={(e) => setNewPattern((s) => ({ ...s, pattern: e.target.value }))}
@@ -147,7 +147,7 @@ export default function UrlPatternsPage() {
 								/>
 								<button
 									type="button"
-									className="px-3 py-2 text-sm rounded bg-primary-600 hover:bg-primary-700 text-white disabled:opacity-50"
+									className="px-3 py-2 text-sm rounded bg-standout text-on-standout disabled:opacity-50"
 									onClick={async () => {
 										if (!newPattern.postType || !newPattern.locale || !newPattern.pattern) {
 											alert('postType, locale and pattern are required')
@@ -187,24 +187,24 @@ export default function UrlPatternsPage() {
 							</div>
 						</section>
 						{Array.from(groups.entries()).length === 0 && !loading ? (
-							<p className="text-neutral-600">No patterns yet.</p>
+							<p className="text-neutral-low">No patterns yet.</p>
 						) : (
 							<div className="space-y-8">
 								{Array.from(groups.entries()).map(([postType, list]) => {
 									const locales = Array.from(new Set(list.map((p) => p.locale))).sort()
 									return (
 										<section key={postType}>
-											<h3 className="text-base font-semibold text-neutral-900 mb-3">{postType}</h3>
+											<h3 className="text-base font-semibold text-neutral-high mb-3">{postType}</h3>
 											<div className="space-y-3">
 												{locales.map((loc) => {
 													const key = `${postType}:${loc}`
 													const current = list.find((p) => p.locale === loc && p.isDefault)
 													return (
 														<div key={key} className="flex items-center gap-3">
-															<div className="w-24 text-sm text-neutral-600">{loc.toUpperCase()}</div>
+															<div className="w-24 text-sm text-neutral-low">{loc.toUpperCase()}</div>
 															<input
 																type="text"
-																className="flex-1 px-3 py-2 border border-neutral-300 rounded bg-bg-100 text-neutral-900"
+																className="flex-1 px-3 py-2 border border-border rounded bg-backdrop-low text-neutral-high"
 																placeholder="/{locale}/posts/{slug}"
 																value={drafts[key] ?? current?.pattern ?? ''}
 																onChange={(e) =>
@@ -213,7 +213,7 @@ export default function UrlPatternsPage() {
 															/>
 															<button
 																type="button"
-																className="px-3 py-2 text-sm rounded bg-primary-600 hover:bg-primary-700 text-white disabled:opacity-50"
+																className="px-3 py-2 text-sm rounded bg-standout text-on-standout disabled:opacity-50"
 																disabled={savingKey === key}
 																onClick={() => save(postType, loc)}
 															>

@@ -140,10 +140,10 @@ export function ModuleEditorPanel({
 		if (typeof value === 'string') {
 			return (
 				<div>
-					<label className="block text-sm font-medium text-neutral-700 mb-1">{label}</label>
+					<label className="block text-sm font-medium text-neutral-medium mb-1">{label}</label>
 					<input
 						type="text"
-						className="w-full px-3 py-2 border border-neutral-300 rounded-lg bg-bg-100 text-neutral-900 focus:ring-2 focus:ring-primary-500 focus:border-primary-500"
+						className="w-full px-3 py-2 border border-border rounded-lg bg-backdrop-low text-neutral-high focus:ring-2 ring-standout"
 						key={`${rootId}:${path.join('.')}`}
 						name={path.join('.')}
 						defaultValue={value}
@@ -155,10 +155,10 @@ export function ModuleEditorPanel({
 		if (typeof value === 'number') {
 			return (
 				<div>
-					<label className="block text-sm font-medium text-neutral-700 mb-1">{label}</label>
+					<label className="block text-sm font-medium text-neutral-medium mb-1">{label}</label>
 					<input
 						type="number"
-						className="w-full px-3 py-2 border border-neutral-300 rounded-lg bg-bg-100 text-neutral-900 focus:ring-2 focus:ring-primary-500 focus:border-primary-500"
+						className="w-full px-3 py-2 border border-border rounded-lg bg-backdrop-low text-neutral-high focus:ring-2 ring-standout"
 						key={`${rootId}:${path.join('.')}`}
 						name={path.join('.')}
 						defaultValue={value}
@@ -173,20 +173,20 @@ export function ModuleEditorPanel({
 					<input
 						id={label}
 						type="checkbox"
-						className="h-4 w-4 border-neutral-300 rounded"
+						className="h-4 w-4 border-border rounded"
 						key={`${rootId}:${path.join('.')}`}
 						name={path.join('.')}
 						defaultChecked={value}
 						onChange={() => {}}
 					/>
-					<label htmlFor={label} className="text-sm text-neutral-800">{label}</label>
+					<label htmlFor={label} className="text-sm text-neutral-high">{label}</label>
 				</div>
 			)
 		}
 		if (isPlainObject(value)) {
 			return (
-				<fieldset className="border border-neutral-200 rounded-lg p-3">
-					<legend className="px-1 text-xs font-medium text-neutral-600">{label}</legend>
+				<fieldset className="border border-border rounded-lg p-3">
+					<legend className="px-1 text-xs font-medium text-neutral-low">{label}</legend>
 					<div className="grid grid-cols-1 gap-4">
 						{Object.keys(value).map((key) => {
 							const nextPath = [...path, key]
@@ -209,11 +209,11 @@ export function ModuleEditorPanel({
 		// Arrays and unknowns fallback to read-only JSON for now
 		return (
 			<div>
-				<label className="block text-sm font-medium text-neutral-700 mb-1">{label}</label>
-				<pre className="w-full px-3 py-2 border border-neutral-300 rounded-lg bg-bg-50 text-neutral-900 font-mono text-xs overflow-auto">
+				<label className="block text-sm font-medium text-neutral-medium mb-1">{label}</label>
+				<pre className="w-full px-3 py-2 border border-border rounded-lg bg-backdrop-low text-neutral-high font-mono text-xs overflow-auto">
 					{JSON.stringify(value, null, 2)}
 				</pre>
-				<p className="text-xs text-neutral-500 mt-1">Editing arrays is not yet supported.</p>
+				<p className="text-xs text-neutral-low mt-1">Editing arrays is not yet supported.</p>
 			</div>
 		)
 	}
@@ -228,17 +228,17 @@ export function ModuleEditorPanel({
 		>
 			<div className="absolute inset-0 bg-black/40" onClick={onClose} />
 			<div
-				className="absolute right-0 top-0 h-full w-full max-w-2xl bg-bg-100 border-l border-neutral-200 shadow-xl flex flex-col"
+				className="absolute right-0 top-0 h-full w-full max-w-2xl bg-backdrop-low border-l border-border shadow-xl flex flex-col"
 				role="dialog"
 				aria-modal="true"
 			>
-				<div className="px-5 py-4 border-b border-neutral-200 flex items-center justify-between">
-					<h3 className="text-sm font-semibold text-neutral-900">
+				<div className="px-5 py-4 border-b border-border flex items-center justify-between">
+					<h3 className="text-sm font-semibold text-neutral-high">
 						Edit Module — {moduleItem.type}
 					</h3>
 					<button
 						type="button"
-						className="text-neutral-600 hover:text-neutral-900"
+						className="text-neutral-low hover:text-neutral-high"
 						onClick={onClose}
 					>
 						Close
@@ -246,7 +246,7 @@ export function ModuleEditorPanel({
 				</div>
 				<form ref={formRef} className="p-5 grid grid-cols-1 gap-5 overflow-auto">
 					{Object.keys(draft).length === 0 ? (
-						<p className="text-sm text-neutral-600">No editable fields.</p>
+						<p className="text-sm text-neutral-low">No editable fields.</p>
 					) : (
 						Object.keys(draft).map((key) => (
 							<Field
@@ -260,10 +260,10 @@ export function ModuleEditorPanel({
 						))
 					)}
 				</form>
-				<div className="px-5 py-4 border-t border-neutral-200 flex items-center justify-end gap-3">
+				<div className="px-5 py-4 border-t border-border flex items-center justify-end gap-3">
 					<button
 						type="button"
-						className="px-4 py-2 text-sm border border-neutral-300 rounded-lg hover:bg-bg-100 text-neutral-700"
+						className="px-4 py-2 text-sm border border-border rounded-lg hover:bg-backdrop-medium text-neutral-medium"
 						onClick={onClose}
 						disabled={processing}
 					>
@@ -271,7 +271,7 @@ export function ModuleEditorPanel({
 					</button>
 					<button
 						type="button"
-						className="px-4 py-2 text-sm rounded-md bg-primary-600 hover:bg-primary-700 text-white disabled:opacity-50"
+						className="px-4 py-2 text-sm rounded-md bg-standout text-on-standout disabled:opacity-50"
 						onClick={(e) => {
 							e.preventDefault()
 							e.stopPropagation()

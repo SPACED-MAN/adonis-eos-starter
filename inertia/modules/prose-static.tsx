@@ -29,7 +29,7 @@ export default function ProseStatic({
   maxWidth = 'max-w-4xl',
   fontSize = 'text-base',
   backgroundColor = 'bg-transparent',
-  textColor = 'text-neutral-900 dark:text-neutral-50',
+  textColor = 'text-neutral-high',
   padding = 'py-12',
 }: ProseStaticProps) {
   // If content is already HTML string, use it directly

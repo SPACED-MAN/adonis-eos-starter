@@ -57,14 +57,14 @@ export default function Post({ post, modules, seo }: PostPageProps) {
 				)}
 			</Head>
 			{/* Post Header */}
-			<header className="bg-bg-50 dark:bg-bg-100 py-12">
+			<header className="bg-backdrop-low py-12">
 				<div className="container mx-auto px-4 sm:px-6 lg:px-8">
-					<div className="max-w-4xl mx-auto">
-						<h1 className="text-4xl sm:text-5xl font-bold text-neutral-900 dark:text-neutral-50 mb-4">
+            <div className="max-w-4xl mx-auto">
+						<h1 className="text-4xl sm:text-5xl font-bold text-neutral-high mb-4">
 							{post.title}
 						</h1>
 						{post.excerpt && (
-							<p className="text-xl text-neutral-600 dark:text-neutral-500">{post.excerpt}</p>
+							<p className="text-xl text-neutral-low">{post.excerpt}</p>
 						)}
 					</div>
 				</div>
@@ -75,11 +75,11 @@ export default function Post({ post, modules, seo }: PostPageProps) {
 				{modules.map((module) => {
 					const Component = getModuleComponent(module.type)
 					if (!Component) {
-						return (
-							<div key={module.id} className="border border-red-500 bg-red-50 p-4">
-								<p>Module not found: {module.type}</p>
-							</div>
-						)
+            return (
+              <div key={module.id} className="border border-error bg-[color:#fef2f2] p-4">
+                <p className="text-error">Module not found: {module.type}</p>
+              </div>
+            )
 					}
 					return <Component key={module.id} {...module.props} />
 				})}

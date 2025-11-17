@@ -97,34 +97,34 @@ export default function RedirectsPage() {
 	}
 
 	return (
-		<div className="min-h-screen bg-bg-50">
+		<div className="min-h-screen bg-backdrop-low">
 			<Head title="Redirects" />
 			<AdminHeader title="Redirects" />
 			<main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
 				<div className="mb-6">
-					<Link href="/admin" className="text-sm text-neutral-600 hover:text-neutral-900">
+					<Link href="/admin" className="text-sm text-neutral-low hover:text-standout">
 						← Back to Dashboard
 					</Link>
 				</div>
-				<div className="bg-bg-100 border border-neutral-200 rounded-lg">
-					<div className="px-6 py-4 border-b border-neutral-200 flex items-center justify-between">
-						<h2 className="text-lg font-semibold text-neutral-900">Redirect Rules</h2>
-						{loading && <span className="text-sm text-neutral-500">Loading…</span>}
+				<div className="bg-backdrop-low border border-border rounded-lg">
+					<div className="px-6 py-4 border-b border-border flex items-center justify-between">
+						<h2 className="text-lg font-semibold text-neutral-high">Redirect Rules</h2>
+						{loading && <span className="text-sm text-neutral-low">Loading…</span>}
 					</div>
 					<div className="p-6 space-y-8">
 						<section>
-							<h3 className="text-base font-semibold text-neutral-900 mb-3">Create Redirect</h3>
+							<h3 className="text-base font-semibold text-neutral-high mb-3">Create Redirect</h3>
 							<div className="grid grid-cols-1 md:grid-cols-5 gap-3 items-center">
 								<input
 									type="text"
-									className="md:col-span-2 px-3 py-2 border border-neutral-300 rounded bg-bg-100 text-neutral-900"
+									className="md:col-span-2 px-3 py-2 border border-border rounded bg-backdrop-low text-neutral-high"
 									placeholder="/from/path"
 									value={form.fromPath}
 									onChange={(e) => setForm((f) => ({ ...f, fromPath: e.target.value }))}
 								/>
 								<input
 									type="text"
-									className="md:col-span-2 px-3 py-2 border border-neutral-300 rounded bg-bg-100 text-neutral-900"
+									className="md:col-span-2 px-3 py-2 border border-border rounded bg-backdrop-low text-neutral-high"
 									placeholder="/to/path"
 									value={form.toPath}
 									onChange={(e) => setForm((f) => ({ ...f, toPath: e.target.value }))}
@@ -132,21 +132,21 @@ export default function RedirectsPage() {
 								<div className="flex gap-2">
 									<input
 										type="number"
-										className="w-24 px-3 py-2 border border-neutral-300 rounded bg-bg-100 text-neutral-900"
+										className="w-24 px-3 py-2 border border-border rounded bg-backdrop-low text-neutral-high"
 										placeholder="301"
 										value={form.httpStatus}
 										onChange={(e) => setForm((f) => ({ ...f, httpStatus: Number(e.target.value || 301) }))}
 									/>
 									<input
 										type="text"
-										className="w-24 px-3 py-2 border border-neutral-300 rounded bg-bg-100 text-neutral-900"
+										className="w-24 px-3 py-2 border border-border rounded bg-backdrop-low text-neutral-high"
 										placeholder="locale"
 										value={form.locale}
 										onChange={(e) => setForm((f) => ({ ...f, locale: e.target.value }))}
 									/>
 									<button
 										type="button"
-										className="px-3 py-2 text-sm rounded bg-primary-600 hover:bg-primary-700 text-white disabled:opacity-50"
+										className="px-3 py-2 text-sm rounded bg-standout text-on-standout disabled:opacity-50"
 										disabled={creating}
 										onClick={createRedirect}
 									>
@@ -157,23 +157,23 @@ export default function RedirectsPage() {
 						</section>
 
 						<section>
-							<h3 className="text-base font-semibold text-neutral-900 mb-3">Existing Redirects</h3>
-							<div className="divide-y divide-neutral-200 border border-neutral-200 rounded">
+							<h3 className="text-base font-semibold text-neutral-high mb-3">Existing Redirects</h3>
+							<div className="divide-y divide-border border border-border rounded">
 								{items.length === 0 ? (
-									<p className="p-4 text-neutral-600">No redirects.</p>
+									<p className="p-4 text-neutral-low">No redirects.</p>
 								) : (
 									items.map((r) => (
 										<div key={r.id} className="p-4 flex items-center justify-between">
-											<div className="text-sm text-neutral-800">
+											<div className="text-sm text-neutral-high">
 												<span className="font-mono">{r.from_path}</span>
 												<span className="mx-2">→</span>
 												<span className="font-mono">{r.to_path}</span>
-												<span className="ml-3 text-neutral-500">[{r.http_status}]</span>
-												{r.locale && <span className="ml-2 text-neutral-500">({r.locale})</span>}
+												<span className="ml-3 text-neutral-low">[{r.http_status}]</span>
+												{r.locale && <span className="ml-2 text-neutral-low">({r.locale})</span>}
 											</div>
 											<button
 												type="button"
-												className="px-3 py-1.5 text-xs rounded border border-neutral-300 hover:bg-bg-100 text-neutral-700"
+												className="px-3 py-1.5 text-xs rounded border border-border hover:bg-backdrop-medium text-neutral-medium"
 												onClick={() => remove(r.id)}
 											>
 												Delete

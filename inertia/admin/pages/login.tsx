@@ -21,43 +21,43 @@ export default function Login() {
   }
 
   return (
-    <div className="min-h-screen w-full flex items-center justify-center bg-bg-50">
+    <div className="min-h-screen w-full flex items-center justify-center bg-backdrop-low">
       <Head title="Admin Login" />
-      <form onSubmit={submit} className="w-full max-w-sm p-6 rounded-xl border border-neutral-300 bg-bg-100 shadow-sm space-y-4">
-        <h1 className="text-xl font-semibold text-neutral-900">Admin Login</h1>
+      <form onSubmit={submit} className="w-full max-w-sm p-6 rounded-xl border border-border bg-backdrop-low shadow-sm space-y-4">
+        <h1 className="text-xl font-semibold text-neutral-high">Admin Login</h1>
 
         {/* General error message */}
         {error && (
-          <div className="p-3 rounded bg-red-50 border border-red-200 text-red-800 text-sm">
+          <div className="p-3 rounded bg-[color:#fef2f2] border border-[color:#fecaca] text-[color:#991b1b] text-sm">
             {error}
           </div>
         )}
 
         <div className="space-y-2">
-          <label className="block text-sm font-medium text-neutral-700">Email</label>
+          <label className="block text-sm font-medium text-neutral-medium">Email</label>
           <input
             type="email"
-            className="w-full border border-neutral-300 rounded px-3 py-2 bg-bg-100 text-neutral-900 placeholder-neutral-500 focus:outline-none focus:ring-2 focus:ring-primary-500"
+            className="w-full border border-border rounded px-3 py-2 bg-backdrop-low text-neutral-high placeholder:text-placeholder focus:outline-none focus:ring-2 ring-standout"
             value={form.data.email}
             onChange={(e) => form.setData('email', e.target.value)}
           />
           {errors?.email && (
-            <p className="text-sm text-red-600">
+            <p className="text-sm text-[color:#dc2626]">
               {Array.isArray(errors.email) ? errors.email[0] : errors.email}
             </p>
           )}
         </div>
 
         <div className="space-y-2">
-          <label className="block text-sm font-medium text-neutral-700">Password</label>
+          <label className="block text-sm font-medium text-neutral-medium">Password</label>
           <input
             type="password"
-            className="w-full border border-neutral-300 rounded px-3 py-2 bg-bg-100 text-neutral-900 placeholder-neutral-500 focus:outline-none focus:ring-2 focus:ring-primary-500"
+            className="w-full border border-border rounded px-3 py-2 bg-backdrop-low text-neutral-high placeholder:text-placeholder focus:outline-none focus:ring-2 ring-standout"
             value={form.data.password}
             onChange={(e) => form.setData('password', e.target.value)}
           />
           {errors?.password && (
-            <p className="text-sm text-red-600">
+            <p className="text-sm text-[color:#dc2626]">
               {Array.isArray(errors.password) ? errors.password[0] : errors.password}
             </p>
           )}
@@ -65,13 +65,13 @@ export default function Login() {
 
         <button
           type="submit"
-          className="w-full bg-primary-600 text-white rounded px-3 py-2 hover:bg-primary-700 disabled:opacity-50 transition-colors"
+          className="w-full bg-standout text-on-standout rounded px-3 py-2 hover:bg-standout disabled:opacity-50 transition-colors"
           disabled={form.processing}
         >
           {form.processing ? 'Signing in...' : 'Sign in'}
         </button>
 
-        <div className="text-sm text-neutral-700">
+        <div className="text-sm text-neutral-medium">
           <a href="/" className="underline hover:no-underline">Back to site</a>
         </div>
       </form>

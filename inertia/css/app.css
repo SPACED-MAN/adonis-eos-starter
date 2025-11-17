@@ -1,251 +1,132 @@
 @import "tailwindcss";
 
-/* Use class strategy for dark mode: dark:* applies when an ancestor has .dark */
-@custom-variant dark (&:where(.dark, .dark *));
+/* Use class strategy for dark mode via .dark on an ancestor */
 
 /**
- * Theme System
- * 
- * Centralized design tokens for admin and site.
- * Configure colors in: config/theme.ts
- * 
- * Usage:
- * - Admin pages automatically use admin theme
- * - Site pages automatically use site theme
- * - All components reference semantic tokens (bg-*, text-*, border-*)
- */
-
-@theme {
-  --font-sans: 'Instrument Sans', sans-serif;
-  /**
-   * Register a "primary" color scale so utilities like bg-primary-600 are generated.
-   * These root values are defaults and will be overridden by the theme-specific
-   * variables defined below under [data-theme="admin" | "site"] and their dark variants.
-   */
-  --color-primary-50: var(--color-indigo-50);
-  --color-primary-100: var(--color-indigo-100);
-  --color-primary-200: var(--color-indigo-200);
-  --color-primary-300: var(--color-indigo-300);
-  --color-primary-400: var(--color-indigo-400);
-  --color-primary-500: var(--color-indigo-500);
-  --color-primary-600: var(--color-indigo-600);
-  --color-primary-700: var(--color-indigo-700);
-  --color-primary-800: var(--color-indigo-800);
-  --color-primary-900: var(--color-indigo-900);
-  --color-primary-950: var(--color-indigo-950);
-
-  /**
-   * Neutral scale used for text/borders (text-neutral-*, border-neutral-*)
-   * Defaults map to Slate, overridden per theme below.
-   */
-  --color-neutral-50: var(--color-slate-50);
-  --color-neutral-100: var(--color-slate-100);
-  --color-neutral-200: var(--color-slate-200);
-  --color-neutral-300: var(--color-slate-300);
-  --color-neutral-400: var(--color-slate-400);
-  --color-neutral-500: var(--color-slate-500);
-  --color-neutral-600: var(--color-slate-600);
-  --color-neutral-700: var(--color-slate-700);
-  --color-neutral-800: var(--color-slate-800);
-  --color-neutral-900: var(--color-slate-900);
-  --color-neutral-950: var(--color-slate-950);
-
-  /**
-   * Background semantic scale (bg-bg-*)
-   * Defaults map to Slate, overridden per theme below.
-   */
-  --color-bg-50: var(--color-slate-50);
-  --color-bg-100: var(--color-slate-100);
-  --color-bg-200: var(--color-slate-200);
-  --color-bg-800: var(--color-slate-800);
-  --color-bg-900: var(--color-slate-900);
-  --color-bg-950: var(--color-slate-950);
-}
-
-/**
- * Admin Theme - Light Mode
- * Professional, clean interface for content management
+ * Theme variables (no numeric scales). These are consumed by Tailwind via
+ * tailwind.config.js color names (e.g., bg-backdrop-low, text-neutral-high).
  */
 [data-theme="admin"] {
-  /* Primary brand color */
-  --color-primary: var(--color-primary-600);
-  --color-primary-50: var(--color-zinc-50);
-  --color-primary-100: var(--color-zinc-100);
-  --color-primary-200: var(--color-zinc-200);
-  --color-primary-300: var(--color-zinc-300);
-  --color-primary-400: var(--color-zinc-400);
-  --color-primary-500: var(--color-zinc-500);
-  --color-primary-600: var(--color-zinc-600);
-  --color-primary-700: var(--color-zinc-700);
-  --color-primary-800: var(--color-zinc-800);
-  --color-primary-900: var(--color-zinc-900);
-  --color-primary-950: var(--color-zinc-950);
+  --color-standout: var(--color-indigo-600);
+  --color-on-standout: var(--color-white);
 
-  /* Background colors */
-  --color-bg-50: var(--color-zinc-50);
-  --color-bg-100: var(--color-zinc-100);
-  --color-bg-200: var(--color-zinc-200);
-  --color-bg-800: var(--color-zinc-800);
-  --color-bg-900: var(--color-zinc-900);
-  --color-bg-950: var(--color-zinc-950);
+  --color-neutral-low: var(--color-slate-400);
+  --color-neutral-medium: var(--color-slate-600);
+  --color-neutral-high: var(--color-slate-900);
 
-  /* Neutral colors (text, borders) */
-  --color-neutral-50: var(--color-zinc-50);
-  --color-neutral-100: var(--color-zinc-100);
-  --color-neutral-200: var(--color-zinc-200);
-  --color-neutral-300: var(--color-zinc-300);
-  --color-neutral-400: var(--color-zinc-400);
-  --color-neutral-500: var(--color-zinc-500);
-  --color-neutral-600: var(--color-zinc-600);
-  --color-neutral-700: var(--color-zinc-700);
-  --color-neutral-800: var(--color-zinc-800);
-  --color-neutral-900: var(--color-zinc-900);
-  --color-neutral-950: var(--color-zinc-950);
+  --color-backdrop-low: var(--color-slate-50);
+  --color-backdrop-medium: var(--color-slate-100);
+  --color-backdrop-high: var(--color-slate-200);
 
-  /* Semantic colors */
-  --color-success: var(--color-emerald-500);
-  --color-error: var(--color-red-500);
-  --color-warning: var(--color-amber-500);
-  --color-info: var(--color-blue-500);
+  --color-border: var(--color-slate-500);
+  --color-placeholder: var(--color-slate-400);
+  --color-disabled: var(--color-slate-300);
 }
 
-/**
- * Admin Theme - Dark Mode
- */
 [data-theme="admin"].dark {
-  /* Primary brand color (same as light mode for consistency) */
-  --color-primary: var(--color-primary-600);
-  --color-primary-50: var(--color-zinc-50);
-  --color-primary-100: var(--color-zinc-100);
-  --color-primary-200: var(--color-zinc-200);
-  --color-primary-300: var(--color-zinc-300);
-  --color-primary-400: var(--color-zinc-400);
-  --color-primary-500: var(--color-zinc-500);
-  --color-primary-600: var(--color-zinc-600);
-  --color-primary-700: var(--color-zinc-700);
-  --color-primary-800: var(--color-zinc-800);
-  --color-primary-900: var(--color-zinc-900);
-  --color-primary-950: var(--color-zinc-950);
+  --color-standout: var(--color-indigo-400);
+  --color-on-standout: var(--color-white);
 
-  /* Dark mode backgrounds */
-  --color-bg-50: var(--color-zinc-950);
-  --color-bg-100: var(--color-zinc-900);
-  --color-bg-200: var(--color-zinc-800);
-  --color-bg-800: var(--color-zinc-200);
-  --color-bg-900: var(--color-zinc-100);
-  --color-bg-950: var(--color-zinc-50);
+  --color-neutral-low: var(--color-slate-400);
+  --color-neutral-medium: var(--color-slate-500);
+  --color-neutral-high: var(--color-slate-200);
 
-  /* Dark mode neutral colors */
-  --color-neutral-50: var(--color-zinc-950);
-  --color-neutral-100: var(--color-zinc-900);
-  --color-neutral-200: var(--color-zinc-800);
-  --color-neutral-300: var(--color-zinc-700);
-  --color-neutral-400: var(--color-zinc-600);
-  --color-neutral-500: var(--color-zinc-500);
-  --color-neutral-600: var(--color-zinc-400);
-  --color-neutral-700: var(--color-zinc-300);
-  --color-neutral-800: var(--color-zinc-200);
-  --color-neutral-900: var(--color-zinc-100);
-  --color-neutral-950: var(--color-zinc-50);
+  --color-backdrop-low: var(--color-slate-900);
+  --color-backdrop-medium: var(--color-slate-800);
+  --color-backdrop-high: var(--color-slate-700);
+
+  --color-border: var(--color-slate-500);
+  --color-placeholder: var(--color-slate-500);
+  --color-disabled: var(--color-slate-600);
 }
 
-/**
- * Site Theme - Light Mode
- * Brand-focused, visitor-facing design
- */
 [data-theme="site"] {
-  /* Primary brand color */
-  --color-primary: var(--color-primary-600);
-  --color-primary-50: var(--color-violet-50);
-  --color-primary-100: var(--color-violet-100);
-  --color-primary-200: var(--color-violet-200);
-  --color-primary-300: var(--color-violet-300);
-  --color-primary-400: var(--color-violet-400);
-  --color-primary-500: var(--color-violet-500);
-  --color-primary-600: var(--color-violet-600);
-  --color-primary-700: var(--color-violet-700);
-  --color-primary-800: var(--color-violet-800);
-  --color-primary-900: var(--color-violet-900);
-  --color-primary-950: var(--color-violet-950);
+  --color-standout: var(--color-violet-600);
+  --color-on-standout: var(--color-white);
 
-  /* Background colors */
-  --color-bg-50: var(--color-stone-50);
-  --color-bg-100: var(--color-stone-100);
-  --color-bg-200: var(--color-stone-200);
-  --color-bg-800: var(--color-stone-800);
-  --color-bg-900: var(--color-stone-900);
-  --color-bg-950: var(--color-stone-950);
+  --color-neutral-low: var(--color-stone-400);
+  --color-neutral-medium: var(--color-stone-600);
+  --color-neutral-high: var(--color-stone-900);
 
-  /* Neutral colors (text, borders) */
-  --color-neutral-50: var(--color-stone-50);
-  --color-neutral-100: var(--color-stone-100);
-  --color-neutral-200: var(--color-stone-200);
-  --color-neutral-300: var(--color-stone-300);
-  --color-neutral-400: var(--color-stone-400);
-  --color-neutral-500: var(--color-stone-500);
-  --color-neutral-600: var(--color-stone-600);
-  --color-neutral-700: var(--color-stone-700);
-  --color-neutral-800: var(--color-stone-800);
-  --color-neutral-900: var(--color-stone-900);
-  --color-neutral-950: var(--color-stone-950);
+  --color-backdrop-low: var(--color-stone-50);
+  --color-backdrop-medium: var(--color-stone-100);
+  --color-backdrop-high: var(--color-stone-200);
 
-  /* Semantic colors */
-  --color-success: var(--color-emerald-500);
-  --color-error: var(--color-red-500);
-  --color-warning: var(--color-amber-500);
-  --color-info: var(--color-blue-500);
+  --color-border: var(--color-stone-500);
+  --color-placeholder: var(--color-stone-500);
+  --color-disabled: var(--color-stone-300);
 }
 
-/**
- * Site Theme - Dark Mode
- */
 [data-theme="site"].dark {
-  /* Primary brand color (same as light mode for consistency) */
-  --color-primary: var(--color-primary-600);
-  --color-primary-50: var(--color-violet-50);
-  --color-primary-100: var(--color-violet-100);
-  --color-primary-200: var(--color-violet-200);
-  --color-primary-300: var(--color-violet-300);
-  --color-primary-400: var(--color-violet-400);
-  --color-primary-500: var(--color-violet-500);
-  --color-primary-600: var(--color-violet-600);
-  --color-primary-700: var(--color-violet-700);
-  --color-primary-800: var(--color-violet-800);
-  --color-primary-900: var(--color-violet-900);
-  --color-primary-950: var(--color-violet-950);
+  --color-standout: var(--color-violet-400);
+  --color-on-standout: var(--color-white);
 
-  /* Dark mode backgrounds */
-  --color-bg-50: var(--color-stone-950);
-  --color-bg-100: var(--color-stone-900);
-  --color-bg-200: var(--color-stone-800);
-  --color-bg-800: var(--color-stone-200);
-  --color-bg-900: var(--color-stone-100);
-  --color-bg-950: var(--color-stone-50);
+  --color-neutral-low: var(--color-stone-400);
+  --color-neutral-medium: var(--color-stone-500);
+  --color-neutral-high: var(--color-stone-200);
 
-  /* Dark mode neutral colors */
-  /* Keep scale semantics consistent: 50 = lightest, 950 = darkest */
-  --color-neutral-50: var(--color-stone-50);
-  --color-neutral-100: var(--color-stone-100);
-  --color-neutral-200: var(--color-stone-200);
-  --color-neutral-300: var(--color-stone-300);
-  --color-neutral-400: var(--color-stone-400);
-  --color-neutral-500: var(--color-stone-500);
-  --color-neutral-600: var(--color-stone-600);
-  --color-neutral-700: var(--color-stone-700);
-  --color-neutral-800: var(--color-stone-800);
-  --color-neutral-900: var(--color-stone-900);
-  --color-neutral-950: var(--color-stone-950);
+  --color-backdrop-low: var(--color-stone-900);
+  --color-backdrop-medium: var(--color-stone-800);
+  --color-backdrop-high: var(--color-stone-700);
+
+  --color-border: var(--color-stone-500);
+  --color-placeholder: var(--color-stone-500);
+  --color-disabled: var(--color-stone-600);
 }
 
-/* Global base defaults for background and text to avoid white bleed-through */
+/* Base defaults */
 @layer base {
   body {
-    background-color: var(--color-bg-50);
-    color: var(--color-neutral-900);
+    background-color: var(--color-backdrop-low);
+    color: var(--color-neutral-high);
   }
 
   .dark body {
-    background-color: var(--color-bg-100);
-    color: var(--color-neutral-50);
+    background-color: var(--color-backdrop-low);
+    color: var(--color-neutral-high);
+  }
+}
+
+/* Utilities (kept minimal; prefer Tailwind color classes) */
+@layer utilities {
+  .text-body {
+    color: var(--color-neutral-high);
+  }
+
+  .text-muted {
+    color: var(--color-neutral-low);
+  }
+
+  .bg-surface {
+    background-color: var(--color-backdrop-low);
+  }
+
+  .border-surface {
+    border-color: var(--color-border);
+  }
+
+  .text-standout {
+    color: var(--color-standout);
+  }
+
+  .btn-primary {
+    background-color: var(--color-standout);
+    color: var(--color-on-standout);
+  }
+
+  .btn-primary:disabled {
+    opacity: 0.6;
+  }
+
+  .placeholder-muted::placeholder {
+    color: var(--color-placeholder);
+  }
+
+  .text-disabled {
+    color: var(--color-disabled);
+  }
+
+  .ring-standout {
+    --tw-ring-color: var(--color-standout);
   }
 }

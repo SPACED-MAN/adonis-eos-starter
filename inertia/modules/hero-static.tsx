@@ -30,7 +30,7 @@ export default function HeroStatic({
   imagePosition = 'center',
   primaryCta,
   secondaryCta,
-  backgroundColor = 'bg-neutral-50 dark:bg-neutral-900',
+  backgroundColor = 'bg-backdrop-low',
   minHeight = 'min-h-[70vh]',
 }: HeroStaticProps) {
   const alignmentClasses = {
@@ -47,7 +47,7 @@ export default function HeroStatic({
 
   return (
     <section
-      className={`relative ${backgroundColor.includes('dark:') ? backgroundColor : `${backgroundColor} dark:bg-neutral-900`} ${minHeight} flex items-center justify-center overflow-hidden`}
+      className={`relative ${backgroundColor} ${minHeight} flex items-center justify-center overflow-hidden`}
       data-module="hero"
     >
       {/* Background Image */}
@@ -61,7 +61,7 @@ export default function HeroStatic({
             decoding="async"
             fetchPriority="high"
           />
-          <div className="absolute inset-0 bg-neutral-900/20 dark:bg-neutral-900/40"></div>
+          <div className="absolute inset-0 bg-[rgba(0,0,0,0.2)] dark:bg-[rgba(0,0,0,0.4)]"></div>
         </div>
       )}
 
@@ -69,13 +69,13 @@ export default function HeroStatic({
       <div className="relative z-10 container mx-auto px-4 sm:px-6 lg:px-8">
         <div className={`flex flex-col ${alignmentClasses} max-w-4xl mx-auto`}>
           {/* Title */}
-          <h1 className="text-4xl sm:text-5xl md:text-6xl font-bold text-neutral-900 dark:text-neutral-50 mb-6">
+          <h1 className="text-4xl sm:text-5xl md:text-6xl font-bold text-neutral-high mb-6">
             {title}
           </h1>
 
           {/* Subtitle */}
           {subtitle && (
-            <p className="text-xl sm:text-2xl text-neutral-700 dark:text-neutral-300 mb-8 max-w-2xl">
+            <p className="text-xl sm:text-2xl text-neutral-medium mb-8 max-w-2xl">
               {subtitle}
             </p>
           )}
@@ -99,12 +99,9 @@ export default function HeroStatic({
  */
 function ButtonComponent({ label, url, style = 'primary', target = '_self', rel }: Button) {
   const styleClasses = {
-    primary:
-      'bg-neutral-900 hover:bg-neutral-800 text-neutral-50 dark:bg-neutral-50 dark:hover:bg-neutral-100 dark:text-neutral-900',
-    secondary:
-      'bg-neutral-700 hover:bg-neutral-600 text-neutral-50 dark:bg-neutral-300 dark:hover:bg-neutral-200 dark:text-neutral-900',
-    outline:
-      'border-2 border-neutral-900 hover:bg-neutral-900 text-neutral-900 hover:text-neutral-50 dark:border-neutral-50 dark:hover:bg-neutral-50 dark:text-neutral-50 dark:hover:text-neutral-900',
+    primary: 'bg-standout text-on-standout',
+    secondary: 'bg-backdrop-medium hover:bg-backdrop-high text-neutral-high',
+    outline: 'border-2 border-standout hover:bg-standout text-standout hover:text-on-standout',
   }[style]
 
   return (

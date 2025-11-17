@@ -58,18 +58,18 @@ export const themeConfig = {
 ## Using In Components
 
 ```tsx
-// ✅ DO: Use semantic tokens
-<div className="bg-white dark:bg-bg-800 border border-neutral-200 dark:border-neutral-700">
-  <h1 className="text-neutral-900 dark:text-neutral-50">Title</h1>
-  <p className="text-neutral-600 dark:text-neutral-400">Description</p>
-  <button className="bg-primary-600 hover:bg-primary-700 text-white">
+// ✅ DO: Use the simplified tokens (Tailwind color names backed by CSS vars)
+<div className="bg-backdrop-low border border-border rounded">
+  <h1 className="text-neutral-high">Title</h1>
+  <p className="text-neutral-low">Description</p>
+  <button className="bg-standout text-on-standout rounded px-3 py-2">
     Click Me
   </button>
 </div>
 
-// ❌ DON'T: Hardcode specific colors
-<div className="bg-slate-50 text-slate-900">  // Won't adapt to theme changes
-  <button className="bg-indigo-600">Click</button>  // Won't work on site
+// ❌ DON'T: Hardcode specific colors or numbered classes
+<div className="bg-slate-50 text-slate-900">
+  <button className="bg-indigo-600">Click</button>
 </div>
 ```
 
@@ -99,18 +99,22 @@ location.reload()
 2. **CSS Variables** - Themes defined in `inertia/css/app.css`:
    ```css
    [data-theme="admin"] {
-     --color-primary-600: var(--color-indigo-600);
+     --color-standout: var(--color-indigo-600);
+     --color-neutral-high: var(--color-slate-900);
+     --color-backdrop-low: var(--color-slate-50);
    }
-   
    [data-theme="site"] {
-     --color-primary-600: var(--color-violet-600);
+     --color-standout: var(--color-violet-600);
+     --color-neutral-high: var(--color-stone-900);
+     --color-backdrop-low: var(--color-stone-50);
    }
    ```
 
-3. **Tailwind Integration** - Use semantic tokens in your classes:
-   - `bg-primary-*` → Theme's primary color
-   - `bg-bg-*` → Theme's background colors
-   - `text-neutral-*` → Theme's text/border colors
+3. **Tailwind Integration** - Use the named color tokens:
+   - `bg-standout`, `text-on-standout`
+   - `text-neutral-{low|medium|high}`
+   - `bg-backdrop-{low|medium|high}`
+   - `border-border`
 
 ## Current Theme
 

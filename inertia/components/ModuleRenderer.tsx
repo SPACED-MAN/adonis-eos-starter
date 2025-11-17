@@ -67,8 +67,8 @@ function ReactModuleRenderer({
   if (!Component) {
     console.error(`Module component not found: ${componentName}`)
     return (
-      <div className="border border-red-500 bg-red-50 dark:bg-red-900/20 p-4 rounded">
-        <p className="text-red-700 dark:text-red-300">
+      <div className="border border-error bg-[color:#fef2f2] p-4 rounded">
+        <p className="text-error">
           Module not found: <code>{componentName}</code>
         </p>
       </div>
@@ -104,7 +104,7 @@ function getModuleComponent(componentName: string): ComponentType<any> | null {
 function ModuleLoadingFallback() {
   return (
     <div className="flex items-center justify-center p-8">
-      <div className="animate-pulse text-sand-500 dark:text-sand-400">Loading module...</div>
+      <div className="animate-pulse text-neutral-low">Loading module...</div>
     </div>
   )
 }

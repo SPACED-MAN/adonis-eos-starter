@@ -201,7 +201,7 @@ export default function Editor({ post, modules: initialModules, translations }: 
   }
 
   return (
-    <div className="min-h-screen bg-bg-50">
+    <div className="min-h-screen bg-backdrop-low">
       <AdminHeader title="Edit Post" />
 
       {/* Main Content */}
@@ -210,72 +210,72 @@ export default function Editor({ post, modules: initialModules, translations }: 
           {/* Left Column - Post Content */}
           <div className="lg:col-span-2 space-y-6">
             {/* Basic Info Card */}
-            <div className="bg-bg-100 rounded-lg shadow p-6">
-              <h2 className="text-lg font-semibold text-neutral-900 mb-4">
+            <div className="bg-backdrop-low rounded-lg shadow p-6 border border-border">
+              <h2 className="text-lg font-semibold text-neutral-high mb-4">
                 Post Information
               </h2>
 
               <form className="space-y-4" onSubmit={handleSubmit}>
                 {/* Title */}
                 <div>
-                  <label className="block text-sm font-medium text-neutral-700 mb-1">
+                  <label className="block text-sm font-medium text-neutral-medium mb-1">
                     Title *
                   </label>
                   <input
                     type="text"
                     value={data.title}
                     onChange={(e) => setData('title', e.target.value)}
-                    className="w-full px-3 py-2 border border-neutral-300 rounded-lg bg-bg-100 text-neutral-900 focus:ring-2 focus:ring-primary-500 focus:border-primary-500"
+                    className="w-full px-3 py-2 border border-border rounded-lg bg-backdrop-low text-neutral-high focus:ring-2 ring-standout"
                     placeholder="Enter post title"
                   />
                   {errors.title && (
-                    <p className="text-sm text-red-600 dark:text-red-400 mt-1">{errors.title}</p>
+                    <p className="text-sm text-[color:#dc2626] mt-1">{errors.title}</p>
                   )}
                 </div>
 
                 {/* Slug */}
                 <div>
-                  <label className="block text-sm font-medium text-neutral-700 mb-1">
+                  <label className="block text-sm font-medium text-neutral-medium mb-1">
                     Slug *
                   </label>
                   <input
                     type="text"
                     value={data.slug}
                     onChange={(e) => setData('slug', e.target.value)}
-                    className="w-full px-3 py-2 border border-neutral-300 rounded-lg bg-bg-100 text-neutral-900 font-mono text-sm focus:ring-2 focus:ring-primary-500 focus:border-primary-500"
+                    className="w-full px-3 py-2 border border-border rounded-lg bg-backdrop-low text-neutral-high font-mono text-sm focus:ring-2 ring-standout"
                     placeholder="post-slug"
                   />
                   {errors.slug && (
-                    <p className="text-sm text-red-600 dark:text-red-400 mt-1">{errors.slug}</p>
+                    <p className="text-sm text-[color:#dc2626] mt-1">{errors.slug}</p>
                   )}
                 </div>
 
                 {/* Excerpt */}
                 <div>
-                  <label className="block text-sm font-medium text-neutral-700 mb-1">
+                  <label className="block text-sm font-medium text-neutral-medium mb-1">
                     Excerpt
                   </label>
                   <textarea
                     value={data.excerpt}
                     onChange={(e) => setData('excerpt', e.target.value)}
                     rows={3}
-                    className="w-full px-3 py-2 border border-neutral-300 rounded-lg bg-bg-100 text-neutral-900 focus:ring-2 focus:ring-primary-500 focus:border-primary-500"
+                    className="w-full px-3 py-2 border border-border rounded-lg bg-backdrop-low text-neutral-high focus:ring-2 ring-standout"
                     placeholder="Brief description (optional)"
                   />
                   {errors.excerpt && (
-                    <p className="text-sm text-red-600 dark:text-red-400 mt-1">{errors.excerpt}</p>
+                    <p className="text-sm text-[color:#dc2626] mt-1">{errors.excerpt}</p>
                   )}
                 </div>
 
                 {/* Status */}
                 <div>
-                  <label className="block text-sm font-medium text-neutral-700 mb-1">
+                  <label className="block text-sm font-medium text-neutral-medium mb-1">
                     Status *
                   </label>
                   <select
                     value={data.status}
                     onChange={(e) => setData('status', e.target.value)}
-                    className="w-full px-3 py-2 border border-neutral-300 rounded-lg bg-bg-100 text-neutral-900 focus:ring-2 focus:ring-primary-500 focus:border-primary-500"
+                    className="w-full px-3 py-2 border border-border rounded-lg bg-backdrop-low text-neutral-high focus:ring-2 ring-standout"
                   >
                     <option value="draft">Draft</option>
                     <option value="review">Review</option>
@@ -293,7 +293,7 @@ export default function Editor({ post, modules: initialModules, translations }: 
                   <button
                     type="submit"
                     disabled={processing}
-                    className="inline-flex items-center gap-2 rounded-md bg-primary-600 hover:bg-primary-700 text-white text-sm px-3 py-2 disabled:opacity-50"
+                    className="inline-flex items-center gap-2 rounded-md bg-standout text-on-standout text-sm px-3 py-2 disabled:opacity-50"
                   >
                     {processing ? 'Saving...' : 'Save Changes'}
                   </button>
@@ -302,90 +302,90 @@ export default function Editor({ post, modules: initialModules, translations }: 
             </div>
 
             {/* SEO Card */}
-            <div className="bg-bg-100 rounded-lg shadow p-6">
-              <h2 className="text-lg font-semibold text-neutral-900 mb-4">
+            <div className="bg-backdrop-low rounded-lg shadow p-6 border border-border">
+              <h2 className="text-lg font-semibold text-neutral-high mb-4">
                 SEO Settings
               </h2>
 
               <div className="space-y-4">
                 {/* Meta Title */}
                 <div>
-                  <label className="block text-sm font-medium text-neutral-700 mb-1">
+                  <label className="block text-sm font-medium text-neutral-medium mb-1">
                     Meta Title
                   </label>
                   <input
                     type="text"
                     value={data.metaTitle}
                     onChange={(e) => setData('metaTitle', e.target.value)}
-                    className="w-full px-3 py-2 border border-neutral-300 rounded-lg bg-bg-100 text-neutral-900 focus:ring-2 focus:ring-primary-500 focus:border-primary-500"
+                    className="w-full px-3 py-2 border border-border rounded-lg bg-backdrop-low text-neutral-high focus:ring-2 ring-standout"
                     placeholder="Custom meta title (optional)"
                   />
-                  <p className="text-xs text-neutral-500 mt-1">
+                  <p className="text-xs text-neutral-low mt-1">
                     Leave blank to use post title
                   </p>
                 </div>
 
                 {/* Meta Description */}
                 <div>
-                  <label className="block text-sm font-medium text-neutral-700 mb-1">
+                  <label className="block text-sm font-medium text-neutral-medium mb-1">
                     Meta Description
                   </label>
                   <textarea
                     value={data.metaDescription}
                     onChange={(e) => setData('metaDescription', e.target.value)}
                     rows={3}
-                    className="w-full px-3 py-2 border border-neutral-300 rounded-lg bg-bg-100 text-neutral-900 focus:ring-2 focus:ring-primary-500 focus:border-primary-500"
+                    className="w-full px-3 py-2 border border-border rounded-lg bg-backdrop-low text-neutral-high focus:ring-2 ring-standout"
                     placeholder="Custom meta description (optional)"
                   />
-                  <p className="text-xs text-neutral-500 mt-1">
+                  <p className="text-xs text-neutral-low mt-1">
                     Recommended: 150-160 characters
                   </p>
                 </div>
 
                 {/* Canonical URL */}
                 <div>
-                  <label className="block text-sm font-medium text-neutral-700 mb-1">
+                  <label className="block text-sm font-medium text-neutral-medium mb-1">
                     Canonical URL
                   </label>
                   <input
                     type="url"
                     value={data.canonicalUrl}
                     onChange={(e) => setData('canonicalUrl', e.target.value)}
-                    className="w-full px-3 py-2 border border-neutral-300 rounded-lg bg-bg-100 text-neutral-900 focus:ring-2 focus:ring-primary-500 focus:border-primary-500"
+                    className="w-full px-3 py-2 border border-border rounded-lg bg-backdrop-low text-neutral-high focus:ring-2 ring-standout"
                     placeholder="https://example.com/my-post"
                   />
                 </div>
 
                 {/* Robots JSON */}
                 <div>
-                  <label className="block text-sm font-medium text-neutral-700 mb-1">
+                  <label className="block text-sm font-medium text-neutral-medium mb-1">
                     Robots (JSON)
                   </label>
                   <textarea
                     value={data.robotsJson}
                     onChange={(e) => setData('robotsJson', e.target.value)}
                     rows={4}
-                    className="w-full px-3 py-2 border border-neutral-300 rounded-lg bg-bg-100 text-neutral-900 font-mono text-xs focus:ring-2 focus:ring-primary-500 focus:border-primary-500"
+                    className="w-full px-3 py-2 border border-border rounded-lg bg-backdrop-low text-neutral-high font-mono text-xs focus:ring-2 ring-standout"
                     placeholder={JSON.stringify({ index: true, follow: true }, null, 2)}
                   />
-                  <p className="text-xs text-neutral-500 mt-1">
+                  <p className="text-xs text-neutral-low mt-1">
                     Leave empty for defaults. Must be valid JSON.
                   </p>
                 </div>
 
                 {/* JSON-LD Overrides */}
                 <div>
-                  <label className="block text-sm font-medium text-neutral-700 mb-1">
+                  <label className="block text-sm font-medium text-neutral-medium mb-1">
                     JSON-LD Overrides (JSON)
                   </label>
                   <textarea
                     value={data.jsonldOverrides}
                     onChange={(e) => setData('jsonldOverrides', e.target.value)}
                     rows={6}
-                    className="w-full px-3 py-2 border border-neutral-300 rounded-lg bg-bg-100 text-neutral-900 font-mono text-xs focus:ring-2 focus:ring-primary-500 focus:border-primary-500"
+                    className="w-full px-3 py-2 border border-border rounded-lg bg-backdrop-low text-neutral-high font-mono text-xs focus:ring-2 ring-standout"
                     placeholder={JSON.stringify({ '@type': 'BlogPosting' }, null, 2)}
                   />
-                  <p className="text-xs text-neutral-500 mt-1">
+                  <p className="text-xs text-neutral-low mt-1">
                     Leave empty to auto-generate structured data.
                   </p>
                 </div>
@@ -393,15 +393,15 @@ export default function Editor({ post, modules: initialModules, translations }: 
             </div>
 
             {/* Modules Section (Placeholder) */}
-            <div className="bg-bg-100 rounded-lg shadow p-6">
+            <div className="bg-backdrop-low rounded-lg shadow p-6 border border-border">
               <div className="flex items-center justify-between mb-4">
-                <h2 className="text-lg font-semibold text-neutral-900">
+                <h2 className="text-lg font-semibold text-neutral-high">
                   Modules
                 </h2>
                 <ModulePicker postId={post.id} postType={post.type} />
               </div>
               {modules.length === 0 ? (
-                <div className="text-center py-12 text-neutral-500">
+                <div className="text-center py-12 text-neutral-low">
                   <p>No modules yet. Use “Add Module” to insert one.</p>
                 </div>
               ) : (
@@ -411,24 +411,24 @@ export default function Editor({ post, modules: initialModules, translations }: 
                       {sortedModules.map((m) => (
                         <SortableItem key={m.id} id={m.id}>
                           {(listeners: any) => (
-                            <li className="bg-bg-50 border border-neutral-200 rounded-lg px-4 py-3 flex items-center justify-between">
+                            <li className="bg-backdrop-low border border-border rounded-lg px-4 py-3 flex items-center justify-between">
                               <div className="flex items-center gap-3">
                                 <button
                                   type="button"
                                   aria-label="Drag"
-                                  className="cursor-grab text-neutral-500 hover:text-neutral-700"
+                                  className="cursor-grab text-neutral-low hover:text-neutral-high"
                                   {...listeners}
                                 >
                                   ⋮⋮
                                 </button>
                                 <div>
-                                  <div className="text-sm font-medium text-neutral-900">{m.type}</div>
-                                  <div className="text-xs text-neutral-600">Order: {m.orderIndex}</div>
+                                  <div className="text-sm font-medium text-neutral-high">{m.type}</div>
+                                  <div className="text-xs text-neutral-low">Order: {m.orderIndex}</div>
                                 </div>
                               </div>
                               <div className="flex items-center gap-2">
                                 <button
-                                  className="text-xs px-2 py-1 rounded border border-neutral-300 dark:border-neutral-500 bg-bg-100 dark:bg-neutral-800 text-neutral-800 dark:text-neutral-50 hover:bg-bg-200 dark:hover:bg-neutral-700"
+                                  className="text-xs px-2 py-1 rounded border border-border bg-backdrop-low text-neutral-high hover:bg-backdrop-medium"
                                   onClick={() => setEditing(m)}
                                   type="button"
                                 >
@@ -449,40 +449,40 @@ export default function Editor({ post, modules: initialModules, translations }: 
           {/* Right Column - Sidebar */}
           <div className="space-y-6">
             {/* Post Details */}
-            <div className="bg-bg-100 rounded-lg shadow p-6">
-              <h3 className="text-sm font-semibold text-neutral-900 mb-4">
+            <div className="bg-backdrop-low rounded-lg shadow p-6 border border-border">
+              <h3 className="text-sm font-semibold text-neutral-high mb-4">
                 Post Details
               </h3>
               <dl className="space-y-3 text-sm">
                 <div>
-                  <dt className="text-neutral-600">Status</dt>
-                  <dd className="font-medium text-neutral-900 capitalize">
+                  <dt className="text-neutral-low">Status</dt>
+                  <dd className="font-medium text-neutral-high capitalize">
                     {data.status}
                   </dd>
                 </div>
                 <div>
-                  <dt className="text-neutral-600">Type</dt>
-                  <dd className="font-medium text-neutral-900">{post.type}</dd>
+                  <dt className="text-neutral-low">Type</dt>
+                  <dd className="font-medium text-neutral-high">{post.type}</dd>
                 </div>
                 <div>
-                  <dt className="text-neutral-600">Locale</dt>
-                  <dd className="font-medium text-neutral-900">{post.locale}</dd>
+                  <dt className="text-neutral-low">Locale</dt>
+                  <dd className="font-medium text-neutral-high">{post.locale}</dd>
                 </div>
                 <div>
-                  <dt className="text-neutral-600">ID</dt>
-                  <dd className="font-mono text-xs text-neutral-700 break-all">
+                  <dt className="text-neutral-low">ID</dt>
+                  <dd className="font-mono text-xs text-neutral-medium break-all">
                     {post.id}
                   </dd>
                 </div>
                 <div>
-                  <dt className="text-neutral-600">Created</dt>
-                  <dd className="font-medium text-neutral-900">
+                  <dt className="text-neutral-low">Created</dt>
+                  <dd className="font-medium text-neutral-high">
                     {new Date(post.createdAt).toLocaleDateString()}
                   </dd>
                 </div>
                 <div>
-                  <dt className="text-neutral-600">Updated</dt>
-                  <dd className="font-medium text-neutral-900">
+                  <dt className="text-neutral-low">Updated</dt>
+                  <dd className="font-medium text-neutral-high">
                     {new Date(post.updatedAt).toLocaleDateString()}
                   </dd>
                 </div>
@@ -490,14 +490,14 @@ export default function Editor({ post, modules: initialModules, translations }: 
             </div>
 
             {/* Quick Actions (Placeholder) */}
-            <div className="bg-bg-100 rounded-lg shadow p-6">
-              <h3 className="text-sm font-semibold text-neutral-900 mb-4">
+            <div className="bg-backdrop-low rounded-lg shadow p-6 border border-border">
+              <h3 className="text-sm font-semibold text-neutral-high mb-4">
                 Quick Actions
               </h3>
               <div className="space-y-2">
                 {/* Locale Switcher */}
                 <div>
-                  <label className="block text-xs font-medium text-neutral-700 mb-1">
+                  <label className="block text-xs font-medium text-neutral-medium mb-1">
                     Locale
                   </label>
                   <div className="flex items-center gap-2">
@@ -512,7 +512,7 @@ export default function Editor({ post, modules: initialModules, translations }: 
                           window.location.href = `/admin/posts/${target.id}/edit`
                         }
                       }}
-                      className="px-2 py-1 border border-neutral-300 rounded bg-bg-100 text-neutral-900"
+                      className="px-2 py-1 border border-border rounded bg-backdrop-low text-neutral-high"
                     >
                       {(['en', 'es'] as string[])
                         .concat(translations?.map((t) => t.locale) || [])
@@ -524,12 +524,12 @@ export default function Editor({ post, modules: initialModules, translations }: 
                         ))}
                     </select>
                     {!(translations || []).some((t) => t.locale !== post.locale) && (
-                      <span className="text-xs text-neutral-500">No other translations</span>
+                      <span className="text-xs text-neutral-low">No other translations</span>
                     )}
                   </div>
                   <button
                     type="button"
-                    className="mt-2 text-xs px-2 py-1 rounded border border-neutral-300 dark:border-neutral-500 bg-bg-100 dark:bg-neutral-800 text-neutral-800 dark:text-neutral-50 hover:bg-bg-200 dark:hover:bg-neutral-700"
+                    className="mt-2 text-xs px-2 py-1 rounded border border-border bg-backdrop-low text-neutral-high hover:bg-backdrop-medium"
                     onClick={async () => {
                       // Create the first missing locale (defaults to 'es' if not present)
                       const locales = ['en', 'es']
@@ -560,7 +560,7 @@ export default function Editor({ post, modules: initialModules, translations }: 
                   </button>
                 </div>
                 <button
-                  className="w-full px-4 py-2 text-sm border border-neutral-300 rounded-lg hover:bg-bg-100 text-neutral-700"
+                  className="w-full px-4 py-2 text-sm border border-border rounded-lg hover:bg-backdrop-medium text-neutral-medium"
                   onClick={() => {
                     window.open(`/posts/${post.slug}?locale=${encodeURIComponent(post.locale)}`, '_blank')
                   }}
@@ -569,7 +569,7 @@ export default function Editor({ post, modules: initialModules, translations }: 
                   View on Site
                 </button>
                 <button
-                  className="w-full px-4 py-2 text-sm border border-neutral-300 rounded-lg hover:bg-bg-100 text-neutral-700"
+                  className="w-full px-4 py-2 text-sm border border-border rounded-lg hover:bg-backdrop-medium text-neutral-medium"
                   onClick={() => {
                     setData('status', 'published')
                     put(`/api/posts/${post.id}`, {
@@ -584,7 +584,7 @@ export default function Editor({ post, modules: initialModules, translations }: 
                 </button>
                 {post.status === 'published' && (
                   <button
-                    className="w-full px-4 py-2 text-sm border border-neutral-300 rounded-lg hover:bg-bg-100 text-neutral-700"
+                    className="w-full px-4 py-2 text-sm border border-border rounded-lg hover:bg-backdrop-medium text-neutral-medium"
                     onClick={() => {
                       setData('status', 'draft')
                       put(`/api/posts/${post.id}`, {
