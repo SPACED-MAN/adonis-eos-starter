@@ -23,11 +23,10 @@ export default function RedirectsPage() {
 	const [items, setItems] = useState<Redirect[]>([])
 	const [loading, setLoading] = useState(false)
 	const [creating, setCreating] = useState(false)
-	const [form, setForm] = useState<{ fromPath: string; toPath: string; httpStatus: number; locale: string }>({
+	const [form, setForm] = useState<{ fromPath: string; toPath: string; httpStatus: number }>({
 		fromPath: '',
 		toPath: '',
 		httpStatus: 301,
-		locale: '',
 	})
 
 	useEffect(() => {
@@ -45,11 +44,20 @@ export default function RedirectsPage() {
 		}
 	}, [])
 
+	function inferLocale(path: string): string | null {
+		if (!path || path[0] !== '/') return null
+		const seg = path.split('/')[1]?.trim().toLowerCase()
+		if (!seg) return null
+		if (/^[a-z]{2}(-[a-z]{2})?$/.test(seg)) return seg
+		return null
+	}
+
 	async function createRedirect() {
 		if (!form.fromPath || !form.toPath) {
 			alert('fromPath and toPath are required')
 			return
 		}
+		const inferredLocale = inferLocale(form.fromPath) ?? inferLocale(form.toPath)
 		setCreating(true)
 		try {
 			const res = await fetch('/api/redirects', {
@@ -64,7 +72,7 @@ export default function RedirectsPage() {
 					fromPath: form.fromPath,
 					toPath: form.toPath,
 					httpStatus: form.httpStatus,
-					locale: form.locale || null,
+					locale: inferredLocale,
 				}),
 			})
 			if (!res.ok) {
@@ -74,7 +82,7 @@ export default function RedirectsPage() {
 			}
 			const json = await res.json()
 			setItems((prev) => [json.data, ...prev])
-			setForm({ fromPath: '', toPath: '', httpStatus: 301, locale: '' })
+			setForm({ fromPath: '', toPath: '', httpStatus: 301 })
 			alert('Redirect created')
 		} finally {
 			setCreating(false)
@@ -115,17 +123,17 @@ export default function RedirectsPage() {
 					<div className="p-6 space-y-8">
 						<section>
 							<h3 className="text-base font-semibold text-neutral-high mb-3">Create Redirect</h3>
-							<div className="grid grid-cols-1 md:grid-cols-5 gap-3 items-center">
+							<div className="grid grid-cols-1 md:grid-cols-4 gap-3 items-center">
 								<input
 									type="text"
-									className="md:col-span-2 px-3 py-2 border border-border rounded bg-backdrop-low text-neutral-high"
+									className="md:col-span-2 px-3 py-2 border border-line rounded bg-backdrop-low text-neutral-high"
 									placeholder="/from/path"
 									value={form.fromPath}
 									onChange={(e) => setForm((f) => ({ ...f, fromPath: e.target.value }))}
 								/>
 								<input
 									type="text"
-									className="md:col-span-2 px-3 py-2 border border-border rounded bg-backdrop-low text-neutral-high"
+									className="md:col-span-2 px-3 py-2 border border-line rounded bg-backdrop-low text-neutral-high"
 									placeholder="/to/path"
 									value={form.toPath}
 									onChange={(e) => setForm((f) => ({ ...f, toPath: e.target.value }))}
@@ -133,17 +141,10 @@ export default function RedirectsPage() {
 								<div className="flex gap-2">
 									<input
 										type="number"
-										className="w-24 px-3 py-2 border border-border rounded bg-backdrop-low text-neutral-high"
+										className="w-24 px-3 py-2 border border-line rounded bg-backdrop-low text-neutral-high"
 										placeholder="301"
 										value={form.httpStatus}
 										onChange={(e) => setForm((f) => ({ ...f, httpStatus: Number(e.target.value || 301) }))}
-									/>
-									<input
-										type="text"
-										className="w-24 px-3 py-2 border border-border rounded bg-backdrop-low text-neutral-high"
-										placeholder="locale"
-										value={form.locale}
-										onChange={(e) => setForm((f) => ({ ...f, locale: e.target.value }))}
 									/>
 									<button
 										type="button"
