@@ -13,12 +13,17 @@ export default class RedirectsMiddleware {
     const locale = ctx.request.input('locale') || null
 
     // Try specific-locale redirect, then fallback without locale
+    // First try exact locale match (when provided in query),
+    // then any redirect for this from_path regardless of locale.
     const redirect =
-      (await db.from('url_redirects').where({ from_path: path, locale }).first()) ||
-      (await db.from('url_redirects').where({ from_path: path, locale: null }).first())
+      (locale
+        ? await db.from('url_redirects').where({ from_path: path, locale }).first()
+        : null) ||
+      (await db.from('url_redirects').where({ from_path: path }).first())
 
     if (redirect) {
-      return ctx.response.redirect(redirect.http_status || 301, redirect.to_path)
+      // Correct argument order: redirect(url, status)
+      return ctx.response.redirect(redirect.to_path, redirect.http_status || 301)
     }
 
     await next()

@@ -562,7 +562,8 @@ export default function Editor({ post, modules: initialModules, translations }: 
                 <button
                   className="w-full px-4 py-2 text-sm border border-border rounded-lg hover:bg-backdrop-medium text-neutral-medium"
                   onClick={() => {
-                    window.open(`/posts/${post.slug}?locale=${encodeURIComponent(post.locale)}`, '_blank')
+                    const target = (post as any).publicPath || `/posts/${post.slug}`
+                    window.open(target, '_blank')
                   }}
                   type="button"
                 >

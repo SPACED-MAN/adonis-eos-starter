@@ -18,7 +18,7 @@ export default class PostsController {
    *
    * Show the post editor
    */
-  async edit({ params, inertia, response }: HttpContext) {
+  async edit({ params, inertia, response, request }: HttpContext) {
     try {
       const post = await Post.findOrFail(params.id)
       // Load post modules for editor
@@ -44,6 +44,14 @@ export default class PostsController {
       })
       const translations = family.map((p) => ({ id: p.id, locale: p.locale }))
 
+      // Build public path using pattern (relative URL for environment-agnostic linking)
+      const publicPath = await urlPatternService.buildPostPath(
+        post.type,
+        post.slug,
+        post.locale,
+        post.createdAt ? new Date(post.createdAt.toISO()) : undefined
+      )
+
       return inertia.render('admin/posts/editor', {
         post: {
           id: post.id,
@@ -60,6 +68,7 @@ export default class PostsController {
           jsonldOverrides: post.jsonldOverrides,
           createdAt: post.createdAt.toISO(),
           updatedAt: post.updatedAt.toISO(),
+          publicPath,
         },
         modules: postModules.map((pm) => ({
           id: pm.postModuleId,
@@ -312,10 +321,24 @@ export default class PostsController {
       const alternatesBuilt = await Promise.all(
         alternates.map(async (a, idx) => ({
           locale: family[idx].locale,
-          href: await makeUrl(family[idx].slug, family[idx].locale),
+          href: await urlPatternService.buildPostUrl(
+            post.type,
+            family[idx].slug,
+            family[idx].locale,
+            protocol,
+            host,
+            family[idx].createdAt ? new Date(family[idx].createdAt.toISO()) : undefined
+          ),
         }))
       )
-      const canonical = await makeUrl(post.slug, post.locale)
+      const canonical = await urlPatternService.buildPostUrl(
+        post.type,
+        post.slug,
+        post.locale,
+        protocol,
+        host,
+        post.createdAt ? new Date(post.createdAt.toISO()) : undefined
+      )
       // Robots: noindex,nofollow for non-published, else index,follow
       const robotsContent = post.status === 'published' ? 'index,follow' : 'noindex,nofollow'
       // Merge default JSON-LD with post-level overrides (if any)
@@ -394,6 +417,83 @@ export default class PostsController {
         error: 'Failed to load post',
         message: error.message,
       })
+    }
+  }
+
+  /**
+   * Resolve public post by matching URL patterns (catch-all route).
+   */
+  async resolve({ request, response, inertia }: HttpContext) {
+    const path = request.url().split('?')[0]
+    const match = await urlPatternService.matchPath(path)
+    if (!match) {
+      return response.notFound({ error: 'Not found' })
+    }
+    const { slug, locale } = match
+    try {
+      const post = await Post.query().where('slug', slug).where('locale', locale).first()
+      if (!post) {
+        return response.notFound({ error: 'Post not found', slug, locale })
+      }
+      const postModules = await db
+        .from('post_modules')
+        .join('module_instances', 'post_modules.module_id', 'module_instances.id')
+        .where('post_modules.post_id', post.id)
+        .select(
+          'post_modules.id as postModuleId',
+          'module_instances.type',
+          'module_instances.scope',
+          'module_instances.props',
+          'post_modules.overrides',
+          'post_modules.locked',
+          'post_modules.order_index as orderIndex'
+        )
+        .orderBy('post_modules.order_index', 'asc')
+      const modules = postModules.map((pm) => ({
+        id: pm.postModuleId,
+        type: pm.type,
+        props: { ...(pm.props || {}), ...(pm.overrides || {}) },
+      }))
+      const protocol = (request as any).protocol ? (request as any).protocol() : (request.secure ? 'https' : 'http')
+      const host = (request as any).host ? (request as any).host() : request.header('host')
+      const canonical = await urlPatternService.buildPostUrl(
+        post.type,
+        post.slug,
+        post.locale,
+        protocol,
+        host,
+        post.createdAt ? new Date(post.createdAt.toISO()) : undefined
+      )
+      const baseId = post.translationOfId || post.id
+      const family = await Post.query().where((q) => {
+        q.where('translationOfId', baseId).orWhere('id', baseId)
+      })
+      const alternates = await Promise.all(
+        family.map((p) =>
+          urlPatternService.buildPostUrl(p.type, p.slug, p.locale, protocol, host, p.createdAt ? new Date(p.createdAt.toISO()) : undefined)
+        )
+      )
+      return inertia.render('site/post', {
+        post: {
+          id: post.id,
+          type: post.type,
+          locale: post.locale,
+          slug: post.slug,
+          title: post.title,
+          excerpt: post.excerpt,
+          metaTitle: post.metaTitle,
+          metaDescription: post.metaDescription,
+          status: post.status,
+        },
+        modules,
+        seo: {
+          canonical,
+          alternates: family.map((p, i) => ({ locale: p.locale, href: alternates[i] })),
+          robots: post.status === 'published' ? 'index,follow' : 'noindex,nofollow',
+        },
+      })
+    } catch (error) {
+      return response.internalServerError({ error: 'Failed to resolve post', message: error.message })
     }
   }
 

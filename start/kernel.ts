@@ -27,7 +27,9 @@ server.use([
   () => import('@adonisjs/static/static_middleware'),
   () => import('@adonisjs/cors/cors_middleware'),
   () => import('@adonisjs/vite/vite_middleware'),
-  () => import('@adonisjs/inertia/inertia_middleware')
+  () => import('@adonisjs/inertia/inertia_middleware'),
+  // Run redirects for all requests (including unmatched routes)
+  () => import('#middleware/redirects_middleware')
 ])
 
 /**
@@ -40,7 +42,6 @@ router.use([
   () => import('@adonisjs/shield/shield_middleware'),
   () => import('@adonisjs/auth/initialize_auth_middleware'),
   () => import('#middleware/locale_middleware'),
-  () => import('#middleware/redirects_middleware'),
   () => import('#middleware/cache_control_middleware')
 ])
 

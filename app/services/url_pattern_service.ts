@@ -51,15 +51,26 @@ class UrlPatternService {
   /**
    * Build path using default pattern for postType+locale.
    */
-  async buildPostPath(postType: string, slug: string, locale: string): Promise<string> {
+  async buildPostPath(postType: string, slug: string, locale: string, createdAt?: Date): Promise<string> {
     const defaultPattern =
       (await this.getDefaultPattern(postType, locale))?.pattern ||
       '/{locale}/posts/{slug}'
-    return this.replaceTokens(defaultPattern, { slug, locale })
+    const d = createdAt ? new Date(createdAt) : new Date()
+    const yyyy = String(d.getUTCFullYear())
+    const mm = String(d.getUTCMonth() + 1).padStart(2, '0')
+    const dd = String(d.getUTCDate()).padStart(2, '0')
+    return this.replaceTokens(defaultPattern, { slug, locale, yyyy, mm, dd })
   }
 
-  async buildPostUrl(postType: string, slug: string, locale: string, protocol: string, host: string): Promise<string> {
-    const path = await this.buildPostPath(postType, slug, locale)
+  async buildPostUrl(
+    postType: string,
+    slug: string,
+    locale: string,
+    protocol: string,
+    host: string,
+    createdAt?: Date
+  ): Promise<string> {
+    const path = await this.buildPostPath(postType, slug, locale, createdAt)
     return `${protocol}://${host}${path}`
   }
 
@@ -74,6 +85,46 @@ class UrlPatternService {
       createdAt: rec.created_at,
       updatedAt: rec.updated_at,
     }))
+  }
+
+  /**
+   * Compile a stored pattern into a RegExp with named groups.
+   * Supports tokens: {locale},{yyyy},{mm},{dd},{slug}
+   */
+  private compilePattern(pattern: string): RegExp {
+    let source = pattern
+    if (!source.startsWith('/')) source = '/' + source
+    source = source
+      .replace(/\//g, '\\/')
+      .replace(/\{locale\}/g, '(?<locale>[a-z]{2}(?:-[a-z]{2})?)')
+      .replace(/\{yyyy\}/g, '(?<yyyy>\\d{4})')
+      .replace(/\{mm\}/g, '(?<mm>\\d{2})')
+      .replace(/\{dd\}/g, '(?<dd>\\d{2})')
+      .replace(/\{slug\}/g, '(?<slug>[^\\/]+)')
+      // legacy colon tokens
+      .replace(/:locale\b/g, '(?<locale>[a-z]{2}(?:-[a-z]{2})?)')
+      .replace(/:slug\b/g, '(?<slug>[^\\/]+)')
+    return new RegExp('^' + source + '$', 'i')
+  }
+
+  /**
+   * Try to match an incoming path to a stored pattern.
+   * Returns { postType, locale, slug } or null.
+   */
+  async matchPath(path: string): Promise<{ postType: string; locale: string; slug: string } | null> {
+    const patterns = await this.getAllPatterns()
+    for (const p of patterns) {
+      const re = this.compilePattern(p.pattern)
+      const m = re.exec(path)
+      if (m && m.groups) {
+        const locale = (m.groups['locale'] as string) || p.locale
+        const slug = m.groups['slug'] as string
+        if (slug) {
+          return { postType: p.postType, locale, slug: decodeURIComponent(slug) }
+        }
+      }
+    }
+    return null
   }
 
   /**

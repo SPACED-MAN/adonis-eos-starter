@@ -110,6 +110,8 @@ router.group(() => {
  */
 router.get('/posts/:slug', [PostsController, 'show'])
 
+// (Catch-all added at the very end of file)
+
 /**
  * Admin Settings Pages
  */
@@ -120,4 +122,9 @@ router.get('/admin/settings/url-patterns', async ({ inertia }) => {
 router.get('/admin/settings/redirects', async ({ inertia }) => {
 	return inertia.render('admin/settings/redirects')
 }).use(middleware.auth())
+
+/**
+ * Catch-all: resolve posts by URL patterns (must be last)
+ */
+router.get('*', [PostsController, 'resolve'])
 

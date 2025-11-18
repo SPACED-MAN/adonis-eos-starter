@@ -46,41 +46,50 @@ export default class UpdatePost {
       throw new UpdatePostException('Post not found', 404, { postId })
     }
 
-    // If slug is being changed, check uniqueness
-    if (slug && slug !== post.slug) {
-      const oldSlug = post.slug
-      const existingPost = await Post.query()
-        .where('slug', slug)
-        .where('locale', post.locale)
-        .whereNot('id', postId)
-        .first()
-
-      if (existingPost) {
-        throw new UpdatePostException(
-          'A post with this slug already exists for this locale',
-          409,
-          { slug, locale: post.locale }
-        )
+    // If slug is being changed, normalize and check uniqueness
+    if (slug) {
+      let newSlug = slug
+      if (newSlug.includes('/')) {
+        newSlug = newSlug.replace(/^\/+/, '').split('/').pop() || newSlug
       }
+      if (newSlug !== post.slug) {
+        const oldSlug = post.slug
+        const existingPost = await Post.query()
+          .where('slug', newSlug)
+          .where('locale', post.locale)
+          .whereNot('id', postId)
+          .first()
 
-      // Save new slug
-      post.slug = slug
-      // Create a 301 redirect from old path to new path (locale-aware)
-      const fromPath = await urlPatternService.buildPostPath(post.type, oldSlug, post.locale)
-      const toPath = await urlPatternService.buildPostPath(post.type, slug, post.locale)
-      try {
-        await db
-          .table('url_redirects')
-          .insert({
-            from_path: fromPath,
-            to_path: toPath,
-            locale: post.locale,
-            http_status: 301,
-          })
-          .onConflict('from_path')
-          .ignore()
-      } catch {
-        // ignore redirect insert errors
+        if (existingPost) {
+          throw new UpdatePostException(
+            'A post with this slug already exists for this locale',
+            409,
+            { slug: newSlug, locale: post.locale }
+          )
+        }
+
+        // Save new slug
+        post.slug = newSlug
+        // Create a 301 redirect from old path to new path (locale-aware)
+        const fromPath = await urlPatternService.buildPostPath(post.type, oldSlug, post.locale, (post as any).createdAt)
+        const toPath = await urlPatternService.buildPostPath(post.type, newSlug, post.locale, (post as any).createdAt)
+        try {
+          const existing = await db.from('url_redirects').where('from_path', fromPath).first()
+          if (!existing) {
+            const now = new Date()
+            await db.table('url_redirects').insert({
+              from_path: fromPath,
+              to_path: toPath,
+              locale: post.locale,
+              http_status: 301,
+              post_id: post.id,
+              created_at: now,
+              updated_at: now,
+            })
+          }
+        } catch {
+          // ignore redirect insert errors
+        }
       }
     }
 
