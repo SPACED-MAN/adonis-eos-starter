@@ -14,6 +14,67 @@ import urlPatternService from '#services/url_pattern_service'
  */
 export default class PostsController {
   /**
+   * GET /api/posts
+   * List posts with optional search, filters, sorting, and pagination
+   * Query: q, status, locale, sortBy, sortOrder, page, limit
+   */
+  async index({ request, response }: HttpContext) {
+    const q = String(request.input('q', '')).trim()
+    const status = String(request.input('status', '')).trim()
+    const locale = String(request.input('locale', '')).trim()
+    const sortByRaw = String(request.input('sortBy', 'updated_at')).trim()
+    const sortOrderRaw = String(request.input('sortOrder', 'desc')).trim()
+    const page = Math.max(1, Number(request.input('page', 1)) || 1)
+    const limit = Math.min(100, Math.max(1, Number(request.input('limit', 20)) || 20))
+
+    const allowedSort = new Set(['title', 'slug', 'status', 'locale', 'updated_at', 'created_at'])
+    const sortBy = allowedSort.has(sortByRaw) ? sortByRaw : 'updated_at'
+    const sortOrder = sortOrderRaw.toLowerCase() === 'asc' ? 'asc' : 'desc'
+
+    const query = Post.query()
+    if (q) {
+      query.where((builder) => {
+        builder.whereILike('title', `%${q}%`).orWhereILike('slug', `%${q}%`)
+      })
+    }
+    if (status) {
+      query.where('status', status)
+    }
+    if (locale) {
+      query.where('locale', locale)
+    }
+    const countQuery = db.from('posts')
+    if (q) {
+      countQuery.where((b) => b.whereILike('title', `%${q}%`).orWhereILike('slug', `%${q}%`))
+    }
+    if (status) {
+      countQuery.where('status', status)
+    }
+    if (locale) {
+      countQuery.where('locale', locale)
+    }
+    const countRows = await countQuery.count('* as total')
+    const total = Number((countRows?.[0] as any)?.total || 0)
+    const rows = await query.orderBy(sortBy, sortOrder).forPage(page, limit)
+    return response.ok({
+      data: rows.map((p) => ({
+        id: p.id,
+        title: p.title,
+        slug: p.slug,
+        status: p.status,
+        locale: p.locale,
+        updatedAt: (p as any)?.updatedAt?.toISO ? (p as any).updatedAt.toISO() : (p as any).updatedAt,
+      })),
+      meta: {
+        total,
+        page,
+        limit,
+        sortBy,
+        sortOrder,
+      },
+    })
+  }
+  /**
    * GET /admin/posts/:id/edit
    *
    * Show the post editor
@@ -281,6 +342,72 @@ export default class PostsController {
       }
       throw error
     }
+  }
+
+  /**
+   * DELETE /api/posts/:id
+   * Delete a single post (allowed only when archived)
+   */
+  async destroy({ params, response }: HttpContext) {
+    const { id } = params
+    const post = await Post.find(id)
+    if (!post) {
+      return response.notFound({ error: 'Post not found' })
+    }
+    if (post.status !== 'archived') {
+      return response.badRequest({ error: 'Only archived posts can be deleted' })
+    }
+    await post.delete()
+    return response.noContent()
+  }
+
+  /**
+   * POST /api/posts/bulk
+   * Perform bulk actions on posts
+   * Body: { action: 'publish'|'draft'|'archive'|'delete', ids: string[] }
+   */
+  async bulk({ request, response }: HttpContext) {
+    const { action, ids } = request.only(['action', 'ids'])
+    const validActions = new Set(['publish', 'draft', 'archive', 'delete'])
+    if (!validActions.has(action)) {
+      return response.badRequest({ error: 'Invalid action' })
+    }
+    if (!Array.isArray(ids) || ids.length === 0) {
+      return response.badRequest({ error: 'ids must be a non-empty array' })
+    }
+    // Normalize unique IDs
+    const uniqueIds = Array.from(new Set(ids.map((v) => String(v))))
+
+    if (action === 'delete') {
+      // Only delete archived
+      const notArchived = await Post.query().whereIn('id', uniqueIds).whereNot('status', 'archived').select('id', 'status')
+      if (notArchived.length > 0) {
+        return response.badRequest({
+          error: 'Only archived posts can be deleted',
+          notArchived: notArchived.map((p) => ({ id: p.id, status: p.status })),
+        })
+      }
+      await Post.query().whereIn('id', uniqueIds).delete()
+      return response.ok({ message: 'Deleted archived posts', count: uniqueIds.length })
+    }
+
+    let nextStatus: 'published' | 'draft' | 'archived'
+    switch (action) {
+      case 'publish':
+        nextStatus = 'published'
+        break
+      case 'draft':
+        nextStatus = 'draft'
+        break
+      case 'archive':
+        nextStatus = 'archived'
+        break
+      default:
+        return response.badRequest({ error: 'Invalid action' })
+    }
+    const now = new Date()
+    await Post.query().whereIn('id', uniqueIds).update({ status: nextStatus, updatedAt: now as any })
+    return response.ok({ message: `Updated status to ${nextStatus}`, count: uniqueIds.length })
   }
 
   /**

@@ -92,6 +92,33 @@ export default class extends BaseSeeder {
     }).returning('*')
     console.log('✅ Created post translation (es):', postEs.slug)
 
+    // Test 3c: Create bulk posts to exercise pagination (en/es)
+    {
+      const statuses = ['draft', 'review', 'scheduled', 'published', 'archived'] as const
+      const now = Date.now()
+      const bulkRows: any[] = []
+      for (let i = 1; i <= 120; i++) {
+        const loc = i % 2 === 0 ? 'en' : 'es'
+        bulkRows.push({
+          type: 'blog',
+          slug: `seed-post-${i}-${loc}`,
+          title: `Seed Post ${i} (${loc.toUpperCase()})`,
+          status: statuses[i % statuses.length],
+          locale: loc,
+          translation_of_id: null,
+          template_id: template.id,
+          user_id: user.id,
+          meta_title: null,
+          meta_description: `Seeded description ${i}`,
+          robots_json: JSON.stringify({ index: i % 5 !== 0, follow: true }),
+          created_at: new Date(now - i * 3600 * 1000),
+          updated_at: new Date(now - i * 3500 * 1000),
+        })
+      }
+      await db.table('posts').insert(bulkRows)
+      console.log(`✅ Seeded ${bulkRows.length} additional posts for pagination testing`)
+    }
+
     // Test 4: Create global module
     const [globalModule] = await db.table('module_instances').insert({
       scope: 'global',

@@ -101,8 +101,11 @@ router.group(() => {
  * API Routes - Posts (Admin)
  */
 router.group(() => {
+	router.get('/posts', [PostsController, 'index'])
 	router.post('/posts', [PostsController, 'store'])
 	router.put('/posts/:id', [PostsController, 'update'])
+	router.delete('/posts/:id', [PostsController, 'destroy'])
+	router.post('/posts/bulk', [PostsController, 'bulk'])
 	router.post('/posts/:id/modules', [PostsController, 'storeModule'])
 	router.put('/post-modules/:id', [PostsController, 'updateModule'])
 }).prefix('/api').use(middleware.auth())

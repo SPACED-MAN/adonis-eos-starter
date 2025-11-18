@@ -1,19 +1,110 @@
 import { Head, Link } from '@inertiajs/react'
+import { useEffect, useMemo, useState } from 'react'
 import { AdminHeader } from '../components/AdminHeader'
 import { AdminFooter } from '../components/AdminFooter'
 
-interface DashboardProps {
-  posts: Array<{
-    id: string
-    title: string
-    slug: string
-    status: string
-    locale: string
-    updatedAt: string
-  }>
-}
+interface DashboardProps {}
 
-export default function Dashboard({ posts }: DashboardProps) {
+export default function Dashboard({}: DashboardProps) {
+  const [posts, setPosts] = useState<Array<{ id: string; title: string; slug: string; status: string; locale: string; updatedAt: string }>>([])
+  const [selected, setSelected] = useState<Set<string>>(new Set())
+  const [selectAll, setSelectAll] = useState(false)
+  const [q, setQ] = useState('')
+  const [status, setStatus] = useState<string>('')
+  const [locale, setLocale] = useState<string>('')
+  const [sortBy, setSortBy] = useState<'title' | 'slug' | 'status' | 'locale' | 'updated_at' | 'created_at'>('updated_at')
+  const [sortOrder, setSortOrder] = useState<'asc' | 'desc'>('desc')
+  const [loading, setLoading] = useState(false)
+  const [page, setPage] = useState(1)
+  const [limit, setLimit] = useState(20)
+  const [total, setTotal] = useState(0)
+
+  // CSRF token for API calls
+  const xsrfFromCookie: string | undefined = (() => {
+    if (typeof document === 'undefined') return undefined
+    const match = document.cookie.match(/(?:^|; )XSRF-TOKEN=([^;]+)/)
+    return match ? decodeURIComponent(match[1]) : undefined
+  })()
+
+  async function fetchPosts() {
+    setLoading(true)
+    try {
+      const params = new URLSearchParams()
+      if (q) params.set('q', q)
+      if (status) params.set('status', status)
+      if (locale) params.set('locale', locale)
+      params.set('sortBy', sortBy)
+      params.set('sortOrder', sortOrder)
+      params.set('limit', String(limit))
+      params.set('page', String(page))
+      const res = await fetch(`/api/posts?${params.toString()}`, { credentials: 'same-origin' })
+      const json = await res.json().catch(() => ({}))
+      const list: Array<{ id: string; title: string; slug: string; status: string; locale: string; updatedAt: string }> =
+        Array.isArray(json?.data) ? json.data : []
+      setPosts(list)
+      setTotal(Number(json?.meta?.total || 0))
+      // Reset selection when list changes
+      setSelected(new Set())
+      setSelectAll(false)
+    } finally {
+      setLoading(false)
+    }
+  }
+
+  useEffect(() => {
+    fetchPosts()
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [q, status, locale, sortBy, sortOrder, page, limit])
+
+  function toggleSelect(id: string) {
+    setSelected((prev) => {
+      const next = new Set(prev)
+      if (next.has(id)) next.delete(id)
+      else next.add(id)
+      return next
+    })
+  }
+
+  function toggleSelectAll() {
+    setSelectAll((prev) => !prev)
+    setSelected((prev) => {
+      if (!selectAll) {
+        return new Set(posts.map((p) => p.id))
+      }
+      return new Set()
+    })
+  }
+
+  async function applyBulk(action: 'publish' | 'draft' | 'archive' | 'delete') {
+    if (selected.size === 0) return
+    const ids = Array.from(selected)
+    const res = await fetch('/api/posts/bulk', {
+      method: 'POST',
+      headers: {
+        'Accept': 'application/json',
+        'Content-Type': 'application/json',
+        ...(xsrfFromCookie ? { 'X-XSRF-TOKEN': xsrfFromCookie } : {}),
+      },
+      credentials: 'same-origin',
+      body: JSON.stringify({ action, ids }),
+    })
+    if (res.ok) {
+      await fetchPosts()
+    } else {
+      const err = await res.json().catch(() => ({}))
+      alert(err?.error || 'Bulk action failed')
+    }
+  }
+
+  function toggleSort(column: typeof sortBy) {
+    if (sortBy === column) {
+      setSortOrder((prev) => (prev === 'asc' ? 'desc' : 'asc'))
+    } else {
+      setSortBy(column)
+      setSortOrder('asc')
+    }
+  }
+
   return (
     <div className="min-h-screen bg-backdrop-low">
       <Head title="Admin Dashboard" />
@@ -25,13 +116,122 @@ export default function Dashboard({ posts }: DashboardProps) {
         <div className="bg-backdrop-low rounded-lg shadow border border-line">
           {/* Posts Header */}
           <div className="px-6 py-4 border-b border-line">
-            <h2 className="text-lg font-semibold text-neutral-high">
-              Recent Posts
-            </h2>
+            <div className="flex items-center justify-between gap-4">
+              <h2 className="text-lg font-semibold text-neutral-high">
+                Posts
+              </h2>
+              <div className="flex items-center gap-2">
+                <input
+                  value={q}
+                  onChange={(e) => setQ(e.target.value)}
+                  placeholder="Search title or slug..."
+                  className="px-3 py-2 text-sm border border-line rounded bg-backdrop-low text-neutral-high"
+                />
+                <select
+                  value={status}
+                  onChange={(e) => {
+                    setStatus(e.target.value)
+                    setPage(1)
+                  }}
+                  className="px-2 py-2 text-sm border border-line rounded bg-backdrop-low text-neutral-high"
+                >
+                  <option value="">All statuses</option>
+                  <option value="draft">Draft</option>
+                  <option value="review">Review</option>
+                  <option value="scheduled">Scheduled</option>
+                  <option value="published">Published</option>
+                  <option value="archived">Archived</option>
+                </select>
+                <select
+                  value={locale}
+                  onChange={(e) => {
+                    setLocale(e.target.value)
+                    setPage(1)
+                  }}
+                  className="px-2 py-2 text-sm border border-line rounded bg-backdrop-low text-neutral-high"
+                >
+                  <option value="">All locales</option>
+                  <option value="en">EN</option>
+                  <option value="es">ES</option>
+                  <option value="fr">FR</option>
+                  <option value="pt">PT</option>
+                </select>
+                <select
+                  value={limit}
+                  onChange={(e) => {
+                    setLimit(Number(e.target.value) || 20)
+                    setPage(1)
+                  }}
+                  className="px-2 py-2 text-sm border border-line rounded bg-backdrop-low text-neutral-high"
+                >
+                  <option value={10}>10 / page</option>
+                  <option value={20}>20 / page</option>
+                  <option value={50}>50 / page</option>
+                  <option value={100}>100 / page</option>
+                </select>
+                <button
+                  onClick={() => {
+                    setPage(1)
+                    fetchPosts()
+                  }}
+                  className="px-3 py-2 text-sm border border-line rounded bg-backdrop-low text-neutral-high"
+                >
+                  Search
+                </button>
+              </div>
+            </div>
+            {/* Bulk actions */}
+            <div className="mt-3 flex items-center gap-2">
+              <label className="inline-flex items-center gap-2 text-sm text-neutral-medium">
+                <input
+                  type="checkbox"
+                  checked={selectAll}
+                  onChange={toggleSelectAll}
+                  className="rounded border-line"
+                />
+                Select All
+              </label>
+              <select
+                defaultValue=""
+                onChange={(e) => {
+                  const val = e.target.value as any
+                  if (!val) return
+                  applyBulk(val)
+                  e.currentTarget.value = ''
+                }}
+                className="px-2 py-2 text-sm border border-line rounded bg-backdrop-low text-neutral-high"
+              >
+                <option value="">Bulk actions...</option>
+                <option value="publish">Publish</option>
+                <option value="draft">Move to Draft</option>
+                <option value="archive">Archive</option>
+                <option value="delete">Delete (archived only)</option>
+              </select>
+              {loading && <span className="text-xs text-neutral-low">Loading...</span>}
+            </div>
           </div>
 
           {/* Posts List */}
           <div className="divide-y divide-line">
+            {/* Header row with sortable columns */}
+            <div className="px-6 py-2 bg-backdrop-medium text-sm text-neutral-medium grid grid-cols-12 items-center">
+              <div className="col-span-1"></div>
+              <button className="col-span-4 text-left hover:underline" onClick={() => { toggleSort('title'); setPage(1) }}>
+                Title {sortBy === 'title' ? (sortOrder === 'asc' ? '↑' : '↓') : ''}
+              </button>
+              <button className="col-span-2 text-left hover:underline" onClick={() => { toggleSort('slug'); setPage(1) }}>
+                Slug {sortBy === 'slug' ? (sortOrder === 'asc' ? '↑' : '↓') : ''}
+              </button>
+              <button className="col-span-1 text-left hover:underline" onClick={() => { toggleSort('locale'); setPage(1) }}>
+                Loc {sortBy === 'locale' ? (sortOrder === 'asc' ? '↑' : '↓') : ''}
+              </button>
+              <button className="col-span-2 text-left hover:underline" onClick={() => { toggleSort('status'); setPage(1) }}>
+                Status {sortBy === 'status' ? (sortOrder === 'asc' ? '↑' : '↓') : ''}
+              </button>
+              <button className="col-span-2 text-left hover:underline" onClick={() => { toggleSort('updated_at'); setPage(1) }}>
+                Updated {sortBy === 'updated_at' ? (sortOrder === 'asc' ? '↑' : '↓') : ''}
+              </button>
+            </div>
             {posts.length === 0 ? (
               <div className="px-6 py-12 text-center">
                 <p className="text-neutral-low">No posts yet.</p>
@@ -40,36 +240,78 @@ export default function Dashboard({ posts }: DashboardProps) {
                 </p>
               </div>
             ) : (
-              posts.map((post) => (
-                <div
-                  key={post.id}
-                  className="px-6 py-4 hover:bg-backdrop-medium transition-colors"
-                >
-                  <div className="flex items-center justify-between">
-                    <div className="flex-1">
-                      <h3 className="text-base font-medium text-neutral-high">
-                        {post.title}
-                      </h3>
-                      <div className="flex items-center gap-3 mt-1 text-sm text-neutral-low">
-                        <span className="font-mono">{post.slug}</span>
-                        <span>•</span>
-                        <span>{post.locale}</span>
-                        <span>•</span>
-                        <span className="capitalize">{post.status}</span>
-                        <span>•</span>
-                        <span>{new Date(post.updatedAt).toLocaleDateString()}</span>
-                      </div>
+              posts.map((post) => {
+                const checked = selected.has(post.id)
+                return (
+                  <div
+                    key={post.id}
+                    className="px-6 py-3 hover:bg-backdrop-medium transition-colors grid grid-cols-12 items-center"
+                  >
+                    <div className="col-span-1">
+                      <input
+                        type="checkbox"
+                        checked={checked}
+                        onChange={() => toggleSelect(post.id)}
+                        className="rounded border-line"
+                      />
                     </div>
-                    <Link
-                      href={`/admin/posts/${post.id}/edit`}
-                  className="ml-4 px-4 py-2 text-sm border border-line rounded-lg hover:bg-backdrop-medium text-neutral-medium font-medium"
-                    >
-                      Edit
-                    </Link>
+                    <div className="col-span-4">
+                      <div className="text-sm font-medium text-neutral-high">{post.title}</div>
+                    </div>
+                    <div className="col-span-2">
+                      <span className="font-mono text-sm text-neutral-medium">{post.slug}</span>
+                    </div>
+                    <div className="col-span-1">
+                      <span className="text-sm">{post.locale.toUpperCase()}</span>
+                    </div>
+                    <div className="col-span-2">
+                      <span className="text-sm capitalize">{post.status}</span>
+                    </div>
+                    <div className="col-span-2 flex items-center gap-2 justify-end">
+                      <span className="text-xs text-neutral-low">
+                        {new Date(post.updatedAt).toLocaleDateString()}
+                      </span>
+                      <Link
+                        href={`/admin/posts/${post.id}/edit`}
+                        className="px-3 py-1 text-xs border border-line rounded hover:bg-backdrop-medium text-neutral-medium"
+                      >
+                        Edit
+                      </Link>
+                    </div>
                   </div>
-                </div>
-              ))
+                )
+              })
             )}
+          </div>
+          {/* Pagination */}
+          <div className="px-6 py-3 border-t border-line flex items-center justify-between text-sm">
+            <div className="text-neutral-medium">
+              {total > 0 ? (
+                <>Showing {(total === 0 ? 0 : (page - 1) * limit + 1)}–{Math.min(page * limit, total)} of {total}</>
+              ) : (
+                <>No results</>
+              )}
+            </div>
+            <div className="flex items-center gap-2">
+              <button
+                className="px-2 py-1 border border-line rounded disabled:opacity-50"
+                onClick={() => setPage((p) => Math.max(1, p - 1))}
+                disabled={page <= 1}
+              >
+                Prev
+              </button>
+              <span className="px-2">{page}</span>
+              <button
+                className="px-2 py-1 border border-line rounded disabled:opacity-50"
+                onClick={() => {
+                  const totalPages = Math.max(1, Math.ceil(total / limit))
+                  setPage((p) => Math.min(totalPages, p + 1))
+                }}
+                disabled={page >= Math.max(1, Math.ceil(total / limit))}
+              >
+                Next
+              </button>
+            </div>
           </div>
         </div>
       </main>
