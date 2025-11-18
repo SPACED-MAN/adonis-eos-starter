@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react'
 import { Head, Link } from '@inertiajs/react'
 import { AdminHeader } from '../../components/AdminHeader'
+import { AdminFooter } from '../../components/AdminFooter'
 
 type Redirect = {
 	id: string
@@ -186,6 +187,9 @@ export default function RedirectsPage() {
 					</div>
 				</div>
 			</main>
+			<div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+				<AdminFooter />
+			</div>
 		</div>
 	)
 }
