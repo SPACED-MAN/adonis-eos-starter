@@ -7,7 +7,7 @@ import { fileURLToPath } from 'node:url'
 
 export default class MakePostType extends BaseCommand {
 	static commandName = 'make:post_type'
-	static description = 'Scaffold a new post type (migration with default template and URL patterns)'
+	static description = 'Scaffold a new post type (seeder with default template and URL patterns)'
 
 	static options: CommandOptions = {
 		startApp: false,
@@ -22,45 +22,56 @@ export default class MakePostType extends BaseCommand {
 	})
 	declare pattern: string
 
-	protected buildMigrationContents(_typeKebab: string, typeSlug: string, pattern: string): string {
-		// Ensure pattern contains {post_type} token replaced at generation time
+	protected buildSeederContents(_typeKebab: string, typeSlug: string, pattern: string): string {
 		const resolvedPattern = pattern.replace(/\{post_type\}/g, typeSlug)
-		return `import { BaseSchema } from '@adonisjs/lucid/schema'
+		return `import { BaseSeeder } from '@adonisjs/lucid/seeders'
+import db from '@adonisjs/lucid/services/db'
 
-export default class extends BaseSchema {
-  async up() {
-    // Create default template for post type if it does not exist
-    await this.schema.raw("INSERT INTO templates (name, post_type, description, locked, created_at, updated_at)\\n" +
-      "SELECT '${typeSlug}-default', '${typeSlug}', 'Default template for ${typeSlug}', FALSE, NOW(), NOW()\\n" +
-      "WHERE NOT EXISTS (\\n" +
-      "  SELECT 1 FROM templates WHERE post_type = '${typeSlug}' AND name = '${typeSlug}-default'\\n" +
-      ");")
+export default class extends BaseSeeder {
+  public static environment = ['development', 'production', 'test']
 
-    // Insert default URL patterns for all enabled locales (fallback to 'en' when locales table missing)
-    await this.schema.raw("DO $$\\nBEGIN\\n" +
-      "  IF to_regclass('public.locales') IS NOT NULL THEN\\n" +
-      "    INSERT INTO url_patterns (post_type, locale, pattern, is_default, created_at, updated_at)\\n" +
-      "    SELECT '${typeSlug}', l.code, '${resolvedPattern}', TRUE, NOW(), NOW()\\n" +
-      "    FROM locales l\\n" +
-      "    WHERE l.is_enabled = TRUE\\n" +
-      "      AND NOT EXISTS (\\n" +
-      "        SELECT 1 FROM url_patterns up\\n" +
-      "        WHERE up.post_type = '${typeSlug}' AND up.locale = l.code AND up.is_default = TRUE\\n" +
-      "      );\\n" +
-      "  ELSE\\n" +
-      "    INSERT INTO url_patterns (post_type, locale, pattern, is_default, created_at, updated_at)\\n" +
-      "    SELECT '${typeSlug}', 'en', '${resolvedPattern}', TRUE, NOW(), NOW()\\n" +
-      "    WHERE NOT EXISTS (\\n" +
-      "      SELECT 1 FROM url_patterns up\\n" +
-      "      WHERE up.post_type = '${typeSlug}' AND up.locale = 'en' AND up.is_default = TRUE\\n" +
-      "    );\\n" +
-      "  END IF;\\n" +
-      "END\\n$$;")
-  }
+  public async run() {
+    const now = new Date()
+    const templateName = '${typeSlug}-default'
 
-  async down() {
-    await this.schema.raw("DELETE FROM url_patterns WHERE post_type = '${typeSlug}';")
-    await this.schema.raw("DELETE FROM templates WHERE post_type = '${typeSlug}' AND name = '${typeSlug}-default';")
+    // Ensure default template exists
+    const existingTemplate = await db.from('templates').where({ name: templateName }).first()
+    if (!existingTemplate) {
+      await db.table('templates').insert({
+        name: templateName,
+        post_type: '${typeSlug}',
+        description: 'Default template for ${typeSlug}',
+        locked: false,
+        created_at: now,
+        updated_at: now,
+      })
+    }
+
+    // Get enabled locales, fallback to 'en' when locales table not available
+    let locales: Array<{ code: string }> = []
+    try {
+      locales = await db.from('locales').select('code').where('is_enabled', true)
+    } catch {
+      locales = [{ code: 'en' }]
+    }
+
+    // Insert default URL patterns for missing locales
+    const existing = await db.from('url_patterns').where('post_type', '${typeSlug}').select('locale')
+    const existingSet = new Set(existing.map((r: any) => r.locale))
+    const toInsert = locales
+      .map((l) => l.code)
+      .filter((code) => !existingSet.has(code))
+      .map((code) => ({
+        post_type: '${typeSlug}',
+        locale: code,
+        pattern: '${resolvedPattern}',
+        is_default: true,
+        created_at: now,
+        updated_at: now,
+      }))
+    if (toInsert.length > 0) {
+      await db.table('url_patterns').insert(toInsert)
+    }
   }
 }
 `
@@ -73,20 +84,20 @@ export default class extends BaseSchema {
 		const typeSlug = typeKebab
 		const appRoot = fileURLToPath(this.app.appRoot)
 		const ts = Date.now()
-		const migrationFile = ts + '_seed_' + typeSlug + '_post_type.ts'
-		const migrationPath = join(appRoot, 'database', 'migrations', migrationFile)
-		const migrationContent = this.buildMigrationContents(typeKebab, typeSlug, this.pattern)
+		const seederFile = ts + '_' + typeSlug + '_post_type_seeder.ts'
+		const seederPath = join(appRoot, 'database', 'seeders', seederFile)
+		const seederContent = this.buildSeederContents(typeKebab, typeSlug, this.pattern)
 
-		await writeFile(migrationPath, migrationContent, 'utf-8')
+		await writeFile(seederPath, seederContent, 'utf-8')
 
-		this.logger.success(`Created migration for post type "${typeSlug}"`)
+		this.logger.success(`Created seeder for post type "${typeSlug}"`)
 		this.logger.info('')
 		this.logger.info('Files created:')
-		this.logger.info(this.colors.dim(`   Migration: database/migrations/${migrationFile}`))
+		this.logger.info(this.colors.dim(`   Seeder: database/seeders/${seederFile}`))
 		this.logger.info('')
 		this.logger.info('Next steps:')
-		this.logger.info('  1) Run migrations:')
-		this.logger.info(this.colors.dim('     node ace migration:run'))
+		this.logger.info('  1) Seed the new post type:')
+		this.logger.info(this.colors.dim(`     node ace db:seed --files database/seeders/${seederFile}`))
 		this.logger.info('  2) Start the dev server:')
 		this.logger.info(this.colors.dim('     npm run dev'))
 	}
