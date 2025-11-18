@@ -1,36 +1,101 @@
-import i18nConfig, { type SupportedLocale } from '#config/i18n'
 import type { HttpContext } from '@adonisjs/core/http'
+import db from '@adonisjs/lucid/services/db'
+import i18nConfig from '#config/i18n'
 
 /**
  * LocaleService handles locale detection and management
  */
 export class LocaleService {
+	private async hasLocalesTable(): Promise<boolean> {
+		try {
+			await db.from('locales').count('* as c').first()
+			return true
+		} catch (e: any) {
+			// 42P01: relation does not exist (Postgres)
+			if (e && (e.code === '42P01' || String(e.message || '').includes('relation "locales" does not exist'))) {
+				return false
+			}
+			// Other DB errors should bubble up
+			throw e
+		}
+	}
+	/**
+	 * Bootstrap locales from environment variables into the DB (idempotent).
+	 * DEFAULT_LOCALE and SUPPORTED_LOCALES (comma-separated) are used.
+	 */
+	async ensureFromEnv(): Promise<void> {
+		// If table not created yet (migrations not run), skip
+		if (!(await this.hasLocalesTable())) return
+		const defaultLocale = (process.env.DEFAULT_LOCALE || 'en').toLowerCase()
+		const supported = (process.env.SUPPORTED_LOCALES || defaultLocale)
+			.split(',')
+			.map((s) => s.trim().toLowerCase())
+			.filter(Boolean)
+		const uniq = Array.from(new Set([defaultLocale, ...supported]))
+		const existingRows = await db.from('locales').select('code')
+		const existing = new Set(existingRows.map((r) => r.code))
+		const now = new Date()
+		const toInsert = uniq.filter((c) => !existing.has(c)).map((code) => ({
+			code,
+			is_enabled: true,
+			is_default: code === defaultLocale,
+			created_at: now,
+			updated_at: now,
+		}))
+		if (toInsert.length) {
+			await db.table('locales').insert(toInsert)
+		}
+		// Ensure only one default
+		await db.from('locales').update({ is_default: false })
+		await db.from('locales').where('code', defaultLocale).update({ is_default: true })
+	}
 	/**
 	 * Get list of supported locales
 	 */
-	getSupportedLocales(): string[] {
-		return i18nConfig.supportedLocales
+	async getSupportedLocales(): Promise<string[]> {
+		if (!(await this.hasLocalesTable())) {
+			// Fallback to env when table is not ready
+			return (process.env.SUPPORTED_LOCALES || process.env.DEFAULT_LOCALE || 'en')
+				.split(',')
+				.map((s) => s.trim().toLowerCase())
+				.filter(Boolean)
+		}
+		await this.ensureFromEnv()
+		const rows = await db.from('locales').where('is_enabled', true).orderBy('code', 'asc')
+		return rows.map((r) => r.code as string)
 	}
 
 	/**
 	 * Get default locale
 	 */
-	getDefaultLocale(): string {
-		return i18nConfig.defaultLocale
+	async getDefaultLocale(): Promise<string> {
+		if (!(await this.hasLocalesTable())) {
+			return (process.env.DEFAULT_LOCALE || 'en').toLowerCase()
+		}
+		await this.ensureFromEnv()
+		const row = await db.from('locales').where('is_default', true).first()
+		return (row?.code as string) || (process.env.DEFAULT_LOCALE || 'en').toLowerCase()
 	}
 
 	/**
 	 * Check if a locale is supported
 	 */
-	isLocaleSupported(locale: string): boolean {
-		return i18nConfig.supportedLocales.includes(locale)
+	async isLocaleSupported(locale: string): Promise<boolean> {
+		if (!(await this.hasLocalesTable())) {
+			const supported = (process.env.SUPPORTED_LOCALES || process.env.DEFAULT_LOCALE || 'en')
+				.split(',')
+				.map((s) => s.trim().toLowerCase())
+			return supported.includes(locale.toLowerCase())
+		}
+		const rows = await db.from('locales').where({ code: locale.toLowerCase(), is_enabled: true })
+		return rows.length > 0
 	}
 
 	/**
 	 * Detect locale from HTTP context
 	 * Priority: URL prefix > Domain > Accept-Language header > Session > Default
 	 */
-	detectLocale(ctx: HttpContext): string {
+	async detectLocale(ctx: HttpContext): Promise<string> {
 		for (const strategy of i18nConfig.detectionStrategy) {
 			let locale: string | null = null
 
@@ -42,19 +107,19 @@ export class LocaleService {
 					locale = this.detectFromDomain(ctx)
 					break
 				case 'header':
-					locale = this.detectFromHeaders(ctx)
+					locale = await this.detectFromHeaders(ctx)
 					break
 				case 'session':
 					locale = this.detectFromSession(ctx)
 					break
 			}
 
-			if (locale && this.isLocaleSupported(locale)) {
+			if (locale && (await this.isLocaleSupported(locale))) {
 				return locale
 			}
 		}
 
-		return this.getDefaultLocale()
+		return await this.getDefaultLocale()
 	}
 
 	/**
@@ -92,7 +157,7 @@ export class LocaleService {
 	/**
 	 * Detect locale from Accept-Language header
 	 */
-	private detectFromHeaders(ctx: HttpContext): string | null {
+	private async detectFromHeaders(ctx: HttpContext): Promise<string | null> {
 		const acceptLanguage = ctx.request.header('accept-language')
 		if (!acceptLanguage) {
 			return null
@@ -112,7 +177,7 @@ export class LocaleService {
 
 		// Find first supported locale
 		for (const { locale } of languages) {
-			if (this.isLocaleSupported(locale)) {
+			if (await this.isLocaleSupported(locale)) {
 				return locale
 			}
 		}
@@ -134,8 +199,8 @@ export class LocaleService {
 	/**
 	 * Store locale in session
 	 */
-	storeLocaleInSession(ctx: HttpContext, locale: string): void {
-		if (i18nConfig.persistInSession && this.isLocaleSupported(locale)) {
+	async storeLocaleInSession(ctx: HttpContext, locale: string): Promise<void> {
+		if (i18nConfig.persistInSession && (await this.isLocaleSupported(locale))) {
 			ctx.session.put(i18nConfig.sessionKey, locale)
 		}
 	}
@@ -150,17 +215,18 @@ export class LocaleService {
 	} {
 		return {
 			code: locale,
-			isDefault: locale === this.getDefaultLocale(),
-			isSupported: this.isLocaleSupported(locale),
+			isDefault: false,
+			isSupported: false,
 		}
 	}
 
 	/**
 	 * Generate locale-specific URL
 	 */
-	generateLocalizedUrl(path: string, locale: string): string {
+	async generateLocalizedUrl(path: string, locale: string): Promise<string> {
 		// If using URL prefix and locale is not default
-		if (i18nConfig.useUrlPrefix && locale !== this.getDefaultLocale()) {
+		const defaultLocale = await this.getDefaultLocale()
+		if (i18nConfig.useUrlPrefix && locale !== defaultLocale) {
 			// Remove leading slash if present
 			const cleanPath = path.startsWith('/') ? path.slice(1) : path
 			return `/${locale}/${cleanPath}`
@@ -178,7 +244,8 @@ export class LocaleService {
 		}
 
 		const match = path.match(/^\/([a-z]{2})(\/|$)/)
-		if (match && this.isLocaleSupported(match[1])) {
+		// Best-effort strip; DB check not needed
+		if (match) {
 			return path.slice(3) || '/'
 		}
 
@@ -186,6 +253,5 @@ export class LocaleService {
 	}
 }
 
-// Export singleton instance
 export default new LocaleService()
 

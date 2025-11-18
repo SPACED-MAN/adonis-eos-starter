@@ -8,13 +8,13 @@ import localeService from '#services/locale_service'
 export default class LocaleMiddleware {
 	async handle(ctx: HttpContext, next: NextFn) {
 		// Detect locale from request
-		const detectedLocale = localeService.detectLocale(ctx)
+		const detectedLocale = await localeService.detectLocale(ctx)
 
 		// Store locale in context for use throughout the request
 		ctx.locale = detectedLocale
 
 		// Store locale in session for persistence
-		localeService.storeLocaleInSession(ctx, detectedLocale)
+		await localeService.storeLocaleInSession(ctx, detectedLocale)
 
 		// Continue to next middleware/controller
 		return next()

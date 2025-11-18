@@ -53,6 +53,8 @@ const LocalesController = () => import('#controllers/locales_controller')
 router.group(() => {
 	router.get('/locales', [LocalesController, 'index'])
 	router.get('/locales/:locale', [LocalesController, 'show'])
+	router.patch('/locales/:locale', [LocalesController, 'update'])
+	router.delete('/locales/:locale', [LocalesController, 'destroy'])
 }).prefix('/api')
 
 /**
@@ -121,6 +123,10 @@ router.get('/admin/settings/url-patterns', async ({ inertia }) => {
 
 router.get('/admin/settings/redirects', async ({ inertia }) => {
 	return inertia.render('admin/settings/redirects')
+}).use(middleware.auth())
+
+router.get('/admin/settings/locales', async ({ inertia }) => {
+	return inertia.render('admin/settings/locales')
 }).use(middleware.auth())
 
 /**

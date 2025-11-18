@@ -1,5 +1,6 @@
 import type { HttpContext } from '@adonisjs/core/http'
 import localeService from '#services/locale_service'
+import db from '@adonisjs/lucid/services/db'
 
 /**
  * Controller for managing locales
@@ -10,19 +11,15 @@ export default class LocalesController {
    * List all configured locales
    */
   async index({ response }: HttpContext) {
-    const supportedLocales = localeService.getSupportedLocales()
-    const defaultLocale = localeService.getDefaultLocale()
-
-    const locales = supportedLocales.map((locale) => ({
-      code: locale,
-      isDefault: locale === defaultLocale,
-    }))
+    await localeService.ensureFromEnv()
+    const rows = await db.from('locales').select('*').orderBy('code', 'asc')
+    const defaultLocale = rows.find((r) => r.is_default)?.code
 
     return response.json({
-      data: locales,
+      data: rows.map((r) => ({ code: r.code, isDefault: r.is_default, isEnabled: r.is_enabled })),
       meta: {
-        defaultLocale,
-        total: locales.length,
+        defaultLocale: defaultLocale || 'en',
+        total: rows.length,
       },
     })
   }
@@ -33,18 +30,64 @@ export default class LocalesController {
    */
   async show({ params, response }: HttpContext) {
     const { locale } = params
-    const localeInfo = localeService.getLocaleInfo(locale)
-
-    if (!localeInfo.isSupported) {
-      return response.notFound({
-        error: 'Locale not supported',
-        code: locale,
-      })
+    const row = await db.from('locales').where('code', locale.toLowerCase()).first()
+    if (!row) {
+      return response.notFound({ error: 'Locale not found', code: locale })
     }
+    return response.json({ data: { code: row.code, isDefault: row.is_default, isEnabled: row.is_enabled } })
+  }
 
-    return response.json({
-      data: localeInfo,
-    })
+  /**
+   * PATCH /api/locales/:locale
+   * Body: { isEnabled?: boolean, isDefault?: boolean }
+   */
+  async update({ params, request, response }: HttpContext) {
+    const { locale } = params
+    const { isEnabled, isDefault } = request.only(['isEnabled', 'isDefault'])
+    const code = String(locale).toLowerCase()
+    const row = await db.from('locales').where('code', code).first()
+    if (!row) {
+      return response.notFound({ error: 'Locale not found' })
+    }
+    const updates: Record<string, any> = { updated_at: new Date() }
+    if (typeof isEnabled === 'boolean') {
+      updates.is_enabled = isEnabled
+      if (isEnabled === false) {
+        // Archive posts when disabling this locale
+        await db.from('posts').where('locale', code).update({ status: 'archived', updated_at: new Date() })
+      }
+    }
+    if (typeof isDefault === 'boolean') {
+      if (isDefault) {
+        await db.from('locales').update({ is_default: false })
+        updates.is_default = true
+      } else {
+        // Prevent unsetting default on the current default
+        if (row.is_default) {
+          return response.badRequest({ error: 'Cannot unset default locale. Set another locale as default instead.' })
+        }
+      }
+    }
+    const [updated] = await db.from('locales').where('code', code).update(updates).returning('*')
+    return response.ok({ data: updated, message: 'Locale updated' })
+  }
+
+  /**
+   * DELETE /api/locales/:locale
+   * Deletes the locale and cascades posts (via FK)
+   */
+  async destroy({ params, response }: HttpContext) {
+    const { locale } = params
+    const code = String(locale).toLowerCase()
+    const row = await db.from('locales').where('code', code).first()
+    if (!row) {
+      return response.notFound({ error: 'Locale not found' })
+    }
+    if (row.is_default) {
+      return response.badRequest({ error: 'Cannot delete the default locale' })
+    }
+    await db.from('locales').where('code', code).delete()
+    return response.noContent()
   }
 }
 

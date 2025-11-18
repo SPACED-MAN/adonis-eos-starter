@@ -14,6 +14,12 @@ export function AdminHeader({ title = 'Admin' }: { title?: string }) {
 							URL Patterns
 						</Link>
 						<Link
+							href="/admin/settings/locales"
+							className="text-sm text-neutral-low hover:text-standout"
+						>
+							Locales
+						</Link>
+						<Link
 							href="/admin/settings/redirects"
 							className="text-sm text-neutral-low hover:text-standout"
 						>

@@ -9,6 +9,23 @@ export default class extends BaseSeeder {
 
     console.log('🧪 Running smoke tests for database schema (with i18n support)...')
 
+    // Ensure locales exist for FK constraints
+    const now = new Date()
+    await db.rawQuery(
+      `
+      INSERT INTO locales (code, is_enabled, is_default, created_at, updated_at)
+      VALUES 
+        (?, TRUE, TRUE, ?, ?),
+        (?, TRUE, FALSE, ?, ?)
+      ON CONFLICT (code) DO UPDATE
+      SET 
+        is_enabled = EXCLUDED.is_enabled,
+        is_default = EXCLUDED.is_default,
+        updated_at = EXCLUDED.updated_at
+      `,
+      ['en', now, now, 'es', now, now]
+    )
+
     // Get or create a test user for posts
     let user = await User.findBy('email', 'test@example.com')
     if (!user) {
