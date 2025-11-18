@@ -185,7 +185,7 @@ export function ModuleEditorPanel({
 		}
 		if (isPlainObject(value)) {
 			return (
-				<fieldset className="border border-border rounded-lg p-3">
+				<fieldset className="border border-line rounded-lg p-3">
 					<legend className="px-1 text-xs font-medium text-neutral-low">{label}</legend>
 					<div className="grid grid-cols-1 gap-4">
 						{Object.keys(value).map((key) => {
@@ -228,11 +228,11 @@ export function ModuleEditorPanel({
 		>
 			<div className="absolute inset-0 bg-black/40" onClick={onClose} />
 			<div
-				className="absolute right-0 top-0 h-full w-full max-w-2xl bg-backdrop-low border-l border-border shadow-xl flex flex-col"
+				className="absolute right-0 top-0 h-full w-full max-w-2xl bg-backdrop-low border-l border-line shadow-xl flex flex-col"
 				role="dialog"
 				aria-modal="true"
 			>
-				<div className="px-5 py-4 border-b border-border flex items-center justify-between">
+				<div className="px-5 py-4 border-b border-line flex items-center justify-between">
 					<h3 className="text-sm font-semibold text-neutral-high">
 						Edit Module — {moduleItem.type}
 					</h3>
@@ -260,10 +260,10 @@ export function ModuleEditorPanel({
 						))
 					)}
 				</form>
-				<div className="px-5 py-4 border-t border-border flex items-center justify-end gap-3">
+				<div className="px-5 py-4 border-t border-line flex items-center justify-end gap-3">
 					<button
 						type="button"
-						className="px-4 py-2 text-sm border border-border rounded-lg hover:bg-backdrop-medium text-neutral-medium"
+						className="px-4 py-2 text-sm border border-line rounded-lg hover:bg-backdrop-medium text-neutral-medium"
 						onClick={onClose}
 						disabled={processing}
 					>

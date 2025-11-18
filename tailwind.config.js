@@ -29,7 +29,7 @@ export default {
           medium: 'var(--color-backdrop-medium)',
           high: 'var(--color-backdrop-high)',
         },
-        border: 'var(--color-border)',
+        line: 'var(--color-line)',
         placeholder: 'var(--color-placeholder)',
         disabled: 'var(--color-disabled)',
       },

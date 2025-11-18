@@ -76,11 +76,11 @@ export function ModulePicker({ postId, postType }: { postId: string; postType: s
 				Add Module
 			</button>
 			{open && (
-				<div className="absolute right-0 mt-2 w-[28rem] max-h-[24rem] overflow-auto rounded-lg border border-border bg-backdrop-low shadow-lg z-20">
-					<div className="sticky top-0 bg-backdrop-low border-b border-border px-3 py-2 text-sm font-medium">
+				<div className="absolute right-0 mt-2 w-[28rem] max-h-[24rem] overflow-auto rounded-lg border border-line bg-backdrop-low shadow-lg z-20">
+					<div className="sticky top-0 bg-backdrop-low border-b border-line px-3 py-2 text-sm font-medium">
 						{loading ? 'Loading modules...' : 'Available Modules'}
 					</div>
-					<div className="divide-y divide-border">
+					<div className="divide-y divide-line">
 						{modules.length === 0 && !loading && (
 							<div className="px-4 py-6 text-neutral-low text-sm">No modules available</div>
 						)}
@@ -95,7 +95,7 @@ export function ModulePicker({ postId, postType }: { postId: string; postType: s
 								<button
 									type="button"
 									onClick={() => addModule(m.type)}
-									className="shrink-0 inline-flex items-center rounded border border-border bg-backdrop-low px-2.5 py-1.5 text-xs text-neutral-high hover:bg-backdrop-medium"
+									className="shrink-0 inline-flex items-center rounded border border-line bg-backdrop-low px-2.5 py-1.5 text-xs text-neutral-high hover:bg-backdrop-medium"
 									disabled={loading}
 								>
 									Add

@@ -15,7 +15,7 @@ export default function ServerError({ error }: ServerErrorProps) {
   return (
     <div className="min-h-screen bg-backdrop-low flex items-center justify-center px-4">
       <div className="max-w-2xl w-full">
-        <div className="bg-backdrop-low rounded-lg shadow-lg p-8 border border-border">
+        <div className="bg-backdrop-low rounded-lg shadow-lg p-8 border border-line">
           <div className="mb-6">
             <h1 className="text-4xl font-bold text-error mb-2">
               Server Error

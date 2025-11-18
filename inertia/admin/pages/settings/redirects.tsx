@@ -106,8 +106,8 @@ export default function RedirectsPage() {
 						← Back to Dashboard
 					</Link>
 				</div>
-				<div className="bg-backdrop-low border border-border rounded-lg">
-					<div className="px-6 py-4 border-b border-border flex items-center justify-between">
+				<div className="bg-backdrop-low border border-line rounded-lg">
+					<div className="px-6 py-4 border-b border-line flex items-center justify-between">
 						<h2 className="text-lg font-semibold text-neutral-high">Redirect Rules</h2>
 						{loading && <span className="text-sm text-neutral-low">Loading…</span>}
 					</div>
@@ -158,7 +158,7 @@ export default function RedirectsPage() {
 
 						<section>
 							<h3 className="text-base font-semibold text-neutral-high mb-3">Existing Redirects</h3>
-							<div className="divide-y divide-border border border-border rounded">
+							<div className="divide-y divide-line border border-line rounded">
 								{items.length === 0 ? (
 									<p className="p-4 text-neutral-low">No redirects.</p>
 								) : (
@@ -173,7 +173,7 @@ export default function RedirectsPage() {
 											</div>
 											<button
 												type="button"
-												className="px-3 py-1.5 text-xs rounded border border-border hover:bg-backdrop-medium text-neutral-medium"
+												className="px-3 py-1.5 text-xs rounded border border-line hover:bg-backdrop-medium text-neutral-medium"
 												onClick={() => remove(r.id)}
 											>
 												Delete

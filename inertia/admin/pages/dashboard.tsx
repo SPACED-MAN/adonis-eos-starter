@@ -22,16 +22,16 @@ export default function Dashboard({ posts }: DashboardProps) {
 
       {/* Main Content */}
       <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-        <div className="bg-backdrop-low rounded-lg shadow border border-border">
+        <div className="bg-backdrop-low rounded-lg shadow border border-line">
           {/* Posts Header */}
-          <div className="px-6 py-4 border-b border-border">
+          <div className="px-6 py-4 border-b border-line">
             <h2 className="text-lg font-semibold text-neutral-high">
               Recent Posts
             </h2>
           </div>
 
           {/* Posts List */}
-          <div className="divide-y divide-border">
+          <div className="divide-y divide-line">
             {posts.length === 0 ? (
               <div className="px-6 py-12 text-center">
                 <p className="text-neutral-low">No posts yet.</p>
@@ -62,7 +62,7 @@ export default function Dashboard({ posts }: DashboardProps) {
                     </div>
                     <Link
                       href={`/admin/posts/${post.id}/edit`}
-                      className="ml-4 px-4 py-2 text-sm border border-border rounded-lg hover:bg-backdrop-medium text-neutral-medium font-medium"
+                  className="ml-4 px-4 py-2 text-sm border border-line rounded-lg hover:bg-backdrop-medium text-neutral-medium font-medium"
                     >
                       Edit
                     </Link>

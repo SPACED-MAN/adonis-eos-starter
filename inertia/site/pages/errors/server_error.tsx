@@ -34,7 +34,7 @@ export default function ServerError({ error }: ServerErrorProps) {
           </button>
           <a
             href="/"
-            className="block w-full px-6 py-3 border-2 border-border hover:bg-backdrop-medium text-neutral-medium font-semibold rounded-lg transition-colors"
+            className="block w-full px-6 py-3 border-2 border-line hover:bg-backdrop-medium text-neutral-medium font-semibold rounded-lg transition-colors"
           >
             Go to Homepage
           </a>

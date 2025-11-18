@@ -2,6 +2,21 @@
 
 /* Use class strategy for dark mode via .dark on an ancestor */
 
+/* Register color tokens with Tailwind (v4) so utilities like border-line, text-neutral-high work */
+@theme {
+  --color-standout: var(--color-indigo-600);
+  --color-on-standout: var(--color-white);
+  --color-neutral-low: var(--color-slate-400);
+  --color-neutral-medium: var(--color-slate-600);
+  --color-neutral-high: var(--color-slate-900);
+  --color-backdrop-low: var(--color-slate-50);
+  --color-backdrop-medium: var(--color-slate-100);
+  --color-backdrop-high: var(--color-slate-200);
+  --color-line: var(--color-slate-500);
+  --color-placeholder: var(--color-slate-400);
+  --color-disabled: var(--color-slate-300);
+}
+
 /**
  * Theme variables (no numeric scales). These are consumed by Tailwind via
  * tailwind.config.js color names (e.g., bg-backdrop-low, text-neutral-high).
@@ -18,7 +33,7 @@
   --color-backdrop-medium: var(--color-slate-100);
   --color-backdrop-high: var(--color-slate-200);
 
-  --color-border: var(--color-slate-500);
+  --color-line: var(--color-slate-500);
   --color-placeholder: var(--color-slate-400);
   --color-disabled: var(--color-slate-300);
 }
@@ -35,7 +50,7 @@
   --color-backdrop-medium: var(--color-slate-800);
   --color-backdrop-high: var(--color-slate-700);
 
-  --color-border: var(--color-slate-500);
+  --color-line: var(--color-slate-500);
   --color-placeholder: var(--color-slate-500);
   --color-disabled: var(--color-slate-600);
 }
@@ -52,7 +67,7 @@
   --color-backdrop-medium: var(--color-stone-100);
   --color-backdrop-high: var(--color-stone-200);
 
-  --color-border: var(--color-stone-500);
+  --color-line: var(--color-stone-500);
   --color-placeholder: var(--color-stone-500);
   --color-disabled: var(--color-stone-300);
 }
@@ -69,7 +84,7 @@
   --color-backdrop-medium: var(--color-stone-800);
   --color-backdrop-high: var(--color-stone-700);
 
-  --color-border: var(--color-stone-500);
+  --color-line: var(--color-stone-500);
   --color-placeholder: var(--color-stone-500);
   --color-disabled: var(--color-stone-600);
 }
@@ -102,7 +117,7 @@
   }
 
   .border-surface {
-    border-color: var(--color-border);
+    border-color: var(--color-line);
   }
 
   .text-standout {

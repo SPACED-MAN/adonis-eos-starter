@@ -210,7 +210,7 @@ export default function Editor({ post, modules: initialModules, translations }: 
           {/* Left Column - Post Content */}
           <div className="lg:col-span-2 space-y-6">
             {/* Basic Info Card */}
-            <div className="bg-backdrop-low rounded-lg shadow p-6 border border-border">
+            <div className="bg-backdrop-low rounded-lg shadow p-6 border border-line">
               <h2 className="text-lg font-semibold text-neutral-high mb-4">
                 Post Information
               </h2>
@@ -302,7 +302,7 @@ export default function Editor({ post, modules: initialModules, translations }: 
             </div>
 
             {/* SEO Card */}
-            <div className="bg-backdrop-low rounded-lg shadow p-6 border border-border">
+            <div className="bg-backdrop-low rounded-lg shadow p-6 border border-line">
               <h2 className="text-lg font-semibold text-neutral-high mb-4">
                 SEO Settings
               </h2>
@@ -393,7 +393,7 @@ export default function Editor({ post, modules: initialModules, translations }: 
             </div>
 
             {/* Modules Section (Placeholder) */}
-            <div className="bg-backdrop-low rounded-lg shadow p-6 border border-border">
+            <div className="bg-backdrop-low rounded-lg shadow p-6 border border-line">
               <div className="flex items-center justify-between mb-4">
                 <h2 className="text-lg font-semibold text-neutral-high">
                   Modules
@@ -411,7 +411,7 @@ export default function Editor({ post, modules: initialModules, translations }: 
                       {sortedModules.map((m) => (
                         <SortableItem key={m.id} id={m.id}>
                           {(listeners: any) => (
-                            <li className="bg-backdrop-low border border-border rounded-lg px-4 py-3 flex items-center justify-between">
+                            <li className="bg-backdrop-low border border-line rounded-lg px-4 py-3 flex items-center justify-between">
                               <div className="flex items-center gap-3">
                                 <button
                                   type="button"
@@ -428,7 +428,7 @@ export default function Editor({ post, modules: initialModules, translations }: 
                               </div>
                               <div className="flex items-center gap-2">
                                 <button
-                                  className="text-xs px-2 py-1 rounded border border-border bg-backdrop-low text-neutral-high hover:bg-backdrop-medium"
+                                  className="text-xs px-2 py-1 rounded border border-line bg-backdrop-low text-neutral-high hover:bg-backdrop-medium"
                                   onClick={() => setEditing(m)}
                                   type="button"
                                 >

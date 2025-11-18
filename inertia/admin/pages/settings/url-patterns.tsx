@@ -111,8 +111,8 @@ export default function UrlPatternsPage() {
 						← Back to Dashboard
 					</Link>
 				</div>
-				<div className="bg-backdrop-low border border-border rounded-lg">
-					<div className="px-6 py-4 border-b border-border flex items-center justify-between">
+				<div className="bg-backdrop-low border border-line rounded-lg">
+					<div className="px-6 py-4 border-b border-line flex items-center justify-between">
 						<h2 className="text-lg font-semibold text-neutral-high">Default Patterns by Post Type and Locale</h2>
 						{loading && <span className="text-sm text-neutral-low">Loading…</span>}
 					</div>

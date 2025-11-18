@@ -2,7 +2,7 @@ import { Link } from '@inertiajs/react'
 
 export function AdminHeader({ title = 'Admin' }: { title?: string }) {
 	return (
-		<header className="bg-backdrop-low border-b border-border">
+		<header className="bg-backdrop-low border-b border-line">
 			<div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4">
 				<div className="flex items-center justify-between">
 					<h1 className="text-2xl font-bold text-neutral-high">{title}</h1>

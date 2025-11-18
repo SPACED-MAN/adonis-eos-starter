@@ -59,7 +59,7 @@ export const themeConfig = {
 
 ```tsx
 // ✅ DO: Use the simplified tokens (Tailwind color names backed by CSS vars)
-<div className="bg-backdrop-low border border-border rounded">
+<div className="bg-backdrop-low border border-line rounded">
   <h1 className="text-neutral-high">Title</h1>
   <p className="text-neutral-low">Description</p>
   <button className="bg-standout text-on-standout rounded px-3 py-2">
