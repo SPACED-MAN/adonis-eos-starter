@@ -3,9 +3,9 @@ import { useEffect, useMemo, useState } from 'react'
 import { AdminHeader } from '../components/AdminHeader'
 import { AdminFooter } from '../components/AdminFooter'
 
-interface DashboardProps {}
+interface DashboardProps { }
 
-export default function Dashboard({}: DashboardProps) {
+export default function Dashboard({ }: DashboardProps) {
   const [posts, setPosts] = useState<Array<{ id: string; title: string; slug: string; status: string; locale: string; updatedAt: string }>>([])
   const [selected, setSelected] = useState<Set<string>>(new Set())
   const [selectAll, setSelectAll] = useState(false)
@@ -14,6 +14,7 @@ export default function Dashboard({}: DashboardProps) {
   const [locale, setLocale] = useState<string>('')
   const [postType, setPostType] = useState<string>('')
   const [postTypes, setPostTypes] = useState<string[]>([])
+  const [isCreateOpen, setIsCreateOpen] = useState(false)
   const [sortBy, setSortBy] = useState<'title' | 'slug' | 'status' | 'locale' | 'updated_at' | 'created_at'>('updated_at')
   const [sortOrder, setSortOrder] = useState<'asc' | 'desc'>('desc')
   const [loading, setLoading] = useState(false)
@@ -60,13 +61,58 @@ export default function Dashboard({}: DashboardProps) {
   }, [q, status, locale, postType, sortBy, sortOrder, page, limit])
 
   useEffect(() => {
-    ;(async () => {
+    ; (async () => {
       const res = await fetch('/api/post-types', { credentials: 'same-origin' })
       const json = await res.json().catch(() => ({}))
       const list: string[] = Array.isArray(json?.data) ? json.data : []
       setPostTypes(list)
     })()
   }, [])
+
+  function labelize(type: string): string {
+    if (!type) return ''
+    const withSpaces = type.replace(/([a-z])([A-Z])/g, '$1 $2').replace(/[-_]+/g, ' ')
+    return withSpaces
+      .split(' ')
+      .filter(Boolean)
+      .map((w) => w.charAt(0).toUpperCase() + w.slice(1))
+      .join(' ')
+  }
+
+  async function createNew(typeArg?: string) {
+    const type = typeArg || postType || (postTypes[0] || '').toString()
+    if (!type) {
+      alert('Select a post type first')
+      return
+    }
+    const slug = `untitled-${type}-${Date.now()}`
+    const title = `Untitled ${type.charAt(0).toUpperCase() + type.slice(1)}`
+    const res = await fetch('/api/posts', {
+      method: 'POST',
+      headers: {
+        Accept: 'application/json',
+        'Content-Type': 'application/json',
+        ...(xsrfFromCookie ? { 'X-XSRF-TOKEN': xsrfFromCookie } : {}),
+      },
+      credentials: 'same-origin',
+      body: JSON.stringify({
+        type,
+        locale: 'en',
+        slug,
+        title,
+        status: 'draft',
+      }),
+    })
+    if (res.ok) {
+      const json = await res.json().catch(() => ({}))
+      const id = json?.data?.id
+      if (id) {
+        window.location.href = `/admin/posts/${id}/edit`
+        return
+      }
+    }
+    alert('Failed to create post')
+  }
 
   function toggleSelect(id: string) {
     setSelected((prev) => {
@@ -179,7 +225,7 @@ export default function Dashboard({}: DashboardProps) {
                   <option value="">All post types</option>
                   {postTypes.map((t) => (
                     <option key={t} value={t}>
-                      {t}
+                      {labelize(t)}
                     </option>
                   ))}
                 </select>
@@ -196,6 +242,12 @@ export default function Dashboard({}: DashboardProps) {
                   <option value={50}>50 / page</option>
                   <option value={100}>100 / page</option>
                 </select>
+                <button
+                  onClick={() => setIsCreateOpen(true)}
+                  className="px-3 py-2 text-sm border border-line rounded bg-standout text-on-standout"
+                >
+                  Create New
+                </button>
                 <button
                   onClick={() => {
                     setPage(1)
@@ -343,6 +395,42 @@ export default function Dashboard({}: DashboardProps) {
         </div>
       </main>
       <AdminFooter />
+      {/* Create New Modal */}
+      {isCreateOpen && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center">
+          <div className="absolute inset-0 bg-black/50" onClick={() => setIsCreateOpen(false)} />
+          <div className="relative z-10 w-full max-w-md rounded-lg border border-line bg-backdrop-low p-6 shadow-xl">
+            <div className="flex items-center justify-between mb-4">
+              <h3 className="text-base font-semibold text-neutral-high">Create New Post</h3>
+              <button
+                className="text-neutral-medium hover:text-neutral-high"
+                onClick={() => setIsCreateOpen(false)}
+                aria-label="Close"
+              >
+                ✕
+              </button>
+            </div>
+            <p className="text-sm text-neutral-medium mb-3">Choose a post type:</p>
+            <div className="grid grid-cols-1 gap-2 max-h-64 overflow-auto">
+              {postTypes.length === 0 && (
+                <div className="text-sm text-neutral-low">No post types available.</div>
+              )}
+              {postTypes.map((t) => (
+                <button
+                  key={t}
+                  className="w-full text-left px-3 py-2 rounded border border-line bg-backdrop-low hover:bg-backdrop-medium text-neutral-high"
+                  onClick={() => {
+                    setIsCreateOpen(false)
+                    createNew(t)
+                  }}
+                >
+                  {labelize(t)}
+                </button>
+              ))}
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   )
 }
