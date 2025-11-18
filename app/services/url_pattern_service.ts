@@ -74,6 +74,17 @@ class UrlPatternService {
     return `${protocol}://${host}${path}`
   }
 
+  /**
+   * Build path using an explicit pattern string.
+   */
+  buildPathWithPattern(pattern: string, slug: string, locale: string, createdAt?: Date): string {
+    const d = createdAt ? new Date(createdAt) : new Date()
+    const yyyy = String(d.getUTCFullYear())
+    const mm = String(d.getUTCMonth() + 1).padStart(2, '0')
+    const dd = String(d.getUTCDate()).padStart(2, '0')
+    return this.replaceTokens(pattern, { slug, locale, yyyy, mm, dd })
+  }
+
   async getAllPatterns(): Promise<UrlPatternData[]> {
     const rows = await db.from('url_patterns').select('*').orderBy('updated_at', 'desc')
     return rows.map((rec) => ({

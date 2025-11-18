@@ -69,12 +69,53 @@ export default function Editor({ post, modules: initialModules, translations }: 
 
   // Modules state (sortable)
   const [modules, setModules] = useState<EditorProps['modules']>(initialModules || [])
+  const [pathPattern, setPathPattern] = useState<string | null>(null)
 
   // Keep local state in sync with server props after Inertia navigations
   // Useful after adding modules or reloading the page
   useEffect(() => {
     setModules(initialModules || [])
   }, [initialModules])
+
+  // Load URL pattern for this post type/locale to preview final path
+  useEffect(() => {
+    let mounted = true
+    ;(async () => {
+      try {
+        const res = await fetch('/api/url-patterns', { credentials: 'same-origin' })
+        const json = await res.json().catch(() => ({}))
+        const list: Array<{ postType: string; locale: string; pattern: string; isDefault: boolean }> =
+          Array.isArray(json?.data) ? json.data : []
+        const rec =
+          list.find((p) => p.postType === post.type && p.locale === post.locale && p.isDefault) ||
+          list.find((p) => p.postType === post.type && p.locale === post.locale) ||
+          null
+        if (!mounted) return
+        setPathPattern(rec?.pattern || '/{locale}/posts/{slug}')
+      } catch {
+        if (!mounted) return
+        setPathPattern('/{locale}/posts/{slug}')
+      }
+    })()
+    return () => {
+      mounted = false
+    }
+  }, [post.type, post.locale])
+
+  function buildPreviewPath(currentSlug: string): string | null {
+    if (!pathPattern) return null
+    const d = new Date(post.createdAt)
+    const yyyy = String(d.getUTCFullYear())
+    const mm = String(d.getUTCMonth() + 1).padStart(2, '0')
+    const dd = String(d.getUTCDate()).padStart(2, '0')
+    let out = pathPattern
+    const encSlug = encodeURIComponent(currentSlug || '')
+    out = out.replace(/\{slug\}/g, encSlug).replace(/:slug\b/g, encSlug)
+    out = out.replace(/\{locale\}/g, post.locale).replace(/:locale\b/g, post.locale)
+    out = out.replace(/\{yyyy\}/g, yyyy).replace(/\{mm\}/g, mm).replace(/\{dd\}/g, dd)
+    if (!out.startsWith('/')) out = '/' + out
+    return out
+  }
 
   // Overrides panel state
   const [editing, setEditing] = useState<ModuleListItem | null>(null)
@@ -247,6 +288,11 @@ export default function Editor({ post, modules: initialModules, translations }: 
                   />
                   {errors.slug && (
                     <p className="text-sm text-[color:#dc2626] mt-1">{errors.slug}</p>
+                  )}
+                  {pathPattern && (
+                    <p className="mt-1 text-xs text-neutral-low font-mono">
+                      Preview: {buildPreviewPath(data.slug)}
+                    </p>
                   )}
                 </div>
 
