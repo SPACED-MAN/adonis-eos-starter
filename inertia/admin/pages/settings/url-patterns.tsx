@@ -29,6 +29,7 @@ export default function UrlPatternsPage() {
 		locale: '',
 		pattern: '',
 	})
+	const [availableLocales, setAvailableLocales] = useState<string[]>([])
 
 	useEffect(() => {
 		let mounted = true
@@ -48,6 +49,25 @@ export default function UrlPatternsPage() {
 				setDrafts(nextDrafts)
 			})
 			.finally(() => setLoading(false))
+		return () => {
+			mounted = false
+		}
+	}, [])
+
+	// Load available locales for dropdown
+	useEffect(() => {
+		let mounted = true
+		fetch('/api/locales', { credentials: 'same-origin' })
+			.then((r) => r.json())
+			.then((json) => {
+				if (!mounted) return
+				const list: Array<{ code: string }> = Array.isArray(json?.data) ? json.data : []
+				setAvailableLocales(list.map((l) => l.code))
+			})
+			.catch(() => {
+				if (!mounted) return
+				setAvailableLocales(['en'])
+			})
 		return () => {
 			mounted = false
 		}
@@ -124,24 +144,29 @@ export default function UrlPatternsPage() {
 							<div className="flex flex-col md:flex-row gap-3">
 								<input
 									type="text"
-									className="md:w-48 px-3 py-2 border border-border rounded bg-backdrop-low text-neutral-high"
+									className="md:w-48 px-3 py-2 border border-line rounded bg-backdrop-low text-neutral-high"
 									placeholder="postType (e.g., blog)"
 									value={newPattern.postType}
 									onChange={(e) => setNewPattern((s) => ({ ...s, postType: e.target.value }))}
 									disabled
 								/>
-								<input
-									type="text"
-									className="md:w-28 px-3 py-2 border border-border rounded bg-backdrop-low text-neutral-high"
-									placeholder="locale (e.g., en)"
+								<select
+									className="md:w-28 px-3 py-2 border border-line rounded bg-backdrop-low text-neutral-high"
 									value={newPattern.locale}
 									onChange={(e) => setNewPattern((s) => ({ ...s, locale: e.target.value }))}
 									disabled
-								/>
+								>
+									<option value="">{availableLocales.length ? 'Select locale' : 'Loading...'}</option>
+									{availableLocales.map((loc) => (
+										<option key={loc} value={loc}>
+											{loc.toUpperCase()}
+										</option>
+									))}
+								</select>
 								<input
 									type="text"
-									className="flex-1 px-3 py-2 border border-border rounded bg-backdrop-low text-neutral-high"
-									placeholder="/:locale/posts/:slug"
+									className="flex-1 px-3 py-2 border border-line rounded bg-backdrop-low text-neutral-high"
+									placeholder="/{locale}/posts/{slug}"
 									value={newPattern.pattern}
 									onChange={(e) => setNewPattern((s) => ({ ...s, pattern: e.target.value }))}
 									disabled

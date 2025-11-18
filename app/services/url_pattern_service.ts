@@ -13,16 +13,13 @@ type UrlPatternData = {
 class UrlPatternService {
   /**
    * Replace tokens in a pattern string with provided values.
-   * Supports both {token} and :token syntaxes.
+   * Supports {token} syntax only.
    */
   private replaceTokens(pattern: string, values: Record<string, string>): string {
     let out = pattern
     for (const [key, rawVal] of Object.entries(values)) {
       const val = encodeURIComponent(rawVal)
-      // Brace syntax
       out = out.replace(new RegExp(`\\{${key}\\}`, 'g'), val)
-      // Colon syntax
-      out = out.replace(new RegExp(`:${key}\\b`, 'g'), val)
     }
     if (!out.startsWith('/')) out = '/' + out
     return out
@@ -112,9 +109,6 @@ class UrlPatternService {
       .replace(/\{mm\}/g, '(?<mm>\\d{2})')
       .replace(/\{dd\}/g, '(?<dd>\\d{2})')
       .replace(/\{slug\}/g, '(?<slug>[^\\/]+)')
-      // legacy colon tokens
-      .replace(/:locale\b/g, '(?<locale>[a-z]{2}(?:-[a-z]{2})?)')
-      .replace(/:slug\b/g, '(?<slug>[^\\/]+)')
     return new RegExp('^' + source + '$', 'i')
   }
 
