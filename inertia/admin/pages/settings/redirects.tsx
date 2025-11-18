@@ -139,13 +139,14 @@ export default function RedirectsPage() {
 									onChange={(e) => setForm((f) => ({ ...f, toPath: e.target.value }))}
 								/>
 								<div className="flex gap-2">
-									<input
-										type="number"
-										className="w-24 px-3 py-2 border border-line rounded bg-backdrop-low text-neutral-high"
-										placeholder="301"
-										value={form.httpStatus}
-										onChange={(e) => setForm((f) => ({ ...f, httpStatus: Number(e.target.value || 301) }))}
-									/>
+									<select
+										className="w-28 px-3 py-2 border border-line rounded bg-backdrop-low text-neutral-high"
+										value={String(form.httpStatus)}
+										onChange={(e) => setForm((f) => ({ ...f, httpStatus: Number(e.target.value) }))}
+									>
+										<option value="301">301 (Permanent)</option>
+										<option value="302">302 (Temporary)</option>
+									</select>
 									<button
 										type="button"
 										className="px-3 py-2 text-sm rounded bg-standout text-on-standout disabled:opacity-50"
