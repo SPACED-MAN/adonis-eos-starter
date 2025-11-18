@@ -12,6 +12,8 @@ export default function Dashboard({}: DashboardProps) {
   const [q, setQ] = useState('')
   const [status, setStatus] = useState<string>('')
   const [locale, setLocale] = useState<string>('')
+  const [postType, setPostType] = useState<string>('')
+  const [postTypes, setPostTypes] = useState<string[]>([])
   const [sortBy, setSortBy] = useState<'title' | 'slug' | 'status' | 'locale' | 'updated_at' | 'created_at'>('updated_at')
   const [sortOrder, setSortOrder] = useState<'asc' | 'desc'>('desc')
   const [loading, setLoading] = useState(false)
@@ -32,6 +34,7 @@ export default function Dashboard({}: DashboardProps) {
       const params = new URLSearchParams()
       if (q) params.set('q', q)
       if (status) params.set('status', status)
+      if (postType) params.set('type', postType)
       if (locale) params.set('locale', locale)
       params.set('sortBy', sortBy)
       params.set('sortOrder', sortOrder)
@@ -54,7 +57,16 @@ export default function Dashboard({}: DashboardProps) {
   useEffect(() => {
     fetchPosts()
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [q, status, locale, sortBy, sortOrder, page, limit])
+  }, [q, status, locale, postType, sortBy, sortOrder, page, limit])
+
+  useEffect(() => {
+    ;(async () => {
+      const res = await fetch('/api/post-types', { credentials: 'same-origin' })
+      const json = await res.json().catch(() => ({}))
+      const list: string[] = Array.isArray(json?.data) ? json.data : []
+      setPostTypes(list)
+    })()
+  }, [])
 
   function toggleSelect(id: string) {
     setSelected((prev) => {
@@ -155,6 +167,21 @@ export default function Dashboard({}: DashboardProps) {
                   <option value="es">ES</option>
                   <option value="fr">FR</option>
                   <option value="pt">PT</option>
+                </select>
+                <select
+                  value={postType}
+                  onChange={(e) => {
+                    setPostType(e.target.value)
+                    setPage(1)
+                  }}
+                  className="px-2 py-2 text-sm border border-line rounded bg-backdrop-low text-neutral-high"
+                >
+                  <option value="">All post types</option>
+                  {postTypes.map((t) => (
+                    <option key={t} value={t}>
+                      {t}
+                    </option>
+                  ))}
                 </select>
                 <select
                   value={limit}

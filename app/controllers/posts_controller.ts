@@ -20,6 +20,7 @@ export default class PostsController {
    */
   async index({ request, response }: HttpContext) {
     const q = String(request.input('q', '')).trim()
+    const type = String(request.input('type', '')).trim()
     const status = String(request.input('status', '')).trim()
     const locale = String(request.input('locale', '')).trim()
     const sortByRaw = String(request.input('sortBy', 'updated_at')).trim()
@@ -37,6 +38,9 @@ export default class PostsController {
         builder.whereILike('title', `%${q}%`).orWhereILike('slug', `%${q}%`)
       })
     }
+    if (type) {
+      query.where('type', type)
+    }
     if (status) {
       query.where('status', status)
     }
@@ -46,6 +50,9 @@ export default class PostsController {
     const countQuery = db.from('posts')
     if (q) {
       countQuery.where((b) => b.whereILike('title', `%${q}%`).orWhereILike('slug', `%${q}%`))
+    }
+    if (type) {
+      countQuery.where('type', type)
     }
     if (status) {
       countQuery.where('status', status)
@@ -73,6 +80,20 @@ export default class PostsController {
         sortOrder,
       },
     })
+  }
+
+  /**
+   * GET /api/post-types
+   * List distinct post types from templates and posts
+   */
+  async types({ response }: HttpContext) {
+    const fromPosts = await db.from('posts').distinct('type')
+    const fromTemplates = await db.from('templates').distinct('post_type')
+    const set = new Set<string>()
+    fromPosts.forEach((r) => r.type && set.add(String(r.type)))
+    fromTemplates.forEach((r) => (r as any).post_type && set.add(String((r as any).post_type)))
+    const types = Array.from(set).sort()
+    return response.ok({ data: types })
   }
   /**
    * GET /admin/posts/:id/edit
