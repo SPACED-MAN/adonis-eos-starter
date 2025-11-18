@@ -71,6 +71,7 @@ export default function Editor({ post, modules: initialModules, translations }: 
   const [modules, setModules] = useState<EditorProps['modules']>(initialModules || [])
   const [pathPattern, setPathPattern] = useState<string | null>(null)
   const [supportedLocales, setSupportedLocales] = useState<string[]>([])
+  const [selectedLocale, setSelectedLocale] = useState<string>(post.locale)
 
   // Keep local state in sync with server props after Inertia navigations
   // Useful after adding modules or reloading the page
@@ -81,23 +82,23 @@ export default function Editor({ post, modules: initialModules, translations }: 
   // Load URL pattern for this post type/locale to preview final path
   useEffect(() => {
     let mounted = true
-    ;(async () => {
-      try {
-        const res = await fetch('/api/url-patterns', { credentials: 'same-origin' })
-        const json = await res.json().catch(() => ({}))
-        const list: Array<{ postType: string; locale: string; pattern: string; isDefault: boolean }> =
-          Array.isArray(json?.data) ? json.data : []
-        const rec =
-          list.find((p) => p.postType === post.type && p.locale === post.locale && p.isDefault) ||
-          list.find((p) => p.postType === post.type && p.locale === post.locale) ||
-          null
-        if (!mounted) return
-        setPathPattern(rec?.pattern || '/{locale}/posts/{slug}')
-      } catch {
-        if (!mounted) return
-        setPathPattern('/{locale}/posts/{slug}')
-      }
-    })()
+      ; (async () => {
+        try {
+          const res = await fetch('/api/url-patterns', { credentials: 'same-origin' })
+          const json = await res.json().catch(() => ({}))
+          const list: Array<{ postType: string; locale: string; pattern: string; isDefault: boolean }> =
+            Array.isArray(json?.data) ? json.data : []
+          const rec =
+            list.find((p) => p.postType === post.type && p.locale === post.locale && p.isDefault) ||
+            list.find((p) => p.postType === post.type && p.locale === post.locale) ||
+            null
+          if (!mounted) return
+          setPathPattern(rec?.pattern || '/{locale}/posts/{slug}')
+        } catch {
+          if (!mounted) return
+          setPathPattern('/{locale}/posts/{slug}')
+        }
+      })()
     return () => {
       mounted = false
     }
@@ -106,19 +107,19 @@ export default function Editor({ post, modules: initialModules, translations }: 
   // Load supported locales from API (enabled locales)
   useEffect(() => {
     let mounted = true
-    ;(async () => {
-      try {
-        const res = await fetch('/api/locales', { credentials: 'same-origin' })
-        const json = await res.json().catch(() => ({}))
-        const list: Array<{ code: string; isEnabled: boolean }> = Array.isArray(json?.data) ? json.data : []
-        const enabled = list.filter((l) => l.isEnabled).map((l) => l.code)
-        if (!mounted) return
-        setSupportedLocales(enabled.length ? enabled : ['en'])
-      } catch {
-        if (!mounted) return
-        setSupportedLocales(['en'])
-      }
-    })()
+      ; (async () => {
+        try {
+          const res = await fetch('/api/locales', { credentials: 'same-origin' })
+          const json = await res.json().catch(() => ({}))
+          const list: Array<{ code: string; isEnabled: boolean }> = Array.isArray(json?.data) ? json.data : []
+          const enabled = list.filter((l) => l.isEnabled).map((l) => l.code)
+          if (!mounted) return
+          setSupportedLocales(enabled.length ? enabled : ['en'])
+        } catch {
+          if (!mounted) return
+          setSupportedLocales(['en'])
+        }
+      })()
     return () => {
       mounted = false
     }
@@ -208,6 +209,7 @@ export default function Editor({ post, modules: initialModules, translations }: 
     translations?.forEach((t) => map.set(t.locale, t.id))
     return map
   }, [translations])
+  const translationsSet = useMemo(() => new Set((translations || []).map((t) => t.locale)), [translations])
   const availableLocales = useMemo(() => {
     const base = new Set<string>(supportedLocales.length ? supportedLocales : ['en'])
     translations?.forEach((t) => base.add(t.locale))
@@ -570,60 +572,64 @@ export default function Editor({ post, modules: initialModules, translations }: 
                   </label>
                   <div className="flex items-center gap-2">
                     <select
-                      value={post.locale}
+                      value={selectedLocale}
                       onChange={(e) => {
                         const nextLocale = e.target.value
+                        setSelectedLocale(nextLocale)
                         if (nextLocale === post.locale) return
-                        // Navigate to existing translation if present
+                        // If translation exists for selected locale, navigate immediately
                         const target = translations?.find((t) => t.locale === nextLocale)
                         if (target) {
                           window.location.href = `/admin/posts/${target.id}/edit`
                         }
+                        // else: keep selection; show "Create Translation" CTA below
                       }}
                       className="px-2 py-1 border border-border rounded bg-backdrop-low text-neutral-high"
                     >
-                      {availableLocales
-                        .map((loc) => (
+                      {availableLocales.map((loc) => {
+                        const exists = translationsSet.has(loc)
+                        const label = exists ? `${loc.toUpperCase()}` : `${loc.toUpperCase()} (missing)`
+                        return (
                           <option key={loc} value={loc}>
-                            {loc.toUpperCase()}
+                            {label}
                           </option>
-                        ))}
+                        )
+                      })}
                     </select>
-                    {!(translations || []).some((t) => t.locale !== post.locale) && (
+                    {Array.from(translationsSet).length <= 1 && (
                       <span className="text-xs text-neutral-low">No other translations</span>
                     )}
                   </div>
-                  <button
-                    type="button"
-                    className="mt-2 text-xs px-2 py-1 rounded border border-border bg-backdrop-low text-neutral-high hover:bg-backdrop-medium"
-                    onClick={async () => {
-                      // Create the first missing supported locale
-                      const locales = availableLocales.length ? availableLocales : ['en']
-                      const existing = new Set((translations || []).map((t) => t.locale))
-                      const toCreate = locales.find((l) => !existing.has(l) && l !== post.locale) || locales.find((l) => l !== post.locale) || 'en'
-                      const res = await fetch(`/api/posts/${post.id}/translations`, {
-                        method: 'POST',
-                        headers: {
-                          Accept: 'application/json',
-                          'Content-Type': 'application/json',
-                          ...(xsrfToken ? { 'X-XSRF-TOKEN': xsrfToken } : {}),
-                        },
-                        credentials: 'same-origin',
-                        body: JSON.stringify({ locale: toCreate }),
-                      })
-                      if (res.redirected) {
-                        window.location.href = res.url
-                        return
-                      }
-                      if (res.ok) {
-                        window.location.reload()
-                      } else {
-                        toast.error('Failed to create translation')
-                      }
-                    }}
-                  >
-                    Create Translation
-                  </button>
+                  {selectedLocale !== post.locale && !translationsSet.has(selectedLocale) && (
+                    <button
+                      type="button"
+                      className="mt-2 text-xs px-2 py-1 rounded border border-border bg-backdrop-low text-neutral-high hover:bg-backdrop-medium"
+                      onClick={async () => {
+                        const toCreate = selectedLocale
+                        const res = await fetch(`/api/posts/${post.id}/translations`, {
+                          method: 'POST',
+                          headers: {
+                            Accept: 'application/json',
+                            'Content-Type': 'application/json',
+                            ...(xsrfToken ? { 'X-XSRF-TOKEN': xsrfToken } : {}),
+                          },
+                          credentials: 'same-origin',
+                          body: JSON.stringify({ locale: toCreate }),
+                        })
+                        if (res.redirected) {
+                          window.location.href = res.url
+                          return
+                        }
+                        if (res.ok) {
+                          window.location.reload()
+                        } else {
+                          toast.error('Failed to create translation')
+                        }
+                      }}
+                    >
+                      Create Translation
+                    </button>
+                  )}
                 </div>
                 <button
                   className="w-full px-4 py-2 text-sm border border-border rounded-lg hover:bg-backdrop-medium text-neutral-medium"
