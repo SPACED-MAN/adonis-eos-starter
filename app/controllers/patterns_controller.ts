@@ -10,7 +10,7 @@ export default class PatternsController {
    */
   async index({ response }: HttpContext) {
     // Ensure defaults exist for all post types across supported locales
-    const locales = LocaleService.getSupportedLocales()
+    const locales = await LocaleService.getSupportedLocales()
     await UrlPatternService.ensureDefaultsForAll(locales)
     const patterns = await UrlPatternService.getAllPatterns()
     return response.ok({ data: patterns, meta: { count: patterns.length } })

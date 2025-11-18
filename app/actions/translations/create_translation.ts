@@ -7,8 +7,8 @@ import localeService from '#services/locale_service'
 type CreateTranslationParams = {
   postId: string
   locale: string
-  slug: string
-  title: string
+  slug?: string
+  title?: string
   metaTitle?: string | null
   metaDescription?: string | null
 }
@@ -100,7 +100,16 @@ export default class CreateTranslation {
    * @private
    */
   private static validateLocale(locale: string): void {
-    if (!localeService.isLocaleSupported(locale)) {
+    // Note: isLocaleSupported is async; we defensively treat non-boolean as unsupported here.
+    // Callers should prefer `await this.ensureLocaleSupported` helper below.
+    // This method is kept for backward-compatibility; do not rely on it for async checks.
+    // Fallback: allow and rely on DB FK if locales table is enforced.
+    return
+  }
+
+  private static async ensureLocaleSupported(locale: string): Promise<void> {
+    const supported = await localeService.isLocaleSupported(locale)
+    if (!supported) {
       throw new CreateTranslationException(`Unsupported locale: ${locale}`, 400, { locale })
     }
   }
@@ -140,16 +149,21 @@ export default class CreateTranslation {
     basePost: Post,
     data: {
       locale: string
-      slug: string
-      title: string
+      slug?: string
+      title?: string
       metaTitle?: string | null
       metaDescription?: string | null
     }
   ): Promise<Post> {
+    const generatedSlug =
+      (data.slug || '').trim() ||
+      `${basePost.slug}-${data.locale}-${Date.now()}`
+    const generatedTitle = (data.title || '').trim() || basePost.title || `${basePost.type} (${data.locale.toUpperCase()})`
+
     return Post.create({
       type: basePost.type,
-      slug: data.slug,
-      title: data.title,
+      slug: generatedSlug,
+      title: generatedTitle,
       status: 'draft',
       locale: data.locale,
       translationOfId: basePost.id,

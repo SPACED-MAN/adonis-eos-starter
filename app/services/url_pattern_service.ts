@@ -163,6 +163,68 @@ class UrlPatternService {
     }
   }
 
+  /**
+   * Get distinct post types from templates table.
+   */
+  async getPostTypesFromTemplates(): Promise<string[]> {
+    const rows = await db.from('templates').distinct('post_type')
+    return rows.map((r) => r.post_type as string)
+  }
+
+  /**
+   * Get distinct post types from posts table.
+   */
+  async getPostTypesFromPosts(): Promise<string[]> {
+    const rows = await db.from('posts').distinct('type as post_type')
+    return rows.map((r) => r.post_type as string)
+  }
+
+  /**
+   * Ensure a specific locale has default patterns across all known post types.
+   * Known post types are derived from templates + posts union.
+   */
+  async ensureLocaleForAllPostTypes(locale: string, defaultPattern = '/{locale}/posts/{slug}'): Promise<void> {
+    const [fromTemplates, fromPosts] = await Promise.all([
+      this.getPostTypesFromTemplates(),
+      this.getPostTypesFromPosts(),
+    ])
+    const types = Array.from(new Set<string>([...fromTemplates, ...fromPosts]))
+    if (types.length === 0) return
+    const now = new Date()
+    const existing = await db.from('url_patterns').whereIn('post_type', types).andWhere('locale', locale)
+    const existingByType = new Set(existing.map((r) => r.post_type as string))
+    const rows = types
+      .filter((t) => !existingByType.has(t))
+      .map((t) => ({
+        post_type: t,
+        locale,
+        pattern: defaultPattern,
+        is_default: true,
+        created_at: now,
+        updated_at: now,
+      }))
+    if (rows.length) {
+      await db.table('url_patterns').insert(rows)
+    }
+  }
+
+  /**
+   * Prune default url patterns for post types that are no longer recognized.
+   * Allowed post types = templates.post_type ∪ posts.type
+   */
+  async pruneDefaultsForUnknownPostTypes(): Promise<number> {
+    const [fromTemplates, fromPosts] = await Promise.all([
+      this.getPostTypesFromTemplates(),
+      this.getPostTypesFromPosts(),
+    ])
+    const allowed = new Set<string>([...fromTemplates, ...fromPosts])
+    const allPatterns = await db.from('url_patterns').distinct('post_type')
+    const toRemove = allPatterns.map((r) => r.post_type as string).filter((t) => !allowed.has(t))
+    if (toRemove.length === 0) return 0
+    const { rowCount } = await db.from('url_patterns').whereIn('post_type', toRemove).delete()
+    return rowCount || 0
+  }
+
   async updatePattern(id: string, data: { pattern: string; isDefault?: boolean }): Promise<UrlPatternData> {
     const [rec] = await db
       .from('url_patterns')

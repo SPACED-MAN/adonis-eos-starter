@@ -70,6 +70,7 @@ export default function Editor({ post, modules: initialModules, translations }: 
   // Modules state (sortable)
   const [modules, setModules] = useState<EditorProps['modules']>(initialModules || [])
   const [pathPattern, setPathPattern] = useState<string | null>(null)
+  const [supportedLocales, setSupportedLocales] = useState<string[]>([])
 
   // Keep local state in sync with server props after Inertia navigations
   // Useful after adding modules or reloading the page
@@ -101,6 +102,27 @@ export default function Editor({ post, modules: initialModules, translations }: 
       mounted = false
     }
   }, [post.type, post.locale])
+
+  // Load supported locales from API (enabled locales)
+  useEffect(() => {
+    let mounted = true
+    ;(async () => {
+      try {
+        const res = await fetch('/api/locales', { credentials: 'same-origin' })
+        const json = await res.json().catch(() => ({}))
+        const list: Array<{ code: string; isEnabled: boolean }> = Array.isArray(json?.data) ? json.data : []
+        const enabled = list.filter((l) => l.isEnabled).map((l) => l.code)
+        if (!mounted) return
+        setSupportedLocales(enabled.length ? enabled : ['en'])
+      } catch {
+        if (!mounted) return
+        setSupportedLocales(['en'])
+      }
+    })()
+    return () => {
+      mounted = false
+    }
+  }, [])
 
   function buildPreviewPath(currentSlug: string): string | null {
     if (!pathPattern) return null
@@ -187,10 +209,10 @@ export default function Editor({ post, modules: initialModules, translations }: 
     return map
   }, [translations])
   const availableLocales = useMemo(() => {
-    const base = new Set<string>(['en', 'es'])
+    const base = new Set<string>(supportedLocales.length ? supportedLocales : ['en'])
     translations?.forEach((t) => base.add(t.locale))
     return Array.from(base)
-  }, [translations])
+  }, [translations, supportedLocales])
 
   async function saveOverrides(
     postModuleId: string,
@@ -560,9 +582,7 @@ export default function Editor({ post, modules: initialModules, translations }: 
                       }}
                       className="px-2 py-1 border border-border rounded bg-backdrop-low text-neutral-high"
                     >
-                      {(['en', 'es'] as string[])
-                        .concat(translations?.map((t) => t.locale) || [])
-                        .filter((v, i, arr) => arr.indexOf(v) === i)
+                      {availableLocales
                         .map((loc) => (
                           <option key={loc} value={loc}>
                             {loc.toUpperCase()}
@@ -577,10 +597,10 @@ export default function Editor({ post, modules: initialModules, translations }: 
                     type="button"
                     className="mt-2 text-xs px-2 py-1 rounded border border-border bg-backdrop-low text-neutral-high hover:bg-backdrop-medium"
                     onClick={async () => {
-                      // Create the first missing locale (defaults to 'es' if not present)
-                      const locales = ['en', 'es']
+                      // Create the first missing supported locale
+                      const locales = availableLocales.length ? availableLocales : ['en']
                       const existing = new Set((translations || []).map((t) => t.locale))
-                      const toCreate = locales.find((l) => !existing.has(l) && l !== post.locale) || (post.locale === 'en' ? 'es' : 'en')
+                      const toCreate = locales.find((l) => !existing.has(l) && l !== post.locale) || locales.find((l) => l !== post.locale) || 'en'
                       const res = await fetch(`/api/posts/${post.id}/translations`, {
                         method: 'POST',
                         headers: {

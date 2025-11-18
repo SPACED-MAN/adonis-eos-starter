@@ -80,7 +80,8 @@ export default class CreatePost {
 
     // Ensure default URL patterns for this post type across supported locales
     try {
-      await urlPatternService.ensureDefaultsForPostType(type, LocaleService.getSupportedLocales())
+      const locales = await LocaleService.getSupportedLocales()
+      await urlPatternService.ensureDefaultsForPostType(type, locales)
     } catch { }
 
     return post

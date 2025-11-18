@@ -72,6 +72,7 @@ export default class TranslationsController {
 			const translation = await CreateTranslation.handle({
 				postId: id,
 				locale,
+				// slug/title optional: action will generate sensible defaults when omitted
 				slug,
 				title,
 				metaTitle,
