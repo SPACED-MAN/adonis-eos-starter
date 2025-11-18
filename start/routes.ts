@@ -102,6 +102,7 @@ router.group(() => {
  */
 router.group(() => {
 	router.get('/posts', [PostsController, 'index'])
+	router.get('/post-types', [PostsController, 'types'])
 	router.post('/posts', [PostsController, 'store'])
 	router.put('/posts/:id', [PostsController, 'update'])
 	router.delete('/posts/:id', [PostsController, 'destroy'])
