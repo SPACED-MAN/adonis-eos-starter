@@ -95,6 +95,8 @@ router.group(() => {
 	router.post('/redirects', [RedirectsController, 'store'])
 	router.put('/redirects/:id', [RedirectsController, 'update'])
 	router.delete('/redirects/:id', [RedirectsController, 'destroy'])
+	router.get('/redirect-settings/:postType', [RedirectsController, 'getSetting'])
+	router.patch('/redirect-settings/:postType', [RedirectsController, 'updateSetting'])
 }).prefix('/api').use(middleware.auth())
 
 /**

@@ -1,6 +1,7 @@
 import Post from '#models/post'
 import db from '@adonisjs/lucid/services/db'
 import urlPatternService from '#services/url_pattern_service'
+import postTypeSettingsService from '#services/post_type_settings_service'
 
 type UpdatePostParams = {
   postId: string
@@ -70,25 +71,28 @@ export default class UpdatePost {
 
         // Save new slug
         post.slug = newSlug
-        // Create a 301 redirect from old path to new path (locale-aware)
-        const fromPath = await urlPatternService.buildPostPath(post.type, oldSlug, post.locale, (post as any).createdAt)
-        const toPath = await urlPatternService.buildPostPath(post.type, newSlug, post.locale, (post as any).createdAt)
-        try {
-          const existing = await db.from('url_redirects').where('from_path', fromPath).first()
-          if (!existing) {
-            const now = new Date()
-            await db.table('url_redirects').insert({
-              from_path: fromPath,
-              to_path: toPath,
-              locale: post.locale,
-              http_status: 301,
-              post_id: post.id,
-              created_at: now,
-              updated_at: now,
-            })
+        // Conditionally create a 301 redirect from old path to new path (locale-aware)
+        const shouldAutoRedirect = await postTypeSettingsService.isAutoRedirectEnabled(post.type)
+        if (shouldAutoRedirect) {
+          const fromPath = await urlPatternService.buildPostPath(post.type, oldSlug, post.locale, (post as any).createdAt)
+          const toPath = await urlPatternService.buildPostPath(post.type, newSlug, post.locale, (post as any).createdAt)
+          try {
+            const existing = await db.from('url_redirects').where('from_path', fromPath).first()
+            if (!existing) {
+              const now = new Date()
+              await db.table('url_redirects').insert({
+                from_path: fromPath,
+                to_path: toPath,
+                locale: post.locale,
+                http_status: 301,
+                post_id: post.id,
+                created_at: now,
+                updated_at: now,
+              })
+            }
+          } catch {
+            // ignore redirect insert errors
           }
-        } catch {
-          // ignore redirect insert errors
         }
       }
     }

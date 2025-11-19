@@ -1,13 +1,40 @@
 import type { HttpContext } from '@adonisjs/core/http'
 import db from '@adonisjs/lucid/services/db'
+import postTypeSettingsService from '#services/post_type_settings_service'
 
 export default class RedirectsController {
   /**
    * GET /api/redirects
    */
-  async index({ response }: HttpContext) {
-    const rows = await db.from('url_redirects').select('*').orderBy('created_at', 'desc')
+  async index({ request, response }: HttpContext) {
+    const type = String(request.input('type', '')).trim()
+    const query = db.from('url_redirects').select('url_redirects.*').orderBy('url_redirects.created_at', 'desc')
+    if (type) {
+      query.leftJoin('posts', 'url_redirects.post_id', 'posts.id').where('posts.type', type)
+    }
+    const rows = await query
     return response.ok({ data: rows, meta: { count: rows.length } })
+  }
+
+  /**
+   * GET /api/redirect-settings/:postType
+   */
+  async getSetting({ params, response }: HttpContext) {
+    const { postType } = params
+    const enabled = await postTypeSettingsService.isAutoRedirectEnabled(postType)
+    return response.ok({ data: { postType, autoRedirectOnSlugChange: enabled } })
+  }
+
+  /**
+   * PATCH /api/redirect-settings/:postType
+   * Body: { autoRedirectOnSlugChange: boolean }
+   */
+  async updateSetting({ params, request, response }: HttpContext) {
+    const { postType } = params
+    const body = request.only(['autoRedirectOnSlugChange'])
+    const enabled = !!body.autoRedirectOnSlugChange
+    await postTypeSettingsService.setAutoRedirect(postType, enabled)
+    return response.ok({ data: { postType, autoRedirectOnSlugChange: enabled } })
   }
 
   /**

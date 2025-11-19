@@ -21,6 +21,9 @@ function getXsrfToken(): string | undefined {
 
 export default function RedirectsPage() {
 	const [items, setItems] = useState<Redirect[]>([])
+	const [postTypes, setPostTypes] = useState<string[]>([])
+	const [typeFilter, setTypeFilter] = useState<string>('')
+	const [autoRedirectEnabled, setAutoRedirectEnabled] = useState<boolean>(true)
 	const [loading, setLoading] = useState(false)
 	const [creating, setCreating] = useState(false)
 	const [form, setForm] = useState<{ fromPath: string; toPath: string; httpStatus: number }>({
@@ -32,17 +35,59 @@ export default function RedirectsPage() {
 	useEffect(() => {
 		let mounted = true
 		setLoading(true)
-		fetch('/api/redirects', { credentials: 'same-origin' })
+		const params = new URLSearchParams()
+		if (typeFilter) params.set('type', typeFilter)
+		fetch(`/api/redirects?${params.toString()}`, { credentials: 'same-origin' })
 			.then((r) => r.json())
 			.then((json) => {
 				if (!mounted) return
 				setItems(json?.data ?? [])
 			})
 			.finally(() => setLoading(false))
+		// Load setting for selected type
+		if (typeFilter) {
+			fetch(`/api/redirect-settings/${encodeURIComponent(typeFilter)}`, { credentials: 'same-origin' })
+				.then((r) => r.json())
+				.then((json) => {
+					if (!mounted) return
+					setAutoRedirectEnabled(!!json?.data?.autoRedirectOnSlugChange)
+				})
+				.catch(() => {
+					if (!mounted) return
+					setAutoRedirectEnabled(true)
+				})
+		}
 		return () => {
 			mounted = false
 		}
+	}, [typeFilter])
+
+	useEffect(() => {
+		; (async () => {
+			try {
+				const r = await fetch('/api/post-types', { credentials: 'same-origin' })
+				const json = await r.json().catch(() => ({}))
+				const list: string[] = Array.isArray(json?.data) ? json.data : []
+				setPostTypes(list)
+				// Load initial setting for the first type if present
+				if (list.length > 0 && !typeFilter) {
+					setTypeFilter(list[0])
+				}
+			} catch {
+				setPostTypes([])
+			}
+		})()
 	}, [])
+
+	function labelize(type: string): string {
+		if (!type) return ''
+		const withSpaces = type.replace(/([a-z])([A-Z])/g, '$1 $2').replace(/[-_]+/g, ' ')
+		return withSpaces
+			.split(' ')
+			.filter(Boolean)
+			.map((w) => w.charAt(0).toUpperCase() + w.slice(1))
+			.join(' ')
+	}
 
 	function inferLocale(path: string): string | null {
 		if (!path || path[0] !== '/') return null
@@ -118,7 +163,45 @@ export default function RedirectsPage() {
 				<div className="bg-backdrop-low border border-line rounded-lg">
 					<div className="px-6 py-4 border-b border-line flex items-center justify-between">
 						<h2 className="text-lg font-semibold text-neutral-high">Redirect Rules</h2>
-						{loading && <span className="text-sm text-neutral-low">Loading…</span>}
+						<div className="flex items-center gap-3">
+							<select
+								value={typeFilter}
+								onChange={(e) => setTypeFilter(e.target.value)}
+								className="px-2 py-2 text-sm border border-line rounded bg-backdrop-low text-neutral-high"
+							>
+								<option value="">All post types</option>
+								{postTypes.map((t) => (
+									<option key={t} value={t}>
+										{labelize(t)}
+									</option>
+								))}
+							</select>
+							{typeFilter && (
+								<label className="inline-flex items-center gap-2 text-sm text-neutral-high">
+									<input
+										type="checkbox"
+										checked={autoRedirectEnabled}
+										onChange={async (e) => {
+											const enabled = e.target.checked
+											setAutoRedirectEnabled(enabled)
+											await fetch(`/api/redirect-settings/${encodeURIComponent(typeFilter)}`, {
+												method: 'PATCH',
+												headers: {
+													'Accept': 'application/json',
+													'Content-Type': 'application/json',
+													...(getXsrfToken() ? { 'X-XSRF-TOKEN': getXsrfToken()! } : {}),
+												},
+												credentials: 'same-origin',
+												body: JSON.stringify({ autoRedirectOnSlugChange: enabled }),
+											})
+										}}
+										className="rounded border-line"
+									/>
+									<span className="text-neutral-medium">Auto-redirect on slug change</span>
+								</label>
+							)}
+							{loading && <span className="text-sm text-neutral-low">Loading…</span>}
+						</div>
 					</div>
 					<div className="p-6 space-y-8">
 						<section>

@@ -1,5 +1,6 @@
 import type { HttpContext } from '@adonisjs/core/http'
 import UrlPatternService from '#services/url_pattern_service'
+import postTypeSettingsService from '#services/post_type_settings_service'
 import db from '@adonisjs/lucid/services/db'
 import LocaleService from '#services/locale_service'
 
@@ -42,7 +43,7 @@ export default class PatternsController {
       const updated = await UrlPatternService.updatePattern(existing.id, { pattern, isDefault })
 
       // If pattern actually changed, create redirects from old -> new for all posts of this type+locale
-      if (oldPattern !== pattern) {
+      if (oldPattern !== pattern && (await postTypeSettingsService.isAutoRedirectEnabled(postType))) {
         const posts = await db
           .from('posts')
           .select('id', 'type', 'slug', 'locale', 'created_at')
