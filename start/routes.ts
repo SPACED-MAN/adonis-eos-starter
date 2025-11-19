@@ -80,23 +80,23 @@ router.group(() => {
 /**
  * API Routes - URL Patterns (Admin)
  */
-const PatternsController = () => import('#controllers/patterns_controller')
+const UrlPatternsController = () => import('#controllers/url_patterns_controller')
 router.group(() => {
-	router.get('/url-patterns', [PatternsController, 'index'])
-	router.put('/url-patterns/:locale', [PatternsController, 'upsert'])
+	router.get('/url-patterns', [UrlPatternsController, 'index'])
+	router.put('/url-patterns/:locale', [UrlPatternsController, 'upsert'])
 }).prefix('/api').use(middleware.auth())
 
 /**
  * API Routes - Redirects (Admin)
  */
-const RedirectsController = () => import('#controllers/redirects_controller')
+const UrlRedirectsController = () => import('#controllers/url_redirects_controller')
 router.group(() => {
-	router.get('/redirects', [RedirectsController, 'index'])
-	router.post('/redirects', [RedirectsController, 'store'])
-	router.put('/redirects/:id', [RedirectsController, 'update'])
-	router.delete('/redirects/:id', [RedirectsController, 'destroy'])
-	router.get('/redirect-settings/:postType', [RedirectsController, 'getSetting'])
-	router.patch('/redirect-settings/:postType', [RedirectsController, 'updateSetting'])
+	router.get('/redirects', [UrlRedirectsController, 'index'])
+	router.post('/redirects', [UrlRedirectsController, 'store'])
+	router.put('/redirects/:id', [UrlRedirectsController, 'update'])
+	router.delete('/redirects/:id', [UrlRedirectsController, 'destroy'])
+	router.get('/redirect-settings/:postType', [UrlRedirectsController, 'getSetting'])
+	router.patch('/redirect-settings/:postType', [UrlRedirectsController, 'updateSetting'])
 }).prefix('/api').use(middleware.auth())
 
 /**

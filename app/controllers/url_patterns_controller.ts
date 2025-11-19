@@ -2,16 +2,15 @@ import type { HttpContext } from '@adonisjs/core/http'
 import UrlPatternService from '#services/url_pattern_service'
 import postTypeSettingsService from '#services/post_type_settings_service'
 import db from '@adonisjs/lucid/services/db'
-import LocaleService from '#services/locale_service'
 
-export default class PatternsController {
+export default class UrlPatternsController {
   /**
    * GET /api/url-patterns
    * Returns all URL patterns
    */
   async index({ response }: HttpContext) {
     // Ensure defaults exist for all post types across supported locales
-    const locales = await LocaleService.getSupportedLocales()
+    const locales = await (await import('#services/locale_service')).default.getSupportedLocales()
     await UrlPatternService.ensureDefaultsForAll(locales)
     const patterns = await UrlPatternService.getAllPatterns()
     return response.ok({ data: patterns, meta: { count: patterns.length } })
