@@ -48,9 +48,10 @@ export default function Dashboard({ }: DashboardProps) {
       params.set('sortOrder', sortOrder)
       params.set('limit', String(limit))
       params.set('page', String(page))
+      params.set('withTranslations', '1')
       const res = await fetch(`/api/posts?${params.toString()}`, { credentials: 'same-origin' })
       const json = await res.json().catch(() => ({}))
-      const list: Array<{ id: string; title: string; slug: string; status: string; locale: string; updatedAt: string }> =
+      const list: Array<{ id: string; title: string; slug: string; status: string; locale: string; updatedAt: string; translationOfId?: string | null; familyLocales?: string[] }> =
         Array.isArray(json?.data) ? json.data : []
       setPosts(list)
       setTotal(Number(json?.meta?.total || 0))
@@ -73,6 +74,24 @@ export default function Dashboard({ }: DashboardProps) {
       const json = await res.json().catch(() => ({}))
       const list: string[] = Array.isArray(json?.data) ? json.data : []
       setPostTypes(list)
+    })()
+  }, [])
+
+  // Supported locales for translation progress
+  const [supportedLocales, setSupportedLocales] = useState<string[]>([])
+  useEffect(() => {
+    ; (async () => {
+      try {
+        const res = await fetch('/api/locales', { credentials: 'same-origin' })
+        const json = await res.json().catch(() => ({}))
+        const list: Array<{ code: string; isEnabled?: boolean; is_enabled?: boolean }> = Array.isArray(json?.data) ? json.data : []
+        const enabled = list
+          .filter((l) => (l as any).isEnabled === true || (l as any).is_enabled === true || (l as any).isEnabled === undefined)
+          .map((l) => l.code)
+        setSupportedLocales(enabled.length ? enabled : ['en'])
+      } catch {
+        setSupportedLocales(['en'])
+      }
     })()
   }, [])
 
@@ -182,9 +201,9 @@ export default function Dashboard({ }: DashboardProps) {
           {/* Posts Header */}
           <div className="px-6 py-4 border-b border-line">
             <div className="flex items-center justify-between gap-4">
-              <h2 className="text-lg font-semibold text-neutral-high">
+            <h2 className="text-lg font-semibold text-neutral-high">
                 Posts
-              </h2>
+            </h2>
               <div className="flex items-center gap-2">
                 <input
                   value={q}
@@ -310,9 +329,9 @@ export default function Dashboard({ }: DashboardProps) {
               <button className="col-span-2 text-left hover:underline" onClick={() => { toggleSort('slug'); setPage(1) }}>
                 Slug {sortBy === 'slug' ? (sortOrder === 'asc' ? '↑' : '↓') : ''}
               </button>
-              <button className="col-span-1 text-left hover:underline" onClick={() => { toggleSort('locale'); setPage(1) }}>
-                Loc {sortBy === 'locale' ? (sortOrder === 'asc' ? '↑' : '↓') : ''}
-              </button>
+              <div className="col-span-1 text-left">
+                Locales
+              </div>
               <button className="col-span-2 text-left hover:underline" onClick={() => { toggleSort('status'); setPage(1) }}>
                 Status {sortBy === 'status' ? (sortOrder === 'asc' ? '↑' : '↓') : ''}
               </button>
@@ -331,10 +350,10 @@ export default function Dashboard({ }: DashboardProps) {
               posts.map((post) => {
                 const checked = selected.has(post.id)
                 return (
-                  <div
-                    key={post.id}
+                <div
+                  key={post.id}
                     className="px-6 py-3 hover:bg-backdrop-medium transition-colors grid grid-cols-12 items-center"
-                  >
+                >
                     <div className="col-span-1">
                       <input
                         type="checkbox"
@@ -350,23 +369,38 @@ export default function Dashboard({ }: DashboardProps) {
                       <span className="font-mono text-sm text-neutral-medium">{post.slug}</span>
                     </div>
                     <div className="col-span-1">
-                      <span className="text-sm">{post.locale.toUpperCase()}</span>
+                      <div className="flex flex-wrap gap-1">
+                        {(supportedLocales.length > 1 ? supportedLocales : [post.locale]).map((loc) => {
+                          const exists = (post.familyLocales || [post.locale]).includes(loc)
+                          return (
+                            <span
+                              key={`${post.id}-${loc}`}
+                              className={`px-1.5 py-0.5 rounded text-[10px] border ${
+                                exists ? 'bg-standout/10 text-standout border-standout/40' : 'bg-backdrop-low text-neutral-medium border-line'
+                              }`}
+                              title={exists ? `Has ${loc.toUpperCase()}` : `Missing ${loc.toUpperCase()}`}
+                            >
+                              {loc.toUpperCase()}
+                            </span>
+                          )
+                        })}
+                      </div>
                     </div>
                     <div className="col-span-2">
                       <span className="text-sm capitalize">{post.status}</span>
                     </div>
                     <div className="col-span-2 flex items-center gap-2 justify-end">
                       <span className="text-xs text-neutral-low">
-                        {new Date(post.updatedAt).toLocaleDateString()}
+                        {new Date(post.updatedAt).toLocaleString(undefined, { year: 'numeric', month: '2-digit', day: '2-digit', hour: '2-digit', minute: '2-digit' })}
                       </span>
-                      <Link
-                        href={`/admin/posts/${post.id}/edit`}
+                    <Link
+                      href={`/admin/posts/${post.id}/edit`}
                         className="px-3 py-1 text-xs border border-line rounded hover:bg-backdrop-medium text-neutral-medium"
-                      >
-                        Edit
-                      </Link>
-                    </div>
+                    >
+                      Edit
+                    </Link>
                   </div>
+                </div>
                 )
               })
             )}

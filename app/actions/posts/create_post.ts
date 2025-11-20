@@ -139,10 +139,10 @@ export default class CreatePost {
         .returning('*')
 
       await trx.table('post_modules').insert({
-        id: randomUUID(),
-        post_id: postId,
+      id: randomUUID(),
+      post_id: postId,
         module_id: (instance as any).id,
-        order_index: tm.order_index,
+      order_index: tm.order_index,
         overrides: null,
         locked: !!tm.locked,
         created_at: now,

@@ -8,8 +8,9 @@ import { useForm, usePage } from '@inertiajs/react'
 import { AdminHeader } from '../../components/AdminHeader'
 import { AdminFooter } from '../../components/AdminFooter'
 import { ModulePicker } from '../../components/modules/ModulePicker'
-import { FormEvent, useEffect, useMemo, useState } from 'react'
+import { FormEvent, useEffect, useMemo, useRef, useState } from 'react'
 import { toast } from 'sonner'
+import { AdminBreadcrumbs } from '../../components/AdminBreadcrumbs'
 import { ModuleEditorPanel, ModuleListItem } from '../../components/modules/ModuleEditorPanel'
 import { DndContext, closestCenter, PointerSensor, useSensor, useSensors, DragEndEvent } from '@dnd-kit/core'
 import { SortableContext, useSortable, verticalListSortingStrategy } from '@dnd-kit/sortable'
@@ -56,6 +57,35 @@ export default function Editor({ post, modules: initialModules, translations }: 
     robotsJson: post.robotsJson ? JSON.stringify(post.robotsJson, null, 2) : '',
     jsonldOverrides: post.jsonldOverrides ? JSON.stringify(post.jsonldOverrides, null, 2) : '',
   })
+  const initialDataRef = useRef({
+    title: post.title,
+    slug: post.slug,
+    excerpt: post.excerpt || '',
+    status: post.status,
+    metaTitle: post.metaTitle || '',
+    metaDescription: post.metaDescription || '',
+    canonicalUrl: post.canonicalUrl || '',
+    robotsJson: post.robotsJson ? JSON.stringify(post.robotsJson, null, 2) : '',
+    jsonldOverrides: post.jsonldOverrides ? JSON.stringify(post.jsonldOverrides, null, 2) : '',
+  })
+  const pickForm = (d: typeof data) => ({
+    title: d.title,
+    slug: d.slug,
+    excerpt: d.excerpt,
+    status: d.status,
+    metaTitle: d.metaTitle,
+    metaDescription: d.metaDescription,
+    canonicalUrl: d.canonicalUrl,
+    robotsJson: d.robotsJson,
+    jsonldOverrides: d.jsonldOverrides,
+  })
+  const isDirty = useMemo(() => {
+    try {
+      return JSON.stringify(pickForm(data)) !== JSON.stringify(initialDataRef.current)
+    } catch {
+      return true
+    }
+  }, [data])
 
   // CSRF/XSRF token for fetch requests (prefer cookie value)
   const page = usePage()
@@ -271,6 +301,7 @@ export default function Editor({ post, modules: initialModules, translations }: 
 
       {/* Main Content */}
       <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+        <AdminBreadcrumbs items={[{ label: 'Dashboard', href: '/admin' }, { label: 'Edit Post' }]} rightLink={{ label: '← Back to Dashboard', href: '/admin' }} />
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
           {/* Left Column - Post Content */}
           <div className="lg:col-span-2 space-y-6">
@@ -337,38 +368,63 @@ export default function Editor({ post, modules: initialModules, translations }: 
                   )}
                 </div>
 
-                {/* Status */}
-                <div>
-                  <label className="block text-sm font-medium text-neutral-medium mb-1">
-                    Status *
-                  </label>
-                  <select
-                    value={data.status}
-                    onChange={(e) => setData('status', e.target.value)}
-                    className="w-full px-3 py-2 border border-border rounded-lg bg-backdrop-low text-neutral-high focus:ring-2 ring-standout"
-                  >
-                    <option value="draft">Draft</option>
-                    <option value="review">Review</option>
-                    <option value="scheduled">Scheduled</option>
-                    <option value="published">Published</option>
-                    <option value="archived">Archived</option>
-                  </select>
-                  {errors.status && (
-                    <p className="text-sm text-red-600 dark:text-red-400 mt-1">{errors.status}</p>
-                  )}
-                </div>
+                {/* Status moved to Actions sidebar */}
 
-                {/* Save Row */}
-                <div className="pt-2">
-                  <button
-                    type="submit"
-                    disabled={processing}
-                    className="inline-flex items-center gap-2 rounded-md bg-standout text-on-standout text-sm px-3 py-2 disabled:opacity-50"
-                  >
-                    {processing ? 'Saving...' : 'Save Changes'}
-                  </button>
-                </div>
+                {/* Save button moved to Actions */}
               </form>
+            </div>
+
+            {/* Modules Section */}
+            <div className="bg-backdrop-low rounded-lg shadow p-6 border border-line">
+              <div className="flex items-center justify-between mb-4">
+                <h2 className="text-lg font-semibold text-neutral-high">
+                  Modules
+                </h2>
+                <ModulePicker postId={post.id} postType={post.type} />
+              </div>
+              {modules.length === 0 ? (
+                <div className="text-center py-12 text-neutral-low">
+                  <p>No modules yet. Use “Add Module” to insert one.</p>
+                </div>
+              ) : (
+                <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={onDragEnd}>
+                  <SortableContext items={orderedIds} strategy={verticalListSortingStrategy}>
+                    <ul className="space-y-3">
+                      {sortedModules.map((m) => (
+                        <SortableItem key={m.id} id={m.id}>
+                          {(listeners: any) => (
+                            <li className="bg-backdrop-low border border-line rounded-lg px-4 py-3 flex items-center justify-between">
+                              <div className="flex items-center gap-3">
+                                <button
+                                  type="button"
+                                  aria-label="Drag"
+                                  className="cursor-grab text-neutral-low hover:text-neutral-high"
+                                  {...listeners}
+                                >
+                                  ⋮⋮
+                                </button>
+                                <div>
+                                  <div className="text-sm font-medium text-neutral-high">{m.type}</div>
+                                  <div className="text-xs text-neutral-low">Order: {m.orderIndex}</div>
+                                </div>
+                              </div>
+                              <div className="flex items-center gap-2">
+                                <button
+                                  className="text-xs px-2 py-1 rounded border border-line bg-backdrop-low text-neutral-high hover:bg-backdrop-medium"
+                                  onClick={() => setEditing(m)}
+                                  type="button"
+                                >
+                                  Edit
+                                </button>
+                              </div>
+                            </li>
+                          )}
+                        </SortableItem>
+                      ))}
+                    </ul>
+                  </SortableContext>
+                </DndContext>
+              )}
             </div>
 
             {/* SEO Card */}
@@ -462,109 +518,39 @@ export default function Editor({ post, modules: initialModules, translations }: 
               </div>
             </div>
 
-            {/* Modules Section (Placeholder) */}
-            <div className="bg-backdrop-low rounded-lg shadow p-6 border border-line">
-              <div className="flex items-center justify-between mb-4">
-                <h2 className="text-lg font-semibold text-neutral-high">
-                  Modules
-                </h2>
-                <ModulePicker postId={post.id} postType={post.type} />
-              </div>
-              {modules.length === 0 ? (
-                <div className="text-center py-12 text-neutral-low">
-                  <p>No modules yet. Use “Add Module” to insert one.</p>
-                </div>
-              ) : (
-                <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={onDragEnd}>
-                  <SortableContext items={orderedIds} strategy={verticalListSortingStrategy}>
-                    <ul className="space-y-3">
-                      {sortedModules.map((m) => (
-                        <SortableItem key={m.id} id={m.id}>
-                          {(listeners: any) => (
-                            <li className="bg-backdrop-low border border-line rounded-lg px-4 py-3 flex items-center justify-between">
-                              <div className="flex items-center gap-3">
-                                <button
-                                  type="button"
-                                  aria-label="Drag"
-                                  className="cursor-grab text-neutral-low hover:text-neutral-high"
-                                  {...listeners}
-                                >
-                                  ⋮⋮
-                                </button>
-                                <div>
-                                  <div className="text-sm font-medium text-neutral-high">{m.type}</div>
-                                  <div className="text-xs text-neutral-low">Order: {m.orderIndex}</div>
-                                </div>
-                              </div>
-                              <div className="flex items-center gap-2">
-                                <button
-                                  className="text-xs px-2 py-1 rounded border border-line bg-backdrop-low text-neutral-high hover:bg-backdrop-medium"
-                                  onClick={() => setEditing(m)}
-                                  type="button"
-                                >
-                                  Edit
-                                </button>
-                              </div>
-                            </li>
-                          )}
-                        </SortableItem>
-                      ))}
-                    </ul>
-                  </SortableContext>
-                </DndContext>
-              )}
-            </div>
+            {/* end left column */}
           </div>
 
           {/* Right Column - Sidebar */}
           <div className="space-y-6">
-            {/* Post Details */}
+            {/* Actions */}
             <div className="bg-backdrop-low rounded-lg shadow p-6 border border-border">
               <h3 className="text-sm font-semibold text-neutral-high mb-4">
-                Post Details
-              </h3>
-              <dl className="space-y-3 text-sm">
-                <div>
-                  <dt className="text-neutral-low">Status</dt>
-                  <dd className="font-medium text-neutral-high capitalize">
-                    {data.status}
-                  </dd>
-                </div>
-                <div>
-                  <dt className="text-neutral-low">Type</dt>
-                  <dd className="font-medium text-neutral-high">{post.type}</dd>
-                </div>
-                <div>
-                  <dt className="text-neutral-low">Locale</dt>
-                  <dd className="font-medium text-neutral-high">{post.locale}</dd>
-                </div>
-                <div>
-                  <dt className="text-neutral-low">ID</dt>
-                  <dd className="font-mono text-xs text-neutral-medium break-all">
-                    {post.id}
-                  </dd>
-                </div>
-                <div>
-                  <dt className="text-neutral-low">Created</dt>
-                  <dd className="font-medium text-neutral-high">
-                    {new Date(post.createdAt).toLocaleDateString()}
-                  </dd>
-                </div>
-                <div>
-                  <dt className="text-neutral-low">Updated</dt>
-                  <dd className="font-medium text-neutral-high">
-                    {new Date(post.updatedAt).toLocaleDateString()}
-                  </dd>
-                </div>
-              </dl>
-            </div>
-
-            {/* Quick Actions (Placeholder) */}
-            <div className="bg-backdrop-low rounded-lg shadow p-6 border border-border">
-              <h3 className="text-sm font-semibold text-neutral-high mb-4">
-                Quick Actions
+                Actions
               </h3>
               <div className="space-y-2">
+                {/* Status (moved here) */}
+                <div>
+                  <label className="block text-xs font-medium text-neutral-medium mb-1">
+                    Status
+                  </label>
+                  <div className="flex items-center gap-2">
+                    <select
+                      value={data.status}
+                      onChange={(e) => setData('status', e.target.value)}
+                      className="px-2 py-1 border border-border rounded bg-backdrop-low text-neutral-high"
+                    >
+                      <option value="draft">Draft</option>
+                      <option value="review">Review</option>
+                      <option value="scheduled">Scheduled</option>
+                      <option value="published">Published</option>
+                      <option value="archived">Archived</option>
+                    </select>
+                  </div>
+                  {errors.status && (
+                    <p className="text-xs text-red-600 dark:text-red-400 mt-1">{errors.status}</p>
+                  )}
+                </div>
                 {/* Locale Switcher */}
                 <div>
                   <label className="block text-xs font-medium text-neutral-medium mb-1">
@@ -596,9 +582,7 @@ export default function Editor({ post, modules: initialModules, translations }: 
                         )
                       })}
                     </select>
-                    {Array.from(translationsSet).length <= 1 && (
-                      <span className="text-xs text-neutral-low">No other translations</span>
-                    )}
+                    {/* Removed helper text */}
                   </div>
                   {selectedLocale !== post.locale && !translationsSet.has(selectedLocale) && (
                     <button
@@ -642,36 +626,65 @@ export default function Editor({ post, modules: initialModules, translations }: 
                   View on Site
                 </button>
                 <button
-                  className="w-full px-4 py-2 text-sm border border-border rounded-lg hover:bg-backdrop-medium text-neutral-medium"
+                  className={`w-full px-4 py-2 text-sm rounded-lg disabled:opacity-50 ${(!isDirty || processing) ? 'border border-border text-neutral-medium' : 'bg-standout text-on-standout font-medium'}`}
+                  disabled={!isDirty || processing}
                   onClick={() => {
-                    setData('status', 'published')
                     put(`/api/posts/${post.id}`, {
                       preserveScroll: true,
-                      onSuccess: () => toast.success('Post published'),
-                      onError: () => toast.error('Failed to publish'),
+                      onSuccess: () => {
+                        toast.success('Changes saved')
+                        initialDataRef.current = pickForm(data)
+                      },
+                      onError: () => toast.error('Failed to save changes'),
                     })
                   }}
                   type="button"
                 >
-                  Publish
+                  {data.status === 'published' ? 'Publish Changes' : 'Save Changes'}
                 </button>
-                {post.status === 'published' && (
-                  <button
-                    className="w-full px-4 py-2 text-sm border border-border rounded-lg hover:bg-backdrop-medium text-neutral-medium"
-                    onClick={() => {
-                      setData('status', 'draft')
-                      put(`/api/posts/${post.id}`, {
-                        preserveScroll: true,
-                        onSuccess: () => toast.success('Post moved to draft'),
-                        onError: () => toast.error('Failed to update status'),
-                      })
-                    }}
-                    type="button"
-                  >
-                    Unpublish (Move to Draft)
-                  </button>
-                )}
+                {/* Unpublish action handled by changing status to draft and saving */}
               </div>
+            </div>
+
+            {/* Post Details */}
+            <div className="bg-backdrop-low rounded-lg shadow p-6 border border-border">
+              <h3 className="text-sm font-semibold text-neutral-high mb-4">
+                Post Details
+              </h3>
+              <dl className="space-y-3 text-sm">
+                <div>
+                  <dt className="text-neutral-low">Status</dt>
+                  <dd className="font-medium text-neutral-high capitalize">
+                    {data.status}
+                  </dd>
+                </div>
+                <div>
+                  <dt className="text-neutral-low">Type</dt>
+                  <dd className="font-medium text-neutral-high">{post.type}</dd>
+                </div>
+                <div>
+                  <dt className="text-neutral-low">Locale</dt>
+                  <dd className="font-medium text-neutral-high">{post.locale}</dd>
+                </div>
+                <div>
+                  <dt className="text-neutral-low">ID</dt>
+                  <dd className="font-mono text-xs text-neutral-medium break-all">
+                    {post.id}
+                  </dd>
+                </div>
+                <div>
+                  <dt className="text-neutral-low">Created</dt>
+                  <dd className="font-medium text-neutral-high">
+                    {new Date(post.createdAt).toLocaleString()}
+                  </dd>
+                </div>
+                <div>
+                  <dt className="text-neutral-low">Updated</dt>
+                  <dd className="font-medium text-neutral-high">
+                    {new Date(post.updatedAt).toLocaleString()}
+                  </dd>
+                </div>
+              </dl>
             </div>
           </div>
         </div>

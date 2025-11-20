@@ -64,15 +64,42 @@ export default class PostsController {
     const countRows = await countQuery.count('* as total')
     const total = Number((countRows?.[0] as any)?.total || 0)
     const rows = await query.orderBy(sortBy, sortOrder).forPage(page, limit)
+
+    // Optional: include translation family locales when requested
+    const withTranslations = String(request.input('withTranslations', '0')).trim() === '1'
+    let baseIdToLocales: Map<string, Set<string>> | undefined
+    if (withTranslations && rows.length > 0) {
+      const baseIds = Array.from(
+        new Set(rows.map((p) => (p as any).translationOfId || p.id))
+      )
+      const familyPosts = await Post.query()
+        .whereIn('translation_of_id', baseIds)
+        .orWhereIn('id', baseIds)
+      baseIdToLocales = new Map()
+      familyPosts.forEach((fp: any) => {
+        const baseId = fp.translationOfId || fp.id
+        if (!baseIdToLocales!.has(baseId)) baseIdToLocales!.set(baseId, new Set())
+        baseIdToLocales!.get(baseId)!.add(fp.locale)
+      })
+    }
+
     return response.ok({
-      data: rows.map((p) => ({
-        id: p.id,
-        title: p.title,
-        slug: p.slug,
-        status: p.status,
-        locale: p.locale,
-        updatedAt: (p as any)?.updatedAt?.toISO ? (p as any).updatedAt.toISO() : (p as any).updatedAt,
-      })),
+      data: rows.map((p: any) => {
+        const baseId = p.translationOfId || p.id
+        const familyLocales = withTranslations
+          ? Array.from(baseIdToLocales?.get(baseId) || new Set<string>([p.locale]))
+          : undefined
+        return {
+          id: p.id,
+          title: p.title,
+          slug: p.slug,
+          status: p.status,
+          locale: p.locale,
+          updatedAt: p?.updatedAt?.toISO ? p.updatedAt.toISO() : p.updatedAt,
+          translationOfId: p.translationOfId || null,
+          familyLocales,
+        }
+      }),
       meta: {
         total,
         page,

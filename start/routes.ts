@@ -153,6 +153,15 @@ router.get('/admin/settings/templates', async ({ inertia }) => {
 	return inertia.render('admin/settings/templates')
 }).use(middleware.auth()).use(middleware.admin())
 
+// Templates list and editor pages (new)
+router.get('/admin/templates', async ({ inertia }) => {
+	return inertia.render('admin/templates/index')
+}).use(middleware.auth()).use(middleware.admin())
+
+router.get('/admin/templates/:id/edit', async ({ params, inertia }) => {
+	return inertia.render('admin/templates/editor', { templateId: params.id })
+}).use(middleware.auth()).use(middleware.admin())
+
 // Graceful forbidden page for non-admins
 router.get('/admin/forbidden', async ({ inertia }) => {
 	return inertia.render('admin/errors/forbidden')
