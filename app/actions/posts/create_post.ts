@@ -52,6 +52,21 @@ export default class CreatePost {
       )
     }
 
+    // Resolve default template when none provided
+    let effectiveTemplateId: string | null = templateId
+    if (!effectiveTemplateId) {
+      const defaultName = `${type}-default`
+      const defaultTemplate = await db.from('templates').where({ post_type: type, name: defaultName }).first()
+      if (defaultTemplate) {
+        effectiveTemplateId = (defaultTemplate as any).id as string
+      } else {
+        const candidates = await db.from('templates').where({ post_type: type }).select('id')
+        if (Array.isArray(candidates) && candidates.length === 1) {
+          effectiveTemplateId = (candidates[0] as any).id as string
+        }
+      }
+    }
+
     // Create the post using a transaction
     const post = await db.transaction(async (trx) => {
       // Create post
@@ -65,14 +80,15 @@ export default class CreatePost {
           excerpt,
           metaTitle,
           metaDescription,
+          templateId: effectiveTemplateId,
           userId,
         },
         { client: trx }
       )
 
       // If template is specified, seed modules from template
-      if (templateId) {
-        await this.seedModulesFromTemplate(newPost.id, templateId, trx)
+      if (effectiveTemplateId) {
+        await this.seedModulesFromTemplate(newPost.id, effectiveTemplateId, trx)
       }
 
       return newPost
@@ -97,28 +113,41 @@ export default class CreatePost {
     templateId: string,
     trx: any
   ): Promise<void> {
-    // Load template modules
+    // Load template modules in order
     const templateModules = await trx
       .from('template_modules')
       .where('template_id', templateId)
       .orderBy('order_index', 'asc')
 
-    if (templateModules.length === 0) {
+    if (!Array.isArray(templateModules) || templateModules.length === 0) {
       return
     }
 
-    // Create post_modules entries for each template module
-    const postModules = templateModules.map((tm: any) => ({
-      id: randomUUID(),
-      post_id: postId,
-      module_id: tm.module_id,
-      order_index: tm.order_index,
-      overrides: null, // No overrides initially
-      locked: tm.locked,
-      created_at: new Date(),
-      updated_at: new Date(),
-    }))
+    const now = new Date()
+    for (const tm of templateModules) {
+      // Create a module instance for this post
+      const [instance] = await trx
+        .table('module_instances')
+        .insert({
+          scope: 'post',
+          type: tm.type,
+          global_slug: null,
+          props: tm.default_props || {},
+          created_at: now,
+          updated_at: now,
+        })
+        .returning('*')
 
-    await trx.table('post_modules').insert(postModules)
+      await trx.table('post_modules').insert({
+        id: randomUUID(),
+        post_id: postId,
+        module_id: (instance as any).id,
+        order_index: tm.order_index,
+        overrides: null,
+        locked: !!tm.locked,
+        created_at: now,
+        updated_at: now,
+      })
+    }
   }
 }

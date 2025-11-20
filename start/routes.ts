@@ -100,6 +100,20 @@ router.group(() => {
 }).prefix('/api').use(middleware.auth())
 
 /**
+ * API Routes - Templates (Admin)
+ */
+const TemplatesController = () => import('#controllers/templates_controller')
+router.group(() => {
+	router.get('/templates', [TemplatesController, 'index'])
+	router.post('/templates', [TemplatesController, 'store'])
+	router.put('/templates/:id', [TemplatesController, 'update'])
+	router.delete('/templates/:id', [TemplatesController, 'destroy'])
+	router.get('/templates/:id/modules', [TemplatesController, 'listModules'])
+	router.post('/templates/:id/modules', [TemplatesController, 'addModule'])
+	router.put('/templates/modules/:moduleId', [TemplatesController, 'updateModule'])
+	router.delete('/templates/modules/:moduleId', [TemplatesController, 'deleteModule'])
+}).prefix('/api').use(middleware.auth())
+/**
  * API Routes - Posts (Admin)
  */
 router.group(() => {
@@ -133,6 +147,10 @@ router.get('/admin/settings/redirects', async ({ inertia }) => {
 
 router.get('/admin/settings/locales', async ({ inertia }) => {
 	return inertia.render('admin/settings/locales')
+}).use(middleware.auth())
+
+router.get('/admin/settings/templates', async ({ inertia }) => {
+	return inertia.render('admin/settings/templates')
 }).use(middleware.auth())
 
 /**
