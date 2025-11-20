@@ -370,6 +370,83 @@ How to test:
 2. Verify editor access, editing capabilities, and UI visibility vary by role.
 3. Test translation workflow: translator submits, editor approves.
 
+### Milestone 10 — Admin UI Improvements & Dashboard
+- Build improved admin dashboard:
+  - Recent posts
+  - Posts needing review
+  - Scheduled posts
+  - Translation progress indicators
+  - Quick actions
+- Improved post editor UI:
+  - Move Status into right sidebar under "Actions"
+  - Add “Save for Review” next to “Publish”
+  - Better module list and module editor UI
+- UI polish using Tailwind + ShadCN
+
+### Milestone 11 — Review Workflow & Dual-Version System
+- Add dual-version post model:
+  - Published Version
+  - Review Version
+- Add “Save for Review” action storing changes without affecting live version
+- Add editor toggle: “Published View” vs “Review View”
+- Maintain status = Published even when Review version exists
+
+### Milestone 12 — Revision History (ENV-Based Retention)
+- Add `post_revisions` table
+- Add `.env` variable: `CMS_REVISIONS_LIMIT`
+- Auto-prune older revisions
+- Provide UI to browse revisions
+- Add “Revert to this Revision” action
+
+### Milestone 13 — Import/Export (Canonical Post JSON Format)
+- Define canonical JSON format for posts, modules, custom fields, translations
+- Add “Export JSON” button to post editor
+- Add “Import JSON” button for editing or creating posts
+- Backend serializer/deserializer service
+- Foundation for future WordPress import pipeline
+
+### Milestone 14 — Module Field Types Framework & Repeater Fields
+- Create formal Field Type Registry
+- Support core field types: text, textarea, number, select, multiselect, media, date, url
+- Framework for custom field types
+- Implement Repeater field type
+- Update editor to render correct ShadCN component per field type
+
+### Milestone 15 — Agent Runner (Webhook-Based Suggestions)
+- Add dropdown for selecting agent/webhook
+- Configure agents via `.env`
+- "Run Agent" sends full post JSON to webhook
+- Receive suggested revisions
+- Highlight differences in UI
+- Apply suggestions to Review Version only
+
+### Milestone 16 — Media Library & Attachment Tracking
+- Add first-class media library:
+  - Upload, rename, delete
+  - Alt text, caption, metadata
+- Add Media Manager UI
+- Add media picker for modules & custom fields
+- Add "Where Used?" tracking of references across posts/modules
+
+### Milestone 17 — Global & Static Module Manager
+- Admin UI for managing:
+  - Global modules
+  - Static modules (e.g., header/footer)
+- Edit global modules directly
+- Show usage counts
+- Prevent deletion while referenced
+
+### Milestone 18 — Site Settings (Favicon, Branding, Defaults)
+- Add `site_settings` table
+- Add `/admin/settings/general`
+- Support:
+  - Favicon upload (with generated sizes)
+  - Site title
+  - Default meta description
+  - Default OG image
+- Expose settings to SSR pipeline
+
+
 ## Local Development
 - Install dependencies: `npm install`
 - Start dev server: `npm run dev`
