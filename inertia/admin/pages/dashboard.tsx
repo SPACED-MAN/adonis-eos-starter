@@ -1,4 +1,4 @@
-import { Head, Link } from '@inertiajs/react'
+import { Head, Link, usePage } from '@inertiajs/react'
 import { useEffect, useMemo, useState } from 'react'
 import { AdminHeader } from '../components/AdminHeader'
 import { AdminFooter } from '../components/AdminFooter'
@@ -6,6 +6,13 @@ import { AdminFooter } from '../components/AdminFooter'
 interface DashboardProps { }
 
 export default function Dashboard({ }: DashboardProps) {
+  const inertiaPage = usePage()
+  const role: string | undefined =
+    (inertiaPage.props as any)?.currentUser?.role ??
+    (inertiaPage.props as any)?.auth?.user?.role
+  const isAdmin = role === 'admin'
+  const isEditor = role === 'editor'
+  const isTranslator = role === 'translator'
   const [posts, setPosts] = useState<Array<{ id: string; title: string; slug: string; status: string; locale: string; updatedAt: string }>>([])
   const [selected, setSelected] = useState<Set<string>>(new Set())
   const [selectAll, setSelectAll] = useState(false)
@@ -242,12 +249,14 @@ export default function Dashboard({ }: DashboardProps) {
                   <option value={50}>50 / page</option>
                   <option value={100}>100 / page</option>
                 </select>
-                <button
-                  onClick={() => setIsCreateOpen(true)}
-                  className="px-3 py-2 text-sm border border-line rounded bg-standout text-on-standout"
-                >
-                  Create New
-                </button>
+                {(isAdmin || isEditor) && (
+                  <button
+                    onClick={() => setIsCreateOpen(true)}
+                    className="px-3 py-2 text-sm border border-line rounded bg-standout text-on-standout"
+                  >
+                    Create New
+                  </button>
+                )}
                 <button
                   onClick={() => {
                     setPage(1)
@@ -281,10 +290,10 @@ export default function Dashboard({ }: DashboardProps) {
                 className="px-2 py-2 text-sm border border-line rounded bg-backdrop-low text-neutral-high"
               >
                 <option value="">Bulk actions...</option>
-                <option value="publish">Publish</option>
+                {(isAdmin || isEditor) && <option value="publish">Publish</option>}
                 <option value="draft">Move to Draft</option>
-                <option value="archive">Archive</option>
-                <option value="delete">Delete (archived only)</option>
+                {(isAdmin || isEditor) && <option value="archive">Archive</option>}
+                {isAdmin && <option value="delete">Delete (archived only)</option>}
               </select>
               {loading && <span className="text-xs text-neutral-low">Loading...</span>}
             </div>

@@ -122,7 +122,7 @@ router.group(() => {
 	router.post('/posts', [PostsController, 'store'])
 	router.put('/posts/:id', [PostsController, 'update'])
 	router.delete('/posts/:id', [PostsController, 'destroy']).use(middleware.admin())
-	router.post('/posts/bulk', [PostsController, 'bulk']).use(middleware.admin())
+	router.post('/posts/bulk', [PostsController, 'bulk'])
 	router.post('/posts/:id/modules', [PostsController, 'storeModule'])
 	router.put('/post-modules/:id', [PostsController, 'updateModule'])
 }).prefix('/api').use(middleware.auth())

@@ -2,7 +2,8 @@ import type { HttpContext } from '@adonisjs/core/http'
 
 export default class AdminMiddleware {
   async handle(ctx: HttpContext, next: () => Promise<void>) {
-    const user = ctx.auth?.user
+    await ctx.auth.use('web').check().catch(() => {})
+    const user = ctx.auth.use('web').user
     if (!user || (user as any).role !== 'admin') {
       const isInertia = !!ctx.request.header('x-inertia')
       if (isInertia) {

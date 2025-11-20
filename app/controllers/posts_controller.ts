@@ -6,6 +6,7 @@ import AddModuleToPost, { AddModuleToPostException } from '#actions/posts/add_mo
 import UpdatePostModule, { UpdatePostModuleException } from '#actions/posts/update_post_module'
 import db from '@adonisjs/lucid/services/db'
 import urlPatternService from '#services/url_pattern_service'
+import authorizationService from '#services/authorization_service'
 
 /**
  * Posts Controller
@@ -188,6 +189,11 @@ export default class PostsController {
       ])
 
     try {
+      // Authorization: translators cannot create posts
+      const role = (auth.use('web').user as any)?.role as 'admin' | 'editor' | 'translator' | undefined
+      if (!authorizationService.canCreatePost(role)) {
+        return response.forbidden({ error: 'Not allowed to create posts' })
+      }
       const post = await CreatePost.handle({
         type,
         locale,
@@ -285,7 +291,7 @@ export default class PostsController {
    *
    * Update an existing post.
    */
-  async update({ params, request, response }: HttpContext) {
+  async update({ params, request, response, auth }: HttpContext) {
     const { id } = params
     const {
       slug,
@@ -310,6 +316,11 @@ export default class PostsController {
     ])
 
     try {
+      // Authorization: translators cannot set status to non-draft
+      const role = (auth.use('web').user as any)?.role as 'admin' | 'editor' | 'translator' | undefined
+      if (!authorizationService.canUpdateStatus(role, status)) {
+        return response.forbidden({ error: 'Not allowed to set status' })
+      }
       // Parse JSON fields when provided as strings
       let robotsJsonParsed: Record<string, any> | null | undefined
       if (robotsJson !== undefined) {
@@ -387,7 +398,7 @@ export default class PostsController {
    * Perform bulk actions on posts
    * Body: { action: 'publish'|'draft'|'archive'|'delete', ids: string[] }
    */
-  async bulk({ request, response }: HttpContext) {
+  async bulk({ request, response, auth }: HttpContext) {
     const { action, ids } = request.only(['action', 'ids'])
     const validActions = new Set(['publish', 'draft', 'archive', 'delete'])
     if (!validActions.has(action)) {
@@ -399,6 +410,11 @@ export default class PostsController {
     // Normalize unique IDs
     const uniqueIds = Array.from(new Set(ids.map((v) => String(v))))
 
+    // Authorization by role
+    const role = (auth.use('web').user as any)?.role as 'admin' | 'editor' | 'translator' | undefined
+    if (!authorizationService.canBulkAction(role, action)) {
+      return response.forbidden({ error: 'Not allowed to perform this action' })
+    }
     if (action === 'delete') {
       // Only delete archived
       const notArchived = await Post.query().whereIn('id', uniqueIds).whereNot('status', 'archived').select('id', 'status')
