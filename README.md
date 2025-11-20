@@ -2,7 +2,7 @@
 
 A high-performance, SEO-first CMS built with AdonisJS 6, Inertia, React, Tailwind, and ShadCN. Content is composed of modules (hero, callouts, etc.) that can be reordered, reused globally, or grouped into templates for rapid post creation.
 
-Note: Role-based access control (RBAC) is out of scope for the initial milestones. Admin sections are protected by authentication only; roles/permissions will be added later.
+Note: Basic Role-based access control (RBAC) is implemented in Milestone 9 (admin/editor/translator) with server enforcement and UI gating. Further fine-grained rules can be extended.
 
 ## Tech Stack
 - **Server:** AdonisJS 6 (Lucid ORM, Validator, Bouncer, SSR)
@@ -78,7 +78,7 @@ How to test:
    - Confirm Tailwind styles are applied
 6. Test admin auth:
    - Click "Admin login" or visit `http://localhost:3333/admin/login`
-   - Login with: `i@modernaut.com` / `supersecret`
+   - Login with: `admin@example.com` / `supersecret`
    - Confirm redirect to `/admin` dashboard
    - Test logout
 
@@ -342,11 +342,11 @@ How to test:
    - `Vary: Accept-Encoding`
 6. Run query performance checks with EXPLAIN ANALYZE.
 
-### Milestone 8 — Admin Tools (✅ Partially Complete)
+'### Milestone 8 — Admin Tools (✅ Complete)
 - ✅ Admin: URL pattern manager UI
 - ✅ Admin: Redirects manager UI
-- ⏳ Admin: Template builder
-- ⏳ Admin: Locale configuration
+- ✅ Admin: Template builder
+- ✅ Admin: Locale configuration
 
 How to test:
 1. URL Patterns:
@@ -360,36 +360,77 @@ How to test:
 3. Build templates with locked modules; verify enforcement.
 4. Add/remove locales; verify system behavior.
 
-### Milestone 9 — RBAC (Future Scope)
-- Introduce roles (Admin, Editor, Translator, etc.) and permissions
-- Enforce role-based access with Bouncer
-- Translation workflow (draft → review → publish)
+### Milestone 9 — RBAC (✅ Complete)
+- Roles: admin, editor, translator
+- Server enforcement:
+  - Auth uses `web` guard consistently (login/logout/middleware).
+  - Admin-only middleware protects settings and destructive APIs (redirects, templates, delete single post).
+  - PostsController enforces action-level permissions:
+    - Create post: admin, editor
+    - Update status: translator can set draft only; editor/admin can publish/archive
+    - Bulk actions (auth required):
+      - translator: draft
+      - editor: publish, archive, draft
+      - admin: publish, archive, draft, delete (archived only)
+- UI gating:
+  - Admin header shows admin-only nav when `isAdmin` is true.
+  - Dashboard: 
+    - “Create New” visible to admin/editor
+    - Bulk actions filtered by role (delete visible only to admin)
+- Inertia shared props:
+  - `currentUser`, `auth.user`, and `isAdmin` are shared on every request.
+- Authorization service:
+  - `app/services/authorization_service.ts` centralizes role checks used by controllers/UI.
 
 How to test:
-1. Create users with different roles.
-2. Verify editor access, editing capabilities, and UI visibility vary by role.
-3. Test translation workflow: translator submits, editor approves.
+1. Seed users: `node ace db:seed --files database/seeders/user_seeder.ts`
+   - admin@example.com / supersecret
+   - editor@example.com / supersecret
+   - translator@example.com / supersecret
+2. Login as each role and visit `/admin`:
+   - Admin: sees admin nav; can create posts; can publish/archive/draft; can delete archived via bulk
+   - Editor: no admin nav; can create posts; can publish/archive/draft; cannot delete via bulk
+   - Translator: no admin nav; cannot create posts; bulk shows only “Move to Draft”
+3. Try restricted pages (as non-admin) like `/admin/settings/templates`:
+   - Should redirect to `/admin/forbidden`.
+4. Try bulk operations as editor/translator and verify server responses enforce permissions.
 
-### Milestone 10 — Admin UI Improvements & Dashboard
-- Build improved admin dashboard:
-  - Recent posts
-  - Posts needing review
-  - Scheduled posts
-  - Translation progress indicators
-  - Quick actions
-- Improved post editor UI:
-  - Move Status into right sidebar under "Actions"
-  - Add “Save for Review” next to “Publish”
-  - Better module list and module editor UI
-- UI polish using Tailwind + ShadCN
+### Milestone 10 — Admin UI Improvements & Dashboard (✅ Complete)
+- Admin dashboard:
+  - Updated column now shows date and time.
+  - Translation progress indicators show per-locale badges (filled = exists, muted = missing).
+  - Sorting kept; columns aligned so Updated sits next to Status.
+- Post editor:
+  - Status moved into the right sidebar “Actions” panel (renamed from “Quick Actions”).
+  - Primary button unified: “Save Changes” (or “Publish Changes” when status is “published”), disabled until form changes are made. Saving persists both status and fields.
+  - “Update Status” button removed; status is saved with the primary button.
+  - “Modules” section moved above “SEO Settings”.
+  - Created/Updated show date and time.
+  - Back to Dashboard consistently available via a top-right breadcrumb bar.
+- Templates:
+  - New Templates list at `/admin/templates` with search/filter and “Create New”.
+  - Dedicated Template editor with drag-and-drop modules, matching the post Modules UI.
+
+How to test:
+1. Dashboard:
+   - Visit `/admin`: verify Updated shows date+time and locale badges reflect translation presence.
+   - Sort columns and check the Updated column position next to Status.
+2. Post editor:
+   - Open `/admin/posts/:id/edit`: confirm Status is in the “Actions” panel.
+   - Make a small change: the primary button becomes prominent and enabled; click to save.
+   - Set Status to “published” and verify button label reads “Publish Changes”.
+3. Templates:
+   - Visit `/admin/templates`: filter by post type, create a new template, and you are redirected to its editor.
+   - In the template editor, add modules and reorder via drag handle; refresh to confirm persistence.
 
 ### Milestone 11 — Review Workflow & Dual-Version System
 - Add dual-version post model:
   - Published Version
   - Review Version
-- Add “Save for Review” action storing changes without affecting live version
+- Add “Save for Review” action storing changes without affecting live version. Visually, this would also be a button that replaces "Save Changes" when "Review" is selected under "Status"
 - Add editor toggle: “Published View” vs “Review View”
 - Maintain status = Published even when Review version exists
+- Add “Save for Review” next to “Publish”
 
 ### Milestone 12 — Revision History (ENV-Based Retention)
 - Add `post_revisions` table
@@ -430,8 +471,8 @@ How to test:
 
 ### Milestone 17 — Global & Static Module Manager
 - Admin UI for managing:
-  - Global modules
-  - Static modules (e.g., header/footer)
+  - Global modules (any data populated on Global module fields is constant anywhere it's placed)
+  - Static modules (e.g., header/footer -- Same as Global, but can't be moved)
 - Edit global modules directly
 - Show usage counts
 - Prevent deletion while referenced
