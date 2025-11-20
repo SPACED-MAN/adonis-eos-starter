@@ -91,12 +91,12 @@ router.group(() => {
  */
 const UrlRedirectsController = () => import('#controllers/url_redirects_controller')
 router.group(() => {
-	router.get('/redirects', [UrlRedirectsController, 'index'])
-	router.post('/redirects', [UrlRedirectsController, 'store'])
-	router.put('/redirects/:id', [UrlRedirectsController, 'update'])
-	router.delete('/redirects/:id', [UrlRedirectsController, 'destroy'])
-	router.get('/redirect-settings/:postType', [UrlRedirectsController, 'getSetting'])
-	router.patch('/redirect-settings/:postType', [UrlRedirectsController, 'updateSetting'])
+	router.get('/redirects', [UrlRedirectsController, 'index']).use(middleware.admin())
+	router.post('/redirects', [UrlRedirectsController, 'store']).use(middleware.admin())
+	router.put('/redirects/:id', [UrlRedirectsController, 'update']).use(middleware.admin())
+	router.delete('/redirects/:id', [UrlRedirectsController, 'destroy']).use(middleware.admin())
+	router.get('/redirect-settings/:postType', [UrlRedirectsController, 'getSetting']).use(middleware.admin())
+	router.patch('/redirect-settings/:postType', [UrlRedirectsController, 'updateSetting']).use(middleware.admin())
 }).prefix('/api').use(middleware.auth())
 
 /**
@@ -104,14 +104,14 @@ router.group(() => {
  */
 const TemplatesController = () => import('#controllers/templates_controller')
 router.group(() => {
-	router.get('/templates', [TemplatesController, 'index'])
-	router.post('/templates', [TemplatesController, 'store'])
-	router.put('/templates/:id', [TemplatesController, 'update'])
-	router.delete('/templates/:id', [TemplatesController, 'destroy'])
-	router.get('/templates/:id/modules', [TemplatesController, 'listModules'])
-	router.post('/templates/:id/modules', [TemplatesController, 'addModule'])
-	router.put('/templates/modules/:moduleId', [TemplatesController, 'updateModule'])
-	router.delete('/templates/modules/:moduleId', [TemplatesController, 'deleteModule'])
+	router.get('/templates', [TemplatesController, 'index']).use(middleware.admin())
+	router.post('/templates', [TemplatesController, 'store']).use(middleware.admin())
+	router.put('/templates/:id', [TemplatesController, 'update']).use(middleware.admin())
+	router.delete('/templates/:id', [TemplatesController, 'destroy']).use(middleware.admin())
+	router.get('/templates/:id/modules', [TemplatesController, 'listModules']).use(middleware.admin())
+	router.post('/templates/:id/modules', [TemplatesController, 'addModule']).use(middleware.admin())
+	router.put('/templates/modules/:moduleId', [TemplatesController, 'updateModule']).use(middleware.admin())
+	router.delete('/templates/modules/:moduleId', [TemplatesController, 'deleteModule']).use(middleware.admin())
 }).prefix('/api').use(middleware.auth())
 /**
  * API Routes - Posts (Admin)
@@ -121,8 +121,8 @@ router.group(() => {
 	router.get('/post-types', [PostsController, 'types'])
 	router.post('/posts', [PostsController, 'store'])
 	router.put('/posts/:id', [PostsController, 'update'])
-	router.delete('/posts/:id', [PostsController, 'destroy'])
-	router.post('/posts/bulk', [PostsController, 'bulk'])
+	router.delete('/posts/:id', [PostsController, 'destroy']).use(middleware.admin())
+	router.post('/posts/bulk', [PostsController, 'bulk']).use(middleware.admin())
 	router.post('/posts/:id/modules', [PostsController, 'storeModule'])
 	router.put('/post-modules/:id', [PostsController, 'updateModule'])
 }).prefix('/api').use(middleware.auth())
@@ -139,18 +139,23 @@ router.get('/posts/:slug', [PostsController, 'show'])
  */
 router.get('/admin/settings/url-patterns', async ({ inertia }) => {
 	return inertia.render('admin/settings/url-patterns')
-}).use(middleware.auth())
+}).use(middleware.auth()).use(middleware.admin())
 
 router.get('/admin/settings/redirects', async ({ inertia }) => {
 	return inertia.render('admin/settings/redirects')
-}).use(middleware.auth())
+}).use(middleware.auth()).use(middleware.admin())
 
 router.get('/admin/settings/locales', async ({ inertia }) => {
 	return inertia.render('admin/settings/locales')
-}).use(middleware.auth())
+}).use(middleware.auth()).use(middleware.admin())
 
 router.get('/admin/settings/templates', async ({ inertia }) => {
 	return inertia.render('admin/settings/templates')
+}).use(middleware.auth()).use(middleware.admin())
+
+// Graceful forbidden page for non-admins
+router.get('/admin/forbidden', async ({ inertia }) => {
+	return inertia.render('admin/errors/forbidden')
 }).use(middleware.auth())
 
 /**

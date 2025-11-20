@@ -4,22 +4,60 @@ import User from '#models/user'
 export default class extends BaseSeeder {
   async run() {
     // Check if user already exists
-    const existingUser = await User.findBy('email', 'i@modernaut.com')
+    const existingUser = await User.findBy('email', 'admin@example.com')
 
     if (existingUser) {
       // Update existing user
       existingUser.password = 'supersecret'
       existingUser.fullName = 'Admin User'
+        ; (existingUser as any).role = 'admin'
       await existingUser.save()
       console.log('Updated existing admin user')
     } else {
       // Create new user
       const user = new User()
-      user.email = 'i@modernaut.com'
+      user.email = 'admin@example.com'
       user.password = 'supersecret'
       user.fullName = 'Admin User'
+        ; (user as any).role = 'admin'
       await user.save()
       console.log('Created new admin user')
+    }
+
+    // Ensure editor account
+    const existingEditor = await User.findBy('email', 'editor@example.com')
+    if (existingEditor) {
+      existingEditor.password = 'supersecret'
+      existingEditor.fullName = 'Editor User'
+        ; (existingEditor as any).role = 'editor'
+      await existingEditor.save()
+      console.log('Updated existing editor user')
+    } else {
+      const editor = new User()
+      editor.email = 'editor@example.com'
+      editor.password = 'supersecret'
+      editor.fullName = 'Editor User'
+        ; (editor as any).role = 'editor'
+      await editor.save()
+      console.log('Created editor user')
+    }
+
+    // Ensure translator account
+    const existingTranslator = await User.findBy('email', 'translator@example.com')
+    if (existingTranslator) {
+      existingTranslator.password = 'supersecret'
+      existingTranslator.fullName = 'Translator User'
+        ; (existingTranslator as any).role = 'translator'
+      await existingTranslator.save()
+      console.log('Updated existing translator user')
+    } else {
+      const translator = new User()
+      translator.email = 'translator@example.com'
+      translator.password = 'supersecret'
+      translator.fullName = 'Translator User'
+        ; (translator as any).role = 'translator'
+      await translator.save()
+      console.log('Created translator user')
     }
   }
 }
