@@ -94,7 +94,7 @@ export default class extends BaseSeeder {
 
     // Test 3c: Create bulk posts to exercise pagination (en/es)
     {
-      const statuses = ['draft', 'review', 'scheduled', 'published', 'archived'] as const
+      const statuses = ['draft', 'scheduled', 'published', 'archived'] as const
       const now = Date.now()
       const bulkRows: any[] = []
       for (let i = 1; i <= 120; i++) {

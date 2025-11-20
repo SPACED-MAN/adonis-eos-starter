@@ -23,6 +23,8 @@ export default class PostsController {
     const q = String(request.input('q', '')).trim()
     const type = String(request.input('type', '')).trim()
     const status = String(request.input('status', '')).trim()
+    const inReviewParam = String(request.input('inReview', '')).trim()
+    const inReview = inReviewParam === '1' || inReviewParam.toLowerCase() === 'true'
     const locale = String(request.input('locale', '')).trim()
     const sortByRaw = String(request.input('sortBy', 'updated_at')).trim()
     const sortOrderRaw = String(request.input('sortOrder', 'desc')).trim()
@@ -45,6 +47,9 @@ export default class PostsController {
     if (status) {
       query.where('status', status)
     }
+    if (inReview) {
+      query.whereNotNull('review_draft')
+    }
     if (locale) {
       query.where('locale', locale)
     }
@@ -57,6 +62,9 @@ export default class PostsController {
     }
     if (status) {
       countQuery.where('status', status)
+    }
+    if (inReview) {
+      countQuery.whereNotNull('review_draft')
     }
     if (locale) {
       countQuery.where('locale', locale)
@@ -98,6 +106,7 @@ export default class PostsController {
           updatedAt: p?.updatedAt?.toISO ? p.updatedAt.toISO() : p.updatedAt,
           translationOfId: p.translationOfId || null,
           familyLocales,
+          hasReviewDraft: Boolean((p as any).reviewDraft || (p as any).review_draft),
         }
       }),
       meta: {
@@ -141,7 +150,9 @@ export default class PostsController {
           'module_instances.type',
           'module_instances.scope',
           'module_instances.props',
+          'module_instances.review_props',
           'post_modules.overrides',
+          'post_modules.review_overrides',
           'post_modules.locked',
           'post_modules.order_index as orderIndex'
         )
@@ -180,12 +191,15 @@ export default class PostsController {
           updatedAt: post.updatedAt.toISO(),
           publicPath,
         },
+        reviewDraft: (post as any).reviewDraft || (post as any).review_draft || null,
         modules: postModules.map((pm) => ({
           id: pm.postModuleId,
           type: pm.type,
           scope: pm.scope,
           props: pm.props || {},
+          reviewProps: (pm as any).review_props || null,
           overrides: pm.overrides || null,
+          reviewOverrides: (pm as any).review_overrides || null,
           locked: pm.locked,
           orderIndex: pm.orderIndex,
         })),
@@ -330,6 +344,7 @@ export default class PostsController {
       canonicalUrl,
       robotsJson,
       jsonldOverrides,
+      mode,
     } = request.only([
       'slug',
       'title',
@@ -340,9 +355,85 @@ export default class PostsController {
       'canonicalUrl',
       'robotsJson',
       'jsonldOverrides',
+      'mode',
     ])
 
     try {
+      const saveMode = String(mode || 'publish').toLowerCase()
+      if (saveMode === 'review') {
+        const draftPayload: Record<string, any> = {
+          slug,
+          title,
+          status,
+          excerpt,
+          metaTitle,
+          metaDescription,
+          canonicalUrl,
+          robotsJson,
+          jsonldOverrides,
+          savedAt: new Date().toISOString(),
+          savedBy: (auth.use('web').user as any)?.email || null,
+        }
+        // Use snake_case column name created by migration
+        await Post.query().where('id', id).update({ review_draft: draftPayload } as any)
+        // For XHR/API clients, return JSON; avoid redirect which can confuse fetch()
+        return response.ok({ message: 'Saved for review' })
+      }
+      if (saveMode === 'approve') {
+        // Load current post to get persisted review_draft and status
+        try {
+          const current = await Post.findOrFail(id)
+          const rd: any = (current as any).reviewDraft || (current as any).review_draft
+          if (!rd) {
+            return response.badRequest({ error: 'No review draft to approve' })
+          }
+          // Prepare fields from review draft, but DO NOT alter status
+          const nextSlug = rd.slug ?? current.slug
+          const nextTitle = rd.title ?? current.title
+          const nextExcerpt = rd.excerpt ?? current.excerpt
+          const nextMetaTitle = rd.metaTitle ?? current.metaTitle
+          const nextMetaDescription = rd.metaDescription ?? current.metaDescription
+          const nextCanonicalUrl = rd.canonicalUrl ?? current.canonicalUrl
+          const nextRobots =
+            typeof rd.robotsJson === 'string'
+              ? (() => {
+                try {
+                  return JSON.parse(rd.robotsJson)
+                } catch {
+                  return null
+                }
+              })()
+              : rd.robotsJson ?? current.robotsJson
+          const nextJsonLd =
+            typeof rd.jsonldOverrides === 'string'
+              ? (() => {
+                try {
+                  return JSON.parse(rd.jsonldOverrides)
+                } catch {
+                  return null
+                }
+              })()
+              : rd.jsonldOverrides ?? current.jsonldOverrides
+
+          await UpdatePost.handle({
+            postId: id,
+            slug: nextSlug,
+            title: nextTitle,
+            status: current.status, // preserve status
+            excerpt: nextExcerpt,
+            metaTitle: nextMetaTitle,
+            metaDescription: nextMetaDescription,
+            canonicalUrl: nextCanonicalUrl,
+            robotsJson: nextRobots,
+            jsonldOverrides: nextJsonLd,
+          })
+          // Clear review draft
+          await Post.query().where('id', id).update({ review_draft: null } as any)
+          return response.ok({ message: 'Review approved' })
+        } catch (e: any) {
+          return response.badRequest({ error: e?.message || 'Failed to approve review' })
+        }
+      }
       // Authorization: translators cannot set status to non-draft
       const role = (auth.use('web').user as any)?.role as 'admin' | 'editor' | 'translator' | undefined
       if (!authorizationService.canUpdateStatus(role, status)) {

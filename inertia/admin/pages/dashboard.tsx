@@ -41,7 +41,13 @@ export default function Dashboard({ }: DashboardProps) {
     try {
       const params = new URLSearchParams()
       if (q) params.set('q', q)
-      if (status) params.set('status', status)
+      if (status) {
+        if (status === '__in_review__') {
+          params.set('inReview', '1')
+        } else {
+          params.set('status', status)
+        }
+      }
       if (postType) params.set('type', postType)
       if (locale) params.set('locale', locale)
       params.set('sortBy', sortBy)
@@ -51,7 +57,7 @@ export default function Dashboard({ }: DashboardProps) {
       params.set('withTranslations', '1')
       const res = await fetch(`/api/posts?${params.toString()}`, { credentials: 'same-origin' })
       const json = await res.json().catch(() => ({}))
-      const list: Array<{ id: string; title: string; slug: string; status: string; locale: string; updatedAt: string; translationOfId?: string | null; familyLocales?: string[] }> =
+      const list: Array<{ id: string; title: string; slug: string; status: string; locale: string; updatedAt: string; translationOfId?: string | null; familyLocales?: string[]; hasReviewDraft?: boolean }> =
         Array.isArray(json?.data) ? json.data : []
       setPosts(list)
       setTotal(Number(json?.meta?.total || 0))
@@ -201,9 +207,9 @@ export default function Dashboard({ }: DashboardProps) {
           {/* Posts Header */}
           <div className="px-6 py-4 border-b border-line">
             <div className="flex items-center justify-between gap-4">
-            <h2 className="text-lg font-semibold text-neutral-high">
+              <h2 className="text-lg font-semibold text-neutral-high">
                 Posts
-            </h2>
+              </h2>
               <div className="flex items-center gap-2">
                 <input
                   value={q}
@@ -221,7 +227,7 @@ export default function Dashboard({ }: DashboardProps) {
                 >
                   <option value="">All statuses</option>
                   <option value="draft">Draft</option>
-                  <option value="review">Review</option>
+                  <option value="__in_review__">In Review</option>
                   <option value="scheduled">Scheduled</option>
                   <option value="published">Published</option>
                   <option value="archived">Archived</option>
@@ -350,10 +356,10 @@ export default function Dashboard({ }: DashboardProps) {
               posts.map((post) => {
                 const checked = selected.has(post.id)
                 return (
-                <div
-                  key={post.id}
+                  <div
+                    key={post.id}
                     className="px-6 py-3 hover:bg-backdrop-medium transition-colors grid grid-cols-12 items-center"
-                >
+                  >
                     <div className="col-span-1">
                       <input
                         type="checkbox"
@@ -375,9 +381,8 @@ export default function Dashboard({ }: DashboardProps) {
                           return (
                             <span
                               key={`${post.id}-${loc}`}
-                              className={`px-1.5 py-0.5 rounded text-[10px] border ${
-                                exists ? 'bg-standout/10 text-standout border-standout/40' : 'bg-backdrop-low text-neutral-medium border-line'
-                              }`}
+                              className={`px-1.5 py-0.5 rounded text-[10px] border ${exists ? 'bg-standout/10 text-standout border-standout/40' : 'bg-backdrop-low text-neutral-medium border-line'
+                                }`}
                               title={exists ? `Has ${loc.toUpperCase()}` : `Missing ${loc.toUpperCase()}`}
                             >
                               {loc.toUpperCase()}
@@ -388,19 +393,24 @@ export default function Dashboard({ }: DashboardProps) {
                     </div>
                     <div className="col-span-2">
                       <span className="text-sm capitalize">{post.status}</span>
+                      {post.hasReviewDraft && (
+                        <span className="ml-2 text-xs px-1.5 py-0.5 rounded bg-backdrop-medium text-neutral-high border border-line align-middle">
+                          In Review
+                        </span>
+                      )}
                     </div>
-                    <div className="col-span-2 flex items-center gap-2 justify-end">
+                    <div className="col-span-2 flex items-center gap-2">
                       <span className="text-xs text-neutral-low">
                         {new Date(post.updatedAt).toLocaleString(undefined, { year: 'numeric', month: '2-digit', day: '2-digit', hour: '2-digit', minute: '2-digit' })}
                       </span>
-                    <Link
-                      href={`/admin/posts/${post.id}/edit`}
+                      <Link
+                        href={`/admin/posts/${post.id}/edit`}
                         className="px-3 py-1 text-xs border border-line rounded hover:bg-backdrop-medium text-neutral-medium"
-                    >
-                      Edit
-                    </Link>
+                      >
+                        Edit
+                      </Link>
+                    </div>
                   </div>
-                </div>
                 )
               })
             )}

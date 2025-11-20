@@ -423,14 +423,21 @@ How to test:
    - Visit `/admin/templates`: filter by post type, create a new template, and you are redirected to its editor.
    - In the template editor, add modules and reorder via drag handle; refresh to confirm persistence.
 
-### Milestone 11 — Review Workflow & Dual-Version System
-- Add dual-version post model:
-  - Published Version
-  - Review Version
-- Add “Save for Review” action storing changes without affecting live version. Visually, this would also be a button that replaces "Save Changes" when "Review" is selected under "Status"
-- Add editor toggle: “Published View” vs “Review View”
-- Maintain status = Published even when Review version exists
-- Add “Save for Review” next to “Publish”
+### Milestone 11 — Review Workflow & Dual-Version System (✅ Complete)
+- Dual version support:
+  - Adds `review_draft` (JSONB) to `posts` to store a review version of the post without affecting the live data.
+  - Editor toggle: “Approved” vs “Review” views. Review view loads/saves to `review_draft`.
+  - “Save for Review” action stores changes in `review_draft` only.
+  - Live status remains Published even if a Review draft exists.
+- UI:
+  - Actions panel includes a segmented control to switch views.
+  - Primary button adapts: “Save for Review” (Review view), “Publish Changes” when status=Published, else “Save Changes”.
+
+How to test:
+1. Run migration: `node ace migration:run` (adds `review_draft`).
+2. Open `/admin/posts/:id/edit`, switch to Review view, change fields, click “Save for Review”.
+3. Refresh: Review view shows saved values; switch to Published view to confirm live is unchanged.
+4. Switch to Published view and click “Publish Changes” to update live fields.
 
 ### Milestone 12 — Revision History (ENV-Based Retention)
 - Add `post_revisions` table
@@ -486,6 +493,12 @@ How to test:
   - Default meta description
   - Default OG image
 - Expose settings to SSR pipeline
+
+### Milestone 19 — Activity Log
+All user activity should be logged and accessible via 'Admin' roles, in a well organized table. It might make sense to utilize https://github.com/holoyan/adonisjs-activitylog for this.
+
+### Milestone 20 - Post Scheduling
+The 'Scheduled' status should be fully functional, with a nice ShadCN datepicker for scheduling. We may want to utilize https://github.com/KABBOUCHI/adonisjs-scheduler for this, and possibly also https://packages.adonisjs.com/packages/adonisjs-jobs.
 
 
 ## Local Development

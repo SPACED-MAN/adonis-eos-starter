@@ -38,14 +38,17 @@ interface EditorProps {
     type: string
     scope: string
     props: Record<string, any>
+    reviewProps?: Record<string, any> | null
     overrides: Record<string, any> | null
+    reviewOverrides?: Record<string, any> | null
     locked: boolean
     orderIndex: number
   }[]
   translations: { id: string; locale: string }[]
+  reviewDraft?: any | null
 }
 
-export default function Editor({ post, modules: initialModules, translations }: EditorProps) {
+export default function Editor({ post, modules: initialModules, translations, reviewDraft }: EditorProps) {
   const { data, setData, put, processing, errors } = useForm({
     title: post.title,
     slug: post.slug,
@@ -68,6 +71,18 @@ export default function Editor({ post, modules: initialModules, translations }: 
     robotsJson: post.robotsJson ? JSON.stringify(post.robotsJson, null, 2) : '',
     jsonldOverrides: post.jsonldOverrides ? JSON.stringify(post.jsonldOverrides, null, 2) : '',
   })
+  const reviewInitialRef = useRef<null | typeof initialDataRef.current>(reviewDraft ? {
+    title: String(reviewDraft.title ?? post.title),
+    slug: String(reviewDraft.slug ?? post.slug),
+    excerpt: String(reviewDraft.excerpt ?? (post.excerpt || '')),
+    status: String(reviewDraft.status ?? post.status),
+    metaTitle: String(reviewDraft.metaTitle ?? (post.metaTitle || '')),
+    metaDescription: String(reviewDraft.metaDescription ?? (post.metaDescription || '')),
+    canonicalUrl: String(reviewDraft.canonicalUrl ?? (post.canonicalUrl || '')),
+    robotsJson: typeof reviewDraft.robotsJson === 'string' ? reviewDraft.robotsJson : (reviewDraft.robotsJson ? JSON.stringify(reviewDraft.robotsJson, null, 2) : ''),
+    jsonldOverrides: typeof reviewDraft.jsonldOverrides === 'string' ? reviewDraft.jsonldOverrides : (reviewDraft.jsonldOverrides ? JSON.stringify(reviewDraft.jsonldOverrides, null, 2) : ''),
+  } : null)
+  const [viewMode, setViewMode] = useState<'approved' | 'review'>('approved')
   const pickForm = (d: typeof data) => ({
     title: d.title,
     slug: d.slug,
@@ -81,11 +96,12 @@ export default function Editor({ post, modules: initialModules, translations }: 
   })
   const isDirty = useMemo(() => {
     try {
-      return JSON.stringify(pickForm(data)) !== JSON.stringify(initialDataRef.current)
+      const baseline = viewMode === 'review' && reviewInitialRef.current ? reviewInitialRef.current : initialDataRef.current
+      return JSON.stringify(pickForm(data)) !== JSON.stringify(baseline)
     } catch {
       return true
     }
-  }, [data])
+  }, [data, viewMode])
 
   // CSRF/XSRF token for fetch requests (prefer cookie value)
   const page = usePage()
@@ -154,6 +170,42 @@ export default function Editor({ post, modules: initialModules, translations }: 
       mounted = false
     }
   }, [])
+
+  // Switch between Published view and Review view
+  useEffect(() => {
+    if (viewMode === 'review' && reviewInitialRef.current) {
+      // Load review draft into form
+      setData({ ...data, ...reviewInitialRef.current })
+    }
+    if (viewMode === 'approved') {
+      // Restore published values
+      setData({ ...data, ...initialDataRef.current })
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [viewMode])
+
+  async function saveForReview() {
+    const payload = {
+      ...pickForm(data),
+      mode: 'review',
+    }
+    const res = await fetch(`/api/posts/${post.id}`, {
+      method: 'PUT',
+      headers: {
+        'Accept': 'application/json',
+        'Content-Type': 'application/json',
+        ...(xsrfToken ? { 'X-XSRF-TOKEN': xsrfToken } : {}),
+      },
+      credentials: 'same-origin',
+      body: JSON.stringify(payload),
+    })
+    if (res.ok) {
+      toast.success('Saved for review')
+      reviewInitialRef.current = pickForm(data)
+    } else {
+      toast.error('Failed to save for review')
+    }
+  }
 
   function buildPreviewPath(currentSlug: string): string | null {
     if (!pathPattern) return null
@@ -229,10 +281,17 @@ export default function Editor({ post, modules: initialModules, translations }: 
       .catch(() => toast.error('Failed to save order'))
   }
 
-  const sortedModules = useMemo(
-    () => modules.slice().sort((a, b) => a.orderIndex - b.orderIndex),
-    [modules]
-  )
+  const sortedModules = useMemo(() => {
+    const base = modules.slice().sort((a, b) => a.orderIndex - b.orderIndex)
+    if (viewMode === 'review') {
+      return base.map((m) => ({
+        ...m,
+        props: m.scope === 'post' ? (m.reviewProps ?? m.props ?? {}) : m.props ?? {},
+        overrides: m.scope !== 'post' ? (m.reviewOverrides ?? m.overrides ?? null) : m.overrides ?? null,
+      }))
+    }
+    return base
+  }, [modules, viewMode])
 
   const translationMap = useMemo(() => {
     const map = new Map<string, string>()
@@ -261,7 +320,7 @@ export default function Editor({ post, modules: initialModules, translations }: 
           ...(xsrfToken ? { 'X-XSRF-TOKEN': xsrfToken } : {}),
         },
         credentials: 'same-origin',
-        body: JSON.stringify({ overrides }),
+        body: JSON.stringify({ overrides, mode: viewMode === 'review' ? 'review' : 'publish' }),
       })
       if (!res.ok) throw new Error('Failed to save')
       const json = await res.json()
@@ -269,12 +328,19 @@ export default function Editor({ post, modules: initialModules, translations }: 
       setModules((prev) =>
         prev.map((m) => {
           if (m.id !== postModuleId) return m
-          // If local module, props are the source of truth; clear overrides and update props
-          if (m.scope === 'post') {
-            return { ...m, props: edited, overrides: null }
+          if (viewMode === 'review') {
+            if (m.scope === 'post') {
+              return { ...m, reviewProps: edited, overrides: null }
+            } else {
+              return { ...m, reviewOverrides: updatedOverrides }
+            }
+          } else {
+            if (m.scope === 'post') {
+              return { ...m, props: edited, overrides: null }
+            } else {
+              return { ...m, overrides: updatedOverrides }
+            }
           }
-          // For global/static, keep overrides
-          return { ...m, overrides: updatedOverrides }
         })
       )
     } finally {
@@ -529,6 +595,25 @@ export default function Editor({ post, modules: initialModules, translations }: 
                 Actions
               </h3>
               <div className="space-y-2">
+                {/* View toggle */}
+                <div className="flex items-center gap-2">
+                  <div className="inline-flex rounded border border-border overflow-hidden">
+                    <button
+                      type="button"
+                      onClick={() => setViewMode('approved')}
+                      className={`px-2 py-1 text-xs ${viewMode === 'approved' ? 'bg-backdrop-medium text-neutral-high' : 'text-neutral-medium hover:bg-backdrop-medium'}`}
+                    >
+                      Approved
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => setViewMode('review')}
+                      className={`px-2 py-1 text-xs ${viewMode === 'review' ? 'bg-backdrop-medium text-neutral-high' : 'text-neutral-medium hover:bg-backdrop-medium'}`}
+                    >
+                      Review
+                    </button>
+                  </div>
+                </div>
                 {/* Status (moved here) */}
                 <div>
                   <label className="block text-xs font-medium text-neutral-medium mb-1">
@@ -541,7 +626,6 @@ export default function Editor({ post, modules: initialModules, translations }: 
                       className="px-2 py-1 border border-border rounded bg-backdrop-low text-neutral-high"
                     >
                       <option value="draft">Draft</option>
-                      <option value="review">Review</option>
                       <option value="scheduled">Scheduled</option>
                       <option value="published">Published</option>
                       <option value="archived">Archived</option>
@@ -628,20 +712,53 @@ export default function Editor({ post, modules: initialModules, translations }: 
                 <button
                   className={`w-full px-4 py-2 text-sm rounded-lg disabled:opacity-50 ${(!isDirty || processing) ? 'border border-border text-neutral-medium' : 'bg-standout text-on-standout font-medium'}`}
                   disabled={!isDirty || processing}
-                  onClick={() => {
-                    put(`/api/posts/${post.id}`, {
-                      preserveScroll: true,
-                      onSuccess: () => {
-                        toast.success('Changes saved')
-                        initialDataRef.current = pickForm(data)
-                      },
-                      onError: () => toast.error('Failed to save changes'),
-                    })
+                  onClick={async () => {
+                    if (viewMode === 'review') {
+                      await saveForReview()
+                    } else {
+                      put(`/api/posts/${post.id}`, {
+                        preserveScroll: true,
+                        onSuccess: () => {
+                          toast.success('Changes saved')
+                          initialDataRef.current = pickForm(data)
+                        },
+                        onError: () => toast.error('Failed to save changes'),
+                      })
+                    }
                   }}
                   type="button"
                 >
-                  {data.status === 'published' ? 'Publish Changes' : 'Save Changes'}
+                  {viewMode === 'review' ? 'Save for Review' : (data.status === 'published' ? 'Publish Changes' : 'Save Changes')}
                 </button>
+                {reviewInitialRef.current && (
+                  <button
+                    className="w-full px-4 py-2 text-sm border border-border rounded-lg hover:bg-backdrop-medium text-neutral-medium"
+                    onClick={async () => {
+                      const res = await fetch(`/api/posts/${post.id}`, {
+                        method: 'PUT',
+                        headers: {
+                          'Accept': 'application/json',
+                          'Content-Type': 'application/json',
+                          ...(xsrfToken ? { 'X-XSRF-TOKEN': xsrfToken } : {}),
+                        },
+                        credentials: 'same-origin',
+                        body: JSON.stringify({ mode: 'approve' }),
+                      })
+                      if (res.ok) {
+                        toast.success('Review approved')
+                        // Adopt the review values as the new approved baseline
+                        initialDataRef.current = reviewInitialRef.current
+                        reviewInitialRef.current = null
+                        setViewMode('approved')
+                      } else {
+                        toast.error('Failed to approve review')
+                      }
+                    }}
+                    type="button"
+                  >
+                    Approve Review
+                  </button>
+                )}
                 {/* Unpublish action handled by changing status to draft and saving */}
               </div>
             </div>

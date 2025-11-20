@@ -42,6 +42,9 @@ export default class Post extends BaseModel {
   @column()
   declare jsonldOverrides: Record<string, any> | null
 
+  @column({ columnName: 'review_draft' })
+  declare reviewDraft: Record<string, any> | null
+
   @column()
   declare templateId: string | null
 
