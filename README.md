@@ -462,11 +462,32 @@ How to test:
 5. Refresh and verify the fields changed accordingly. Older revisions should be pruned beyond `CMS_REVISIONS_LIMIT`.
 
 ### Milestone 13 — Import/Export (Canonical Post JSON Format)
-- Define canonical JSON format for posts, modules, custom fields, translations
-- Add “Export JSON” button to post editor
-- Add “Import JSON” button for editing or creating posts
-- Backend serializer/deserializer service
-- Foundation for future WordPress import pipeline
+✅ Complete
+
+- ✅ Canonical JSON format (versioned)
+  - Top-level `post` (type, locale, slug, title, status, SEO fields)
+  - `modules`: array with `{ type, scope(local|static|global), orderIndex, locked, props, overrides, globalSlug }`
+  - `translations`: list of family post IDs and locales (for reference)
+- ✅ Export API: `GET /api/posts/:id/export?download=1`
+  - Downloads `post-<id>.json`
+- ✅ Import APIs:
+  - `POST /api/posts/import { data }` → creates a new post (admin/editor)
+  - `POST /api/posts/:id/import { data, mode: 'replace'|'review' }`
+    - `replace`: overwrites live post fields and modules (RBAC checks for status changes)
+    - `review`: stores top-level fields into `review_draft` without altering live data
+- ✅ Editor UI:
+  - “Export JSON” button in the Actions sidebar
+  - “Import JSON (Replace or Review)” file input
+  - “Import JSON as New Post” file input (creates a new post and redirects to editor)
+- ✅ Internal services:
+  - `PostSerializerService` (serialize/import/create/replace)
+  - Reuses existing actions (`CreatePost`, `UpdatePost`, `AddModuleToPost`)
+
+How to use:
+1. Open `/admin/posts/:id/edit` → Actions sidebar → Import / Export.
+2. Export: click “Export JSON”.
+3. Import (replace live or into review draft): choose JSON → select mode.
+4. Import as new post: choose JSON → auto-redirects to new post editor.
 
 ### Milestone 14 — Module Field Types Framework & Repeater Fields
 - Create formal Field Type Registry

@@ -112,6 +112,12 @@ export default function Editor({ post, modules: initialModules, translations, re
     return match ? decodeURIComponent(match[1]) : undefined
   })()
   const xsrfToken = xsrfFromCookie ?? csrfFromProps
+  const role: string | undefined =
+    (page.props as any)?.currentUser?.role ?? (page.props as any)?.auth?.user?.role
+  const isAdmin = role === 'admin'
+  const [isImportModeOpen, setIsImportModeOpen] = useState(false)
+  const [pendingImportJson, setPendingImportJson] = useState<any | null>(null)
+  const importFileRef = useRef<HTMLInputElement | null>(null)
 
   // Modules state (sortable)
   const [modules, setModules] = useState<EditorProps['modules']>(initialModules || [])
@@ -896,12 +902,140 @@ export default function Editor({ post, modules: initialModules, translations, re
                 </ul>
               )}
             </div>
+
+            {/* Import / Export (Admin only) */}
+            {isAdmin && (
+              <div className="bg-backdrop-low rounded-lg shadow p-6 border border-border">
+                <h3 className="text-sm font-semibold text-neutral-high mb-3">Import / Export</h3>
+                <div className="flex flex-col gap-2">
+                  <button
+                    type="button"
+                    className="px-3 py-2 text-sm border border-border rounded hover:bg-backdrop-medium text-neutral-high"
+                    onClick={() => {
+                      const url = `/api/posts/${post.id}/export?download=1`
+                      window.open(url, '_blank')
+                    }}
+                  >
+                    Export JSON
+                  </button>
+                  <div className="flex items-center gap-2">
+                    <input
+                      ref={importFileRef}
+                      type="file"
+                      accept="application/json"
+                      className="hidden"
+                      onChange={async (e) => {
+                        const file = e.target.files?.[0]
+                        if (!file) return
+                        try {
+                          const text = await file.text()
+                          const data = JSON.parse(text)
+                          setPendingImportJson(data)
+                          setIsImportModeOpen(true)
+                        } catch {
+                          toast.error('Invalid JSON file')
+                        } finally {
+                          if (importFileRef.current) importFileRef.current.value = ''
+                        }
+                      }}
+                    />
+                    <button
+                      type="button"
+                      className="px-3 py-2 text-sm border border-border rounded hover:bg-backdrop-medium text-neutral-high"
+                      onClick={() => importFileRef.current?.click()}
+                    >
+                      Import JSON
+                    </button>
+                  </div>
+                  <p className="text-xs text-neutral-low">Select a JSON file, then choose how to import.</p>
+                </div>
+              </div>
+            )}
           </div>
         </div>
       </main>
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <AdminFooter />
       </div>
+      {/* Import Mode Modal (Admin) */}
+      {isAdmin && isImportModeOpen && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center">
+          <div className="absolute inset-0 bg-black/50" onClick={() => { setIsImportModeOpen(false); setPendingImportJson(null) }} />
+          <div className="relative z-10 w-full max-w-md rounded-lg border border-line bg-backdrop-low p-6 shadow-xl">
+            <div className="flex items-center justify-between mb-4">
+              <h3 className="text-base font-semibold text-neutral-high">Import JSON</h3>
+              <button
+                className="text-neutral-medium hover:text-neutral-high"
+                onClick={() => { setIsImportModeOpen(false); setPendingImportJson(null) }}
+                aria-label="Close"
+              >
+                ✕
+              </button>
+            </div>
+            <p className="text-sm text-neutral-medium mb-4">
+              How would you like to import this JSON into the current post?
+            </p>
+            <div className="flex flex-col gap-2">
+              <button
+                type="button"
+                className="w-full px-3 py-2 text-sm rounded border border-line bg-backdrop-low hover:bg-backdrop-medium text-neutral-high"
+                onClick={async () => {
+                  if (!pendingImportJson) return
+                  const res = await fetch(`/api/posts/${post.id}/import`, {
+                    method: 'POST',
+                    headers: {
+                      Accept: 'application/json',
+                      'Content-Type': 'application/json',
+                      ...(xsrfToken ? { 'X-XSRF-TOKEN': xsrfToken } : {}),
+                    },
+                    credentials: 'same-origin',
+                    body: JSON.stringify({ data: pendingImportJson, mode: 'review' }),
+                  })
+                  if (res.ok) {
+                    toast.success('Imported into review draft')
+                    setIsImportModeOpen(false)
+                    setPendingImportJson(null)
+                    window.location.reload()
+                  } else {
+                    const j = await res.json().catch(() => null)
+                    toast.error(j?.error || 'Import failed')
+                  }
+                }}
+              >
+                Import into Review (non-destructive)
+              </button>
+              <button
+                type="button"
+                className="w-full px-3 py-2 text-sm rounded bg-standout text-on-standout hover:opacity-90"
+                onClick={async () => {
+                  if (!pendingImportJson) return
+                  const res = await fetch(`/api/posts/${post.id}/import`, {
+                    method: 'POST',
+                    headers: {
+                      Accept: 'application/json',
+                      'Content-Type': 'application/json',
+                      ...(xsrfToken ? { 'X-XSRF-TOKEN': xsrfToken } : {}),
+                    },
+                    credentials: 'same-origin',
+                    body: JSON.stringify({ data: pendingImportJson, mode: 'replace' }),
+                  })
+                  if (res.ok) {
+                    toast.success('Imported and replaced live content')
+                    setIsImportModeOpen(false)
+                    setPendingImportJson(null)
+                    window.location.reload()
+                  } else {
+                    const j = await res.json().catch(() => null)
+                    toast.error(j?.error || 'Import failed')
+                  }
+                }}
+              >
+                Replace Live Content (destructive)
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
       <ModuleEditorPanel
         open={!!editing}
         moduleItem={editing}

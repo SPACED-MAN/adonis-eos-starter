@@ -8,6 +8,7 @@ import db from '@adonisjs/lucid/services/db'
 import urlPatternService from '#services/url_pattern_service'
 import authorizationService from '#services/authorization_service'
 import RevisionService from '#services/revision_service'
+import PostSerializerService from '#services/post_serializer_service'
 
 /**
  * Posts Controller
@@ -772,6 +773,86 @@ export default class PostsController {
         error: 'Failed to load post',
         message: error.message,
       })
+    }
+  }
+
+  /**
+   * GET /api/posts/:id/export
+   * Export canonical JSON for a post (auth required)
+   */
+  async exportJson({ params, response, auth, request }: HttpContext) {
+    const { id } = params
+    if (!auth.use('web').isAuthenticated) return response.unauthorized({ error: 'Auth required' })
+    try {
+      const data = await PostSerializerService.serialize(id)
+      const asDownload = String(request.input('download', '1')) !== '0'
+      response.header('Content-Type', 'application/json; charset=utf-8')
+      if (asDownload) {
+        response.header('Content-Disposition', `attachment; filename="post-${id}.json"`)
+      }
+      return response.ok(data)
+    } catch (e: any) {
+      return response.badRequest({ error: e?.message || 'Failed to export' })
+    }
+  }
+
+  /**
+   * POST /api/posts/import
+   * Create a new post from canonical JSON (admin/editor)
+   * Body: { data: CanonicalPost }
+   */
+  async importCreate({ request, response, auth }: HttpContext) {
+    const role = (auth.use('web').user as any)?.role as 'admin' | 'editor' | 'translator' | undefined
+    if (!authorizationService.canCreatePost(role)) {
+      return response.forbidden({ error: 'Not allowed to import' })
+    }
+    const { data } = request.only(['data'])
+    if (!data) return response.badRequest({ error: 'Missing data' })
+    try {
+      const post = await PostSerializerService.importCreate(data, (auth.use('web').user as any)?.id)
+      return response.created({ id: post.id })
+    } catch (e: any) {
+      return response.badRequest({ error: e?.message || 'Failed to import' })
+    }
+  }
+
+  /**
+   * POST /api/posts/:id/import
+   * Import canonical JSON into an existing post.
+   * Body: { data: CanonicalPost, mode?: 'replace' | 'review' }
+   */
+  async importInto({ params, request, response, auth }: HttpContext) {
+    const { id } = params
+    const role = (auth.use('web').user as any)?.role as 'admin' | 'editor' | 'translator' | undefined
+    const { data, mode } = request.only(['data', 'mode'])
+    if (!data) return response.badRequest({ error: 'Missing data' })
+    const importMode = String(mode || 'replace').toLowerCase()
+    try {
+      if (importMode === 'review') {
+        // Only set top-level review draft; modules left unchanged in review mode
+        await Post.query().where('id', id).update({ review_draft: data.post } as any)
+        await RevisionService.record({
+          postId: id,
+          mode: 'review',
+          snapshot: data.post,
+          userId: (auth.use('web').user as any)?.id,
+        })
+        return response.ok({ message: 'Imported into review draft' })
+      }
+      // replace live content, enforce status permission
+      if (!authorizationService.canUpdateStatus(role, data?.post?.status)) {
+        return response.forbidden({ error: 'Not allowed to set target status' })
+      }
+      await PostSerializerService.importReplace(id, data)
+      await RevisionService.record({
+        postId: id,
+        mode: 'approved',
+        snapshot: data.post,
+        userId: (auth.use('web').user as any)?.id,
+      })
+      return response.ok({ message: 'Imported and replaced live content' })
+    } catch (e: any) {
+      return response.badRequest({ error: e?.message || 'Failed to import' })
     }
   }
 
