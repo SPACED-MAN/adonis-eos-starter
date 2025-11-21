@@ -1,0 +1,146 @@
+import { useEffect, useMemo, useState } from 'react'
+import { FontAwesomeIcon } from '@fortawesome/react-fontawesome'
+import { faWrench, faToggleOn, faToggleOff, faXmark } from '@fortawesome/free-solid-svg-icons'
+import { router } from '@inertiajs/react'
+
+export function SiteAdminBar() {
+  const [mounted, setMounted] = useState(false)
+  useEffect(() => {
+    setMounted(true)
+  }, [])
+
+  const getProps = () => {
+    if (typeof window === 'undefined') return {}
+    // Inertia injects page props here
+    const fromInertia =
+      ((window as any).Inertia && (window as any).Inertia.page && (window as any).Inertia.page.props) || null
+    if (fromInertia) return fromInertia
+    const fromHistory = (window.history && (window.history.state as any)?.page?.props) || null
+    return fromHistory || {}
+  }
+  const [props, setProps] = useState<any>(getProps())
+  // Track URL search reactively so viewMode updates on Inertia navigations
+  const [search, setSearch] = useState<string>(() => (typeof window !== 'undefined' ? window.location.search : ''))
+  useEffect(() => {
+    let mounted = true
+    const sync = () => {
+      if (!mounted) return
+      setProps(getProps())
+      if (typeof window !== 'undefined') {
+        setSearch(window.location.search)
+      }
+    }
+    // Best-effort: update on history changes and visibility changes
+    window.addEventListener('popstate', sync)
+    // Listen for Inertia navigations finishing
+    document.addEventListener('inertia:finish', sync as EventListener)
+    return () => {
+      mounted = false
+      window.removeEventListener('popstate', sync)
+      document.removeEventListener('inertia:finish', sync as EventListener)
+    }
+  }, [])
+
+  const currentUser = (props as any)?.currentUser
+  const isAuthenticated =
+    !!currentUser && ['admin', 'editor', 'translator'].includes(String(currentUser.role || ''))
+  const [open, setOpen] = useState(false)
+
+  // Determine if this page has a review draft available (post prop provided by server on site pages)
+  const post = (props as any)?.post
+  const hasReview = Boolean(
+    (props as any)?.hasReviewDraft ||
+    (post && ((post as any).hasReviewDraft || (post as any).reviewDraft))
+  )
+
+  // Determine current view mode from URL
+  const viewMode: 'approved' | 'review' = useMemo(() => {
+    if (typeof window === 'undefined') return 'approved'
+    const url = new URL(window.location.origin + window.location.pathname + (search || ''))
+    const v = url.searchParams.get('view')
+    return v === 'review' ? 'review' : 'approved'
+  }, [search])
+
+  if (!isAuthenticated) return null
+
+  function toggleView() {
+    if (typeof window === 'undefined') return
+    const url = new URL(window.location.href)
+    if (viewMode === 'review') {
+      url.searchParams.delete('view')
+    } else {
+      url.searchParams.set('view', 'review')
+    }
+    // Optimistically update local state so the button reflects the change immediately
+    setSearch(url.search)
+    router.visit(url.toString(), { replace: true, preserveScroll: true, preserveState: true })
+  }
+
+  return !mounted ? null : (
+    <>
+      {/* Review toggle button (only when review draft exists) */}
+      {hasReview && (
+        <button
+          aria-label="Toggle review preview"
+          onClick={toggleView}
+          style={{ position: 'fixed', bottom: '16px', right: '64px', zIndex: 9999 }}
+          className={`rounded-full border px-3 py-3 shadow ${viewMode === 'review'
+              ? 'bg-standout text-on-standout border-standout/60'
+              : 'bg-backdrop-low text-neutral-high border-line hover:bg-backdrop-medium'
+            }`}
+          title={viewMode === 'review' ? 'Viewing Review (click to switch to Approved)' : 'Viewing Approved (click to switch to Review)'}
+        >
+          <FontAwesomeIcon icon={viewMode === 'review' ? faToggleOn : faToggleOff} />
+        </button>
+      )}
+      {/* Toggle button */}
+      <button
+        aria-label="Admin tools"
+        onClick={() => setOpen((v) => !v)}
+        style={{ position: 'fixed', bottom: '16px', right: '16px', zIndex: 9999 }}
+        className="rounded-full bg-backdrop-low border border-line text-neutral-high hover:bg-backdrop-medium px-3 py-3 shadow"
+      >
+        <FontAwesomeIcon icon={faWrench} />
+      </button>
+
+      {/* Panel */}
+      {open && (
+        <div
+          style={{
+            position: 'fixed',
+            bottom: '72px',
+            right: '16px',
+            zIndex: 9999,
+            minWidth: '280px',
+          }}
+          className="rounded-lg border border-line bg-backdrop-low text-neutral-high shadow-lg"
+        >
+          <div className="flex items-center justify-between px-3 py-2 border-b border-line">
+            <div className="text-sm font-semibold">Admin</div>
+            <button
+              aria-label="Close"
+              className="text-neutral-medium hover:text-neutral-high"
+              onClick={() => setOpen(false)}
+            >
+              <FontAwesomeIcon icon={faXmark} />
+            </button>
+          </div>
+          <div className="p-3 space-y-3 text-sm">
+            <div className="flex items-center justify-between">
+              <span>Go to Dashboard</span>
+              <a
+                href="/admin"
+                className="px-2 py-1 rounded border border-line hover:bg-backdrop-medium text-neutral-medium"
+              >
+                Open
+              </a>
+            </div>
+            {/* Removed duplicate 'View Review' toggle inside the panel per request */}
+          </div>
+        </div>
+      )}
+    </>
+  )
+}
+
+

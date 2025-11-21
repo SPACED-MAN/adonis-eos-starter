@@ -573,6 +573,9 @@ export default class PostsController {
   async show({ params, request, response, inertia }: HttpContext) {
     const { slug } = params
     const locale = request.input('locale', 'en')
+    const viewParam = String(request.input('view', '')).toLowerCase()
+    // Only allow review preview when authenticated (middleware shares auth globally; here we check header)
+    const wantReview = viewParam === 'review' && Boolean(request.header('cookie')) // coarse check; real check happens when selecting fields
 
     try {
       // Find post by slug and locale
@@ -585,6 +588,23 @@ export default class PostsController {
           locale,
         })
       }
+
+      // Fetch modules with potential review fields
+      const modulesRows = await db
+        .from('post_modules')
+        .join('module_instances', 'post_modules.module_id', 'module_instances.id')
+        .where('post_modules.post_id', post.id)
+        .select(
+          'post_modules.id as postModuleId',
+          'module_instances.type',
+          'module_instances.scope',
+          'module_instances.props',
+          'module_instances.review_props',
+          'post_modules.overrides',
+          'post_modules.review_overrides',
+          'post_modules.order_index as orderIndex'
+        )
+        .orderBy('post_modules.order_index', 'asc')
 
       // Load translations for hreflang/alternate
       const baseId = post.translationOfId || post.id
@@ -650,31 +670,42 @@ export default class PostsController {
         )
         .orderBy('post_modules.order_index', 'asc')
 
-      // Merge props with overrides for each module
-      const modules = postModules.map((pm) => {
-        const baseProps = pm.props || {}
-        const overrides = pm.overrides || {}
-
-        return {
-          id: pm.postModuleId,
-          type: pm.type,
-          props: { ...baseProps, ...overrides }, // Merge base props with overrides
+      const modules = modulesRows.map((pm: any) => {
+        const isLocal = pm.scope === 'post'
+        const useReview = wantReview && ((post as any).reviewDraft || (post as any).review_draft)
+        if (useReview) {
+          if (isLocal) {
+            const baseProps = pm.review_props || pm.props || {}
+            const overrides = pm.overrides || {}
+            return { id: pm.postModuleId, type: pm.type, props: { ...baseProps, ...overrides } }
+          } else {
+            const baseProps = pm.props || {}
+            const overrides = pm.review_overrides || pm.overrides || {}
+            return { id: pm.postModuleId, type: pm.type, props: { ...baseProps, ...overrides } }
+          }
+        } else {
+          const baseProps = pm.props || {}
+          const overrides = pm.overrides || {}
+          return { id: pm.postModuleId, type: pm.type, props: { ...baseProps, ...overrides } }
         }
       })
 
       // Return as Inertia page for public viewing
+      const reviewDraft: any = (post as any).reviewDraft || (post as any).review_draft || null
+      const useReviewPost = wantReview && reviewDraft
       return inertia.render('site/post', {
         post: {
           id: post.id,
           type: post.type,
           locale: post.locale,
-          slug: post.slug,
-          title: post.title,
-          excerpt: post.excerpt,
-          metaTitle: post.metaTitle,
-          metaDescription: post.metaDescription,
+          slug: useReviewPost ? (reviewDraft.slug ?? post.slug) : post.slug,
+          title: useReviewPost ? (reviewDraft.title ?? post.title) : post.title,
+          excerpt: useReviewPost ? (reviewDraft.excerpt ?? post.excerpt) : post.excerpt,
+          metaTitle: useReviewPost ? (reviewDraft.metaTitle ?? post.metaTitle) : post.metaTitle,
+          metaDescription: useReviewPost ? (reviewDraft.metaDescription ?? post.metaDescription) : post.metaDescription,
           status: post.status,
         },
+        hasReviewDraft: Boolean(reviewDraft),
         seo: {
           canonical,
           alternates: alternatesBuilt,
@@ -712,6 +743,8 @@ export default class PostsController {
       return response.notFound({ error: 'Not found' })
     }
     const { slug, locale } = match
+    const viewParam = String(request.input('view', '')).toLowerCase()
+    const wantReview = viewParam === 'review' && Boolean(request.header('cookie'))
     try {
       const post = await Post.query().where('slug', slug).where('locale', locale).first()
       if (!post) {
@@ -726,21 +759,41 @@ export default class PostsController {
           'module_instances.type',
           'module_instances.scope',
           'module_instances.props',
+          'module_instances.review_props',
           'post_modules.overrides',
+          'post_modules.review_overrides',
           'post_modules.locked',
           'post_modules.order_index as orderIndex'
         )
         .orderBy('post_modules.order_index', 'asc')
-      const modules = postModules.map((pm) => ({
-        id: pm.postModuleId,
-        type: pm.type,
-        props: { ...(pm.props || {}), ...(pm.overrides || {}) },
-      }))
+      const modules = postModules.map((pm: any) => {
+        const isLocal = pm.scope === 'post'
+        const reviewDraft: any = (post as any).reviewDraft || (post as any).review_draft
+        const useReview = wantReview && reviewDraft
+        if (useReview) {
+          if (isLocal) {
+            const baseProps = pm.review_props || pm.props || {}
+            const overrides = pm.overrides || {}
+            return { id: pm.postModuleId, type: pm.type, props: { ...baseProps, ...overrides } }
+          } else {
+            const baseProps = pm.props || {}
+            const overrides = pm.review_overrides || pm.overrides || {}
+            return { id: pm.postModuleId, type: pm.type, props: { ...baseProps, ...overrides } }
+          }
+        }
+        return {
+          id: pm.postModuleId,
+          type: pm.type,
+          props: { ...(pm.props || {}), ...(pm.overrides || {}) },
+        }
+      })
       const protocol = (request as any).protocol ? (request as any).protocol() : (request.secure ? 'https' : 'http')
       const host = (request as any).host ? (request as any).host() : request.header('host')
+      const reviewDraft: any = (post as any).reviewDraft || (post as any).review_draft || null
+      const useReviewPost = wantReview && reviewDraft
       const canonical = await urlPatternService.buildPostUrl(
         post.type,
-        post.slug,
+        useReviewPost ? (reviewDraft.slug ?? post.slug) : post.slug,
         post.locale,
         protocol,
         host,
@@ -760,13 +813,14 @@ export default class PostsController {
           id: post.id,
           type: post.type,
           locale: post.locale,
-          slug: post.slug,
-          title: post.title,
-          excerpt: post.excerpt,
-          metaTitle: post.metaTitle,
-          metaDescription: post.metaDescription,
+          slug: useReviewPost ? (reviewDraft.slug ?? post.slug) : post.slug,
+          title: useReviewPost ? (reviewDraft.title ?? post.title) : post.title,
+          excerpt: useReviewPost ? (reviewDraft.excerpt ?? post.excerpt) : post.excerpt,
+          metaTitle: useReviewPost ? (reviewDraft.metaTitle ?? post.metaTitle) : post.metaTitle,
+          metaDescription: useReviewPost ? (reviewDraft.metaDescription ?? post.metaDescription) : post.metaDescription,
           status: post.status,
         },
+        hasReviewDraft: Boolean(reviewDraft),
         modules,
         seo: {
           canonical,

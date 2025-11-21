@@ -258,7 +258,7 @@ export default function Editor({ post, modules: initialModules, translations, re
           ...(xsrfToken ? { 'X-XSRF-TOKEN': xsrfToken } : {}),
         },
         credentials: 'same-origin',
-        body: JSON.stringify({ orderIndex: index }),
+        body: JSON.stringify({ orderIndex: index, mode: viewMode === 'review' ? 'review' : 'publish' }),
       })
     })
     await Promise.allSettled(updates)
@@ -286,8 +286,8 @@ export default function Editor({ post, modules: initialModules, translations, re
     if (viewMode === 'review') {
       return base.map((m) => ({
         ...m,
-        props: m.scope === 'post' ? (m.reviewProps ?? m.props ?? {}) : m.props ?? {},
-        overrides: m.scope !== 'post' ? (m.reviewOverrides ?? m.overrides ?? null) : m.overrides ?? null,
+        props: m.scope === 'post' ? (m.reviewPos ? m.reviewProps ?? m.props : m.props) : m.props,
+        overrides: m.scope !== 'post' ? (m.reviewOverrides ?? m.overrides ?? null) : m.overrides,
       }))
     }
     return base
