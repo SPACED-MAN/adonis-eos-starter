@@ -7,6 +7,7 @@ import UpdatePostModule, { UpdatePostModuleException } from '#actions/posts/upda
 import db from '@adonisjs/lucid/services/db'
 import urlPatternService from '#services/url_pattern_service'
 import authorizationService from '#services/authorization_service'
+import RevisionService from '#services/revision_service'
 
 /**
  * Posts Controller
@@ -376,6 +377,13 @@ export default class PostsController {
         }
         // Use snake_case column name created by migration
         await Post.query().where('id', id).update({ review_draft: draftPayload } as any)
+        // Record a review-draft revision
+        await RevisionService.record({
+          postId: id,
+          mode: 'review',
+          snapshot: draftPayload,
+          userId: (auth.use('web').user as any)?.id,
+        })
         // For XHR/API clients, return JSON; avoid redirect which can confuse fetch()
         return response.ok({ message: 'Saved for review' })
       }
@@ -426,6 +434,23 @@ export default class PostsController {
             canonicalUrl: nextCanonicalUrl,
             robotsJson: nextRobots,
             jsonldOverrides: nextJsonLd,
+          })
+          // Record an approved revision snapshot (post-live)
+          await RevisionService.record({
+            postId: id,
+            mode: 'approved',
+            snapshot: {
+              slug: nextSlug,
+              title: nextTitle,
+              status: current.status,
+              excerpt: nextExcerpt,
+              metaTitle: nextMetaTitle,
+              metaDescription: nextMetaDescription,
+              canonicalUrl: nextCanonicalUrl,
+              robotsJson: nextRobots,
+              jsonldOverrides: nextJsonLd,
+            },
+            userId: (auth.use('web').user as any)?.id,
           })
           // Clear review draft
           await Post.query().where('id', id).update({ review_draft: null } as any)
@@ -480,6 +505,23 @@ export default class PostsController {
         canonicalUrl,
         robotsJson: robotsJsonParsed,
         jsonldOverrides: jsonldOverridesParsed,
+      })
+      // Record an approved revision snapshot (post-live)
+      await RevisionService.record({
+        postId: id,
+        mode: 'approved',
+        snapshot: {
+          slug,
+          title,
+          status,
+          excerpt,
+          metaTitle,
+          metaDescription,
+          canonicalUrl,
+          robotsJson: robotsJsonParsed,
+          jsonldOverrides: jsonldOverridesParsed,
+        },
+        userId: (auth.use('web').user as any)?.id,
       })
 
       // For Inertia requests, redirect back to editor
@@ -731,6 +773,78 @@ export default class PostsController {
         message: error.message,
       })
     }
+  }
+
+  /**
+   * GET /api/posts/:id/revisions
+   * List recent revisions for a post (auth required)
+   */
+  async revisions({ params, response, auth, request }: HttpContext) {
+    const { id } = params
+    const role = (auth.use('web').user as any)?.role as 'admin' | 'editor' | 'translator' | undefined
+    // Everyone authenticated can view revisions; reverting is restricted separately
+    const limit = Math.min(50, Math.max(1, Number(request.input('limit', 20)) || 20))
+    const rows = await db
+      .from('post_revisions')
+      .leftJoin('users', 'post_revisions.user_id', 'users.id')
+      .where('post_revisions.post_id', id)
+      .orderBy('post_revisions.created_at', 'desc')
+      .limit(limit)
+      .select(
+        'post_revisions.id',
+        'post_revisions.mode',
+        'post_revisions.created_at as createdAt',
+        'post_revisions.user_id as userId',
+        'users.email as userEmail'
+      )
+    return response.ok({
+      data: rows.map((r: any) => ({
+        id: r.id,
+        mode: r.mode,
+        createdAt: r.createdat || r.createdAt,
+        user: r.useremail ? { email: r.useremail, id: r.userid } : null,
+      })),
+    })
+  }
+
+  /**
+   * POST /api/posts/:id/revisions/:revId/revert
+   * Revert a post to a given revision (admin/editor for approved; review revisions write to review_draft)
+   */
+  async revertRevision({ params, response, auth }: HttpContext) {
+    const { id, revId } = params
+    const role = (auth.use('web').user as any)?.role as 'admin' | 'editor' | 'translator' | undefined
+
+    const rev = await db.from('post_revisions').where('id', revId).andWhere('post_id', id).first()
+    if (!rev) {
+      return response.notFound({ error: 'Revision not found' })
+    }
+    const snapshot = (rev as any).snapshot || {}
+    const mode: 'approved' | 'review' = (rev as any).mode || 'approved'
+
+    if (mode === 'review') {
+      await Post.query().where('id', id).update({ review_draft: snapshot } as any)
+      return response.ok({ message: 'Reverted review draft' })
+    }
+
+    // Approved (live) revert requires permission to set target status
+    if (!authorizationService.canRevertRevision(role) || !authorizationService.canUpdateStatus(role, snapshot?.status)) {
+      return response.forbidden({ error: 'Not allowed to revert to this revision' })
+    }
+
+    await UpdatePost.handle({
+      postId: id,
+      slug: snapshot?.slug,
+      title: snapshot?.title,
+      status: snapshot?.status,
+      excerpt: snapshot?.excerpt ?? null,
+      metaTitle: snapshot?.metaTitle ?? null,
+      metaDescription: snapshot?.metaDescription ?? null,
+      canonicalUrl: snapshot?.canonicalUrl ?? null,
+      robotsJson: snapshot?.robotsJson ?? null,
+      jsonldOverrides: snapshot?.jsonldOverrides ?? null,
+    })
+    return response.ok({ message: 'Reverted to revision' })
   }
 
   /**

@@ -37,6 +37,10 @@ export class AuthorizationService {
 		if (nextStatus === 'draft') return true
 		return this.canPublishOrArchive(role)
 	}
+
+	static canRevertRevision(role: UserRole): boolean {
+		return role === 'admin' || role === 'editor'
+	}
 }
 
 const authorizationService = AuthorizationService

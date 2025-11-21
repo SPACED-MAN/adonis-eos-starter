@@ -225,6 +225,29 @@ export default function Editor({ post, modules: initialModules, translations, re
   // Overrides panel state
   const [editing, setEditing] = useState<ModuleListItem | null>(null)
   const [savingOverrides, setSavingOverrides] = useState(false)
+  const [revisions, setRevisions] = useState<Array<{ id: string; mode: 'approved' | 'review'; createdAt: string; user?: { id?: number; email?: string } }>>([])
+  const [loadingRevisions, setLoadingRevisions] = useState(false)
+
+  useEffect(() => {
+    let alive = true
+    async function loadRevisions() {
+      try {
+        setLoadingRevisions(true)
+        const res = await fetch(`/api/posts/${post.id}/revisions?limit=10`, {
+          headers: { Accept: 'application/json' },
+          credentials: 'same-origin',
+        })
+        if (!res.ok) return
+        const json = await res.json().catch(() => null)
+        if (!json?.data) return
+        if (alive) setRevisions(json.data)
+      } finally {
+        if (alive) setLoadingRevisions(false)
+      }
+    }
+    loadRevisions()
+    return () => { alive = false }
+  }, [post.id])
 
   // DnD sensors (pointer only to avoid key conflicts)
   const sensors = useSensors(useSensor(PointerSensor))
@@ -802,6 +825,76 @@ export default function Editor({ post, modules: initialModules, translations, re
                   </dd>
                 </div>
               </dl>
+            </div>
+
+            {/* Revisions */}
+            <div className="bg-backdrop-low rounded-lg shadow p-6 border border-border">
+              <div className="flex items-center justify-between mb-3">
+                <h3 className="text-sm font-semibold text-neutral-high">Revisions</h3>
+                <button
+                  type="button"
+                  className="text-xs px-2 py-1 border border-border rounded hover:bg-backdrop-medium text-neutral-medium"
+                  onClick={async () => {
+                    // reload revisions
+                    const res = await fetch(`/api/posts/${post.id}/revisions?limit=10`, {
+                      headers: { Accept: 'application/json' },
+                      credentials: 'same-origin',
+                    })
+                    if (res.ok) {
+                      const json = await res.json().catch(() => null)
+                      if (json?.data) setRevisions(json.data)
+                    }
+                  }}
+                >
+                  Refresh
+                </button>
+              </div>
+              {loadingRevisions ? (
+                <p className="text-sm text-neutral-low">Loading…</p>
+              ) : revisions.length === 0 ? (
+                <p className="text-sm text-neutral-low">No revisions yet.</p>
+              ) : (
+                <ul className="space-y-2">
+                  {revisions.map((r) => (
+                    <li key={r.id} className="flex items-center justify-between text-sm">
+                      <div className="flex flex-col">
+                        <span className="text-neutral-high">
+                          {new Date(r.createdAt).toLocaleString()}
+                          <span className={`ml-2 px-1.5 py-0.5 rounded text-[10px] border ${r.mode === 'review' ? 'bg-backdrop-medium text-neutral-high' : 'bg-standout/10 text-standout border-standout/40'}`}>
+                            {r.mode === 'review' ? 'Review' : 'Approved'}
+                          </span>
+                        </span>
+                        {r.user?.email ? <span className="text-xs text-neutral-low">{r.user.email}</span> : null}
+                      </div>
+                      <button
+                        className="px-2 py-1 text-xs border border-border rounded hover:bg-backdrop-medium text-neutral-medium"
+                        onClick={async () => {
+                          if (!confirm('Revert to this revision?')) return
+                          const res = await fetch(`/api/posts/${post.id}/revisions/${encodeURIComponent(r.id)}/revert`, {
+                            method: 'POST',
+                            headers: {
+                              Accept: 'application/json',
+                              'Content-Type': 'application/json',
+                              ...(xsrfToken ? { 'X-XSRF-TOKEN': xsrfToken } : {}),
+                            },
+                            credentials: 'same-origin',
+                          })
+                          if (res.ok) {
+                            toast.success('Reverted to selected revision')
+                            // After revert, reload page data
+                            window.location.reload()
+                          } else {
+                            const j = await res.json().catch(() => null)
+                            toast.error(j?.error || 'Failed to revert')
+                          }
+                        }}
+                      >
+                        Revert
+                      </button>
+                    </li>
+                  ))}
+                </ul>
+              )}
             </div>
           </div>
         </div>

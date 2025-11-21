@@ -439,12 +439,27 @@ How to test:
 3. Refresh: Review view shows saved values; switch to Published view to confirm live is unchanged.
 4. Switch to Published view and click “Publish Changes” to update live fields.
 
-### Milestone 12 — Revision History (ENV-Based Retention)
-- Add `post_revisions` table
-- Add `.env` variable: `CMS_REVISIONS_LIMIT`
-- Auto-prune older revisions
-- Provide UI to browse revisions
-- Add “Revert to this Revision” action
+### Milestone 12 — Revision History (ENV-Based Retention) (✅ Complete)
+- ✅ Database: `post_revisions` table storing `mode` (approved/review), `snapshot` (JSONB), timestamps, and `user_id`
+- ✅ Env: `CMS_REVISIONS_LIMIT` (number) controls how many revisions to retain per post (default 20)
+- ✅ Auto-prune: After each new revision, older ones beyond the limit are pruned
+- ✅ API:
+  - `GET /api/posts/:id/revisions?limit=10` – list recent revisions with author and mode
+  - `POST /api/posts/:id/revisions/:revId/revert` – revert to a revision
+    - Review-mode revisions restore to `review_draft`
+    - Approved-mode revisions update live fields (RBAC enforced)
+- ✅ UI (Editor sidebar):
+  - “Revisions” panel listing recent revisions with timestamps, author, and mode
+  - “Revert” button per revision
+
+How to test:
+1. Set retention (optional) in `.env`: `CMS_REVISIONS_LIMIT=20`
+2. Edit a post and click “Save Changes” (Approved) or switch to Review view and “Save for Review” — a revision is recorded automatically.
+3. Open `/admin/posts/:id/edit`: in the sidebar, expand “Revisions”.
+4. Click “Revert” on a revision:
+   - If “Approved”: the live post fields are updated (slug/title/status/meta/etc.). RBAC applies (editor/admin for publish/archive).
+   - If “Review”: the `review_draft` is replaced with that snapshot.
+5. Refresh and verify the fields changed accordingly. Older revisions should be pruned beyond `CMS_REVISIONS_LIMIT`.
 
 ### Milestone 13 — Import/Export (Canonical Post JSON Format)
 - Define canonical JSON format for posts, modules, custom fields, translations
