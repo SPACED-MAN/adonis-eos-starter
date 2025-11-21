@@ -83,6 +83,7 @@ export default function Editor({ post, modules: initialModules, translations, re
     jsonldOverrides: typeof reviewDraft.jsonldOverrides === 'string' ? reviewDraft.jsonldOverrides : (reviewDraft.jsonldOverrides ? JSON.stringify(reviewDraft.jsonldOverrides, null, 2) : ''),
   } : null)
   const [viewMode, setViewMode] = useState<'approved' | 'review'>('approved')
+  const [pendingModules, setPendingModules] = useState<Record<string, { overrides: Record<string, any> | null; edited: Record<string, any> }>>({})
   const pickForm = (d: typeof data) => ({
     title: d.title,
     slug: d.slug,
@@ -97,11 +98,13 @@ export default function Editor({ post, modules: initialModules, translations, re
   const isDirty = useMemo(() => {
     try {
       const baseline = viewMode === 'review' && reviewInitialRef.current ? reviewInitialRef.current : initialDataRef.current
-      return JSON.stringify(pickForm(data)) !== JSON.stringify(baseline)
+      const fieldsChanged = JSON.stringify(pickForm(data)) !== JSON.stringify(baseline)
+      const modulesPending = Object.keys(pendingModules).length > 0
+      return fieldsChanged || modulesPending
     } catch {
       return true
     }
-  }, [data, viewMode])
+  }, [data, viewMode, pendingModules])
 
   // CSRF/XSRF token for fetch requests (prefer cookie value)
   const page = usePage()
@@ -375,6 +378,30 @@ export default function Editor({ post, modules: initialModules, translations, re
     } finally {
       setSavingOverrides(false)
     }
+  }
+
+  async function commitPendingModules(mode: 'review' | 'publish') {
+    const entries = Object.entries(pendingModules)
+    if (entries.length === 0) return
+    const updates = entries.map(([id, payload]) =>
+      fetch(`/api/post-modules/${encodeURIComponent(id)}`, {
+        method: 'PUT',
+        headers: {
+          'Accept': 'application/json',
+          'Content-Type': 'application/json',
+          ...(xsrfToken ? { 'X-XSRF-TOKEN': xsrfToken } : {}),
+        },
+        credentials: 'same-origin',
+        body: JSON.stringify({ overrides: payload.overrides, mode }),
+      })
+    )
+    const results = await Promise.allSettled(updates)
+    const anyFailed = results.some((r) => r.status === 'rejected' || (r.status === 'fulfilled' && !(r.value as Response).ok))
+    if (anyFailed) {
+      toast.error('Failed to save module changes')
+      throw new Error('Failed to save module changes')
+    }
+    setPendingModules({})
   }
 
   const handleSubmit = (e: FormEvent) => {
@@ -743,8 +770,10 @@ export default function Editor({ post, modules: initialModules, translations, re
                   disabled={!isDirty || processing}
                   onClick={async () => {
                     if (viewMode === 'review') {
+                      await commitPendingModules('review')
                       await saveForReview()
                     } else {
+                      await commitPendingModules('publish')
                       put(`/api/posts/${post.id}`, {
                         preserveScroll: true,
                         onSuccess: () => {
@@ -1040,9 +1069,30 @@ export default function Editor({ post, modules: initialModules, translations, re
         open={!!editing}
         moduleItem={editing}
         onClose={() => setEditing(null)}
-        onSave={(overrides, edited) =>
-          editing ? saveOverrides(editing.id, overrides, edited) : Promise.resolve()
-        }
+        onSave={(overrides, edited) => {
+          if (!editing) return Promise.resolve()
+          // stage changes locally and mark as pending; do NOT persist now
+          setPendingModules((prev) => ({ ...prev, [editing.id]: { overrides, edited } }))
+          setModules((prev) =>
+            prev.map((m) => {
+              if (m.id !== editing.id) return m
+              if (viewMode === 'review') {
+                if (m.scope === 'post') {
+                  return { ...m, reviewProps: edited, overrides: null }
+                } else {
+                  return { ...m, reviewOverrides: overrides }
+                }
+              } else {
+                if (m.scope === 'post') {
+                  return { ...m, props: edited, overrides: null }
+                } else {
+                  return { ...m, overrides }
+                }
+              }
+            })
+          )
+          return Promise.resolve()
+        }}
         processing={savingOverrides}
       />
     </div>

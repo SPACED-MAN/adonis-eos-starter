@@ -29,9 +29,9 @@ export default class ProseModule extends BaseModule {
       lockable: true,
       propsSchema: {
         content: {
-          type: 'object', // Lexical JSON
+          type: 'richtext', // Lexical JSON rich text editor
           required: true,
-          description: 'Lexical editor content (JSON)',
+          description: 'Rich text content (Lexical JSON)',
           translatable: true,
         },
         maxWidth: {
