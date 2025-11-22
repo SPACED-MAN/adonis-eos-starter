@@ -117,7 +117,7 @@
 }
 
 :root {
-  --radius: 0;
+  --radius: 0.35rem;
   --background: var(--color-backdrop-low);
   --foreground: var(--color-neutral-high);
   --card: var(--color-backdrop-low);
@@ -152,7 +152,7 @@
 }
 
 .dark {
-  --background: var(--color-backdrop-high);
+  --background: var(--color-backdrop-medium);
   --foreground: var(--color-neutral-high);
   --card: var(--color-backdrop-low);
   --card-foreground: var(--color-neutral-high);
