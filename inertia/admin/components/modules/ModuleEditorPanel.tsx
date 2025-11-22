@@ -724,7 +724,7 @@ export function ModuleEditorPanel({
 									<div key={key}>
 										<label className="block text-sm font-medium text-neutral-medium mb-1">{key}</label>
 										<textarea
-											className="w-full px-3 py-2 min-h-[140px] border border-border rounded-lg bg-backdrop-low text-neutral-high font-mono text-xs focus:ring-2 ring-standout"
+											className="w-full px-3 py-2 min-h-[140px] border border-border rounded-lg bg-backdrop-low text-neutral-high font-mono text-xs focus:ring-1 ring-(--ring) focus:border-transparent"
 											defaultValue={JSON.stringify(val, null, 2)}
 											onBlur={(e) => {
 												try {

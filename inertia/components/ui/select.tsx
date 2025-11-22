@@ -14,8 +14,9 @@ export const SelectTrigger = React.forwardRef<
 	<SelectPrimitive.Trigger
 		ref={ref}
 		className={cn(
-			'flex h-9 w-full items-center justify-between rounded-lg border border-border bg-backdrop-low px-3 py-2 text-sm',
-			'text-neutral-high focus:outline-none focus:ring-2 ring-standout',
+			'flex h-9 w-full items-center justify-between px-3 py-2 text-sm rounded-lg',
+			'border border-input bg-background text-foreground',
+			'focus:outline-none focus:ring-1 ring-ring',
 			className
 		)}
 		{...props}
@@ -37,7 +38,7 @@ export const SelectContent = React.forwardRef<
 			ref={ref}
 			position={position}
 			className={cn(
-				'relative z-50 min-w-[8rem] overflow-hidden rounded-lg border border-line bg-panel text-neutral-high shadow-md',
+				'relative z-50 min-w-[8rem] overflow-hidden rounded-lg border border-border bg-popover text-popover-foreground shadow-md',
 				'data-[state=open]:animate-in data-[state=closed]:animate-out',
 				'data-[state=closed]:fade-out-0 data-[state=open]:fade-in-0',
 				'data-[state=closed]:zoom-out-95 data-[state=open]:zoom-in-95',
@@ -52,9 +53,9 @@ export const SelectContent = React.forwardRef<
 			</SelectPrimitive.ScrollUpButton>
 			<SelectPrimitive.Viewport
 				className={cn(
-					'p-1',
+					'p-1 bg-popover',
 					position === 'popper' &&
-						'h-[var(--radix-select-trigger-height)] w-full min-w-[var(--radix-select-trigger-width)]'
+					'h-[var(--radix-select-trigger-height)] w-full min-w-[var(--radix-select-trigger-width)]'
 				)}
 			>
 				{children}
@@ -82,7 +83,7 @@ export const SelectItem = React.forwardRef<
 	<SelectPrimitive.Item
 		ref={ref}
 		className={cn(
-			'relative flex w-full cursor-default select-none items-center rounded-md py-1.5 pl-8 pr-2 text-sm outline-none',
+			'relative flex w-full cursor-default select-none items-center py-1.5 pl-8 pr-2 text-sm outline-none',
 			'focus:bg-backdrop-medium focus:text-neutral-high',
 			'data-[state=checked]:bg-backdrop-medium',
 			className

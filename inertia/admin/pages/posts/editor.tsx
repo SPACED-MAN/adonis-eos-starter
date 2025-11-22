@@ -444,7 +444,7 @@ export default function Editor({ post, modules: initialModules, translations, re
                     type="text"
                     value={data.title}
                     onChange={(e) => setData('title', e.target.value)}
-                    className="w-full px-3 py-2 border border-border rounded-lg bg-backdrop-low text-neutral-high focus:ring-2 ring-standout"
+                    className="w-full px-3 py-2 border border-border rounded-lg bg-background text-neutral-high focus:outline-none focus:ring-1 ring-(--ring)"
                     placeholder="Enter post title"
                   />
                   {errors.title && (
@@ -461,7 +461,7 @@ export default function Editor({ post, modules: initialModules, translations, re
                     type="text"
                     value={data.slug}
                     onChange={(e) => setData('slug', e.target.value)}
-                    className="w-full px-3 py-2 border border-border rounded-lg bg-backdrop-low text-neutral-high font-mono text-sm focus:ring-2 ring-standout"
+                    className="w-full px-3 py-2 border border-border rounded-lg bg-background text-neutral-high font-mono text-sm focus:outline-none focus:ring-1 ring-(--ring)"
                     placeholder="post-slug"
                   />
                   {errors.slug && (
@@ -483,7 +483,7 @@ export default function Editor({ post, modules: initialModules, translations, re
                     value={data.excerpt}
                     onChange={(e) => setData('excerpt', e.target.value)}
                     rows={3}
-                    className="w-full px-3 py-2 border border-border rounded-lg bg-backdrop-low text-neutral-high focus:ring-2 ring-standout"
+                    className="w-full px-3 py-2 border border-border rounded-lg bg-background text-neutral-high focus:outline-none focus:ring-1 ring-(--ring)"
                     placeholder="Brief description (optional)"
                   />
                   {errors.excerpt && (
@@ -566,7 +566,7 @@ export default function Editor({ post, modules: initialModules, translations, re
                     type="text"
                     value={data.metaTitle}
                     onChange={(e) => setData('metaTitle', e.target.value)}
-                    className="w-full px-3 py-2 border border-border rounded-lg bg-backdrop-low text-neutral-high focus:ring-2 ring-standout"
+                    className="w-full px-3 py-2 border border-border rounded-lg bg-background text-neutral-high focus:outline-none focus:ring-1 ring-(--ring)"
                     placeholder="Custom meta title (optional)"
                   />
                   <p className="text-xs text-neutral-low mt-1">
@@ -583,7 +583,7 @@ export default function Editor({ post, modules: initialModules, translations, re
                     value={data.metaDescription}
                     onChange={(e) => setData('metaDescription', e.target.value)}
                     rows={3}
-                    className="w-full px-3 py-2 border border-border rounded-lg bg-backdrop-low text-neutral-high focus:ring-2 ring-standout"
+                    className="w-full px-3 py-2 border border-border rounded-lg bg-background text-neutral-high focus:outline-none focus:ring-2 ring-(--ring)"
                     placeholder="Custom meta description (optional)"
                   />
                   <p className="text-xs text-neutral-low mt-1">
@@ -600,7 +600,7 @@ export default function Editor({ post, modules: initialModules, translations, re
                     type="url"
                     value={data.canonicalUrl}
                     onChange={(e) => setData('canonicalUrl', e.target.value)}
-                    className="w-full px-3 py-2 border border-border rounded-lg bg-backdrop-low text-neutral-high focus:ring-2 ring-standout"
+                    className="w-full px-3 py-2 border border-border rounded-lg bg-background text-neutral-high focus:ring-1 ring-(--ring)"
                     placeholder="https://example.com/my-post"
                   />
                 </div>
@@ -614,7 +614,7 @@ export default function Editor({ post, modules: initialModules, translations, re
                     value={data.robotsJson}
                     onChange={(e) => setData('robotsJson', e.target.value)}
                     rows={4}
-                    className="w-full px-3 py-2 border border-border rounded-lg bg-backdrop-low text-neutral-high font-mono text-xs focus:ring-2 ring-standout"
+                    className="w-full px-3 py-2 border border-border rounded-lg bg-background text-neutral-high font-mono text-xs focus:outline-none focus:ring-1 ring-(--ring)"
                     placeholder={JSON.stringify({ index: true, follow: true }, null, 2)}
                   />
                   <p className="text-xs text-neutral-low mt-1">
@@ -631,7 +631,7 @@ export default function Editor({ post, modules: initialModules, translations, re
                     value={data.jsonldOverrides}
                     onChange={(e) => setData('jsonldOverrides', e.target.value)}
                     rows={6}
-                    className="w-full px-3 py-2 border border-border rounded-lg bg-backdrop-low text-neutral-high font-mono text-xs focus:ring-2 ring-standout"
+                    className="w-full px-3 py-2 border border-border rounded-lg bg-background text-neutral-high font-mono text-xs focus:outline-none focus:ring-1 ring-(--ring)"
                     placeholder={JSON.stringify({ '@type': 'BlogPosting' }, null, 2)}
                   />
                   <p className="text-xs text-neutral-low mt-1">
@@ -677,17 +677,17 @@ export default function Editor({ post, modules: initialModules, translations, re
                     Status
                   </label>
                   <div className="flex items-center gap-2">
-                  <Select defaultValue={data.status} onValueChange={(val) => setData('status', val)}>
-                    <SelectTrigger className="w-[180px]">
-                      <SelectValue />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="draft">Draft</SelectItem>
-                      <SelectItem value="scheduled">Scheduled</SelectItem>
-                      <SelectItem value="published">Published</SelectItem>
-                      <SelectItem value="archived">Archived</SelectItem>
-                    </SelectContent>
-                  </Select>
+                    <Select defaultValue={data.status} onValueChange={(val) => setData('status', val)}>
+                      <SelectTrigger className="w-[180px]">
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="draft">Draft</SelectItem>
+                        <SelectItem value="scheduled">Scheduled</SelectItem>
+                        <SelectItem value="published">Published</SelectItem>
+                        <SelectItem value="archived">Archived</SelectItem>
+                      </SelectContent>
+                    </Select>
                   </div>
                   {errors.status && (
                     <p className="text-xs text-red-600 dark:text-red-400 mt-1">{errors.status}</p>
@@ -699,32 +699,32 @@ export default function Editor({ post, modules: initialModules, translations, re
                     Locale
                   </label>
                   <div className="flex items-center gap-2">
-                  <Select
-                    defaultValue={selectedLocale}
-                    onValueChange={(nextLocale) => {
-                      setSelectedLocale(nextLocale)
-                      if (nextLocale === post.locale) return
-                      const target = translations?.find((t) => t.locale === nextLocale)
-                      if (target) {
-                        window.location.href = `/admin/posts/${target.id}/edit`
-                      }
-                    }}
-                  >
-                    <SelectTrigger className="w-[160px]">
-                      <SelectValue />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {availableLocales.map((loc) => {
-                        const exists = translationsSet.has(loc)
-                        const label = exists ? `${loc.toUpperCase()}` : `${loc.toUpperCase()} (missing)`
-                        return (
-                          <SelectItem key={loc} value={loc}>
-                            {label}
-                          </SelectItem>
-                        )
-                      })}
-                    </SelectContent>
-                  </Select>
+                    <Select
+                      defaultValue={selectedLocale}
+                      onValueChange={(nextLocale) => {
+                        setSelectedLocale(nextLocale)
+                        if (nextLocale === post.locale) return
+                        const target = translations?.find((t) => t.locale === nextLocale)
+                        if (target) {
+                          window.location.href = `/admin/posts/${target.id}/edit`
+                        }
+                      }}
+                    >
+                      <SelectTrigger className="w-[160px]">
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {availableLocales.map((loc) => {
+                          const exists = translationsSet.has(loc)
+                          const label = exists ? `${loc.toUpperCase()}` : `${loc.toUpperCase()} (missing)`
+                          return (
+                            <SelectItem key={loc} value={loc}>
+                              {label}
+                            </SelectItem>
+                          )
+                        })}
+                      </SelectContent>
+                    </Select>
                     {/* Removed helper text */}
                   </div>
                   {selectedLocale !== post.locale && !translationsSet.has(selectedLocale) && (

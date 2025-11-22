@@ -3,7 +3,7 @@ import { cn } from '~/components/ui/utils'
 
 export const Table = React.forwardRef<HTMLTableElement, React.HTMLAttributes<HTMLTableElement>>(
 	({ className, ...props }, ref) => (
-		<div className="relative w-full overflow-auto border border-line rounded-lg">
+		<div className="relative w-full overflow-auto border border-border rounded-lg">
 			<table
 				ref={ref}
 				className={cn('w-full caption-bottom text-sm', className)}
@@ -16,7 +16,7 @@ Table.displayName = 'Table'
 
 export const TableHeader = React.forwardRef<HTMLTableSectionElement, React.HTMLAttributes<HTMLTableSectionElement>>(
 	({ className, ...props }, ref) => (
-		<thead ref={ref} className={cn('[&_tr]:border-b [&_tr]:border-line bg-backdrop-medium', className)} {...props} />
+		<thead ref={ref} className={cn('[&_tr]:border-b [&_tr]:border-border bg-muted/50', className)} {...props} />
 	)
 )
 TableHeader.displayName = 'TableHeader'
@@ -32,7 +32,7 @@ export const TableRow = React.forwardRef<HTMLTableRowElement, React.HTMLAttribut
 	({ className, ...props }, ref) => (
 		<tr
 			ref={ref}
-			className={cn('border-b border-line hover:bg-backdrop-medium transition-colors', className)}
+			className={cn('border-b border-border hover:bg-muted/50 transition-colors', className)}
 			{...props}
 		/>
 	)
@@ -43,7 +43,7 @@ export const TableHead = React.forwardRef<HTMLTableCellElement, React.ThHTMLAttr
 	({ className, ...props }, ref) => (
 		<th
 			ref={ref}
-			className={cn('h-10 px-4 text-left align-middle font-medium text-neutral-medium', className)}
+			className={cn('h-10 px-4 text-left align-middle font-medium text-muted-foreground', className)}
 			{...props}
 		/>
 	)
@@ -54,7 +54,7 @@ export const TableCell = React.forwardRef<HTMLTableCellElement, React.TdHTMLAttr
 	({ className, ...props }, ref) => (
 		<td
 			ref={ref}
-			className={cn('p-4 align-middle text-neutral-high', className)}
+			className={cn('p-4 align-middle text-foreground', className)}
 			{...props}
 		/>
 	)
@@ -63,7 +63,7 @@ TableCell.displayName = 'TableCell'
 
 export const TableCaption = React.forwardRef<HTMLTableCaptionElement, React.HTMLAttributes<HTMLTableCaptionElement>>(
 	({ className, ...props }, ref) => (
-		<caption ref={ref} className={cn('mt-4 text-sm text-neutral-low', className)} {...props} />
+		<caption ref={ref} className={cn('mt-4 text-sm text-muted-foreground', className)} {...props} />
 	)
 )
 TableCaption.displayName = 'TableCaption'

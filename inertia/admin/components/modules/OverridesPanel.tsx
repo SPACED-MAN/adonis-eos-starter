@@ -69,7 +69,7 @@ export function OverridesPanel({
 						</label>
 						<textarea
 							rows={16}
-							className="w-full px-3 py-2 border border-line rounded-lg bg-backdrop-low text-neutral-high font-mono text-xs focus:ring-2 ring-standout"
+							className="w-full px-3 py-2 border border-line rounded-lg bg-backdrop-low text-neutral-high font-mono text-xs focus:ring-1 ring-(--ring)"
 							value={draft}
 							onChange={(e) => setDraft(e.target.value)}
 							placeholder={JSON.stringify({ title: 'Custom title' }, null, 2)}
@@ -83,7 +83,7 @@ export function OverridesPanel({
 							Base Props (read-only)
 						</label>
 						<pre className="w-full px-3 py-2 border border-line rounded-lg bg-backdrop-low text-neutral-high font-mono text-xs overflow-auto">
-{JSON.stringify(moduleItem.props, null, 2)}
+							{JSON.stringify(moduleItem.props, null, 2)}
 						</pre>
 					</div>
 				</div>

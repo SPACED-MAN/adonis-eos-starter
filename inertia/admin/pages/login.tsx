@@ -37,7 +37,7 @@ export default function Login() {
           <label className="block text-sm font-medium text-neutral-medium">Email</label>
           <input
             type="email"
-            className="w-full border border-border rounded px-3 py-2 bg-backdrop-low text-neutral-high placeholder:text-placeholder focus:outline-none focus:ring-2 ring-standout"
+            className="w-full border border-border rounded px-3 py-2 bg-backdrop-low text-neutral-high placeholder:text-placeholder focus:outline-none focus:ring-1 ring-(--ring) focus:border-transparent"
             value={form.data.email}
             onChange={(e) => form.setData('email', e.target.value)}
           />
@@ -52,7 +52,7 @@ export default function Login() {
           <label className="block text-sm font-medium text-neutral-medium">Password</label>
           <input
             type="password"
-            className="w-full border border-border rounded px-3 py-2 bg-backdrop-low text-neutral-high placeholder:text-placeholder focus:outline-none focus:ring-2 ring-standout"
+            className="w-full border border-border rounded px-3 py-2 bg-backdrop-low text-neutral-high placeholder:text-placeholder focus:outline-none focus:ring-1 ring-(--ring) focus:border-transparent"
             value={form.data.password}
             onChange={(e) => form.setData('password', e.target.value)}
           />

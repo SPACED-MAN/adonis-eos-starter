@@ -222,18 +222,18 @@ export default function RedirectsPage() {
 									onChange={(e) => setForm((f) => ({ ...f, toPath: e.target.value }))}
 								/>
 								<div className="flex gap-2">
-								<Select
-									defaultValue={String(form.httpStatus)}
-									onValueChange={(val) => setForm((f) => ({ ...f, httpStatus: Number(val) }))}
-								>
-									<SelectTrigger className="w-40">
-										<SelectValue />
-									</SelectTrigger>
-									<SelectContent>
-										<SelectItem value="301">301 (Permanent)</SelectItem>
-										<SelectItem value="302">302 (Temporary)</SelectItem>
-									</SelectContent>
-								</Select>
+									<Select
+										defaultValue={String(form.httpStatus)}
+										onValueChange={(val) => setForm((f) => ({ ...f, httpStatus: Number(val) }))}
+									>
+										<SelectTrigger className="w-40">
+											<SelectValue />
+										</SelectTrigger>
+										<SelectContent>
+											<SelectItem value="301">301 (Permanent)</SelectItem>
+											<SelectItem value="302">302 (Temporary)</SelectItem>
+										</SelectContent>
+									</Select>
 									<button
 										type="button"
 										className="px-3 py-2 text-sm rounded bg-standout text-on-standout disabled:opacity-50"

@@ -206,9 +206,9 @@ export default function Dashboard({ }: DashboardProps) {
 
       {/* Main Content */}
       <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-        <div className="bg-backdrop-low rounded-lg shadow border border-line">
+        <div className="bg-backdrop-low rounded-lg shadow">
           {/* Posts Header */}
-          <div className="px-6 py-4 border-b border-line">
+          <div className="px-6 py-4">
             <div className="flex items-center justify-between gap-4">
               <h2 className="text-lg font-semibold text-neutral-high">
                 Posts
@@ -218,7 +218,7 @@ export default function Dashboard({ }: DashboardProps) {
                   value={q}
                   onChange={(e) => setQ(e.target.value)}
                   placeholder="Search title or slug..."
-                  className="px-3 py-2 text-sm border border-line rounded bg-backdrop-low text-neutral-high"
+                  className="px-3 py-1.75 text-sm border border-line bg-backdrop-low text-neutral-high"
                 />
                 <Select
                   defaultValue={status || undefined}
@@ -446,7 +446,7 @@ export default function Dashboard({ }: DashboardProps) {
             </TableBody>
           </Table>
           {/* Pagination */}
-          <div className="px-6 py-3 border-t border-line flex items-center justify-between text-sm">
+          <div className="px-6 py-3 flex items-center justify-between text-sm">
             <div className="text-neutral-medium">
               {total > 0 ? (
                 <>Showing {(total === 0 ? 0 : (page - 1) * limit + 1)}–{Math.min(page * limit, total)} of {total}</>
