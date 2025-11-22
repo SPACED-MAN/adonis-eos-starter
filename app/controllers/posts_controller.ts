@@ -4,6 +4,8 @@ import CreatePost, { CreatePostException } from '#actions/posts/create_post'
 import UpdatePost, { UpdatePostException } from '#actions/posts/update_post'
 import AddModuleToPost, { AddModuleToPostException } from '#actions/posts/add_module_to_post'
 import UpdatePostModule, { UpdatePostModuleException } from '#actions/posts/update_post_module'
+import CreateTranslation, { CreateTranslationException } from '#actions/translations/create_translation'
+import BulkPostsAction from '#actions/posts/bulk_action'
 import db from '@adonisjs/lucid/services/db'
 import urlPatternService from '#services/url_pattern_service'
 import authorizationService from '#services/authorization_service'
@@ -280,53 +282,37 @@ export default class PostsController {
    */
   async createTranslation({ params, request, response, auth }: HttpContext) {
     const { id } = params
-    const locale = request.input('locale')
-    if (!locale) {
-      return response.badRequest({ error: 'locale is required' })
-    }
-    const source = await Post.find(id)
-    if (!source) {
-      return response.notFound({ error: 'Post not found' })
-    }
-    if (source.locale === locale) {
-      return response.badRequest({ error: 'Translation locale must differ from source locale' })
-    }
-    // Determine family base
-    const baseId = source.translationOfId || source.id
-    // Check if translation exists
-    const existing = await Post.query()
-      .where('translationOfId', baseId)
-      .where('locale', locale)
-      .first()
-    if (existing) {
-      // For Inertia, redirect to editor
+    const { locale, slug, title, metaTitle, metaDescription } = request.only([
+      'locale',
+      'slug',
+      'title',
+      'metaTitle',
+      'metaDescription',
+    ])
+    if (!locale) return response.badRequest({ error: 'locale is required' })
+    try {
+      const translation = await CreateTranslation.handle({
+        postId: id,
+        locale,
+        slug,
+        title,
+        metaTitle,
+        metaDescription,
+        userId: auth.user!.id,
+      })
       if (request.header('x-inertia')) {
-        return response.redirect().toPath(`/admin/posts/${existing.id}/edit`)
+        return response.redirect().toPath(`/admin/posts/${translation.id}/edit`)
       }
-      return response.conflict({ error: 'Translation already exists', id: existing.id })
+      return response.created({ id: translation.id })
+    } catch (error) {
+      if (error instanceof CreateTranslationException) {
+        return response.status(error.statusCode).json({
+          error: error.message,
+          ...error.meta,
+        })
+      }
+      throw error
     }
-    // Create translation (basic fields only for now)
-    const newPost = await Post.create({
-      type: source.type,
-      locale,
-      slug: `${source.slug}-${locale}-${Date.now()}`,
-      title: source.title,
-      status: 'draft',
-      excerpt: source.excerpt,
-      metaTitle: source.metaTitle,
-      metaDescription: source.metaDescription,
-      canonicalUrl: source.canonicalUrl,
-      robotsJson: source.robotsJson,
-      jsonldOverrides: source.jsonldOverrides,
-      translationOfId: baseId,
-      templateId: source.templateId,
-      userId: auth.user!.id,
-    })
-    // Redirect back to editor for the new translation
-    if (request.header('x-inertia')) {
-      return response.redirect().toPath(`/admin/posts/${newPost.id}/edit`)
-    }
-    return response.created({ id: newPost.id })
   }
 
   /**
@@ -561,51 +547,24 @@ export default class PostsController {
    */
   async bulk({ request, response, auth }: HttpContext) {
     const { action, ids } = request.only(['action', 'ids'])
-    const validActions = new Set(['publish', 'draft', 'archive', 'delete'])
-    if (!validActions.has(action)) {
-      return response.badRequest({ error: 'Invalid action' })
-    }
     if (!Array.isArray(ids) || ids.length === 0) {
       return response.badRequest({ error: 'ids must be a non-empty array' })
     }
-    // Normalize unique IDs
-    const uniqueIds = Array.from(new Set(ids.map((v) => String(v))))
-
-    // Authorization by role
     const role = (auth.use('web').user as any)?.role as 'admin' | 'editor' | 'translator' | undefined
-    if (!authorizationService.canBulkAction(role, action)) {
-      return response.forbidden({ error: 'Not allowed to perform this action' })
-    }
-    if (action === 'delete') {
-      // Only delete archived
-      const notArchived = await Post.query().whereIn('id', uniqueIds).whereNot('status', 'archived').select('id', 'status')
-      if (notArchived.length > 0) {
-        return response.badRequest({
-          error: 'Only archived posts can be deleted',
-          notArchived: notArchived.map((p) => ({ id: p.id, status: p.status })),
-        })
+    try {
+      const result = await BulkPostsAction.handle({
+        action: action as any,
+        ids,
+        role,
+      })
+      return response.ok(result)
+    } catch (e: any) {
+      const status = e?.statusCode || 400
+      if (e?.meta) {
+        return response.status(status).json({ error: e.message, ...e.meta })
       }
-      await Post.query().whereIn('id', uniqueIds).delete()
-      return response.ok({ message: 'Deleted archived posts', count: uniqueIds.length })
+      return response.status(status).json({ error: e?.message || 'Bulk action failed' })
     }
-
-    let nextStatus: 'published' | 'draft' | 'archived'
-    switch (action) {
-      case 'publish':
-        nextStatus = 'published'
-        break
-      case 'draft':
-        nextStatus = 'draft'
-        break
-      case 'archive':
-        nextStatus = 'archived'
-        break
-      default:
-        return response.badRequest({ error: 'Invalid action' })
-    }
-    const now = new Date()
-    await Post.query().whereIn('id', uniqueIds).update({ status: nextStatus, updatedAt: now as any })
-    return response.ok({ message: `Updated status to ${nextStatus}`, count: uniqueIds.length })
   }
 
   /**
