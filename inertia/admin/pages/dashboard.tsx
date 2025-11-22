@@ -2,6 +2,8 @@ import { Head, Link, usePage } from '@inertiajs/react'
 import { useEffect, useMemo, useState } from 'react'
 import { AdminHeader } from '../components/AdminHeader'
 import { AdminFooter } from '../components/AdminFooter'
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '~/components/ui/table'
+import { Checkbox } from '~/components/ui/checkbox'
 
 interface DashboardProps { }
 
@@ -324,97 +326,112 @@ export default function Dashboard({ }: DashboardProps) {
             </div>
           </div>
 
-          {/* Posts List */}
-          <div className="divide-y divide-line">
-            {/* Header row with sortable columns */}
-            <div className="px-6 py-2 bg-backdrop-medium text-sm text-neutral-medium grid grid-cols-12 items-center">
-              <div className="col-span-1"></div>
-              <button className="col-span-4 text-left hover:underline" onClick={() => { toggleSort('title'); setPage(1) }}>
-                Title {sortBy === 'title' ? (sortOrder === 'asc' ? '↑' : '↓') : ''}
-              </button>
-              <button className="col-span-2 text-left hover:underline" onClick={() => { toggleSort('slug'); setPage(1) }}>
-                Slug {sortBy === 'slug' ? (sortOrder === 'asc' ? '↑' : '↓') : ''}
-              </button>
-              <div className="col-span-1 text-left">
-                Locales
-              </div>
-              <button className="col-span-2 text-left hover:underline" onClick={() => { toggleSort('status'); setPage(1) }}>
-                Status {sortBy === 'status' ? (sortOrder === 'asc' ? '↑' : '↓') : ''}
-              </button>
-              <button className="col-span-2 text-left hover:underline" onClick={() => { toggleSort('updated_at'); setPage(1) }}>
-                Updated {sortBy === 'updated_at' ? (sortOrder === 'asc' ? '↑' : '↓') : ''}
-              </button>
-            </div>
-            {posts.length === 0 ? (
-              <div className="px-6 py-12 text-center">
-                <p className="text-neutral-low">No posts yet.</p>
-                <p className="text-sm text-neutral-low mt-2">
-                  Run the seeder to create test posts.
-                </p>
-              </div>
-            ) : (
-              posts.map((post) => {
-                const checked = selected.has(post.id)
-                return (
-                  <div
-                    key={post.id}
-                    className="px-6 py-3 hover:bg-backdrop-medium transition-colors grid grid-cols-12 items-center"
-                  >
-                    <div className="col-span-1">
-                      <input
-                        type="checkbox"
-                        checked={checked}
-                        onChange={() => toggleSelect(post.id)}
-                        className="rounded border-line"
-                      />
+          <Table>
+            <TableHeader>
+              <TableRow>
+                <TableHead className="w-[44px]">
+                  <Checkbox
+                    checked={selectAll}
+                    onCheckedChange={() => toggleSelectAll()}
+                    aria-label="Select all"
+                  />
+                </TableHead>
+                <TableHead>
+                  <button className="hover:underline" onClick={() => { toggleSort('title'); setPage(1) }}>
+                    Title {sortBy === 'title' ? (sortOrder === 'asc' ? '↑' : '↓') : ''}
+                  </button>
+                </TableHead>
+                <TableHead>
+                  <button className="hover:underline" onClick={() => { toggleSort('slug'); setPage(1) }}>
+                    Slug {sortBy === 'slug' ? (sortOrder === 'asc' ? '↑' : '↓') : ''}
+                  </button>
+                </TableHead>
+                <TableHead>Locales</TableHead>
+                <TableHead>
+                  <button className="hover:underline" onClick={() => { toggleSort('status'); setPage(1) }}>
+                    Status {sortBy === 'status' ? (sortOrder === 'asc' ? '↑' : '↓') : ''}
+                  </button>
+                </TableHead>
+                <TableHead>
+                  <button className="hover:underline" onClick={() => { toggleSort('updated_at'); setPage(1) }}>
+                    Updated {sortBy === 'updated_at' ? (sortOrder === 'asc' ? '↑' : '↓') : ''}
+                  </button>
+                </TableHead>
+                <TableHead className="text-right">Actions</TableHead>
+              </TableRow>
+            </TableHeader>
+            <TableBody>
+              {posts.length === 0 ? (
+                <TableRow>
+                  <TableCell colSpan={7}>
+                    <div className="py-12 text-center">
+                      <p className="text-neutral-low">No posts yet.</p>
+                      <p className="text-sm text-neutral-low mt-2">Run the seeder to create test posts.</p>
                     </div>
-                    <div className="col-span-4">
-                      <div className="text-sm font-medium text-neutral-high">{post.title}</div>
-                    </div>
-                    <div className="col-span-2">
-                      <span className="font-mono text-sm text-neutral-medium">{post.slug}</span>
-                    </div>
-                    <div className="col-span-1">
-                      <div className="flex flex-wrap gap-1">
-                        {(supportedLocales.length > 1 ? supportedLocales : [post.locale]).map((loc) => {
-                          const exists = (post.familyLocales || [post.locale]).includes(loc)
-                          return (
-                            <span
-                              key={`${post.id}-${loc}`}
-                              className={`px-1.5 py-0.5 rounded text-[10px] border ${exists ? 'bg-standout/10 text-standout border-standout/40' : 'bg-backdrop-low text-neutral-medium border-line'
-                                }`}
-                              title={exists ? `Has ${loc.toUpperCase()}` : `Missing ${loc.toUpperCase()}`}
-                            >
-                              {loc.toUpperCase()}
-                            </span>
-                          )
-                        })}
-                      </div>
-                    </div>
-                    <div className="col-span-2">
-                      <span className="text-sm capitalize">{post.status}</span>
-                      {post.hasReviewDraft && (
-                        <span className="ml-2 text-xs px-1.5 py-0.5 rounded bg-backdrop-medium text-neutral-high border border-line align-middle">
-                          In Review
+                  </TableCell>
+                </TableRow>
+              ) : (
+                posts.map((post) => {
+                  const checked = selected.has(post.id)
+                  return (
+                    <TableRow key={post.id}>
+                      <TableCell>
+                        <Checkbox
+                          checked={checked}
+                          onCheckedChange={() => toggleSelect(post.id)}
+                          aria-label="Select row"
+                        />
+                      </TableCell>
+                      <TableCell>
+                        <div className="text-sm font-medium text-neutral-high">{post.title}</div>
+                      </TableCell>
+                      <TableCell>
+                        <span className="font-mono text-sm text-neutral-medium">{post.slug}</span>
+                      </TableCell>
+                      <TableCell>
+                        <div className="flex flex-wrap gap-1">
+                          {(supportedLocales.length > 1 ? supportedLocales : [post.locale]).map((loc) => {
+                            const exists = (post.familyLocales || [post.locale]).includes(loc)
+                            return (
+                              <span
+                                key={`${post.id}-${loc}`}
+                                className={`px-1.5 py-0.5 rounded text-[10px] border ${exists ? 'bg-standout/10 text-standout border-standout/40' : 'bg-backdrop-low text-neutral-medium border-line'
+                                  }`}
+                                title={exists ? `Has ${loc.toUpperCase()}` : `Missing ${loc.toUpperCase()}`}
+                              >
+                                {loc.toUpperCase()}
+                              </span>
+                            )
+                          })}
+                        </div>
+                      </TableCell>
+                      <TableCell>
+                        <span className="text-sm capitalize">{post.status}</span>
+                        {post.hasReviewDraft && (
+                          <span className="ml-2 text-xs px-1.5 py-0.5 rounded bg-backdrop-medium text-neutral-high border border-line align-middle">
+                            In Review
+                          </span>
+                        )}
+                      </TableCell>
+                      <TableCell>
+                        <span className="text-xs text-neutral-low">
+                          {new Date(post.updatedAt).toLocaleString(undefined, { year: 'numeric', month: '2-digit', day: '2-digit', hour: '2-digit', minute: '2-digit' })}
                         </span>
-                      )}
-                    </div>
-                    <div className="col-span-2 flex items-center gap-2">
-                      <span className="text-xs text-neutral-low">
-                        {new Date(post.updatedAt).toLocaleString(undefined, { year: 'numeric', month: '2-digit', day: '2-digit', hour: '2-digit', minute: '2-digit' })}
-                      </span>
-                      <Link
-                        href={`/admin/posts/${post.id}/edit`}
-                        className="px-3 py-1 text-xs border border-line rounded hover:bg-backdrop-medium text-neutral-medium"
-                      >
-                        Edit
-                      </Link>
-                    </div>
-                  </div>
-                )
-              })
-            )}
-          </div>
+                      </TableCell>
+                      <TableCell className="text-right">
+                        <Link
+                          href={`/admin/posts/${post.id}/edit`}
+                          className="px-3 py-1 text-xs border border-line rounded hover:bg-backdrop-medium text-neutral-medium"
+                        >
+                          Edit
+                        </Link>
+                      </TableCell>
+                    </TableRow>
+                  )
+                })
+              )}
+            </TableBody>
+          </Table>
           {/* Pagination */}
           <div className="px-6 py-3 border-t border-line flex items-center justify-between text-sm">
             <div className="text-neutral-medium">
