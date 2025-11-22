@@ -102,3 +102,11 @@ import Button from 'src/components/ui/Button'
 // ❌ Bad: Relative paths
 import Button from '../../../components/ui/Button'
 ```
+
+## Forms and Field Reuse
+
+- Prefer shared field primitives for consistency and to avoid duplication:
+  - Reuse ShadCN components in `inertia/components/ui/` for inputs, selects, checkboxes, sliders, popovers, calendar.
+  - Keep module/editor field renderers generic and consider extracting reusable form elements when patterns repeat.
+- Maintain uncontrolled form strategy where appropriate for performance, reading values once on save.
+- Avoid duplicating field render logic across screens; create shared helpers/components instead.

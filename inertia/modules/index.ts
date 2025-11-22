@@ -16,6 +16,7 @@ export { default as ProseStatic } from './prose-static'
 // React modules (SSR + hydration, interactive)
 export { default as Gallery } from './gallery'
 export { default as Accordion } from './accordion'
+export { default as KitchenSink } from './kitchen-sink'
 
 /**
  * Module component map for dynamic imports
@@ -29,6 +30,7 @@ export const MODULE_COMPONENTS = {
   // React variants
   'gallery': () => import('./gallery'),
   'accordion': () => import('./accordion'),
+  'kitchen-sink': () => import('./kitchen-sink'),
 } as const
 
 export type ModuleComponentName = keyof typeof MODULE_COMPONENTS

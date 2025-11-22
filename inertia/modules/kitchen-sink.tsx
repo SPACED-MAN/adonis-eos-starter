@@ -1,0 +1,95 @@
+import React from 'react'
+
+type KitchenSinkProps = {
+	title: string
+	description?: string
+	count?: number
+	category?: string
+	tags?: string[]
+	featured?: boolean
+	publishDate?: string
+	linkUrl?: string
+	media?: string
+	metadata?: { author?: string; readingTime?: number; attributionRequired?: boolean }
+	items?: Array<{ label?: string; value?: string; highlight?: boolean }>
+	content?: any
+}
+
+export default function KitchenSink(props: KitchenSinkProps) {
+	return (
+		<section className="border border-line rounded-lg bg-backdrop-low p-6 space-y-4">
+			<header>
+				<h2 className="text-lg font-semibold text-neutral-high">{props.title}</h2>
+				{props.description && <p className="text-neutral-medium">{props.description}</p>}
+			</header>
+			{props.media && (
+				<div className="rounded overflow-hidden border border-line">
+					<img src={props.media} alt={props.title} className="w-full h-auto" />
+				</div>
+			)}
+			<div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-sm">
+				<Info label="Count" value={String(props.count ?? '')} />
+				<Info label="Category" value={props.category ?? ''} />
+				<Info label="Tags" value={(props.tags || []).join(', ')} />
+				<Info label="Featured" value={props.featured ? 'Yes' : 'No'} />
+				<Info label="Publish Date" value={props.publishDate ?? ''} />
+				<Info label="Link URL" value={props.linkUrl ?? ''} />
+			</div>
+			{props.metadata && (
+				<div className="text-sm">
+					<h3 className="font-medium text-neutral-high mb-1">Metadata</h3>
+					<ul className="list-disc pl-5 text-neutral-medium">
+						<li>Author: {props.metadata.author ?? ''}</li>
+						<li>Reading Time: {props.metadata.readingTime ?? ''} min</li>
+						<li>Attribution Required: {props.metadata.attributionRequired ? 'Yes' : 'No'}</li>
+					</ul>
+				</div>
+			)}
+			{Array.isArray(props.items) && props.items.length > 0 && (
+				<div className="text-sm">
+					<h3 className="font-medium text-neutral-high mb-1">Items</h3>
+					<ul className="list-disc pl-5">
+						{props.items.map((it, idx) => (
+							<li key={idx} className={it.highlight ? 'text-standout' : 'text-neutral-high'}>
+								<strong>{it.label}:</strong> {it.value}
+							</li>
+						))}
+					</ul>
+				</div>
+			)}
+			{props.content?.root && (
+				<div className="prose prose-invert max-w-none">
+					{/* Minimal preview of Lexical JSON */}
+					{renderLexicalPreview(props.content)}
+				</div>
+			)}
+		</section>
+	)
+}
+
+function Info({ label, value }: { label: string; value: string }) {
+	return (
+		<div>
+			<div className="text-neutral-low">{label}</div>
+			<div className="text-neutral-high">{value}</div>
+		</div>
+	)
+}
+
+function renderLexicalPreview(json: any): React.ReactNode {
+	if (!json?.root?.children) return null
+	return (json.root.children as any[]).map((node, i) => {
+		if (node.type === 'paragraph') {
+			const text = (node.children || []).map((c: any) => c.text || '').join('')
+			return (
+				<p key={i} className="my-2">
+					{text}
+				</p>
+			)
+		}
+		return null
+	})
+}
+
+
+

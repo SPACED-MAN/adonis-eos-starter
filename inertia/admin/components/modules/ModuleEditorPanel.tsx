@@ -2,6 +2,20 @@ import { useEffect, useMemo, useRef, useState } from 'react'
 import { createPortal } from 'react-dom'
 import { toast } from 'sonner'
 import { LexicalEditor } from '../LexicalEditor'
+import { Popover, PopoverTrigger, PopoverContent } from '~/components/ui/popover'
+import { Checkbox } from '~/components/ui/checkbox'
+import { Slider } from '~/components/ui/slider'
+import { Calendar } from '~/components/ui/calendar'
+import { Input } from '~/components/ui/input'
+import { Textarea } from '~/components/ui/textarea'
+import {
+	Select,
+	SelectTrigger,
+	SelectValue,
+	SelectContent,
+	SelectItem,
+} from '~/components/ui/select'
+import { FormField, FormLabel } from '~/components/forms/field'
 
 export interface ModuleListItem {
 	id: string
@@ -29,11 +43,17 @@ type FieldSchema =
 		| 'media'
 		| 'object'
 		| 'repeater'
+		| 'slider'
 		required?: boolean
 		placeholder?: string
 		options?: Array<{ label: string; value: string }>
 		fields?: FieldSchema[] // for object
 		item?: FieldSchema // for repeater
+		// slider configuration (optional)
+		min?: number
+		max?: number
+		step?: number
+		unit?: string
 	}
 	| { name: string;[key: string]: any }
 
@@ -157,43 +177,7 @@ export function ModuleEditorPanel({
 		target[parts[parts.length - 1]] = value
 	}
 
-	const trySave = async () => {
-		const base = moduleItem.props || {}
-		// Build edited object from current form values (uncontrolled inputs)
-		const edited = JSON.parse(JSON.stringify(merged))
-		const form = formRef.current
-		if (form) {
-			const elements = form.querySelectorAll<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>(
-				'input[name], textarea[name], select[name]'
-			)
-			elements.forEach((el) => {
-				const name = el.getAttribute('name')!
-				if ((el as HTMLInputElement).type === 'checkbox') {
-					setByPath(edited, name, (el as HTMLInputElement).checked)
-				} else if ((el as HTMLInputElement).type === 'number') {
-					const val = (el as HTMLInputElement).value
-					setByPath(edited, name, val === '' ? 0 : Number(val))
-				} else if ((el as HTMLInputElement).dataset && (el as HTMLInputElement).dataset.json === '1') {
-					const val = (el as HTMLInputElement).value
-					try {
-						setByPath(edited, name, val ? JSON.parse(val) : null)
-					} catch {
-						// leave as string if invalid
-						setByPath(edited, name, val)
-					}
-				} else if ((el as HTMLSelectElement).multiple) {
-					const vals = Array.from((el as HTMLSelectElement).selectedOptions).map((o) => o.value)
-					setByPath(edited, name, vals)
-				} else {
-					setByPath(edited, name, (el as HTMLInputElement).value)
-				}
-			})
-		}
-		const overrides = diffOverrides(base, edited)
-		await onSave(overrides, edited)
-		toast.success('Module updated')
-		onClose()
-	}
+	// removed unused trySave (we now save on explicit action buttons)
 
 	function FieldPrimitive({
 		path,
@@ -212,8 +196,8 @@ export function ModuleEditorPanel({
 		if (type === 'richtext') {
 			const hiddenRef = useRef<HTMLInputElement | null>(null)
 			return (
-				<div>
-					<label className="block text-sm font-medium text-neutral-medium mb-1">{label}</label>
+				<FormField>
+					<FormLabel>{label}</FormLabel>
 					<LexicalEditor
 						editorKey={`${rootId}:${name}`}
 						value={value}
@@ -234,86 +218,197 @@ export function ModuleEditorPanel({
 						data-json="1"
 						defaultValue={value ? JSON.stringify(value) : ''}
 					/>
-				</div>
+				</FormField>
 			)
 		}
-		const commonLabel =
-			<label className="block text-sm font-medium text-neutral-medium mb-1">{label}</label>
+		if (type === 'date') {
+			const initial = typeof value === 'string' ? value : ''
+			const initialDate = initial ? new Date(initial) : null
+			const [selected, setSelected] = useState<Date | null>(initialDate)
+			const hiddenRef = useRef<HTMLInputElement | null>(null)
+			function formatDate(d: Date | null) {
+				if (!d) return ''
+				const y = d.getFullYear()
+				const m = String(d.getMonth() + 1).padStart(2, '0')
+				const da = String(d.getDate()).padStart(2, '0')
+				return `${y}-${m}-${da}`
+			}
+			return (
+				<FormField>
+					<FormLabel>{label}</FormLabel>
+					<Popover>
+						<PopoverTrigger asChild>
+							<button
+								type="button"
+								className="w-full text-left px-3 py-2 border border-border rounded-lg bg-backdrop-low text-neutral-high hover:bg-backdrop-medium"
+							>
+								{selected ? formatDate(selected) : 'Pick a date'}
+							</button>
+						</PopoverTrigger>
+						<PopoverContent>
+							<Calendar
+								mode="single"
+								selected={selected || undefined}
+								onSelect={(d: Date | undefined) => {
+									const val = d || null
+									setSelected(val)
+									if (hiddenRef.current) {
+										hiddenRef.current.value = formatDate(val)
+									}
+								}}
+							/>
+						</PopoverContent>
+					</Popover>
+					<input type="hidden" ref={hiddenRef} name={name} defaultValue={initial} />
+				</FormField>
+			)
+		}
+		if (type === 'slider') {
+			const min = (field as any).min ?? 0
+			const max = (field as any).max ?? 100
+			const step = (field as any).step ?? 1
+			const unit = (field as any).unit ?? ''
+			const current = typeof value === 'number' ? value : min
+			const [val, setVal] = useState<number>(current)
+			const hiddenRef = useRef<HTMLInputElement | null>(null)
+			return (
+				<FormField>
+					<FormLabel>{label}</FormLabel>
+					<Slider
+						defaultValue={[current]}
+						min={min}
+						max={max}
+						step={step}
+						onValueChange={(v) => {
+							const n = Array.isArray(v) ? (v[0] ?? min) : min
+							setVal(n)
+							if (hiddenRef.current) hiddenRef.current.value = String(n)
+						}}
+					/>
+					<div className="mt-1 text-xs text-neutral-medium">
+						{val}{unit} (min {min}, max {max}, step {step})
+					</div>
+					<input type="hidden" name={name} ref={hiddenRef} defaultValue={String(current)} data-number="1" />
+				</FormField>
+			)
+		}
 		if (type === 'textarea') {
 			return (
-				<div>
-					{commonLabel}
-					<textarea
-						className="w-full px-3 py-2 border border-border rounded-lg bg-backdrop-low text-neutral-high focus:ring-2 ring-standout"
-						name={name}
-						defaultValue={value ?? ''}
-					/>
-				</div>
+				<FormField>
+					<FormLabel>{label}</FormLabel>
+					<Textarea name={name} defaultValue={value ?? ''} />
+				</FormField>
 			)
 		}
 		if (type === 'number') {
 			return (
-				<div>
-					{commonLabel}
-					<input
-						type="number"
-						className="w-full px-3 py-2 border border-border rounded-lg bg-backdrop-low text-neutral-high focus:ring-2 ring-standout"
-						name={name}
-						defaultValue={value ?? 0}
-					/>
-				</div>
+				<FormField>
+					<FormLabel>{label}</FormLabel>
+					<Input type="number" name={name} defaultValue={value ?? 0} />
+				</FormField>
 			)
 		}
 		if (type === 'select' || type === 'multiselect') {
 			const options = (field as any).options || []
 			const isMulti = type === 'multiselect'
-			return (
-				<div>
-					{commonLabel}
-					<select
-						multiple={isMulti}
-						className="w-full px-3 py-2 border border-border rounded-lg bg-backdrop-low text-neutral-high focus:ring-2 ring-standout"
-						name={name}
-						defaultValue={isMulti ? (Array.isArray(value) ? value : []) : (value ?? '')}
-					>
-						{!isMulti && <option value=""></option>}
-						{options.map((opt: any) => (
-							<option key={opt.value} value={opt.value}>
-								{opt.label ?? opt.value}
-							</option>
-						))}
-					</select>
-				</div>
-			)
+			if (!isMulti) {
+				const initial = typeof value === 'string' ? value : ''
+				const hiddenRef = useRef<HTMLInputElement | null>(null)
+				return (
+					<FormField>
+						<FormLabel>{label}</FormLabel>
+						<Select
+							defaultValue={initial || undefined}
+							onValueChange={(val) => {
+								if (hiddenRef.current) hiddenRef.current.value = val ?? ''
+							}}
+						>
+							<SelectTrigger>
+								<SelectValue placeholder="Select an option" />
+							</SelectTrigger>
+							<SelectContent>
+								{options.map((opt: any) => (
+									<SelectItem key={opt.value} value={opt.value}>
+										{opt.label ?? opt.value}
+									</SelectItem>
+								))}
+							</SelectContent>
+						</Select>
+						<input type="hidden" name={name} defaultValue={initial} ref={hiddenRef} />
+					</FormField>
+				)
+			} else {
+				const initial: string[] = Array.isArray(value) ? value : []
+				const [vals, setVals] = useState<string[]>(initial)
+				const hiddenRef = useRef<HTMLInputElement | null>(null)
+				useEffect(() => {
+					if (hiddenRef.current) hiddenRef.current.value = JSON.stringify(vals)
+				}, [vals])
+				return (
+					<FormField>
+						<FormLabel>{label}</FormLabel>
+						<Popover>
+							<PopoverTrigger asChild>
+								<button
+									type="button"
+									className="w-full text-left px-3 py-2 border border-border rounded-lg bg-backdrop-low text-neutral-high hover:bg-backdrop-medium"
+								>
+									{vals.length === 0 ? 'Select options' : `${vals.length} selected`}
+								</button>
+							</PopoverTrigger>
+							<PopoverContent className="w-64">
+								<div className="space-y-2">
+									{options.map((opt: any) => {
+										const checked = vals.includes(opt.value)
+										return (
+											<label key={opt.value} className="flex items-center gap-2">
+												<Checkbox
+													checked={checked}
+													onCheckedChange={(c) => {
+														setVals((prev) => {
+															const next = new Set(prev)
+															if (c) next.add(opt.value)
+															else next.delete(opt.value)
+															return Array.from(next)
+														})
+													}}
+												/>
+												<span className="text-sm">{opt.label ?? opt.value}</span>
+											</label>
+										)
+									})}
+								</div>
+							</PopoverContent>
+						</Popover>
+						<input type="hidden" name={name} defaultValue={JSON.stringify(initial)} ref={hiddenRef} data-json="1" />
+					</FormField>
+				)
+			}
 		}
 		if (type === 'boolean') {
 			return (
 				<div className="flex items-center gap-2">
-					<input
-						id={`${rootId}:${name}`}
-						type="checkbox"
-						className="h-4 w-4 border-border rounded"
-						name={name}
+					<Checkbox
 						defaultChecked={!!value}
+						onCheckedChange={(checked) => {
+							const hidden = document.querySelector<HTMLInputElement>(`input[type="hidden"][name="${name}"]`)
+							if (hidden) hidden.value = checked ? 'true' : 'false'
+						}}
+						id={`${rootId}:${name}`}
 					/>
 					<label htmlFor={`${rootId}:${name}`} className="text-sm text-neutral-high">
 						{label}
 					</label>
+					<input type="hidden" name={name} defaultValue={!!value ? 'true' : 'false'} data-bool="1" />
 				</div>
 			)
 		}
-		// text, url, date, media fallback to text input
+		// text, url, media fallback to text input
 		return (
-			<div>
-				{commonLabel}
-				<input
-					type="text"
-					className="w-full px-3 py-2 border border-border rounded-lg bg-backdrop-low text-neutral-high focus:ring-2 ring-standout"
-					name={name}
-					placeholder={(field as any).placeholder || ''}
-					defaultValue={value ?? ''}
-				/>
-			</div>
+			<FormField>
+				<FormLabel>{label}</FormLabel>
+				<Input type="text" name={name} placeholder={(field as any).placeholder || ''} defaultValue={value ?? ''} />
+			</FormField>
 		)
 	}
 
@@ -670,6 +765,12 @@ export function ModuleEditorPanel({
 										} catch {
 											setByPath(edited, name, val)
 										}
+									} else if ((el as HTMLInputElement).dataset && (el as HTMLInputElement).dataset.bool === '1') {
+										const val = (el as HTMLInputElement).value
+										setByPath(edited, name, val === 'true')
+									} else if ((el as HTMLInputElement).dataset && (el as HTMLInputElement).dataset.number === '1') {
+										const val = (el as HTMLInputElement).value
+										setByPath(edited, name, val === '' ? 0 : Number(val))
 									} else if ((el as HTMLSelectElement).multiple) {
 										const vals = Array.from((el as HTMLSelectElement).selectedOptions).map((o) => o.value)
 										setByPath(edited, name, vals)

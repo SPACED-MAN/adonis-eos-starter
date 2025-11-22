@@ -11,7 +11,7 @@ import { LexicalErrorBoundary } from '@lexical/react/LexicalErrorBoundary'
 import { HeadingNode, QuoteNode } from '@lexical/rich-text'
 import { ListItemNode, ListNode } from '@lexical/list'
 import { LinkNode, AutoLinkNode } from '@lexical/link'
-import { EditorState, FORMAT_TEXT_COMMAND, $getSelection, $isRangeSelection } from 'lexical'
+import { FORMAT_TEXT_COMMAND, $getSelection, $isRangeSelection } from 'lexical'
 import { $setBlocksType } from '@lexical/selection'
 import { $createHeadingNode } from '@lexical/rich-text'
 import { INSERT_UNORDERED_LIST_COMMAND, INSERT_ORDERED_LIST_COMMAND, REMOVE_LIST_COMMAND } from '@lexical/list'
@@ -21,13 +21,23 @@ import { faBold, faItalic, faUnderline, faListUl, faListOl, faParagraph, faHeadi
 function InitialContentPlugin({ initialValue }: { initialValue: any }) {
   const [editor] = useLexicalComposerContext()
   useEffect(() => {
-    if (initialValue && typeof initialValue === 'object') {
-      try {
-        const parsed = editor.parseEditorState(initialValue as EditorState)
-        editor.setEditorState(parsed)
-      } catch {
-        // ignore invalid initial state
+    try {
+      let candidate: any = initialValue
+      if (!candidate) return
+      if (typeof candidate === 'string') {
+        try {
+          candidate = JSON.parse(candidate)
+        } catch {
+          return
+        }
       }
+      if (typeof candidate !== 'object') return
+      // must look like Lexical JSON: has root with children array
+      if (!candidate.root || !Array.isArray(candidate.root.children)) return
+      const parsed = editor.parseEditorState(candidate as any)
+      editor.setEditorState(parsed)
+    } catch {
+      // ignore invalid initial state
     }
     // run only once on mount
     // eslint-disable-next-line react-hooks/exhaustive-deps
