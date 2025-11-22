@@ -10,6 +10,17 @@ import { AdminFooter } from '../../components/AdminFooter'
 import { Input } from '~/components/ui/input'
 import { Textarea } from '~/components/ui/textarea'
 import { Badge } from '~/components/ui/badge'
+import {
+  AlertDialog,
+  AlertDialogTrigger,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from '~/components/ui/alert-dialog'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '~/components/ui/select'
 import { ModulePicker } from '../../components/modules/ModulePicker'
 import { FormEvent, useEffect, useMemo, useRef, useState } from 'react'
@@ -902,31 +913,49 @@ export default function Editor({ post, modules: initialModules, translations, re
                         </span>
                         {r.user?.email ? <span className="text-xs text-neutral-low">{r.user.email}</span> : null}
                       </div>
-                      <button
-                        className="px-2 py-1 text-xs border border-border rounded hover:bg-backdrop-medium text-neutral-medium"
-                        onClick={async () => {
-                          if (!confirm('Revert to this revision?')) return
-                          const res = await fetch(`/api/posts/${post.id}/revisions/${encodeURIComponent(r.id)}/revert`, {
-                            method: 'POST',
-                            headers: {
-                              Accept: 'application/json',
-                              'Content-Type': 'application/json',
-                              ...(xsrfToken ? { 'X-XSRF-TOKEN': xsrfToken } : {}),
-                            },
-                            credentials: 'same-origin',
-                          })
-                          if (res.ok) {
-                            toast.success('Reverted to selected revision')
-                            // After revert, reload page data
-                            window.location.reload()
-                          } else {
-                            const j = await res.json().catch(() => null)
-                            toast.error(j?.error || 'Failed to revert')
-                          }
-                        }}
-                      >
-                        Revert
-                      </button>
+                      <AlertDialog>
+                        <AlertDialogTrigger asChild>
+                          <button
+                            className="px-2 py-1 text-xs border border-border rounded hover:bg-backdrop-medium text-neutral-medium"
+                            type="button"
+                          >
+                            Revert
+                          </button>
+                        </AlertDialogTrigger>
+                        <AlertDialogContent>
+                          <AlertDialogHeader>
+                            <AlertDialogTitle>Revert to this revision?</AlertDialogTitle>
+                            <AlertDialogDescription>
+                              This will replace current content with the selected revision.
+                            </AlertDialogDescription>
+                          </AlertDialogHeader>
+                          <AlertDialogFooter>
+                            <AlertDialogCancel>Cancel</AlertDialogCancel>
+                            <AlertDialogAction
+                              onClick={async () => {
+                                const res = await fetch(`/api/posts/${post.id}/revisions/${encodeURIComponent(r.id)}/revert`, {
+                                  method: 'POST',
+                                  headers: {
+                                    Accept: 'application/json',
+                                    'Content-Type': 'application/json',
+                                    ...(xsrfToken ? { 'X-XSRF-TOKEN': xsrfToken } : {}),
+                                  },
+                                  credentials: 'same-origin',
+                                })
+                                if (res.ok) {
+                                  toast.success('Reverted to selected revision')
+                                  window.location.reload()
+                                } else {
+                                  const j = await res.json().catch(() => null)
+                                  toast.error(j?.error || 'Failed to revert')
+                                }
+                              }}
+                            >
+                              Confirm
+                            </AlertDialogAction>
+                          </AlertDialogFooter>
+                        </AlertDialogContent>
+                      </AlertDialog>
                     </li>
                   ))}
                 </ul>

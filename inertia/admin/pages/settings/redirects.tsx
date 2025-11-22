@@ -3,6 +3,17 @@ import { Head } from '@inertiajs/react'
 import { AdminHeader } from '../../components/AdminHeader'
 import { AdminFooter } from '../../components/AdminFooter'
 import { AdminBreadcrumbs } from '../../components/AdminBreadcrumbs'
+import {
+	AlertDialog,
+	AlertDialogAction,
+	AlertDialogCancel,
+	AlertDialogContent,
+	AlertDialogDescription,
+	AlertDialogFooter,
+	AlertDialogHeader,
+	AlertDialogTitle,
+	AlertDialogTrigger,
+} from '~/components/ui/alert-dialog'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '~/components/ui/select'
 
 type Redirect = {
@@ -261,13 +272,28 @@ export default function RedirectsPage() {
 												<span className="ml-3 text-neutral-low">[{r.http_status}]</span>
 												{r.locale && <span className="ml-2 text-neutral-low">({r.locale})</span>}
 											</div>
-											<button
-												type="button"
-												className="px-3 py-1.5 text-xs rounded border border-line hover:bg-backdrop-medium text-neutral-medium"
-												onClick={() => remove(r.id)}
-											>
-												Delete
-											</button>
+											<AlertDialog>
+												<AlertDialogTrigger asChild>
+													<button
+														type="button"
+														className="px-3 py-1.5 text-xs rounded border border-line hover:bg-backdrop-medium text-neutral-medium"
+													>
+														Delete
+													</button>
+												</AlertDialogTrigger>
+												<AlertDialogContent>
+													<AlertDialogHeader>
+														<AlertDialogTitle>Delete redirect?</AlertDialogTitle>
+														<AlertDialogDescription>
+															This action cannot be undone.
+														</AlertDialogDescription>
+													</AlertDialogHeader>
+													<AlertDialogFooter>
+														<AlertDialogCancel>Cancel</AlertDialogCancel>
+														<AlertDialogAction onClick={() => remove(r.id)}>Delete</AlertDialogAction>
+													</AlertDialogFooter>
+												</AlertDialogContent>
+											</AlertDialog>
 										</div>
 									))
 								)}

@@ -6,6 +6,16 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '~
 import { Checkbox } from '~/components/ui/checkbox'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '~/components/ui/select'
 import { Badge } from '~/components/ui/badge'
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from '~/components/ui/alert-dialog'
 
 interface DashboardProps { }
 
@@ -32,6 +42,7 @@ export default function Dashboard({ }: DashboardProps) {
   const [limit, setLimit] = useState(20)
   const [total, setTotal] = useState(0)
   const [bulkKey, setBulkKey] = useState(0)
+  const [confirmBulkDelete, setConfirmBulkDelete] = useState(false)
 
   // CSRF token for API calls
   const xsrfFromCookie: string | undefined = (() => {
@@ -309,8 +320,12 @@ export default function Dashboard({ }: DashboardProps) {
                 <Select
                   key={bulkKey}
                   onValueChange={(val: 'publish' | 'draft' | 'archive' | 'delete') => {
-                    applyBulk(val)
-                    setBulkKey((k) => k + 1) // reset placeholder
+                    if (val === 'delete') {
+                      setConfirmBulkDelete(true)
+                    } else {
+                      applyBulk(val)
+                      setBulkKey((k) => k + 1)
+                    }
                   }}
                 >
                   <SelectTrigger>
@@ -326,6 +341,28 @@ export default function Dashboard({ }: DashboardProps) {
               </div>
               {loading && <span className="text-xs text-neutral-low">Loading...</span>}
             </div>
+            <AlertDialog open={confirmBulkDelete} onOpenChange={setConfirmBulkDelete}>
+              <AlertDialogContent>
+                <AlertDialogHeader>
+                  <AlertDialogTitle>Delete selected posts?</AlertDialogTitle>
+                  <AlertDialogDescription>
+                    This action deletes archived posts only. This cannot be undone.
+                  </AlertDialogDescription>
+                </AlertDialogHeader>
+                <AlertDialogFooter>
+                  <AlertDialogCancel onClick={() => setConfirmBulkDelete(false)}>Cancel</AlertDialogCancel>
+                  <AlertDialogAction
+                    onClick={() => {
+                      setConfirmBulkDelete(false)
+                      applyBulk('delete')
+                      setBulkKey((k) => k + 1)
+                    }}
+                  >
+                    Delete
+                  </AlertDialogAction>
+                </AlertDialogFooter>
+              </AlertDialogContent>
+            </AlertDialog>
           </div>
 
           <Table>
