@@ -211,9 +211,6 @@ export default function Dashboard({ }: DashboardProps) {
           {/* Posts Header */}
           <div className="px-6 py-4">
             <div className="flex items-center justify-between gap-4">
-              <h2 className="text-lg font-semibold text-neutral-high">
-                Posts
-              </h2>
               <div className="flex items-center gap-2">
                 <input
                   value={q}
@@ -300,15 +297,6 @@ export default function Dashboard({ }: DashboardProps) {
                     Create New
                   </button>
                 )}
-                <button
-                  onClick={() => {
-                    setPage(1)
-                    fetchPosts()
-                  }}
-                  className="px-3 py-2 text-sm border border-line rounded bg-backdrop-low text-neutral-high"
-                >
-                  Search
-                </button>
               </div>
             </div>
             {/* Bulk actions */}
