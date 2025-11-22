@@ -524,7 +524,10 @@ export function ModuleEditorPanel({
 						<button
 							type="button"
 							className="px-3 py-1 text-xs border border-line rounded hover:bg-backdrop-medium text-neutral-medium"
+							onMouseDown={(e) => e.preventDefault()}
 							onClick={() => {
+								const scroller = formRef.current
+								const prevScrollTop = scroller ? scroller.scrollTop : 0
 								const next = JSON.parse(JSON.stringify(draft))
 								const arr = Array.isArray(value) ? [...value] : []
 								// Create an empty item based on schema
@@ -550,6 +553,9 @@ export function ModuleEditorPanel({
 								arr.push(empty)
 								setByPath(next, name, arr)
 								setDraft(next)
+								requestAnimationFrame(() => {
+									if (scroller) scroller.scrollTop = prevScrollTop
+								})
 							}}
 						>
 							Add Item
@@ -647,7 +653,13 @@ export function ModuleEditorPanel({
 						onClose()
 					}}>Close</button>
 				</div>
-				<form ref={formRef} className="p-5 grid grid-cols-1 gap-5 overflow-auto">
+				<form
+					ref={formRef}
+					className="p-5 grid grid-cols-1 gap-5 overflow-auto"
+					onSubmit={(e) => {
+						e.preventDefault()
+					}}
+				>
 					{schema && schema.length > 0 ? (
 						schema.map((f) => (
 							<FieldBySchema
