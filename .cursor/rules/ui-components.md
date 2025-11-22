@@ -110,3 +110,10 @@ import Button from '../../../components/ui/Button'
   - Keep module/editor field renderers generic and consider extracting reusable form elements when patterns repeat.
 - Maintain uncontrolled form strategy where appropriate for performance, reading values once on save.
 - Avoid duplicating field render logic across screens; create shared helpers/components instead.
+
+### ShadCN Requirement for Form Fields
+
+- For all form fields (admin/public, frontend forms), use ShadCN components where available and appropriate:
+  - Input, Textarea, Select, Checkbox, Slider, Popover/Calendar (date), Switch, etc.
+  - If a ShadCN equivalent does not exist, build a thin wrapper consistent with ShadCN ergonomics and styling.
+- Exceptions should be rare and justified in the PR (e.g., specialized field with no ShadCN primitive).
