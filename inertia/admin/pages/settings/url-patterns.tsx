@@ -3,6 +3,7 @@ import { Head } from '@inertiajs/react'
 import { AdminHeader } from '../../components/AdminHeader'
 import { AdminFooter } from '../../components/AdminFooter'
 import { AdminBreadcrumbs } from '../../components/AdminBreadcrumbs'
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '~/components/ui/select'
 
 type Pattern = {
 	id: string
@@ -147,19 +148,22 @@ export default function UrlPatternsPage() {
 									onChange={(e) => setNewPattern((s) => ({ ...s, postType: e.target.value }))}
 									disabled
 								/>
-								<select
-									className="md:w-28 px-3 py-2 border border-line rounded bg-backdrop-low text-neutral-high"
-									value={newPattern.locale}
-									onChange={(e) => setNewPattern((s) => ({ ...s, locale: e.target.value }))}
-									disabled
-								>
-									<option value="">{availableLocales.length ? 'Select locale' : 'Loading...'}</option>
-									{availableLocales.map((loc) => (
-										<option key={loc} value={loc}>
-											{loc.toUpperCase()}
-										</option>
-									))}
-								</select>
+								<div className="md:w-40">
+									<Select
+										disabled
+										defaultValue={newPattern.locale || undefined}
+										onValueChange={(val) => setNewPattern((s) => ({ ...s, locale: val }))}
+									>
+										<SelectTrigger>
+											<SelectValue placeholder={availableLocales.length ? 'Select locale' : 'Loading...'} />
+										</SelectTrigger>
+										<SelectContent>
+											{availableLocales.map((loc) => (
+												<SelectItem key={loc} value={loc}>{loc.toUpperCase()}</SelectItem>
+											))}
+										</SelectContent>
+									</Select>
+								</div>
 								<input
 									type="text"
 									className="flex-1 px-3 py-2 border border-line rounded bg-backdrop-low text-neutral-high"

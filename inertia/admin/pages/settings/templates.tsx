@@ -3,6 +3,7 @@ import { Head } from '@inertiajs/react'
 import { AdminHeader } from '../../components/AdminHeader'
 import { AdminFooter } from '../../components/AdminFooter'
 import { AdminBreadcrumbs } from '../../components/AdminBreadcrumbs'
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '~/components/ui/select'
 
 type Template = { id: string; name: string; post_type: string; description: string | null; locked: boolean; updated_at: string }
 type TemplateModule = { id: string; type: string; default_props: any; order_index: number; locked: boolean }
@@ -296,17 +297,19 @@ export default function TemplatesPage() {
 							</div>
 							<div>
 								<label className="block text-sm text-neutral-medium mb-1">Post Type</label>
-								<select
-									value={createForm.postType}
-									onChange={(e) => setCreateForm((f) => ({ ...f, postType: e.target.value }))}
-									className="w-full px-3 py-2 border border-line rounded bg-backdrop-low text-neutral-high"
+								<Select
+									defaultValue={createForm.postType}
+									onValueChange={(val) => setCreateForm((f) => ({ ...f, postType: val }))}
 								>
-									{postTypes.map((t) => (
-										<option key={t} value={t}>
-											{labelize(t)}
-										</option>
-									))}
-								</select>
+									<SelectTrigger className="w-full">
+										<SelectValue placeholder="Select post type" />
+									</SelectTrigger>
+									<SelectContent>
+										{postTypes.map((t) => (
+											<SelectItem key={t} value={t}>{labelize(t)}</SelectItem>
+										))}
+									</SelectContent>
+								</Select>
 							</div>
 							<div className="flex items-center justify-end gap-2 pt-2">
 								<button

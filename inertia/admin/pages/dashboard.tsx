@@ -1,9 +1,10 @@
 import { Head, Link, usePage } from '@inertiajs/react'
-import { useEffect, useMemo, useState } from 'react'
+import { useEffect, useState } from 'react'
 import { AdminHeader } from '../components/AdminHeader'
 import { AdminFooter } from '../components/AdminFooter'
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '~/components/ui/table'
 import { Checkbox } from '~/components/ui/checkbox'
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '~/components/ui/select'
 
 interface DashboardProps { }
 
@@ -14,8 +15,7 @@ export default function Dashboard({ }: DashboardProps) {
     (inertiaPage.props as any)?.auth?.user?.role
   const isAdmin = role === 'admin'
   const isEditor = role === 'editor'
-  const isTranslator = role === 'translator'
-  const [posts, setPosts] = useState<Array<{ id: string; title: string; slug: string; status: string; locale: string; updatedAt: string }>>([])
+  const [posts, setPosts] = useState<Array<{ id: string; title: string; slug: string; status: string; locale: string; updatedAt: string; translationOfId?: string | null; familyLocales?: string[]; hasReviewDraft?: boolean }>>([])
   const [selected, setSelected] = useState<Set<string>>(new Set())
   const [selectAll, setSelectAll] = useState(false)
   const [q, setQ] = useState('')
@@ -30,6 +30,7 @@ export default function Dashboard({ }: DashboardProps) {
   const [page, setPage] = useState(1)
   const [limit, setLimit] = useState(20)
   const [total, setTotal] = useState(0)
+  const [bulkKey, setBulkKey] = useState(0)
 
   // CSRF token for API calls
   const xsrfFromCookie: string | undefined = (() => {
@@ -159,7 +160,7 @@ export default function Dashboard({ }: DashboardProps) {
 
   function toggleSelectAll() {
     setSelectAll((prev) => !prev)
-    setSelected((prev) => {
+    setSelected(() => {
       if (!selectAll) {
         return new Set(posts.map((p) => p.id))
       }
@@ -219,63 +220,77 @@ export default function Dashboard({ }: DashboardProps) {
                   placeholder="Search title or slug..."
                   className="px-3 py-2 text-sm border border-line rounded bg-backdrop-low text-neutral-high"
                 />
-                <select
-                  value={status}
-                  onChange={(e) => {
-                    setStatus(e.target.value)
+                <Select
+                  defaultValue={status || undefined}
+                  onValueChange={(val) => {
+                    setStatus(val === 'all' ? '' : val)
                     setPage(1)
                   }}
-                  className="px-2 py-2 text-sm border border-line rounded bg-backdrop-low text-neutral-high"
                 >
-                  <option value="">All statuses</option>
-                  <option value="draft">Draft</option>
-                  <option value="__in_review__">In Review</option>
-                  <option value="scheduled">Scheduled</option>
-                  <option value="published">Published</option>
-                  <option value="archived">Archived</option>
-                </select>
-                <select
-                  value={locale}
-                  onChange={(e) => {
-                    setLocale(e.target.value)
+                  <SelectTrigger className="w-[180px]">
+                    <SelectValue placeholder="All statuses" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="all">All statuses</SelectItem>
+                    <SelectItem value="draft">Draft</SelectItem>
+                    <SelectItem value="__in_review__">In Review</SelectItem>
+                    <SelectItem value="scheduled">Scheduled</SelectItem>
+                    <SelectItem value="published">Published</SelectItem>
+                    <SelectItem value="archived">Archived</SelectItem>
+                  </SelectContent>
+                </Select>
+                <Select
+                  defaultValue={locale || undefined}
+                  onValueChange={(val) => {
+                    setLocale(val === 'all' ? '' : val)
                     setPage(1)
                   }}
-                  className="px-2 py-2 text-sm border border-line rounded bg-backdrop-low text-neutral-high"
                 >
-                  <option value="">All locales</option>
-                  <option value="en">EN</option>
-                  <option value="es">ES</option>
-                  <option value="fr">FR</option>
-                  <option value="pt">PT</option>
-                </select>
-                <select
-                  value={postType}
-                  onChange={(e) => {
-                    setPostType(e.target.value)
+                  <SelectTrigger className="w-[150px]">
+                    <SelectValue placeholder="All locales" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="all">All locales</SelectItem>
+                    <SelectItem value="en">EN</SelectItem>
+                    <SelectItem value="es">ES</SelectItem>
+                    <SelectItem value="fr">FR</SelectItem>
+                    <SelectItem value="pt">PT</SelectItem>
+                  </SelectContent>
+                </Select>
+                <Select
+                  defaultValue={postType || undefined}
+                  onValueChange={(val) => {
+                    setPostType(val === 'all' ? '' : val)
                     setPage(1)
                   }}
-                  className="px-2 py-2 text-sm border border-line rounded bg-backdrop-low text-neutral-high"
                 >
-                  <option value="">All post types</option>
-                  {postTypes.map((t) => (
-                    <option key={t} value={t}>
-                      {labelize(t)}
-                    </option>
-                  ))}
-                </select>
-                <select
-                  value={limit}
-                  onChange={(e) => {
-                    setLimit(Number(e.target.value) || 20)
+                  <SelectTrigger className="w-[200px]">
+                    <SelectValue placeholder="All post types" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="all">All post types</SelectItem>
+                    {postTypes.map((t) => (
+                      <SelectItem key={t} value={t}>{labelize(t)}</SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+                <Select
+                  defaultValue={String(limit)}
+                  onValueChange={(val) => {
+                    setLimit(Number(val) || 20)
                     setPage(1)
                   }}
-                  className="px-2 py-2 text-sm border border-line rounded bg-backdrop-low text-neutral-high"
                 >
-                  <option value={10}>10 / page</option>
-                  <option value={20}>20 / page</option>
-                  <option value={50}>50 / page</option>
-                  <option value={100}>100 / page</option>
-                </select>
+                  <SelectTrigger className="w-[140px]">
+                    <SelectValue placeholder="Per page" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="10">10 / page</SelectItem>
+                    <SelectItem value="20">20 / page</SelectItem>
+                    <SelectItem value="50">50 / page</SelectItem>
+                    <SelectItem value="100">100 / page</SelectItem>
+                  </SelectContent>
+                </Select>
                 {(isAdmin || isEditor) && (
                   <button
                     onClick={() => setIsCreateOpen(true)}
@@ -298,30 +313,28 @@ export default function Dashboard({ }: DashboardProps) {
             {/* Bulk actions */}
             <div className="mt-3 flex items-center gap-2">
               <label className="inline-flex items-center gap-2 text-sm text-neutral-medium">
-                <input
-                  type="checkbox"
-                  checked={selectAll}
-                  onChange={toggleSelectAll}
-                  className="rounded border-line"
-                />
+                <Checkbox checked={selectAll} onCheckedChange={() => toggleSelectAll()} />
                 Select All
               </label>
-              <select
-                defaultValue=""
-                onChange={(e) => {
-                  const val = e.target.value as any
-                  if (!val) return
-                  applyBulk(val)
-                  e.currentTarget.value = ''
-                }}
-                className="px-2 py-2 text-sm border border-line rounded bg-backdrop-low text-neutral-high"
-              >
-                <option value="">Bulk actions...</option>
-                {(isAdmin || isEditor) && <option value="publish">Publish</option>}
-                <option value="draft">Move to Draft</option>
-                {(isAdmin || isEditor) && <option value="archive">Archive</option>}
-                {isAdmin && <option value="delete">Delete (archived only)</option>}
-              </select>
+              <div className="w-[200px]">
+                <Select
+                  key={bulkKey}
+                  onValueChange={(val: 'publish' | 'draft' | 'archive' | 'delete') => {
+                    applyBulk(val)
+                    setBulkKey((k) => k + 1) // reset placeholder
+                  }}
+                >
+                  <SelectTrigger>
+                    <SelectValue placeholder="Bulk actions..." />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {(isAdmin || isEditor) && <SelectItem value="publish">Publish</SelectItem>}
+                    <SelectItem value="draft">Move to Draft</SelectItem>
+                    {(isAdmin || isEditor) && <SelectItem value="archive">Archive</SelectItem>}
+                    {isAdmin && <SelectItem value="delete">Delete (archived only)</SelectItem>}
+                  </SelectContent>
+                </Select>
+              </div>
               {loading && <span className="text-xs text-neutral-low">Loading...</span>}
             </div>
           </div>

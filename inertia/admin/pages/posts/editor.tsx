@@ -7,6 +7,7 @@
 import { useForm, usePage } from '@inertiajs/react'
 import { AdminHeader } from '../../components/AdminHeader'
 import { AdminFooter } from '../../components/AdminFooter'
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '~/components/ui/select'
 import { ModulePicker } from '../../components/modules/ModulePicker'
 import { FormEvent, useEffect, useMemo, useRef, useState } from 'react'
 import { toast } from 'sonner'
@@ -676,16 +677,17 @@ export default function Editor({ post, modules: initialModules, translations, re
                     Status
                   </label>
                   <div className="flex items-center gap-2">
-                    <select
-                      value={data.status}
-                      onChange={(e) => setData('status', e.target.value)}
-                      className="px-2 py-1 border border-border rounded bg-backdrop-low text-neutral-high"
-                    >
-                      <option value="draft">Draft</option>
-                      <option value="scheduled">Scheduled</option>
-                      <option value="published">Published</option>
-                      <option value="archived">Archived</option>
-                    </select>
+                  <Select defaultValue={data.status} onValueChange={(val) => setData('status', val)}>
+                    <SelectTrigger className="w-[180px]">
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="draft">Draft</SelectItem>
+                      <SelectItem value="scheduled">Scheduled</SelectItem>
+                      <SelectItem value="published">Published</SelectItem>
+                      <SelectItem value="archived">Archived</SelectItem>
+                    </SelectContent>
+                  </Select>
                   </div>
                   {errors.status && (
                     <p className="text-xs text-red-600 dark:text-red-400 mt-1">{errors.status}</p>
@@ -697,31 +699,32 @@ export default function Editor({ post, modules: initialModules, translations, re
                     Locale
                   </label>
                   <div className="flex items-center gap-2">
-                    <select
-                      value={selectedLocale}
-                      onChange={(e) => {
-                        const nextLocale = e.target.value
-                        setSelectedLocale(nextLocale)
-                        if (nextLocale === post.locale) return
-                        // If translation exists for selected locale, navigate immediately
-                        const target = translations?.find((t) => t.locale === nextLocale)
-                        if (target) {
-                          window.location.href = `/admin/posts/${target.id}/edit`
-                        }
-                        // else: keep selection; show "Create Translation" CTA below
-                      }}
-                      className="px-2 py-1 border border-border rounded bg-backdrop-low text-neutral-high"
-                    >
+                  <Select
+                    defaultValue={selectedLocale}
+                    onValueChange={(nextLocale) => {
+                      setSelectedLocale(nextLocale)
+                      if (nextLocale === post.locale) return
+                      const target = translations?.find((t) => t.locale === nextLocale)
+                      if (target) {
+                        window.location.href = `/admin/posts/${target.id}/edit`
+                      }
+                    }}
+                  >
+                    <SelectTrigger className="w-[160px]">
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
                       {availableLocales.map((loc) => {
                         const exists = translationsSet.has(loc)
                         const label = exists ? `${loc.toUpperCase()}` : `${loc.toUpperCase()} (missing)`
                         return (
-                          <option key={loc} value={loc}>
+                          <SelectItem key={loc} value={loc}>
                             {label}
-                          </option>
+                          </SelectItem>
                         )
                       })}
-                    </select>
+                    </SelectContent>
+                  </Select>
                     {/* Removed helper text */}
                   </div>
                   {selectedLocale !== post.locale && !translationsSet.has(selectedLocale) && (

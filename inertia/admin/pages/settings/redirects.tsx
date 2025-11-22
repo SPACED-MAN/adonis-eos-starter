@@ -3,6 +3,7 @@ import { Head } from '@inertiajs/react'
 import { AdminHeader } from '../../components/AdminHeader'
 import { AdminFooter } from '../../components/AdminFooter'
 import { AdminBreadcrumbs } from '../../components/AdminBreadcrumbs'
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '~/components/ui/select'
 
 type Redirect = {
 	id: string
@@ -161,18 +162,20 @@ export default function RedirectsPage() {
 					<div className="px-6 py-4 border-b border-line flex items-center justify-between">
 						<h2 className="text-lg font-semibold text-neutral-high">Redirect Rules</h2>
 						<div className="flex items-center gap-3">
-							<select
-								value={typeFilter}
-								onChange={(e) => setTypeFilter(e.target.value)}
-								className="px-2 py-2 text-sm border border-line rounded bg-backdrop-low text-neutral-high"
+							<Select
+								defaultValue={typeFilter || undefined}
+								onValueChange={(val) => setTypeFilter(val === 'all' ? '' : val)}
 							>
-								<option value="">All post types</option>
-								{postTypes.map((t) => (
-									<option key={t} value={t}>
-										{labelize(t)}
-									</option>
-								))}
-							</select>
+								<SelectTrigger className="w-[200px]">
+									<SelectValue placeholder="All post types" />
+								</SelectTrigger>
+								<SelectContent>
+									<SelectItem value="all">All post types</SelectItem>
+									{postTypes.map((t) => (
+										<SelectItem key={t} value={t}>{labelize(t)}</SelectItem>
+									))}
+								</SelectContent>
+							</Select>
 							{typeFilter && (
 								<label className="inline-flex items-center gap-2 text-sm text-neutral-high">
 									<input
@@ -219,14 +222,18 @@ export default function RedirectsPage() {
 									onChange={(e) => setForm((f) => ({ ...f, toPath: e.target.value }))}
 								/>
 								<div className="flex gap-2">
-									<select
-										className="w-28 px-3 py-2 border border-line rounded bg-backdrop-low text-neutral-high"
-										value={String(form.httpStatus)}
-										onChange={(e) => setForm((f) => ({ ...f, httpStatus: Number(e.target.value) }))}
-									>
-										<option value="301">301 (Permanent)</option>
-										<option value="302">302 (Temporary)</option>
-									</select>
+								<Select
+									defaultValue={String(form.httpStatus)}
+									onValueChange={(val) => setForm((f) => ({ ...f, httpStatus: Number(val) }))}
+								>
+									<SelectTrigger className="w-40">
+										<SelectValue />
+									</SelectTrigger>
+									<SelectContent>
+										<SelectItem value="301">301 (Permanent)</SelectItem>
+										<SelectItem value="302">302 (Temporary)</SelectItem>
+									</SelectContent>
+								</Select>
 									<button
 										type="button"
 										className="px-3 py-2 text-sm rounded bg-standout text-on-standout disabled:opacity-50"

@@ -3,6 +3,7 @@ import { Head, Link } from '@inertiajs/react'
 import { AdminHeader } from '../../components/AdminHeader'
 import { AdminFooter } from '../../components/AdminFooter'
 import { AdminBreadcrumbs } from '../../components/AdminBreadcrumbs'
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '~/components/ui/select'
 
 type Template = { id: string; name: string; post_type: string; description?: string | null; locked?: boolean; updated_at?: string }
 
@@ -104,16 +105,17 @@ export default function TemplatesIndex() {
 								placeholder="Search by name or post type…"
 								className="px-3 py-2 text-sm border border-line rounded bg-backdrop-low text-neutral-high"
 							/>
-							<select
-								value={type}
-								onChange={(e) => setType(e.target.value)}
-								className="px-2 py-2 text-sm border border-line rounded bg-backdrop-low text-neutral-high"
-							>
-								<option value="">All post types</option>
-								{postTypes.map((t) => (
-									<option key={t} value={t}>{labelize(t)}</option>
-								))}
-							</select>
+							<Select defaultValue={type || undefined} onValueChange={(val) => setType(val === 'all' ? '' : val)}>
+								<SelectTrigger className="w-[200px]">
+									<SelectValue placeholder="All post types" />
+								</SelectTrigger>
+								<SelectContent>
+									<SelectItem value="all">All post types</SelectItem>
+									{postTypes.map((t) => (
+										<SelectItem key={t} value={t}>{labelize(t)}</SelectItem>
+									))}
+								</SelectContent>
+							</Select>
 						</div>
 						<div className="flex items-center gap-2">
 							<input
@@ -122,15 +124,19 @@ export default function TemplatesIndex() {
 								placeholder="New template name"
 								className="px-3 py-2 text-sm border border-line rounded bg-backdrop-low text-neutral-high"
 							/>
-							<select
-								value={createForm.postType}
-								onChange={(e) => setCreateForm((f) => ({ ...f, postType: e.target.value }))}
-								className="px-2 py-2 text-sm border border-line rounded bg-backdrop-low text-neutral-high"
+							<Select
+								defaultValue={createForm.postType}
+								onValueChange={(val) => setCreateForm((f) => ({ ...f, postType: val }))}
 							>
-								{postTypes.map((t) => (
-									<option key={t} value={t}>{labelize(t)}</option>
-								))}
-							</select>
+								<SelectTrigger className="w-[200px]">
+									<SelectValue placeholder="Post type" />
+								</SelectTrigger>
+								<SelectContent>
+									{postTypes.map((t) => (
+										<SelectItem key={t} value={t}>{labelize(t)}</SelectItem>
+									))}
+								</SelectContent>
+							</Select>
 							<button
 								onClick={createTemplate}
 								disabled={creating || !createForm.name.trim() || !createForm.postType.trim()}
