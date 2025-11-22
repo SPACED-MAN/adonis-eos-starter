@@ -462,12 +462,18 @@ export function ModuleEditorPanel({
 										<button
 											type="button"
 											className="px-2 py-1 text-xs border border-line rounded hover:bg-backdrop-medium text-neutral-medium"
+											onMouseDown={(e) => e.preventDefault()}
 											onClick={() => {
+												const scroller = formRef.current
+												const prevScrollTop = scroller ? scroller.scrollTop : 0
 												const next = JSON.parse(JSON.stringify(draft))
 												const arr = Array.isArray(value) ? [...value] : []
 												arr.splice(idx, 1)
 												setByPath(next, name, arr)
 												setDraft(next)
+												requestAnimationFrame(() => {
+													if (scroller) scroller.scrollTop = prevScrollTop
+												})
 											}}
 										>
 											Remove
@@ -475,14 +481,20 @@ export function ModuleEditorPanel({
 										<button
 											type="button"
 											className="px-2 py-1 text-xs border border-line rounded hover:bg-backdrop-medium text-neutral-medium"
+											onMouseDown={(e) => e.preventDefault()}
 											onClick={() => {
 												if (idx === 0) return
+												const scroller = formRef.current
+												const prevScrollTop = scroller ? scroller.scrollTop : 0
 												const next = JSON.parse(JSON.stringify(draft))
 												const arr = Array.isArray(value) ? [...value] : []
 												const [moved] = arr.splice(idx, 1)
 												arr.splice(idx - 1, 0, moved)
 												setByPath(next, name, arr)
 												setDraft(next)
+												requestAnimationFrame(() => {
+													if (scroller) scroller.scrollTop = prevScrollTop
+												})
 											}}
 										>
 											Up
@@ -490,14 +502,20 @@ export function ModuleEditorPanel({
 										<button
 											type="button"
 											className="px-2 py-1 text-xs border border-line rounded hover:bg-backdrop-medium text-neutral-medium"
+											onMouseDown={(e) => e.preventDefault()}
 											onClick={() => {
 												if (idx >= items.length - 1) return
+												const scroller = formRef.current
+												const prevScrollTop = scroller ? scroller.scrollTop : 0
 												const next = JSON.parse(JSON.stringify(draft))
 												const arr = Array.isArray(value) ? [...value] : []
 												const [moved] = arr.splice(idx, 1)
 												arr.splice(idx + 1, 0, moved)
 												setByPath(next, name, arr)
 												setDraft(next)
+												requestAnimationFrame(() => {
+													if (scroller) scroller.scrollTop = prevScrollTop
+												})
 											}}
 										>
 											Down

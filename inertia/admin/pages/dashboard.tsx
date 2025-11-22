@@ -5,6 +5,7 @@ import { AdminFooter } from '../components/AdminFooter'
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '~/components/ui/table'
 import { Checkbox } from '~/components/ui/checkbox'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '~/components/ui/select'
+import { Badge } from '~/components/ui/badge'
 
 interface DashboardProps { }
 
@@ -406,25 +407,20 @@ export default function Dashboard({ }: DashboardProps) {
                           {(supportedLocales.length > 1 ? supportedLocales : [post.locale]).map((loc) => {
                             const exists = (post.familyLocales || [post.locale]).includes(loc)
                             return (
-                              <span
+                              <Badge
                                 key={`${post.id}-${loc}`}
-                                className={`px-1.5 py-0.5 rounded text-[10px] border ${exists ? 'bg-standout/10 text-standout border-standout/40' : 'bg-backdrop-low text-neutral-medium border-line'
-                                  }`}
+                                variant={exists ? 'default' : 'outline'}
                                 title={exists ? `Has ${loc.toUpperCase()}` : `Missing ${loc.toUpperCase()}`}
                               >
                                 {loc.toUpperCase()}
-                              </span>
+                              </Badge>
                             )
                           })}
                         </div>
                       </TableCell>
                       <TableCell>
                         <span className="text-sm capitalize">{post.status}</span>
-                        {post.hasReviewDraft && (
-                          <span className="ml-2 text-xs px-1.5 py-0.5 rounded bg-backdrop-medium text-neutral-high border border-line align-middle">
-                            In Review
-                          </span>
-                        )}
+                        {post.hasReviewDraft && <Badge variant="secondary" className="ml-2 align-middle">In Review</Badge>}
                       </TableCell>
                       <TableCell>
                         <span className="text-xs text-neutral-low">

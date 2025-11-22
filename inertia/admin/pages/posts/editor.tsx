@@ -7,6 +7,9 @@
 import { useForm, usePage } from '@inertiajs/react'
 import { AdminHeader } from '../../components/AdminHeader'
 import { AdminFooter } from '../../components/AdminFooter'
+import { Input } from '~/components/ui/input'
+import { Textarea } from '~/components/ui/textarea'
+import { Badge } from '~/components/ui/badge'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '~/components/ui/select'
 import { ModulePicker } from '../../components/modules/ModulePicker'
 import { FormEvent, useEffect, useMemo, useRef, useState } from 'react'
@@ -440,11 +443,10 @@ export default function Editor({ post, modules: initialModules, translations, re
                   <label className="block text-sm font-medium text-neutral-medium mb-1">
                     Title *
                   </label>
-                  <input
+                  <Input
                     type="text"
                     value={data.title}
                     onChange={(e) => setData('title', e.target.value)}
-                    className="w-full px-3 py-2 border border-border rounded-lg bg-background text-neutral-high focus:outline-none focus:ring-1 ring-(--ring)"
                     placeholder="Enter post title"
                   />
                   {errors.title && (
@@ -457,11 +459,11 @@ export default function Editor({ post, modules: initialModules, translations, re
                   <label className="block text-sm font-medium text-neutral-medium mb-1">
                     Slug *
                   </label>
-                  <input
+                  <Input
                     type="text"
                     value={data.slug}
                     onChange={(e) => setData('slug', e.target.value)}
-                    className="w-full px-3 py-2 border border-border rounded-lg bg-background text-neutral-high font-mono text-sm focus:outline-none focus:ring-1 ring-(--ring)"
+                    className="font-mono text-sm"
                     placeholder="post-slug"
                   />
                   {errors.slug && (
@@ -479,11 +481,10 @@ export default function Editor({ post, modules: initialModules, translations, re
                   <label className="block text-sm font-medium text-neutral-medium mb-1">
                     Excerpt
                   </label>
-                  <textarea
+                  <Textarea
                     value={data.excerpt}
                     onChange={(e) => setData('excerpt', e.target.value)}
                     rows={3}
-                    className="w-full px-3 py-2 border border-border rounded-lg bg-background text-neutral-high focus:outline-none focus:ring-1 ring-(--ring)"
                     placeholder="Brief description (optional)"
                   />
                   {errors.excerpt && (
@@ -562,11 +563,10 @@ export default function Editor({ post, modules: initialModules, translations, re
                   <label className="block text-sm font-medium text-neutral-medium mb-1">
                     Meta Title
                   </label>
-                  <input
+                  <Input
                     type="text"
                     value={data.metaTitle}
                     onChange={(e) => setData('metaTitle', e.target.value)}
-                    className="w-full px-3 py-2 border border-border rounded-lg bg-background text-neutral-high focus:outline-none focus:ring-1 ring-(--ring)"
                     placeholder="Custom meta title (optional)"
                   />
                   <p className="text-xs text-neutral-low mt-1">
@@ -579,11 +579,10 @@ export default function Editor({ post, modules: initialModules, translations, re
                   <label className="block text-sm font-medium text-neutral-medium mb-1">
                     Meta Description
                   </label>
-                  <textarea
+                  <Textarea
                     value={data.metaDescription}
                     onChange={(e) => setData('metaDescription', e.target.value)}
                     rows={3}
-                    className="w-full px-3 py-2 border border-border rounded-lg bg-background text-neutral-high focus:outline-none focus:ring-2 ring-(--ring)"
                     placeholder="Custom meta description (optional)"
                   />
                   <p className="text-xs text-neutral-low mt-1">
@@ -596,11 +595,10 @@ export default function Editor({ post, modules: initialModules, translations, re
                   <label className="block text-sm font-medium text-neutral-medium mb-1">
                     Canonical URL
                   </label>
-                  <input
+                  <Input
                     type="url"
                     value={data.canonicalUrl}
                     onChange={(e) => setData('canonicalUrl', e.target.value)}
-                    className="w-full px-3 py-2 border border-border rounded-lg bg-background text-neutral-high focus:ring-1 ring-(--ring)"
                     placeholder="https://example.com/my-post"
                   />
                 </div>
@@ -610,11 +608,11 @@ export default function Editor({ post, modules: initialModules, translations, re
                   <label className="block text-sm font-medium text-neutral-medium mb-1">
                     Robots (JSON)
                   </label>
-                  <textarea
+                  <Textarea
                     value={data.robotsJson}
                     onChange={(e) => setData('robotsJson', e.target.value)}
                     rows={4}
-                    className="w-full px-3 py-2 border border-border rounded-lg bg-background text-neutral-high font-mono text-xs focus:outline-none focus:ring-1 ring-(--ring)"
+                    className="font-mono text-xs"
                     placeholder={JSON.stringify({ index: true, follow: true }, null, 2)}
                   />
                   <p className="text-xs text-neutral-low mt-1">
@@ -627,11 +625,11 @@ export default function Editor({ post, modules: initialModules, translations, re
                   <label className="block text-sm font-medium text-neutral-medium mb-1">
                     JSON-LD Overrides (JSON)
                   </label>
-                  <textarea
+                  <Textarea
                     value={data.jsonldOverrides}
                     onChange={(e) => setData('jsonldOverrides', e.target.value)}
                     rows={6}
-                    className="w-full px-3 py-2 border border-border rounded-lg bg-background text-neutral-high font-mono text-xs focus:outline-none focus:ring-1 ring-(--ring)"
+                    className="font-mono text-xs"
                     placeholder={JSON.stringify({ '@type': 'BlogPosting' }, null, 2)}
                   />
                   <p className="text-xs text-neutral-low mt-1">
@@ -898,9 +896,9 @@ export default function Editor({ post, modules: initialModules, translations, re
                       <div className="flex flex-col">
                         <span className="text-neutral-high">
                           {new Date(r.createdAt).toLocaleString()}
-                          <span className={`ml-2 px-1.5 py-0.5 rounded text-[10px] border ${r.mode === 'review' ? 'bg-backdrop-medium text-neutral-high' : 'bg-standout/10 text-standout border-standout/40'}`}>
+                          <Badge className="ml-2" variant={r.mode === 'review' ? 'secondary' : 'default'}>
                             {r.mode === 'review' ? 'Review' : 'Approved'}
-                          </span>
+                          </Badge>
                         </span>
                         {r.user?.email ? <span className="text-xs text-neutral-low">{r.user.email}</span> : null}
                       </div>
