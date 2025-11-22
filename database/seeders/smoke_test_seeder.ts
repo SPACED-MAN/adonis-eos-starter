@@ -3,9 +3,9 @@ import db from '@adonisjs/lucid/services/db'
 import User from '#models/user'
 
 export default class extends BaseSeeder {
+  public static environment = ['development']
   async run() {
     // Clean up existing test data
-    await db.rawQuery('TRUNCATE posts, module_instances, post_modules, templates, template_modules, url_patterns, url_redirects, module_scopes, custom_fields, post_type_custom_fields, post_custom_field_values CASCADE')
 
     console.log('🧪 Running smoke tests for database schema (with i18n support)...')
 
