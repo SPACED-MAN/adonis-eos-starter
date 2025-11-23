@@ -602,6 +602,160 @@ export default class PostsController {
   }
 
   /**
+   * POST /api/review/posts/:id/save
+   *
+   * Save review-stage changes to a post and its modules.
+   * Body:
+   * {
+   *   post?: { slug?, title?, excerpt?, parentId?, metaTitle?, metaDescription?, canonicalUrl?, robotsJson?, jsonldOverrides? },
+   *   moduleOps?: {
+   *     add?: Array<{ type: string; scope?: 'local'|'global'|'static'; props?: any; globalSlug?: string|null }>,
+   *     update?: Array<{ postModuleId: string; overrides?: any }>,
+   *     remove?: string[],
+   *     reorder?: Array<{ postModuleId: string; orderIndex: number }>
+   *   }
+   * }
+   */
+  async reviewSave({ params, request, response, auth }: HttpContext) {
+    const { id } = params
+    const postPayload = request.input('post') || {}
+    const moduleOps = request.input('moduleOps') || {}
+    try {
+      // 1) Save review-draft post fields
+      const res = await this.update({
+        ...({} as any),
+        params: { id },
+        request: {
+          ...request,
+          only: (..._keys: any[]) => ({} as any),
+          input: (key: string, _def?: any) => {
+            if (key === 'mode') return 'review'
+            return undefined
+          },
+        } as any,
+        response,
+        auth,
+      } as any)
+      // update() returns response; we proceed to module ops regardless
+      // 2) Module removals (stage)
+      const toRemove: string[] = Array.isArray(moduleOps.remove) ? moduleOps.remove : []
+      if (toRemove.length > 0) {
+        await db.from('post_modules').whereIn('id', toRemove).update({ review_deleted: true, updated_at: new Date() } as any)
+      }
+      // 3) Module updates (review overrides/props)
+      const updates: Array<{ postModuleId: string; overrides?: any }> = Array.isArray(moduleOps.update) ? moduleOps.update : []
+      for (const u of updates) {
+        if (!u?.postModuleId) continue
+        await UpdatePostModule.handle({
+          postModuleId: u.postModuleId,
+          overrides: u.overrides ?? null,
+          mode: 'review',
+        })
+      }
+      // 4) Module adds (stage as review_added)
+      const adds: Array<{ type: string; scope?: 'local' | 'global' | 'static'; props?: any; globalSlug?: string | null }> =
+        Array.isArray(moduleOps.add) ? moduleOps.add : []
+      for (const a of adds) {
+        if (!a?.type) continue
+        await AddModuleToPost.handle({
+          postId: id,
+          moduleType: a.type,
+          scope: (a.scope as any) || 'local',
+          props: a.props || {},
+          globalSlug: a.globalSlug ?? null,
+          orderIndex: undefined,
+          locked: false,
+          mode: 'review',
+        })
+      }
+      // 5) Reorder (ignored in review for now)
+      return response.ok({ message: 'Saved review changes' })
+    } catch (e: any) {
+      return response.badRequest({ error: e?.message || 'Failed to save review' })
+    }
+  }
+
+  /**
+   * POST /api/review/posts/:id/approve
+   *
+   * Promote review changes to approved/live. Clears review fields/flags.
+   */
+  async reviewApprove({ params, response, auth }: HttpContext) {
+    const { id } = params
+    try {
+      const current = await Post.findOrFail(id)
+      const rd: any = (current as any).reviewDraft || (current as any).review_draft
+      if (!rd) {
+        return response.badRequest({ error: 'No review draft to approve' })
+      }
+      const nextSlug = rd.slug ?? current.slug
+      const nextTitle = rd.title ?? current.title
+      const nextExcerpt = rd.excerpt ?? current.excerpt
+      const nextParentId = rd.parentId ?? (current as any).parentId ?? null
+      const nextMetaTitle = rd.metaTitle ?? current.metaTitle
+      const nextMetaDescription = rd.metaDescription ?? current.metaDescription
+      const nextCanonicalUrl = rd.canonicalUrl ?? current.canonicalUrl
+      const nextRobots = typeof rd.robotsJson === 'string' ? (() => { try { return JSON.parse(rd.robotsJson) } catch { return null } })() : rd.robotsJson ?? current.robotsJson
+      const nextJsonLd = typeof rd.jsonldOverrides === 'string' ? (() => { try { return JSON.parse(rd.jsonldOverrides) } catch { return null } })() : rd.jsonldOverrides ?? current.jsonldOverrides
+
+      await UpdatePost.handle({
+        postId: id,
+        slug: nextSlug,
+        title: nextTitle,
+        status: current.status,
+        excerpt: nextExcerpt,
+        parentId: nextParentId || undefined,
+        metaTitle: nextMetaTitle,
+        metaDescription: nextMetaDescription,
+        canonicalUrl: nextCanonicalUrl,
+        robotsJson: nextRobots,
+        jsonldOverrides: nextJsonLd,
+      })
+      // Promote review module changes to approved
+      await db
+        .from('module_instances')
+        .where('scope', 'post')
+        .andWhereIn('id', db.from('post_modules').where('post_id', id).select('module_id'))
+        .update({
+          props: db.raw('COALESCE(review_props, props)'),
+          review_props: null,
+          updated_at: new Date(),
+        } as any)
+      await db
+        .from('post_modules')
+        .where('post_id', id)
+        .update({
+          overrides: db.raw('COALESCE(review_overrides, overrides)'),
+          review_overrides: null,
+          updated_at: new Date(),
+        } as any)
+      await db.from('post_modules').where('post_id', id).andWhere('review_deleted', true).delete()
+      await db.from('post_modules').where('post_id', id).andWhere('review_added', true).update({ review_added: false, updated_at: new Date() } as any)
+      await Post.query().where('id', id).update({ review_draft: null } as any)
+
+      await RevisionService.record({
+        postId: id,
+        mode: 'approved',
+        snapshot: {
+          slug: nextSlug,
+          title: nextTitle,
+          status: current.status,
+          excerpt: nextExcerpt,
+          metaTitle: nextMetaTitle,
+          metaDescription: nextMetaDescription,
+          canonicalUrl: nextCanonicalUrl,
+          robotsJson: nextRobots,
+          jsonldOverrides: nextJsonLd,
+        },
+        userId: (auth.use('web').user as any)?.id,
+      })
+      return response.ok({ message: 'Review approved' })
+    } catch (e: any) {
+      return response.badRequest({ error: e?.message || 'Failed to approve review' })
+    }
+  }
+
+  /**
    * DELETE /api/posts/:id
    * Delete a single post (allowed only when archived)
    */
@@ -765,24 +919,24 @@ export default class PostsController {
         .filter((pm: any) => !(wantReview && pm.reviewDeleted === true))
         .filter((pm: any) => (wantReview ? true : pm.reviewAdded !== true))
         .map((pm: any) => {
-        const isLocal = pm.scope === 'post'
-        const useReview = wantReview && ((post as any).reviewDraft || (post as any).review_draft)
-        if (useReview) {
-          if (isLocal) {
-            const baseProps = pm.review_props || pm.props || {}
-            const overrides = pm.overrides || {}
-            return { id: pm.postModuleId, type: pm.type, props: { ...baseProps, ...overrides } }
+          const isLocal = pm.scope === 'post'
+          const useReview = wantReview && ((post as any).reviewDraft || (post as any).review_draft)
+          if (useReview) {
+            if (isLocal) {
+              const baseProps = pm.review_props || pm.props || {}
+              const overrides = pm.overrides || {}
+              return { id: pm.postModuleId, type: pm.type, props: { ...baseProps, ...overrides } }
+            } else {
+              const baseProps = pm.props || {}
+              const overrides = pm.review_overrides || pm.overrides || {}
+              return { id: pm.postModuleId, type: pm.type, props: { ...baseProps, ...overrides } }
+            }
           } else {
             const baseProps = pm.props || {}
-            const overrides = pm.review_overrides || pm.overrides || {}
+            const overrides = pm.overrides || {}
             return { id: pm.postModuleId, type: pm.type, props: { ...baseProps, ...overrides } }
           }
-        } else {
-          const baseProps = pm.props || {}
-          const overrides = pm.overrides || {}
-          return { id: pm.postModuleId, type: pm.type, props: { ...baseProps, ...overrides } }
-        }
-      })
+        })
 
       // Return as Inertia page for public viewing
       const useReviewPost = wantReview && reviewDraft
@@ -1032,26 +1186,26 @@ export default class PostsController {
         .filter((pm: any) => (wantReview ? true : pm.reviewAdded !== true))
         .filter((pm: any) => !(wantReview && pm.reviewDeleted === true))
         .map((pm: any) => {
-        const isLocal = pm.scope === 'post'
-        const reviewDraft: any = (post as any).reviewDraft || (post as any).review_draft
-        const useReview = wantReview && reviewDraft
-        if (useReview) {
-          if (isLocal) {
-            const baseProps = pm.review_props || pm.props || {}
-            const overrides = pm.overrides || {}
-            return { id: pm.postModuleId, type: pm.type, props: { ...baseProps, ...overrides } }
-          } else {
-            const baseProps = pm.props || {}
-            const overrides = pm.review_overrides || pm.overrides || {}
-            return { id: pm.postModuleId, type: pm.type, props: { ...baseProps, ...overrides } }
+          const isLocal = pm.scope === 'post'
+          const reviewDraft: any = (post as any).reviewDraft || (post as any).review_draft
+          const useReview = wantReview && reviewDraft
+          if (useReview) {
+            if (isLocal) {
+              const baseProps = pm.review_props || pm.props || {}
+              const overrides = pm.overrides || {}
+              return { id: pm.postModuleId, type: pm.type, props: { ...baseProps, ...overrides } }
+            } else {
+              const baseProps = pm.props || {}
+              const overrides = pm.review_overrides || pm.overrides || {}
+              return { id: pm.postModuleId, type: pm.type, props: { ...baseProps, ...overrides } }
+            }
           }
-        }
-        return {
-          id: pm.postModuleId,
-          type: pm.type,
-          props: { ...(pm.props || {}), ...(pm.overrides || {}) },
-        }
-      })
+          return {
+            id: pm.postModuleId,
+            type: pm.type,
+            props: { ...(pm.props || {}), ...(pm.overrides || {}) },
+          }
+        })
       const protocol = (request as any).protocol ? (request as any).protocol() : (request.secure ? 'https' : 'http')
       const host = (request as any).host ? (request as any).host() : request.header('host')
       const reviewDraft: any = (post as any).reviewDraft || (post as any).review_draft || null

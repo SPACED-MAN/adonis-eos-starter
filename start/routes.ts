@@ -121,6 +121,9 @@ router.group(() => {
 	router.get('/post-types', [PostsController, 'types'])
 	router.post('/posts', [PostsController, 'store'])
 	router.put('/posts/:id', [PostsController, 'update'])
+	// Review API parity endpoints
+	router.post('/review/posts/:id/save', [PostsController, 'reviewSave'])
+	router.post('/review/posts/:id/approve', [PostsController, 'reviewApprove'])
 	router.get('/posts/:id/export', [PostsController, 'exportJson'])
 	router.post('/posts/import', [PostsController, 'importCreate'])
 	router.post('/posts/:id/import', [PostsController, 'importInto'])
