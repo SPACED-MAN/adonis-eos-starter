@@ -93,6 +93,8 @@ function getModuleComponent(componentName: string): ComponentType<any> | null {
     'prose-static': Modules.ProseStatic,
     'gallery': Modules.Gallery,
     'accordion': Modules.Accordion,
+    'kitchen-sink': Modules.KitchenSink,
+    'feed': Modules.Feed,
   }
 
   return componentMap[componentName] || null

@@ -3,6 +3,7 @@ import React from 'react'
 type KitchenSinkProps = {
 	title: string
 	description?: string
+	postRefs?: string[]
 	count?: number
 	category?: string
 	tags?: string[]
@@ -43,6 +44,12 @@ export default function KitchenSink(props: KitchenSinkProps) {
 						<li>Reading Time: {props.metadata.readingTime ?? ''} min</li>
 						<li>Attribution Required: {props.metadata.attributionRequired ? 'Yes' : 'No'}</li>
 					</ul>
+				</div>
+			)}
+			{Array.isArray(props.postRefs) && (
+				<div className="text-sm">
+					<h3 className="font-medium text-neutral-high mb-1">Post References</h3>
+					<div className="text-neutral-medium">Selected IDs: {(props.postRefs || []).join(', ') || '(none)'}</div>
 				</div>
 			)}
 			{Array.isArray(props.items) && props.items.length > 0 && (

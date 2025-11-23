@@ -15,6 +15,12 @@ export default class KitchenSinkModule extends BaseModule {
 			allowedScopes: ['local', 'global', 'static'],
 			lockable: false,
 			propsSchema: {
+				postRefs: {
+					type: 'post-reference',
+					label: 'Post References',
+					postTypes: ['blog'], // limit to specific types; remove or change as needed
+					allowMultiple: true,
+				},
 				title: { type: 'text', label: 'Title', required: true, placeholder: 'Enter title' },
 				description: { type: 'textarea', label: 'Description' },
 				count: { type: 'number', label: 'Count' },
@@ -77,6 +83,7 @@ export default class KitchenSinkModule extends BaseModule {
 				},
 			},
 			defaultProps: {
+				postRefs: [],
 				title: 'Kitchen Sink Demo',
 				description: 'This module demonstrates all supported field types.',
 				count: 3,

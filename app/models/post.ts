@@ -45,6 +45,9 @@ export default class Post extends BaseModel {
   @column({ columnName: 'review_draft' })
   declare reviewDraft: Record<string, any> | null
 
+  @column({ columnName: 'parent_id' })
+  declare parentId: string | null
+
   @column()
   declare templateId: string | null
 
@@ -80,6 +83,22 @@ export default class Post extends BaseModel {
   declare translations: HasMany<typeof Post>
 
   /**
+   * Relationship: Parent (hierarchy)
+   */
+  @belongsTo(() => Post, {
+    foreignKey: 'parentId',
+  })
+  declare parent: BelongsTo<typeof Post>
+
+  /**
+   * Relationship: Children (hierarchy)
+   */
+  @hasMany(() => Post, {
+    foreignKey: 'parentId',
+  })
+  declare children: HasMany<typeof Post>
+
+  /**
    * Query scope: Get posts by locale
    */
   static byLocale = scope((query, locale: string) => {
@@ -93,6 +112,27 @@ export default class Post extends BaseModel {
     query.where('status', 'published')
       .whereNotNull('publishedAt')
       .where('publishedAt', '<=', DateTime.now().toSQL())
+  })
+
+  /**
+   * Query scope: Constrain to type
+   */
+  static ofType = scope((query, type: string) => {
+    query.where('type', type)
+  })
+
+  /**
+   * Query scope: Roots (no parent)
+   */
+  static roots = scope((query) => {
+    query.whereNull('parentId')
+  })
+
+  /**
+   * Query scope: Children of a given parent
+   */
+  static childrenOf = scope((query, parentId: string) => {
+    query.where('parentId', parentId)
   })
 
   /**

@@ -40,7 +40,10 @@ export default class UpdatePostModule {
     }
 
     if (orderIndex !== undefined) {
-      updateData.order_index = orderIndex
+      // Only apply order changes to approved version; review ordering can be staged in UI or future field
+      if (mode !== 'review') {
+        updateData.order_index = orderIndex
+      }
     }
 
     // If overrides provided and module is local (scope='post'), merge into module props instead

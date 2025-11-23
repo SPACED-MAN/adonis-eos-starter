@@ -13,6 +13,7 @@ type AddModuleToPostParams = {
   globalSlug?: string | null
   orderIndex?: number
   locked?: boolean
+  mode?: 'review' | 'publish'
 }
 
 export class AddModuleToPostException extends Error {
@@ -35,6 +36,7 @@ export default class AddModuleToPost {
     globalSlug = null,
     orderIndex,
     locked = false,
+    mode,
   }: AddModuleToPostParams) {
     // Find the post
     const post = await Post.find(postId)
@@ -153,6 +155,7 @@ export default class AddModuleToPost {
           module_id: moduleInstanceId,
           order_index: finalOrderIndex,
           overrides: null,
+          review_added: mode === 'review' ? true : false,
           locked,
           created_at: new Date(),
           updated_at: new Date(),

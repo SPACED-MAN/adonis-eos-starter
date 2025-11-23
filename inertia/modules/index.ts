@@ -17,6 +17,7 @@ export { default as ProseStatic } from './prose-static'
 export { default as Gallery } from './gallery'
 export { default as Accordion } from './accordion'
 export { default as KitchenSink } from './kitchen-sink'
+export { default as Feed } from './feed'
 
 /**
  * Module component map for dynamic imports
@@ -31,6 +32,7 @@ export const MODULE_COMPONENTS = {
   'gallery': () => import('./gallery'),
   'accordion': () => import('./accordion'),
   'kitchen-sink': () => import('./kitchen-sink'),
+  'feed': () => import('./feed'),
 } as const
 
 export type ModuleComponentName = keyof typeof MODULE_COMPONENTS

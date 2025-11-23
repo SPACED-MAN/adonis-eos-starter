@@ -56,6 +56,8 @@ interface EditorProps {
     reviewProps?: Record<string, any> | null
     overrides: Record<string, any> | null
     reviewOverrides?: Record<string, any> | null
+    reviewAdded?: boolean
+    reviewDeleted?: boolean
     locked: boolean
     orderIndex: number
   }[]
@@ -69,6 +71,7 @@ export default function Editor({ post, modules: initialModules, translations, re
     slug: post.slug,
     excerpt: post.excerpt || '',
     status: post.status,
+    parentId: (post as any).parentId || '',
     metaTitle: post.metaTitle || '',
     metaDescription: post.metaDescription || '',
     canonicalUrl: post.canonicalUrl || '',
@@ -80,6 +83,7 @@ export default function Editor({ post, modules: initialModules, translations, re
     slug: post.slug,
     excerpt: post.excerpt || '',
     status: post.status,
+    parentId: (post as any).parentId || '',
     metaTitle: post.metaTitle || '',
     metaDescription: post.metaDescription || '',
     canonicalUrl: post.canonicalUrl || '',
@@ -91,6 +95,7 @@ export default function Editor({ post, modules: initialModules, translations, re
     slug: String(reviewDraft.slug ?? post.slug),
     excerpt: String(reviewDraft.excerpt ?? (post.excerpt || '')),
     status: String(reviewDraft.status ?? post.status),
+    parentId: String((reviewDraft.parentId ?? (post as any).parentId ?? '') || ''),
     metaTitle: String(reviewDraft.metaTitle ?? (post.metaTitle || '')),
     metaDescription: String(reviewDraft.metaDescription ?? (post.metaDescription || '')),
     canonicalUrl: String(reviewDraft.canonicalUrl ?? (post.canonicalUrl || '')),
@@ -99,6 +104,8 @@ export default function Editor({ post, modules: initialModules, translations, re
   } : null)
   const [viewMode, setViewMode] = useState<'approved' | 'review'>('approved')
   const [pendingModules, setPendingModules] = useState<Record<string, { overrides: Record<string, any> | null; edited: Record<string, any> }>>({})
+  const [pendingRemoved, setPendingRemoved] = useState<Set<string>>(new Set())
+  const [pendingReviewRemoved, setPendingReviewRemoved] = useState<Set<string>>(new Set())
   const pickForm = (d: typeof data) => ({
     title: d.title,
     slug: d.slug,
@@ -115,11 +122,13 @@ export default function Editor({ post, modules: initialModules, translations, re
       const baseline = viewMode === 'review' && reviewInitialRef.current ? reviewInitialRef.current : initialDataRef.current
       const fieldsChanged = JSON.stringify(pickForm(data)) !== JSON.stringify(baseline)
       const modulesPending = Object.keys(pendingModules).length > 0
-      return fieldsChanged || modulesPending
+      const removalsPendingApproved = pendingRemoved.size > 0
+      const removalsPendingReview = pendingReviewRemoved.size > 0
+      return fieldsChanged || modulesPending || removalsPendingApproved || removalsPendingReview
     } catch {
       return true
     }
-  }, [data, viewMode, pendingModules])
+  }, [data, viewMode, pendingModules, pendingRemoved, pendingReviewRemoved])
 
   // CSRF/XSRF token for fetch requests (prefer cookie value)
   const page = usePage()
@@ -212,6 +221,7 @@ export default function Editor({ post, modules: initialModules, translations, re
     const payload = {
       ...pickForm(data),
       mode: 'review',
+      reviewModuleRemovals: Array.from(pendingReviewRemoved),
     }
     const res = await fetch(`/api/posts/${post.id}`, {
       method: 'PUT',
@@ -226,6 +236,7 @@ export default function Editor({ post, modules: initialModules, translations, re
     if (res.ok) {
       toast.success('Saved for review')
       reviewInitialRef.current = pickForm(data)
+      setPendingReviewRemoved(new Set())
     } else {
       toast.error('Failed to save for review')
     }
@@ -329,16 +340,21 @@ export default function Editor({ post, modules: initialModules, translations, re
   }
 
   const sortedModules = useMemo(() => {
-    const base = modules.slice().sort((a, b) => a.orderIndex - b.orderIndex)
+    const baseAll = modules.slice().sort((a, b) => a.orderIndex - b.orderIndex)
     if (viewMode === 'review') {
+      const base = baseAll
+        .filter((m) => !pendingReviewRemoved.has(m.id))
+        .filter((m) => !m.reviewDeleted)
       return base.map((m) => ({
         ...m,
-        props: m.scope === 'post' ? (m.reviewPos ? m.reviewProps ?? m.props : m.props) : m.props,
+        props: m.scope === 'post' ? (m.reviewProps ?? m.props) : m.props,
         overrides: m.scope !== 'post' ? (m.reviewOverrides ?? m.overrides ?? null) : m.overrides,
       }))
     }
+    // Approved view: hide review-added modules
+    const base = baseAll.filter((m) => !m.reviewAdded)
     return base
-  }, [modules, viewMode])
+  }, [modules, viewMode, pendingReviewRemoved])
 
   const translationMap = useMemo(() => {
     const map = new Map<string, string>()
@@ -397,26 +413,42 @@ export default function Editor({ post, modules: initialModules, translations, re
 
   async function commitPendingModules(mode: 'review' | 'publish') {
     const entries = Object.entries(pendingModules)
-    if (entries.length === 0) return
-    const updates = entries.map(([id, payload]) =>
-      fetch(`/api/post-modules/${encodeURIComponent(id)}`, {
-        method: 'PUT',
-        headers: {
-          'Accept': 'application/json',
-          'Content-Type': 'application/json',
-          ...(xsrfToken ? { 'X-XSRF-TOKEN': xsrfToken } : {}),
-        },
-        credentials: 'same-origin',
-        body: JSON.stringify({ overrides: payload.overrides, mode }),
-      })
-    )
-    const results = await Promise.allSettled(updates)
-    const anyFailed = results.some((r) => r.status === 'rejected' || (r.status === 'fulfilled' && !(r.value as Response).ok))
-    if (anyFailed) {
-      toast.error('Failed to save module changes')
-      throw new Error('Failed to save module changes')
+    // 1) Apply updates
+    if (entries.length > 0) {
+      const updates = entries.map(([id, payload]) =>
+        fetch(`/api/post-modules/${encodeURIComponent(id)}`, {
+          method: 'PUT',
+          headers: {
+            'Accept': 'application/json',
+            'Content-Type': 'application/json',
+            ...(xsrfToken ? { 'X-XSRF-TOKEN': xsrfToken } : {}),
+          },
+          credentials: 'same-origin',
+          body: JSON.stringify({ overrides: payload.overrides, mode }),
+        })
+      )
+      const results = await Promise.allSettled(updates)
+      const anyFailed = results.some((r) => r.status === 'rejected' || (r.status === 'fulfilled' && !(r.value as Response).ok))
+      if (anyFailed) {
+        toast.error('Failed to save module changes')
+        throw new Error('Failed to save module changes')
+      }
+      setPendingModules({})
     }
-    setPendingModules({})
+    // 2) Apply removals
+    if (pendingRemoved.size > 0) {
+      const deletes = Array.from(pendingRemoved).map((id) =>
+        fetch(`/api/post-modules/${encodeURIComponent(id)}`, {
+          method: 'DELETE',
+          credentials: 'same-origin',
+          headers: {
+            ...(xsrfToken ? { 'X-XSRF-TOKEN': xsrfToken } : {}),
+          },
+        })
+      )
+      await Promise.allSettled(deletes)
+      setPendingRemoved(new Set())
+    }
   }
 
   const handleSubmit = (e: FormEvent) => {
@@ -442,10 +474,10 @@ export default function Editor({ post, modules: initialModules, translations, re
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
           {/* Left Column - Post Content */}
           <div className="lg:col-span-2 space-y-6">
-            {/* Basic Info Card */}
+            {/* Content Card */}
             <div className="bg-backdrop-low rounded-lg shadow p-6 border border-line">
               <h2 className="text-lg font-semibold text-neutral-high mb-4">
-                Post Information
+                Content
               </h2>
 
               <form className="space-y-4" onSubmit={handleSubmit}>
@@ -465,28 +497,6 @@ export default function Editor({ post, modules: initialModules, translations, re
                   )}
                 </div>
 
-                {/* Slug */}
-                <div>
-                  <label className="block text-sm font-medium text-neutral-medium mb-1">
-                    Slug *
-                  </label>
-                  <Input
-                    type="text"
-                    value={data.slug}
-                    onChange={(e) => setData('slug', e.target.value)}
-                    className="font-mono text-sm"
-                    placeholder="post-slug"
-                  />
-                  {errors.slug && (
-                    <p className="text-sm text-[color:#dc2626] mt-1">{errors.slug}</p>
-                  )}
-                  {pathPattern && (
-                    <p className="mt-1 text-xs text-neutral-low font-mono">
-                      Preview: {buildPreviewPath(data.slug)}
-                    </p>
-                  )}
-                </div>
-
                 {/* Excerpt */}
                 <div>
                   <label className="block text-sm font-medium text-neutral-medium mb-1">
@@ -503,20 +513,25 @@ export default function Editor({ post, modules: initialModules, translations, re
                   )}
                 </div>
 
-                {/* Status moved to Actions sidebar */}
+                {/* Parent (optional hierarchy) */}
+                <ParentSelect
+                  postId={post.id}
+                  postType={post.type}
+                  locale={post.locale}
+                  value={data.parentId || ''}
+                  onChange={(val) => setData('parentId', val)}
+                />
 
                 {/* Save button moved to Actions */}
               </form>
-            </div>
-
-            {/* Modules Section */}
-            <div className="bg-backdrop-low rounded-lg shadow p-6 border border-line">
-              <div className="flex items-center justify-between mb-4">
-                <h2 className="text-lg font-semibold text-neutral-high">
-                  Modules
-                </h2>
-                <ModulePicker postId={post.id} postType={post.type} />
-              </div>
+              {/* Modules integrated into Content */}
+              <div className="mt-6">
+                <div className="flex items-center justify-between mb-4">
+                  <h3 className="text-base font-semibold text-neutral-high">
+                    Modules
+                  </h3>
+                  <ModulePicker postId={post.id} postType={post.type} mode={viewMode === 'review' ? 'review' : 'publish'} />
+                </div>
               {modules.length === 0 ? (
                 <div className="text-center py-12 text-neutral-low">
                   <p>No modules yet. Use “Add Module” to insert one.</p>
@@ -551,6 +566,31 @@ export default function Editor({ post, modules: initialModules, translations, re
                                 >
                                   Edit
                                 </button>
+                                <button
+                                  className="text-xs px-2 py-1 rounded border border-[color:#ef4444] text-[color:#ef4444] hover:bg-[rgba(239,68,68,0.1)]"
+                                  onClick={async () => {
+                                    // Mark for removal in appropriate mode; actual apply on save
+                                    if (viewMode === 'review') {
+                                      setPendingReviewRemoved((prev) => {
+                                        const next = new Set(prev)
+                                        next.add(m.id)
+                                        return next
+                                      })
+                                    } else {
+                                      setPendingRemoved((prev) => {
+                                        const next = new Set(prev)
+                                        next.add(m.id)
+                                        return next
+                                      })
+                                      // For approved mode, optimistically remove from UI
+                                      setModules((prev) => prev.filter((pm) => pm.id !== m.id))
+                                    }
+                                    toast.success('Module marked for removal (apply by saving)')
+                                  }}
+                                  type="button"
+                                >
+                                  Remove
+                                </button>
                               </div>
                             </li>
                           )}
@@ -560,15 +600,37 @@ export default function Editor({ post, modules: initialModules, translations, re
                   </SortableContext>
                 </DndContext>
               )}
+              </div>
             </div>
 
             {/* SEO Card */}
             <div className="bg-backdrop-low rounded-lg shadow p-6 border border-line">
               <h2 className="text-lg font-semibold text-neutral-high mb-4">
-                SEO Settings
+                SEO
               </h2>
 
               <div className="space-y-4">
+                {/* Slug */}
+                <div>
+                  <label className="block text-sm font-medium text-neutral-medium mb-1">
+                    Slug *
+                  </label>
+                  <Input
+                    type="text"
+                    value={data.slug}
+                    onChange={(e) => setData('slug', e.target.value)}
+                    className="font-mono text-sm"
+                    placeholder="post-slug"
+                  />
+                  {errors.slug && (
+                    <p className="text-sm text-[color:#dc2626] mt-1">{errors.slug}</p>
+                  )}
+                  {pathPattern && (
+                    <p className="mt-1 text-xs text-neutral-low font-mono">
+                      Preview: {buildPreviewPath(data.slug)}
+                    </p>
+                  )}
+                </div>
                 {/* Meta Title */}
                 <div>
                   <label className="block text-sm font-medium text-neutral-medium mb-1">
@@ -770,7 +832,8 @@ export default function Editor({ post, modules: initialModules, translations, re
                 <button
                   className="w-full px-4 py-2 text-sm border border-border rounded-lg hover:bg-backdrop-medium text-neutral-medium"
                   onClick={() => {
-                    const target = (post as any).publicPath || `/posts/${post.slug}`
+                    const base = (post as any).publicPath || `/posts/${post.slug}`
+                    const target = viewMode === 'review' ? `${base}${base.includes('?') ? '&' : '?'}view=review` : base
                     window.open(target, '_blank')
                   }}
                   type="button"
@@ -1125,6 +1188,69 @@ export default function Editor({ post, modules: initialModules, translations, re
         }}
         processing={savingOverrides}
       />
+    </div>
+  )
+}
+
+function ParentSelect({
+  postId,
+  postType,
+  locale,
+  value,
+  onChange,
+}: {
+  postId: string
+  postType: string
+  locale: string
+  value: string
+  onChange: (val: string) => void
+}) {
+  const [options, setOptions] = useState<Array<{ id: string; title: string }>>([])
+  const [loading, setLoading] = useState<boolean>(false)
+  useEffect(() => {
+    let alive = true
+    ;(async () => {
+      try {
+        setLoading(true)
+        const params = new URLSearchParams()
+        params.set('types', postType)
+        params.set('locale', locale)
+        params.set('status', 'published')
+        params.set('limit', '100')
+        const res = await fetch(`/api/posts?${params.toString()}`, { credentials: 'same-origin' })
+        const json = await res.json().catch(() => ({}))
+        const list: Array<{ id: string; title: string }> = Array.isArray(json?.data) ? json.data : []
+        if (!alive) return
+        setOptions(list.filter((p) => p.id !== postId))
+      } finally {
+        if (alive) setLoading(false)
+      }
+    })()
+    return () => {
+      alive = false
+    }
+  }, [postId, postType, locale])
+  return (
+    <div>
+      <label className="block text-sm font-medium text-neutral-medium mb-1">Parent</label>
+      <Select
+        defaultValue={value && value !== '' ? value : '__none__'}
+        onValueChange={(val) => onChange(val === '__none__' ? '' : val)}
+      >
+        <SelectTrigger>
+          <SelectValue placeholder={loading ? 'Loading…' : 'None'} />
+        </SelectTrigger>
+        <SelectContent>
+          <SelectItem key="__none__" value="__none__">
+            None
+          </SelectItem>
+          {options.map((p) => (
+            <SelectItem key={p.id} value={p.id}>
+              {p.title}
+            </SelectItem>
+          ))}
+        </SelectContent>
+      </Select>
     </div>
   )
 }

@@ -9,6 +9,7 @@ type UpdatePostParams = {
   title?: string
   status?: 'draft' | 'review' | 'scheduled' | 'published' | 'archived'
   excerpt?: string | null
+  parentId?: string | null
   metaTitle?: string | null
   metaDescription?: string | null
   canonicalUrl?: string | null
@@ -34,6 +35,7 @@ export default class UpdatePost {
     title,
     status,
     excerpt,
+    parentId,
     metaTitle,
     metaDescription,
     canonicalUrl,
@@ -101,6 +103,16 @@ export default class UpdatePost {
     if (title !== undefined) post.title = title
     if (status !== undefined) post.status = status
     if (excerpt !== undefined) post.excerpt = excerpt
+    if (parentId !== undefined) {
+      // Normalize: empty string => null
+      const normalized = parentId === '' ? null : parentId
+      // Prevent self-parenting
+      if (normalized && normalized === postId) {
+        post.parentId = null
+      } else {
+        post.parentId = (normalized as any) ?? null
+      }
+    }
     if (metaTitle !== undefined) post.metaTitle = metaTitle
     if (metaDescription !== undefined) post.metaDescription = metaDescription
     if (canonicalUrl !== undefined) post.canonicalUrl = canonicalUrl

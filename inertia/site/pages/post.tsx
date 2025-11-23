@@ -98,6 +98,8 @@ function getModuleComponent(type: string) {
 		prose: Modules.ProseStatic,
 		gallery: Modules.Gallery,
 		accordion: Modules.Accordion,
+		'kitchen-sink': Modules.KitchenSink,
+		feed: Modules.Feed,
 	}
 
 	return componentMap[type] || null

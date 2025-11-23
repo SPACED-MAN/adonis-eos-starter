@@ -35,9 +35,22 @@ export default class PostsController {
     const page = Math.max(1, Number(request.input('page', 1)) || 1)
     const limit = Math.min(100, Math.max(1, Number(request.input('limit', 20)) || 20))
 
-    const allowedSort = new Set(['title', 'slug', 'status', 'locale', 'updated_at', 'created_at'])
+    const allowedSort = new Set(['title', 'slug', 'status', 'locale', 'updated_at', 'created_at', 'published_at'])
     const sortBy = allowedSort.has(sortByRaw) ? sortByRaw : 'updated_at'
     const sortOrder = sortOrderRaw.toLowerCase() === 'asc' ? 'asc' : 'desc'
+
+    // Support multiple post types (?types=blog,page or repeated ?type=blog&type=page)
+    const typesParam = request.input('types')
+    let types: string[] = []
+    if (Array.isArray(request.qs().type)) {
+      types = (request.qs().type as string[]).map((t) => String(t).trim()).filter(Boolean)
+    } else if (typeof typesParam === 'string' && typesParam.trim()) {
+      types = typesParam.split(',').map((t) => t.trim()).filter(Boolean)
+    }
+
+    const parentId = String(request.input('parentId', '')).trim()
+    const rootsOnly = String(request.input('roots', '')).trim()
+    const wantRoots = rootsOnly === '1' || rootsOnly.toLowerCase() === 'true'
 
     const query = Post.query()
     if (q) {
@@ -48,6 +61,9 @@ export default class PostsController {
     if (type) {
       query.where('type', type)
     }
+    if (!type && types.length > 0) {
+      query.whereIn('type', types)
+    }
     if (status) {
       query.where('status', status)
     }
@@ -57,12 +73,20 @@ export default class PostsController {
     if (locale) {
       query.where('locale', locale)
     }
+    if (parentId) {
+      query.where('parent_id', parentId)
+    } else if (wantRoots) {
+      query.whereNull('parent_id')
+    }
     const countQuery = db.from('posts')
     if (q) {
       countQuery.where((b) => b.whereILike('title', `%${q}%`).orWhereILike('slug', `%${q}%`))
     }
     if (type) {
       countQuery.where('type', type)
+    }
+    if (!type && types.length > 0) {
+      countQuery.whereIn('type', types)
     }
     if (status) {
       countQuery.where('status', status)
@@ -72,6 +96,11 @@ export default class PostsController {
     }
     if (locale) {
       countQuery.where('locale', locale)
+    }
+    if (parentId) {
+      countQuery.where('parent_id', parentId)
+    } else if (wantRoots) {
+      countQuery.whereNull('parent_id')
     }
     const countRows = await countQuery.count('* as total')
     const total = Number((countRows?.[0] as any)?.total || 0)
@@ -151,6 +180,8 @@ export default class PostsController {
         .where('post_modules.post_id', post.id)
         .select(
           'post_modules.id as postModuleId',
+          'post_modules.review_added as reviewAdded',
+          'post_modules.review_deleted as reviewDeleted',
           'module_instances.type',
           'module_instances.scope',
           'module_instances.props',
@@ -186,6 +217,7 @@ export default class PostsController {
           excerpt: post.excerpt,
           status: post.status,
           locale: post.locale,
+          parentId: (post as any).parentId || null,
           metaTitle: post.metaTitle,
           metaDescription: post.metaDescription,
           canonicalUrl: post.canonicalUrl,
@@ -204,6 +236,8 @@ export default class PostsController {
           reviewProps: (pm as any).review_props || null,
           overrides: pm.overrides || null,
           reviewOverrides: (pm as any).review_overrides || null,
+          reviewAdded: (pm as any).reviewAdded || false,
+          reviewDeleted: (pm as any).reviewDeleted || false,
           locked: pm.locked,
           orderIndex: pm.orderIndex,
         })),
@@ -327,6 +361,7 @@ export default class PostsController {
       title,
       status,
       excerpt,
+      parentId,
       metaTitle,
       metaDescription,
       canonicalUrl,
@@ -338,6 +373,7 @@ export default class PostsController {
       'title',
       'status',
       'excerpt',
+      'parentId',
       'metaTitle',
       'metaDescription',
       'canonicalUrl',
@@ -349,21 +385,28 @@ export default class PostsController {
     try {
       const saveMode = String(mode || 'publish').toLowerCase()
       if (saveMode === 'review') {
+        const reviewModuleRemovals = request.input('reviewModuleRemovals', [])
         const draftPayload: Record<string, any> = {
           slug,
           title,
           status,
           excerpt,
+          parentId,
           metaTitle,
           metaDescription,
           canonicalUrl,
           robotsJson,
           jsonldOverrides,
+          removedModuleIds: Array.isArray(reviewModuleRemovals) ? reviewModuleRemovals : [],
           savedAt: new Date().toISOString(),
           savedBy: (auth.use('web').user as any)?.email || null,
         }
         // Use snake_case column name created by migration
         await Post.query().where('id', id).update({ review_draft: draftPayload } as any)
+        // Mark review deletions in post_modules so they persist across reloads
+        if (Array.isArray(reviewModuleRemovals) && reviewModuleRemovals.length > 0) {
+          await db.from('post_modules').whereIn('id', reviewModuleRemovals).update({ review_deleted: true, updated_at: new Date() } as any)
+        }
         // Record a review-draft revision
         await RevisionService.record({
           postId: id,
@@ -386,6 +429,7 @@ export default class PostsController {
           const nextSlug = rd.slug ?? current.slug
           const nextTitle = rd.title ?? current.title
           const nextExcerpt = rd.excerpt ?? current.excerpt
+          const nextParentId = rd.parentId ?? (current as any).parentId ?? null
           const nextMetaTitle = rd.metaTitle ?? current.metaTitle
           const nextMetaDescription = rd.metaDescription ?? current.metaDescription
           const nextCanonicalUrl = rd.canonicalUrl ?? current.canonicalUrl
@@ -416,12 +460,45 @@ export default class PostsController {
             title: nextTitle,
             status: current.status, // preserve status
             excerpt: nextExcerpt,
+            parentId: nextParentId || undefined,
             metaTitle: nextMetaTitle,
             metaDescription: nextMetaDescription,
             canonicalUrl: nextCanonicalUrl,
             robotsJson: nextRobots,
             jsonldOverrides: nextJsonLd,
           })
+          // Promote review module changes to approved
+          // 1) Local modules: review_props -> props
+          await db
+            .from('module_instances')
+            .where('scope', 'post')
+            .andWhereIn(
+              'id',
+              db.from('post_modules').where('post_id', id).select('module_id')
+            )
+            .update({
+              props: db.raw('COALESCE(review_props, props)'),
+              review_props: null,
+              updated_at: new Date(),
+            } as any)
+          // 2) Global/static overrides: review_overrides -> overrides
+          await db
+            .from('post_modules')
+            .where('post_id', id)
+            .update({
+              overrides: db.raw('COALESCE(review_overrides, overrides)'),
+              review_overrides: null,
+              updated_at: new Date(),
+            } as any)
+          // 3) Delete modules marked review_deleted
+          await db.from('post_modules').where('post_id', id).andWhere('review_deleted', true).delete()
+          // 4) Finalize review_added (make visible)
+          await db.from('post_modules').where('post_id', id).andWhere('review_added', true).update({ review_added: false, updated_at: new Date() } as any)
+          // Apply module removals captured in review draft (if any)
+          const toRemove: string[] = Array.isArray((rd as any).removedModuleIds) ? (rd as any).removedModuleIds : []
+          if (toRemove.length > 0) {
+            await db.from('post_modules').whereIn('id', toRemove).delete()
+          }
           // Record an approved revision snapshot (post-live)
           await RevisionService.record({
             postId: id,
@@ -487,6 +564,7 @@ export default class PostsController {
         title,
         status,
         excerpt,
+        parentId: parentId || undefined,
         metaTitle,
         metaDescription,
         canonicalUrl,
@@ -663,16 +741,30 @@ export default class PostsController {
         .where('post_modules.post_id', post.id)
         .select(
           'post_modules.id as postModuleId',
+          'post_modules.review_added as reviewAdded',
+          'post_modules.review_deleted as reviewDeleted',
           'module_instances.type',
           'module_instances.scope',
           'module_instances.props',
           'post_modules.overrides',
+          'post_modules.review_overrides',
           'post_modules.locked',
           'post_modules.order_index as orderIndex'
         )
         .orderBy('post_modules.order_index', 'asc')
 
-      const modules = modulesRows.map((pm: any) => {
+      // Exclude modules marked for removal in review view
+      const reviewDraft: any = (post as any).reviewDraft || (post as any).review_draft || null
+      const removedInReview: Set<string> =
+        wantReview && reviewDraft && Array.isArray(reviewDraft.removedModuleIds)
+          ? new Set(reviewDraft.removedModuleIds)
+          : new Set()
+
+      const modules = modulesRows
+        .filter((pm: any) => !removedInReview.has(pm.postModuleId))
+        .filter((pm: any) => !(wantReview && pm.reviewDeleted === true))
+        .filter((pm: any) => (wantReview ? true : pm.reviewAdded !== true))
+        .map((pm: any) => {
         const isLocal = pm.scope === 'post'
         const useReview = wantReview && ((post as any).reviewDraft || (post as any).review_draft)
         if (useReview) {
@@ -693,7 +785,6 @@ export default class PostsController {
       })
 
       // Return as Inertia page for public viewing
-      const reviewDraft: any = (post as any).reviewDraft || (post as any).review_draft || null
       const useReviewPost = wantReview && reviewDraft
       return inertia.render('site/post', {
         post: {
@@ -733,6 +824,21 @@ export default class PostsController {
         message: error.message,
       })
     }
+  }
+
+  /**
+   * DELETE /api/post-modules/:id
+   *
+   * Remove a module from a post.
+   */
+  async deleteModule({ params, response }: HttpContext) {
+    const { id } = params
+    const row = await db.from('post_modules').where('id', id).first()
+    if (!row) {
+      return response.notFound({ error: 'Post module not found' })
+    }
+    await db.from('post_modules').where('id', id).delete()
+    return response.noContent()
   }
 
   /**
@@ -910,6 +1016,8 @@ export default class PostsController {
         .where('post_modules.post_id', post.id)
         .select(
           'post_modules.id as postModuleId',
+          'post_modules.review_added as reviewAdded',
+          'post_modules.review_deleted as reviewDeleted',
           'module_instances.type',
           'module_instances.scope',
           'module_instances.props',
@@ -920,7 +1028,10 @@ export default class PostsController {
           'post_modules.order_index as orderIndex'
         )
         .orderBy('post_modules.order_index', 'asc')
-      const modules = postModules.map((pm: any) => {
+      const modules = postModules
+        .filter((pm: any) => (wantReview ? true : pm.reviewAdded !== true))
+        .filter((pm: any) => !(wantReview && pm.reviewDeleted === true))
+        .map((pm: any) => {
         const isLocal = pm.scope === 'post'
         const reviewDraft: any = (post as any).reviewDraft || (post as any).review_draft
         const useReview = wantReview && reviewDraft
@@ -994,13 +1105,14 @@ export default class PostsController {
    */
   async storeModule({ params, request, response }: HttpContext) {
     const { id } = params
-    const { moduleType, scope, props, globalSlug, orderIndex, locked } = request.only([
+    const { moduleType, scope, props, globalSlug, orderIndex, locked, mode } = request.only([
       'moduleType',
       'scope',
       'props',
       'globalSlug',
       'orderIndex',
       'locked',
+      'mode',
     ])
 
     try {
@@ -1012,6 +1124,7 @@ export default class PostsController {
         globalSlug,
         orderIndex,
         locked,
+        mode: mode === 'review' ? 'review' : 'publish',
       })
 
       // If this is an Inertia request, redirect back to the editor
@@ -1054,7 +1167,7 @@ export default class PostsController {
    */
   async updateModule({ params, request, response }: HttpContext) {
     const { id } = params
-    const { orderIndex, overrides, locked } = request.only(['orderIndex', 'overrides', 'locked'])
+    const { orderIndex, overrides, locked, mode } = request.only(['orderIndex', 'overrides', 'locked', 'mode'])
 
     try {
       const updated = await UpdatePostModule.handle({
@@ -1062,13 +1175,15 @@ export default class PostsController {
         orderIndex,
         overrides,
         locked,
+        mode: mode === 'review' ? 'review' : 'publish',
       })
 
       return response.ok({
         data: {
           id: updated.id,
           orderIndex: updated.order_index,
-          overrides: updated.overrides,
+          overrides: (mode === 'review' ? (updated as any).review_overrides : updated.overrides),
+          reviewOverrides: (updated as any).review_overrides ?? null,
           locked: updated.locked,
           updatedAt: updated.updated_at,
         },

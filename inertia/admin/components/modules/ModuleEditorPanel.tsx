@@ -308,8 +308,124 @@ export function ModuleEditorPanel({
 				</FormField>
 			)
 		}
+		if (type === 'post-reference') {
+			// Dynamic multi-select of posts (optionally limited to post types)
+			const allowedTypes: string[] = Array.isArray((field as any).postTypes) ? (field as any).postTypes : []
+			const allowMultiple = (field as any).allowMultiple !== false
+			const [options, setOptions] = useState<Array<{ label: string; value: string }>>([])
+			const initialVals: string[] = Array.isArray(value) ? value : (value ? [String(value)] : [])
+			const [vals, setVals] = useState<string[]>(initialVals)
+			const hiddenRef = useRef<HTMLInputElement | null>(null)
+			useEffect(() => {
+				if (hiddenRef.current) {
+					hiddenRef.current.value = allowMultiple ? JSON.stringify(vals) : (vals[0] ?? '')
+				}
+			}, [vals, allowMultiple])
+			useEffect(() => {
+				let alive = true
+				;(async () => {
+					try {
+						const params = new URLSearchParams()
+						params.set('status', 'published')
+						params.set('limit', '100')
+						params.set('sortBy', 'published_at')
+						params.set('sortOrder', 'desc')
+						if (allowedTypes.length > 0) {
+							params.set('types', allowedTypes.join(','))
+						}
+						const r = await fetch(`/api/posts?${params.toString()}`, { credentials: 'same-origin' })
+						const j = await r.json().catch(() => ({}))
+						const list: Array<{ id: string; title: string }> = Array.isArray(j?.data) ? j.data : []
+						if (!alive) return
+						setOptions(list.map((p) => ({ label: p.title || p.id, value: p.id })))
+					} catch {
+						if (!alive) return
+						setOptions([])
+					}
+				})()
+				return () => {
+					alive = false
+				}
+			}, [allowedTypes.join(',')])
+			return (
+				<FormField>
+					<FormLabel>{label}</FormLabel>
+					<Popover>
+						<PopoverTrigger asChild>
+							<button
+								type="button"
+								className="w-full text-left px-3 py-2 border border-border rounded-lg bg-backdrop-low text-neutral-high hover:bg-backdrop-medium"
+							>
+								{vals.length === 0 ? 'Select posts' : `${vals.length} selected`}
+							</button>
+						</PopoverTrigger>
+						<PopoverContent className="w-80">
+							<div className="max-h-64 overflow-auto space-y-2">
+								{options.length === 0 ? (
+									<div className="text-xs text-neutral-low">No posts available.</div>
+								) : options.map((opt) => {
+									const checked = vals.includes(opt.value)
+									return (
+										<label key={opt.value} className="flex items-center gap-2">
+											<Checkbox
+												checked={checked}
+												onCheckedChange={(c) => {
+													setVals((prev) => {
+														if (allowMultiple) {
+															const next = new Set(prev)
+															if (c) next.add(opt.value)
+															else next.delete(opt.value)
+															return Array.from(next)
+														}
+														return c ? [opt.value] : []
+													})
+												}}
+											/>
+											<span className="text-sm">{opt.label}</span>
+										</label>
+									)
+								})}
+							</div>
+						</PopoverContent>
+					</Popover>
+					<input
+						type="hidden"
+						name={name}
+						ref={hiddenRef}
+						defaultValue={allowMultiple ? JSON.stringify(initialVals) : (initialVals[0] ?? '')}
+						data-json={allowMultiple ? '1' : undefined}
+					/>
+				</FormField>
+			)
+		}
 		if (type === 'select' || type === 'multiselect') {
-			const options = (field as any).options || []
+			const [dynamicOptions, setDynamicOptions] = useState<Array<{ label: string; value: string }>>(
+				Array.isArray((field as any).options) ? ((field as any).options as any) : []
+			)
+			const optionsSource = (field as any).optionsSource as string | undefined
+			useEffect(() => {
+				let alive = true
+				;(async () => {
+					try {
+						// Only fetch when we have a known source and no static options
+						if (dynamicOptions.length > 0) return
+						if (optionsSource === 'post-types') {
+							const r = await fetch('/api/post-types', { credentials: 'same-origin' })
+							const j = await r.json().catch(() => ({}))
+							const list: string[] = Array.isArray(j?.data) ? j.data : []
+							if (!alive) return
+							setDynamicOptions(list.map((t) => ({ label: t, value: t })))
+						}
+					} catch {
+						/* ignore */
+					}
+				})()
+				return () => {
+					alive = false
+				}
+				// eslint-disable-next-line react-hooks/exhaustive-deps
+			}, [optionsSource])
+			const options = dynamicOptions
 			const isMulti = type === 'multiselect'
 			if (!isMulti) {
 				const initial = typeof value === 'string' ? value : ''

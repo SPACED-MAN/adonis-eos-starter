@@ -10,7 +10,7 @@ type ModuleConfig = {
 	category?: string
 }
 
-export function ModulePicker({ postId, postType }: { postId: string; postType: string }) {
+export function ModulePicker({ postId, postType, mode = 'publish' }: { postId: string; postType: string; mode?: 'review' | 'publish' }) {
 	const [open, setOpen] = useState(false)
 	const [loading, setLoading] = useState(false)
 	const [modules, setModules] = useState<ModuleConfig[]>([])
@@ -41,7 +41,7 @@ export function ModulePicker({ postId, postType }: { postId: string; postType: s
 		}
 	}, [open, postType])
 
-	function addModule(type: string) {
+  function addModule(type: string) {
 		router.post(
 			`/api/posts/${postId}/modules`,
 			{
@@ -50,6 +50,7 @@ export function ModulePicker({ postId, postType }: { postId: string; postType: s
 				// Omit props so backend seeds defaultProps
 				orderIndex: null,
 				locked: false,
+        mode,
 			},
 			{
 				onStart: () => setLoading(true),
