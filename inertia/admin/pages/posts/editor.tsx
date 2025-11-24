@@ -155,12 +155,42 @@ export default function Editor({ post, modules: initialModules, translations, re
   const [pathPattern, setPathPattern] = useState<string | null>(null)
   const [supportedLocales, setSupportedLocales] = useState<string[]>([])
   const [selectedLocale, setSelectedLocale] = useState<string>(post.locale)
+  const [moduleRegistry, setModuleRegistry] = useState<Record<string, { name: string; description?: string }>>({})
 
   // Keep local state in sync with server props after Inertia navigations
   // Useful after adding modules or reloading the page
   useEffect(() => {
     setModules(initialModules || [])
   }, [initialModules])
+
+  // Load module registry for display names
+  useEffect(() => {
+    let cancelled = false
+    ;(async () => {
+      try {
+        const res = await fetch(`/api/modules/registry?post_type=${encodeURIComponent(post.type)}`, {
+          headers: { Accept: 'application/json' },
+          credentials: 'same-origin',
+        })
+        const json = await res.json().catch(() => null)
+        const list: Array<{ type: string; name?: string; description?: string }> = Array.isArray(json?.data)
+          ? json.data
+          : []
+        if (!cancelled) {
+          const map: Record<string, { name: string; description?: string }> = {}
+          list.forEach((m) => {
+            map[m.type] = { name: m.name || m.type, description: m.description }
+          })
+          setModuleRegistry(map)
+        }
+      } catch {
+        if (!cancelled) setModuleRegistry({})
+      }
+    })()
+    return () => {
+      cancelled = true
+    }
+  }, [post.type])
 
   // Load URL pattern for this post type/locale to preview final path
   useEffect(() => {
@@ -497,7 +527,7 @@ export default function Editor({ post, modules: initialModules, translations, re
                     placeholder="Enter post title"
                   />
                   {errors.title && (
-                    <p className="text-sm text-[color:#dc2626] mt-1">{errors.title}</p>
+                    <p className="text-sm text-[#dc2626] mt-1">{errors.title}</p>
                   )}
                 </div>
 
@@ -513,7 +543,7 @@ export default function Editor({ post, modules: initialModules, translations, re
                     placeholder="Brief description (optional)"
                   />
                   {errors.excerpt && (
-                    <p className="text-sm text-[color:#dc2626] mt-1">{errors.excerpt}</p>
+                    <p className="text-sm text-[#dc2626] mt-1">{errors.excerpt}</p>
                   )}
                 </div>
 
@@ -569,7 +599,9 @@ export default function Editor({ post, modules: initialModules, translations, re
                                     ⋮⋮
                                   </button>
                                   <div>
-                                    <div className="text-sm font-medium text-neutral-high">{m.type}</div>
+                                    <div className="text-sm font-medium text-neutral-high">
+                                      {moduleRegistry[m.type]?.name || m.type}
+                                    </div>
                                     <div className="text-xs text-neutral-low">Order: {m.orderIndex}</div>
                                   </div>
                                 </div>
@@ -582,7 +614,7 @@ export default function Editor({ post, modules: initialModules, translations, re
                                     Edit
                                   </button>
                                   <button
-                                    className="text-xs px-2 py-1 rounded border border-[color:#ef4444] text-[color:#ef4444] hover:bg-[rgba(239,68,68,0.1)]"
+                                    className="text-xs px-2 py-1 rounded border border-[#ef4444] text-[#ef4444] hover:bg-[rgba(239,68,68,0.1)]"
                                     onClick={async () => {
                                       // Mark for removal in appropriate mode; actual apply on save
                                       if (viewMode === 'review') {
@@ -638,7 +670,7 @@ export default function Editor({ post, modules: initialModules, translations, re
                     placeholder="post-slug"
                   />
                   {errors.slug && (
-                    <p className="text-sm text-[color:#dc2626] mt-1">{errors.slug}</p>
+                    <p className="text-sm text-[#dc2626] mt-1">{errors.slug}</p>
                   )}
                   {pathPattern && (
                     <p className="mt-1 text-xs text-neutral-low font-mono">
