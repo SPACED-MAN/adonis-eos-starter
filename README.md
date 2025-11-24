@@ -489,12 +489,27 @@ How to use:
 3. Import (replace live or into review draft): choose JSON → select mode.
 4. Import as new post: choose JSON → auto-redirects to new post editor.
 
-### Milestone 14 — Module Field Types Framework & Repeater Fields
-- Create formal Field Type Registry
-- Support core field types: text, textarea, number, select, multiselect, media, date, url
-- Framework for custom field types
-- Implement Repeater field type
-- Update editor to render correct ShadCN component per field type
+### Milestone 14 — Module Field Types Framework & Repeater Fields (✅ Complete)
+- ✅ Field types framework in the module editor (schema-driven via `propsSchema`)
+- ✅ Core field types supported:
+  - text, textarea, number, select, multiselect, boolean, date, url, media
+  - object (nested fields) and repeater (array of objects or primitives)
+  - richtext (Lexical JSON), slider (numeric with step/min/max)
+- ✅ Editor renders appropriate ShadCN components:
+  - `Input`, `Textarea`, `Select`, `Popover+Calendar` for date, `Checkbox`, slider, etc.
+  - Nested object fields render as fieldsets; repeaters support add/remove/reorder
+- ✅ Schema-free fallback for unknown fields (safe text/JSON editing)
+- ✅ Post-reference field type included in sample `KitchenSink` module to select posts by type
+
+How to test:
+1. Open any post editor `/admin/posts/:id/edit`.
+2. Add the “Kitchen Sink” module.
+3. Expand “Edit” to see all field types rendered; change values and click Done.
+4. Save changes and verify they render on the public page (for static fields) or in the module preview.
+5. For repeater fields:
+   - Add items, move up/down, and remove to confirm indexing and persistence.
+6. For post-reference:
+   - Select one or more posts and verify saved IDs; render in a module/teaser if desired.
 
 ### Milestone 15 — Agent Runner (Webhook-Based Suggestions)
 - Add dropdown for selecting agent/webhook
