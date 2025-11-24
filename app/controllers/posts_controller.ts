@@ -33,9 +33,9 @@ export default class PostsController {
     const sortByRaw = String(request.input('sortBy', 'updated_at')).trim()
     const sortOrderRaw = String(request.input('sortOrder', 'desc')).trim()
     const page = Math.max(1, Number(request.input('page', 1)) || 1)
-    const limit = Math.min(100, Math.max(1, Number(request.input('limit', 20)) || 20))
+    const limit = Math.min(1000, Math.max(1, Number(request.input('limit', 20)) || 20))
 
-    const allowedSort = new Set(['title', 'slug', 'status', 'locale', 'updated_at', 'created_at', 'published_at'])
+    const allowedSort = new Set(['title', 'slug', 'status', 'locale', 'updated_at', 'created_at', 'published_at', 'order_index'])
     const sortBy = allowedSort.has(sortByRaw) ? sortByRaw : 'updated_at'
     const sortOrder = sortOrderRaw.toLowerCase() === 'asc' ? 'asc' : 'desc'
 
@@ -136,6 +136,8 @@ export default class PostsController {
           slug: p.slug,
           status: p.status,
           locale: p.locale,
+          orderIndex: (p as any).orderIndex ?? (p as any).order_index ?? 0,
+          parentId: (p as any).parentId || (p as any).parent_id || null,
           updatedAt: p?.updatedAt?.toISO ? p.updatedAt.toISO() : p.updatedAt,
           translationOfId: p.translationOfId || null,
           familyLocales,
@@ -362,6 +364,7 @@ export default class PostsController {
       status,
       excerpt,
       parentId,
+      orderIndex,
       metaTitle,
       metaDescription,
       canonicalUrl,
@@ -374,6 +377,7 @@ export default class PostsController {
       'status',
       'excerpt',
       'parentId',
+      'orderIndex',
       'metaTitle',
       'metaDescription',
       'canonicalUrl',
@@ -392,6 +396,7 @@ export default class PostsController {
           status,
           excerpt,
           parentId,
+          orderIndex,
           metaTitle,
           metaDescription,
           canonicalUrl,
@@ -430,6 +435,7 @@ export default class PostsController {
           const nextTitle = rd.title ?? current.title
           const nextExcerpt = rd.excerpt ?? current.excerpt
           const nextParentId = rd.parentId ?? (current as any).parentId ?? null
+          const nextOrderIndex = typeof rd.orderIndex === 'number' ? rd.orderIndex : ((current as any).orderIndex ?? 0)
           const nextMetaTitle = rd.metaTitle ?? current.metaTitle
           const nextMetaDescription = rd.metaDescription ?? current.metaDescription
           const nextCanonicalUrl = rd.canonicalUrl ?? current.canonicalUrl
@@ -461,6 +467,7 @@ export default class PostsController {
             status: current.status, // preserve status
             excerpt: nextExcerpt,
             parentId: nextParentId || undefined,
+            orderIndex: nextOrderIndex,
             metaTitle: nextMetaTitle,
             metaDescription: nextMetaDescription,
             canonicalUrl: nextCanonicalUrl,
@@ -565,6 +572,7 @@ export default class PostsController {
         status,
         excerpt,
         parentId: parentId || undefined,
+        orderIndex: orderIndex !== undefined ? Number(orderIndex) : undefined,
         metaTitle,
         metaDescription,
         canonicalUrl,
@@ -796,6 +804,59 @@ export default class PostsController {
         return response.status(status).json({ error: e.message, ...e.meta })
       }
       return response.status(status).json({ error: e?.message || 'Bulk action failed' })
+    }
+  }
+
+  /**
+   * POST /api/posts/reorder
+   * Bulk update order_index for posts.
+   * Body: { items: Array<{ id: string; orderIndex: number }> }
+   */
+  async reorder({ request, response, auth }: HttpContext) {
+    const role = (auth.use('web').user as any)?.role as 'admin' | 'editor' | 'translator' | undefined
+    // Only admin/editor can reorder posts
+    if (!(role === 'admin' || role === 'editor')) {
+      return response.forbidden({ error: 'Not allowed to reorder posts' })
+    }
+    const items: Array<{ id: string; orderIndex: number; parentId?: string | null }> =
+      Array.isArray(request.input('items')) ? request.input('items') : []
+    if (!Array.isArray(items) || items.length === 0) {
+      return response.badRequest({ error: 'items must be a non-empty array' })
+    }
+    // Validate payload
+    const sanitized: Array<{ id: string; orderIndex: number; parentId?: string | null }> = []
+    for (const it of items) {
+      const id = String((it as any)?.id || '').trim()
+      const oiRaw = (it as any)?.orderIndex
+      const orderIndex = Number(oiRaw)
+      const parentIdRaw = (it as any)?.parentId
+      const hasParent = (it as any)?.hasOwnProperty('parentId')
+      const parentId =
+        hasParent
+          ? (parentIdRaw === null || parentIdRaw === '' ? null : String(parentIdRaw).trim())
+          : undefined
+      if (!id || Number.isNaN(orderIndex)) {
+        return response.badRequest({ error: 'Each item must include valid id and orderIndex' })
+      }
+      if (parentId !== undefined && parentId === id) {
+        return response.badRequest({ error: 'Cannot set a post as its own parent' })
+      }
+      sanitized.push({ id, orderIndex, parentId })
+    }
+    try {
+      const now = new Date()
+      await db.transaction(async (trx) => {
+        for (const it of sanitized) {
+          const update: any = { order_index: it.orderIndex, updated_at: now }
+          if ((it as any).hasOwnProperty('parentId')) {
+            update.parent_id = it.parentId === undefined ? undefined : it.parentId
+          }
+          await trx.from('posts').where('id', it.id).update(update)
+        }
+      })
+      return response.ok({ updated: sanitized.length })
+    } catch (e: any) {
+      return response.badRequest({ error: e?.message || 'Failed to reorder posts' })
     }
   }
 

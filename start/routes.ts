@@ -131,6 +131,7 @@ router.group(() => {
 	router.post('/posts/:id/revisions/:revId/revert', [PostsController, 'revertRevision'])
 	router.delete('/posts/:id', [PostsController, 'destroy']).use(middleware.admin())
 	router.post('/posts/bulk', [PostsController, 'bulk'])
+	router.post('/posts/reorder', [PostsController, 'reorder'])
 	router.post('/posts/:id/modules', [PostsController, 'storeModule'])
 	router.put('/post-modules/:id', [PostsController, 'updateModule'])
 	router.delete('/post-modules/:id', [PostsController, 'deleteModule'])

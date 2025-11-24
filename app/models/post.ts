@@ -48,6 +48,9 @@ export default class Post extends BaseModel {
   @column({ columnName: 'parent_id' })
   declare parentId: string | null
 
+  @column({ columnName: 'order_index' })
+  declare orderIndex: number
+
   @column()
   declare templateId: string | null
 

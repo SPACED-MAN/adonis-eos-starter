@@ -10,6 +10,7 @@ type UpdatePostParams = {
   status?: 'draft' | 'review' | 'scheduled' | 'published' | 'archived'
   excerpt?: string | null
   parentId?: string | null
+  orderIndex?: number
   metaTitle?: string | null
   metaDescription?: string | null
   canonicalUrl?: string | null
@@ -36,6 +37,7 @@ export default class UpdatePost {
     status,
     excerpt,
     parentId,
+    orderIndex,
     metaTitle,
     metaDescription,
     canonicalUrl,
@@ -76,24 +78,24 @@ export default class UpdatePost {
         // Conditionally create a 301 redirect from old path to new path (locale-aware)
         const shouldAutoRedirect = await postTypeSettingsService.isAutoRedirectEnabled(post.type)
         if (shouldAutoRedirect) {
-        const fromPath = await urlPatternService.buildPostPath(post.type, oldSlug, post.locale, (post as any).createdAt)
-        const toPath = await urlPatternService.buildPostPath(post.type, newSlug, post.locale, (post as any).createdAt)
-        try {
-          const existing = await db.from('url_redirects').where('from_path', fromPath).first()
-          if (!existing) {
-            const now = new Date()
-            await db.table('url_redirects').insert({
-              from_path: fromPath,
-              to_path: toPath,
-              locale: post.locale,
-              http_status: 301,
-              post_id: post.id,
-              created_at: now,
-              updated_at: now,
-            })
-          }
-        } catch {
-          // ignore redirect insert errors
+          const fromPath = await urlPatternService.buildPostPath(post.type, oldSlug, post.locale, (post as any).createdAt)
+          const toPath = await urlPatternService.buildPostPath(post.type, newSlug, post.locale, (post as any).createdAt)
+          try {
+            const existing = await db.from('url_redirects').where('from_path', fromPath).first()
+            if (!existing) {
+              const now = new Date()
+              await db.table('url_redirects').insert({
+                from_path: fromPath,
+                to_path: toPath,
+                locale: post.locale,
+                http_status: 301,
+                post_id: post.id,
+                created_at: now,
+                updated_at: now,
+              })
+            }
+          } catch {
+            // ignore redirect insert errors
           }
         }
       }
@@ -112,6 +114,9 @@ export default class UpdatePost {
       } else {
         post.parentId = (normalized as any) ?? null
       }
+    }
+    if (orderIndex !== undefined && !Number.isNaN(Number(orderIndex))) {
+      post.orderIndex = Number(orderIndex)
     }
     if (metaTitle !== undefined) post.metaTitle = metaTitle
     if (metaDescription !== undefined) post.metaDescription = metaDescription

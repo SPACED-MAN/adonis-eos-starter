@@ -72,6 +72,7 @@ export default function Editor({ post, modules: initialModules, translations, re
     excerpt: post.excerpt || '',
     status: post.status,
     parentId: (post as any).parentId || '',
+    orderIndex: (post as any).orderIndex ?? 0,
     metaTitle: post.metaTitle || '',
     metaDescription: post.metaDescription || '',
     canonicalUrl: post.canonicalUrl || '',
@@ -84,6 +85,7 @@ export default function Editor({ post, modules: initialModules, translations, re
     excerpt: post.excerpt || '',
     status: post.status,
     parentId: (post as any).parentId || '',
+    orderIndex: (post as any).orderIndex ?? 0,
     metaTitle: post.metaTitle || '',
     metaDescription: post.metaDescription || '',
     canonicalUrl: post.canonicalUrl || '',
@@ -96,6 +98,7 @@ export default function Editor({ post, modules: initialModules, translations, re
     excerpt: String(reviewDraft.excerpt ?? (post.excerpt || '')),
     status: String(reviewDraft.status ?? post.status),
     parentId: String((reviewDraft.parentId ?? (post as any).parentId ?? '') || ''),
+    orderIndex: Number(reviewDraft.orderIndex ?? ((post as any).orderIndex ?? 0)),
     metaTitle: String(reviewDraft.metaTitle ?? (post.metaTitle || '')),
     metaDescription: String(reviewDraft.metaDescription ?? (post.metaDescription || '')),
     canonicalUrl: String(reviewDraft.canonicalUrl ?? (post.canonicalUrl || '')),
@@ -111,6 +114,7 @@ export default function Editor({ post, modules: initialModules, translations, re
     slug: d.slug,
     excerpt: d.excerpt,
     status: d.status,
+    orderIndex: d.orderIndex,
     metaTitle: d.metaTitle,
     metaDescription: d.metaDescription,
     canonicalUrl: d.canonicalUrl,
@@ -521,6 +525,17 @@ export default function Editor({ post, modules: initialModules, translations, re
                   value={data.parentId || ''}
                   onChange={(val) => setData('parentId', val)}
                 />
+                {/* Order Index */}
+                <div>
+                  <label className="block text-sm font-medium text-neutral-medium mb-1">Order</label>
+                  <Input
+                    type="number"
+                    value={typeof data.orderIndex === 'number' ? data.orderIndex : Number(data.orderIndex || 0)}
+                    onChange={(e) => setData('orderIndex', Number(e.target.value) || 0)}
+                    min={0}
+                    className="w-32"
+                  />
+                </div>
 
                 {/* Save button moved to Actions */}
               </form>
@@ -532,74 +547,74 @@ export default function Editor({ post, modules: initialModules, translations, re
                   </h3>
                   <ModulePicker postId={post.id} postType={post.type} mode={viewMode === 'review' ? 'review' : 'publish'} />
                 </div>
-              {modules.length === 0 ? (
-                <div className="text-center py-12 text-neutral-low">
-                  <p>No modules yet. Use “Add Module” to insert one.</p>
-                </div>
-              ) : (
-                <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={onDragEnd}>
-                  <SortableContext items={orderedIds} strategy={verticalListSortingStrategy}>
-                    <ul className="space-y-3">
-                      {sortedModules.map((m) => (
-                        <SortableItem key={m.id} id={m.id}>
-                          {(listeners: any) => (
-                            <li className="bg-backdrop-low border border-line rounded-lg px-4 py-3 flex items-center justify-between">
-                              <div className="flex items-center gap-3">
-                                <button
-                                  type="button"
-                                  aria-label="Drag"
-                                  className="cursor-grab text-neutral-low hover:text-neutral-high"
-                                  {...listeners}
-                                >
-                                  ⋮⋮
-                                </button>
-                                <div>
-                                  <div className="text-sm font-medium text-neutral-high">{m.type}</div>
-                                  <div className="text-xs text-neutral-low">Order: {m.orderIndex}</div>
+                {modules.length === 0 ? (
+                  <div className="text-center py-12 text-neutral-low">
+                    <p>No modules yet. Use “Add Module” to insert one.</p>
+                  </div>
+                ) : (
+                  <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={onDragEnd}>
+                    <SortableContext items={orderedIds} strategy={verticalListSortingStrategy}>
+                      <ul className="space-y-3">
+                        {sortedModules.map((m) => (
+                          <SortableItem key={m.id} id={m.id}>
+                            {(listeners: any) => (
+                              <li className="bg-backdrop-low border border-line rounded-lg px-4 py-3 flex items-center justify-between">
+                                <div className="flex items-center gap-3">
+                                  <button
+                                    type="button"
+                                    aria-label="Drag"
+                                    className="cursor-grab text-neutral-low hover:text-neutral-high"
+                                    {...listeners}
+                                  >
+                                    ⋮⋮
+                                  </button>
+                                  <div>
+                                    <div className="text-sm font-medium text-neutral-high">{m.type}</div>
+                                    <div className="text-xs text-neutral-low">Order: {m.orderIndex}</div>
+                                  </div>
                                 </div>
-                              </div>
-                              <div className="flex items-center gap-2">
-                                <button
-                                  className="text-xs px-2 py-1 rounded border border-line bg-backdrop-low text-neutral-high hover:bg-backdrop-medium"
-                                  onClick={() => setEditing(m)}
-                                  type="button"
-                                >
-                                  Edit
-                                </button>
-                                <button
-                                  className="text-xs px-2 py-1 rounded border border-[color:#ef4444] text-[color:#ef4444] hover:bg-[rgba(239,68,68,0.1)]"
-                                  onClick={async () => {
-                                    // Mark for removal in appropriate mode; actual apply on save
-                                    if (viewMode === 'review') {
-                                      setPendingReviewRemoved((prev) => {
-                                        const next = new Set(prev)
-                                        next.add(m.id)
-                                        return next
-                                      })
-                                    } else {
-                                      setPendingRemoved((prev) => {
-                                        const next = new Set(prev)
-                                        next.add(m.id)
-                                        return next
-                                      })
-                                      // For approved mode, optimistically remove from UI
-                                      setModules((prev) => prev.filter((pm) => pm.id !== m.id))
-                                    }
-                                    toast.success('Module marked for removal (apply by saving)')
-                                  }}
-                                  type="button"
-                                >
-                                  Remove
-                                </button>
-                              </div>
-                            </li>
-                          )}
-                        </SortableItem>
-                      ))}
-                    </ul>
-                  </SortableContext>
-                </DndContext>
-              )}
+                                <div className="flex items-center gap-2">
+                                  <button
+                                    className="text-xs px-2 py-1 rounded border border-line bg-backdrop-low text-neutral-high hover:bg-backdrop-medium"
+                                    onClick={() => setEditing(m)}
+                                    type="button"
+                                  >
+                                    Edit
+                                  </button>
+                                  <button
+                                    className="text-xs px-2 py-1 rounded border border-[color:#ef4444] text-[color:#ef4444] hover:bg-[rgba(239,68,68,0.1)]"
+                                    onClick={async () => {
+                                      // Mark for removal in appropriate mode; actual apply on save
+                                      if (viewMode === 'review') {
+                                        setPendingReviewRemoved((prev) => {
+                                          const next = new Set(prev)
+                                          next.add(m.id)
+                                          return next
+                                        })
+                                      } else {
+                                        setPendingRemoved((prev) => {
+                                          const next = new Set(prev)
+                                          next.add(m.id)
+                                          return next
+                                        })
+                                        // For approved mode, optimistically remove from UI
+                                        setModules((prev) => prev.filter((pm) => pm.id !== m.id))
+                                      }
+                                      toast.success('Module marked for removal (apply by saving)')
+                                    }}
+                                    type="button"
+                                  >
+                                    Remove
+                                  </button>
+                                </div>
+                              </li>
+                            )}
+                          </SortableItem>
+                        ))}
+                      </ul>
+                    </SortableContext>
+                  </DndContext>
+                )}
               </div>
             </div>
 
@@ -1209,23 +1224,23 @@ function ParentSelect({
   const [loading, setLoading] = useState<boolean>(false)
   useEffect(() => {
     let alive = true
-    ;(async () => {
-      try {
-        setLoading(true)
-        const params = new URLSearchParams()
-        params.set('types', postType)
-        params.set('locale', locale)
-        params.set('status', 'published')
-        params.set('limit', '100')
-        const res = await fetch(`/api/posts?${params.toString()}`, { credentials: 'same-origin' })
-        const json = await res.json().catch(() => ({}))
-        const list: Array<{ id: string; title: string }> = Array.isArray(json?.data) ? json.data : []
-        if (!alive) return
-        setOptions(list.filter((p) => p.id !== postId))
-      } finally {
-        if (alive) setLoading(false)
-      }
-    })()
+      ; (async () => {
+        try {
+          setLoading(true)
+          const params = new URLSearchParams()
+          params.set('types', postType)
+          params.set('locale', locale)
+          params.set('status', 'published')
+          params.set('limit', '100')
+          const res = await fetch(`/api/posts?${params.toString()}`, { credentials: 'same-origin' })
+          const json = await res.json().catch(() => ({}))
+          const list: Array<{ id: string; title: string }> = Array.isArray(json?.data) ? json.data : []
+          if (!alive) return
+          setOptions(list.filter((p) => p.id !== postId))
+        } finally {
+          if (alive) setLoading(false)
+        }
+      })()
     return () => {
       alive = false
     }
