@@ -104,6 +104,7 @@ router.group(() => {
  */
 const TemplatesController = () => import('#controllers/templates_controller')
 const PostTypesController = () => import('#controllers/post_types_controller')
+const AgentsController = () => import('#controllers/agents_controller')
 router.group(() => {
 	router.get('/templates', [TemplatesController, 'index']).use(middleware.admin())
 	router.post('/templates', [TemplatesController, 'store']).use(middleware.admin())
@@ -139,6 +140,9 @@ router.group(() => {
 	// Post Type settings
 	router.get('/post-types/settings', [PostTypesController, 'listSettings']).use(middleware.admin())
 	router.patch('/post-types/:type/settings', [PostTypesController, 'updateSettings']).use(middleware.admin())
+	// Agents
+	router.get('/agents', [AgentsController, 'index']).use(middleware.admin())
+	router.post('/posts/:id/agents/:agentId/run', [AgentsController, 'runForPost']).use(middleware.admin())
 }).prefix('/api').use(middleware.auth())
 
 /**

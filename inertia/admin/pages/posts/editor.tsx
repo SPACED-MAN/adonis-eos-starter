@@ -166,27 +166,27 @@ export default function Editor({ post, modules: initialModules, translations, re
   // Load module registry for display names
   useEffect(() => {
     let cancelled = false
-    ;(async () => {
-      try {
-        const res = await fetch(`/api/modules/registry?post_type=${encodeURIComponent(post.type)}`, {
-          headers: { Accept: 'application/json' },
-          credentials: 'same-origin',
-        })
-        const json = await res.json().catch(() => null)
-        const list: Array<{ type: string; name?: string; description?: string }> = Array.isArray(json?.data)
-          ? json.data
-          : []
-        if (!cancelled) {
-          const map: Record<string, { name: string; description?: string }> = {}
-          list.forEach((m) => {
-            map[m.type] = { name: m.name || m.type, description: m.description }
+      ; (async () => {
+        try {
+          const res = await fetch(`/api/modules/registry?post_type=${encodeURIComponent(post.type)}`, {
+            headers: { Accept: 'application/json' },
+            credentials: 'same-origin',
           })
-          setModuleRegistry(map)
+          const json = await res.json().catch(() => null)
+          const list: Array<{ type: string; name?: string; description?: string }> = Array.isArray(json?.data)
+            ? json.data
+            : []
+          if (!cancelled) {
+            const map: Record<string, { name: string; description?: string }> = {}
+            list.forEach((m) => {
+              map[m.type] = { name: m.name || m.type, description: m.description }
+            })
+            setModuleRegistry(map)
+          }
+        } catch {
+          if (!cancelled) setModuleRegistry({})
         }
-      } catch {
-        if (!cancelled) setModuleRegistry({})
-      }
-    })()
+      })()
     return () => {
       cancelled = true
     }
@@ -296,6 +296,10 @@ export default function Editor({ post, modules: initialModules, translations, re
   const [savingOverrides, setSavingOverrides] = useState(false)
   const [revisions, setRevisions] = useState<Array<{ id: string; mode: 'approved' | 'review'; createdAt: string; user?: { id?: number; email?: string } }>>([])
   const [loadingRevisions, setLoadingRevisions] = useState(false)
+  // Agents
+  const [agents, setAgents] = useState<Array<{ id: string; name: string }>>([])
+  const [selectedAgent, setSelectedAgent] = useState<string>('')
+  const [runningAgent, setRunningAgent] = useState<boolean>(false)
 
   useEffect(() => {
     let alive = true
@@ -317,6 +321,22 @@ export default function Editor({ post, modules: initialModules, translations, re
     loadRevisions()
     return () => { alive = false }
   }, [post.id])
+
+  // Load agents
+  useEffect(() => {
+    let alive = true
+      ; (async () => {
+        try {
+          const res = await fetch('/api/agents', { credentials: 'same-origin' })
+          const json = await res.json().catch(() => ({}))
+          const list: Array<{ id: string; name: string }> = Array.isArray(json?.data) ? json.data : []
+          if (alive) setAgents(list)
+        } catch {
+          if (alive) setAgents([])
+        }
+      })()
+    return () => { alive = false }
+  }, [])
 
   // DnD sensors (pointer only to avoid key conflicts)
   const sensors = useSensors(useSensor(PointerSensor))
@@ -769,7 +789,7 @@ export default function Editor({ post, modules: initialModules, translations, re
               <h3 className="text-sm font-semibold text-neutral-high mb-4">
                 Actions
               </h3>
-              <div className="space-y-2">
+              <div className="space-y-6">
                 {/* View toggle */}
                 <div className="flex items-center gap-2">
                   <div className="inline-flex rounded border border-border overflow-hidden">
@@ -789,7 +809,71 @@ export default function Editor({ post, modules: initialModules, translations, re
                     </button>
                   </div>
                 </div>
-                {/* Status (moved here) */}
+                {/* Agent Runner */}
+                <div>
+                  <label className="block text-xs font-medium text-neutral-medium mb-1">Agent</label>
+                  <div>
+                    <Select
+                      value={selectedAgent}
+                      onValueChange={(val) => setSelectedAgent(val)}
+                    >
+                      <SelectTrigger className="w-full">
+                        <SelectValue placeholder="Select an agent" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {agents.length === 0 ? (
+                          <SelectItem value="__none__" disabled>No agents configured</SelectItem>
+                        ) : (
+                          agents.map((a) => (
+                            <SelectItem key={a.id} value={a.id}>{a.name}</SelectItem>
+                          ))
+                        )}
+                      </SelectContent>
+                    </Select>
+                    {selectedAgent && (
+                      <button
+                        className="mt-2 w-full px-4 py-2 text-sm rounded-lg bg-standout text-on-standout font-medium disabled:opacity-50"
+                        disabled={runningAgent}
+                        onClick={async () => {
+                          if (!selectedAgent) return
+                          setRunningAgent(true)
+                          try {
+                            const csrf = (() => {
+                              if (typeof document === 'undefined') return undefined
+                              const m = document.cookie.match(/(?:^|; )XSRF-TOKEN=([^;]+)/)
+                              return m ? decodeURIComponent(m[1]) : undefined
+                            })()
+                            const res = await fetch(`/api/posts/${post.id}/agents/${encodeURIComponent(selectedAgent)}/run`, {
+                              method: 'POST',
+                              headers: {
+                                'Accept': 'application/json',
+                                'Content-Type': 'application/json',
+                                ...(csrf ? { 'X-XSRF-TOKEN': csrf } : {}),
+                              },
+                              credentials: 'same-origin',
+                              body: JSON.stringify({ context: { locale: selectedLocale } }),
+                            })
+                            const j = await res.json().catch(() => ({}))
+                            if (res.ok) {
+                              toast.success('Agent suggestions saved to review draft')
+                              setViewMode('review')
+                            } else {
+                              toast.error(j?.error || 'Agent run failed')
+                            }
+                          } catch {
+                            toast.error('Agent run failed')
+                          } finally {
+                            setRunningAgent(false)
+                          }
+                        }}
+                        type="button"
+                      >
+                        {runningAgent ? 'Running…' : 'Run Agent'}
+                      </button>
+                    )}
+                  </div>
+                </div>
+                {/* Status */}
                 <div>
                   <label className="block text-xs font-medium text-neutral-medium mb-1">
                     Status

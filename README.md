@@ -526,6 +526,7 @@ How to test:
 - Add Media Manager UI
 - Add media picker for modules & custom fields
 - Add "Where Used?" tracking of references across posts/modules
+- Media will be stored locally by default, with a turnkey option for Cloudflare R2
 
 ### Milestone 17 — Global & Static Module Manager
 - Admin UI for managing:
