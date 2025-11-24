@@ -132,10 +132,12 @@ export default class PostsController {
           : undefined
         return {
           id: p.id,
+          type: p.type,
           title: p.title,
           slug: p.slug,
           status: p.status,
           locale: p.locale,
+          excerpt: p.excerpt,
           orderIndex: (p as any).orderIndex ?? (p as any).order_index ?? 0,
           parentId: (p as any).parentId || (p as any).parent_id || null,
           updatedAt: p?.updatedAt?.toISO ? p.updatedAt.toISO() : p.updatedAt,

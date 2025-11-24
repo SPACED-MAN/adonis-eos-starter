@@ -23,6 +23,15 @@ export default class FeedModule extends BaseModule {
           description: 'Optional heading above the feed',
           translatable: true,
         },
+        teaserTheme: {
+          type: 'select',
+          required: false,
+          description: 'Teaser theme (small/simple/expanded, etc.)',
+          options: [
+            { label: 'Small (title + date)', value: 'small' },
+            { label: 'Default', value: '' },
+          ],
+        },
         postTypes: {
           type: 'multiselect',
           required: true,
@@ -80,6 +89,7 @@ export default class FeedModule extends BaseModule {
       },
       defaultProps: {
         title: null,
+        teaserTheme: 'small',
         postTypes: [],
         locale: null,
         limit: 10,

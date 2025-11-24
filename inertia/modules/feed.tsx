@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useState } from 'react'
+import { PostTeaser } from '../site/components/PostTeaser'
 
 interface FeedProps {
   title?: string | Record<string, string> | null
@@ -10,15 +11,18 @@ interface FeedProps {
   sortBy?: 'published_at' | 'created_at' | 'updated_at'
   sortOrder?: 'asc' | 'desc'
   showExcerpt?: boolean
+  teaserTheme?: string
 }
 
 type PostItem = {
   id: string
+  type?: string
   title: string
   slug: string
   status: string
   locale: string
   updatedAt: string
+  excerpt?: string | null
 }
 
 export default function Feed({
@@ -31,6 +35,7 @@ export default function Feed({
   sortBy = 'published_at',
   sortOrder = 'desc',
   showExcerpt = true,
+  teaserTheme,
 }: FeedProps) {
   const [items, setItems] = useState<PostItem[]>([])
   const [loading, setLoading] = useState<boolean>(true)
@@ -44,30 +49,30 @@ export default function Feed({
 
   useEffect(() => {
     let mounted = true
-    ;(async () => {
-      try {
-        setLoading(true)
-        const params = new URLSearchParams()
-        params.set('status', 'published')
-        params.set('sortBy', sortBy)
-        params.set('sortOrder', sortOrder)
-        params.set('limit', String(limit))
-        if (locale) params.set('locale', locale)
-        if (parentId) params.set('parentId', parentId)
-        if (rootsOnly) params.set('roots', '1')
-        if (postTypes && postTypes.length > 0) {
-          // Use multi-type support in API
-          params.set('types', postTypes.join(','))
+      ; (async () => {
+        try {
+          setLoading(true)
+          const params = new URLSearchParams()
+          params.set('status', 'published')
+          params.set('sortBy', sortBy)
+          params.set('sortOrder', sortOrder)
+          params.set('limit', String(limit))
+          if (locale) params.set('locale', locale)
+          if (parentId) params.set('parentId', parentId)
+          if (rootsOnly) params.set('roots', '1')
+          if (postTypes && postTypes.length > 0) {
+            // Use multi-type support in API
+            params.set('types', postTypes.join(','))
+          }
+          const res = await fetch(`/api/posts?${params.toString()}`, { credentials: 'same-origin' })
+          const json = await res.json().catch(() => ({}))
+          const list: PostItem[] = Array.isArray(json?.data) ? json.data : []
+          if (!mounted) return
+          setItems(list.slice(0, limit))
+        } finally {
+          if (mounted) setLoading(false)
         }
-        const res = await fetch(`/api/posts?${params.toString()}`, { credentials: 'same-origin' })
-        const json = await res.json().catch(() => ({}))
-        const list: PostItem[] = Array.isArray(json?.data) ? json.data : []
-        if (!mounted) return
-        setItems(list.slice(0, limit))
-      } finally {
-        if (mounted) setLoading(false)
-      }
-    })()
+      })()
     return () => {
       mounted = false
     }
@@ -83,18 +88,38 @@ export default function Feed({
       ) : (
         <ul className="space-y-4">
           {items.map((it) => (
-            <li key={it.id} className="border-b border-line pb-4">
-              <a href={`/posts/${it.slug}`} className="text-lg font-medium text-standout hover:underline">
-                {it.title}
-              </a>
-              {showExcerpt ? <div className="text-neutral-medium text-sm">{/* excerpt from API in future */}</div> : null}
-              <div className="text-xs text-neutral-low">Locale: {it.locale}</div>
+            <li key={it.id}>
+              {/* Teaser-based rendering */}
+              <TeaserWrapper post={it} theme={teaserTheme} showExcerpt={showExcerpt} />
             </li>
           ))}
         </ul>
       )}
     </section>
   )
+}
+
+function TeaserWrapper({
+  post,
+  theme,
+  showExcerpt,
+}: {
+  post: { id: string; type?: string; title: string; slug: string; locale: string; excerpt?: string | null; updatedAt?: string }
+  theme?: string
+  showExcerpt?: boolean
+}) {
+  const teaserPost = {
+    id: post.id,
+    type: post.type || 'post',
+    locale: post.locale,
+    slug: post.slug,
+    title: post.title,
+    excerpt: showExcerpt ? (post.excerpt ?? null) : null,
+    updatedAt: post.updatedAt,
+    metaTitle: null,
+    metaDescription: null,
+  }
+  return <PostTeaser post={teaserPost as any} theme={theme} />
 }
 
 
