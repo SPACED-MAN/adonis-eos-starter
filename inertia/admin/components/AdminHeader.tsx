@@ -42,6 +42,12 @@ export function AdminHeader({ title = 'Admin' }: { title?: string }) {
 								>
 									Templates
 								</Link>
+								<Link
+									href="/admin/settings/post-types"
+									className="text-sm text-neutral-low hover:text-standout"
+								>
+									Post Types
+								</Link>
 							</>
 						)}
 						<Link

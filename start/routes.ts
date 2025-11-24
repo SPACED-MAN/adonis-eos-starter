@@ -103,6 +103,7 @@ router.group(() => {
  * API Routes - Templates (Admin)
  */
 const TemplatesController = () => import('#controllers/templates_controller')
+const PostTypesController = () => import('#controllers/post_types_controller')
 router.group(() => {
 	router.get('/templates', [TemplatesController, 'index']).use(middleware.admin())
 	router.post('/templates', [TemplatesController, 'store']).use(middleware.admin())
@@ -135,6 +136,9 @@ router.group(() => {
 	router.post('/posts/:id/modules', [PostsController, 'storeModule'])
 	router.put('/post-modules/:id', [PostsController, 'updateModule'])
 	router.delete('/post-modules/:id', [PostsController, 'deleteModule'])
+	// Post Type settings
+	router.get('/post-types/settings', [PostTypesController, 'listSettings']).use(middleware.admin())
+	router.patch('/post-types/:type/settings', [PostTypesController, 'updateSettings']).use(middleware.admin())
 }).prefix('/api').use(middleware.auth())
 
 /**
@@ -161,6 +165,10 @@ router.get('/admin/settings/locales', async ({ inertia }) => {
 
 router.get('/admin/settings/templates', async ({ inertia }) => {
 	return inertia.render('admin/settings/templates')
+}).use(middleware.auth()).use(middleware.admin())
+
+router.get('/admin/settings/post-types', async ({ inertia }) => {
+	return inertia.render('admin/settings/post-types')
 }).use(middleware.auth()).use(middleware.admin())
 
 // Templates list and editor pages (new)

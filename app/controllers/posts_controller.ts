@@ -8,6 +8,7 @@ import CreateTranslation, { CreateTranslationException } from '#actions/translat
 import BulkPostsAction from '#actions/posts/bulk_action'
 import db from '@adonisjs/lucid/services/db'
 import urlPatternService from '#services/url_pattern_service'
+import postTypeSettingsService from '#services/post_type_settings_service'
 import authorizationService from '#services/authorization_service'
 import RevisionService from '#services/revision_service'
 import PostSerializerService from '#services/post_serializer_service'
@@ -567,6 +568,19 @@ export default class PostsController {
         }
       }
 
+      // Enforce hierarchy if parentId is being set
+      if (parentId !== undefined) {
+        try {
+          const current = await Post.findOrFail(id)
+          const enabled = await postTypeSettingsService.isHierarchyEnabled(current.type)
+          if (!enabled && (parentId || parentId === '')) {
+            // Disallow any parent changes when hierarchy disabled
+            return response.badRequest({ error: 'Hierarchy is disabled for this post type' })
+          }
+        } catch {
+          // ignore; fall through to update attempt
+        }
+      }
       await UpdatePost.handle({
         postId: id,
         slug,
@@ -849,6 +863,16 @@ export default class PostsController {
       const now = new Date()
       await db.transaction(async (trx) => {
         for (const it of sanitized) {
+          // If parent change is requested, check hierarchy for the post type
+          if ((it as any).hasOwnProperty('parentId')) {
+            const row = await trx.from('posts').where('id', it.id).first()
+            if (row) {
+              const enabled = await postTypeSettingsService.isHierarchyEnabled(String(row.type))
+              if (!enabled) {
+                throw new Error('Hierarchy is disabled for this post type')
+              }
+            }
+          }
           const update: any = { order_index: it.orderIndex, updated_at: now }
           if ((it as any).hasOwnProperty('parentId')) {
             update.parent_id = it.parentId === undefined ? undefined : it.parentId
