@@ -511,13 +511,49 @@ How to test:
 6. For post-reference:
    - Select one or more posts and verify saved IDs; render in a module/teaser if desired.
 
-### Milestone 15 — Agent Runner (Webhook-Based Suggestions)
-- Add dropdown for selecting agent/webhook
-- Configure agents via `.env`
-- "Run Agent" sends full post JSON to webhook
-- Receive suggested revisions
-- Highlight differences in UI
-- Apply suggestions to Review Version only
+### Milestone 15 — Agent Runner (Webhook-Based Suggestions) (✅ Complete)
+**Implemented:**
+- ✅ Env-based agents configuration via `CMS_AGENTS` (JSON array)
+  - Example:
+    ```bash
+    CMS_AGENTS='[
+      {"id":"seo","name":"SEO Optimizer","url":"https://example.com/webhook","secret":"YOUR_TOKEN"},
+      {"id":"style","name":"Style Enhancer","url":"https://example.com/style"}
+    ]'
+    ```
+- ✅ API (admin-only; auth required)
+  - `GET /api/agents` → list configured agents (id, name)
+  - `POST /api/posts/:id/agents/:agentId/run { context? }`
+    - Sends canonical post JSON to the agent
+    - Expects JSON response with optional `post` object containing suggested field updates
+    - Applies suggestions to `review_draft` only and records a Review revision
+- ✅ UI (Post Editor → Actions)
+  - Agent dropdown (hidden “Run Agent” button until an agent is selected)
+  - “Run Agent” button styled as the primary action; appears below the dropdown
+  - On success, switches to Review view and toasts confirmation
+- ✅ Security / RBAC
+  - Admin/Editor may run agents; Translators cannot
+  - CSRF header sent for all mutating requests
+
+Agent response contract (example):
+```json
+{
+  "post": {
+    "title": "Improved SEO Title",
+    "metaDescription": "Sharper description written by the SEO agent."
+  }
+}
+```
+Only top-level post fields in `post` are merged into `review_draft`. Live content is not changed.
+
+How to test:
+1. Configure agents in `.env` as shown above, then restart the dev server.
+2. Open `/admin/posts/:id/edit` → Actions panel.
+3. Select an agent, click “Run Agent”.
+4. On success, a toast confirms suggestions were saved; the editor switches to Review view.
+5. Verify Review view shows suggested fields. Approve when ready to promote to live.
+6. RBAC: Login as editor/admin to run; as translator, confirm you cannot run agents.
+7. Error handling: Make the webhook return a non-2xx status and verify you see an error toast.
 
 ### Milestone 16 — Media Library & Attachment Tracking
 - Add first-class media library:
