@@ -292,7 +292,7 @@ export function ModuleEditorPanel({
 				</FormField>
 			)
 		}
-		if (type === 'textarea') {
+    if (type === 'textarea') {
 			return (
 				<FormField>
 					<FormLabel>{label}</FormLabel>
@@ -300,6 +300,90 @@ export function ModuleEditorPanel({
 				</FormField>
 			)
 		}
+    if (type === 'media') {
+      const storeAsId = (field as any).storeAs === 'id' || (field as any).store === 'id'
+      const [open, setOpen] = useState(false)
+      const [media, setMedia] = useState<Array<{ id: string; url: string; originalFilename: string }>>([])
+      const [loading, setLoading] = useState(false)
+      useEffect(() => {
+        if (!open) return
+        let alive = true
+        ;(async () => {
+          try {
+            setLoading(true)
+            const res = await fetch('/api/media?limit=100', { credentials: 'same-origin' })
+            const j = await res.json().catch(() => ({}))
+            const list: Array<{ id: string; url: string; originalFilename: string }> = Array.isArray(j?.data) ? j.data : []
+            if (alive) setMedia(list)
+          } finally {
+            if (alive) setLoading(false)
+          }
+        })()
+        return () => { alive = false }
+      }, [open])
+      const hiddenRef = useRef<HTMLInputElement | null>(null)
+      const displayRef = useRef<HTMLInputElement | null>(null)
+      return (
+        <FormField>
+          <FormLabel>{label}</FormLabel>
+          <div className="flex items-center gap-2">
+            {storeAsId ? (
+              <>
+                <Input type="text" defaultValue={typeof value === 'string' ? value : ''} readOnly className="opacity-80" ref={displayRef} />
+                <input type="hidden" name={name} defaultValue={typeof value === 'string' ? value : ''} ref={hiddenRef} />
+              </>
+            ) : (
+              <Input type="text" name={name} defaultValue={value ?? ''} ref={displayRef} placeholder={(field as any).placeholder || 'https://...'} />
+            )}
+            <Popover open={open} onOpenChange={setOpen}>
+              <PopoverTrigger asChild>
+                <button type="button" className="px-2 py-1 text-xs border border-line rounded hover:bg-backdrop-medium text-neutral-medium">Choose</button>
+              </PopoverTrigger>
+              <PopoverContent className="w-[420px]">
+                <div className="text-sm mb-2">{loading ? 'Loading…' : 'Select an item'}</div>
+                <div className="grid grid-cols-3 gap-2 max-h-64 overflow-auto">
+                  {media.map((m) => (
+                    <button
+                      type="button"
+                      key={m.id}
+                      className="border border-line rounded overflow-hidden hover:bg-backdrop-medium"
+                      onClick={() => {
+                        if (storeAsId) {
+                          if (hiddenRef.current) {
+                            hiddenRef.current.value = m.id
+                            hiddenRef.current.dispatchEvent(new Event('input', { bubbles: true }))
+                            hiddenRef.current.dispatchEvent(new Event('change', { bubbles: true }))
+                          }
+                          if (displayRef.current) displayRef.current.value = m.id
+                        } else {
+                          if (displayRef.current) {
+                            displayRef.current.value = m.url
+                            displayRef.current.dispatchEvent(new Event('input', { bubbles: true }))
+                            displayRef.current.dispatchEvent(new Event('change', { bubbles: true }))
+                          }
+                        }
+                        // persist into draft so any re-render keeps the chosen value
+                        try {
+                          const next = JSON.parse(JSON.stringify(draft))
+                          setByPath(next, name, storeAsId ? m.id : m.url)
+                          setDraft(next)
+                        } catch {}
+                        setOpen(false)
+                      }}
+                    >
+                      <div className="aspect-video bg-backdrop-medium">
+                        <img src={m.url} alt={m.originalFilename} className="w-full h-full object-cover" />
+                      </div>
+                      <div className="p-1 text-[10px] text-neutral-medium truncate">{storeAsId ? m.id : m.originalFilename}</div>
+                    </button>
+                  ))}
+                </div>
+              </PopoverContent>
+            </Popover>
+          </div>
+        </FormField>
+      )
+    }
 		if (type === 'number') {
 			return (
 				<FormField>
@@ -774,6 +858,12 @@ export function ModuleEditorPanel({
 									} catch {
 										setByPath(edited, name, val)
 									}
+								} else if ((el as HTMLInputElement).dataset && (el as HTMLInputElement).dataset.bool === '1') {
+									const val = (el as HTMLInputElement).value
+									setByPath(edited, name, val === 'true')
+								} else if ((el as HTMLInputElement).dataset && (el as HTMLInputElement).dataset.number === '1') {
+									const val = (el as HTMLInputElement).value
+									setByPath(edited, name, val === '' ? 0 : Number(val))
 								} else if ((el as HTMLSelectElement).multiple) {
 									const vals = Array.from((el as HTMLSelectElement).selectedOptions).map((o) => o.value)
 									setByPath(edited, name, vals)
@@ -785,7 +875,9 @@ export function ModuleEditorPanel({
 						const overrides = diffOverrides(base, edited)
 						await onSave(overrides, edited)
 						onClose()
-					}}>Close</button>
+					}}>
+						Close
+					</button>
 				</div>
 				<form
 					ref={formRef}
@@ -858,7 +950,7 @@ export function ModuleEditorPanel({
 									<div key={key}>
 										<label className="block text-sm font-medium text-neutral-medium mb-1">{key}</label>
 										<textarea
-											className="w-full px-3 py-2 min-h-[140px] border border-border rounded-lg bg-backdrop-low text-neutral-high font-mono text-xs focus:ring-1 ring-(--ring) focus:border-transparent"
+											className="w-full px-3 py-2 min-h-[140px] border border-border rounded-lg bg-backdrop-low text-neutral-high font-mono text-xs focus:ring-1 ring-ring focus:border-transparent"
 											defaultValue={JSON.stringify(val, null, 2)}
 											onBlur={(e) => {
 												try {

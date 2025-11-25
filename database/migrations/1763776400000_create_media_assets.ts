@@ -1,0 +1,30 @@
+import { BaseSchema } from '@adonisjs/lucid/schema'
+
+export default class extends BaseSchema {
+  protected tableName = 'media_assets'
+
+  async up() {
+    this.schema.createTable(this.tableName, (table) => {
+      table.string('id', 36).primary()
+      table.text('url').notNullable()
+      table.text('original_filename').notNullable()
+      table.text('mime_type').notNullable()
+      table.bigInteger('size').notNullable()
+      table.text('alt_text').nullable()
+      table.text('caption').nullable()
+      table.jsonb('metadata').nullable()
+      table.timestamp('created_at', { useTz: true }).defaultTo(this.now())
+      table.timestamp('updated_at', { useTz: true }).defaultTo(this.now())
+    })
+    this.schema.alterTable(this.tableName, (table) => {
+      table.index(['mime_type'])
+      table.index(['created_at'])
+    })
+  }
+
+  async down() {
+    this.schema.dropTable(this.tableName)
+  }
+}
+
+

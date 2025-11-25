@@ -32,9 +32,62 @@ function InitialContentPlugin({ initialValue }: { initialValue: any }) {
         }
       }
       if (typeof candidate !== 'object') return
-      // must look like Lexical JSON: has root with children array
       if (!candidate.root || !Array.isArray(candidate.root.children)) return
-      const parsed = editor.parseEditorState(candidate as any)
+      // normalize nodes to include minimal required fields for Lexical
+      const normalizeNode = (node: any): any => {
+        if (!node || typeof node !== 'object' || typeof node.type !== 'string') return null
+        const t = node.type
+        if (t === 'root') {
+          const children = Array.isArray(node.children)
+            ? node.children.map(normalizeNode).filter(Boolean)
+            : []
+          return {
+            type: 'root',
+            direction: node.direction ?? 'ltr',
+            format: node.format ?? '',
+            indent: node.indent ?? 0,
+            version: node.version ?? 1,
+            children,
+          }
+        }
+        if (t === 'paragraph') {
+          const children = Array.isArray(node.children)
+            ? node.children.map(normalizeNode).filter(Boolean)
+            : []
+          return {
+            type: 'paragraph',
+            direction: node.direction ?? 'ltr',
+            format: node.format ?? '',
+            indent: node.indent ?? 0,
+            version: node.version ?? 1,
+            children,
+          }
+        }
+        if (t === 'text') {
+          return {
+            type: 'text',
+            text: typeof node.text === 'string' ? node.text : '',
+            detail: node.detail ?? 0,
+            format: node.format ?? 0,
+            mode: node.mode ?? 'normal',
+            style: node.style ?? '',
+            version: node.version ?? 1,
+          }
+        }
+        // pass through other known nodes with defaults
+        const pass = {
+          ...node,
+          version: node.version ?? 1,
+        }
+        if (Array.isArray(node.children)) {
+          pass.children = node.children.map(normalizeNode).filter(Boolean)
+        }
+        return pass
+      }
+      const normalizedRoot = normalizeNode(candidate.root)
+      if (!normalizedRoot) return
+      const normalized = { ...candidate, root: normalizedRoot }
+      const parsed = editor.parseEditorState(JSON.stringify(normalized))
       editor.setEditorState(parsed)
     } catch {
       // ignore invalid initial state

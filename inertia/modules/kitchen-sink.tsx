@@ -1,4 +1,4 @@
-import React from 'react'
+import React, { useEffect, useState } from 'react'
 
 type KitchenSinkProps = {
 	title: string
@@ -10,22 +10,52 @@ type KitchenSinkProps = {
 	featured?: boolean
 	publishDate?: string
 	linkUrl?: string
-	media?: string
+	image?: string // media ID
+	imageVariant?: string // e.g., thumb, small, medium, large, hero, cropped
 	metadata?: { author?: string; readingTime?: number; attributionRequired?: boolean }
 	items?: Array<{ label?: string; value?: string; highlight?: boolean }>
 	content?: any
 }
 
 export default function KitchenSink(props: KitchenSinkProps) {
+	const [resolvedImageUrl, setResolvedImageUrl] = useState<string | null>(null)
+
+	useEffect(() => {
+		async function resolveImage() {
+			const id = props.image
+			if (!id) { setResolvedImageUrl(null); return }
+			try {
+				const res = await fetch(`/public/media/${encodeURIComponent(id)}`)
+				if (!res.ok) { setResolvedImageUrl(null); return }
+				const j = await res.json().catch(() => null)
+				const data = j?.data
+				if (!data) { setResolvedImageUrl(null); return }
+				const variants = Array.isArray(data.metadata?.variants) ? data.metadata.variants as any[] : []
+				let url: string = data.url
+				if (props.imageVariant) {
+					const match = variants.find((x) => x.name === props.imageVariant)
+					if (match?.url) url = match.url
+				} else if (variants.length > 0) {
+					const sorted = [...variants].sort((a, b) => ((b.width || b.height || 0) - (a.width || a.height || 0)))
+					url = sorted[0]?.url || url
+				}
+				setResolvedImageUrl(url)
+			} catch {
+				setResolvedImageUrl(null)
+			}
+		}
+		resolveImage()
+	}, [props.image, props.imageVariant])
+
 	return (
 		<section className="border border-line rounded-lg bg-backdrop-low p-6 space-y-4">
 			<header>
 				<h2 className="text-lg font-semibold text-neutral-high">{props.title}</h2>
 				{props.description && <p className="text-neutral-medium">{props.description}</p>}
 			</header>
-			{props.media && (
+			{resolvedImageUrl && (
 				<div className="rounded overflow-hidden border border-line">
-					<img src={props.media} alt={props.title} className="w-full h-auto" />
+					<img src={resolvedImageUrl} alt={props.title} className="w-full h-auto" />
 				</div>
 			)}
 			<div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-sm">

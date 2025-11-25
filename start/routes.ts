@@ -12,6 +12,10 @@ import { middleware } from '#start/kernel'
 
 router.on('/').renderInertia('site/home')
 
+// Public media info (no auth)
+const MediaController = () => import('#controllers/media_controller')
+router.get('/public/media/:id', [MediaController, 'showPublic'])
+
 /**
  * Auth routes (admin)
  */
@@ -105,6 +109,7 @@ router.group(() => {
 const TemplatesController = () => import('#controllers/templates_controller')
 const PostTypesController = () => import('#controllers/post_types_controller')
 const AgentsController = () => import('#controllers/agents_controller')
+// MediaController imported above
 router.group(() => {
 	router.get('/templates', [TemplatesController, 'index']).use(middleware.admin())
 	router.post('/templates', [TemplatesController, 'store']).use(middleware.admin())
@@ -143,6 +148,18 @@ router.group(() => {
 	// Agents
 	router.get('/agents', [AgentsController, 'index']).use(middleware.admin())
 	router.post('/posts/:id/agents/:agentId/run', [AgentsController, 'runForPost']).use(middleware.admin())
+	// Media
+	router.get('/media', [MediaController, 'index'])
+	router.get('/media/categories', [MediaController, 'categories'])
+	router.get('/media/:id', [MediaController, 'show'])
+	router.get('/media/:id/where-used', [MediaController, 'whereUsed']).use(middleware.admin())
+	router.post('/media', [MediaController, 'upload']).use(middleware.admin())
+	router.post('/media/check-duplicate', [MediaController, 'checkDuplicate']).use(middleware.admin())
+	router.post('/media/:id/override', [MediaController, 'override']).use(middleware.admin())
+	router.patch('/media/:id', [MediaController, 'update']).use(middleware.admin())
+	router.delete('/media/:id', [MediaController, 'destroy']).use(middleware.admin())
+	router.post('/media/:id/variants', [MediaController, 'variants']).use(middleware.admin())
+	router.patch('/media/:id/rename', [MediaController, 'rename']).use(middleware.admin())
 }).prefix('/api').use(middleware.auth())
 
 /**
@@ -173,6 +190,11 @@ router.get('/admin/settings/templates', async ({ inertia }) => {
 
 router.get('/admin/settings/post-types', async ({ inertia }) => {
 	return inertia.render('admin/settings/post-types')
+}).use(middleware.auth()).use(middleware.admin())
+
+// Admin Media Library
+router.get('/admin/media', async ({ inertia }) => {
+	return inertia.render('admin/media/index')
 }).use(middleware.auth()).use(middleware.admin())
 
 // Templates list and editor pages (new)

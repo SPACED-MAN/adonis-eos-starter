@@ -18,7 +18,7 @@ export default class KitchenSinkModule extends BaseModule {
 				postRefs: {
 					type: 'post-reference',
 					label: 'Post References',
-					postTypes: ['blog'], // limit to specific types; remove or change as needed
+					postTypes: ['blog'],
 					allowMultiple: true,
 				},
 				title: { type: 'text', label: 'Title', required: true, placeholder: 'Enter title' },
@@ -45,7 +45,19 @@ export default class KitchenSinkModule extends BaseModule {
 				featured: { type: 'boolean', label: 'Featured' },
 				publishDate: { type: 'date', label: 'Publish Date' },
 				linkUrl: { type: 'url', label: 'Link URL', placeholder: 'https://example.com' },
-				media: { type: 'media', label: 'Media URL or ID' },
+				image: { type: 'media', label: 'Image', accept: 'image/*', storeAs: 'id', description: 'Pick an image (stores media ID).' },
+				imageVariant: {
+					type: 'select',
+					label: 'Image Variant',
+					options: [
+						{ label: 'Thumb', value: 'thumb' },
+						{ label: 'Small', value: 'small' },
+						{ label: 'Medium', value: 'medium' },
+						{ label: 'Large', value: 'large' },
+						{ label: 'Hero', value: 'hero' },
+						{ label: 'Cropped', value: 'cropped' },
+					],
+				},
 				progress: {
 					type: 'slider',
 					label: 'Progress',
@@ -92,7 +104,8 @@ export default class KitchenSinkModule extends BaseModule {
 				featured: true,
 				publishDate: new Date().toISOString().slice(0, 10),
 				linkUrl: 'https://example.com',
-				media: 'https://via.placeholder.com/800x400.png?text=Demo',
+				image: '',
+				imageVariant: 'large',
 				progress: 50,
 				metadata: {
 					author: 'Ada Lovelace',
@@ -107,14 +120,8 @@ export default class KitchenSinkModule extends BaseModule {
 					root: {
 						type: 'root',
 						children: [
-							{
-								type: 'paragraph',
-								children: [{ type: 'text', text: 'This is a rich text field powered by Lexical.' }],
-							},
-							{
-								type: 'paragraph',
-								children: [{ type: 'text', text: 'Use the module editor to try all field types.' }],
-							},
+							{ type: 'paragraph', children: [{ type: 'text', text: 'This is a rich text field powered by Lexical.' }] },
+							{ type: 'paragraph', children: [{ type: 'text', text: 'Use the module editor to try all field types.' }] },
 						],
 					},
 				},

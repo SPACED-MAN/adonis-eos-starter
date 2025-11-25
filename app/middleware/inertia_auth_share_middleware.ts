@@ -21,6 +21,10 @@ export default class InertiaAuthShareMiddleware {
 				currentUser: sharedUser,
 				auth: { user: sharedUser },
 				isAdmin: !!(sharedUser && sharedUser.role === 'admin'),
+				mediaAdmin: {
+					thumbnailVariant: process.env.MEDIA_ADMIN_THUMBNAIL_VARIANT || null,
+					modalVariant: process.env.MEDIA_ADMIN_MODAL_VARIANT || null,
+				},
 			})
 		}
 		await next()

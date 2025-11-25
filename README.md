@@ -555,14 +555,91 @@ How to test:
 6. RBAC: Login as editor/admin to run; as translator, confirm you cannot run agents.
 7. Error handling: Make the webhook return a non-2xx status and verify you see an error toast.
 
-### Milestone 16 — Media Library & Attachment Tracking
-- Add first-class media library:
-  - Upload, rename, delete
-  - Alt text, caption, metadata
-- Add Media Manager UI
-- Add media picker for modules & custom fields
-- Add "Where Used?" tracking of references across posts/modules
-- Media will be stored locally by default, with a turnkey option for Cloudflare R2
+### Milestone 16 — Media Library & Attachment Tracking (✅ Complete)
+- ✅ Media Assets DB and API
+  - Table: `media_assets` with url, original_filename, mime_type, size, alt_text, caption, description, metadata, timestamps, and `categories text[]` (free tags)
+  - APIs (admin; auth required):
+    - `GET /api/media` – list with sort by `created_at | original_filename | size`, plus `?category=<tag>` filter
+    - `GET /api/media/categories` – distinct category tags across all media
+    - `POST /api/media` – upload (supports `naming=original|uuid`, altText defaulting)
+    - `PATCH /api/media/:id` – update `altText`, `caption`, `description`, and `categories`
+    - `DELETE /api/media/:id` – delete original and all generated variants
+    - `POST /api/media/:id/variants` – generate variants; accepts `cropRect` or `focalPoint`
+    - `PATCH /api/media/:id/rename` – rename original and variants safely
+    - `GET /api/media/:id/where-used` – show references in modules/overrides
+    - `POST /api/media/check-duplicate` – find existing by original filename
+    - `POST /api/media/:id/override` – replace the file in-place and rebuild variants
+  - Public API:
+    - `GET /public/media/:id` – public media info by ID (url, variants, altText) for frontend rendering
+- ✅ Admin UI (`/admin/media`)
+  - Grid with previews (uses configured thumbnail variant), alt-first label (fallback to original filename), size, added date
+  - Drag-and-drop upload zone + polished Upload button
+  - “Use original filename” toggle (persisted in localStorage)
+  - Duplicate detection with ShadCN dialog: Override | Save as new | Cancel
+  - Meta modal (pencil icon): rename, alt, caption, description, and Categories (free tags with chip editor)
+  - Image Editor (separate modal): configurable large image preview; Crop and Focal Point tools; variant selector with dimensions/filesize
+  - Category filter dropdown (top-right): All + distinct categories (server-sourced)
+  - Delete with ShadCN confirm (Admin-only); removes original and all variants
+- ✅ Variants & image processing
+  - Uses `sharp` to generate configured variants on upload and on demand
+  - Renaming preserves/renames variant files and updates DB/JSON references
+  - Crop (“Original image” only) creates a `cropped` variant and rebuilds all configured variants from the crop
+  - Focal point (“Original image” only) recenters cover/crop variants
+- ✅ Attachment tracking
+  - “Where used” lists references across `module_instances.props` and `post_modules.overrides`
+- ✅ Module integration
+  - Media references in modules now store media IDs (not URLs)
+  - `KitchenSink` module: image field stores ID and can choose a variant for rendering; frontend resolves via `GET /public/media/:id`
+
+Env configuration:
+- MEDIA_DERIVATIVES controls generated sizes (server-side). Comma-separated list of name:WxH with optional _crop:
+  ```
+  MEDIA_DERIVATIVES="thumb:200x200_crop,small:400x,medium:800x,large:1600x,hero:1920x1080_crop"
+  ```
+  - name: label for the variant (e.g., thumb, small, large, hero)
+  - W and H: numbers; either or both (e.g., `800x`, `x600`)
+  - `_crop`: forces fit=cover; otherwise fit=inside
+- Admin display preferences (server-provided to client):
+  ```
+  MEDIA_ADMIN_THUMBNAIL_VARIANT=thumb
+  MEDIA_ADMIN_MODAL_VARIANT=large
+  ```
+  - Thumbnail variant is used in the media grid preview
+  - Modal variant is used in the Image Editor modal (falls back to largest available)
+
+Upload behavior:
+- Naming strategy (form-controlled): `naming=original|uuid` (UI toggle)
+  - `original`: sanitizes filename and ensures uniqueness (counter or short id when duplicate)
+  - `uuid`: uses a random UUID filename
+- Duplicate handling: checks by `original_filename` and prompts (Override | Save as new | Cancel)
+- Alt text default: derived from original filename (dashes/underscores → spaces)
+
+How to test:
+1. Set env and restart:
+   - In `.env`, set MEDIA_DERIVATIVES, MEDIA_ADMIN_THUMBNAIL_VARIANT, MEDIA_ADMIN_MODAL_VARIANT
+   - `npm run dev`
+2. Open `/admin/media`:
+   - Drag-drop upload a couple of images; verify previews, sizes, and dates
+   - Toggle “Use original filename”; upload again; confirm storage name behavior
+3. Duplicate flow:
+   - Upload the same filename; choose Override → confirms and variants regenerate
+   - Upload again; choose Save as new → confirms and filename gets a short-id suffix if needed
+   - Upload again; choose Cancel → skipped
+4. Edit modal:
+   - Change alt/caption/description/categories → Save; verify grid label uses `alt` first
+   - Rename file → confirm file and variant URLs update; references updated
+5. Image Editor modal:
+   - Confirm modal image uses `MEDIA_ADMIN_MODAL_VARIANT` (or largest)
+   - Click Copy path → full URL in clipboard
+   - Click Crop → draw selection → Apply crop → variants rebuild
+   - Click Focal point → pick a center → Apply focal → cover variants re-center
+6. Delete:
+   - Delete item → confirm both original and all variant files removed from `/public/uploads`
+7. Where used:
+   - If an image is referenced in modules/overrides, verify appearances under “Where used”
+8. Category filter:
+   - Add a few categories to images (e.g., “Lorem”, “Ipsum”, “Dolor”) and Save
+   - Use the Category dropdown (top-right) to filter: selecting a tag shows only media with that tag; reopening the dropdown still lists All + the full set of tags
 
 ### Milestone 17 — Global & Static Module Manager
 - Admin UI for managing:
