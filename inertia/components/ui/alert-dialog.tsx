@@ -32,6 +32,7 @@ export const AlertDialogContent = React.forwardRef<
 				'fixed left-1/2 top-1/2 z-50 w-full max-w-md -translate-x-1/2 -translate-y-1/2',
 				'rounded-lg border border-border bg-popover text-popover-foreground shadow-lg',
 				'p-6 data-[state=open]:animate-in data-[state=closed]:animate-out',
+				'max-h-[90vh] overflow-auto',
 				className
 			)}
 			{...props}
