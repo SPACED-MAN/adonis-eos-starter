@@ -674,10 +674,32 @@ Scopes:
   - `siteSettings` provided to public post pages (`site/post`) for layout/header usage
   - Logos are intended for theme-aware headers (light/dark). Use Media ID variants as needed.
 
-### Milestone 19 — Activity Log
+### Milestone 19 — User Profiles & Role Controls
+- User management (admin only)
+  - Admin section to view and manage users
+  - Reassign roles (admin, editor, translator, etc.)
+  - Edit user account information
+  - Reset/change passwords
+- Post author management
+  - Post detail includes an Author section (defaults to the post creator)
+  - Admin-only action to switch/reassign the author
+  - Author data is accessible to templates similarly to other post fields
+- Profile post type
+  - Define a dedicated `Profile` post type that serves as a user bio
+  - Enforce one Profile per user
+- Role-based enablement
+  - Admin setting to enable/disable Profiles per role
+  - Disabling Profiles for a role archives any existing Profiles for users with that role
+- Account area integration
+  - If Profiles are enabled and a user lacks a Profile, show a “Create Profile” call-to-action
+  - Users with permission can create and edit their Profile
+- RBAC consistency
+  - Respect existing admin/editor permissions for visibility and actions
+
+### Milestone 20 — Activity Log
 All user activity should be logged and accessible via 'Admin' roles, in a well organized table. It might make sense to utilize https://github.com/holoyan/adonisjs-activitylog for this.
 
-### Milestone 20 - Post Scheduling
+### Milestone 21 - Post Scheduling
 The 'Scheduled' status should be fully functional, with a nice ShadCN datepicker for scheduling. We may want to utilize https://github.com/KABBOUCHI/adonisjs-scheduler for this, and possibly also https://packages.adonisjs.com/packages/adonisjs-jobs.
 
 
