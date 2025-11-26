@@ -22,8 +22,7 @@ export default class extends BaseSchema {
         .references('id')
         .inTable('posts')
         .onDelete('CASCADE')
-      // FK to locales table (created in a separate migration file)
-      table.foreign('locale').references('locales.code').onUpdate('CASCADE').onDelete('CASCADE')
+      // Note: FK to locales will be added separately (after locales table migration)
       
       // SEO fields
       table.string('meta_title', 255).nullable()
@@ -33,11 +32,11 @@ export default class extends BaseSchema {
       table.jsonb('jsonld_overrides').nullable()
       // GIN indexes for JSONB (added post-create)
       
-      // Template relationship (nullable, will add FK after templates is created)
+      // Template relationship (nullable)
       table.uuid('template_id').nullable()
-      table.foreign('template_id').references('templates.id').onDelete('SET NULL')
+      // Note: FK to templates will be added separately (after templates table migration)
       
-      // User relationship (author - FK will be added later)
+      // User relationship (author)
       table.integer('user_id').unsigned().notNullable()
       table.foreign('user_id').references('users.id').onDelete('CASCADE')
       
@@ -65,9 +64,20 @@ export default class extends BaseSchema {
       table.index(['type', 'parent_id'])
       table.index(['type', 'parent_id', 'order_index'])
     })
-    // GIN indexes for JSONB fields
-    await this.schema.raw('CREATE INDEX IF NOT EXISTS posts_robots_json_gin ON posts USING GIN (robots_json)')
-    await this.schema.raw('CREATE INDEX IF NOT EXISTS posts_jsonld_overrides_gin ON posts USING GIN (jsonld_overrides)')
+    // GIN indexes for JSONB fields (guarded to avoid errors if table creation failed)
+    await this.schema.raw(`
+DO $$
+BEGIN
+  IF EXISTS (
+    SELECT 1 FROM information_schema.tables 
+    WHERE table_name='posts' AND table_schema = current_schema()
+  ) THEN
+    CREATE INDEX IF NOT EXISTS posts_robots_json_gin ON posts USING GIN (robots_json);
+    CREATE INDEX IF NOT EXISTS posts_jsonld_overrides_gin ON posts USING GIN (jsonld_overrides);
+  END IF;
+END
+$$;
+    `)
   }
 
   async down() {
