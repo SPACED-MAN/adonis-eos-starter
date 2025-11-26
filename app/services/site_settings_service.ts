@@ -7,6 +7,7 @@ type SiteSettings = {
   defaultOgMediaId: string | null
   logoLightMediaId: string | null
   logoDarkMediaId: string | null
+  profileRolesEnabled: string[]
 }
 
 class SiteSettingsService {
@@ -27,6 +28,7 @@ class SiteSettingsService {
       defaultOgMediaId: row?.default_og_media_id || null,
       logoLightMediaId: row?.logo_light_media_id || null,
       logoDarkMediaId: row?.logo_dark_media_id || null,
+      profileRolesEnabled: Array.isArray(row?.profile_roles_enabled) ? row.profile_roles_enabled : [],
     }
     this.cache = settings
     this.lastLoadedAt = now
@@ -42,6 +44,7 @@ class SiteSettingsService {
       defaultOgMediaId: payload.defaultOgMediaId ?? current.defaultOgMediaId,
       logoLightMediaId: payload.logoLightMediaId ?? current.logoLightMediaId,
       logoDarkMediaId: payload.logoDarkMediaId ?? current.logoDarkMediaId,
+      profileRolesEnabled: payload.profileRolesEnabled ?? current.profileRolesEnabled ?? [],
     }
     const exists = await db.from('site_settings').count('* as c')
     const count = Number((exists?.[0] as any)?.c || 0)
@@ -53,6 +56,7 @@ class SiteSettingsService {
         default_og_media_id: next.defaultOgMediaId,
         logo_light_media_id: next.logoLightMediaId,
         logo_dark_media_id: next.logoDarkMediaId,
+        profile_roles_enabled: next.profileRolesEnabled,
         created_at: new Date(),
         updated_at: new Date(),
       })
@@ -64,6 +68,7 @@ class SiteSettingsService {
         default_og_media_id: next.defaultOgMediaId,
         logo_light_media_id: next.logoLightMediaId,
         logo_dark_media_id: next.logoDarkMediaId,
+        profile_roles_enabled: next.profileRolesEnabled,
         updated_at: new Date(),
       })
     }

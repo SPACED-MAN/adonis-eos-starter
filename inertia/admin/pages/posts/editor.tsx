@@ -27,6 +27,7 @@ import { FormEvent, useEffect, useMemo, useRef, useState } from 'react'
 import { toast } from 'sonner'
 import { AdminBreadcrumbs } from '../../components/AdminBreadcrumbs'
 import { ModuleEditorPanel, ModuleListItem } from '../../components/modules/ModuleEditorPanel'
+import { MediaPickerModal } from '../../components/media/MediaPickerModal'
 import { DndContext, closestCenter, PointerSensor, useSensor, useSensors, DragEndEvent } from '@dnd-kit/core'
 import { SortableContext, useSortable, verticalListSortingStrategy } from '@dnd-kit/sortable'
 import { CSS } from '@dnd-kit/utilities'
@@ -48,6 +49,7 @@ interface EditorProps {
     jsonldOverrides: Record<string, any> | null
     createdAt: string
     updatedAt: string
+    author?: { id: number; email: string; fullName: string | null } | null
   }
   modules: {
     id: string
@@ -64,9 +66,22 @@ interface EditorProps {
   }[]
   translations: { id: string; locale: string }[]
   reviewDraft?: any | null
+  customFields?: Array<{
+    id: string
+    slug: string
+    label: string
+    fieldType: 'text' | 'textarea' | 'number' | 'select' | 'multiselect' | 'media' | 'date' | 'url'
+    config?: Record<string, any>
+    translatable?: boolean
+    value?: any
+  }>
+  uiConfig?: {
+    hideCoreFields?: string[]
+    hierarchyEnabled?: boolean
+  }
 }
 
-export default function Editor({ post, modules: initialModules, translations, reviewDraft }: EditorProps) {
+export default function Editor({ post, modules: initialModules, translations, reviewDraft, customFields: initialCustomFields, uiConfig }: EditorProps) {
   const { data, setData, put, processing, errors } = useForm({
     title: post.title,
     slug: post.slug,
@@ -79,6 +94,9 @@ export default function Editor({ post, modules: initialModules, translations, re
     canonicalUrl: post.canonicalUrl || '',
     robotsJson: post.robotsJson ? JSON.stringify(post.robotsJson, null, 2) : '',
     jsonldOverrides: post.jsonldOverrides ? JSON.stringify(post.jsonldOverrides, null, 2) : '',
+    customFields: Array.isArray(initialCustomFields)
+      ? initialCustomFields.map((f) => ({ fieldId: f.id, slug: f.slug, value: f.value ?? null }))
+      : [],
   })
   const initialDataRef = useRef({
     title: post.title,
@@ -92,6 +110,9 @@ export default function Editor({ post, modules: initialModules, translations, re
     canonicalUrl: post.canonicalUrl || '',
     robotsJson: post.robotsJson ? JSON.stringify(post.robotsJson, null, 2) : '',
     jsonldOverrides: post.jsonldOverrides ? JSON.stringify(post.jsonldOverrides, null, 2) : '',
+    customFields: Array.isArray(initialCustomFields)
+      ? initialCustomFields.map((f) => ({ fieldId: f.id, slug: f.slug, value: f.value ?? null }))
+      : [],
   })
   const reviewInitialRef = useRef<null | typeof initialDataRef.current>(reviewDraft ? {
     title: String(reviewDraft.title ?? post.title),
@@ -105,6 +126,7 @@ export default function Editor({ post, modules: initialModules, translations, re
     canonicalUrl: String(reviewDraft.canonicalUrl ?? (post.canonicalUrl || '')),
     robotsJson: typeof reviewDraft.robotsJson === 'string' ? reviewDraft.robotsJson : (reviewDraft.robotsJson ? JSON.stringify(reviewDraft.robotsJson, null, 2) : ''),
     jsonldOverrides: typeof reviewDraft.jsonldOverrides === 'string' ? reviewDraft.jsonldOverrides : (reviewDraft.jsonldOverrides ? JSON.stringify(reviewDraft.jsonldOverrides, null, 2) : ''),
+    customFields: Array.isArray(reviewDraft.customFields) ? reviewDraft.customFields : ((Array.isArray(initialCustomFields) ? initialCustomFields.map(f => ({ fieldId: f.id, slug: f.slug, value: f.value ?? null })) : [])),
   } : null)
   const [viewMode, setViewMode] = useState<'approved' | 'review'>('approved')
   const [pendingModules, setPendingModules] = useState<Record<string, { overrides: Record<string, any> | null; edited: Record<string, any> }>>({})
@@ -115,12 +137,16 @@ export default function Editor({ post, modules: initialModules, translations, re
     slug: d.slug,
     excerpt: d.excerpt,
     status: d.status,
+    parentId: (d as any).parentId,
     orderIndex: d.orderIndex,
     metaTitle: d.metaTitle,
     metaDescription: d.metaDescription,
     canonicalUrl: d.canonicalUrl,
     robotsJson: d.robotsJson,
     jsonldOverrides: d.jsonldOverrides,
+    customFields: Array.isArray((d as any).customFields)
+      ? (d as any).customFields.map((e: any) => ({ fieldId: e.fieldId, slug: e.slug, value: e.value }))
+      : [],
   })
   const isDirty = useMemo(() => {
     try {
@@ -268,6 +294,7 @@ export default function Editor({ post, modules: initialModules, translations, re
     const payload = {
       ...pickForm(data),
       mode: 'review',
+      customFields: Array.isArray((data as any).customFields) ? (data as any).customFields : [],
       reviewModuleRemovals: Array.from(pendingReviewRemoved),
     }
     const res = await fetch(`/api/posts/${post.id}`, {
@@ -306,13 +333,23 @@ export default function Editor({ post, modules: initialModules, translations, re
 
   // Overrides panel state
   const [editing, setEditing] = useState<ModuleListItem | null>(null)
-  const [savingOverrides, setSavingOverrides] = useState(false)
+  // Removed explicit savingOverrides state; handled via pendingModules flow
   const [revisions, setRevisions] = useState<Array<{ id: string; mode: 'approved' | 'review'; createdAt: string; user?: { id?: number; email?: string } }>>([])
   const [loadingRevisions, setLoadingRevisions] = useState(false)
   // Agents
   const [agents, setAgents] = useState<Array<{ id: string; name: string }>>([])
   const [selectedAgent, setSelectedAgent] = useState<string>('')
   const [runningAgent, setRunningAgent] = useState<boolean>(false)
+  // Author management (admin)
+  const [users, setUsers] = useState<Array<{ id: number; email: string; fullName: string | null }>>([])
+  const [selectedAuthorId, setSelectedAuthorId] = useState<number | null>(post.author?.id ?? null)
+  // Media picker for custom fields
+  const [openMediaForField, setOpenMediaForField] = useState<string | null>(null)
+  // Debug received custom fields
+  useEffect(() => {
+    // eslint-disable-next-line no-console
+    console.log('[Editor] post.type:', post.type, 'customFields:', initialCustomFields)
+  }, [post.type, initialCustomFields])
 
   useEffect(() => {
     let alive = true
@@ -426,11 +463,6 @@ export default function Editor({ post, modules: initialModules, translations, re
     return base
   }, [modules, viewMode, pendingReviewRemoved])
 
-  const translationMap = useMemo(() => {
-    const map = new Map<string, string>()
-    translations?.forEach((t) => map.set(t.locale, t.id))
-    return map
-  }, [translations])
   const translationsSet = useMemo(() => new Set((translations || []).map((t) => t.locale)), [translations])
   const availableLocales = useMemo(() => {
     const base = new Set<string>(supportedLocales.length ? supportedLocales : ['en'])
@@ -438,48 +470,7 @@ export default function Editor({ post, modules: initialModules, translations, re
     return Array.from(base)
   }, [translations, supportedLocales])
 
-  async function saveOverrides(
-    postModuleId: string,
-    overrides: Record<string, any> | null,
-    edited: Record<string, any>
-  ) {
-    setSavingOverrides(true)
-    try {
-      const res = await fetch(`/api/post-modules/${encodeURIComponent(postModuleId)}`, {
-        method: 'PUT',
-        headers: {
-          'Accept': 'application/json',
-          'Content-Type': 'application/json',
-          ...(xsrfToken ? { 'X-XSRF-TOKEN': xsrfToken } : {}),
-        },
-        credentials: 'same-origin',
-        body: JSON.stringify({ overrides, mode: viewMode === 'review' ? 'review' : 'publish' }),
-      })
-      if (!res.ok) throw new Error('Failed to save')
-      const json = await res.json()
-      const updatedOverrides = json?.data?.overrides ?? overrides
-      setModules((prev) =>
-        prev.map((m) => {
-          if (m.id !== postModuleId) return m
-          if (viewMode === 'review') {
-            if (m.scope === 'post') {
-              return { ...m, reviewProps: edited, overrides: null }
-            } else {
-              return { ...m, reviewOverrides: updatedOverrides }
-            }
-          } else {
-            if (m.scope === 'post') {
-              return { ...m, props: edited, overrides: null }
-            } else {
-              return { ...m, overrides: updatedOverrides }
-            }
-          }
-        })
-      )
-    } finally {
-      setSavingOverrides(false)
-    }
-  }
+  // saveOverrides removed; overrides are handled via ModuleEditorPanel onSave and pendingModules batching.
 
   async function commitPendingModules(mode: 'review' | 'publish') {
     const entries = Object.entries(pendingModules)
@@ -536,11 +527,18 @@ export default function Editor({ post, modules: initialModules, translations, re
 
   return (
     <div className="min-h-screen bg-backdrop-low">
-      <AdminHeader title="Edit Post" />
+      <AdminHeader title={`Edit ${post.type ? post.type.replace(/([a-z])([A-Z])/g, '$1 $2').replace(/[-_]+/g, ' ').replace(/\b\w/g, (c) => c.toUpperCase()) : 'Post'}`} />
 
       {/* Main Content */}
       <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-        <AdminBreadcrumbs items={[{ label: 'Dashboard', href: '/admin' }, { label: 'Edit Post' }]} />
+        <AdminBreadcrumbs
+          items={[
+            { label: 'Dashboard', href: '/admin' },
+            {
+              label: `Edit ${post.type ? post.type.replace(/([a-z])([A-Z])/g, '$1 $2').replace(/[-_]+/g, ' ').replace(/\b\w/g, (c) => c.toUpperCase()) : 'Post'}`,
+            },
+          ]}
+        />
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
           {/* Left Column - Post Content */}
           <div className="lg:col-span-2 space-y-6">
@@ -552,20 +550,22 @@ export default function Editor({ post, modules: initialModules, translations, re
 
               <form className="space-y-4" onSubmit={handleSubmit}>
                 {/* Title */}
-                <div>
-                  <label className="block text-sm font-medium text-neutral-medium mb-1">
-                    Title *
-                  </label>
-                  <Input
-                    type="text"
-                    value={data.title}
-                    onChange={(e) => setData('title', e.target.value)}
-                    placeholder="Enter post title"
-                  />
-                  {errors.title && (
-                    <p className="text-sm text-[#dc2626] mt-1">{errors.title}</p>
-                  )}
-                </div>
+                {(uiConfig?.hideCoreFields || []).includes('title') ? null : (
+                  <div>
+                    <label className="block text-sm font-medium text-neutral-medium mb-1">
+                      Title *
+                    </label>
+                    <Input
+                      type="text"
+                      value={data.title}
+                      onChange={(e) => setData('title', e.target.value)}
+                      placeholder="Enter post title"
+                    />
+                    {errors.title && (
+                      <p className="text-sm text-[#dc2626] mt-1">{errors.title}</p>
+                    )}
+                  </div>
+                )}
 
                 {/* Excerpt */}
                 <div>
@@ -584,13 +584,15 @@ export default function Editor({ post, modules: initialModules, translations, re
                 </div>
 
                 {/* Parent (optional hierarchy) */}
-                <ParentSelect
-                  postId={post.id}
-                  postType={post.type}
-                  locale={post.locale}
-                  value={data.parentId || ''}
-                  onChange={(val) => setData('parentId', val)}
-                />
+                {(uiConfig?.hierarchyEnabled ?? true) && (
+                  <ParentSelect
+                    postId={post.id}
+                    postType={post.type}
+                    locale={post.locale}
+                    value={data.parentId || ''}
+                    onChange={(val) => setData('parentId', val)}
+                  />
+                )}
                 {/* Order Index */}
                 <div>
                   <label className="block text-sm font-medium text-neutral-medium mb-1">Order</label>
@@ -605,6 +607,103 @@ export default function Editor({ post, modules: initialModules, translations, re
 
                 {/* Save button moved to Actions */}
               </form>
+              {/* Custom Fields (e.g., Profile fields) - inside Content, above Modules */}
+              {Array.isArray(initialCustomFields) && initialCustomFields.length > 0 && (
+                <div className="mt-6">
+                  <div className="space-y-4">
+                    {initialCustomFields.map((f) => {
+                      const entry = (data as any).customFields?.find((e: any) => e.fieldId === f.id) || { value: null }
+                      const setValue = (val: any) => {
+                        const prev: any[] = Array.isArray((data as any).customFields) ? (data as any).customFields : []
+                        const list = prev.slice()
+                        const idx = list.findIndex((e) => e.fieldId === f.id)
+                        const next = { fieldId: f.id, slug: f.slug, value: val }
+                        if (idx >= 0) list[idx] = next
+                        else list.push(next)
+                        setData('customFields', list as any)
+                      }
+                      if (f.fieldType === 'text' || f.fieldType === 'url' || f.fieldType === 'number') {
+                        return (
+                          <div key={f.id}>
+                            <label className="block text-sm font-medium text-neutral-medium mb-1">
+                              {f.label}
+                            </label>
+                            <Input
+                              type={f.fieldType === 'number' ? 'number' : (f.fieldType === 'url' ? 'url' : 'text')}
+                              value={entry.value ?? ''}
+                              onChange={(e) => setValue(f.fieldType === 'number' ? Number(e.target.value) : e.target.value)}
+                              placeholder={f.label}
+                            />
+                          </div>
+                        )
+                      }
+                      if (f.fieldType === 'textarea') {
+                        return (
+                          <div key={f.id}>
+                            <label className="block text-sm font-medium text-neutral-medium mb-1">
+                              {f.label}
+                            </label>
+                            <Textarea
+                              value={entry.value ?? ''}
+                              onChange={(e) => setValue(e.target.value)}
+                              rows={4}
+                              placeholder={f.label}
+                            />
+                          </div>
+                        )
+                      }
+                      if (f.fieldType === 'media') {
+                        const currentId = typeof entry.value === 'string' ? entry.value : (entry.value?.id || '')
+                        return (
+                          <div key={f.id}>
+                            <label className="block text-sm font-medium text-neutral-medium mb-1">
+                              {f.label}
+                            </label>
+                            <div className="flex items-center gap-2">
+                              <Input
+                                value={currentId || ''}
+                                onChange={(e) => setValue(e.target.value)}
+                                placeholder="Media ID"
+                                className="w-[220px]"
+                              />
+                              <button
+                                type="button"
+                                className="px-2 py-1 text-xs border border-line rounded hover:bg-backdrop-medium text-neutral-medium"
+                                onClick={() => setOpenMediaForField(f.id)}
+                              >
+                                Choose
+                              </button>
+                            </div>
+                            <MediaPickerModal
+                              open={openMediaForField === f.id}
+                              onOpenChange={(o) => setOpenMediaForField(o ? f.id : null)}
+                              initialSelectedId={currentId || undefined}
+                              onSelect={(m) => {
+                                setValue(m.id)
+                                setOpenMediaForField(null)
+                              }}
+                            />
+                          </div>
+                        )
+                      }
+                      // Fallback simple input
+                      return (
+                        <div key={f.id}>
+                          <label className="block text-sm font-medium text-neutral-medium mb-1">
+                            {f.label}
+                          </label>
+                          <Input
+                            value={entry.value ?? ''}
+                            onChange={(e) => setValue(e.target.value)}
+                            placeholder={f.label}
+                          />
+                        </div>
+                      )
+                    })}
+                  </div>
+                </div>
+              )}
+
               {/* Modules integrated into Content */}
               <div className="mt-6">
                 <div className="flex items-center justify-between mb-4">
@@ -811,6 +910,7 @@ export default function Editor({ post, modules: initialModules, translations, re
 
             {/* end left column */}
           </div>
+
 
           {/* Right Column - Sidebar */}
           <div className="space-y-6">
@@ -1041,7 +1141,8 @@ export default function Editor({ post, modules: initialModules, translations, re
                       if (res.ok) {
                         toast.success('Review approved')
                         // Adopt the review values as the new approved baseline
-                        initialDataRef.current = reviewInitialRef.current
+                        const adopted = reviewInitialRef.current ? reviewInitialRef.current : pickForm(data)
+                        initialDataRef.current = adopted as any
                         reviewInitialRef.current = null
                         setViewMode('approved')
                       } else {
@@ -1097,6 +1198,78 @@ export default function Editor({ post, modules: initialModules, translations, re
                 </div>
               </dl>
             </div>
+
+            {/* Author (Admin) */}
+            {isAdmin && (
+              <div className="bg-backdrop-low rounded-lg shadow p-6 border border-border">
+                <h3 className="text-sm font-semibold text-neutral-high mb-4">Author</h3>
+                <div className="space-y-3 text-sm">
+                  <div>
+                    <div className="text-neutral-low">Current</div>
+                    <div className="font-medium text-neutral-high">
+                      {post.author?.fullName || post.author?.email || '—'}
+                    </div>
+                  </div>
+                  <div>
+                    <label className="block text-xs font-medium text-neutral-medium mb-1">Reassign to</label>
+                    <select
+                      className="w-full border border-line bg-backdrop-low text-neutral-high rounded px-2 py-1"
+                      value={selectedAuthorId ?? ''}
+                      onChange={(e) => setSelectedAuthorId(e.target.value ? Number(e.target.value) : null)}
+                      onFocus={async () => {
+                        if (users.length > 0) return
+                        try {
+                          const res = await fetch('/api/users', { credentials: 'same-origin' })
+                          const j = await res.json().catch(() => ({}))
+                          const list: Array<{ id: number; email: string; fullName?: string | null }> = Array.isArray(j?.data) ? j.data : []
+                          setUsers(list.map((u) => ({ id: u.id, email: u.email, fullName: (u as any).fullName ?? null })))
+                        } catch { /* ignore */ }
+                      }}
+                    >
+                      <option value="">Select a user…</option>
+                      {users.map((u) => (
+                        <option key={u.id} value={u.id}>
+                          {(u.fullName || u.email)} ({u.email})
+                        </option>
+                      ))}
+                    </select>
+                  </div>
+                  <div>
+                    <button
+                      type="button"
+                      className="w-full px-3 py-2 text-sm border border-border rounded hover:bg-backdrop-medium text-neutral-high disabled:opacity-50"
+                      disabled={!selectedAuthorId || selectedAuthorId === (post.author?.id ?? null)}
+                      onClick={async () => {
+                        if (!selectedAuthorId) return
+                        try {
+                          const res = await fetch(`/api/posts/${post.id}/author`, {
+                            method: 'PATCH',
+                            headers: {
+                              Accept: 'application/json',
+                              'Content-Type': 'application/json',
+                              ...(xsrfToken ? { 'X-XSRF-TOKEN': xsrfToken } : {}),
+                            },
+                            credentials: 'same-origin',
+                            body: JSON.stringify({ authorId: selectedAuthorId }),
+                          })
+                          const j = await res.json().catch(() => ({}))
+                          if (!res.ok) {
+                            toast.error(j?.error || 'Failed to update author')
+                            return
+                          }
+                          toast.success('Author updated')
+                          window.location.reload()
+                        } catch {
+                          toast.error('Failed to update author')
+                        }
+                      }}
+                    >
+                      Update Author
+                    </button>
+                  </div>
+                </div>
+              </div>
+            )}
 
             {/* Revisions */}
             <div className="bg-backdrop-low rounded-lg shadow p-6 border border-border">
@@ -1347,7 +1520,7 @@ export default function Editor({ post, modules: initialModules, translations, re
           )
           return Promise.resolve()
         }}
-        processing={savingOverrides}
+        processing={false}
       />
     </div>
   )

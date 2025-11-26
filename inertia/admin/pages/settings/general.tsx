@@ -14,6 +14,7 @@ type Settings = {
   defaultOgMediaId: string | null
   logoLightMediaId: string | null
   logoDarkMediaId: string | null
+  profileRolesEnabled: string[]
 }
 
 function getXsrf(): string | undefined {
@@ -32,6 +33,7 @@ export default function GeneralSettings() {
     defaultOgMediaId: '',
     logoLightMediaId: '',
     logoDarkMediaId: '',
+    profileRolesEnabled: [],
   })
 
   useEffect(() => {
@@ -49,6 +51,7 @@ export default function GeneralSettings() {
           defaultOgMediaId: j?.data?.defaultOgMediaId || '',
           logoLightMediaId: j?.data?.logoLightMediaId || '',
           logoDarkMediaId: j?.data?.logoDarkMediaId || '',
+          profileRolesEnabled: Array.isArray(j?.data?.profileRolesEnabled) ? j.data.profileRolesEnabled : [],
         }
         setForm(s)
       } finally {
@@ -76,6 +79,7 @@ export default function GeneralSettings() {
           defaultOgMediaId: form.defaultOgMediaId || null,
           logoLightMediaId: form.logoLightMediaId || null,
           logoDarkMediaId: form.logoDarkMediaId || null,
+          profileRolesEnabled: form.profileRolesEnabled || [],
         }),
       })
       if (res.ok) {
@@ -229,6 +233,33 @@ export default function GeneralSettings() {
               />
               <p className="text-xs text-neutral-low mt-1">Provide a dark-on-light version for light backgrounds.</p>
             </div>
+          </div>
+          {/* Profiles enablement */}
+          <div>
+            <label className="block text-sm font-medium text-neutral-medium mb-2">Enable Profiles for Roles</label>
+            <div className="flex flex-wrap gap-3">
+              {['admin', 'editor', 'translator'].map((r) => {
+                const checked = form.profileRolesEnabled.includes(r)
+                return (
+                  <label key={r} className="inline-flex items-center gap-2 text-sm text-neutral-high">
+                    <input
+                      type="checkbox"
+                      checked={checked}
+                      onChange={(e) => {
+                        const next = new Set(form.profileRolesEnabled)
+                        if (e.target.checked) next.add(r)
+                        else next.delete(r)
+                        setForm({ ...form, profileRolesEnabled: Array.from(next) })
+                      }}
+                    />
+                    <span className="capitalize">{r}</span>
+                  </label>
+                )
+              })}
+            </div>
+            <p className="text-xs text-neutral-low mt-1">
+              Turning a role off will archive existing Profile posts for users with that role.
+            </p>
           </div>
           <div className="flex items-center gap-2">
             <button type="button" className={`px-3 py-2 text-sm rounded ${saving ? 'opacity-60' : 'bg-standout text-on-standout'}`} disabled={saving} onClick={save}>

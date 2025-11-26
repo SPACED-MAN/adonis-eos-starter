@@ -7,6 +7,7 @@ import {
 	SidebarMenuItem,
 } from '~/components/ui/sidebar'
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome'
+import { useEffect, useState } from 'react'
 import {
 	faImage,
 	faFileLines,
@@ -19,6 +20,7 @@ import {
 	faTags,
 	faUsers,
 } from '@fortawesome/free-solid-svg-icons'
+import { faGauge } from '@fortawesome/free-solid-svg-icons'
 
 export function AdminSidebar() {
 	const page = usePage()
@@ -28,19 +30,43 @@ export function AdminSidebar() {
 		((page.props as any)?.auth?.user?.email as string | undefined) ||
 		((page.props as any)?.currentUser?.email as string | undefined) ||
 		'User'
+	const [avatarUrl, setAvatarUrl] = useState<string | null>(null)
+	useEffect(() => {
+		let alive = true
+			; (async () => {
+				try {
+					const res = await fetch('/api/profile/status', { credentials: 'same-origin' })
+					const j = await res.json().catch(() => ({}))
+					const u = j?.data?.profileThumbUrl
+					if (alive && typeof u === 'string' && u) setAvatarUrl(u)
+				} catch { /* ignore */ }
+			})()
+		return () => { alive = false }
+	}, [])
 	return (
 		<Sidebar>
 			<SidebarContent>
 				<SidebarHeader>
 					<div className="flex items-center gap-2">
-						<div className="w-8 h-8 rounded-full bg-backdrop-medium border border-line" />
+						{avatarUrl ? (
+							<img src={avatarUrl} alt="Profile" className="w-8 h-8 rounded-full border border-line object-cover" />
+						) : (
+							<div className="w-8 h-8 rounded-full bg-backdrop-medium border border-line" />
+						)}
 						<div className="text-sm">
 							<div className="font-semibold text-neutral-high">{userEmail}</div>
-							<div className="text-neutral-low text-xs">Profile (coming soon)</div>
+							<div className="text-neutral-low text-xs">
+								<Link href="/admin/profile" className="hover:underline">Profile</Link>
+							</div>
 						</div>
 					</div>
 				</SidebarHeader>
 				<SidebarGroup title="Content">
+					<SidebarMenuItem href="/admin" active={isActive('/admin')}>
+						<span className="inline-flex items-center gap-2">
+							<FontAwesomeIcon icon={faGauge} className="w-4 h-4" /> <span>Dashboard</span>
+						</span>
+					</SidebarMenuItem>
 					<SidebarMenuItem href="/admin/media" active={isActive('/admin/media')}>
 						<span className="inline-flex items-center gap-2">
 							<FontAwesomeIcon icon={faImage} className="w-4 h-4" /> <span>Media</span>

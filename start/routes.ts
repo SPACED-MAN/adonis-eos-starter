@@ -32,7 +32,7 @@ router.get('/admin', async ({ inertia }) => {
 	const PostModel = await Post()
 	const posts = await PostModel.default.query().orderBy('updated_at', 'desc').limit(10)
 
-	return inertia.render('admin/dashboard', {
+	return inertia.render('admin/home', {
 		posts: posts.map(p => ({
 			id: p.id,
 			title: p.title,
@@ -100,17 +100,15 @@ router.group(() => {
 	router.post('/redirects', [UrlRedirectsController, 'store']).use(middleware.admin())
 	router.put('/redirects/:id', [UrlRedirectsController, 'update']).use(middleware.admin())
 	router.delete('/redirects/:id', [UrlRedirectsController, 'destroy']).use(middleware.admin())
-	router.get('/redirect-settings/:postType', [UrlRedirectsController, 'getSetting']).use(middleware.admin())
-	router.patch('/redirect-settings/:postType', [UrlRedirectsController, 'updateSetting']).use(middleware.admin())
 }).prefix('/api').use(middleware.auth())
 
 /**
  * API Routes - Templates (Admin)
  */
 const TemplatesController = () => import('#controllers/templates_controller')
-const PostTypesController = () => import('#controllers/post_types_controller')
 const AgentsController = () => import('#controllers/agents_controller')
 const GlobalModulesController = () => import('#controllers/global_modules_controller')
+const UsersController = () => import('#controllers/users_controller')
 // MediaController imported above
 router.group(() => {
 	router.get('/templates', [TemplatesController, 'index']).use(middleware.admin())
@@ -144,12 +142,18 @@ router.group(() => {
 	router.post('/posts/:id/modules', [PostsController, 'storeModule'])
 	router.put('/post-modules/:id', [PostsController, 'updateModule'])
 	router.delete('/post-modules/:id', [PostsController, 'deleteModule'])
-	// Post Type settings
-	router.get('/post-types/settings', [PostTypesController, 'listSettings']).use(middleware.admin())
-	router.patch('/post-types/:type/settings', [PostTypesController, 'updateSettings']).use(middleware.admin())
+	// Post author management (admin)
+	router.patch('/posts/:id/author', [PostsController, 'updateAuthor']).use(middleware.admin())
 	// Agents
 	router.get('/agents', [AgentsController, 'index']).use(middleware.admin())
 	router.post('/posts/:id/agents/:agentId/run', [AgentsController, 'runForPost']).use(middleware.admin())
+	// Users (admin)
+	router.get('/users', [UsersController, 'index']).use(middleware.admin())
+	router.patch('/users/:id', [UsersController, 'update']).use(middleware.admin())
+	router.patch('/users/:id/password', [UsersController, 'resetPassword']).use(middleware.admin())
+	// Profiles (self)
+	router.get('/profile/status', [UsersController, 'profileStatus'])
+	router.post('/users/me/profile', [UsersController, 'createMyProfile'])
 	// Media
 	router.get('/media', [MediaController, 'index'])
 	router.get('/media/categories', [MediaController, 'categories'])
@@ -199,9 +203,7 @@ router.get('/admin/settings/templates', async ({ inertia }) => {
 	return inertia.render('admin/settings/templates')
 }).use(middleware.auth()).use(middleware.admin())
 
-router.get('/admin/settings/post-types', async ({ inertia }) => {
-	return inertia.render('admin/settings/post-types')
-}).use(middleware.auth()).use(middleware.admin())
+// Deprecated: Post types settings moved to code configs
 
 // Admin Media Library
 router.get('/admin/media', async ({ inertia }) => {
@@ -213,6 +215,11 @@ router.get('/admin/posts', async ({ inertia }) => {
 	return inertia.render('admin/dashboard')
 }).use(middleware.auth()).use(middleware.admin())
 
+// Admin Profile (current user)
+router.get('/admin/profile', async ({ inertia }) => {
+	return inertia.render('admin/profile/index')
+}).use(middleware.auth())
+
 // Admin Global/Static Module Manager
 router.get('/admin/modules', async ({ inertia }) => {
 	return inertia.render('admin/modules/index')
@@ -223,9 +230,13 @@ router.get('/admin/users', async ({ inertia }) => {
 	return inertia.render('admin/users/index')
 }).use(middleware.auth()).use(middleware.admin())
 
+router.get('/admin/users/:id/edit', async ({ params, inertia }) => {
+	return inertia.render('admin/users/edit', { id: params.id })
+}).use(middleware.auth()).use(middleware.admin())
+
 // Admin General Settings
 router.get('/admin/settings/general', async ({ inertia }) => {
-  return inertia.render('admin/settings/general')
+	return inertia.render('admin/settings/general')
 }).use(middleware.auth()).use(middleware.admin())
 // Templates list and editor pages (new)
 router.get('/admin/templates', async ({ inertia }) => {

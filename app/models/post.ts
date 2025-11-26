@@ -1,6 +1,7 @@
 import { DateTime } from 'luxon'
 import { BaseModel, column, belongsTo, hasMany, scope } from '@adonisjs/lucid/orm'
 import type { BelongsTo, HasMany } from '@adonisjs/lucid/types/relations'
+import User from './user.js'
 
 export default class Post extends BaseModel {
   @column({ isPrimary: true })
@@ -56,6 +57,9 @@ export default class Post extends BaseModel {
 
   @column()
   declare userId: number
+  
+  @column({ columnName: 'author_id' })
+  declare authorId: number | null
 
   @column.dateTime()
   declare publishedAt: DateTime | null
@@ -100,6 +104,14 @@ export default class Post extends BaseModel {
     foreignKey: 'parentId',
   })
   declare children: HasMany<typeof Post>
+  
+  /**
+   * Relationship: Author (user)
+   */
+  @belongsTo(() => User, {
+    foreignKey: 'authorId',
+  })
+  declare author: BelongsTo<typeof User>
 
   /**
    * Query scope: Get posts by locale
