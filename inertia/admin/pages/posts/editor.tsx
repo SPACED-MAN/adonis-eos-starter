@@ -30,6 +30,8 @@ import { humanizeSlug } from '~/utils/strings'
 import type { CustomFieldType } from '~/types/custom_field'
 import { ModuleEditorPanel, ModuleListItem } from '../../components/modules/ModuleEditorPanel'
 import { MediaPickerModal } from '../../components/media/MediaPickerModal'
+import { Popover, PopoverTrigger, PopoverContent } from '~/components/ui/popover'
+import { Calendar } from '~/components/ui/calendar'
 import { DndContext, closestCenter, PointerSensor, useSensor, useSensors, DragEndEvent } from '@dnd-kit/core'
 import { SortableContext, useSortable, verticalListSortingStrategy } from '@dnd-kit/sortable'
 import { CSS } from '@dnd-kit/utilities'
@@ -1020,6 +1022,40 @@ export default function Editor({ post, modules: initialModules, translations, re
                   </div>
                   {errors.status && (
                     <p className="text-xs text-red-600 dark:text-red-400 mt-1">{errors.status}</p>
+                  )}
+                  {data.status === 'scheduled' && (
+                    <div className="mt-3 space-y-2">
+                      <label className="block text-xs font-medium text-neutral-medium">
+                        Scheduled Date
+                      </label>
+                      <Popover>
+                        <PopoverTrigger asChild>
+                          <button
+                            type="button"
+                            className="px-3 py-2 text-sm border border-line rounded hover:bg-backdrop-medium text-neutral-high"
+                          >
+                            {(data as any).scheduledAt
+                              ? new Date((data as any).scheduledAt).toLocaleDateString()
+                              : 'Pick a date'}
+                          </button>
+                        </PopoverTrigger>
+                        <PopoverContent className="p-0">
+                          <Calendar
+                            mode="single"
+                            selected={(data as any).scheduledAt ? new Date((data as any).scheduledAt) : undefined}
+                            onSelect={(d: Date | undefined) => {
+                              if (!d) {
+                                setData('scheduledAt', '')
+                                return
+                              }
+                              const local = new Date(d.getFullYear(), d.getMonth(), d.getDate(), 0, 0, 0)
+                              setData('scheduledAt', local.toISOString())
+                            }}
+                          />
+                        </PopoverContent>
+                      </Popover>
+                      <p className="text-xs text-neutral-low">Scheduler will publish on the selected day.</p>
+                    </div>
                   )}
                 </div>
                 {/* Locale Switcher */}

@@ -486,6 +486,7 @@ export default class PostsController {
       canonicalUrl,
       robotsJson,
       jsonldOverrides,
+      scheduledAt,
       mode,
       customFields,
     } = request.only([
@@ -500,6 +501,7 @@ export default class PostsController {
       'canonicalUrl',
       'robotsJson',
       'jsonldOverrides',
+      'scheduledAt',
       'mode',
       'customFields',
     ])
@@ -756,6 +758,22 @@ export default class PostsController {
         robotsJson: robotsJsonParsed,
         jsonldOverrides: jsonldOverridesParsed,
       })
+      // Handle schedule/publish timestamps
+      try {
+        const now = new Date()
+        if (status === 'published') {
+          await db.from('posts').where('id', id).update({ published_at: now, scheduled_at: null, updated_at: now } as any)
+        } else if (status === 'scheduled') {
+          let ts: Date | null = null
+          if (scheduledAt) {
+            const s = new Date(String(scheduledAt))
+            if (!Number.isNaN(s.getTime())) ts = s
+          }
+          await db.from('posts').where('id', id).update({ scheduled_at: ts, updated_at: now } as any)
+        } else if (status === 'draft') {
+          await db.from('posts').where('id', id).update({ scheduled_at: null, updated_at: now } as any)
+        }
+      } catch { }
       // Upsert custom fields (approved save only) by field_slug and track only changed slugs
       const customFieldSlugsChanged: string[] = []
       if (Array.isArray(customFields)) {

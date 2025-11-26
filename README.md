@@ -729,8 +729,24 @@ Notes:
   - Columns: When, User, Action, Entity, Details, IP
   - Located under the “Users” sidebar group as “Activity Log”
 
-### Milestone 21 - Post Scheduling
-The 'Scheduled' status should be fully functional, with a nice ShadCN datepicker for scheduling. We may want to utilize https://github.com/KABBOUCHI/adonisjs-scheduler for this, and possibly also https://packages.adonisjs.com/packages/adonisjs-jobs.
+### Milestone 21 — Post Scheduling (✅ Complete)
+- Statuses: draft, scheduled, published, archived
+- Editor UI:
+  - When Status = “Scheduled”, a ShadCN-style Date Picker (Popover + Calendar) appears in the Actions sidebar to pick the day.
+  - The selected day is sent as `scheduledAt`; scheduler publishes at midnight (local) for that date.
+- Backend:
+  - `PostsController.update` accepts `scheduledAt` and manages `scheduled_at` / `published_at` timestamps.
+  - RBAC enforced as with other status changes.
+- Scheduler:
+  - `start/scheduler.ts` runs in-process (dev: every 30s, prod: every 60s).
+  - Auto-publishes posts with `status='scheduled'` and `scheduled_at <= now`.
+  - Logs `post.publish.auto` events to Activity Log.
+
+How to test:
+1. Open `/admin/posts/:id/edit` → Actions → set Status to “Scheduled”.
+2. Pick today’s date; click “Save Changes”.
+3. Wait up to 30s (dev) or 60s (prod) for the scheduler to run.
+4. Verify post status becomes Published; check Admin → Users → Activity Log for `post.publish.auto`.
 
 
 ## Local Development
