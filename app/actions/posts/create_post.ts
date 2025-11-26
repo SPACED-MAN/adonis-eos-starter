@@ -151,22 +151,22 @@ export default class CreatePost {
       } else {
         // Create local instance
       const [instance] = await trx
-          .table('module_instances')
-          .insert({
-            scope: 'post',
-            type: tm.type,
-            global_slug: null,
-            props: tm.default_props || {},
-            created_at: now,
-            updated_at: now,
-          })
-          .returning('*')
+        .table('module_instances')
+        .insert({
+          scope: 'post',
+          type: tm.type,
+          global_slug: null,
+          props: tm.default_props || {},
+          created_at: now,
+          updated_at: now,
+        })
+        .returning('*')
         moduleInstanceId = (instance as any).id
       }
 
       await trx.table('post_modules').insert({
-        id: randomUUID(),
-        post_id: postId,
+      id: randomUUID(),
+      post_id: postId,
         module_id: moduleInstanceId,
         order_index: (tm as any).order_index,
         overrides: null,

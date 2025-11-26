@@ -16,6 +16,7 @@ import {
 	SelectItem,
 } from '~/components/ui/select'
 import { FormField, FormLabel } from '~/components/forms/field'
+import { MediaPickerModal } from '../media/MediaPickerModal'
 
 export interface ModuleListItem {
 	id: string
@@ -301,85 +302,147 @@ export function ModuleEditorPanel({
 			)
 		}
     if (type === 'media') {
+      type ModalMediaItem = { id: string; url: string; originalFilename?: string; alt?: string | null }
       const storeAsId = (field as any).storeAs === 'id' || (field as any).store === 'id'
-      const [open, setOpen] = useState(false)
-      const [media, setMedia] = useState<Array<{ id: string; url: string; originalFilename: string }>>([])
-      const [loading, setLoading] = useState(false)
+      const [modalOpen, setModalOpen] = useState(false)
+      const hiddenRef = useRef<HTMLInputElement | null>(null)
+      const displayRef = useRef<HTMLInputElement | null>(null)
+      const currentVal = typeof value === 'string' ? value : ''
+      const [preview, setPreview] = useState<ModalMediaItem | null>(null)
+
+      // Load preview for existing value
       useEffect(() => {
-        if (!open) return
         let alive = true
         ;(async () => {
           try {
-            setLoading(true)
-            const res = await fetch('/api/media?limit=100', { credentials: 'same-origin' })
-            const j = await res.json().catch(() => ({}))
-            const list: Array<{ id: string; url: string; originalFilename: string }> = Array.isArray(j?.data) ? j.data : []
-            if (alive) setMedia(list)
-          } finally {
-            if (alive) setLoading(false)
+            if (storeAsId) {
+              if (!currentVal) {
+                if (alive) setPreview(null)
+                return
+              }
+              const res = await fetch(`/api/media/${encodeURIComponent(currentVal)}`, { credentials: 'same-origin' })
+              const j = await res.json().catch(() => ({}))
+              const item: ModalMediaItem | null = j?.data ? { id: j.data.id, url: j.data.url, originalFilename: j.data.originalFilename, alt: j.data.alt } : null
+              if (alive) setPreview(item)
+            } else {
+              // If storing URL directly, best-effort preview
+              if (typeof value === 'string' && value) {
+                if (alive) setPreview({ id: '', url: value, originalFilename: value, alt: null })
+              } else {
+                if (alive) setPreview(null)
+              }
+            }
+          } catch {
+            if (alive) setPreview(null)
           }
         })()
         return () => { alive = false }
-      }, [open])
-      const hiddenRef = useRef<HTMLInputElement | null>(null)
-      const displayRef = useRef<HTMLInputElement | null>(null)
+      // re-evaluate when selection changes
+      }, [storeAsId, currentVal])
+
+      function applySelection(m: ModalMediaItem) {
+        if (storeAsId) {
+          if (hiddenRef.current) {
+            hiddenRef.current.value = m.id
+            hiddenRef.current.dispatchEvent(new Event('input', { bubbles: true }))
+            hiddenRef.current.dispatchEvent(new Event('change', { bubbles: true }))
+          }
+          if (displayRef.current) displayRef.current.value = m.id
+        } else {
+          if (displayRef.current) {
+            displayRef.current.value = m.url
+            displayRef.current.dispatchEvent(new Event('input', { bubbles: true }))
+            displayRef.current.dispatchEvent(new Event('change', { bubbles: true }))
+          }
+        }
+        try {
+          const next = JSON.parse(JSON.stringify(draft))
+          setByPath(next, name, storeAsId ? m.id : m.url)
+          setDraft(next)
+        } catch {}
+        setPreview(m)
+      }
+
+      function clearSelection() {
+        if (storeAsId) {
+          if (hiddenRef.current) {
+            hiddenRef.current.value = ''
+            hiddenRef.current.dispatchEvent(new Event('input', { bubbles: true }))
+            hiddenRef.current.dispatchEvent(new Event('change', { bubbles: true }))
+          }
+          if (displayRef.current) displayRef.current.value = ''
+        } else {
+          if (displayRef.current) {
+            displayRef.current.value = ''
+            displayRef.current.dispatchEvent(new Event('input', { bubbles: true }))
+            displayRef.current.dispatchEvent(new Event('change', { bubbles: true }))
+          }
+        }
+        try {
+          const next = JSON.parse(JSON.stringify(draft))
+          setByPath(next, name, '')
+          setDraft(next)
+        } catch {}
+        setPreview(null)
+      }
       return (
         <FormField>
           <FormLabel>{label}</FormLabel>
-          <div className="flex items-center gap-2">
-            {storeAsId ? (
-              <>
-                <Input type="text" defaultValue={typeof value === 'string' ? value : ''} readOnly className="opacity-80" ref={displayRef} />
-                <input type="hidden" name={name} defaultValue={typeof value === 'string' ? value : ''} ref={hiddenRef} />
-              </>
-            ) : (
-              <Input type="text" name={name} defaultValue={value ?? ''} ref={displayRef} placeholder={(field as any).placeholder || 'https://...'} />
-            )}
-            <Popover open={open} onOpenChange={setOpen}>
-              <PopoverTrigger asChild>
-                <button type="button" className="px-2 py-1 text-xs border border-line rounded hover:bg-backdrop-medium text-neutral-medium">Choose</button>
-              </PopoverTrigger>
-              <PopoverContent className="w-[420px]">
-                <div className="text-sm mb-2">{loading ? 'Loading…' : 'Select an item'}</div>
-                <div className="grid grid-cols-3 gap-2 max-h-64 overflow-auto">
-                  {media.map((m) => (
-                    <button
-                      type="button"
-                      key={m.id}
-                      className="border border-line rounded overflow-hidden hover:bg-backdrop-medium"
-                      onClick={() => {
-                        if (storeAsId) {
-                          if (hiddenRef.current) {
-                            hiddenRef.current.value = m.id
-                            hiddenRef.current.dispatchEvent(new Event('input', { bubbles: true }))
-                            hiddenRef.current.dispatchEvent(new Event('change', { bubbles: true }))
-                          }
-                          if (displayRef.current) displayRef.current.value = m.id
-                        } else {
-                          if (displayRef.current) {
-                            displayRef.current.value = m.url
-                            displayRef.current.dispatchEvent(new Event('input', { bubbles: true }))
-                            displayRef.current.dispatchEvent(new Event('change', { bubbles: true }))
-                          }
-                        }
-                        // persist into draft so any re-render keeps the chosen value
-                        try {
-                          const next = JSON.parse(JSON.stringify(draft))
-                          setByPath(next, name, storeAsId ? m.id : m.url)
-                          setDraft(next)
-                        } catch {}
-                        setOpen(false)
-                      }}
-                    >
-                      <div className="aspect-video bg-backdrop-medium">
-                        <img src={m.url} alt={m.originalFilename} className="w-full h-full object-cover" />
-                      </div>
-                      <div className="p-1 text-[10px] text-neutral-medium truncate">{storeAsId ? m.id : m.originalFilename}</div>
-                    </button>
-                  ))}
+          <div className="flex items-start gap-3">
+            <div className="min-w-[72px]">
+              {preview ? (
+                <div className="w-[72px] h-[72px] border border-line rounded overflow-hidden bg-backdrop-medium">
+                  <img src={preview.url} alt={preview.alt || preview.originalFilename || ''} className="w-full h-full object-cover" />
                 </div>
-              </PopoverContent>
-            </Popover>
+              ) : (
+                <div className="w-[72px] h-[72px] border border-dashed border-line rounded flex items-center justify-center text-[10px] text-neutral-medium">
+                  No image
+                </div>
+              )}
+            </div>
+            <div className="flex-1">
+              {storeAsId ? (
+                <>
+                  {/* keep hidden input for form submission */}
+                  <input type="hidden" name={name} defaultValue={currentVal} ref={hiddenRef} />
+                  {/* hide the ID input from UI; we show preview instead */}
+                  <input type="text" defaultValue={currentVal} ref={displayRef} className="hidden" readOnly />
+                </>
+              ) : (
+                <Input type="text" name={name} defaultValue={value ?? ''} ref={displayRef} placeholder={(field as any).placeholder || 'https://...'} />
+              )}
+              <div className="mt-2 flex items-center gap-2">
+                <button
+                  type="button"
+                  className="px-2 py-1 text-xs border border-line rounded hover:bg-backdrop-medium text-neutral-medium"
+                  onClick={() => setModalOpen(true)}
+                >
+                  {preview ? 'Change' : 'Choose'}
+                </button>
+                {preview && (
+                  <button
+                    type="button"
+                    className="px-2 py-1 text-xs border border-line rounded hover:bg-backdrop-medium text-neutral-medium"
+                    onClick={clearSelection}
+                  >
+                    Clear
+                  </button>
+                )}
+                {preview && (
+                  <div className="text-[11px] text-neutral-low truncate max-w-[240px]">
+                    {(preview.alt || preview.originalFilename || '').toString()}
+                  </div>
+                )}
+              </div>
+            </div>
+            <MediaPickerModal
+              open={modalOpen}
+              onOpenChange={setModalOpen}
+              initialSelectedId={storeAsId ? (currentVal || undefined) : undefined}
+              onSelect={(m) => {
+                applySelection(m as ModalMediaItem)
+              }}
+            />
           </div>
         </FormField>
       )
