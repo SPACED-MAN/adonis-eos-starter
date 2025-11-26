@@ -12,6 +12,7 @@ import postTypeSettingsService from '#services/post_type_settings_service'
 import authorizationService from '#services/authorization_service'
 import RevisionService from '#services/revision_service'
 import PostSerializerService from '#services/post_serializer_service'
+import siteSettingsService from '#services/site_settings_service'
 
 /**
  * Posts Controller
@@ -1036,6 +1037,7 @@ export default class PostsController {
 
       // Return as Inertia page for public viewing
       const useReviewPost = wantReview && reviewDraft
+      const siteSettings = await siteSettingsService.get()
       return inertia.render('site/post', {
         post: {
           id: post.id,
@@ -1049,6 +1051,7 @@ export default class PostsController {
           status: post.status,
         },
         hasReviewDraft: Boolean(reviewDraft),
+        siteSettings,
         seo: {
           canonical,
           alternates: alternatesBuilt,
@@ -1323,6 +1326,7 @@ export default class PostsController {
           urlPatternService.buildPostUrl(p.type, p.slug, p.locale, protocol, host, p.createdAt ? new Date(p.createdAt.toISO()) : undefined)
         )
       )
+      const siteSettings = await siteSettingsService.get()
       return inertia.render('site/post', {
         post: {
           id: post.id,
@@ -1336,6 +1340,7 @@ export default class PostsController {
           status: post.status,
         },
         hasReviewDraft: Boolean(reviewDraft),
+        siteSettings,
         modules,
         seo: {
           canonical,

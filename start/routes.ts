@@ -85,6 +85,7 @@ router.group(() => {
  * API Routes - URL Patterns (Admin)
  */
 const UrlPatternsController = () => import('#controllers/url_patterns_controller')
+const SiteSettingsController = () => import('#controllers/site_settings_controller')
 router.group(() => {
 	router.get('/url-patterns', [UrlPatternsController, 'index'])
 	router.put('/url-patterns/:locale', [UrlPatternsController, 'upsert'])
@@ -209,6 +210,10 @@ router.get('/admin/modules', async ({ inertia }) => {
 	return inertia.render('admin/modules/index')
 }).use(middleware.auth()).use(middleware.admin())
 
+// Admin General Settings
+router.get('/admin/settings/general', async ({ inertia }) => {
+  return inertia.render('admin/settings/general')
+}).use(middleware.auth()).use(middleware.admin())
 // Templates list and editor pages (new)
 router.get('/admin/templates', async ({ inertia }) => {
 	return inertia.render('admin/templates/index')
@@ -228,3 +233,8 @@ router.get('/admin/forbidden', async ({ inertia }) => {
  */
 router.get('*', [PostsController, 'resolve'])
 
+// API - Site Settings (Admin)
+router.group(() => {
+  router.get('/site-settings', [SiteSettingsController, 'show'])
+  router.patch('/site-settings', [SiteSettingsController, 'update']).use(middleware.admin())
+}).prefix('/api').use(middleware.auth())

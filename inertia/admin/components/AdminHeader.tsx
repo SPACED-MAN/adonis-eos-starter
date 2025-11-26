@@ -37,6 +37,12 @@ export function AdminHeader({ title = 'Admin' }: { title?: string }) {
 									Redirects
 								</Link>
 								<Link
+									href="/admin/settings/general"
+									className="text-sm text-neutral-low hover:text-standout"
+								>
+									Site Settings
+								</Link>
+								<Link
 									href="/admin/templates"
 									className="text-sm text-neutral-low hover:text-standout"
 								>

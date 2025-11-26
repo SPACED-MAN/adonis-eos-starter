@@ -659,14 +659,20 @@ Scopes:
 - Only two scopes are supported: local (post) and global. Use “Locked” in templates to prevent move/remove in posts. Rendering mode (SSR-only vs React) is separate from scope and does not appear in admin.
 
 ### Milestone 18 — Site Settings (Favicon, Branding, Defaults)
-- Add `site_settings` table
-- Add `/admin/settings/general`
-- Support:
-  - Favicon upload (with generated sizes)
-  - Site title
-  - Default meta description
-  - Default OG image
-- Expose settings to SSR pipeline
+- Add `site_settings` table with:
+  - `site_title`, `default_meta_description`
+  - `favicon_media_id`, `default_og_media_id`
+  - `logo_light_media_id`, `logo_dark_media_id`
+- Admin UI: `/admin/settings/general`
+  - Manage Site Title and Default Meta Description
+  - Set Favicon (Media ID), Default OG (Media ID)
+  - Upload/assign Logo assets (Media IDs) for light and dark themes
+- API
+  - `GET /api/site-settings` — returns current settings (auth required)
+  - `PATCH /api/site-settings` — update settings (admin only)
+- SSR exposure
+  - `siteSettings` provided to public post pages (`site/post`) for layout/header usage
+  - Logos are intended for theme-aware headers (light/dark). Use Media ID variants as needed.
 
 ### Milestone 19 — Activity Log
 All user activity should be logged and accessible via 'Admin' roles, in a well organized table. It might make sense to utilize https://github.com/holoyan/adonisjs-activitylog for this.
