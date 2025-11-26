@@ -5,6 +5,7 @@ import hash from '@adonisjs/core/services/hash'
 import LocaleService from '#services/locale_service'
 import CreatePost from '#actions/posts/create_post'
 import siteSettingsService from '#services/site_settings_service'
+import activityLogService from '#services/activity_log_service'
 
 export default class UsersController {
 	/**
@@ -107,6 +108,20 @@ export default class UsersController {
     if (typeof username === 'string') update.username = username
 		const count = await db.from('users').where('id', id).update(update)
 		if (!count) return response.notFound({ error: 'User not found' })
+    // Activity log
+    try {
+      const ua = (request as any).request?.headers?.['user-agent'] || null
+      const ip = (request as any).ip()
+      await activityLogService.log({
+        action: 'user.update',
+        userId: Number(id),
+        entityType: 'user',
+        entityId: id,
+        ip,
+        userAgent: typeof ua === 'string' ? ua : null,
+        metadata: { changed: Object.keys(update) },
+      })
+    } catch { /* ignore logging errors */ }
 		const user = await db.from('users').where('id', id).first()
 		return response.ok({
 			data: {
@@ -134,6 +149,18 @@ export default class UsersController {
 		const now = new Date()
 		const count = await db.from('users').where('id', id).update({ password: hashed, updated_at: now })
 		if (!count) return response.notFound({ error: 'User not found' })
+    try {
+      const ua = (request as any).request?.headers?.['user-agent'] || null
+      const ip = (request as any).ip()
+      await activityLogService.log({
+        action: 'user.password.reset',
+        userId: Number(id),
+        entityType: 'user',
+        entityId: id,
+        ip,
+        userAgent: typeof ua === 'string' ? ua : null,
+      })
+    } catch {}
 		return response.ok({ message: 'Password updated' })
 	}
 
@@ -198,6 +225,14 @@ export default class UsersController {
 				status: 'draft',
 				userId: me.id,
 			})
+      try {
+        await activityLogService.log({
+          action: 'profile.create',
+          userId: Number(me.id),
+          entityType: 'post',
+          entityId: post.id,
+        })
+      } catch {}
 			return response.created({ id: post.id })
 		} catch (e: any) {
 			const status = e?.statusCode || 400

@@ -5,6 +5,7 @@ import path from 'node:path'
 import crypto from 'node:crypto'
 import mediaService from '#services/media_service'
 import sharp from 'sharp'
+import activityLogService from '#services/activity_log_service'
 
 function sanitizeBaseName(name: string): string {
 	return name
@@ -194,6 +195,15 @@ export default class MediaController {
 			updated_at: now,
 		})
 
+		try {
+			await activityLogService.log({
+				action: 'media.upload',
+				userId: (auth.use('web').user as any)?.id ?? null,
+				entityType: 'media',
+				entityId: id,
+				metadata: { filename: clientName, mime, size: Number(size) },
+			})
+		} catch {}
 		return response.created({ data: { id, url } })
 	}
 
@@ -227,6 +237,15 @@ export default class MediaController {
 		if (categories !== undefined) update.categories = categories
 		const count = await db.from('media_assets').where('id', id).update(update)
 		if (!count) return response.notFound({ error: 'Media not found' })
+		try {
+			await activityLogService.log({
+				action: 'media.update',
+				userId: (auth.use('web').user as any)?.id ?? null,
+				entityType: 'media',
+				entityId: id,
+				metadata: { fields: Object.keys(update) },
+			})
+		} catch {}
 		return response.ok({ message: 'Updated' })
 	}
 
@@ -276,6 +295,14 @@ export default class MediaController {
 		} catch { }
 
 		await db.from('media_assets').where('id', id).delete()
+		try {
+			await activityLogService.log({
+				action: 'media.delete',
+				userId: (auth.use('web').user as any)?.id ?? null,
+				entityType: 'media',
+				entityId: id,
+			})
+		} catch {}
 		return response.noContent()
 	}
 
@@ -367,6 +394,15 @@ export default class MediaController {
 				else list.push(v)
 			}
 			await db.from('media_assets').where('id', id).update({ metadata: { ...(meta as any), variants: list } as any, updated_at: new Date() } as any)
+			try {
+				await activityLogService.log({
+					action: 'media.variants.rebuildOne',
+					userId: (auth.use('web').user as any)?.id ?? null,
+					entityType: 'media',
+					entityId: id,
+					metadata: { targetVariant },
+				})
+			} catch {}
 			return response.ok({ data: { variants } })
 		}
 
@@ -398,6 +434,15 @@ export default class MediaController {
 			else list.push(cropped)
 
 			await db.from('media_assets').where('id', id).update({ metadata: { ...(meta as any), variants: list, cropRect: cropArgs } as any, updated_at: new Date() } as any)
+			try {
+				await activityLogService.log({
+					action: 'media.crop.original',
+					userId: (auth.use('web').user as any)?.id ?? null,
+					entityType: 'media',
+					entityId: id,
+					metadata: { cropRect: cropArgs },
+				})
+			} catch {}
 			return response.ok({ data: { variants: [...rebuilt, cropped] } })
 		}
 
@@ -422,6 +467,15 @@ export default class MediaController {
 			variants,
 		}
 		await db.from('media_assets').where('id', id).update({ metadata: metadata as any, updated_at: new Date() } as any)
+		try {
+			await activityLogService.log({
+				action: 'media.variants.rebuild',
+				userId: (auth.use('web').user as any)?.id ?? null,
+				entityType: 'media',
+				entityId: id,
+				metadata: { specs: specs || null, cropRect: cropArgs, focalPoint },
+			})
+		} catch {}
 		return response.ok({ data: { variants } })
 	}
 
@@ -503,6 +557,15 @@ export default class MediaController {
 		await db.raw(`UPDATE post_modules SET overrides = REPLACE(overrides::text, '${oldUrlEsc}', '${newUrlEsc}')::jsonb WHERE overrides::text LIKE '%${oldUrlEsc}%'`)
 		await db.raw(`UPDATE post_modules SET review_overrides = REPLACE(review_overrides::text, '${oldUrlEsc}', '${newUrlEsc}')::jsonb WHERE review_overrides::text LIKE '%${oldUrlEsc}%'`)
 
+		try {
+			await activityLogService.log({
+				action: 'media.rename',
+				userId: (auth.use('web').user as any)?.id ?? null,
+				entityType: 'media',
+				entityId: id,
+				metadata: { oldUrl, newUrl },
+			})
+		} catch {}
 		return response.ok({ data: { url: newUrl } })
 	}
 
@@ -585,6 +648,14 @@ export default class MediaController {
 			updated_at: new Date(),
 		} as any)
 
+		try {
+			await activityLogService.log({
+				action: 'media.override',
+				userId: (auth.use('web').user as any)?.id ?? null,
+				entityType: 'media',
+				entityId: id,
+			})
+		} catch {}
 		return response.ok({ message: 'Overridden' })
 	}
 

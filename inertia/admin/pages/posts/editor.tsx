@@ -350,11 +350,7 @@ export default function Editor({ post, modules: initialModules, translations, re
   const [selectedAuthorId, setSelectedAuthorId] = useState<number | null>(post.author?.id ?? null)
   // Media picker for custom fields
   const [openMediaForField, setOpenMediaForField] = useState<string | null>(null)
-  // Debug received custom fields
-  useEffect(() => {
-    // eslint-disable-next-line no-console
-    console.log('[Editor] post.type:', post.type, 'customFields:', initialCustomFields)
-  }, [post.type, initialCustomFields])
+  // Debug removed
 
   useEffect(() => {
     let alive = true

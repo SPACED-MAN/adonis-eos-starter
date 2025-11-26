@@ -717,8 +717,17 @@ Notes:
 - Post type templates and URL patterns are synced on boot from code configs (idempotent).
 - Seeders were updated to code-first custom fields; legacy custom_fields/table usage removed.
 
-### Milestone 20 — Activity Log
-All user activity should be logged and accessible via 'Admin' roles, in a well organized table. It might make sense to utilize https://github.com/holoyan/adonisjs-activitylog for this.
+### Milestone 20 — Activity Log (✅ Complete)
+- DB: `activity_logs` (user_id, action, entity_type, entity_id, metadata jsonb, ip, user_agent, created_at)
+- Service: `ActivityLogService.log({ action, userId?, entityType?, entityId?, metadata?, ip?, userAgent? })`
+- Instrumented events:
+  - User update, password reset, self profile creation
+  - (Extendable) Call the service in other controllers for additional actions
+- API: `GET /api/activity-logs?userId=&action=&limit=&offset=` (admin)
+- Admin UI: `/admin/users/activity`
+  - Filters by user ID and action
+  - Columns: When, User, Action, Entity, Details, IP
+  - Located under the “Users” sidebar group as “Activity Log”
 
 ### Milestone 21 - Post Scheduling
 The 'Scheduled' status should be fully functional, with a nice ShadCN datepicker for scheduling. We may want to utilize https://github.com/KABBOUCHI/adonisjs-scheduler for this, and possibly also https://packages.adonisjs.com/packages/adonisjs-jobs.

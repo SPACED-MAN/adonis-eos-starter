@@ -9,12 +9,6 @@ import { toast } from 'sonner'
 import { getXsrf } from '~/utils/xsrf'
 import { ROLES, type Role } from '~/types/roles'
 
-function getXsrf(): string | undefined {
-  if (typeof document === 'undefined') return undefined
-  const m = document.cookie.match(/(?:^|; )XSRF-TOKEN=([^;]+)/)
-  return m ? decodeURIComponent(m[1]) : undefined
-}
-
 export default function UserEdit() {
   const page = usePage()
   const idParam = (page as any)?.props?.id || (() => {

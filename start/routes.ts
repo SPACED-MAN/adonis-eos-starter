@@ -109,6 +109,7 @@ const TemplatesController = () => import('#controllers/templates_controller')
 const AgentsController = () => import('#controllers/agents_controller')
 const GlobalModulesController = () => import('#controllers/global_modules_controller')
 const UsersController = () => import('#controllers/users_controller')
+const ActivityLogsController = () => import('#controllers/activity_logs_controller')
 // MediaController imported above
 router.group(() => {
 	router.get('/templates', [TemplatesController, 'index']).use(middleware.admin())
@@ -157,6 +158,8 @@ router.group(() => {
   // Admin: profile lookup/create for a given user id
   router.get('/users/:id/profile', [UsersController, 'profileForUser']).use(middleware.admin())
   router.post('/users/:id/profile', [UsersController, 'createProfileForUser']).use(middleware.admin())
+  // Activity Logs (admin)
+  router.get('/activity-logs', [ActivityLogsController, 'index']).use(middleware.admin())
 	// Media
 	router.get('/media', [MediaController, 'index'])
 	router.get('/media/categories', [MediaController, 'categories'])
@@ -235,6 +238,11 @@ router.get('/admin/users', async ({ inertia }) => {
 
 router.get('/admin/users/:id/edit', async ({ params, inertia }) => {
 	return inertia.render('admin/users/edit', { id: params.id })
+}).use(middleware.auth()).use(middleware.admin())
+
+// Admin Activity Log
+router.get('/admin/users/activity', async ({ inertia }) => {
+  return inertia.render('admin/users/activity')
 }).use(middleware.auth()).use(middleware.admin())
 
 // Admin General Settings

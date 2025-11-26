@@ -49,6 +49,14 @@ export default class PostsController {
       }
     }
     await db.from('posts').where('id', id).update({ author_id: authorId, updated_at: new Date() })
+    try {
+      await (await import('#services/activity_log_service')).default.log({
+        action: 'post.author.update',
+        entityType: 'post',
+        entityId: id,
+        metadata: { authorId },
+      })
+    } catch { }
     return response.ok({ message: 'Author updated' })
   }
   /**
@@ -291,10 +299,8 @@ export default class PostsController {
           value: valuesBySlug.get(String(f.slug)) ?? null,
         }))
       } catch (e) {
-        console.log('[PostsController.edit] custom fields query error', e)
         cfRows = []
       }
-      console.log('[PostsController.edit] postType=%s customFields=%d', post.type, Array.isArray(cfRows) ? cfRows.length : 0)
 
       const uiConfig = postTypeConfigService.getUiConfig(post.type)
       return inertia.render('admin/posts/editor', {
@@ -389,6 +395,16 @@ export default class PostsController {
         userId: auth.user!.id,
       })
 
+      // Activity log
+      try {
+        await (await import('#services/activity_log_service')).default.log({
+          action: 'post.create',
+          userId: (auth.use('web').user as any)?.id ?? null,
+          entityType: 'post',
+          entityId: (post as any).id,
+          metadata: { type, locale, slug, title, status },
+        })
+      } catch { }
       return response.created({
         data: {
           id: post.id,
@@ -523,6 +539,16 @@ export default class PostsController {
           snapshot: draftPayload,
           userId: (auth.use('web').user as any)?.id,
         })
+        // Activity log
+        try {
+          await (await import('#services/activity_log_service')).default.log({
+            action: 'post.review.save',
+            userId: (auth.use('web').user as any)?.id ?? null,
+            entityType: 'post',
+            entityId: id,
+            metadata: { fields: Object.keys(draftPayload || {}) },
+          })
+        } catch { }
         // For XHR/API clients, return JSON; avoid redirect which can confuse fetch()
         return response.ok({ message: 'Saved for review' })
       }
@@ -650,6 +676,15 @@ export default class PostsController {
             },
             userId: (auth.use('web').user as any)?.id,
           })
+          // Activity log
+          try {
+            await (await import('#services/activity_log_service')).default.log({
+              action: 'post.review.approve',
+              userId: (auth.use('web').user as any)?.id ?? null,
+              entityType: 'post',
+              entityId: id,
+            })
+          } catch { }
           // Clear review draft
           await Post.query().where('id', id).update({ review_draft: null } as any)
           return response.ok({ message: 'Review approved' })
@@ -705,6 +740,8 @@ export default class PostsController {
           // ignore; fall through to update attempt
         }
       }
+      // Load current values to detect changes
+      const currentForDiff = await Post.findOrFail(id)
       await UpdatePost.handle({
         postId: id,
         slug,
@@ -719,8 +756,21 @@ export default class PostsController {
         robotsJson: robotsJsonParsed,
         jsonldOverrides: jsonldOverridesParsed,
       })
-      // Upsert custom fields (approved save only) by field_slug
+      // Upsert custom fields (approved save only) by field_slug and track only changed slugs
+      const customFieldSlugsChanged: string[] = []
       if (Array.isArray(customFields)) {
+        const slugs = (customFields as Array<{ slug?: string }>).map((cf) => String((cf as any).slug || '').trim()).filter(Boolean)
+        let existingMap = new Map<string, any>()
+        if (slugs.length > 0) {
+          const rows = await db.from('post_custom_field_values').where({ post_id: id }).whereIn('field_slug', slugs)
+          existingMap = new Map<string, any>(rows.map((r: any) => [String(r.field_slug), r.value]))
+        }
+        const toComparable = (v: any) => {
+          if (typeof v === 'string') {
+            try { return JSON.parse(v) } catch { return v }
+          }
+          return v
+        }
         for (const cf of customFields as Array<{ slug?: string; value: any }>) {
           if (!cf) continue
           const fieldSlug = String((cf as any).slug || '').trim()
@@ -728,16 +778,21 @@ export default class PostsController {
           const now = new Date()
           const valueRaw = (cf as any).value === undefined ? null : (cf as any).value
           const value = this.normalizeJsonb(valueRaw)
-          const updated = await db.from('post_custom_field_values').where({ post_id: id, field_slug: fieldSlug }).update({ value, updated_at: now } as any)
-          if (!updated) {
-            await db.table('post_custom_field_values').insert({
-              id: (await import('node:crypto')).randomUUID(),
-              post_id: id,
-              field_slug: fieldSlug,
-              value,
-              created_at: now,
-              updated_at: now,
-            })
+          const prev = existingMap.get(fieldSlug)
+          const changed = JSON.stringify(toComparable(value)) !== JSON.stringify(toComparable(prev))
+          if (changed) {
+            customFieldSlugsChanged.push(fieldSlug)
+            const updated = await db.from('post_custom_field_values').where({ post_id: id, field_slug: fieldSlug }).update({ value, updated_at: now } as any)
+            if (!updated) {
+              await db.table('post_custom_field_values').insert({
+                id: (await import('node:crypto')).randomUUID(),
+                post_id: id,
+                field_slug: fieldSlug,
+                value,
+                created_at: now,
+                updated_at: now,
+              })
+            }
           }
         }
       }
@@ -760,6 +815,32 @@ export default class PostsController {
         userId: (auth.use('web').user as any)?.id,
       })
 
+      // Activity log (approved update)
+      try {
+        const changed: string[] = []
+        if (slug !== undefined && slug !== currentForDiff.slug) changed.push('slug')
+        if (title !== undefined && title !== currentForDiff.title) changed.push('title')
+        if (status !== undefined && status !== currentForDiff.status) changed.push('status')
+        if (excerpt !== undefined && excerpt !== (currentForDiff as any).excerpt) changed.push('excerpt')
+        if (parentId !== undefined && (parentId || null) !== ((currentForDiff as any).parentId || null)) changed.push('parentId')
+        if (orderIndex !== undefined && Number(orderIndex) !== (((currentForDiff as any).orderIndex ?? 0))) changed.push('orderIndex')
+        if (metaTitle !== undefined && metaTitle !== currentForDiff.metaTitle) changed.push('metaTitle')
+        if (metaDescription !== undefined && metaDescription !== currentForDiff.metaDescription) changed.push('metaDescription')
+        if (canonicalUrl !== undefined && canonicalUrl !== currentForDiff.canonicalUrl) changed.push('canonicalUrl')
+        const stringify = (v: any) => v === undefined ? '∅' : JSON.stringify(v)
+        if (robotsJson !== undefined && stringify(robotsJsonParsed) !== stringify((currentForDiff as any).robotsJson)) changed.push('robotsJson')
+        if (jsonldOverrides !== undefined && stringify(jsonldOverridesParsed) !== stringify((currentForDiff as any).jsonldOverrides)) changed.push('jsonldOverrides')
+        await (await import('#services/activity_log_service')).default.log({
+          action: 'post.update',
+          userId: (auth.use('web').user as any)?.id ?? null,
+          entityType: 'post',
+          entityId: id,
+          metadata: {
+            changed,
+            customFieldSlugs: customFieldSlugsChanged.length ? customFieldSlugsChanged : undefined,
+          },
+        })
+      } catch { }
       // For Inertia requests, redirect back to editor
       // Toast notification is handled client-side
       return response.redirect().back()
@@ -939,6 +1020,14 @@ export default class PostsController {
       return response.badRequest({ error: 'Only archived posts can be deleted' })
     }
     await post.delete()
+    try {
+      await (await import('#services/activity_log_service')).default.log({
+        action: 'post.delete',
+        entityType: 'post',
+        entityId: id,
+        metadata: { type: post.type, slug: post.slug, locale: post.locale },
+      })
+    } catch { }
     return response.noContent()
   }
 
@@ -959,6 +1048,15 @@ export default class PostsController {
         ids,
         role,
       })
+      try {
+        await (await import('#services/activity_log_service')).default.log({
+          action: `post.bulk.${String(action)}`,
+          userId: (auth.use('web').user as any)?.id ?? null,
+          entityType: 'post',
+          entityId: 'bulk',
+          metadata: { count: ids.length },
+        })
+      } catch { }
       return response.ok(result)
     } catch (e: any) {
       const status = e?.statusCode || 400
@@ -1026,6 +1124,15 @@ export default class PostsController {
           await trx.from('posts').where('id', it.id).update(update)
         }
       })
+      try {
+        await (await import('#services/activity_log_service')).default.log({
+          action: 'post.reorder',
+          userId: (auth.use('web').user as any)?.id ?? null,
+          entityType: 'post',
+          entityId: 'bulk',
+          metadata: { count: sanitized.length },
+        })
+      } catch { }
       return response.ok({ updated: sanitized.length })
     } catch (e: any) {
       return response.badRequest({ error: e?.message || 'Failed to reorder posts' })

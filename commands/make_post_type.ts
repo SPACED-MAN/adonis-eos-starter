@@ -6,21 +6,21 @@ import { join } from 'node:path'
 import { fileURLToPath } from 'node:url'
 
 export default class MakePostType extends BaseCommand {
-  static commandName = 'make:post_type'
+	static commandName = 'make:post_type'
   static description = 'Scaffold a new code-first post type config'
 
-  static options: CommandOptions = {
-    startApp: false,
-  }
+	static options: CommandOptions = {
+		startApp: false,
+	}
 
-  @args.string({ description: 'Post type name (e.g., Blog, Product, CaseStudy)' })
-  declare name: string
+	@args.string({ description: 'Post type name (e.g., Blog, Product, CaseStudy)' })
+	declare name: string
 
-  @flags.string({
-    description: 'Default URL pattern (use tokens: {locale},{slug},{yyyy},{mm},{dd})',
-    default: '/{locale}/{post_type}/{slug}',
-  })
-  declare pattern: string
+	@flags.string({
+		description: 'Default URL pattern (use tokens: {locale},{slug},{yyyy},{mm},{dd})',
+		default: '/{locale}/{post_type}/{slug}',
+	})
+	declare pattern: string
 
   protected buildConfigContents(_typeSlug: string): string {
     return `export default {
@@ -50,13 +50,13 @@ export default class MakePostType extends BaseCommand {
   ],
 } as const
 `
-  }
+	}
 
-  async run() {
-    // Keep for future enhancements (e.g., generating type-specific files)
-    const typeKebab = string.snakeCase(this.name).replace(/_/g, '-')
-    const typeSlug = typeKebab
-    const appRoot = fileURLToPath(this.app.appRoot)
+	async run() {
+		// Keep for future enhancements (e.g., generating type-specific files)
+		const typeKebab = string.snakeCase(this.name).replace(/_/g, '-')
+		const typeSlug = typeKebab
+		const appRoot = fileURLToPath(this.app.appRoot)
     // Post type config file
     const configDir = join(appRoot, 'app', 'post_types')
     const configPath = join(configDir, `${typeSlug}.ts`)
@@ -69,13 +69,13 @@ export default class MakePostType extends BaseCommand {
     }
 
     this.logger.success(`Created code-first post type "${typeSlug}"`)
-    this.logger.info('')
-    this.logger.info('Files created:')
+		this.logger.info('')
+		this.logger.info('Files created:')
     this.logger.info(this.colors.dim(`   Config: app/post_types/${typeSlug}.ts`))
-    this.logger.info('')
-    this.logger.info('Next steps:')
+		this.logger.info('')
+		this.logger.info('Next steps:')
     this.logger.info('  1) Start the dev server:')
-    this.logger.info(this.colors.dim('     npm run dev'))
+		this.logger.info(this.colors.dim('     npm run dev'))
     this.logger.info('  (The boot sync will create/update the default template and URL patterns.)')
-  }
+	}
 }
