@@ -208,9 +208,19 @@ router.get('/admin/media', async ({ inertia }) => {
 	return inertia.render('admin/media/index')
 }).use(middleware.auth()).use(middleware.admin())
 
+// Admin Posts (list)
+router.get('/admin/posts', async ({ inertia }) => {
+	return inertia.render('admin/dashboard')
+}).use(middleware.auth()).use(middleware.admin())
+
 // Admin Global/Static Module Manager
 router.get('/admin/modules', async ({ inertia }) => {
 	return inertia.render('admin/modules/index')
+}).use(middleware.auth()).use(middleware.admin())
+
+// Admin Users (stub)
+router.get('/admin/users', async ({ inertia }) => {
+	return inertia.render('admin/users/index')
 }).use(middleware.auth()).use(middleware.admin())
 
 // Admin General Settings

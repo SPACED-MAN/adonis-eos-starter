@@ -77,11 +77,8 @@ export default function PostTypesSettings() {
   return (
     <div className="min-h-screen bg-backdrop-low">
       <AdminHeader title="Post Types" />
-      <main className="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-        <AdminBreadcrumbs
-          items={[{ label: 'Dashboard', href: '/admin' }, { label: 'Post Types' }]}
-          rightLink={{ label: '← Back to Dashboard', href: '/admin' }}
-        />
+      <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+        <AdminBreadcrumbs items={[{ label: 'Dashboard', href: '/admin' }, { label: 'Post Types' }]} />
         <div className="bg-backdrop-low rounded-lg shadow border border-line">
           <div className="px-6 py-4 border-b border-line">
             <h2 className="text-lg font-semibold text-neutral-high">Post Types</h2>
@@ -139,7 +136,7 @@ export default function PostTypesSettings() {
           </div>
         </div>
       </main>
-      <div className="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8">
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <AdminFooter />
       </div>
     </div>

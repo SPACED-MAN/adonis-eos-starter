@@ -184,7 +184,7 @@ export default function GeneralSettings() {
   return (
     <div className="min-h-screen bg-backdrop-low">
       <AdminHeader title="General Settings" />
-      <main className="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+      <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
         <AdminBreadcrumbs items={[{ label: 'Dashboard', href: '/admin' }, { label: 'Settings', href: '/admin/settings' }, { label: 'General' }]} />
         <div className="bg-backdrop-low rounded-lg border border-line p-6 space-y-6">
           <div>
@@ -238,7 +238,7 @@ export default function GeneralSettings() {
           </div>
         </div>
       </main>
-      <div className="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8">
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <AdminFooter />
       </div>
     </div>

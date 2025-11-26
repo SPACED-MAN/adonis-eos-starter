@@ -437,11 +437,8 @@ export default function MediaIndex() {
   return (
     <div className="min-h-screen bg-backdrop-low">
       <AdminHeader title="Media Library" />
-      <main className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-        <AdminBreadcrumbs
-          items={[{ label: 'Dashboard', href: '/admin' }, { label: 'Media' }]}
-          rightLink={{ label: '← Back to Dashboard', href: '/admin' }}
-        />
+      <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+        <AdminBreadcrumbs items={[{ label: 'Dashboard', href: '/admin' }, { label: 'Media' }]} />
         <div className="bg-backdrop-low rounded-lg shadow border border-line p-6">
           <div
             className={`mb-4 p-6 border-2 border-dashed rounded transition-colors ${isDragOver ? 'border-standout bg-backdrop-medium' : 'border-line bg-backdrop-low'}`}
@@ -832,7 +829,7 @@ export default function MediaIndex() {
 
         {/* Duplicate dialog remains ... */}
       </main>
-      <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8">
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <AdminFooter />
       </div>
       {/* Duplicate choice dialog */}

@@ -95,7 +95,7 @@ export default function TemplatesIndex() {
 			<Head title="Templates" />
 			<AdminHeader title="Templates" />
 			<main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-				<AdminBreadcrumbs items={[{ label: 'Dashboard', href: '/admin' }, { label: 'Templates' }]} rightLink={{ label: '← Back to Dashboard', href: '/admin' }} />
+				<AdminBreadcrumbs items={[{ label: 'Dashboard', href: '/admin' }, { label: 'Templates' }]} />
 				<div className="bg-backdrop-low rounded-lg border border-line">
 					<div className="px-6 py-4 border-b border-line flex items-center justify-between gap-3">
 						<div className="flex items-center gap-2">
