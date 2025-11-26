@@ -141,26 +141,38 @@ export default class extends BaseSeeder {
     })
     console.log('✅ Attached module to post')
 
-    // Test 6: Create URL patterns (with locale support)
-    await db.table('url_patterns').insert([
-      {
-        post_type: 'blog',
-        locale: 'en',
-        pattern: '/blog/{yyyy}/{slug}',
-        is_default: true,
-        created_at: new Date(),
-        updated_at: new Date(),
-      },
-      {
-        post_type: 'blog',
-        locale: 'es',
-        pattern: '/es/blog/{yyyy}/{slug}',
-        is_default: true,
-        created_at: new Date(),
-        updated_at: new Date(),
-      },
-    ])
-    console.log('✅ Created URL patterns (en, es)')
+    // Test 6: Create URL patterns (with locale support), idempotent
+    {
+      const nowTs = new Date()
+      const existing = await db.from('url_patterns').whereIn('locale', ['en', 'es']).andWhere('post_type', 'blog')
+      const hasEn = existing.some((r: any) => (r as any).locale === 'en')
+      const hasEs = existing.some((r: any) => (r as any).locale === 'es')
+      const toInsert: any[] = []
+      if (!hasEn) {
+        toInsert.push({
+          post_type: 'blog',
+          locale: 'en',
+          pattern: '/blog/{yyyy}/{slug}',
+          is_default: true,
+          created_at: nowTs,
+          updated_at: nowTs,
+        })
+      }
+      if (!hasEs) {
+        toInsert.push({
+          post_type: 'blog',
+          locale: 'es',
+          pattern: '/es/blog/{yyyy}/{slug}',
+          is_default: true,
+          created_at: nowTs,
+          updated_at: nowTs,
+        })
+      }
+      if (toInsert.length > 0) {
+        await db.table('url_patterns').insert(toInsert)
+      }
+      console.log('✅ Ensured URL patterns (en, es)')
+    }
 
     // Test 7: Create redirects (with locale support)
     await db.table('url_redirects').insert([

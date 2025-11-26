@@ -653,33 +653,31 @@ export default function Editor({ post, modules: initialModules, translations, re
                         )
                       }
                       if (f.fieldType === 'media') {
-                        const currentId = typeof entry.value === 'string' ? entry.value : (entry.value?.id || '')
+                        const currentId: string | null =
+                          typeof entry.value === 'string'
+                            ? (entry.value || null)
+                            : (entry.value?.id ? String(entry.value.id) : null)
+                        const currentUrl: string | null =
+                          typeof entry.value === 'object' && entry.value?.url
+                            ? String(entry.value.url)
+                            : null
                         return (
                           <div key={f.id}>
                             <label className="block text-sm font-medium text-neutral-medium mb-1">
                               {f.label}
                             </label>
-                            <div className="flex items-center gap-2">
-                              <Input
-                                value={currentId || ''}
-                                onChange={(e) => setValue(e.target.value)}
-                                placeholder="Media ID"
-                                className="w-[220px]"
-                              />
-                              <button
-                                type="button"
-                                className="px-2 py-1 text-xs border border-line rounded hover:bg-backdrop-medium text-neutral-medium"
-                                onClick={() => setOpenMediaForField(f.id)}
-                              >
-                                Choose
-                              </button>
-                            </div>
+                            <MediaThumb
+                              mediaId={currentId}
+                              mediaUrl={currentUrl}
+                              onChange={() => setOpenMediaForField(f.id)}
+                              onClear={() => setValue(null)}
+                            />
                             <MediaPickerModal
                               open={openMediaForField === f.id}
                               onOpenChange={(o) => setOpenMediaForField(o ? f.id : null)}
                               initialSelectedId={currentId || undefined}
                               onSelect={(m) => {
-                                setValue(m.id)
+                                setValue({ id: m.id, url: m.url })
                                 setOpenMediaForField(null)
                               }}
                             />
@@ -1522,6 +1520,72 @@ export default function Editor({ post, modules: initialModules, translations, re
         }}
         processing={false}
       />
+    </div>
+  )
+}
+
+function MediaThumb({
+  mediaId,
+  mediaUrl,
+  onChange,
+  onClear,
+}: {
+  mediaId: string | null
+  mediaUrl: string | null
+  onChange: () => void
+  onClear: () => void
+}) {
+  const [url, setUrl] = useState<string | null>(mediaUrl)
+  useEffect(() => {
+    let alive = true
+    async function load() {
+      if (url) return
+      if (!mediaId) return
+      try {
+        const res = await fetch(`/api/media/${encodeURIComponent(mediaId)}`, { credentials: 'same-origin' })
+        const j = await res.json().catch(() => ({}))
+        const data = j?.data
+        if (!data) return
+        let u: string | null = data.url || null
+        const variants = Array.isArray(data?.metadata?.variants) ? data.metadata.variants : []
+        const adminThumb = (typeof process !== 'undefined' && process.env && (process.env as any).MEDIA_ADMIN_THUMBNAIL_VARIANT) || 'thumb'
+        const found = variants.find((v: any) => v?.name === adminThumb)
+        if (found?.url) u = found.url
+        if (alive) setUrl(u)
+      } catch {
+        // ignore
+      }
+    }
+    load()
+    return () => { alive = false }
+  }, [mediaId, url])
+  return (
+    <div className="border border-line rounded p-2 bg-backdrop-low flex items-center gap-3">
+      <div className="w-16 h-16 bg-backdrop-medium rounded overflow-hidden flex items-center justify-center">
+        {url ? (
+          <img src={url} alt="" className="w-full h-full object-cover" />
+        ) : (
+          <span className="text-xs text-neutral-medium">No image</span>
+        )}
+      </div>
+      <div className="flex items-center gap-2">
+        <button
+          type="button"
+          className="px-2 py-1 text-xs border border-line rounded hover:bg-backdrop-medium text-neutral-medium"
+          onClick={onChange}
+        >
+          {mediaId ? 'Change' : 'Choose'}
+        </button>
+        {mediaId && (
+          <button
+            type="button"
+            className="px-2 py-1 text-xs border border-line rounded hover:bg-backdrop-medium text-neutral-medium"
+            onClick={onClear}
+          >
+            Remove
+          </button>
+        )}
+      </div>
     </div>
   )
 }

@@ -109,11 +109,6 @@ export function AdminSidebar() {
 							<FontAwesomeIcon icon={faLanguage} className="w-4 h-4" /> <span>Locales</span>
 						</span>
 					</SidebarMenuItem>
-					<SidebarMenuItem href="/admin/settings/post-types" active={isActive('/admin/settings/post-types')}>
-						<span className="inline-flex items-center gap-2">
-							<FontAwesomeIcon icon={faTags} className="w-4 h-4" /> <span>Post Types</span>
-						</span>
-					</SidebarMenuItem>
 				</SidebarGroup>
 				<SidebarGroup title="Users">
 					<SidebarMenuItem href="/admin/users" active={isActive('/admin/users')}>

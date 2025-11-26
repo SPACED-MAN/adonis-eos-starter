@@ -6,14 +6,32 @@
  */
 import postTypeRegistry from '#services/post_type_registry'
 import db from '@adonisjs/lucid/services/db'
+import fs from 'node:fs'
+import path from 'node:path'
+import { pathToFileURL } from 'node:url'
 
-// Import code-defined post type configs and register them explicitly
-// Add new imports/registrations here to mirror the modules pattern.
-import profileConfig from '#post_types/profile'
-import ipsumConfig from '#post_types/ipsum'
-
-postTypeRegistry.register('profile', profileConfig as any)
-postTypeRegistry.register('ipsum', ipsumConfig as any)
+// Auto-register all post types found in app/post_types/*
+try {
+  const dir = path.join(process.cwd(), 'app', 'post_types')
+  if (fs.existsSync(dir)) {
+    const files = fs.readdirSync(dir).filter((f) => f.endsWith('.ts') || f.endsWith('.js'))
+    for (const file of files) {
+      const slug = file.replace(/\.(ts|js)$/g, '')
+      try {
+        const full = path.join(dir, file)
+        const mod = await import(pathToFileURL(full).href)
+        const cfg = mod?.default || mod
+        if (cfg && typeof cfg === 'object') {
+          postTypeRegistry.register(slug, cfg as any)
+        }
+      } catch {
+        // Skip broken configs; do not crash boot
+      }
+    }
+  }
+} catch {
+  // Ignore FS errors at boot
+}
 
 // Ensure DB reflects code config (idempotent)
 async function syncFromRegistry() {

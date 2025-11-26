@@ -28,25 +28,11 @@ class PostTypeConfigService {
 			template: { name: `${postType}-default` },
 			urlPatterns: [],
 		}
-		if (cache.has(postType)) return cache.get(postType)!
+		const isDev = process.env.NODE_ENV === 'development'
+		if (!isDev && cache.has(postType)) return cache.get(postType)!
 		// Prefer registry (explicit registration in start/post_types.ts)
 		let cfg: PostTypeUiConfig = (postTypeRegistry.get(postType) as any) || registry[postType] || {}
-		// Built-in demo: profile defaults
-		if (postType === 'profile') {
-			cfg = {
-				hideCoreFields: ['title'],
-				hierarchyEnabled: false,
-				fields: [
-					{ slug: 'first_name', label: 'First name', type: 'text' },
-					{ slug: 'last_name', label: 'Last name', type: 'text' },
-					{ slug: 'profile_image', label: 'Profile image', type: 'media', config: { category: 'Profile image', preferredVariant: 'thumb' } },
-					{ slug: 'bio', label: 'Bio', type: 'textarea' },
-				],
-				template: { name: 'profile-default', description: 'Default Profile Template' },
-				urlPatterns: [],
-				...(cfg || {}),
-			}
-		}
+		// Source of truth is registry or app/post_types files
 		// Try to load from app/post_types/<postType>.(ts|js)
 		try {
 			const path = require('node:path')
@@ -76,7 +62,7 @@ class PostTypeConfigService {
 			template: cfg.template && cfg.template.name ? cfg.template : base.template,
 			urlPatterns: Array.isArray(cfg.urlPatterns) ? cfg.urlPatterns : [],
 		}
-		cache.set(postType, full)
+		if (!isDev) cache.set(postType, full)
 		return full
 	}
 }

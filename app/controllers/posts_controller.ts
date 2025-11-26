@@ -20,6 +20,11 @@ import siteSettingsService from '#services/site_settings_service'
  * Handles CRUD operations for posts and their modules.
  */
 export default class PostsController {
+  private normalizeJsonb(value: any): any {
+    if (value === undefined) return null
+    if (typeof value === 'string') return JSON.stringify(value)
+    return value
+  }
   /**
    * PATCH /api/posts/:id/author
    * Admin-only: reassign post author
@@ -189,29 +194,27 @@ export default class PostsController {
    * List distinct post types from templates and posts
    */
   async types({ response }: HttpContext) {
-    // Prefer code-defined post types from app/post_types/*
+    // Strict code-first: prefer registry list + file scan, deduped
+    const out = new Set<string>()
     try {
+      // 1) Registry (explicitly registered in start/post_types.ts)
+      const postTypeRegistry = (await import('#services/post_type_registry')).default as any
+      const regList: string[] = Array.isArray(postTypeRegistry.list?.()) ? postTypeRegistry.list() : []
+      regList.forEach((t) => t && out.add(String(t)))
+    } catch { /* ignore */ }
+    try {
+      // 2) Filesystem scan (app/post_types/*.ts|*.js)
       const fs = require('node:fs')
       const path = require('node:path')
       const appRoot = process.cwd()
       const dir = path.join(appRoot, 'app', 'post_types')
       const list = fs.existsSync(dir) ? fs.readdirSync(dir) : []
-      const types = list
+      list
         .filter((f: string) => f.endsWith('.ts') || f.endsWith('.js'))
         .map((f: string) => f.replace(/\.ts$|\.js$/g, ''))
-        .filter((s: string) => !!s)
-        .sort()
-      if (types.length > 0) {
-        return response.ok({ data: types })
-      }
-    } catch { /* ignore and fallback */ }
-    // Fallback: union of types found in data
-    const fromPosts = await db.from('posts').distinct('type')
-    const fromTemplates = await db.from('templates').distinct('post_type')
-    const set = new Set<string>()
-    fromPosts.forEach((r) => r.type && set.add(String(r.type)))
-    fromTemplates.forEach((r) => (r as any).post_type && set.add(String((r as any).post_type)))
-    return response.ok({ data: Array.from(set).sort() })
+        .forEach((s: string) => s && out.add(s))
+    } catch { /* ignore */ }
+    return response.ok({ data: Array.from(out).sort() })
   }
   /**
    * GET /admin/posts/:id/edit
@@ -582,14 +585,15 @@ export default class PostsController {
               if (!cf) continue
               const fieldSlug = String((cf as any).slug || '').trim()
               if (!fieldSlug) continue
-              const value = (cf as any).value === undefined ? null : (cf as any).value
-              const updated = await db.from('post_custom_field_values').where({ post_id: id, field_slug: fieldSlug }).update({ value: value as any, updated_at: now } as any)
+              const valueRaw = (cf as any).value === undefined ? null : (cf as any).value
+              const value = this.normalizeJsonb(valueRaw)
+              const updated = await db.from('post_custom_field_values').where({ post_id: id, field_slug: fieldSlug }).update({ value, updated_at: now } as any)
               if (!updated) {
                 await db.table('post_custom_field_values').insert({
                   id: (await import('node:crypto')).randomUUID(),
                   post_id: id,
                   field_slug: fieldSlug,
-                  value: value as any,
+                  value,
                   created_at: now,
                   updated_at: now,
                 })
@@ -722,14 +726,15 @@ export default class PostsController {
           const fieldSlug = String((cf as any).slug || '').trim()
           if (!fieldSlug) continue
           const now = new Date()
-          const value = (cf as any).value === undefined ? null : (cf as any).value
-          const updated = await db.from('post_custom_field_values').where({ post_id: id, field_slug: fieldSlug }).update({ value: value as any, updated_at: now } as any)
+          const valueRaw = (cf as any).value === undefined ? null : (cf as any).value
+          const value = this.normalizeJsonb(valueRaw)
+          const updated = await db.from('post_custom_field_values').where({ post_id: id, field_slug: fieldSlug }).update({ value, updated_at: now } as any)
           if (!updated) {
             await db.table('post_custom_field_values').insert({
               id: (await import('node:crypto')).randomUUID(),
               post_id: id,
               field_slug: fieldSlug,
-              value: value as any,
+              value,
               created_at: now,
               updated_at: now,
             })
