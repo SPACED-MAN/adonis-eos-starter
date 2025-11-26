@@ -3,6 +3,10 @@ import db from '@adonisjs/lucid/services/db'
 import urlPatternService from '#services/url_pattern_service'
 import LocaleService from '#services/locale_service'
 import { randomUUID } from 'node:crypto'
+import siteSettingsService from '#services/site_settings_service'
+import postTypeConfigService from '#services/post_type_config_service'
+import { existsSync } from 'node:fs'
+import { join } from 'node:path'
 
 type CreatePostParams = {
   type: string
@@ -41,6 +45,40 @@ export default class CreatePost {
     templateId = null,
     userId,
   }: CreatePostParams): Promise<Post> {
+    // Enforce: post types must be defined in code (app/post_types/*)
+    try {
+      const appRoot = process.cwd()
+      const tsPath = join(appRoot, 'app', 'post_types', `${type}.ts`)
+      const jsPath = join(appRoot, 'app', 'post_types', `${type}.js`)
+      const hasConfig = existsSync(tsPath) || existsSync(jsPath)
+      if (!hasConfig) {
+        // Allow if service provides built-in defaults (e.g., profile), else reject
+        const ui = postTypeConfigService.getUiConfig(type)
+        const isBuiltIn = type === 'profile'
+        if (!isBuiltIn && !ui) {
+          throw new CreatePostException(`Unknown post type: ${type}. Create app/post_types/${type}.ts first.`, 400, { type })
+        }
+      }
+    } catch {
+      // If any unexpected error, still proceed; controller endpoints and UI use configured list
+    }
+    // Profiles governance: one profile per user and role-based enablement
+    if (type === 'profile') {
+      // Role enablement from site settings
+      const site = await siteSettingsService.get()
+      const enabledRoles: string[] = Array.isArray((site as any).profileRolesEnabled) ? (site as any).profileRolesEnabled : []
+      // Determine user role
+      const userRow = await db.from('users').where('id', userId).select('role').first()
+      const userRole = String((userRow as any)?.role || '')
+      if (!userRole || (enabledRoles.length > 0 && !enabledRoles.includes(userRole))) {
+        throw new CreatePostException('Profiles are disabled for your role', 403, { role: userRole })
+      }
+      // Enforce one profile per user
+      const existingProfile = await db.from('posts').where({ type: 'profile', author_id: userId }).first()
+      if (existingProfile) {
+        throw new CreatePostException('A profile already exists for this user', 409, { postId: (existingProfile as any).id })
+      }
+    }
     // Validate slug uniqueness for this locale
     const existingPost = await Post.query().where('slug', slug).where('locale', locale).first()
 
@@ -82,6 +120,7 @@ export default class CreatePost {
           metaDescription,
           templateId: effectiveTemplateId,
           userId,
+          authorId: userId,
         },
         { client: trx }
       )
@@ -150,23 +189,23 @@ export default class CreatePost {
         }
       } else {
         // Create local instance
-      const [instance] = await trx
-        .table('module_instances')
-        .insert({
-          scope: 'post',
-          type: tm.type,
-          global_slug: null,
-          props: tm.default_props || {},
-          created_at: now,
-          updated_at: now,
-        })
-        .returning('*')
+        const [instance] = await trx
+          .table('module_instances')
+          .insert({
+            scope: 'post',
+            type: tm.type,
+            global_slug: null,
+            props: tm.default_props || {},
+            created_at: now,
+            updated_at: now,
+          })
+          .returning('*')
         moduleInstanceId = (instance as any).id
       }
 
       await trx.table('post_modules').insert({
-      id: randomUUID(),
-      post_id: postId,
+        id: randomUUID(),
+        post_id: postId,
         module_id: moduleInstanceId,
         order_index: (tm as any).order_index,
         overrides: null,

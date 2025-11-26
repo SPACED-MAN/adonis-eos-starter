@@ -8,7 +8,7 @@ import CreateTranslation, { CreateTranslationException } from '#actions/translat
 import BulkPostsAction from '#actions/posts/bulk_action'
 import db from '@adonisjs/lucid/services/db'
 import urlPatternService from '#services/url_pattern_service'
-import postTypeSettingsService from '#services/post_type_settings_service'
+import postTypeConfigService from '#services/post_type_config_service'
 import authorizationService from '#services/authorization_service'
 import RevisionService from '#services/revision_service'
 import PostSerializerService from '#services/post_serializer_service'
@@ -20,6 +20,32 @@ import siteSettingsService from '#services/site_settings_service'
  * Handles CRUD operations for posts and their modules.
  */
 export default class PostsController {
+  /**
+   * PATCH /api/posts/:id/author
+   * Admin-only: reassign post author
+   */
+  async updateAuthor({ params, request, response }: HttpContext) {
+    const { id } = params
+    const authorIdRaw = request.input('authorId')
+    const authorId = Number(authorIdRaw)
+    if (!authorId || Number.isNaN(authorId)) {
+      return response.badRequest({ error: 'authorId must be a valid user id' })
+    }
+    const post = await Post.find(id)
+    if (!post) return response.notFound({ error: 'Post not found' })
+    // Ensure target user exists
+    const exists = await db.from('users').where('id', authorId).first()
+    if (!exists) return response.notFound({ error: 'User not found' })
+    // Extra check: prevent assigning multiple profiles to one user
+    if (post.type === 'profile') {
+      const existing = await db.from('posts').where({ type: 'profile', author_id: authorId }).andWhereNot('id', id).first()
+      if (existing) {
+        return response.status(409).json({ error: 'Target user already has a profile' })
+      }
+    }
+    await db.from('posts').where('id', id).update({ author_id: authorId, updated_at: new Date() })
+    return response.ok({ message: 'Author updated' })
+  }
   /**
    * GET /api/posts
    * List posts with optional search, filters, sorting, and pagination
@@ -163,20 +189,36 @@ export default class PostsController {
    * List distinct post types from templates and posts
    */
   async types({ response }: HttpContext) {
+    // Prefer code-defined post types from app/post_types/*
+    try {
+      const fs = require('node:fs')
+      const path = require('node:path')
+      const appRoot = process.cwd()
+      const dir = path.join(appRoot, 'app', 'post_types')
+      const list = fs.existsSync(dir) ? fs.readdirSync(dir) : []
+      const types = list
+        .filter((f: string) => f.endsWith('.ts') || f.endsWith('.js'))
+        .map((f: string) => f.replace(/\.ts$|\.js$/g, ''))
+        .filter((s: string) => !!s)
+        .sort()
+      if (types.length > 0) {
+        return response.ok({ data: types })
+      }
+    } catch { /* ignore and fallback */ }
+    // Fallback: union of types found in data
     const fromPosts = await db.from('posts').distinct('type')
     const fromTemplates = await db.from('templates').distinct('post_type')
     const set = new Set<string>()
     fromPosts.forEach((r) => r.type && set.add(String(r.type)))
     fromTemplates.forEach((r) => (r as any).post_type && set.add(String((r as any).post_type)))
-    const types = Array.from(set).sort()
-    return response.ok({ data: types })
+    return response.ok({ data: Array.from(set).sort() })
   }
   /**
    * GET /admin/posts/:id/edit
    *
    * Show the post editor
    */
-  async edit({ params, inertia, response, request }: HttpContext) {
+  async edit({ params, inertia }: HttpContext) {
     try {
       const post = await Post.findOrFail(params.id)
       // Load post modules for editor
@@ -213,9 +255,45 @@ export default class PostsController {
         post.type,
         post.slug,
         post.locale,
-        post.createdAt ? new Date(post.createdAt.toISO()) : undefined
+        (post.createdAt && post.createdAt.toISO()) ? new Date(post.createdAt.toISO()!) : undefined
       )
 
+      // Load author for editor context
+      let author: { id: number; email: string; fullName: string | null } | null = null
+      try {
+        const arow = await db.from('users').where('id', (post as any).authorId || (post as any).author_id).first()
+        if (arow) {
+          author = { id: Number((arow as any).id), email: (arow as any).email, fullName: (arow as any).full_name ?? null }
+        }
+      } catch { /* ignore */ }
+
+      // Load custom fields for this post type from code config and merge with saved values by slug
+      let cfRows: any[] = []
+      try {
+        const uiCfg = postTypeConfigService.getUiConfig(post.type)
+        const fields = Array.isArray((uiCfg as any).fields) ? (uiCfg as any).fields : []
+        const slugs: string[] = fields.map((f: any) => String(f.slug))
+        let valuesBySlug = new Map<string, any>()
+        if (slugs.length > 0) {
+          const vals = await db.from('post_custom_field_values').where('post_id', post.id).whereIn('field_slug', slugs)
+          valuesBySlug = new Map<string, any>(vals.map((v: any) => [String(v.field_slug), v.value]))
+        }
+        cfRows = fields.map((f: any) => ({
+          id: f.slug,
+          slug: f.slug,
+          label: f.label,
+          fieldType: f.type,
+          config: f.config || {},
+          translatable: !!(f as any).translatable,
+          value: valuesBySlug.get(String(f.slug)) ?? null,
+        }))
+      } catch (e) {
+        console.log('[PostsController.edit] custom fields query error', e)
+        cfRows = []
+      }
+      console.log('[PostsController.edit] postType=%s customFields=%d', post.type, Array.isArray(cfRows) ? cfRows.length : 0)
+
+      const uiConfig = postTypeConfigService.getUiConfig(post.type)
       return inertia.render('admin/posts/editor', {
         post: {
           id: post.id,
@@ -234,6 +312,7 @@ export default class PostsController {
           createdAt: post.createdAt.toISO(),
           updatedAt: post.updatedAt.toISO(),
           publicPath,
+          author,
         },
         reviewDraft: (post as any).reviewDraft || (post as any).review_draft || null,
         modules: postModules.map((pm) => ({
@@ -252,6 +331,16 @@ export default class PostsController {
           globalLabel: (pm as any).globalLabel || null,
         })),
         translations,
+        customFields: (cfRows || []).map((f: any) => ({
+          id: f.id,
+          slug: f.slug,
+          label: f.label,
+          fieldType: f.fieldtype || f.fieldType,
+          config: f.config || {},
+          translatable: !!(f as any).translatable,
+          value: (f as any).value ?? null,
+        })),
+        uiConfig,
       })
     } catch (error) {
       // Return an Inertia 404 page instead of JSON to satisfy Inertia expectations
@@ -325,7 +414,7 @@ export default class PostsController {
    *
    * Create a translation for the given post family in the specified locale.
    */
-  async createTranslation({ params, request, response, auth }: HttpContext) {
+  async createTranslation({ params, request, response }: HttpContext) {
     const { id } = params
     const { locale, slug, title, metaTitle, metaDescription } = request.only([
       'locale',
@@ -343,7 +432,6 @@ export default class PostsController {
         title,
         metaTitle,
         metaDescription,
-        userId: auth.user!.id,
       })
       if (request.header('x-inertia')) {
         return response.redirect().toPath(`/admin/posts/${translation.id}/edit`)
@@ -380,6 +468,7 @@ export default class PostsController {
       robotsJson,
       jsonldOverrides,
       mode,
+      customFields,
     } = request.only([
       'slug',
       'title',
@@ -393,12 +482,14 @@ export default class PostsController {
       'robotsJson',
       'jsonldOverrides',
       'mode',
+      'customFields',
     ])
 
     try {
       const saveMode = String(mode || 'publish').toLowerCase()
       if (saveMode === 'review') {
         const reviewModuleRemovals = request.input('reviewModuleRemovals', [])
+        const reviewCustomFields = request.input('customFields', undefined)
         const draftPayload: Record<string, any> = {
           slug,
           title,
@@ -411,6 +502,7 @@ export default class PostsController {
           canonicalUrl,
           robotsJson,
           jsonldOverrides,
+          customFields: Array.isArray(reviewCustomFields) ? reviewCustomFields : undefined,
           removedModuleIds: Array.isArray(reviewModuleRemovals) ? reviewModuleRemovals : [],
           savedAt: new Date().toISOString(),
           savedBy: (auth.use('web').user as any)?.email || null,
@@ -483,6 +575,27 @@ export default class PostsController {
             robotsJson: nextRobots,
             jsonldOverrides: nextJsonLd,
           })
+          // Promote review custom fields to live values (by slug)
+          if (Array.isArray((rd as any)?.customFields)) {
+            const now = new Date()
+            for (const cf of ((rd as any).customFields as Array<{ slug?: string; value: any }>)) {
+              if (!cf) continue
+              const fieldSlug = String((cf as any).slug || '').trim()
+              if (!fieldSlug) continue
+              const value = (cf as any).value === undefined ? null : (cf as any).value
+              const updated = await db.from('post_custom_field_values').where({ post_id: id, field_slug: fieldSlug }).update({ value: value as any, updated_at: now } as any)
+              if (!updated) {
+                await db.table('post_custom_field_values').insert({
+                  id: (await import('node:crypto')).randomUUID(),
+                  post_id: id,
+                  field_slug: fieldSlug,
+                  value: value as any,
+                  created_at: now,
+                  updated_at: now,
+                })
+              }
+            }
+          }
           // Promote review module changes to approved
           // 1) Local modules: review_props -> props
           await db
@@ -529,6 +642,7 @@ export default class PostsController {
               canonicalUrl: nextCanonicalUrl,
               robotsJson: nextRobots,
               jsonldOverrides: nextJsonLd,
+              customFields: Array.isArray((rd as any)?.customFields) ? (rd as any).customFields : undefined,
             },
             userId: (auth.use('web').user as any)?.id,
           })
@@ -578,7 +692,7 @@ export default class PostsController {
       if (parentId !== undefined) {
         try {
           const current = await Post.findOrFail(id)
-          const enabled = await postTypeSettingsService.isHierarchyEnabled(current.type)
+          const enabled = postTypeConfigService.getUiConfig(current.type).hierarchyEnabled
           if (!enabled && (parentId || parentId === '')) {
             // Disallow any parent changes when hierarchy disabled
             return response.badRequest({ error: 'Hierarchy is disabled for this post type' })
@@ -601,6 +715,27 @@ export default class PostsController {
         robotsJson: robotsJsonParsed,
         jsonldOverrides: jsonldOverridesParsed,
       })
+      // Upsert custom fields (approved save only) by field_slug
+      if (Array.isArray(customFields)) {
+        for (const cf of customFields as Array<{ slug?: string; value: any }>) {
+          if (!cf) continue
+          const fieldSlug = String((cf as any).slug || '').trim()
+          if (!fieldSlug) continue
+          const now = new Date()
+          const value = (cf as any).value === undefined ? null : (cf as any).value
+          const updated = await db.from('post_custom_field_values').where({ post_id: id, field_slug: fieldSlug }).update({ value: value as any, updated_at: now } as any)
+          if (!updated) {
+            await db.table('post_custom_field_values').insert({
+              id: (await import('node:crypto')).randomUUID(),
+              post_id: id,
+              field_slug: fieldSlug,
+              value: value as any,
+              created_at: now,
+              updated_at: now,
+            })
+          }
+        }
+      }
       // Record an approved revision snapshot (post-live)
       await RevisionService.record({
         postId: id,
@@ -615,6 +750,7 @@ export default class PostsController {
           canonicalUrl,
           robotsJson: robotsJsonParsed,
           jsonldOverrides: jsonldOverridesParsed,
+          customFields: Array.isArray(customFields) ? customFields : undefined,
         },
         userId: (auth.use('web').user as any)?.id,
       })
@@ -648,11 +784,10 @@ export default class PostsController {
    */
   async reviewSave({ params, request, response, auth }: HttpContext) {
     const { id } = params
-    const postPayload = request.input('post') || {}
     const moduleOps = request.input('moduleOps') || {}
     try {
       // 1) Save review-draft post fields
-      const res = await this.update({
+      await this.update({
         ...({} as any),
         params: { id },
         request: {
@@ -873,7 +1008,7 @@ export default class PostsController {
           if ((it as any).hasOwnProperty('parentId')) {
             const row = await trx.from('posts').where('id', it.id).first()
             if (row) {
-              const enabled = await postTypeSettingsService.isHierarchyEnabled(String(row.type))
+              const enabled = postTypeConfigService.getUiConfig(String((row as any).type)).hierarchyEnabled
               if (!enabled) {
                 throw new Error('Hierarchy is disabled for this post type')
               }
@@ -940,17 +1075,15 @@ export default class PostsController {
       const family = await Post.query().where((q) => {
         q.where('translationOfId', baseId).orWhere('id', baseId)
       })
-      const protocol = (request as any).protocol ? (request as any).protocol() : (request.secure ? 'https' : 'http')
+      const protocol = (request as any).protocol ? (request as any).protocol() : ((request as any).secure ? (request as any).secure() ? 'https' : 'http' : 'http')
       const host = (request as any).host ? (request as any).host() : request.header('host')
-      const makeUrl = (slug: string, loc: string) =>
-        urlPatternService.buildPostUrl(post.type, slug, loc, protocol, host)
       const alternates = family.map((p) => ({
         locale: p.locale,
         href: '',
       }))
       // Build URLs (async)
       const alternatesBuilt = await Promise.all(
-        alternates.map(async (a, idx) => ({
+        alternates.map(async (_a, idx) => ({
           locale: family[idx].locale,
           href: await urlPatternService.buildPostUrl(
             post.type,
@@ -958,7 +1091,7 @@ export default class PostsController {
             family[idx].locale,
             protocol,
             host,
-            family[idx].createdAt ? new Date(family[idx].createdAt.toISO()) : undefined
+            (family[idx].createdAt && family[idx].createdAt.toISO()) ? new Date(family[idx].createdAt.toISO()!) : undefined
           ),
         }))
       )
@@ -968,7 +1101,7 @@ export default class PostsController {
         post.locale,
         protocol,
         host,
-        post.createdAt ? new Date(post.createdAt.toISO()) : undefined
+        (post.createdAt && post.createdAt.toISO()) ? new Date(post.createdAt.toISO()!) : undefined
       )
       // Robots: noindex,nofollow for non-published, else index,follow
       const robotsContent = post.status === 'published' ? 'index,follow' : 'noindex,nofollow'
@@ -983,26 +1116,7 @@ export default class PostsController {
       }
       const jsonLd = { ...defaultJsonLd, ...(post.jsonldOverrides || {}) }
 
-      // Load post modules with their data
-      const postModules = await db
-        .from('post_modules')
-        .join('module_instances', 'post_modules.module_id', 'module_instances.id')
-        .where('post_modules.post_id', post.id)
-        .select(
-          'post_modules.id as postModuleId',
-          'post_modules.review_added as reviewAdded',
-          'post_modules.review_deleted as reviewDeleted',
-          'module_instances.type',
-          'module_instances.scope',
-          'module_instances.props',
-          'post_modules.overrides',
-          'post_modules.review_overrides',
-          'post_modules.locked',
-          'post_modules.order_index as orderIndex',
-          'module_instances.global_slug as globalSlug',
-          'module_instances.global_label as globalLabel'
-        )
-        .orderBy('post_modules.order_index', 'asc')
+      // (modulesRows already loaded above for computing rendered modules)
 
       // Exclude modules marked for removal in review view
       const reviewDraft: any = (post as any).reviewDraft || (post as any).review_draft || null
@@ -1038,6 +1152,14 @@ export default class PostsController {
       // Return as Inertia page for public viewing
       const useReviewPost = wantReview && reviewDraft
       const siteSettings = await siteSettingsService.get()
+      // Load author
+      let author: { id: number; email: string; fullName: string | null } | null = null
+      try {
+        const arow = await db.from('users').where('id', (post as any).authorId || (post as any).author_id).first()
+        if (arow) {
+          author = { id: Number((arow as any).id), email: (arow as any).email, fullName: (arow as any).full_name ?? null }
+        }
+      } catch { /* ignore */ }
       return inertia.render('site/post', {
         post: {
           id: post.id,
@@ -1049,6 +1171,7 @@ export default class PostsController {
           metaTitle: useReviewPost ? (reviewDraft.metaTitle ?? post.metaTitle) : post.metaTitle,
           metaDescription: useReviewPost ? (reviewDraft.metaDescription ?? post.metaDescription) : post.metaDescription,
           status: post.status,
+          author,
         },
         hasReviewDraft: Boolean(reviewDraft),
         siteSettings,
@@ -1141,7 +1264,6 @@ export default class PostsController {
    */
   async importInto({ params, request, response, auth }: HttpContext) {
     const { id } = params
-    const role = (auth.use('web').user as any)?.role as 'admin' | 'editor' | 'translator' | undefined
     const { data, mode } = request.only(['data', 'mode'])
     if (!data) return response.badRequest({ error: 'Missing data' })
     const importMode = String(mode || 'replace').toLowerCase()
@@ -1158,6 +1280,7 @@ export default class PostsController {
         return response.ok({ message: 'Imported into review draft' })
       }
       // replace live content, enforce status permission
+      const role = (auth.use('web').user as any)?.role as 'admin' | 'editor' | 'translator' | undefined
       if (!authorizationService.canUpdateStatus(role, data?.post?.status)) {
         return response.forbidden({ error: 'Not allowed to set target status' })
       }
@@ -1178,9 +1301,8 @@ export default class PostsController {
    * GET /api/posts/:id/revisions
    * List recent revisions for a post (auth required)
    */
-  async revisions({ params, response, auth, request }: HttpContext) {
+  async revisions({ params, response, request }: HttpContext) {
     const { id } = params
-    const role = (auth.use('web').user as any)?.role as 'admin' | 'editor' | 'translator' | undefined
     // Everyone authenticated can view revisions; reverting is restricted separately
     const limit = Math.min(50, Math.max(1, Number(request.input('limit', 20)) || 20))
     const rows = await db
@@ -1305,7 +1427,7 @@ export default class PostsController {
             props: { ...(pm.props || {}), ...(pm.overrides || {}) },
           }
         })
-      const protocol = (request as any).protocol ? (request as any).protocol() : (request.secure ? 'https' : 'http')
+      const protocol = (request as any).protocol ? (request as any).protocol() : ((request as any).secure ? (request as any).secure() ? 'https' : 'http' : 'http')
       const host = (request as any).host ? (request as any).host() : request.header('host')
       const reviewDraft: any = (post as any).reviewDraft || (post as any).review_draft || null
       const useReviewPost = wantReview && reviewDraft
@@ -1315,7 +1437,7 @@ export default class PostsController {
         post.locale,
         protocol,
         host,
-        post.createdAt ? new Date(post.createdAt.toISO()) : undefined
+        (post.createdAt && post.createdAt.toISO()) ? new Date(post.createdAt.toISO()!) : undefined
       )
       const baseId = post.translationOfId || post.id
       const family = await Post.query().where((q) => {
@@ -1323,10 +1445,25 @@ export default class PostsController {
       })
       const alternates = await Promise.all(
         family.map((p) =>
-          urlPatternService.buildPostUrl(p.type, p.slug, p.locale, protocol, host, p.createdAt ? new Date(p.createdAt.toISO()) : undefined)
+          urlPatternService.buildPostUrl(
+            p.type,
+            p.slug,
+            p.locale,
+            protocol,
+            host,
+            (p.createdAt && p.createdAt.toISO()) ? new Date(p.createdAt.toISO()!) : undefined
+          )
         )
       )
       const siteSettings = await siteSettingsService.get()
+      // Load author
+      let author: { id: number; email: string; fullName: string | null } | null = null
+      try {
+        const arow = await db.from('users').where('id', (post as any).authorId || (post as any).author_id).first()
+        if (arow) {
+          author = { id: Number((arow as any).id), email: (arow as any).email, fullName: (arow as any).full_name ?? null }
+        }
+      } catch { /* ignore */ }
       return inertia.render('site/post', {
         post: {
           id: post.id,
@@ -1338,6 +1475,7 @@ export default class PostsController {
           metaTitle: useReviewPost ? (reviewDraft.metaTitle ?? post.metaTitle) : post.metaTitle,
           metaDescription: useReviewPost ? (reviewDraft.metaDescription ?? post.metaDescription) : post.metaDescription,
           status: post.status,
+          author,
         },
         hasReviewDraft: Boolean(reviewDraft),
         siteSettings,

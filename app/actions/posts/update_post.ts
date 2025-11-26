@@ -1,7 +1,7 @@
 import Post from '#models/post'
 import db from '@adonisjs/lucid/services/db'
 import urlPatternService from '#services/url_pattern_service'
-import postTypeSettingsService from '#services/post_type_settings_service'
+import postTypeConfigService from '#services/post_type_config_service'
 
 type UpdatePostParams = {
   postId: string
@@ -76,7 +76,11 @@ export default class UpdatePost {
         // Save new slug
         post.slug = newSlug
         // Conditionally create a 301 redirect from old path to new path (locale-aware)
-        const shouldAutoRedirect = await postTypeSettingsService.isAutoRedirectEnabled(post.type)
+        const shouldAutoRedirect = (() => {
+          const cfg = postTypeConfigService.getUiConfig(post.type)
+          // default true when not provided
+          return (cfg as any).autoRedirectOnSlugChange !== undefined ? !!(cfg as any).autoRedirectOnSlugChange : true
+        })()
         if (shouldAutoRedirect) {
           const fromPath = await urlPatternService.buildPostPath(post.type, oldSlug, post.locale, (post as any).createdAt)
           const toPath = await urlPatternService.buildPostPath(post.type, newSlug, post.locale, (post as any).createdAt)

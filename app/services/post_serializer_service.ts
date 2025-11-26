@@ -27,6 +27,7 @@ export type CanonicalPost = {
     canonicalUrl?: string | null
     robotsJson?: Record<string, any> | null
     jsonldOverrides?: Record<string, any> | null
+    customFields?: Array<{ slug: string; value: any }>
   }
   modules: CanonicalModule[]
   translations?: Array<{ id: string; locale: string }>
@@ -64,6 +65,12 @@ export default class PostSerializerService {
       .orWhere('id', baseId)
       .select('id', 'locale')
 
+    // Custom fields (slug:value) by slug from values table
+    const cfVals = await db
+      .from('post_custom_field_values as v')
+      .where('v.post_id', postId)
+      .select('v.field_slug as slug', 'v.value as value')
+
     const canonical: CanonicalPost = {
       version: 1 as const,
       post: {
@@ -78,6 +85,7 @@ export default class PostSerializerService {
         canonicalUrl: post.canonical_url ?? null,
         robotsJson: post.robots_json ?? null,
         jsonldOverrides: post.jsonld_overrides ?? null,
+        customFields: (cfVals || []).map((r: any) => ({ slug: r.slug, value: r.value })),
       },
       modules: modules.map((m: any) => ({
         type: m.type,
@@ -104,13 +112,10 @@ export default class PostSerializerService {
       locale: p.locale,
       slug: p.slug,
       title: p.title,
-      status: p.status,
+      status: p.status as any,
       excerpt: p.excerpt ?? null,
       metaTitle: p.metaTitle ?? null,
       metaDescription: p.metaDescription ?? null,
-      canonicalUrl: p.canonicalUrl ?? null,
-      robotsJson: p.robotsJson ?? null,
-      jsonldOverrides: p.jsonldOverrides ?? null,
       userId,
     })
     // add modules
@@ -132,6 +137,20 @@ export default class PostSerializerService {
           .update({ overrides: m.overrides, updated_at: new Date() })
       }
     }
+    // set custom fields by slug
+    if (Array.isArray(data.post?.customFields) && data.post!.customFields!.length > 0) {
+      const now = new Date()
+      for (const f of data.post!.customFields!) {
+        await db.table('post_custom_field_values').insert({
+          id: (await import('node:crypto')).randomUUID(),
+          post_id: post.id,
+          field_slug: f.slug,
+          value: f.value as any,
+          created_at: now,
+          updated_at: now,
+        })
+      }
+    }
     return post
   }
 
@@ -145,7 +164,7 @@ export default class PostSerializerService {
       postId,
       slug: p.slug,
       title: p.title,
-      status: p.status,
+      status: p.status as any,
       excerpt: p.excerpt ?? null,
       metaTitle: p.metaTitle ?? null,
       metaDescription: p.metaDescription ?? null,
@@ -181,6 +200,23 @@ export default class PostSerializerService {
           .from('post_modules')
           .where('id', created.postModule.id)
           .update({ overrides: m.overrides, updated_at: new Date() })
+      }
+    }
+    // Replace custom fields by slug
+    if (Array.isArray(data.post?.customFields)) {
+      const now = new Date()
+      for (const f of data.post!.customFields!) {
+        const updated = await db.from('post_custom_field_values').where({ post_id: postId, field_slug: f.slug }).update({ value: f.value as any, updated_at: now } as any)
+        if (!updated) {
+          await db.table('post_custom_field_values').insert({
+            id: (await import('node:crypto')).randomUUID(),
+            post_id: postId,
+            field_slug: f.slug,
+            value: f.value as any,
+            created_at: now,
+            updated_at: now,
+          })
+        }
       }
     }
   }
