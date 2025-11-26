@@ -36,9 +36,13 @@ export default class extends BaseSchema {
       table.uuid('template_id').nullable()
       // Note: FK to templates will be added separately (after templates table migration)
 
-      // User relationship (author)
+      // Creator relationship (who created/owns this post)
       table.integer('user_id').unsigned().notNullable()
       table.foreign('user_id').references('users.id').onDelete('CASCADE')
+
+      // Author relationship (semantic owner for things like Profile)
+      table.integer('author_id').unsigned().nullable()
+      table.foreign('author_id').references('users.id').onDelete('SET NULL')
 
       // Hierarchy fields
       table.uuid('parent_id').nullable().references('id').inTable('posts').onDelete('SET NULL')
@@ -60,6 +64,7 @@ export default class extends BaseSchema {
       table.index(['translation_of_id', 'locale']) // For translation lookups
       table.index('template_id') // For template queries
       table.index('user_id') // For user's posts queries
+      table.index('author_id') // For author queries
       table.index(['parent_id'])
       table.index(['type', 'parent_id'])
       table.index(['type', 'parent_id', 'order_index'])
@@ -77,6 +82,20 @@ BEGIN
   END IF;
 END
 $$;
+    `)
+    // One profile per user (partial unique on author_id)
+    await this.schema.raw(`
+DO $$
+BEGIN
+  IF EXISTS (
+    SELECT 1 FROM information_schema.tables
+    WHERE table_name='posts' AND table_schema = current_schema()
+  ) THEN
+    IF NOT EXISTS (SELECT 1 FROM pg_indexes WHERE indexname = 'posts_unique_profile_per_user') THEN
+      CREATE UNIQUE INDEX posts_unique_profile_per_user ON posts(author_id) WHERE type = 'profile';
+    END IF;
+  END IF;
+END $$;
     `)
   }
 

@@ -11,11 +11,9 @@ export default class extends BaseSchema {
         .references('id')
         .inTable('posts')
         .onDelete('CASCADE')
-      
-      table.uuid('field_id').notNullable()
-        .references('id')
-        .inTable('custom_fields')
-        .onDelete('CASCADE')
+
+      // Code-first field definitions: persist by slug
+      table.text('field_slug').notNullable()
       
       // Store the value as JSON to support any field type
       // For translatable fields: { "en": "value", "es": "valor" }
@@ -25,10 +23,10 @@ export default class extends BaseSchema {
       table.timestamp('updated_at').notNullable()
       
       // Ensure a field has only one value per post
-      table.unique(['post_id', 'field_id'])
-      
+      table.unique(['post_id', 'field_slug'])
+
       // Performance: Composite index for fast field value lookups
-      table.index(['post_id', 'field_id'])
+      table.index(['post_id', 'field_slug'])
     })
     
     // GIN index for JSONB value queries

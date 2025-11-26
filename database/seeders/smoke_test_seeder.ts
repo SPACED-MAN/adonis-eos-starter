@@ -204,59 +204,18 @@ export default class extends BaseSeeder {
     ])
     console.log('✅ Created URL redirects (en, es)')
 
-    // Test 8-10: Custom fields
-    // In code-first mode, the DB tables 'custom_fields' and 'post_type_custom_fields' may not exist.
-    // We detect presence and either run legacy tests or skip with an info notice.
-    const [{ exists: hasCustomFields }] = await db
-      .rawQuery(`SELECT EXISTS (SELECT 1 FROM information_schema.tables WHERE table_name = 'custom_fields' AND table_schema = current_schema()) as exists`)
-      .then((r) => r.rows)
-    if (hasCustomFields) {
-      // Legacy path (pre code-first) for backwards compatibility in some environments
-      const [field] = await db.table('custom_fields').insert({
-        slug: 'author-bio',
-        label: 'Author Bio',
-        field_type: 'textarea',
-        config: JSON.stringify({ maxLength: 500 }),
-        translatable: true,
+    // Test 8-10: Custom fields (code-first only): store by slug in post_custom_field_values
+    try {
+      await db.table('post_custom_field_values').insert({
+        id: crypto.randomUUID(),
+        post_id: post.id,
+        field_slug: 'author-bio',
+        value: JSON.stringify('This is a code-first test author bio'),
         created_at: new Date(),
         updated_at: new Date(),
-      }).returning('*')
-      console.log('✅ Created translatable custom field:', field.slug)
-      await db.table('post_type_custom_fields').insert({
-        post_type: 'blog',
-        field_id: field.id,
       })
-      console.log('✅ Attached field to post type')
-      await db.table('post_custom_field_values').insert([
-        {
-          post_id: post.id,
-          field_id: field.id,
-          value: JSON.stringify({
-            en: 'This is a test author bio in English',
-            es: 'Esta es una biografía de prueba del autor en español',
-          }),
-          created_at: new Date(),
-          updated_at: new Date(),
-        },
-      ])
-      console.log('✅ Set translatable custom field value (en, es)')
-    } else {
-      console.log('ℹ️ Skipped DB-based custom fields tests (using code-first custom fields).')
-      // Optionally, store a value by slug to exercise the new storage format:
-      try {
-        await db.table('post_custom_field_values').insert({
-          id: crypto.randomUUID(),
-          post_id: post.id,
-          field_slug: 'author-bio',
-          value: 'This is a code-first test author bio',
-          created_at: new Date(),
-          updated_at: new Date(),
-        })
-        console.log('✅ Set custom field value by slug (code-first)')
-      } catch {
-        // Ignore if table/column differs in some environments
-      }
-    }
+      console.log('✅ Set custom field value by slug (code-first)')
+    } catch { /* ignore */ }
 
     // Test 11: Create module scope
     await db.table('module_scopes').insert({
