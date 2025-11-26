@@ -18,9 +18,17 @@ export default class extends BaseSchema {
         .onDelete('CASCADE')
       
       table.integer('order_index').notNullable().defaultTo(0)
+      // Review workflow fields
+      table.boolean('review_deleted').notNullable().defaultTo(false)
+      table.integer('review_order_index').nullable()
+      table.boolean('review_added').notNullable().defaultTo(false)
+      // Overrides
+      table.jsonb('review_overrides').nullable()
       
       // Shallow overrides for global/static modules on a per-post basis
       table.jsonb('overrides').nullable()
+      // Lock control (template-enforced)
+      table.boolean('locked').notNullable().defaultTo(false)
       
       table.timestamp('created_at').notNullable()
       table.timestamp('updated_at').notNullable()

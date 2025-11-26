@@ -22,6 +22,8 @@ export default class extends BaseSchema {
         .references('id')
         .inTable('posts')
         .onDelete('CASCADE')
+      // FK to locales table (created in a separate migration file)
+      table.foreign('locale').references('locales.code').onUpdate('CASCADE').onDelete('CASCADE')
       
       // SEO fields
       table.string('meta_title', 255).nullable()
@@ -29,12 +31,22 @@ export default class extends BaseSchema {
       table.string('canonical_url', 500).nullable()
       table.jsonb('robots_json').nullable()
       table.jsonb('jsonld_overrides').nullable()
+      // GIN indexes for JSONB (added post-create)
       
       // Template relationship (nullable, will add FK after templates is created)
       table.uuid('template_id').nullable()
+      table.foreign('template_id').references('templates.id').onDelete('SET NULL')
       
       // User relationship (author - FK will be added later)
       table.integer('user_id').unsigned().notNullable()
+      table.foreign('user_id').references('users.id').onDelete('CASCADE')
+      
+      // Hierarchy fields
+      table.uuid('parent_id').nullable().references('id').inTable('posts').onDelete('SET NULL')
+      table.integer('order_index').notNullable().defaultTo(0)
+      
+      // Review draft (JSON snapshot)
+      table.jsonb('review_draft').nullable()
       
       // Publishing timestamps
       table.timestamp('published_at').nullable()
@@ -49,7 +61,13 @@ export default class extends BaseSchema {
       table.index(['translation_of_id', 'locale']) // For translation lookups
       table.index('template_id') // For template queries
       table.index('user_id') // For user's posts queries
+      table.index(['parent_id'])
+      table.index(['type', 'parent_id'])
+      table.index(['type', 'parent_id', 'order_index'])
     })
+    // GIN indexes for JSONB fields
+    await this.schema.raw('CREATE INDEX IF NOT EXISTS posts_robots_json_gin ON posts USING GIN (robots_json)')
+    await this.schema.raw('CREATE INDEX IF NOT EXISTS posts_jsonld_overrides_gin ON posts USING GIN (jsonld_overrides)')
   }
 
   async down() {

@@ -15,6 +15,10 @@ export default class extends BaseSchema {
       table.string('type', 100).notNullable()
       table.jsonb('default_props').notNullable().defaultTo('{}')
       table.integer('order_index').notNullable().defaultTo(0)
+      // Scope for module instance when seeding posts: 'post' or 'global'
+      table.string('scope', 20).notNullable().defaultTo('post')
+      // For scope=global, the global module slug to reference
+      table.string('global_slug', 255).nullable()
       
       // If true, this module cannot be removed from posts using this template
       table.boolean('locked').notNullable().defaultTo(false)
@@ -24,6 +28,7 @@ export default class extends BaseSchema {
       
       // Performance: Composite index for ordered retrieval
       table.index(['template_id', 'order_index'])
+      table.index(['template_id', 'order_index', 'scope'], 'template_modules_scope_idx')
     })
     
     // GIN index for JSONB default_props

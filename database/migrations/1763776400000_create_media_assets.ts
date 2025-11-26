@@ -12,6 +12,8 @@ export default class extends BaseSchema {
       table.bigInteger('size').notNullable()
       table.text('alt_text').nullable()
       table.text('caption').nullable()
+      table.text('description').nullable()
+      table.specificType('categories', 'text[]').notNullable().defaultTo('{}')
       table.jsonb('metadata').nullable()
       table.timestamp('created_at', { useTz: true }).defaultTo(this.now())
       table.timestamp('updated_at', { useTz: true }).defaultTo(this.now())
@@ -19,6 +21,7 @@ export default class extends BaseSchema {
     this.schema.alterTable(this.tableName, (table) => {
       table.index(['mime_type'])
       table.index(['created_at'])
+      table.index(['categories'], 'media_assets_categories_idx', { using: 'gin' } as any)
     })
   }
 

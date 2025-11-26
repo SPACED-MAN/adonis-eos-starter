@@ -32,6 +32,7 @@ CREATE TABLE IF NOT EXISTS "${this.tableName}" (
   "id" serial PRIMARY KEY,
   "post_type" varchar(50) NOT NULL UNIQUE,
   "auto_redirect_on_slug_change" boolean NOT NULL DEFAULT TRUE,
+  "hierarchy_enabled" boolean NOT NULL DEFAULT FALSE,
   "created_at" timestamptz NOT NULL DEFAULT CURRENT_TIMESTAMP,
   "updated_at" timestamptz NOT NULL DEFAULT CURRENT_TIMESTAMP
 );

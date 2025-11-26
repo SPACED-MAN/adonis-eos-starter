@@ -6,10 +6,11 @@ export default class extends BaseSchema {
   async up() {
     this.schema.createTable(this.tableName, (table) => {
       table.uuid('id').primary().defaultTo(this.db.rawQuery('gen_random_uuid()').knexQuery)
-      
-      table.enum('scope', ['post', 'global', 'static'])
-        .notNullable()
-      
+      // Scope: only 'post' or 'global' are supported for fresh installs
+      table.string('scope', 20).notNullable().defaultTo('post')
+      // Optional human label for global modules
+      table.text('global_label').nullable()
+
       table.string('type', 100).notNullable()
       
       // For post-scoped modules
@@ -23,6 +24,8 @@ export default class extends BaseSchema {
       
       // Module configuration and data (includes locale-specific content)
       table.jsonb('props').notNullable().defaultTo('{}')
+      // Review props for review workflow
+      table.jsonb('review_props').nullable()
       
       // Render caching
       table.text('render_cache_html').nullable()
@@ -30,17 +33,17 @@ export default class extends BaseSchema {
       
       table.timestamp('created_at').notNullable()
       table.timestamp('updated_at').notNullable()
-      
-      // Enforce global_slug uniqueness when scope is global
-      table.unique(['scope', 'global_slug'])
-      
-      // Performance indexes
-      table.index(['scope', 'type']) // For module filtering
+
+      // Uniqueness and performance
+      table.unique(['scope', 'global_slug'], 'module_instances_scope_global_slug_unique')
+      table.index(['scope', 'type'], 'module_instances_scope_idx') // For module filtering
       table.index('post_id') // For post-module lookups
     })
     
     // GIN index for JSONB queries (must be done after table creation)
     this.schema.raw('CREATE INDEX module_instances_props_gin ON module_instances USING GIN (props)')
+    // Enforce allowed scope values at DB level
+    this.schema.raw(`ALTER TABLE "module_instances" ADD CONSTRAINT "module_instances_scope_chk" CHECK (scope IN ('post','global'))`)
   }
 
   async down() {
