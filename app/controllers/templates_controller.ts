@@ -83,7 +83,7 @@ export default class TemplatesController {
    */
   async addModule({ params, request, response }: HttpContext) {
     const { id } = params
-    const { type, defaultProps = {}, locked = false } = request.only(['type', 'defaultProps', 'locked'])
+    const { type, defaultProps = {}, locked = false, scope = 'post', globalSlug = null } = request.only(['type', 'defaultProps', 'locked', 'scope', 'globalSlug'])
     if (!type) return response.badRequest({ error: 'type is required' })
     const [{ max }] = await db.from('template_modules').where('template_id', id).max('order_index as max')
     const now = new Date()
@@ -93,6 +93,8 @@ export default class TemplatesController {
         template_id: id,
         type,
         default_props: defaultProps || {},
+        scope: String(scope || 'post'),
+        global_slug: globalSlug ? String(globalSlug) : null,
         order_index: (Number(max || 0) | 0) + 1,
         locked: !!locked,
         created_at: now,

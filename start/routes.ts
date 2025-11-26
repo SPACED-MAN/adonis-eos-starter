@@ -109,6 +109,7 @@ router.group(() => {
 const TemplatesController = () => import('#controllers/templates_controller')
 const PostTypesController = () => import('#controllers/post_types_controller')
 const AgentsController = () => import('#controllers/agents_controller')
+const GlobalModulesController = () => import('#controllers/global_modules_controller')
 // MediaController imported above
 router.group(() => {
 	router.get('/templates', [TemplatesController, 'index']).use(middleware.admin())
@@ -160,6 +161,12 @@ router.group(() => {
 	router.delete('/media/:id', [MediaController, 'destroy']).use(middleware.admin())
 	router.post('/media/:id/variants', [MediaController, 'variants']).use(middleware.admin())
 	router.patch('/media/:id/rename', [MediaController, 'rename']).use(middleware.admin())
+	// Global/Static modules
+	router.get('/modules/global', [GlobalModulesController, 'index']).use(middleware.admin())
+	router.post('/modules/global', [GlobalModulesController, 'create']).use(middleware.admin())
+	router.put('/modules/global/:id', [GlobalModulesController, 'update']).use(middleware.admin())
+	router.delete('/modules/global/:id', [GlobalModulesController, 'destroy']).use(middleware.admin())
+	router.get('/modules/static', [GlobalModulesController, 'index']).use(middleware.admin())
 }).prefix('/api').use(middleware.auth())
 
 /**
@@ -195,6 +202,11 @@ router.get('/admin/settings/post-types', async ({ inertia }) => {
 // Admin Media Library
 router.get('/admin/media', async ({ inertia }) => {
 	return inertia.render('admin/media/index')
+}).use(middleware.auth()).use(middleware.admin())
+
+// Admin Global/Static Module Manager
+router.get('/admin/modules', async ({ inertia }) => {
+	return inertia.render('admin/modules/index')
 }).use(middleware.auth()).use(middleware.admin())
 
 // Templates list and editor pages (new)

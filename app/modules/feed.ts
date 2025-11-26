@@ -14,7 +14,7 @@ export default class FeedModule extends BaseModule {
       name: 'Post Feed',
       description: 'Displays a feed of published posts for selected post type(s)',
       icon: 'list',
-      allowedScopes: ['local', 'static'],
+      allowedScopes: ['local'],
       lockable: true,
       propsSchema: {
         title: {

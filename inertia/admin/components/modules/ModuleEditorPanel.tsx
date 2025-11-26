@@ -292,7 +292,7 @@ export function ModuleEditorPanel({
 				</FormField>
 			)
 		}
-    if (type === 'textarea') {
+		if (type === 'textarea') {
 			return (
 				<FormField>
 					<FormLabel>{label}</FormLabel>

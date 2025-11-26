@@ -57,7 +57,6 @@ inertia/
   - `props` (typed via Zod schema)
   - Associated **Model**, **Renderer**, and **Editor**
 - **Global modules** (scope = `global`) can be reused across posts by slug.
-- **Static modules** (scope = `static`) are fixed site-wide (e.g., header, footer).
 - **Local modules** (scope = `post`) belong only to a post.
 - Some modules can be **restricted by post type** using `module_scopes` (e.g., a `testimonial-overview` module may only be used for the `testimonial` post type).
 - **Translatable:** Module props can contain locale-specific content.

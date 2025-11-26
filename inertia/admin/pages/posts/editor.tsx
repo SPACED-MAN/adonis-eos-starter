@@ -30,6 +30,7 @@ import { ModuleEditorPanel, ModuleListItem } from '../../components/modules/Modu
 import { DndContext, closestCenter, PointerSensor, useSensor, useSensors, DragEndEvent } from '@dnd-kit/core'
 import { SortableContext, useSortable, verticalListSortingStrategy } from '@dnd-kit/sortable'
 import { CSS } from '@dnd-kit/utilities'
+import { GripVertical, Globe } from 'lucide-react'
 
 interface EditorProps {
   post: {
@@ -156,6 +157,7 @@ export default function Editor({ post, modules: initialModules, translations, re
   const [supportedLocales, setSupportedLocales] = useState<string[]>([])
   const [selectedLocale, setSelectedLocale] = useState<string>(post.locale)
   const [moduleRegistry, setModuleRegistry] = useState<Record<string, { name: string; description?: string }>>({})
+  const [globalSlugToLabel, setGlobalSlugToLabel] = useState<Map<string, string>>(new Map())
 
   // Keep local state in sync with server props after Inertia navigations
   // Useful after adding modules or reloading the page
@@ -183,6 +185,17 @@ export default function Editor({ post, modules: initialModules, translations, re
             })
             setModuleRegistry(map)
           }
+          // Load globals for slug->label mapping
+          try {
+            const gRes = await fetch('/api/modules/global', { credentials: 'same-origin' })
+            const gJson = await gRes.json().catch(() => ({}))
+            const gList: Array<{ globalSlug: string; label?: string | null }> = Array.isArray(gJson?.data) ? gJson.data : []
+            const gMap = new Map<string, string>()
+            gList.forEach((g) => {
+              if (g.globalSlug) gMap.set(g.globalSlug, (g as any).label || g.globalSlug)
+            })
+            if (!cancelled) setGlobalSlugToLabel(gMap)
+          } catch { /* ignore */ }
         } catch {
           if (!cancelled) setModuleRegistry({})
         }
@@ -341,15 +354,15 @@ export default function Editor({ post, modules: initialModules, translations, re
   // DnD sensors (pointer only to avoid key conflicts)
   const sensors = useSensors(useSensor(PointerSensor))
 
-  function SortableItem({ id, children }: { id: string; children: React.ReactNode }) {
-    const { attributes, listeners, setNodeRef, transform, transition } = useSortable({ id })
+  function SortableItem({ id, disabled, children }: { id: string; disabled?: boolean; children: React.ReactNode | ((listeners: any, attributes: any) => React.ReactNode) }) {
+    const { attributes, listeners, setNodeRef, transform, transition } = useSortable({ id, disabled: !!disabled })
     const style = {
       transform: CSS.Transform.toString(transform),
       transition,
     }
     return (
-      <div ref={setNodeRef} style={style} {...attributes}>
-        {children(listeners)}
+      <div ref={setNodeRef} style={style} {...(disabled ? {} : attributes)}>
+        {typeof children === 'function' ? (children(disabled ? {} : listeners, disabled ? {} : attributes)) : children}
       </div>
     )
   }
@@ -380,6 +393,9 @@ export default function Editor({ post, modules: initialModules, translations, re
     const { active, over } = event
     if (!over || active.id === over.id) return
     const current = modules.slice().sort((a, b) => a.orderIndex - b.orderIndex)
+    // Prevent dragging locked modules
+    const dragged = current.find((m) => m.id === active.id)
+    if (dragged?.locked) return
     const oldIndex = current.findIndex((m) => m.id === active.id)
     const newIndex = current.findIndex((m) => m.id === over.id)
     if (oldIndex === -1 || newIndex === -1) return
@@ -606,33 +622,47 @@ export default function Editor({ post, modules: initialModules, translations, re
                     <SortableContext items={orderedIds} strategy={verticalListSortingStrategy}>
                       <ul className="space-y-3">
                         {sortedModules.map((m) => (
-                          <SortableItem key={m.id} id={m.id}>
+                          <SortableItem key={m.id} id={m.id} disabled={m.locked}>
                             {(listeners: any) => (
                               <li className="bg-backdrop-low border border-line rounded-lg px-4 py-3 flex items-center justify-between">
                                 <div className="flex items-center gap-3">
                                   <button
                                     type="button"
                                     aria-label="Drag"
-                                    className="cursor-grab text-neutral-low hover:text-neutral-high"
-                                    {...listeners}
+                                    className={`text-neutral-low hover:text-neutral-high ${m.locked ? 'opacity-40 cursor-not-allowed' : 'cursor-grab'}`}
+                                    {...(m.locked ? {} : listeners)}
                                   >
-                                    ⋮⋮
+                                    <GripVertical size={16} />
                                   </button>
                                   <div>
                                     <div className="text-sm font-medium text-neutral-high">
-                                      {moduleRegistry[m.type]?.name || m.type}
+                                      {m.scope === 'global'
+                                        ? (globalSlugToLabel.get(String((m as any).globalSlug || '')) || (m as any).globalLabel || (m as any).globalSlug || (moduleRegistry[m.type]?.name || m.type))
+                                        : (moduleRegistry[m.type]?.name || m.type)}
                                     </div>
                                     <div className="text-xs text-neutral-low">Order: {m.orderIndex}</div>
                                   </div>
                                 </div>
                                 <div className="flex items-center gap-2">
-                                  <button
-                                    className="text-xs px-2 py-1 rounded border border-line bg-backdrop-low text-neutral-high hover:bg-backdrop-medium"
-                                    onClick={() => setEditing(m)}
-                                    type="button"
-                                  >
-                                    Edit
-                                  </button>
+                                  {m.scope === 'global'
+                                    ? (
+                                      <span
+                                        className="inline-flex items-center rounded border border-line bg-backdrop-low px-2 py-1 text-xs text-neutral-high"
+                                        title="Global module"
+                                        aria-label="Global module"
+                                      >
+                                        <Globe size={14} />
+                                      </span>
+                                    )
+                                    : (
+                                      <button
+                                        className="text-xs px-2 py-1 rounded border border-line bg-backdrop-low text-neutral-high hover:bg-backdrop-medium"
+                                        onClick={() => setEditing(m)}
+                                        type="button"
+                                      >
+                                        Edit
+                                      </button>
+                                    )}
                                   <button
                                     className="text-xs px-2 py-1 rounded border border-[#ef4444] text-[#ef4444] hover:bg-[rgba(239,68,68,0.1)]"
                                     onClick={async () => {

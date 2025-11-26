@@ -755,66 +755,66 @@ export default function Dashboard({ }: DashboardProps) {
                 </SortableContext>
               </DndContext>
             ) : (
-              <TableBody>
-                {(hierarchical ? posts.length === 0 : posts.length === 0) ? (
-                  <TableRow>
-                    <TableCell colSpan={7}>
-                      <div className="py-12 text-center">
-                        <p className="text-neutral-low">No posts yet.</p>
-                        <p className="text-sm text-neutral-low mt-2">Run the seeder to create test posts.</p>
-                      </div>
-                    </TableCell>
-                  </TableRow>
-                ) : (
+            <TableBody>
+              {(hierarchical ? posts.length === 0 : posts.length === 0) ? (
+                <TableRow>
+                  <TableCell colSpan={7}>
+                    <div className="py-12 text-center">
+                      <p className="text-neutral-low">No posts yet.</p>
+                      <p className="text-sm text-neutral-low mt-2">Run the seeder to create test posts.</p>
+                    </div>
+                  </TableCell>
+                </TableRow>
+              ) : (
                   flatRows.map(({ post, level }) => {
-                    const checked = selected.has(post.id)
-                    return (
-                      <TableRow key={post.id}>
-                        <TableCell>
-                          <Checkbox
-                            checked={checked}
-                            onCheckedChange={() => toggleSelect(post.id)}
-                            aria-label="Select row"
-                          />
-                        </TableCell>
-                        <TableCell>
-                          <div className="flex items-center" style={{ paddingLeft: hierarchical ? level * 12 : 0 }}>
-                            {hierarchical && level > 0 && (
-                              <span className="mr-2 text-neutral-medium" aria-hidden="true">
-                                <FontAwesomeIcon icon={faTurnUp} rotation={90} className="inline-block" size="sm" />
-                              </span>
-                            )}
-                            <span className="text-sm font-medium text-neutral-high">{post.title}</span>
-                          </div>
-                        </TableCell>
-                        <TableCell>
-                          <span className="font-mono text-sm text-neutral-medium">{post.slug}</span>
-                        </TableCell>
-                        <TableCell>
-                          <span className="font-mono text-sm text-neutral-medium">{(post as any).orderIndex ?? 0}</span>
-                        </TableCell>
-                        <TableCell>
-                          <div className="flex flex-wrap gap-1">
-                            {(supportedLocales.length > 1 ? supportedLocales : [post.locale]).map((loc) => {
-                              const exists = (post.familyLocales || [post.locale]).includes(loc)
-                              return (
-                                <Badge
-                                  key={`${post.id}-${loc}`}
-                                  variant={exists ? 'default' : 'outline'}
-                                  title={exists ? `Has ${loc.toUpperCase()}` : `Missing ${loc.toUpperCase()}`}
-                                >
-                                  {loc.toUpperCase()}
-                                </Badge>
-                              )
-                            })}
-                          </div>
-                        </TableCell>
-                        <TableCell>
-                          <span className="text-sm capitalize">{post.status}</span>
-                          {post.hasReviewDraft && <Badge variant="secondary" className="ml-2 align-middle">In Review</Badge>}
-                        </TableCell>
-                        <TableCell>
-                          <span className="text-xs text-neutral-low">
+                  const checked = selected.has(post.id)
+                  return (
+                    <TableRow key={post.id}>
+                      <TableCell>
+                        <Checkbox
+                          checked={checked}
+                          onCheckedChange={() => toggleSelect(post.id)}
+                          aria-label="Select row"
+                        />
+                      </TableCell>
+                      <TableCell>
+                        <div className="flex items-center" style={{ paddingLeft: hierarchical ? level * 12 : 0 }}>
+                          {hierarchical && level > 0 && (
+                            <span className="mr-2 text-neutral-medium" aria-hidden="true">
+                              <FontAwesomeIcon icon={faTurnUp} rotation={90} className="inline-block" size="sm" />
+                            </span>
+                          )}
+                          <span className="text-sm font-medium text-neutral-high">{post.title}</span>
+                        </div>
+                      </TableCell>
+                      <TableCell>
+                        <span className="font-mono text-sm text-neutral-medium">{post.slug}</span>
+                      </TableCell>
+                      <TableCell>
+                        <span className="font-mono text-sm text-neutral-medium">{(post as any).orderIndex ?? 0}</span>
+                      </TableCell>
+                      <TableCell>
+                        <div className="flex flex-wrap gap-1">
+                          {(supportedLocales.length > 1 ? supportedLocales : [post.locale]).map((loc) => {
+                            const exists = (post.familyLocales || [post.locale]).includes(loc)
+                            return (
+                              <Badge
+                                key={`${post.id}-${loc}`}
+                                variant={exists ? 'default' : 'outline'}
+                                title={exists ? `Has ${loc.toUpperCase()}` : `Missing ${loc.toUpperCase()}`}
+                              >
+                                {loc.toUpperCase()}
+                              </Badge>
+                            )
+                          })}
+                        </div>
+                      </TableCell>
+                      <TableCell>
+                        <span className="text-sm capitalize">{post.status}</span>
+                        {post.hasReviewDraft && <Badge variant="secondary" className="ml-2 align-middle">In Review</Badge>}
+                      </TableCell>
+                      <TableCell>
+                        <span className="text-xs text-neutral-low">
                             {new Date(post.updatedAt).toLocaleString(undefined, {
                               year: 'numeric',
                               month: '2-digit',
@@ -822,21 +822,21 @@ export default function Dashboard({ }: DashboardProps) {
                               hour: '2-digit',
                               minute: '2-digit',
                             })}
-                          </span>
-                        </TableCell>
-                        <TableCell className="text-right">
-                          <Link
-                            href={`/admin/posts/${post.id}/edit`}
-                            className="px-3 py-1 text-xs border border-line rounded hover:bg-backdrop-medium text-neutral-medium"
-                          >
-                            Edit
-                          </Link>
-                        </TableCell>
-                      </TableRow>
-                    )
-                  })
-                )}
-              </TableBody>
+                        </span>
+                      </TableCell>
+                      <TableCell className="text-right">
+                        <Link
+                          href={`/admin/posts/${post.id}/edit`}
+                          className="px-3 py-1 text-xs border border-line rounded hover:bg-backdrop-medium text-neutral-medium"
+                        >
+                          Edit
+                        </Link>
+                      </TableCell>
+                    </TableRow>
+                  )
+                })
+              )}
+            </TableBody>
             )}
           </Table>
           {/* Pagination */}

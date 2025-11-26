@@ -12,7 +12,7 @@ export default class KitchenSinkModule extends BaseModule {
 			name: 'Kitchen Sink',
 			description: 'A demo module showcasing all supported field types (text, textarea, number, select, multiselect, boolean, date, url, media, object, repeater, richtext).',
 			icon: 'flask',
-			allowedScopes: ['local', 'global', 'static'],
+			allowedScopes: ['local', 'global'],
 			lockable: false,
 			propsSchema: {
 				postRefs: {

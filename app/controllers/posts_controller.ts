@@ -194,7 +194,9 @@ export default class PostsController {
           'post_modules.overrides',
           'post_modules.review_overrides',
           'post_modules.locked',
-          'post_modules.order_index as orderIndex'
+          'post_modules.order_index as orderIndex',
+          'module_instances.global_slug as globalSlug',
+          'module_instances.global_label as globalLabel'
         )
         .orderBy('post_modules.order_index', 'asc')
 
@@ -245,11 +247,14 @@ export default class PostsController {
           reviewDeleted: (pm as any).reviewDeleted || false,
           locked: pm.locked,
           orderIndex: pm.orderIndex,
+          globalSlug: (pm as any).globalSlug || null,
+          globalLabel: (pm as any).globalLabel || null,
         })),
         translations,
       })
     } catch (error) {
-      return response.notFound({ error: 'Post not found' })
+      // Return an Inertia 404 page instead of JSON to satisfy Inertia expectations
+      return inertia.render('admin/errors/not_found')
     }
   }
 
@@ -923,7 +928,9 @@ export default class PostsController {
           'module_instances.review_props',
           'post_modules.overrides',
           'post_modules.review_overrides',
-          'post_modules.order_index as orderIndex'
+          'post_modules.order_index as orderIndex',
+          'module_instances.global_slug as globalSlug',
+          'module_instances.global_label as globalLabel'
         )
         .orderBy('post_modules.order_index', 'asc')
 
@@ -990,7 +997,9 @@ export default class PostsController {
           'post_modules.overrides',
           'post_modules.review_overrides',
           'post_modules.locked',
-          'post_modules.order_index as orderIndex'
+          'post_modules.order_index as orderIndex',
+          'module_instances.global_slug as globalSlug',
+          'module_instances.global_label as globalLabel'
         )
         .orderBy('post_modules.order_index', 'asc')
 

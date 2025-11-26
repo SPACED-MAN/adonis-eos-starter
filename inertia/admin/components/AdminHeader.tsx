@@ -49,6 +49,12 @@ export function AdminHeader({ title = 'Admin' }: { title?: string }) {
 									Media
 								</Link>
 								<Link
+									href="/admin/modules"
+									className="text-sm text-neutral-low hover:text-standout"
+								>
+									Modules
+								</Link>
+								<Link
 									href="/admin/settings/post-types"
 									className="text-sm text-neutral-low hover:text-standout"
 								>

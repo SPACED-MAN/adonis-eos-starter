@@ -5,7 +5,7 @@
 /**
  * Module scope defines where a module can be used
  */
-export type ModuleScope = 'local' | 'global' | 'static'
+export type ModuleScope = 'local' | 'global'
 
 /**
  * Module configuration metadata

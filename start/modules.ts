@@ -10,6 +10,7 @@ import HeroModule from '#modules/hero'
 import ProseModule from '#modules/prose'
 import KitchenSinkModule from '#modules/kitchen_sink'
 import FeedModule from '#modules/feed'
+import BlogNoteModule from '#modules/blog_note'
 
 // Register Hero module
 moduleRegistry.register(new HeroModule())
@@ -19,6 +20,8 @@ moduleRegistry.register(new ProseModule())
 moduleRegistry.register(new KitchenSinkModule())
 // Register Feed module
 moduleRegistry.register(new FeedModule())
+// Register Blog Note (blog-specific) module
+moduleRegistry.register(new BlogNoteModule())
 
 // Log registered modules (development only)
 if (process.env.NODE_ENV === 'development') {

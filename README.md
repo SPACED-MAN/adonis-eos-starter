@@ -466,7 +466,7 @@ How to test:
 
 - ✅ Canonical JSON format (versioned)
   - Top-level `post` (type, locale, slug, title, status, SEO fields)
-  - `modules`: array with `{ type, scope(local|static|global), orderIndex, locked, props, overrides, globalSlug }`
+  - `modules`: array with `{ type, scope(local|global), orderIndex, locked, props, overrides, globalSlug }`
   - `translations`: list of family post IDs and locales (for reference)
 - ✅ Export API: `GET /api/posts/:id/export?download=1`
   - Downloads `post-<id>.json`
@@ -641,13 +641,22 @@ How to test:
    - Add a few categories to images (e.g., “Lorem”, “Ipsum”, “Dolor”) and Save
    - Use the Category dropdown (top-right) to filter: selecting a tag shows only media with that tag; reopening the dropdown still lists All + the full set of tags
 
-### Milestone 17 — Global & Static Module Manager
-- Admin UI for managing:
-  - Global modules (any data populated on Global module fields is constant anywhere it's placed)
-  - Static modules (e.g., header/footer -- Same as Global, but can't be moved)
-- Edit global modules directly
-- Show usage counts
-- Prevent deletion while referenced
+### Milestone 17 — Global Modules & Locking (✅ Complete)
+- Admin UI (`/admin/modules`):
+  - Manage Global Modules (create, edit, delete with usage checks)
+  - Primary “Add” flow: choose a base module type from the registry and enter a unique global slug
+  - Usage counts per global; deletion disabled while referenced
+- Add Module UI (post editor):
+  - “Add Module” now has tabs:
+    - Library — add a new local module instance
+    - Globals — insert a reference to an existing Global Module (by slug)
+- Locking (replaces “Static” as a governance concept):
+  - Template editor supports Lock/Unlock per template module
+  - Locked modules are editable but cannot be moved or removed in post module editors
+  - Locking applies to both regular and global module placements seeded by templates
+
+Scopes:
+- Only two scopes are supported: local (post) and global. Use “Locked” in templates to prevent move/remove in posts. Rendering mode (SSR-only vs React) is separate from scope and does not appear in admin.
 
 ### Milestone 18 — Site Settings (Favicon, Branding, Defaults)
 - Add `site_settings` table

@@ -25,7 +25,7 @@ export default class HeroModule extends BaseModule {
       name: 'Hero Section',
       description: 'Large header with title, subtitle, image, and call-to-action buttons',
       icon: 'layout-hero',
-      allowedScopes: ['local', 'global', 'static'],
+      allowedScopes: ['local', 'global'],
       lockable: true,
       propsSchema: {
         title: {

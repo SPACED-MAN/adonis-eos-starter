@@ -25,7 +25,7 @@ export default class ProseModule extends BaseModule {
       name: 'Rich Text (Prose)',
       description: 'Rich text content with formatting, links, lists, and more',
       icon: 'text-paragraph',
-      allowedScopes: ['local', 'global', 'static'],
+      allowedScopes: ['local', 'global'],
       lockable: true,
       propsSchema: {
         content: {

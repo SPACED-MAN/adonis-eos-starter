@@ -125,26 +125,52 @@ export default class CreatePost {
 
     const now = new Date()
     for (const tm of templateModules) {
-      // Create a module instance for this post
+      const isGlobal = (tm as any).scope === 'global' && (tm as any).global_slug
+      let moduleInstanceId: string
+      if (isGlobal) {
+        // Find existing global
+        const global = await trx
+          .from('module_instances')
+          .where('scope', 'global')
+          .where('global_slug', (tm as any).global_slug)
+          .first()
+        if (!global) {
+          // If missing, create a new global instance using template default props
+          const [created] = await trx.table('module_instances').insert({
+            scope: 'global',
+            type: tm.type,
+            global_slug: (tm as any).global_slug,
+            props: tm.default_props || {},
+            created_at: now,
+            updated_at: now,
+          }).returning('*')
+          moduleInstanceId = (created as any).id
+        } else {
+          moduleInstanceId = (global as any).id
+        }
+      } else {
+        // Create local instance
       const [instance] = await trx
-        .table('module_instances')
-        .insert({
-          scope: 'post',
-          type: tm.type,
-          global_slug: null,
-          props: tm.default_props || {},
-          created_at: now,
-          updated_at: now,
-        })
-        .returning('*')
+          .table('module_instances')
+          .insert({
+            scope: 'post',
+            type: tm.type,
+            global_slug: null,
+            props: tm.default_props || {},
+            created_at: now,
+            updated_at: now,
+          })
+          .returning('*')
+        moduleInstanceId = (instance as any).id
+      }
 
       await trx.table('post_modules').insert({
-      id: randomUUID(),
-      post_id: postId,
-        module_id: (instance as any).id,
-      order_index: tm.order_index,
+        id: randomUUID(),
+        post_id: postId,
+        module_id: moduleInstanceId,
+        order_index: (tm as any).order_index,
         overrides: null,
-        locked: !!tm.locked,
+        locked: !!(tm as any).locked,
         created_at: now,
         updated_at: now,
       })
