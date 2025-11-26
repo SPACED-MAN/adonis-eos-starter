@@ -5,6 +5,17 @@ import { AdminBreadcrumbs } from '../../components/AdminBreadcrumbs'
 import { Input } from '../../../components/ui/input'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '~/components/ui/select'
 import { toast } from 'sonner'
+import {
+  AlertDialog,
+  AlertDialogTrigger,
+  AlertDialogContent,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogCancel,
+  AlertDialogAction,
+} from '~/components/ui/alert-dialog'
 import { getXsrf } from '~/utils/xsrf'
 import { ROLES, type Role } from '~/types/roles'
 
@@ -229,6 +240,47 @@ export default function UsersIndex() {
                           Reset Password
                         </button>
                       )}
+                      <AlertDialog>
+                        <AlertDialogTrigger asChild>
+                          <button className="ml-2 px-2 py-1 text-xs border border-[#ef4444] text-[#ef4444] rounded hover:bg-[rgba(239,68,68,0.1)]">
+                            Delete
+                          </button>
+                        </AlertDialogTrigger>
+                        <AlertDialogContent>
+                          <AlertDialogHeader>
+                            <AlertDialogTitle>Delete user?</AlertDialogTitle>
+                            <AlertDialogDescription>
+                              This action cannot be undone. The account for {u.email} will be permanently removed.
+                            </AlertDialogDescription>
+                          </AlertDialogHeader>
+                          <AlertDialogFooter>
+                            <AlertDialogCancel>Cancel</AlertDialogCancel>
+                            <AlertDialogAction
+                              onClick={async () => {
+                                try {
+                                  const csrf = getXsrf()
+                                  const res = await fetch(`/api/users/${encodeURIComponent(u.id)}`, {
+                                    method: 'DELETE',
+                                    headers: { ...(csrf ? { 'X-XSRF-TOKEN': csrf } : {}) },
+                                    credentials: 'same-origin',
+                                  })
+                                  if (!res.ok) {
+                                    const j = await res.json().catch(() => ({}))
+                                    toast.error(j?.error || 'Failed to delete user')
+                                    return
+                                  }
+                                  toast.success('User deleted')
+                                  await load()
+                                } catch {
+                                  toast.error('Failed to delete user')
+                                }
+                              }}
+                            >
+                              Confirm
+                            </AlertDialogAction>
+                          </AlertDialogFooter>
+                        </AlertDialogContent>
+                      </AlertDialog>
                     </td>
                   </tr>
                 ))}

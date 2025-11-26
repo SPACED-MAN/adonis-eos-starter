@@ -164,6 +164,30 @@ export default class UsersController {
 		return response.ok({ message: 'Password updated' })
 	}
 
+  /**
+   * DELETE /api/users/:id (admin)
+   */
+  async destroy({ params, auth, response }: HttpContext) {
+    const { id } = params
+    // Prevent self-deletion to avoid accidental lockout
+    const meId = (auth.use('web').user as any)?.id
+    if (String(meId) === String(id)) {
+      return response.badRequest({ error: 'You cannot delete your own account' })
+    }
+    const row = await db.from('users').where('id', id).first()
+    if (!row) return response.notFound({ error: 'User not found' })
+    await db.from('users').where('id', id).delete()
+    try {
+      await activityLogService.log({
+        action: 'user.delete',
+        userId: Number(id),
+        entityType: 'user',
+        entityId: id,
+      })
+    } catch {}
+    return response.noContent()
+  }
+
 	/**
 	 * GET /api/profile/status - current user profile status and role enablement
 	 */

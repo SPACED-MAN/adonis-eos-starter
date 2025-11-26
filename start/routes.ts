@@ -152,6 +152,7 @@ router.group(() => {
   router.get('/users', [UsersController, 'index']).use(middleware.admin())
   router.patch('/users/:id', [UsersController, 'update']).use(middleware.admin())
   router.patch('/users/:id/password', [UsersController, 'resetPassword']).use(middleware.admin())
+  router.delete('/users/:id', [UsersController, 'destroy']).use(middleware.admin())
   // Profiles (self) - place before param route to avoid ':id' capturing 'me'
   router.get('/profile/status', [UsersController, 'profileStatus'])
   router.post('/users/me/profile', [UsersController, 'createMyProfile'])
