@@ -1,7 +1,7 @@
 import React, { createContext, useContext, useEffect, useState } from 'react'
 import { cn } from '~/components/ui/utils'
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome'
-import { faGear } from '@fortawesome/free-solid-svg-icons'
+import { faBarsProgress } from '@fortawesome/free-solid-svg-icons'
 
 type SidebarContextValue = {
 	open: boolean
@@ -68,7 +68,7 @@ export function SidebarTrigger({ className, children }: { className?: string; ch
 				className
 			)}
 		>
-			{children ?? <FontAwesomeIcon icon={faGear} className="w-14 h-14" size="xl" />}
+			{children ?? <FontAwesomeIcon icon={faBarsProgress} className="w-14 h-14" size="lg" />}
 		</button>
 	)
 }
