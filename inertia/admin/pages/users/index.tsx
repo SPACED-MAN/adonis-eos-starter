@@ -9,6 +9,7 @@ import { toast } from 'sonner'
 type UserRow = {
   id: number
   email: string
+  username: string | null
   fullName: string | null
   role: 'admin' | 'editor' | 'translator'
   createdAt?: string
@@ -49,7 +50,7 @@ export default function UsersIndex() {
     if (!q) return rows
     return rows.filter((r) =>
       r.email.toLowerCase().includes(q) ||
-      (r.fullName || '').toLowerCase().includes(q) ||
+      (r.username || '').toLowerCase().includes(q) ||
       r.role.toLowerCase().includes(q)
     )
   }
@@ -127,7 +128,7 @@ export default function UsersIndex() {
               <thead>
                 <tr className="text-neutral-medium">
                   <th className="text-left py-2 pr-2">Email</th>
-                  <th className="text-left py-2 pr-2">Full Name</th>
+                  <th className="text-left py-2 pr-2">Username</th>
                   <th className="text-left py-2 pr-2">Role</th>
                   <th className="text-right py-2 pl-2">Actions</th>
                 </tr>
@@ -138,12 +139,12 @@ export default function UsersIndex() {
                     <td className="py-2 pr-2">{u.email}</td>
                     <td className="py-2 pr-2">
                       <Input
-                        defaultValue={u.fullName || ''}
+                        defaultValue={u.username || ''}
                         onBlur={(e) => {
                           const val = e.target.value
-                          if (val !== (u.fullName || '')) saveRow(u.id, { fullName: val })
+                          if (val !== (u.username || '')) saveRow(u.id, { username: val })
                         }}
-                        placeholder="Full name"
+                        placeholder="Username"
                         className="max-w-xs"
                       />
                     </td>
@@ -160,12 +161,41 @@ export default function UsersIndex() {
                       </Select>
                     </td>
                     <td className="py-2 pl-2 text-right">
-                  <a
-                    href={`/admin/users/${u.id}/edit`}
-                    className="px-2 py-1 text-xs border border-line rounded hover:bg-backdrop-medium text-neutral-medium mr-2"
-                  >
-                    Edit
-                  </a>
+                      <a
+                        href={`/admin/users/${u.id}/edit`}
+                        className="px-2 py-1 text-xs border border-line rounded hover:bg-backdrop-medium text-neutral-medium mr-2"
+                      >
+                        Edit
+                      </a>
+                      <button
+                        className="px-2 py-1 text-xs border border-line rounded hover:bg-backdrop-medium text-neutral-high mr-2"
+                        onClick={async () => {
+                          try {
+                            const res = await fetch(`/api/users/${encodeURIComponent(u.id)}/profile`, { credentials: 'same-origin' })
+                            const j = await res.json().catch(() => ({}))
+                            let pid: string | null = j?.id || null
+                            if (!pid) {
+                              const csrf = getXsrf()
+                              const createRes = await fetch(`/api/users/${encodeURIComponent(u.id)}/profile`, {
+                                method: 'POST',
+                                headers: { Accept: 'application/json', 'Content-Type': 'application/json', ...(csrf ? { 'X-XSRF-TOKEN': csrf } : {}) },
+                                credentials: 'same-origin',
+                              })
+                              const cj = await createRes.json().catch(() => ({}))
+                              if (!createRes.ok) {
+                                toast.error(cj?.error || 'Failed to create profile')
+                                return
+                              }
+                              pid = cj?.id || null
+                            }
+                            if (pid) window.location.href = `/admin/posts/${pid}/edit`
+                          } catch {
+                            toast.error('Failed to open profile')
+                          }
+                        }}
+                      >
+                        Edit Details
+                      </button>
                       {pwdFor === u.id ? (
                         <div className="inline-flex items-center gap-2">
                           <Input

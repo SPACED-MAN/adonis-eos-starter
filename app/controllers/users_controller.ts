@@ -10,11 +10,12 @@ export default class UsersController {
 	 * GET /api/users (admin)
 	 */
 	async index({ response }: HttpContext) {
-		const rows = await db.from('users').orderBy('created_at', 'desc').select('id', 'email', 'full_name', 'role', 'created_at', 'updated_at')
+    const rows = await db.from('users').orderBy('created_at', 'desc').select('id', 'email', 'username', 'full_name', 'role', 'created_at', 'updated_at')
 		return response.ok({
 			data: rows.map((r: any) => ({
 				id: r.id,
 				email: r.email,
+        username: r.username ?? null,
 				fullName: r.full_name ?? null,
 				role: r.role,
 				createdAt: r.created_at,
@@ -23,12 +24,64 @@ export default class UsersController {
 		})
 	}
 
+  /**
+   * GET /api/users/:id/profile (admin)
+   * Returns the profile post id for a given user, or null if none.
+   */
+  async profileForUser({ params, response }: HttpContext) {
+    const { id } = params
+    const userId = Number(id)
+    if (!Number.isFinite(userId) || userId <= 0) {
+      return response.badRequest({ error: 'Invalid user id' })
+    }
+    const row = await db.from('posts').where({ type: 'profile', author_id: userId }).first()
+    if (!row) return response.ok({ id: null })
+    return response.ok({ id: (row as any).id })
+  }
+
+  /**
+   * POST /api/users/:id/profile (admin)
+   * Create a profile post for the given user if missing; returns the id.
+   */
+  async createProfileForUser({ params, response }: HttpContext) {
+    const { id } = params
+    const userId = Number(id)
+    if (!Number.isFinite(userId) || userId <= 0) {
+      return response.badRequest({ error: 'Invalid user id' })
+    }
+    // If exists, return it
+    const existing = await db.from('posts').where({ type: 'profile', author_id: userId }).first()
+    if (existing) return response.ok({ id: (existing as any).id })
+    // Fallback locale
+    const defaultLocaleRow = await db.from('locales').where('is_default', true).first()
+    const locale = (defaultLocaleRow as any)?.code || 'en'
+    const user = await db.from('users').where('id', userId).first()
+    if (!user) return response.notFound({ error: 'User not found' })
+    const base = String((user as any).full_name || (user as any).email || `user-${userId}`).toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-+|-+$/g, '')
+    const slug = `${base || 'user'}-${userId}`
+    const title = (user as any).full_name ? `${(user as any).full_name}'s Profile` : `User ${userId} Profile`
+    const now = new Date()
+    const [created] = await db.table('posts').insert({
+      id: (await import('node:crypto')).randomUUID(),
+      type: 'profile',
+      slug,
+      title,
+      status: 'draft',
+      locale,
+      user_id: userId,
+      author_id: userId,
+      created_at: now,
+      updated_at: now,
+    }).returning('*')
+    return response.created({ id: (created as any).id })
+  }
+
 	/**
 	 * PATCH /api/users/:id (admin) - update name/email/role
 	 */
-	async update({ params, request, response }: HttpContext) {
+  async update({ params, request, response }: HttpContext) {
 		const { id } = params
-		const { fullName, email, role } = request.only(['fullName', 'email', 'role'])
+    const { email, role, username } = request.only(['email', 'role', 'username'])
 		if (role && !['admin', 'editor', 'translator'].includes(String(role))) {
 			return response.badRequest({ error: 'Invalid role' })
 		}
@@ -39,11 +92,18 @@ export default class UsersController {
 				return response.status(409).json({ error: 'Email already in use' })
 			}
 		}
+    // Unique username check when changing (when provided)
+    if (username) {
+      const existingU = await db.from('users').whereRaw('LOWER(username) = LOWER(?)', [String(username)]).andWhereNot('id', id).first()
+      if (existingU) {
+        return response.status(409).json({ error: 'Username already in use' })
+      }
+    }
 		const now = new Date()
 		const update: any = { updated_at: now }
-		if (typeof fullName === 'string') update.full_name = fullName
 		if (typeof email === 'string') update.email = email
 		if (typeof role === 'string') update.role = role
+    if (typeof username === 'string') update.username = username
 		const count = await db.from('users').where('id', id).update(update)
 		if (!count) return response.notFound({ error: 'User not found' })
 		const user = await db.from('users').where('id', id).first()
@@ -51,6 +111,7 @@ export default class UsersController {
 			data: {
 				id: user.id,
 				email: user.email,
+        username: user.username ?? null,
 				fullName: user.full_name ?? null,
 				role: user.role,
 				updatedAt: user.updated_at,

@@ -35,16 +35,23 @@ export default class extends BaseSeeder {
       })
     }
 
-    // Test 1: Create a template
-    const [template] = await db.table('templates').insert({
-      name: 'test-blog-template',
-      post_type: 'blog',
-      description: 'Test blog template',
-      locked: false,
-      created_at: new Date(),
-      updated_at: new Date(),
-    }).returning('*')
-    console.log('✅ Created template:', template.name)
+    // Test 1: Ensure a test template exists (idempotent)
+    const existingTemplate = await db.from('templates').where({ name: 'test-blog-template' }).first()
+    let template: any = existingTemplate
+    if (!template) {
+      const [createdTemplate] = await db.table('templates').insert({
+        name: 'test-blog-template',
+        post_type: 'blog',
+        description: 'Test blog template',
+        locked: false,
+        created_at: new Date(),
+        updated_at: new Date(),
+      }).returning('*')
+      template = createdTemplate
+      console.log('✅ Created template:', template.name)
+    } else {
+      console.log('✅ Template exists:', (template as any).name)
+    }
 
     // Test 2: Add modules to template
     await db.table('template_modules').insert({

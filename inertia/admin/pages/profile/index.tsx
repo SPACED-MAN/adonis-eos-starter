@@ -3,6 +3,7 @@ import { Head } from '@inertiajs/react'
 import { AdminHeader } from '../../components/AdminHeader'
 import { AdminFooter } from '../../components/AdminFooter'
 import { AdminBreadcrumbs } from '../../components/AdminBreadcrumbs'
+import { toast } from 'sonner'
 
 function getXsrf(): string | undefined {
   if (typeof document === 'undefined') return undefined
@@ -58,11 +59,15 @@ export default function ProfileIndex() {
                     },
                     credentials: 'same-origin',
                   })
-                  const j = await res.json().catch(() => ({}))
-                  if (res.ok && j?.id) {
-                    window.location.href = `/admin/posts/${j.id}/edit`
-                  } else {
-                    alert(j?.error || 'Failed to create profile')
+                  try {
+                    const j = await res.json().catch(() => ({}))
+                    if (res.ok && j?.id) {
+                      window.location.href = `/admin/posts/${j.id}/edit`
+                    } else {
+                      toast.error(j?.error || 'Failed to create profile')
+                    }
+                  } catch {
+                    toast.error('Failed to create profile')
                   }
                 }}
               >

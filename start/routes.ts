@@ -148,12 +148,15 @@ router.group(() => {
 	router.get('/agents', [AgentsController, 'index']).use(middleware.admin())
 	router.post('/posts/:id/agents/:agentId/run', [AgentsController, 'runForPost']).use(middleware.admin())
 	// Users (admin)
-	router.get('/users', [UsersController, 'index']).use(middleware.admin())
-	router.patch('/users/:id', [UsersController, 'update']).use(middleware.admin())
-	router.patch('/users/:id/password', [UsersController, 'resetPassword']).use(middleware.admin())
-	// Profiles (self)
-	router.get('/profile/status', [UsersController, 'profileStatus'])
-	router.post('/users/me/profile', [UsersController, 'createMyProfile'])
+  router.get('/users', [UsersController, 'index']).use(middleware.admin())
+  router.patch('/users/:id', [UsersController, 'update']).use(middleware.admin())
+  router.patch('/users/:id/password', [UsersController, 'resetPassword']).use(middleware.admin())
+  // Profiles (self) - place before param route to avoid ':id' capturing 'me'
+  router.get('/profile/status', [UsersController, 'profileStatus'])
+  router.post('/users/me/profile', [UsersController, 'createMyProfile'])
+  // Admin: profile lookup/create for a given user id
+  router.get('/users/:id/profile', [UsersController, 'profileForUser']).use(middleware.admin())
+  router.post('/users/:id/profile', [UsersController, 'createProfileForUser']).use(middleware.admin())
 	// Media
 	router.get('/media', [MediaController, 'index'])
 	router.get('/media/categories', [MediaController, 'categories'])

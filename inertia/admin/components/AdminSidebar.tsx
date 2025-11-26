@@ -30,6 +30,10 @@ export function AdminSidebar() {
 		((page.props as any)?.auth?.user?.email as string | undefined) ||
 		((page.props as any)?.currentUser?.email as string | undefined) ||
 		'User'
+	const userId: number | null =
+		((page.props as any)?.auth?.user?.id as number | undefined) ??
+		((page.props as any)?.currentUser?.id as number | undefined) ??
+		null
 	const [avatarUrl, setAvatarUrl] = useState<string | null>(null)
 	useEffect(() => {
 		let alive = true
@@ -56,7 +60,9 @@ export function AdminSidebar() {
 						<div className="text-sm">
 							<div className="font-semibold text-neutral-high">{userEmail}</div>
 							<div className="text-neutral-low text-xs">
-								<Link href="/admin/profile" className="hover:underline">Profile</Link>
+								<Link href={userId ? `/admin/users/${userId}/edit` : '/admin/profile'} className="hover:underline">
+									Manage Account
+								</Link>
 							</div>
 						</div>
 					</div>
