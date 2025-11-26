@@ -71,7 +71,7 @@ export const AlertDialogAction = React.forwardRef<
 >(({ className, ...props }, ref) => (
 	<AlertDialogPrimitive.Action
 		ref={ref}
-		className={cn('inline-flex items-center rounded bg-primary px-3 py-2 text-sm text-primary-foreground', className)}
+		className={cn('inline-flex items-center rounded bg-primary px-3 py-2 text-sm text-primary-foreground cursor-pointer', className)}
 		{...props}
 	/>
 ))
@@ -83,7 +83,7 @@ export const AlertDialogCancel = React.forwardRef<
 >(({ className, ...props }, ref) => (
 	<AlertDialogPrimitive.Cancel
 		ref={ref}
-		className={cn('inline-flex items-center rounded border border-border bg-background px-3 py-2 text-sm', className)}
+		className={cn('inline-flex items-center rounded border border-border bg-background px-3 py-2 text-sm cursor-pointer', className)}
 		{...props}
 	/>
 ))

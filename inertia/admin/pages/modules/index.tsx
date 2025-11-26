@@ -137,7 +137,7 @@ export default function GlobalModulesIndex() {
               <h3 className="text-sm font-semibold text-neutral-high">Global Modules</h3>
               {isAdmin && (
                 <button
-                  className="px-3 py-1.5 text-xs rounded bg-standout text-on-standout"
+                  className="px-3 py-1.5 text-xs rounded bg-standout text-on-standout cursor-pointer"
                   onClick={() => setCreateOpen(true)}
                   type="button"
                 >

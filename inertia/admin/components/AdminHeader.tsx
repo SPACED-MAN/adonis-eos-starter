@@ -23,17 +23,19 @@ export function AdminHeader({ title = 'Admin' }: { title?: string }) {
 							<h1 className="text-2xl font-bold text-neutral-high">{title}</h1>
 						</div>
 						<div className="flex items-center gap-3">
-							<Link
+							<a
 								href="/"
-								className="text-sm text-neutral-low hover:text-standout"
+								target="_blank"
+								rel="noopener noreferrer"
+								className="text-sm text-neutral-low hover:text-standout cursor-pointer"
 							>
 								View Site
-							</Link>
+							</a>
 							<Link
 								href="/admin/logout"
 								method="post"
 								as="button"
-								className="px-3 py-1.5 border border-line rounded-lg text-sm text-neutral-medium hover:bg-backdrop-medium"
+								className="px-3 py-1.5 border border-line rounded-lg text-sm text-neutral-medium hover:bg-backdrop-medium cursor-pointer"
 							>
 								Logout
 							</Link>

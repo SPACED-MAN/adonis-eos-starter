@@ -459,7 +459,7 @@ export default function Dashboard({ }: DashboardProps) {
               {(isAdmin || isEditor) && (
                 <button
                   onClick={() => setIsCreateOpen(true)}
-                  className="px-3 py-2 text-sm border border-line rounded bg-standout text-on-standout"
+                  className="px-3 py-2 text-sm border border-line rounded bg-standout text-on-standout cursor-pointer"
                 >
                   Create New
                 </button>
