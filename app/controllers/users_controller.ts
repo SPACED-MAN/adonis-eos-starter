@@ -1,5 +1,6 @@
 import type { HttpContext } from '@adonisjs/core/http'
 import db from '@adonisjs/lucid/services/db'
+import { ROLES } from '../types/roles.ts'
 import hash from '@adonisjs/core/services/hash'
 import LocaleService from '#services/locale_service'
 import CreatePost from '#actions/posts/create_post'
@@ -82,7 +83,7 @@ export default class UsersController {
   async update({ params, request, response }: HttpContext) {
 		const { id } = params
     const { email, role, username } = request.only(['email', 'role', 'username'])
-		if (role && !['admin', 'editor', 'translator'].includes(String(role))) {
+    if (role && !ROLES.includes(String(role) as any)) {
 			return response.badRequest({ error: 'Invalid role' })
 		}
 		// Unique email check when changing

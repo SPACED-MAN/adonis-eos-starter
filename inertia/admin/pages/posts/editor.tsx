@@ -26,6 +26,8 @@ import { ModulePicker } from '../../components/modules/ModulePicker'
 import { FormEvent, useEffect, useMemo, useRef, useState } from 'react'
 import { toast } from 'sonner'
 import { AdminBreadcrumbs } from '../../components/AdminBreadcrumbs'
+import { humanizeSlug } from '~/utils/strings'
+import type { CustomFieldType } from '~/types/custom_field'
 import { ModuleEditorPanel, ModuleListItem } from '../../components/modules/ModuleEditorPanel'
 import { MediaPickerModal } from '../../components/media/MediaPickerModal'
 import { DndContext, closestCenter, PointerSensor, useSensor, useSensors, DragEndEvent } from '@dnd-kit/core'
@@ -70,7 +72,7 @@ interface EditorProps {
     id: string
     slug: string
     label: string
-    fieldType: 'text' | 'textarea' | 'number' | 'select' | 'multiselect' | 'media' | 'date' | 'url'
+    fieldType: CustomFieldType
     config?: Record<string, any>
     translatable?: boolean
     value?: any
@@ -165,9 +167,12 @@ export default function Editor({ post, modules: initialModules, translations, re
   const page = usePage()
   const csrfFromProps: string | undefined = (page.props as any)?.csrf
   const xsrfFromCookie: string | undefined = (() => {
-    if (typeof document === 'undefined') return undefined
-    const match = document.cookie.match(/(?:^|; )XSRF-TOKEN=([^;]+)/)
-    return match ? decodeURIComponent(match[1]) : undefined
+    try {
+      const { getXsrf } = require('~/utils/xsrf')
+      return getXsrf()
+    } catch {
+      return undefined
+    }
   })()
   const xsrfToken = xsrfFromCookie ?? csrfFromProps
   const role: string | undefined =
@@ -527,16 +532,14 @@ export default function Editor({ post, modules: initialModules, translations, re
 
   return (
     <div className="min-h-screen bg-backdrop-low">
-      <AdminHeader title={`Edit ${post.type ? post.type.replace(/([a-z])([A-Z])/g, '$1 $2').replace(/[-_]+/g, ' ').replace(/\b\w/g, (c) => c.toUpperCase()) : 'Post'}`} />
+      <AdminHeader title={`Edit ${post.type ? humanizeSlug(post.type) : 'Post'}`} />
 
       {/* Main Content */}
       <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
         <AdminBreadcrumbs
           items={[
             { label: 'Dashboard', href: '/admin' },
-            {
-              label: `Edit ${post.type ? post.type.replace(/([a-z])([A-Z])/g, '$1 $2').replace(/[-_]+/g, ' ').replace(/\b\w/g, (c) => c.toUpperCase()) : 'Post'}`,
-            },
+            { label: `Edit ${post.type ? humanizeSlug(post.type) : 'Post'}` },
           ]}
         />
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">

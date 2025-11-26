@@ -1,10 +1,4 @@
-type PostTypeField = {
-	slug: string
-	label: string
-	type: 'text' | 'textarea' | 'number' | 'select' | 'multiselect' | 'media' | 'date' | 'url'
-	translatable?: boolean
-	config?: Record<string, any>
-}
+import type { PostTypeField } from '../types/custom_field'
 
 type PostTypeUiConfig = {
 	hideCoreFields?: Array<'title' | 'excerpt' | 'parent' | 'slug' | 'meta' | 'seo'>

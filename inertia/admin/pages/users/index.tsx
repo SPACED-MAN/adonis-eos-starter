@@ -5,20 +5,16 @@ import { AdminBreadcrumbs } from '../../components/AdminBreadcrumbs'
 import { Input } from '../../../components/ui/input'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '~/components/ui/select'
 import { toast } from 'sonner'
+import { getXsrf } from '~/utils/xsrf'
+import { ROLES, type Role } from '~/types/roles'
 
 type UserRow = {
   id: number
   email: string
   username: string | null
   fullName: string | null
-  role: 'admin' | 'editor' | 'translator'
+  role: Role
   createdAt?: string
-}
-
-function getXsrf(): string | undefined {
-  if (typeof document === 'undefined') return undefined
-  const m = document.cookie.match(/(?:^|; )XSRF-TOKEN=([^;]+)/)
-  return m ? decodeURIComponent(m[1]) : undefined
 }
 
 export default function UsersIndex() {
@@ -149,14 +145,16 @@ export default function UsersIndex() {
                       />
                     </td>
                     <td className="py-2 pr-2">
-                      <Select defaultValue={u.role} onValueChange={(val) => saveRow(u.id, { role: val as any })}>
+                      <Select defaultValue={u.role} onValueChange={(val) => saveRow(u.id, { role: val as Role })}>
                         <SelectTrigger className="w-[160px]">
                           <SelectValue />
                         </SelectTrigger>
                         <SelectContent>
-                          <SelectItem value="admin">Admin</SelectItem>
-                          <SelectItem value="editor">Editor</SelectItem>
-                          <SelectItem value="translator">Translator</SelectItem>
+                          {ROLES.map((r) => (
+                            <SelectItem key={r} value={r}>
+                              {r.charAt(0).toUpperCase() + r.slice(1)}
+                            </SelectItem>
+                          ))}
                         </SelectContent>
                       </Select>
                     </td>

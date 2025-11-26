@@ -3,13 +3,8 @@ import { Head } from '@inertiajs/react'
 import { AdminHeader } from '../../components/AdminHeader'
 import { AdminFooter } from '../../components/AdminFooter'
 import { AdminBreadcrumbs } from '../../components/AdminBreadcrumbs'
+import { getXsrf } from '~/utils/xsrf'
 import { toast } from 'sonner'
-
-function getXsrf(): string | undefined {
-  if (typeof document === 'undefined') return undefined
-  const m = document.cookie.match(/(?:^|; )XSRF-TOKEN=([^;]+)/)
-  return m ? decodeURIComponent(m[1]) : undefined
-}
 
 export default function ProfileIndex() {
   const [loading, setLoading] = useState(false)

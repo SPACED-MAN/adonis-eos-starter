@@ -6,6 +6,8 @@ import { AdminBreadcrumbs } from '../../components/AdminBreadcrumbs'
 import { Input } from '../../../components/ui/input'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '~/components/ui/select'
 import { toast } from 'sonner'
+import { getXsrf } from '~/utils/xsrf'
+import { ROLES, type Role } from '~/types/roles'
 
 function getXsrf(): string | undefined {
   if (typeof document === 'undefined') return undefined
@@ -25,7 +27,7 @@ export default function UserEdit() {
   const [saving, setSaving] = useState(false)
   const [email, setEmail] = useState('')
   const [username, setUsername] = useState('')
-  const [role, setRole] = useState<'admin' | 'editor' | 'translator'>('editor')
+  const [role, setRole] = useState<Role>('editor' as Role)
   const [newPassword, setNewPassword] = useState('')
   const [siteSettings, setSiteSettings] = useState<{ profileRolesEnabled?: string[] } | null>(null)
   const [profileLoading, setProfileLoading] = useState(false)
@@ -39,12 +41,12 @@ export default function UserEdit() {
           setLoading(true)
           const res = await fetch('/api/users', { credentials: 'same-origin' })
           const j = await res.json().catch(() => ({}))
-          const list: Array<{ id: number; email: string; username?: string | null; role: any }> = Array.isArray(j?.data) ? j.data : []
+          const list: Array<{ id: number; email: string; username?: string | null; role: Role }> = Array.isArray(j?.data) ? j.data : []
           const found = list.find((u) => String((u as any).id) === String(userId))
           if (alive && found) {
             setEmail((found as any).email || '')
             setUsername(((found as any).username || '') as string)
-            setRole(((found as any).role || 'editor') as any)
+            setRole(((found as any).role || 'editor') as Role)
           }
           // Load site settings for profile enablement
           try {
@@ -172,14 +174,16 @@ export default function UserEdit() {
                 </div>
                 <div>
                   <label className="block text-sm font-medium text-neutral-medium mb-1">Role</label>
-                  <Select defaultValue={role} onValueChange={(val) => setRole(val as any)}>
+                  <Select defaultValue={role} onValueChange={(val) => setRole(val as Role)}>
                     <SelectTrigger className="w-[200px]">
                       <SelectValue />
                     </SelectTrigger>
                     <SelectContent>
-                      <SelectItem value="admin">Admin</SelectItem>
-                      <SelectItem value="editor">Editor</SelectItem>
-                      <SelectItem value="translator">Translator</SelectItem>
+                      {ROLES.map((r) => (
+                        <SelectItem key={r} value={r}>
+                          {r.charAt(0).toUpperCase() + r.slice(1)}
+                        </SelectItem>
+                      ))}
                     </SelectContent>
                   </Select>
                 </div>
