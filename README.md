@@ -674,27 +674,48 @@ Scopes:
   - `siteSettings` provided to public post pages (`site/post`) for layout/header usage
   - Logos are intended for theme-aware headers (light/dark). Use Media ID variants as needed.
 
-### Milestone 19 — User Profiles & Role Controls
-- User management (admin only)
-  - Admin section to view and manage users
-  - Reassign roles (admin, editor, translator, etc.)
-  - Edit user account information
-  - Reset/change passwords
+### Milestone 19 — User Profiles & Role Controls (✅ Complete)
+- User management (admin-only)
+  - Users list and detail pages (edit email, username, role; reset password)
+  - “Edit Details” button opens/creates that user’s Profile in the post editor
+  - Roles centralized in `app/types/roles.ts`; UI selects render from this source
 - Post author management
-  - Post detail includes an Author section (defaults to the post creator)
-  - Admin-only action to switch/reassign the author
-  - Author data is accessible to templates similarly to other post fields
-- Profile post type
-  - Define a dedicated `Profile` post type that serves as a user bio
-  - Enforce one Profile per user
-- Role-based enablement
-  - Admin setting to enable/disable Profiles per role
-  - Disabling Profiles for a role archives any existing Profiles for users with that role
-- Account area integration
-  - If Profiles are enabled and a user lacks a Profile, show a “Create Profile” call-to-action
-  - Users with permission can create and edit their Profile
-- RBAC consistency
-  - Respect existing admin/editor permissions for visibility and actions
+  - Author section in post sidebar; admin can reassign author
+  - `posts.author_id` added; unique partial index ensures one Profile per user
+- Code-first Post Types (new)
+  - Post types are defined in code at `app/post_types/*.ts`
+  - Auto-registered on boot via `start/post_types.ts` (no DB dependency for config)
+  - `node ace make:post_type <Name>` scaffolds a config with fields, template, urlPatterns
+  - API `GET /api/post-types` lists only code-defined types
+  - Admin “Post Types” settings section removed (configs now code-first)
+- Code-first Custom Fields (per post type)
+  - Custom fields defined in each post type config (`fields` array)
+  - Values stored by `field_slug` in `post_custom_field_values.value` (jsonb)
+  - Editor renders these inside the “Content” area above Modules
+  - Media fields use thumbnail picker (always shows preview with Change/Remove)
+  - Included in review drafts, revisions, and import/export (canonical JSON)
+- Profiles
+  - Dedicated `profile` post type with fields: first_name, last_name, profile_image, bio
+  - Enforced one-per-user via partial unique index on `author_id`
+  - Role-based enablement via `site_settings.profile_roles_enabled` (multi-select)
+  - “Manage Account” header link points to `/admin/users/{me}/edit`; self Profile flow at `/admin/profile` preserved
+- UI/UX polish
+  - “Admin Dashboard” content area is “Posts”; `/admin` is now “Dashboard”
+  - Breadcrumb in post editor says “Edit [Post Type]” (e.g., Edit Profile)
+  - Toasters use Sonner consistently (save, errors, actions)
+
+How to test (Milestone 19):
+1. Run fresh migrations and seed: `node ace migration:fresh && node ace db:seed`
+2. Create a new post type: `node ace make:post_type DolorSit` → restart dev server
+3. Open “Create Post”: verify types show from `app/post_types/*`
+4. Enable Profiles for certain roles in `/admin/settings/general`
+5. Go to “Manage Account” (header) and create/edit your Profile; add a Profile image (thumbnail shown)
+6. As an admin, open `/admin/users`; use “Edit Details” to open or create another user’s Profile
+7. In the post editor, confirm custom fields are inside Content and that the primary button enables on change
+
+Notes:
+- Post type templates and URL patterns are synced on boot from code configs (idempotent).
+- Seeders were updated to code-first custom fields; legacy custom_fields/table usage removed.
 
 ### Milestone 20 — Activity Log
 All user activity should be logged and accessible via 'Admin' roles, in a well organized table. It might make sense to utilize https://github.com/holoyan/adonisjs-activitylog for this.
@@ -706,8 +727,17 @@ The 'Scheduled' status should be fully functional, with a nice ShadCN datepicker
 ## Local Development
 - Install dependencies: `npm install`
 - Start dev server: `npm run dev`
-- Run migrations: `node ace migration:run`
+- Run migrations: `node ace migration:run` (or `node ace migration:fresh` during active development)
 - Run seeds (optional): `node ace db:seed`
+
+Pre-release migration policy:
+- We squash and replace migrations during development; no historical revisions are kept until the first official release.
+- See `.cursor/rules/migrations.md` for details.
+
+DRY guidelines:
+- Constants/unions live in `app/types/*` and are re-exported for the frontend under `inertia/types/*`.
+- Avoid literal duplication (roles, post statuses, custom field types); import from the shared types.
+- See `.cursor/rules/dry.md`.
 
 ## Security
 - Do not commit secrets. Use environment variables.
