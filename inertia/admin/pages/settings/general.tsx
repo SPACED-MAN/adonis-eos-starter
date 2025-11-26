@@ -5,6 +5,7 @@ import { AdminBreadcrumbs } from '../../components/AdminBreadcrumbs'
 import { Input } from '../../../components/ui/input'
 import { Textarea } from '../../../components/ui/textarea'
 import { toast } from 'sonner'
+import { MediaPickerModal } from '../../components/media/MediaPickerModal'
 
 type Settings = {
   siteTitle: string
@@ -88,6 +89,98 @@ export default function GeneralSettings() {
     }
   }
 
+  function MediaIdPicker({
+    label,
+    value,
+    onChange,
+  }: {
+    label: string
+    value: string | null
+    onChange: (id: string | null) => void
+  }) {
+    const [open, setOpen] = useState(false)
+    const [previewUrl, setPreviewUrl] = useState<string | null>(null)
+    const [previewAlt, setPreviewAlt] = useState<string>('')
+    const id = value || ''
+
+    useEffect(() => {
+      let alive = true
+      ;(async () => {
+        try {
+          if (!id) {
+            if (alive) {
+              setPreviewUrl(null)
+              setPreviewAlt('')
+            }
+            return
+          }
+          const res = await fetch(`/api/media/${encodeURIComponent(id)}`, { credentials: 'same-origin' })
+          const j = await res.json().catch(() => ({}))
+          const url = j?.data?.url || null
+          const alt = j?.data?.alt || j?.data?.originalFilename || ''
+          if (alive) {
+            setPreviewUrl(url)
+            setPreviewAlt(alt)
+          }
+        } catch {
+          if (alive) {
+            setPreviewUrl(null)
+            setPreviewAlt('')
+          }
+        }
+      })()
+      return () => {
+        alive = false
+      }
+    }, [id])
+
+    return (
+      <div>
+        <label className="block text-sm font-medium text-neutral-medium mb-1">{label}</label>
+        <div className="flex items-start gap-3">
+          <div className="min-w-[72px]">
+            {previewUrl ? (
+              <div className="w-[72px] h-[72px] border border-line rounded overflow-hidden bg-backdrop-medium">
+                <img src={previewUrl} alt={previewAlt} className="w-full h-full object-cover" />
+              </div>
+            ) : (
+              <div className="w-[72px] h-[72px] border border-dashed border-line rounded flex items-center justify-center text-[10px] text-neutral-medium">
+                No image
+              </div>
+            )}
+          </div>
+          <div className="flex-1">
+            <div className="mt-1 flex items-center gap-2">
+              <button
+                type="button"
+                className="px-2 py-1 text-xs border border-line rounded hover:bg-backdrop-medium text-neutral-medium"
+                onClick={() => setOpen(true)}
+              >
+                {id ? 'Change' : 'Choose'}
+              </button>
+              {id && (
+                <button
+                  type="button"
+                  className="px-2 py-1 text-xs border border-line rounded hover:bg-backdrop-medium text-neutral-medium"
+                  onClick={() => onChange(null)}
+                >
+                  Clear
+                </button>
+              )}
+              {previewAlt && <div className="text-[11px] text-neutral-low truncate max-w-[240px]">{previewAlt}</div>}
+            </div>
+          </div>
+        </div>
+        <MediaPickerModal
+          open={open}
+          onOpenChange={setOpen}
+          initialSelectedId={id || undefined}
+          onSelect={(m) => onChange(m.id)}
+        />
+      </div>
+    )
+  }
+
   return (
     <div className="min-h-screen bg-backdrop-low">
       <AdminHeader title="General Settings" />
@@ -104,24 +197,36 @@ export default function GeneralSettings() {
           </div>
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
             <div>
-              <label className="block text-sm font-medium text-neutral-medium mb-1">Favicon Media ID</label>
-              <Input value={form.faviconMediaId || ''} onChange={(e) => setForm({ ...form, faviconMediaId: e.target.value })} placeholder="Media ID for favicon" />
-              <p className="text-xs text-neutral-low mt-1">Upload via Media Library and paste the ID. Derivatives should include 16x16, 32x32, and 180x180.</p>
+              <MediaIdPicker
+                label="Favicon"
+                value={form.faviconMediaId}
+                onChange={(id) => setForm({ ...form, faviconMediaId: id })}
+              />
+              <p className="text-xs text-neutral-low mt-1">Derivatives should include 16x16, 32x32, and 180x180.</p>
             </div>
             <div>
-              <label className="block text-sm font-medium text-neutral-medium mb-1">Default OG Image Media ID</label>
-              <Input value={form.defaultOgMediaId || ''} onChange={(e) => setForm({ ...form, defaultOgMediaId: e.target.value })} placeholder="Media ID for default OG image" />
+              <MediaIdPicker
+                label="Default OG Image"
+                value={form.defaultOgMediaId}
+                onChange={(id) => setForm({ ...form, defaultOgMediaId: id })}
+              />
             </div>
           </div>
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
             <div>
-              <label className="block text-sm font-medium text-neutral-medium mb-1">Logo (Light mode) Media ID</label>
-              <Input value={form.logoLightMediaId || ''} onChange={(e) => setForm({ ...form, logoLightMediaId: e.target.value })} placeholder="Media ID for light logo" />
+              <MediaIdPicker
+                label="Logo (Light mode)"
+                value={form.logoLightMediaId}
+                onChange={(id) => setForm({ ...form, logoLightMediaId: id })}
+              />
               <p className="text-xs text-neutral-low mt-1">Recommended transparent PNG/SVG sized for your header. Provide a light-on-dark version here.</p>
             </div>
             <div>
-              <label className="block text-sm font-medium text-neutral-medium mb-1">Logo (Dark mode) Media ID</label>
-              <Input value={form.logoDarkMediaId || ''} onChange={(e) => setForm({ ...form, logoDarkMediaId: e.target.value })} placeholder="Media ID for dark logo" />
+              <MediaIdPicker
+                label="Logo (Dark mode)"
+                value={form.logoDarkMediaId}
+                onChange={(id) => setForm({ ...form, logoDarkMediaId: id })}
+              />
               <p className="text-xs text-neutral-low mt-1">Provide a dark-on-light version for light backgrounds.</p>
             </div>
           </div>

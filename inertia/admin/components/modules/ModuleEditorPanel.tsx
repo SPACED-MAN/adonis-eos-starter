@@ -301,152 +301,152 @@ export function ModuleEditorPanel({
 				</FormField>
 			)
 		}
-    if (type === 'media') {
-      type ModalMediaItem = { id: string; url: string; originalFilename?: string; alt?: string | null }
-      const storeAsId = (field as any).storeAs === 'id' || (field as any).store === 'id'
-      const [modalOpen, setModalOpen] = useState(false)
-      const hiddenRef = useRef<HTMLInputElement | null>(null)
-      const displayRef = useRef<HTMLInputElement | null>(null)
-      const currentVal = typeof value === 'string' ? value : ''
-      const [preview, setPreview] = useState<ModalMediaItem | null>(null)
+		if (type === 'media') {
+			type ModalMediaItem = { id: string; url: string; originalFilename?: string; alt?: string | null }
+			const storeAsId = (field as any).storeAs === 'id' || (field as any).store === 'id'
+			const [modalOpen, setModalOpen] = useState(false)
+			const hiddenRef = useRef<HTMLInputElement | null>(null)
+			const displayRef = useRef<HTMLInputElement | null>(null)
+			const currentVal = typeof value === 'string' ? value : ''
+			const [preview, setPreview] = useState<ModalMediaItem | null>(null)
 
-      // Load preview for existing value
-      useEffect(() => {
-        let alive = true
-        ;(async () => {
-          try {
-            if (storeAsId) {
-              if (!currentVal) {
-                if (alive) setPreview(null)
-                return
-              }
-              const res = await fetch(`/api/media/${encodeURIComponent(currentVal)}`, { credentials: 'same-origin' })
-              const j = await res.json().catch(() => ({}))
-              const item: ModalMediaItem | null = j?.data ? { id: j.data.id, url: j.data.url, originalFilename: j.data.originalFilename, alt: j.data.alt } : null
-              if (alive) setPreview(item)
-            } else {
-              // If storing URL directly, best-effort preview
-              if (typeof value === 'string' && value) {
-                if (alive) setPreview({ id: '', url: value, originalFilename: value, alt: null })
-              } else {
-                if (alive) setPreview(null)
-              }
-            }
-          } catch {
-            if (alive) setPreview(null)
-          }
-        })()
-        return () => { alive = false }
-      // re-evaluate when selection changes
-      }, [storeAsId, currentVal])
+			// Load preview for existing value
+			useEffect(() => {
+				let alive = true
+					; (async () => {
+						try {
+							if (storeAsId) {
+								if (!currentVal) {
+									if (alive) setPreview(null)
+									return
+								}
+								const res = await fetch(`/api/media/${encodeURIComponent(currentVal)}`, { credentials: 'same-origin' })
+								const j = await res.json().catch(() => ({}))
+								const item: ModalMediaItem | null = j?.data ? { id: j.data.id, url: j.data.url, originalFilename: j.data.originalFilename, alt: j.data.alt } : null
+								if (alive) setPreview(item)
+							} else {
+								// If storing URL directly, best-effort preview
+								if (typeof value === 'string' && value) {
+									if (alive) setPreview({ id: '', url: value, originalFilename: value, alt: null })
+								} else {
+									if (alive) setPreview(null)
+								}
+							}
+						} catch {
+							if (alive) setPreview(null)
+						}
+					})()
+				return () => { alive = false }
+				// re-evaluate when selection changes
+			}, [storeAsId, currentVal])
 
-      function applySelection(m: ModalMediaItem) {
-        if (storeAsId) {
-          if (hiddenRef.current) {
-            hiddenRef.current.value = m.id
-            hiddenRef.current.dispatchEvent(new Event('input', { bubbles: true }))
-            hiddenRef.current.dispatchEvent(new Event('change', { bubbles: true }))
-          }
-          if (displayRef.current) displayRef.current.value = m.id
-        } else {
-          if (displayRef.current) {
-            displayRef.current.value = m.url
-            displayRef.current.dispatchEvent(new Event('input', { bubbles: true }))
-            displayRef.current.dispatchEvent(new Event('change', { bubbles: true }))
-          }
-        }
-        try {
-          const next = JSON.parse(JSON.stringify(draft))
-          setByPath(next, name, storeAsId ? m.id : m.url)
-          setDraft(next)
-        } catch {}
-        setPreview(m)
-      }
+			function applySelection(m: ModalMediaItem) {
+				if (storeAsId) {
+					if (hiddenRef.current) {
+						hiddenRef.current.value = m.id
+						hiddenRef.current.dispatchEvent(new Event('input', { bubbles: true }))
+						hiddenRef.current.dispatchEvent(new Event('change', { bubbles: true }))
+					}
+					if (displayRef.current) displayRef.current.value = m.id
+				} else {
+					if (displayRef.current) {
+						displayRef.current.value = m.url
+						displayRef.current.dispatchEvent(new Event('input', { bubbles: true }))
+						displayRef.current.dispatchEvent(new Event('change', { bubbles: true }))
+					}
+				}
+				try {
+					const next = JSON.parse(JSON.stringify(draft))
+					setByPath(next, name, storeAsId ? m.id : m.url)
+					setDraft(next)
+				} catch { }
+				setPreview(m)
+			}
 
-      function clearSelection() {
-        if (storeAsId) {
-          if (hiddenRef.current) {
-            hiddenRef.current.value = ''
-            hiddenRef.current.dispatchEvent(new Event('input', { bubbles: true }))
-            hiddenRef.current.dispatchEvent(new Event('change', { bubbles: true }))
-          }
-          if (displayRef.current) displayRef.current.value = ''
-        } else {
-          if (displayRef.current) {
-            displayRef.current.value = ''
-            displayRef.current.dispatchEvent(new Event('input', { bubbles: true }))
-            displayRef.current.dispatchEvent(new Event('change', { bubbles: true }))
-          }
-        }
-        try {
-          const next = JSON.parse(JSON.stringify(draft))
-          setByPath(next, name, '')
-          setDraft(next)
-        } catch {}
-        setPreview(null)
-      }
-      return (
-        <FormField>
-          <FormLabel>{label}</FormLabel>
-          <div className="flex items-start gap-3">
-            <div className="min-w-[72px]">
-              {preview ? (
-                <div className="w-[72px] h-[72px] border border-line rounded overflow-hidden bg-backdrop-medium">
-                  <img src={preview.url} alt={preview.alt || preview.originalFilename || ''} className="w-full h-full object-cover" />
-                </div>
-              ) : (
-                <div className="w-[72px] h-[72px] border border-dashed border-line rounded flex items-center justify-center text-[10px] text-neutral-medium">
-                  No image
-                </div>
-              )}
-            </div>
-            <div className="flex-1">
-              {storeAsId ? (
-                <>
-                  {/* keep hidden input for form submission */}
-                  <input type="hidden" name={name} defaultValue={currentVal} ref={hiddenRef} />
-                  {/* hide the ID input from UI; we show preview instead */}
-                  <input type="text" defaultValue={currentVal} ref={displayRef} className="hidden" readOnly />
-                </>
-              ) : (
-                <Input type="text" name={name} defaultValue={value ?? ''} ref={displayRef} placeholder={(field as any).placeholder || 'https://...'} />
-              )}
-              <div className="mt-2 flex items-center gap-2">
-                <button
-                  type="button"
-                  className="px-2 py-1 text-xs border border-line rounded hover:bg-backdrop-medium text-neutral-medium"
-                  onClick={() => setModalOpen(true)}
-                >
-                  {preview ? 'Change' : 'Choose'}
-                </button>
-                {preview && (
-                  <button
-                    type="button"
-                    className="px-2 py-1 text-xs border border-line rounded hover:bg-backdrop-medium text-neutral-medium"
-                    onClick={clearSelection}
-                  >
-                    Clear
-                  </button>
-                )}
-                {preview && (
-                  <div className="text-[11px] text-neutral-low truncate max-w-[240px]">
-                    {(preview.alt || preview.originalFilename || '').toString()}
-                  </div>
-                )}
-              </div>
-            </div>
-            <MediaPickerModal
-              open={modalOpen}
-              onOpenChange={setModalOpen}
-              initialSelectedId={storeAsId ? (currentVal || undefined) : undefined}
-              onSelect={(m) => {
-                applySelection(m as ModalMediaItem)
-              }}
-            />
-          </div>
-        </FormField>
-      )
-    }
+			function clearSelection() {
+				if (storeAsId) {
+					if (hiddenRef.current) {
+						hiddenRef.current.value = ''
+						hiddenRef.current.dispatchEvent(new Event('input', { bubbles: true }))
+						hiddenRef.current.dispatchEvent(new Event('change', { bubbles: true }))
+					}
+					if (displayRef.current) displayRef.current.value = ''
+				} else {
+					if (displayRef.current) {
+						displayRef.current.value = ''
+						displayRef.current.dispatchEvent(new Event('input', { bubbles: true }))
+						displayRef.current.dispatchEvent(new Event('change', { bubbles: true }))
+					}
+				}
+				try {
+					const next = JSON.parse(JSON.stringify(draft))
+					setByPath(next, name, '')
+					setDraft(next)
+				} catch { }
+				setPreview(null)
+			}
+			return (
+				<FormField>
+					<FormLabel>{label}</FormLabel>
+					<div className="flex items-start gap-3">
+						<div className="min-w-[72px]">
+							{preview ? (
+								<div className="w-[72px] h-[72px] border border-line rounded overflow-hidden bg-backdrop-medium">
+									<img src={preview.url} alt={preview.alt || preview.originalFilename || ''} className="w-full h-full object-cover" />
+								</div>
+							) : (
+								<div className="w-[72px] h-[72px] border border-dashed border-line rounded flex items-center justify-center text-[10px] text-neutral-medium">
+									No image
+								</div>
+							)}
+						</div>
+						<div className="flex-1">
+							{storeAsId ? (
+								<>
+									{/* keep hidden input for form submission */}
+									<input type="hidden" name={name} defaultValue={currentVal} ref={hiddenRef} />
+									{/* hide the ID input from UI; we show preview instead */}
+									<input type="text" defaultValue={currentVal} ref={displayRef} className="hidden" readOnly />
+								</>
+							) : (
+								<Input type="text" name={name} defaultValue={value ?? ''} ref={displayRef} placeholder={(field as any).placeholder || 'https://...'} />
+							)}
+							<div className="mt-2 flex items-center gap-2">
+								<button
+									type="button"
+									className="px-2 py-1 text-xs border border-line rounded hover:bg-backdrop-medium text-neutral-medium"
+									onClick={() => setModalOpen(true)}
+								>
+									{preview ? 'Change' : 'Choose'}
+								</button>
+								{preview && (
+									<button
+										type="button"
+										className="px-2 py-1 text-xs border border-line rounded hover:bg-backdrop-medium text-neutral-medium"
+										onClick={clearSelection}
+									>
+										Clear
+									</button>
+								)}
+								{preview && (
+									<div className="text-[11px] text-neutral-low truncate max-w-[240px]">
+										{(preview.alt || preview.originalFilename || '').toString()}
+									</div>
+								)}
+							</div>
+						</div>
+						<MediaPickerModal
+							open={modalOpen}
+							onOpenChange={setModalOpen}
+							initialSelectedId={storeAsId ? (currentVal || undefined) : undefined}
+							onSelect={(m) => {
+								applySelection(m as ModalMediaItem)
+							}}
+						/>
+					</div>
+				</FormField>
+			)
+		}
 		if (type === 'number') {
 			return (
 				<FormField>
@@ -470,26 +470,26 @@ export function ModuleEditorPanel({
 			}, [vals, allowMultiple])
 			useEffect(() => {
 				let alive = true
-				;(async () => {
-					try {
-						const params = new URLSearchParams()
-						params.set('status', 'published')
-						params.set('limit', '100')
-						params.set('sortBy', 'published_at')
-						params.set('sortOrder', 'desc')
-						if (allowedTypes.length > 0) {
-							params.set('types', allowedTypes.join(','))
+					; (async () => {
+						try {
+							const params = new URLSearchParams()
+							params.set('status', 'published')
+							params.set('limit', '100')
+							params.set('sortBy', 'published_at')
+							params.set('sortOrder', 'desc')
+							if (allowedTypes.length > 0) {
+								params.set('types', allowedTypes.join(','))
+							}
+							const r = await fetch(`/api/posts?${params.toString()}`, { credentials: 'same-origin' })
+							const j = await r.json().catch(() => ({}))
+							const list: Array<{ id: string; title: string }> = Array.isArray(j?.data) ? j.data : []
+							if (!alive) return
+							setOptions(list.map((p) => ({ label: p.title || p.id, value: p.id })))
+						} catch {
+							if (!alive) return
+							setOptions([])
 						}
-						const r = await fetch(`/api/posts?${params.toString()}`, { credentials: 'same-origin' })
-						const j = await r.json().catch(() => ({}))
-						const list: Array<{ id: string; title: string }> = Array.isArray(j?.data) ? j.data : []
-						if (!alive) return
-						setOptions(list.map((p) => ({ label: p.title || p.id, value: p.id })))
-					} catch {
-						if (!alive) return
-						setOptions([])
-					}
-				})()
+					})()
 				return () => {
 					alive = false
 				}
@@ -552,21 +552,21 @@ export function ModuleEditorPanel({
 			const optionsSource = (field as any).optionsSource as string | undefined
 			useEffect(() => {
 				let alive = true
-				;(async () => {
-					try {
-						// Only fetch when we have a known source and no static options
-						if (dynamicOptions.length > 0) return
-						if (optionsSource === 'post-types') {
-							const r = await fetch('/api/post-types', { credentials: 'same-origin' })
-							const j = await r.json().catch(() => ({}))
-							const list: string[] = Array.isArray(j?.data) ? j.data : []
-							if (!alive) return
-							setDynamicOptions(list.map((t) => ({ label: t, value: t })))
+					; (async () => {
+						try {
+							// Only fetch when we have a known source and no static options
+							if (dynamicOptions.length > 0) return
+							if (optionsSource === 'post-types') {
+								const r = await fetch('/api/post-types', { credentials: 'same-origin' })
+								const j = await r.json().catch(() => ({}))
+								const list: string[] = Array.isArray(j?.data) ? j.data : []
+								if (!alive) return
+								setDynamicOptions(list.map((t) => ({ label: t, value: t })))
+							}
+						} catch {
+							/* ignore */
 						}
-					} catch {
-						/* ignore */
-					}
-				})()
+					})()
 				return () => {
 					alive = false
 				}

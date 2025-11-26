@@ -162,6 +162,9 @@ router.group(() => {
 	router.delete('/media/:id', [MediaController, 'destroy']).use(middleware.admin())
 	router.post('/media/:id/variants', [MediaController, 'variants']).use(middleware.admin())
 	router.patch('/media/:id/rename', [MediaController, 'rename']).use(middleware.admin())
+	// Site Settings
+	router.get('/site-settings', [SiteSettingsController, 'show'])
+	router.patch('/site-settings', [SiteSettingsController, 'update']).use(middleware.admin())
 	// Global/Static modules
 	router.get('/modules/global', [GlobalModulesController, 'index']).use(middleware.admin())
 	router.post('/modules/global', [GlobalModulesController, 'create']).use(middleware.admin())
@@ -232,9 +235,3 @@ router.get('/admin/forbidden', async ({ inertia }) => {
  * Catch-all: resolve posts by URL patterns (must be last)
  */
 router.get('*', [PostsController, 'resolve'])
-
-// API - Site Settings (Admin)
-router.group(() => {
-  router.get('/site-settings', [SiteSettingsController, 'show'])
-  router.patch('/site-settings', [SiteSettingsController, 'update']).use(middleware.admin())
-}).prefix('/api').use(middleware.auth())

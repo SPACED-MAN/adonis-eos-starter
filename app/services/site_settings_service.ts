@@ -57,7 +57,7 @@ class SiteSettingsService {
         updated_at: new Date(),
       })
     } else {
-      await db.table('site_settings').update({
+      await db.from('site_settings').update({
         site_title: next.siteTitle,
         default_meta_description: next.defaultMetaDescription,
         favicon_media_id: next.faviconMediaId,
