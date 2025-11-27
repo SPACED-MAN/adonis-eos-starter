@@ -20,6 +20,8 @@ export default {
 	urlPatterns: [
 		{ locale: 'en', pattern: '/blog/{yyyy}/{slug}', isDefault: true },
 	],
+	// Permalinks enabled for this type (set to false to disable public pages)
+	permalinksEnabled: true,
 } as const
 
 

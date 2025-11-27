@@ -1180,6 +1180,13 @@ export default class PostsController {
           locale,
         })
       }
+      // Block public rendering if permalinks are disabled for this post type
+      try {
+        const uiConfig = postTypeConfigService.getUiConfig(post.type)
+        if (uiConfig.permalinksEnabled === false) {
+          return response.notFound({ error: 'Permalinks disabled for this post type' })
+        }
+      } catch { /* ignore and proceed */ }
 
       // Fetch modules with potential review fields
       const modulesRows = await db
@@ -1508,6 +1515,15 @@ export default class PostsController {
       return response.notFound({ error: 'Not found' })
     }
     const { slug, locale } = match
+    // Early: prevent resolving if post type has permalinks disabled
+    if (match.postType) {
+      try {
+        const uiConfig = postTypeConfigService.getUiConfig(match.postType)
+        if (uiConfig.permalinksEnabled === false) {
+          return response.notFound({ error: 'Permalinks disabled for this post type' })
+        }
+      } catch { /* continue */ }
+    }
     const viewParam = String(request.input('view', '')).toLowerCase()
     const wantReview = viewParam === 'review' && Boolean(request.header('cookie'))
     try {

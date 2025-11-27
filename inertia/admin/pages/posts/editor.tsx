@@ -82,6 +82,7 @@ interface EditorProps {
   uiConfig?: {
     hideCoreFields?: string[]
     hierarchyEnabled?: boolean
+    permalinksEnabled?: boolean
   }
 }
 
@@ -1157,17 +1158,19 @@ export default function Editor({ post, modules: initialModules, translations, re
                     </button>
                   )}
                 </div>
-                <button
-                  className="w-full px-4 py-2 text-sm border border-border rounded-lg hover:bg-backdrop-medium text-neutral-medium"
-                  onClick={() => {
-                    const base = (post as any).publicPath || `/posts/${post.slug}`
-                    const target = viewMode === 'review' ? `${base}${base.includes('?') ? '&' : '?'}view=review` : base
-                    window.open(target, '_blank')
-                  }}
-                  type="button"
-                >
-                  View on Site
-                </button>
+                {uiConfig?.permalinksEnabled !== false && (
+                  <button
+                    className="w-full px-4 py-2 text-sm border border-border rounded-lg hover:bg-backdrop-medium text-neutral-medium"
+                    onClick={() => {
+                      const base = (post as any).publicPath || `/posts/${post.slug}`
+                      const target = viewMode === 'review' ? `${base}${base.includes('?') ? '&' : '?'}view=review` : base
+                      window.open(target, '_blank')
+                    }}
+                    type="button"
+                  >
+                    View on Site
+                  </button>
+                )}
                 <button
                   className={`w-full px-4 py-2 text-sm rounded-lg disabled:opacity-50 ${(!isDirty || processing) ? 'border border-border text-neutral-medium' : 'bg-standout text-on-standout font-medium'}`}
                   disabled={!isDirty || processing}

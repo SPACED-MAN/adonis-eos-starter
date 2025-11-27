@@ -1,4 +1,4 @@
-import type { PostTypeField } from '../types/custom_field'
+import type { PostTypeField } from '../types/custom_field.ts'
 
 type PostTypeUiConfig = {
 	hideCoreFields?: Array<'title' | 'excerpt' | 'parent' | 'slug' | 'meta' | 'seo'>
@@ -6,6 +6,7 @@ type PostTypeUiConfig = {
 	fields?: PostTypeField[]
 	template?: { name: string; description?: string }
 	urlPatterns?: Array<{ locale: string; pattern: string; isDefault?: boolean }>
+	permalinksEnabled?: boolean
 }
 
 import postTypeRegistry from '#services/post_type_registry'
@@ -21,6 +22,7 @@ class PostTypeConfigService {
 			fields: [],
 			template: { name: `${postType}-default` },
 			urlPatterns: [],
+			permalinksEnabled: true,
 		}
 		const isDev = process.env.NODE_ENV === 'development'
 		if (!isDev && cache.has(postType)) return cache.get(postType)!
@@ -55,6 +57,7 @@ class PostTypeConfigService {
 			fields: Array.isArray(cfg.fields) ? cfg.fields : [],
 			template: cfg.template && cfg.template.name ? cfg.template : base.template,
 			urlPatterns: Array.isArray(cfg.urlPatterns) ? cfg.urlPatterns : [],
+			permalinksEnabled: cfg.permalinksEnabled !== undefined ? !!cfg.permalinksEnabled : true,
 		}
 		if (!isDev) cache.set(postType, full)
 		return full

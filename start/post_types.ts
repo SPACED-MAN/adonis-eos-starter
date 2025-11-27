@@ -57,8 +57,14 @@ async function syncFromRegistry() {
         })
       }
     }
-    // URL patterns
-    if (Array.isArray(cfg.urlPatterns)) {
+    // URL patterns (remove if permalinks are disabled; otherwise ensure)
+    if (cfg.permalinksEnabled === false) {
+      try {
+        await db.from('url_patterns').where({ post_type: type }).delete()
+      } catch {
+        // ignore
+      }
+    } else if (Array.isArray(cfg.urlPatterns)) {
       for (const p of cfg.urlPatterns) {
         const now = new Date()
         const row = await db.from('url_patterns').where({ post_type: type, locale: p.locale }).first()
