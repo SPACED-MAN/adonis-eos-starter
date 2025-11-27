@@ -89,6 +89,22 @@ class MediaService {
     return variants
   }
 
+  async optimizeToWebp(inputPath: string, publicUrl: string): Promise<{ optimizedPath: string; optimizedUrl: string; size: number } | null> {
+    // Only handle raster images supported by sharp
+    const lower = inputPath.toLowerCase()
+    const isRaster = /\.(jpe?g|png|webp|gif|tiff?|bmp|avif)$/.test(lower)
+    if (!isRaster) return null
+    const parsed = path.parse(inputPath)
+    const alreadyWebp = parsed.ext.toLowerCase() === '.webp'
+    const outName = alreadyWebp ? `${parsed.name}.optimized.webp` : `${parsed.name}.webp`
+    const outPath = path.join(parsed.dir, outName)
+    const outUrl = path.posix.join(path.posix.dirname(publicUrl), outName)
+    const quality = Number(process.env.MEDIA_WEBP_QUALITY || 82)
+    const info = await sharp(inputPath).webp({ quality: Number.isFinite(quality) ? Math.max(1, Math.min(100, Math.floor(quality))) : 82 }).toFile(outPath)
+    const size = info.size || 0
+    return { optimizedPath: outPath, optimizedUrl: outUrl, size }
+  }
+
   async renameWithVariants(oldPath: string, oldUrl: string, newBaseName: string): Promise<{ newPath: string; newUrl: string; renamedVariants: Array<{ oldUrl: string; newUrl: string }> }> {
     const parsed = path.parse(oldPath)
     const dir = parsed.dir

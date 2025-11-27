@@ -169,6 +169,8 @@ router.group(() => {
 	router.post('/media', [MediaController, 'upload']).use(middleware.admin())
 	router.post('/media/check-duplicate', [MediaController, 'checkDuplicate']).use(middleware.admin())
 	router.post('/media/:id/override', [MediaController, 'override']).use(middleware.admin())
+	router.post('/media/:id/optimize', [MediaController, 'optimize']).use(middleware.auth())
+	router.post('/media/optimize-bulk', [MediaController, 'optimizeBulk']).use(middleware.auth())
 	router.patch('/media/:id', [MediaController, 'update']).use(middleware.admin())
 	router.delete('/media/:id', [MediaController, 'destroy']).use(middleware.admin())
 	router.post('/media/:id/variants', [MediaController, 'variants']).use(middleware.admin())

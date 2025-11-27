@@ -50,6 +50,8 @@ export default class MediaController {
 				originalFilename: r.original_filename,
 				mimeType: r.mime_type,
 				size: Number(r.size),
+				optimizedUrl: r.optimized_url || null,
+				optimizedSize: r.optimized_size ? Number(r.optimized_size) : null,
 				altText: r.alt_text,
 				caption: r.caption,
 				description: r.description,
@@ -669,6 +671,8 @@ export default class MediaController {
 			originalFilename: row.original_filename,
 			mimeType: row.mime_type,
 			size: Number(row.size || 0),
+			optimizedUrl: (row as any).optimized_url || null,
+			optimizedSize: (row as any).optimized_size ? Number((row as any).optimized_size) : null,
 			altText: row.alt_text,
 			caption: row.caption,
 			description: row.description,
@@ -702,6 +706,91 @@ export default class MediaController {
 			? rows.rows.map((r: any) => String(r.category)).filter((x) => x.length > 0)
 			: []
 		return response.ok({ data: list.sort((a, b) => a.localeCompare(b)) })
+	}
+
+	/**
+	 * POST /api/media/:id/optimize
+	 * Optimizes an image to WebP and stores optimized size and URL.
+	 */
+	async optimize({ params, response, auth }: HttpContext) {
+		const role = (auth.use('web').user as any)?.role as 'admin' | 'editor' | 'translator' | undefined
+		if (!(role === 'admin' || role === 'editor')) {
+			return response.forbidden({ error: 'Not allowed to optimize media' })
+		}
+		const { id } = params
+		const row = await db.from('media_assets').where('id', id).first()
+		if (!row) return response.notFound({ error: 'Media not found' })
+		const mime = String(row.mime_type || '')
+		if (!mime.startsWith('image/')) {
+			return response.badRequest({ error: 'Only images can be optimized' })
+		}
+		const publicUrl: string = String(row.url)
+		const absPath = path.join(process.cwd(), 'public', publicUrl.replace(/^\//, ''))
+		try {
+			const result = await mediaService.optimizeToWebp(absPath, publicUrl)
+			if (!result) return response.badRequest({ error: 'Unsupported image type for optimization' })
+			const now = new Date()
+			await db.from('media_assets').where('id', id).update({
+				optimized_url: result.optimizedUrl,
+				optimized_size: Number(result.size || 0),
+				optimized_at: now,
+				updated_at: now,
+			} as any)
+			try {
+				await activityLogService.log({
+					action: 'media.optimize',
+					userId: (auth.use('web').user as any)?.id ?? null,
+					entityType: 'media',
+					entityId: id,
+					metadata: { optimizedUrl: result.optimizedUrl, optimizedSize: Number(result.size || 0) },
+				})
+			} catch {}
+			return response.ok({ data: { optimizedUrl: result.optimizedUrl, optimizedSize: Number(result.size || 0) } })
+		} catch (e: any) {
+			return response.badRequest({ error: e?.message || 'Optimization failed' })
+		}
+	}
+
+	/**
+	 * POST /api/media/optimize-bulk
+	 * Body: { ids: string[] }
+	 */
+	async optimizeBulk({ request, response, auth }: HttpContext) {
+		const role = (auth.use('web').user as any)?.role as 'admin' | 'editor' | 'translator' | undefined
+		if (!(role === 'admin' || role === 'editor')) {
+			return response.forbidden({ error: 'Not allowed to optimize media' })
+		}
+		const ids: string[] = Array.isArray(request.input('ids')) ? request.input('ids').map((x: any) => String(x)) : []
+		if (!ids.length) return response.badRequest({ error: 'ids must be a non-empty array' })
+		const rows = await db.from('media_assets').whereIn('id', ids)
+		let success = 0
+		for (const row of rows) {
+			try {
+				const mime = String((row as any).mime_type || '')
+				if (!mime.startsWith('image/')) continue
+				const publicUrl: string = String((row as any).url)
+				const absPath = path.join(process.cwd(), 'public', publicUrl.replace(/^\//, ''))
+				const result = await mediaService.optimizeToWebp(absPath, publicUrl)
+				if (!result) continue
+				await db.from('media_assets').where('id', (row as any).id).update({
+					optimized_url: result.optimizedUrl,
+					optimized_size: Number(result.size || 0),
+					optimized_at: new Date(),
+					updated_at: new Date(),
+				} as any)
+				success++
+			} catch { /* continue */ }
+		}
+		try {
+			await activityLogService.log({
+				action: 'media.optimize.bulk',
+				userId: (auth.use('web').user as any)?.id ?? null,
+				entityType: 'media',
+				entityId: 'bulk',
+				metadata: { count: success },
+			})
+		} catch {}
+		return response.ok({ data: { optimized: success } })
 	}
 }
 
