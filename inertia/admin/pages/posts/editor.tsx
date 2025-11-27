@@ -183,6 +183,21 @@ export default function Editor({ post, modules: initialModules, translations, re
   const [isImportModeOpen, setIsImportModeOpen] = useState(false)
   const [pendingImportJson, setPendingImportJson] = useState<any | null>(null)
   const importFileRef = useRef<HTMLInputElement | null>(null)
+  function slugify(input: string): string {
+    return String(input || '')
+      .toLowerCase()
+      .trim()
+      .replace(/['"]/g, '')
+      .replace(/[^a-z0-9]+/g, '-')
+      .replace(/^-+|-+$/g, '')
+  }
+  const [slugAuto, setSlugAuto] = useState<boolean>(() => {
+    const s = String((post as any).slug || '').trim()
+    const t = String((post as any).title || '').trim()
+    if (!s) return true
+    if (/^untitled(-[a-z0-9]+)*(-\d+)?$/i.test(s)) return true
+    return slugify(t) === s
+  })
 
   // Modules state (sortable)
   const [modules, setModules] = useState<EditorProps['modules']>(initialModules || [])
@@ -559,7 +574,14 @@ export default function Editor({ post, modules: initialModules, translations, re
                     <Input
                       type="text"
                       value={data.title}
-                      onChange={(e) => setData('title', e.target.value)}
+                      onChange={(e) => {
+                        const val = e.target.value
+                        setData('title', val)
+                        // Auto-suggest slug while slug is marked auto-generated
+                        if (slugAuto) {
+                          setData('slug', slugify(val))
+                        }
+                      }}
                       placeholder="Enter post title"
                     />
                     {errors.title && (
@@ -813,7 +835,19 @@ export default function Editor({ post, modules: initialModules, translations, re
                   <Input
                     type="text"
                     value={data.slug}
-                    onChange={(e) => setData('slug', e.target.value)}
+                    onChange={(e) => {
+                      const v = String(e.target.value || '')
+                        .toLowerCase()
+                        .replace(/[^a-z0-9-]+/g, '-')
+                      setData('slug', v)
+                      // If user clears slug, re-enable auto; otherwise consider it manually controlled
+                      setSlugAuto(v === '')
+                    }}
+                    onBlur={() => {
+                      // Normalize fully on blur
+                      const v = slugify(String((data as any).slug || ''))
+                      setData('slug', v)
+                    }}
                     className="font-mono text-sm"
                     placeholder="post-slug"
                   />
