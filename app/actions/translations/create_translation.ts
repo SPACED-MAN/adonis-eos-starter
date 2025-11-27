@@ -100,11 +100,10 @@ export default class CreateTranslation {
    * @private
    */
   private static validateLocale(locale: string): void {
-    // Note: isLocaleSupported is async; we defensively treat non-boolean as unsupported here.
-    // Callers should prefer `await this.ensureLocaleSupported` helper below.
-    // This method is kept for backward-compatibility; do not rely on it for async checks.
-    // Fallback: allow and rely on DB FK if locales table is enforced.
-    return
+    const supported = localeService.isLocaleSupported(locale)
+    if (!supported) {
+      throw new CreateTranslationException(`Unsupported locale: ${locale}`, 400, { locale })
+    }
   }
 
   private static async ensureLocaleSupported(locale: string): Promise<void> {

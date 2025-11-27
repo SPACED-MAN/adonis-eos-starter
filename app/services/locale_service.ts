@@ -50,45 +50,28 @@ export class LocaleService {
 		await db.from('locales').where('code', defaultLocale).update({ is_default: true })
 	}
 	/**
-	 * Get list of supported locales
+	 * Get list of supported locales (sync, env-based)
 	 */
-	async getSupportedLocales(): Promise<string[]> {
-		if (!(await this.hasLocalesTable())) {
-			// Fallback to env when table is not ready
-			return (process.env.SUPPORTED_LOCALES || process.env.DEFAULT_LOCALE || 'en')
-				.split(',')
-				.map((s) => s.trim().toLowerCase())
-				.filter(Boolean)
-		}
-		await this.ensureFromEnv()
-		const rows = await db.from('locales').where('is_enabled', true).orderBy('code', 'asc')
-		return rows.map((r) => r.code as string)
+	getSupportedLocales(): string[] {
+		return (process.env.SUPPORTED_LOCALES || process.env.DEFAULT_LOCALE || 'en')
+			.split(',')
+			.map((s) => s.trim().toLowerCase())
+			.filter(Boolean)
 	}
 
 	/**
 	 * Get default locale
 	 */
-	async getDefaultLocale(): Promise<string> {
-		if (!(await this.hasLocalesTable())) {
-			return (process.env.DEFAULT_LOCALE || 'en').toLowerCase()
-		}
-		await this.ensureFromEnv()
-		const row = await db.from('locales').where('is_default', true).first()
-		return (row?.code as string) || (process.env.DEFAULT_LOCALE || 'en').toLowerCase()
+	getDefaultLocale(): string {
+		return (process.env.DEFAULT_LOCALE || 'en').toLowerCase()
 	}
 
 	/**
 	 * Check if a locale is supported
 	 */
-	async isLocaleSupported(locale: string): Promise<boolean> {
-		if (!(await this.hasLocalesTable())) {
-			const supported = (process.env.SUPPORTED_LOCALES || process.env.DEFAULT_LOCALE || 'en')
-				.split(',')
-				.map((s) => s.trim().toLowerCase())
-			return supported.includes(locale.toLowerCase())
-		}
-		const rows = await db.from('locales').where({ code: locale.toLowerCase(), is_enabled: true })
-		return rows.length > 0
+	isLocaleSupported(locale: string): boolean {
+		const supported = this.getSupportedLocales()
+		return supported.includes(locale.toLowerCase())
 	}
 
 	/**
@@ -114,12 +97,12 @@ export class LocaleService {
 					break
 			}
 
-			if (locale && (await this.isLocaleSupported(locale))) {
+			if (locale && this.isLocaleSupported(locale)) {
 				return locale
 			}
 		}
 
-		return await this.getDefaultLocale()
+		return this.getDefaultLocale()
 	}
 
 	/**
@@ -177,7 +160,7 @@ export class LocaleService {
 
 		// Find first supported locale
 		for (const { locale } of languages) {
-			if (await this.isLocaleSupported(locale)) {
+			if (this.isLocaleSupported(locale)) {
 				return locale
 			}
 		}
@@ -200,7 +183,7 @@ export class LocaleService {
 	 * Store locale in session
 	 */
 	async storeLocaleInSession(ctx: HttpContext, locale: string): Promise<void> {
-		if (i18nConfig.persistInSession && (await this.isLocaleSupported(locale))) {
+		if (i18nConfig.persistInSession && this.isLocaleSupported(locale)) {
 			ctx.session.put(i18nConfig.sessionKey, locale)
 		}
 	}
@@ -223,9 +206,9 @@ export class LocaleService {
 	/**
 	 * Generate locale-specific URL
 	 */
-	async generateLocalizedUrl(path: string, locale: string): Promise<string> {
+	generateLocalizedUrl(path: string, locale: string): string {
 		// If using URL prefix and locale is not default
-		const defaultLocale = await this.getDefaultLocale()
+		const defaultLocale = this.getDefaultLocale()
 		if (i18nConfig.useUrlPrefix && locale !== defaultLocale) {
 			// Remove leading slash if present
 			const cleanPath = path.startsWith('/') ? path.slice(1) : path

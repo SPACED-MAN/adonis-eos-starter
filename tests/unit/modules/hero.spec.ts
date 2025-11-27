@@ -8,7 +8,7 @@ test.group('Hero Module', () => {
 
     assert.equal(config.type, 'hero')
     assert.equal(config.name, 'Hero Section')
-    assert.includeMembers(config.allowedScopes, ['local', 'global', 'static'])
+    assert.includeMembers(config.allowedScopes, ['local', 'global'])
     assert.isTrue(config.lockable)
     assert.isDefined(config.propsSchema.title)
     assert.isDefined(config.defaultProps.title)

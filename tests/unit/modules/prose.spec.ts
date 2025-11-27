@@ -8,7 +8,7 @@ test.group('Prose Module', () => {
 
     assert.equal(config.type, 'prose')
     assert.equal(config.name, 'Rich Text (Prose)')
-    assert.includeMembers(config.allowedScopes, ['local', 'global', 'static'])
+    assert.includeMembers(config.allowedScopes, ['local', 'global'])
     assert.isTrue(config.lockable)
     assert.isDefined(config.propsSchema.content)
     assert.isDefined(config.defaultProps.content)
