@@ -22,7 +22,12 @@ export async function publishDueScheduledPosts() {
 	}
 }
 
-if (process.env.NODE_ENV !== 'test') {
+// Run scheduler only in app/server runtime (not tests or ACE CLI commands)
+const isTestEnv = process.env.NODE_ENV === 'test'
+const isAceCli = Array.isArray(process.argv) && process.argv.some((arg) => arg.includes('/ace') || arg === 'ace')
+const isSchedulerDisabled = process.env.SCHEDULER_DISABLED === '1'
+
+if (!isTestEnv && !isAceCli && !isSchedulerDisabled) {
 	const intervalMs = process.env.NODE_ENV === 'development' ? 30_000 : 60_000
 	setInterval(() => {
 		publishDueScheduledPosts().catch(() => { })
