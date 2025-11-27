@@ -149,18 +149,18 @@ router.group(() => {
 	router.get('/agents', [AgentsController, 'index']).use(middleware.admin())
 	router.post('/posts/:id/agents/:agentId/run', [AgentsController, 'runForPost']).use(middleware.admin())
 	// Users (admin)
-  router.get('/users', [UsersController, 'index']).use(middleware.admin())
-  router.patch('/users/:id', [UsersController, 'update']).use(middleware.admin())
-  router.patch('/users/:id/password', [UsersController, 'resetPassword']).use(middleware.admin())
-  router.delete('/users/:id', [UsersController, 'destroy']).use(middleware.admin())
-  // Profiles (self) - place before param route to avoid ':id' capturing 'me'
-  router.get('/profile/status', [UsersController, 'profileStatus'])
-  router.post('/users/me/profile', [UsersController, 'createMyProfile'])
-  // Admin: profile lookup/create for a given user id
-  router.get('/users/:id/profile', [UsersController, 'profileForUser']).use(middleware.admin())
-  router.post('/users/:id/profile', [UsersController, 'createProfileForUser']).use(middleware.admin())
-  // Activity Logs (admin)
-  router.get('/activity-logs', [ActivityLogsController, 'index']).use(middleware.admin())
+	router.get('/users', [UsersController, 'index']).use(middleware.admin())
+	router.patch('/users/:id', [UsersController, 'update']).use(middleware.admin())
+	router.patch('/users/:id/password', [UsersController, 'resetPassword']).use(middleware.admin())
+	router.delete('/users/:id', [UsersController, 'destroy']).use(middleware.admin())
+	// Profiles (self) - place before param route to avoid ':id' capturing 'me'
+	router.get('/profile/status', [UsersController, 'profileStatus'])
+	router.post('/users/me/profile', [UsersController, 'createMyProfile'])
+	// Admin: profile lookup/create for a given user id
+	router.get('/users/:id/profile', [UsersController, 'profileForUser']).use(middleware.admin())
+	router.post('/users/:id/profile', [UsersController, 'createProfileForUser']).use(middleware.admin())
+	// Activity Logs (admin)
+	router.get('/activity-logs', [ActivityLogsController, 'index']).use(middleware.admin())
 	// Media
 	router.get('/media', [MediaController, 'index'])
 	router.get('/media/categories', [MediaController, 'categories'])
@@ -171,6 +171,9 @@ router.group(() => {
 	router.post('/media/:id/override', [MediaController, 'override']).use(middleware.admin())
 	router.post('/media/:id/optimize', [MediaController, 'optimize']).use(middleware.auth())
 	router.post('/media/optimize-bulk', [MediaController, 'optimizeBulk']).use(middleware.auth())
+	router.post('/media/variants-bulk', [MediaController, 'variantsBulk']).use(middleware.auth())
+	router.post('/media/delete-bulk', [MediaController, 'deleteBulk']).use(middleware.admin())
+	router.post('/media/categories-bulk', [MediaController, 'categoriesBulk']).use(middleware.auth())
 	router.patch('/media/:id', [MediaController, 'update']).use(middleware.admin())
 	router.delete('/media/:id', [MediaController, 'destroy']).use(middleware.admin())
 	router.post('/media/:id/variants', [MediaController, 'variants']).use(middleware.admin())
@@ -245,7 +248,7 @@ router.get('/admin/users/:id/edit', async ({ params, inertia }) => {
 
 // Admin Activity Log
 router.get('/admin/users/activity', async ({ inertia }) => {
-  return inertia.render('admin/users/activity')
+	return inertia.render('admin/users/activity')
 }).use(middleware.auth()).use(middleware.admin())
 
 // Admin General Settings

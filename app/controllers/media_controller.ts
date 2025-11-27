@@ -792,6 +792,150 @@ export default class MediaController {
 		} catch {}
 		return response.ok({ data: { optimized: success } })
 	}
+
+	/**
+	 * POST /api/media/variants-bulk
+	 * Body: { ids: string[] }
+	 * Regenerates all configured variants for each selected image.
+	 */
+	async variantsBulk({ request, response, auth }: HttpContext) {
+		const role = (auth.use('web').user as any)?.role as 'admin' | 'editor' | 'translator' | undefined
+		if (!(role === 'admin' || role === 'editor')) {
+			return response.forbidden({ error: 'Not allowed to regenerate variants' })
+		}
+		const ids: string[] = Array.isArray(request.input('ids')) ? request.input('ids').map((x: any) => String(x)) : []
+		if (!ids.length) return response.badRequest({ error: 'ids must be a non-empty array' })
+		const rows = await db.from('media_assets').whereIn('id', ids)
+		let success = 0
+		for (const row of rows) {
+			try {
+				const mime = String((row as any).mime_type || '')
+				if (!mime.startsWith('image/')) continue
+				const publicUrl: string = String((row as any).url)
+				const absPath = path.join(process.cwd(), 'public', publicUrl.replace(/^\//, ''))
+				const variants = await mediaService.generateVariants(absPath, publicUrl, null)
+				const meta = (row as any).metadata || {}
+				let list = Array.isArray((meta as any).variants) ? (meta as any).variants : []
+				for (const v of variants) {
+					const idx = list.findIndex((x: any) => x.name === v.name)
+					if (idx >= 0) list[idx] = v
+					else list.push(v)
+				}
+				await db.from('media_assets').where('id', (row as any).id).update({ metadata: { ...(meta as any), variants: list } as any, updated_at: new Date() } as any)
+				success++
+			} catch { /* continue */ }
+		}
+		try {
+			await activityLogService.log({
+				action: 'media.variants.bulk',
+				userId: (auth.use('web').user as any)?.id ?? null,
+				entityType: 'media',
+				entityId: 'bulk',
+				metadata: { count: success },
+			})
+		} catch {}
+		return response.ok({ data: { regenerated: success } })
+	}
+
+	/**
+	 * POST /api/media/delete-bulk
+	 * Body: { ids: string[] }
+	 * Admin-only permanent delete of media records (and files).
+	 */
+	async deleteBulk({ request, response, auth }: HttpContext) {
+		const role = (auth.use('web').user as any)?.role as 'admin' | 'editor' | 'translator' | undefined
+		if (role !== 'admin') {
+			return response.forbidden({ error: 'Admin only' })
+		}
+		const ids: string[] = Array.isArray(request.input('ids')) ? request.input('ids').map((x: any) => String(x)) : []
+		if (!ids.length) return response.badRequest({ error: 'ids must be a non-empty array' })
+		const rows = await db.from('media_assets').whereIn('id', ids)
+		const publicRoot = path.join(process.cwd(), 'public')
+		let deleted = 0
+		for (const row of rows) {
+			try {
+				// Delete original
+				const originalPath = path.join(publicRoot, String((row as any).url || '').replace(/^\//, ''))
+				try { await fs.promises.unlink(originalPath) } catch { }
+				// Delete variants from metadata
+				try {
+					const meta = (row as any).metadata as any
+					const variants = meta && Array.isArray(meta.variants) ? meta.variants : []
+					for (const v of variants) {
+						if (!v?.url || typeof v.url !== 'string') continue
+						const p = path.join(publicRoot, v.url.replace(/^\//, ''))
+						try { await fs.promises.unlink(p) } catch { }
+					}
+				} catch { }
+				// Fallback pattern-based
+				try {
+					const parsed = path.parse(originalPath)
+					const dir = parsed.dir
+					const base = parsed.name
+					const ext = parsed.ext
+					const files = await fs.promises.readdir(dir)
+					for (const f of files) {
+						if (f.startsWith(base + '.') && f.endsWith(ext)) {
+							try { await fs.promises.unlink(path.join(dir, f)) } catch { }
+						}
+					}
+				} catch { }
+				await db.from('media_assets').where('id', (row as any).id).delete()
+				deleted++
+			} catch { /* continue */ }
+		}
+		try {
+			await activityLogService.log({
+				action: 'media.delete.bulk',
+				userId: (auth.use('web').user as any)?.id ?? null,
+				entityType: 'media',
+				entityId: 'bulk',
+				metadata: { count: deleted },
+			})
+		} catch {}
+		return response.ok({ data: { deleted } })
+	}
+
+	/**
+	 * POST /api/media/categories-bulk
+	 * Body: { ids: string[]; add?: string[]; remove?: string[] }
+	 * Adds/removes categories across selected items.
+	 */
+	async categoriesBulk({ request, response, auth }: HttpContext) {
+		const role = (auth.use('web').user as any)?.role as 'admin' | 'editor' | 'translator' | undefined
+		if (!(role === 'admin' || role === 'editor')) {
+			return response.forbidden({ error: 'Not allowed to update categories' })
+		}
+		const ids: string[] = Array.isArray(request.input('ids')) ? request.input('ids').map((x: any) => String(x)) : []
+		const addArr: string[] = Array.isArray(request.input('add')) ? (request.input('add') as any[]).map((x) => String(x).trim()).filter(Boolean) : []
+		const removeArr: string[] = Array.isArray(request.input('remove')) ? (request.input('remove') as any[]).map((x) => String(x).trim()).filter(Boolean) : []
+		if (!ids.length) return response.badRequest({ error: 'ids must be a non-empty array' })
+		const rows = await db.from('media_assets').whereIn('id', ids).select('id', 'categories')
+		const now = new Date()
+		let updated = 0
+		for (const row of rows) {
+			const current: string[] = Array.isArray((row as any).categories) ? (row as any).categories : []
+			const nextSet = new Set(current)
+			for (const r of removeArr) nextSet.delete(r)
+			for (const a of addArr) nextSet.add(a)
+			const next = Array.from(nextSet)
+			const changed = JSON.stringify(current.slice().sort()) !== JSON.stringify(next.slice().sort())
+			if (changed) {
+				await db.from('media_assets').where('id', (row as any).id).update({ categories: next as any, updated_at: now } as any)
+				updated++
+			}
+		}
+		try {
+			await activityLogService.log({
+				action: 'media.categories.bulk',
+				userId: (auth.use('web').user as any)?.id ?? null,
+				entityType: 'media',
+				entityId: 'bulk',
+				metadata: { count: updated, add: addArr, remove: removeArr },
+			})
+		} catch {}
+		return response.ok({ data: { updated } })
+	}
 }
 
 

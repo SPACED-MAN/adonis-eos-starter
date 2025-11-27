@@ -83,6 +83,11 @@ export default function MediaIndex() {
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set())
   const [selectAll, setSelectAll] = useState<boolean>(false)
   const [bulkKey, setBulkKey] = useState<number>(0)
+  const [confirmBulkDelete, setConfirmBulkDelete] = useState<boolean>(false)
+  const [bulkCategoriesOpen, setBulkCategoriesOpen] = useState<boolean>(false)
+  const [bulkCats, setBulkCats] = useState<string[]>([])
+  const [bulkCatsInitial, setBulkCatsInitial] = useState<string[]>([])
+  const [bulkCatInput, setBulkCatInput] = useState<string>('')
   const [useOriginalName, setUseOriginalName] = useState<boolean>(() => {
     if (typeof localStorage === 'undefined') return true
     const v = localStorage.getItem('mediaUseOriginalName')
@@ -208,6 +213,99 @@ export default function MediaIndex() {
     setSelectedIds(new Set())
     setSelectAll(false)
     setBulkKey((k) => k + 1)
+    await load()
+  }
+
+  async function applyBulkRegenerate() {
+    if (selectedIds.size === 0) return
+    const ids = Array.from(selectedIds)
+    await toast.promise(
+      fetch('/api/media/variants-bulk', {
+        method: 'POST',
+        headers: { 'Accept': 'application/json', 'Content-Type': 'application/json', ...(xsrfFromCookie ? { 'X-XSRF-TOKEN': xsrfFromCookie } : {}) },
+        credentials: 'same-origin',
+        body: JSON.stringify({ ids }),
+      }).then(async (r) => {
+        if (!r.ok) {
+          const j = await r.json().catch(() => ({}))
+          throw new Error(j?.error || 'Bulk regenerate failed')
+        }
+      }),
+      { loading: 'Regenerating…', success: 'Variants regenerated', error: (e) => String(e.message || e) }
+    )
+    await load()
+  }
+
+  async function applyBulkDelete() {
+    if (selectedIds.size === 0) return
+    const ids = Array.from(selectedIds)
+    await toast.promise(
+      fetch('/api/media/delete-bulk', {
+        method: 'POST',
+        headers: { 'Accept': 'application/json', 'Content-Type': 'application/json', ...(xsrfFromCookie ? { 'X-XSRF-TOKEN': xsrfFromCookie } : {}) },
+        credentials: 'same-origin',
+        body: JSON.stringify({ ids }),
+      }).then(async (r) => {
+        if (!r.ok) {
+          const j = await r.json().catch(() => ({}))
+          throw new Error(j?.error || 'Bulk delete failed')
+        }
+      }),
+      { loading: 'Deleting…', success: 'Deleted', error: (e) => String(e.message || e) }
+    )
+    setSelectedIds(new Set())
+    setSelectAll(false)
+    await load()
+  }
+
+  function openBulkCategories() {
+    if (selectedIds.size === 0) return
+    const selected = items.filter(i => selectedIds.has(i.id))
+    const allCats = selected.map(i => Array.isArray(i.categories) ? i.categories : [])
+    let shared = allCats.length ? [...allCats[0]] : []
+    for (const cats of allCats.slice(1)) {
+      const set = new Set(cats)
+      shared = shared.filter(c => set.has(c))
+    }
+    setBulkCats(shared)
+    setBulkCatsInitial(shared)
+    setBulkCatInput('')
+    setBulkCategoriesOpen(true)
+  }
+
+  async function saveBulkCategories() {
+    const initial = new Set(bulkCatsInitial)
+    const finalSet = new Set(bulkCats.map(c => c.trim()).filter(Boolean))
+    const add: string[] = []
+    const remove: string[] = []
+    // additions: in final but not in initial
+    for (const c of finalSet) {
+      if (!initial.has(c)) add.push(c)
+    }
+    // removals: in initial but not in final
+    for (const c of initial) {
+      if (!finalSet.has(c)) remove.push(c)
+    }
+    if (add.length === 0 && remove.length === 0) {
+      setBulkCategoriesOpen(false)
+      return
+    }
+    const ids = Array.from(selectedIds)
+    await toast.promise(
+      fetch('/api/media/categories-bulk', {
+        method: 'POST',
+        headers: { 'Accept': 'application/json', 'Content-Type': 'application/json', ...(xsrfFromCookie ? { 'X-XSRF-TOKEN': xsrfFromCookie } : {}) },
+        credentials: 'same-origin',
+        body: JSON.stringify({ ids, add, remove }),
+      }).then(async (r) => {
+        if (!r.ok) {
+          const j = await r.json().catch(() => ({}))
+          throw new Error(j?.error || 'Bulk category update failed')
+        }
+      }),
+      { loading: 'Saving categories…', success: 'Categories updated', error: (e) => String(e.message || e) }
+    )
+    setBulkCategoriesOpen(false)
     await load()
   }
 
@@ -574,8 +672,16 @@ export default function MediaIndex() {
             <div className="w-[200px]">
               <Select
                 key={bulkKey}
-                onValueChange={(val: 'optimize') => {
-                  applyBulk(val)
+                onValueChange={(val: 'optimize' | 'regenerate' | 'delete' | 'categories') => {
+                  if (val === 'optimize') {
+                    applyBulk('optimize')
+                  } else if (val === 'regenerate') {
+                    applyBulkRegenerate()
+                  } else if (val === 'delete') {
+                    setConfirmBulkDelete(true)
+                  } else if (val === 'categories') {
+                    openBulkCategories()
+                  }
                 }}
               >
                 <SelectTrigger>
@@ -583,6 +689,9 @@ export default function MediaIndex() {
                 </SelectTrigger>
                 <SelectContent>
                   <SelectItem value="optimize">Optimize (WebP)</SelectItem>
+                  <SelectItem value="regenerate">Regenerate variations</SelectItem>
+                  {isAdmin && <SelectItem value="delete">Delete</SelectItem>}
+                  <SelectItem value="categories">Edit Category…</SelectItem>
                 </SelectContent>
               </Select>
             </div>
@@ -862,6 +971,86 @@ export default function MediaIndex() {
 
         
         {/* Meta Editor modal (opens via pencil) */}
+        {/* Bulk Delete confirm */}
+        <AlertDialog open={confirmBulkDelete} onOpenChange={setConfirmBulkDelete}>
+          <AlertDialogContent>
+            <AlertDialogHeader>
+              <AlertDialogTitle>Delete selected media?</AlertDialogTitle>
+              <AlertDialogDescription>
+                This will permanently delete the originals and all variants. This action cannot be undone.
+              </AlertDialogDescription>
+            </AlertDialogHeader>
+            <AlertDialogFooter>
+              <AlertDialogCancel onClick={() => setConfirmBulkDelete(false)}>Cancel</AlertDialogCancel>
+              <AlertDialogAction
+                onClick={async () => {
+                  setConfirmBulkDelete(false)
+                  await applyBulkDelete()
+                }}
+              >
+                Delete
+              </AlertDialogAction>
+            </AlertDialogFooter>
+          </AlertDialogContent>
+        </AlertDialog>
+
+        {/* Bulk Categories modal */}
+        {bulkCategoriesOpen && (
+          <div className="fixed inset-0 z-50 flex items-center justify-center">
+            <div className="absolute inset-0 bg-black/70" onClick={() => setBulkCategoriesOpen(false)} />
+            <div className="relative z-10 w-full max-w-xl rounded-lg border border-line bg-backdrop-low p-3 shadow-xl">
+              <div className="flex items-center justify-between mb-2">
+                <div className="text-sm text-neutral-high">Categories (free tags)</div>
+                <button className="text-neutral-medium hover:text-neutral-high" onClick={() => setBulkCategoriesOpen(false)}>✕</button>
+              </div>
+              <div className="space-y-3 text-sm">
+                <div className="text-xs text-neutral-medium">
+                  Editing shared categories for {selectedIds.size} selected item(s). Add tags to apply to all; remove to clear from all.
+                </div>
+                <div className="flex flex-wrap gap-2">
+                  {bulkCats.map((c, idx) => (
+                    <span key={`${c}-${idx}`} className="inline-flex items-center gap-1 px-2 py-1 border border-line rounded">
+                      {c}
+                      <button className="text-neutral-low hover:text-neutral-high" onClick={() => setBulkCats(bulkCats.filter((x, i) => !(i === idx)))}>×</button>
+                    </span>
+                  ))}
+                </div>
+                <div className="flex items-center gap-2">
+                  <input
+                    className="flex-1 px-2 py-1 border border-line bg-backdrop-low text-neutral-high"
+                    placeholder="Add category and press Enter"
+                    value={bulkCatInput}
+                    onChange={(e) => setBulkCatInput(e.target.value)}
+                    onKeyDown={(e) => {
+                      if (e.key === 'Enter') {
+                        e.preventDefault()
+                        const v = bulkCatInput.trim()
+                        if (v && !bulkCats.includes(v)) setBulkCats([...bulkCats, v])
+                        setBulkCatInput('')
+                      }
+                    }}
+                  />
+                  <button
+                    className="px-3 py-1.5 text-xs rounded bg-standout text-on-standout disabled:opacity-50"
+                    onClick={() => {
+                      const v = bulkCatInput.trim()
+                      if (v && !bulkCats.includes(v)) setBulkCats([...bulkCats, v])
+                      setBulkCatInput('')
+                    }}
+                  >
+                    Add
+                  </button>
+                </div>
+                <div className="flex items-center justify-end gap-2">
+                  <button className="px-3 py-1.5 text-xs border border-line rounded" onClick={() => setBulkCategoriesOpen(false)}>Cancel</button>
+                  <button className="px-3 py-1.5 text-xs rounded bg-standout text-on-standout" onClick={saveBulkCategories}>Save</button>
+                </div>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* Single-item editor modal */}
         {viewing && (
           <div className="fixed inset-0 z-50 flex items-center justify-center">
             <div className="absolute inset-0 bg-black/70" onClick={() => { setViewing(null); setCropping(false); setCropSel(null); setFocalMode(false); setFocalDot(null); setSelectedVariantName('original') }} />
