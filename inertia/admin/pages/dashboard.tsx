@@ -50,6 +50,8 @@ export default function Dashboard({ }: DashboardProps) {
   const [confirmBulkDelete, setConfirmBulkDelete] = useState(false)
   const [hierarchical, setHierarchical] = useState(false)
   const [dndMode, setDndMode] = useState(false)
+  const [reorderParentId, setReorderParentId] = useState<string | null>(null)
+  const [reorderScopeAlertOpen, setReorderScopeAlertOpen] = useState<boolean>(false)
   const sensors = useSensors(useSensor(PointerSensor, { activationConstraint: { distance: 5 } }))
   const INDENT_PX = 24
   const [dragActiveId, setDragActiveId] = useState<string | null>(null)
@@ -297,8 +299,13 @@ export default function Dashboard({ }: DashboardProps) {
   }, [posts, hierarchical, dndMode, sortBy, sortOrder])
 
   function onToggleDnd(enabled: boolean) {
-    setDndMode(enabled)
     if (enabled) {
+      // Require type and locale to be selected for safe scoped reorder
+      if (!postType || !locale) {
+        setReorderScopeAlertOpen(true)
+        setDndMode(false)
+        return
+      }
       // Reorder requires hierarchy
       if (!hierarchical) {
         setHierarchical(true)
@@ -307,7 +314,12 @@ export default function Dashboard({ }: DashboardProps) {
       // Prefer order-index ascending for meaningful DnD
       if (sortBy !== 'order_index') setSortBy('order_index' as any)
       if (sortOrder !== 'asc') setSortOrder('asc')
+      // Default scope: roots
+      setReorderParentId(null)
+      setDndMode(true)
+      return
     }
+    setDndMode(false)
   }
 
   function onToggleHierarchy(next: boolean) {
@@ -436,7 +448,14 @@ export default function Dashboard({ }: DashboardProps) {
           ...(xsrfFromCookie ? { 'X-XSRF-TOKEN': xsrfFromCookie } : {}),
         },
         credentials: 'same-origin',
-        body: JSON.stringify({ items: deduped }),
+        body: JSON.stringify({
+          scope: {
+            type: postType,
+            locale: locale,
+            parentId: hierarchical ? (reorderParentId ?? null) : null,
+          },
+          items: deduped,
+        }),
       })
       // Refresh to ensure consistent ordering from backend
       await fetchPosts()
@@ -543,6 +562,33 @@ export default function Dashboard({ }: DashboardProps) {
                   />
                   Reorder
                 </label>
+                {dndMode && hierarchical && (
+                  <div className="flex items-center gap-2">
+                    <span className="text-sm text-neutral-medium">Reorder within:</span>
+                    <Select
+                      value={String(reorderParentId ?? '__ROOT__')}
+                      onValueChange={(val) => {
+                        setReorderParentId(val === '__ROOT__' ? null : val)
+                      }}
+                    >
+                      <SelectTrigger className="w-[220px]">
+                        <SelectValue placeholder="Select group" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="__ROOT__">Roots (no parent)</SelectItem>
+                        {Array.from(new Set(posts.map((p: any) => p.parentId).filter((v: any) => v))).map((pid: any) => {
+                          const parent = posts.find((p: any) => p.id === pid)
+                          const label = parent ? (parent.title || parent.slug || pid) : pid
+                          return (
+                            <SelectItem key={String(pid)} value={String(pid)}>
+                              Parent: {String(label)}
+                            </SelectItem>
+                          )
+                        })}
+                      </SelectContent>
+                    </Select>
+                  </div>
+                )}
               </div>
             </div>
             {/* Bulk actions */}
@@ -619,6 +665,22 @@ export default function Dashboard({ }: DashboardProps) {
                 </AlertDialogFooter>
               </AlertDialogContent>
             </AlertDialog>
+            {/* Reorder scope requirement dialog */}
+            <AlertDialog open={reorderScopeAlertOpen} onOpenChange={setReorderScopeAlertOpen}>
+              <AlertDialogContent>
+                <AlertDialogHeader>
+                  <AlertDialogTitle>Reorder requires a scope</AlertDialogTitle>
+                  <AlertDialogDescription>
+                    Select a Post Type and Locale to enable Reorder.
+                  </AlertDialogDescription>
+                </AlertDialogHeader>
+                <AlertDialogFooter>
+                  <AlertDialogAction onClick={() => setReorderScopeAlertOpen(false)}>
+                    OK
+                  </AlertDialogAction>
+                </AlertDialogFooter>
+              </AlertDialogContent>
+            </AlertDialog>
           </div>
 
           <Table>
@@ -641,11 +703,13 @@ export default function Dashboard({ }: DashboardProps) {
                     Slug {sortBy === 'slug' ? (sortOrder === 'asc' ? '↑' : '↓') : ''}
                   </button>
                 </TableHead>
-                <TableHead>
-                  <button className="hover:underline" onClick={() => { toggleSort('order_index' as any); setPage(1) }}>
-                    Order {sortBy === 'order_index' ? (sortOrder === 'asc' ? '↑' : '↓') : ''}
-                  </button>
-                </TableHead>
+                {dndMode && (
+                  <TableHead>
+                    <button className="hover:underline" onClick={() => { toggleSort('order_index' as any); setPage(1) }}>
+                      Order {sortBy === 'order_index' ? (sortOrder === 'asc' ? '↑' : '↓') : ''}
+                    </button>
+                  </TableHead>
+                )}
                 <TableHead>Locales</TableHead>
                 <TableHead>
                   <button className="hover:underline" onClick={() => { toggleSort('status'); setPage(1) }}>
@@ -670,13 +734,16 @@ export default function Dashboard({ }: DashboardProps) {
                 onDragEnd={handleDragEnd}
               >
                 <SortableContext
-                  items={flatRows.map((r) => r.post.id)}
+                  items={(hierarchical
+                    ? flatRows.filter((r) => ((r.post as any).parentId ?? null) === (reorderParentId ?? null))
+                    : flatRows
+                  ).map((r) => r.post.id)}
                   strategy={verticalListSortingStrategy}
                 >
                   <TableBody>
                     {flatRows.length === 0 ? (
                       <TableRow>
-                        <TableCell colSpan={7}>
+                        <TableCell colSpan={dndMode ? 8 : 7}>
                           <div className="py-12 text-center">
                             <p className="text-neutral-low">No posts yet.</p>
                             <p className="text-sm text-neutral-low mt-2">Run the seeder to create test posts.</p>
@@ -684,7 +751,10 @@ export default function Dashboard({ }: DashboardProps) {
                         </TableCell>
                       </TableRow>
                     ) : (
-                      flatRows.map(({ post, level }) => {
+                      (hierarchical
+                        ? flatRows.filter((r) => ((r.post as any).parentId ?? null) === (reorderParentId ?? null))
+                        : flatRows
+                      ).map(({ post, level }) => {
                         const checked = selected.has(post.id)
                         return (
                           <SortableRow key={post.id} id={post.id}>
@@ -708,9 +778,11 @@ export default function Dashboard({ }: DashboardProps) {
                             <TableCell>
                               <span className="font-mono text-sm text-neutral-medium">{post.slug}</span>
                             </TableCell>
-                            <TableCell>
-                              <span className="font-mono text-sm text-neutral-medium">{(post as any).orderIndex ?? 0}</span>
-                            </TableCell>
+                            {dndMode && (
+                              <TableCell>
+                                <span className="font-mono text-sm text-neutral-medium">{(post as any).orderIndex ?? 0}</span>
+                              </TableCell>
+                            )}
                             <TableCell>
                               <div className="flex flex-wrap gap-1">
                                 {(supportedLocales.length > 1 ? supportedLocales : [post.locale]).map((loc) => {
@@ -761,7 +833,7 @@ export default function Dashboard({ }: DashboardProps) {
               <TableBody>
                 {(hierarchical ? posts.length === 0 : posts.length === 0) ? (
                   <TableRow>
-                    <TableCell colSpan={7}>
+                    <TableCell colSpan={dndMode ? 8 : 7}>
                       <div className="py-12 text-center">
                         <p className="text-neutral-low">No posts yet.</p>
                         <p className="text-sm text-neutral-low mt-2">Run the seeder to create test posts.</p>
@@ -793,9 +865,11 @@ export default function Dashboard({ }: DashboardProps) {
                         <TableCell>
                           <span className="font-mono text-sm text-neutral-medium">{post.slug}</span>
                         </TableCell>
-                        <TableCell>
-                          <span className="font-mono text-sm text-neutral-medium">{(post as any).orderIndex ?? 0}</span>
-                        </TableCell>
+                        {dndMode && (
+                          <TableCell>
+                            <span className="font-mono text-sm text-neutral-medium">{(post as any).orderIndex ?? 0}</span>
+                          </TableCell>
+                        )}
                         <TableCell>
                           <div className="flex flex-wrap gap-1">
                             {(supportedLocales.length > 1 ? supportedLocales : [post.locale]).map((loc) => {

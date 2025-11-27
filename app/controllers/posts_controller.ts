@@ -1087,14 +1087,28 @@ export default class PostsController {
 
   /**
    * POST /api/posts/reorder
-   * Bulk update order_index for posts.
-   * Body: { items: Array<{ id: string; orderIndex: number }> }
+   * Bulk update order_index for posts within a strict scope.
+   * Body: {
+   *   scope: { type: string; locale: string; parentId: string | null },
+   *   items: Array<{ id: string; orderIndex: number; parentId?: string | null }>
+   * }
    */
   async reorder({ request, response, auth }: HttpContext) {
     const role = (auth.use('web').user as any)?.role as 'admin' | 'editor' | 'translator' | undefined
     // Only admin/editor can reorder posts
     if (!(role === 'admin' || role === 'editor')) {
       return response.forbidden({ error: 'Not allowed to reorder posts' })
+    }
+    const scopeRaw = request.input('scope')
+    const scopeType = String(scopeRaw?.type || '').trim()
+    const scopeLocale = String(scopeRaw?.locale || '').trim()
+    const scopeParentIdRaw = (scopeRaw as any)?.parentId
+    const scopeParentId =
+      scopeRaw && (scopeRaw as any).hasOwnProperty('parentId')
+        ? (scopeParentIdRaw === null || scopeParentIdRaw === '' ? null : String(scopeParentIdRaw).trim())
+        : null
+    if (!scopeType || !scopeLocale) {
+      return response.badRequest({ error: 'scope.type and scope.locale are required' })
     }
     const items: Array<{ id: string; orderIndex: number; parentId?: string | null }> =
       Array.isArray(request.input('items')) ? request.input('items') : []
@@ -1124,17 +1138,38 @@ export default class PostsController {
     try {
       const now = new Date()
       await db.transaction(async (trx) => {
+        // Preload rows once for validation
+        const ids = sanitized.map((s) => s.id)
+        const rows = await trx.from('posts').whereIn('id', ids)
+        const idToRow = new Map<string, any>()
+        for (const r of rows) idToRow.set(String((r as any).id), r)
+        // Validate scope for each item
         for (const it of sanitized) {
-          // If parent change is requested, check hierarchy for the post type
+          const row = idToRow.get(it.id)
+          if (!row) {
+            throw new Error(`Post not found: ${it.id}`)
+          }
+          if (String((row as any).type) !== scopeType || String((row as any).locale) !== scopeLocale) {
+            throw new Error('Reorder items must match scope type/locale')
+          }
+          // Determine effective parent after this change
+          const currentParent: string | null = (row as any).parent_id ?? null
+          const effectiveParent =
+            (it as any).hasOwnProperty('parentId')
+              ? (it.parentId === undefined ? currentParent : (it.parentId ?? null))
+              : currentParent
+          if ((effectiveParent ?? null) !== (scopeParentId ?? null)) {
+            throw new Error('Reorder items must be in the same parent group as scope')
+          }
+          // If parent change requested, ensure hierarchy enabled
           if ((it as any).hasOwnProperty('parentId')) {
-            const row = await trx.from('posts').where('id', it.id).first()
-            if (row) {
-              const enabled = postTypeConfigService.getUiConfig(String((row as any).type)).hierarchyEnabled
-              if (!enabled) {
-                throw new Error('Hierarchy is disabled for this post type')
-              }
+            const enabled = postTypeConfigService.getUiConfig(String((row as any).type)).hierarchyEnabled
+            if (!enabled) {
+              throw new Error('Hierarchy is disabled for this post type')
             }
           }
+        }
+        for (const it of sanitized) {
           const update: any = { order_index: it.orderIndex, updated_at: now }
           if ((it as any).hasOwnProperty('parentId')) {
             update.parent_id = it.parentId === undefined ? undefined : it.parentId
