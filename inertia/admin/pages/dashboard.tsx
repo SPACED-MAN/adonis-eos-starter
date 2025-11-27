@@ -200,7 +200,7 @@ export default function Dashboard({ }: DashboardProps) {
     })
   }
 
-  async function applyBulk(action: 'publish' | 'draft' | 'archive' | 'delete') {
+  async function applyBulk(action: 'publish' | 'draft' | 'archive' | 'delete' | 'duplicate') {
     if (selected.size === 0) return
     const ids = Array.from(selected)
     const res = await fetch('/api/posts/bulk', {
@@ -554,7 +554,7 @@ export default function Dashboard({ }: DashboardProps) {
               <div className="w-[200px]">
                 <Select
                   key={bulkKey}
-                  onValueChange={(val: 'publish' | 'draft' | 'archive' | 'delete') => {
+                  onValueChange={(val: 'publish' | 'draft' | 'archive' | 'delete' | 'duplicate') => {
                     if (val === 'delete') {
                       setConfirmBulkDelete(true)
                     } else {
@@ -570,6 +570,7 @@ export default function Dashboard({ }: DashboardProps) {
                     {(isAdmin || isEditor) && <SelectItem value="publish">Publish</SelectItem>}
                     <SelectItem value="draft">Move to Draft</SelectItem>
                     {(isAdmin || isEditor) && <SelectItem value="archive">Archive</SelectItem>}
+                    {(isAdmin || isEditor) && <SelectItem value="duplicate">Duplicate</SelectItem>}
                     {isAdmin && <SelectItem value="delete">Delete (archived only)</SelectItem>}
                   </SelectContent>
                 </Select>
