@@ -36,6 +36,7 @@ import { DndContext, closestCenter, PointerSensor, useSensor, useSensors, DragEn
 import { SortableContext, useSortable, verticalListSortingStrategy } from '@dnd-kit/sortable'
 import { CSS } from '@dnd-kit/utilities'
 import { GripVertical, Globe } from 'lucide-react'
+import { getXsrf } from '~/utils/xsrf'
 
 interface EditorProps {
   post: {
@@ -177,7 +178,16 @@ export default function Editor({ post, modules: initialModules, translations, re
       return undefined
     }
   })()
-  const xsrfToken = xsrfFromCookie ?? csrfFromProps
+  // Always read latest token to avoid stale value after a request rotates it
+  const xsrfHeader = () => {
+    try {
+      const live = getXsrf()
+      const token = live ?? csrfFromProps
+      return token ? { 'X-XSRF-TOKEN': token } as Record<string, string> : {}
+    } catch {
+      return csrfFromProps ? { 'X-XSRF-TOKEN': csrfFromProps } : {}
+    }
+  }
   const role: string | undefined =
     (page.props as any)?.currentUser?.role ?? (page.props as any)?.auth?.user?.role
   const isAdmin = role === 'admin'
@@ -322,10 +332,10 @@ export default function Editor({ post, modules: initialModules, translations, re
     }
     const res = await fetch(`/api/posts/${post.id}`, {
       method: 'PUT',
-      headers: {
+        headers: {
         'Accept': 'application/json',
         'Content-Type': 'application/json',
-        ...(xsrfToken ? { 'X-XSRF-TOKEN': xsrfToken } : {}),
+          ...xsrfHeader(),
       },
       credentials: 'same-origin',
       body: JSON.stringify(payload),
@@ -436,7 +446,7 @@ export default function Editor({ post, modules: initialModules, translations, re
         headers: {
           Accept: 'application/json',
           'Content-Type': 'application/json',
-          ...(xsrfToken ? { 'X-XSRF-TOKEN': xsrfToken } : {}),
+          ...xsrfHeader(),
         },
         credentials: 'same-origin',
         body: JSON.stringify({ orderIndex: index, mode: viewMode === 'review' ? 'review' : 'publish' }),
@@ -495,18 +505,19 @@ export default function Editor({ post, modules: initialModules, translations, re
     const entries = Object.entries(pendingModules)
     // 1) Apply updates
     if (entries.length > 0) {
-      const updates = entries.map(([id, payload]) =>
-        fetch(`/api/post-modules/${encodeURIComponent(id)}`, {
+      const updates = entries.map(([id, payload]) => {
+        const url = `/api/post-modules/${encodeURIComponent(id)}`
+        return fetch(url, {
           method: 'PUT',
           headers: {
             'Accept': 'application/json',
             'Content-Type': 'application/json',
-            ...(xsrfToken ? { 'X-XSRF-TOKEN': xsrfToken } : {}),
+            ...xsrfHeader(),
           },
           credentials: 'same-origin',
           body: JSON.stringify({ overrides: payload.overrides, mode }),
         })
-      )
+      })
       const results = await Promise.allSettled(updates)
       const anyFailed = results.some((r) => r.status === 'rejected' || (r.status === 'fulfilled' && !(r.value as Response).ok))
       if (anyFailed) {
@@ -522,7 +533,7 @@ export default function Editor({ post, modules: initialModules, translations, re
           method: 'DELETE',
           credentials: 'same-origin',
           headers: {
-            ...(xsrfToken ? { 'X-XSRF-TOKEN': xsrfToken } : {}),
+            ...xsrfHeader(),
           },
         })
       )
@@ -534,6 +545,7 @@ export default function Editor({ post, modules: initialModules, translations, re
   const handleSubmit = (e: FormEvent) => {
     e.preventDefault()
     put(`/api/posts/${post.id}`, {
+      headers: xsrfHeader(),
       onSuccess: () => {
         toast.success('Post updated successfully')
       },
@@ -1138,7 +1150,7 @@ export default function Editor({ post, modules: initialModules, translations, re
                           headers: {
                             Accept: 'application/json',
                             'Content-Type': 'application/json',
-                            ...(xsrfToken ? { 'X-XSRF-TOKEN': xsrfToken } : {}),
+                            ...xsrfHeader(),
                           },
                           credentials: 'same-origin',
                           body: JSON.stringify({ locale: toCreate }),
@@ -1181,6 +1193,7 @@ export default function Editor({ post, modules: initialModules, translations, re
                     } else {
                       await commitPendingModules('publish')
                       put(`/api/posts/${post.id}`, {
+                        headers: xsrfHeader(),
                         preserveScroll: true,
                         onSuccess: () => {
                           toast.success('Changes saved')
@@ -1203,7 +1216,7 @@ export default function Editor({ post, modules: initialModules, translations, re
                         headers: {
                           'Accept': 'application/json',
                           'Content-Type': 'application/json',
-                          ...(xsrfToken ? { 'X-XSRF-TOKEN': xsrfToken } : {}),
+                          ...xsrfHeader(),
                         },
                         credentials: 'same-origin',
                         body: JSON.stringify({ mode: 'approve' }),
@@ -1317,7 +1330,7 @@ export default function Editor({ post, modules: initialModules, translations, re
                             headers: {
                               Accept: 'application/json',
                               'Content-Type': 'application/json',
-                              ...(xsrfToken ? { 'X-XSRF-TOKEN': xsrfToken } : {}),
+                              ...xsrfHeader(),
                             },
                             credentials: 'same-origin',
                             body: JSON.stringify({ authorId: selectedAuthorId }),
@@ -1405,7 +1418,7 @@ export default function Editor({ post, modules: initialModules, translations, re
                                   headers: {
                                     Accept: 'application/json',
                                     'Content-Type': 'application/json',
-                                    ...(xsrfToken ? { 'X-XSRF-TOKEN': xsrfToken } : {}),
+                                    ...xsrfHeader(),
                                   },
                                   credentials: 'same-origin',
                                 })
@@ -1512,7 +1525,7 @@ export default function Editor({ post, modules: initialModules, translations, re
                     headers: {
                       Accept: 'application/json',
                       'Content-Type': 'application/json',
-                      ...(xsrfToken ? { 'X-XSRF-TOKEN': xsrfToken } : {}),
+                        ...xsrfHeader(),
                     },
                     credentials: 'same-origin',
                     body: JSON.stringify({ data: pendingImportJson, mode: 'review' }),
@@ -1540,7 +1553,7 @@ export default function Editor({ post, modules: initialModules, translations, re
                     headers: {
                       Accept: 'application/json',
                       'Content-Type': 'application/json',
-                      ...(xsrfToken ? { 'X-XSRF-TOKEN': xsrfToken } : {}),
+                        ...xsrfHeader(),
                     },
                     credentials: 'same-origin',
                     body: JSON.stringify({ data: pendingImportJson, mode: 'replace' }),

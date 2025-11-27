@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react'
 import { router } from '@inertiajs/react'
 import { toast } from 'sonner'
 import { AlertDialog, AlertDialogContent, AlertDialogHeader, AlertDialogTitle, AlertDialogFooter, AlertDialogCancel, AlertDialogDescription } from '~/components/ui/alert-dialog'
+import { getXsrf } from '~/utils/xsrf'
 
 type ModuleConfig = {
 	type: string
@@ -80,6 +81,7 @@ export function ModulePicker({
 			toast.error('Missing postId for adding module')
 			return
 		}
+		const xsrf = getXsrf()
 		router.post(
 			`/api/posts/${postId}/modules`,
 			{
@@ -91,6 +93,7 @@ export function ModulePicker({
 				mode,
 			},
 			{
+				headers: xsrf ? { 'X-XSRF-TOKEN': xsrf } : undefined,
 				onStart: () => setLoading(true),
 				onFinish: () => setLoading(false),
 				onSuccess: () => {
@@ -127,6 +130,7 @@ export function ModulePicker({
 			toast.error('Missing postId for adding module')
 			return
 		}
+		const xsrf = getXsrf()
 		router.post(
 			`/api/posts/${postId}/modules`,
 			{
@@ -138,6 +142,7 @@ export function ModulePicker({
 				mode,
 			},
 			{
+				headers: xsrf ? { 'X-XSRF-TOKEN': xsrf } : undefined,
 				onStart: () => setLoading(true),
 				onFinish: () => setLoading(false),
 				onSuccess: () => {

@@ -20,6 +20,31 @@ export class UpdatePostModuleException extends Error {
 }
 
 export default class UpdatePostModule {
+  private static deepMerge(
+    base: Record<string, any>,
+    override: Record<string, any> | null | undefined
+  ): Record<string, any> {
+    if (!override || typeof override !== 'object') return { ...base }
+    const out: Record<string, any> = Array.isArray(base) ? [...(base as any)] : { ...base }
+    for (const key of Object.keys(override)) {
+      const oVal = (override as any)[key]
+      const bVal = (base as any)[key]
+      if (
+        oVal &&
+        typeof oVal === 'object' &&
+        !Array.isArray(oVal) &&
+        bVal &&
+        typeof bVal === 'object' &&
+        !Array.isArray(bVal)
+      ) {
+        out[key] = UpdatePostModule.deepMerge(bVal, oVal)
+      } else {
+        // For arrays and primitives: replace entirely
+        out[key] = oVal
+      }
+    }
+    return out
+  }
   static async handle({
     postModuleId,
     orderIndex,
@@ -56,7 +81,8 @@ export default class UpdatePostModule {
           mode === 'review'
             ? (moduleInstance as any).review_props || {}
             : moduleInstance.props || {}
-        const mergedProps = { ...baseProps, ...(overrides || {}) }
+        // Deep-merge overrides to preserve nested richtext JSON
+        const mergedProps = UpdatePostModule.deepMerge(baseProps, overrides || {})
         const propsColumn = mode === 'review' ? 'review_props' : 'props'
         await db.from('module_instances').where('id', postModule.module_id).update({
           [propsColumn]: mergedProps,
