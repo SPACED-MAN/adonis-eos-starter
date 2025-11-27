@@ -205,7 +205,7 @@ export default class MediaController {
 				entityId: id,
 				metadata: { filename: clientName, mime, size: Number(size) },
 			})
-		} catch {}
+		} catch { }
 		return response.created({ data: { id, url } })
 	}
 
@@ -247,7 +247,7 @@ export default class MediaController {
 				entityId: id,
 				metadata: { fields: Object.keys(update) },
 			})
-		} catch {}
+		} catch { }
 		return response.ok({ message: 'Updated' })
 	}
 
@@ -304,7 +304,7 @@ export default class MediaController {
 				entityType: 'media',
 				entityId: id,
 			})
-		} catch {}
+		} catch { }
 		return response.noContent()
 	}
 
@@ -404,7 +404,7 @@ export default class MediaController {
 					entityId: id,
 					metadata: { targetVariant },
 				})
-			} catch {}
+			} catch { }
 			return response.ok({ data: { variants } })
 		}
 
@@ -444,7 +444,7 @@ export default class MediaController {
 					entityId: id,
 					metadata: { cropRect: cropArgs },
 				})
-			} catch {}
+			} catch { }
 			return response.ok({ data: { variants: [...rebuilt, cropped] } })
 		}
 
@@ -477,7 +477,7 @@ export default class MediaController {
 				entityId: id,
 				metadata: { specs: specs || null, cropRect: cropArgs, focalPoint },
 			})
-		} catch {}
+		} catch { }
 		return response.ok({ data: { variants } })
 	}
 
@@ -567,7 +567,7 @@ export default class MediaController {
 				entityId: id,
 				metadata: { oldUrl, newUrl },
 			})
-		} catch {}
+		} catch { }
 		return response.ok({ data: { url: newUrl } })
 	}
 
@@ -657,7 +657,7 @@ export default class MediaController {
 				entityType: 'media',
 				entityId: id,
 			})
-		} catch {}
+		} catch { }
 		return response.ok({ message: 'Overridden' })
 	}
 
@@ -665,35 +665,39 @@ export default class MediaController {
 		const { id } = params
 		const row = await db.from('media_assets').where('id', id).first()
 		if (!row) return response.notFound({ error: 'Media not found' })
-		return response.ok({ data: {
-			id: row.id,
-			url: row.url,
-			originalFilename: row.original_filename,
-			mimeType: row.mime_type,
-			size: Number(row.size || 0),
-			optimizedUrl: (row as any).optimized_url || null,
-			optimizedSize: (row as any).optimized_size ? Number((row as any).optimized_size) : null,
-			altText: row.alt_text,
-			caption: row.caption,
-			description: row.description,
-			categories: Array.isArray(row.categories) ? row.categories : [],
-			metadata: row.metadata || null,
-			createdAt: row.created_at,
-			updatedAt: row.updated_at,
-		} })
+		return response.ok({
+			data: {
+				id: row.id,
+				url: row.url,
+				originalFilename: row.original_filename,
+				mimeType: row.mime_type,
+				size: Number(row.size || 0),
+				optimizedUrl: (row as any).optimized_url || null,
+				optimizedSize: (row as any).optimized_size ? Number((row as any).optimized_size) : null,
+				altText: row.alt_text,
+				caption: row.caption,
+				description: row.description,
+				categories: Array.isArray(row.categories) ? row.categories : [],
+				metadata: row.metadata || null,
+				createdAt: row.created_at,
+				updatedAt: row.updated_at,
+			}
+		})
 	}
 
 	async showPublic({ params, response }: HttpContext) {
 		const { id } = params
 		const row = await db.from('media_assets').where('id', id).first()
 		if (!row) return response.notFound({ error: 'Media not found' })
-		return response.ok({ data: {
-			id: row.id,
-			url: row.url,
-			metadata: row.metadata || null,
-			altText: row.alt_text,
-			categories: Array.isArray(row.categories) ? row.categories : [],
-		} })
+		return response.ok({
+			data: {
+				id: row.id,
+				url: row.url,
+				metadata: row.metadata || null,
+				altText: row.alt_text,
+				categories: Array.isArray(row.categories) ? row.categories : [],
+			}
+		})
 	}
 
 	/**
@@ -744,7 +748,7 @@ export default class MediaController {
 					entityId: id,
 					metadata: { optimizedUrl: result.optimizedUrl, optimizedSize: Number(result.size || 0) },
 				})
-			} catch {}
+			} catch { }
 			return response.ok({ data: { optimizedUrl: result.optimizedUrl, optimizedSize: Number(result.size || 0) } })
 		} catch (e: any) {
 			return response.badRequest({ error: e?.message || 'Optimization failed' })
@@ -789,7 +793,7 @@ export default class MediaController {
 				entityId: 'bulk',
 				metadata: { count: success },
 			})
-		} catch {}
+		} catch { }
 		return response.ok({ data: { optimized: success } })
 	}
 
@@ -833,7 +837,7 @@ export default class MediaController {
 				entityId: 'bulk',
 				metadata: { count: success },
 			})
-		} catch {}
+		} catch { }
 		return response.ok({ data: { regenerated: success } })
 	}
 
@@ -892,7 +896,7 @@ export default class MediaController {
 				entityId: 'bulk',
 				metadata: { count: deleted },
 			})
-		} catch {}
+		} catch { }
 		return response.ok({ data: { deleted } })
 	}
 
@@ -933,7 +937,7 @@ export default class MediaController {
 				entityId: 'bulk',
 				metadata: { count: updated, add: addArr, remove: removeArr },
 			})
-		} catch {}
+		} catch { }
 		return response.ok({ data: { updated } })
 	}
 }
