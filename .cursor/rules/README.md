@@ -146,6 +146,7 @@ node ace test tests/unit/modules/video_embed.spec.ts
 - Data lives in `post_modules.props` (JSONB)
 - No migrations needed to add/update modules
 - Choose static for performance, React for interactivity
+- Editorial-first UI: expose content fields (text, images) only; avoid style controls (padding, margins, colors). Design lives in Tailwind within code, with rare, semantic variants when necessary.
 
 ## Testing Quick Start
 

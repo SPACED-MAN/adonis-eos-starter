@@ -80,6 +80,18 @@ A **module** is a self-contained, reusable content component that can be added t
 - Props stored efficiently in JSONB
 - SSR rendering is fast
 
+### UI Philosophy: Editorial Content Only
+
+Our module UI intentionally focuses on content that provides value to editors:
+
+- Only expose fields for editorial content (text, copy, image uploads, media URLs).
+- Do not expose design controls like padding, margin, spacing, colors, or arbitrary Tailwind classes.
+- Visual design and layout should be defined in code via Tailwind, not configured per-instance in the editor.
+- Adjustability should be rare; if needed, prefer constrained, semantic variants (e.g., “compact” vs “standard”) over free-form style controls.
+- Any requested style controls should be reviewed and implemented as code-level defaults or design tokens rather than editor fields.
+
+This keeps content consistent, reduces design drift, and improves maintainability.
+
 ---
 
 ## Creating a New Module
