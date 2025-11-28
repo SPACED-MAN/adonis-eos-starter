@@ -628,7 +628,7 @@ export default function Dashboard({ }: DashboardProps) {
               <div className="w-[200px]">
                 <Select
                   key={bulkKey}
-                  onValueChange={(val: 'publish' | 'draft' | 'archive' | 'delete' | 'duplicate') => {
+                  onValueChange={(val: 'publish' | 'draft' | 'archive' | 'delete' | 'duplicate' | 'regeneratePermalinks') => {
                     if (val === 'delete') {
                       setConfirmBulkDelete(true)
                     } else {
@@ -645,6 +645,7 @@ export default function Dashboard({ }: DashboardProps) {
                     <SelectItem value="draft">Move to Draft</SelectItem>
                     {(isAdmin || isEditor) && <SelectItem value="archive">Archive</SelectItem>}
                     {(isAdmin || isEditor) && <SelectItem value="duplicate">Duplicate</SelectItem>}
+                    {(isAdmin || isEditor) && <SelectItem value="regeneratePermalinks">Regenerate permalinks</SelectItem>}
                     {isAdmin && <SelectItem value="delete">Delete (archived only)</SelectItem>}
                   </SelectContent>
                 </Select>

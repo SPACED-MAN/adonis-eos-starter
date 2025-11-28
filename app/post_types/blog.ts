@@ -18,7 +18,7 @@ export default {
 	// URL patterns (synced on boot)
 	// Tokens: {locale}, {slug}, {yyyy}, {mm}, {dd}
 	urlPatterns: [
-		{ locale: 'en', pattern: '/blog/{yyyy}/{slug}', isDefault: true },
+		{ locale: 'en', pattern: '/blog/{path}', isDefault: true },
 	],
 	// Permalinks enabled for this type (set to false to disable public pages)
 	permalinksEnabled: true,

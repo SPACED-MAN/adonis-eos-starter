@@ -1,6 +1,6 @@
 export type UserRole = 'admin' | 'editor' | 'translator' | undefined
 
-export type BulkAction = 'publish' | 'draft' | 'archive' | 'delete' | 'duplicate'
+export type BulkAction = 'publish' | 'draft' | 'archive' | 'delete' | 'duplicate' | 'regeneratePermalinks'
 
 export class AuthorizationService {
 	static isAdmin(role: UserRole): boolean {
@@ -25,6 +25,9 @@ export class AuthorizationService {
 		}
 		if (action === 'duplicate') {
 			// Allow admins and editors to duplicate posts
+			return role === 'admin' || role === 'editor'
+		}
+		if (action === 'regeneratePermalinks') {
 			return role === 'admin' || role === 'editor'
 		}
 		if (action === 'publish' || action === 'archive') {

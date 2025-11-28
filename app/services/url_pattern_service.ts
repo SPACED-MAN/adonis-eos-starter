@@ -1,4 +1,6 @@
 import db from '@adonisjs/lucid/services/db'
+import postTypeConfigService from '#services/post_type_config_service'
+import localeService from '#services/locale_service'
 
 type UrlPatternData = {
   id: string
@@ -49,14 +51,20 @@ class UrlPatternService {
    * Build path using default pattern for postType+locale.
    */
   async buildPostPath(postType: string, slug: string, locale: string, createdAt?: Date): Promise<string> {
-    const defaultPattern =
-      (await this.getDefaultPattern(postType, locale))?.pattern ||
-      '/{locale}/posts/{slug}'
+    const stored = await this.getDefaultPattern(postType, locale)
+    const hierarchical = postTypeConfigService.getUiConfig(postType).hierarchyEnabled
+    const seg = hierarchical ? '{path}' : '{slug}'
+    const defaultLocale = localeService.getDefaultLocale()
+    const fallbackPattern = locale === defaultLocale ? `/${postType}/${seg}` : `/{locale}/${postType}/${seg}`
+    const defaultPattern = stored?.pattern || fallbackPattern
     const d = createdAt ? new Date(createdAt) : new Date()
     const yyyy = String(d.getUTCFullYear())
     const mm = String(d.getUTCMonth() + 1).padStart(2, '0')
     const dd = String(d.getUTCDate()).padStart(2, '0')
-    return this.replaceTokens(defaultPattern, { slug, locale, yyyy, mm, dd })
+    // Backwards compatibility: if pattern contains {path}, use slug as path
+    const wantsPath = /\{path\}/.test(defaultPattern)
+    const path = slug
+    return this.replaceTokens(defaultPattern, { slug, path, locale, yyyy, mm, dd })
   }
 
   async buildPostUrl(
@@ -109,6 +117,7 @@ class UrlPatternService {
       .replace(/\{mm\}/g, '(?<mm>\\d{2})')
       .replace(/\{dd\}/g, '(?<dd>\\d{2})')
       .replace(/\{slug\}/g, '(?<slug>[^\\/]+)')
+      .replace(/\{path\}/g, '(?<path>.+?)')
     return new RegExp('^' + source + '$', 'i')
   }
 
@@ -123,7 +132,12 @@ class UrlPatternService {
       const m = re.exec(path)
       if (m && m.groups) {
         const locale = (m.groups['locale'] as string) || p.locale
-        const slug = m.groups['slug'] as string
+        let slug = m.groups['slug'] as string | undefined
+        const pathGroup = m.groups['path'] as string | undefined
+        if (!slug && pathGroup) {
+          const parts = pathGroup.split('/').filter(Boolean)
+          slug = parts[parts.length - 1]
+        }
         if (slug) {
           return { postType: p.postType, locale, slug: decodeURIComponent(slug) }
         }
@@ -135,21 +149,75 @@ class UrlPatternService {
   /**
    * Ensure default patterns exist for a postType across all supported locales.
    */
-  async ensureDefaultsForPostType(postType: string, locales: string[], defaultPattern = '/{locale}/posts/{slug}'): Promise<void> {
+  async ensureDefaultsForPostType(postType: string, locales: string[], _defaultPattern = '/{locale}/posts/{slug}'): Promise<void> {
     const existing = await db.from('url_patterns').where({ post_type: postType }).select('locale')
     const existingLocales = new Set(existing.map((r) => r.locale))
     const missing = locales.filter((l) => !existingLocales.has(l))
     if (missing.length === 0) return
     const now = new Date()
-    const rows = missing.map((locale) => ({
-      post_type: postType,
-      locale,
-      pattern: defaultPattern,
-      is_default: true,
-      created_at: now,
-      updated_at: now,
-    }))
+    const hierarchical = postTypeConfigService.getUiConfig(postType).hierarchyEnabled
+    const seg = hierarchical ? '{path}' : '{slug}'
+    const defaultLocale = localeService.getDefaultLocale()
+    const rows = missing.map((locale) => {
+      const pat = locale === defaultLocale ? `/${postType}/${seg}` : `/{locale}/${postType}/${seg}`
+      return {
+        post_type: postType,
+        locale,
+        pattern: pat,
+        is_default: true,
+        created_at: now,
+        updated_at: now,
+      }
+    })
     await db.table('url_patterns').insert(rows)
+  }
+
+  /**
+   * Compute hierarchical parent path for a post: "parent1/parent2".
+   * Only includes parents with same type and locale.
+   */
+  async getParentPathForPost(postId: string): Promise<string> {
+    // Load the post to get type/locale/parent_id
+    const root = await db.from('posts').where('id', postId).select('id', 'parent_id as parentId', 'type', 'locale', 'slug').first()
+    if (!root) return ''
+    const type = String((root as any).type)
+    const locale = String((root as any).locale)
+    let nextParent: string | null = (root as any).parentId ?? null
+    const chain: string[] = []
+    const guard = new Set<string>([String((root as any).id)])
+    while (nextParent) {
+      const row = await db.from('posts').where('id', nextParent).select('id', 'parent_id as parentId', 'slug', 'type', 'locale').first()
+      if (!row) break
+      if (String((row as any).type) !== type || String((row as any).locale) !== locale) break
+      const slug = String((row as any).slug || '')
+      if (slug) chain.push(slug)
+      const candidate = (row as any).parentId ?? null
+      if (candidate && guard.has(String((row as any).id))) break
+      if (candidate) guard.add(String(candidate))
+      nextParent = candidate
+    }
+    return chain.reverse().join('/')
+  }
+
+  /**
+   * Build hierarchical path using {path} token when present, otherwise {slug}.
+   */
+  async buildPostPathForPost(postId: string): Promise<string> {
+    const row = await db.from('posts').where('id', postId).first()
+    if (!row) return '/'
+    const pattern = (await this.getDefaultPattern(String(row.type), String(row.locale)))?.pattern || '/{locale}/posts/{slug}'
+    const d = (row as any).created_at ? new Date((row as any).created_at) : new Date()
+    const yyyy = String(d.getUTCFullYear())
+    const mm = String(d.getUTCMonth() + 1).padStart(2, '0')
+    const dd = String(d.getUTCDate()).padStart(2, '0')
+    const parentPath = await this.getParentPathForPost(String(row.id))
+    const path = parentPath ? `${parentPath}/${String(row.slug)}` : String(row.slug)
+    return this.replaceTokens(pattern, { slug: String(row.slug), path, locale: String(row.locale), yyyy, mm, dd })
+  }
+
+  async buildPostUrlForPost(postId: string, protocol: string, host: string): Promise<string> {
+    const path = await this.buildPostPathForPost(postId)
+    return `${protocol}://${host}${path}`
   }
 
   /**
@@ -183,7 +251,7 @@ class UrlPatternService {
    * Ensure a specific locale has default patterns across all known post types.
    * Known post types are derived from templates + posts union.
    */
-  async ensureLocaleForAllPostTypes(locale: string, defaultPattern = '/{locale}/posts/{slug}'): Promise<void> {
+  async ensureLocaleForAllPostTypes(locale: string, _defaultPattern = '/{locale}/posts/{slug}'): Promise<void> {
     const [fromTemplates, fromPosts] = await Promise.all([
       this.getPostTypesFromTemplates(),
       this.getPostTypesFromPosts(),
@@ -193,16 +261,22 @@ class UrlPatternService {
     const now = new Date()
     const existing = await db.from('url_patterns').whereIn('post_type', types).andWhere('locale', locale)
     const existingByType = new Set(existing.map((r) => r.post_type as string))
+    const defaultLocale = localeService.getDefaultLocale()
     const rows = types
       .filter((t) => !existingByType.has(t))
-      .map((t) => ({
-        post_type: t,
-        locale,
-        pattern: defaultPattern,
-        is_default: true,
-        created_at: now,
-        updated_at: now,
-      }))
+      .map((t) => {
+        const hierarchical = postTypeConfigService.getUiConfig(t).hierarchyEnabled
+        const seg = hierarchical ? '{path}' : '{slug}'
+        const pat = locale === defaultLocale ? `/${t}/${seg}` : `/{locale}/${t}/${seg}`
+        return {
+          post_type: t,
+          locale,
+          pattern: pat,
+          is_default: true,
+          created_at: now,
+          updated_at: now,
+        }
+      })
     if (rows.length) {
       await db.table('url_patterns').insert(rows)
     }

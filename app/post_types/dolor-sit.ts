@@ -24,6 +24,6 @@ export default {
   // URL patterns (synced on boot)
   // Tokens: {locale}, {slug}, {yyyy}, {mm}, {dd}
   urlPatterns: [
-    { locale: 'en', pattern: '/{locale}/dolor-sit/{slug}', isDefault: true },
+    { locale: 'en', pattern: '/dolor-sit/{path}', isDefault: true },
   ],
 } as const

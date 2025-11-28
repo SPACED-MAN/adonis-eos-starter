@@ -3,7 +3,7 @@ import { Head } from '@inertiajs/react'
 import { AdminHeader } from '../../components/AdminHeader'
 import { AdminFooter } from '../../components/AdminFooter'
 import { AdminBreadcrumbs } from '../../components/AdminBreadcrumbs'
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '~/components/ui/select'
+// Select import removed (no add-pattern form)
 
 type Pattern = {
 	id: string
@@ -26,12 +26,6 @@ export default function UrlPatternsPage() {
 	const [loading, setLoading] = useState(false)
 	const [savingKey, setSavingKey] = useState<string | null>(null)
 	const [drafts, setDrafts] = useState<Record<string, string>>({})
-	const [newPattern, setNewPattern] = useState<{ postType: string; locale: string; pattern: string }>({
-		postType: '',
-		locale: '',
-		pattern: '',
-	})
-	const [availableLocales, setAvailableLocales] = useState<string[]>([])
 
 	useEffect(() => {
 		let mounted = true
@@ -56,24 +50,7 @@ export default function UrlPatternsPage() {
 		}
 	}, [])
 
-	// Load available locales for dropdown
-	useEffect(() => {
-		let mounted = true
-		fetch('/api/locales', { credentials: 'same-origin' })
-			.then((r) => r.json())
-			.then((json) => {
-				if (!mounted) return
-				const list: Array<{ code: string }> = Array.isArray(json?.data) ? json.data : []
-				setAvailableLocales(list.map((l) => l.code))
-			})
-			.catch(() => {
-				if (!mounted) return
-				setAvailableLocales(['en'])
-			})
-		return () => {
-			mounted = false
-		}
-	}, [])
+	// Removed Add Pattern form; defaults are auto-managed by boot logic
 
 	const groups = useMemo(() => {
 		const map = new Map<string, Pattern[]>()
@@ -136,83 +113,22 @@ export default function UrlPatternsPage() {
 						{loading && <span className="text-sm text-neutral-low">Loading…</span>}
 					</div>
 					<div className="p-6">
-						<section className="mb-10 opacity-60 pointer-events-none">
-							<h3 className="text-base font-semibold text-neutral-high mb-1">Add Pattern</h3>
-							<p className="text-sm text-neutral-low mb-3">Disabled: defaults are auto-created for all post types and locales.</p>
-							<div className="flex flex-col md:flex-row gap-3">
-								<input
-									type="text"
-									className="md:w-48 px-3 py-2 border border-line rounded bg-backdrop-low text-neutral-high"
-									placeholder="postType (e.g., blog)"
-									value={newPattern.postType}
-									onChange={(e) => setNewPattern((s) => ({ ...s, postType: e.target.value }))}
-									disabled
-								/>
-								<div className="md:w-40">
-									<Select
-										disabled
-										defaultValue={newPattern.locale || undefined}
-										onValueChange={(val) => setNewPattern((s) => ({ ...s, locale: val }))}
-									>
-										<SelectTrigger>
-											<SelectValue placeholder={availableLocales.length ? 'Select locale' : 'Loading...'} />
-										</SelectTrigger>
-										<SelectContent>
-											{availableLocales.map((loc) => (
-												<SelectItem key={loc} value={loc}>{loc.toUpperCase()}</SelectItem>
-											))}
-										</SelectContent>
-									</Select>
-								</div>
-								<input
-									type="text"
-									className="flex-1 px-3 py-2 border border-line rounded bg-backdrop-low text-neutral-high"
-									placeholder="/{locale}/posts/{slug}"
-									value={newPattern.pattern}
-									onChange={(e) => setNewPattern((s) => ({ ...s, pattern: e.target.value }))}
-									disabled
-								/>
-								<button
-									type="button"
-									className="px-3 py-2 text-sm rounded bg-standout text-on-standout disabled:opacity-50"
-									onClick={async () => {
-										if (!newPattern.postType || !newPattern.locale || !newPattern.pattern) {
-											alert('postType, locale and pattern are required')
-											return
-										}
-										const res = await fetch(`/api/url-patterns/${encodeURIComponent(newPattern.locale)}`, {
-											method: 'PUT',
-											headers: {
-												'Accept': 'application/json',
-												'Content-Type': 'application/json',
-												...(getXsrfToken() ? { 'X-XSRF-TOKEN': getXsrfToken()! } : {}),
-											},
-											credentials: 'same-origin',
-											body: JSON.stringify({
-												postType: newPattern.postType,
-												pattern: newPattern.pattern,
-												isDefault: true,
-											}),
-										})
-										if (!res.ok) {
-											const err = await res.json().catch(() => ({}))
-											alert(err?.error || 'Failed to add pattern')
-											return
-										}
-										const json = await res.json()
-										setPatterns((prev) => [...prev, json.data])
-										setDrafts((d) => ({
-											...d,
-											[`${json.data.postType}:${json.data.locale}`]: json.data.pattern,
-										}))
-										setNewPattern({ postType: '', locale: '', pattern: '' })
-									}}
-									disabled
-								>
-									Add
-								</button>
-							</div>
+						<section className="mb-6">
+							<h3 className="text-base font-semibold text-neutral-high mb-1">Available tokens</h3>
+							<ul className="text-sm text-neutral-medium list-disc pl-5 space-y-1">
+								<li><code className="text-neutral-high">{'{slug}'}</code> — the post’s slug</li>
+								<li><code className="text-neutral-high">{'{path}'}</code> — hierarchical path of parents and slug (enabled when post type hierarchy is on)</li>
+								<li><code className="text-neutral-high">{'{locale}'}</code> — the locale code (e.g., en)</li>
+								<li><code className="text-neutral-high">{'{yyyy}'}</code> — 4-digit year from createdAt</li>
+								<li><code className="text-neutral-high">{'{mm}'}</code> — 2-digit month from createdAt</li>
+								<li><code className="text-neutral-high">{'{dd}'}</code> — 2-digit day from createdAt</li>
+							</ul>
+							<p className="mt-2 text-xs text-neutral-low">
+								Note: For the default locale, patterns are created without the {'{locale}'} segment by default.
+								Non-default locales include {'{locale}'} at the start.
+							</p>
 						</section>
+						{/* Add Pattern form removed; defaults are created automatically */}
 						{Array.from(groups.entries()).length === 0 && !loading ? (
 							<p className="text-neutral-low">No patterns yet.</p>
 						) : (
@@ -232,7 +148,7 @@ export default function UrlPatternsPage() {
 															<input
 																type="text"
 																className="flex-1 px-3 py-2 border border-border rounded bg-backdrop-low text-neutral-high"
-																placeholder="/{locale}/posts/{slug}"
+																placeholder="/posts/{slug}"
 																value={drafts[key] ?? current?.pattern ?? ''}
 																onChange={(e) =>
 																	setDrafts((d) => ({ ...d, [key]: e.target.value }))

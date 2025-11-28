@@ -5,7 +5,7 @@ import { randomUUID } from 'node:crypto'
 
 export default class BulkPostsAction {
   static async handle(input: {
-    action: 'publish' | 'draft' | 'archive' | 'delete' | 'duplicate'
+    action: 'publish' | 'draft' | 'archive' | 'delete' | 'duplicate' | 'regeneratePermalinks'
     ids: string[]
     role?: 'admin' | 'editor' | 'translator'
   }): Promise<{ message: string; count: number }> {
@@ -115,6 +115,20 @@ export default class BulkPostsAction {
         duplicated++
       }
       return { message: `Duplicated ${duplicated} posts`, count: duplicated }
+    }
+
+    if (action === 'regeneratePermalinks') {
+      // Update canonical_url to reflect current hierarchical path (pattern may include {path})
+      const rows = await Post.query().whereIn('id', uniqueIds)
+      let updated = 0
+      const now = new Date()
+      for (const p of rows) {
+        // Build path (without host) to store in canonical_url
+        const pathOnly = await (await import('#services/url_pattern_service')).default.buildPostPathForPost(p.id)
+        await Post.query().where('id', p.id).update({ canonicalUrl: pathOnly, updatedAt: now } as any)
+        updated++
+      }
+      return { message: `Regenerated permalinks for ${updated} posts`, count: updated }
     }
 
     if (action === 'delete') {

@@ -1257,24 +1257,10 @@ export default class PostsController {
       const alternatesBuilt = await Promise.all(
         alternates.map(async (_a, idx) => ({
           locale: family[idx].locale,
-          href: await urlPatternService.buildPostUrl(
-            post.type,
-            family[idx].slug,
-            family[idx].locale,
-            protocol,
-            host,
-            (family[idx].createdAt && family[idx].createdAt.toISO()) ? new Date(family[idx].createdAt.toISO()!) : undefined
-          ),
+          href: await urlPatternService.buildPostUrlForPost(family[idx].id, protocol, host),
         }))
       )
-      const canonical = await urlPatternService.buildPostUrl(
-        post.type,
-        post.slug,
-        post.locale,
-        protocol,
-        host,
-        (post.createdAt && post.createdAt.toISO()) ? new Date(post.createdAt.toISO()!) : undefined
-      )
+      const canonical = await urlPatternService.buildPostUrlForPost(post.id, protocol, host)
       // Robots: noindex,nofollow for non-published, else index,follow
       const robotsContent = post.status === 'published' ? 'index,follow' : 'noindex,nofollow'
       // Merge default JSON-LD with post-level overrides (if any)
@@ -1612,30 +1598,12 @@ export default class PostsController {
       const host = (request as any).host ? (request as any).host() : request.header('host')
       const reviewDraft: any = (post as any).reviewDraft || (post as any).review_draft || null
       const useReviewPost = wantReview && reviewDraft
-      const canonical = await urlPatternService.buildPostUrl(
-        post.type,
-        useReviewPost ? (reviewDraft.slug ?? post.slug) : post.slug,
-        post.locale,
-        protocol,
-        host,
-        (post.createdAt && post.createdAt.toISO()) ? new Date(post.createdAt.toISO()!) : undefined
-      )
+      const canonical = await urlPatternService.buildPostUrlForPost(post.id, protocol, host)
       const baseId = post.translationOfId || post.id
       const family = await Post.query().where((q) => {
         q.where('translationOfId', baseId).orWhere('id', baseId)
       })
-      const alternates = await Promise.all(
-        family.map((p) =>
-          urlPatternService.buildPostUrl(
-            p.type,
-            p.slug,
-            p.locale,
-            protocol,
-            host,
-            (p.createdAt && p.createdAt.toISO()) ? new Date(p.createdAt.toISO()!) : undefined
-          )
-        )
-      )
+      const alternates = await Promise.all(family.map((p) => urlPatternService.buildPostUrlForPost(p.id, protocol, host)))
       const siteSettings = await siteSettingsService.get()
       // Load author
       let author: { id: number; email: string; fullName: string | null } | null = null

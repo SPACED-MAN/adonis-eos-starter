@@ -159,7 +159,7 @@ export default class extends BaseSeeder {
         toInsert.push({
           post_type: 'blog',
           locale: 'en',
-          pattern: '/blog/{yyyy}/{slug}',
+          pattern: '/blog/{path}',
           is_default: true,
           created_at: nowTs,
           updated_at: nowTs,
@@ -169,7 +169,7 @@ export default class extends BaseSeeder {
         toInsert.push({
           post_type: 'blog',
           locale: 'es',
-          pattern: '/es/blog/{yyyy}/{slug}',
+          pattern: '/{locale}/blog/{path}',
           is_default: true,
           created_at: nowTs,
           updated_at: nowTs,
