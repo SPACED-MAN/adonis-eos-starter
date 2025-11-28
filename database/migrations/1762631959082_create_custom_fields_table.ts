@@ -27,8 +27,8 @@ export default class extends BaseSchema {
       // Whether this field should have locale-specific values
       table.boolean('translatable').notNullable().defaultTo(false)
       
-      table.timestamp('created_at').notNullable()
-      table.timestamp('updated_at').notNullable()
+      table.timestamp('created_at', { useTz: true }).notNullable().defaultTo(this.now())
+      table.timestamp('updated_at', { useTz: true }).notNullable().defaultTo(this.now())
       
       // Performance index for slug lookups
       table.index('slug')

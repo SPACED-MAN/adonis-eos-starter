@@ -7,7 +7,7 @@ export default class extends BaseSchema {
     this.schema.createTable(this.tableName, (table) => {
       table.uuid('id').primary().defaultTo(this.db.rawQuery('gen_random_uuid()').knexQuery)
       table.string('name', 255).notNullable()
-      table.string('slug', 255).notNullable().unique()
+      table.string('slug', 255).notNullable()
       table.string('locale', 10).nullable()
       table.boolean('auto_generate_locales').notNullable().defaultTo(false)
       table.timestamp('created_at', { useTz: true }).defaultTo(this.now())
@@ -16,6 +16,7 @@ export default class extends BaseSchema {
     this.schema.alterTable(this.tableName, (table) => {
       table.index(['slug'])
       table.index(['locale'])
+      table.unique(['slug', 'locale'])
     })
   }
 

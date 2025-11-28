@@ -13,7 +13,7 @@ export default class extends BaseSchema {
       table.jsonb('metadata').nullable()
       table.string('ip', 64).nullable()
       table.text('user_agent').nullable()
-      table.timestamp('created_at').notNullable().defaultTo(this.now())
+      table.timestamp('created_at', { useTz: true }).notNullable().defaultTo(this.now())
     })
     await this.schema.raw(`
 DO $$

@@ -12,8 +12,8 @@ export default class extends BaseSchema {
       table.string('password').notNullable()
       table.string('role', 20).notNullable().defaultTo('admin')
 
-      table.timestamp('created_at').notNullable()
-      table.timestamp('updated_at').nullable()
+      table.timestamp('created_at', { useTz: true }).notNullable().defaultTo(this.now())
+      table.timestamp('updated_at', { useTz: true }).nullable()
     })
     // Case-insensitive unique username
     await this.schema.raw(`

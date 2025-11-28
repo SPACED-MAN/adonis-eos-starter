@@ -6,6 +6,20 @@ import storageService from '#services/storage_service'
 type DerivSpec = { name: string; width?: number; height?: number; fit: 'inside' | 'cover' }
 type VariantInfo = { name: string; url: string; width?: number; height?: number; size: number }
 
+function inferMimeFromExt(ext: string): string {
+  const lower = (ext || '').toLowerCase()
+  switch (lower) {
+    case '.jpg':
+    case '.jpeg': return 'image/jpeg'
+    case '.png': return 'image/png'
+    case '.webp': return 'image/webp'
+    case '.gif': return 'image/gif'
+    case '.svg': return 'image/svg+xml'
+    case '.avif': return 'image/avif'
+    default: return 'application/octet-stream'
+  }
+}
+
 type CropRect = { left: number; top: number; width: number; height: number }
 
 type FocalPoint = { x: number; y: number } // normalized 0..1 in original image coordinates

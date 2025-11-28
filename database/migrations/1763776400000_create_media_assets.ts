@@ -5,7 +5,7 @@ export default class extends BaseSchema {
 
   async up() {
     this.schema.createTable(this.tableName, (table) => {
-      table.string('id', 36).primary()
+      table.uuid('id').primary().defaultTo(this.db.rawQuery('gen_random_uuid()').knexQuery)
       table.text('url').notNullable()
       table.text('original_filename').notNullable()
       table.text('mime_type').notNullable()
@@ -15,8 +15,8 @@ export default class extends BaseSchema {
       table.text('description').nullable()
       table.specificType('categories', 'text[]').notNullable().defaultTo('{}')
       table.jsonb('metadata').nullable()
-      table.timestamp('created_at', { useTz: true }).defaultTo(this.now())
-      table.timestamp('updated_at', { useTz: true }).defaultTo(this.now())
+      table.timestamp('created_at', { useTz: true }).notNullable().defaultTo(this.now())
+      table.timestamp('updated_at', { useTz: true }).notNullable().defaultTo(this.now())
     })
     this.schema.alterTable(this.tableName, (table) => {
       table.index(['mime_type'])

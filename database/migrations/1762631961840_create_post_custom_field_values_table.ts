@@ -19,8 +19,8 @@ export default class extends BaseSchema {
       // For translatable fields: { "en": "value", "es": "valor" }
       table.jsonb('value').nullable()
       
-      table.timestamp('created_at').notNullable()
-      table.timestamp('updated_at').notNullable()
+      table.timestamp('created_at', { useTz: true }).notNullable().defaultTo(this.now())
+      table.timestamp('updated_at', { useTz: true }).notNullable().defaultTo(this.now())
       
       // Ensure a field has only one value per post
       table.unique(['post_id', 'field_slug'])

@@ -55,8 +55,8 @@ export default class extends BaseSchema {
       table.timestamp('published_at').nullable()
       table.timestamp('scheduled_at').nullable()
 
-      table.timestamp('created_at').notNullable()
-      table.timestamp('updated_at').notNullable()
+      table.timestamp('created_at', { useTz: true }).notNullable().defaultTo(this.now())
+      table.timestamp('updated_at', { useTz: true }).notNullable().defaultTo(this.now())
 
       // Performance indexes
       table.unique(['slug', 'locale']) // Unique slug per locale
