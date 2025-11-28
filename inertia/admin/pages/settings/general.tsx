@@ -15,6 +15,8 @@ type Settings = {
   logoLightMediaId: string | null
   logoDarkMediaId: string | null
   profileRolesEnabled: string[]
+  customFieldDefs?: Array<{ slug: string; label: string; type: 'text' | 'url' | 'textarea' | 'boolean' | 'media' }>
+  customFields?: Record<string, any>
 }
 
 function getXsrf(): string | undefined {
@@ -34,6 +36,8 @@ export default function GeneralSettings() {
     logoLightMediaId: '',
     logoDarkMediaId: '',
     profileRolesEnabled: [],
+    customFieldDefs: [],
+    customFields: {},
   })
 
   useEffect(() => {
@@ -52,6 +56,8 @@ export default function GeneralSettings() {
           logoLightMediaId: j?.data?.logoLightMediaId || '',
           logoDarkMediaId: j?.data?.logoDarkMediaId || '',
           profileRolesEnabled: Array.isArray(j?.data?.profileRolesEnabled) ? j.data.profileRolesEnabled : [],
+          customFieldDefs: Array.isArray(j?.data?.customFieldDefs) ? j.data.customFieldDefs : [],
+          customFields: (j?.data?.customFields && typeof j.data.customFields === 'object') ? j.data.customFields : {},
         }
         setForm(s)
       } finally {
@@ -80,6 +86,7 @@ export default function GeneralSettings() {
           logoLightMediaId: form.logoLightMediaId || null,
           logoDarkMediaId: form.logoDarkMediaId || null,
           profileRolesEnabled: form.profileRolesEnabled || [],
+          customFields: form.customFields || {},
         }),
       })
       if (res.ok) {
@@ -234,6 +241,63 @@ export default function GeneralSettings() {
               <p className="text-xs text-neutral-low mt-1">Provide a dark-on-light version for light backgrounds.</p>
             </div>
           </div>
+          {/* Site Custom Fields */}
+          {Array.isArray(form.customFieldDefs) && form.customFieldDefs.length > 0 && (
+            <div className="border-t border-line pt-6">
+              <h3 className="text-base font-semibold text-neutral-high mb-3">Site Fields</h3>
+              <div className="space-y-4">
+                {form.customFieldDefs.map((f) => {
+                  const val = form.customFields?.[f.slug]
+                  if (f.type === 'boolean') {
+                    return (
+                      <label key={f.slug} className="inline-flex items-center gap-2 text-sm text-neutral-high">
+                        <input
+                          type="checkbox"
+                          checked={!!val}
+                          onChange={(e) => setForm((prev) => ({ ...prev, customFields: { ...(prev.customFields || {}), [f.slug]: e.target.checked } }))}
+                        />
+                        {f.label}
+                      </label>
+                    )
+                  }
+                  if (f.type === 'textarea') {
+                    return (
+                      <div key={f.slug}>
+                        <label className="block text-sm font-medium text-neutral-medium mb-1">{f.label}</label>
+                        <Textarea
+                          value={typeof val === 'string' ? val : ''}
+                          onChange={(e) => setForm((prev) => ({ ...prev, customFields: { ...(prev.customFields || {}), [f.slug]: e.target.value } }))}
+                          rows={3}
+                        />
+                      </div>
+                    )
+                  }
+                  if (f.type === 'media') {
+                    return (
+                      <div key={f.slug}>
+                        <MediaIdPicker
+                          label={f.label}
+                          value={typeof val === 'string' ? val : null}
+                          onChange={(id) => setForm((prev) => ({ ...prev, customFields: { ...(prev.customFields || {}), [f.slug]: id } }))}
+                        />
+                      </div>
+                    )
+                  }
+                  // text or url
+                  return (
+                    <div key={f.slug}>
+                      <label className="block text-sm font-medium text-neutral-medium mb-1">{f.label}</label>
+                      <Input
+                        value={typeof val === 'string' ? val : ''}
+                        onChange={(e) => setForm((prev) => ({ ...prev, customFields: { ...(prev.customFields || {}), [f.slug]: e.target.value } }))}
+                        placeholder={f.type === 'url' ? 'https://' : ''}
+                      />
+                    </div>
+                  )
+                })}
+              </div>
+            </div>
+          )}
           {/* Profiles enablement */}
           <div>
             <label className="block text-sm font-medium text-neutral-medium mb-2">Enable Profiles for Roles</label>

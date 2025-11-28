@@ -1,5 +1,6 @@
 import type { HttpContext } from '@adonisjs/core/http'
 import siteSettingsService from '#services/site_settings_service'
+import siteCustomFieldsService from '#services/site_custom_fields_service'
 import db from '@adonisjs/lucid/services/db'
 
 export default class SiteSettingsController {
@@ -8,7 +9,9 @@ export default class SiteSettingsController {
    */
   async show({ response }: HttpContext) {
     const s = await siteSettingsService.get()
-    return response.ok({ data: s })
+    const defs = siteCustomFieldsService.listDefinitions()
+    const vals = await siteCustomFieldsService.getValues()
+    return response.ok({ data: { ...s, customFieldDefs: defs, customFields: vals } })
   }
 
   /**
@@ -39,6 +42,11 @@ export default class SiteSettingsController {
         ? payload.profileRolesEnabled.filter((r: any) => typeof r === 'string')
         : current.profileRolesEnabled,
     })
+    // Upsert site-level custom fields if provided
+    const customFields = request.input('customFields')
+    if (customFields && typeof customFields === 'object') {
+      await siteCustomFieldsService.upsertValues(customFields)
+    }
     // If some roles were disabled, archive their existing Profiles
     try {
       const prevSet = new Set<string>(current.profileRolesEnabled || [])
@@ -56,7 +64,9 @@ export default class SiteSettingsController {
         }
       }
     } catch { /* ignore archival errors */ }
-    return response.ok({ data: next })
+    const defs = siteCustomFieldsService.listDefinitions()
+    const vals = await siteCustomFieldsService.getValues()
+    return response.ok({ data: { ...next, customFieldDefs: defs, customFields: vals } })
   }
 }
 
