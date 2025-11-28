@@ -64,7 +64,7 @@ export default defineConfig({
   | List of modules to import before starting the application.
   |
   */
-  preloads: [() => import('#start/routes'), () => import('#start/kernel'), () => import('#start/modules'), () => import('#start/url_patterns')],
+  preloads: [() => import('#start/routes'), () => import('#start/kernel'), () => import('#start/modules'), () => import('#start/url_patterns'), () => import('#start/menus')],
 
   /*
   |--------------------------------------------------------------------------

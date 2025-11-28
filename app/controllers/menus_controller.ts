@@ -1,4 +1,5 @@
 import type { HttpContext } from '@adonisjs/core/http'
+import menuTemplates from '#services/menu_template_registry'
 import db from '@adonisjs/lucid/services/db'
 import { randomUUID } from 'node:crypto'
 import urlPatternService from '#services/url_pattern_service'
@@ -49,10 +50,21 @@ export default class MenusController {
         name: r.name,
         slug: r.slug,
         locale: r.locale,
+        template: (r as any).template || null,
+        meta: (r as any).meta_json || {},
         createdAt: r.created_at,
         updatedAt: r.updated_at,
       })),
     })
+  }
+
+  /**
+   * GET /api/menu-templates
+   * Returns list of code-first menu templates
+   */
+  async templates({ response }: HttpContext) {
+    const list = menuTemplates.list()
+    return response.ok({ data: list })
   }
 
   async store({ request, response, auth }: HttpContext) {
@@ -63,6 +75,8 @@ export default class MenusController {
     const name = String(request.input('name', '')).trim()
     const slug = String(request.input('slug', '')).trim()
     const locale = String(request.input('locale', '')).trim() || null
+    const template = request.input('template') ? String(request.input('template')) : null
+    const meta = request.input('meta')
     if (!name || !slug) return response.badRequest({ error: 'name and slug are required' })
     const now = new Date()
     await db.table('menus').insert({
@@ -70,6 +84,8 @@ export default class MenusController {
       name,
       slug,
       locale,
+      template,
+      meta_json: meta && typeof meta === 'object' ? JSON.stringify(meta) : this.db?.rawQuery ? this.db.rawQuery(`'{}'::jsonb`).knexQuery : '{}',
       created_at: now,
       updated_at: now,
     })
@@ -99,7 +115,8 @@ export default class MenusController {
       'custom_url as customUrl',
       'anchor',
       'target',
-      'rel'
+      'rel',
+      'kind'
     )
     return response.ok({
       data: {
@@ -107,6 +124,8 @@ export default class MenusController {
         name: menu.name,
         slug: menu.slug,
         locale: menu.locale,
+        template: (menu as any).template || null,
+        meta: (menu as any).meta_json || {},
         editingLocale: hasLocale ? editingLocale : undefined,
         itemsTree: buildTree(items),
         items,
@@ -129,6 +148,14 @@ export default class MenusController {
     if (name !== undefined) update.name = String(name)
     if (slug !== undefined) update.slug = String(slug)
     if (locale !== undefined) update.locale = locale ? String(locale) : null
+    if (request.input('template') !== undefined) {
+      const t = request.input('template')
+      update.template = t ? String(t) : null
+    }
+    if (request.input('meta') !== undefined) {
+      const meta = request.input('meta')
+      update.meta_json = meta && typeof meta === 'object' ? JSON.stringify(meta) : JSON.stringify({})
+    }
     await db.from('menus').where('id', id).update(update)
     return response.ok({ message: 'Updated' })
   }
@@ -154,6 +181,7 @@ export default class MenusController {
     const menu = await db.from('menus').where('id', menuId).first()
     if (!menu) return response.notFound({ error: 'Menu not found' })
     const type = String(request.input('type', 'custom')).trim() as 'post' | 'custom'
+    const kind = String(request.input('kind', 'item')).trim() as 'item' | 'section'
     let label = String(request.input('label', '')).trim()
     const parentIdRaw = request.input('parentId')
     const parentId = parentIdRaw ? String(parentIdRaw) : null
@@ -171,8 +199,10 @@ export default class MenusController {
     const hasLocale = await this.menuItemLocaleColumnExists()
     // Locale for this item (if supported)
     const itemLocale = hasLocale ? String(request.input('locale', (menu as any).locale || 'en') || 'en') : null
-    if (type === 'post' && !postId) return response.badRequest({ error: 'postId is required for type=post' })
-    if (type === 'custom' && !customUrl) return response.badRequest({ error: 'customUrl is required for type=custom' })
+    if (kind !== 'section') {
+      if (type === 'post' && !postId) return response.badRequest({ error: 'postId is required for type=post' })
+      if (type === 'custom' && !customUrl) return response.badRequest({ error: 'customUrl is required for type=custom' })
+    }
     // Determine next order index within parent group
     const maxQ = db.from('menu_items').where('menu_id', menuId).max('order_index as max')
     if (hasLocale && itemLocale) {
@@ -192,9 +222,10 @@ export default class MenusController {
       parent_id: parentId,
       order_index: Number.isNaN(maxIndex) ? 0 : maxIndex + 1,
       label,
-      type,
-      post_id: type === 'post' ? postId : null,
-      custom_url: type === 'custom' ? customUrl : null,
+      kind,
+      type: kind === 'section' ? 'custom' : type,
+      post_id: kind === 'section' ? null : (type === 'post' ? postId : null),
+      custom_url: kind === 'section' ? null : (type === 'custom' ? customUrl : null),
       anchor,
       target,
       rel,
@@ -206,6 +237,46 @@ export default class MenusController {
     }
     await db.table('menu_items').insert(row)
     return response.created({ message: 'Created' })
+  }
+
+  /**
+   * GET /api/menus/by-slug/:slug
+   * Optional: ?locale=xx
+   */
+  async bySlug({ params, request, response }: HttpContext) {
+    const slug = String(params.slug || '').trim()
+    const menu = await db.from('menus').where('slug', slug).first()
+    if (!menu) return response.notFound({ error: 'Menu not found' })
+    const hasLocale = await this.menuItemLocaleColumnExists()
+    const locale = String(request.input('locale', (menu as any).locale || 'en') || 'en')
+    const q = db.from('menu_items').where('menu_id', (menu as any).id).orderBy('order_index', 'asc')
+    if (hasLocale && locale) q.andWhere('locale', locale)
+    const rows = await q.select(
+      'id',
+      'parent_id as parentId',
+      'order_index as orderIndex',
+      ...(hasLocale ? ['locale'] : []),
+      'label',
+      'type',
+      'post_id as postId',
+      'custom_url as customUrl',
+      'anchor',
+      'target',
+      'rel',
+      'kind'
+    )
+    return response.ok({
+      data: {
+        id: (menu as any).id,
+        name: (menu as any).name,
+        slug: (menu as any).slug,
+        locale: (menu as any).locale,
+        template: (menu as any).template || null,
+        meta: (menu as any).meta_json || {},
+        items: rows,
+        tree: buildTree(rows),
+      },
+    })
   }
 
   async updateItem({ params, request, response, auth }: HttpContext) {

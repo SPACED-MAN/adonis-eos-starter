@@ -193,6 +193,8 @@ router.group(() => {
 	router.delete('/menu-items/:id', [MenusController, 'destroyItem'])
 	router.post('/menus/:id/reorder', [MenusController, 'reorder'])
 	router.post('/menus/:id/generate-variations', [MenusController, 'generateVariations']).use(middleware.admin())
+	router.get('/menus/by-slug/:slug', [MenusController, 'bySlug'])
+	router.get('/menu-templates', [MenusController, 'templates']).use(middleware.admin())
 	// Global/Static modules
 	router.get('/modules/global', [GlobalModulesController, 'index']).use(middleware.admin())
 	router.post('/modules/global', [GlobalModulesController, 'create']).use(middleware.admin())

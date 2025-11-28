@@ -23,6 +23,7 @@ import { FontAwesomeIcon } from '@fortawesome/react-fontawesome'
 import { faTurnUp } from '@fortawesome/free-solid-svg-icons'
 import { SortableContext, useSortable, verticalListSortingStrategy } from '@dnd-kit/sortable'
 import { CSS } from '@dnd-kit/utilities'
+import { Pencil } from 'lucide-react'
 
 type Menu = { id: string; name: string; slug: string; locale?: string | null; createdAt: string; updatedAt: string }
 type MenuItem = {
@@ -31,6 +32,7 @@ type MenuItem = {
   orderIndex: number
   label: string
   type: 'post' | 'custom'
+  kind?: 'item' | 'section'
   postId?: string | null
   customUrl?: string | null
   anchor?: string | null
@@ -45,21 +47,18 @@ export default function MenusIndex() {
   const [menuItems, setMenuItems] = useState<MenuItem[]>([])
   const [menuLocale, setMenuLocale] = useState<string | null>(null)
   const [editingLocale, setEditingLocale] = useState<string>('en')
+  const [selectedMenuSlug, setSelectedMenuSlug] = useState<string>('')
+  const [menuTemplate, setMenuTemplate] = useState<string | null>(null)
+  const [menuMeta, setMenuMeta] = useState<Record<string, any>>({})
+  const [templates, setTemplates] = useState<Array<{ slug: string; name: string; description?: string; fields?: Array<{ key: string; label: string; type: 'text' | 'url' | 'boolean'; multiline?: boolean }> }>>([])
+  const [savingMenuMeta, setSavingMenuMeta] = useState<boolean>(false)
   const xsrfFromCookie: string | undefined = (() => {
     if (typeof document === 'undefined') return undefined
     const m = document.cookie.match(/(?:^|; )XSRF-TOKEN=([^;]+)/)
     return m ? decodeURIComponent(m[1]) : undefined
   })()
 
-  // Create menu
-  const [creating, setCreating] = useState(false)
-  const [createOpen, setCreateOpen] = useState(false)
-  const [confirmDeleteOpen, setConfirmDeleteOpen] = useState(false)
-  const [availableLocales, setAvailableLocales] = useState<Array<{ code: string; isDefault: boolean; isEnabled: boolean }>>([])
-  const [defaultLocaleCode, setDefaultLocaleCode] = useState<string>('en')
-  const [newName, setNewName] = useState('')
-  const [newSlug, setNewSlug] = useState('')
-  const [newLocale, setNewLocale] = useState('')
+  // Menus are code-defined; creation/deletion UI removed
 
   // Add item form
   const [addType, setAddType] = useState<'post' | 'custom'>('post')
@@ -88,6 +87,21 @@ export default function MenusIndex() {
   const [willNest, setWillNest] = useState<boolean>(false)
   const [nestFlashId, setNestFlashId] = useState<string | null>(null)
   const INDENT_PX = 40
+  // Edit dialog state
+  const [editOpen, setEditOpen] = useState<boolean>(false)
+  const [editingItem, setEditingItem] = useState<MenuItem | null>(null)
+  const [editLabel, setEditLabel] = useState<string>('')
+  const [editType, setEditType] = useState<'post' | 'custom' | 'section'>('custom')
+  const [editCustomUrl, setEditCustomUrl] = useState<string>('')
+  const [editPostPickerOpen, setEditPostPickerOpen] = useState<boolean>(false)
+  const [editPostQuery, setEditPostQuery] = useState<string>('')
+  const [editPostResults, setEditPostResults] = useState<Array<{ id: string; title: string; slug: string; locale: string }>>([])
+  const [editSelectedPostId, setEditSelectedPostId] = useState<string>('')
+  const [editSelectedPostTitle, setEditSelectedPostTitle] = useState<string>('')
+  const [editExtra, setEditExtra] = useState<string>('')
+  const [editTarget, setEditTarget] = useState<string>('default')
+  const [editRelOptions, setEditRelOptions] = useState<{ [key: string]: boolean }>({ nofollow: false, noopener: false, noreferrer: false, external: false })
+  const [savingEdit, setSavingEdit] = useState<boolean>(false)
 
   async function loadMenus() {
     setLoadingMenus(true)
@@ -98,6 +112,7 @@ export default function MenusIndex() {
       setMenus(list)
       if (!selectedMenuId && list.length) {
         setSelectedMenuId(list[0].id)
+        setSelectedMenuSlug(list[0].slug || '')
       }
     } finally {
       setLoadingMenus(false)
@@ -115,67 +130,37 @@ export default function MenusIndex() {
     const editLoc = (j?.data?.editingLocale as string | null) ?? (loc || 'en')
     setMenuLocale(loc)
     setEditingLocale(editLoc)
+    const slugFromApi = (j?.data?.slug as string | undefined) || undefined
+    if (slugFromApi) {
+      setSelectedMenuSlug(slugFromApi)
+    } else {
+      const fallbackSlug = menus.find((m) => m.id === id)?.slug || ''
+      setSelectedMenuSlug(fallbackSlug)
+    }
+    setMenuTemplate((j?.data?.template as string | null) ?? null)
+    setMenuMeta((j?.data?.meta as Record<string, any>) ?? {})
   }
 
   useEffect(() => { loadMenus() }, [])
   useEffect(() => { if (selectedMenuId) loadMenu(selectedMenuId) }, [selectedMenuId])
   useEffect(() => {
-    if (!createOpen) return
-    ;(async () => {
+    ; (async () => {
       try {
-        const res = await fetch('/api/locales', { credentials: 'same-origin' })
+        const res = await fetch('/api/menu-templates', { credentials: 'same-origin' })
         const j = await res.json().catch(() => ({}))
-        const list: Array<{ code: string; isDefault: boolean; isEnabled: boolean }> = Array.isArray(j?.data) ? j.data : []
-        const enabled = list.filter((l) => l.isEnabled !== false)
-        setAvailableLocales(enabled)
-        const def = (j?.meta?.defaultLocale as string) || 'en'
-        setDefaultLocaleCode(def)
-        if (!newLocale) setNewLocale(def)
+        const list: Array<any> = Array.isArray(j?.data) ? j.data : []
+        setTemplates(list.map((t) => ({
+          slug: String(t.slug),
+          name: String(t.name || t.slug),
+          description: t.description ? String(t.description) : undefined,
+          fields: Array.isArray(t.fields) ? t.fields : [],
+        })))
       } catch {
-        setAvailableLocales([{ code: 'en', isDefault: true, isEnabled: true }])
-        setDefaultLocaleCode('en')
-        if (!newLocale) setNewLocale('en')
+        setTemplates([])
       }
     })()
-  }, [createOpen])
-
-  async function createMenu() {
-    if (!newName.trim() || !newSlug.trim()) { toast.error('Enter name and slug'); return }
-    setCreating(true)
-    try {
-      const res = await fetch('/api/menus', {
-        method: 'POST',
-        headers: {
-          'Accept': 'application/json',
-          'Content-Type': 'application/json',
-          ...(xsrfFromCookie ? { 'X-XSRF-TOKEN': xsrfFromCookie } : {}),
-        },
-        credentials: 'same-origin',
-        body: JSON.stringify({ name: newName.trim(), slug: newSlug.trim(), locale: newLocale.trim() || null }),
-      })
-      if (!res.ok) {
-        const j = await res.json().catch(() => ({}))
-        throw new Error(j?.error || 'Create failed')
-      }
-      const createdSlug = newSlug.trim()
-      setNewName(''); setNewSlug(''); setNewLocale('')
-      // Refresh menus and select the newly created one by slug
-      await loadMenus()
-      try {
-        const listRes = await fetch('/api/menus', { credentials: 'same-origin' })
-        const j = await listRes.json().catch(() => ({}))
-        const list: Menu[] = Array.isArray(j?.data) ? j.data : []
-        const found = list.find((m) => m.slug === createdSlug)
-        if (found) setSelectedMenuId(found.id)
-      } catch { /* ignore */ }
-      toast.success('Menu created')
-      setCreateOpen(false)
-    } catch (e: any) {
-      toast.error(String(e.message || e))
-    } finally {
-      setCreating(false)
-    }
-  }
+  }, [])
+  // (no create/delete menu logic)
 
   // Post search for item add
   const [searchAllLocales, setSearchAllLocales] = useState<boolean>(false)
@@ -250,9 +235,11 @@ export default function MenusIndex() {
     if (addType === 'post') {
       if (!selectedPostId) { toast.error('Select a post'); return }
       payload.postId = selectedPostId
-    } else {
+    } else if (addType === 'custom') {
       if (!customUrl.trim()) { toast.error('Enter a URL'); return }
       payload.customUrl = customUrl.trim()
+    } else if (addType === 'section') {
+      payload.kind = 'section'
     }
     const res = await fetch(`/api/menus/${encodeURIComponent(selectedMenuId)}/items`, {
       method: 'POST',
@@ -312,26 +299,26 @@ export default function MenusIndex() {
     )
   }
 
-function handleDragStart(ev: DragStartEvent) {
-  const id = String(ev.active.id)
-  setDragActiveId(id)
-  const idx = flatRows.findIndex((r) => r.item.id === id)
-  setDragBaseLevel(idx >= 0 ? flatRows[idx].level : 0)
-  setDragProjectedLevel(null)
-  setWillNest(false)
-  setNestFlashId(null)
-}
+  function handleDragStart(ev: DragStartEvent) {
+    const id = String(ev.active.id)
+    setDragActiveId(id)
+    const idx = flatRows.findIndex((r) => r.item.id === id)
+    setDragBaseLevel(idx >= 0 ? flatRows[idx].level : 0)
+    setDragProjectedLevel(null)
+    setWillNest(false)
+    setNestFlashId(null)
+  }
 
-function handleDragMove(ev: DragMoveEvent) {
-  if (!dragActiveId) return
-  const dx = ev.delta.x || 0
-  const change = Math.round(dx / INDENT_PX)
-  const next = Math.max(0, dragBaseLevel + change)
-  setDragProjectedLevel(next)
-  const overId = ev.over ? String(ev.over.id) : null
-  if (!overId || overId === dragActiveId) return setWillNest(false)
-  setWillNest(change >= 1)
-}
+  function handleDragMove(ev: DragMoveEvent) {
+    if (!dragActiveId) return
+    const dx = ev.delta.x || 0
+    const change = Math.round(dx / INDENT_PX)
+    const next = Math.max(0, dragBaseLevel + change)
+    setDragProjectedLevel(next)
+    const overId = ev.over ? String(ev.over.id) : null
+    if (!overId || overId === dragActiveId) return setWillNest(false)
+    setWillNest(change >= 1)
+  }
 
   async function handleDragEnd(ev: DragEndEvent) {
     const activeId = String(ev.active.id)
@@ -467,7 +454,7 @@ function handleDragMove(ev: DragMoveEvent) {
                     <button
                       key={m.id}
                       className={`w-full text-left px-3 py-2 border border-line rounded ${selectedMenuId === m.id ? 'bg-backdrop-medium' : 'hover:bg-backdrop-medium'}`}
-                      onClick={() => setSelectedMenuId(m.id)}
+                      onClick={() => { setSelectedMenuId(m.id); setSelectedMenuSlug(m.slug || '') }}
                     >
                       <div className="text-sm text-neutral-high">{m.name}</div>
                       <div className="text-[11px] text-neutral-low">{m.slug}{m.locale ? ` • ${m.locale}` : ''}</div>
@@ -475,29 +462,14 @@ function handleDragMove(ev: DragMoveEvent) {
                   ))}
                 </div>
               )}
-              <div className="mt-4">
-                <button
-                  className="px-3 py-1.5 text-sm rounded bg-standout text-on-standout"
-                  onClick={() => setCreateOpen(true)}
-                >
-                  Create Menu
-                </button>
-                {selectedMenuId && (
-                  <button
-                    className="ml-2 px-3 py-1.5 text-sm rounded border border-line text-danger hover:bg-backdrop-medium"
-                    onClick={() => setConfirmDeleteOpen(true)}
-                  >
-                    Delete Menu
-                  </button>
-                )}
-              </div>
+              {/* Menu creation/deletion removed: menus are code-defined */}
             </div>
             {/* Right: Menu editor */}
             <div className="md:col-span-2">
               {!selectedMenuId ? (
                 <div className="text-sm text-neutral-medium">Select a menu</div>
               ) : (
-                <>
+                <div>
                   <div className="flex items-center gap-3 mb-3">
                     <div className="flex items-center gap-2">
                       <span className="text-sm text-neutral-medium">Editing locale:</span>
@@ -545,154 +517,241 @@ function handleDragMove(ev: DragMoveEvent) {
                       </div>
                     )}
                   </div>
-                  <div className="mb-4 p-3 border border-line rounded">
-                    <div className="text-sm font-medium mb-2">Add Menu Item</div>
-                    <div className="flex items-center gap-2 mb-2">
-                      <Select defaultValue={addType} onValueChange={(v: any) => setAddType(v)}>
-                        <SelectTrigger className="w-[160px]">
-                          <SelectValue placeholder="Type" />
-                        </SelectTrigger>
-                        <SelectContent>
-                          <SelectItem value="post">Post</SelectItem>
-                          <SelectItem value="custom">Custom URL</SelectItem>
-                        </SelectContent>
-                      </Select>
-                      <Select value={addParentId} onValueChange={setAddParentId}>
-                        <SelectTrigger className="w-[220px]">
-                          <SelectValue placeholder="Parent" />
-                        </SelectTrigger>
-                        <SelectContent>
-                          <SelectItem value="__ROOT__">Roots (no parent)</SelectItem>
-                          {menuItems.map((i) => (
-                            <SelectItem key={i.id} value={i.id}>{i.label}</SelectItem>
-                          ))}
-                        </SelectContent>
-                      </Select>
-                    </div>
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-2">
-                      <div className="flex flex-col gap-1">
-                        <label className="text-xs text-neutral-medium">Label</label>
-                        <input
-                          className="px-2 py-1 text-sm border border-line bg-backdrop-low text-neutral-high"
-                          placeholder="Label"
-                          value={addType === 'post' && !overrideLabel ? (selectedPostLabel || '') : addLabel}
-                          onChange={(e) => setAddLabel(e.target.value)}
-                          disabled={addType === 'post' && !overrideLabel}
-                        />
-                        {addType === 'post' && (
-                          <label className="inline-flex items-center gap-2 text-xs text-neutral-medium mt-1">
-                            <Checkbox checked={overrideLabel} onCheckedChange={(c) => setOverrideLabel(!!c)} />
-                            Override label
-                          </label>
-                        )}
-                      </div>
-                      {addType === 'post' ? (
-                        <div className="flex flex-col gap-1">
-                          <label className="text-xs text-neutral-medium">Post</label>
-                          <Popover open={postPickerOpen} onOpenChange={setPostPickerOpen}>
-                            <PopoverTrigger asChild>
-                              <button className="px-2 py-1 text-sm border border-line rounded bg-backdrop-low text-neutral-high text-left">
-                                {selectedPostTitle || 'Select a post'}
-                              </button>
-                            </PopoverTrigger>
-                            <PopoverContent className="w-[340px]">
-                              <div className="space-y-2">
-                                <input
-                                  className="w-full px-2 py-1 text-sm border border-line bg-backdrop-low text-neutral-high"
-                                  placeholder={`Search posts${menuLocale ? ` in ${menuLocale}` : ''}…`}
-                                  value={postQuery}
-                                  onChange={(e) => {
-                                    const v = e.target.value
-                                    setPostQuery(v)
-                                    debouncedSearchPosts(v)
-                                  }}
-                                />
-                                <label className="inline-flex items-center gap-2 text-xs text-neutral-medium">
-                                  <Checkbox checked={searchAllLocales} onCheckedChange={(c) => { setSearchAllLocales(!!c); debouncedSearchPosts(postQuery) }} />
-                                  Search all locales
+                  {(() => {
+                    const want = (menuTemplate || selectedMenuSlug || '').toLowerCase()
+                    const tmpl = templates.find((t) => (t.slug || '').toLowerCase() === want)
+                    const activeTemplateSlug = tmpl?.slug || null
+                    if (!activeTemplateSlug || !tmpl) return null
+                    return (
+                      <div className="mb-4 p-3 border border-line rounded">
+                        <div className="flex items-center justify-between mb-2">
+                          <div className="text-sm font-medium">Menu Fields</div>
+                          <button
+                            className="px-3 py-1.5 text-sm rounded bg-standout text-on-standout"
+                            onClick={async () => {
+                              if (!selectedMenuId) return
+                              setSavingMenuMeta(true)
+                              try {
+                                const res = await fetch(`/api/menus/${encodeURIComponent(selectedMenuId)}`, {
+                                  method: 'PUT',
+                                  headers: {
+                                    'Accept': 'application/json',
+                                    'Content-Type': 'application/json',
+                                    ...(xsrfFromCookie ? { 'X-XSRF-TOKEN': xsrfFromCookie } : {}),
+                                  },
+                                  credentials: 'same-origin',
+                                  body: JSON.stringify({ template: activeTemplateSlug, meta: menuMeta }),
+                                })
+                                if (!res.ok) {
+                                  const j = await res.json().catch(() => ({}))
+                                  throw new Error(j?.error || 'Save failed')
+                                }
+                                toast.success('Menu settings saved')
+                                await loadMenu(selectedMenuId, editingLocale)
+                              } catch (e: any) {
+                                toast.error(String(e.message || e))
+                              } finally {
+                                setSavingMenuMeta(false)
+                              }
+                            }}
+                            disabled={savingMenuMeta}
+                          >
+                            {savingMenuMeta ? 'Saving…' : 'Save Settings'}
+                          </button>
+                        </div>
+                        <div className="mt-1 grid grid-cols-1 md:grid-cols-2 gap-3">
+                          {tmpl?.fields?.map((f) => (
+                            <div key={f.key} className="flex flex-col gap-1">
+                              <label className="text-xs text-neutral-medium">{f.label}</label>
+                              {f.type === 'boolean' ? (
+                                <label className="inline-flex items-center gap-2 text-sm text-neutral-high">
+                                  <Checkbox
+                                    checked={!!menuMeta[f.key]}
+                                    onCheckedChange={(c) => setMenuMeta((prev) => ({ ...prev, [f.key]: !!c }))}
+                                  />
+                                  {f.label}
                                 </label>
-                                <div className="max-h-[260px] overflow-auto border border-line rounded">
-                                  {postLoading ? (
-                                    <div className="p-2 text-xs text-neutral-medium">Loading…</div>
-                                  ) : postResults.length === 0 ? (
-                                    <div className="p-2 text-xs text-neutral-low">No matches. Type to search.</div>
-                                  ) : (
-                                    postResults.map((p) => (
-                                      <button
-                                        key={p.id}
-                                        className="w-full text-left px-2 py-1 text-sm hover:bg-backdrop-medium border-b border-line last:border-b-0"
-                                        onClick={() => {
-                                          setSelectedPostId(p.id)
-                                          setSelectedPostLabel(`${p.title} (${p.locale})`)
-                                          setSelectedPostTitle(p.title)
-                                          setPostPickerOpen(false)
-                                          if (overrideLabel && !addLabel) {
-                                            setAddLabel(p.title)
-                                          }
-                                        }}
-                                      >
-                                        <div className="text-neutral-high">{p.title}</div>
-                                        <div className="text-[11px] text-neutral-medium">{p.slug} • {p.locale.toUpperCase()}</div>
-                                      </button>
-                                    ))
-                                  )}
-                                </div>
-                              </div>
-                            </PopoverContent>
-                          </Popover>
+                              ) : f.type === 'text' ? (
+                                f.multiline ? (
+                                  <textarea
+                                    className="px-2 py-1 text-sm border border-line bg-backdrop-low text-neutral-high"
+                                    rows={3}
+                                    value={String(menuMeta[f.key] ?? '')}
+                                    onChange={(e) => setMenuMeta((prev) => ({ ...prev, [f.key]: e.target.value }))}
+                                  />
+                                ) : (
+                                  <input
+                                    className="px-2 py-1 text-sm border border-line bg-backdrop-low text-neutral-high"
+                                    value={String(menuMeta[f.key] ?? '')}
+                                    onChange={(e) => setMenuMeta((prev) => ({ ...prev, [f.key]: e.target.value }))}
+                                  />
+                                )
+                              ) : (
+                                <input
+                                  className="px-2 py-1 text-sm border border-line bg-backdrop-low text-neutral-high"
+                                  type="url"
+                                  value={String(menuMeta[f.key] ?? '')}
+                                  onChange={(e) => setMenuMeta((prev) => ({ ...prev, [f.key]: e.target.value }))}
+                                  placeholder="https://"
+                                />
+                              )}
+                            </div>
+                          ))}
                         </div>
-                      ) : (
-                        <div className="flex flex-col gap-1">
-                          <label className="text-xs text-neutral-medium">URL</label>
-                          <input className="px-2 py-1 text-sm border border-line bg-backdrop-low text-neutral-high" placeholder="https:// or /path" value={customUrl} onChange={(e) => setCustomUrl(e.target.value)} />
-                        </div>
+                      </div>
+                    )
+                  })()}
+                  <div className="text-sm font-medium mb-2">Add Menu Item</div>
+                  <div className="flex items-center gap-2 mb-2">
+                    <Select defaultValue={addType} onValueChange={(v: any) => setAddType(v)}>
+                      <SelectTrigger className="w-[160px]">
+                        <SelectValue placeholder="Type" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="post">Post</SelectItem>
+                        <SelectItem value="custom">Custom URL</SelectItem>
+                        <SelectItem value="section">Section</SelectItem>
+                      </SelectContent>
+                    </Select>
+                    <Select value={addParentId} onValueChange={setAddParentId}>
+                      <SelectTrigger className="w-[220px]">
+                        <SelectValue placeholder="Parent" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="__ROOT__">Roots (no parent)</SelectItem>
+                        {menuItems.map((i) => (
+                          <SelectItem key={i.id} value={i.id}>{i.label}</SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-2">
+                    <div className="flex flex-col gap-1">
+                      <label className="text-xs text-neutral-medium">Label</label>
+                      <input
+                        className="px-2 py-1 text-sm border border-line bg-backdrop-low text-neutral-high"
+                        placeholder="Label"
+                        value={addType === 'post' && !overrideLabel ? (selectedPostLabel || '') : addLabel}
+                        onChange={(e) => setAddLabel(e.target.value)}
+                        disabled={addType === 'post' && !overrideLabel}
+                      />
+                      {addType === 'post' && (
+                        <label className="inline-flex items-center gap-2 text-xs text-neutral-medium mt-1">
+                          <Checkbox checked={overrideLabel} onCheckedChange={(c) => setOverrideLabel(!!c)} />
+                          Override label
+                        </label>
                       )}
                     </div>
-                    <div className="mt-2 flex items-center gap-3">
-                      <button
-                        type="button"
-                        className="px-2 py-1 text-xs border border-line rounded"
-                        onClick={() => setAdvancedOpen((v) => !v)}
-                      >
-                        {advancedOpen ? 'Hide Advanced' : 'Show Advanced'}
-                      </button>
-                      <button className="px-3 py-1.5 text-sm rounded bg-standout text-on-standout" onClick={addItem}>Add Item</button>
-                    </div>
-                    {advancedOpen && (
-                      <div className="mt-3 p-2 border border-line rounded space-y-2">
-                        <div className="flex flex-col gap-1">
-                          <label className="text-xs text-neutral-medium">Additional (anchor or tokens)</label>
-                          <input className="px-2 py-1 text-sm border border-line bg-backdrop-low text-neutral-high" placeholder="#anchor or {token}" value={extra} onChange={(e) => setExtra(e.target.value)} />
-                        </div>
-                        <div className="flex items-center gap-2">
-                          <label className="text-xs text-neutral-medium min-w-[80px]">Target</label>
-                          <Select value={target} onValueChange={(v: any) => setTarget(v)}>
-                            <SelectTrigger className="w-[160px]">
-                              <SelectValue placeholder="(default)" />
-                            </SelectTrigger>
-                            <SelectContent>
-                              <SelectItem value="default">(default)</SelectItem>
-                              <SelectItem value="_self">_self</SelectItem>
-                              <SelectItem value="_blank">_blank</SelectItem>
-                              <SelectItem value="_parent">_parent</SelectItem>
-                              <SelectItem value="_top">_top</SelectItem>
-                            </SelectContent>
-                          </Select>
-                        </div>
-                        <div>
-                          <div className="text-xs text-neutral-medium mb-1">rel</div>
-                          <div className="flex items-center gap-3">
-                            {Object.keys(relOptions).map((k) => (
-                              <label key={k} className="inline-flex items-center gap-1 text-xs text-neutral-high">
-                                <Checkbox checked={relOptions[k]} onCheckedChange={(c) => setRelOptions((prev) => ({ ...prev, [k]: !!c }))} />
-                                {k}
+                    {addType === 'post' ? (
+                      <div className="flex flex-col gap-1">
+                        <label className="text-xs text-neutral-medium">Post</label>
+                        <Popover open={postPickerOpen} onOpenChange={setPostPickerOpen}>
+                          <PopoverTrigger asChild>
+                            <button className="px-2 py-1 text-sm border border-line rounded bg-backdrop-low text-neutral-high text-left">
+                              {selectedPostTitle || 'Select a post'}
+                            </button>
+                          </PopoverTrigger>
+                          <PopoverContent className="w-[340px]">
+                            <div className="space-y-2">
+                              <input
+                                className="w-full px-2 py-1 text-sm border border-line bg-backdrop-low text-neutral-high"
+                                placeholder={`Search posts${menuLocale ? ` in ${menuLocale}` : ''}…`}
+                                value={postQuery}
+                                onChange={(e) => {
+                                  const v = e.target.value
+                                  setPostQuery(v)
+                                  debouncedSearchPosts(v)
+                                }}
+                              />
+                              <label className="inline-flex items-center gap-2 text-xs text-neutral-medium">
+                                <Checkbox checked={searchAllLocales} onCheckedChange={(c) => { setSearchAllLocales(!!c); debouncedSearchPosts(postQuery) }} />
+                                Search all locales
                               </label>
-                            ))}
-                          </div>
-                        </div>
+                              <div className="max-h-[260px] overflow-auto border border-line rounded">
+                                {postLoading ? (
+                                  <div className="p-2 text-xs text-neutral-medium">Loading…</div>
+                                ) : postResults.length === 0 ? (
+                                  <div className="p-2 text-xs text-neutral-low">No matches. Type to search.</div>
+                                ) : (
+                                  postResults.map((p) => (
+                                    <button
+                                      key={p.id}
+                                      className="w-full text-left px-2 py-1 text-sm hover:bg-backdrop-medium border-b border-line last:border-b-0"
+                                      onClick={() => {
+                                        setSelectedPostId(p.id)
+                                        setSelectedPostLabel(`${p.title} (${p.locale})`)
+                                        setSelectedPostTitle(p.title)
+                                        setPostPickerOpen(false)
+                                        if (overrideLabel && !addLabel) {
+                                          setAddLabel(p.title)
+                                        }
+                                      }}
+                                    >
+                                      <div className="text-neutral-high">{p.title}</div>
+                                      <div className="text-[11px] text-neutral-medium">{p.slug} • {p.locale.toUpperCase()}</div>
+                                    </button>
+                                  ))
+                                )}
+                              </div>
+                            </div>
+                          </PopoverContent>
+                        </Popover>
+                      </div>
+                    ) : addType === 'custom' ? (
+                      <div className="flex flex-col gap-1">
+                        <label className="text-xs text-neutral-medium">URL</label>
+                        <input className="px-2 py-1 text-sm border border-line bg-backdrop-low text-neutral-high" placeholder="https:// or /path" value={customUrl} onChange={(e) => setCustomUrl(e.target.value)} />
+                      </div>
+                    ) : (
+                      <div className="flex items-center text-xs text-neutral-medium px-2 py-1">
+                        Section (no destination) — used for mega menu content areas
                       </div>
                     )}
                   </div>
+                  <div className="mt-2 flex items-center gap-3">
+                    <button
+                      type="button"
+                      className="px-2 py-1 text-xs border border-line rounded"
+                      onClick={() => setAdvancedOpen((v) => !v)}
+                    >
+                      {advancedOpen ? 'Hide Advanced' : 'Show Advanced'}
+                    </button>
+                    <button className="px-3 py-1.5 text-sm rounded bg-standout text-on-standout" onClick={addItem}>Add Item</button>
+                  </div>
+                  {advancedOpen && (
+                    <div className="mt-3 p-2 border border-line rounded space-y-2">
+                      <div className="flex flex-col gap-1">
+                        <label className="text-xs text-neutral-medium">Additional (anchor or tokens)</label>
+                        <input className="px-2 py-1 text-sm border border-line bg-backdrop-low text-neutral-high" placeholder="#anchor or {token}" value={extra} onChange={(e) => setExtra(e.target.value)} />
+                      </div>
+                      <div className="flex items-center gap-2">
+                        <label className="text-xs text-neutral-medium min-w-[80px]">Target</label>
+                        <Select value={target} onValueChange={(v: any) => setTarget(v)}>
+                          <SelectTrigger className="w-[160px]">
+                            <SelectValue placeholder="(default)" />
+                          </SelectTrigger>
+                          <SelectContent>
+                            <SelectItem value="default">(default)</SelectItem>
+                            <SelectItem value="_self">_self</SelectItem>
+                            <SelectItem value="_blank">_blank</SelectItem>
+                            <SelectItem value="_parent">_parent</SelectItem>
+                            <SelectItem value="_top">_top</SelectItem>
+                          </SelectContent>
+                        </Select>
+                      </div>
+                      <div>
+                        <div className="text-xs text-neutral-medium mb-1">rel</div>
+                        <div className="flex items-center gap-3">
+                          {Object.keys(relOptions).map((k) => (
+                            <label key={k} className="inline-flex items-center gap-1 text-xs text-neutral-high">
+                              <Checkbox checked={relOptions[k]} onCheckedChange={(c) => setRelOptions((prev) => ({ ...prev, [k]: !!c }))} />
+                              {k}
+                            </label>
+                          ))}
+                        </div>
+                      </div>
+                    </div>
+                  )}
                   <DndContext sensors={sensors} collisionDetection={closestCenter} onDragStart={handleDragStart} onDragMove={handleDragMove} onDragEnd={handleDragEnd}>
                     <Table>
                       <TableHeader>
@@ -720,7 +779,11 @@ function handleDragMove(ev: DragMoveEvent) {
                                     <span className="text-sm text-neutral-high">{item.label}</span>
                                   </div>
                                 </TableCell>
-                                <TableCell><span className="text-xs text-neutral-medium">{item.type}</span></TableCell>
+                                <TableCell>
+                                  <span className="text-xs text-neutral-medium">
+                                    {(item as any).kind === 'section' ? 'Section' : (item.type === 'post' ? 'Post' : 'Custom')}
+                                  </span>
+                                </TableCell>
                                 <TableCell>
                                   <span className="text-xs text-neutral-medium">
                                     {item.type === 'custom' ? (item.customUrl || '') : 'Post'}
@@ -728,6 +791,32 @@ function handleDragMove(ev: DragMoveEvent) {
                                   </span>
                                 </TableCell>
                                 <TableCell className="text-right">
+                                  <button
+                                    className="inline-flex items-center gap-1 px-2 py-1 text-xs border border-line rounded hover:bg-backdrop-medium"
+                                    onClick={() => {
+                                      setEditingItem(item)
+                                      setEditLabel(item.label)
+                                      const k = (item as any).kind as 'item' | 'section' | undefined
+                                      setEditType(k === 'section' ? 'section' : item.type)
+                                      setEditCustomUrl(item.customUrl || '')
+                                      setEditSelectedPostId(item.postId || '')
+                                      setEditSelectedPostTitle('') // can be filled after search
+                                      setEditExtra(item.anchor || '')
+                                      setEditTarget(item.target || 'default')
+                                      const relSet = new Set(String(item.rel || '').split(/\s+/).filter(Boolean))
+                                      setEditRelOptions({
+                                        nofollow: relSet.has('nofollow'),
+                                        noopener: relSet.has('noopener'),
+                                        noreferrer: relSet.has('noreferrer'),
+                                        external: relSet.has('external'),
+                                      })
+                                      setEditOpen(true)
+                                    }}
+                                    title="Edit"
+                                  >
+                                    <Pencil size={14} />
+                                    Edit
+                                  </button>
                                 </TableCell>
                               </SortableRow>
                             )
@@ -736,91 +825,194 @@ function handleDragMove(ev: DragMoveEvent) {
                       </TableBody>
                     </Table>
                   </DndContext>
-                </>
+                </div>
               )}
             </div>
           </div>
         </div>
       </main>
       <AdminFooter />
-      {/* Create Menu Dialog */}
-      <AlertDialog open={createOpen} onOpenChange={setCreateOpen}>
+      {/* Menu creation/deletion dialogs removed */}
+      {/* Edit Menu Item Dialog */}
+      <AlertDialog open={editOpen} onOpenChange={setEditOpen}>
         <AlertDialogContent>
           <AlertDialogHeader>
-            <AlertDialogTitle>Create Menu</AlertDialogTitle>
+            <AlertDialogTitle>Edit Menu Item</AlertDialogTitle>
             <AlertDialogDescription>
-              Define a human-readable name and a unique slug. Locale is optional.
+              Update the label and destination for this item.
             </AlertDialogDescription>
           </AlertDialogHeader>
-          <div className="space-y-2">
-            <input className="w-full px-2 py-1 text-sm border border-line bg-backdrop-low text-neutral-high" placeholder="Name" value={newName} onChange={(e) => setNewName(e.target.value)} />
-            <input className="w-full px-2 py-1 text-sm border border-line bg-backdrop-low text-neutral-high" placeholder="Slug" value={newSlug} onChange={(e) => setNewSlug(e.target.value)} />
-            <div className="flex items-center gap-2">
-              <label className="text-xs text-neutral-medium min-w-[60px]">Locale</label>
-              <Select value={newLocale || defaultLocaleCode} onValueChange={(v: any) => setNewLocale(v)}>
-                <SelectTrigger className="w-[160px]">
-                  <SelectValue placeholder={defaultLocaleCode} />
-                </SelectTrigger>
-                <SelectContent>
-                  {availableLocales.map((loc) => (
-                    <SelectItem key={loc.code} value={loc.code}>
-                      {loc.code}{loc.isDefault ? ' (default)' : ''}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
+          <div className="space-y-3">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-2">
+              <div className="flex flex-col gap-1">
+                <label className="text-xs text-neutral-medium">Label</label>
+                <input className="px-2 py-1 text-sm border border-line bg-backdrop-low text-neutral-high" value={editLabel} onChange={(e) => setEditLabel(e.target.value)} />
+              </div>
+              <div className="flex flex-col gap-1">
+                <label className="text-xs text-neutral-medium">Type</label>
+                <Select value={editType} onValueChange={(v: any) => setEditType(v)}>
+                  <SelectTrigger className="w-full">
+                    <SelectValue placeholder="Type" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="post">Post</SelectItem>
+                    <SelectItem value="custom">Custom URL</SelectItem>
+                    <SelectItem value="section">Section</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+            </div>
+            {editType === 'post' ? (
+              <div className="flex flex-col gap-1">
+                <label className="text-xs text-neutral-medium">Post</label>
+                <Popover open={editPostPickerOpen} onOpenChange={setEditPostPickerOpen}>
+                  <PopoverTrigger asChild>
+                    <button className="px-2 py-1 text-sm border border-line rounded bg-backdrop-low text-neutral-high text-left">
+                      {editSelectedPostTitle || (editSelectedPostId ? `Selected: ${editSelectedPostId.slice(0, 6)}…` : 'Select a post')}
+                    </button>
+                  </PopoverTrigger>
+                  <PopoverContent className="w-[340px]">
+                    <div className="space-y-2">
+                      <input
+                        className="w-full px-2 py-1 text-sm border border-line bg-backdrop-low text-neutral-high"
+                        placeholder={`Search posts${menuLocale ? ` in ${menuLocale}` : ''}…`}
+                        value={editPostQuery}
+                        onChange={async (e) => {
+                          const v = e.target.value
+                          setEditPostQuery(v)
+                          const params = new URLSearchParams()
+                          if (v) params.set('q', v)
+                          params.set('limit', '20')
+                          params.set('status', 'published')
+                          params.set('sortBy', 'updated_at')
+                          params.set('sortOrder', 'desc')
+                          if (menuLocale) params.set('locale', menuLocale)
+                          const res = await fetch(`/api/posts?${params.toString()}`, { credentials: 'same-origin' })
+                          const j = await res.json().catch(() => ({}))
+                          const list = Array.isArray(j?.data) ? j.data : []
+                          setEditPostResults(list.map((p: any) => ({ id: p.id, title: p.title, slug: p.slug, locale: p.locale })))
+                        }}
+                      />
+                      <div className="max-h-[260px] overflow-auto border border-line rounded">
+                        {editPostResults.length === 0 ? (
+                          <div className="p-2 text-xs text-neutral-low">No matches. Type to search.</div>
+                        ) : (
+                          editPostResults.map((p) => (
+                            <button
+                              key={p.id}
+                              className="w-full text-left px-2 py-1 text-sm hover:bg-backdrop-medium border-b border-line last:border-b-0"
+                              onClick={() => {
+                                setEditSelectedPostId(p.id)
+                                setEditSelectedPostTitle(`${p.title} (${p.locale})`)
+                                setEditPostPickerOpen(false)
+                              }}
+                            >
+                              <div className="text-neutral-high">{p.title}</div>
+                              <div className="text-[11px] text-neutral-medium">{p.slug} • {p.locale.toUpperCase()}</div>
+                            </button>
+                          ))
+                        )}
+                      </div>
+                    </div>
+                  </PopoverContent>
+                </Popover>
+              </div>
+            ) : editType === 'custom' ? (
+              <div className="flex flex-col gap-1">
+                <label className="text-xs text-neutral-medium">URL</label>
+                <input className="px-2 py-1 text-sm border border-line bg-backdrop-low text-neutral-high" placeholder="https:// or /path" value={editCustomUrl} onChange={(e) => setEditCustomUrl(e.target.value)} />
+              </div>
+            ) : (
+              <div className="text-xs text-neutral-medium">Section has no destination.</div>
+            )}
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-2">
+              <div className="flex flex-col gap-1">
+                <label className="text-xs text-neutral-medium">Additional (anchor or tokens)</label>
+                <input className="px-2 py-1 text-sm border border-line bg-backdrop-low text-neutral-high" placeholder="#anchor or {token}" value={editExtra} onChange={(e) => setEditExtra(e.target.value)} />
+              </div>
+              <div className="flex items-center gap-2">
+                <label className="text-xs text-neutral-medium min-w-[60px]">Target</label>
+                <Select value={editTarget} onValueChange={(v: any) => setEditTarget(v)}>
+                  <SelectTrigger className="w-[160px]">
+                    <SelectValue placeholder="(default)" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="default">(default)</SelectItem>
+                    <SelectItem value="_self">_self</SelectItem>
+                    <SelectItem value="_blank">_blank</SelectItem>
+                    <SelectItem value="_parent">_parent</SelectItem>
+                    <SelectItem value="_top">_top</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+            </div>
+            <div>
+              <div className="text-xs text-neutral-medium mb-1">rel</div>
+              <div className="flex items-center gap-3">
+                {Object.keys(editRelOptions).map((k) => (
+                  <label key={k} className="inline-flex items-center gap-1 text-xs text-neutral-high">
+                    <Checkbox checked={editRelOptions[k]} onCheckedChange={(c) => setEditRelOptions((prev) => ({ ...prev, [k]: !!c }))} />
+                    {k}
+                  </label>
+                ))}
+              </div>
             </div>
           </div>
           <AlertDialogFooter>
-            <AlertDialogCancel onClick={() => setCreateOpen(false)}>Cancel</AlertDialogCancel>
-            <AlertDialogAction
-              onClick={() => { if (!creating) createMenu() }}
-            >
-              {creating ? 'Creating…' : 'Create'}
-            </AlertDialogAction>
-          </AlertDialogFooter>
-        </AlertDialogContent>
-      </AlertDialog>
-      {/* Delete Menu Dialog */}
-      <AlertDialog open={confirmDeleteOpen} onOpenChange={setConfirmDeleteOpen}>
-        <AlertDialogContent>
-          <AlertDialogHeader>
-            <AlertDialogTitle>Delete this menu?</AlertDialogTitle>
-            <AlertDialogDescription>
-              This will permanently delete the selected menu and all of its items. This action cannot be undone.
-            </AlertDialogDescription>
-          </AlertDialogHeader>
-          <AlertDialogFooter>
-            <AlertDialogCancel onClick={() => setConfirmDeleteOpen(false)}>Cancel</AlertDialogCancel>
+            <AlertDialogCancel onClick={() => setEditOpen(false)}>Cancel</AlertDialogCancel>
             <AlertDialogAction
               onClick={async () => {
-                if (!selectedMenuId) { setConfirmDeleteOpen(false); return }
+                if (!editingItem) { setEditOpen(false); return }
+                setSavingEdit(true)
                 try {
-                  const res = await fetch(`/api/menus/${encodeURIComponent(selectedMenuId)}`, {
-                    method: 'DELETE',
-                    headers: { ...(xsrfFromCookie ? { 'X-XSRF-TOKEN': xsrfFromCookie } : {}) },
+                  const relString = Object.keys(editRelOptions).filter((k) => editRelOptions[k]).join(' ') || null
+                  const payload: any = {
+                    label: editLabel.trim(),
+                    anchor: editExtra || null,
+                    target: editTarget === 'default' ? null : editTarget,
+                    rel: relString,
+                  }
+                  if (editType === 'post') {
+                    payload.type = 'post'
+                    if (!editSelectedPostId) throw new Error('Select a post')
+                    payload.postId = editSelectedPostId
+                  } else if (editType === 'custom') {
+                    payload.type = 'custom'
+                    if (!editCustomUrl.trim()) throw new Error('Enter a URL')
+                    payload.customUrl = editCustomUrl.trim()
+                  } else {
+                    // section: keep type unchanged, just label/anchor/target/rel
+                  }
+                  const res = await fetch(`/api/menu-items/${encodeURIComponent(editingItem.id)}`, {
+                    method: 'PUT',
+                    headers: {
+                      'Accept': 'application/json',
+                      'Content-Type': 'application/json',
+                      ...(xsrfFromCookie ? { 'X-XSRF-TOKEN': xsrfFromCookie } : {}),
+                    },
                     credentials: 'same-origin',
+                    body: JSON.stringify(payload),
                   })
                   if (!res.ok) {
                     const j = await res.json().catch(() => ({}))
-                    throw new Error(j?.error || 'Delete failed')
+                    throw new Error(j?.error || 'Update failed')
                   }
-                  setConfirmDeleteOpen(false)
-                  toast.success('Menu deleted')
-                  // Clear selection and reload
-                  setSelectedMenuId(null)
-                  await loadMenus()
+                  setEditOpen(false)
+                  await loadMenu(selectedMenuId!, editingLocale)
+                  toast.success('Menu item updated')
                 } catch (e: any) {
                   toast.error(String(e.message || e))
+                } finally {
+                  setSavingEdit(false)
                 }
               }}
             >
-              Delete
+              {savingEdit ? 'Saving…' : 'Save'}
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
-    </div>
+    </div >
   )
 }
 

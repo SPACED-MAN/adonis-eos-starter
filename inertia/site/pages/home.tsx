@@ -1,11 +1,13 @@
 import { Head } from '@inertiajs/react'
 import { SiteFooter } from '../components/SiteFooter'
+import { SiteHeader } from '../components/SiteHeader'
 
 export default function Home() {
 	return (
 		<>
 			<div className="min-h-screen w-full bg-backdrop-low flex flex-col">
 				<Head title="Home" />
+				<SiteHeader />
 				<main className="flex grow items-center justify-center">
 					<div className="p-8 rounded-xl border border-line bg-backdrop-low shadow-sm space-y-4">
 						<h1 className="text-2xl font-bold text-neutral-high">AdonisJS x Inertia x React</h1>
