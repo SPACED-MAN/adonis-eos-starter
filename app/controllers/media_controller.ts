@@ -6,6 +6,7 @@ import crypto from 'node:crypto'
 import mediaService from '#services/media_service'
 import sharp from 'sharp'
 import activityLogService from '#services/activity_log_service'
+import storageService from '#services/storage_service'
 
 function sanitizeBaseName(name: string): string {
 	return name
@@ -138,6 +139,10 @@ export default class MediaController {
 		const now = new Date()
 		const id = crypto.randomUUID()
 		const url = `/uploads/${filename}`
+		// Publish to storage (local no-op, R2 uploads)
+		try {
+			await storageService.publishFile(destPath, url, mime)
+		} catch { /* ignore publish errors; local file remains */ }
 
 		// Normalize mime type
 		let mime = typeof type === 'string' ? type : ''
@@ -269,6 +274,8 @@ export default class MediaController {
 			const originalPath = path.join(publicRoot, String(row.url || '').replace(/^\//, ''))
 			await fs.promises.unlink(originalPath)
 		} catch { }
+		// Also remove from storage driver
+		try { await storageService.deleteByUrl(String(row.url || '')) } catch { }
 
 		// Delete known variants from metadata
 		try {
@@ -278,6 +285,7 @@ export default class MediaController {
 				if (!v?.url || typeof v.url !== 'string') continue
 				const p = path.join(publicRoot, v.url.replace(/^\//, ''))
 				try { await fs.promises.unlink(p) } catch { }
+				try { await storageService.deleteByUrl(String(v.url)) } catch { }
 			}
 		} catch { }
 
@@ -292,6 +300,7 @@ export default class MediaController {
 			await Promise.all(files.map(async (f) => {
 				if (f.startsWith(base + '.') && f.endsWith(ext)) {
 					try { await fs.promises.unlink(path.join(dir, f)) } catch { }
+					try { await storageService.deleteByUrl(path.posix.join(String(path.posix.dirname(String(row.url || ''))), f)) } catch { }
 				}
 			}))
 		} catch { }

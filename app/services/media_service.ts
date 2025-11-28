@@ -1,6 +1,7 @@
 import path from 'node:path'
 import fs from 'node:fs/promises'
 import sharp from 'sharp'
+import storageService from '#services/storage_service'
 
 type DerivSpec = { name: string; width?: number; height?: number; fit: 'inside' | 'cover' }
 type VariantInfo = { name: string; url: string; width?: number; height?: number; size: number }
@@ -84,6 +85,7 @@ class MediaService {
       }
 
       const info = await pipeline.toFile(outPath)
+      try { await storageService.publishFile(outPath, outUrl, inferMimeFromExt(parsed.ext)) } catch { /* ignore */ }
       variants.push({ name: spec.name, url: outUrl, width: info.width, height: info.height, size: info.size || 0 })
     }
     return variants
@@ -102,6 +104,7 @@ class MediaService {
     const quality = Number(process.env.MEDIA_WEBP_QUALITY || 82)
     const info = await sharp(inputPath).webp({ quality: Number.isFinite(quality) ? Math.max(1, Math.min(100, Math.floor(quality))) : 82 }).toFile(outPath)
     const size = info.size || 0
+    try { await storageService.publishFile(outPath, outUrl, 'image/webp') } catch { /* ignore */ }
     return { optimizedPath: outPath, optimizedUrl: outUrl, size }
   }
 
