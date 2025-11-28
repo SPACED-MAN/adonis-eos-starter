@@ -53,10 +53,11 @@ export default function Dashboard({ }: DashboardProps) {
   const [reorderParentId, setReorderParentId] = useState<string | null>(null)
   const [reorderScopeAlertOpen, setReorderScopeAlertOpen] = useState<boolean>(false)
   const sensors = useSensors(useSensor(PointerSensor, { activationConstraint: { distance: 5 } }))
-  const INDENT_PX = 24
+  const INDENT_PX = 40
   const [dragActiveId, setDragActiveId] = useState<string | null>(null)
   const [dragBaseLevel, setDragBaseLevel] = useState<number>(0)
   const [dragProjectedLevel, setDragProjectedLevel] = useState<number | null>(null)
+  const [willNest, setWillNest] = useState<boolean>(false)
   // Profile CTA moved to Dashboard page
 
   // CSRF token for API calls
@@ -351,6 +352,7 @@ export default function Dashboard({ }: DashboardProps) {
     const idx = flatRows.findIndex((r) => r.post.id === id)
     setDragBaseLevel(idx >= 0 ? flatRows[idx].level : 0)
     setDragProjectedLevel(null)
+    setWillNest(false)
   }
 
   function handleDragMove(ev: DragMoveEvent) {
@@ -359,6 +361,10 @@ export default function Dashboard({ }: DashboardProps) {
     const change = Math.round(dx / INDENT_PX)
     const next = Math.max(0, dragBaseLevel + change)
     setDragProjectedLevel(next)
+    // Nesting intent only if horizontally indented by at least 1 level
+    const overId = ev.over ? String(ev.over.id) : null
+    if (!overId || overId === dragActiveId) return setWillNest(false)
+    setWillNest(change >= 1)
   }
 
   async function handleDragEnd(ev: DragEndEvent) {
@@ -369,14 +375,34 @@ export default function Dashboard({ }: DashboardProps) {
     if (activeIdx < 0 || overIdx < 0) return
     const activeRow = flatRows[activeIdx]
     const activeParent = (activeRow.post as any).parentId || null
+    const oldParentId = activeParent
     const baseLevel = typeof dragProjectedLevel === 'number' ? dragProjectedLevel : activeRow.level
     // Build list without the active row to compute the intended insertion point and parent
     const listWithoutActive = flatRows.filter((r) => r.post.id !== active.id)
     // Adjusted index where to insert (account for removal shift)
     const targetIndex = activeIdx < overIdx ? Math.max(0, overIdx - 1) : overIdx
-    // Determine new parentId from projected level: look backwards for level-1
+    // Determine new parentId (strict):
+    // - If explicit willNest, drop onto hovered item (preferred to match user intent)
+    // - Else if indented to deeper level, infer parent from previous level row
+    // - Else keep original parent (pure reorder)
     let newParentId: string | null = null
-    if (baseLevel > 0) {
+    if (willNest) {
+      const idToParent = new Map<string, string | null>()
+      posts.forEach((p: any) => idToParent.set(p.id, (p.parentId || null)))
+      const isDescendant = (candidateParent: string, node: string): boolean => {
+        let cur: string | null = idToParent.get(node) ?? null
+        while (cur) {
+          if (cur === candidateParent) return true
+          cur = idToParent.get(cur) ?? null
+        }
+        return false
+      }
+      if (!isDescendant(String(over.id), String(active.id))) {
+        newParentId = String(over.id)
+      } else {
+        newParentId = oldParentId
+      }
+    } else if (baseLevel > activeRow.level) {
       for (let i = targetIndex - 1; i >= 0; i--) {
         const row = listWithoutActive[i]
         if (row && row.level === baseLevel - 1) {
@@ -384,18 +410,14 @@ export default function Dashboard({ }: DashboardProps) {
           break
         }
       }
+    } else {
+      newParentId = oldParentId
     }
     // Prevent self-parenting
     if (newParentId && String(newParentId) === String(active.id)) {
       setDragActiveId(null); setDragProjectedLevel(null)
       return
     }
-    const oldParentId = activeParent
-    // Determine insertion index among new parent's siblings based on targetIndex
-    const siblingsBefore = listWithoutActive
-      .slice(0, targetIndex)
-      .filter((r) => (((r.post as any).parentId || null) === (newParentId || null)))
-    const insertionIndex = siblingsBefore.length
     // Assemble sibling lists for reindexing
     const allPosts = posts
     const oldSiblings = allPosts
@@ -406,6 +428,19 @@ export default function Dashboard({ }: DashboardProps) {
       .filter((p: any) => ((p.parentId || null) === (newParentId || null)) && String(p.id) !== String(active.id))
       .sort((a: any, b: any) => (a.orderIndex ?? 0) - (b.orderIndex ?? 0))
       .map((p) => p.id)
+    // Determine insertion index among new parent's siblings based on targetIndex
+    let insertionIndex = 0
+    if (willNest && String(newParentId || '') === String(over.id)) {
+      // Append as last child when nesting onto hovered row
+      insertionIndex = newSiblingsExisting.length
+    } else {
+      const movingDown = activeIdx < overIdx
+      const sliceEnd = movingDown ? targetIndex + 1 : targetIndex
+      const siblingsBefore = listWithoutActive
+        .slice(0, sliceEnd)
+        .filter((r) => (((r.post as any).parentId || null) === (newParentId || null)))
+      insertionIndex = siblingsBefore.length
+    }
     const newSiblings = newSiblingsExisting.slice()
     const boundedIndex = Math.max(0, Math.min(insertionIndex, newSiblings.length))
     newSiblings.splice(boundedIndex, 0, String(active.id))
@@ -437,9 +472,33 @@ export default function Dashboard({ }: DashboardProps) {
         return p
       })
     )
-    setDragActiveId(null); setDragProjectedLevel(null)
-    // Persist batch
+    setDragActiveId(null); setDragProjectedLevel(null); setWillNest(false)
+    // Persist batch with scoped updates per sibling group
     try {
+      // If parent changed, reindex old group first
+      if (String(oldParentId ?? '') !== String(newParentId ?? '')) {
+        const oldItems: Array<{ id: string; orderIndex: number }> = []
+        oldSiblings.forEach((id, idx) => oldItems.push({ id, orderIndex: idx }))
+        await fetch('/api/posts/reorder', {
+          method: 'POST',
+          headers: {
+            'Accept': 'application/json',
+            'Content-Type': 'application/json',
+            ...(xsrfFromCookie ? { 'X-XSRF-TOKEN': xsrfFromCookie } : {}),
+          },
+          credentials: 'same-origin',
+          body: JSON.stringify({
+            scope: { type: postType, locale: locale, parentId: oldParentId },
+            items: oldItems,
+          }),
+        })
+      }
+      // Then reindex new group (and set parent for moved item)
+      const newItems: Array<{ id: string; orderIndex: number; parentId?: string | null }> = []
+      newSiblings.forEach((id, idx) => {
+        if (String(id) === String(active.id)) newItems.push({ id, orderIndex: idx, parentId: newParentId })
+        else newItems.push({ id, orderIndex: idx })
+      })
       await fetch('/api/posts/reorder', {
         method: 'POST',
         headers: {
@@ -449,18 +508,13 @@ export default function Dashboard({ }: DashboardProps) {
         },
         credentials: 'same-origin',
         body: JSON.stringify({
-          scope: {
-            type: postType,
-            locale: locale,
-            parentId: hierarchical ? (reorderParentId ?? null) : null,
-          },
-          items: deduped,
+          scope: { type: postType, locale: locale, parentId: newParentId },
+          items: newItems,
         }),
       })
-      // Refresh to ensure consistent ordering from backend
       await fetchPosts()
     } catch {
-      // Ignore; fetchPosts will re-sync on next reload
+      // ignore
     }
   }
 
@@ -562,33 +616,7 @@ export default function Dashboard({ }: DashboardProps) {
                   />
                   Reorder
                 </label>
-                {dndMode && hierarchical && (
-                  <div className="flex items-center gap-2">
-                    <span className="text-sm text-neutral-medium">Reorder within:</span>
-                    <Select
-                      value={String(reorderParentId ?? '__ROOT__')}
-                      onValueChange={(val) => {
-                        setReorderParentId(val === '__ROOT__' ? null : val)
-                      }}
-                    >
-                      <SelectTrigger className="w-[220px]">
-                        <SelectValue placeholder="Select group" />
-                      </SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="__ROOT__">Roots (no parent)</SelectItem>
-                        {Array.from(new Set(posts.map((p: any) => p.parentId).filter((v: any) => v))).map((pid: any) => {
-                          const parent = posts.find((p: any) => p.id === pid)
-                          const label = parent ? (parent.title || parent.slug || pid) : pid
-                          return (
-                            <SelectItem key={String(pid)} value={String(pid)}>
-                              Parent: {String(label)}
-                            </SelectItem>
-                          )
-                        })}
-                      </SelectContent>
-                    </Select>
-                  </div>
-                )}
+                {/* Reorder within selector removed; reordering now shows full hierarchy */}
               </div>
             </div>
             {/* Bulk actions */}
@@ -733,13 +761,7 @@ export default function Dashboard({ }: DashboardProps) {
                 onDragMove={handleDragMove}
                 onDragEnd={handleDragEnd}
               >
-                <SortableContext
-                  items={(hierarchical
-                    ? flatRows.filter((r) => ((r.post as any).parentId ?? null) === (reorderParentId ?? null))
-                    : flatRows
-                  ).map((r) => r.post.id)}
-                  strategy={verticalListSortingStrategy}
-                >
+                <SortableContext items={flatRows.map((r) => r.post.id)} strategy={verticalListSortingStrategy}>
                   <TableBody>
                     {flatRows.length === 0 ? (
                       <TableRow>
@@ -751,10 +773,7 @@ export default function Dashboard({ }: DashboardProps) {
                         </TableCell>
                       </TableRow>
                     ) : (
-                      (hierarchical
-                        ? flatRows.filter((r) => ((r.post as any).parentId ?? null) === (reorderParentId ?? null))
-                        : flatRows
-                      ).map(({ post, level }) => {
+                      flatRows.map(({ post, level }) => {
                         const checked = selected.has(post.id)
                         return (
                           <SortableRow key={post.id} id={post.id}>
@@ -769,6 +788,12 @@ export default function Dashboard({ }: DashboardProps) {
                               <div className="flex items-center" style={{ paddingLeft: hierarchical ? level * 12 : 0 }}>
                                 {hierarchical && level > 0 && (
                                   <span className="mr-2 text-neutral-medium" aria-hidden="true">
+                                    <FontAwesomeIcon icon={faTurnUp} rotation={90} className="inline-block" size="sm" />
+                                  </span>
+                                )}
+                                {/* Show intent arrow on the dragged item to indicate it will become a child on drop */}
+                                {hierarchical && dragActiveId === post.id && willNest && (
+                                  <span className="mr-2 text-neutral-medium" aria-hidden="true" title="Will nest on drop">
                                     <FontAwesomeIcon icon={faTurnUp} rotation={90} className="inline-block" size="sm" />
                                   </span>
                                 )}

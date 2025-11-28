@@ -108,6 +108,7 @@ router.group(() => {
 const TemplatesController = () => import('#controllers/templates_controller')
 const AgentsController = () => import('#controllers/agents_controller')
 const GlobalModulesController = () => import('#controllers/global_modules_controller')
+const MenusController = () => import('#controllers/menus_controller')
 const UsersController = () => import('#controllers/users_controller')
 const ActivityLogsController = () => import('#controllers/activity_logs_controller')
 // MediaController imported above
@@ -181,6 +182,17 @@ router.group(() => {
 	// Site Settings
 	router.get('/site-settings', [SiteSettingsController, 'show'])
 	router.patch('/site-settings', [SiteSettingsController, 'update']).use(middleware.admin())
+	// Menus (Admin)
+	router.get('/menus', [MenusController, 'index'])
+	router.post('/menus', [MenusController, 'store']).use(middleware.admin())
+	router.get('/menus/:id', [MenusController, 'show'])
+	router.put('/menus/:id', [MenusController, 'update']).use(middleware.admin())
+	router.delete('/menus/:id', [MenusController, 'destroy']).use(middleware.admin())
+	router.post('/menus/:id/items', [MenusController, 'storeItem'])
+	router.put('/menu-items/:id', [MenusController, 'updateItem'])
+	router.delete('/menu-items/:id', [MenusController, 'destroyItem'])
+	router.post('/menus/:id/reorder', [MenusController, 'reorder'])
+	router.post('/menus/:id/generate-variations', [MenusController, 'generateVariations']).use(middleware.admin())
 	// Global/Static modules
 	router.get('/modules/global', [GlobalModulesController, 'index']).use(middleware.admin())
 	router.post('/modules/global', [GlobalModulesController, 'create']).use(middleware.admin())
@@ -235,6 +247,11 @@ router.get('/admin/profile', async ({ inertia }) => {
 // Admin Global/Static Module Manager
 router.get('/admin/modules', async ({ inertia }) => {
 	return inertia.render('admin/modules/index')
+}).use(middleware.auth()).use(middleware.admin())
+
+// Admin Menus
+router.get('/admin/menus', async ({ inertia }) => {
+	return inertia.render('admin/menus/index')
 }).use(middleware.auth()).use(middleware.admin())
 
 // Admin Users (stub)

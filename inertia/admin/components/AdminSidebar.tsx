@@ -13,6 +13,7 @@ import {
 	faFileLines,
 	faCubes,
 	faLayerGroup,
+	faBars,
 	faGear,
 	faRoute,
 	faRightLeft,
@@ -87,6 +88,11 @@ export function AdminSidebar() {
 					<SidebarMenuItem href="/admin/modules" active={isActive('/admin/modules')}>
 						<span className="inline-flex items-center gap-2">
 							<FontAwesomeIcon icon={faCubes} className="w-4 h-4" /> <span>Modules</span>
+						</span>
+					</SidebarMenuItem>
+					<SidebarMenuItem href="/admin/menus" active={isActive('/admin/menus')}>
+						<span className="inline-flex items-center gap-2">
+							<FontAwesomeIcon icon={faBars} className="w-4 h-4" /> <span>Menus</span>
 						</span>
 					</SidebarMenuItem>
 					<SidebarMenuItem href="/admin/templates" active={isActive('/admin/templates')}>

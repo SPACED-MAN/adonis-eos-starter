@@ -719,45 +719,45 @@ export default function MediaIndex() {
           ) : (
             <>
               {viewMode === 'gallery' ? (
-                <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
-                  {items.map((m) => {
-                    const preview = getPreviewUrl(m)
-                    const isImage = (m.mimeType && m.mimeType.startsWith('image/')) || /\.(png|jpe?g|gif|webp|svg|avif)$/i.test(m.url || '')
+            <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
+              {items.map((m) => {
+                const preview = getPreviewUrl(m)
+                const isImage = (m.mimeType && m.mimeType.startsWith('image/')) || /\.(png|jpe?g|gif|webp|svg|avif)$/i.test(m.url || '')
                     const checked = selectedIds.has(m.id)
-                    return (
-                      <div key={m.id} className="border border-line rounded p-2 bg-backdrop-low">
+                return (
+                  <div key={m.id} className="border border-line rounded p-2 bg-backdrop-low">
                         <div className="flex items-center justify-between mb-1">
                           <label className="inline-flex items-center gap-2 text-xs text-neutral-medium">
                             <Checkbox checked={checked} onCheckedChange={() => toggleSelect(m.id)} />
                             Select
                           </label>
                         </div>
-                        <div className="aspect-video bg-backdrop-medium border border-line overflow-hidden rounded">
-                          {isImage ? (
-                            <img src={preview || m.url} alt={m.altText || m.originalFilename} className="w-full h-full object-cover" />
-                          ) : (
-                            <div className="w-full h-full flex items-center justify-center text-xs text-neutral-low">No preview</div>
-                          )}
-                        </div>
-                        <div className="mt-2">
-                          <div className="text-xs text-neutral-high break-all">{m.altText || m.originalFilename}</div>
+                    <div className="aspect-video bg-backdrop-medium border border-line overflow-hidden rounded">
+                      {isImage ? (
+                        <img src={preview || m.url} alt={m.altText || m.originalFilename} className="w-full h-full object-cover" />
+                      ) : (
+                        <div className="w-full h-full flex items-center justify-center text-xs text-neutral-low">No preview</div>
+                      )}
+                    </div>
+                    <div className="mt-2">
+                      <div className="text-xs text-neutral-high break-all">{m.altText || m.originalFilename}</div>
                           <div className="text-[10px] text-neutral-low">
                             {m.mimeType} • {(m.size / 1024).toFixed(1)} KB
                             {typeof m.optimizedSize === 'number' && m.optimizedSize > 0 && (
                               <> → {(m.optimizedSize / 1024).toFixed(1)} KB (WebP)</>
                             )}
                           </div>
-                          <div className="text-[10px] text-neutral-low">Date Added: {new Date(m.createdAt).toLocaleString()}</div>
-                        </div>
-                        <div className="mt-2 flex items-center gap-2 flex-wrap">
-                          <button
-                            className="px-3 py-1.5 text-sm border border-line rounded hover:bg-backdrop-medium inline-flex items-center gap-1"
-                            onClick={() => { setViewing(m); setSelectedVariantName('original'); setCropping(false); setFocalMode(false); setCropSel(null); setFocalDot(null) }}
-                            aria-label="Edit"
-                            title="Edit"
-                          >
-                            <Pencil className="w-4 h-4" />
-                          </button>
+                      <div className="text-[10px] text-neutral-low">Date Added: {new Date(m.createdAt).toLocaleString()}</div>
+                    </div>
+                    <div className="mt-2 flex items-center gap-2 flex-wrap">
+                      <button
+                        className="px-3 py-1.5 text-sm border border-line rounded hover:bg-backdrop-medium inline-flex items-center gap-1"
+                        onClick={() => { setViewing(m); setSelectedVariantName('original'); setCropping(false); setFocalMode(false); setCropSel(null); setFocalDot(null) }}
+                        aria-label="Edit"
+                        title="Edit"
+                      >
+                        <Pencil className="w-4 h-4" />
+                      </button>
                           {isImage && (
                             <button
                               className="px-3 py-1.5 text-sm border border-line rounded hover:bg-backdrop-medium inline-flex items-center gap-1"
@@ -783,59 +783,59 @@ export default function MediaIndex() {
                               <Wand2 className="w-4 h-4" />
                             </button>
                           )}
-                          <button
-                            className="px-3 py-1.5 text-sm border border-line rounded hover:bg-backdrop-medium inline-flex items-center gap-1"
-                            onClick={() => { setUsageFor(m); fetchWhereUsed(m.id) }}
-                            aria-label="Usage"
-                            title="Usage"
-                          >
-                            <BarChart3 className="w-4 h-4" />
-                          </button>
-                          {isAdmin && (
-                            <button
-                              className="px-3 py-1.5 text-sm border border-line rounded hover:bg-backdrop-medium inline-flex items-center gap-1"
-                              onClick={() => { setReplacingFor(m); setReplaceFile(null) }}
-                              aria-label="Replace"
-                              title="Replace"
-                            >
-                              <RefreshCw className="w-4 h-4" />
+                      <button
+                        className="px-3 py-1.5 text-sm border border-line rounded hover:bg-backdrop-medium inline-flex items-center gap-1"
+                        onClick={() => { setUsageFor(m); fetchWhereUsed(m.id) }}
+                        aria-label="Usage"
+                        title="Usage"
+                      >
+                        <BarChart3 className="w-4 h-4" />
+                      </button>
+                      {isAdmin && (
+                        <button
+                          className="px-3 py-1.5 text-sm border border-line rounded hover:bg-backdrop-medium inline-flex items-center gap-1"
+                          onClick={() => { setReplacingFor(m); setReplaceFile(null) }}
+                          aria-label="Replace"
+                          title="Replace"
+                        >
+                          <RefreshCw className="w-4 h-4" />
+                        </button>
+                      )}
+                      {isAdmin && (
+                        <AlertDialog>
+                          <AlertDialogTrigger asChild>
+                            <button className="px-3 py-1.5 text-sm border border-line rounded hover:bg-backdrop-medium text-danger inline-flex items-center gap-1" aria-label="Delete" title="Delete">
+                              <Trash2 className="w-4 h-4" />
                             </button>
-                          )}
-                          {isAdmin && (
-                            <AlertDialog>
-                              <AlertDialogTrigger asChild>
-                                <button className="px-3 py-1.5 text-sm border border-line rounded hover:bg-backdrop-medium text-danger inline-flex items-center gap-1" aria-label="Delete" title="Delete">
-                                  <Trash2 className="w-4 h-4" />
-                                </button>
-                              </AlertDialogTrigger>
-                              <AlertDialogContent>
-                                <AlertDialogHeader>
-                                  <AlertDialogTitle>Delete this media?</AlertDialogTitle>
-                                  <AlertDialogDescription>
-                                    This will delete the original file and all generated variants. This action cannot be undone.
-                                  </AlertDialogDescription>
-                                </AlertDialogHeader>
-                                <AlertDialogFooter>
-                                  <AlertDialogCancel>Cancel</AlertDialogCancel>
-                                  <AlertDialogAction
-                                    onClick={async () => {
-                                      const res = await fetch(`/api/media/${encodeURIComponent(m.id)}`, {
-                                        method: 'DELETE',
-                                        headers: { ...(xsrfFromCookie ? { 'X-XSRF-TOKEN': xsrfFromCookie } : {}) },
-                                        credentials: 'same-origin',
-                                      })
-                                      if (res.ok) { toast.success('Deleted'); await load() } else { toast.error('Delete failed') }
-                                    }}
-                                  >Delete</AlertDialogAction>
-                                </AlertDialogFooter>
-                              </AlertDialogContent>
-                            </AlertDialog>
-                          )}
-                        </div>
-                      </div>
-                    )
-                  })}
-                </div>
+                          </AlertDialogTrigger>
+                          <AlertDialogContent>
+                            <AlertDialogHeader>
+                              <AlertDialogTitle>Delete this media?</AlertDialogTitle>
+                              <AlertDialogDescription>
+                                This will delete the original file and all generated variants. This action cannot be undone.
+                              </AlertDialogDescription>
+                            </AlertDialogHeader>
+                            <AlertDialogFooter>
+                              <AlertDialogCancel>Cancel</AlertDialogCancel>
+                              <AlertDialogAction
+                                onClick={async () => {
+                                  const res = await fetch(`/api/media/${encodeURIComponent(m.id)}`, {
+                                    method: 'DELETE',
+                                    headers: { ...(xsrfFromCookie ? { 'X-XSRF-TOKEN': xsrfFromCookie } : {}) },
+                                    credentials: 'same-origin',
+                                  })
+                                  if (res.ok) { toast.success('Deleted'); await load() } else { toast.error('Delete failed') }
+                                }}
+                              >Delete</AlertDialogAction>
+                            </AlertDialogFooter>
+                          </AlertDialogContent>
+                        </AlertDialog>
+                      )}
+                    </div>
+                  </div>
+                )
+              })}
+            </div>
               ) : (
                 <div className="mt-3">
                   <Table>

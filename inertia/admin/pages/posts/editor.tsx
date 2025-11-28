@@ -1723,7 +1723,7 @@ function ParentSelect({
         <SelectTrigger>
           <SelectValue placeholder={loading ? 'Loading…' : 'None'} />
         </SelectTrigger>
-        <SelectContent>
+        <SelectContent className="max-h-64 overflow-auto">
           <SelectItem key="__none__" value="__none__">
             None
           </SelectItem>
