@@ -203,13 +203,13 @@ router.group(() => {
 	router.put('/modules/global/:id', [GlobalModulesController, 'update']).use(middleware.admin())
 	router.delete('/modules/global/:id', [GlobalModulesController, 'destroy']).use(middleware.admin())
 	router.get('/modules/static', [GlobalModulesController, 'index']).use(middleware.admin())
-	// Taxonomies
+	// Taxonomies (editors allowed)
 	router.get('/taxonomies', [TaxonomiesController, 'list'])
 	router.get('/taxonomies/:slug/terms', [TaxonomiesController, 'termsBySlug'])
-	router.post('/taxonomies/:slug/terms', [TaxonomiesController, 'createTerm']).use(middleware.admin())
-	router.patch('/taxonomy-terms/:id', [TaxonomiesController, 'updateTerm']).use(middleware.admin())
-	router.delete('/taxonomy-terms/:id', [TaxonomiesController, 'destroyTerm']).use(middleware.admin())
-	router.get('/taxonomy-terms/:id/posts', [TaxonomiesController, 'postsForTerm']).use(middleware.admin())
+	router.post('/taxonomies/:slug/terms', [TaxonomiesController, 'createTerm'])
+	router.patch('/taxonomy-terms/:id', [TaxonomiesController, 'updateTerm'])
+	router.delete('/taxonomy-terms/:id', [TaxonomiesController, 'destroyTerm'])
+	router.get('/taxonomy-terms/:id/posts', [TaxonomiesController, 'postsForTerm'])
 }).prefix('/api').use(middleware.auth())
 
 /**
@@ -240,15 +240,15 @@ router.get('/admin/settings/templates', async ({ inertia }) => {
 
 // Deprecated: Post types settings moved to code configs
 
-// Admin Media Library
+// Admin Media Library (editors allowed)
 router.get('/admin/media', async ({ inertia }) => {
 	return inertia.render('admin/media/index')
-}).use(middleware.auth()).use(middleware.admin())
+}).use(middleware.auth())
 
-// Admin Posts (list)
+// Admin Posts (list) (editors allowed)
 router.get('/admin/posts', async ({ inertia }) => {
 	return inertia.render('admin/dashboard')
-}).use(middleware.auth()).use(middleware.admin())
+}).use(middleware.auth())
 
 // Admin Profile (current user)
 router.get('/admin/profile', async ({ inertia }) => {
@@ -265,10 +265,10 @@ router.get('/admin/menus', async ({ inertia }) => {
 	return inertia.render('admin/menus/index')
 }).use(middleware.auth()).use(middleware.admin())
 
-// Admin Categories (Taxonomies)
+// Admin Categories (Taxonomies) (editors allowed)
 router.get('/admin/categories', async ({ inertia }) => {
 	return inertia.render('admin/categories')
-}).use(middleware.auth()).use(middleware.admin())
+}).use(middleware.auth())
 
 // Admin Users (stub)
 router.get('/admin/users', async ({ inertia }) => {

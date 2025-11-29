@@ -28,6 +28,11 @@ export function AdminSidebar() {
 	const page = usePage()
 	const pathname = (page?.url || '').split('?')[0]
 	const isActive = (href: string) => pathname === href
+	const role: string | undefined =
+		((page.props as any)?.auth?.user?.role as string | undefined) ??
+		((page.props as any)?.currentUser?.role as string | undefined)
+	const isAdmin = role === 'admin'
+	const isEditor = role === 'editor'
 	const userEmail =
 		((page.props as any)?.auth?.user?.email as string | undefined) ||
 		((page.props as any)?.currentUser?.email as string | undefined) ||
@@ -75,71 +80,87 @@ export function AdminSidebar() {
 							<FontAwesomeIcon icon={faGauge} className="w-4 h-4" /> <span>Dashboard</span>
 						</span>
 					</SidebarMenuItem>
-					<SidebarMenuItem href="/admin/media" active={isActive('/admin/media')}>
-						<span className="inline-flex items-center gap-2">
-							<FontAwesomeIcon icon={faImage} className="w-4 h-4" /> <span>Media</span>
-						</span>
-					</SidebarMenuItem>
-					<SidebarMenuItem href="/admin/posts" active={isActive('/admin/posts')}>
-						<span className="inline-flex items-center gap-2">
-							<FontAwesomeIcon icon={faFileLines} className="w-4 h-4" /> <span>Posts</span>
-						</span>
-					</SidebarMenuItem>
-					<SidebarMenuItem href="/admin/modules" active={isActive('/admin/modules')}>
-						<span className="inline-flex items-center gap-2">
-							<FontAwesomeIcon icon={faCubes} className="w-4 h-4" /> <span>Modules</span>
-						</span>
-					</SidebarMenuItem>
-					<SidebarMenuItem href="/admin/menus" active={isActive('/admin/menus')}>
-						<span className="inline-flex items-center gap-2">
-							<FontAwesomeIcon icon={faBars} className="w-4 h-4" /> <span>Menus</span>
-						</span>
-					</SidebarMenuItem>
-					<SidebarMenuItem href="/admin/categories" active={isActive('/admin/categories')}>
-						<span className="inline-flex items-center gap-2">
-							<FontAwesomeIcon icon={faTags} className="w-4 h-4" /> <span>Categories</span>
-						</span>
-					</SidebarMenuItem>
-					<SidebarMenuItem href="/admin/templates" active={isActive('/admin/templates')}>
-						<span className="inline-flex items-center gap-2">
-							<FontAwesomeIcon icon={faLayerGroup} className="w-4 h-4" /> <span>Templates</span>
-						</span>
-					</SidebarMenuItem>
+					{(isAdmin || isEditor) && (
+						<SidebarMenuItem href="/admin/media" active={isActive('/admin/media')}>
+							<span className="inline-flex items-center gap-2">
+								<FontAwesomeIcon icon={faImage} className="w-4 h-4" /> <span>Media</span>
+							</span>
+						</SidebarMenuItem>
+					)}
+					{(isAdmin || isEditor) && (
+						<SidebarMenuItem href="/admin/posts" active={isActive('/admin/posts')}>
+							<span className="inline-flex items-center gap-2">
+								<FontAwesomeIcon icon={faFileLines} className="w-4 h-4" /> <span>Posts</span>
+							</span>
+						</SidebarMenuItem>
+					)}
+					{isAdmin && (
+						<SidebarMenuItem href="/admin/modules" active={isActive('/admin/modules')}>
+							<span className="inline-flex items-center gap-2">
+								<FontAwesomeIcon icon={faCubes} className="w-4 h-4" /> <span>Modules</span>
+							</span>
+						</SidebarMenuItem>
+					)}
+					{isAdmin && (
+						<SidebarMenuItem href="/admin/menus" active={isActive('/admin/menus')}>
+							<span className="inline-flex items-center gap-2">
+								<FontAwesomeIcon icon={faBars} className="w-4 h-4" /> <span>Menus</span>
+							</span>
+						</SidebarMenuItem>
+					)}
+					{(isAdmin || isEditor) && (
+						<SidebarMenuItem href="/admin/categories" active={isActive('/admin/categories')}>
+							<span className="inline-flex items-center gap-2">
+								<FontAwesomeIcon icon={faTags} className="w-4 h-4" /> <span>Categories</span>
+							</span>
+						</SidebarMenuItem>
+					)}
+					{isAdmin && (
+						<SidebarMenuItem href="/admin/templates" active={isActive('/admin/templates')}>
+							<span className="inline-flex items-center gap-2">
+								<FontAwesomeIcon icon={faLayerGroup} className="w-4 h-4" /> <span>Templates</span>
+							</span>
+						</SidebarMenuItem>
+					)}
 				</SidebarGroup>
-				<SidebarGroup title="Settings">
-					<SidebarMenuItem href="/admin/settings/general" active={isActive('/admin/settings/general')}>
-						<span className="inline-flex items-center gap-2">
-							<FontAwesomeIcon icon={faGear} className="w-4 h-4" /> <span>Site Settings</span>
-						</span>
-					</SidebarMenuItem>
-					<SidebarMenuItem href="/admin/settings/url-patterns" active={isActive('/admin/settings/url-patterns')}>
-						<span className="inline-flex items-center gap-2">
-							<FontAwesomeIcon icon={faRoute} className="w-4 h-4" /> <span>URL Patterns</span>
-						</span>
-					</SidebarMenuItem>
-					<SidebarMenuItem href="/admin/settings/redirects" active={isActive('/admin/settings/redirects')}>
-						<span className="inline-flex items-center gap-2">
-							<FontAwesomeIcon icon={faRightLeft} className="w-4 h-4" /> <span>Redirects</span>
-						</span>
-					</SidebarMenuItem>
-					<SidebarMenuItem href="/admin/settings/locales" active={isActive('/admin/settings/locales')}>
-						<span className="inline-flex items-center gap-2">
-							<FontAwesomeIcon icon={faLanguage} className="w-4 h-4" /> <span>Locales</span>
-						</span>
-					</SidebarMenuItem>
-				</SidebarGroup>
-				<SidebarGroup title="Users">
-					<SidebarMenuItem href="/admin/users" active={isActive('/admin/users')}>
-						<span className="inline-flex items-center gap-2">
-							<FontAwesomeIcon icon={faUsers} className="w-4 h-4" /> <span>User Management</span>
-						</span>
-					</SidebarMenuItem>
-					<SidebarMenuItem href="/admin/users/activity" active={isActive('/admin/users/activity')}>
-						<span className="inline-flex items-center gap-2">
-							<FontAwesomeIcon icon={faListUl} className="w-4 h-4" /> <span>Activity Log</span>
-						</span>
-					</SidebarMenuItem>
-				</SidebarGroup>
+				{isAdmin && (
+					<SidebarGroup title="Settings">
+						<SidebarMenuItem href="/admin/settings/general" active={isActive('/admin/settings/general')}>
+							<span className="inline-flex items-center gap-2">
+								<FontAwesomeIcon icon={faGear} className="w-4 h-4" /> <span>Site Settings</span>
+							</span>
+						</SidebarMenuItem>
+						<SidebarMenuItem href="/admin/settings/url-patterns" active={isActive('/admin/settings/url-patterns')}>
+							<span className="inline-flex items-center gap-2">
+								<FontAwesomeIcon icon={faRoute} className="w-4 h-4" /> <span>URL Patterns</span>
+							</span>
+						</SidebarMenuItem>
+						<SidebarMenuItem href="/admin/settings/redirects" active={isActive('/admin/settings/redirects')}>
+							<span className="inline-flex items-center gap-2">
+								<FontAwesomeIcon icon={faRightLeft} className="w-4 h-4" /> <span>Redirects</span>
+							</span>
+						</SidebarMenuItem>
+						<SidebarMenuItem href="/admin/settings/locales" active={isActive('/admin/settings/locales')}>
+							<span className="inline-flex items-center gap-2">
+								<FontAwesomeIcon icon={faLanguage} className="w-4 h-4" /> <span>Locales</span>
+							</span>
+						</SidebarMenuItem>
+					</SidebarGroup>
+				)}
+				{isAdmin && (
+					<SidebarGroup title="Users">
+						<SidebarMenuItem href="/admin/users" active={isActive('/admin/users')}>
+							<span className="inline-flex items-center gap-2">
+								<FontAwesomeIcon icon={faUsers} className="w-4 h-4" /> <span>User Management</span>
+							</span>
+						</SidebarMenuItem>
+						<SidebarMenuItem href="/admin/users/activity" active={isActive('/admin/users/activity')}>
+							<span className="inline-flex items-center gap-2">
+								<FontAwesomeIcon icon={faListUl} className="w-4 h-4" /> <span>Activity Log</span>
+							</span>
+						</SidebarMenuItem>
+					</SidebarGroup>
+				)}
 			</SidebarContent>
 		</Sidebar>
 	)
