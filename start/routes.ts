@@ -111,6 +111,7 @@ const GlobalModulesController = () => import('#controllers/global_modules_contro
 const MenusController = () => import('#controllers/menus_controller')
 const UsersController = () => import('#controllers/users_controller')
 const ActivityLogsController = () => import('#controllers/activity_logs_controller')
+const TaxonomiesController = () => import('#controllers/taxonomies_controller')
 // MediaController imported above
 router.group(() => {
 	router.get('/templates', [TemplatesController, 'index']).use(middleware.admin())
@@ -150,18 +151,18 @@ router.group(() => {
 	router.get('/agents', [AgentsController, 'index']).use(middleware.admin())
 	router.post('/posts/:id/agents/:agentId/run', [AgentsController, 'runForPost']).use(middleware.admin())
 	// Users (admin)
-	router.get('/users', [UsersController, 'index']).use(middleware.admin())
-	router.patch('/users/:id', [UsersController, 'update']).use(middleware.admin())
-	router.patch('/users/:id/password', [UsersController, 'resetPassword']).use(middleware.admin())
-	router.delete('/users/:id', [UsersController, 'destroy']).use(middleware.admin())
-	// Profiles (self) - place before param route to avoid ':id' capturing 'me'
-	router.get('/profile/status', [UsersController, 'profileStatus'])
-	router.post('/users/me/profile', [UsersController, 'createMyProfile'])
-	// Admin: profile lookup/create for a given user id
-	router.get('/users/:id/profile', [UsersController, 'profileForUser']).use(middleware.admin())
-	router.post('/users/:id/profile', [UsersController, 'createProfileForUser']).use(middleware.admin())
-	// Activity Logs (admin)
-	router.get('/activity-logs', [ActivityLogsController, 'index']).use(middleware.admin())
+  router.get('/users', [UsersController, 'index']).use(middleware.admin())
+  router.patch('/users/:id', [UsersController, 'update']).use(middleware.admin())
+  router.patch('/users/:id/password', [UsersController, 'resetPassword']).use(middleware.admin())
+  router.delete('/users/:id', [UsersController, 'destroy']).use(middleware.admin())
+  // Profiles (self) - place before param route to avoid ':id' capturing 'me'
+  router.get('/profile/status', [UsersController, 'profileStatus'])
+  router.post('/users/me/profile', [UsersController, 'createMyProfile'])
+  // Admin: profile lookup/create for a given user id
+  router.get('/users/:id/profile', [UsersController, 'profileForUser']).use(middleware.admin())
+  router.post('/users/:id/profile', [UsersController, 'createProfileForUser']).use(middleware.admin())
+  // Activity Logs (admin)
+  router.get('/activity-logs', [ActivityLogsController, 'index']).use(middleware.admin())
 	// Media
 	router.get('/media', [MediaController, 'index'])
 	router.get('/media/categories', [MediaController, 'categories'])
@@ -201,6 +202,13 @@ router.group(() => {
 	router.put('/modules/global/:id', [GlobalModulesController, 'update']).use(middleware.admin())
 	router.delete('/modules/global/:id', [GlobalModulesController, 'destroy']).use(middleware.admin())
 	router.get('/modules/static', [GlobalModulesController, 'index']).use(middleware.admin())
+	// Taxonomies
+	router.get('/taxonomies', [TaxonomiesController, 'list'])
+	router.get('/taxonomies/:slug/terms', [TaxonomiesController, 'termsBySlug'])
+	router.post('/taxonomies/:slug/terms', [TaxonomiesController, 'createTerm']).use(middleware.admin())
+	router.patch('/taxonomy-terms/:id', [TaxonomiesController, 'updateTerm']).use(middleware.admin())
+	router.delete('/taxonomy-terms/:id', [TaxonomiesController, 'destroyTerm']).use(middleware.admin())
+	router.get('/taxonomy-terms/:id/posts', [TaxonomiesController, 'postsForTerm']).use(middleware.admin())
 }).prefix('/api').use(middleware.auth())
 
 /**
@@ -256,6 +264,11 @@ router.get('/admin/menus', async ({ inertia }) => {
 	return inertia.render('admin/menus/index')
 }).use(middleware.auth()).use(middleware.admin())
 
+// Admin Categories (Taxonomies)
+router.get('/admin/categories', async ({ inertia }) => {
+	return inertia.render('admin/categories')
+}).use(middleware.auth()).use(middleware.admin())
+
 // Admin Users (stub)
 router.get('/admin/users', async ({ inertia }) => {
 	return inertia.render('admin/users/index')
@@ -267,7 +280,7 @@ router.get('/admin/users/:id/edit', async ({ params, inertia }) => {
 
 // Admin Activity Log
 router.get('/admin/users/activity', async ({ inertia }) => {
-	return inertia.render('admin/users/activity')
+  return inertia.render('admin/users/activity')
 }).use(middleware.auth()).use(middleware.admin())
 
 // Admin General Settings

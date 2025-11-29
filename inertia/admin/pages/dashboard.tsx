@@ -39,6 +39,13 @@ export default function Dashboard({ }: DashboardProps) {
   const [locale, setLocale] = useState<string>('')
   const [postType, setPostType] = useState<string>('')
   const [postTypes, setPostTypes] = useState<string[]>([])
+  // Taxonomy filters
+  type Taxonomy = { id: string; slug: string; name: string }
+  type TermNode = { id: string; name: string; parentId: string | null; children?: TermNode[] }
+  const [taxonomies, setTaxonomies] = useState<Taxonomy[]>([])
+  const [taxonomy, setTaxonomy] = useState<string>('') // slug
+  const [terms, setTerms] = useState<TermNode[]>([])
+  const [termId, setTermId] = useState<string>('')
   const [isCreateOpen, setIsCreateOpen] = useState(false)
   const [sortBy, setSortBy] = useState<'title' | 'slug' | 'status' | 'locale' | 'updated_at' | 'created_at' | 'order_index'>('updated_at')
   const [sortOrder, setSortOrder] = useState<'asc' | 'desc'>('desc')
@@ -81,6 +88,11 @@ export default function Dashboard({ }: DashboardProps) {
       }
       if (postType) params.set('type', postType)
       if (locale) params.set('locale', locale)
+      if (taxonomy && termId) {
+        params.set('taxonomy', taxonomy)
+        params.set('termId', termId)
+        params.set('includeDescendants', '1')
+      }
       params.set('sortBy', sortBy)
       params.set('sortOrder', sortOrder)
       if (hierarchical) {
@@ -108,7 +120,7 @@ export default function Dashboard({ }: DashboardProps) {
   useEffect(() => {
     fetchPosts()
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [q, status, locale, postType, sortBy, sortOrder, page, limit, hierarchical])
+  }, [q, status, locale, postType, taxonomy, termId, sortBy, sortOrder, page, limit, hierarchical])
 
   // Profile status removed here
 
@@ -120,6 +132,50 @@ export default function Dashboard({ }: DashboardProps) {
       setPostTypes(list)
     })()
   }, [])
+
+  // Load taxonomies for filter
+  useEffect(() => {
+    ; (async () => {
+      try {
+        const res = await fetch('/api/taxonomies', { credentials: 'same-origin' })
+        const json = await res.json().catch(() => ({}))
+        const list: Taxonomy[] = Array.isArray(json?.data) ? json.data : []
+        setTaxonomies(list)
+      } catch {
+        setTaxonomies([])
+      }
+    })()
+  }, [])
+
+  // Load terms for selected taxonomy
+  useEffect(() => {
+    ; (async () => {
+      setTerms([])
+      setTermId('')
+      if (!taxonomy) return
+      try {
+        const res = await fetch(`/api/taxonomies/${encodeURIComponent(taxonomy)}/terms`, { credentials: 'same-origin' })
+        const json = await res.json().catch(() => ({}))
+        const tree: TermNode[] = Array.isArray(json?.data) ? json.data : []
+        setTerms(tree)
+      } catch {
+        setTerms([])
+      }
+    })()
+  }, [taxonomy])
+
+  function flattenTerms(nodes: TermNode[]): TermNode[] {
+    const out: TermNode[] = []
+    const walk = (arr: TermNode[]) => {
+      for (const n of arr) {
+        out.push({ id: n.id, name: n.name, parentId: n.parentId, children: [] })
+        if (n.children?.length) walk(n.children)
+      }
+    }
+    walk(nodes)
+    return out
+  }
+  const flatTerms = flattenTerms(terms)
 
   // Supported locales for translation progress
   const [supportedLocales, setSupportedLocales] = useState<string[]>([])
@@ -203,7 +259,7 @@ export default function Dashboard({ }: DashboardProps) {
     })
   }
 
-  async function applyBulk(action: 'publish' | 'draft' | 'archive' | 'delete' | 'duplicate') {
+  async function applyBulk(action: 'publish' | 'draft' | 'archive' | 'delete' | 'duplicate' | 'regeneratePermalinks') {
     if (selected.size === 0) return
     const ids = Array.from(selected)
     const res = await fetch('/api/posts/bulk', {
@@ -540,8 +596,8 @@ export default function Dashboard({ }: DashboardProps) {
                 </button>
               )}
             </div>
-            <div className="flex items-center justify-between gap-4">
-              <div className="flex items-center gap-2">
+            <div className="flex flex-wrap items-center justify-between gap-4">
+              <div className="flex flex-wrap items-center gap-2">
                 <input
                   value={q}
                   onChange={(e) => setQ(e.target.value)}
@@ -602,6 +658,45 @@ export default function Dashboard({ }: DashboardProps) {
                     ))}
                   </SelectContent>
                 </Select>
+                {/* Taxonomy filter */}
+                <Select
+                  value={taxonomy || 'all'}
+                  onValueChange={(val) => {
+                    const next = val === 'all' ? '' : val
+                    setTaxonomy(next)
+                    setTermId('')
+                    setPage(1)
+                  }}
+                >
+                  <SelectTrigger className="w-[200px]">
+                    <SelectValue placeholder="All taxonomies" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="all">All taxonomies</SelectItem>
+                    {taxonomies.map((t) => (
+                      <SelectItem key={t.slug} value={t.slug}>{t.name}</SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+                {taxonomy && (
+                  <Select
+                    value={termId || 'all'}
+                    onValueChange={(val) => {
+                      setTermId(val === 'all' ? '' : val)
+                      setPage(1)
+                    }}
+                  >
+                    <SelectTrigger className="w-[220px]">
+                      <SelectValue placeholder="All categories" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="all">All categories</SelectItem>
+                      {flatTerms.map((t) => (
+                        <SelectItem key={t.id} value={t.id}>{t.name}</SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                )}
                 <label className="flex items-center gap-2 text-sm text-neutral-high">
                   <Checkbox
                     checked={hierarchical}

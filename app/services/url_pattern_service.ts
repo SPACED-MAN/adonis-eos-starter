@@ -161,12 +161,12 @@ class UrlPatternService {
     const rows = missing.map((locale) => {
       const pat = locale === defaultLocale ? `/${postType}/${seg}` : `/{locale}/${postType}/${seg}`
       return {
-        post_type: postType,
-        locale,
+      post_type: postType,
+      locale,
         pattern: pat,
-        is_default: true,
-        created_at: now,
-        updated_at: now,
+      is_default: true,
+      created_at: now,
+      updated_at: now,
       }
     })
     await db.table('url_patterns').insert(rows)
@@ -269,12 +269,12 @@ class UrlPatternService {
         const seg = hierarchical ? '{path}' : '{slug}'
         const pat = locale === defaultLocale ? `/${t}/${seg}` : `/{locale}/${t}/${seg}`
         return {
-          post_type: t,
-          locale,
+        post_type: t,
+        locale,
           pattern: pat,
-          is_default: true,
-          created_at: now,
-          updated_at: now,
+        is_default: true,
+        created_at: now,
+        updated_at: now,
         }
       })
     if (rows.length) {

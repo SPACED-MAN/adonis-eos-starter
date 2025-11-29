@@ -7,6 +7,7 @@ type PostTypeUiConfig = {
 	template?: { name: string; description?: string }
 	urlPatterns?: Array<{ locale: string; pattern: string; isDefault?: boolean }>
 	permalinksEnabled?: boolean
+	taxonomies?: string[]
 }
 
 import postTypeRegistry from '#services/post_type_registry'
@@ -23,6 +24,7 @@ class PostTypeConfigService {
 			template: { name: `${postType}-default` },
 			urlPatterns: [],
 			permalinksEnabled: true,
+			taxonomies: [],
 		}
 		const isDev = process.env.NODE_ENV === 'development'
 		if (!isDev && cache.has(postType)) return cache.get(postType)!
@@ -58,6 +60,7 @@ class PostTypeConfigService {
 			template: cfg.template && cfg.template.name ? cfg.template : base.template,
 			urlPatterns: Array.isArray(cfg.urlPatterns) ? cfg.urlPatterns : [],
 			permalinksEnabled: cfg.permalinksEnabled !== undefined ? !!cfg.permalinksEnabled : true,
+			taxonomies: Array.isArray(cfg.taxonomies) ? cfg.taxonomies : [],
 		}
 		if (!isDev) cache.set(postType, full)
 		return full

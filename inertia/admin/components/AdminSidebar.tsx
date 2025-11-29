@@ -95,6 +95,11 @@ export function AdminSidebar() {
 							<FontAwesomeIcon icon={faBars} className="w-4 h-4" /> <span>Menus</span>
 						</span>
 					</SidebarMenuItem>
+					<SidebarMenuItem href="/admin/categories" active={isActive('/admin/categories')}>
+						<span className="inline-flex items-center gap-2">
+							<FontAwesomeIcon icon={faTags} className="w-4 h-4" /> <span>Categories</span>
+						</span>
+					</SidebarMenuItem>
 					<SidebarMenuItem href="/admin/templates" active={isActive('/admin/templates')}>
 						<span className="inline-flex items-center gap-2">
 							<FontAwesomeIcon icon={faLayerGroup} className="w-4 h-4" /> <span>Templates</span>

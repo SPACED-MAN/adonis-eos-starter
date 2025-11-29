@@ -71,6 +71,9 @@ export default class PostsController {
     const inReviewParam = String(request.input('inReview', '')).trim()
     const inReview = inReviewParam === '1' || inReviewParam.toLowerCase() === 'true'
     const locale = String(request.input('locale', '')).trim()
+    const taxonomySlug = String(request.input('taxonomy', '')).trim()
+    const termIdRaw = String(request.input('termId', '')).trim()
+    const includeDescendants = String(request.input('includeDescendants', '1')).trim() === '1'
     const sortByRaw = String(request.input('sortBy', 'updated_at')).trim()
     const sortOrderRaw = String(request.input('sortOrder', 'desc')).trim()
     const page = Math.max(1, Number(request.input('page', 1)) || 1)
@@ -114,6 +117,19 @@ export default class PostsController {
     if (locale) {
       query.where('locale', locale)
     }
+    // Taxonomy filtering
+    if (termIdRaw) {
+      let termIds: string[] = [termIdRaw]
+      if (includeDescendants) {
+        try {
+          const taxonomyService = (await import('#services/taxonomy_service')).default
+          const descendants = await taxonomyService.getDescendantIds(termIdRaw)
+          termIds = termIds.concat(descendants)
+        } catch { /* ignore */ }
+      }
+      query.join('post_taxonomy_terms as ptt', 'ptt.post_id', 'posts.id')
+      query.whereIn('ptt.taxonomy_term_id', termIds)
+    }
     if (parentId) {
       query.where('parent_id', parentId)
     } else if (wantRoots) {
@@ -137,6 +153,18 @@ export default class PostsController {
     }
     if (locale) {
       countQuery.where('locale', locale)
+    }
+    if (termIdRaw) {
+      let termIds: string[] = [termIdRaw]
+      if (includeDescendants) {
+        try {
+          const taxonomyService = (await import('#services/taxonomy_service')).default
+          const descendants = await taxonomyService.getDescendantIds(termIdRaw)
+          termIds = termIds.concat(descendants)
+        } catch { /* ignore */ }
+      }
+      countQuery.join('post_taxonomy_terms as ptt', 'ptt.post_id', 'posts.id')
+      countQuery.whereIn('ptt.taxonomy_term_id', termIds)
     }
     if (parentId) {
       countQuery.where('parent_id', parentId)
@@ -1163,12 +1191,12 @@ export default class PostsController {
           }
           // If parent change requested, ensure hierarchy enabled
           if ((it as any).hasOwnProperty('parentId')) {
-            const enabled = postTypeConfigService.getUiConfig(String((row as any).type)).hierarchyEnabled
-            if (!enabled) {
-              throw new Error('Hierarchy is disabled for this post type')
+              const enabled = postTypeConfigService.getUiConfig(String((row as any).type)).hierarchyEnabled
+              if (!enabled) {
+                throw new Error('Hierarchy is disabled for this post type')
+              }
             }
           }
-        }
         for (const it of sanitized) {
           const update: any = { order_index: it.orderIndex, updated_at: now }
           if ((it as any).hasOwnProperty('parentId')) {

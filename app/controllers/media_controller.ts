@@ -676,20 +676,20 @@ export default class MediaController {
 		if (!row) return response.notFound({ error: 'Media not found' })
 		return response.ok({
 			data: {
-				id: row.id,
-				url: row.url,
-				originalFilename: row.original_filename,
-				mimeType: row.mime_type,
-				size: Number(row.size || 0),
+			id: row.id,
+			url: row.url,
+			originalFilename: row.original_filename,
+			mimeType: row.mime_type,
+			size: Number(row.size || 0),
 				optimizedUrl: (row as any).optimized_url || null,
 				optimizedSize: (row as any).optimized_size ? Number((row as any).optimized_size) : null,
-				altText: row.alt_text,
-				caption: row.caption,
-				description: row.description,
-				categories: Array.isArray(row.categories) ? row.categories : [],
-				metadata: row.metadata || null,
-				createdAt: row.created_at,
-				updatedAt: row.updated_at,
+			altText: row.alt_text,
+			caption: row.caption,
+			description: row.description,
+			categories: Array.isArray(row.categories) ? row.categories : [],
+			metadata: row.metadata || null,
+			createdAt: row.created_at,
+			updatedAt: row.updated_at,
 			}
 		})
 	}
@@ -700,11 +700,11 @@ export default class MediaController {
 		if (!row) return response.notFound({ error: 'Media not found' })
 		return response.ok({
 			data: {
-				id: row.id,
-				url: row.url,
-				metadata: row.metadata || null,
-				altText: row.alt_text,
-				categories: Array.isArray(row.categories) ? row.categories : [],
+			id: row.id,
+			url: row.url,
+			metadata: row.metadata || null,
+			altText: row.alt_text,
+			categories: Array.isArray(row.categories) ? row.categories : [],
 			}
 		})
 	}

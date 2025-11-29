@@ -22,6 +22,8 @@ export default {
 	],
 	// Permalinks enabled for this type (set to false to disable public pages)
 	permalinksEnabled: true,
+	// Taxonomies attached to this post type (shared by slug across post types)
+	taxonomies: ['lipsum'],
 } as const
 
 
