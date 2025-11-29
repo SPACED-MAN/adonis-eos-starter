@@ -12,7 +12,7 @@ export default class extends BaseSchema {
       table.string('title', 500).notNullable()
       table.text('excerpt').nullable()
 
-      table.enum('status', ['draft', 'review', 'scheduled', 'published', 'archived'])
+      table.enum('status', ['draft', 'review', 'scheduled', 'published', 'private', 'protected', 'archived'])
         .notNullable()
         .defaultTo('draft')
 

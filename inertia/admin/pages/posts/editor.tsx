@@ -332,10 +332,10 @@ export default function Editor({ post, modules: initialModules, translations, re
     }
     const res = await fetch(`/api/posts/${post.id}`, {
       method: 'PUT',
-        headers: {
+      headers: {
         'Accept': 'application/json',
         'Content-Type': 'application/json',
-          ...xsrfHeader(),
+        ...xsrfHeader(),
       },
       credentials: 'same-origin',
       body: JSON.stringify(payload),
@@ -1063,6 +1063,8 @@ export default function Editor({ post, modules: initialModules, translations, re
                         <SelectItem value="draft">Draft</SelectItem>
                         <SelectItem value="scheduled">Scheduled</SelectItem>
                         <SelectItem value="published">Published</SelectItem>
+                        <SelectItem value="private">Private</SelectItem>
+                        <SelectItem value="protected">Protected</SelectItem>
                         <SelectItem value="archived">Archived</SelectItem>
                       </SelectContent>
                     </Select>
@@ -1525,7 +1527,7 @@ export default function Editor({ post, modules: initialModules, translations, re
                     headers: {
                       Accept: 'application/json',
                       'Content-Type': 'application/json',
-                        ...xsrfHeader(),
+                      ...xsrfHeader(),
                     },
                     credentials: 'same-origin',
                     body: JSON.stringify({ data: pendingImportJson, mode: 'review' }),
@@ -1553,7 +1555,7 @@ export default function Editor({ post, modules: initialModules, translations, re
                     headers: {
                       Accept: 'application/json',
                       'Content-Type': 'application/json',
-                        ...xsrfHeader(),
+                      ...xsrfHeader(),
                     },
                     credentials: 'same-origin',
                     body: JSON.stringify({ data: pendingImportJson, mode: 'replace' }),

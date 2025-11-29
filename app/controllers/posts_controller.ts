@@ -1191,12 +1191,12 @@ export default class PostsController {
           }
           // If parent change requested, ensure hierarchy enabled
           if ((it as any).hasOwnProperty('parentId')) {
-              const enabled = postTypeConfigService.getUiConfig(String((row as any).type)).hierarchyEnabled
-              if (!enabled) {
-                throw new Error('Hierarchy is disabled for this post type')
-              }
+            const enabled = postTypeConfigService.getUiConfig(String((row as any).type)).hierarchyEnabled
+            if (!enabled) {
+              throw new Error('Hierarchy is disabled for this post type')
             }
           }
+        }
         for (const it of sanitized) {
           const update: any = { order_index: it.orderIndex, updated_at: now }
           if ((it as any).hasOwnProperty('parentId')) {
@@ -1557,7 +1557,7 @@ export default class PostsController {
   /**
    * Resolve public post by matching URL patterns (catch-all route).
    */
-  async resolve({ request, response, inertia }: HttpContext) {
+  async resolve({ request, response, inertia, auth }: HttpContext) {
     const path = request.url().split('?')[0]
     const match = await urlPatternService.matchPath(path)
     if (!match) {
@@ -1579,6 +1579,20 @@ export default class PostsController {
       const post = await Post.query().where('slug', slug).where('locale', locale).first()
       if (!post) {
         return response.notFound({ error: 'Post not found', slug, locale })
+      }
+      // Gate private/protected posts
+      if ((post as any).status === 'private') {
+        if (!auth?.isAuthenticated) {
+          // Redirect to login
+          return response.redirect('/admin/login', true)
+        }
+      } else if ((post as any).status === 'protected') {
+        const ok = request.cookie('PROTECTED_AUTH') === '1'
+        if (!ok) {
+          // Send to protected login with redirect back to current path
+          const red = encodeURIComponent(request.url())
+          return response.redirect(`/protected?redirect=${red}`, true)
+        }
       }
       const postModules = await db
         .from('post_modules')

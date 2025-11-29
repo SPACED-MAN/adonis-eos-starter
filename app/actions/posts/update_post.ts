@@ -7,7 +7,7 @@ type UpdatePostParams = {
   postId: string
   slug?: string
   title?: string
-  status?: 'draft' | 'review' | 'scheduled' | 'published' | 'archived'
+  status?: 'draft' | 'review' | 'scheduled' | 'published' | 'private' | 'protected' | 'archived'
   excerpt?: string | null
   parentId?: string | null
   orderIndex?: number

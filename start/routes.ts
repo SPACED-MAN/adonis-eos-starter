@@ -112,6 +112,7 @@ const MenusController = () => import('#controllers/menus_controller')
 const UsersController = () => import('#controllers/users_controller')
 const ActivityLogsController = () => import('#controllers/activity_logs_controller')
 const TaxonomiesController = () => import('#controllers/taxonomies_controller')
+const ProtectedAccessController = () => import('#controllers/protected_access_controller')
 // MediaController imported above
 router.group(() => {
 	router.get('/templates', [TemplatesController, 'index']).use(middleware.admin())
@@ -151,18 +152,18 @@ router.group(() => {
 	router.get('/agents', [AgentsController, 'index']).use(middleware.admin())
 	router.post('/posts/:id/agents/:agentId/run', [AgentsController, 'runForPost']).use(middleware.admin())
 	// Users (admin)
-  router.get('/users', [UsersController, 'index']).use(middleware.admin())
-  router.patch('/users/:id', [UsersController, 'update']).use(middleware.admin())
-  router.patch('/users/:id/password', [UsersController, 'resetPassword']).use(middleware.admin())
-  router.delete('/users/:id', [UsersController, 'destroy']).use(middleware.admin())
-  // Profiles (self) - place before param route to avoid ':id' capturing 'me'
-  router.get('/profile/status', [UsersController, 'profileStatus'])
-  router.post('/users/me/profile', [UsersController, 'createMyProfile'])
-  // Admin: profile lookup/create for a given user id
-  router.get('/users/:id/profile', [UsersController, 'profileForUser']).use(middleware.admin())
-  router.post('/users/:id/profile', [UsersController, 'createProfileForUser']).use(middleware.admin())
-  // Activity Logs (admin)
-  router.get('/activity-logs', [ActivityLogsController, 'index']).use(middleware.admin())
+	router.get('/users', [UsersController, 'index']).use(middleware.admin())
+	router.patch('/users/:id', [UsersController, 'update']).use(middleware.admin())
+	router.patch('/users/:id/password', [UsersController, 'resetPassword']).use(middleware.admin())
+	router.delete('/users/:id', [UsersController, 'destroy']).use(middleware.admin())
+	// Profiles (self) - place before param route to avoid ':id' capturing 'me'
+	router.get('/profile/status', [UsersController, 'profileStatus'])
+	router.post('/users/me/profile', [UsersController, 'createMyProfile'])
+	// Admin: profile lookup/create for a given user id
+	router.get('/users/:id/profile', [UsersController, 'profileForUser']).use(middleware.admin())
+	router.post('/users/:id/profile', [UsersController, 'createProfileForUser']).use(middleware.admin())
+	// Activity Logs (admin)
+	router.get('/activity-logs', [ActivityLogsController, 'index']).use(middleware.admin())
 	// Media
 	router.get('/media', [MediaController, 'index'])
 	router.get('/media/categories', [MediaController, 'categories'])
@@ -280,7 +281,7 @@ router.get('/admin/users/:id/edit', async ({ params, inertia }) => {
 
 // Admin Activity Log
 router.get('/admin/users/activity', async ({ inertia }) => {
-  return inertia.render('admin/users/activity')
+	return inertia.render('admin/users/activity')
 }).use(middleware.auth()).use(middleware.admin())
 
 // Admin General Settings
@@ -295,6 +296,12 @@ router.get('/admin/templates', async ({ inertia }) => {
 router.get('/admin/templates/:id/edit', async ({ params, inertia }) => {
 	return inertia.render('admin/templates/editor', { templateId: params.id })
 }).use(middleware.auth()).use(middleware.admin())
+
+/**
+ * Protected content access
+ */
+router.get('/protected', [ProtectedAccessController, 'showForm'])
+router.post('/protected/login', [ProtectedAccessController, 'login'])
 
 // Graceful forbidden page for non-admins
 router.get('/admin/forbidden', async ({ inertia }) => {

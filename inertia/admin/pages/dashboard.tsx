@@ -620,6 +620,8 @@ export default function Dashboard({ }: DashboardProps) {
                     <SelectItem value="__in_review__">In Review</SelectItem>
                     <SelectItem value="scheduled">Scheduled</SelectItem>
                     <SelectItem value="published">Published</SelectItem>
+                    <SelectItem value="private">Private</SelectItem>
+                    <SelectItem value="protected">Protected</SelectItem>
                     <SelectItem value="archived">Archived</SelectItem>
                   </SelectContent>
                 </Select>
