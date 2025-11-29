@@ -33,6 +33,7 @@ export function AdminSidebar() {
 		((page.props as any)?.currentUser?.role as string | undefined)
 	const isAdmin = role === 'admin'
 	const isEditor = role === 'editor'
+	const isTranslator = role === 'translator'
 	const userEmail =
 		((page.props as any)?.auth?.user?.email as string | undefined) ||
 		((page.props as any)?.currentUser?.email as string | undefined) ||
@@ -87,7 +88,7 @@ export function AdminSidebar() {
 							</span>
 						</SidebarMenuItem>
 					)}
-					{(isAdmin || isEditor) && (
+					{(isAdmin || isEditor || isTranslator) && (
 						<SidebarMenuItem href="/admin/posts" active={isActive('/admin/posts')}>
 							<span className="inline-flex items-center gap-2">
 								<FontAwesomeIcon icon={faFileLines} className="w-4 h-4" /> <span>Posts</span>
@@ -108,7 +109,7 @@ export function AdminSidebar() {
 							</span>
 						</SidebarMenuItem>
 					)}
-					{(isAdmin || isEditor) && (
+					{(isAdmin || isEditor || isTranslator) && (
 						<SidebarMenuItem href="/admin/categories" active={isActive('/admin/categories')}>
 							<span className="inline-flex items-center gap-2">
 								<FontAwesomeIcon icon={faTags} className="w-4 h-4" /> <span>Categories</span>
