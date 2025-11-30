@@ -238,6 +238,41 @@ export default class extends BaseSeeder {
         console.log('✅ Module Catalog post already exists, skipping create')
       }
 
+      // Repair legacy demo media asset if it still points at the old demo-kitchen-sink.svg or demo-content.svg
+      {
+        const [legacyDemo] = await db
+          .from('media_assets')
+          .whereIn('original_filename', ['demo-kitchen-sink.svg', 'demo-content.svg'])
+          .limit(1)
+
+        if (legacyDemo) {
+          const nowRepair = new Date()
+          const thumbVariant = {
+            name: 'thumb',
+            url: '/uploads/demo-placeholder.jpg',
+            width: null,
+            height: null,
+            size: 0,
+          }
+
+          await db
+            .from('media_assets')
+            .where('id', (legacyDemo as any).id)
+            .update({
+              url: '/uploads/demo-placeholder.jpg',
+              original_filename: 'demo-placeholder.jpg',
+              mime_type: 'image/jpeg',
+              metadata: {
+                ...(legacyDemo as any).metadata,
+                variants: [thumbVariant],
+              } as any,
+              updated_at: nowRepair,
+            } as any)
+
+          console.log('🛠 Repaired legacy demo media asset to use demo-placeholder.jpg placeholder')
+        }
+      }
+
       // Only seed modules if this catalog page has no modules attached yet
       const existingCatalogModules = await db
         .from('post_modules')
@@ -249,14 +284,14 @@ export default class extends BaseSeeder {
         // Optionally seed a demo media asset for modules that showcase imagery
         const [existingDemoMedia] = await db
           .from('media_assets')
-          .where('original_filename', 'demo-kitchen-sink.svg')
+          .where('original_filename', 'demo-placeholder.jpg')
           .limit(1)
 
         let demoMedia = existingDemoMedia as any
         if (!demoMedia) {
           const thumbVariant = {
             name: 'thumb',
-            url: '/uploads/demo-kitchen-sink.svg',
+            url: '/uploads/demo-placeholder.jpg',
             width: null,
             height: null,
             size: 0,
@@ -265,13 +300,13 @@ export default class extends BaseSeeder {
           const [createdDemoMedia] = await db
             .table('media_assets')
             .insert({
-              url: '/uploads/demo-kitchen-sink.svg',
-              original_filename: 'demo-kitchen-sink.svg',
-              mime_type: 'image/svg+xml',
+              url: '/uploads/demo-placeholder.jpg',
+              original_filename: 'demo-placeholder.jpg',
+              mime_type: 'image/jpeg',
               size: 0,
-              alt_text: 'Kitchen Sink demo image',
-              caption: 'Placeholder image for the Kitchen Sink module example.',
-              description: 'Demo illustration used to showcase the Kitchen Sink module media field.',
+              alt_text: 'Factory placeholder image',
+              caption: 'Generic factory-style placeholder image for content module examples.',
+              description: 'Factory-themed demo image used to showcase content modules (hero, kitchen sink, etc.).',
               categories: db.raw('ARRAY[]::text[]') as any,
               metadata: { variants: [thumbVariant] } as any,
               created_at: nowTs,
@@ -279,9 +314,9 @@ export default class extends BaseSeeder {
             })
             .returning('*')
           demoMedia = createdDemoMedia
-          console.log('✅ Seeded demo media asset for Kitchen Sink:', (demoMedia as any).id)
+          console.log('✅ Seeded demo media asset for Module Catalog:', (demoMedia as any).id)
         } else {
-          console.log('✅ Demo media asset for Kitchen Sink already exists, skipping create')
+          console.log('✅ Demo media asset for Module Catalog already exists, skipping create')
         }
 
         // Create a few illustrative modules; keep simple and deterministic

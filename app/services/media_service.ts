@@ -67,19 +67,27 @@ class MediaService {
     return { left, top, width: cropW, height: cropH }
   }
 
-  async generateVariants(inputPath: string, publicUrl: string, specsArg?: DerivSpec[] | null, cropRect?: CropRect | null, focalPoint?: FocalPoint | null): Promise<VariantInfo[]> {
+  async generateVariants(
+    inputPath: string,
+    publicUrl: string,
+    specsArg?: DerivSpec[] | null,
+    cropRect?: CropRect | null,
+    focalPoint?: FocalPoint | null,
+    theme: 'light' | 'dark' = 'light'
+  ): Promise<VariantInfo[]> {
     const specs = specsArg && specsArg.length ? specsArg : this.parseDerivatives()
     if (specs.length === 0) return []
     const parsed = path.parse(inputPath)
 
-    // Probe original dimensions once
+    // Probe original dimensions once (only for raster formats supported by sharp)
     const meta = await sharp(inputPath).metadata()
     const originalW = meta.width || 0
     const originalH = meta.height || 0
 
     const variants: VariantInfo[] = []
     for (const spec of specs) {
-      const outName = `${parsed.name}.${spec.name}${parsed.ext}`
+      const variantName = theme === 'dark' ? `${spec.name}-dark` : spec.name
+      const outName = `${parsed.name}.${variantName}${parsed.ext}`
       const outPath = path.join(parsed.dir, outName)
       const outUrl = path.posix.join(path.posix.dirname(publicUrl), outName)
 
@@ -98,9 +106,18 @@ class MediaService {
         pipeline = pipeline.resize({ width: spec.width, height: spec.height, fit: spec.fit })
       }
 
+      // Apply a stronger dark-mode transform when generating dark variants for raster images
+      if (theme === 'dark') {
+        pipeline = pipeline.modulate({
+          // Noticeably darker and slightly desaturated so the difference is obvious
+          brightness: 0.55,
+          saturation: 0.75,
+        })
+      }
+
       const info = await pipeline.toFile(outPath)
       try { await storageService.publishFile(outPath, outUrl, inferMimeFromExt(parsed.ext)) } catch { /* ignore */ }
-      variants.push({ name: spec.name, url: outUrl, width: info.width, height: info.height, size: info.size || 0 })
+      variants.push({ name: variantName, url: outUrl, width: info.width, height: info.height, size: info.size || 0 })
     }
     return variants
   }

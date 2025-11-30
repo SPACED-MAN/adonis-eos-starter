@@ -720,6 +720,78 @@ export default function Editor({ post, modules: initialModules, translations, re
                           </div>
                         )
                       }
+                      if (f.fieldType === 'file') {
+                        const current = entry.value || null
+                        const currentLabel: string | null =
+                          typeof current === 'object' && current !== null
+                            ? (current.originalFilename || current.filename || current.name || null)
+                            : (typeof current === 'string' ? current : null)
+                        const handleFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
+                          const file = e.target.files?.[0]
+                          if (!file) return
+                          try {
+                            const form = new FormData()
+                            form.append('file', file)
+                            form.append('naming', 'original')
+                            form.append('appendIdIfExists', 'true')
+                            form.append('altText', f.label || file.name)
+                            const res = await fetch('/api/media', {
+                              method: 'POST',
+                              headers: {
+                                ...xsrfHeader(),
+                              },
+                              credentials: 'same-origin',
+                              body: form,
+                            })
+                            if (!res.ok) {
+                              const j = await res.json().catch(() => ({}))
+                              toast.error(j?.error || 'File upload failed')
+                              return
+                            }
+                            const j = await res.json().catch(() => ({}))
+                            const id = j?.data?.id
+                            const url = j?.data?.url
+                            if (!id || !url) {
+                              toast.error('File upload response was invalid')
+                              return
+                            }
+                            setValue({ id, url, originalFilename: file.name })
+                            toast.success('File uploaded')
+                          } catch {
+                            toast.error('File upload failed')
+                          } finally {
+                            e.target.value = ''
+                          }
+                        }
+                        return (
+                          <div key={f.id}>
+                            <label className="block text-sm font-medium text-neutral-medium mb-1">
+                              {f.label}
+                            </label>
+                            <div className="space-y-2">
+                              <Input
+                                type="file"
+                                onChange={handleFileChange}
+                                className="h-9 text-sm"
+                              />
+                              {currentLabel && (
+                                <div className="flex items-center justify-between text-[11px] text-neutral-low">
+                                  <span className="truncate max-w-[220px]" title={currentLabel}>
+                                    Attached: {currentLabel}
+                                  </span>
+                                  <button
+                                    type="button"
+                                    className="text-xs text-danger hover:underline"
+                                    onClick={() => setValue(null)}
+                                  >
+                                    Clear
+                                  </button>
+                                </div>
+                              )}
+                            </div>
+                          </div>
+                        )
+                      }
                       // Fallback simple input
                       return (
                         <div key={f.id}>

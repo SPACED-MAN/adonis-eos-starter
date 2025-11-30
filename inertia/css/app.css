@@ -46,34 +46,34 @@
   --color-standout: var(--color-violet-600);
   --color-on-standout: var(--color-white);
 
-  --color-neutral-low: var(--color-stone-400);
-  --color-neutral-medium: var(--color-stone-600);
-  --color-neutral-high: var(--color-stone-900);
+  --color-neutral-low: var(--color-zinc-400);
+  --color-neutral-medium: var(--color-zinc-600);
+  --color-neutral-high: var(--color-zinc-900);
 
-  --color-backdrop-low: var(--color-stone-50);
-  --color-backdrop-medium: var(--color-stone-100);
-  --color-backdrop-high: var(--color-stone-200);
+  --color-backdrop-low: var(--color-zinc-50);
+  --color-backdrop-medium: var(--color-zinc-100);
+  --color-backdrop-high: var(--color-zinc-200);
 
-  --color-line: var(--color-stone-500);
-  --color-placeholder: var(--color-stone-500);
-  --color-disabled: var(--color-stone-300);
+  --color-line: var(--color-zinc-400);
+  --color-placeholder: var(--color-zinc-500);
+  --color-disabled: var(--color-zinc-300);
 }
 
 [data-theme="site"].dark {
   --color-standout: var(--color-violet-400);
   --color-on-standout: var(--color-white);
 
-  --color-neutral-low: var(--color-stone-400);
-  --color-neutral-medium: var(--color-stone-500);
-  --color-neutral-high: var(--color-stone-200);
+  --color-neutral-low: var(--color-zinc-400);
+  --color-neutral-medium: var(--color-zinc-500);
+  --color-neutral-high: var(--color-zinc-200);
 
-  --color-backdrop-low: var(--color-stone-900);
-  --color-backdrop-medium: var(--color-stone-800);
-  --color-backdrop-high: var(--color-stone-700);
+  --color-backdrop-low: var(--color-zinc-900);
+  --color-backdrop-medium: var(--color-zinc-800);
+  --color-backdrop-high: var(--color-zinc-700);
 
-  --color-line: var(--color-stone-500);
-  --color-placeholder: var(--color-stone-500);
-  --color-disabled: var(--color-stone-600);
+  --color-line: var(--color-zinc-600);
+  --color-placeholder: var(--color-zinc-500);
+  --color-disabled: var(--color-zinc-600);
 }
 
 /* ShadCN theme variables */

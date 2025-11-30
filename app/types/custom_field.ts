@@ -5,6 +5,7 @@ export const CUSTOM_FIELD_TYPES = [
 	'select',
 	'multiselect',
 	'media',
+	'file',
 	'date',
 	'url',
 ] as const

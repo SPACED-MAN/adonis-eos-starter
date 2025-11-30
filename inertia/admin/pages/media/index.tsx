@@ -18,6 +18,7 @@ import {
 } from '../../../components/ui/alert-dialog'
 
 import { Checkbox } from '../../../components/ui/checkbox'
+import { Input } from '../../../components/ui/input'
 import {
   Select,
   SelectContent,
@@ -62,7 +63,6 @@ export default function MediaIndex() {
   const [uploading, setUploading] = useState(false)
   const [selected, setSelected] = useState<MediaItem | null>(null)
   const [viewing, setViewing] = useState<MediaItem | null>(null)
-  const [imageEditingFor, setImageEditingFor] = useState<MediaItem | null>(null)
   const [editAlt, setEditAlt] = useState<string>('')
   const [editCaption, setEditCaption] = useState<string>('')
   const [editDescription, setEditDescription] = useState<string>('')
@@ -109,7 +109,7 @@ export default function MediaIndex() {
   const [focalDot, setFocalDot] = useState<{ x: number; y: number } | null>(null) // display px
   const [usageFor, setUsageFor] = useState<MediaItem | null>(null)
   const [selectedVariantName, setSelectedVariantName] = useState<string>('original')
-  const [replacingFor, setReplacingFor] = useState<MediaItem | null>(null)
+  const [editTheme, setEditTheme] = useState<'light' | 'dark'>('light')
   const [replaceFile, setReplaceFile] = useState<File | null>(null)
   const [replaceUploading, setReplaceUploading] = useState<boolean>(false)
 
@@ -381,7 +381,7 @@ export default function MediaIndex() {
             const arr = Array.isArray(j?.data) ? j.data : []
             if (arr.length > 0) duplicateId = arr[0].id
           }
-        } catch {}
+        } catch { }
 
         if (duplicateId) {
           // ShadCN dialog prompt
@@ -529,7 +529,7 @@ export default function MediaIndex() {
     return meta ? `${v.name} (${meta})` : v.name
   }
 
-  function getEditDisplayUrl(m: any): string {
+  function getEditDisplayUrl(m: any, _theme: 'light' | 'dark'): string {
     // During cropping, always show the original image so cropRect maps to original pixels
     if (cropping) return m.url
     if (selectedVariantName === 'original') return m.url
@@ -719,45 +719,45 @@ export default function MediaIndex() {
           ) : (
             <>
               {viewMode === 'gallery' ? (
-            <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
-              {items.map((m) => {
-                const preview = getPreviewUrl(m)
-                const isImage = (m.mimeType && m.mimeType.startsWith('image/')) || /\.(png|jpe?g|gif|webp|svg|avif)$/i.test(m.url || '')
+                <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
+                  {items.map((m) => {
+                    const preview = getPreviewUrl(m)
+                    const isImage = (m.mimeType && m.mimeType.startsWith('image/')) || /\.(png|jpe?g|gif|webp|svg|avif)$/i.test(m.url || '')
                     const checked = selectedIds.has(m.id)
-                return (
-                  <div key={m.id} className="border border-line rounded p-2 bg-backdrop-low">
+                    return (
+                      <div key={m.id} className="border border-line rounded p-2 bg-backdrop-low">
                         <div className="flex items-center justify-between mb-1">
                           <label className="inline-flex items-center gap-2 text-xs text-neutral-medium">
                             <Checkbox checked={checked} onCheckedChange={() => toggleSelect(m.id)} />
                             Select
                           </label>
                         </div>
-                    <div className="aspect-video bg-backdrop-medium border border-line overflow-hidden rounded">
-                      {isImage ? (
-                        <img src={preview || m.url} alt={m.altText || m.originalFilename} className="w-full h-full object-cover" />
-                      ) : (
-                        <div className="w-full h-full flex items-center justify-center text-xs text-neutral-low">No preview</div>
-                      )}
-                    </div>
-                    <div className="mt-2">
-                      <div className="text-xs text-neutral-high break-all">{m.altText || m.originalFilename}</div>
+                        <div className="aspect-video bg-backdrop-medium border border-line overflow-hidden rounded">
+                          {isImage ? (
+                            <img src={preview || m.url} alt={m.altText || m.originalFilename} className="w-full h-full object-cover" />
+                          ) : (
+                            <div className="w-full h-full flex items-center justify-center text-xs text-neutral-low">No preview</div>
+                          )}
+                        </div>
+                        <div className="mt-2">
+                          <div className="text-xs text-neutral-high break-all">{m.altText || m.originalFilename}</div>
                           <div className="text-[10px] text-neutral-low">
                             {m.mimeType} • {(m.size / 1024).toFixed(1)} KB
                             {typeof m.optimizedSize === 'number' && m.optimizedSize > 0 && (
                               <> → {(m.optimizedSize / 1024).toFixed(1)} KB (WebP)</>
                             )}
                           </div>
-                      <div className="text-[10px] text-neutral-low">Date Added: {new Date(m.createdAt).toLocaleString()}</div>
-                    </div>
-                    <div className="mt-2 flex items-center gap-2 flex-wrap">
-                      <button
-                        className="px-3 py-1.5 text-sm border border-line rounded hover:bg-backdrop-medium inline-flex items-center gap-1"
-                        onClick={() => { setViewing(m); setSelectedVariantName('original'); setCropping(false); setFocalMode(false); setCropSel(null); setFocalDot(null) }}
-                        aria-label="Edit"
-                        title="Edit"
-                      >
-                        <Pencil className="w-4 h-4" />
-                      </button>
+                          <div className="text-[10px] text-neutral-low">Date Added: {new Date(m.createdAt).toLocaleString()}</div>
+                        </div>
+                        <div className="mt-2 flex items-center gap-2 flex-wrap">
+                          <button
+                            className="px-3 py-1.5 text-sm border border-line rounded hover:bg-backdrop-medium inline-flex items-center gap-1"
+                            onClick={() => { setViewing(m); setSelectedVariantName('original'); setEditTheme('light'); setCropping(false); setFocalMode(false); setCropSel(null); setFocalDot(null); setReplaceFile(null) }}
+                            aria-label="Edit"
+                            title="Edit"
+                          >
+                            <Pencil className="w-4 h-4" />
+                          </button>
                           {isImage && (
                             <button
                               className="px-3 py-1.5 text-sm border border-line rounded hover:bg-backdrop-medium inline-flex items-center gap-1"
@@ -783,59 +783,50 @@ export default function MediaIndex() {
                               <Wand2 className="w-4 h-4" />
                             </button>
                           )}
-                      <button
-                        className="px-3 py-1.5 text-sm border border-line rounded hover:bg-backdrop-medium inline-flex items-center gap-1"
-                        onClick={() => { setUsageFor(m); fetchWhereUsed(m.id) }}
-                        aria-label="Usage"
-                        title="Usage"
-                      >
-                        <BarChart3 className="w-4 h-4" />
-                      </button>
-                      {isAdmin && (
-                        <button
-                          className="px-3 py-1.5 text-sm border border-line rounded hover:bg-backdrop-medium inline-flex items-center gap-1"
-                          onClick={() => { setReplacingFor(m); setReplaceFile(null) }}
-                          aria-label="Replace"
-                          title="Replace"
-                        >
-                          <RefreshCw className="w-4 h-4" />
-                        </button>
-                      )}
-                      {isAdmin && (
-                        <AlertDialog>
-                          <AlertDialogTrigger asChild>
-                            <button className="px-3 py-1.5 text-sm border border-line rounded hover:bg-backdrop-medium text-danger inline-flex items-center gap-1" aria-label="Delete" title="Delete">
-                              <Trash2 className="w-4 h-4" />
-                            </button>
-                          </AlertDialogTrigger>
-                          <AlertDialogContent>
-                            <AlertDialogHeader>
-                              <AlertDialogTitle>Delete this media?</AlertDialogTitle>
-                              <AlertDialogDescription>
-                                This will delete the original file and all generated variants. This action cannot be undone.
-                              </AlertDialogDescription>
-                            </AlertDialogHeader>
-                            <AlertDialogFooter>
-                              <AlertDialogCancel>Cancel</AlertDialogCancel>
-                              <AlertDialogAction
-                                onClick={async () => {
-                                  const res = await fetch(`/api/media/${encodeURIComponent(m.id)}`, {
-                                    method: 'DELETE',
-                                    headers: { ...(xsrfFromCookie ? { 'X-XSRF-TOKEN': xsrfFromCookie } : {}) },
-                                    credentials: 'same-origin',
-                                  })
-                                  if (res.ok) { toast.success('Deleted'); await load() } else { toast.error('Delete failed') }
-                                }}
-                              >Delete</AlertDialogAction>
-                            </AlertDialogFooter>
-                          </AlertDialogContent>
-                        </AlertDialog>
-                      )}
-                    </div>
-                  </div>
-                )
-              })}
-            </div>
+                          <button
+                            className="px-3 py-1.5 text-sm border border-line rounded hover:bg-backdrop-medium inline-flex items-center gap-1"
+                            onClick={() => { setUsageFor(m); fetchWhereUsed(m.id) }}
+                            aria-label="Usage"
+                            title="Usage"
+                          >
+                            <BarChart3 className="w-4 h-4" />
+                          </button>
+                          {/* Replace is now handled inside the integrated editor modal */}
+                          {isAdmin && (
+                            <AlertDialog>
+                              <AlertDialogTrigger asChild>
+                                <button className="px-3 py-1.5 text-sm border border-line rounded hover:bg-backdrop-medium text-danger inline-flex items-center gap-1" aria-label="Delete" title="Delete">
+                                  <Trash2 className="w-4 h-4" />
+                                </button>
+                              </AlertDialogTrigger>
+                              <AlertDialogContent>
+                                <AlertDialogHeader>
+                                  <AlertDialogTitle>Delete this media?</AlertDialogTitle>
+                                  <AlertDialogDescription>
+                                    This will delete the original file and all generated variants. This action cannot be undone.
+                                  </AlertDialogDescription>
+                                </AlertDialogHeader>
+                                <AlertDialogFooter>
+                                  <AlertDialogCancel>Cancel</AlertDialogCancel>
+                                  <AlertDialogAction
+                                    onClick={async () => {
+                                      const res = await fetch(`/api/media/${encodeURIComponent(m.id)}`, {
+                                        method: 'DELETE',
+                                        headers: { ...(xsrfFromCookie ? { 'X-XSRF-TOKEN': xsrfFromCookie } : {}) },
+                                        credentials: 'same-origin',
+                                      })
+                                      if (res.ok) { toast.success('Deleted'); await load() } else { toast.error('Delete failed') }
+                                    }}
+                                  >Delete</AlertDialogAction>
+                                </AlertDialogFooter>
+                              </AlertDialogContent>
+                            </AlertDialog>
+                          )}
+                        </div>
+                      </div>
+                    )
+                  })}
+                </div>
               ) : (
                 <div className="mt-3">
                   <Table>
@@ -877,7 +868,7 @@ export default function MediaIndex() {
                               <div className="inline-flex items-center gap-2">
                                 <button
                                   className="px-2 py-1 text-xs border border-line rounded hover:bg-backdrop-medium inline-flex items-center gap-1"
-                                  onClick={() => { setViewing(m); setSelectedVariantName('original'); setCropping(false); setFocalMode(false); setCropSel(null); setFocalDot(null) }}
+                                  onClick={() => { setViewing(m); setSelectedVariantName('original'); setEditTheme('light'); setCropping(false); setFocalMode(false); setCropSel(null); setFocalDot(null); setReplaceFile(null) }}
                                   aria-label="Edit"
                                   title="Edit"
                                 >
@@ -916,16 +907,7 @@ export default function MediaIndex() {
                                 >
                                   <BarChart3 className="w-4 h-4" />
                                 </button>
-                                {isAdmin && (
-                                  <button
-                                    className="px-2 py-1 text-xs border border-line rounded hover:bg-backdrop-medium inline-flex items-center gap-1"
-                                    onClick={() => { setReplacingFor(m); setReplaceFile(null) }}
-                                    aria-label="Replace"
-                                    title="Replace"
-                                  >
-                                    <RefreshCw className="w-4 h-4" />
-                                  </button>
-                                )}
+                                {/* Replace is now handled inside the integrated editor modal */}
                                 {isAdmin && (
                                   <AlertDialog>
                                     <AlertDialogTrigger asChild>
@@ -969,7 +951,7 @@ export default function MediaIndex() {
           )}
         </div>
 
-        
+
         {/* Meta Editor modal (opens via pencil) */}
         {/* Bulk Delete confirm */}
         <AlertDialog open={confirmBulkDelete} onOpenChange={setConfirmBulkDelete}>
@@ -1050,142 +1032,286 @@ export default function MediaIndex() {
           </div>
         )}
 
-        {/* Single-item editor modal */}
+        {/* Single-item integrated editor modal (meta + image editing) */}
         {viewing && (
           <div className="fixed inset-0 z-50 flex items-center justify-center">
-            <div className="absolute inset-0 bg-black/70" onClick={() => { setViewing(null); setCropping(false); setCropSel(null); setFocalMode(false); setFocalDot(null); setSelectedVariantName('original') }} />
             <div className="relative z-10 w-full max-w-5xl rounded-lg border border-line bg-backdrop-low p-3 shadow-xl">
               <div className="flex items-center justify-between mb-2">
                 <div className="text-sm text-neutral-high break-all">{viewing.altText || viewing.originalFilename}</div>
                 <div className="flex items-center gap-2">
-                  <button className="text-neutral-medium hover:text-neutral-high" onClick={() => { setViewing(null); setCropping(false); setCropSel(null); setFocalMode(false); setFocalDot(null); setSelectedVariantName('original') }}>✕</button>
+                  <button className="text-neutral-medium hover:text-neutral-high" onClick={() => { setViewing(null); setCropping(false); setCropSel(null); setFocalMode(false); setFocalDot(null); setSelectedVariantName('original'); setEditTheme('light'); setReplaceFile(null) }}>✕</button>
                 </div>
               </div>
-              <div className="space-y-3 text-sm max-h-[70vh] overflow-auto">
-                <div className="p-2 border border-dashed border-line rounded">
-                  <div className="text-xs font-medium mb-2">Rename file</div>
-                  <div className="flex items-center gap-2">
-                    <input className="flex-1 px-2 py-1 border border-line bg-backdrop-low text-neutral-high" placeholder="new-filename (optional extension)" value={newFilename} onChange={(e) => setNewFilename(e.target.value)} />
-                    <button className="px-3 py-1.5 text-xs rounded bg-standout text-on-standout disabled:opacity-50" disabled={renaming || !newFilename} onClick={async () => {
-                      if (!viewing || !newFilename) return
-                      setRenaming(true)
-                      try {
-                        const res = await fetch(`/api/media/${encodeURIComponent(viewing.id)}/rename`, { method: 'PATCH', headers: { 'Accept': 'application/json', 'Content-Type': 'application/json', ...(xsrfFromCookie ? { 'X-XSRF-TOKEN': xsrfFromCookie } : {}) }, credentials: 'same-origin', body: JSON.stringify({ filename: newFilename }) })
-                        if (res.ok) { toast.success('Renamed'); await load(); setNewFilename('') } else { toast.error('Rename failed') }
-                      } finally { setRenaming(false) }
-                    }}>Rename</button>
-                  </div>
-                </div>
-                <div>
-                  <label className="block text-xs text-neutral-medium mb-1">Alt Text</label>
-                  <input className="w-full px-2 py-1 border border-line bg-backdrop-low text-neutral-high" value={editAlt} onChange={(e) => setEditAlt(e.target.value)} />
-                </div>
-                <div>
-                  <label className="block text-xs text-neutral-medium mb-1">Caption</label>
-                  <input className="w-full px-2 py-1 border border-line bg-backdrop-low text-neutral-high" value={editCaption} onChange={(e) => setEditCaption(e.target.value)} />
-                </div>
-                <div>
-                  <label className="block text-xs text-neutral-medium mb-1">Description</label>
-                  <textarea className="w-full px-2 py-1 border border-line bg-backdrop-low text-neutral-high min-h-[80px]" value={editDescription} onChange={(e) => setEditDescription(e.target.value)} />
-                </div>
-                <div>
-                  <label className="block text-xs text-neutral-medium mb-1">Categories (free tags)</label>
-                  <div className="flex items-center gap-2 flex-wrap mb-2">
-                    {editCategories.map((c) => (
-                      <span key={c} className="inline-flex items-center gap-1 px-2 py-0.5 text-xs rounded-full bg-backdrop-medium border border-line">
-                        {c}
-                        <button className="ml-1 text-neutral-medium hover:text-neutral-high" onClick={() => setEditCategories((prev) => prev.filter((x) => x !== c))}>×</button>
-                      </span>
-                    ))}
-                  </div>
-                  <input
-                    className="w-full px-2 py-1 border border-line bg-backdrop-low text-neutral-high"
-                    placeholder="Type a tag and press Enter"
-                    value={newCategory}
-                    onChange={(e) => setNewCategory(e.target.value)}
-                    onKeyDown={(e) => {
-                      if (e.key === 'Enter' || e.key === ',') {
-                        e.preventDefault()
-                        const v = newCategory.trim()
-                        if (v && !editCategories.includes(v)) setEditCategories([...editCategories, v])
-                        setNewCategory('')
-                      }
-                    }}
-                  />
-                </div>
-                <div className="flex items-center justify-between gap-2">
-                  <button
-                    className="px-3 py-1.5 text-xs rounded bg-standout text-on-standout hover:opacity-90"
-                    onClick={() => { const v = viewing; if (!v) return; setViewing(null); setImageEditingFor(v); setSelectedVariantName('original'); setCropping(false); setFocalMode(false); setCropSel(null); setFocalDot(null) }}
-                  >
-                    Image Editor
-                  </button>
-                  <div className="flex items-center gap-2">
-                    <button className="px-3 py-1.5 text-xs border border-line rounded hover:bg-backdrop-medium" onClick={() => { setViewing(null); setWhereUsed(null) }}>Close</button>
-                    <button className="px-3 py-1.5 text-xs rounded bg-standout text-on-standout disabled:opacity-50" disabled={savingEdit} onClick={async () => {
-                      if (!viewing) return
-                      setSavingEdit(true)
-                      try {
-                        const res = await fetch(`/api/media/${encodeURIComponent(viewing.id)}`, { method: 'PATCH', headers: { 'Accept': 'application/json', 'Content-Type': 'application/json', ...(xsrfFromCookie ? { 'X-XSRF-TOKEN': xsrfFromCookie } : {}) }, credentials: 'same-origin', body: JSON.stringify({ altText: editAlt, caption: editCaption, description: editDescription, categories: editCategories }) })
-                        if (res.ok) { toast.success('Saved'); await load(); setViewing(null) } else { toast.error('Save failed') }
-                      } finally { setSavingEdit(false) }
-                    }}>Save</button>
-                  </div>
-                </div>
-              </div>
-            </div>
-          </div>
-        )}
-
-        {/* Image Editor modal (separate) */}
-        {imageEditingFor && (
-          <div className="fixed inset-0 z-50 flex items-center justify-center">
-            <div className="absolute inset-0 bg-black/70" onClick={() => { setImageEditingFor(null); setCropping(false); setCropSel(null); setFocalMode(false); setFocalDot(null); setSelectedVariantName('original') }} />
-            <div className="relative z-10 w-full max-w-5xl rounded-lg border border-line bg-backdrop-low p-3 shadow-xl">
-              <div className="flex items-center justify-between mb-2">
-                <div className="text-sm text-neutral-high break-all">{imageEditingFor.altText || imageEditingFor.originalFilename}</div>
-                <div className="flex items-center gap-2">
-                  <button className="text-neutral-medium hover:text-neutral-high" onClick={() => { setImageEditingFor(null); setCropping(false); setCropSel(null); setFocalMode(false); setFocalDot(null); setSelectedVariantName('original') }}>✕</button>
-                </div>
-              </div>
-              <div className="max-h-[70vh] overflow-auto">
-                <div className="relative inline-block" onMouseDown={onCropMouseDown} onMouseMove={onCropMouseMove} onMouseUp={onCropMouseUp} onClick={onFocalClick}>
-                  <img ref={imgRef} src={getEditDisplayUrl(imageEditingFor)} alt={imageEditingFor.altText || imageEditingFor.originalFilename} className="w-full h-auto max-h-[70vh]" />
-                  {cropping && cropSel && (
-                    <div className="absolute border-2 border-standout bg-standout/10" style={{ left: `${cropSel.x}px`, top: `${cropSel.y}px`, width: `${cropSel.w}px`, height: `${cropSel.h}px` }} />
-                  )}
-                  {focalMode && focalDot && (
-                    <div className="absolute -translate-x-1/2 -translate-y-1/2" style={{ left: `${focalDot.x}px`, top: `${focalDot.y}px` }}>
-                      <div className="w-4 h-4 rounded-full bg-standout border-2 border-white shadow" />
+              <div className="flex gap-4 max-h-[70vh] overflow-auto text-sm">
+                {/* Left: image editor with theme + variants */}
+                <div className="flex-1">
+                  <div className="mb-2 flex items-center justify-between">
+                    <div className="inline-flex items-center gap-1 text-xs border border-line rounded overflow-hidden">
+                      <button
+                        className={`px-2 py-1 ${editTheme === 'light' ? 'bg-backdrop-medium text-neutral-high' : 'bg-backdrop-low text-neutral-medium'}`}
+                        onClick={() => {
+                          setEditTheme('light')
+                          setSelectedVariantName('original')
+                        }}
+                      >
+                        Light
+                      </button>
+                      <button
+                        className={`px-2 py-1 ${editTheme === 'dark' ? 'bg-backdrop-medium text-neutral-high' : 'bg-backdrop-low text-neutral-medium'}`}
+                        onClick={() => {
+                          setEditTheme('dark')
+                          // When switching to dark, prefer the first dark variant if available
+                          const variants: any[] = Array.isArray((viewing as any)?.metadata?.variants)
+                            ? (viewing as any).metadata.variants
+                            : []
+                          const firstDark = variants.find((v) => String(v.name || '').endsWith('-dark'))
+                          setSelectedVariantName(firstDark?.name || 'original')
+                        }}
+                      >
+                        Dark
+                      </button>
                     </div>
-                  )}
+                    <div className="text-[11px] text-neutral-low">
+                      Theme controls which variants and replace target are active.
+                    </div>
+                  </div>
+                  <div className="max-h-[55vh] overflow-auto">
+                    <div className="relative inline-block" onMouseDown={onCropMouseDown} onMouseMove={onCropMouseMove} onMouseUp={onCropMouseUp} onClick={onFocalClick}>
+                      <img ref={imgRef} src={getEditDisplayUrl(viewing, editTheme)} alt={viewing.altText || viewing.originalFilename} className="w-full h-auto max-h-[55vh]" />
+                      {cropping && cropSel && (
+                        <div className="absolute border-2 border-standout bg-standout/10" style={{ left: `${cropSel.x}px`, top: `${cropSel.y}px`, width: `${cropSel.w}px`, height: `${cropSel.h}px` }} />
+                      )}
+                      {focalMode && focalDot && (
+                        <div className="absolute -translate-x-1/2 -translate-y-1/2" style={{ left: `${focalDot.x}px`, top: `${focalDot.y}px` }}>
+                          <div className="w-4 h-4 rounded-full bg-standout border-2 border-white shadow" />
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                  <div className="mt-2 flex flex-wrap items-center gap-2">
+                    <select className="text-xs border border-line bg-backdrop-low text-neutral-high px-2 py-1" value={selectedVariantName} onChange={(e) => setSelectedVariantName(e.target.value)}>
+                      <option value="original">Original image (light)</option>
+                      {(viewing as any).metadata?.variants
+                        ?.filter((v: any) =>
+                          editTheme === 'dark' ? String(v.name || '').endsWith('-dark') : !String(v.name || '').endsWith('-dark')
+                        )
+                        .map((v: any) => (
+                          <option key={v.name} value={v.name}>{getVariantLabel(v)}</option>
+                        ))}
+                    </select>
+                    {!focalMode && !cropping && selectedVariantName === 'original' && (
+                      <>
+                        <button
+                          className="px-2 py-1 text-xs border border-line rounded hover:bg-backdrop-medium"
+                          onClick={() => setCropping(true)}
+                        >
+                          Crop
+                        </button>
+                        {editTheme === 'light' && (
+                          <button
+                            className="px-2 py-1 text-xs border border-line rounded hover:bg-backdrop-medium"
+                            onClick={async () => {
+                              if (!viewing) return
+                              await toast.promise(
+                                fetch(`/api/media/${encodeURIComponent(viewing.id)}/variants`, {
+                                  method: 'POST',
+                                  headers: {
+                                    'Accept': 'application/json',
+                                    'Content-Type': 'application/json',
+                                    ...(xsrfFromCookie ? { 'X-XSRF-TOKEN': xsrfFromCookie } : {}),
+                                  },
+                                  credentials: 'same-origin',
+                                  body: JSON.stringify({ theme: 'dark' }),
+                                }).then(async (r) => {
+                                  if (!r.ok) {
+                                    const j = await r.json().catch(() => ({}))
+                                    throw new Error(j?.error || 'Dark variants generation failed')
+                                  }
+                                }),
+                                {
+                                  loading: 'Generating dark variants…',
+                                  success: 'Dark variants generated',
+                                  error: (e) => String((e as any).message || e),
+                                }
+                              )
+                              await load()
+                            }}
+                          >
+                            Generate dark variants
+                          </button>
+                        )}
+                      </>
+                    )}
+                    {cropping && (
+                      <>
+                        <button className="px-2 py-1 text-xs border border-line rounded hover:bg-backdrop-medium" onClick={() => { setCropping(false); setCropSel(null) }}>Cancel</button>
+                        <button className="px-2 py-1 text-xs rounded bg-standout text-on-standout" onClick={applyCrop}>Apply crop</button>
+                      </>
+                    )}
+                    {!cropping && !focalMode && selectedVariantName === 'original' && (
+                      <button className="px-2 py-1 text-xs border border-line rounded hover:bg-backdrop-medium" onClick={() => setFocalMode(true)}>Focal point</button>
+                    )}
+                    {focalMode && (
+                      <>
+                        <button className="px-2 py-1 text-xs border border-line rounded hover:bg-backdrop-medium" onClick={() => { setFocalMode(false); setFocalDot(null) }}>Cancel</button>
+                        <button className="px-2 py-1 text-xs rounded bg-standout text-on-standout" onClick={applyFocal}>Apply focal</button>
+                      </>
+                    )}
+                  </div>
                 </div>
-              </div>
-              <div className="mt-2 flex items-center gap-2">
-                <select className="text-xs border border-line bg-backdrop-low text-neutral-high px-2 py-1" value={selectedVariantName} onChange={(e) => setSelectedVariantName(e.target.value)}>
-                  <option value="original">Original image</option>
-                  {(imageEditingFor as any).metadata?.variants?.map((v: any) => (
-                    <option key={v.name} value={v.name}>{getVariantLabel(v)}</option>
-                  ))}
-                </select>
-                {!focalMode && !cropping && selectedVariantName === 'original' && (
-                  <button className="px-2 py-1 text-xs border border-line rounded hover:bg-backdrop-medium" onClick={() => setCropping(true)}>Crop</button>
-                )}
-                {cropping && (
-                  <>
-                    <button className="px-2 py-1 text-xs border border-line rounded hover:bg-backdrop-medium" onClick={() => { setCropping(false); setCropSel(null) }}>Cancel</button>
-                    <button className="px-2 py-1 text-xs rounded bg-standout text-on-standout" onClick={applyCrop}>Apply crop</button>
-                  </>
-                )}
-                {!cropping && !focalMode && selectedVariantName === 'original' && (
-                  <button className="px-2 py-1 text-xs border border-line rounded hover:bg-backdrop-medium" onClick={() => setFocalMode(true)}>Focal point</button>
-                )}
-                {focalMode && (
-                  <>
-                    <button className="px-2 py-1 text-xs border border-line rounded hover:bg-backdrop-medium" onClick={() => { setFocalMode(false); setFocalDot(null) }}>Cancel</button>
-                    <button className="px-2 py-1 text-xs rounded bg-standout text-on-standout" onClick={applyFocal}>Apply focal</button>
-                  </>
-                )}
+
+                {/* Right: metadata + theme-aware replace */}
+                <div className="w-full max-w-xs space-y-3">
+                  <div className="p-2 border border-dashed border-line rounded">
+                    <div className="text-xs font-medium mb-2">Rename file</div>
+                    <div className="flex items-center gap-2">
+                      <input className="flex-1 px-2 py-1 border border-line bg-backdrop-low text-neutral-high" placeholder="new-filename (optional extension)" value={newFilename} onChange={(e) => setNewFilename(e.target.value)} />
+                      <button className="px-3 py-1.5 text-xs rounded bg-standout text-on-standout disabled:opacity-50" disabled={renaming || !newFilename} onClick={async () => {
+                        if (!viewing || !newFilename) return
+                        setRenaming(true)
+                        try {
+                          const res = await fetch(`/api/media/${encodeURIComponent(viewing.id)}/rename`, { method: 'PATCH', headers: { 'Accept': 'application/json', 'Content-Type': 'application/json', ...(xsrfFromCookie ? { 'X-XSRF-TOKEN': xsrfFromCookie } : {}) }, credentials: 'same-origin', body: JSON.stringify({ filename: newFilename }) })
+                          if (res.ok) { toast.success('Renamed'); await load(); setNewFilename('') } else { toast.error('Rename failed') }
+                        } finally { setRenaming(false) }
+                      }}>Rename</button>
+                    </div>
+                  </div>
+                  <div>
+                    <label className="block text-xs text-neutral-medium mb-1">Alt Text</label>
+                    <input className="w-full px-2 py-1 border border-line bg-backdrop-low text-neutral-high" value={editAlt} onChange={(e) => setEditAlt(e.target.value)} />
+                  </div>
+                  <div>
+                    <label className="block text-xs text-neutral-medium mb-1">Caption</label>
+                    <input className="w-full px-2 py-1 border border-line bg-backdrop-low text-neutral-high" value={editCaption} onChange={(e) => setEditCaption(e.target.value)} />
+                  </div>
+                  <div>
+                    <label className="block text-xs text-neutral-medium mb-1">Description</label>
+                    <textarea className="w-full px-2 py-1 border border-line bg-backdrop-low text-neutral-high min-h-[80px]" value={editDescription} onChange={(e) => setEditDescription(e.target.value)} />
+                  </div>
+                  <div>
+                    <label className="block text-xs text-neutral-medium mb-1">Categories (free tags)</label>
+                    <div className="flex items-center gap-2 flex-wrap mb-2">
+                      {editCategories.map((c) => (
+                        <span key={c} className="inline-flex items-center gap-1 px-2 py-0.5 text-xs rounded-full bg-backdrop-medium border border-line">
+                          {c}
+                          <button className="ml-1 text-neutral-medium hover:text-neutral-high" onClick={() => setEditCategories((prev) => prev.filter((x) => x !== c))}>×</button>
+                        </span>
+                      ))}
+                    </div>
+                    <input
+                      className="w-full px-2 py-1 border border-line bg-backdrop-low text-neutral-high"
+                      placeholder="Type a tag and press Enter"
+                      value={newCategory}
+                      onChange={(e) => setNewCategory(e.target.value)}
+                      onKeyDown={(e) => {
+                        if (e.key === 'Enter' || e.key === ',') {
+                          e.preventDefault()
+                          const v = newCategory.trim()
+                          if (v && !editCategories.includes(v)) setEditCategories([...editCategories, v])
+                          setNewCategory('')
+                        }
+                      }}
+                    />
+                  </div>
+
+                  <div className="p-2 border border-dashed border-line rounded space-y-2">
+                    <div className="flex items-center justify-between gap-2">
+                      <div className="text-xs font-medium">
+                        Replace {editTheme === 'dark' ? 'dark' : 'light'} image
+                      </div>
+                      {viewing?.originalFilename && (
+                        <div className="text-[10px] text-neutral-low truncate max-w-[140px]" title={viewing.originalFilename}>
+                          Current: {viewing.originalFilename}
+                        </div>
+                      )}
+                    </div>
+                    <div className="space-y-1">
+                      <label className="block text-[11px] text-neutral-medium">
+                        Choose a new {editTheme === 'dark' ? 'dark' : 'light'} image file
+                      </label>
+                      <Input
+                        type="file"
+                        accept="image/*"
+                        className="h-8 text-xs"
+                        onChange={(e) => setReplaceFile(e.target.files?.[0] || null)}
+                        disabled={replaceUploading}
+                      />
+                      <p className="text-[11px] text-neutral-low">
+                        Dark theme keeps a separate base so your light image stays unchanged.
+                      </p>
+                    </div>
+                    <button
+                      className="w-full px-3 py-1.5 text-xs rounded bg-standout text-on-standout disabled:opacity-50"
+                      disabled={replaceUploading || !replaceFile}
+                      onClick={async () => {
+                        if (!viewing || !replaceFile) return
+                        setReplaceUploading(true)
+                        try {
+                          const form = new FormData()
+                          form.append('file', replaceFile)
+                          form.append('theme', editTheme)
+                          const res = await fetch(`/api/media/${encodeURIComponent(viewing.id)}/override`, {
+                            method: 'POST',
+                            headers: { ...(xsrfFromCookie ? { 'X-XSRF-TOKEN': xsrfFromCookie } : {}) },
+                            credentials: 'same-origin',
+                            body: form,
+                          })
+                          if (res.ok) {
+                            toast.success(`Replaced ${editTheme} image`)
+                            await load()
+                            setReplaceFile(null)
+                          } else {
+                            toast.error('Replace failed')
+                          }
+                        } finally {
+                          setReplaceUploading(false)
+                        }
+                      }}
+                    >
+                      {replaceUploading ? 'Replacing…' : `Replace ${editTheme === 'dark' ? 'dark' : 'light'} image`}
+                    </button>
+                  </div>
+
+                  <div className="flex items-center justify-end gap-2 pt-1">
+                    <button
+                      className="px-3 py-1.5 text-xs border border-line rounded hover:bg-backdrop-medium"
+                      onClick={() => { setViewing(null); setWhereUsed(null); setCropping(false); setCropSel(null); setFocalMode(false); setFocalDot(null); setSelectedVariantName('original'); setEditTheme('light'); setReplaceFile(null) }}
+                    >
+                      Close
+                    </button>
+                    <button
+                      className="px-3 py-1.5 text-xs rounded bg-standout text-on-standout disabled:opacity-50"
+                      disabled={savingEdit}
+                      onClick={async () => {
+                        if (!viewing) return
+                        setSavingEdit(true)
+                        try {
+                          const res = await fetch(`/api/media/${encodeURIComponent(viewing.id)}`, {
+                            method: 'PATCH',
+                            headers: {
+                              'Accept': 'application/json',
+                              'Content-Type': 'application/json',
+                              ...(xsrfFromCookie ? { 'X-XSRF-TOKEN': xsrfFromCookie } : {}),
+                            },
+                            credentials: 'same-origin',
+                            body: JSON.stringify({ altText: editAlt, caption: editCaption, description: editDescription, categories: editCategories }),
+                          })
+                          if (res.ok) {
+                            toast.success('Saved')
+                            await load()
+                            setViewing(null)
+                          } else {
+                            toast.error('Save failed')
+                          }
+                        } finally {
+                          setSavingEdit(false)
+                        }
+                      }}
+                    >
+                      Save
+                    </button>
+                  </div>
+                </div>
               </div>
             </div>
           </div>
@@ -1230,58 +1356,6 @@ export default function MediaIndex() {
               ) : (
                 <div className="text-xs text-neutral-low">Loading…</div>
               )}
-            </div>
-          </div>
-        )}
-
-        {/* Replace modal */}
-        {replacingFor && (
-          <div className="fixed inset-0 z-50 flex items-center justify-center">
-            <div className="absolute inset-0 bg-black/50" onClick={() => { if (!replaceUploading) { setReplacingFor(null); setReplaceFile(null) } }} />
-            <div className="relative z-10 w-full max-w-lg rounded-lg border border-line bg-backdrop-low p-6 shadow-xl">
-              <div className="flex items-center justify-between mb-4">
-                <h3 className="text-base font-semibold text-neutral-high">Replace Media</h3>
-                <button className="text-neutral-medium hover:text-neutral-high" onClick={() => { if (!replaceUploading) { setReplacingFor(null); setReplaceFile(null) } }}>✕</button>
-              </div>
-              <div className="space-y-3 text-sm">
-                <div className="text-xs text-neutral-medium">Current: {(replacingFor as any).originalFilename}</div>
-                <label className="inline-flex items-center gap-2 text-sm">
-                  <input type="file" accept="image/*" onChange={(e) => setReplaceFile(e.target.files?.[0] || null)} disabled={replaceUploading} />
-                </label>
-                <div className="flex items-center justify-end gap-2">
-                  <button className="px-3 py-1.5 text-xs border border-line rounded hover:bg-backdrop-medium" onClick={() => { if (!replaceUploading) { setReplacingFor(null); setReplaceFile(null) } }}>Cancel</button>
-                  <button
-                    className="px-3 py-1.5 text-xs rounded bg-standout text-on-standout disabled:opacity-50"
-                    disabled={replaceUploading || !replaceFile}
-                    onClick={async () => {
-                      if (!replacingFor || !replaceFile) return
-                      setReplaceUploading(true)
-                      try {
-                        const form = new FormData()
-                        form.append('file', replaceFile)
-                        const res = await fetch(`/api/media/${encodeURIComponent(replacingFor.id)}/override`, {
-                          method: 'POST',
-                          headers: { ...(xsrfFromCookie ? { 'X-XSRF-TOKEN': xsrfFromCookie } : {}) },
-                          credentials: 'same-origin',
-                          body: form,
-                        })
-                        if (res.ok) {
-                          toast.success('Replaced')
-                          await load()
-                          setReplacingFor(null)
-                          setReplaceFile(null)
-                        } else {
-                          toast.error('Replace failed')
-                        }
-                      } finally {
-                        setReplaceUploading(false)
-                      }
-                    }}
-                  >
-                    Replace
-                  </button>
-                </div>
-              </div>
             </div>
           </div>
         )}

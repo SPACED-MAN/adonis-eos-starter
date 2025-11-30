@@ -175,7 +175,7 @@ export default class MediaController {
 		let metadata: any = null
 		if (mime.startsWith('image/')) {
 			try {
-				const variants = await mediaService.generateVariants(destPath, url, null)
+				const variants = await mediaService.generateVariants(destPath, url, null, null, null, 'light')
 				metadata = { variants }
 			} catch {
 				// ignore variant generation errors; keep original
@@ -357,10 +357,18 @@ export default class MediaController {
 		const { id } = params
 		const row = await db.from('media_assets').where('id', id).first()
 		if (!row) return response.notFound({ error: 'Media not found' })
-		const publicUrl: string = String(row.url)
-		const absPath = path.join(process.cwd(), 'public', publicUrl.replace(/^\//, ''))
 
 		const body = request.all()
+
+		const theme: 'light' | 'dark' = body?.theme === 'dark' ? 'dark' : 'light'
+
+		// Optionally use a dedicated dark-source base if configured
+		const metaForBase = (row as any).metadata || {}
+		const useDarkBase = theme === 'dark' && typeof (metaForBase as any).darkSourceUrl === 'string' && (metaForBase as any).darkSourceUrl
+		const basePublicUrl: string = String(useDarkBase || row.url)
+		const absPath = path.join(process.cwd(), 'public', basePublicUrl.replace(/^\//, ''))
+		const publicUrl: string = basePublicUrl
+
 
 		// cropRect mode
 		const cropRectRaw = body?.cropRect
@@ -396,7 +404,7 @@ export default class MediaController {
 			if (!spec) {
 				return response.badRequest({ error: `Unknown variant: ${targetVariant}` })
 			}
-			const variants = await mediaService.generateVariants(absPath, publicUrl, [spec], cropArgs, focalPoint)
+			const variants = await mediaService.generateVariants(absPath, publicUrl, [spec], cropArgs, focalPoint, theme)
 			const meta = row.metadata || {}
 			let list = Array.isArray((meta as any).variants) ? (meta as any).variants : []
 			for (const v of variants) {
@@ -429,7 +437,7 @@ export default class MediaController {
 			const cropped = { name: 'cropped', url: outUrl, width: info.width, height: info.height, size: info.size || 0 }
 
 			// Rebuild all configured variants using the same cropRect
-			const rebuilt = await mediaService.generateVariants(absPath, publicUrl, null, cropArgs, null)
+			const rebuilt = await mediaService.generateVariants(absPath, publicUrl, null, cropArgs, null, theme)
 
 			const meta = row.metadata || {}
 			let list = Array.isArray((meta as any).variants) ? (meta as any).variants : []
@@ -469,13 +477,19 @@ export default class MediaController {
 			}
 		}
 
-		const variants = await mediaService.generateVariants(absPath, publicUrl, specs || null, cropArgs, focalPoint)
+		const variants = await mediaService.generateVariants(absPath, publicUrl, specs || null, cropArgs, focalPoint, theme)
+
+		const existingMeta = (row.metadata || {}) as any
+		const existingList: any[] = Array.isArray(existingMeta.variants) ? existingMeta.variants : []
+		const newNames = new Set(variants.map((v) => v.name))
+		// Drop only the variants we are regenerating; keep the others (e.g. light vs dark)
+		const mergedList = [...existingList.filter((v) => !v || typeof v.name !== 'string' || !newNames.has(v.name)), ...variants]
 
 		const metadata = {
-			...(row.metadata || {}),
+			...existingMeta,
 			...(cropArgs ? { cropRect: cropArgs } : {}),
 			...(focalPoint ? { focalPoint } : {}),
-			variants,
+			variants: mergedList,
 		}
 		await db.from('media_assets').where('id', id).update({ metadata: metadata as any, updated_at: new Date() } as any)
 		try {
@@ -601,6 +615,8 @@ export default class MediaController {
 			return response.forbidden({ error: 'Admin only' })
 		}
 		const { id } = params
+		const themeParam = String(request.input('theme', '') || '').toLowerCase()
+		const theme: 'light' | 'dark' = themeParam === 'dark' ? 'dark' : 'light'
 		const row = await db.from('media_assets').where('id', id).first()
 		if (!row) return response.notFound({ error: 'Media not found' })
 
@@ -614,8 +630,49 @@ export default class MediaController {
 			return response.badRequest({ error: 'Invalid file' })
 		}
 
-		const absPath = path.join(process.cwd(), 'public', String(row.url).replace(/^\//, ''))
-		// Write file
+		const publicRoot = path.join(process.cwd(), 'public')
+		const existingPublicUrl: string = String(row.url)
+		const existingAbsPath = path.join(publicRoot, existingPublicUrl.replace(/^\//, ''))
+
+		// Normalize new extension from uploaded file
+		const clientExt = (path.extname(clientName) || '').toLowerCase()
+
+		// Base directory for this media item
+		const parsedExisting = path.parse(existingAbsPath)
+		const dir = parsedExisting.dir
+
+		// For light theme overrides we treat this as a full replace:
+		// - Remove old original + all its variants (and dark base, if any)
+		// - Write new original with the new extension
+		// For dark theme overrides we keep a dedicated dark base alongside the light original.
+		let targetAbsPath: string
+		let targetPublicUrl: string
+
+		if (theme === 'light') {
+			const baseName = sanitizeBaseName(path.parse(clientName).name || parsedExisting.name || 'file')
+			const newFilename = `${baseName}${clientExt || parsedExisting.ext}`
+
+			// Clean up old files (original + variants) before writing new one
+			try {
+				const files = await fs.promises.readdir(dir)
+				const oldBase = parsedExisting.name
+				for (const f of files) {
+					if (f === parsedExisting.base || (f.startsWith(`${oldBase}.`) && f.endsWith(parsedExisting.ext))) {
+						try { await fs.promises.unlink(path.join(dir, f)) } catch { /* ignore */ }
+					}
+				}
+			} catch { /* ignore */ }
+
+			targetAbsPath = path.join(dir, newFilename)
+			targetPublicUrl = path.posix.join(path.posix.dirname(existingPublicUrl), newFilename)
+		} else {
+			// Dark theme gets its own base file; don't disturb the light original
+			const darkBaseName = `${parsedExisting.name}.dark${clientExt || parsedExisting.ext}`
+			targetAbsPath = path.join(dir, darkBaseName)
+			targetPublicUrl = path.posix.join(path.posix.dirname(existingPublicUrl), darkBaseName)
+		}
+
+		// Write file to the chosen target path
 		let data: Buffer
 		if ((uploadFile as any).tmpPath) {
 			data = await fs.promises.readFile((uploadFile as any).tmpPath)
@@ -627,10 +684,10 @@ export default class MediaController {
 		} else {
 			return response.badRequest({ error: 'Unsupported upload source' })
 		}
-		await fs.promises.writeFile(absPath, data)
+		await fs.promises.writeFile(targetAbsPath, data)
 
 		// Derive mime and regenerate variants if image
-		const ext = (path.extname(absPath) || '').toLowerCase()
+		const ext = (path.extname(targetAbsPath) || '').toLowerCase()
 		let mime = typeof type === 'string' ? type : ''
 		if (!mime.includes('/')) {
 			switch (ext) {
@@ -646,18 +703,45 @@ export default class MediaController {
 			}
 		}
 
-		let metadata = row.metadata || null
+		let metadata = (row.metadata || {}) as any
 		if (mime.startsWith('image/')) {
-			const variants = await mediaService.generateVariants(absPath, row.url, null)
-			metadata = { ...(metadata || {}), variants }
+			if (theme === 'dark') {
+				// Custom dark-theme base: generate dark variants from this file and merge into existing list
+				const variantsDark = await mediaService.generateVariants(targetAbsPath, targetPublicUrl, null, null, null, 'dark')
+				const existingList: any[] = Array.isArray(metadata.variants) ? metadata.variants : []
+				const newNames = new Set(variantsDark.map((v) => v.name))
+				const merged = [...existingList.filter((v) => !v || typeof v.name !== 'string' || !newNames.has(v.name)), ...variantsDark]
+				metadata = {
+					...metadata,
+					darkSourceUrl: targetPublicUrl,
+					variants: merged,
+				}
+			} else {
+				// Light override: regenerate light variants from the new original, discarding previous ones
+				const variantsLight = await mediaService.generateVariants(targetAbsPath, targetPublicUrl, null, null, null, 'light')
+				metadata = {
+					...metadata,
+					// When we fully replace the light image, clear out all variants and start fresh for light;
+					// dark variants can be regenerated or re-uploaded later.
+					variants: variantsLight,
+					darkSourceUrl: metadata.darkSourceUrl || undefined,
+				}
+			}
 		}
 
-		await db.from('media_assets').where('id', id).update({
+		// For light overrides, also update the main URL and original_filename to match the new file
+		const updatePayload: any = {
 			mime_type: mime,
 			size: Number(size),
 			metadata: metadata as any,
 			updated_at: new Date(),
-		} as any)
+		}
+		if (theme === 'light') {
+			updatePayload.url = targetPublicUrl
+			updatePayload.original_filename = clientName
+		}
+
+		await db.from('media_assets').where('id', id).update(updatePayload as any)
 
 		try {
 			await activityLogService.log({
@@ -676,20 +760,20 @@ export default class MediaController {
 		if (!row) return response.notFound({ error: 'Media not found' })
 		return response.ok({
 			data: {
-			id: row.id,
-			url: row.url,
-			originalFilename: row.original_filename,
-			mimeType: row.mime_type,
-			size: Number(row.size || 0),
+				id: row.id,
+				url: row.url,
+				originalFilename: row.original_filename,
+				mimeType: row.mime_type,
+				size: Number(row.size || 0),
 				optimizedUrl: (row as any).optimized_url || null,
 				optimizedSize: (row as any).optimized_size ? Number((row as any).optimized_size) : null,
-			altText: row.alt_text,
-			caption: row.caption,
-			description: row.description,
-			categories: Array.isArray(row.categories) ? row.categories : [],
-			metadata: row.metadata || null,
-			createdAt: row.created_at,
-			updatedAt: row.updated_at,
+				altText: row.alt_text,
+				caption: row.caption,
+				description: row.description,
+				categories: Array.isArray(row.categories) ? row.categories : [],
+				metadata: row.metadata || null,
+				createdAt: row.created_at,
+				updatedAt: row.updated_at,
 			}
 		})
 	}
@@ -700,11 +784,11 @@ export default class MediaController {
 		if (!row) return response.notFound({ error: 'Media not found' })
 		return response.ok({
 			data: {
-			id: row.id,
-			url: row.url,
-			metadata: row.metadata || null,
-			altText: row.alt_text,
-			categories: Array.isArray(row.categories) ? row.categories : [],
+				id: row.id,
+				url: row.url,
+				metadata: row.metadata || null,
+				altText: row.alt_text,
+				categories: Array.isArray(row.categories) ? row.categories : [],
 			}
 		})
 	}
@@ -826,7 +910,7 @@ export default class MediaController {
 				if (!mime.startsWith('image/')) continue
 				const publicUrl: string = String((row as any).url)
 				const absPath = path.join(process.cwd(), 'public', publicUrl.replace(/^\//, ''))
-				const variants = await mediaService.generateVariants(absPath, publicUrl, null)
+				const variants = await mediaService.generateVariants(absPath, publicUrl, null, null, null, 'light')
 				const meta = (row as any).metadata || {}
 				let list = Array.isArray((meta as any).variants) ? (meta as any).variants : []
 				for (const v of variants) {
