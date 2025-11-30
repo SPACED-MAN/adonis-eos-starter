@@ -882,6 +882,12 @@ How to test:
 2. Run functional tests: `node ace test functional`
 3. Run with watch: `node ace test --watch`
 
+### Milestone 29 — DTOs & Agent Webhook Contracts (✅ Complete)
+- ✅ Introduced `BaseModelDto` helper and `PostListItemDto` for typed `/api/posts` list responses.
+- ✅ Centralized agent payload shape via `AgentPostPayloadDto` for `POST /api/posts/:id/agents/:agentId/run`.
+- ✅ Ensured agent runs from the post editor dropdown send a stable, versioned canonical post JSON to n8n (including modules, translations, and `context`).
+- ✅ Kept all existing functional tests green while tightening API contracts for future n8n agents.
+
 ## Environment Variables (New)
 
 ```env
