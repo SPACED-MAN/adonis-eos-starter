@@ -8,6 +8,7 @@ export const CUSTOM_FIELD_TYPES = [
 	'file',
 	'date',
 	'url',
+	'icon',
 ] as const
 
 export type CustomFieldType = typeof CUSTOM_FIELD_TYPES[number]

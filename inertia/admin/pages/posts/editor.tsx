@@ -792,6 +792,39 @@ export default function Editor({ post, modules: initialModules, translations, re
                           </div>
                         )
                       }
+                      if (f.fieldType === 'icon') {
+                        const current: string = typeof entry.value === 'string' ? entry.value : ''
+                        return (
+                          <div key={f.id}>
+                            <label className="block text-sm font-medium text-neutral-medium mb-1">
+                              {f.label}
+                            </label>
+                            <div className="space-y-1">
+                              <Input
+                                type="text"
+                                value={current}
+                                onChange={(e) => setValue(e.target.value)}
+                                placeholder="fa-solid fa-briefcase"
+                              />
+                              <p className="text-[11px] text-neutral-low">
+                                Enter a Font Awesome class string (for example{' '}
+                                <code className="font-mono text-[11px]">fa-solid fa-briefcase</code>). This will be
+                                rendered wherever the field is used.
+                              </p>
+                              {current && (
+                                <div className="flex items-center gap-2 text-[11px] text-neutral-medium">
+                                  <span className="inline-flex h-7 w-7 items-center justify-center rounded-full bg-backdrop-medium">
+                                    <i className={current} aria-hidden="true" />
+                                  </span>
+                                  <span className="truncate max-w-[220px]" title={current}>
+                                    {current}
+                                  </span>
+                                </div>
+                              )}
+                            </div>
+                          </div>
+                        )
+                      }
                       // Fallback simple input
                       return (
                         <div key={f.id}>

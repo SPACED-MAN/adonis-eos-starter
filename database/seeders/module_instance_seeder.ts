@@ -289,6 +289,67 @@ export default class ModuleInstanceSeeder extends BaseSeeder {
 			console.log('ℹ️ [ModuleInstanceSeeder] kitchen-sink module instance already exists; reusing')
 		}
 
+		// Features List instance
+		const existingFeaturesList = await db
+			.from('module_instances')
+			.where({ type: 'features-list', scope: 'post' })
+			.first()
+
+		let featuresListInstance: any = existingFeaturesList
+		if (!featuresListInstance) {
+			const [createdFeaturesList] = await db
+				.table('module_instances')
+				.insert({
+					type: 'features-list',
+					scope: 'post',
+					props: {
+						title: 'Designed for business teams like yours',
+						subtitle:
+							'We focus on markets where technology, innovation, and capital can unlock long-term value and drive growth.',
+						features: [
+							{
+								icon: 'fa-solid fa-bullhorn',
+								title: 'Marketing',
+								body: 'Plan it, create it, launch it. Collaborate seamlessly across the organization and hit your marketing goals every month.',
+							},
+							{
+								icon: 'fa-solid fa-scale-balanced',
+								title: 'Legal',
+								body: 'Protect your organization and stay compliant with structured workflows and granular permissions.',
+							},
+							{
+								icon: 'fa-solid fa-gear',
+								title: 'Business Automation',
+								body: 'Automate handoffs, notifications, and approvals so your team can focus on high‑value work.',
+							},
+							{
+								icon: 'fa-solid fa-coins',
+								title: 'Finance',
+								body: 'Audit‑ready workflows for close, forecasting, and quarterly budgeting.',
+							},
+							{
+								icon: 'fa-solid fa-pen-ruler',
+								title: 'Enterprise Design',
+								body: 'Craft consistent experiences for both marketing and product with shared systems.',
+							},
+							{
+								icon: 'fa-solid fa-diagram-project',
+								title: 'Operations',
+								body: 'Keep the business running smoothly with repeatable, measurable processes.',
+							},
+						],
+						backgroundColor: 'bg-backdrop-low',
+					},
+					created_at: nowTs,
+					updated_at: nowTs,
+				})
+				.returning('*')
+			featuresListInstance = createdFeaturesList
+			console.log('✅ [ModuleInstanceSeeder] Created features-list module instance')
+		} else {
+			console.log('ℹ️ [ModuleInstanceSeeder] features-list module instance already exists; reusing')
+		}
+
 		// Ensure hero-with-callout module instance exists
 		const existingHeroCentered = await db
 			.from('module_instances')
@@ -359,6 +420,7 @@ export default class ModuleInstanceSeeder extends BaseSeeder {
 		await ensureAttached(String(heroInstance.id), 'hero module')
 		await ensureAttached(String(heroWithMediaInstance.id), 'hero-with-media module')
 		await ensureAttached(String(heroCenteredInstance.id), 'hero-with-callout module')
+		await ensureAttached(String(featuresListInstance.id), 'features-list module')
 		await ensureAttached(String(proseInstance.id), 'prose module')
 		await ensureAttached(String(feedInstance.id), 'feed module')
 		await ensureAttached(String(kitchenSinkInstance.id), 'kitchen-sink module')

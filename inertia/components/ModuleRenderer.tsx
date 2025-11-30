@@ -97,6 +97,7 @@ function getModuleComponent(componentName: string): ComponentType<any> | null {
     'feed': Modules.Feed,
     'hero-with-media': Modules.HeroWithMedia,
     'hero-with-callout': Modules.HeroWithCallout,
+    'features-list': Modules.FeaturesList,
   }
 
   return componentMap[componentName] || null

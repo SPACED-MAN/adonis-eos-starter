@@ -13,11 +13,13 @@ import FeedModule from '#modules/feed'
 import BlogNoteModule from '#modules/blog_note'
 import HeroWithMediaModule from '#modules/hero_with_media'
 import HeroWithCalloutModule from '#modules/hero_with_callout'
+import FeaturesListModule from '#modules/features_list'
 
 // Register Hero modules
 moduleRegistry.register(new HeroModule())
 moduleRegistry.register(new HeroWithMediaModule())
 moduleRegistry.register(new HeroWithCalloutModule())
+moduleRegistry.register(new FeaturesListModule())
 // Register Prose module
 moduleRegistry.register(new ProseModule())
 // Register Kitchen Sink module (demo)

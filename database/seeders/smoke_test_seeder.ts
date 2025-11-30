@@ -430,6 +430,54 @@ export default class extends BaseSeeder {
           })
           .returning('*')
 
+        const [featuresListInstance] = await db
+          .table('module_instances')
+          .insert({
+            type: 'features-list',
+            scope: 'post',
+            props: {
+              title: 'Designed for business teams like yours',
+              subtitle:
+                'We focus on markets where technology, innovation, and capital can unlock long-term value and drive growth.',
+              features: [
+                {
+                  icon: 'fa-solid fa-bullhorn',
+                  title: 'Marketing',
+                  body: 'Plan it, create it, launch it. Collaborate seamlessly across the organization and hit your marketing goals every month.',
+                },
+                {
+                  icon: 'fa-solid fa-scale-balanced',
+                  title: 'Legal',
+                  body: 'Protect your organization and stay compliant with structured workflows and granular permissions.',
+                },
+                {
+                  icon: 'fa-solid fa-gear',
+                  title: 'Business Automation',
+                  body: 'Automate handoffs, notifications, and approvals so your team can focus on high‑value work.',
+                },
+                {
+                  icon: 'fa-solid fa-coins',
+                  title: 'Finance',
+                  body: 'Audit‑ready workflows for close, forecasting, and quarterly budgeting.',
+                },
+                {
+                  icon: 'fa-solid fa-pen-ruler',
+                  title: 'Enterprise Design',
+                  body: 'Craft consistent experiences for both marketing and product with shared systems.',
+                },
+                {
+                  icon: 'fa-solid fa-diagram-project',
+                  title: 'Operations',
+                  body: 'Keep the business running smoothly with repeatable, measurable processes.',
+                },
+              ],
+              backgroundColor: 'bg-backdrop-low',
+            },
+            created_at: nowTs,
+            updated_at: nowTs,
+          })
+          .returning('*')
+
         const [kitchenSinkInstance] = await db
           .table('module_instances')
           .insert({
@@ -482,9 +530,10 @@ export default class extends BaseSeeder {
           { instanceId: heroInstance.id, orderIndex: 0 },
           { instanceId: heroWithMediaInstance.id, orderIndex: 1 },
           { instanceId: heroWithCalloutInstance.id, orderIndex: 2 },
-          { instanceId: proseInstance.id, orderIndex: 3 },
-          { instanceId: feedInstance.id, orderIndex: 4 },
-          { instanceId: kitchenSinkInstance.id, orderIndex: 5 },
+          { instanceId: featuresListInstance.id, orderIndex: 3 },
+          { instanceId: proseInstance.id, orderIndex: 4 },
+          { instanceId: feedInstance.id, orderIndex: 5 },
+          { instanceId: kitchenSinkInstance.id, orderIndex: 6 },
         ]
 
         for (const row of catalogModulesToAttach) {
