@@ -14,12 +14,14 @@ import BlogNoteModule from '#modules/blog_note'
 import HeroWithMediaModule from '#modules/hero_with_media'
 import HeroWithCalloutModule from '#modules/hero_with_callout'
 import FeaturesListModule from '#modules/features_list'
+import ProseWithMediaModule from '#modules/prose_with_media'
 
 // Register Hero modules
 moduleRegistry.register(new HeroModule())
 moduleRegistry.register(new HeroWithMediaModule())
 moduleRegistry.register(new HeroWithCalloutModule())
 moduleRegistry.register(new FeaturesListModule())
+moduleRegistry.register(new ProseWithMediaModule())
 // Register Prose module
 moduleRegistry.register(new ProseModule())
 // Register Kitchen Sink module (demo)

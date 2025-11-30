@@ -98,6 +98,7 @@ function getModuleComponent(componentName: string): ComponentType<any> | null {
     'hero-with-media': Modules.HeroWithMedia,
     'hero-with-callout': Modules.HeroWithCallout,
     'features-list': Modules.FeaturesList,
+    'prose-with-media': Modules.ProseWithMedia,
   }
 
   return componentMap[componentName] || null

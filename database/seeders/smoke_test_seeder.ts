@@ -478,6 +478,30 @@ export default class extends BaseSeeder {
           })
           .returning('*')
 
+        const [proseWithMediaInstance] = await db
+          .table('module_instances')
+          .insert({
+            type: 'prose-with-media',
+            scope: 'post',
+            props: {
+              title: "Let's create more tools and ideas that bring us together.",
+              body:
+                'This layout pairs narrative content with a focused visual, ideal for feature callouts, product explainers, and lightweight storytelling.',
+              image: (demoMedia as any).id,
+              imageAlt: 'Prose with Media example',
+              imagePosition: 'left',
+              primaryCta: {
+                label: 'Get started',
+                url: '#',
+                target: '_self',
+              },
+              backgroundColor: 'bg-backdrop-low',
+            },
+            created_at: nowTs,
+            updated_at: nowTs,
+          })
+          .returning('*')
+
         const [kitchenSinkInstance] = await db
           .table('module_instances')
           .insert({
@@ -531,9 +555,10 @@ export default class extends BaseSeeder {
           { instanceId: heroWithMediaInstance.id, orderIndex: 1 },
           { instanceId: heroWithCalloutInstance.id, orderIndex: 2 },
           { instanceId: featuresListInstance.id, orderIndex: 3 },
-          { instanceId: proseInstance.id, orderIndex: 4 },
-          { instanceId: feedInstance.id, orderIndex: 5 },
-          { instanceId: kitchenSinkInstance.id, orderIndex: 6 },
+          { instanceId: proseWithMediaInstance.id, orderIndex: 4 },
+          { instanceId: proseInstance.id, orderIndex: 5 },
+          { instanceId: feedInstance.id, orderIndex: 6 },
+          { instanceId: kitchenSinkInstance.id, orderIndex: 7 },
         ]
 
         for (const row of catalogModulesToAttach) {

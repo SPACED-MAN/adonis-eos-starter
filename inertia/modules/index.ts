@@ -21,6 +21,7 @@ export { default as Feed } from './feed'
 export { default as HeroWithMedia } from './hero-with-media'
 export { default as HeroWithCallout } from './hero-with-callout'
 export { default as FeaturesList } from './features-list'
+export { default as ProseWithMedia } from './prose-with-media'
 
 /**
  * Module component map for dynamic imports
@@ -39,6 +40,7 @@ export const MODULE_COMPONENTS = {
   'hero-with-media': () => import('./hero-with-media'),
   'hero-with-callout': () => import('./hero-with-callout'),
   'features-list': () => import('./features-list'),
+  'prose-with-media': () => import('./prose-with-media'),
 } as const
 
 export type ModuleComponentName = keyof typeof MODULE_COMPONENTS

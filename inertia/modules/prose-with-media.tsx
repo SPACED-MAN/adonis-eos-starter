@@ -1,0 +1,128 @@
+import { useEffect, useState } from 'react'
+import type { Button } from './types'
+
+interface ProseWithMediaProps {
+	title: string
+	body?: string | null
+	image?: string | null // media ID
+	imageAlt?: string | null
+	imagePosition?: 'left' | 'right'
+	primaryCta?: Button | null
+	backgroundColor?: string
+}
+
+export default function ProseWithMedia({
+	title,
+	body,
+	image,
+	imageAlt,
+	imagePosition = 'left',
+	primaryCta,
+	backgroundColor = 'bg-backdrop-low',
+}: ProseWithMediaProps) {
+	const [resolvedImageUrl, setResolvedImageUrl] = useState<string | null>(null)
+
+	useEffect(() => {
+		let cancelled = false
+
+		async function resolveImage() {
+			if (!image) {
+				if (!cancelled) setResolvedImageUrl(null)
+				return
+			}
+
+			try {
+				const res = await fetch(`/public/media/${encodeURIComponent(String(image))}`)
+				if (!res.ok) {
+					if (!cancelled) setResolvedImageUrl(null)
+					return
+				}
+				const j = await res.json().catch(() => null)
+				const data = j?.data
+				if (!data) {
+					if (!cancelled) setResolvedImageUrl(null)
+					return
+				}
+				const variants = Array.isArray(data.metadata?.variants) ? (data.metadata.variants as any[]) : []
+				let url: string = data.url
+				if (variants.length > 0) {
+					const sorted = [...variants].sort(
+						(a, b) => (b.width || b.height || 0) - (a.width || a.height || 0)
+					)
+					url = sorted[0]?.url || url
+				}
+				if (!cancelled) setResolvedImageUrl(url)
+			} catch {
+				if (!cancelled) setResolvedImageUrl(null)
+			}
+		}
+
+		resolveImage()
+		return () => {
+			cancelled = true
+		}
+	}, [image])
+
+	const hasCta = Boolean(primaryCta && primaryCta.label && primaryCta.url)
+
+	const imageBlock = resolvedImageUrl ? (
+		<div className="w-full">
+			<div className="w-full rounded-xl overflow-hidden border border-line bg-backdrop-high">
+				<img
+					src={resolvedImageUrl}
+					alt={imageAlt || ''}
+					className="w-full h-auto object-cover"
+					loading="lazy"
+					decoding="async"
+				/>
+			</div>
+		</div>
+	) : null
+
+	return (
+		<section className={`${backgroundColor} py-12 sm:py-16`} data-module="prose-with-media">
+			<div className="container mx-auto px-4 sm:px-6 lg:px-8">
+				<div className="md:grid md:grid-cols-2 md:gap-8 xl:gap-16 items-center">
+					{imagePosition === 'left' && imageBlock}
+
+					<div className="mt-8 md:mt-0">
+						<h2 className="mb-4 text-3xl sm:text-4xl font-extrabold tracking-tight text-neutral-high">
+							{title}
+						</h2>
+						{body && (
+							<p className="mb-6 text-base md:text-lg font-normal text-neutral-medium">
+								{body}
+							</p>
+						)}
+						{hasCta && primaryCta && primaryCta.label && primaryCta.url && (
+							<a
+								href={primaryCta.url}
+								target={primaryCta.target || '_self'}
+								rel={primaryCta.target === '_blank' ? 'noopener noreferrer' : undefined}
+								className="inline-flex items-center text-on-standout bg-standout hover:bg-standout/90 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:ring-standout font-medium rounded-lg text-sm px-5 py-2.5 transition-colors"
+							>
+								{primaryCta.label}
+								<svg
+									className="ml-2 -mr-1 w-5 h-5"
+									fill="currentColor"
+									viewBox="0 0 20 20"
+									xmlns="http://www.w3.org/2000/svg"
+								>
+									<path
+										fillRule="evenodd"
+										d="M10.293 3.293a1 1 0 011.414 0l6 6a1 1 0 010 1.414l-6 6a1 1 0 01-1.414-1.414L14.586 11H3a1 1 0 110-2h11.586l-4.293-4.293a1 1 0 010-1.414z"
+										clipRule="evenodd"
+									></path>
+								</svg>
+							</a>
+						)}
+					</div>
+
+					{imagePosition !== 'left' && imageBlock}
+				</div>
+			</div>
+		</section>
+	)
+}
+
+

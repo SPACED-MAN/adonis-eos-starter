@@ -350,6 +350,43 @@ export default class ModuleInstanceSeeder extends BaseSeeder {
 			console.log('ℹ️ [ModuleInstanceSeeder] features-list module instance already exists; reusing')
 		}
 
+		// Prose with Media instance
+		const existingProseWithMedia = await db
+			.from('module_instances')
+			.where({ type: 'prose-with-media', scope: 'post' })
+			.first()
+
+		let proseWithMediaInstance: any = existingProseWithMedia
+		if (!proseWithMediaInstance) {
+			const [createdProseWithMedia] = await db
+				.table('module_instances')
+				.insert({
+					type: 'prose-with-media',
+					scope: 'post',
+					props: {
+						title: "Let's create more tools and ideas that bring us together.",
+						body:
+							'This layout pairs narrative content with a focused visual, ideal for feature callouts, product explainers, and lightweight storytelling.',
+						image: (demoMedia as any).id,
+						imageAlt: 'Prose with Media example',
+						imagePosition: 'left',
+						primaryCta: {
+							label: 'Get started',
+							url: '#',
+							target: '_self',
+						},
+						backgroundColor: 'bg-backdrop-low',
+					},
+					created_at: nowTs,
+					updated_at: nowTs,
+				})
+				.returning('*')
+			proseWithMediaInstance = createdProseWithMedia
+			console.log('✅ [ModuleInstanceSeeder] Created prose-with-media module instance')
+		} else {
+			console.log('ℹ️ [ModuleInstanceSeeder] prose-with-media module instance already exists; reusing')
+		}
+
 		// Ensure hero-with-callout module instance exists
 		const existingHeroCentered = await db
 			.from('module_instances')
@@ -421,6 +458,7 @@ export default class ModuleInstanceSeeder extends BaseSeeder {
 		await ensureAttached(String(heroWithMediaInstance.id), 'hero-with-media module')
 		await ensureAttached(String(heroCenteredInstance.id), 'hero-with-callout module')
 		await ensureAttached(String(featuresListInstance.id), 'features-list module')
+		await ensureAttached(String(proseWithMediaInstance.id), 'prose-with-media module')
 		await ensureAttached(String(proseInstance.id), 'prose module')
 		await ensureAttached(String(feedInstance.id), 'feed module')
 		await ensureAttached(String(kitchenSinkInstance.id), 'kitchen-sink module')
