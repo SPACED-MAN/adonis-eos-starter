@@ -4,6 +4,7 @@ import db from '@adonisjs/lucid/services/db'
 import postTypeConfigService from '#services/post_type_config_service'
 import BasePostsController from './base_posts_controller.js'
 import cmsConfig from '#config/cms'
+import PostListItemDto from '#dtos/post_list_item_dto'
 
 /**
  * Posts List Controller
@@ -129,33 +130,20 @@ export default class PostsListController extends BasePostsController {
         })
       }
 
-      return this.response.paginated(
-        response,
-        rows.map((p) => {
-          const baseId = p.translationOfId || p.id
-          const familyLocales = withTranslations
-            ? Array.from(baseIdToLocales?.get(baseId) || new Set<string>([p.locale]))
-            : undefined
+      const items = rows.map((p) => {
+        const baseId = p.translationOfId || p.id
+        const familyLocales = withTranslations
+          ? Array.from(baseIdToLocales?.get(baseId) || new Set<string>([p.locale]))
+          : undefined
 
-          return {
-            id: p.id,
-            type: p.type,
-            title: p.title,
-            slug: p.slug,
-            status: p.status,
-            locale: p.locale,
-            excerpt: p.excerpt,
-            orderIndex: p.orderIndex ?? 0,
-            parentId: p.parentId || null,
-            updatedAt: p.updatedAt?.toISO ? p.updatedAt.toISO() : p.updatedAt,
-            translationOfId: p.translationOfId || null,
-            familyLocales,
-            hasReviewDraft: Boolean(p.reviewDraft),
-            isDeleted: p.deletedAt !== null,
-          }
-        }),
-        { total, page, limit, sortBy, sortOrder }
-      )
+        return new PostListItemDto(p, {
+          familyLocales,
+          hasReviewDraft: Boolean((p as any).reviewDraft),
+          isDeleted: (p as any).deletedAt !== null,
+        })
+      })
+
+      return this.response.paginated(response, items, { total, page, limit, sortBy, sortOrder })
     } finally {
       // Re-enable soft delete filter
       if (includeDeleted) {

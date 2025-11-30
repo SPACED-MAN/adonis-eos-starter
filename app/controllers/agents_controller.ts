@@ -5,6 +5,7 @@ import Post from '#models/post'
 import authorizationService from '#services/authorization_service'
 import RevisionService from '#services/revision_service'
 import db from '@adonisjs/lucid/services/db'
+import AgentPostPayloadDto from '#dtos/agent_post_payload_dto'
 
 export default class AgentsController {
   /**
@@ -34,11 +35,10 @@ export default class AgentsController {
     try {
       const post = await Post.findOrFail(id)
       const canonical = await PostSerializerService.serialize(id)
-      const payload = {
-        post: canonical.post,
-        modules: canonical.modules,
-        context: request.input('context') || {},
-      }
+      const payload = new AgentPostPayloadDto(
+        canonical,
+        (request.input('context') as Record<string, unknown> | undefined) || {}
+      )
       const headers: Record<string, string> = { 'Content-Type': 'application/json' }
       if (agent.secret) headers['Authorization'] = `Bearer ${agent.secret}`
       const res = await fetch(agent.url, {

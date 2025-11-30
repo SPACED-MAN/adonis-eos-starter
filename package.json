@@ -32,6 +32,7 @@
     "#start/*": "./start/*.js",
     "#config/*": "./config/*.js",
     "#helpers/*": "./app/helpers/*.js",
+    "#dtos/*": "./app/dtos/*.js",
     "#modules/*": "./app/modules/*.js",
     "#types/*": "./app/types/*.js"
   },
