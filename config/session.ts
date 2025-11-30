@@ -2,6 +2,8 @@ import env from '#start/env'
 import app from '@adonisjs/core/services/app'
 import { defineConfig, stores } from '@adonisjs/session'
 
+const isTest = env.get('NODE_ENV') === 'test'
+
 const sessionConfig = defineConfig({
   enabled: true,
   cookieName: 'adonis-session',
@@ -34,7 +36,7 @@ const sessionConfig = defineConfig({
    * variable in order to infer the store name without any
    * errors.
    */
-  store: env.get('SESSION_DRIVER'),
+  store: isTest ? 'memory' : env.get('SESSION_DRIVER'),
 
   /**
    * List of configured stores. Refer documentation to see

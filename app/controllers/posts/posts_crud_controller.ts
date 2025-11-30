@@ -1,0 +1,547 @@
+import type { HttpContext } from '@adonisjs/core/http'
+import Post from '#models/post'
+import CreatePost, { CreatePostException } from '#actions/posts/create_post'
+import UpdatePost, { UpdatePostException } from '#actions/posts/update_post'
+import BulkPostsAction from '#actions/posts/bulk_action'
+import db from '@adonisjs/lucid/services/db'
+import authorizationService from '#services/authorization_service'
+import RevisionService from '#services/revision_service'
+import postTypeConfigService from '#services/post_type_config_service'
+import webhookService from '#services/webhook_service'
+import BasePostsController from './base_posts_controller.js'
+import { createPostValidator, updatePostValidator, bulkActionValidator, reorderPostsValidator } from '#validators/post'
+
+/**
+ * Posts CRUD Controller
+ *
+ * Handles create, update, delete operations for posts.
+ */
+export default class PostsCrudController extends BasePostsController {
+  /**
+   * POST /api/posts
+   * Create a new post
+   */
+  async store({ request, response, auth }: HttpContext) {
+    const role = (auth.use('web').user as any)?.role as 'admin' | 'editor' | 'translator' | undefined
+
+    if (!authorizationService.canCreatePost(role)) {
+      return this.response.forbidden(response, 'Not allowed to create posts')
+    }
+
+    try {
+      const payload = await request.validateUsing(createPostValidator)
+
+      const post = await CreatePost.handle({
+        type: payload.type,
+        locale: payload.locale,
+        slug: payload.slug,
+        title: payload.title,
+        status: payload.status,
+        excerpt: payload.excerpt,
+        metaTitle: payload.metaTitle,
+        metaDescription: payload.metaDescription,
+        templateId: payload.templateId,
+        userId: auth.user!.id,
+      })
+
+      // Log activity
+      try {
+        const activityService = (await import('#services/activity_log_service')).default
+        await activityService.log({
+          action: 'post.create',
+          userId: auth.user?.id ?? null,
+          entityType: 'post',
+          entityId: post.id,
+          metadata: { type: payload.type, locale: payload.locale, slug: payload.slug },
+        })
+      } catch { /* ignore */ }
+
+      // Dispatch webhook
+      await webhookService.dispatch('post.created', {
+        id: post.id,
+        type: post.type,
+        locale: post.locale,
+        slug: post.slug,
+        title: post.title,
+      })
+
+      return this.response.created(response, {
+        id: post.id,
+        type: post.type,
+        locale: post.locale,
+        slug: post.slug,
+        title: post.title,
+        status: post.status,
+        createdAt: post.createdAt,
+      }, 'Post created successfully')
+    } catch (error) {
+      if (error instanceof CreatePostException) {
+        return this.handleActionException(response, error)
+      }
+      throw error
+    }
+  }
+
+  /**
+   * PUT /api/posts/:id
+   * Update an existing post
+   */
+  async update({ params, request, response, auth }: HttpContext) {
+    const { id } = params
+    const role = (auth.use('web').user as any)?.role as 'admin' | 'editor' | 'translator' | undefined
+
+    try {
+      const payload = await request.validateUsing(updatePostValidator)
+      const saveMode = String(payload.mode || 'publish').toLowerCase()
+
+      // Handle review mode
+      if (saveMode === 'review') {
+        return this.saveReviewDraft(id, payload, auth, response)
+      }
+
+      // Handle approve mode
+      if (saveMode === 'approve') {
+        return this.approveReviewDraft(id, auth, response)
+      }
+
+      // Authorization check for status changes
+      if (!authorizationService.canUpdateStatus(role, payload.status)) {
+        return this.response.forbidden(response, 'Not allowed to set this status')
+      }
+
+      // Load current post for comparison
+      const currentPost = await Post.findOrFail(id)
+
+      // Parse JSON fields
+      const robotsJson = this.parseJsonField(payload.robotsJson)
+      const jsonldOverrides = this.parseJsonField(payload.jsonldOverrides)
+
+      // Enforce hierarchy rules
+      if (payload.parentId !== undefined) {
+        const enabled = postTypeConfigService.getUiConfig(currentPost.type).hierarchyEnabled
+        if (!enabled && payload.parentId) {
+          return this.response.badRequest(response, 'Hierarchy is disabled for this post type')
+        }
+      }
+
+      await UpdatePost.handle({
+        postId: id,
+        slug: payload.slug,
+        title: payload.title,
+        status: payload.status,
+        excerpt: payload.excerpt,
+        parentId: payload.parentId || undefined,
+        orderIndex: payload.orderIndex,
+        metaTitle: payload.metaTitle,
+        metaDescription: payload.metaDescription,
+        canonicalUrl: payload.canonicalUrl,
+        robotsJson,
+        jsonldOverrides,
+      })
+
+      // Handle timestamps
+      const now = new Date()
+      if (payload.status === 'published') {
+        await db.from('posts').where('id', id).update({ published_at: now, scheduled_at: null, updated_at: now })
+      } else if (payload.status === 'scheduled' && payload.scheduledAt) {
+        const ts = new Date(payload.scheduledAt)
+        if (!isNaN(ts.getTime())) {
+          await db.from('posts').where('id', id).update({ scheduled_at: ts, updated_at: now })
+        }
+      } else if (payload.status === 'draft') {
+        await db.from('posts').where('id', id).update({ scheduled_at: null, updated_at: now })
+      }
+
+      // Update custom fields
+      if (Array.isArray(payload.customFields)) {
+        await this.upsertCustomFields(id, payload.customFields)
+      }
+
+      // Record revision
+      await RevisionService.record({
+        postId: id,
+        mode: 'approved',
+        snapshot: {
+          slug: payload.slug,
+          title: payload.title,
+          status: payload.status,
+          excerpt: payload.excerpt,
+          metaTitle: payload.metaTitle,
+          metaDescription: payload.metaDescription,
+          canonicalUrl: payload.canonicalUrl,
+          robotsJson,
+          jsonldOverrides,
+          customFields: payload.customFields,
+        },
+        userId: auth.user?.id,
+      })
+
+      // Log activity
+      try {
+        const activityService = (await import('#services/activity_log_service')).default
+        await activityService.log({
+          action: 'post.update',
+          userId: auth.user?.id ?? null,
+          entityType: 'post',
+          entityId: id,
+        })
+      } catch { /* ignore */ }
+
+      // Dispatch webhook
+      await webhookService.dispatch('post.updated', { id })
+      if (payload.status === 'published' && currentPost.status !== 'published') {
+        await webhookService.dispatch('post.published', { id })
+      }
+
+      return response.redirect().back()
+    } catch (error) {
+      if (error instanceof UpdatePostException) {
+        return response.redirect().back()
+      }
+      throw error
+    }
+  }
+
+  /**
+   * DELETE /api/posts/:id
+   * Delete a post (soft delete if enabled)
+   */
+  async destroy({ params, response, auth }: HttpContext) {
+    const { id } = params
+    const post = await Post.find(id)
+
+    if (!post) {
+      return this.response.notFound(response, 'Post not found')
+    }
+
+    if (post.status !== 'archived') {
+      return this.response.badRequest(response, 'Only archived posts can be deleted')
+    }
+
+    // Soft delete
+    await post.softDelete()
+
+    // Log activity
+    try {
+      const activityService = (await import('#services/activity_log_service')).default
+      await activityService.log({
+        action: 'post.delete',
+        userId: auth.user?.id ?? null,
+        entityType: 'post',
+        entityId: id,
+        metadata: { type: post.type, slug: post.slug, locale: post.locale },
+      })
+    } catch { /* ignore */ }
+
+    // Dispatch webhook
+    await webhookService.dispatch('post.deleted', { id, type: post.type, slug: post.slug })
+
+    return this.response.noContent(response)
+  }
+
+  /**
+   * POST /api/posts/:id/restore
+   * Restore a soft-deleted post
+   */
+  async restore({ params, response, auth }: HttpContext) {
+    const { id } = params
+
+    // Temporarily include deleted posts
+    Post.softDeleteEnabled = false
+    const post = await Post.find(id)
+    Post.softDeleteEnabled = true
+
+    if (!post) {
+      return this.response.notFound(response, 'Post not found')
+    }
+
+    if (!post.isDeleted) {
+      return this.response.badRequest(response, 'Post is not deleted')
+    }
+
+    await post.restore()
+
+    // Log activity
+    try {
+      const activityService = (await import('#services/activity_log_service')).default
+      await activityService.log({
+        action: 'post.restore',
+        userId: auth.user?.id ?? null,
+        entityType: 'post',
+        entityId: id,
+      })
+    } catch { /* ignore */ }
+
+    // Dispatch webhook
+    await webhookService.dispatch('post.restored', { id })
+
+    return response.ok({ message: 'Post restored' })
+  }
+
+  /**
+   * POST /api/posts/bulk
+   * Perform bulk actions on posts
+   */
+  async bulk({ request, response, auth }: HttpContext) {
+    const role = (auth.use('web').user as any)?.role as 'admin' | 'editor' | 'translator' | undefined
+
+    try {
+      const payload = await request.validateUsing(bulkActionValidator)
+
+      const result = await BulkPostsAction.handle({
+        action: payload.action as any,
+        ids: payload.ids,
+        role,
+      })
+
+      // Log activity
+      try {
+        const activityService = (await import('#services/activity_log_service')).default
+        await activityService.log({
+          action: `post.bulk.${payload.action}`,
+          userId: auth.user?.id ?? null,
+          entityType: 'post',
+          entityId: 'bulk',
+          metadata: { count: payload.ids.length },
+        })
+      } catch { /* ignore */ }
+
+      return response.ok(result)
+    } catch (error: any) {
+      return this.handleActionException(response, error)
+    }
+  }
+
+  /**
+   * POST /api/posts/reorder
+   * Bulk update order_index for posts
+   */
+  async reorder({ request, response, auth }: HttpContext) {
+    const role = (auth.use('web').user as any)?.role as 'admin' | 'editor' | 'translator' | undefined
+
+    if (!(role === 'admin' || role === 'editor')) {
+      return this.response.forbidden(response, 'Not allowed to reorder posts')
+    }
+
+    try {
+      const payload = await request.validateUsing(reorderPostsValidator)
+      const { scope, items } = payload
+
+      const now = new Date()
+
+      await db.transaction(async (trx) => {
+        // Validate all items belong to the same scope
+        const ids = items.map((i) => i.id)
+        const rows = await trx.from('posts').whereIn('id', ids)
+        const idToRow = new Map(rows.map((r: any) => [r.id, r]))
+
+        for (const item of items) {
+          const row = idToRow.get(item.id)
+          if (!row) {
+            throw new Error(`Post not found: ${item.id}`)
+          }
+          if (row.type !== scope.type || row.locale !== scope.locale) {
+            throw new Error('Reorder items must match scope type/locale')
+          }
+        }
+
+        // Update each item
+        for (const item of items) {
+          const update: any = { order_index: item.orderIndex, updated_at: now }
+          if (item.parentId !== undefined) {
+            update.parent_id = item.parentId
+          }
+          await trx.from('posts').where('id', item.id).update(update)
+        }
+      })
+
+      // Log activity
+      try {
+        const activityService = (await import('#services/activity_log_service')).default
+        await activityService.log({
+          action: 'post.reorder',
+          userId: auth.user?.id ?? null,
+          entityType: 'post',
+          entityId: 'bulk',
+          metadata: { count: items.length },
+        })
+      } catch { /* ignore */ }
+
+      return response.ok({ updated: items.length })
+    } catch (error: any) {
+      return this.response.badRequest(response, error.message || 'Failed to reorder posts')
+    }
+  }
+
+  /**
+   * PATCH /api/posts/:id/author
+   * Reassign post author (admin only)
+   */
+  async updateAuthor({ params, request, response }: HttpContext) {
+    const { id } = params
+    const authorIdRaw = request.input('authorId')
+    const authorId = Number(authorIdRaw)
+
+    if (!authorId || Number.isNaN(authorId)) {
+      return this.response.badRequest(response, 'authorId must be a valid user id')
+    }
+
+    const post = await Post.find(id)
+    if (!post) {
+      return this.response.notFound(response, 'Post not found')
+    }
+
+    // Check target user exists
+    const exists = await db.from('users').where('id', authorId).first()
+    if (!exists) {
+      return this.response.notFound(response, 'User not found')
+    }
+
+    // Prevent multiple profiles per user
+    if (post.type === 'profile') {
+      const existing = await db.from('posts')
+        .where({ type: 'profile', author_id: authorId })
+        .andWhereNot('id', id)
+        .first()
+      if (existing) {
+        return this.response.conflict(response, 'Target user already has a profile')
+      }
+    }
+
+    await db.from('posts').where('id', id).update({ author_id: authorId, updated_at: new Date() })
+
+    return response.ok({ message: 'Author updated' })
+  }
+
+  // Private helper methods
+
+  private async saveReviewDraft(id: string, payload: any, auth: HttpContext['auth'], response: HttpContext['response']) {
+    const draftPayload: Record<string, any> = {
+      slug: payload.slug,
+      title: payload.title,
+      status: payload.status,
+      excerpt: payload.excerpt,
+      parentId: payload.parentId,
+      orderIndex: payload.orderIndex,
+      metaTitle: payload.metaTitle,
+      metaDescription: payload.metaDescription,
+      canonicalUrl: payload.canonicalUrl,
+      robotsJson: payload.robotsJson,
+      jsonldOverrides: payload.jsonldOverrides,
+      customFields: payload.customFields,
+      savedAt: new Date().toISOString(),
+      savedBy: (auth.use('web').user as any)?.email || null,
+    }
+
+    await Post.query().where('id', id).update({ review_draft: draftPayload } as any)
+
+    await RevisionService.record({
+      postId: id,
+      mode: 'review',
+      snapshot: draftPayload,
+      userId: (auth.use('web').user as any)?.id,
+    })
+
+    return response.ok({ message: 'Saved for review' })
+  }
+
+  private async approveReviewDraft(id: string, auth: HttpContext['auth'], response: HttpContext['response']) {
+    const current = await Post.findOrFail(id)
+    const rd: any = current.reviewDraft
+
+    if (!rd) {
+      return this.response.badRequest(response, 'No review draft to approve')
+    }
+
+    await UpdatePost.handle({
+      postId: id,
+      slug: rd.slug ?? current.slug,
+      title: rd.title ?? current.title,
+      status: current.status,
+      excerpt: rd.excerpt ?? current.excerpt,
+      parentId: rd.parentId ?? current.parentId ?? undefined,
+      metaTitle: rd.metaTitle ?? current.metaTitle,
+      metaDescription: rd.metaDescription ?? current.metaDescription,
+      canonicalUrl: rd.canonicalUrl ?? current.canonicalUrl,
+      robotsJson: this.parseJsonField(rd.robotsJson) ?? current.robotsJson,
+      jsonldOverrides: this.parseJsonField(rd.jsonldOverrides) ?? current.jsonldOverrides,
+    })
+
+    // Promote custom fields
+    if (Array.isArray(rd.customFields)) {
+      await this.upsertCustomFields(id, rd.customFields)
+    }
+
+    // Promote module changes
+    await this.promoteModuleChanges(id)
+
+    // Clear review draft
+    await Post.query().where('id', id).update({ review_draft: null } as any)
+
+    await RevisionService.record({
+      postId: id,
+      mode: 'approved',
+      snapshot: rd,
+      userId: (auth.use('web').user as any)?.id,
+    })
+
+    return response.ok({ message: 'Review approved' })
+  }
+
+  private async upsertCustomFields(postId: string, customFields: Array<{ slug?: string; value: any }>) {
+    const now = new Date()
+    for (const cf of customFields) {
+      if (!cf?.slug) continue
+      const fieldSlug = String(cf.slug).trim()
+      if (!fieldSlug) continue
+
+      const value = this.normalizeJsonb(cf.value === undefined ? null : cf.value)
+
+      const updated = await db.from('post_custom_field_values')
+        .where({ post_id: postId, field_slug: fieldSlug })
+        .update({ value, updated_at: now })
+
+      if (!updated) {
+        const { randomUUID } = await import('node:crypto')
+        await db.table('post_custom_field_values').insert({
+          id: randomUUID(),
+          post_id: postId,
+          field_slug: fieldSlug,
+          value,
+          created_at: now,
+          updated_at: now,
+        })
+      }
+    }
+  }
+
+  private async promoteModuleChanges(postId: string) {
+    // Promote review_props to props for local modules
+    await db
+      .from('module_instances')
+      .where('scope', 'post')
+      .andWhereIn('id', db.from('post_modules').where('post_id', postId).select('module_id'))
+      .update({
+        props: db.raw('COALESCE(review_props, props)'),
+        review_props: null,
+        updated_at: new Date(),
+      })
+
+    // Promote review_overrides to overrides
+    await db
+      .from('post_modules')
+      .where('post_id', postId)
+      .update({
+        overrides: db.raw('COALESCE(review_overrides, overrides)'),
+        review_overrides: null,
+        updated_at: new Date(),
+      })
+
+    // Delete modules marked for deletion
+    await db.from('post_modules').where('post_id', postId).andWhere('review_deleted', true).delete()
+
+    // Finalize newly added modules
+    await db.from('post_modules').where('post_id', postId).andWhere('review_added', true).update({ review_added: false, updated_at: new Date() })
+  }
+}
+

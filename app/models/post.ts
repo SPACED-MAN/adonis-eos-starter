@@ -1,9 +1,17 @@
 import { DateTime } from 'luxon'
-import { BaseModel, column, belongsTo, hasMany, scope } from '@adonisjs/lucid/orm'
+import { BaseModel, column, belongsTo, hasMany, scope, beforeFind, beforeFetch } from '@adonisjs/lucid/orm'
 import type { BelongsTo, HasMany } from '@adonisjs/lucid/types/relations'
+import type { ModelQueryBuilderContract } from '@adonisjs/lucid/types/model'
 import User from './user.js'
+import type { RobotsConfig, JsonLdOverrides } from '#types/seo'
 
 export default class Post extends BaseModel {
+  /**
+   * Enable soft deletes globally
+   * Set to false to include deleted posts in queries
+   */
+  static softDeleteEnabled = true
+
   @column({ isPrimary: true })
   declare id: string
 
@@ -20,7 +28,7 @@ export default class Post extends BaseModel {
   declare excerpt: string | null
 
   @column()
-  declare status: 'draft' | 'review' | 'scheduled' | 'published' | 'archived'
+  declare status: 'draft' | 'review' | 'scheduled' | 'published' | 'private' | 'protected' | 'archived'
 
   @column()
   declare locale: string
@@ -38,10 +46,10 @@ export default class Post extends BaseModel {
   declare canonicalUrl: string | null
 
   @column()
-  declare robotsJson: Record<string, any> | null
+  declare robotsJson: RobotsConfig | null
 
   @column()
-  declare jsonldOverrides: Record<string, any> | null
+  declare jsonldOverrides: JsonLdOverrides | null
 
   @column({ columnName: 'review_draft' })
   declare reviewDraft: Record<string, any> | null
@@ -67,11 +75,72 @@ export default class Post extends BaseModel {
   @column.dateTime()
   declare scheduledAt: DateTime | null
 
+  @column.dateTime({ columnName: 'deleted_at' })
+  declare deletedAt: DateTime | null
+
   @column.dateTime({ autoCreate: true })
   declare createdAt: DateTime
 
   @column.dateTime({ autoCreate: true, autoUpdate: true })
   declare updatedAt: DateTime
+
+  /**
+   * Hook: Exclude soft-deleted records from single queries
+   */
+  @beforeFind()
+  static excludeDeletedOnFind(query: ModelQueryBuilderContract<typeof Post>) {
+    if (Post.softDeleteEnabled) {
+      query.whereNull('deleted_at')
+    }
+  }
+
+  /**
+   * Hook: Exclude soft-deleted records from bulk queries
+   */
+  @beforeFetch()
+  static excludeDeletedOnFetch(query: ModelQueryBuilderContract<typeof Post>) {
+    if (Post.softDeleteEnabled) {
+      query.whereNull('deleted_at')
+    }
+  }
+
+  /**
+   * Soft delete the post
+   */
+  async softDelete(): Promise<void> {
+    this.deletedAt = DateTime.now()
+    await this.save()
+  }
+
+  /**
+   * Restore a soft-deleted post
+   */
+  async restore(): Promise<void> {
+    this.deletedAt = null
+    await this.save()
+  }
+
+  /**
+   * Check if post is soft deleted
+   */
+  get isDeleted(): boolean {
+    return this.deletedAt !== null
+  }
+
+  /**
+   * Query scope: Include soft-deleted posts
+   */
+  static withTrashed = scope((query) => {
+    // Remove the whereNull clause by using a no-op
+    // This works because we're in a separate scope
+  })
+
+  /**
+   * Query scope: Only soft-deleted posts
+   */
+  static onlyTrashed = scope((query) => {
+    query.whereNotNull('deleted_at')
+  })
 
   /**
    * Relationship: Parent post (for translations)

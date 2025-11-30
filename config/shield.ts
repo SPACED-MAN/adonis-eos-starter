@@ -1,4 +1,7 @@
 import { defineConfig } from '@adonisjs/shield'
+import env from '#start/env'
+
+const isTest = env.get('NODE_ENV') === 'test'
 
 const shieldConfig = defineConfig({
   /**
@@ -16,7 +19,7 @@ const shieldConfig = defineConfig({
    * to learn more
    */
   csrf: {
-    enabled: true,
+    enabled: !isTest,
     exceptRoutes: [],
     enableXsrfCookie: true,
     methods: ['POST', 'PUT', 'PATCH', 'DELETE'],

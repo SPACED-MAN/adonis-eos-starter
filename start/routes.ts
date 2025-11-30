@@ -45,10 +45,19 @@ router.get('/admin', async ({ inertia }) => {
 }).use(middleware.auth())
 
 /**
- * Admin - Posts
+ * Split Post Controllers
  */
-const PostsController = () => import('#controllers/posts_controller')
-router.get('/admin/posts/:id/edit', [PostsController, 'edit']).use(middleware.auth())
+const PostsListController = () => import('#controllers/posts/posts_list_controller')
+const PostsCrudController = () => import('#controllers/posts/posts_crud_controller')
+const PostsViewController = () => import('#controllers/posts/posts_view_controller')
+const PostsModulesController = () => import('#controllers/posts/posts_modules_controller')
+const PostsRevisionsController = () => import('#controllers/posts/posts_revisions_controller')
+const PostsExportController = () => import('#controllers/posts/posts_export_controller')
+
+/**
+ * Admin - Posts (using split controllers)
+ */
+router.get('/admin/posts/:id/edit', [PostsViewController, 'edit']).use(middleware.auth())
 
 /**
  * API Routes - Locales
@@ -125,29 +134,42 @@ router.group(() => {
 	router.delete('/templates/modules/:moduleId', [TemplatesController, 'deleteModule']).use(middleware.admin())
 }).prefix('/api').use(middleware.auth())
 /**
- * API Routes - Posts (Admin)
+ * API Routes - Posts (using split controllers)
  */
 router.group(() => {
-	router.get('/posts', [PostsController, 'index'])
-	router.get('/post-types', [PostsController, 'types'])
-	router.post('/posts', [PostsController, 'store'])
-	router.put('/posts/:id', [PostsController, 'update'])
-	// Review API parity endpoints
-	router.post('/review/posts/:id/save', [PostsController, 'reviewSave'])
-	router.post('/review/posts/:id/approve', [PostsController, 'reviewApprove'])
-	router.get('/posts/:id/export', [PostsController, 'exportJson'])
-	router.post('/posts/import', [PostsController, 'importCreate'])
-	router.post('/posts/:id/import', [PostsController, 'importInto'])
-	router.get('/posts/:id/revisions', [PostsController, 'revisions'])
-	router.post('/posts/:id/revisions/:revId/revert', [PostsController, 'revertRevision'])
-	router.delete('/posts/:id', [PostsController, 'destroy']).use(middleware.admin())
-	router.post('/posts/bulk', [PostsController, 'bulk'])
-	router.post('/posts/reorder', [PostsController, 'reorder'])
-	router.post('/posts/:id/modules', [PostsController, 'storeModule'])
-	router.put('/post-modules/:id', [PostsController, 'updateModule'])
-	router.delete('/post-modules/:id', [PostsController, 'deleteModule'])
-	// Post author management (admin)
-	router.patch('/posts/:id/author', [PostsController, 'updateAuthor']).use(middleware.admin())
+	// List & types
+	router.get('/posts', [PostsListController, 'index'])
+	router.get('/post-types', [PostsListController, 'types'])
+	
+	// CRUD operations
+	router.post('/posts', [PostsCrudController, 'store'])
+	router.put('/posts/:id', [PostsCrudController, 'update'])
+	router.delete('/posts/:id', [PostsCrudController, 'destroy']).use(middleware.admin())
+	router.post('/posts/:id/restore', [PostsCrudController, 'restore']).use(middleware.admin())
+	router.post('/posts/bulk', [PostsCrudController, 'bulk'])
+	router.post('/posts/reorder', [PostsCrudController, 'reorder'])
+	router.patch('/posts/:id/author', [PostsCrudController, 'updateAuthor']).use(middleware.admin())
+	
+	// Modules
+	router.post('/posts/:id/modules', [PostsModulesController, 'store'])
+	router.put('/post-modules/:id', [PostsModulesController, 'update'])
+	router.delete('/post-modules/:id', [PostsModulesController, 'destroy'])
+	
+	// Revisions
+	router.get('/posts/:id/revisions', [PostsRevisionsController, 'index'])
+	router.get('/posts/:id/revisions/:revId', [PostsRevisionsController, 'show'])
+	router.post('/posts/:id/revisions/:revId/revert', [PostsRevisionsController, 'revert'])
+	router.post('/posts/:id/revisions/:revId/compare', [PostsRevisionsController, 'compare'])
+	
+	// Export/Import
+	router.get('/posts/:id/export', [PostsExportController, 'exportJson'])
+	router.post('/posts/import', [PostsExportController, 'importCreate'])
+	router.post('/posts/:id/import', [PostsExportController, 'importInto'])
+	
+	// Preview links
+	router.post('/posts/:id/preview-link', [PostsViewController, 'createPreviewLink'])
+	router.get('/posts/:id/preview-links', [PostsViewController, 'listPreviewLinks'])
+	router.delete('/posts/:id/preview-links/:token', [PostsViewController, 'revokePreviewLink'])
 	// Agents
 	router.get('/agents', [AgentsController, 'index']).use(middleware.admin())
 	router.post('/posts/:id/agents/:agentId/run', [AgentsController, 'runForPost']).use(middleware.admin())
@@ -213,9 +235,27 @@ router.group(() => {
 }).prefix('/api').use(middleware.auth())
 
 /**
+ * API Routes - Webhooks (Admin)
+ */
+const WebhooksController = () => import('#controllers/webhooks_controller')
+router.group(() => {
+	router.get('/webhooks', [WebhooksController, 'index'])
+	router.post('/webhooks', [WebhooksController, 'store'])
+	router.put('/webhooks/:id', [WebhooksController, 'update'])
+	router.delete('/webhooks/:id', [WebhooksController, 'destroy'])
+	router.get('/webhooks/:id/deliveries', [WebhooksController, 'deliveries'])
+	router.post('/webhooks/:id/test', [WebhooksController, 'test'])
+}).prefix('/api').use(middleware.auth()).use(middleware.admin())
+
+/**
  * Public Routes - Posts
  */
-router.get('/posts/:slug', [PostsController, 'show'])
+router.get('/posts/:slug', [PostsViewController, 'show'])
+
+/**
+ * Preview Routes (with token validation)
+ */
+router.get('/preview/:id', [PostsViewController, 'preview'])
 
 // (Catch-all added at the very end of file)
 
@@ -311,4 +351,4 @@ router.get('/admin/forbidden', async ({ inertia }) => {
 /**
  * Catch-all: resolve posts by URL patterns (must be last)
  */
-router.get('*', [PostsController, 'resolve'])
+router.get('*', [PostsViewController, 'resolve'])

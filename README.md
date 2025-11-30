@@ -743,11 +743,180 @@ Notes:
   - Logs `post.publish.auto` events to Activity Log.
 
 How to test:
-1. Open `/admin/posts/:id/edit` → Actions → set Status to “Scheduled”.
-2. Pick today’s date; click “Save Changes”.
+1. Open `/admin/posts/:id/edit` → Actions → set Status to "Scheduled".
+2. Pick today's date; click "Save Changes".
 3. Wait up to 30s (dev) or 60s (prod) for the scheduler to run.
 4. Verify post status becomes Published; check Admin → Users → Activity Log for `post.publish.auto`.
 
+### Milestone 22 — Architecture & Performance Improvements (✅ Complete)
+
+**Code Architecture:**
+- ✅ Split `PostsController` into focused controllers:
+  - `PostsListController` - List and filter posts
+  - `PostsCrudController` - Create, update, delete operations
+  - `PostsViewController` - Admin editor and public viewing
+  - `PostsModulesController` - Module CRUD within posts
+  - `PostsRevisionsController` - Revision history and revert
+  - `PostsExportController` - Import/export operations
+- ✅ Created `PostRenderingService` for centralized view rendering logic
+- ✅ Added `ResponseService` for consistent HTTP response formatting
+- ✅ Added type-safe JSONB types (`RobotsConfig`, `JsonLdOverrides` in `app/types/seo.ts`)
+- ✅ Centralized CMS configuration in `config/cms.ts`
+
+**Performance:**
+- ✅ Database connection pooling with configurable min/max connections
+- ✅ Optimized queries using window functions for paginated counts
+- ✅ Added performance indexes:
+  - Dashboard filtering: `idx_posts_dashboard`
+  - Author lookups: `idx_posts_author_type`
+  - Translation lookups: `idx_posts_translation_locale`
+  - Hierarchy queries: `idx_posts_parent_order`
+  - Scheduled posts: `idx_posts_scheduled`
+  - Revision history: `idx_post_revisions_history`
+  - Activity logs: `idx_activity_logs_entity`, `idx_activity_logs_user`
+
+**Security:**
+- ✅ Rate limiting middleware with Redis-based sliding window
+  - Default: 100 requests/minute
+  - Auth endpoints: 5 requests/minute
+  - API endpoints: 120 requests/minute (per user or IP)
+- ✅ Input validation using Vine validators for all post endpoints
+
+How to test:
+1. Run migrations: `node ace migration:run`
+2. Check database indexes: `\di` in psql
+3. Verify rate limiting: Make >5 login attempts quickly → should get 429
+4. Check response headers: `X-RateLimit-Limit`, `X-RateLimit-Remaining`
+
+### Milestone 23 — Soft Deletes & Data Recovery (✅ Complete)
+- ✅ Soft delete support via `deleted_at` column on posts
+- ✅ Posts are soft-deleted by default when removed
+- ✅ Admin can restore soft-deleted posts via `POST /api/posts/:id/restore`
+- ✅ Query scopes automatically exclude deleted posts
+- ✅ Configurable retention period in `config/cms.ts`
+
+**New APIs:**
+- `DELETE /api/posts/:id` — Soft deletes (requires archived status)
+- `POST /api/posts/:id/restore` — Restore a soft-deleted post (admin only)
+- `GET /api/posts?includeDeleted=1` — Include deleted posts in list (admin only)
+
+How to test:
+1. Archive a post, then delete it → should set `deleted_at`
+2. Restore the post → `deleted_at` should be cleared
+3. Verify deleted posts don't appear in normal queries
+
+### Milestone 24 — Preview Links (✅ Complete)
+- ✅ Shareable preview links for draft/review content
+- ✅ Time-limited tokens with cryptographic signatures
+- ✅ Database storage for token management
+- ✅ Configurable expiration (default 24 hours)
+
+**New APIs:**
+- `POST /api/posts/:id/preview-link` — Create a preview link
+- `GET /api/posts/:id/preview-links` — List active preview links
+- `DELETE /api/posts/:id/preview-links/:token` — Revoke a preview link
+- `GET /preview/:id?token=...&sig=...&exp=...` — Access preview
+
+How to test:
+1. Create a draft post
+2. Generate a preview link via API or UI
+3. Open the link in an incognito window → should see draft content
+4. Wait for expiration or revoke → link should stop working
+
+### Milestone 25 — Webhooks (✅ Complete)
+- ✅ Webhook registration and management
+- ✅ Event dispatching with retry logic
+- ✅ Delivery history tracking
+- ✅ Signature verification (HMAC-SHA256)
+
+**Supported Events:**
+- `post.created`, `post.updated`, `post.published`, `post.unpublished`, `post.deleted`, `post.restored`
+- `media.uploaded`, `media.deleted`
+- `user.created`, `user.updated`
+- `settings.updated`
+
+**New APIs (Admin only):**
+- `GET /api/webhooks` — List webhooks
+- `POST /api/webhooks` — Create webhook
+- `PUT /api/webhooks/:id` — Update webhook
+- `DELETE /api/webhooks/:id` — Delete webhook
+- `GET /api/webhooks/:id/deliveries` — Delivery history
+- `POST /api/webhooks/:id/test` — Send test webhook
+
+**Configuration:**
+```env
+CMS_WEBHOOKS_ENABLED=true
+CMS_WEBHOOK_TIMEOUT=5000
+CMS_WEBHOOK_MAX_RETRIES=3
+CMS_WEBHOOK_SECRET=your-signing-secret
+```
+
+How to test:
+1. Enable webhooks in `.env`
+2. Create a webhook pointing to a test endpoint (e.g., webhook.site)
+3. Publish a post → webhook should fire
+4. Check delivery history for status
+
+### Milestone 26 — Test Infrastructure (✅ Complete)
+- ✅ Test factories for Posts, Users, Modules, Templates, Webhooks
+- ✅ Integration tests for post CRUD operations
+- ✅ Integration tests for modules and revisions
+- ✅ Integration tests for import/export
+
+**Factories Usage:**
+```typescript
+import { PostFactory, UserFactory, ModuleInstanceFactory } from '#database/factories'
+
+// Create a published blog post
+const post = await PostFactory.apply('blog').apply('published').create()
+
+// Create an admin user
+const admin = await UserFactory.apply('admin').create()
+
+// Create multiple drafts
+const drafts = await PostFactory.apply('draft').createMany(5)
+```
+
+How to test:
+1. Run all tests: `node ace test`
+2. Run functional tests: `node ace test functional`
+3. Run with watch: `node ace test --watch`
+
+## Environment Variables (New)
+
+```env
+# Database Pool
+DB_POOL_MIN=2
+DB_POOL_MAX=10
+DB_DEBUG=false
+
+# CMS Configuration
+CMS_REVISIONS_LIMIT=20
+CMS_PREVIEW_EXPIRATION_HOURS=24
+CMS_PREVIEW_SECRET=your-preview-secret
+CMS_SOFT_DELETE_ENABLED=true
+CMS_SOFT_DELETE_RETENTION_DAYS=30
+
+# Rate Limiting
+CMS_RATE_LIMIT_REQUESTS=100
+CMS_RATE_LIMIT_WINDOW=60
+CMS_RATE_LIMIT_AUTH_REQUESTS=5
+CMS_RATE_LIMIT_AUTH_WINDOW=60
+CMS_RATE_LIMIT_API_REQUESTS=120
+CMS_RATE_LIMIT_API_WINDOW=60
+
+# Webhooks
+CMS_WEBHOOKS_ENABLED=false
+CMS_WEBHOOK_TIMEOUT=5000
+CMS_WEBHOOK_MAX_RETRIES=3
+CMS_WEBHOOK_SECRET=
+
+# Cache
+CMS_SSR_CACHE_TTL=3600
+CMS_PUBLIC_MAX_AGE=60
+CMS_CDN_MAX_AGE=3600
+CMS_SWR=604800
+```
 
 ## Local Development
 - Install dependencies: `npm install`

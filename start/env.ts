@@ -46,12 +46,85 @@ export default await Env.create(new URL('../', import.meta.url), {
 
   REDIS_HOST: Env.schema.string({ format: 'host' }),
   REDIS_PORT: Env.schema.number(),
-  REDIS_PASSWORD: Env.schema.string.optional()
-  ,
+  REDIS_PASSWORD: Env.schema.string.optional(),
+
   /*
   |----------------------------------------------------------
-  | CMS / Revisions
+  | Database Pool
   |----------------------------------------------------------
   */
-  CMS_REVISIONS_LIMIT: Env.schema.number.optional()
+  DB_POOL_MIN: Env.schema.number.optional(),
+  DB_POOL_MAX: Env.schema.number.optional(),
+  DB_DEBUG: Env.schema.boolean.optional(),
+
+  /*
+  |----------------------------------------------------------
+  | CMS Configuration
+  |----------------------------------------------------------
+  */
+  CMS_REVISIONS_LIMIT: Env.schema.number.optional(),
+  CMS_REVISIONS_AUTO_PRUNE: Env.schema.boolean.optional(),
+  CMS_PREVIEW_EXPIRATION_HOURS: Env.schema.number.optional(),
+  CMS_PREVIEW_SECRET: Env.schema.string.optional(),
+  CMS_SOFT_DELETE_ENABLED: Env.schema.boolean.optional(),
+  CMS_SOFT_DELETE_RETENTION_DAYS: Env.schema.number.optional(),
+
+  /*
+  |----------------------------------------------------------
+  | Media
+  |----------------------------------------------------------
+  */
+  MEDIA_UPLOAD_DIR: Env.schema.string.optional(),
+  MEDIA_MAX_FILE_SIZE: Env.schema.number.optional(),
+  MEDIA_ALLOWED_TYPES: Env.schema.string.optional(),
+  MEDIA_DERIVATIVES: Env.schema.string.optional(),
+  MEDIA_ADMIN_THUMBNAIL_VARIANT: Env.schema.string.optional(),
+  MEDIA_ADMIN_MODAL_VARIANT: Env.schema.string.optional(),
+
+  /*
+  |----------------------------------------------------------
+  | Cache
+  |----------------------------------------------------------
+  */
+  CMS_SSR_CACHE_TTL: Env.schema.number.optional(),
+  CMS_PUBLIC_MAX_AGE: Env.schema.number.optional(),
+  CMS_CDN_MAX_AGE: Env.schema.number.optional(),
+  CMS_SWR: Env.schema.number.optional(),
+
+  /*
+  |----------------------------------------------------------
+  | Rate Limiting
+  |----------------------------------------------------------
+  */
+  CMS_RATE_LIMIT_REQUESTS: Env.schema.number.optional(),
+  CMS_RATE_LIMIT_WINDOW: Env.schema.number.optional(),
+  CMS_RATE_LIMIT_AUTH_REQUESTS: Env.schema.number.optional(),
+  CMS_RATE_LIMIT_AUTH_WINDOW: Env.schema.number.optional(),
+  CMS_RATE_LIMIT_API_REQUESTS: Env.schema.number.optional(),
+  CMS_RATE_LIMIT_API_WINDOW: Env.schema.number.optional(),
+
+  /*
+  |----------------------------------------------------------
+  | Webhooks
+  |----------------------------------------------------------
+  */
+  CMS_WEBHOOKS_ENABLED: Env.schema.boolean.optional(),
+  CMS_WEBHOOK_TIMEOUT: Env.schema.number.optional(),
+  CMS_WEBHOOK_MAX_RETRIES: Env.schema.number.optional(),
+  CMS_WEBHOOK_SECRET: Env.schema.string.optional(),
+
+  /*
+  |----------------------------------------------------------
+  | Agents
+  |----------------------------------------------------------
+  */
+  CMS_AGENTS: Env.schema.string.optional(),
+
+  /*
+  |----------------------------------------------------------
+  | Scheduler
+  |----------------------------------------------------------
+  */
+  CMS_SCHEDULER_DEV_INTERVAL: Env.schema.number.optional(),
+  CMS_SCHEDULER_PROD_INTERVAL: Env.schema.number.optional(),
 })

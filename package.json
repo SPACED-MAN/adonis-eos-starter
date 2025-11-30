@@ -40,6 +40,8 @@
     "@adonisjs/eslint-config": "^2.0.0",
     "@adonisjs/prettier-config": "^1.4.4",
     "@adonisjs/tsconfig": "^1.4.0",
+    "@faker-js/faker": "^10.1.0",
+    "@japa/api-client": "^3.1.0",
     "@japa/assert": "^4.0.1",
     "@japa/plugin-adonisjs": "^4.0.0",
     "@japa/runner": "^4.2.0",
@@ -74,6 +76,7 @@
     "@adonisjs/shield": "^8.2.0",
     "@adonisjs/static": "^1.1.1",
     "@adonisjs/vite": "^4.0.0",
+    "@aws-sdk/client-s3": "^3.745.0",
     "@dnd-kit/core": "^6.3.1",
     "@dnd-kit/sortable": "^10.0.0",
     "@dnd-kit/utilities": "^3.2.2",
@@ -105,11 +108,10 @@
     "react-day-picker": "^9.11.1",
     "react-dom": "^19.2.0",
     "reflect-metadata": "^0.2.2",
+    "sharp": "^0.33.2",
     "sonner": "^2.0.7",
     "tailwind-merge": "^3.4.0",
-    "tailwindcss-animate": "^1.0.7",
-    "sharp": "^0.33.2",
-    "@aws-sdk/client-s3": "^3.745.0"
+    "tailwindcss-animate": "^1.0.7"
   },
   "hotHook": {
     "boundaries": [

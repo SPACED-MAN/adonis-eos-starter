@@ -1,7 +1,11 @@
 import { assert } from '@japa/assert'
+import { apiClient, ApiClient } from '@japa/api-client'
 import app from '@adonisjs/core/services/app'
 import type { Config } from '@japa/runner/types'
 import { pluginAdonisJS } from '@japa/plugin-adonisjs'
+import { sessionApiClient } from '@adonisjs/session/plugins/api_client'
+import { shieldApiClient } from '@adonisjs/shield/plugins/api_client'
+import { authApiClient } from '@adonisjs/auth/plugins/api_client'
 import testUtils from '@adonisjs/core/services/test_utils'
 
 /**
@@ -10,9 +14,25 @@ import testUtils from '@adonisjs/core/services/test_utils'
 
 /**
  * Configure Japa plugins in the plugins array.
- * Learn more - https://japa.dev/docs/runner-config#plugins-optional
+ * Note: Order matters!
+ * 1. apiClient provides the HTTP testing client
+ * 2. pluginAdonisJS extends Japa context with AdonisJS-specific helpers
+ * 3. sessionApiClient wires up session cookies + withSession helpers
+ * 4. shieldApiClient generates CSRF secrets/tokens for mutating requests
+ * 5. authApiClient adds loginAs/withGuard for authentication
  */
-export const plugins: Config['plugins'] = [assert(), pluginAdonisJS(app)]
+export const plugins: Config['plugins'] = [
+  assert(),
+  apiClient(),
+  pluginAdonisJS(app),
+  sessionApiClient(app),
+  shieldApiClient(),
+  authApiClient(app),
+]
+
+ApiClient.onRequest((request) => {
+  request.header('accept', 'application/json')
+})
 
 /**
  * Configure lifecycle function to run before and after all the
