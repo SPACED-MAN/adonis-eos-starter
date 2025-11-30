@@ -273,7 +273,7 @@ export default class extends BaseSeeder {
         }
       }
 
-      // Only seed modules if this catalog page has no modules attached yet
+      // Only seed initial modules if this catalog page has no modules attached yet
       const existingCatalogModules = await db
         .from('post_modules')
         .where('post_id', catalogPost.id)
@@ -409,6 +409,27 @@ export default class extends BaseSeeder {
           })
           .returning('*')
 
+        const [heroWithCalloutInstance] = await db
+          .table('module_instances')
+          .insert({
+            type: 'hero-with-callout',
+            scope: 'post',
+            props: {
+              title: 'We invest in the world’s potential',
+              subtitle:
+                'This hero demonstrates a centered layout using neutral project tokens.',
+              primaryCta: {
+                label: 'Explore modules',
+                url: '#',
+                target: '_self',
+              },
+              backgroundColor: 'bg-backdrop-low',
+            },
+            created_at: nowTs,
+            updated_at: nowTs,
+          })
+          .returning('*')
+
         const [kitchenSinkInstance] = await db
           .table('module_instances')
           .insert({
@@ -460,9 +481,10 @@ export default class extends BaseSeeder {
         const catalogModulesToAttach = [
           { instanceId: heroInstance.id, orderIndex: 0 },
           { instanceId: heroWithMediaInstance.id, orderIndex: 1 },
-          { instanceId: proseInstance.id, orderIndex: 2 },
-          { instanceId: feedInstance.id, orderIndex: 3 },
-          { instanceId: kitchenSinkInstance.id, orderIndex: 4 },
+          { instanceId: heroWithCalloutInstance.id, orderIndex: 2 },
+          { instanceId: proseInstance.id, orderIndex: 3 },
+          { instanceId: feedInstance.id, orderIndex: 4 },
+          { instanceId: kitchenSinkInstance.id, orderIndex: 5 },
         ]
 
         for (const row of catalogModulesToAttach) {
@@ -476,9 +498,73 @@ export default class extends BaseSeeder {
           })
         }
 
-        console.log('✅ Seeded Module Catalog modules (hero, hero-with-media, prose, feed)')
+        console.log('✅ Seeded Module Catalog modules (hero, hero-with-media, hero-centered, prose, feed, kitchen-sink)')
       } else {
-        console.log('ℹ️ Module Catalog already has modules; skipping module seeding')
+        console.log('ℹ️ Module Catalog already has modules; skipping initial module seeding')
+
+        // Ensure the new "hero-with-callout" module type is present and attached for existing catalogs
+        const existingHeroCentered = await db
+          .from('module_instances')
+          .where({ type: 'hero-with-callout', scope: 'post' })
+          .first()
+
+        let heroCenteredInstance: any = existingHeroCentered
+        if (!heroCenteredInstance) {
+          const [createdHeroCentered] = await db
+            .table('module_instances')
+            .insert({
+              type: 'hero-with-callout',
+              scope: 'post',
+              props: {
+                title: 'We invest in the world’s potential',
+                subtitle:
+                  'This hero demonstrates a centered layout using neutral project tokens.',
+                primaryCta: {
+                  label: 'Explore modules',
+                  url: '#',
+                  target: '_self',
+                },
+                backgroundColor: 'bg-backdrop-low',
+              },
+              created_at: nowTs,
+              updated_at: nowTs,
+            })
+            .returning('*')
+          heroCenteredInstance = createdHeroCentered
+          console.log('✅ Created hero-with-callout module instance for existing Module Catalog')
+        } else {
+          console.log('ℹ️ hero-with-callout module instance already exists; skipping create')
+        }
+
+        // Attach hero-with-callout to the catalog post if not already attached
+        const existingAttachment = await db
+          .from('post_modules')
+          .where({
+            post_id: catalogPost.id,
+            module_id: heroCenteredInstance.id,
+          })
+          .first()
+
+        if (!existingAttachment) {
+          const maxOrder = await db
+            .from('post_modules')
+            .where('post_id', catalogPost.id)
+            .max('order_index as max')
+          const nextOrder = Number((maxOrder[0] as any)?.max ?? 0) + 1
+
+          await db.table('post_modules').insert({
+            post_id: catalogPost.id,
+            module_id: heroCenteredInstance.id,
+            order_index: nextOrder,
+            overrides: null,
+            created_at: nowTs,
+            updated_at: nowTs,
+          })
+
+          console.log('✅ Attached hero-with-callout module to existing Module Catalog')
+        } else {
+          console.log('ℹ️ hero-with-callout module already attached to Module Catalog; skipping attach')
+        }
       }
     }
 

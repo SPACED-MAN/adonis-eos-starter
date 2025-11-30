@@ -95,6 +95,8 @@ function getModuleComponent(componentName: string): ComponentType<any> | null {
     'accordion': Modules.Accordion,
     'kitchen-sink': Modules.KitchenSink,
     'feed': Modules.Feed,
+    'hero-with-media': Modules.HeroWithMedia,
+    'hero-with-callout': Modules.HeroWithCallout,
   }
 
   return componentMap[componentName] || null
