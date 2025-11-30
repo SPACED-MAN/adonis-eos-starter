@@ -204,7 +204,250 @@ export default class extends BaseSeeder {
     ])
     console.log('✅ Created URL redirects (en, es)')
 
-    // Test 8-10: Custom fields (code-first only): store by slug in post_custom_field_values
+    // Test 8: Seed a "Module Catalog" page showcasing available modules (development helper)
+    {
+      const nowTs = new Date()
+      // Ensure a page-type post exists for the catalog
+      const [catalogPostRow] = await db
+        .from('posts')
+        .where({ type: 'page', slug: 'module-catalog', locale: 'en' })
+        .limit(1)
+      let catalogPost: any = catalogPostRow
+
+      if (!catalogPost) {
+        const [createdCatalogPost] = await db
+          .table('posts')
+          .insert({
+            type: 'page',
+            slug: 'module-catalog',
+            title: 'Module Catalog',
+            excerpt: 'Showcase of all content modules with sample configurations.',
+            status: 'draft',
+            locale: 'en',
+            user_id: user.id,
+            meta_title: 'Module Catalog',
+            meta_description: 'Showcase of all content modules for design and QA.',
+            robots_json: JSON.stringify({ index: false, follow: true }),
+            created_at: nowTs,
+            updated_at: nowTs,
+          })
+          .returning('*')
+        catalogPost = createdCatalogPost
+        console.log('✅ Created Module Catalog post:', catalogPost.slug)
+      } else {
+        console.log('✅ Module Catalog post already exists, skipping create')
+      }
+
+      // Only seed modules if this catalog page has no modules attached yet
+      const existingCatalogModules = await db
+        .from('post_modules')
+        .where('post_id', catalogPost.id)
+        .count('* as total')
+      const existingCount = Number((existingCatalogModules[0] as any)?.total || 0)
+
+      if (existingCount === 0) {
+        // Optionally seed a demo media asset for modules that showcase imagery
+        const [existingDemoMedia] = await db
+          .from('media_assets')
+          .where('original_filename', 'demo-kitchen-sink.svg')
+          .limit(1)
+
+        let demoMedia = existingDemoMedia as any
+        if (!demoMedia) {
+          const thumbVariant = {
+            name: 'thumb',
+            url: '/uploads/demo-kitchen-sink.svg',
+            width: null,
+            height: null,
+            size: 0,
+          }
+
+          const [createdDemoMedia] = await db
+            .table('media_assets')
+            .insert({
+              url: '/uploads/demo-kitchen-sink.svg',
+              original_filename: 'demo-kitchen-sink.svg',
+              mime_type: 'image/svg+xml',
+              size: 0,
+              alt_text: 'Kitchen Sink demo image',
+              caption: 'Placeholder image for the Kitchen Sink module example.',
+              description: 'Demo illustration used to showcase the Kitchen Sink module media field.',
+              categories: db.raw('ARRAY[]::text[]') as any,
+              metadata: { variants: [thumbVariant] } as any,
+              created_at: nowTs,
+              updated_at: nowTs,
+            })
+            .returning('*')
+          demoMedia = createdDemoMedia
+          console.log('✅ Seeded demo media asset for Kitchen Sink:', (demoMedia as any).id)
+        } else {
+          console.log('✅ Demo media asset for Kitchen Sink already exists, skipping create')
+        }
+
+        // Create a few illustrative modules; keep simple and deterministic
+        const [heroInstance] = await db
+          .table('module_instances')
+          .insert({
+            type: 'hero',
+            scope: 'post',
+            props: {
+              title: 'Hero (Static)',
+              subtitle: 'Classic hero module using static SSR rendering.',
+            },
+            created_at: nowTs,
+            updated_at: nowTs,
+          })
+          .returning('*')
+
+        const [heroWithMediaInstance] = await db
+          .table('module_instances')
+          .insert({
+            type: 'hero-with-media',
+            scope: 'post',
+            props: {
+              title: 'Hero with Media',
+              subtitle:
+                'Two-column hero with media and dual CTAs. Uses project-neutral color tokens.',
+              image: (demoMedia as any).id,
+              imageAlt: 'Hero with Media example',
+              imagePosition: 'right',
+              primaryCta: {
+                label: 'Get started',
+                url: '#',
+                style: 'primary',
+                target: '_self',
+              },
+              secondaryCta: {
+                label: 'Speak to Sales',
+                url: '#',
+                style: 'outline',
+                target: '_self',
+              },
+              backgroundColor: 'bg-backdrop-low',
+            },
+            created_at: nowTs,
+            updated_at: nowTs,
+          })
+          .returning('*')
+
+        const [proseInstance] = await db
+          .table('module_instances')
+          .insert({
+            type: 'prose',
+            scope: 'post',
+            props: {
+              content: {
+                root: {
+                  type: 'root',
+                  children: [
+                    {
+                      type: 'paragraph',
+                      children: [
+                        {
+                          type: 'text',
+                          text: 'This is the Prose module, rendering rich text content.',
+                        },
+                      ],
+                    },
+                  ],
+                },
+              },
+            },
+            created_at: nowTs,
+            updated_at: nowTs,
+          })
+          .returning('*')
+
+        const [feedInstance] = await db
+          .table('module_instances')
+          .insert({
+            type: 'feed',
+            scope: 'post',
+            props: {
+              title: 'Recent Blog Posts',
+              postTypes: ['blog'],
+              limit: 5,
+              showExcerpt: true,
+            },
+            created_at: nowTs,
+            updated_at: nowTs,
+          })
+          .returning('*')
+
+        const [kitchenSinkInstance] = await db
+          .table('module_instances')
+          .insert({
+            type: 'kitchen-sink',
+            scope: 'post',
+            props: {
+              title: 'Kitchen Sink Demo',
+              description: 'Demonstration of all supported field types, including media.',
+              count: 3,
+              category: 'general',
+              tags: ['alpha', 'beta'],
+              featured: true,
+              publishDate: new Date().toISOString().slice(0, 10),
+              linkUrl: 'https://example.com',
+              image: (demoMedia as any).id,
+              imageVariant: 'large',
+              metadata: {
+                author: 'Demo Author',
+                readingTime: 5,
+                attributionRequired: false,
+              },
+              items: [
+                { label: 'First', value: 'One', highlight: true },
+                { label: 'Second', value: 'Two', highlight: false },
+              ],
+              content: {
+                root: {
+                  type: 'root',
+                  children: [
+                    {
+                      type: 'paragraph',
+                      children: [
+                        {
+                          type: 'text',
+                          text: 'This is a rich text field powered by Lexical, shown inside the Kitchen Sink example.',
+                        },
+                      ],
+                    },
+                  ],
+                },
+              },
+            },
+            created_at: nowTs,
+            updated_at: nowTs,
+          })
+          .returning('*')
+
+        // Attach in a sensible order near the top of the page
+        const catalogModulesToAttach = [
+          { instanceId: heroInstance.id, orderIndex: 0 },
+          { instanceId: heroWithMediaInstance.id, orderIndex: 1 },
+          { instanceId: proseInstance.id, orderIndex: 2 },
+          { instanceId: feedInstance.id, orderIndex: 3 },
+          { instanceId: kitchenSinkInstance.id, orderIndex: 4 },
+        ]
+
+        for (const row of catalogModulesToAttach) {
+          await db.table('post_modules').insert({
+            post_id: catalogPost.id,
+            module_id: row.instanceId,
+            order_index: row.orderIndex,
+            overrides: null,
+            created_at: nowTs,
+            updated_at: nowTs,
+          })
+        }
+
+        console.log('✅ Seeded Module Catalog modules (hero, hero-with-media, prose, feed)')
+      } else {
+        console.log('ℹ️ Module Catalog already has modules; skipping module seeding')
+      }
+    }
+
+    // Test 9-11: Custom fields (code-first only): store by slug in post_custom_field_values
     try {
       await db.table('post_custom_field_values').insert({
         id: crypto.randomUUID(),

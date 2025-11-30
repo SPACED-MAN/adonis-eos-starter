@@ -11,9 +11,11 @@ import ProseModule from '#modules/prose'
 import KitchenSinkModule from '#modules/kitchen_sink'
 import FeedModule from '#modules/feed'
 import BlogNoteModule from '#modules/blog_note'
+import HeroWithMediaModule from '#modules/hero_with_media'
 
-// Register Hero module
+// Register Hero modules
 moduleRegistry.register(new HeroModule())
+moduleRegistry.register(new HeroWithMediaModule())
 // Register Prose module
 moduleRegistry.register(new ProseModule())
 // Register Kitchen Sink module (demo)

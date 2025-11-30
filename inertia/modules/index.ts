@@ -18,6 +18,7 @@ export { default as Gallery } from './gallery'
 export { default as Accordion } from './accordion'
 export { default as KitchenSink } from './kitchen-sink'
 export { default as Feed } from './feed'
+export { default as HeroWithMedia } from './hero-with-media'
 
 /**
  * Module component map for dynamic imports
@@ -33,6 +34,7 @@ export const MODULE_COMPONENTS = {
   'accordion': () => import('./accordion'),
   'kitchen-sink': () => import('./kitchen-sink'),
   'feed': () => import('./feed'),
+  'hero-with-media': () => import('./hero-with-media'),
 } as const
 
 export type ModuleComponentName = keyof typeof MODULE_COMPONENTS
