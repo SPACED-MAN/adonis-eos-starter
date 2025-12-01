@@ -1,6 +1,5 @@
 import { test } from '@japa/runner'
 import moduleRegistry from '#services/module_registry'
-import HeroModule from '#modules/hero'
 import ProseModule from '#modules/prose'
 
 test.group('Module Registry', (group) => {
@@ -10,31 +9,31 @@ test.group('Module Registry', (group) => {
   })
 
   test('should register a module', ({ assert }) => {
-    const heroModule = new HeroModule()
-    moduleRegistry.register(heroModule)
+    const proseModule = new ProseModule()
+    moduleRegistry.register(proseModule)
 
-    assert.isTrue(moduleRegistry.has('hero'))
+    assert.isTrue(moduleRegistry.has('prose'))
     assert.equal(moduleRegistry.count(), 1)
   })
 
   test('should throw error when registering duplicate module type', ({ assert }) => {
-    const heroModule1 = new HeroModule()
-    const heroModule2 = new HeroModule()
+    const proseModule1 = new ProseModule()
+    const proseModule2 = new ProseModule()
 
-    moduleRegistry.register(heroModule1)
+    moduleRegistry.register(proseModule1)
 
     assert.throws(
-      () => moduleRegistry.register(heroModule2),
-      "Module type 'hero' is already registered"
+      () => moduleRegistry.register(proseModule2),
+      "Module type 'prose' is already registered"
     )
   })
 
   test('should get registered module', ({ assert }) => {
-    const heroModule = new HeroModule()
-    moduleRegistry.register(heroModule)
+    const proseModule = new ProseModule()
+    moduleRegistry.register(proseModule)
 
-    const retrieved = moduleRegistry.get('hero')
-    assert.instanceOf(retrieved, HeroModule)
+    const retrieved = moduleRegistry.get('prose')
+    assert.instanceOf(retrieved, ProseModule)
   })
 
   test('should throw error when getting unregistered module', ({ assert }) => {
@@ -45,55 +44,48 @@ test.group('Module Registry', (group) => {
   })
 
   test('should return all module types', ({ assert }) => {
-    moduleRegistry.register(new HeroModule())
     moduleRegistry.register(new ProseModule())
 
     const types = moduleRegistry.getTypes()
-    assert.lengthOf(types, 2)
-    assert.includeMembers(types, ['hero', 'prose'])
+    assert.lengthOf(types, 1)
+    assert.includeMembers(types, ['prose'])
   })
 
   test('should return all module configurations', ({ assert }) => {
-    moduleRegistry.register(new HeroModule())
     moduleRegistry.register(new ProseModule())
 
     const configs = moduleRegistry.getAllConfigs()
-    assert.lengthOf(configs, 2)
-    assert.equal(configs[0].type, 'hero')
-    assert.equal(configs[1].type, 'prose')
+    assert.lengthOf(configs, 1)
+    assert.equal(configs[0].type, 'prose')
   })
 
   test('should filter modules by post type', ({ assert }) => {
-    moduleRegistry.register(new HeroModule())
     moduleRegistry.register(new ProseModule())
 
-    // Both modules have empty allowedPostTypes, so they should be available for all
+    // Empty allowedPostTypes means available for all post types
     const blogModules = moduleRegistry.getModulesForPostType('blog')
-    assert.lengthOf(blogModules, 2)
+    assert.lengthOf(blogModules, 1)
 
     const pageModules = moduleRegistry.getModulesForPostType('page')
-    assert.lengthOf(pageModules, 2)
+    assert.lengthOf(pageModules, 1)
   })
 
   test('should get module schema', ({ assert }) => {
-    moduleRegistry.register(new HeroModule())
+    moduleRegistry.register(new ProseModule())
 
-    const schema = moduleRegistry.getSchema('hero')
-    assert.equal(schema.type, 'hero')
-    assert.equal(schema.name, 'Hero Section')
+    const schema = moduleRegistry.getSchema('prose')
+    assert.equal(schema.type, 'prose')
     assert.isDefined(schema.propsSchema)
     assert.isDefined(schema.defaultProps)
     assert.isArray(schema.allowedScopes)
   })
 
   test('should get all module schemas', ({ assert }) => {
-    moduleRegistry.register(new HeroModule())
     moduleRegistry.register(new ProseModule())
 
     const schemas = moduleRegistry.getAllSchemas()
-    assert.lengthOf(schemas, 2)
-    assert.equal(schemas[0].type, 'hero')
-    assert.equal(schemas[1].type, 'prose')
+    assert.lengthOf(schemas, 1)
+    assert.equal(schemas[0].type, 'prose')
   })
 })
 

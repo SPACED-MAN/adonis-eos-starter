@@ -53,11 +53,11 @@ export default class extends BaseSeeder {
       console.log('✅ Template exists:', (template as any).name)
     }
 
-    // Test 2: Add modules to template
+    // Test 2: Add modules to template (use hero-with-callout as default hero)
     await db.table('template_modules').insert({
       template_id: template.id,
-      type: 'hero',
-      default_props: JSON.stringify({ title: 'Default Hero' }),
+      type: 'hero-with-callout',
+      default_props: JSON.stringify({ title: 'Default Hero', subtitle: 'Powered by modules' }),
       order_index: 0,
       locked: true,
       created_at: new Date(),
@@ -126,10 +126,10 @@ export default class extends BaseSeeder {
       console.log(`✅ Seeded ${bulkRows.length} additional posts for pagination testing`)
     }
 
-    // Test 4: Create global module
+    // Test 4: Create global module (use hero-with-callout instead of legacy hero)
     const [globalModule] = await db.table('module_instances').insert({
       scope: 'global',
-      type: 'hero',
+      type: 'hero-with-callout',
       global_slug: 'main-hero',
       props: JSON.stringify({ title: 'Welcome', subtitle: 'To our site' }),
       created_at: new Date(),
@@ -348,13 +348,13 @@ export default class extends BaseSeeder {
               imagePosition: 'right',
               primaryCta: {
                 label: 'Get started',
-                url: '#',
+                url: { kind: 'url', url: '#' },
                 style: 'primary',
                 target: '_self',
               },
               secondaryCta: {
                 label: 'Speak to Sales',
-                url: '#',
+                url: { kind: 'url', url: '#' },
                 style: 'outline',
                 target: '_self',
               },
@@ -420,7 +420,7 @@ export default class extends BaseSeeder {
                 'This hero demonstrates a centered layout using neutral project tokens.',
               primaryCta: {
                 label: 'Explore modules',
-                url: '#',
+                url: { kind: 'url', url: '#' },
                 target: '_self',
               },
               backgroundColor: 'bg-backdrop-low',
@@ -502,6 +502,24 @@ export default class extends BaseSeeder {
           })
           .returning('*')
 
+        const [statisticsInstance] = await db
+          .table('module_instances')
+          .insert({
+            type: 'statistics',
+            scope: 'post',
+            props: {
+              stats: [
+                { value: 73_000_000, suffix: 'M+', label: 'developers' },
+                { value: 1_000_000_000, suffix: 'B+', label: 'contributors' },
+                { value: 4_000_000, suffix: 'M+', label: 'organizations' },
+              ],
+              backgroundColor: 'bg-backdrop-low',
+            },
+            created_at: nowTs,
+            updated_at: nowTs,
+          })
+          .returning('*')
+
         const [kitchenSinkInstance] = await db
           .table('module_instances')
           .insert({
@@ -556,9 +574,10 @@ export default class extends BaseSeeder {
           { instanceId: heroWithCalloutInstance.id, orderIndex: 2 },
           { instanceId: featuresListInstance.id, orderIndex: 3 },
           { instanceId: proseWithMediaInstance.id, orderIndex: 4 },
-          { instanceId: proseInstance.id, orderIndex: 5 },
-          { instanceId: feedInstance.id, orderIndex: 6 },
-          { instanceId: kitchenSinkInstance.id, orderIndex: 7 },
+          { instanceId: statisticsInstance.id, orderIndex: 5 },
+          { instanceId: proseInstance.id, orderIndex: 6 },
+          { instanceId: feedInstance.id, orderIndex: 7 },
+          { instanceId: kitchenSinkInstance.id, orderIndex: 8 },
         ]
 
         for (const row of catalogModulesToAttach) {

@@ -12,11 +12,20 @@ class ModuleInstanceFactoryBuilder {
 
   private definition() {
     return {
-      type: 'hero',
+      type: 'prose',
       scope: 'post' as const,
       props: {
-        title: faker.lorem.sentence(),
-        subtitle: faker.lorem.sentence(),
+        content: {
+          root: {
+            type: 'root',
+            children: [
+              {
+                type: 'paragraph',
+                children: [{ type: 'text', text: faker.lorem.paragraphs(2) }],
+              },
+            ],
+          },
+        },
       },
       globalSlug: null,
     }
@@ -40,15 +49,8 @@ class ModuleInstanceFactoryBuilder {
   }
 
   hero(): ModuleInstanceFactoryBuilder {
-    return this.merge({
-      type: 'hero',
-      props: {
-        title: faker.lorem.sentence(),
-        subtitle: faker.lorem.sentence(),
-        ctaText: 'Learn More',
-        ctaUrl: '/about',
-      },
-    })
+    // Kept for backwards compatibility in tests; now aliases to prose module
+    return this.prose()
   }
 
   prose(): ModuleInstanceFactoryBuilder {
