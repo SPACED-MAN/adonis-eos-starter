@@ -152,7 +152,6 @@ How to test:
 **Implemented:**
 - ✅ Base Module system with `BaseModule` class and type definitions
 - ✅ Module Registry service for managing available modules
-<!-- Legacy: HeroModule has been replaced by newer hero variants (hero-with-media, hero-with-callout) -->
 - ✅ `ProseModule` with Lexical JSON SSR (paragraphs, headings, lists, formatting)
 - ✅ Module Renderer service (props merging, locale context, JSON-LD generation)
 - ✅ Module Scope service (enforce which modules work with which post types)
@@ -715,7 +714,7 @@ How to test (Milestone 19):
 
 Notes:
 - Post type templates and URL patterns are synced on boot from code configs (idempotent).
-- Seeders were updated to code-first custom fields; legacy custom_fields/table usage removed.
+- Seeders use code-first custom fields; the old `custom_fields` table usage was removed.
 
 ### Milestone 20 — Activity Log (✅ Complete)
 - DB: `activity_logs` (user_id, action, entity_type, entity_id, metadata jsonb, ip, user_agent, created_at)

@@ -5,7 +5,7 @@
  * Components are dynamically imported based on module type from backend.
  * 
  * Naming convention:
- * - Static modules: '{type}-static' → hero-static.tsx
+ * - Static modules: '{type}-static' → prose-static.tsx
  * - React modules: '{type}' → gallery.tsx
  */
 

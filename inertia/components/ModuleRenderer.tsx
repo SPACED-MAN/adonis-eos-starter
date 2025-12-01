@@ -5,11 +5,11 @@
  * Used in both admin (preview) and public site (rendering).
  * 
  * Supports two rendering strategies:
- * 1. Static modules: Pre-rendered HTML from server (hero-static, prose-static)
+ * 1. Static modules: Pre-rendered HTML from server (e.g. prose-static)
  * 2. React modules: Client-side components with interactivity (gallery, accordion)
  */
 
-import { ComponentType, lazy, Suspense } from 'react'
+import { ComponentType, Suspense } from 'react'
 
 // Import module registry
 import * as Modules from '../modules'
@@ -67,7 +67,7 @@ function ReactModuleRenderer({
   if (!Component) {
     console.error(`Module component not found: ${componentName}`)
     return (
-      <div className="border border-error bg-[color:#fef2f2] p-4 rounded">
+      <div className="border border-error bg-[#fef2f2] p-4 rounded">
         <p className="text-error">
           Module not found: <code>{componentName}</code>
         </p>

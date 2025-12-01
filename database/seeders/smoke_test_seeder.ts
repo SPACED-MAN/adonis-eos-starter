@@ -238,7 +238,7 @@ export default class extends BaseSeeder {
         console.log('✅ Module Catalog post already exists, skipping create')
       }
 
-      // Repair legacy demo media asset if it still points at the old demo-kitchen-sink.svg or demo-content.svg
+      // Repair demo media asset if it still points at the old demo-kitchen-sink.svg or demo-content.svg
       {
         const [legacyDemo] = await db
           .from('media_assets')
@@ -269,7 +269,7 @@ export default class extends BaseSeeder {
               updated_at: nowRepair,
             } as any)
 
-          console.log('🛠 Repaired legacy demo media asset to use demo-placeholder.jpg placeholder')
+          console.log('🛠 Repaired demo media asset to use demo-placeholder.jpg placeholder')
         }
       }
 

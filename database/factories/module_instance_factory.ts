@@ -48,11 +48,6 @@ class ModuleInstanceFactoryBuilder {
     return clone
   }
 
-  hero(): ModuleInstanceFactoryBuilder {
-    // Kept for backwards compatibility in tests; now aliases to prose module
-    return this.prose()
-  }
-
   prose(): ModuleInstanceFactoryBuilder {
     return this.merge({
       type: 'prose',
