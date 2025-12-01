@@ -31,7 +31,7 @@ export default abstract class BaseModule {
    * Component file name in inertia/modules/
    *
    * Convention:
-   * - Static modules: 'hero-static' (renders from hero-static.tsx)
+   * - Static modules: 'prose-static' (renders from prose-static.tsx)
    * - React modules: 'hero' (renders from hero.tsx)
    */
   getComponentName(): string {

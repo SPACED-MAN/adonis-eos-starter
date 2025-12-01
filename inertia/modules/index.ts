@@ -10,7 +10,6 @@
  */
 
 // Static modules (pure SSR, max performance)
-export { default as HeroStatic } from './hero-static'
 export { default as ProseStatic } from './prose-static'
 
 // React modules (SSR + hydration, interactive)
@@ -22,6 +21,7 @@ export { default as HeroWithMedia } from './hero-with-media'
 export { default as HeroWithCallout } from './hero-with-callout'
 export { default as FeaturesList } from './features-list'
 export { default as ProseWithMedia } from './prose-with-media'
+export { default as Statistics } from './statistics'
 
 /**
  * Module component map for dynamic imports
@@ -29,7 +29,6 @@ export { default as ProseWithMedia } from './prose-with-media'
  */
 export const MODULE_COMPONENTS = {
   // Static variants
-  'hero-static': () => import('./hero-static'),
   'prose-static': () => import('./prose-static'),
 
   // React variants
@@ -41,6 +40,7 @@ export const MODULE_COMPONENTS = {
   'hero-with-callout': () => import('./hero-with-callout'),
   'features-list': () => import('./features-list'),
   'prose-with-media': () => import('./prose-with-media'),
+  'statistics': () => import('./statistics'),
 } as const
 
 export type ModuleComponentName = keyof typeof MODULE_COMPONENTS

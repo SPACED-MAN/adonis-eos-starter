@@ -89,7 +89,6 @@ function ReactModuleRenderer({
 function getModuleComponent(componentName: string): ComponentType<any> | null {
   // Map component names to actual components
   const componentMap: Record<string, ComponentType<any>> = {
-    'hero-static': Modules.HeroStatic,
     'prose-static': Modules.ProseStatic,
     'gallery': Modules.Gallery,
     'accordion': Modules.Accordion,
@@ -99,6 +98,7 @@ function getModuleComponent(componentName: string): ComponentType<any> | null {
     'hero-with-callout': Modules.HeroWithCallout,
     'features-list': Modules.FeaturesList,
     'prose-with-media': Modules.ProseWithMedia,
+    'statistics': Modules.Statistics,
   }
 
   return componentMap[componentName] || null
