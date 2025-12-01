@@ -34,31 +34,8 @@ export default class ProseModule extends BaseModule {
           description: 'Rich text content (Lexical JSON)',
           translatable: true,
         },
-        maxWidth: {
-          type: 'string',
-          default: 'max-w-4xl',
-          description: 'Tailwind max-width class',
-        },
-        fontSize: {
-          type: 'string',
-          default: 'text-base',
-          description: 'Tailwind text size class',
-        },
-        backgroundColor: {
-          type: 'string',
-          default: 'bg-transparent',
-          description: 'Tailwind background color classes',
-        },
-        textColor: {
-          type: 'string',
-          default: 'text-neutral-high',
-          description: 'Tailwind text color classes',
-        },
-        padding: {
-          type: 'string',
-          default: 'py-12',
-          description: 'Tailwind padding classes',
-        },
+        // Note: Visual classes (max width, font size, colors, padding) are fixed in code;
+        // editors do not control Tailwind utilities for this module.
       },
       defaultProps: {
         content: {

@@ -84,13 +84,13 @@ A **module** is a self-contained, reusable content component that can be added t
 
 Our module UI intentionally focuses on content that provides value to editors:
 
-- Only expose fields for editorial content (text, copy, image uploads, media URLs).
-- Do not expose design controls like padding, margin, spacing, colors, or arbitrary Tailwind classes.
-- Visual design and layout should be defined in code via Tailwind, not configured per-instance in the editor.
-- Adjustability should be rare; if needed, prefer constrained, semantic variants (e.g., “compact” vs “standard”) over free-form style controls.
-- Any requested style controls should be reviewed and implemented as code-level defaults or design tokens rather than editor fields.
+- Only expose fields for **editorial content** (text, copy, image uploads, media URLs, structured data).
+- **Never expose raw class fields** (e.g., “Background Classes”, arbitrary Tailwind strings) or low-level design controls like padding, margin, spacing, or colors.
+- Visual design, layout, spacing, and color tokens **must be defined in code** (modules + components), not configured per-instance in the editor.
+- If a visual variant is truly needed, prefer **semantic switches** (e.g., `layout: 'stacked' | 'inline'`) over free-form style controls.
+- When in doubt, treat anything that looks like styling as **code-exclusive**, and anything that looks like copy as **editor-facing**.
 
-This keeps content consistent, reduces design drift, and improves maintainability.
+This keeps content consistent, prevents design drift, and aligns with the editorial vs. design separation the project expects.
 
 ---
 

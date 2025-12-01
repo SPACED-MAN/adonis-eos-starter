@@ -29,15 +29,8 @@ export default class HeroWithCalloutModule extends BaseModule {
 					description: 'Primary call-to-action button',
 					properties: {
 						label: { type: 'string', translatable: true },
-						url: { type: 'string' },
-						target: { type: 'string', enum: ['_self', '_blank'], default: '_self' },
+						url: { type: 'link' },
 					},
-				},
-				backgroundColor: {
-					type: 'string',
-					required: false,
-					default: 'bg-backdrop-low',
-					description: 'Tailwind background color classes for the section wrapper',
 				},
 			},
 			defaultProps: {

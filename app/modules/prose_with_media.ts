@@ -66,26 +66,10 @@ export default class ProseWithMediaModule extends BaseModule {
 						},
 						{
 							name: 'url',
-							type: 'url',
-							label: 'URL',
-						},
-						{
-							name: 'target',
-							type: 'select',
-							label: 'Target',
-							options: [
-								{ label: 'Same tab', value: '_self' },
-								{ label: 'New tab', value: '_blank' },
-							],
-							default: '_self',
+							type: 'link',
+							label: 'Destination',
 						},
 					],
-				},
-				backgroundColor: {
-					type: 'text',
-					label: 'Background Classes',
-					default: 'bg-backdrop-low',
-					description: 'Tailwind background classes (use project tokens like bg-backdrop-low).',
 				},
 			},
 			defaultProps: {

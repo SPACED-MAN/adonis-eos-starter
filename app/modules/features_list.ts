@@ -53,12 +53,6 @@ export default class FeaturesListModule extends BaseModule {
 						},
 					},
 				},
-				backgroundColor: {
-					type: 'string',
-					required: false,
-					default: 'bg-backdrop-low',
-					description: 'Tailwind background color classes for the section wrapper',
-				},
 			},
 			defaultProps: {
 				title: 'Designed for business teams like yours',
