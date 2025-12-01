@@ -515,12 +515,15 @@ export function ModuleEditorPanel({
 			const [options, setOptions] = useState<Array<{ label: string; value: string }>>([])
 			const initialVals: string[] = Array.isArray(value) ? value : (value ? [String(value)] : [])
 			const [vals, setVals] = useState<string[]>(initialVals)
+			const [query, setQuery] = useState('')
 			const hiddenRef = useRef<HTMLInputElement | null>(null)
+
 			useEffect(() => {
 				if (hiddenRef.current) {
 					hiddenRef.current.value = allowMultiple ? JSON.stringify(vals) : (vals[0] ?? '')
 				}
 			}, [vals, allowMultiple])
+
 			useEffect(() => {
 				let alive = true
 					; (async () => {
@@ -547,6 +550,12 @@ export function ModuleEditorPanel({
 					alive = false
 				}
 			}, [allowedTypes.join(',')])
+
+			const filteredOptions =
+				query.trim().length === 0
+					? options
+					: options.filter((opt) => opt.label.toLowerCase().includes(query.toLowerCase()))
+
 			return (
 				<FormField>
 					<FormLabel>{label}</FormLabel>
@@ -560,31 +569,42 @@ export function ModuleEditorPanel({
 							</button>
 						</PopoverTrigger>
 						<PopoverContent className="w-80">
-							<div className="max-h-64 overflow-auto space-y-2">
-								{options.length === 0 ? (
-									<div className="text-xs text-neutral-low">No posts available.</div>
-								) : options.map((opt) => {
-									const checked = vals.includes(opt.value)
-									return (
-										<label key={opt.value} className="flex items-center gap-2">
-											<Checkbox
-												checked={checked}
-												onCheckedChange={(c) => {
-													setVals((prev) => {
-														if (allowMultiple) {
-															const next = new Set(prev)
-															if (c) next.add(opt.value)
-															else next.delete(opt.value)
-															return Array.from(next)
-														}
-														return c ? [opt.value] : []
-													})
-												}}
-											/>
-											<span className="text-sm">{opt.label}</span>
-										</label>
-									)
-								})}
+							<div className="space-y-2">
+								<Input
+									type="text"
+									placeholder="Search posts…"
+									value={query}
+									onChange={(e) => setQuery(e.target.value)}
+									className="h-8 text-xs"
+								/>
+								<div className="max-h-64 overflow-auto space-y-2">
+									{filteredOptions.length === 0 ? (
+										<div className="text-xs text-neutral-low">No posts found.</div>
+									) : (
+										filteredOptions.map((opt) => {
+											const checked = vals.includes(opt.value)
+											return (
+												<label key={opt.value} className="flex items-center gap-2">
+													<Checkbox
+														checked={checked}
+														onCheckedChange={(c) => {
+															setVals((prev) => {
+																if (allowMultiple) {
+																	const next = new Set(prev)
+																	if (c) next.add(opt.value)
+																	else next.delete(opt.value)
+																	return Array.from(next)
+																}
+																return c ? [opt.value] : []
+															})
+														}}
+													/>
+													<span className="text-sm">{opt.label}</span>
+												</label>
+											)
+										})
+									)}
+								</div>
 							</div>
 						</PopoverContent>
 					</Popover>

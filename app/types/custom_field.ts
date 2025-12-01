@@ -9,10 +9,11 @@ export const CUSTOM_FIELD_TYPES = [
 	'date',
 	'url',
 	'link',
+	'post-reference',
 	'icon',
 ] as const
 
-export type CustomFieldType = typeof CUSTOM_FIELD_TYPES[number]
+export type CustomFieldType = (typeof CUSTOM_FIELD_TYPES)[number]
 
 export type PostTypeField = {
 	slug: string
@@ -21,6 +22,3 @@ export type PostTypeField = {
 	translatable?: boolean
 	config?: Record<string, any>
 }
-
-
-

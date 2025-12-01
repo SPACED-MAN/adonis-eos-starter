@@ -29,7 +29,7 @@ export default class FeedModule extends BaseModule {
           description: 'Teaser theme (small/simple/expanded, etc.)',
           options: [
             { label: 'Small (title + date)', value: 'small' },
-            { label: 'Default', value: '' },
+            { label: 'Default', value: 'default' },
           ],
         },
         postTypes: {

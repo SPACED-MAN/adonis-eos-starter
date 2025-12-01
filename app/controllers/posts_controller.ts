@@ -96,6 +96,9 @@ export default class PostsController {
     const rootsOnly = String(request.input('roots', '')).trim()
     const wantRoots = rootsOnly === '1' || rootsOnly.toLowerCase() === 'true'
 
+    const idsParam = String(request.input('ids', '')).trim()
+    const ids: string[] = idsParam ? idsParam.split(',').map((v) => v.trim()).filter(Boolean) : []
+
     const query = Post.query()
     if (q) {
       query.where((builder) => {
@@ -135,6 +138,9 @@ export default class PostsController {
     } else if (wantRoots) {
       query.whereNull('parent_id')
     }
+    if (ids.length > 0) {
+      query.whereIn('id', ids)
+    }
     const countQuery = db.from('posts')
     if (q) {
       countQuery.where((b) => b.whereILike('title', `%${q}%`).orWhereILike('slug', `%${q}%`))
@@ -170,6 +176,9 @@ export default class PostsController {
       countQuery.where('parent_id', parentId)
     } else if (wantRoots) {
       countQuery.whereNull('parent_id')
+    }
+    if (ids.length > 0) {
+      countQuery.whereIn('id', ids)
     }
     const countRows = await countQuery.count('* as total')
     const total = Number((countRows?.[0] as any)?.total || 0)

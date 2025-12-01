@@ -140,7 +140,7 @@ router.group(() => {
 	// List & types
 	router.get('/posts', [PostsListController, 'index'])
 	router.get('/post-types', [PostsListController, 'types'])
-	
+
 	// CRUD operations
 	router.post('/posts', [PostsCrudController, 'store'])
 	router.put('/posts/:id', [PostsCrudController, 'update'])
@@ -149,23 +149,23 @@ router.group(() => {
 	router.post('/posts/bulk', [PostsCrudController, 'bulk'])
 	router.post('/posts/reorder', [PostsCrudController, 'reorder'])
 	router.patch('/posts/:id/author', [PostsCrudController, 'updateAuthor']).use(middleware.admin())
-	
+
 	// Modules
 	router.post('/posts/:id/modules', [PostsModulesController, 'store'])
 	router.put('/post-modules/:id', [PostsModulesController, 'update'])
 	router.delete('/post-modules/:id', [PostsModulesController, 'destroy'])
-	
+
 	// Revisions
 	router.get('/posts/:id/revisions', [PostsRevisionsController, 'index'])
 	router.get('/posts/:id/revisions/:revId', [PostsRevisionsController, 'show'])
 	router.post('/posts/:id/revisions/:revId/revert', [PostsRevisionsController, 'revert'])
 	router.post('/posts/:id/revisions/:revId/compare', [PostsRevisionsController, 'compare'])
-	
+
 	// Export/Import
 	router.get('/posts/:id/export', [PostsExportController, 'exportJson'])
 	router.post('/posts/import', [PostsExportController, 'importCreate'])
 	router.post('/posts/:id/import', [PostsExportController, 'importInto'])
-	
+
 	// Preview links
 	router.post('/posts/:id/preview-link', [PostsViewController, 'createPreviewLink'])
 	router.get('/posts/:id/preview-links', [PostsViewController, 'listPreviewLinks'])

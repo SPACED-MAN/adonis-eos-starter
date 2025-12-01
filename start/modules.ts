@@ -13,6 +13,7 @@ import BlogNoteModule from '#modules/blog_note'
 import HeroWithMediaModule from '#modules/hero_with_media'
 import HeroWithCalloutModule from '#modules/hero_with_callout'
 import FeaturesListModule from '#modules/features_list'
+import ProfileListModule from '#modules/profile_list'
 import ProseWithMediaModule from '#modules/prose_with_media'
 import StatisticsModule from '#modules/statistics'
 
@@ -20,6 +21,7 @@ import StatisticsModule from '#modules/statistics'
 moduleRegistry.register(new HeroWithMediaModule())
 moduleRegistry.register(new HeroWithCalloutModule())
 moduleRegistry.register(new FeaturesListModule())
+moduleRegistry.register(new ProfileListModule())
 moduleRegistry.register(new ProseWithMediaModule())
 moduleRegistry.register(new StatisticsModule())
 // Register Prose module

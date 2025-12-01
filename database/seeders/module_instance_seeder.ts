@@ -391,6 +391,35 @@ export default class ModuleInstanceSeeder extends BaseSeeder {
 			console.log('ℹ️ [ModuleInstanceSeeder] statistics module instance already exists; reusing')
 		}
 
+		// Profile List instance
+		const existingProfileList = await db
+			.from('module_instances')
+			.where({ type: 'profile-list', scope: 'post' })
+			.first()
+
+		let profileListInstance: any = existingProfileList
+		if (!profileListInstance) {
+			const [createdProfileList] = await db
+				.table('module_instances')
+				.insert({
+					type: 'profile-list',
+					scope: 'post',
+					props: {
+						title: 'Meet the Team',
+						subtitle:
+							'Profiles are powered by the Profile post type. Add or edit profiles in the CMS and they will appear here automatically.',
+						profiles: [],
+					},
+					created_at: nowTs,
+					updated_at: nowTs,
+				})
+				.returning('*')
+			profileListInstance = createdProfileList
+			console.log('✅ [ModuleInstanceSeeder] Created profile-list module instance')
+		} else {
+			console.log('ℹ️ [ModuleInstanceSeeder] profile-list module instance already exists; reusing')
+		}
+
 		// Ensure hero-with-callout module instance exists
 		const existingHeroCentered = await db
 			.from('module_instances')
@@ -463,6 +492,7 @@ export default class ModuleInstanceSeeder extends BaseSeeder {
 		await ensureAttached(String(featuresListInstance.id), 'features-list module')
 		await ensureAttached(String(proseWithMediaInstance.id), 'prose-with-media module')
 		await ensureAttached(String(statisticsInstance.id), 'statistics module')
+		await ensureAttached(String(profileListInstance.id), 'profile-list module')
 		await ensureAttached(String(proseInstance.id), 'prose module')
 		await ensureAttached(String(feedInstance.id), 'feed module')
 		await ensureAttached(String(kitchenSinkInstance.id), 'kitchen-sink module')
