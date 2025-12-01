@@ -31,7 +31,7 @@ export default function Dashboard({ }: DashboardProps) {
     (inertiaPage.props as any)?.auth?.user?.role
   const isAdmin = role === 'admin'
   const isEditor = role === 'editor'
-  const [posts, setPosts] = useState<Array<{ id: string; title: string; slug: string; status: string; locale: string; updatedAt: string; parentId?: string | null; translationOfId?: string | null; familyLocales?: string[]; hasReviewDraft?: boolean }>>([])
+  const [posts, setPosts] = useState<Array<{ id: string; type: string; title: string; slug: string; status: string; locale: string; updatedAt: string; parentId?: string | null; translationOfId?: string | null; familyLocales?: string[]; hasReviewDraft?: boolean }>>([])
   const [selected, setSelected] = useState<Set<string>>(new Set())
   const [selectAll, setSelectAll] = useState(false)
   const [q, setQ] = useState('')
@@ -47,7 +47,7 @@ export default function Dashboard({ }: DashboardProps) {
   const [terms, setTerms] = useState<TermNode[]>([])
   const [termId, setTermId] = useState<string>('')
   const [isCreateOpen, setIsCreateOpen] = useState(false)
-  const [sortBy, setSortBy] = useState<'title' | 'slug' | 'status' | 'locale' | 'updated_at' | 'created_at' | 'order_index'>('updated_at')
+  const [sortBy, setSortBy] = useState<'title' | 'status' | 'locale' | 'updated_at' | 'created_at' | 'order_index'>('updated_at')
   const [sortOrder, setSortOrder] = useState<'asc' | 'desc'>('desc')
   const [loading, setLoading] = useState(false)
   const [page, setPage] = useState(1)
@@ -824,11 +824,7 @@ export default function Dashboard({ }: DashboardProps) {
                     Title {sortBy === 'title' ? (sortOrder === 'asc' ? '↑' : '↓') : ''}
                   </button>
                 </TableHead>
-                <TableHead>
-                  <button className="hover:underline" onClick={() => { toggleSort('slug'); setPage(1) }}>
-                    Slug {sortBy === 'slug' ? (sortOrder === 'asc' ? '↑' : '↓') : ''}
-                  </button>
-                </TableHead>
+                <TableHead>Post Type</TableHead>
                 {dndMode && (
                   <TableHead>
                     <button className="hover:underline" onClick={() => { toggleSort('order_index' as any); setPage(1) }}>
@@ -895,11 +891,16 @@ export default function Dashboard({ }: DashboardProps) {
                                     <FontAwesomeIcon icon={faTurnUp} rotation={90} className="inline-block" size="sm" />
                                   </span>
                                 )}
-                                <span className="text-sm font-medium text-neutral-high">{post.title}</span>
+                                <span
+                                  className="text-sm font-medium text-neutral-high"
+                                  title={post.slug}
+                                >
+                                  {post.title}
+                                </span>
                               </div>
                             </TableCell>
                             <TableCell>
-                              <span className="font-mono text-sm text-neutral-medium">{post.slug}</span>
+                              <span className="text-sm text-neutral-medium">{labelize(post.type)}</span>
                             </TableCell>
                             {dndMode && (
                               <TableCell>
@@ -982,11 +983,16 @@ export default function Dashboard({ }: DashboardProps) {
                                 <FontAwesomeIcon icon={faTurnUp} rotation={90} className="inline-block" size="sm" />
                               </span>
                             )}
-                            <span className="text-sm font-medium text-neutral-high">{post.title}</span>
+                            <span
+                              className="text-sm font-medium text-neutral-high"
+                              title={post.slug}
+                            >
+                              {post.title}
+                            </span>
                           </div>
                         </TableCell>
                         <TableCell>
-                          <span className="font-mono text-sm text-neutral-medium">{post.slug}</span>
+                          <span className="text-sm text-neutral-medium">{labelize(post.type)}</span>
                         </TableCell>
                         {dndMode && (
                           <TableCell>
