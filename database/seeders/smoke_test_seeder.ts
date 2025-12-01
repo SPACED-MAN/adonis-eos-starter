@@ -126,7 +126,7 @@ export default class extends BaseSeeder {
       console.log(`✅ Seeded ${bulkRows.length} additional posts for pagination testing`)
     }
 
-    // Test 4: Create global module (use hero-with-callout instead of legacy hero)
+    // Test 4: Create global module (hero-with-callout)
     const [globalModule] = await db.table('module_instances').insert({
       scope: 'global',
       type: 'hero-with-callout',

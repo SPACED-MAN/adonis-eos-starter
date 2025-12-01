@@ -43,7 +43,7 @@ function normalizeLinkValue(raw: any): LinkFieldValue {
         target: anyVal.target === '_blank' ? '_blank' : '_self',
       }
     }
-    // Legacy shapes: { url } or { postId }
+    // Also support shapes like { url } or { postId }
     if (anyVal.url) {
       const url = String(anyVal.url).trim()
       if (!url) return null

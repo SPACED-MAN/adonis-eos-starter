@@ -278,8 +278,6 @@ router.get('/admin/settings/templates', async ({ inertia }) => {
 	return inertia.render('admin/settings/templates')
 }).use(middleware.auth()).use(middleware.admin())
 
-// Deprecated: Post types settings moved to code configs
-
 // Admin Media Library (editors allowed)
 router.get('/admin/media', async ({ inertia }) => {
 	return inertia.render('admin/media/index')
