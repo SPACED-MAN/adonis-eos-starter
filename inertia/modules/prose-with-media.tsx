@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react'
-import type { Button } from './types'
+import type { Button, LinkValue } from './types'
 
 interface ProseWithMediaProps {
 	title: string
@@ -63,6 +63,19 @@ export default function ProseWithMedia({
 		}
 	}, [image])
 
+	function resolveButtonHref(url: string | LinkValue): string | undefined {
+		if (!url) return undefined
+		if (typeof url === 'string') return url
+		if (url.kind === 'url') return url.url
+		if (url.slug && url.locale) {
+			return `/${encodeURIComponent(url.locale)}/${encodeURIComponent(url.slug)}`
+		}
+		if (url.slug) {
+			return `/${encodeURIComponent(url.slug)}`
+		}
+		return undefined
+	}
+
 	const hasCta = Boolean(primaryCta && primaryCta.label && primaryCta.url)
 
 	const imageBlock = resolvedImageUrl ? (
@@ -94,28 +107,36 @@ export default function ProseWithMedia({
 								{body}
 							</p>
 						)}
-						{hasCta && primaryCta && primaryCta.label && primaryCta.url && (
-							<a
-								href={primaryCta.url}
-								target={primaryCta.target || '_self'}
-								rel={primaryCta.target === '_blank' ? 'noopener noreferrer' : undefined}
-								className="inline-flex items-center text-on-standout bg-standout hover:bg-standout/90 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:ring-standout font-medium rounded-lg text-sm px-5 py-2.5 transition-colors"
-							>
-								{primaryCta.label}
-								<svg
-									className="ml-2 -mr-1 w-5 h-5"
-									fill="currentColor"
-									viewBox="0 0 20 20"
-									xmlns="http://www.w3.org/2000/svg"
+						{hasCta && primaryCta && primaryCta.label && primaryCta.url && (() => {
+							const href = resolveButtonHref(primaryCta.url)
+							if (!href) return null
+							const linkTarget =
+								typeof primaryCta.url === 'object' && primaryCta.url && primaryCta.url.kind
+									? (primaryCta.url.target === '_blank' ? '_blank' : '_self')
+									: (primaryCta.target || '_self')
+							return (
+								<a
+									href={href}
+									target={linkTarget}
+									rel={linkTarget === '_blank' ? 'noopener noreferrer' : undefined}
+									className="inline-flex items-center text-on-standout bg-standout hover:bg-standout/90 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:ring-standout font-medium rounded-lg text-sm px-5 py-2.5 transition-colors"
 								>
-									<path
-										fillRule="evenodd"
-										d="M10.293 3.293a1 1 0 011.414 0l6 6a1 1 0 010 1.414l-6 6a1 1 0 01-1.414-1.414L14.586 11H3a1 1 0 110-2h11.586l-4.293-4.293a1 1 0 010-1.414z"
-										clipRule="evenodd"
-									></path>
-								</svg>
-							</a>
-						)}
+									{primaryCta.label}
+									<svg
+										className="ml-2 -mr-1 w-5 h-5"
+										fill="currentColor"
+										viewBox="0 0 20 20"
+										xmlns="http://www.w3.org/2000/svg"
+									>
+										<path
+											fillRule="evenodd"
+											d="M10.293 3.293a1 1 0 011.414 0l6 6a1 1 0 010 1.414l-6 6a1 1 0 01-1.414-1.414L14.586 11H3a1 1 0 110-2h11.586l-4.293-4.293a1 1 0 010-1.414z"
+											clipRule="evenodd"
+										></path>
+									</svg>
+								</a>
+							)
+						})()}
 					</div>
 
 					{imagePosition !== 'left' && imageBlock}

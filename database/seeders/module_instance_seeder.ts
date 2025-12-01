@@ -88,33 +88,6 @@ export default class ModuleInstanceSeeder extends BaseSeeder {
 
 		// Ensure core demo module instances exist for the catalog
 
-		// Hero (static-style) instance
-		const existingHeroInstance = await db
-			.from('module_instances')
-			.where({ type: 'hero', scope: 'post' })
-			.first()
-
-		let heroInstance: any = existingHeroInstance
-		if (!heroInstance) {
-			const [createdHero] = await db
-				.table('module_instances')
-				.insert({
-					type: 'hero',
-					scope: 'post',
-					props: {
-						title: 'Hero (Static)',
-						subtitle: 'Classic hero module using static SSR rendering.',
-					},
-					created_at: nowTs,
-					updated_at: nowTs,
-				})
-				.returning('*')
-			heroInstance = createdHero
-			console.log('✅ [ModuleInstanceSeeder] Created hero module instance')
-		} else {
-			console.log('ℹ️ [ModuleInstanceSeeder] hero module instance already exists; reusing')
-		}
-
 		// Hero with Media instance
 		const existingHeroWithMedia = await db
 			.from('module_instances')
@@ -137,13 +110,13 @@ export default class ModuleInstanceSeeder extends BaseSeeder {
 						imagePosition: 'right',
 						primaryCta: {
 							label: 'Get started',
-							url: '#',
+							url: { kind: 'url', url: '#' },
 							style: 'primary',
 							target: '_self',
 						},
 						secondaryCta: {
 							label: 'Speak to Sales',
-							url: '#',
+							url: { kind: 'url', url: '#' },
 							style: 'outline',
 							target: '_self',
 						},
@@ -372,7 +345,7 @@ export default class ModuleInstanceSeeder extends BaseSeeder {
 						imagePosition: 'left',
 						primaryCta: {
 							label: 'Get started',
-							url: '#',
+							url: { kind: 'url', url: '#' },
 							target: '_self',
 						},
 						backgroundColor: 'bg-backdrop-low',
@@ -385,6 +358,37 @@ export default class ModuleInstanceSeeder extends BaseSeeder {
 			console.log('✅ [ModuleInstanceSeeder] Created prose-with-media module instance')
 		} else {
 			console.log('ℹ️ [ModuleInstanceSeeder] prose-with-media module instance already exists; reusing')
+		}
+
+		// Statistics instance
+		const existingStatistics = await db
+			.from('module_instances')
+			.where({ type: 'statistics', scope: 'post' })
+			.first()
+
+		let statisticsInstance: any = existingStatistics
+		if (!statisticsInstance) {
+			const [createdStatistics] = await db
+				.table('module_instances')
+				.insert({
+					type: 'statistics',
+					scope: 'post',
+					props: {
+						stats: [
+							{ value: 73_000_000, suffix: 'M+', label: 'developers' },
+							{ value: 1_000_000_000, suffix: 'B+', label: 'contributors' },
+							{ value: 4_000_000, suffix: 'M+', label: 'organizations' },
+						],
+						backgroundColor: 'bg-backdrop-low',
+					},
+					created_at: nowTs,
+					updated_at: nowTs,
+				})
+				.returning('*')
+			statisticsInstance = createdStatistics
+			console.log('✅ [ModuleInstanceSeeder] Created statistics module instance')
+		} else {
+			console.log('ℹ️ [ModuleInstanceSeeder] statistics module instance already exists; reusing')
 		}
 
 		// Ensure hero-with-callout module instance exists
@@ -406,7 +410,7 @@ export default class ModuleInstanceSeeder extends BaseSeeder {
 							'This hero demonstrates a centered layout using neutral project tokens.',
 						primaryCta: {
 							label: 'Explore modules',
-							url: '#',
+							url: { kind: 'url', url: '#' },
 							target: '_self',
 						},
 						backgroundColor: 'bg-backdrop-low',
@@ -454,11 +458,11 @@ export default class ModuleInstanceSeeder extends BaseSeeder {
 			console.log(`✅ [ModuleInstanceSeeder] Attached ${label} to Module Catalog`)
 		}
 
-		await ensureAttached(String(heroInstance.id), 'hero module')
 		await ensureAttached(String(heroWithMediaInstance.id), 'hero-with-media module')
 		await ensureAttached(String(heroCenteredInstance.id), 'hero-with-callout module')
 		await ensureAttached(String(featuresListInstance.id), 'features-list module')
 		await ensureAttached(String(proseWithMediaInstance.id), 'prose-with-media module')
+		await ensureAttached(String(statisticsInstance.id), 'statistics module')
 		await ensureAttached(String(proseInstance.id), 'prose module')
 		await ensureAttached(String(feedInstance.id), 'feed module')
 		await ensureAttached(String(kitchenSinkInstance.id), 'kitchen-sink module')

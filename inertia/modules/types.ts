@@ -4,9 +4,13 @@
  * Common interfaces used across multiple content modules.
  */
 
+export type LinkValue =
+  | { kind: 'post'; postId: string; postType?: string; slug?: string; locale?: string; target?: '_self' | '_blank' }
+  | { kind: 'url'; url: string; target?: '_self' | '_blank' }
+
 export interface Button {
   label: string
-  url: string
+  url: string | LinkValue
   style?: 'primary' | 'secondary' | 'outline'
   target?: '_self' | '_blank'
   rel?: string

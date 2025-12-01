@@ -16,6 +16,7 @@ import {
 	SelectItem,
 } from '~/components/ui/select'
 import { FormField, FormLabel } from '~/components/forms/field'
+import { LinkField, type LinkFieldValue } from '~/components/forms/LinkField'
 import { MediaPickerModal } from '../media/MediaPickerModal'
 
 export interface ModuleListItem {
@@ -122,11 +123,13 @@ export function ModuleEditorPanel({
 	)
 	const [draft, setDraft] = useState<Record<string, any>>(merged)
 	const [schema, setSchema] = useState<FieldSchema[] | null>(null)
+	const [moduleLabel, setModuleLabel] = useState<string | null>(null)
 	const formRef = useRef<HTMLFormElement | null>(null)
 
 	useEffect(() => {
 		if (!open || !moduleItem) return
 		setDraft(mergeProps(moduleItem.props || {}, moduleItem.overrides || null))
+		setModuleLabel(null)
 		// Only reinitialize when the selection changes, not on object identity churn
 	}, [open, moduleItem?.id])
 
@@ -145,6 +148,13 @@ export function ModuleEditorPanel({
 						json?.propsSchema ||
 						(json?.data?.schema ? json?.data?.schema?.propsSchema : null) ||
 						null
+					const friendlyName: string | null =
+						(json?.data && (json.data.name as string | undefined)) ||
+						(json && (json.name as string | undefined)) ||
+						null
+					if (alive) {
+						setModuleLabel(friendlyName || moduleItem.type)
+					}
 					if (ps && typeof ps === 'object') {
 						const fields: FieldSchema[] = Object.keys(ps).map((k) => {
 							const def = (ps as any)[k] || {}
@@ -169,16 +179,59 @@ export function ModuleEditorPanel({
 
 	function setByPath(obj: Record<string, any>, pathStr: string, value: any) {
 		const parts = pathStr.split('.')
-		let target = obj
+		let target: any = obj
+
 		for (let i = 0; i < parts.length - 1; i++) {
-			const p = parts[i]
-			if (!isPlainObject(target[p])) target[p] = {}
-			target = target[p]
+			const key = parts[i]
+			const nextKey = parts[i + 1]
+			const nextIsIndex = /^\d+$/.test(nextKey)
+
+			// If the current slot is already an array or object, reuse it
+			if (Array.isArray(target[key])) {
+				target = target[key]
+				continue
+			}
+
+			if (!Object.prototype.hasOwnProperty.call(target, key) || (!isPlainObject(target[key]) && !Array.isArray(target[key]))) {
+				// Create container based on the next segment: array for numeric index, object otherwise
+				target[key] = nextIsIndex ? [] : {}
+			}
+
+			target = target[key]
 		}
-		target[parts[parts.length - 1]] = value
+
+		const last = parts[parts.length - 1]
+		if (Array.isArray(target) && /^\d+$/.test(last)) {
+			target[Number(last)] = value
+		} else {
+			target[last] = value
+		}
 	}
 
 	// removed unused trySave (we now save on explicit action buttons)
+
+	function humanizeKey(raw: string): string {
+		if (!raw) return ''
+		let s = String(raw)
+		s = s.replace(/[_-]+/g, ' ')
+		s = s.replace(/([a-z0-9])([A-Z])/g, '$1 $2')
+		s = s.trim()
+		if (!s) return ''
+		const words = s.split(/\s+/).map((w) => {
+			const lower = w.toLowerCase()
+			if (lower === 'cta') return 'CTA'
+			if (lower === 'id') return 'ID'
+			return lower.charAt(0).toUpperCase() + lower.slice(1)
+		})
+		return words.join(' ')
+	}
+
+	function getLabel(path: string[], field: FieldSchema): string {
+		const explicit = (field as any).label
+		if (explicit) return explicit as string
+		const key = path[path.length - 1] || ''
+		return humanizeKey(key)
+	}
 
 	function FieldPrimitive({
 		path,
@@ -192,7 +245,7 @@ export function ModuleEditorPanel({
 		rootId: string
 	}) {
 		const name = path.join('.')
-		const label = (field as any).label || path[path.length - 1]
+		const label = getLabel(path, field)
 		const type = (field as any).type as string
 		if (type === 'richtext') {
 			const hiddenRef = useRef<HTMLInputElement | null>(null)
@@ -648,6 +701,39 @@ export function ModuleEditorPanel({
 				)
 			}
 		}
+		if (type === 'link') {
+			const initial: LinkFieldValue = (value as any) ?? null
+			const hiddenRef = useRef<HTMLInputElement | null>(null)
+			useEffect(() => {
+				if (!hiddenRef.current) return
+				if (!initial) {
+					hiddenRef.current.value = ''
+				} else {
+					hiddenRef.current.value = JSON.stringify(initial)
+				}
+				// eslint-disable-next-line react-hooks/exhaustive-deps
+			}, [])
+			return (
+				<>
+					<LinkField
+						label={label}
+						value={value}
+						onChange={(val: LinkFieldValue) => {
+							if (hiddenRef.current) {
+								hiddenRef.current.value = val ? JSON.stringify(val) : ''
+							}
+						}}
+					/>
+					<input
+						type="hidden"
+						name={name}
+						defaultValue={initial ? JSON.stringify(initial) : ''}
+						ref={hiddenRef}
+						data-json="1"
+					/>
+				</>
+			)
+		}
 		if (type === 'boolean') {
 			return (
 				<div className="flex items-center gap-2">
@@ -688,28 +774,62 @@ export function ModuleEditorPanel({
 	}) {
 		const type = (field as any).type as string
 		const name = path.join('.')
-		const label = (field as any).label || path[path.length - 1]
-		if (type === 'object' && Array.isArray((field as any).fields)) {
-			return (
-				<fieldset className="border border-line rounded-lg p-3">
-					<legend className="px-1 text-xs font-medium text-neutral-low">{label}</legend>
-					<div className="grid grid-cols-1 gap-4">
-						{((field as any).fields as FieldSchema[]).map((f) => (
-							<FieldBySchema
-								key={`${name}.${(f as any).name}`}
-								path={[...path, (f as any).name]}
-								field={f}
-								value={value ? value[(f as any).name] : undefined}
-								rootId={rootId}
-							/>
-						))}
-					</div>
-				</fieldset>
-			)
+		const label = getLabel(path, field)
+		if (type === 'object') {
+			// Support both `fields: FieldSchema[]` and `properties: { [key]: schema }`
+			const rawFields: any = (field as any).fields
+			let objectFields: FieldSchema[] | null = null
+
+			if (Array.isArray(rawFields)) {
+				objectFields = rawFields as FieldSchema[]
+			} else if ((field as any).properties && typeof (field as any).properties === 'object') {
+				const props = (field as any).properties as Record<string, any>
+				objectFields = Object.keys(props).map((propName) => {
+					const def = props[propName] || {}
+					return { name: propName, ...(def as any) } as FieldSchema
+				})
+			}
+
+			if (objectFields && objectFields.length > 0) {
+				return (
+					<fieldset className="border border-line rounded-lg p-3">
+						<legend className="px-1 text-xs font-medium text-neutral-low">{label}</legend>
+						<div className="grid grid-cols-1 gap-4">
+							{objectFields.map((f) => (
+								<FieldBySchema
+									key={`${name}.${(f as any).name}`}
+									path={[...path, (f as any).name]}
+									field={f}
+									value={value ? value[(f as any).name] : undefined}
+									rootId={rootId}
+								/>
+							))}
+						</div>
+					</fieldset>
+				)
+			}
 		}
-		if (type === 'repeater') {
+		if (type === 'repeater' || type === 'array') {
 			const items: any[] = Array.isArray(value) ? value : []
-			const itemSchema: FieldSchema | undefined = (field as any).item
+			const rawItemSchema: FieldSchema | undefined = (field as any).item
+			const rawItemsDef: any = (field as any).items
+
+			let itemSchema: FieldSchema | undefined = rawItemSchema
+
+			// Support "array + items.properties" shape from backend by mapping to a repeater item schema
+			if (!itemSchema && rawItemsDef) {
+				const itemsType = (rawItemsDef as any).type
+				const props = (rawItemsDef as any).properties
+				if (itemsType === 'object' && props && typeof props === 'object') {
+					const fields: FieldSchema[] = Object.keys(props).map((propName) => {
+						const def = (props as any)[propName] || {}
+						return { name: propName, ...(def || {}) }
+					})
+					itemSchema = { name: 'item', type: 'object', fields } as any
+				} else {
+					itemSchema = { name: 'item', ...(rawItemsDef || {}) } as any
+				}
+			}
 			return (
 				<fieldset className="border border-line rounded-lg p-3">
 					<legend className="px-1 text-xs font-medium text-neutral-low">{label}</legend>
@@ -786,12 +906,29 @@ export function ModuleEditorPanel({
 									</div>
 								</div>
 								{itemSchema ? (
-									<FieldBySchema
-										path={[...path, String(idx)]}
-										field={{ ...itemSchema, name: String(idx) } as any}
-										value={it}
-										rootId={rootId}
-									/>
+									<>
+										{(itemSchema as any).type === 'object' &&
+										Array.isArray((itemSchema as any).fields) ? (
+											<>
+												{((itemSchema as any).fields as FieldSchema[]).map((f) => (
+													<FieldBySchema
+														key={`${name}.${idx}.${(f as any).name}`}
+														path={[...path, String(idx), (f as any).name]}
+														field={f}
+														value={it ? it[(f as any).name] : undefined}
+														rootId={rootId}
+													/>
+												))}
+											</>
+										) : (
+											<FieldBySchema
+												path={[...path, String(idx)]}
+												field={{ ...itemSchema, name: String(idx) } as any}
+												value={it}
+												rootId={rootId}
+											/>
+										)}
+									</>
 								) : (
 									<FieldPrimitive
 										path={[...path, String(idx)]}
@@ -899,7 +1036,7 @@ export function ModuleEditorPanel({
 			>
 				<div className="px-5 py-4 border-b border-line flex items-center justify-between">
 					<h3 className="text-sm font-semibold text-neutral-high">
-						Edit Module — {moduleItem.type}
+						Edit Module — {moduleLabel || moduleItem.type}
 					</h3>
 					<button type="button" className="text-neutral-low hover:text-neutral-high" onClick={async () => {
 						const base = moduleItem.props || {}

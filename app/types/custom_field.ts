@@ -8,6 +8,7 @@ export const CUSTOM_FIELD_TYPES = [
 	'file',
 	'date',
 	'url',
+	'link',
 	'icon',
 ] as const
 

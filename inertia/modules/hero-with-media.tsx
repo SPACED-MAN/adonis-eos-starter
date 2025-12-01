@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react'
-import type { Button } from './types'
+import type { Button, LinkValue } from './types'
 
 interface HeroWithMediaProps {
   title: string
@@ -10,6 +10,37 @@ interface HeroWithMediaProps {
   primaryCta?: Button | null
   secondaryCta?: Button | null
   backgroundColor?: string
+}
+
+function resolveHrefAndTarget(
+  url: string | LinkValue,
+  explicitTarget?: '_self' | '_blank'
+): { href?: string; target: '_self' | '_blank' } {
+  let href: string | undefined
+  let target: '_self' | '_blank' = '_self'
+
+  if (!url) {
+    return { href: undefined, target }
+  }
+
+  if (typeof url === 'string') {
+    href = url
+    target = explicitTarget || '_self'
+    return { href, target }
+  }
+
+  if (url.kind === 'url') {
+    href = url.url
+  } else if (url.slug && url.locale) {
+    href = `/${encodeURIComponent(url.locale)}/${encodeURIComponent(url.slug)}`
+  } else if (url.slug) {
+    href = `/${encodeURIComponent(url.slug)}`
+  }
+
+  const linkTarget = url.target === '_blank' ? '_blank' : '_self'
+  target = explicitTarget || linkTarget
+
+  return { href, target }
 }
 
 export default function HeroWithMedia({
@@ -121,11 +152,14 @@ function ButtonComponent({ label, url, style = 'primary', target = '_self', rel 
         'border border-line hover:bg-backdrop-medium text-neutral-high',
     }[style] || 'bg-standout text-on-standout'
 
+  const { href, target: finalTarget } = resolveHrefAndTarget(url, target)
+  if (!href) return null
+
   return (
     <a
-      href={url}
-      target={target}
-      rel={rel}
+      href={href}
+      target={finalTarget}
+      rel={finalTarget === '_blank' ? 'noopener noreferrer' : rel}
       className={`inline-flex items-center justify-center px-5 py-3 text-base font-medium rounded-lg transition-colors duration-200 ${styleClasses}`}
     >
       {label}

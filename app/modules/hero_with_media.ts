@@ -79,8 +79,8 @@ export default class HeroWithMediaModule extends BaseModule {
             },
             {
               name: 'url',
-              type: 'url',
-              label: 'URL',
+              type: 'link',
+              label: 'Destination',
             },
             {
               name: 'style',
@@ -92,16 +92,6 @@ export default class HeroWithMediaModule extends BaseModule {
                 { label: 'Outline', value: 'outline' },
               ],
               default: 'primary',
-            },
-            {
-              name: 'target',
-              type: 'select',
-              label: 'Target',
-              options: [
-                { label: 'Same tab', value: '_self' },
-                { label: 'New tab', value: '_blank' },
-              ],
-              default: '_self',
             },
           ],
         },
@@ -118,8 +108,8 @@ export default class HeroWithMediaModule extends BaseModule {
             },
             {
               name: 'url',
-              type: 'url',
-              label: 'URL',
+              type: 'link',
+              label: 'Destination',
             },
             {
               name: 'style',
@@ -132,25 +122,9 @@ export default class HeroWithMediaModule extends BaseModule {
               ],
               default: 'outline',
             },
-            {
-              name: 'target',
-              type: 'select',
-              label: 'Target',
-              options: [
-                { label: 'Same tab', value: '_self' },
-                { label: 'New tab', value: '_blank' },
-              ],
-              default: '_self',
-            },
           ],
         },
-        backgroundColor: {
-          type: 'text',
-          label: 'Background Classes',
-          default: 'bg-backdrop-low',
-          description:
-            'Tailwind background classes. Use project tokens like bg-backdrop-low / bg-backdrop-high.',
-        },
+        // Note: Background classes are fixed in code to avoid exposing Tailwind to editors
       },
       defaultProps: {
         title: 'Payments tool for software companies',

@@ -37,6 +37,7 @@ import { SortableContext, useSortable, verticalListSortingStrategy } from '@dnd-
 import { CSS } from '@dnd-kit/utilities'
 import { GripVertical, Globe } from 'lucide-react'
 import { getXsrf } from '~/utils/xsrf'
+import { LinkField, type LinkFieldValue } from '~/components/forms/LinkField'
 
 interface EditorProps {
   post: {
@@ -716,6 +717,19 @@ export default function Editor({ post, modules: initialModules, translations, re
                                 setValue({ id: m.id, url: m.url })
                                 setOpenMediaForField(null)
                               }}
+                            />
+                          </div>
+                        )
+                      }
+                      if (f.fieldType === 'link') {
+                        return (
+                          <div key={f.id}>
+                            <LinkField
+                              label={f.label}
+                              value={entry.value}
+                              onChange={(val: LinkFieldValue) => setValue(val)}
+                              currentLocale={post.locale}
+                              helperText="Use an existing post when possible so links stay valid if URLs change."
                             />
                           </div>
                         )
