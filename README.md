@@ -39,7 +39,7 @@ inertia/
 │   │   └── home.tsx
 │   └── app.tsx            # Site client entrypoint
 ├── modules/                # Shared content modules
-│   ├── hero-static.tsx    # Pure SSR (static)
+│   ├── prose-static.tsx   # Pure SSR (static)
 │   ├── prose-static.tsx   # Pure SSR (static)
 │   ├── gallery.tsx        # React SSR + hydration (interactive)
 │   ├── accordion.tsx      # React SSR + hydration (interactive)
@@ -152,7 +152,7 @@ How to test:
 **Implemented:**
 - ✅ Base Module system with `BaseModule` class and type definitions
 - ✅ Module Registry service for managing available modules
-- ✅ `HeroModule` with SSR rendering (titles, subtitles, CTAs, images)
+<!-- Legacy: HeroModule has been replaced by newer hero variants (hero-with-media, hero-with-callout) -->
 - ✅ `ProseModule` with Lexical JSON SSR (paragraphs, headings, lists, formatting)
 - ✅ Module Renderer service (props merging, locale context, JSON-LD generation)
 - ✅ Module Scope service (enforce which modules work with which post types)
@@ -219,7 +219,7 @@ Then:
 - `--mode=static`: Simple content (text, images, CTAs) → Pure SSR, max performance
 - `--mode=react` (default): Interactive features (tabs, carousels, forms) → React SSR + hydration
 
-See `app/modules/hero.ts` / `inertia/modules/hero-static.tsx` for static examples.
+See `inertia/modules/prose-static.tsx` for a static module example.
 See `app/modules/gallery.ts` / `inertia/modules/gallery.tsx` for React examples.
 
 How to test:
