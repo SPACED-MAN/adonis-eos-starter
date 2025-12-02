@@ -16,6 +16,7 @@ type UpdatePostParams = {
   canonicalUrl?: string | null
   robotsJson?: Record<string, any> | null
   jsonldOverrides?: Record<string, any> | null
+  featuredImageId?: string | null
 }
 
 export class UpdatePostException extends Error {
@@ -43,6 +44,7 @@ export default class UpdatePost {
     canonicalUrl,
     robotsJson,
     jsonldOverrides,
+    featuredImageId,
   }: UpdatePostParams): Promise<Post> {
     // Find the post
     const post = await Post.find(postId)
@@ -127,6 +129,10 @@ export default class UpdatePost {
     if (canonicalUrl !== undefined) post.canonicalUrl = canonicalUrl
     if (robotsJson !== undefined) post.robotsJson = robotsJson
     if (jsonldOverrides !== undefined) post.jsonldOverrides = jsonldOverrides
+    if (featuredImageId !== undefined) {
+      // Normalize: empty string => null
+      post.featuredImageId = featuredImageId === '' ? null : featuredImageId
+    }
 
     await post.save()
 

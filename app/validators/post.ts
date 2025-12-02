@@ -41,6 +41,8 @@ export const updatePostValidator = vine.compile(
 		jsonldOverrides: vine.any().optional(),
 		scheduledAt: vine.string().optional(),
 		mode: vine.enum(['publish', 'review', 'approve']).optional(),
+		// Featured image (Media ID). Optional and nullable.
+		featuredImageId: vine.string().uuid().nullable().optional(),
 		customFields: vine.array(vine.any()).optional(),
 	})
 )

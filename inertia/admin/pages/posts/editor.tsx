@@ -36,7 +36,7 @@ import { Checkbox } from '~/components/ui/checkbox'
 import { DndContext, closestCenter, PointerSensor, useSensor, useSensors, DragEndEvent } from '@dnd-kit/core'
 import { SortableContext, useSortable, verticalListSortingStrategy } from '@dnd-kit/sortable'
 import { CSS } from '@dnd-kit/utilities'
-import { GripVertical, Globe } from 'lucide-react'
+import { GripVertical, Globe, Star } from 'lucide-react'
 import { getXsrf } from '~/utils/xsrf'
 import { LinkField, type LinkFieldValue } from '~/components/forms/LinkField'
 
@@ -54,6 +54,7 @@ interface EditorProps {
     canonicalUrl: string | null
     robotsJson: Record<string, any> | null
     jsonldOverrides: Record<string, any> | null
+    featuredImageId: string | null
     createdAt: string
     updatedAt: string
     author?: { id: number; email: string; fullName: string | null } | null
@@ -86,6 +87,10 @@ interface EditorProps {
     hideCoreFields?: string[]
     hierarchyEnabled?: boolean
     permalinksEnabled?: boolean
+    featuredImage?: {
+      enabled: boolean
+      label?: string
+    }
   }
 }
 
@@ -102,6 +107,7 @@ export default function Editor({ post, modules: initialModules, translations, re
     canonicalUrl: post.canonicalUrl || '',
     robotsJson: post.robotsJson ? JSON.stringify(post.robotsJson, null, 2) : '',
     jsonldOverrides: post.jsonldOverrides ? JSON.stringify(post.jsonldOverrides, null, 2) : '',
+    featuredImageId: post.featuredImageId || '',
     customFields: Array.isArray(initialCustomFields)
       ? initialCustomFields.map((f) => ({ fieldId: f.id, slug: f.slug, value: f.value ?? null }))
       : [],
@@ -118,6 +124,7 @@ export default function Editor({ post, modules: initialModules, translations, re
     canonicalUrl: post.canonicalUrl || '',
     robotsJson: post.robotsJson ? JSON.stringify(post.robotsJson, null, 2) : '',
     jsonldOverrides: post.jsonldOverrides ? JSON.stringify(post.jsonldOverrides, null, 2) : '',
+    featuredImageId: post.featuredImageId || '',
     customFields: Array.isArray(initialCustomFields)
       ? initialCustomFields.map((f) => ({ fieldId: f.id, slug: f.slug, value: f.value ?? null }))
       : [],
@@ -134,6 +141,7 @@ export default function Editor({ post, modules: initialModules, translations, re
     canonicalUrl: String(reviewDraft.canonicalUrl ?? (post.canonicalUrl || '')),
     robotsJson: typeof reviewDraft.robotsJson === 'string' ? reviewDraft.robotsJson : (reviewDraft.robotsJson ? JSON.stringify(reviewDraft.robotsJson, null, 2) : ''),
     jsonldOverrides: typeof reviewDraft.jsonldOverrides === 'string' ? reviewDraft.jsonldOverrides : (reviewDraft.jsonldOverrides ? JSON.stringify(reviewDraft.jsonldOverrides, null, 2) : ''),
+    featuredImageId: String(reviewDraft.featuredImageId ?? (post.featuredImageId || '')),
     customFields: Array.isArray(reviewDraft.customFields) ? reviewDraft.customFields : ((Array.isArray(initialCustomFields) ? initialCustomFields.map(f => ({ fieldId: f.id, slug: f.slug, value: f.value ?? null })) : [])),
   } : null)
   const [viewMode, setViewMode] = useState<'approved' | 'review'>('approved')
@@ -152,6 +160,7 @@ export default function Editor({ post, modules: initialModules, translations, re
     canonicalUrl: d.canonicalUrl,
     robotsJson: d.robotsJson,
     jsonldOverrides: d.jsonldOverrides,
+    featuredImageId: (d as any).featuredImageId,
     customFields: Array.isArray((d as any).customFields)
       ? (d as any).customFields.map((e: any) => ({ fieldId: e.fieldId, slug: e.slug, value: e.value }))
       : [],
@@ -620,6 +629,33 @@ export default function Editor({ post, modules: initialModules, translations, re
                     <p className="text-sm text-[#dc2626] mt-1">{errors.excerpt}</p>
                   )}
                 </div>
+
+                {/* Featured Image (core) */}
+                {(uiConfig?.featuredImage?.enabled) && (
+                  <div>
+                    <label className="block text-sm font-medium text-neutral-medium mb-1">
+                      <span className="inline-flex items-center gap-1">
+                        <Star className="w-3 h-3 text-amber-500" aria-hidden="true" />
+                        <span>{uiConfig.featuredImage.label || 'Featured Image'}</span>
+                      </span>
+                    </label>
+                    <MediaThumb
+                      mediaId={(data as any).featuredImageId || null}
+                      mediaUrl={null}
+                      onChange={() => setOpenMediaForField('featuredImage')}
+                      onClear={() => setData('featuredImageId', '')}
+                    />
+                    <MediaPickerModal
+                      open={openMediaForField === 'featuredImage'}
+                      onOpenChange={(o) => setOpenMediaForField(o ? 'featuredImage' : null)}
+                      initialSelectedId={(data as any).featuredImageId || undefined}
+                      onSelect={(m) => {
+                        setData('featuredImageId', m.id)
+                        setOpenMediaForField(null)
+                      }}
+                    />
+                  </div>
+                )}
 
                 {/* Parent (optional hierarchy) */}
                 {(uiConfig?.hierarchyEnabled ?? true) && (
@@ -1226,11 +1262,11 @@ export default function Editor({ post, modules: initialModules, translations, re
                             selected={(data as any).scheduledAt ? new Date((data as any).scheduledAt) : undefined}
                             onSelect={(d: Date | undefined) => {
                               if (!d) {
-                                setData('scheduledAt', '')
+                                setData('scheduledAt' as any, '')
                                 return
                               }
                               const local = new Date(d.getFullYear(), d.getMonth(), d.getDate(), 0, 0, 0)
-                              setData('scheduledAt', local.toISOString())
+                              setData('scheduledAt' as any, local.toISOString())
                             }}
                           />
                         </PopoverContent>

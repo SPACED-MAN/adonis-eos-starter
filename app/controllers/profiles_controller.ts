@@ -69,6 +69,10 @@ export default class ProfilesController {
       }
       const slug = String(r.field_slug)
       let rawVal: any = r.value
+
+      // Values are stored as JSON. For historical reasons, media fields can be:
+      // - a plain string media ID: `"uuid"`
+      // - an object: `{ id: 'uuid', url: '/uploads/...' }`
       if (typeof rawVal === 'string') {
         try {
           rawVal = JSON.parse(rawVal)
@@ -76,10 +80,30 @@ export default class ProfilesController {
           // leave as stored
         }
       }
-      if (slug === 'first_name') entry.first_name = String(rawVal ?? '')
-      if (slug === 'last_name') entry.last_name = String(rawVal ?? '')
-      if (slug === 'role') entry.role = String(rawVal ?? '')
-      if (slug === 'profile_image') entry.profile_image_id = String(rawVal ?? '')
+
+      if (slug === 'first_name') {
+        entry.first_name = String(rawVal ?? '')
+      }
+
+      if (slug === 'last_name') {
+        entry.last_name = String(rawVal ?? '')
+      }
+
+      if (slug === 'role') {
+        entry.role = String(rawVal ?? '')
+      }
+
+      if (slug === 'profile_image') {
+        let mediaId: string | null = null
+
+        if (typeof rawVal === 'string') {
+          mediaId = rawVal || null
+        } else if (rawVal && typeof rawVal === 'object' && (rawVal as any).id) {
+          mediaId = String((rawVal as any).id)
+        }
+
+        entry.profile_image_id = mediaId || ''
+      }
     }
 
     const items = rows.map((p) => {
@@ -90,7 +114,11 @@ export default class ProfilesController {
       const name = [first, last].filter(Boolean).join(' ') || p.title || 'Profile'
       const role = extras?.role || null
       const bio = p.excerpt ?? null
-      const imageId = extras?.profile_image_id || null
+
+      // Prefer core featured image; fall back to legacy profile_image custom field for older data.
+      const featuredImageId = (p as any).featuredImageId || (p as any).featured_image_id || null
+      const legacyImageId = extras?.profile_image_id || null
+      const imageId = featuredImageId ? String(featuredImageId) : (legacyImageId || null)
 
       return {
         id: pid,

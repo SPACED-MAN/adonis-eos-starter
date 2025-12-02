@@ -8,15 +8,15 @@ export default {
 
   // Custom fields attached to this post type (definitions only; values are stored per post)
   // Supported types: 'text' | 'textarea' | 'number' | 'select' | 'multiselect' | 'media' | 'date' | 'url'
-  // Example:
-  // fields: [
-  //   { slug: 'subtitle', label: 'Subtitle', type: 'text' },
-  //   { slug: 'hero_image', label: 'Hero image', type: 'media', config: { category: 'Hero images', preferredVariant: 'wide' } },
-  // ],
   fields: [
     { slug: 'subtitle', label: 'Subtitle', type: 'text' },
-    { slug: 'hero_image', label: 'Hero image', type: 'media', config: { category: 'Hero images', preferredVariant: 'wide' } },
   ],
+
+  // Featured image enabled
+  featuredImage: {
+    enabled: true,
+    label: 'Featured Image',
+  },
 
   // Default template metadata (synced on boot)
   template: { name: 'dolor-sit-default', description: 'Default template for dolor-sit' },

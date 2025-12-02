@@ -8,6 +8,10 @@ type PostTypeUiConfig = {
 	urlPatterns?: Array<{ locale: string; pattern: string; isDefault?: boolean }>
 	permalinksEnabled?: boolean
 	taxonomies?: string[]
+	featuredImage?: {
+		enabled: boolean
+		label?: string
+	}
 }
 
 import postTypeRegistry from '#services/post_type_registry'
@@ -25,6 +29,7 @@ class PostTypeConfigService {
 			urlPatterns: [],
 			permalinksEnabled: true,
 			taxonomies: [],
+			featuredImage: { enabled: false, label: 'Featured Image' },
 		}
 		const isDev = process.env.NODE_ENV === 'development'
 		if (!isDev && cache.has(postType)) return cache.get(postType)!
@@ -61,6 +66,9 @@ class PostTypeConfigService {
 			urlPatterns: Array.isArray(cfg.urlPatterns) ? cfg.urlPatterns : [],
 			permalinksEnabled: cfg.permalinksEnabled !== undefined ? !!cfg.permalinksEnabled : true,
 			taxonomies: Array.isArray(cfg.taxonomies) ? cfg.taxonomies : [],
+			featuredImage: cfg.featuredImage && cfg.featuredImage.enabled
+				? { enabled: true, label: cfg.featuredImage.label || 'Featured Image' }
+				: { enabled: false, label: 'Featured Image' },
 		}
 		if (!isDev) cache.set(postType, full)
 		return full

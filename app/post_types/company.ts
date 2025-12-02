@@ -6,14 +6,13 @@ export default {
   hierarchyEnabled: false,
 
   // Custom fields attached to this post type (editorial only)
-  fields: [
-    {
-      slug: 'logo',
-      label: 'Logo',
-      type: 'media',
-      config: { category: 'Company logos', preferredVariant: 'thumb' },
-    },
-  ],
+  fields: [],
+
+  // Featured image enabled with custom label
+  featuredImage: {
+    enabled: true,
+    label: 'Logo',
+  },
 
   // Default template metadata (not used publicly since permalinks are disabled)
   template: { name: 'company-default', description: 'Default Company Template' },

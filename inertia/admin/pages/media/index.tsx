@@ -529,10 +529,19 @@ export default function MediaIndex() {
     return meta ? `${v.name} (${meta})` : v.name
   }
 
-  function getEditDisplayUrl(m: any, _theme: 'light' | 'dark'): string {
-    // During cropping, always show the original image so cropRect maps to original pixels
+  function getEditDisplayUrl(m: any, theme: 'light' | 'dark'): string {
+    // During cropping, always show the light original so cropRect maps to original pixels
     if (cropping) return m.url
-    if (selectedVariantName === 'original') return m.url
+
+    if (selectedVariantName === 'original') {
+      if (theme === 'dark') {
+        // Prefer a dedicated dark base if one exists, otherwise fall back to the light original
+        const darkSource = (m as any)?.metadata?.darkSourceUrl as string | undefined
+        return darkSource || m.url
+      }
+      return m.url
+    }
+
     const vUrl = getVariantUrlByName(m, selectedVariantName)
     return vUrl || m.url
   }
@@ -1090,7 +1099,9 @@ export default function MediaIndex() {
                   </div>
                   <div className="mt-2 flex flex-wrap items-center gap-2">
                     <select className="text-xs border border-line bg-backdrop-low text-neutral-high px-2 py-1" value={selectedVariantName} onChange={(e) => setSelectedVariantName(e.target.value)}>
-                      <option value="original">Original image (light)</option>
+                      <option value="original">
+                        {editTheme === 'dark' ? 'Original image (dark)' : 'Original image (light)'}
+                      </option>
                       {(viewing as any).metadata?.variants
                         ?.filter((v: any) =>
                           editTheme === 'dark' ? String(v.name || '').endsWith('-dark') : !String(v.name || '').endsWith('-dark')

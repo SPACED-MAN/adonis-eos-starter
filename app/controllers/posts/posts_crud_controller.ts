@@ -137,6 +137,11 @@ export default class PostsCrudController extends BasePostsController {
         canonicalUrl: payload.canonicalUrl,
         robotsJson,
         jsonldOverrides,
+        // Featured image: support optional update when provided by the editor
+        featuredImageId:
+          payload.featuredImageId !== undefined
+            ? (payload.featuredImageId === null || payload.featuredImageId === '' ? null : payload.featuredImageId)
+            : undefined,
       })
 
       // Handle timestamps
@@ -428,6 +433,7 @@ export default class PostsCrudController extends BasePostsController {
       canonicalUrl: payload.canonicalUrl,
       robotsJson: payload.robotsJson,
       jsonldOverrides: payload.jsonldOverrides,
+      featuredImageId: payload.featuredImageId,
       customFields: payload.customFields,
       savedAt: new Date().toISOString(),
       savedBy: (auth.use('web').user as any)?.email || null,
@@ -465,6 +471,10 @@ export default class PostsCrudController extends BasePostsController {
       canonicalUrl: rd.canonicalUrl ?? current.canonicalUrl,
       robotsJson: this.parseJsonField(rd.robotsJson) ?? current.robotsJson,
       jsonldOverrides: this.parseJsonField(rd.jsonldOverrides) ?? current.jsonldOverrides,
+      featuredImageId:
+        rd.featuredImageId !== undefined
+          ? (rd.featuredImageId === null || rd.featuredImageId === '' ? null : rd.featuredImageId)
+          : current.featuredImageId,
     })
 
     // Promote custom fields

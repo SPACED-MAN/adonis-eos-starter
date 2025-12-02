@@ -97,6 +97,7 @@ export default class PostsViewController extends BasePostsController {
           canonicalUrl: post.canonicalUrl,
           robotsJson: post.robotsJson,
           jsonldOverrides: post.jsonldOverrides,
+          featuredImageId: (post as any).featuredImageId || (post as any).featured_image_id || null,
           createdAt: post.createdAt.toISO(),
           updatedAt: post.updatedAt.toISO(),
           publicPath,

@@ -355,6 +355,7 @@ export default class PostsController {
           canonicalUrl: post.canonicalUrl,
           robotsJson: post.robotsJson,
           jsonldOverrides: post.jsonldOverrides,
+          featuredImageId: (post as any).featuredImageId || (post as any).featured_image_id || null,
           createdAt: post.createdAt.toISO(),
           updatedAt: post.updatedAt.toISO(),
           publicPath,
@@ -526,6 +527,7 @@ export default class PostsController {
       scheduledAt,
       mode,
       customFields,
+      featuredImageId,
     } = request.only([
       'slug',
       'title',
@@ -541,6 +543,7 @@ export default class PostsController {
       'scheduledAt',
       'mode',
       'customFields',
+      'featuredImageId',
     ])
 
     try {
@@ -560,6 +563,7 @@ export default class PostsController {
           canonicalUrl,
           robotsJson,
           jsonldOverrides,
+          featuredImageId,
           customFields: Array.isArray(reviewCustomFields) ? reviewCustomFields : undefined,
           removedModuleIds: Array.isArray(reviewModuleRemovals) ? reviewModuleRemovals : [],
           savedAt: new Date().toISOString(),
@@ -608,6 +612,7 @@ export default class PostsController {
           const nextMetaTitle = rd.metaTitle ?? current.metaTitle
           const nextMetaDescription = rd.metaDescription ?? current.metaDescription
           const nextCanonicalUrl = rd.canonicalUrl ?? current.canonicalUrl
+          const nextFeaturedImageId = rd.featuredImageId ?? (current as any).featuredImageId ?? (current as any).featured_image_id ?? null
           const nextRobots =
             typeof rd.robotsJson === 'string'
               ? (() => {
@@ -642,6 +647,7 @@ export default class PostsController {
             canonicalUrl: nextCanonicalUrl,
             robotsJson: nextRobots,
             jsonldOverrides: nextJsonLd,
+            featuredImageId: nextFeaturedImageId,
           })
           // Promote review custom fields to live values (by slug)
           if (Array.isArray((rd as any)?.customFields)) {
@@ -794,6 +800,7 @@ export default class PostsController {
         canonicalUrl,
         robotsJson: robotsJsonParsed,
         jsonldOverrides: jsonldOverridesParsed,
+        featuredImageId: featuredImageId !== undefined ? (featuredImageId === '' ? null : featuredImageId) : undefined,
       })
       // Handle schedule/publish timestamps
       try {

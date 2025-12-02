@@ -27,6 +27,9 @@ export default class Post extends BaseModel {
   @column()
   declare excerpt: string | null
 
+  @column({ columnName: 'featured_image_id' })
+  declare featuredImageId: string | null
+
   @column()
   declare status: 'draft' | 'review' | 'scheduled' | 'published' | 'private' | 'protected' | 'archived'
 

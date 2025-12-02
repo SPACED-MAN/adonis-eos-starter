@@ -46,45 +46,15 @@ export default class CompaniesController {
       return response.ok({ data: [] })
     }
 
-    // Load company custom field logo so modules can render logo thumbnails.
-    const postIds = rows.map((p) => p.id as string)
-
-    const cfRows = await db
-      .from('post_custom_field_values as v')
-      .whereIn('v.post_id', postIds)
-      .whereIn('v.field_slug', ['logo'])
-      .select('v.post_id', 'v.field_slug', 'v.value')
-
-    const byPostId = new Map<string, { logo_id?: string }>()
-
-    for (const r of cfRows as any[]) {
-      const pid = String(r.post_id)
-      let entry = byPostId.get(pid)
-      if (!entry) {
-        entry = {}
-        byPostId.set(pid, entry)
-      }
-      const slug = String(r.field_slug)
-      let rawVal: any = r.value
-      if (typeof rawVal === 'string') {
-        try {
-          rawVal = JSON.parse(rawVal)
-        } catch {
-          // leave as stored
-        }
-      }
-      if (slug === 'logo') entry.logo_id = String(rawVal ?? '')
-    }
-
     const items = rows.map((p) => {
       const pid = String(p.id)
-      const extras = byPostId.get(pid)
+      const featuredImageId = (p as any).featuredImageId || (p as any).featured_image_id || null
 
       return {
         id: pid,
         title: p.title || 'Company',
         slug: p.slug,
-        imageId: extras?.logo_id || null,
+        imageId: featuredImageId ? String(featuredImageId) : null,
       }
     })
 

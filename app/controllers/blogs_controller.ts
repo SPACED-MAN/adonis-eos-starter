@@ -46,39 +46,9 @@ export default class BlogsController {
       return response.ok({ data: [] })
     }
 
-    // Load blog custom field hero_image so modules can render hero thumbnails.
-    const postIds = rows.map((p) => p.id as string)
-
-    const cfRows = await db
-      .from('post_custom_field_values as v')
-      .whereIn('v.post_id', postIds)
-      .whereIn('v.field_slug', ['hero_image'])
-      .select('v.post_id', 'v.field_slug', 'v.value')
-
-    const byPostId = new Map<string, { hero_image_id?: string }>()
-
-    for (const r of cfRows as any[]) {
-      const pid = String(r.post_id)
-      let entry = byPostId.get(pid)
-      if (!entry) {
-        entry = {}
-        byPostId.set(pid, entry)
-      }
-      const slug = String(r.field_slug)
-      let rawVal: any = r.value
-      if (typeof rawVal === 'string') {
-        try {
-          rawVal = JSON.parse(rawVal)
-        } catch {
-          // leave as stored
-        }
-      }
-      if (slug === 'hero_image') entry.hero_image_id = String(rawVal ?? '')
-    }
-
     const items = rows.map((p) => {
       const pid = String(p.id)
-      const extras = byPostId.get(pid)
+      const featuredImageId = (p as any).featuredImageId || (p as any).featured_image_id || null
       const updatedAtRaw = (p as any).updatedAt ?? (p as any).updated_at ?? null
       let updatedAt: string | null = null
       if (updatedAtRaw instanceof Date) {
@@ -93,7 +63,7 @@ export default class BlogsController {
         slug: p.slug,
         excerpt: p.excerpt ?? null,
         updatedAt,
-        imageId: extras?.hero_image_id || null,
+        imageId: featuredImageId ? String(featuredImageId) : null,
       }
     })
 

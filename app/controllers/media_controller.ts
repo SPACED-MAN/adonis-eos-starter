@@ -666,8 +666,10 @@ export default class MediaController {
 			targetAbsPath = path.join(dir, newFilename)
 			targetPublicUrl = path.posix.join(path.posix.dirname(existingPublicUrl), newFilename)
 		} else {
-			// Dark theme gets its own base file; don't disturb the light original
-			const darkBaseName = `${parsedExisting.name}.dark${clientExt || parsedExisting.ext}`
+			// Dark theme gets its own base file, using the "-dark" suffix so it is easy to discover
+			// alongside the light original (e.g. demo-placeholder.jpg -> demo-placeholder-dark.jpg).
+			const baseName = parsedExisting.name
+			const darkBaseName = `${baseName}-dark${clientExt || parsedExisting.ext}`
 			targetAbsPath = path.join(dir, darkBaseName)
 			targetPublicUrl = path.posix.join(path.posix.dirname(existingPublicUrl), darkBaseName)
 		}
@@ -760,20 +762,20 @@ export default class MediaController {
 		if (!row) return response.notFound({ error: 'Media not found' })
 		return response.ok({
 			data: {
-			id: row.id,
-			url: row.url,
-			originalFilename: row.original_filename,
-			mimeType: row.mime_type,
-			size: Number(row.size || 0),
+				id: row.id,
+				url: row.url,
+				originalFilename: row.original_filename,
+				mimeType: row.mime_type,
+				size: Number(row.size || 0),
 				optimizedUrl: (row as any).optimized_url || null,
 				optimizedSize: (row as any).optimized_size ? Number((row as any).optimized_size) : null,
-			altText: row.alt_text,
-			caption: row.caption,
-			description: row.description,
-			categories: Array.isArray(row.categories) ? row.categories : [],
-			metadata: row.metadata || null,
-			createdAt: row.created_at,
-			updatedAt: row.updated_at,
+				altText: row.alt_text,
+				caption: row.caption,
+				description: row.description,
+				categories: Array.isArray(row.categories) ? row.categories : [],
+				metadata: row.metadata || null,
+				createdAt: row.created_at,
+				updatedAt: row.updated_at,
 			}
 		})
 	}
@@ -784,11 +786,11 @@ export default class MediaController {
 		if (!row) return response.notFound({ error: 'Media not found' })
 		return response.ok({
 			data: {
-			id: row.id,
-			url: row.url,
-			metadata: row.metadata || null,
-			altText: row.alt_text,
-			categories: Array.isArray(row.categories) ? row.categories : [],
+				id: row.id,
+				url: row.url,
+				metadata: row.metadata || null,
+				altText: row.alt_text,
+				categories: Array.isArray(row.categories) ? row.categories : [],
 			}
 		})
 	}

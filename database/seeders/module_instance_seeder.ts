@@ -2,6 +2,9 @@ import { BaseSeeder } from '@adonisjs/lucid/seeders'
 import db from '@adonisjs/lucid/services/db'
 import User from '#models/user'
 import crypto from 'node:crypto'
+import fs from 'node:fs/promises'
+import path from 'node:path'
+import mediaService from '#services/media_service'
 
 export default class ModuleInstanceSeeder extends BaseSeeder {
 	public static environment = ['development']
@@ -131,6 +134,47 @@ export default class ModuleInstanceSeeder extends BaseSeeder {
 			console.log('ℹ️ [ModuleInstanceSeeder] Demo-blog hero media asset already exists; skipping create')
 		}
 
+		// Ensure demo-avatar media asset exists (always seed, not conditional)
+		const [existingAvatar] = await db
+			.from('media_assets')
+			.where('original_filename', 'demo-avatar.jpg')
+			.limit(1)
+
+		let avatarMedia = existingAvatar as any
+		if (!avatarMedia) {
+			const avatarVariant = {
+				name: 'thumb',
+				url: '/uploads/demo-avatar.jpg',
+				width: null,
+				height: null,
+				size: 0,
+			}
+
+			const [createdAvatar] = await db
+				.table('media_assets')
+				.insert({
+					url: '/uploads/demo-avatar.jpg',
+					original_filename: 'demo-avatar.jpg',
+					mime_type: 'image/jpeg',
+					size: 0,
+					alt_text: 'Demo avatar placeholder',
+					caption: 'Demo avatar image for seeded Profiles.',
+					description: 'Avatar-style demo image used to illustrate Profile cards.',
+					categories: db.raw('ARRAY[]::text[]') as any,
+					metadata: { variants: [avatarVariant] } as any,
+					created_at: nowTs,
+					updated_at: nowTs,
+				})
+				.returning('*')
+			avatarMedia = createdAvatar
+			console.log(
+				'✅ [ModuleInstanceSeeder] Seeded demo avatar media:',
+				(avatarMedia as any).id,
+			)
+		} else {
+			console.log('ℹ️ [ModuleInstanceSeeder] Demo avatar media already exists; skipping create')
+		}
+
 		// Seed a few demo Profiles for the Profile List module (if none exist)
 		{
 			const existingProfiles = await db
@@ -139,47 +183,6 @@ export default class ModuleInstanceSeeder extends BaseSeeder {
 				.limit(1)
 
 			if (existingProfiles.length === 0) {
-				// Ensure a demo avatar media asset exists
-				const [existingAvatar] = await db
-					.from('media_assets')
-					.where('original_filename', 'demo-avatar.jpg')
-					.limit(1)
-
-				let avatarMedia = existingAvatar as any
-				if (!avatarMedia) {
-					const avatarVariant = {
-						name: 'thumb',
-						url: '/uploads/demo-avatar.jpg',
-						width: null,
-						height: null,
-						size: 0,
-					}
-
-					const [createdAvatar] = await db
-						.table('media_assets')
-						.insert({
-							url: '/uploads/demo-avatar.jpg',
-							original_filename: 'demo-avatar.jpg',
-							mime_type: 'image/jpeg',
-							size: 0,
-							alt_text: 'Demo avatar placeholder',
-							caption: 'Demo avatar image for seeded Profiles.',
-							description: 'Avatar-style demo image used to illustrate Profile cards.',
-							categories: db.raw('ARRAY[]::text[]') as any,
-							metadata: { variants: [avatarVariant] } as any,
-							created_at: nowTs,
-							updated_at: nowTs,
-						})
-						.returning('*')
-					avatarMedia = createdAvatar
-					console.log(
-						'✅ [ModuleInstanceSeeder] Seeded demo avatar media for Profiles:',
-						(avatarMedia as any).id,
-					)
-				} else {
-					console.log('ℹ️ [ModuleInstanceSeeder] Demo avatar media already exists; skipping create')
-				}
-
 				// Create demo profile posts
 				const profilesToInsert = [
 					{
@@ -226,9 +229,15 @@ export default class ModuleInstanceSeeder extends BaseSeeder {
 					},
 				]
 
-				const insertedProfiles = await db.table('posts').insert(profilesToInsert).returning('*')
+				const avatarId = String((avatarMedia as any).id)
+				// Update profiles with featured_image_id
+				const profilesWithFeaturedImage = profilesToInsert.map((profile: any) => ({
+					...profile,
+					featured_image_id: avatarId,
+				}))
+				const insertedProfiles = await db.table('posts').insert(profilesWithFeaturedImage).returning('*')
 
-				console.log('✅ [ModuleInstanceSeeder] Seeded demo Profiles for Profile List module')
+				console.log('✅ [ModuleInstanceSeeder] Seeded demo Profiles for Profile List module with featured images')
 
 				// Populate profile custom fields: first_name, last_name, profile_image
 				const makeFieldRows = (post: any, first: string, last: string) => {
@@ -282,8 +291,134 @@ export default class ModuleInstanceSeeder extends BaseSeeder {
 					'✅ [ModuleInstanceSeeder] Seeded Profile custom fields (first/last name, profile image)',
 				)
 			} else {
+				// Update existing profiles with featured_image_id if not set (regardless of whether we created new ones)
+				if (avatarMedia) {
+					const avatarIdForUpdate = String((avatarMedia as any).id)
+					const existingProfilesWithoutImage = await db
+						.from('posts')
+						.where({ type: 'profile', locale: 'en' })
+						.whereNull('featured_image_id')
+						.limit(100)
+
+					if (existingProfilesWithoutImage.length > 0) {
+						await db
+							.from('posts')
+							.whereIn('id', existingProfilesWithoutImage.map((p: any) => p.id))
+							.update({ featured_image_id: avatarIdForUpdate, updated_at: nowTs } as any)
+
+						console.log(
+							`✅ [ModuleInstanceSeeder] Set featured_image_id for ${existingProfilesWithoutImage.length} existing Profile posts`,
+						)
+					}
+				}
 				console.log(
 					'ℹ️ [ModuleInstanceSeeder] Profiles already exist; skipping demo Profile seeding',
+				)
+			}
+		}
+
+		// Ensure demo-company media asset exists (always seed, not conditional)
+		const [existingCompanyLogo] = await db
+			.from('media_assets')
+			.where('original_filename', 'demo-company.png')
+			.limit(1)
+
+		let companyLogoMedia = existingCompanyLogo as any
+		if (!companyLogoMedia) {
+			const logoVariant = {
+				name: 'thumb',
+				url: '/uploads/demo-company.png',
+				width: null,
+				height: null,
+				size: 0,
+			}
+
+			const [createdCompanyLogo] = await db
+				.table('media_assets')
+				.insert({
+					url: '/uploads/demo-company.png',
+					original_filename: 'demo-company.png',
+					mime_type: 'image/png',
+					size: 0,
+					alt_text: 'Demo company logo',
+					caption: 'Demo logo image for seeded Companies.',
+					description: 'Logo-style demo image used to illustrate the Company List module.',
+					categories: db.raw('ARRAY[]::text[]') as any,
+					metadata: { variants: [logoVariant] } as any,
+					created_at: nowTs,
+					updated_at: nowTs,
+				})
+				.returning('*')
+			companyLogoMedia = createdCompanyLogo
+			console.log(
+				'✅ [ModuleInstanceSeeder] Seeded demo company logo media:',
+				(companyLogoMedia as any).id,
+			)
+		} else {
+			console.log(
+				'ℹ️ [ModuleInstanceSeeder] Demo company logo media already exists; skipping create',
+			)
+		}
+
+		// Check if demo-company-dark.png exists and update metadata accordingly
+		if (companyLogoMedia) {
+			const uploadsDir = path.join(process.cwd(), 'public', 'uploads')
+			const darkFilePath = path.join(uploadsDir, 'demo-company-dark.png')
+			try {
+				await fs.access(darkFilePath)
+				// Dark file exists - update metadata to include darkSourceUrl and generate dark variants
+				const darkSourceUrl = '/uploads/demo-company-dark.png'
+				const existingMetadata = (companyLogoMedia.metadata || {}) as any
+				const existingVariants = Array.isArray(existingMetadata.variants) ? existingMetadata.variants : []
+
+				// Generate dark variants from the dark base file
+				let darkVariants: any[] = []
+				try {
+					darkVariants = await mediaService.generateVariants(
+						darkFilePath,
+						darkSourceUrl,
+						null,
+						null,
+						null,
+						'dark'
+					)
+				} catch (err) {
+					console.warn(
+						'⚠️ [ModuleInstanceSeeder] Failed to generate dark variants for demo-company-dark.png:',
+						err,
+					)
+				}
+
+				// Merge dark variants into existing variants (replace any existing dark variants)
+				const darkVariantNames = new Set(darkVariants.map((v) => v.name))
+				const mergedVariants = [
+					...existingVariants.filter(
+						(v: any) => !v || typeof v.name !== 'string' || !darkVariantNames.has(v.name),
+					),
+					...darkVariants,
+				]
+
+				const updatedMetadata = {
+					...existingMetadata,
+					darkSourceUrl,
+					variants: mergedVariants,
+				}
+
+				await db
+					.from('media_assets')
+					.where('id', (companyLogoMedia as any).id)
+					.update({
+						metadata: updatedMetadata as any,
+						updated_at: nowTs,
+					})
+
+				console.log(
+					'✅ [ModuleInstanceSeeder] Updated demo-company.png metadata with dark base and variants',
+				)
+			} catch {
+				// Dark file doesn't exist - that's fine, just skip
+				console.log(
+					'ℹ️ [ModuleInstanceSeeder] demo-company-dark.png not found; skipping dark variant setup',
 				)
 			}
 		}
@@ -296,49 +431,6 @@ export default class ModuleInstanceSeeder extends BaseSeeder {
 				.limit(1)
 
 			if (existingCompanies.length === 0) {
-				// Ensure a demo company logo media asset exists
-				const [existingCompanyLogo] = await db
-					.from('media_assets')
-					.where('original_filename', 'demo-company.png')
-					.limit(1)
-
-				let companyLogoMedia = existingCompanyLogo as any
-				if (!companyLogoMedia) {
-					const logoVariant = {
-						name: 'thumb',
-						url: '/uploads/demo-company.png',
-						width: null,
-						height: null,
-						size: 0,
-					}
-
-					const [createdCompanyLogo] = await db
-						.table('media_assets')
-						.insert({
-							url: '/uploads/demo-company.png',
-							original_filename: 'demo-company.png',
-							mime_type: 'image/png',
-							size: 0,
-							alt_text: 'Demo company logo',
-							caption: 'Demo logo image for seeded Companies.',
-							description: 'Logo-style demo image used to illustrate the Company List module.',
-							categories: db.raw('ARRAY[]::text[]') as any,
-							metadata: { variants: [logoVariant] } as any,
-							created_at: nowTs,
-							updated_at: nowTs,
-						})
-						.returning('*')
-					companyLogoMedia = createdCompanyLogo
-					console.log(
-						'✅ [ModuleInstanceSeeder] Seeded demo company logo media for Companies:',
-						(companyLogoMedia as any).id,
-					)
-				} else {
-					console.log(
-						'ℹ️ [ModuleInstanceSeeder] Demo company logo media already exists; skipping create',
-					)
-				}
-
 				const companiesToInsert = [
 					{
 						type: 'company',
@@ -384,25 +476,39 @@ export default class ModuleInstanceSeeder extends BaseSeeder {
 					},
 				]
 
-				const insertedCompanies = await db.table('posts').insert(companiesToInsert).returning('*')
-				console.log('✅ [ModuleInstanceSeeder] Seeded demo Companies for Company List module')
-
-				// Populate company custom field: logo
 				const logoId = String((companyLogoMedia as any).id)
-				const companyFieldRows = insertedCompanies.map((company: any) => ({
-					id: crypto.randomUUID(),
-					post_id: String((company as any).id),
-					field_slug: 'logo',
-					value: JSON.stringify(logoId),
-					created_at: nowTs,
-					updated_at: nowTs,
+				// Update companies with featured_image_id
+				const companiesWithFeaturedImage = companiesToInsert.map((company: any) => ({
+					...company,
+					featured_image_id: logoId,
 				}))
-				await db.table('post_custom_field_values').insert(companyFieldRows)
-				console.log('✅ [ModuleInstanceSeeder] Seeded Company custom fields (logo)')
+				const insertedCompanies = await db.table('posts').insert(companiesWithFeaturedImage).returning('*')
+				console.log('✅ [ModuleInstanceSeeder] Seeded demo Companies for Company List module with featured images')
 			} else {
 				console.log(
 					'ℹ️ [ModuleInstanceSeeder] Companies already exist; skipping demo Company seeding',
 				)
+			}
+
+			// Update existing companies with featured_image_id if not set (regardless of whether we created new ones)
+			if (companyLogoMedia) {
+				const logoIdForUpdate = String((companyLogoMedia as any).id)
+				const existingCompaniesWithoutImage = await db
+					.from('posts')
+					.where({ type: 'company', locale: 'en' })
+					.whereNull('featured_image_id')
+					.limit(100)
+
+				if (existingCompaniesWithoutImage.length > 0) {
+					await db
+						.from('posts')
+						.whereIn('id', existingCompaniesWithoutImage.map((p: any) => p.id))
+						.update({ featured_image_id: logoIdForUpdate, updated_at: nowTs } as any)
+
+					console.log(
+						`✅ [ModuleInstanceSeeder] Set featured_image_id for ${existingCompaniesWithoutImage.length} existing Company posts`,
+					)
+				}
 			}
 		}
 
@@ -881,40 +987,6 @@ export default class ModuleInstanceSeeder extends BaseSeeder {
 			console.log('✅ [ModuleInstanceSeeder] Created blog-list module instance')
 		} else {
 			console.log('ℹ️ [ModuleInstanceSeeder] blog-list module instance already exists; reusing')
-		}
-
-		// Attach demo-blog hero image to a few published Blog posts (if not already set)
-		if (demoBlogMedia) {
-			const heroId = String((demoBlogMedia as any).id)
-			const blogPosts = await db
-				.from('posts')
-				.where({ type: 'blog', locale: 'en', status: 'published' })
-				.orderBy('created_at', 'desc')
-				.limit(6)
-
-			for (const post of blogPosts) {
-				const existingHero = await db
-					.from('post_custom_field_values')
-					.where({ post_id: (post as any).id, field_slug: 'hero_image' })
-					.first()
-
-				if (!existingHero) {
-					await db.table('post_custom_field_values').insert({
-						id: crypto.randomUUID(),
-						post_id: String((post as any).id),
-						field_slug: 'hero_image',
-						value: JSON.stringify(heroId),
-						created_at: nowTs,
-						updated_at: nowTs,
-					})
-				}
-			}
-
-			if (blogPosts.length > 0) {
-				console.log(
-					`✅ [ModuleInstanceSeeder] Ensured hero_image custom field for ${blogPosts.length} Blog posts`,
-				)
-			}
 		}
 
 		// Company List instance

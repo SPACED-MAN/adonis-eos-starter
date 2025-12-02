@@ -24,72 +24,72 @@ export default function BlogList({ title, subtitle, posts }: BlogListProps) {
 
   useEffect(() => {
     let cancelled = false
-    ;(async () => {
-      try {
-        const params = new URLSearchParams()
-        params.set('status', 'published')
-        params.set('limit', '20')
-        const ids = Array.isArray(posts) ? posts.filter(Boolean) : []
-        if (ids.length > 0) {
-          params.set('ids', ids.join(','))
+      ; (async () => {
+        try {
+          const params = new URLSearchParams()
+          params.set('status', 'published')
+          params.set('limit', '20')
+          const ids = Array.isArray(posts) ? posts.filter(Boolean) : []
+          if (ids.length > 0) {
+            params.set('ids', ids.join(','))
+          }
+          const res = await fetch(`/api/blogs?${params.toString()}`, {
+            credentials: 'same-origin',
+            headers: { Accept: 'application/json' },
+          })
+          if (!res.ok) {
+            throw new Error('Failed to load blog posts')
+          }
+          const j = await res.json().catch(() => null)
+          const list: any[] = Array.isArray(j?.data) ? j.data : []
+          if (cancelled) return
+
+          const mapped: BlogSummary[] = list.map((p: any) => ({
+            id: String(p.id),
+            title: String(p.title || 'Untitled'),
+            slug: String(p.slug),
+            excerpt: (p as any).excerpt ?? null,
+            updatedAt: (p as any).updatedAt ?? null,
+            imageId: (p as any).imageId ?? null,
+            imageUrl: null,
+          }))
+
+          // Resolve hero media variants in parallel for all blogs
+          const uniqueIds = Array.from(
+            new Set(mapped.map((m) => m.imageId).filter(Boolean) as string[]),
+          )
+          const urlById = new Map<string, string>()
+          await Promise.all(
+            uniqueIds.map(async (id) => {
+              try {
+                const resMedia = await fetch(`/public/media/${encodeURIComponent(id)}`)
+                if (!resMedia.ok) return
+                const jm = await resMedia.json().catch(() => null)
+                const data = jm?.data
+                if (!data) return
+                const variants = Array.isArray(data.metadata?.variants)
+                  ? (data.metadata.variants as any[])
+                  : []
+                const url = pickMediaVariantUrl(data.url, variants, 'wide')
+                urlById.set(id, url)
+              } catch {
+                // ignore
+              }
+            }),
+          )
+
+          const withImages = mapped.map((m) => ({
+            ...m,
+            imageUrl: m.imageId ? urlById.get(m.imageId) || null : null,
+          }))
+
+          setItems(withImages)
+        } catch {
+          if (!cancelled) setItems([])
+        } finally {
+          if (!cancelled) setLoading(false)
         }
-        const res = await fetch(`/api/blogs?${params.toString()}`, {
-          credentials: 'same-origin',
-          headers: { Accept: 'application/json' },
-        })
-        if (!res.ok) {
-          throw new Error('Failed to load blog posts')
-        }
-        const j = await res.json().catch(() => null)
-        const list: any[] = Array.isArray(j?.data) ? j.data : []
-        if (cancelled) return
-
-        const mapped: BlogSummary[] = list.map((p: any) => ({
-          id: String(p.id),
-          title: String(p.title || 'Untitled'),
-          slug: String(p.slug),
-          excerpt: (p as any).excerpt ?? null,
-          updatedAt: (p as any).updatedAt ?? null,
-          imageId: (p as any).imageId ?? null,
-          imageUrl: null,
-        }))
-
-        // Resolve hero media variants in parallel for all blogs
-        const uniqueIds = Array.from(
-          new Set(mapped.map((m) => m.imageId).filter(Boolean) as string[]),
-        )
-        const urlById = new Map<string, string>()
-        await Promise.all(
-          uniqueIds.map(async (id) => {
-            try {
-              const resMedia = await fetch(`/public/media/${encodeURIComponent(id)}`)
-              if (!resMedia.ok) return
-              const jm = await resMedia.json().catch(() => null)
-              const data = jm?.data
-              if (!data) return
-              const variants = Array.isArray(data.metadata?.variants)
-                ? (data.metadata.variants as any[])
-                : []
-              const url = pickMediaVariantUrl(data.url, variants, 'wide')
-              urlById.set(id, url)
-            } catch {
-              // ignore
-            }
-          }),
-        )
-
-        const withImages = mapped.map((m) => ({
-          ...m,
-          imageUrl: m.imageId ? urlById.get(m.imageId) || null : null,
-        }))
-
-        setItems(withImages)
-      } catch {
-        if (!cancelled) setItems([])
-      } finally {
-        if (!cancelled) setLoading(false)
-      }
-    })()
+      })()
     return () => {
       cancelled = true
     }

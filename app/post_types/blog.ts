@@ -9,8 +9,13 @@ export default {
 	// Custom fields attached to this post type (definitions only; values are stored per post)
 	fields: [
 		{ slug: 'subtitle', label: 'Subtitle', type: 'text' },
-		{ slug: 'hero_image', label: 'Hero image', type: 'media', config: { category: 'Hero images', preferredVariant: 'wide' } },
 	],
+
+	// Featured image enabled
+	featuredImage: {
+		enabled: true,
+		label: 'Featured Image',
+	},
 
 	// Default template metadata (synced on boot)
 	template: { name: 'blog-default', description: 'Default Blog Template' },
@@ -18,7 +23,8 @@ export default {
 	// URL patterns (synced on boot)
 	// Tokens: {locale}, {slug}, {yyyy}, {mm}, {dd}
 	urlPatterns: [
-		{ locale: 'en', pattern: '/blog/{path}', isDefault: true },
+		// Use slug-based pattern so previews show the actual path
+		{ locale: 'en', pattern: '/blog/{slug}', isDefault: true },
 	],
 	// Permalinks enabled for this type (set to false to disable public pages)
 	permalinksEnabled: true,

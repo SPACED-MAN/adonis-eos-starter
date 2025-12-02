@@ -35,6 +35,13 @@ export default class extends BaseSeeder {
       })
     }
 
+    // Lookup demo-blog media asset (for featured images on Blog posts)
+    const [demoBlogMedia] = await db
+      .from('media_assets')
+      .where('original_filename', 'demo-blog.jpg')
+      .limit(1)
+    const demoBlogId: string | null = demoBlogMedia ? String((demoBlogMedia as any).id) : null
+
     // Test 1: Ensure a test template exists (idempotent)
     const existingTemplate = await db.from('templates').where({ name: 'test-blog-template' }).first()
     let template: any = existingTemplate
@@ -77,6 +84,8 @@ export default class extends BaseSeeder {
       meta_title: 'Test Meta Title',
       meta_description: 'Test meta description',
       robots_json: JSON.stringify({ index: true, follow: true }),
+      // Seed featured image for primary test blog post (if demo-blog exists)
+      featured_image_id: demoBlogId,
       created_at: new Date(),
       updated_at: new Date(),
     }).returning('*')
@@ -118,6 +127,8 @@ export default class extends BaseSeeder {
           meta_title: null,
           meta_description: `Seeded description ${i}`,
           robots_json: JSON.stringify({ index: i % 5 !== 0, follow: true }),
+          // Apply demo-blog featured image to all English-language blog seeds
+          featured_image_id: loc === 'en' && demoBlogId ? demoBlogId : null,
           created_at: new Date(now - i * 3600 * 1000),
           updated_at: new Date(now - i * 3500 * 1000),
         })
