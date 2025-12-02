@@ -16,7 +16,7 @@ export function AdminHeader({ title = 'Admin' }: { title?: string }) {
 		<SidebarProvider>
 			<AdminSidebar />
 			<header className="bg-backdrop-low border-b border-line">
-				<div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4">
+				<div className="h-18 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4">
 					<div className="flex items-center justify-between">
 						<div className="flex items-center gap-3">
 							{showAdminLinks && <SidebarTrigger />}

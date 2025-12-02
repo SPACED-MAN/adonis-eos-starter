@@ -78,12 +78,12 @@ export function SidebarContent({ children, className }: { children: React.ReactN
 }
 
 export function SidebarHeader({ children, className }: { children: React.ReactNode; className?: string }) {
-	return <div className={cn('px-4 py-3 border-b border-line', className)}>{children}</div>
+	return <div className={cn('h-18 px-4 py-4', className)}>{children}</div>
 }
 
 export function SidebarGroup({ title, children }: { title?: string; children: React.ReactNode }) {
 	return (
-		<div className="px-2 py-3">
+		<div className="px-2 py-4 border-t border-line">
 			{title && <div className="px-2 text-xs font-semibold text-neutral-medium uppercase tracking-wide mb-1">{title}</div>}
 			<nav className="space-y-1">{children}</nav>
 		</div>
