@@ -13,7 +13,6 @@ type Settings = {
   faviconMediaId: string | null
   defaultOgMediaId: string | null
   logoLightMediaId: string | null
-  logoDarkMediaId: string | null
   profileRolesEnabled: string[]
   customFieldDefs?: Array<{ slug: string; label: string; type: 'text' | 'url' | 'textarea' | 'boolean' | 'media' }>
   customFields?: Record<string, any>
@@ -34,7 +33,6 @@ export default function GeneralSettings() {
     faviconMediaId: '',
     defaultOgMediaId: '',
     logoLightMediaId: '',
-    logoDarkMediaId: '',
     profileRolesEnabled: [],
     customFieldDefs: [],
     customFields: {},
@@ -54,7 +52,6 @@ export default function GeneralSettings() {
           faviconMediaId: j?.data?.faviconMediaId || '',
           defaultOgMediaId: j?.data?.defaultOgMediaId || '',
           logoLightMediaId: j?.data?.logoLightMediaId || '',
-          logoDarkMediaId: j?.data?.logoDarkMediaId || '',
           profileRolesEnabled: Array.isArray(j?.data?.profileRolesEnabled) ? j.data.profileRolesEnabled : [],
           customFieldDefs: Array.isArray(j?.data?.customFieldDefs) ? j.data.customFieldDefs : [],
           customFields: (j?.data?.customFields && typeof j.data.customFields === 'object') ? j.data.customFields : {},
@@ -84,7 +81,6 @@ export default function GeneralSettings() {
           faviconMediaId: form.faviconMediaId || null,
           defaultOgMediaId: form.defaultOgMediaId || null,
           logoLightMediaId: form.logoLightMediaId || null,
-          logoDarkMediaId: form.logoDarkMediaId || null,
           profileRolesEnabled: form.profileRolesEnabled || [],
           customFields: form.customFields || {},
         }),
@@ -226,19 +222,13 @@ export default function GeneralSettings() {
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
             <div>
               <MediaIdPicker
-                label="Logo (Light mode)"
+                label="Logo"
                 value={form.logoLightMediaId}
                 onChange={(id) => setForm({ ...form, logoLightMediaId: id })}
               />
-              <p className="text-xs text-neutral-low mt-1">Recommended transparent PNG/SVG sized for your header. Provide a light-on-dark version here.</p>
-            </div>
-            <div>
-              <MediaIdPicker
-                label="Logo (Dark mode)"
-                value={form.logoDarkMediaId}
-                onChange={(id) => setForm({ ...form, logoDarkMediaId: id })}
-              />
-              <p className="text-xs text-neutral-low mt-1">Provide a dark-on-light version for light backgrounds.</p>
+              <p className="text-xs text-neutral-low mt-1">
+                Recommended SVG/PNG sized for your header. Theme-specific variants can be managed on the media item.
+              </p>
             </div>
           </div>
           {/* Site Custom Fields */}

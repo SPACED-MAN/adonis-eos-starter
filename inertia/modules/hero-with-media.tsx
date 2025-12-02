@@ -12,7 +12,7 @@ interface HeroWithMediaProps {
   backgroundColor?: string
 }
 
-function resolveHrefAndTarget(
+export function resolveHrefAndTarget(
   url: string | LinkValue,
   explicitTarget?: '_self' | '_blank'
 ): { href?: string; target: '_self' | '_blank' } {

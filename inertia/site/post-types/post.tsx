@@ -1,6 +1,7 @@
 import { Head } from '@inertiajs/react'
 import * as Modules from '../../modules'
 import { SiteFooter } from '../components/SiteFooter'
+import { SiteHeader } from '../components/SiteHeader'
 
 interface PostPageProps {
 	post: {
@@ -59,16 +60,7 @@ export default function PostTypeDefault({ post, modules, seo }: PostPageProps) {
 					<script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(seo.jsonLd) }} />
 				)}
 			</Head>
-			{/* Post Header */}
-			<header className="bg-backdrop-low py-12">
-				<div className="container mx-auto px-4 sm:px-6 lg:px-8">
-					<div className="max-w-4xl mx-auto">
-						<h1 className="text-4xl sm:text-5xl font-bold text-neutral-high mb-4">{post.title}</h1>
-						{post.excerpt && <p className="text-xl text-neutral-low">{post.excerpt}</p>}
-					</div>
-				</div>
-			</header>
-
+			<SiteHeader />
 			{/* Post Content - Rendered Modules */}
 			<main>
 				{modules.map((module) => {
