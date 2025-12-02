@@ -668,12 +668,12 @@ export default class extends BaseSeeder {
       console.log('✅ Set custom field value by slug (code-first)')
     } catch { /* ignore */ }
 
-    // Test 11: Create module scope
+    // Test 11: Create module scope for testimonial-list module
     await db.table('module_scopes').insert({
-      module_type: 'testimonial-grid',
+      module_type: 'testimonial-list',
       post_type: 'testimonial',
     })
-    console.log('✅ Created module scope restriction')
+    console.log('✅ Created testimonial-list module scope restriction')
 
     console.log('\n✨ Smoke tests completed for database schema (with i18n).')
     console.log('📊 Summary:')

@@ -19,6 +19,7 @@ import StatisticsModule from '#modules/statistics'
 import PricingModule from '#modules/pricing'
 import FaqModule from '#modules/faq'
 import BlogListModule from '#modules/blog_list'
+import TestimonialListModule from '#modules/testimonial_list'
 
 // Register Hero modules
 moduleRegistry.register(new HeroWithMediaModule())
@@ -27,6 +28,7 @@ moduleRegistry.register(new FeaturesListModule())
 moduleRegistry.register(new ProfileListModule())
 moduleRegistry.register(new CompanyListModule())
 moduleRegistry.register(new BlogListModule())
+moduleRegistry.register(new TestimonialListModule())
 moduleRegistry.register(new ProseWithMediaModule())
 moduleRegistry.register(new StatisticsModule())
 moduleRegistry.register(new PricingModule())

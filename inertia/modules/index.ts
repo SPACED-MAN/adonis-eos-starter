@@ -26,6 +26,7 @@ export { default as CompanyList } from './company-list'
 export { default as BlogList } from './blog-list'
 export { default as Pricing } from './pricing'
 export { default as Faq } from './faq'
+export { default as TestimonialList } from './testimonial-list'
 
 /**
  * Module component map for dynamic imports
@@ -34,7 +35,7 @@ export { default as Faq } from './faq'
 export const MODULE_COMPONENTS = {
   // Static variants
   'prose-static': () => import('./prose-static'),
-  
+
   // React variants
   'gallery': () => import('./gallery'),
   'accordion': () => import('./accordion'),
@@ -49,6 +50,7 @@ export const MODULE_COMPONENTS = {
   'blog-list': () => import('./blog-list'),
   'pricing': () => import('./pricing'),
   'faq': () => import('./faq'),
+  'testimonial-list': () => import('./testimonial-list'),
 } as const
 
 export type ModuleComponentName = keyof typeof MODULE_COMPONENTS

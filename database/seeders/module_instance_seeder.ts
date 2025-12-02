@@ -512,6 +512,148 @@ export default class ModuleInstanceSeeder extends BaseSeeder {
 			}
 		}
 
+		// Seed a few demo Testimonials for the Testimonial List module (if none exist)
+		{
+			const existingTestimonials = await db
+				.from('posts')
+				.where({ type: 'testimonial', locale: 'en' })
+				.limit(1)
+
+			if (existingTestimonials.length === 0) {
+				const nowTsLocal = nowTs
+				// Reuse avatar media if available, else no photo
+				const photoId: string | null = avatarMedia ? String((avatarMedia as any).id) : null
+
+				const testimonialsToInsert = [
+					{
+						type: 'testimonial',
+						slug: 'demo-testimonial-bonnie-green',
+						title: 'Bonnie Green',
+						status: 'published',
+						locale: 'en',
+						user_id: user.id,
+						excerpt: null,
+						meta_title: null,
+						meta_description: null,
+						robots_json: JSON.stringify({ index: false, follow: true }),
+						created_at: nowTsLocal,
+						updated_at: nowTsLocal,
+					},
+					{
+						type: 'testimonial',
+						slug: 'demo-testimonial-roberta-casas',
+						title: 'Roberta Casas',
+						status: 'published',
+						locale: 'en',
+						user_id: user.id,
+						excerpt: null,
+						meta_title: null,
+						meta_description: null,
+						robots_json: JSON.stringify({ index: false, follow: true }),
+						created_at: nowTsLocal,
+						updated_at: nowTsLocal,
+					},
+					{
+						type: 'testimonial',
+						slug: 'demo-testimonial-jese-leos',
+						title: 'Jese Leos',
+						status: 'published',
+						locale: 'en',
+						user_id: user.id,
+						excerpt: null,
+						meta_title: null,
+						meta_description: null,
+						robots_json: JSON.stringify({ index: false, follow: true }),
+						created_at: nowTsLocal,
+						updated_at: nowTsLocal,
+					},
+				]
+
+				const insertedTestimonials = await db.table('posts').insert(testimonialsToInsert).returning('*')
+
+				const cfRows: any[] = []
+				const addCf = (
+					post: any,
+					authorName: string,
+					authorTitle: string,
+					quote: string,
+					photoIdForPost: string | null,
+				) => {
+					const pid = String((post as any).id)
+					cfRows.push(
+						{
+							id: crypto.randomUUID(),
+							post_id: pid,
+							field_slug: 'author_name',
+							value: JSON.stringify(authorName),
+							created_at: nowTsLocal,
+							updated_at: nowTsLocal,
+						},
+						{
+							id: crypto.randomUUID(),
+							post_id: pid,
+							field_slug: 'author_title',
+							value: JSON.stringify(authorTitle),
+							created_at: nowTsLocal,
+							updated_at: nowTsLocal,
+						},
+						{
+							id: crypto.randomUUID(),
+							post_id: pid,
+							field_slug: 'quote',
+							value: JSON.stringify(quote),
+							created_at: nowTsLocal,
+							updated_at: nowTsLocal,
+						},
+					)
+					if (photoIdForPost) {
+						cfRows.push({
+							id: crypto.randomUUID(),
+							post_id: pid,
+							field_slug: 'photo',
+							value: JSON.stringify(photoIdForPost),
+							created_at: nowTsLocal,
+							updated_at: nowTsLocal,
+						})
+					}
+				}
+
+				const bonnie = insertedTestimonials[0]
+				const roberta = insertedTestimonials[1]
+				const jese = insertedTestimonials[2]
+
+				addCf(
+					bonnie,
+					'Bonnie Green',
+					'Developer at Open AI',
+					"I'm speechless with how easy this was to integrate within my application. If you care for your time, I hands down would go with this.",
+					photoId,
+				)
+				addCf(
+					roberta,
+					'Roberta Casas',
+					'Lead designer at Dropbox',
+					'FlowBite provides a robust set of design tokens and components based on Tailwind CSS, giving a solid foundation for any project.',
+					photoId,
+				)
+				addCf(
+					jese,
+					'Jese Leos',
+					'Software Engineer at Facebook',
+					'Everything is so well structured and simple to use. The well designed components are beautiful and will level up your next application.',
+					photoId,
+				)
+
+				if (cfRows.length > 0) {
+					await db.table('post_custom_field_values').insert(cfRows)
+				}
+
+				console.log('✅ [ModuleInstanceSeeder] Seeded demo Testimonials for Testimonial List module')
+			} else {
+				console.log('ℹ️ [ModuleInstanceSeeder] Testimonials already exist; skipping demo Testimonial seeding')
+			}
+		}
+
 		// Ensure core demo module instances exist for the catalog
 
 		// Hero with Media instance
@@ -960,6 +1102,35 @@ export default class ModuleInstanceSeeder extends BaseSeeder {
 			console.log('ℹ️ [ModuleInstanceSeeder] profile-list module instance already exists; reusing')
 		}
 
+		// Testimonial List instance
+		const existingTestimonialList = await db
+			.from('module_instances')
+			.where({ type: 'testimonial-list', scope: 'post' })
+			.first()
+
+		let testimonialListInstance: any = existingTestimonialList
+		if (!testimonialListInstance) {
+			const [createdTestimonialList] = await db
+				.table('module_instances')
+				.insert({
+					type: 'testimonial-list',
+					scope: 'post',
+					props: {
+						title: 'Testimonials',
+						subtitle:
+							'Showcase customer feedback using the Testimonial post type. Add or edit testimonials in the CMS and they will appear here automatically.',
+						testimonials: [],
+					},
+					created_at: nowTs,
+					updated_at: nowTs,
+				})
+				.returning('*')
+			testimonialListInstance = createdTestimonialList
+			console.log('✅ [ModuleInstanceSeeder] Created testimonial-list module instance')
+		} else {
+			console.log('ℹ️ [ModuleInstanceSeeder] testimonial-list module instance already exists; reusing')
+		}
+
 		// Blog List instance
 		const existingBlogList = await db
 			.from('module_instances')
@@ -1093,6 +1264,7 @@ export default class ModuleInstanceSeeder extends BaseSeeder {
 		await ensureAttached(String(pricingInstance.id), 'pricing module')
 		await ensureAttached(String(faqInstance.id), 'faq module')
 		await ensureAttached(String(profileListInstance.id), 'profile-list module')
+		await ensureAttached(String(testimonialListInstance.id), 'testimonial-list module')
 		await ensureAttached(String(companyListInstance.id), 'company-list module')
 		await ensureAttached(String(blogListInstance.id), 'blog-list module')
 		await ensureAttached(String(proseInstance.id), 'prose module')

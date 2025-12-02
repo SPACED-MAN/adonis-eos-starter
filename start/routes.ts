@@ -120,6 +120,7 @@ const GlobalModulesController = () => import('#controllers/global_modules_contro
 const ProfilesController = () => import('#controllers/profiles_controller')
 const BlogsController = () => import('#controllers/blogs_controller')
 const CompaniesController = () => import('#controllers/companies_controller')
+const TestimonialsController = () => import('#controllers/testimonials_controller')
 const MenusController = () => import('#controllers/menus_controller')
 const UsersController = () => import('#controllers/users_controller')
 const ActivityLogsController = () => import('#controllers/activity_logs_controller')
@@ -247,6 +248,7 @@ router
 		router.get('/profiles', [ProfilesController, 'index'])
 		router.get('/blogs', [BlogsController, 'index'])
 		router.get('/companies', [CompaniesController, 'index'])
+		router.get('/testimonials', [TestimonialsController, 'index'])
 	})
 	.prefix('/api')
 
