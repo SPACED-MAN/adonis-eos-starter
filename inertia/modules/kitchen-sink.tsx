@@ -1,4 +1,5 @@
 import React, { useEffect, useState } from 'react'
+import { pickMediaVariantUrl } from '../lib/media'
 
 type KitchenSinkProps = {
 	title: string
@@ -23,22 +24,30 @@ export default function KitchenSink(props: KitchenSinkProps) {
 	useEffect(() => {
 		async function resolveImage() {
 			const id = props.image
-			if (!id) { setResolvedImageUrl(null); return }
+			if (!id) {
+				setResolvedImageUrl(null)
+				return
+			}
 			try {
 				const res = await fetch(`/public/media/${encodeURIComponent(id)}`)
-				if (!res.ok) { setResolvedImageUrl(null); return }
+				if (!res.ok) {
+					setResolvedImageUrl(null)
+					return
+				}
 				const j = await res.json().catch(() => null)
 				const data = j?.data
-				if (!data) { setResolvedImageUrl(null); return }
-				const variants = Array.isArray(data.metadata?.variants) ? data.metadata.variants as any[] : []
-				let url: string = data.url
-				if (props.imageVariant) {
-					const match = variants.find((x) => x.name === props.imageVariant)
-					if (match?.url) url = match.url
-				} else if (variants.length > 0) {
-					const sorted = [...variants].sort((a, b) => ((b.width || b.height || 0) - (a.width || a.height || 0)))
-					url = sorted[0]?.url || url
+				if (!data) {
+					setResolvedImageUrl(null)
+					return
 				}
+				const variants = Array.isArray(data.metadata?.variants)
+					? (data.metadata.variants as any[])
+					: []
+				const url = pickMediaVariantUrl(
+					data.url,
+					variants,
+					props.imageVariant || null,
+				)
 				setResolvedImageUrl(url)
 			} catch {
 				setResolvedImageUrl(null)

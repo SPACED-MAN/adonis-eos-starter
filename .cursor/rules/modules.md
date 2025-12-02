@@ -92,6 +92,16 @@ Our module UI intentionally focuses on content that provides value to editors:
 
 This keeps content consistent, prevents design drift, and aligns with the editorial vs. design separation the project expects.
 
+### Media Usage in Modules
+
+- **Always resolve media from the media library**, never hardcode CDN URLs or static paths in modules.
+- **When rendering images on the frontend**, always request an appropriate size/variant (e.g., `thumb`, `hero`, `wide`) for performance.
+- Variant selection logic should use a shared helper (e.g., a `pickMediaVariantUrl`-style function) that:
+  - Prefers a requested size if available.
+  - Falls back to the next-best size (usually the next-largest) when the exact size is missing.
+  - Is aware of light vs dark image variants so dark mode uses dark images when present.
+- Do **not** reimplement media-variant selection per module; reuse the shared helper for consistency and better caching.
+
 ---
 
 ## Creating a New Module

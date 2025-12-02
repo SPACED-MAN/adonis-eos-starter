@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react'
+import { pickMediaVariantUrl } from '../lib/media'
 import type { Button, LinkValue } from './types'
 
 interface HeroWithMediaProps {
@@ -76,14 +77,10 @@ export default function HeroWithMedia({
           if (!cancelled) setResolvedImageUrl(null)
           return
         }
-        const variants = Array.isArray(data.metadata?.variants) ? (data.metadata.variants as any[]) : []
-        let url: string = data.url
-        if (variants.length > 0) {
-          const sorted = [...variants].sort(
-            (a, b) => (b.width || b.height || 0) - (a.width || a.height || 0)
-          )
-          url = sorted[0]?.url || url
-        }
+        const variants = Array.isArray(data.metadata?.variants)
+          ? (data.metadata.variants as any[])
+          : []
+        const url = pickMediaVariantUrl(data.url, variants, undefined)
         if (!cancelled) setResolvedImageUrl(url)
       } catch {
         if (!cancelled) setResolvedImageUrl(null)

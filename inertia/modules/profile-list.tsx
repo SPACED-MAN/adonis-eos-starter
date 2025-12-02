@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react'
+import { pickMediaVariantUrl } from '../lib/media'
 
 interface ProfileListProps {
   title: string
@@ -13,6 +14,7 @@ type ProfileSummary = {
   role?: string | null
   bio?: string | null
   slug: string
+  imageId?: string | null
   imageUrl?: string | null
 }
 
@@ -47,9 +49,37 @@ export default function ProfileList({ title, subtitle, profiles }: ProfileListPr
           role: (p as any).role ?? null,
           bio: (p as any).bio ?? null,
           slug: String(p.slug),
-          imageUrl: (p as any).imageUrl ?? null,
+          imageId: (p as any).imageId ?? null,
+          imageUrl: null,
         }))
-        setItems(mapped)
+        // Resolve avatar media variants in parallel for all profiles
+        const uniqueIds = Array.from(
+          new Set(mapped.map((m) => m.imageId).filter(Boolean) as string[]),
+        )
+        const urlById = new Map<string, string>()
+        await Promise.all(
+          uniqueIds.map(async (id) => {
+            try {
+              const resMedia = await fetch(`/public/media/${encodeURIComponent(id)}`)
+              if (!resMedia.ok) return
+              const jm = await resMedia.json().catch(() => null)
+              const data = jm?.data
+              if (!data) return
+              const variants = Array.isArray(data.metadata?.variants)
+                ? (data.metadata.variants as any[])
+                : []
+              const url = pickMediaVariantUrl(data.url, variants, 'thumb')
+              urlById.set(id, url)
+            } catch {
+              // ignore
+            }
+          }),
+        )
+        const withImages = mapped.map((m) => ({
+          ...m,
+          imageUrl: m.imageId ? urlById.get(m.imageId) || null : null,
+        }))
+        setItems(withImages)
       } catch {
         if (!cancelled) setItems([])
       } finally {

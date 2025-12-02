@@ -82,26 +82,6 @@ export default class ProfilesController {
       if (slug === 'profile_image') entry.profile_image_id = String(rawVal ?? '')
     }
 
-    const avatarIds = Array.from(
-      new Set(
-        Array.from(byPostId.values())
-          .map((v) => v.profile_image_id)
-          .filter(Boolean) as string[],
-      ),
-    )
-
-    let avatarsById = new Map<string, string>()
-    if (avatarIds.length > 0) {
-      const avatarRows = await db
-        .from('media_assets')
-        .whereIn('id', avatarIds)
-        .select('id', 'url')
-
-      avatarsById = new Map(
-        avatarRows.map((a: any) => [String(a.id), String(a.url || '')]),
-      )
-    }
-
     const items = rows.map((p) => {
       const pid = String(p.id)
       const extras = byPostId.get(pid)
@@ -110,8 +90,7 @@ export default class ProfilesController {
       const name = [first, last].filter(Boolean).join(' ') || p.title || 'Profile'
       const role = extras?.role || null
       const bio = p.excerpt ?? null
-      const avatarUrl =
-        (extras?.profile_image_id && avatarsById.get(extras.profile_image_id)) || null
+      const imageId = extras?.profile_image_id || null
 
       return {
         id: pid,
@@ -119,7 +98,7 @@ export default class ProfilesController {
         role,
         bio,
         slug: p.slug,
-        imageUrl: avatarUrl,
+        imageId,
       }
     })
 
