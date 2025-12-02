@@ -21,6 +21,7 @@ import {
 	faTags,
 	faUsers,
 	faListUl,
+	faEnvelope,
 } from '@fortawesome/free-solid-svg-icons'
 import { faGauge } from '@fortawesome/free-solid-svg-icons'
 
@@ -99,6 +100,13 @@ export function AdminSidebar() {
 						<SidebarMenuItem href="/admin/modules" active={isActive('/admin/modules')}>
 							<span className="inline-flex items-center gap-2">
 								<FontAwesomeIcon icon={faCubes} className="w-4 h-4" /> <span>Modules</span>
+							</span>
+						</SidebarMenuItem>
+					)}
+					{isAdmin && (
+						<SidebarMenuItem href="/admin/forms" active={isActive('/admin/forms')}>
+							<span className="inline-flex items-center gap-2">
+								<FontAwesomeIcon icon={faEnvelope} className="w-4 h-4" /> <span>Forms</span>
 							</span>
 						</SidebarMenuItem>
 					)}

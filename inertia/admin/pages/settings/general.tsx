@@ -14,7 +14,7 @@ type Settings = {
   defaultOgMediaId: string | null
   logoLightMediaId: string | null
   profileRolesEnabled: string[]
-  customFieldDefs?: Array<{ slug: string; label: string; type: 'text' | 'url' | 'textarea' | 'boolean' | 'media' }>
+  customFieldDefs?: Array<{ slug: string; label: string; type: 'text' | 'url' | 'textarea' | 'boolean' | 'media' | 'form-reference' }>
   customFields?: Record<string, any>
 }
 
@@ -22,6 +22,64 @@ function getXsrf(): string | undefined {
   if (typeof document === 'undefined') return undefined
   const m = document.cookie.match(/(?:^|; )XSRF-TOKEN=([^;]+)/)
   return m ? decodeURIComponent(m[1]) : undefined
+}
+
+function SiteFormReferenceField({
+  label,
+  value,
+  onChange,
+}: {
+  label: string
+  value: string
+  onChange: (slug: string) => void
+}) {
+  const [options, setOptions] = useState<Array<{ label: string; value: string }>>([])
+  const [loading, setLoading] = useState(false)
+
+  useEffect(() => {
+    let alive = true
+    ;(async () => {
+      try {
+        setLoading(true)
+        const res = await fetch('/api/forms-definitions', { credentials: 'same-origin' })
+        const j = await res.json().catch(() => ({}))
+        if (!alive) return
+        const list: Array<any> = Array.isArray(j?.data) ? j.data : []
+        setOptions(
+          list.map((f) => ({
+            value: String(f.slug),
+            label: f.title ? String(f.title) : String(f.slug),
+          }))
+        )
+      } catch {
+        if (!alive) setOptions([])
+      } finally {
+        if (alive) setLoading(false)
+      }
+    })()
+    return () => {
+      alive = false
+    }
+  }, [])
+
+  return (
+    <div>
+      <label className="block text-sm font-medium text-neutral-medium mb-1">{label}</label>
+      <select
+        className="block w-full border border-line rounded bg-backdrop-low px-3 py-2 text-sm text-neutral-high"
+        value={value || ''}
+        onChange={(e) => onChange(e.target.value)}
+        disabled={loading}
+      >
+        <option value="">— Select a form —</option>
+        {options.map((opt) => (
+          <option key={opt.value} value={opt.value}>
+            {opt.label}
+          </option>
+        ))}
+      </select>
+    </div>
+  )
 }
 
 export default function GeneralSettings() {
@@ -271,6 +329,21 @@ export default function GeneralSettings() {
                           onChange={(id) => setForm((prev) => ({ ...prev, customFields: { ...(prev.customFields || {}), [f.slug]: id } }))}
                         />
                       </div>
+                    )
+                  }
+                  if (f.type === 'form-reference') {
+                    return (
+                      <SiteFormReferenceField
+                        key={f.slug}
+                        label={f.label}
+                        value={typeof val === 'string' ? val : ''}
+                        onChange={(slug) =>
+                          setForm((prev) => ({
+                            ...prev,
+                            customFields: { ...(prev.customFields || {}), [f.slug]: slug || '' },
+                          }))
+                        }
+                      />
                     )
                   }
                   // text or url

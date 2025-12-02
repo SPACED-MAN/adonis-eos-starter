@@ -121,6 +121,8 @@ const ProfilesController = () => import('#controllers/profiles_controller')
 const BlogsController = () => import('#controllers/blogs_controller')
 const CompaniesController = () => import('#controllers/companies_controller')
 const TestimonialsController = () => import('#controllers/testimonials_controller')
+const FormsController = () => import('#controllers/forms_controller')
+const FormsAdminController = () => import('#controllers/forms_admin_controller')
 const MenusController = () => import('#controllers/menus_controller')
 const UsersController = () => import('#controllers/users_controller')
 const ActivityLogsController = () => import('#controllers/activity_logs_controller')
@@ -229,6 +231,11 @@ router.group(() => {
 	router.put('/modules/global/:id', [GlobalModulesController, 'update']).use(middleware.admin())
 	router.delete('/modules/global/:id', [GlobalModulesController, 'destroy']).use(middleware.admin())
 	router.get('/modules/static', [GlobalModulesController, 'index']).use(middleware.admin())
+	// Forms definitions (Admin)
+	router.get('/forms-definitions', [FormsAdminController, 'listDefinitions']).use(middleware.admin())
+	router.post('/forms-definitions', [FormsAdminController, 'createDefinition']).use(middleware.admin())
+	router.put('/forms-definitions/:id', [FormsAdminController, 'updateDefinition']).use(middleware.admin())
+	router.delete('/forms-definitions/:id', [FormsAdminController, 'deleteDefinition']).use(middleware.admin())
 	// Taxonomies (editors allowed)
 	router.get('/taxonomies', [TaxonomiesController, 'list'])
 	router.get('/taxonomies/:slug/terms', [TaxonomiesController, 'termsBySlug'])
@@ -249,6 +256,8 @@ router
 		router.get('/blogs', [BlogsController, 'index'])
 		router.get('/companies', [CompaniesController, 'index'])
 		router.get('/testimonials', [TestimonialsController, 'index'])
+		router.get('/forms/:slug', [FormsController, 'show'])
+		router.post('/forms/:slug', [FormsController, 'submit'])
 	})
 	.prefix('/api')
 
@@ -315,6 +324,9 @@ router.get('/admin/profile', async ({ inertia }) => {
 router.get('/admin/modules', async ({ inertia }) => {
 	return inertia.render('admin/modules/index')
 }).use(middleware.auth()).use(middleware.admin())
+
+// Admin Forms (submissions)
+router.get('/admin/forms', [FormsAdminController, 'index']).use(middleware.auth()).use(middleware.admin())
 
 // Admin Menus
 router.get('/admin/menus', async ({ inertia }) => {

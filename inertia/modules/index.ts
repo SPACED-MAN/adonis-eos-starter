@@ -21,6 +21,7 @@ export { default as HeroWithCallout } from './hero-with-callout'
 export { default as FeaturesList } from './features-list'
 export { default as Blockquote } from './blockquote'
 export { default as ProseWithMedia } from './prose-with-media'
+export { default as ProseWithForm } from './prose-with-form'
 export { default as Statistics } from './statistics'
 export { default as ProfileList } from './profile-list'
 export { default as CompanyList } from './company-list'
@@ -28,6 +29,7 @@ export { default as BlogList } from './blog-list'
 export { default as Pricing } from './pricing'
 export { default as Faq } from './faq'
 export { default as TestimonialList } from './testimonial-list'
+export { default as Form } from './form'
 
 /**
  * Module component map for dynamic imports
@@ -46,6 +48,7 @@ export const MODULE_COMPONENTS = {
   'features-list': () => import('./features-list'),
   'blockquote': () => import('./blockquote'),
   'prose-with-media': () => import('./prose-with-media'),
+  'prose-with-form': () => import('./prose-with-form'),
   'statistics': () => import('./statistics'),
   'profile-list': () => import('./profile-list'),
   'company-list': () => import('./company-list'),
@@ -53,6 +56,7 @@ export const MODULE_COMPONENTS = {
   'pricing': () => import('./pricing'),
   'faq': () => import('./faq'),
   'testimonial-list': () => import('./testimonial-list'),
+  'form': () => import('./form'),
 } as const
 
 export type ModuleComponentName = keyof typeof MODULE_COMPONENTS

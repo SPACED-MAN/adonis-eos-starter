@@ -16,11 +16,13 @@ import BlockquoteModule from '#modules/blockquote'
 import ProfileListModule from '#modules/profile_list'
 import CompanyListModule from '#modules/company_list'
 import ProseWithMediaModule from '#modules/prose_with_media'
+import ProseWithFormModule from '#modules/prose_with_form'
 import StatisticsModule from '#modules/statistics'
 import PricingModule from '#modules/pricing'
 import FaqModule from '#modules/faq'
 import BlogListModule from '#modules/blog_list'
 import TestimonialListModule from '#modules/testimonial_list'
+import FormModule from '#modules/form'
 
 // Register Hero modules
 moduleRegistry.register(new HeroWithMediaModule())
@@ -32,9 +34,11 @@ moduleRegistry.register(new CompanyListModule())
 moduleRegistry.register(new BlogListModule())
 moduleRegistry.register(new TestimonialListModule())
 moduleRegistry.register(new ProseWithMediaModule())
+moduleRegistry.register(new ProseWithFormModule())
 moduleRegistry.register(new StatisticsModule())
 moduleRegistry.register(new PricingModule())
 moduleRegistry.register(new FaqModule())
+moduleRegistry.register(new FormModule())
 // Register Prose module
 moduleRegistry.register(new ProseModule())
 // Register Kitchen Sink module (demo)

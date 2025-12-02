@@ -20,7 +20,7 @@ const shieldConfig = defineConfig({
    */
   csrf: {
     enabled: !isTest,
-    exceptRoutes: [],
+    exceptRoutes: ['/api/forms/:slug'],
     enableXsrfCookie: true,
     methods: ['POST', 'PUT', 'PATCH', 'DELETE'],
   },

@@ -17,6 +17,7 @@ export type WebhookEvent =
   | 'user.created'
   | 'user.updated'
   | 'settings.updated'
+  | 'form.submitted'
 
 /**
  * Webhook payload
@@ -236,8 +237,44 @@ class WebhookService {
       timestamp: new Date().toISOString(),
       data,
     }
-
     // Deliver to all webhooks in parallel
+    const results = await Promise.all(webhooks.map((webhook) => this.deliverWebhook(webhook, payload)))
+
+    return results
+  }
+
+  /**
+   * Dispatch event to a specific set of webhook IDs (bypassing event filters).
+   */
+  async dispatchToWebhooks(
+    webhookIds: string[],
+    event: WebhookEvent,
+    data: Record<string, unknown>
+  ): Promise<DeliveryResult[]> {
+    if (!this.isEnabled() || webhookIds.length === 0) return []
+
+    const rows = await db.from('webhooks').whereIn('id', webhookIds).andWhere('active', true)
+
+    if (rows.length === 0) return []
+
+    const webhooks: WebhookConfig[] = rows.map((r) => ({
+      id: r.id,
+      name: r.name,
+      url: r.url,
+      secret: r.secret,
+      events: r.events,
+      active: r.active,
+      headers: r.headers,
+      timeoutMs: r.timeout_ms,
+      maxRetries: r.max_retries,
+    }))
+
+    const payload: WebhookPayload = {
+      event,
+      timestamp: new Date().toISOString(),
+      data,
+    }
+
     const results = await Promise.all(webhooks.map((webhook) => this.deliverWebhook(webhook, payload)))
 
     return results

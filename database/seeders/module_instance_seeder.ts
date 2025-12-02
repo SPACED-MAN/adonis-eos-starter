@@ -175,6 +175,35 @@ export default class ModuleInstanceSeeder extends BaseSeeder {
 			console.log('ℹ️ [ModuleInstanceSeeder] Demo avatar media already exists; skipping create')
 		}
 
+		// Ensure a default Contact form exists for the Forms system
+		const existingContactForm = await db.from('forms').where('slug', 'contact').first()
+		if (!existingContactForm) {
+			const contactFields = [
+				{ slug: 'name', label: 'Your Name', type: 'text', required: true },
+				{ slug: 'email', label: 'Your Email', type: 'email', required: true },
+				{ slug: 'company', label: 'Company', type: 'text', required: false },
+				{ slug: 'message', label: 'Your Message', type: 'textarea', required: true },
+			]
+			const now = new Date()
+			const [createdContactForm] = await db
+				.table('forms')
+				.insert({
+					slug: 'contact',
+					title: 'Contact Us',
+					description: 'Reach out with questions, project ideas, or feedback.',
+					fields_json: db.raw('?::jsonb', [JSON.stringify(contactFields)]) as any,
+					subscriptions_json: db.raw(`'[]'::jsonb`) as any,
+					success_message: 'Thanks! Your message has been sent.',
+					thank_you_post_id: null,
+					created_at: now,
+					updated_at: now,
+				})
+				.returning('*')
+			console.log('✅ [ModuleInstanceSeeder] Seeded default Contact form:', (createdContactForm as any).slug)
+		} else {
+			console.log('ℹ️ [ModuleInstanceSeeder] Contact form already exists; skipping create')
+		}
+
 		// Seed a few demo Profiles for the Profile List module (if none exist)
 		{
 			const existingProfiles = await db
@@ -1225,6 +1254,65 @@ export default class ModuleInstanceSeeder extends BaseSeeder {
 			console.log('ℹ️ [ModuleInstanceSeeder] company-list module instance already exists; reusing')
 		}
 
+		// Form module instance
+		const existingFormModule = await db
+			.from('module_instances')
+			.where({ type: 'form', scope: 'post' })
+			.first()
+
+		let formModuleInstance: any = existingFormModule
+		if (!formModuleInstance) {
+			const [createdFormModule] = await db
+				.table('module_instances')
+				.insert({
+					type: 'form',
+					scope: 'post',
+					props: {
+						title: 'Contact us',
+						subtitle: 'Fill out the form and our team will get back to you shortly.',
+						formSlug: 'contact',
+					},
+					created_at: nowTs,
+					updated_at: nowTs,
+				})
+				.returning('*')
+			formModuleInstance = createdFormModule
+			console.log('✅ [ModuleInstanceSeeder] Created form module instance')
+		} else {
+			console.log('ℹ️ [ModuleInstanceSeeder] form module instance already exists; reusing')
+		}
+
+		// Prose with Form module instance
+		const existingProseWithForm = await db
+			.from('module_instances')
+			.where({ type: 'prose-with-form', scope: 'post' })
+			.first()
+
+		let proseWithFormInstance: any = existingProseWithForm
+		if (!proseWithFormInstance) {
+			const [createdProseWithForm] = await db
+				.table('module_instances')
+				.insert({
+					type: 'prose-with-form',
+					scope: 'post',
+					props: {
+						title: 'Ready to talk?',
+						body: 'Use this section to invite visitors to reach out. The form will appear alongside this copy.',
+						formSlug: 'contact',
+						successMessage: 'Thanks! Your message has been sent.',
+						layout: 'form-right',
+						backgroundColor: 'bg-backdrop-low',
+					},
+					created_at: nowTs,
+					updated_at: nowTs,
+				})
+				.returning('*')
+			proseWithFormInstance = createdProseWithForm
+			console.log('✅ [ModuleInstanceSeeder] Created prose-with-form module instance')
+		} else {
+			console.log('ℹ️ [ModuleInstanceSeeder] prose-with-form module instance already exists; reusing')
+		}
+
 		// Ensure hero-with-callout module instance exists
 		const existingHeroCentered = await db
 			.from('module_instances')
@@ -1304,6 +1392,8 @@ export default class ModuleInstanceSeeder extends BaseSeeder {
 		await ensureAttached(String(testimonialListInstance.id), 'testimonial-list module')
 		await ensureAttached(String(companyListInstance.id), 'company-list module')
 		await ensureAttached(String(blogListInstance.id), 'blog-list module')
+		await ensureAttached(String(formModuleInstance.id), 'form module')
+		await ensureAttached(String(proseWithFormInstance.id), 'prose-with-form module')
 		await ensureAttached(String(proseInstance.id), 'prose module')
 		await ensureAttached(String(kitchenSinkInstance.id), 'kitchen-sink module')
 	}

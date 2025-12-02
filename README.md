@@ -887,6 +887,22 @@ How to test:
 - ✅ Ensured agent runs from the post editor dropdown send a stable, versioned canonical post JSON to n8n (including modules, translations, and `context`).
 - ✅ Kept all existing functional tests green while tightening API contracts for future n8n agents.
 
+### Milestone 30 — Frontend Forms & Form Webhooks (✅ Complete)
+- ✅ Code-first form definitions in `app/forms/*` using `FormConfig` (`slug`, `title`, `fields` with types: text, email, textarea, checkbox).
+- ✅ Database storage for submissions via `form_submissions` table (`form_slug`, jsonb `payload`, `ip_address`, `user_agent`, timestamps).
+- ✅ Public Forms API:
+  - `GET /api/forms/:slug` — Returns the form definition (fields, labels, requirements).
+  - `POST /api/forms/:slug` — Validates and stores a submission, returns a submission id.
+- ✅ Frontend Form module:
+  - New `form` module type in `app/modules/form.ts` for use on pages/blog posts.
+  - React renderer in `inertia/modules/form.tsx` that auto-loads form config and renders inputs based on field definitions.
+  - Inline validation + success/error messaging.
+- ✅ Webhook integration for form submissions:
+  - New event `form.submitted` emitted via the existing `webhookService.dispatch`.
+  - Webhooks can subscribe to `form.submitted` from `/admin/webhooks` to forward submissions to external systems (e.g., n8n).
+- ✅ Basic admin view for submissions:
+  - `/admin/forms` lists recent submissions (form slug, createdAt, basic sender info) for quick inspection.
+
 ## Environment Variables (New)
 
 ```env

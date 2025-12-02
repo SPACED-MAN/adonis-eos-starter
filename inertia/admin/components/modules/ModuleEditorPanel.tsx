@@ -619,6 +619,65 @@ export function ModuleEditorPanel({
 				</FormField>
 			)
 		}
+		if (type === 'form-reference') {
+			const [options, setOptions] = useState<Array<{ label: string; value: string }>>([])
+			const initial = typeof value === 'string' ? value : ''
+			const [current, setCurrent] = useState<string>(initial)
+			const hiddenRef = useRef<HTMLInputElement | null>(null)
+
+			useEffect(() => {
+				let alive = true
+					; (async () => {
+						try {
+							const res = await fetch('/api/forms-definitions', { credentials: 'same-origin' })
+							const j = await res.json().catch(() => ({}))
+							if (!alive) return
+							const list: Array<any> = Array.isArray(j?.data) ? j.data : []
+							setOptions(
+								list.map((f) => ({
+									value: String(f.slug),
+									label: f.title ? String(f.title) : String(f.slug),
+								}))
+							)
+						} catch {
+							if (!alive) setOptions([])
+						}
+					})()
+				return () => {
+					alive = false
+				}
+			}, [])
+
+			useEffect(() => {
+				if (hiddenRef.current) {
+					hiddenRef.current.value = current || ''
+				}
+			}, [current])
+
+			return (
+				<FormField>
+					{!hideLabel && <FormLabel>{label}</FormLabel>}
+					<Select
+						defaultValue={initial || undefined}
+						onValueChange={(val) => {
+							setCurrent(val)
+						}}
+					>
+						<SelectTrigger>
+							<SelectValue placeholder="Select a form" />
+						</SelectTrigger>
+						<SelectContent>
+							{options.map((opt) => (
+								<SelectItem key={opt.value} value={opt.value}>
+									{opt.label}
+								</SelectItem>
+							))}
+						</SelectContent>
+					</Select>
+					<input type="hidden" name={name} defaultValue={initial} ref={hiddenRef} />
+				</FormField>
+			)
+		}
 		if (type === 'select' || type === 'multiselect') {
 			const [dynamicOptions, setDynamicOptions] = useState<Array<{ label: string; value: string }>>(
 				Array.isArray((field as any).options) ? ((field as any).options as any) : []
