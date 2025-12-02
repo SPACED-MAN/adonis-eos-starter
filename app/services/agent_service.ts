@@ -2,7 +2,15 @@ type Agent = {
   id: string
   name: string
   url: string
+  /**
+   * Shared secret/token for authenticating with the agent webhook.
+   */
   secret?: string
+  /**
+   * Optional custom header name to send the secret with.
+   * If omitted, the secret is sent as Authorization: Bearer <secret>.
+   */
+  secretHeader?: string
 }
 
 class AgentService {
@@ -17,6 +25,7 @@ class AgentService {
             name: String(a.name || a.id || '').trim(),
             url: String(a.url || '').trim(),
             secret: a.secret ? String(a.secret) : undefined,
+            secretHeader: a.secretHeader ? String(a.secretHeader) : undefined,
           }))
           .filter((a) => a.id && a.name && a.url)
       }

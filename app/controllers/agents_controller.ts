@@ -40,7 +40,13 @@ export default class AgentsController {
         (request.input('context') as Record<string, unknown> | undefined) || {}
       )
       const headers: Record<string, string> = { 'Content-Type': 'application/json' }
-      if (agent.secret) headers['Authorization'] = `Bearer ${agent.secret}`
+      if (agent.secret) {
+        if (agent.secretHeader) {
+          headers[agent.secretHeader] = agent.secret
+        } else {
+          headers['Authorization'] = `Bearer ${agent.secret}`
+        }
+      }
       const res = await fetch(agent.url, {
         method: 'POST',
         headers,
