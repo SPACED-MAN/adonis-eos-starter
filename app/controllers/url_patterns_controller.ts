@@ -13,7 +13,21 @@ export default class UrlPatternsController {
     const locales = await (await import('#services/locale_service')).default.getSupportedLocales()
     await UrlPatternService.ensureDefaultsForAll(locales)
     const patterns = await UrlPatternService.getAllPatterns()
-    return response.ok({ data: patterns, meta: { count: patterns.length } })
+
+    // Only expose URL patterns for post types that have permalinks enabled.
+    // Post types like "company" and "testimonial" disable permalinks in their config,
+    // so they should not appear in the URL Patterns admin UI.
+    const filtered = patterns.filter((p: any) => {
+      try {
+        const cfg = postTypeConfigService.getUiConfig(p.postType)
+        return cfg.permalinksEnabled !== false
+      } catch {
+        // If config lookup fails, default to showing the pattern
+        return true
+      }
+    })
+
+    return response.ok({ data: filtered, meta: { count: filtered.length } })
   }
 
   /**
