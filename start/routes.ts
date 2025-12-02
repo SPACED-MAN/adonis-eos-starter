@@ -118,6 +118,8 @@ const TemplatesController = () => import('#controllers/templates_controller')
 const AgentsController = () => import('#controllers/agents_controller')
 const GlobalModulesController = () => import('#controllers/global_modules_controller')
 const ProfilesController = () => import('#controllers/profiles_controller')
+const BlogsController = () => import('#controllers/blogs_controller')
+const CompaniesController = () => import('#controllers/companies_controller')
 const MenusController = () => import('#controllers/menus_controller')
 const UsersController = () => import('#controllers/users_controller')
 const ActivityLogsController = () => import('#controllers/activity_logs_controller')
@@ -236,13 +238,17 @@ router.group(() => {
 }).prefix('/api').use(middleware.auth())
 
 /**
- * API Routes - Profiles (public)
+ * API Routes - Profiles / Blogs / Companies (public)
  *
- * Dedicated endpoint for Profile post type, to keep /api/posts generic.
+ * Dedicated endpoints for specific post types, to keep /api/posts generic.
  */
-router.group(() => {
-	router.get('/profiles', [ProfilesController, 'index'])
-}).prefix('/api')
+router
+	.group(() => {
+		router.get('/profiles', [ProfilesController, 'index'])
+		router.get('/blogs', [BlogsController, 'index'])
+		router.get('/companies', [CompaniesController, 'index'])
+	})
+	.prefix('/api')
 
 /**
  * API Routes - Webhooks (Admin)

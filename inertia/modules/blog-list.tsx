@@ -27,14 +27,13 @@ export default function BlogList({ title, subtitle, posts }: BlogListProps) {
     ;(async () => {
       try {
         const params = new URLSearchParams()
-        params.set('type', 'blog')
         params.set('status', 'published')
         params.set('limit', '20')
         const ids = Array.isArray(posts) ? posts.filter(Boolean) : []
         if (ids.length > 0) {
           params.set('ids', ids.join(','))
         }
-        const res = await fetch(`/api/posts?${params.toString()}`, {
+        const res = await fetch(`/api/blogs?${params.toString()}`, {
           credentials: 'same-origin',
           headers: { Accept: 'application/json' },
         })
@@ -45,19 +44,46 @@ export default function BlogList({ title, subtitle, posts }: BlogListProps) {
         const list: any[] = Array.isArray(j?.data) ? j.data : []
         if (cancelled) return
 
-        // For now, we only use generic fields from /api/posts. Hero images can be added later via type-specific endpoint if needed.
         const mapped: BlogSummary[] = list.map((p: any) => ({
           id: String(p.id),
           title: String(p.title || 'Untitled'),
           slug: String(p.slug),
           excerpt: (p as any).excerpt ?? null,
           updatedAt: (p as any).updatedAt ?? null,
-          imageId: null,
+          imageId: (p as any).imageId ?? null,
           imageUrl: null,
         }))
 
-        // If/when blog hero images are exposed, this is where we would resolve them via /public/media and pickMediaVariantUrl.
-        setItems(mapped)
+        // Resolve hero media variants in parallel for all blogs
+        const uniqueIds = Array.from(
+          new Set(mapped.map((m) => m.imageId).filter(Boolean) as string[]),
+        )
+        const urlById = new Map<string, string>()
+        await Promise.all(
+          uniqueIds.map(async (id) => {
+            try {
+              const resMedia = await fetch(`/public/media/${encodeURIComponent(id)}`)
+              if (!resMedia.ok) return
+              const jm = await resMedia.json().catch(() => null)
+              const data = jm?.data
+              if (!data) return
+              const variants = Array.isArray(data.metadata?.variants)
+                ? (data.metadata.variants as any[])
+                : []
+              const url = pickMediaVariantUrl(data.url, variants, 'wide')
+              urlById.set(id, url)
+            } catch {
+              // ignore
+            }
+          }),
+        )
+
+        const withImages = mapped.map((m) => ({
+          ...m,
+          imageUrl: m.imageId ? urlById.get(m.imageId) || null : null,
+        }))
+
+        setItems(withImages)
       } catch {
         if (!cancelled) setItems([])
       } finally {
@@ -123,53 +149,66 @@ export default function BlogList({ title, subtitle, posts }: BlogListProps) {
             return (
               <article
                 key={p.id}
-                className="p-6 bg-backdrop-high rounded-lg border border-line shadow-sm"
+                className="bg-backdrop-high rounded-lg border border-line shadow-sm overflow-hidden flex flex-col"
               >
-                <div className="flex justify-between items-center mb-4 text-neutral-medium text-xs">
-                  <span className="inline-flex items-center px-2.5 py-0.5 rounded bg-backdrop-medium text-neutral-high">
-                    {/* Semantic category placeholder; can be wired to taxonomies later */}
-                    Blog
-                  </span>
-                  {dateLabel && (
-                    <span className="text-xs text-neutral-low">
-                      {dateLabel}
-                    </span>
-                  )}
-                </div>
-                <h3 className="mb-2 text-2xl font-bold tracking-tight text-neutral-high">
-                  <a href={`/posts/${encodeURIComponent(p.slug)}`}>{p.title}</a>
-                </h3>
-                {p.excerpt && (
-                  <p className="mb-5 font-light text-neutral-medium">
-                    {p.excerpt}
-                  </p>
-                )}
-                <div className="flex justify-between items-center">
-                  {/* Author block reserved for future blog-specific enrichment */}
-                  <div className="flex items-center space-x-3 text-sm text-neutral-medium">
-                    <span className="font-medium text-neutral-high">
-                      {/* Placeholder author label; real author wiring can come later */}
-                      Blog team
-                    </span>
-                  </div>
-                  <a
-                    href={`/posts/${encodeURIComponent(p.slug)}`}
-                    className="inline-flex items-center font-medium text-standout hover:underline"
-                  >
-                    Read more
-                    <svg
-                      className="ml-2 w-4 h-4"
-                      fill="currentColor"
-                      viewBox="0 0 20 20"
-                      xmlns="http://www.w3.org/2000/svg"
-                    >
-                      <path
-                        fillRule="evenodd"
-                        d="M10.293 3.293a1 1 0 011.414 0l6 6a1 1 0 010 1.414l-6 6a1 1 0 01-1.414-1.414L14.586 11H3a1 1 0 110-2h11.586l-4.293-4.293a1 1 0 010-1.414z"
-                        clipRule="evenodd"
-                      ></path>
-                    </svg>
+                {p.imageUrl && (
+                  <a href={`/posts/${encodeURIComponent(p.slug)}`} className="block">
+                    <img
+                      src={p.imageUrl}
+                      alt={p.title}
+                      className="w-full h-40 object-cover"
+                      loading="lazy"
+                      decoding="async"
+                    />
                   </a>
+                )}
+                <div className="p-6 flex flex-col flex-1">
+                  <div className="flex justify-between items-center mb-4 text-neutral-medium text-xs">
+                    <span className="inline-flex items-center px-2.5 py-0.5 rounded bg-backdrop-medium text-neutral-high">
+                      {/* Semantic category placeholder; can be wired to taxonomies later */}
+                      Blog
+                    </span>
+                    {dateLabel && (
+                      <span className="text-xs text-neutral-low">
+                        {dateLabel}
+                      </span>
+                    )}
+                  </div>
+                  <h3 className="mb-2 text-2xl font-bold tracking-tight text-neutral-high">
+                    <a href={`/posts/${encodeURIComponent(p.slug)}`}>{p.title}</a>
+                  </h3>
+                  {p.excerpt && (
+                    <p className="mb-5 font-light text-neutral-medium">
+                      {p.excerpt}
+                    </p>
+                  )}
+                  <div className="mt-auto flex justify-between items-center">
+                    {/* Author block reserved for future blog-specific enrichment */}
+                    <div className="flex items-center space-x-3 text-sm text-neutral-medium">
+                      <span className="font-medium text-neutral-high">
+                        {/* Placeholder author label; real author wiring can come later */}
+                        Blog team
+                      </span>
+                    </div>
+                    <a
+                      href={`/posts/${encodeURIComponent(p.slug)}`}
+                      className="inline-flex items-center font-medium text-standout hover:underline"
+                    >
+                      Read more
+                      <svg
+                        className="ml-2 w-4 h-4"
+                        fill="currentColor"
+                        viewBox="0 0 20 20"
+                        xmlns="http://www.w3.org/2000/svg"
+                      >
+                        <path
+                          fillRule="evenodd"
+                          d="M10.293 3.293a1 1 0 011.414 0l6 6a1 1 0 010 1.414l-6 6a1 1 0 01-1.414-1.414L14.586 11H3a1 1 0 110-2h11.586l-4.293-4.293a1 1 0 010-1.414z"
+                          clipRule="evenodd"
+                        ></path>
+                      </svg>
+                    </a>
+                  </div>
                 </div>
               </article>
             )

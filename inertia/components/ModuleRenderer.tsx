@@ -99,6 +99,7 @@ function getModuleComponent(componentName: string): ComponentType<any> | null {
     'prose-with-media': Modules.ProseWithMedia,
     'statistics': Modules.Statistics,
     'profile-list': Modules.ProfileList,
+    'company-list': Modules.CompanyList,
     'blog-list': Modules.BlogList,
     'pricing': Modules.Pricing,
     'faq': Modules.Faq,

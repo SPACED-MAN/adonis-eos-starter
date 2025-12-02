@@ -13,6 +13,7 @@ import HeroWithMediaModule from '#modules/hero_with_media'
 import HeroWithCalloutModule from '#modules/hero_with_callout'
 import FeaturesListModule from '#modules/features_list'
 import ProfileListModule from '#modules/profile_list'
+import CompanyListModule from '#modules/company_list'
 import ProseWithMediaModule from '#modules/prose_with_media'
 import StatisticsModule from '#modules/statistics'
 import PricingModule from '#modules/pricing'
@@ -24,6 +25,7 @@ moduleRegistry.register(new HeroWithMediaModule())
 moduleRegistry.register(new HeroWithCalloutModule())
 moduleRegistry.register(new FeaturesListModule())
 moduleRegistry.register(new ProfileListModule())
+moduleRegistry.register(new CompanyListModule())
 moduleRegistry.register(new BlogListModule())
 moduleRegistry.register(new ProseWithMediaModule())
 moduleRegistry.register(new StatisticsModule())
