@@ -17,6 +17,7 @@ import ProfileListModule from '#modules/profile_list'
 import ProseWithMediaModule from '#modules/prose_with_media'
 import StatisticsModule from '#modules/statistics'
 import PricingModule from '#modules/pricing'
+import FaqModule from '#modules/faq'
 
 // Register Hero modules
 moduleRegistry.register(new HeroWithMediaModule())
@@ -26,6 +27,7 @@ moduleRegistry.register(new ProfileListModule())
 moduleRegistry.register(new ProseWithMediaModule())
 moduleRegistry.register(new StatisticsModule())
 moduleRegistry.register(new PricingModule())
+moduleRegistry.register(new FaqModule())
 // Register Prose module
 moduleRegistry.register(new ProseModule())
 // Register Kitchen Sink module (demo)

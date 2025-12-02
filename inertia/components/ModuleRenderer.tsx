@@ -101,6 +101,7 @@ function getModuleComponent(componentName: string): ComponentType<any> | null {
     'statistics': Modules.Statistics,
     'profile-list': Modules.ProfileList,
     'pricing': Modules.Pricing,
+    'faq': Modules.Faq,
   }
 
   return componentMap[componentName] || null

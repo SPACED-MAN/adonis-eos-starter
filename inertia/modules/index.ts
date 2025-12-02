@@ -24,6 +24,7 @@ export { default as ProseWithMedia } from './prose-with-media'
 export { default as Statistics } from './statistics'
 export { default as ProfileList } from './profile-list'
 export { default as Pricing } from './pricing'
+export { default as Faq } from './faq'
 
 /**
  * Module component map for dynamic imports
@@ -45,6 +46,7 @@ export const MODULE_COMPONENTS = {
   'statistics': () => import('./statistics'),
   'profile-list': () => import('./profile-list'),
   'pricing': () => import('./pricing'),
+  'faq': () => import('./faq'),
 } as const
 
 export type ModuleComponentName = keyof typeof MODULE_COMPONENTS

@@ -470,6 +470,70 @@ export default class ModuleInstanceSeeder extends BaseSeeder {
 			console.log('ℹ️ [ModuleInstanceSeeder] pricing module instance already exists; reusing')
 		}
 
+		// FAQ instance
+		const existingFaq = await db
+			.from('module_instances')
+			.where({ type: 'faq', scope: 'post' })
+			.first()
+
+		let faqInstance: any = existingFaq
+		if (!faqInstance) {
+			const [createdFaq] = await db
+				.table('module_instances')
+				.insert({
+					type: 'faq',
+					scope: 'post',
+					props: {
+						title: 'Frequently asked questions',
+						subtitle:
+							'Answers to common questions about how we work, what is included, and how we support your team.',
+						items: [
+							{
+								question: 'What do you mean by “Figma assets”?',
+								answer:
+									'You will have access to download the full design source, including all of the pages, reusable components, responsive variants, and supporting illustrations.',
+							},
+							{
+								question: 'What does “lifetime access” mean?',
+								answer:
+									'Once you purchase a license you can use the product for as long as you like and receive all future updates at no additional cost.',
+							},
+							{
+								question: 'How does support work?',
+								answer:
+									'Support is provided directly by the authors of the product so you get high‑quality, context‑aware answers.',
+								linkLabel: 'Contact support',
+								linkUrl: { kind: 'url', url: '#' },
+							},
+							{
+								question: 'Can I use this for multiple projects?',
+								answer:
+									'Yes. Your license covers an unlimited number of internal or client projects, as long as you are not reselling the kit itself as a competing product.',
+							},
+							{
+								question: 'What do “free updates” include?',
+								answer:
+									'Free updates include new components, patterns, and improvements that we ship as part of the public roadmap for this product.',
+								linkLabel: 'View roadmap',
+								linkUrl: { kind: 'url', url: '#' },
+							},
+							{
+								question: 'Can I use this in open‑source projects?',
+								answer:
+									'In most cases you can use the kit in open‑source projects, as long as the project is not a direct replacement for this product (for example, a competing UI kit or page‑builder).',
+							},
+						],
+					},
+					created_at: nowTs,
+					updated_at: nowTs,
+				})
+				.returning('*')
+			faqInstance = createdFaq
+			console.log('✅ [ModuleInstanceSeeder] Created faq module instance')
+		} else {
+			console.log('ℹ️ [ModuleInstanceSeeder] faq module instance already exists; reusing')
+		}
+
 		// Profile List instance
 		const existingProfileList = await db
 			.from('module_instances')
@@ -572,6 +636,7 @@ export default class ModuleInstanceSeeder extends BaseSeeder {
 		await ensureAttached(String(proseWithMediaInstance.id), 'prose-with-media module')
 		await ensureAttached(String(statisticsInstance.id), 'statistics module')
 		await ensureAttached(String(pricingInstance.id), 'pricing module')
+		await ensureAttached(String(faqInstance.id), 'faq module')
 		await ensureAttached(String(profileListInstance.id), 'profile-list module')
 		await ensureAttached(String(proseInstance.id), 'prose module')
 		await ensureAttached(String(feedInstance.id), 'feed module')
