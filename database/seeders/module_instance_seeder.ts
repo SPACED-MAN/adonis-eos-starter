@@ -1,6 +1,7 @@
 import { BaseSeeder } from '@adonisjs/lucid/seeders'
 import db from '@adonisjs/lucid/services/db'
 import User from '#models/user'
+import crypto from 'node:crypto'
 
 export default class ModuleInstanceSeeder extends BaseSeeder {
 	public static environment = ['development']
@@ -81,9 +82,53 @@ export default class ModuleInstanceSeeder extends BaseSeeder {
 				})
 				.returning('*')
 			demoMedia = createdDemoMedia
-			console.log('✅ [ModuleInstanceSeeder] Seeded demo media asset for Module Catalog:', (demoMedia as any).id)
+			console.log(
+				'✅ [ModuleInstanceSeeder] Seeded demo media asset for Module Catalog:',
+				(demoMedia as any).id,
+			)
 		} else {
 			console.log('ℹ️ [ModuleInstanceSeeder] Demo media asset already exists; skipping create')
+		}
+
+		// Ensure demo-blog hero image media asset exists (for seeded Blog posts)
+		const [existingDemoBlog] = await db
+			.from('media_assets')
+			.where('original_filename', 'demo-blog.jpg')
+			.limit(1)
+
+		let demoBlogMedia = existingDemoBlog as any
+		if (!demoBlogMedia) {
+			const wideVariant = {
+				name: 'wide',
+				url: '/uploads/demo-blog.jpg',
+				width: null,
+				height: null,
+				size: 0,
+			}
+
+			const [createdDemoBlog] = await db
+				.table('media_assets')
+				.insert({
+					url: '/uploads/demo-blog.jpg',
+					original_filename: 'demo-blog.jpg',
+					mime_type: 'image/jpeg',
+					size: 0,
+					alt_text: 'Demo blog hero image',
+					caption: 'Demo hero image for seeded Blog posts.',
+					description: 'Hero-style demo image used to illustrate Blog cards and listings.',
+					categories: db.raw('ARRAY[]::text[]') as any,
+					metadata: { variants: [wideVariant] } as any,
+					created_at: nowTs,
+					updated_at: nowTs,
+				})
+				.returning('*')
+			demoBlogMedia = createdDemoBlog
+			console.log(
+				'✅ [ModuleInstanceSeeder] Seeded demo-blog hero media asset for Blog posts:',
+				(demoBlogMedia as any).id,
+			)
+		} else {
+			console.log('ℹ️ [ModuleInstanceSeeder] Demo-blog hero media asset already exists; skipping create')
 		}
 
 		// Seed a few demo Profiles for the Profile List module (if none exist)
@@ -127,7 +172,10 @@ export default class ModuleInstanceSeeder extends BaseSeeder {
 						})
 						.returning('*')
 					avatarMedia = createdAvatar
-					console.log('✅ [ModuleInstanceSeeder] Seeded demo avatar media for Profiles:', (avatarMedia as any).id)
+					console.log(
+						'✅ [ModuleInstanceSeeder] Seeded demo avatar media for Profiles:',
+						(avatarMedia as any).id,
+					)
 				} else {
 					console.log('ℹ️ [ModuleInstanceSeeder] Demo avatar media already exists; skipping create')
 				}
@@ -178,16 +226,20 @@ export default class ModuleInstanceSeeder extends BaseSeeder {
 					},
 				]
 
-				const insertedProfiles = await db
-					.table('posts')
-					.insert(profilesToInsert)
-					.returning('*')
+				const insertedProfiles = await db.table('posts').insert(profilesToInsert).returning('*')
 
 				console.log('✅ [ModuleInstanceSeeder] Seeded demo Profiles for Profile List module')
 
 				// Populate profile custom fields: first_name, last_name, profile_image
 				const makeFieldRows = (post: any, first: string, last: string) => {
-					const values: Array<{ id: string; post_id: string; field_slug: string; value: any; created_at: Date; updated_at: Date }> = []
+					const values: Array<{
+						id: string
+						post_id: string
+						field_slug: string
+						value: any
+						created_at: Date
+						updated_at: Date
+					}> = []
 					const pid = String((post as any).id)
 					const avatarId = String((avatarMedia as any).id)
 					values.push({
@@ -226,9 +278,131 @@ export default class ModuleInstanceSeeder extends BaseSeeder {
 				cfRows.push(...makeFieldRows(grace, 'Grace', 'Hopper'))
 
 				await db.table('post_custom_field_values').insert(cfRows)
-				console.log('✅ [ModuleInstanceSeeder] Seeded Profile custom fields (first/last name, profile image)')
+				console.log(
+					'✅ [ModuleInstanceSeeder] Seeded Profile custom fields (first/last name, profile image)',
+				)
 			} else {
-				console.log('ℹ️ [ModuleInstanceSeeder] Profiles already exist; skipping demo Profile seeding')
+				console.log(
+					'ℹ️ [ModuleInstanceSeeder] Profiles already exist; skipping demo Profile seeding',
+				)
+			}
+		}
+
+		// Seed a few demo Companies for the Company List module (if none exist)
+		{
+			const existingCompanies = await db
+				.from('posts')
+				.where({ type: 'company', locale: 'en' })
+				.limit(1)
+
+			if (existingCompanies.length === 0) {
+				// Ensure a demo company logo media asset exists
+				const [existingCompanyLogo] = await db
+					.from('media_assets')
+					.where('original_filename', 'demo-company.png')
+					.limit(1)
+
+				let companyLogoMedia = existingCompanyLogo as any
+				if (!companyLogoMedia) {
+					const logoVariant = {
+						name: 'thumb',
+						url: '/uploads/demo-company.png',
+						width: null,
+						height: null,
+						size: 0,
+					}
+
+					const [createdCompanyLogo] = await db
+						.table('media_assets')
+						.insert({
+							url: '/uploads/demo-company.png',
+							original_filename: 'demo-company.png',
+							mime_type: 'image/png',
+							size: 0,
+							alt_text: 'Demo company logo',
+							caption: 'Demo logo image for seeded Companies.',
+							description: 'Logo-style demo image used to illustrate the Company List module.',
+							categories: db.raw('ARRAY[]::text[]') as any,
+							metadata: { variants: [logoVariant] } as any,
+							created_at: nowTs,
+							updated_at: nowTs,
+						})
+						.returning('*')
+					companyLogoMedia = createdCompanyLogo
+					console.log(
+						'✅ [ModuleInstanceSeeder] Seeded demo company logo media for Companies:',
+						(companyLogoMedia as any).id,
+					)
+				} else {
+					console.log(
+						'ℹ️ [ModuleInstanceSeeder] Demo company logo media already exists; skipping create',
+					)
+				}
+
+				const companiesToInsert = [
+					{
+						type: 'company',
+						slug: 'demo-company-acme',
+						title: 'Acme Inc.',
+						status: 'published',
+						locale: 'en',
+						user_id: user.id,
+						excerpt: 'Fictional company used for demos and examples.',
+						meta_title: null,
+						meta_description: null,
+						robots_json: JSON.stringify({ index: false, follow: true }),
+						created_at: nowTs,
+						updated_at: nowTs,
+					},
+					{
+						type: 'company',
+						slug: 'demo-company-umbrella',
+						title: 'Umbrella Corp.',
+						status: 'published',
+						locale: 'en',
+						user_id: user.id,
+						excerpt: 'Global conglomerate featured in fictional case studies.',
+						meta_title: null,
+						meta_description: null,
+						robots_json: JSON.stringify({ index: false, follow: true }),
+						created_at: nowTs,
+						updated_at: nowTs,
+					},
+					{
+						type: 'company',
+						slug: 'demo-company-wayne',
+						title: 'Wayne Enterprises',
+						status: 'published',
+						locale: 'en',
+						user_id: user.id,
+						excerpt: 'Large multinational with a diverse R&D portfolio.',
+						meta_title: null,
+						meta_description: null,
+						robots_json: JSON.stringify({ index: false, follow: true }),
+						created_at: nowTs,
+						updated_at: nowTs,
+					},
+				]
+
+				const insertedCompanies = await db.table('posts').insert(companiesToInsert).returning('*')
+				console.log('✅ [ModuleInstanceSeeder] Seeded demo Companies for Company List module')
+
+				// Populate company custom field: logo
+				const logoId = String((companyLogoMedia as any).id)
+				const companyFieldRows = insertedCompanies.map((company: any) => ({
+					id: crypto.randomUUID(),
+					post_id: String((company as any).id),
+					field_slug: 'logo',
+					value: JSON.stringify(logoId),
+					created_at: nowTs,
+					updated_at: nowTs,
+				}))
+				await db.table('post_custom_field_values').insert(companyFieldRows)
+				console.log('✅ [ModuleInstanceSeeder] Seeded Company custom fields (logo)')
+			} else {
+				console.log(
+					'ℹ️ [ModuleInstanceSeeder] Companies already exist; skipping demo Company seeding',
+				)
 			}
 		}
 
@@ -709,6 +883,69 @@ export default class ModuleInstanceSeeder extends BaseSeeder {
 			console.log('ℹ️ [ModuleInstanceSeeder] blog-list module instance already exists; reusing')
 		}
 
+		// Attach demo-blog hero image to a few published Blog posts (if not already set)
+		if (demoBlogMedia) {
+			const heroId = String((demoBlogMedia as any).id)
+			const blogPosts = await db
+				.from('posts')
+				.where({ type: 'blog', locale: 'en', status: 'published' })
+				.orderBy('created_at', 'desc')
+				.limit(6)
+
+			for (const post of blogPosts) {
+				const existingHero = await db
+					.from('post_custom_field_values')
+					.where({ post_id: (post as any).id, field_slug: 'hero_image' })
+					.first()
+
+				if (!existingHero) {
+					await db.table('post_custom_field_values').insert({
+						id: crypto.randomUUID(),
+						post_id: String((post as any).id),
+						field_slug: 'hero_image',
+						value: JSON.stringify(heroId),
+						created_at: nowTs,
+						updated_at: nowTs,
+					})
+				}
+			}
+
+			if (blogPosts.length > 0) {
+				console.log(
+					`✅ [ModuleInstanceSeeder] Ensured hero_image custom field for ${blogPosts.length} Blog posts`,
+				)
+			}
+		}
+
+		// Company List instance
+		const existingCompanyList = await db
+			.from('module_instances')
+			.where({ type: 'company-list', scope: 'post' })
+			.first()
+
+		let companyListInstance: any = existingCompanyList
+		if (!companyListInstance) {
+			const [createdCompanyList] = await db
+				.table('module_instances')
+				.insert({
+					type: 'company-list',
+					scope: 'post',
+					props: {
+						title: 'You’ll be in good company',
+						subtitle:
+							'Logos and names of customers or partners, managed via the Company post type.',
+						companies: [],
+					},
+					created_at: nowTs,
+					updated_at: nowTs,
+				})
+				.returning('*')
+			companyListInstance = createdCompanyList
+			console.log('✅ [ModuleInstanceSeeder] Created company-list module instance')
+		} else {
+			console.log('ℹ️ [ModuleInstanceSeeder] company-list module instance already exists; reusing')
+		}
+
 		// Ensure hero-with-callout module instance exists
 		const existingHeroCentered = await db
 			.from('module_instances')
@@ -784,6 +1021,7 @@ export default class ModuleInstanceSeeder extends BaseSeeder {
 		await ensureAttached(String(pricingInstance.id), 'pricing module')
 		await ensureAttached(String(faqInstance.id), 'faq module')
 		await ensureAttached(String(profileListInstance.id), 'profile-list module')
+		await ensureAttached(String(companyListInstance.id), 'company-list module')
 		await ensureAttached(String(blogListInstance.id), 'blog-list module')
 		await ensureAttached(String(proseInstance.id), 'prose module')
 		await ensureAttached(String(kitchenSinkInstance.id), 'kitchen-sink module')
