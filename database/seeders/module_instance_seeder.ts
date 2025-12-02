@@ -86,6 +86,152 @@ export default class ModuleInstanceSeeder extends BaseSeeder {
 			console.log('ℹ️ [ModuleInstanceSeeder] Demo media asset already exists; skipping create')
 		}
 
+		// Seed a few demo Profiles for the Profile List module (if none exist)
+		{
+			const existingProfiles = await db
+				.from('posts')
+				.where({ type: 'profile', locale: 'en' })
+				.limit(1)
+
+			if (existingProfiles.length === 0) {
+				// Ensure a demo avatar media asset exists
+				const [existingAvatar] = await db
+					.from('media_assets')
+					.where('original_filename', 'demo-avatar.jpg')
+					.limit(1)
+
+				let avatarMedia = existingAvatar as any
+				if (!avatarMedia) {
+					const avatarVariant = {
+						name: 'thumb',
+						url: '/uploads/demo-avatar.jpg',
+						width: null,
+						height: null,
+						size: 0,
+					}
+
+					const [createdAvatar] = await db
+						.table('media_assets')
+						.insert({
+							url: '/uploads/demo-avatar.jpg',
+							original_filename: 'demo-avatar.jpg',
+							mime_type: 'image/jpeg',
+							size: 0,
+							alt_text: 'Demo avatar placeholder',
+							caption: 'Demo avatar image for seeded Profiles.',
+							description: 'Avatar-style demo image used to illustrate Profile cards.',
+							categories: db.raw('ARRAY[]::text[]') as any,
+							metadata: { variants: [avatarVariant] } as any,
+							created_at: nowTs,
+							updated_at: nowTs,
+						})
+						.returning('*')
+					avatarMedia = createdAvatar
+					console.log('✅ [ModuleInstanceSeeder] Seeded demo avatar media for Profiles:', (avatarMedia as any).id)
+				} else {
+					console.log('ℹ️ [ModuleInstanceSeeder] Demo avatar media already exists; skipping create')
+				}
+
+				// Create demo profile posts
+				const profilesToInsert = [
+					{
+						type: 'profile',
+						slug: 'demo-profile-ada-lovelace',
+						title: 'Ada Lovelace',
+						status: 'published',
+						locale: 'en',
+						user_id: user.id,
+						excerpt: 'Mathematician and writer, often regarded as the first computer programmer.',
+						meta_title: null,
+						meta_description: null,
+						robots_json: JSON.stringify({ index: false, follow: true }),
+						created_at: nowTs,
+						updated_at: nowTs,
+					},
+					{
+						type: 'profile',
+						slug: 'demo-profile-alan-turing',
+						title: 'Alan Turing',
+						status: 'published',
+						locale: 'en',
+						user_id: user.id,
+						excerpt: 'Pioneer of theoretical computer science and artificial intelligence.',
+						meta_title: null,
+						meta_description: null,
+						robots_json: JSON.stringify({ index: false, follow: true }),
+						created_at: nowTs,
+						updated_at: nowTs,
+					},
+					{
+						type: 'profile',
+						slug: 'demo-profile-grace-hopper',
+						title: 'Grace Hopper',
+						status: 'published',
+						locale: 'en',
+						user_id: user.id,
+						excerpt: 'Computer scientist and US Navy rear admiral, known for work on compilers.',
+						meta_title: null,
+						meta_description: null,
+						robots_json: JSON.stringify({ index: false, follow: true }),
+						created_at: nowTs,
+						updated_at: nowTs,
+					},
+				]
+
+				const insertedProfiles = await db
+					.table('posts')
+					.insert(profilesToInsert)
+					.returning('*')
+
+				console.log('✅ [ModuleInstanceSeeder] Seeded demo Profiles for Profile List module')
+
+				// Populate profile custom fields: first_name, last_name, profile_image
+				const makeFieldRows = (post: any, first: string, last: string) => {
+					const values: Array<{ id: string; post_id: string; field_slug: string; value: any; created_at: Date; updated_at: Date }> = []
+					const pid = String((post as any).id)
+					const avatarId = String((avatarMedia as any).id)
+					values.push({
+						id: crypto.randomUUID(),
+						post_id: pid,
+						field_slug: 'first_name',
+						value: JSON.stringify(first),
+						created_at: nowTs,
+						updated_at: nowTs,
+					})
+					values.push({
+						id: crypto.randomUUID(),
+						post_id: pid,
+						field_slug: 'last_name',
+						value: JSON.stringify(last),
+						created_at: nowTs,
+						updated_at: nowTs,
+					})
+					values.push({
+						id: crypto.randomUUID(),
+						post_id: pid,
+						field_slug: 'profile_image',
+						value: JSON.stringify(avatarId),
+						created_at: nowTs,
+						updated_at: nowTs,
+					})
+					return values
+				}
+
+				const cfRows: any[] = []
+				const ada = insertedProfiles[0]
+				const alan = insertedProfiles[1]
+				const grace = insertedProfiles[2]
+				cfRows.push(...makeFieldRows(ada, 'Ada', 'Lovelace'))
+				cfRows.push(...makeFieldRows(alan, 'Alan', 'Turing'))
+				cfRows.push(...makeFieldRows(grace, 'Grace', 'Hopper'))
+
+				await db.table('post_custom_field_values').insert(cfRows)
+				console.log('✅ [ModuleInstanceSeeder] Seeded Profile custom fields (first/last name, profile image)')
+			} else {
+				console.log('ℹ️ [ModuleInstanceSeeder] Profiles already exist; skipping demo Profile seeding')
+			}
+		}
+
 		// Ensure core demo module instances exist for the catalog
 
 		// Hero with Media instance

@@ -25,14 +25,13 @@ export default function ProfileList({ title, subtitle, profiles }: ProfileListPr
     ;(async () => {
       try {
         const params = new URLSearchParams()
-        params.set('type', 'profile')
         params.set('status', 'published')
         params.set('limit', '50')
         const ids = Array.isArray(profiles) ? profiles.filter(Boolean) : []
         if (ids.length > 0) {
           params.set('ids', ids.join(','))
         }
-        const res = await fetch(`/api/posts?${params.toString()}`, {
+        const res = await fetch(`/api/profiles?${params.toString()}`, {
           credentials: 'same-origin',
           headers: { Accept: 'application/json' },
         })
@@ -42,19 +41,14 @@ export default function ProfileList({ title, subtitle, profiles }: ProfileListPr
         const j = await res.json().catch(() => null)
         const list: any[] = Array.isArray(j?.data) ? j.data : []
         if (cancelled) return
-        const mapped: ProfileSummary[] = list.map((p: any) => {
-          const first = (p as any).first_name || (p as any).firstName || ''
-          const last = (p as any).last_name || (p as any).lastName || ''
-          const name = [first, last].filter(Boolean).join(' ') || p.title || 'Profile'
-          return {
-            id: String(p.id),
-            name,
-            role: (p as any).role || null,
-            bio: (p as any).bio || p.excerpt || null,
-            slug: p.slug,
-            imageUrl: (p as any).profileThumbUrl || null,
-          }
-        })
+        const mapped: ProfileSummary[] = list.map((p: any) => ({
+          id: String(p.id),
+          name: String(p.name || 'Profile'),
+          role: (p as any).role ?? null,
+          bio: (p as any).bio ?? null,
+          slug: String(p.slug),
+          imageUrl: (p as any).imageUrl ?? null,
+        }))
         setItems(mapped)
       } catch {
         if (!cancelled) setItems([])

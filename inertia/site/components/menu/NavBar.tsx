@@ -44,9 +44,9 @@ export function NavBar({
           {hasSupport && (
             <nav className="hidden md:flex items-center gap-4 text-sm">
               {supportNodes!.map((n) => (
-                <NavItem key={n.id} node={n} menuMeta={menuMeta} />
-              ))}
-            </nav>
+            <NavItem key={n.id} node={n} menuMeta={menuMeta} />
+          ))}
+        </nav>
           )}
         </div>
       </div>

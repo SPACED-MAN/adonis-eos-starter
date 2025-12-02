@@ -33,7 +33,7 @@ export { default as Faq } from './faq'
 export const MODULE_COMPONENTS = {
   // Static variants
   'prose-static': () => import('./prose-static'),
-
+  
   // React variants
   'gallery': () => import('./gallery'),
   'accordion': () => import('./accordion'),

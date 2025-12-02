@@ -117,6 +117,7 @@ router.group(() => {
 const TemplatesController = () => import('#controllers/templates_controller')
 const AgentsController = () => import('#controllers/agents_controller')
 const GlobalModulesController = () => import('#controllers/global_modules_controller')
+const ProfilesController = () => import('#controllers/profiles_controller')
 const MenusController = () => import('#controllers/menus_controller')
 const UsersController = () => import('#controllers/users_controller')
 const ActivityLogsController = () => import('#controllers/activity_logs_controller')
@@ -233,6 +234,15 @@ router.group(() => {
 	router.delete('/taxonomy-terms/:id', [TaxonomiesController, 'destroyTerm'])
 	router.get('/taxonomy-terms/:id/posts', [TaxonomiesController, 'postsForTerm'])
 }).prefix('/api').use(middleware.auth())
+
+/**
+ * API Routes - Profiles (public)
+ *
+ * Dedicated endpoint for Profile post type, to keep /api/posts generic.
+ */
+router.group(() => {
+	router.get('/profiles', [ProfilesController, 'index'])
+}).prefix('/api')
 
 /**
  * API Routes - Webhooks (Admin)
