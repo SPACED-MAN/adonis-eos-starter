@@ -319,35 +319,6 @@ export default class ModuleInstanceSeeder extends BaseSeeder {
 			console.log('ℹ️ [ModuleInstanceSeeder] prose module instance already exists; reusing')
 		}
 
-		// Feed instance
-		const existingFeedInstance = await db
-			.from('module_instances')
-			.where({ type: 'feed', scope: 'post' })
-			.first()
-
-		let feedInstance: any = existingFeedInstance
-		if (!feedInstance) {
-			const [createdFeed] = await db
-				.table('module_instances')
-				.insert({
-					type: 'feed',
-					scope: 'post',
-					props: {
-						title: 'Recent Blog Posts',
-						postTypes: ['blog'],
-						limit: 5,
-						showExcerpt: true,
-					},
-					created_at: nowTs,
-					updated_at: nowTs,
-				})
-				.returning('*')
-			feedInstance = createdFeed
-			console.log('✅ [ModuleInstanceSeeder] Created feed module instance')
-		} else {
-			console.log('ℹ️ [ModuleInstanceSeeder] feed module instance already exists; reusing')
-		}
-
 		// Kitchen Sink instance
 		const existingKitchenSink = await db
 			.from('module_instances')
@@ -709,6 +680,35 @@ export default class ModuleInstanceSeeder extends BaseSeeder {
 			console.log('ℹ️ [ModuleInstanceSeeder] profile-list module instance already exists; reusing')
 		}
 
+		// Blog List instance
+		const existingBlogList = await db
+			.from('module_instances')
+			.where({ type: 'blog-list', scope: 'post' })
+			.first()
+
+		let blogListInstance: any = existingBlogList
+		if (!blogListInstance) {
+			const [createdBlogList] = await db
+				.table('module_instances')
+				.insert({
+					type: 'blog-list',
+					scope: 'post',
+					props: {
+						title: 'Our Blog',
+						subtitle:
+							'We use an agile approach to test assumptions and connect with the needs of your audience early and often.',
+						posts: [],
+					},
+					created_at: nowTs,
+					updated_at: nowTs,
+				})
+				.returning('*')
+			blogListInstance = createdBlogList
+			console.log('✅ [ModuleInstanceSeeder] Created blog-list module instance')
+		} else {
+			console.log('ℹ️ [ModuleInstanceSeeder] blog-list module instance already exists; reusing')
+		}
+
 		// Ensure hero-with-callout module instance exists
 		const existingHeroCentered = await db
 			.from('module_instances')
@@ -784,8 +784,8 @@ export default class ModuleInstanceSeeder extends BaseSeeder {
 		await ensureAttached(String(pricingInstance.id), 'pricing module')
 		await ensureAttached(String(faqInstance.id), 'faq module')
 		await ensureAttached(String(profileListInstance.id), 'profile-list module')
+		await ensureAttached(String(blogListInstance.id), 'blog-list module')
 		await ensureAttached(String(proseInstance.id), 'prose module')
-		await ensureAttached(String(feedInstance.id), 'feed module')
 		await ensureAttached(String(kitchenSinkInstance.id), 'kitchen-sink module')
 	}
 }

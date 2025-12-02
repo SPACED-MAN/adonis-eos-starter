@@ -8,7 +8,6 @@
 import moduleRegistry from '#services/module_registry'
 import ProseModule from '#modules/prose'
 import KitchenSinkModule from '#modules/kitchen_sink'
-import FeedModule from '#modules/feed'
 import BlogNoteModule from '#modules/blog_note'
 import HeroWithMediaModule from '#modules/hero_with_media'
 import HeroWithCalloutModule from '#modules/hero_with_callout'
@@ -18,12 +17,14 @@ import ProseWithMediaModule from '#modules/prose_with_media'
 import StatisticsModule from '#modules/statistics'
 import PricingModule from '#modules/pricing'
 import FaqModule from '#modules/faq'
+import BlogListModule from '#modules/blog_list'
 
 // Register Hero modules
 moduleRegistry.register(new HeroWithMediaModule())
 moduleRegistry.register(new HeroWithCalloutModule())
 moduleRegistry.register(new FeaturesListModule())
 moduleRegistry.register(new ProfileListModule())
+moduleRegistry.register(new BlogListModule())
 moduleRegistry.register(new ProseWithMediaModule())
 moduleRegistry.register(new StatisticsModule())
 moduleRegistry.register(new PricingModule())
@@ -32,8 +33,6 @@ moduleRegistry.register(new FaqModule())
 moduleRegistry.register(new ProseModule())
 // Register Kitchen Sink module (demo)
 moduleRegistry.register(new KitchenSinkModule())
-// Register Feed module
-moduleRegistry.register(new FeedModule())
 // Register Blog Note (blog-specific) module
 moduleRegistry.register(new BlogNoteModule())
 

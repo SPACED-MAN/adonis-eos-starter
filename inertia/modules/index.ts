@@ -16,13 +16,13 @@ export { default as ProseStatic } from './prose-static'
 export { default as Gallery } from './gallery'
 export { default as Accordion } from './accordion'
 export { default as KitchenSink } from './kitchen-sink'
-export { default as Feed } from './feed'
 export { default as HeroWithMedia } from './hero-with-media'
 export { default as HeroWithCallout } from './hero-with-callout'
 export { default as FeaturesList } from './features-list'
 export { default as ProseWithMedia } from './prose-with-media'
 export { default as Statistics } from './statistics'
 export { default as ProfileList } from './profile-list'
+export { default as BlogList } from './blog-list'
 export { default as Pricing } from './pricing'
 export { default as Faq } from './faq'
 
@@ -38,13 +38,13 @@ export const MODULE_COMPONENTS = {
   'gallery': () => import('./gallery'),
   'accordion': () => import('./accordion'),
   'kitchen-sink': () => import('./kitchen-sink'),
-  'feed': () => import('./feed'),
   'hero-with-media': () => import('./hero-with-media'),
   'hero-with-callout': () => import('./hero-with-callout'),
   'features-list': () => import('./features-list'),
   'prose-with-media': () => import('./prose-with-media'),
   'statistics': () => import('./statistics'),
   'profile-list': () => import('./profile-list'),
+  'blog-list': () => import('./blog-list'),
   'pricing': () => import('./pricing'),
   'faq': () => import('./faq'),
 } as const

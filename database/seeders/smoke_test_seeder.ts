@@ -393,22 +393,6 @@ export default class extends BaseSeeder {
           })
           .returning('*')
 
-        const [feedInstance] = await db
-          .table('module_instances')
-          .insert({
-            type: 'feed',
-            scope: 'post',
-            props: {
-              title: 'Recent Blog Posts',
-              postTypes: ['blog'],
-              limit: 5,
-              showExcerpt: true,
-            },
-            created_at: nowTs,
-            updated_at: nowTs,
-          })
-          .returning('*')
-
         const [heroWithCalloutInstance] = await db
           .table('module_instances')
           .insert({
@@ -576,8 +560,7 @@ export default class extends BaseSeeder {
           { instanceId: proseWithMediaInstance.id, orderIndex: 4 },
           { instanceId: statisticsInstance.id, orderIndex: 5 },
           { instanceId: proseInstance.id, orderIndex: 6 },
-          { instanceId: feedInstance.id, orderIndex: 7 },
-          { instanceId: kitchenSinkInstance.id, orderIndex: 8 },
+          { instanceId: kitchenSinkInstance.id, orderIndex: 7 },
         ]
 
         for (const row of catalogModulesToAttach) {
@@ -591,7 +574,7 @@ export default class extends BaseSeeder {
           })
         }
 
-        console.log('✅ Seeded Module Catalog modules (hero, hero-with-media, hero-centered, prose, feed, kitchen-sink)')
+        console.log('✅ Seeded Module Catalog modules (hero, hero-with-media, hero-centered, prose, kitchen-sink)')
       } else {
         console.log('ℹ️ Module Catalog already has modules; skipping initial module seeding')
 
