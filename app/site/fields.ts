@@ -10,7 +10,6 @@ const siteFields: SiteField[] = [
 	{ slug: 'contact_email', label: 'Contact Email', type: 'text' },
 	{ slug: 'footer_note', label: 'Footer Note', type: 'textarea' },
 	{ slug: 'show_search', label: 'Show Search', type: 'boolean' },
-	{ slug: 'default_cta_media', label: 'Default CTA Image', type: 'media' },
 	// Protected content access (optional; falls back to env if unset)
 	{ slug: 'protected_access_username', label: 'Protected Username', type: 'text' },
 	{ slug: 'protected_access_password', label: 'Protected Password', type: 'text' },

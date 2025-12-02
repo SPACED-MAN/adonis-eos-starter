@@ -245,13 +245,14 @@ export function ModuleEditorPanel({
 		rootId: string
 	}) {
 		const name = path.join('.')
-		const label = getLabel(path, field)
+		const hideLabel = (field as any).hideLabel === true
+		const label = hideLabel ? '' : getLabel(path, field)
 		const type = (field as any).type as string
 		if (type === 'richtext') {
 			const hiddenRef = useRef<HTMLInputElement | null>(null)
 			return (
 				<FormField>
-					<FormLabel>{label}</FormLabel>
+					{!hideLabel && <FormLabel>{label}</FormLabel>}
 					<LexicalEditor
 						editorKey={`${rootId}:${name}`}
 						value={value}
@@ -289,7 +290,7 @@ export function ModuleEditorPanel({
 			}
 			return (
 				<FormField>
-					<FormLabel>{label}</FormLabel>
+					{!hideLabel && <FormLabel>{label}</FormLabel>}
 					<Popover>
 						<PopoverTrigger asChild>
 							<button
@@ -327,7 +328,7 @@ export function ModuleEditorPanel({
 			const hiddenRef = useRef<HTMLInputElement | null>(null)
 			return (
 				<FormField>
-					<FormLabel>{label}</FormLabel>
+					{!hideLabel && <FormLabel>{label}</FormLabel>}
 					<Slider
 						defaultValue={[current]}
 						min={min}
@@ -349,7 +350,7 @@ export function ModuleEditorPanel({
 		if (type === 'textarea') {
 			return (
 				<FormField>
-					<FormLabel>{label}</FormLabel>
+					{!hideLabel && <FormLabel>{label}</FormLabel>}
 					<Textarea name={name} defaultValue={value ?? ''} />
 				</FormField>
 			)
@@ -440,7 +441,7 @@ export function ModuleEditorPanel({
 			}
 			return (
 				<FormField>
-					<FormLabel>{label}</FormLabel>
+					{!hideLabel && <FormLabel>{label}</FormLabel>}
 					<div className="flex items-start gap-3">
 						<div className="min-w-[72px]">
 							{preview ? (
@@ -503,7 +504,7 @@ export function ModuleEditorPanel({
 		if (type === 'number') {
 			return (
 				<FormField>
-					<FormLabel>{label}</FormLabel>
+					{!hideLabel && <FormLabel>{label}</FormLabel>}
 					<Input type="number" name={name} defaultValue={value ?? 0} />
 				</FormField>
 			)
@@ -558,7 +559,7 @@ export function ModuleEditorPanel({
 
 			return (
 				<FormField>
-					<FormLabel>{label}</FormLabel>
+					{!hideLabel && <FormLabel>{label}</FormLabel>}
 					<Popover>
 						<PopoverTrigger asChild>
 							<button
@@ -652,7 +653,7 @@ export function ModuleEditorPanel({
 				const hiddenRef = useRef<HTMLInputElement | null>(null)
 				return (
 					<FormField>
-						<FormLabel>{label}</FormLabel>
+						{!hideLabel && <FormLabel>{label}</FormLabel>}
 						<Select
 							defaultValue={initial || undefined}
 							onValueChange={(val) => {
@@ -682,7 +683,7 @@ export function ModuleEditorPanel({
 				}, [vals])
 				return (
 					<FormField>
-						<FormLabel>{label}</FormLabel>
+						{!hideLabel && <FormLabel>{label}</FormLabel>}
 						<Popover>
 							<PopoverTrigger asChild>
 								<button
@@ -775,7 +776,7 @@ export function ModuleEditorPanel({
 		// text, url, media fallback to text input
 		return (
 			<FormField>
-				<FormLabel>{label}</FormLabel>
+				{!hideLabel && <FormLabel>{label}</FormLabel>}
 				<Input type="text" name={name} placeholder={(field as any).placeholder || ''} defaultValue={value ?? ''} />
 			</FormField>
 		)
@@ -859,76 +860,73 @@ export function ModuleEditorPanel({
 						)}
 						{items.map((it, idx) => (
 							<div key={`${name}.${idx}`} className="border border-line rounded p-3 space-y-2">
-								<div className="flex items-center justify-between">
-									<div className="text-xs text-neutral-low">Item {idx + 1}</div>
-									<div className="flex items-center gap-2">
-										<button
-											type="button"
-											className="px-2 py-1 text-xs border border-line rounded hover:bg-backdrop-medium text-neutral-medium"
-											onMouseDown={(e) => e.preventDefault()}
-											onClick={() => {
-												const scroller = formRef.current
-												const prevScrollTop = scroller ? scroller.scrollTop : 0
-												const next = JSON.parse(JSON.stringify(draft))
-												const arr = Array.isArray(value) ? [...value] : []
-												arr.splice(idx, 1)
-												setByPath(next, name, arr)
-												setDraft(next)
-												requestAnimationFrame(() => {
-													if (scroller) scroller.scrollTop = prevScrollTop
-												})
-											}}
-										>
-											Remove
-										</button>
-										<button
-											type="button"
-											className="px-2 py-1 text-xs border border-line rounded hover:bg-backdrop-medium text-neutral-medium"
-											onMouseDown={(e) => e.preventDefault()}
-											onClick={() => {
-												if (idx === 0) return
-												const scroller = formRef.current
-												const prevScrollTop = scroller ? scroller.scrollTop : 0
-												const next = JSON.parse(JSON.stringify(draft))
-												const arr = Array.isArray(value) ? [...value] : []
-												const [moved] = arr.splice(idx, 1)
-												arr.splice(idx - 1, 0, moved)
-												setByPath(next, name, arr)
-												setDraft(next)
-												requestAnimationFrame(() => {
-													if (scroller) scroller.scrollTop = prevScrollTop
-												})
-											}}
-										>
-											Up
-										</button>
-										<button
-											type="button"
-											className="px-2 py-1 text-xs border border-line rounded hover:bg-backdrop-medium text-neutral-medium"
-											onMouseDown={(e) => e.preventDefault()}
-											onClick={() => {
-												if (idx >= items.length - 1) return
-												const scroller = formRef.current
-												const prevScrollTop = scroller ? scroller.scrollTop : 0
-												const next = JSON.parse(JSON.stringify(draft))
-												const arr = Array.isArray(value) ? [...value] : []
-												const [moved] = arr.splice(idx, 1)
-												arr.splice(idx + 1, 0, moved)
-												setByPath(next, name, arr)
-												setDraft(next)
-												requestAnimationFrame(() => {
-													if (scroller) scroller.scrollTop = prevScrollTop
-												})
-											}}
-										>
-											Down
-										</button>
-									</div>
+								<div className="flex items-center justify-end gap-2">
+									<button
+										type="button"
+										className="px-2 py-1 text-xs border border-line rounded hover:bg-backdrop-medium text-neutral-medium"
+										onMouseDown={(e) => e.preventDefault()}
+										onClick={() => {
+											const scroller = formRef.current
+											const prevScrollTop = scroller ? scroller.scrollTop : 0
+											const next = JSON.parse(JSON.stringify(draft))
+											const arr = Array.isArray(value) ? [...value] : []
+											arr.splice(idx, 1)
+											setByPath(next, name, arr)
+											setDraft(next)
+											requestAnimationFrame(() => {
+												if (scroller) scroller.scrollTop = prevScrollTop
+											})
+										}}
+									>
+										Remove
+									</button>
+									<button
+										type="button"
+										className="px-2 py-1 text-xs border border-line rounded hover:bg-backdrop-medium text-neutral-medium"
+										onMouseDown={(e) => e.preventDefault()}
+										onClick={() => {
+											if (idx === 0) return
+											const scroller = formRef.current
+											const prevScrollTop = scroller ? scroller.scrollTop : 0
+											const next = JSON.parse(JSON.stringify(draft))
+											const arr = Array.isArray(value) ? [...value] : []
+											const [moved] = arr.splice(idx, 1)
+											arr.splice(idx - 1, 0, moved)
+											setByPath(next, name, arr)
+											setDraft(next)
+											requestAnimationFrame(() => {
+												if (scroller) scroller.scrollTop = prevScrollTop
+											})
+										}}
+									>
+										Up
+									</button>
+									<button
+										type="button"
+										className="px-2 py-1 text-xs border border-line rounded hover:bg-backdrop-medium text-neutral-medium"
+										onMouseDown={(e) => e.preventDefault()}
+										onClick={() => {
+											if (idx >= items.length - 1) return
+											const scroller = formRef.current
+											const prevScrollTop = scroller ? scroller.scrollTop : 0
+											const next = JSON.parse(JSON.stringify(draft))
+											const arr = Array.isArray(value) ? [...value] : []
+											const [moved] = arr.splice(idx, 1)
+											arr.splice(idx + 1, 0, moved)
+											setByPath(next, name, arr)
+											setDraft(next)
+											requestAnimationFrame(() => {
+												if (scroller) scroller.scrollTop = prevScrollTop
+											})
+										}}
+									>
+										Down
+									</button>
 								</div>
 								{itemSchema ? (
 									<>
 										{(itemSchema as any).type === 'object' &&
-										Array.isArray((itemSchema as any).fields) ? (
+											Array.isArray((itemSchema as any).fields) ? (
 											<>
 												{((itemSchema as any).fields as FieldSchema[]).map((f) => (
 													<FieldBySchema
@@ -943,7 +941,7 @@ export function ModuleEditorPanel({
 										) : (
 											<FieldBySchema
 												path={[...path, String(idx)]}
-												field={{ ...itemSchema, name: String(idx) } as any}
+												field={{ ...itemSchema, name: String(idx), hideLabel: true } as any}
 												value={it}
 												rootId={rootId}
 											/>
@@ -952,7 +950,7 @@ export function ModuleEditorPanel({
 								) : (
 									<FieldPrimitive
 										path={[...path, String(idx)]}
-										field={{ name: String(idx), type: 'text' } as any}
+										field={{ name: String(idx), type: 'text', hideLabel: true } as any}
 										value={it}
 										rootId={rootId}
 									/>
