@@ -1073,6 +1073,41 @@ export default class ModuleInstanceSeeder extends BaseSeeder {
 			console.log('ℹ️ [ModuleInstanceSeeder] faq module instance already exists; reusing')
 		}
 
+		// Blockquote instance
+		const existingBlockquote = await db
+			.from('module_instances')
+			.where({ type: 'blockquote', scope: 'post' })
+			.first()
+
+		let blockquoteInstance: any = existingBlockquote
+		if (!blockquoteInstance) {
+			const avatarIdForBlockquote: string | null = avatarMedia
+				? String((avatarMedia as any).id)
+				: null
+
+			const [createdBlockquote] = await db
+				.table('module_instances')
+				.insert({
+					type: 'blockquote',
+					scope: 'post',
+					props: {
+						quote:
+							'Flowbite is just awesome. It contains tons of predesigned components and pages starting from login screen to complex dashboard. Perfect choice for your next SaaS application.',
+						authorName: 'Michael Gough',
+						authorTitle: 'CEO at Google',
+						avatar: avatarIdForBlockquote,
+						backgroundColor: 'bg-backdrop-low',
+					},
+					created_at: nowTs,
+					updated_at: nowTs,
+				})
+				.returning('*')
+			blockquoteInstance = createdBlockquote
+			console.log('✅ [ModuleInstanceSeeder] Created blockquote module instance')
+		} else {
+			console.log('ℹ️ [ModuleInstanceSeeder] blockquote module instance already exists; reusing')
+		}
+
 		// Profile List instance
 		const existingProfileList = await db
 			.from('module_instances')
@@ -1263,6 +1298,7 @@ export default class ModuleInstanceSeeder extends BaseSeeder {
 		await ensureAttached(String(statisticsInstance.id), 'statistics module')
 		await ensureAttached(String(pricingInstance.id), 'pricing module')
 		await ensureAttached(String(faqInstance.id), 'faq module')
+		await ensureAttached(String(blockquoteInstance.id), 'blockquote module')
 		await ensureAttached(String(profileListInstance.id), 'profile-list module')
 		await ensureAttached(String(testimonialListInstance.id), 'testimonial-list module')
 		await ensureAttached(String(companyListInstance.id), 'company-list module')

@@ -19,6 +19,7 @@ export { default as KitchenSink } from './kitchen-sink'
 export { default as HeroWithMedia } from './hero-with-media'
 export { default as HeroWithCallout } from './hero-with-callout'
 export { default as FeaturesList } from './features-list'
+export { default as Blockquote } from './blockquote'
 export { default as ProseWithMedia } from './prose-with-media'
 export { default as Statistics } from './statistics'
 export { default as ProfileList } from './profile-list'
@@ -43,6 +44,7 @@ export const MODULE_COMPONENTS = {
   'hero-with-media': () => import('./hero-with-media'),
   'hero-with-callout': () => import('./hero-with-callout'),
   'features-list': () => import('./features-list'),
+  'blockquote': () => import('./blockquote'),
   'prose-with-media': () => import('./prose-with-media'),
   'statistics': () => import('./statistics'),
   'profile-list': () => import('./profile-list'),
