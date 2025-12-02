@@ -100,6 +100,7 @@ function getModuleComponent(componentName: string): ComponentType<any> | null {
     'prose-with-media': Modules.ProseWithMedia,
     'statistics': Modules.Statistics,
     'profile-list': Modules.ProfileList,
+    'pricing': Modules.Pricing,
   }
 
   return componentMap[componentName] || null
