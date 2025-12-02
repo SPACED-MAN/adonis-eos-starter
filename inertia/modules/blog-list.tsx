@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react'
 import { pickMediaVariantUrl } from '../lib/media'
+import { FontAwesomeIcon } from '../site/lib/icons'
 
 interface BlogListProps {
   title: string
@@ -143,7 +144,7 @@ export default function BlogList({ title, subtitle, posts }: BlogListProps) {
             </p>
           )}
         </div>
-        <div className="grid gap-8 lg:grid-cols-2">
+        <div className="grid gap-8 md:grid-cols-2 lg:grid-cols-3">
           {items.map((p) => {
             const dateLabel = formatDate(p.updatedAt)
             return (
@@ -195,18 +196,7 @@ export default function BlogList({ title, subtitle, posts }: BlogListProps) {
                       className="inline-flex items-center font-medium text-standout hover:underline"
                     >
                       Read more
-                      <svg
-                        className="ml-2 w-4 h-4"
-                        fill="currentColor"
-                        viewBox="0 0 20 20"
-                        xmlns="http://www.w3.org/2000/svg"
-                      >
-                        <path
-                          fillRule="evenodd"
-                          d="M10.293 3.293a1 1 0 011.414 0l6 6a1 1 0 010 1.414l-6 6a1 1 0 01-1.414-1.414L14.586 11H3a1 1 0 110-2h11.586l-4.293-4.293a1 1 0 010-1.414z"
-                          clipRule="evenodd"
-                        ></path>
-                      </svg>
+                      <FontAwesomeIcon icon="arrow-right" className="ml-2 text-xs" />
                     </a>
                   </div>
                 </div>

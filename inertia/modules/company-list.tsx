@@ -137,7 +137,7 @@ export default function CompanyList({ title, subtitle, companies }: CompanyListP
 									<img
 										src={c.imageUrl}
 										alt={c.title}
-										className="h-9 w-auto object-contain hover:opacity-90 transition"
+										className="h-30 w-auto object-contain hover:opacity-90 transition"
 										loading="lazy"
 										decoding="async"
 									/>

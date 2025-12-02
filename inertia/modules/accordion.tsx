@@ -9,6 +9,7 @@
  */
 
 import { useState } from 'react'
+import { FontAwesomeIcon } from '../site/lib/icons'
 
 interface AccordionItem {
   title: string
@@ -67,21 +68,12 @@ export default function Accordion({
                 <span className="font-semibold text-neutral-high">
                   {item.title}
                 </span>
-                <svg
+                <FontAwesomeIcon
+                  icon="chevron-down"
                   className={`w-5 h-5 text-neutral-low transition-transform ${
                     isOpen ? 'rotate-180' : ''
                   }`}
-                  fill="none"
-                  stroke="currentColor"
-                  viewBox="0 0 24 24"
-                >
-                  <path
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                    strokeWidth={2}
-                    d="M19 9l-7 7-7-7"
-                  />
-                </svg>
+                />
               </button>
 
               {/* Content */}

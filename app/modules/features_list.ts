@@ -36,7 +36,7 @@ export default class FeaturesListModule extends BaseModule {
 								type: 'string',
 								required: false,
 								description:
-									'Font Awesome icon classes (e.g., fa-solid fa-briefcase). Rendered inside a circular badge.',
+									'Font Awesome icon name (e.g., bullhorn, scale-balanced) resolved via Fort Awesome React implementation.',
 							},
 							title: {
 								type: 'string',
@@ -60,32 +60,32 @@ export default class FeaturesListModule extends BaseModule {
 					'We focus on markets where technology, innovation, and capital can unlock long-term value and drive economic growth.',
 				features: [
 					{
-						icon: 'fa-solid fa-bullhorn',
+						icon: 'bullhorn',
 						title: 'Marketing',
 						body: 'Plan it, create it, launch it. Collaborate seamlessly across the organization and hit your marketing goals every month.',
 					},
 					{
-						icon: 'fa-solid fa-scale-balanced',
+						icon: 'scale-balanced',
 						title: 'Legal',
 						body: 'Protect your organization and stay compliant with structured workflows and granular permissions.',
 					},
 					{
-						icon: 'fa-solid fa-gear',
+						icon: 'gear',
 						title: 'Business Automation',
 						body: 'Automate handoffs, notifications, and approvals so your team can focus on high‑value work.',
 					},
 					{
-						icon: 'fa-solid fa-coins',
+						icon: 'coins',
 						title: 'Finance',
 						body: 'Audit‑ready workflows for close, forecasting, and quarterly budgeting.',
 					},
 					{
-						icon: 'fa-solid fa-pen-ruler',
+						icon: 'pen-ruler',
 						title: 'Enterprise Design',
 						body: 'Craft consistent experiences for both marketing and product with shared systems.',
 					},
 					{
-						icon: 'fa-solid fa-diagram-project',
+						icon: 'diagram-project',
 						title: 'Operations',
 						body: 'Keep the business running smoothly with repeatable, measurable processes.',
 					},

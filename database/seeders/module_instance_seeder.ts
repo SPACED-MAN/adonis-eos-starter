@@ -914,9 +914,10 @@ export default class ModuleInstanceSeeder extends BaseSeeder {
 					scope: 'post',
 					props: {
 						stats: [
-							{ value: 73_000_000, suffix: 'M+', label: 'developers' },
-							{ value: 1_000_000_000, suffix: 'B+', label: 'contributors' },
-							{ value: 4_000_000, suffix: 'M+', label: 'organizations' },
+							// Use already-abbreviated values so suffixes read naturally (e.g. 73M+)
+							{ value: 73, suffix: 'M+', label: 'developers' },
+							{ value: 1, suffix: 'B+', label: 'contributors' },
+							{ value: 4, suffix: 'M+', label: 'organizations' },
 						],
 						backgroundColor: 'bg-backdrop-low',
 					},

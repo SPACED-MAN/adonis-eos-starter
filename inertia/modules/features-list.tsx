@@ -1,3 +1,5 @@
+import { FontAwesomeIcon } from '../site/lib/icons'
+
 interface FeatureItem {
 	icon?: string | null
 	title: string
@@ -34,7 +36,7 @@ export default function FeaturesList({ title, subtitle, features, backgroundColo
 							<div key={idx} className="flex flex-col">
 								{feature.icon && (
 									<div className="flex justify-center items-center mb-4 w-10 h-10 lg:w-12 lg:h-12 rounded-full bg-standout/10 text-standout">
-										<i className={`${feature.icon} text-base lg:text-lg`} aria-hidden="true" />
+										<FontAwesomeIcon icon={feature.icon as any} className="text-base lg:text-lg" />
 									</div>
 								)}
 								<h3 className="mb-2 text-lg sm:text-xl font-semibold text-neutral-high">

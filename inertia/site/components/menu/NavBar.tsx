@@ -20,7 +20,7 @@ export function NavBar({
 
   return (
     <header className="border-b border-line bg-backdrop-low/80 backdrop-blur">
-      <div className="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8 py-3 flex items-center justify-between gap-4">
+      <div className="container mx-auto px-4 sm:px-6 lg:px-8 py-3 flex items-center justify-between gap-4">
         <a href="/" className="flex items-center gap-2 text-neutral-high font-semibold">
           {logoLightUrl || logoDarkUrl ? (
             <span className="inline-flex items-center">
@@ -29,11 +29,14 @@ export function NavBar({
                 alt={menuName || 'Site'}
                 className="h-7 w-auto"
               />
+              {/* Keep site title accessible but visually hidden when logo is present */}
+              {menuName && <span className="sr-only">{menuName}</span>}
             </span>
-          ) : null}
-          <span className="text-base sm:text-lg whitespace-nowrap">
-            {menuName || ''}
-          </span>
+          ) : (
+            <span className="text-base sm:text-lg whitespace-nowrap">
+              {menuName || ''}
+            </span>
+          )}
         </a>
         <div className="flex-1 flex items-center justify-end gap-6">
           <nav className="hidden md:flex items-center gap-6">

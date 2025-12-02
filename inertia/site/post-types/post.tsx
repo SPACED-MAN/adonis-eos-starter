@@ -62,7 +62,7 @@ export default function PostTypeDefault({ post, modules, seo }: PostPageProps) {
 			</Head>
 			<SiteHeader />
 			{/* Post Content - Rendered Modules */}
-			<main>
+			<main className="overflow-x-hidden">
 				{modules.map((module) => {
 					const Component = getModuleComponent(module.type)
 					if (!Component) {

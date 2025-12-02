@@ -143,10 +143,10 @@ export default function TestimonialList({ title, subtitle, testimonials }: Testi
                   </p>
                 )}
               </blockquote>
-              <figcaption className="flex justify-center items-center space-x-3">
+              <figcaption className="flex justify-center items-center space-x-4">
                 {t.imageUrl && (
                   <img
-                    className="w-9 h-9 rounded-full object-cover"
+                    className="w-14 h-14 rounded-full object-cover"
                     src={t.imageUrl}
                     alt={t.authorName}
                     loading="lazy"

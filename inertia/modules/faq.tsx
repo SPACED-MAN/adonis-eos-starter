@@ -1,4 +1,5 @@
 import { resolveHrefAndTarget } from './hero-with-media'
+import { FontAwesomeIcon } from '../site/lib/icons'
 
 type LinkValue =
   | null
@@ -40,20 +41,10 @@ export default function Faq({ title, subtitle, items }: FaqProps) {
       <div key={idx} className="mb-8 last:mb-0">
         <h3 className="flex items-start mb-3 text-base sm:text-lg font-semibold text-neutral-high">
           <span
-            className="mt-1 mr-2 inline-flex h-5 w-5 items-center justify-center rounded-full bg-backdrop-medium text-neutral-medium flex-shrink-0"
+            className="mt-0.5 mr-3 inline-flex h-8 w-8 items-center justify-center rounded-full bg-backdrop-medium text-neutral-medium flex-shrink-0"
             aria-hidden="true"
           >
-            <svg
-              className="h-3 w-3"
-              viewBox="0 0 20 20"
-              fill="currentColor"
-            >
-              <path
-                fillRule="evenodd"
-                d="M10 2a8 8 0 1 0 0 16 8 8 0 0 0 0-16Zm0 4a1 1 0 0 0-.87.5 1 1 0 1 1-1.73-1A3 3 0 0 1 13 8a3 3 0 0 1-2 2.83V11a1 1 0 1 1-2 0v-1a1 1 0 0 1 1-1 1 1 0 1 0 0-2Zm0 8a1 1 0 1 0 0-2 1 1 0 0 0 0 2Z"
-                clipRule="evenodd"
-              />
-            </svg>
+            <FontAwesomeIcon icon="circle-question" className="text-base sm:text-lg" />
           </span>
           <span>{item.question}</span>
         </h3>

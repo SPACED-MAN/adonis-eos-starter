@@ -131,9 +131,9 @@ export default function ProfileList({ title, subtitle, profiles }: ProfileListPr
               className="items-center bg-backdrop-high rounded-lg shadow sm:flex border border-line"
             >
               {p.imageUrl && (
-                <a href={`/posts/${encodeURIComponent(p.slug)}`}>
+                <a href={`/posts/${encodeURIComponent(p.slug)}`} className="sm:flex-shrink-0">
                   <img
-                    className="w-full rounded-lg sm:rounded-none sm:rounded-l-lg object-cover"
+                    className="w-full sm:w-44 h-full max-h-60 rounded-lg sm:rounded-none sm:rounded-l-lg object-cover"
                     src={p.imageUrl}
                     alt={p.name}
                     loading="lazy"

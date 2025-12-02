@@ -1,4 +1,5 @@
 import { resolveHrefAndTarget } from './hero-with-media'
+import { FontAwesomeIcon } from '../site/lib/icons'
 
 type LinkValue =
   | null
@@ -85,17 +86,7 @@ export default function Pricing({ title, subtitle, plans }: PricingProps) {
                           className="mt-0.5 inline-flex h-5 w-5 items-center justify-center rounded-full bg-success/10 text-success"
                           aria-hidden="true"
                         >
-                          <svg
-                            className="h-3.5 w-3.5"
-                            viewBox="0 0 20 20"
-                            fill="currentColor"
-                          >
-                            <path
-                              fillRule="evenodd"
-                              d="M16.707 5.293a1 1 0 0 1 0 1.414l-8 8a1 1 0 0 1-1.414 0l-4-4A1 1 0 0 1 4.707 9.293L8 12.586l7.293-7.293a1 1 0 0 1 1.414 0Z"
-                              clipRule="evenodd"
-                            />
-                          </svg>
+                          <FontAwesomeIcon icon="check" className="h-3.5 w-3.5" />
                         </span>
                         <span className="text-sm sm:text-base text-neutral-high">
                           {f}

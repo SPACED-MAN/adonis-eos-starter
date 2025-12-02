@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react'
 import { pickMediaVariantUrl } from '../lib/media'
+import { FontAwesomeIcon } from '../site/lib/icons'
 import type { Button, LinkValue } from './types'
 
 interface ProseWithMediaProps {
@@ -119,18 +120,7 @@ export default function ProseWithMedia({
 									className="inline-flex items-center text-on-standout bg-standout hover:bg-standout/90 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:ring-standout font-medium rounded-lg text-sm px-5 py-2.5 transition-colors"
 								>
 									{primaryCta.label}
-									<svg
-										className="ml-2 -mr-1 w-5 h-5"
-										fill="currentColor"
-										viewBox="0 0 20 20"
-										xmlns="http://www.w3.org/2000/svg"
-									>
-										<path
-											fillRule="evenodd"
-											d="M10.293 3.293a1 1 0 011.414 0l6 6a1 1 0 010 1.414l-6 6a1 1 0 01-1.414-1.414L14.586 11H3a1 1 0 110-2h11.586l-4.293-4.293a1 1 0 010-1.414z"
-											clipRule="evenodd"
-										></path>
-									</svg>
+									<FontAwesomeIcon icon="arrow-right" className="ml-2 -mr-1 text-sm" />
 								</a>
 							)
 						})()}
