@@ -193,7 +193,7 @@ export default function GlobalModulesIndex() {
                     <AlertDialogTitle>Create Global Module</AlertDialogTitle>
                     <AlertDialogDescription>Pick a base module type and a unique slug to create a reusable Global module.</AlertDialogDescription>
                   </AlertDialogHeader>
-                  <div className="space-y-4 mt-2">
+                  <div className="space-y-4 mt-3">
                     <div>
                       <label className="block text-xs text-neutral-medium mb-1">Label</label>
                       <Input
@@ -233,7 +233,7 @@ export default function GlobalModulesIndex() {
                       />
                     </div>
                   </div>
-                  <AlertDialogFooter>
+                  <AlertDialogFooter className="mt-4">
                     <AlertDialogCancel disabled={creating}>Cancel</AlertDialogCancel>
                     <AlertDialogAction
                       onClick={async () => {

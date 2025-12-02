@@ -708,7 +708,7 @@ export default function MenusIndex() {
                       </div>
                     )}
                   </div>
-                  <div className="mt-2 flex items-center gap-3">
+                  <div className="mt-3 flex items-center gap-3">
                     <button
                       type="button"
                       className="px-2 py-1 text-xs border border-line rounded"
@@ -752,7 +752,8 @@ export default function MenusIndex() {
                       </div>
                     </div>
                   )}
-                  <DndContext sensors={sensors} collisionDetection={closestCenter} onDragStart={handleDragStart} onDragMove={handleDragMove} onDragEnd={handleDragEnd}>
+                  <div className="mt-4">
+                    <DndContext sensors={sensors} collisionDetection={closestCenter} onDragStart={handleDragStart} onDragMove={handleDragMove} onDragEnd={handleDragEnd}>
                     <Table>
                       <TableHeader>
                         <TableRow>
@@ -824,7 +825,8 @@ export default function MenusIndex() {
                         </SortableContext>
                       </TableBody>
                     </Table>
-                  </DndContext>
+                    </DndContext>
+                  </div>
                 </div>
               )}
             </div>

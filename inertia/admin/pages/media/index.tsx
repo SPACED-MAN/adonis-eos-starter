@@ -673,7 +673,7 @@ export default function MediaIndex() {
             </div>
           </div>
           {/* Bulk actions and view toggle */}
-          <div className="mt-3 flex items-center gap-2">
+          <div className="mt-4 pb-2 border-b border-line flex items-center gap-2">
             <label className="inline-flex items-center gap-2 text-sm text-neutral-medium">
               <Checkbox checked={selectAll} onCheckedChange={() => toggleSelectAll()} />
               Select All
@@ -721,6 +721,7 @@ export default function MediaIndex() {
               </button>
             </div>
           </div>
+          <div className="mt-4">
           {loading ? (
             <div className="text-sm text-neutral-medium">Loading…</div>
           ) : items.length === 0 ? (
@@ -958,6 +959,7 @@ export default function MediaIndex() {
               )}
             </>
           )}
+          </div>
         </div>
 
 
