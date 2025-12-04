@@ -89,20 +89,29 @@ function ReactModuleRenderer({
 function getModuleComponent(componentName: string): ComponentType<any> | null {
   // Map component names to actual components
   const componentMap: Record<string, ComponentType<any>> = {
+    'prose': Modules.ProseStatic, // Main prose module
     'prose-static': Modules.ProseStatic,
+    'separator': Modules.SeparatorStatic, // Horizontal rule divider
+    'separator-static': Modules.SeparatorStatic,
     'gallery': Modules.Gallery,
     'accordion': Modules.Accordion,
     'kitchen-sink': Modules.KitchenSink,
+    'hero': Modules.Hero,
     'hero-with-media': Modules.HeroWithMedia,
     'hero-with-callout': Modules.HeroWithCallout,
     'features-list': Modules.FeaturesList,
+    'features-list-expanded': Modules.FeaturesListExpanded,
+    'blockquote': Modules.Blockquote,
     'prose-with-media': Modules.ProseWithMedia,
+    'prose-with-form': Modules.ProseWithForm,
     'statistics': Modules.Statistics,
     'profile-list': Modules.ProfileList,
     'company-list': Modules.CompanyList,
     'blog-list': Modules.BlogList,
+    'testimonial-list': Modules.TestimonialList,
     'pricing': Modules.Pricing,
     'faq': Modules.Faq,
+    'form': Modules.Form,
   }
 
   return componentMap[componentName] || null
