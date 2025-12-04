@@ -250,7 +250,7 @@ export default function GeneralSettings() {
     <div className="min-h-screen bg-backdrop-low">
       <AdminHeader title="General Settings" />
       <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-        <AdminBreadcrumbs items={[{ label: 'Dashboard', href: '/admin' }, { label: 'Settings', href: '/admin/settings' }, { label: 'General' }]} />
+        <AdminBreadcrumbs items={[{ label: 'Dashboard', href: '/admin' }, { label: 'Site Settings' }]} />
         <div className="bg-backdrop-low rounded-lg border border-line p-6 space-y-6">
           <div>
             <label className="block text-sm font-medium text-neutral-medium mb-1">Site Title</label>

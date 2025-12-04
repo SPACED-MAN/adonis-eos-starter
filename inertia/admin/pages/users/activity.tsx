@@ -46,7 +46,7 @@ export default function ActivityLogPage() {
     <div className="min-h-screen bg-backdrop-low">
       <AdminHeader title="Activity Log" />
       <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-        <AdminBreadcrumbs items={[{ label: 'Dashboard', href: '/admin' }, { label: 'Users', href: '/admin/users' }, { label: 'Activity Log' }]} />
+        <AdminBreadcrumbs items={[{ label: 'Dashboard', href: '/admin' }, { label: 'Activity Log' }]} />
         <div className="bg-backdrop-low rounded border border-line p-6">
           <div className="flex items-center gap-3 mb-4">
             <Input placeholder="Filter by user ID" value={userFilter} onChange={(e) => setUserFilter(e.target.value)} className="w-48" />

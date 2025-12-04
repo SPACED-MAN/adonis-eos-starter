@@ -119,7 +119,7 @@ export default function UsersIndex() {
     <div className="min-h-screen bg-backdrop-low">
       <AdminHeader title="User Management" />
       <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-        <AdminBreadcrumbs items={[{ label: 'Dashboard', href: '/admin' }, { label: 'Users' }]} />
+        <AdminBreadcrumbs items={[{ label: 'Dashboard', href: '/admin' }, { label: 'User Management' }]} />
         <div className="bg-backdrop-low rounded-lg border border-line p-6">
           <div className="flex items-center justify-between mb-4">
             <Input
