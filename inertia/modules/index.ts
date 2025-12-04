@@ -16,6 +16,7 @@ export { default as ProseStatic } from './prose-static'
 export { default as Gallery } from './gallery'
 export { default as Accordion } from './accordion'
 export { default as KitchenSink } from './kitchen-sink'
+export { default as Hero } from './hero'
 export { default as HeroWithMedia } from './hero-with-media'
 export { default as HeroWithCallout } from './hero-with-callout'
 export { default as FeaturesList } from './features-list'
@@ -44,6 +45,7 @@ export const MODULE_COMPONENTS = {
   'gallery': () => import('./gallery'),
   'accordion': () => import('./accordion'),
   'kitchen-sink': () => import('./kitchen-sink'),
+  'hero': () => import('./hero'),
   'hero-with-media': () => import('./hero-with-media'),
   'hero-with-callout': () => import('./hero-with-callout'),
   'features-list': () => import('./features-list'),

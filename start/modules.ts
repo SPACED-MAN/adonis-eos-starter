@@ -9,6 +9,7 @@ import moduleRegistry from '#services/module_registry'
 import ProseModule from '#modules/prose'
 import KitchenSinkModule from '#modules/kitchen_sink'
 import BlogNoteModule from '#modules/blog_note'
+import HeroModule from '#modules/hero'
 import HeroWithMediaModule from '#modules/hero_with_media'
 import HeroWithCalloutModule from '#modules/hero_with_callout'
 import FeaturesListModule from '#modules/features_list'
@@ -26,6 +27,7 @@ import TestimonialListModule from '#modules/testimonial_list'
 import FormModule from '#modules/form'
 
 // Register Hero modules
+moduleRegistry.register(new HeroModule())
 moduleRegistry.register(new HeroWithMediaModule())
 moduleRegistry.register(new HeroWithCalloutModule())
 moduleRegistry.register(new FeaturesListModule())
