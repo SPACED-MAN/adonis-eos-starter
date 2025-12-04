@@ -25,10 +25,12 @@ interface PostPageProps {
 		twitter?: { card?: string; title?: string; description?: string }
 		jsonLd?: any
 	}
+	[key: string]: any // Allow additional props for post-type-specific data
 }
 
-export default function Post({ post, modules, seo }: PostPageProps) {
-	const PageComponent = getPostTypePageComponent(post.type)
-	return <PageComponent post={post} modules={modules} seo={seo} />
+export default function Post(props: PostPageProps) {
+	const PageComponent = getPostTypePageComponent(props.post.type)
+	// Pass all props through to the post-type-specific component
+	return <PageComponent {...props} />
 }
 

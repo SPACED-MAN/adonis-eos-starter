@@ -1,6 +1,7 @@
 import { BaseSeeder } from '@adonisjs/lucid/seeders'
 import db from '@adonisjs/lucid/services/db'
-import { randomUUID } from 'node:crypto'
+import CreatePost from '#actions/posts/create_post'
+import AddModuleToPost from '#actions/posts/add_module_to_post'
 import { readFile, readdir } from 'node:fs/promises'
 import { join } from 'node:path'
 import { marked } from 'marked'
@@ -23,9 +24,7 @@ export default class extends BaseSeeder {
     const children: any[] = []
     let skippedFirstH1 = false
 
-    for (let i = 0; i < tokens.length; i++) {
-      const token = tokens[i]
-
+    for (const token of tokens) {
       // Skip the first H1 since the page title will be rendered separately
       if (token.type === 'heading' && token.depth === 1 && !skippedFirstH1) {
         skippedFirstH1 = true
@@ -202,14 +201,16 @@ export default class extends BaseSeeder {
     } else if (item.text) {
       // If no tokens, parse the text as inline content and wrap in paragraph
       const inlineTokens = marked.lexer.lexInline(item.text)
-      children = [{
-        type: 'paragraph',
-        direction: 'ltr',
-        format: '',
-        indent: 0,
-        version: 1,
-        children: this.inlineTokensToLexical(inlineTokens),
-      }]
+      children = [
+        {
+          type: 'paragraph',
+          direction: 'ltr',
+          format: '',
+          indent: 0,
+          version: 1,
+          children: this.inlineTokensToLexical(inlineTokens),
+        },
+      ]
     }
 
     return {
@@ -576,106 +577,191 @@ export default class extends BaseSeeder {
       return
     }
 
-    // Delete existing support posts to recreate them
-    console.log('🗑️  Removing existing support posts...')
-    const existingPosts = await db.from('posts').where('type', 'support').select('id')
+    // Delete existing documentation posts to recreate them
+    console.log('🗑️  Removing existing documentation posts...')
+    const existingPosts = await db.from('posts').where('type', 'documentation').select('id')
     if (existingPosts.length > 0) {
       const postIds = existingPosts.map((p: any) => p.id)
       await db.from('post_modules').whereIn('post_id', postIds).delete()
       await db.from('module_instances').whereIn('post_id', postIds).delete()
       await db.from('posts').whereIn('id', postIds).delete()
-      console.log(`   ✓ Deleted ${existingPosts.length} existing support posts\n`)
+      console.log(`   ✓ Deleted ${existingPosts.length} existing documentation posts\n`)
     }
 
-    const docsPath = join(process.cwd(), 'docs', 'support')
-    const files = await readdir(docsPath)
-    const mdFiles = files.filter((f) => f.endsWith('.md')).sort()
+    // Collect markdown files from all documentation directories
+    const docsPath = join(process.cwd(), 'docs')
+    const allFiles: Array<{ file: string; path: string; dir: string }> = []
+
+    // Read from docs/editors/
+    try {
+      const editorsPath = join(docsPath, 'editors')
+      const editorFiles = await readdir(editorsPath)
+      for (const file of editorFiles.filter((f) => f.endsWith('.md'))) {
+        allFiles.push({ file, path: join(editorsPath, file), dir: 'editors' })
+      }
+    } catch { }
+
+    // Read from docs/developers/
+    try {
+      const developersPath = join(docsPath, 'developers')
+      const developerFiles = await readdir(developersPath)
+      for (const file of developerFiles.filter((f) => f.endsWith('.md'))) {
+        allFiles.push({ file, path: join(developersPath, file), dir: 'developers' })
+      }
+    } catch { }
+
+    // Sort by directory (root first) then by filename
+    allFiles.sort((a, b) => {
+      const dirOrder = { root: 0, editors: 1, developers: 2 }
+      const dirDiff = dirOrder[a.dir as keyof typeof dirOrder] - dirOrder[b.dir as keyof typeof dirOrder]
+      if (dirDiff !== 0) return dirDiff
+      return a.file.localeCompare(b.file)
+    })
 
     // Define hierarchical relationships (parent slug -> child slugs[])
     const hierarchy: Record<string, string[]> = {
-      'content-management-overview': ['content-management', 'building-modules'],
+      // Top-level Documentation overview (from README.md)
+      overview: ['quick-start', 'getting-started'],
+      // Group all editor guides under "For Editors"
+      'quick-start': [
+        'content-management',
+        'modules-guide',
+        'review-workflow',
+        'media',
+        'translations',
+        'roles-permissions',
+      ],
+      // Group all developer guides under "For Developers"
+      'getting-started': [
+        'api-reference',
+        'building-modules',
+        'theming',
+        'routing',
+        'internationalization',
+        'content-management-overview',
+        'ai-agents',
+        'deployment',
+      ],
     }
 
     // First pass: create all posts and store IDs by slug
     const postIdsBySlug: Record<string, string> = {}
 
-    for (let i = 0; i < mdFiles.length; i++) {
-      const file = mdFiles[i]
-      const content = await readFile(join(docsPath, file), 'utf-8')
+    // Create the "Documentation" overview post from README.md FIRST
+    console.log('✨ Creating Documentation overview from README.md')
+    const readmePath = join(process.cwd(), 'README.md')
+    const readmeContent = await readFile(readmePath, 'utf-8')
+    
+    // Extract title and subtitle from README
+    const readmeTitleMatch = readmeContent.match(/^#\s+(.+)$/m)
+    const readmeTitle = readmeTitleMatch ? readmeTitleMatch[1] : 'Documentation'
+    const readmeSubtitleMatch = readmeContent.match(/^#\s+.+\n\n(.+)$/m)
+    const readmeSubtitle = readmeSubtitleMatch ? readmeSubtitleMatch[1] : null
+
+    const overviewPost = await CreatePost.handle({
+      type: 'documentation',
+      locale: 'en',
+      slug: 'overview',
+      title: 'Documentation',
+      status: 'published',
+      excerpt: readmeSubtitle,
+      userId: admin.id,
+    })
+
+    // Update order_index to 0 (top of list)
+    await db.from('posts').where('id', overviewPost.id).update({ order_index: 0 })
+    postIdsBySlug['overview'] = overviewPost.id
+
+    console.log(`   ✓ Post created with ID: ${overviewPost.id}`)
+
+    // Add Prose module with README content
+    const readmeLexicalContent = await this.markdownToLexical(readmeContent)
+    await AddModuleToPost.handle({
+      postId: overviewPost.id,
+      moduleType: 'prose',
+      scope: 'local',
+      props: {
+        content: readmeLexicalContent,
+        backgroundColor: 'bg-backdrop-low',
+        maxWidth: '',
+      },
+      orderIndex: 0,
+    })
+
+    console.log(`   ✓ Module added with README content\n`)
+
+    for (const [i, fileInfo] of allFiles.entries()) {
+      const { file, path: filePath } = fileInfo
+      const content = await readFile(filePath, 'utf-8')
 
       // Extract order from filename (e.g., "00-index.md" -> 0)
       const orderMatch = file.match(/^(\d+)-/)
-      const orderIndex = orderMatch ? parseInt(orderMatch[1], 10) : i
+      const orderIndex = orderMatch ? Number.parseInt(orderMatch[1], 10) : i
 
       // Extract title from first H1
       const titleMatch = content.match(/^#\s+(.+)$/m)
       const title = titleMatch ? titleMatch[1] : file.replace('.md', '')
 
-      // Generate slug from filename
+      // Generate slug from filename (remove both numeric prefix and letter suffix)
       const slug = file
-        .replace(/^\d+-/, '') // Remove number prefix
+        .replace(/^\d+[a-z]?-/, '') // Remove number prefix (with optional letter like 03a-)
         .replace('.md', '')
+
+      // Skip the index page - it's just a reference page, not needed in the CMS
+      if (slug === 'index' || slug === 'overview') {
+        console.log(`   ⏭️  Skipping ${slug} page (handled separately)\n`)
+        continue
+      }
 
       // Extract subtitle from first paragraph after H1
       const subtitleMatch = content.match(/^#\s+.+\n\n(.+)$/m)
       const subtitle = subtitleMatch ? subtitleMatch[1] : null
 
-      const now = new Date()
-      const postId = randomUUID()
-      const proseModuleId = randomUUID()
+      // Rename pages for better navigation structure
+      let displayTitle = title
+      if (slug === 'quick-start') {
+        displayTitle = 'For Editors'
+      } else if (slug === 'getting-started') {
+        displayTitle = 'For Developers'
+      }
 
-      // Store post ID for later parent-child linking
-      postIdsBySlug[slug] = postId
+      console.log(`✨ Creating documentation page: "${displayTitle}" (${slug})`)
 
-      console.log(`✨ Creating support page: "${title}" (${slug})`)
-
-      // Create post (parent_id will be set in second pass)
-      await db.table('posts').insert({
-        id: postId,
-        title,
-        slug,
-        type: 'support',
-        status: 'published',
+      // Create post using CreatePost action (parent_id will be set in second pass)
+      const post = await CreatePost.handle({
+        type: 'documentation',
         locale: 'en',
-        order_index: orderIndex,
-        parent_id: null, // Will be updated in second pass
-        user_id: admin.id,
-        author_id: admin.id,
-        created_at: now,
-        updated_at: now,
+        slug,
+        title: displayTitle,
+        status: 'published',
+        excerpt: subtitle,
+        userId: admin.id,
       })
 
-      console.log(`   ✓ Post created with ID: ${postId}`)
+      // Update order_index (not handled by CreatePost)
+      await db.from('posts').where('id', post.id).update({ order_index: orderIndex })
 
-      // Create Prose module with full markdown content converted to Lexical JSON
-      // Note: Support pages don't use Hero module - title comes from the post itself
+      // Store post ID for later parent-child linking
+      postIdsBySlug[slug] = post.id
+
+      console.log(`   ✓ Post created with ID: ${post.id}`)
+
+      // Add Prose module using AddModuleToPost action (same as API endpoint)
+      // Note: Documentation pages don't use Hero module - title comes from the post itself
       const lexicalContent = await this.markdownToLexical(content)
-      await db.table('module_instances').insert({
-        id: proseModuleId,
-        type: 'prose',
-        scope: 'post',
-        post_id: postId,
-        props: JSON.stringify({
+      await AddModuleToPost.handle({
+        postId: post.id,
+        moduleType: 'prose',
+        scope: 'local',
+        props: {
           content: lexicalContent, // Store as Lexical JSON for editing
           backgroundColor: 'bg-backdrop-low',
           maxWidth: '', // Remove max-width constraint for full-width documentation
-        }),
-        created_at: now,
-        updated_at: now,
+        },
+        orderIndex: 0,
       })
 
-      // Link prose module to post
-      await db.table('post_modules').insert({
-        id: randomUUID(),
-        post_id: postId,
-        module_id: proseModuleId,
-        order_index: 0,
-        overrides: JSON.stringify({}),
-        created_at: now,
-        updated_at: now,
-      })
-
-      console.log(`   ✓ Modules linked to post\n`)
+      console.log(`   ✓ Module added via API action\n`)
     }
 
     // Second pass: set parent_id relationships
@@ -694,15 +780,12 @@ export default class extends BaseSeeder {
           continue
         }
 
-        await db
-          .from('posts')
-          .where('id', childId)
-          .update({ parent_id: parentId })
+        await db.from('posts').where('id', childId).update({ parent_id: parentId })
 
         console.log(`   ✓ Set '${childSlug}' as child of '${parentSlug}'`)
       }
     }
 
-    console.log(`\n✅ Support documentation setup complete!`)
+    console.log(`\n✅ Documentation setup complete!`)
   }
 }

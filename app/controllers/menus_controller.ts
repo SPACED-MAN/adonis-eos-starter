@@ -28,6 +28,83 @@ function buildTree(items: any[]): any[] {
   return roots
 }
 
+async function expandDynamicMenuItems(items: any[], locale: string): Promise<any[]> {
+  const hierarchyService = (await import('#services/hierarchy_service')).default
+  const urlPatternService = (await import('#services/url_pattern_service')).default
+  
+  const expanded: any[] = []
+  
+  for (const item of items) {
+    // If not dynamic, keep as-is
+    if (item.type !== 'dynamic') {
+      expanded.push(item)
+      continue
+    }
+    
+    // Dynamic item: fetch posts and expand
+    const dynamicPostType = item.dynamicPostType
+    const dynamicParentId = item.dynamicParentId
+    const dynamicDepthLimit = item.dynamicDepthLimit || 1
+    
+    if (!dynamicPostType) {
+      // Invalid dynamic item, skip
+      continue
+    }
+    
+    // Fetch hierarchical posts
+    let posts: any[]
+    
+    if (dynamicParentId) {
+      // Fetch children of specific parent
+      posts = await db
+        .from('posts')
+        .where('type', dynamicPostType)
+        .where('locale', locale)
+        .where('status', 'published')
+        .where('parent_id', dynamicParentId)
+        .select('id', 'title', 'slug', 'parent_id', 'order_index')
+        .orderBy('order_index', 'asc')
+    } else {
+      // Fetch all posts of this type (with hierarchy if applicable)
+      posts = await hierarchyService.getPostsHierarchical({
+        type: dynamicPostType,
+        locale,
+        status: 'published',
+        fields: ['id', 'title', 'slug', 'parent_id', 'order_index'],
+      })
+    }
+    
+    // Convert posts to menu items
+    for (const post of posts) {
+      const url = await urlPatternService.buildPostPath(
+        dynamicPostType,
+        post.slug,
+        locale,
+        post.created_at
+      )
+      
+      expanded.push({
+        id: `dynamic-${item.id}-${post.id}`,
+        parentId: item.parentId,
+        orderIndex: expanded.length,
+        locale: item.locale,
+        label: post.title,
+        type: 'post',
+        postId: post.id,
+        customUrl: url,
+        anchor: null,
+        target: null,
+        rel: null,
+        kind: 'item',
+        depth: post.depth || 0,
+        isDynamic: true,
+      })
+    }
+  }
+  
+  return expanded
+}
+
 export default class MenusController {
   private async menuItemLocaleColumnExists(): Promise<boolean> {
     try {
@@ -126,7 +203,10 @@ export default class MenusController {
       'anchor',
       'target',
       'rel',
-      'kind'
+      'kind',
+      'dynamic_post_type as dynamicPostType',
+      'dynamic_parent_id as dynamicParentId',
+      'dynamic_depth_limit as dynamicDepthLimit'
     )
     return response.ok({
       data: {
@@ -203,7 +283,7 @@ export default class MenusController {
     const { id: menuId } = params
     const menu = await db.from('menus').where('id', menuId).first()
     if (!menu) return response.notFound({ error: 'Menu not found' })
-    const type = String(request.input('type', 'custom')).trim() as 'post' | 'custom'
+    const type = String(request.input('type', 'custom')).trim() as 'post' | 'custom' | 'dynamic'
     const kind = String(request.input('kind', 'item')).trim() as 'item' | 'section'
     let label = String(request.input('label', '')).trim()
     const parentIdRaw = request.input('parentId')
@@ -213,6 +293,18 @@ export default class MenusController {
     const anchor = request.input('anchor') ? String(request.input('anchor')) : null
     const target = request.input('target') ? String(request.input('target')) : null
     const rel = request.input('rel') ? String(request.input('rel')) : null
+    
+    // Dynamic menu item fields
+    const dynamicPostType = request.input('dynamicPostType')
+      ? String(request.input('dynamicPostType'))
+      : null
+    const dynamicParentId = request.input('dynamicParentId')
+      ? String(request.input('dynamicParentId'))
+      : null
+    const dynamicDepthLimit = request.input('dynamicDepthLimit')
+      ? Number(request.input('dynamicDepthLimit'))
+      : 1
+
     // Auto-label from post title if not provided
     if (!label && type === 'post' && postId) {
       const p = await db.from('posts').where('id', postId).select('title').first()
@@ -229,6 +321,8 @@ export default class MenusController {
         return response.badRequest({ error: 'postId is required for type=post' })
       if (type === 'custom' && !customUrl)
         return response.badRequest({ error: 'customUrl is required for type=custom' })
+      if (type === 'dynamic' && !dynamicPostType)
+        return response.badRequest({ error: 'dynamicPostType is required for type=dynamic' })
     }
     // Determine next order index within parent group
     const maxQ = db.from('menu_items').where('menu_id', menuId).max('order_index as max')
@@ -256,6 +350,9 @@ export default class MenusController {
       anchor,
       target,
       rel,
+      dynamic_post_type: type === 'dynamic' ? dynamicPostType : null,
+      dynamic_parent_id: type === 'dynamic' ? dynamicParentId : null,
+      dynamic_depth_limit: type === 'dynamic' ? dynamicDepthLimit : null,
       created_at: now,
       updated_at: now,
     }
@@ -293,8 +390,15 @@ export default class MenusController {
       'anchor',
       'target',
       'rel',
-      'kind'
+      'kind',
+      'dynamic_post_type as dynamicPostType',
+      'dynamic_parent_id as dynamicParentId',
+      'dynamic_depth_limit as dynamicDepthLimit'
     )
+    
+    // Expand dynamic menu items
+    const expandedRows = await expandDynamicMenuItems(rows, locale)
+    
     return response.ok({
       data: {
         id: (menu as any).id,
@@ -303,8 +407,8 @@ export default class MenusController {
         locale: (menu as any).locale,
         template: (menu as any).template || null,
         meta: (menu as any).meta_json || {},
-        items: rows,
-        tree: buildTree(rows),
+        items: expandedRows,
+        tree: buildTree(expandedRows),
       },
     })
   }
@@ -326,27 +430,58 @@ export default class MenusController {
     for (const f of fields) {
       if (request.input(f) !== undefined) update[f] = request.input(f)
     }
-    // switch type/post/custom_url
+    // switch type/post/custom_url/dynamic
     if (request.input('type') !== undefined) {
-      const type = String(request.input('type')).trim() as 'post' | 'custom'
+      const type = String(request.input('type')).trim() as 'post' | 'custom' | 'dynamic'
       update.type = type
       if (type === 'post') {
         const postId = String(request.input('postId') || '')
         if (!postId) return response.badRequest({ error: 'postId is required for type=post' })
         update.post_id = postId
         update.custom_url = null
-      } else {
+        update.dynamic_post_type = null
+        update.dynamic_parent_id = null
+        update.dynamic_depth_limit = null
+      } else if (type === 'custom') {
         const customUrl = String(request.input('customUrl') || '')
         if (!customUrl)
           return response.badRequest({ error: 'customUrl is required for type=custom' })
         update.custom_url = customUrl
         update.post_id = null
+        update.dynamic_post_type = null
+        update.dynamic_parent_id = null
+        update.dynamic_depth_limit = null
+      } else if (type === 'dynamic') {
+        const dynamicPostType = String(request.input('dynamicPostType') || '')
+        if (!dynamicPostType)
+          return response.badRequest({ error: 'dynamicPostType is required for type=dynamic' })
+        update.post_id = null
+        update.custom_url = null
+        update.dynamic_post_type = dynamicPostType
+        update.dynamic_parent_id = request.input('dynamicParentId')
+          ? String(request.input('dynamicParentId'))
+          : null
+        update.dynamic_depth_limit = request.input('dynamicDepthLimit')
+          ? Number(request.input('dynamicDepthLimit'))
+          : 1
       }
     } else {
       if (request.input('postId') !== undefined)
         update.post_id = request.input('postId') ? String(request.input('postId')) : null
       if (request.input('customUrl') !== undefined)
         update.custom_url = request.input('customUrl') ? String(request.input('customUrl')) : null
+      if (request.input('dynamicPostType') !== undefined)
+        update.dynamic_post_type = request.input('dynamicPostType')
+          ? String(request.input('dynamicPostType'))
+          : null
+      if (request.input('dynamicParentId') !== undefined)
+        update.dynamic_parent_id = request.input('dynamicParentId')
+          ? String(request.input('dynamicParentId'))
+          : null
+      if (request.input('dynamicDepthLimit') !== undefined)
+        update.dynamic_depth_limit = request.input('dynamicDepthLimit')
+          ? Number(request.input('dynamicDepthLimit'))
+          : null
     }
     if ((request.all() as any).hasOwnProperty('parentId')) {
       const pidRaw = request.input('parentId')

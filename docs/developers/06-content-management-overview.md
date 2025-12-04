@@ -1,4 +1,4 @@
-# Content Management
+# Content Management Overview
 
 Learn how to create, organize, and manage content in Adonis EOS. This section covers posts, modules, templates, and custom fields.
 

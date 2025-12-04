@@ -44,7 +44,6 @@ export function SidebarMenu({ nodes = [], currentPageId, title }: SidebarMenuPro
 
 	return (
 		<nav className="sticky top-8 border border-line rounded-lg p-4 bg-backdrop-low">
-			{title && <h2 className="font-semibold text-neutral-high mb-3 text-base">{title}</h2>}
 			<div className="space-y-1">
 				{nodes.map((node) => renderItem(node, 0))}
 			</div>

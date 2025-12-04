@@ -1,10 +1,11 @@
-import { Head, Link } from '@inertiajs/react'
+import { Head } from '@inertiajs/react'
 import * as Modules from '../../modules'
 import { SiteFooter } from '../components/SiteFooter'
 import { SiteHeader } from '../components/SiteHeader'
-import { useState, useEffect } from 'react'
+import { SidebarMenu } from '../components/menu/SidebarMenu'
+import type { TreeNode } from '../components/menu/types'
 
-interface SupportPageProps {
+interface DocumentationPageProps {
 	post: {
 		id: string
 		type: string
@@ -21,7 +22,7 @@ interface SupportPageProps {
 		type: string
 		props: Record<string, any>
 	}>
-	supportNav?: SupportPage[]
+	documentationNav?: TreeNode[]
 	seo?: {
 		canonical?: string
 		alternates?: Array<{ locale: string; href: string }>
@@ -32,14 +33,6 @@ interface SupportPageProps {
 	}
 }
 
-interface SupportPage {
-	id: string
-	title: string
-	slug: string
-	url?: string
-	parentId?: string | null
-	depth?: number
-}
 
 function getModuleComponent(type: string): any {
 	const key = Object.keys(Modules).find((k) => k.toLowerCase() === type.replace(/[-_]/g, ''))
@@ -47,29 +40,7 @@ function getModuleComponent(type: string): any {
 	return Modules[key as keyof typeof Modules] || null
 }
 
-export default function SupportPostType({ post, modules, supportNav, seo }: SupportPageProps) {
-	const [supportPages, setSupportPages] = useState<SupportPage[]>(supportNav || [])
-
-	useEffect(() => {
-		// If supportNav was provided from backend, use it
-		if (supportNav) {
-			setSupportPages(supportNav)
-			return
-		}
-
-		// Otherwise, fetch all support pages for sidebar navigation
-		fetch(`/api/posts?type=support&status=published&locale=${post.locale}`)
-			.then((res) => res.json())
-			.then((data) => {
-				if (data.data) {
-					setSupportPages(data.data)
-				}
-			})
-			.catch(() => {
-				// Silently handle error - supportNav will remain empty
-			})
-	}, [post.locale, supportNav])
-
+export default function DocumentationPostType({ post, modules, documentationNav = [], seo }: DocumentationPageProps) {
 	return (
 		<>
 			<Head title={post.metaTitle || post.title}>
@@ -105,33 +76,12 @@ export default function SupportPostType({ post, modules, supportNav, seo }: Supp
 				<div className="container mx-auto px-4 sm:px-6 lg:px-8 py-12">
 					<div className="flex flex-col lg:flex-row gap-8">
 						{/* Sidebar Navigation */}
-						<aside className="lg:w-64 flex-shrink-0">
-							<div className="sticky top-8">
-								<h2 className="text-lg font-semibold text-neutral-high mb-4">
-									Support Documentation
-								</h2>
-								<nav className="space-y-1">
-									{supportPages.map((page) => {
-										// Use depth from backend or calculate based on parentId
-										const depth = page.depth !== undefined ? page.depth : (page.parentId !== null && page.parentId !== undefined ? 1 : 0)
-										const paddingLeft = 12 + depth * 16
-
-										return (
-											<Link
-												key={page.id}
-												href={page.url || `/support/${page.slug}`}
-												className={`block py-2 rounded text-sm transition-colors ${page.id === post.id
-													? 'bg-standout text-on-standout font-medium'
-													: 'text-neutral-medium hover:bg-backdrop-medium hover:text-neutral-high'
-													}`}
-												style={{ paddingLeft: `${paddingLeft}px` }}
-											>
-												{page.title}
-											</Link>
-										)
-									})}
-								</nav>
-							</div>
+						<aside className="lg:w-64 shrink-0">
+							<SidebarMenu
+								nodes={documentationNav}
+								currentPageId={post.id}
+								title="Documentation"
+							/>
 						</aside>
 
 						{/* Main Content */}

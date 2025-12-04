@@ -3,7 +3,8 @@ import UserSeeder from './user_seeder.js'
 import MenuSeeder from './menu_seeder.js'
 import TaxonomySeeder from './taxonomy_seeder.js'
 import HomepageSeeder from './homepage_seeder.js'
-import SupportSeeder from './support_seeder.js'
+import DocumentationSeeder from './documentation_seeder.js'
+import DocumentationMenuSeeder from './documentation_menu_seeder.js'
 
 /**
  * Main seeder that runs all other seeders in the correct order
@@ -24,8 +25,11 @@ export default class extends BaseSeeder {
     // Homepage
     await new HomepageSeeder(this.client).run()
 
-    // Support documentation
-    await new SupportSeeder(this.client).run()
+    // Documentation
+    await new DocumentationSeeder(this.client).run()
+
+    // Documentation menu (dynamic menu for docs)
+    await new DocumentationMenuSeeder(this.client).run()
 
     console.log('\n✅ All seeders completed!')
   }

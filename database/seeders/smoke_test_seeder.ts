@@ -20,7 +20,9 @@ async function getFileSize(publicUrl: string): Promise<number> {
 export default class extends BaseSeeder {
   public static environment = ['development']
   async run() {
-    // Clean up existing test data
+    // NOTE: This seeder creates bulk test data for smoke testing.
+    // It uses direct inserts for performance, which is acceptable for test data.
+    // Production seeders MUST use CreatePost action instead.
 
     console.log('🧪 Running smoke tests for database schema (with i18n support)...')
 

@@ -20,7 +20,7 @@ Define custom URL structures for different post types:
 ```
 /blog/{slug}
 /{locale}/blog/{yyyy}/{slug}
-/support/{slug}
+/docs/{slug}
 ```
 
 Patterns support variables:
