@@ -1,6 +1,7 @@
 @import "tailwindcss";
 
 @plugin "tailwindcss-animate";
+@plugin "@tailwindcss/typography";
 
 @custom-variant dark (&:is(.dark *));
 
@@ -192,5 +193,160 @@
 
   body {
     @apply bg-background text-foreground;
+  }
+
+  /* Prose (Typography) Customization */
+  .prose {
+    --tw-prose-body: var(--color-neutral-high);
+    --tw-prose-headings: var(--color-neutral-high);
+    --tw-prose-links: var(--color-standout);
+    --tw-prose-bold: var(--color-neutral-high);
+    --tw-prose-bullets: var(--color-neutral-medium);
+    --tw-prose-quotes: var(--color-neutral-medium);
+    --tw-prose-code: var(--color-neutral-high);
+    --tw-prose-hr: var(--color-line);
+
+    max-width: none;
+  }
+
+  .prose h1 {
+    display: none !important;
+    /* Hero has the H1 */
+  }
+
+  .prose h1,
+  .prose h2,
+  .prose h3,
+  .prose h4,
+  .prose h5,
+  .prose h6 {
+    color: var(--color-neutral-high) !important;
+  }
+
+  .prose h2 {
+    font-size: 1.875rem;
+    font-weight: 600;
+    margin-top: 2rem;
+    margin-bottom: 1rem;
+    line-height: 2.25rem;
+    color: var(--color-neutral-high) !important;
+  }
+
+  .prose h3 {
+    font-size: 1.5rem;
+    font-weight: 600;
+    margin-top: 1.5rem;
+    margin-bottom: 0.75rem;
+    line-height: 2rem;
+    color: var(--color-neutral-high) !important;
+  }
+
+  .prose p {
+    margin-top: 1rem;
+    margin-bottom: 1rem;
+    line-height: 1.75rem;
+  }
+
+  .prose ul {
+    list-style-type: disc;
+    padding-left: 1.5rem;
+    margin-top: 1rem;
+    margin-bottom: 1rem;
+  }
+
+  .prose ol {
+    list-style-type: decimal;
+    padding-left: 1.5rem;
+    margin-top: 1rem;
+    margin-bottom: 1rem;
+  }
+
+  .prose li {
+    margin-top: 0.5rem;
+    margin-bottom: 0.5rem;
+  }
+
+  .prose code {
+    background-color: var(--color-backdrop-medium);
+    padding: 0.125rem 0.25rem;
+    border-radius: 0.25rem;
+    font-weight: 400;
+    font-family: ui-monospace, monospace;
+    color: var(--color-neutral-high) !important;
+  }
+
+  .prose code::before,
+  .prose code::after {
+    content: '';
+  }
+
+  .prose pre {
+    background-color: var(--color-backdrop-medium);
+    border: 1px solid var(--color-line);
+    border-radius: 0.5rem;
+    padding: 1rem;
+    overflow-x: auto;
+    margin-top: 1rem;
+    margin-bottom: 1rem;
+  }
+
+  .prose pre code {
+    background-color: transparent;
+    padding: 0;
+    border-radius: 0;
+    font-size: 0.875rem;
+    line-height: 1.5;
+  }
+
+  .prose hr {
+    border: none;
+    border-top: 1px solid var(--color-line);
+    margin-top: 2rem;
+    margin-bottom: 2rem;
+  }
+
+  .prose strong,
+  .prose b {
+    font-weight: 600;
+    color: var(--color-neutral-high) !important;
+  }
+
+  .prose a {
+    color: var(--color-standout) !important;
+    text-decoration: underline;
+  }
+
+  .prose a:hover {
+    opacity: 0.8;
+  }
+
+  /* Dark mode prose styles */
+  .dark .prose {
+    --tw-prose-body: var(--color-neutral-high);
+    --tw-prose-headings: var(--color-neutral-high);
+    --tw-prose-links: var(--color-standout);
+    --tw-prose-bold: var(--color-neutral-high);
+    --tw-prose-bullets: var(--color-neutral-medium);
+    --tw-prose-quotes: var(--color-neutral-medium);
+    --tw-prose-code: var(--color-neutral-high);
+    --tw-prose-hr: var(--color-line);
+  }
+
+  .dark .prose h2,
+  .dark .prose h3 {
+    color: var(--color-neutral-high);
+  }
+
+  .dark .prose code {
+    background-color: var(--color-backdrop-medium);
+  }
+
+  .dark .prose pre {
+    background-color: var(--color-backdrop-medium);
+    border-color: var(--color-line);
+  }
+
+  .dark .prose hr {
+    border-top-color: var(--color-line);
   }
 }
