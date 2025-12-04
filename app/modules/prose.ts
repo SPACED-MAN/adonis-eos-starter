@@ -22,7 +22,7 @@ export default class ProseModule extends BaseModule {
   getConfig(): ModuleConfig {
     return {
       type: 'prose',
-      name: 'Rich Text (Prose)',
+      name: 'Prose',
       description: 'Rich text content with formatting, links, lists, and more',
       icon: 'text-paragraph',
       allowedScopes: ['local', 'global'],
