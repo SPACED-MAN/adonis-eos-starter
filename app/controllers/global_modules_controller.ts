@@ -58,7 +58,9 @@ export default class GlobalModulesController {
       | 'editor'
       | 'translator'
       | undefined
-    if (role !== 'admin') return response.forbidden({ error: 'Admin only' })
+    if (!roleRegistry.hasPermission(role, 'globals.edit')) {
+      return response.forbidden({ error: 'Not allowed to create global modules' })
+    }
     const type = String(request.input('type', '')).trim()
     const labelRaw = request.input('label')
     const globalSlugRaw = request.input('globalSlug')
@@ -123,7 +125,9 @@ export default class GlobalModulesController {
       | 'editor'
       | 'translator'
       | undefined
-    if (role !== 'admin') return response.forbidden({ error: 'Admin only' })
+    if (!roleRegistry.hasPermission(role, 'globals.edit')) {
+      return response.forbidden({ error: 'Not allowed to create global modules' })
+    }
     const { id } = params
     const globalSlugRaw = request.input('globalSlug')
     const labelRaw = request.input('label')
@@ -160,7 +164,9 @@ export default class GlobalModulesController {
       | 'editor'
       | 'translator'
       | undefined
-    if (role !== 'admin') return response.forbidden({ error: 'Admin only' })
+    if (!roleRegistry.hasPermission(role, 'globals.delete')) {
+      return response.forbidden({ error: 'Not allowed to delete global modules' })
+    }
     const { id } = params
     const usage = await db.from('post_modules').where('module_id', id).count('* as cnt')
     const cnt = Number((usage?.[0] as any)?.cnt || 0)

@@ -698,7 +698,7 @@ export default class MediaController {
 			| 'editor'
 			| 'translator'
 			| undefined
-		if (!(role === 'admin' || role === 'editor')) {
+		if (!roleRegistry.hasPermission(role, 'media.upload')) {
 			return response.forbidden({ error: 'Not allowed' })
 		}
 		const originalFilename = String(request.input('originalFilename', '')).trim()
@@ -717,8 +717,8 @@ export default class MediaController {
 			| 'editor'
 			| 'translator'
 			| undefined
-		if (role !== 'admin') {
-			return response.forbidden({ error: 'Admin only' })
+		if (!roleRegistry.hasPermission(role, 'media.replace')) {
+			return response.forbidden({ error: 'Not allowed to replace media' })
 		}
 		const { id } = params
 		const themeParam = String(request.input('theme', '') || '').toLowerCase()
@@ -1212,7 +1212,7 @@ export default class MediaController {
 			| 'editor'
 			| 'translator'
 			| undefined
-		if (!(role === 'admin' || role === 'editor')) {
+		if (!roleRegistry.hasPermission(role, 'media.upload')) {
 			return response.forbidden({ error: 'Not allowed to update categories' })
 		}
 		const ids: string[] = Array.isArray(request.input('ids'))

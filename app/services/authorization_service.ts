@@ -17,31 +17,25 @@ export class AuthorizationService {
   }
 
   static canCreatePost(role: UserRole): boolean {
-    if (
+    return (
       roleRegistry.hasPermission(role, 'posts.create') ||
       roleRegistry.hasPermission(role, 'posts.edit')
-    ) {
-      return true
-    }
-    // Fallback to legacy behavior if roles are not yet registered
-    return role === 'admin' || role === 'editor'
+    )
   }
 
   static canDeletePosts(role: UserRole): boolean {
-    if (roleRegistry.hasPermission(role, 'posts.delete')) {
-      return true
-    }
-    return role === 'admin'
+    return roleRegistry.hasPermission(role, 'posts.delete')
   }
 
   static canPublishOrArchive(role: UserRole): boolean {
-    if (
+    return (
       roleRegistry.hasPermission(role, 'posts.publish') ||
       roleRegistry.hasPermission(role, 'posts.archive')
-    ) {
-      return true
-    }
-    return role === 'admin' || role === 'editor'
+    )
+  }
+
+  static canPublish(role: UserRole): boolean {
+    return roleRegistry.hasPermission(role, 'posts.publish')
   }
 
   static canBulkAction(role: UserRole, action: BulkAction): boolean {
@@ -49,28 +43,19 @@ export class AuthorizationService {
       return this.canDeletePosts(role)
     }
     if (action === 'duplicate') {
-      // Treat duplicate as "edit" permission
-      if (roleRegistry.hasPermission(role, 'posts.edit')) {
-        return true
-      }
-      return role === 'admin' || role === 'editor'
+      return roleRegistry.hasPermission(role, 'posts.edit')
     }
     if (action === 'regeneratePermalinks') {
-      // Treat permalink regen as publish/archive level
       return this.canPublishOrArchive(role)
     }
     if (action === 'publish' || action === 'archive') {
       return this.canPublishOrArchive(role)
     }
     if (action === 'draft') {
-      // Anyone who can edit can draft
-      if (
+      return (
         roleRegistry.hasPermission(role, 'posts.edit') ||
         roleRegistry.hasPermission(role, 'posts.create')
-      ) {
-        return true
-      }
-      return role === 'admin' || role === 'editor' || role === 'translator'
+      )
     }
     return false
   }
@@ -82,10 +67,7 @@ export class AuthorizationService {
   }
 
   static canRevertRevision(role: UserRole): boolean {
-    if (roleRegistry.hasPermission(role, 'posts.revisions.manage')) {
-      return true
-    }
-    return role === 'admin' || role === 'editor'
+    return roleRegistry.hasPermission(role, 'posts.revisions.manage')
   }
 }
 

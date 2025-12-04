@@ -184,17 +184,9 @@ export default function Editor({ post, modules: initialModules, translations, re
     }
   }, [data, viewMode, pendingModules, pendingRemoved, pendingReviewRemoved])
 
-  // CSRF/XSRF token for fetch requests (prefer cookie value)
+  // CSRF/XSRF token for fetch requests
   const page = usePage()
   const csrfFromProps: string | undefined = (page.props as any)?.csrf
-  const xsrfFromCookie: string | undefined = (() => {
-    try {
-      const { getXsrf } = require('~/utils/xsrf')
-      return getXsrf()
-    } catch {
-      return undefined
-    }
-  })()
   // Always read latest token to avoid stale value after a request rotates it
   const xsrfHeader = () => {
     try {
@@ -210,6 +202,7 @@ export default function Editor({ post, modules: initialModules, translations, re
   const isAdmin = role === 'admin'
   const canSaveForReview = useHasPermission('posts.review.save')
   const canSaveForAiReview = useHasPermission('posts.ai-review.save')
+  const canPublish = useHasPermission('posts.publish')
   const [isImportModeOpen, setIsImportModeOpen] = useState(false)
   const [pendingImportJson, setPendingImportJson] = useState<any | null>(null)
   const importFileRef = useRef<HTMLInputElement | null>(null)
@@ -520,7 +513,7 @@ export default function Editor({ post, modules: initialModules, translations, re
 
   // saveOverrides removed; overrides are handled via ModuleEditorPanel onSave and pendingModules batching.
 
-  async function commitPendingModules(mode: 'review' | 'publish') {
+  async function commitPendingModules(mode: 'review' | 'publish' | 'ai-review') {
     const entries = Object.entries(pendingModules)
     // 1) Apply updates
     if (entries.length > 0) {
@@ -1249,10 +1242,10 @@ export default function Editor({ post, modules: initialModules, translations, re
                       <SelectContent>
                         <SelectItem value="draft">Draft</SelectItem>
                         <SelectItem value="scheduled">Scheduled</SelectItem>
-                        <SelectItem value="published">Published</SelectItem>
+                        {canPublish && <SelectItem value="published">Published</SelectItem>}
                         <SelectItem value="private">Private</SelectItem>
                         <SelectItem value="protected">Protected</SelectItem>
-                        <SelectItem value="archived">Archived</SelectItem>
+                        {canPublish && <SelectItem value="archived">Archived</SelectItem>}
                       </SelectContent>
                     </Select>
                   </div>
@@ -1372,38 +1365,62 @@ export default function Editor({ post, modules: initialModules, translations, re
                     View on Site
                   </button>
                 )}
-                {/* Save for AI Review button */}
-                {viewMode === 'approved' && canSaveForAiReview && (
-                  <button
-                    className="w-full px-4 py-2 text-sm border border-border rounded-lg hover:bg-backdrop-medium text-neutral-medium disabled:opacity-50"
-                    disabled={!isDirty || processing}
-                    onClick={async () => {
-                      await commitPendingModules('ai-review')
-                      const res = await fetch(`/api/posts/${post.id}`, {
-                        method: 'PUT',
-                        headers: {
-                          'Accept': 'application/json',
-                          'Content-Type': 'application/json',
-                          ...xsrfHeader(),
-                        },
-                        credentials: 'same-origin',
-                        body: JSON.stringify({ ...pickForm(data), mode: 'ai-review' }),
-                      })
-                      if (res.ok) {
-                        toast.success('Saved for AI review')
-                      } else {
-                        toast.error('Failed to save for AI review')
-                      }
-                    }}
-                    type="button"
-                  >
-                    Save for AI Review
-                  </button>
+
+                {/* Draft Actions - Compact section for Save for Review/AI Review */}
+                {viewMode === 'approved' && (canSaveForReview || canSaveForAiReview) && (
+                  <div className="space-y-1">
+                    <div className="text-xs font-medium text-neutral-low px-1">Save as Draft</div>
+                    <div className="grid grid-cols-2 gap-2">
+                      {canSaveForReview && (
+                        <button
+                          className="px-3 py-1.5 text-xs border border-border rounded hover:bg-backdrop-medium text-neutral-medium disabled:opacity-50"
+                          disabled={!isDirty || processing}
+                          onClick={async () => {
+                            await commitPendingModules('review')
+                            await saveForReview()
+                          }}
+                          type="button"
+                          title="Save changes to Review draft without publishing"
+                        >
+                          Review
+                        </button>
+                      )}
+                      {canSaveForAiReview && (
+                        <button
+                          className="px-3 py-1.5 text-xs border border-border rounded hover:bg-backdrop-medium text-neutral-medium disabled:opacity-50"
+                          disabled={!isDirty || processing}
+                          onClick={async () => {
+                            await commitPendingModules('ai-review')
+                            const res = await fetch(`/api/posts/${post.id}`, {
+                              method: 'PUT',
+                              headers: {
+                                'Accept': 'application/json',
+                                'Content-Type': 'application/json',
+                                ...xsrfHeader(),
+                              },
+                              credentials: 'same-origin',
+                              body: JSON.stringify({ ...pickForm(data), mode: 'ai-review' }),
+                            })
+                            if (res.ok) {
+                              toast.success('Saved for AI review')
+                            } else {
+                              toast.error('Failed to save for AI review')
+                            }
+                          }}
+                          type="button"
+                          title="Save changes to AI Review draft without publishing"
+                        >
+                          AI Review
+                        </button>
+                      )}
+                    </div>
+                  </div>
                 )}
+
                 {/* Main save button - conditionally shown based on mode and permissions */}
                 {((viewMode === 'review' && canSaveForReview) || (viewMode === 'ai-review' && canSaveForAiReview) || viewMode === 'approved') && (
                   <button
-                    className={`w-full px-4 py-2 text-sm rounded-lg disabled:opacity-50 ${(!isDirty || processing) ? 'border border-border text-neutral-medium' : 'bg-standout text-on-standout font-medium'}`}
+                    className={`w-full px-4 py-2.5 text-sm rounded-lg disabled:opacity-50 ${(!isDirty || processing) ? 'border border-border text-neutral-medium' : 'bg-standout text-on-standout font-medium'}`}
                     disabled={!isDirty || processing}
                     onClick={async () => {
                       if (viewMode === 'review') {

@@ -1,5 +1,6 @@
 import type { HttpContext } from '@adonisjs/core/http'
 import siteSettingsService from '#services/site_settings_service'
+import roleRegistry from '#services/role_registry'
 import siteCustomFieldsService from '#services/site_custom_fields_service'
 import db from '@adonisjs/lucid/services/db'
 
@@ -20,7 +21,9 @@ export default class SiteSettingsController {
    */
   async update({ request, response, auth }: HttpContext) {
     const role = (auth.use('web').user as any)?.role
-    if (role !== 'admin') return response.forbidden({ error: 'Admin only' })
+    if (!roleRegistry.hasPermission(role, 'admin.settings.update')) {
+      return response.forbidden({ error: 'Not allowed to update site settings' })
+    }
     const current = await siteSettingsService.get()
     const payload = request.only([
       'siteTitle',

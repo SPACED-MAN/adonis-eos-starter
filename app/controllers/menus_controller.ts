@@ -197,7 +197,7 @@ export default class MenusController {
       | 'editor'
       | 'translator'
       | undefined
-    if (!(role === 'admin' || role === 'editor')) {
+    if (!roleRegistry.hasPermission(role, 'menus.edit')) {
       return response.forbidden({ error: 'Not allowed to add items' })
     }
     const { id: menuId } = params
@@ -315,7 +315,7 @@ export default class MenusController {
       | 'editor'
       | 'translator'
       | undefined
-    if (!(role === 'admin' || role === 'editor')) {
+    if (!roleRegistry.hasPermission(role, 'menus.edit')) {
       return response.forbidden({ error: 'Not allowed to update items' })
     }
     const { id } = params
@@ -368,7 +368,7 @@ export default class MenusController {
       | 'editor'
       | 'translator'
       | undefined
-    if (!(role === 'admin' || role === 'editor')) {
+    if (!roleRegistry.hasPermission(role, 'menus.delete')) {
       return response.forbidden({ error: 'Not allowed to delete items' })
     }
     const { id } = params
@@ -388,7 +388,7 @@ export default class MenusController {
       | 'editor'
       | 'translator'
       | undefined
-    if (!(role === 'admin' || role === 'editor')) {
+    if (!roleRegistry.hasPermission(role, 'menus.edit')) {
       return response.forbidden({ error: 'Not allowed to reorder menu items' })
     }
     const { id: menuIdParam } = params
@@ -481,7 +481,7 @@ export default class MenusController {
       | 'editor'
       | 'translator'
       | undefined
-    if (!(role === 'admin' || role === 'editor')) {
+    if (!roleRegistry.hasPermission(role, 'menus.edit')) {
       return response.forbidden({ error: 'Not allowed' })
     }
     const hasLocale = await this.menuItemLocaleColumnExists()

@@ -4,6 +4,7 @@ import { faTurnUp } from '@fortawesome/free-solid-svg-icons'
 import { useEffect, useMemo, useState } from 'react'
 import { AdminHeader } from '../components/AdminHeader'
 import { AdminFooter } from '../components/AdminFooter'
+import { useHasPermission } from '~/utils/permissions'
 import { AdminBreadcrumbs } from '../components/AdminBreadcrumbs'
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '~/components/ui/table'
 import { Checkbox } from '~/components/ui/checkbox'
@@ -30,8 +31,9 @@ export default function Dashboard({ }: DashboardProps) {
   const role: string | undefined =
     (inertiaPage.props as any)?.currentUser?.role ??
     (inertiaPage.props as any)?.auth?.user?.role
-  const isAdmin = role === 'admin'
-  const isEditor = role === 'editor'
+  const canCreatePost = useHasPermission('posts.create')
+  const canPublish = useHasPermission('posts.publish')
+  const canDelete = useHasPermission('posts.delete')
   const [posts, setPosts] = useState<Array<{ id: string; type: string; title: string; slug: string; status: string; locale: string; updatedAt: string; parentId?: string | null; translationOfId?: string | null; familyLocales?: string[]; hasReviewDraft?: boolean }>>([])
   const [selected, setSelected] = useState<Set<string>>(new Set())
   const [selectAll, setSelectAll] = useState(false)
@@ -589,7 +591,7 @@ export default function Dashboard({ }: DashboardProps) {
           <div className="px-6 py-4">
             {/* Top right: Create New button */}
             <div className="flex items-center justify-end mb-3">
-              {(isAdmin || isEditor) && (
+              {canCreatePost && (
                 <button
                   onClick={() => setIsCreateOpen(true)}
                   className="px-3 py-2 text-sm border border-line rounded bg-standout text-on-standout cursor-pointer"
@@ -740,12 +742,12 @@ export default function Dashboard({ }: DashboardProps) {
                     <SelectValue placeholder="Bulk actions..." />
                   </SelectTrigger>
                   <SelectContent>
-                    {(isAdmin || isEditor) && <SelectItem value="publish">Publish</SelectItem>}
+                    {canPublish && <SelectItem value="publish">Publish</SelectItem>}
                     <SelectItem value="draft">Move to Draft</SelectItem>
-                    {(isAdmin || isEditor) && <SelectItem value="archive">Archive</SelectItem>}
-                    {(isAdmin || isEditor) && <SelectItem value="duplicate">Duplicate</SelectItem>}
-                    {(isAdmin || isEditor) && <SelectItem value="regeneratePermalinks">Regenerate permalinks</SelectItem>}
-                    {isAdmin && <SelectItem value="delete">Delete (archived only)</SelectItem>}
+                    {canPublish && <SelectItem value="archive">Archive</SelectItem>}
+                    {canCreatePost && <SelectItem value="duplicate">Duplicate</SelectItem>}
+                    {canPublish && <SelectItem value="regeneratePermalinks">Regenerate permalinks</SelectItem>}
+                    {canDelete && <SelectItem value="delete">Delete (archived only)</SelectItem>}
                   </SelectContent>
                 </Select>
               </div>

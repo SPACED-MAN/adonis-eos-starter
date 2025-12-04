@@ -8,6 +8,7 @@ import {
 } from '~/components/ui/sidebar'
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome'
 import { useEffect, useState } from 'react'
+import { useHasPermission } from '~/utils/permissions'
 import {
 	faImage,
 	faFileLines,
@@ -34,8 +35,12 @@ export function AdminSidebar() {
 		((page.props as any)?.auth?.user?.role as string | undefined) ??
 		((page.props as any)?.currentUser?.role as string | undefined)
 	const isAdmin = role === 'admin'
-	const isEditor = role === 'editor'
-	const isTranslator = role === 'translator'
+	const canAccessUsers = useHasPermission('admin.users.manage')
+	const canAccessSettings = useHasPermission('admin.settings.view')
+	const canAccessDatabase = useHasPermission('admin.database.export')
+	const canAccessForms = useHasPermission('forms.view')
+	const canAccessMenus = useHasPermission('menus.view')
+	const canAccessAgents = useHasPermission('agents.view')
 	const userEmail =
 		((page.props as any)?.auth?.user?.email as string | undefined) ||
 		((page.props as any)?.currentUser?.email as string | undefined) ||
@@ -83,49 +88,49 @@ export function AdminSidebar() {
 							<FontAwesomeIcon icon={faGauge} className="w-4 h-4" /> <span>Dashboard</span>
 						</span>
 					</SidebarMenuItem>
-					{(isAdmin || isEditor) && (
+					{canAccessForms && (
 						<SidebarMenuItem href="/admin/media" active={isActive('/admin/media')}>
 							<span className="inline-flex items-center gap-2">
 								<FontAwesomeIcon icon={faImage} className="w-4 h-4" /> <span>Media</span>
 							</span>
 						</SidebarMenuItem>
 					)}
-					{(isAdmin || isEditor || isTranslator) && (
+					{canAccessMenus && (
 						<SidebarMenuItem href="/admin/posts" active={isActive('/admin/posts')}>
 							<span className="inline-flex items-center gap-2">
 								<FontAwesomeIcon icon={faFileLines} className="w-4 h-4" /> <span>Posts</span>
 							</span>
 						</SidebarMenuItem>
 					)}
-					{isAdmin && (
+					{canAccessSettings && (
 						<SidebarMenuItem href="/admin/modules" active={isActive('/admin/modules')}>
 							<span className="inline-flex items-center gap-2">
 								<FontAwesomeIcon icon={faCubes} className="w-4 h-4" /> <span>Modules</span>
 							</span>
 						</SidebarMenuItem>
 					)}
-					{(isAdmin || isEditor) && (
+					{canAccessForms && (
 						<SidebarMenuItem href="/admin/forms" active={isActive('/admin/forms')}>
 							<span className="inline-flex items-center gap-2">
 								<FontAwesomeIcon icon={faEnvelope} className="w-4 h-4" /> <span>Forms</span>
 							</span>
 						</SidebarMenuItem>
 					)}
-					{(isAdmin || isEditor) && (
+					{canAccessForms && (
 						<SidebarMenuItem href="/admin/menus" active={isActive('/admin/menus')}>
 							<span className="inline-flex items-center gap-2">
 								<FontAwesomeIcon icon={faBars} className="w-4 h-4" /> <span>Menus</span>
 							</span>
 						</SidebarMenuItem>
 					)}
-					{(isAdmin || isEditor || isTranslator) && (
+					{canAccessMenus && (
 						<SidebarMenuItem href="/admin/categories" active={isActive('/admin/categories')}>
 							<span className="inline-flex items-center gap-2">
 								<FontAwesomeIcon icon={faTags} className="w-4 h-4" /> <span>Categories</span>
 							</span>
 						</SidebarMenuItem>
 					)}
-					{isAdmin && (
+					{canAccessSettings && (
 						<SidebarMenuItem href="/admin/templates" active={isActive('/admin/templates')}>
 							<span className="inline-flex items-center gap-2">
 								<FontAwesomeIcon icon={faLayerGroup} className="w-4 h-4" /> <span>Templates</span>

@@ -15,6 +15,7 @@ import authorizationService from '#services/authorization_service'
 import RevisionService from '#services/revision_service'
 import PostSerializerService from '#services/post_serializer_service'
 import siteSettingsService from '#services/site_settings_service'
+import roleRegistry from '#services/role_registry'
 
 /**
  * Posts Controller
@@ -1322,8 +1323,8 @@ export default class PostsController {
       | 'editor'
       | 'translator'
       | undefined
-    // Only admin/editor can reorder posts
-    if (!(role === 'admin' || role === 'editor')) {
+    // Check permission to edit posts (reordering requires edit permission)
+    if (!roleRegistry.hasPermission(role, 'posts.edit')) {
       return response.forbidden({ error: 'Not allowed to reorder posts' })
     }
     const scopeRaw = request.input('scope')
