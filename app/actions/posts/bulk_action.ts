@@ -98,18 +98,16 @@ export default class BulkPostsAction {
                 .returning('id')
               targetModuleId = (created as any).id
             }
-            await trx
-              .table('post_modules')
-              .insert({
-                id: randomUUID(),
-                post_id: newPost.id,
-                module_id: targetModuleId,
-                order_index: Number(m.orderIndex ?? 0),
-                overrides: m.overrides ?? null,
-                locked: !!m.locked,
-                created_at: now,
-                updated_at: now,
-              })
+            await trx.table('post_modules').insert({
+              id: randomUUID(),
+              post_id: newPost.id,
+              module_id: targetModuleId,
+              order_index: Number(m.orderIndex ?? 0),
+              overrides: m.overrides ?? null,
+              locked: !!m.locked,
+              created_at: now,
+              updated_at: now,
+            })
           }
         })
         duplicated++
@@ -124,8 +122,12 @@ export default class BulkPostsAction {
       const now = new Date()
       for (const p of rows) {
         // Build path (without host) to store in canonical_url
-        const pathOnly = await (await import('#services/url_pattern_service')).default.buildPostPathForPost(p.id)
-        await Post.query().where('id', p.id).update({ canonicalUrl: pathOnly, updatedAt: now } as any)
+        const pathOnly = await (
+          await import('#services/url_pattern_service')
+        ).default.buildPostPathForPost(p.id)
+        await Post.query()
+          .where('id', p.id)
+          .update({ canonicalUrl: pathOnly, updatedAt: now } as any)
         updated++
       }
       return { message: `Regenerated permalinks for ${updated} posts`, count: updated }
@@ -170,7 +172,10 @@ export default class BulkPostsAction {
   private static async generateUniqueSlug(baseSlug: string, locale: string): Promise<string> {
     // Try "-copy", then "-copy-2", "-copy-3", ...
     const firstCandidate = `${baseSlug}-copy`
-    const existsFirst = await Post.query().where('slug', firstCandidate).where('locale', locale).first()
+    const existsFirst = await Post.query()
+      .where('slug', firstCandidate)
+      .where('locale', locale)
+      .first()
     if (!existsFirst) return firstCandidate
     // Loop attempts
     for (let i = 2; i <= 1000; i++) {
@@ -182,5 +187,3 @@ export default class BulkPostsAction {
     return `${baseSlug}-copy-${randomUUID().slice(0, 8)}`
   }
 }
-
-

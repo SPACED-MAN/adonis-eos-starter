@@ -4,7 +4,9 @@ import CreatePost, { CreatePostException } from '#actions/posts/create_post'
 import UpdatePost, { UpdatePostException } from '#actions/posts/update_post'
 import AddModuleToPost, { AddModuleToPostException } from '#actions/posts/add_module_to_post'
 import UpdatePostModule, { UpdatePostModuleException } from '#actions/posts/update_post_module'
-import CreateTranslation, { CreateTranslationException } from '#actions/translations/create_translation'
+import CreateTranslation, {
+  CreateTranslationException,
+} from '#actions/translations/create_translation'
 import BulkPostsAction from '#actions/posts/bulk_action'
 import db from '@adonisjs/lucid/services/db'
 import urlPatternService from '#services/url_pattern_service'
@@ -43,20 +45,26 @@ export default class PostsController {
     if (!exists) return response.notFound({ error: 'User not found' })
     // Extra check: prevent assigning multiple profiles to one user
     if (post.type === 'profile') {
-      const existing = await db.from('posts').where({ type: 'profile', author_id: authorId }).andWhereNot('id', id).first()
+      const existing = await db
+        .from('posts')
+        .where({ type: 'profile', author_id: authorId })
+        .andWhereNot('id', id)
+        .first()
       if (existing) {
         return response.status(409).json({ error: 'Target user already has a profile' })
       }
     }
     await db.from('posts').where('id', id).update({ author_id: authorId, updated_at: new Date() })
     try {
-      await (await import('#services/activity_log_service')).default.log({
+      await (
+        await import('#services/activity_log_service')
+      ).default.log({
         action: 'post.author.update',
         entityType: 'post',
         entityId: id,
         metadata: { authorId },
       })
-    } catch { }
+    } catch {}
     return response.ok({ message: 'Author updated' })
   }
   /**
@@ -79,7 +87,16 @@ export default class PostsController {
     const page = Math.max(1, Number(request.input('page', 1)) || 1)
     const limit = Math.min(1000, Math.max(1, Number(request.input('limit', 20)) || 20))
 
-    const allowedSort = new Set(['title', 'slug', 'status', 'locale', 'updated_at', 'created_at', 'published_at', 'order_index'])
+    const allowedSort = new Set([
+      'title',
+      'slug',
+      'status',
+      'locale',
+      'updated_at',
+      'created_at',
+      'published_at',
+      'order_index',
+    ])
     const sortBy = allowedSort.has(sortByRaw) ? sortByRaw : 'updated_at'
     const sortOrder = sortOrderRaw.toLowerCase() === 'asc' ? 'asc' : 'desc'
 
@@ -89,7 +106,10 @@ export default class PostsController {
     if (Array.isArray(request.qs().type)) {
       types = (request.qs().type as string[]).map((t) => String(t).trim()).filter(Boolean)
     } else if (typeof typesParam === 'string' && typesParam.trim()) {
-      types = typesParam.split(',').map((t) => t.trim()).filter(Boolean)
+      types = typesParam
+        .split(',')
+        .map((t) => t.trim())
+        .filter(Boolean)
     }
 
     const parentId = String(request.input('parentId', '')).trim()
@@ -97,7 +117,12 @@ export default class PostsController {
     const wantRoots = rootsOnly === '1' || rootsOnly.toLowerCase() === 'true'
 
     const idsParam = String(request.input('ids', '')).trim()
-    const ids: string[] = idsParam ? idsParam.split(',').map((v) => v.trim()).filter(Boolean) : []
+    const ids: string[] = idsParam
+      ? idsParam
+          .split(',')
+          .map((v) => v.trim())
+          .filter(Boolean)
+      : []
 
     const query = Post.query()
     if (q) {
@@ -128,7 +153,9 @@ export default class PostsController {
           const taxonomyService = (await import('#services/taxonomy_service')).default
           const descendants = await taxonomyService.getDescendantIds(termIdRaw)
           termIds = termIds.concat(descendants)
-        } catch { /* ignore */ }
+        } catch {
+          /* ignore */
+        }
       }
       query.join('post_taxonomy_terms as ptt', 'ptt.post_id', 'posts.id')
       query.whereIn('ptt.taxonomy_term_id', termIds)
@@ -167,7 +194,9 @@ export default class PostsController {
           const taxonomyService = (await import('#services/taxonomy_service')).default
           const descendants = await taxonomyService.getDescendantIds(termIdRaw)
           termIds = termIds.concat(descendants)
-        } catch { /* ignore */ }
+        } catch {
+          /* ignore */
+        }
       }
       countQuery.join('post_taxonomy_terms as ptt', 'ptt.post_id', 'posts.id')
       countQuery.whereIn('ptt.taxonomy_term_id', termIds)
@@ -188,9 +217,7 @@ export default class PostsController {
     const withTranslations = String(request.input('withTranslations', '0')).trim() === '1'
     let baseIdToLocales: Map<string, Set<string>> | undefined
     if (withTranslations && rows.length > 0) {
-      const baseIds = Array.from(
-        new Set(rows.map((p) => (p as any).translationOfId || p.id))
-      )
+      const baseIds = Array.from(new Set(rows.map((p) => (p as any).translationOfId || p.id)))
       const familyPosts = await Post.query()
         .whereIn('translation_of_id', baseIds)
         .orWhereIn('id', baseIds)
@@ -244,9 +271,13 @@ export default class PostsController {
     try {
       // 1) Registry (explicitly registered in start/post_types.ts)
       const postTypeRegistry = (await import('#services/post_type_registry')).default as any
-      const regList: string[] = Array.isArray(postTypeRegistry.list?.()) ? postTypeRegistry.list() : []
+      const regList: string[] = Array.isArray(postTypeRegistry.list?.())
+        ? postTypeRegistry.list()
+        : []
       regList.forEach((t) => t && out.add(String(t)))
-    } catch { /* ignore */ }
+    } catch {
+      /* ignore */
+    }
     try {
       // 2) Filesystem scan (app/post_types/*.ts|*.js)
       const fs = require('node:fs')
@@ -258,7 +289,9 @@ export default class PostsController {
         .filter((f: string) => f.endsWith('.ts') || f.endsWith('.js'))
         .map((f: string) => f.replace(/\.ts$|\.js$/g, ''))
         .forEach((s: string) => s && out.add(s))
-    } catch { /* ignore */ }
+    } catch {
+      /* ignore */
+    }
     return response.ok({ data: Array.from(out).sort() })
   }
   /**
@@ -303,17 +336,26 @@ export default class PostsController {
         post.type,
         post.slug,
         post.locale,
-        (post.createdAt && post.createdAt.toISO()) ? new Date(post.createdAt.toISO()!) : undefined
+        post.createdAt && post.createdAt.toISO() ? new Date(post.createdAt.toISO()!) : undefined
       )
 
       // Load author for editor context
       let author: { id: number; email: string; fullName: string | null } | null = null
       try {
-        const arow = await db.from('users').where('id', (post as any).authorId || (post as any).author_id).first()
+        const arow = await db
+          .from('users')
+          .where('id', (post as any).authorId || (post as any).author_id)
+          .first()
         if (arow) {
-          author = { id: Number((arow as any).id), email: (arow as any).email, fullName: (arow as any).full_name ?? null }
+          author = {
+            id: Number((arow as any).id),
+            email: (arow as any).email,
+            fullName: (arow as any).full_name ?? null,
+          }
         }
-      } catch { /* ignore */ }
+      } catch {
+        /* ignore */
+      }
 
       // Load custom fields for this post type from code config and merge with saved values by slug
       let cfRows: any[] = []
@@ -323,7 +365,10 @@ export default class PostsController {
         const slugs: string[] = fields.map((f: any) => String(f.slug))
         let valuesBySlug = new Map<string, any>()
         if (slugs.length > 0) {
-          const vals = await db.from('post_custom_field_values').where('post_id', post.id).whereIn('field_slug', slugs)
+          const vals = await db
+            .from('post_custom_field_values')
+            .where('post_id', post.id)
+            .whereIn('field_slug', slugs)
           valuesBySlug = new Map<string, any>(vals.map((v: any) => [String(v.field_slug), v.value]))
         }
         cfRows = fields.map((f: any) => ({
@@ -416,7 +461,11 @@ export default class PostsController {
 
     try {
       // Authorization: translators cannot create posts
-      const role = (auth.use('web').user as any)?.role as 'admin' | 'editor' | 'translator' | undefined
+      const role = (auth.use('web').user as any)?.role as
+        | 'admin'
+        | 'editor'
+        | 'translator'
+        | undefined
       if (!authorizationService.canCreatePost(role)) {
         return response.forbidden({ error: 'Not allowed to create posts' })
       }
@@ -435,14 +484,16 @@ export default class PostsController {
 
       // Activity log
       try {
-        await (await import('#services/activity_log_service')).default.log({
+        await (
+          await import('#services/activity_log_service')
+        ).default.log({
           action: 'post.create',
           userId: (auth.use('web').user as any)?.id ?? null,
           entityType: 'post',
           entityId: (post as any).id,
           metadata: { type, locale, slug, title, status },
         })
-      } catch { }
+      } catch {}
       return response.created({
         data: {
           id: post.id,
@@ -570,10 +621,15 @@ export default class PostsController {
           savedBy: (auth.use('web').user as any)?.email || null,
         }
         // Use snake_case column name created by migration
-        await Post.query().where('id', id).update({ review_draft: draftPayload } as any)
+        await Post.query()
+          .where('id', id)
+          .update({ review_draft: draftPayload } as any)
         // Mark review deletions in post_modules so they persist across reloads
         if (Array.isArray(reviewModuleRemovals) && reviewModuleRemovals.length > 0) {
-          await db.from('post_modules').whereIn('id', reviewModuleRemovals).update({ review_deleted: true, updated_at: new Date() } as any)
+          await db
+            .from('post_modules')
+            .whereIn('id', reviewModuleRemovals)
+            .update({ review_deleted: true, updated_at: new Date() } as any)
         }
         // Record a review-draft revision
         await RevisionService.record({
@@ -584,14 +640,16 @@ export default class PostsController {
         })
         // Activity log
         try {
-          await (await import('#services/activity_log_service')).default.log({
+          await (
+            await import('#services/activity_log_service')
+          ).default.log({
             action: 'post.review.save',
             userId: (auth.use('web').user as any)?.id ?? null,
             entityType: 'post',
             entityId: id,
             metadata: { fields: Object.keys(draftPayload || {}) },
           })
-        } catch { }
+        } catch {}
         // For XHR/API clients, return JSON; avoid redirect which can confuse fetch()
         return response.ok({ message: 'Saved for review' })
       }
@@ -608,31 +666,36 @@ export default class PostsController {
           const nextTitle = rd.title ?? current.title
           const nextExcerpt = rd.excerpt ?? current.excerpt
           const nextParentId = rd.parentId ?? (current as any).parentId ?? null
-          const nextOrderIndex = typeof rd.orderIndex === 'number' ? rd.orderIndex : ((current as any).orderIndex ?? 0)
+          const nextOrderIndex =
+            typeof rd.orderIndex === 'number' ? rd.orderIndex : ((current as any).orderIndex ?? 0)
           const nextMetaTitle = rd.metaTitle ?? current.metaTitle
           const nextMetaDescription = rd.metaDescription ?? current.metaDescription
           const nextCanonicalUrl = rd.canonicalUrl ?? current.canonicalUrl
-          const nextFeaturedImageId = rd.featuredImageId ?? (current as any).featuredImageId ?? (current as any).featured_image_id ?? null
+          const nextFeaturedImageId =
+            rd.featuredImageId ??
+            (current as any).featuredImageId ??
+            (current as any).featured_image_id ??
+            null
           const nextRobots =
             typeof rd.robotsJson === 'string'
               ? (() => {
-                try {
-                  return JSON.parse(rd.robotsJson)
-                } catch {
-                  return null
-                }
-              })()
-              : rd.robotsJson ?? current.robotsJson
+                  try {
+                    return JSON.parse(rd.robotsJson)
+                  } catch {
+                    return null
+                  }
+                })()
+              : (rd.robotsJson ?? current.robotsJson)
           const nextJsonLd =
             typeof rd.jsonldOverrides === 'string'
               ? (() => {
-                try {
-                  return JSON.parse(rd.jsonldOverrides)
-                } catch {
-                  return null
-                }
-              })()
-              : rd.jsonldOverrides ?? current.jsonldOverrides
+                  try {
+                    return JSON.parse(rd.jsonldOverrides)
+                  } catch {
+                    return null
+                  }
+                })()
+              : (rd.jsonldOverrides ?? current.jsonldOverrides)
 
           await UpdatePost.handle({
             postId: id,
@@ -652,13 +715,16 @@ export default class PostsController {
           // Promote review custom fields to live values (by slug)
           if (Array.isArray((rd as any)?.customFields)) {
             const now = new Date()
-            for (const cf of ((rd as any).customFields as Array<{ slug?: string; value: any }>)) {
+            for (const cf of (rd as any).customFields as Array<{ slug?: string; value: any }>) {
               if (!cf) continue
               const fieldSlug = String((cf as any).slug || '').trim()
               if (!fieldSlug) continue
               const valueRaw = (cf as any).value === undefined ? null : (cf as any).value
               const value = this.normalizeJsonb(valueRaw)
-              const updated = await db.from('post_custom_field_values').where({ post_id: id, field_slug: fieldSlug }).update({ value, updated_at: now } as any)
+              const updated = await db
+                .from('post_custom_field_values')
+                .where({ post_id: id, field_slug: fieldSlug })
+                .update({ value, updated_at: now } as any)
               if (!updated) {
                 await db.table('post_custom_field_values').insert({
                   id: (await import('node:crypto')).randomUUID(),
@@ -676,10 +742,7 @@ export default class PostsController {
           await db
             .from('module_instances')
             .where('scope', 'post')
-            .andWhereIn(
-              'id',
-              db.from('post_modules').where('post_id', id).select('module_id')
-            )
+            .andWhereIn('id', db.from('post_modules').where('post_id', id).select('module_id'))
             .update({
               props: db.raw('COALESCE(review_props, props)'),
               review_props: null,
@@ -695,11 +758,21 @@ export default class PostsController {
               updated_at: new Date(),
             } as any)
           // 3) Delete modules marked review_deleted
-          await db.from('post_modules').where('post_id', id).andWhere('review_deleted', true).delete()
+          await db
+            .from('post_modules')
+            .where('post_id', id)
+            .andWhere('review_deleted', true)
+            .delete()
           // 4) Finalize review_added (make visible)
-          await db.from('post_modules').where('post_id', id).andWhere('review_added', true).update({ review_added: false, updated_at: new Date() } as any)
+          await db
+            .from('post_modules')
+            .where('post_id', id)
+            .andWhere('review_added', true)
+            .update({ review_added: false, updated_at: new Date() } as any)
           // Apply module removals captured in review draft (if any)
-          const toRemove: string[] = Array.isArray((rd as any).removedModuleIds) ? (rd as any).removedModuleIds : []
+          const toRemove: string[] = Array.isArray((rd as any).removedModuleIds)
+            ? (rd as any).removedModuleIds
+            : []
           if (toRemove.length > 0) {
             await db.from('post_modules').whereIn('id', toRemove).delete()
           }
@@ -717,28 +790,38 @@ export default class PostsController {
               canonicalUrl: nextCanonicalUrl,
               robotsJson: nextRobots,
               jsonldOverrides: nextJsonLd,
-              customFields: Array.isArray((rd as any)?.customFields) ? (rd as any).customFields : undefined,
+              customFields: Array.isArray((rd as any)?.customFields)
+                ? (rd as any).customFields
+                : undefined,
             },
             userId: (auth.use('web').user as any)?.id,
           })
           // Activity log
           try {
-            await (await import('#services/activity_log_service')).default.log({
+            await (
+              await import('#services/activity_log_service')
+            ).default.log({
               action: 'post.review.approve',
               userId: (auth.use('web').user as any)?.id ?? null,
               entityType: 'post',
               entityId: id,
             })
-          } catch { }
+          } catch {}
           // Clear review draft
-          await Post.query().where('id', id).update({ review_draft: null } as any)
+          await Post.query()
+            .where('id', id)
+            .update({ review_draft: null } as any)
           return response.ok({ message: 'Review approved' })
         } catch (e: any) {
           return response.badRequest({ error: e?.message || 'Failed to approve review' })
         }
       }
       // Authorization: translators cannot set status to non-draft
-      const role = (auth.use('web').user as any)?.role as 'admin' | 'editor' | 'translator' | undefined
+      const role = (auth.use('web').user as any)?.role as
+        | 'admin'
+        | 'editor'
+        | 'translator'
+        | undefined
       if (!authorizationService.canUpdateStatus(role, status)) {
         return response.forbidden({ error: 'Not allowed to set status' })
       }
@@ -800,36 +883,59 @@ export default class PostsController {
         canonicalUrl,
         robotsJson: robotsJsonParsed,
         jsonldOverrides: jsonldOverridesParsed,
-        featuredImageId: featuredImageId !== undefined ? (featuredImageId === '' ? null : featuredImageId) : undefined,
+        featuredImageId:
+          featuredImageId !== undefined
+            ? featuredImageId === ''
+              ? null
+              : featuredImageId
+            : undefined,
       })
       // Handle schedule/publish timestamps
       try {
         const now = new Date()
         if (status === 'published') {
-          await db.from('posts').where('id', id).update({ published_at: now, scheduled_at: null, updated_at: now } as any)
+          await db
+            .from('posts')
+            .where('id', id)
+            .update({ published_at: now, scheduled_at: null, updated_at: now } as any)
         } else if (status === 'scheduled') {
           let ts: Date | null = null
           if (scheduledAt) {
             const s = new Date(String(scheduledAt))
             if (!Number.isNaN(s.getTime())) ts = s
           }
-          await db.from('posts').where('id', id).update({ scheduled_at: ts, updated_at: now } as any)
+          await db
+            .from('posts')
+            .where('id', id)
+            .update({ scheduled_at: ts, updated_at: now } as any)
         } else if (status === 'draft') {
-          await db.from('posts').where('id', id).update({ scheduled_at: null, updated_at: now } as any)
+          await db
+            .from('posts')
+            .where('id', id)
+            .update({ scheduled_at: null, updated_at: now } as any)
         }
-      } catch { }
+      } catch {}
       // Upsert custom fields (approved save only) by field_slug and track only changed slugs
       const customFieldSlugsChanged: string[] = []
       if (Array.isArray(customFields)) {
-        const slugs = (customFields as Array<{ slug?: string }>).map((cf) => String((cf as any).slug || '').trim()).filter(Boolean)
+        const slugs = (customFields as Array<{ slug?: string }>)
+          .map((cf) => String((cf as any).slug || '').trim())
+          .filter(Boolean)
         let existingMap = new Map<string, any>()
         if (slugs.length > 0) {
-          const rows = await db.from('post_custom_field_values').where({ post_id: id }).whereIn('field_slug', slugs)
+          const rows = await db
+            .from('post_custom_field_values')
+            .where({ post_id: id })
+            .whereIn('field_slug', slugs)
           existingMap = new Map<string, any>(rows.map((r: any) => [String(r.field_slug), r.value]))
         }
         const toComparable = (v: any) => {
           if (typeof v === 'string') {
-            try { return JSON.parse(v) } catch { return v }
+            try {
+              return JSON.parse(v)
+            } catch {
+              return v
+            }
           }
           return v
         }
@@ -844,7 +950,10 @@ export default class PostsController {
           const changed = JSON.stringify(toComparable(value)) !== JSON.stringify(toComparable(prev))
           if (changed) {
             customFieldSlugsChanged.push(fieldSlug)
-            const updated = await db.from('post_custom_field_values').where({ post_id: id, field_slug: fieldSlug }).update({ value, updated_at: now } as any)
+            const updated = await db
+              .from('post_custom_field_values')
+              .where({ post_id: id, field_slug: fieldSlug })
+              .update({ value, updated_at: now } as any)
             if (!updated) {
               await db.table('post_custom_field_values').insert({
                 id: (await import('node:crypto')).randomUUID(),
@@ -883,16 +992,38 @@ export default class PostsController {
         if (slug !== undefined && slug !== currentForDiff.slug) changed.push('slug')
         if (title !== undefined && title !== currentForDiff.title) changed.push('title')
         if (status !== undefined && status !== currentForDiff.status) changed.push('status')
-        if (excerpt !== undefined && excerpt !== (currentForDiff as any).excerpt) changed.push('excerpt')
-        if (parentId !== undefined && (parentId || null) !== ((currentForDiff as any).parentId || null)) changed.push('parentId')
-        if (orderIndex !== undefined && Number(orderIndex) !== (((currentForDiff as any).orderIndex ?? 0))) changed.push('orderIndex')
-        if (metaTitle !== undefined && metaTitle !== currentForDiff.metaTitle) changed.push('metaTitle')
-        if (metaDescription !== undefined && metaDescription !== currentForDiff.metaDescription) changed.push('metaDescription')
-        if (canonicalUrl !== undefined && canonicalUrl !== currentForDiff.canonicalUrl) changed.push('canonicalUrl')
-        const stringify = (v: any) => v === undefined ? '∅' : JSON.stringify(v)
-        if (robotsJson !== undefined && stringify(robotsJsonParsed) !== stringify((currentForDiff as any).robotsJson)) changed.push('robotsJson')
-        if (jsonldOverrides !== undefined && stringify(jsonldOverridesParsed) !== stringify((currentForDiff as any).jsonldOverrides)) changed.push('jsonldOverrides')
-        await (await import('#services/activity_log_service')).default.log({
+        if (excerpt !== undefined && excerpt !== (currentForDiff as any).excerpt)
+          changed.push('excerpt')
+        if (
+          parentId !== undefined &&
+          (parentId || null) !== ((currentForDiff as any).parentId || null)
+        )
+          changed.push('parentId')
+        if (
+          orderIndex !== undefined &&
+          Number(orderIndex) !== ((currentForDiff as any).orderIndex ?? 0)
+        )
+          changed.push('orderIndex')
+        if (metaTitle !== undefined && metaTitle !== currentForDiff.metaTitle)
+          changed.push('metaTitle')
+        if (metaDescription !== undefined && metaDescription !== currentForDiff.metaDescription)
+          changed.push('metaDescription')
+        if (canonicalUrl !== undefined && canonicalUrl !== currentForDiff.canonicalUrl)
+          changed.push('canonicalUrl')
+        const stringify = (v: any) => (v === undefined ? '∅' : JSON.stringify(v))
+        if (
+          robotsJson !== undefined &&
+          stringify(robotsJsonParsed) !== stringify((currentForDiff as any).robotsJson)
+        )
+          changed.push('robotsJson')
+        if (
+          jsonldOverrides !== undefined &&
+          stringify(jsonldOverridesParsed) !== stringify((currentForDiff as any).jsonldOverrides)
+        )
+          changed.push('jsonldOverrides')
+        await (
+          await import('#services/activity_log_service')
+        ).default.log({
           action: 'post.update',
           userId: (auth.use('web').user as any)?.id ?? null,
           entityType: 'post',
@@ -902,7 +1033,7 @@ export default class PostsController {
             customFieldSlugs: customFieldSlugsChanged.length ? customFieldSlugsChanged : undefined,
           },
         })
-      } catch { }
+      } catch {}
       // For Inertia requests, redirect back to editor
       // Toast notification is handled client-side
       return response.redirect().back()
@@ -940,7 +1071,7 @@ export default class PostsController {
         params: { id },
         request: {
           ...request,
-          only: (..._keys: any[]) => ({} as any),
+          only: (..._keys: any[]) => ({}) as any,
           input: (key: string, _def?: any) => {
             if (key === 'mode') return 'review'
             return undefined
@@ -953,10 +1084,17 @@ export default class PostsController {
       // 2) Module removals (stage)
       const toRemove: string[] = Array.isArray(moduleOps.remove) ? moduleOps.remove : []
       if (toRemove.length > 0) {
-        await db.from('post_modules').whereIn('id', toRemove).update({ review_deleted: true, updated_at: new Date() } as any)
+        await db
+          .from('post_modules')
+          .whereIn('id', toRemove)
+          .update({ review_deleted: true, updated_at: new Date() } as any)
       }
       // 3) Module updates (review overrides/props)
-      const updates: Array<{ postModuleId: string; overrides?: any }> = Array.isArray(moduleOps.update) ? moduleOps.update : []
+      const updates: Array<{ postModuleId: string; overrides?: any }> = Array.isArray(
+        moduleOps.update
+      )
+        ? moduleOps.update
+        : []
       for (const u of updates) {
         if (!u?.postModuleId) continue
         await UpdatePostModule.handle({
@@ -966,8 +1104,12 @@ export default class PostsController {
         })
       }
       // 4) Module adds (stage as review_added)
-      const adds: Array<{ type: string; scope?: 'local' | 'global' | 'static'; props?: any; globalSlug?: string | null }> =
-        Array.isArray(moduleOps.add) ? moduleOps.add : []
+      const adds: Array<{
+        type: string
+        scope?: 'local' | 'global' | 'static'
+        props?: any
+        globalSlug?: string | null
+      }> = Array.isArray(moduleOps.add) ? moduleOps.add : []
       for (const a of adds) {
         if (!a?.type) continue
         await AddModuleToPost.handle({
@@ -1008,8 +1150,26 @@ export default class PostsController {
       const nextMetaTitle = rd.metaTitle ?? current.metaTitle
       const nextMetaDescription = rd.metaDescription ?? current.metaDescription
       const nextCanonicalUrl = rd.canonicalUrl ?? current.canonicalUrl
-      const nextRobots = typeof rd.robotsJson === 'string' ? (() => { try { return JSON.parse(rd.robotsJson) } catch { return null } })() : rd.robotsJson ?? current.robotsJson
-      const nextJsonLd = typeof rd.jsonldOverrides === 'string' ? (() => { try { return JSON.parse(rd.jsonldOverrides) } catch { return null } })() : rd.jsonldOverrides ?? current.jsonldOverrides
+      const nextRobots =
+        typeof rd.robotsJson === 'string'
+          ? (() => {
+              try {
+                return JSON.parse(rd.robotsJson)
+              } catch {
+                return null
+              }
+            })()
+          : (rd.robotsJson ?? current.robotsJson)
+      const nextJsonLd =
+        typeof rd.jsonldOverrides === 'string'
+          ? (() => {
+              try {
+                return JSON.parse(rd.jsonldOverrides)
+              } catch {
+                return null
+              }
+            })()
+          : (rd.jsonldOverrides ?? current.jsonldOverrides)
 
       await UpdatePost.handle({
         postId: id,
@@ -1043,8 +1203,14 @@ export default class PostsController {
           updated_at: new Date(),
         } as any)
       await db.from('post_modules').where('post_id', id).andWhere('review_deleted', true).delete()
-      await db.from('post_modules').where('post_id', id).andWhere('review_added', true).update({ review_added: false, updated_at: new Date() } as any)
-      await Post.query().where('id', id).update({ review_draft: null } as any)
+      await db
+        .from('post_modules')
+        .where('post_id', id)
+        .andWhere('review_added', true)
+        .update({ review_added: false, updated_at: new Date() } as any)
+      await Post.query()
+        .where('id', id)
+        .update({ review_draft: null } as any)
 
       await RevisionService.record({
         postId: id,
@@ -1083,13 +1249,15 @@ export default class PostsController {
     }
     await post.delete()
     try {
-      await (await import('#services/activity_log_service')).default.log({
+      await (
+        await import('#services/activity_log_service')
+      ).default.log({
         action: 'post.delete',
         entityType: 'post',
         entityId: id,
         metadata: { type: post.type, slug: post.slug, locale: post.locale },
       })
-    } catch { }
+    } catch {}
     return response.noContent()
   }
 
@@ -1103,7 +1271,11 @@ export default class PostsController {
     if (!Array.isArray(ids) || ids.length === 0) {
       return response.badRequest({ error: 'ids must be a non-empty array' })
     }
-    const role = (auth.use('web').user as any)?.role as 'admin' | 'editor' | 'translator' | undefined
+    const role = (auth.use('web').user as any)?.role as
+      | 'admin'
+      | 'editor'
+      | 'translator'
+      | undefined
     try {
       const result = await BulkPostsAction.handle({
         action: action as any,
@@ -1111,14 +1283,16 @@ export default class PostsController {
         role,
       })
       try {
-        await (await import('#services/activity_log_service')).default.log({
+        await (
+          await import('#services/activity_log_service')
+        ).default.log({
           action: `post.bulk.${String(action)}`,
           userId: (auth.use('web').user as any)?.id ?? null,
           entityType: 'post',
           entityId: 'bulk',
           metadata: { count: ids.length },
         })
-      } catch { }
+      } catch {}
       return response.ok(result)
     } catch (e: any) {
       const status = e?.statusCode || 400
@@ -1138,7 +1312,11 @@ export default class PostsController {
    * }
    */
   async reorder({ request, response, auth }: HttpContext) {
-    const role = (auth.use('web').user as any)?.role as 'admin' | 'editor' | 'translator' | undefined
+    const role = (auth.use('web').user as any)?.role as
+      | 'admin'
+      | 'editor'
+      | 'translator'
+      | undefined
     // Only admin/editor can reorder posts
     if (!(role === 'admin' || role === 'editor')) {
       return response.forbidden({ error: 'Not allowed to reorder posts' })
@@ -1149,7 +1327,9 @@ export default class PostsController {
     const scopeParentIdRaw = (scopeRaw as any)?.parentId
     const scopeParentId =
       scopeRaw && (scopeRaw as any).hasOwnProperty('parentId')
-        ? (scopeParentIdRaw === null || scopeParentIdRaw === '' ? null : String(scopeParentIdRaw).trim())
+        ? scopeParentIdRaw === null || scopeParentIdRaw === ''
+          ? null
+          : String(scopeParentIdRaw).trim()
         : null
     if (!scopeType || !scopeLocale) {
       return response.badRequest({ error: 'scope.type and scope.locale are required' })
@@ -1167,10 +1347,11 @@ export default class PostsController {
       const orderIndex = Number(oiRaw)
       const parentIdRaw = (it as any)?.parentId
       const hasParent = (it as any)?.hasOwnProperty('parentId')
-      const parentId =
-        hasParent
-          ? (parentIdRaw === null || parentIdRaw === '' ? null : String(parentIdRaw).trim())
-          : undefined
+      const parentId = hasParent
+        ? parentIdRaw === null || parentIdRaw === ''
+          ? null
+          : String(parentIdRaw).trim()
+        : undefined
       if (!id || Number.isNaN(orderIndex)) {
         return response.badRequest({ error: 'Each item must include valid id and orderIndex' })
       }
@@ -1193,21 +1374,27 @@ export default class PostsController {
           if (!row) {
             throw new Error(`Post not found: ${it.id}`)
           }
-          if (String((row as any).type) !== scopeType || String((row as any).locale) !== scopeLocale) {
+          if (
+            String((row as any).type) !== scopeType ||
+            String((row as any).locale) !== scopeLocale
+          ) {
             throw new Error('Reorder items must match scope type/locale')
           }
           // Determine effective parent after this change
           const currentParent: string | null = (row as any).parent_id ?? null
-          const effectiveParent =
-            (it as any).hasOwnProperty('parentId')
-              ? (it.parentId === undefined ? currentParent : (it.parentId ?? null))
-              : currentParent
+          const effectiveParent = (it as any).hasOwnProperty('parentId')
+            ? it.parentId === undefined
+              ? currentParent
+              : (it.parentId ?? null)
+            : currentParent
           if ((effectiveParent ?? null) !== (scopeParentId ?? null)) {
             throw new Error('Reorder items must be in the same parent group as scope')
           }
           // If parent change requested, ensure hierarchy enabled
           if ((it as any).hasOwnProperty('parentId')) {
-            const enabled = postTypeConfigService.getUiConfig(String((row as any).type)).hierarchyEnabled
+            const enabled = postTypeConfigService.getUiConfig(
+              String((row as any).type)
+            ).hierarchyEnabled
             if (!enabled) {
               throw new Error('Hierarchy is disabled for this post type')
             }
@@ -1222,14 +1409,16 @@ export default class PostsController {
         }
       })
       try {
-        await (await import('#services/activity_log_service')).default.log({
+        await (
+          await import('#services/activity_log_service')
+        ).default.log({
           action: 'post.reorder',
           userId: (auth.use('web').user as any)?.id ?? null,
           entityType: 'post',
           entityId: 'bulk',
           metadata: { count: sanitized.length },
         })
-      } catch { }
+      } catch {}
       return response.ok({ updated: sanitized.length })
     } catch (e: any) {
       return response.badRequest({ error: e?.message || 'Failed to reorder posts' })
@@ -1265,7 +1454,9 @@ export default class PostsController {
         if (uiConfig.permalinksEnabled === false) {
           return response.notFound({ error: 'Permalinks disabled for this post type' })
         }
-      } catch { /* ignore and proceed */ }
+      } catch {
+        /* ignore and proceed */
+      }
 
       // Fetch modules with potential review fields
       const modulesRows = await db
@@ -1291,7 +1482,13 @@ export default class PostsController {
       const family = await Post.query().where((q) => {
         q.where('translationOfId', baseId).orWhere('id', baseId)
       })
-      const protocol = (request as any).protocol ? (request as any).protocol() : ((request as any).secure ? (request as any).secure() ? 'https' : 'http' : 'http')
+      const protocol = (request as any).protocol
+        ? (request as any).protocol()
+        : (request as any).secure
+          ? (request as any).secure()
+            ? 'https'
+            : 'http'
+          : 'http'
       const host = (request as any).host ? (request as any).host() : request.header('host')
       const alternates = family.map((p) => ({
         locale: p.locale,
@@ -1311,10 +1508,10 @@ export default class PostsController {
       const defaultJsonLd: Record<string, any> = {
         '@context': 'https://schema.org',
         '@type': 'BlogPosting',
-        headline: post.metaTitle || post.title,
-        inLanguage: post.locale,
-        mainEntityOfPage: canonical,
-        description: post.metaDescription || undefined,
+        'headline': post.metaTitle || post.title,
+        'inLanguage': post.locale,
+        'mainEntityOfPage': canonical,
+        'description': post.metaDescription || undefined,
       }
       const jsonLd = { ...defaultJsonLd, ...(post.jsonldOverrides || {}) }
 
@@ -1357,11 +1554,20 @@ export default class PostsController {
       // Load author
       let author: { id: number; email: string; fullName: string | null } | null = null
       try {
-        const arow = await db.from('users').where('id', (post as any).authorId || (post as any).author_id).first()
+        const arow = await db
+          .from('users')
+          .where('id', (post as any).authorId || (post as any).author_id)
+          .first()
         if (arow) {
-          author = { id: Number((arow as any).id), email: (arow as any).email, fullName: (arow as any).full_name ?? null }
+          author = {
+            id: Number((arow as any).id),
+            email: (arow as any).email,
+            fullName: (arow as any).full_name ?? null,
+          }
         }
-      } catch { /* ignore */ }
+      } catch {
+        /* ignore */
+      }
       return inertia.render('site/post', {
         post: {
           id: post.id,
@@ -1371,7 +1577,9 @@ export default class PostsController {
           title: useReviewPost ? (reviewDraft.title ?? post.title) : post.title,
           excerpt: useReviewPost ? (reviewDraft.excerpt ?? post.excerpt) : post.excerpt,
           metaTitle: useReviewPost ? (reviewDraft.metaTitle ?? post.metaTitle) : post.metaTitle,
-          metaDescription: useReviewPost ? (reviewDraft.metaDescription ?? post.metaDescription) : post.metaDescription,
+          metaDescription: useReviewPost
+            ? (reviewDraft.metaDescription ?? post.metaDescription)
+            : post.metaDescription,
           status: post.status,
           author,
         },
@@ -1445,7 +1653,11 @@ export default class PostsController {
    * Body: { data: CanonicalPost }
    */
   async importCreate({ request, response, auth }: HttpContext) {
-    const role = (auth.use('web').user as any)?.role as 'admin' | 'editor' | 'translator' | undefined
+    const role = (auth.use('web').user as any)?.role as
+      | 'admin'
+      | 'editor'
+      | 'translator'
+      | undefined
     if (!authorizationService.canCreatePost(role)) {
       return response.forbidden({ error: 'Not allowed to import' })
     }
@@ -1472,7 +1684,9 @@ export default class PostsController {
     try {
       if (importMode === 'review') {
         // Only set top-level review draft; modules left unchanged in review mode
-        await Post.query().where('id', id).update({ review_draft: data.post } as any)
+        await Post.query()
+          .where('id', id)
+          .update({ review_draft: data.post } as any)
         await RevisionService.record({
           postId: id,
           mode: 'review',
@@ -1482,7 +1696,11 @@ export default class PostsController {
         return response.ok({ message: 'Imported into review draft' })
       }
       // replace live content, enforce status permission
-      const role = (auth.use('web').user as any)?.role as 'admin' | 'editor' | 'translator' | undefined
+      const role = (auth.use('web').user as any)?.role as
+        | 'admin'
+        | 'editor'
+        | 'translator'
+        | undefined
       if (!authorizationService.canUpdateStatus(role, data?.post?.status)) {
         return response.forbidden({ error: 'Not allowed to set target status' })
       }
@@ -1536,7 +1754,11 @@ export default class PostsController {
    */
   async revertRevision({ params, response, auth }: HttpContext) {
     const { id, revId } = params
-    const role = (auth.use('web').user as any)?.role as 'admin' | 'editor' | 'translator' | undefined
+    const role = (auth.use('web').user as any)?.role as
+      | 'admin'
+      | 'editor'
+      | 'translator'
+      | undefined
 
     const rev = await db.from('post_revisions').where('id', revId).andWhere('post_id', id).first()
     if (!rev) {
@@ -1546,12 +1768,17 @@ export default class PostsController {
     const mode: 'approved' | 'review' = (rev as any).mode || 'approved'
 
     if (mode === 'review') {
-      await Post.query().where('id', id).update({ review_draft: snapshot } as any)
+      await Post.query()
+        .where('id', id)
+        .update({ review_draft: snapshot } as any)
       return response.ok({ message: 'Reverted review draft' })
     }
 
     // Approved (live) revert requires permission to set target status
-    if (!authorizationService.canRevertRevision(role) || !authorizationService.canUpdateStatus(role, snapshot?.status)) {
+    if (
+      !authorizationService.canRevertRevision(role) ||
+      !authorizationService.canUpdateStatus(role, snapshot?.status)
+    ) {
       return response.forbidden({ error: 'Not allowed to revert to this revision' })
     }
 
@@ -1587,7 +1814,9 @@ export default class PostsController {
         if (uiConfig.permalinksEnabled === false) {
           return response.notFound({ error: 'Permalinks disabled for this post type' })
         }
-      } catch { /* continue */ }
+      } catch {
+        /* continue */
+      }
     }
     const viewParam = String(request.input('view', '')).toLowerCase()
     const wantReview = viewParam === 'review' && Boolean(request.header('cookie'))
@@ -1652,7 +1881,13 @@ export default class PostsController {
             props: { ...(pm.props || {}), ...(pm.overrides || {}) },
           }
         })
-      const protocol = (request as any).protocol ? (request as any).protocol() : ((request as any).secure ? (request as any).secure() ? 'https' : 'http' : 'http')
+      const protocol = (request as any).protocol
+        ? (request as any).protocol()
+        : (request as any).secure
+          ? (request as any).secure()
+            ? 'https'
+            : 'http'
+          : 'http'
       const host = (request as any).host ? (request as any).host() : request.header('host')
       const reviewDraft: any = (post as any).reviewDraft || (post as any).review_draft || null
       const useReviewPost = wantReview && reviewDraft
@@ -1661,16 +1896,27 @@ export default class PostsController {
       const family = await Post.query().where((q) => {
         q.where('translationOfId', baseId).orWhere('id', baseId)
       })
-      const alternates = await Promise.all(family.map((p) => urlPatternService.buildPostUrlForPost(p.id, protocol, host)))
+      const alternates = await Promise.all(
+        family.map((p) => urlPatternService.buildPostUrlForPost(p.id, protocol, host))
+      )
       const siteSettings = await siteSettingsService.get()
       // Load author
       let author: { id: number; email: string; fullName: string | null } | null = null
       try {
-        const arow = await db.from('users').where('id', (post as any).authorId || (post as any).author_id).first()
+        const arow = await db
+          .from('users')
+          .where('id', (post as any).authorId || (post as any).author_id)
+          .first()
         if (arow) {
-          author = { id: Number((arow as any).id), email: (arow as any).email, fullName: (arow as any).full_name ?? null }
+          author = {
+            id: Number((arow as any).id),
+            email: (arow as any).email,
+            fullName: (arow as any).full_name ?? null,
+          }
         }
-      } catch { /* ignore */ }
+      } catch {
+        /* ignore */
+      }
       return inertia.render('site/post', {
         post: {
           id: post.id,
@@ -1680,7 +1926,9 @@ export default class PostsController {
           title: useReviewPost ? (reviewDraft.title ?? post.title) : post.title,
           excerpt: useReviewPost ? (reviewDraft.excerpt ?? post.excerpt) : post.excerpt,
           metaTitle: useReviewPost ? (reviewDraft.metaTitle ?? post.metaTitle) : post.metaTitle,
-          metaDescription: useReviewPost ? (reviewDraft.metaDescription ?? post.metaDescription) : post.metaDescription,
+          metaDescription: useReviewPost
+            ? (reviewDraft.metaDescription ?? post.metaDescription)
+            : post.metaDescription,
           status: post.status,
           author,
         },
@@ -1694,7 +1942,10 @@ export default class PostsController {
         },
       })
     } catch (error) {
-      return response.internalServerError({ error: 'Failed to resolve post', message: error.message })
+      return response.internalServerError({
+        error: 'Failed to resolve post',
+        message: error.message,
+      })
     }
   }
 
@@ -1767,7 +2018,12 @@ export default class PostsController {
    */
   async updateModule({ params, request, response }: HttpContext) {
     const { id } = params
-    const { orderIndex, overrides, locked, mode } = request.only(['orderIndex', 'overrides', 'locked', 'mode'])
+    const { orderIndex, overrides, locked, mode } = request.only([
+      'orderIndex',
+      'overrides',
+      'locked',
+      'mode',
+    ])
 
     try {
       const updated = await UpdatePostModule.handle({
@@ -1782,7 +2038,7 @@ export default class PostsController {
         data: {
           id: updated.id,
           orderIndex: updated.order_index,
-          overrides: (mode === 'review' ? (updated as any).review_overrides : updated.overrides),
+          overrides: mode === 'review' ? (updated as any).review_overrides : updated.overrides,
           reviewOverrides: (updated as any).review_overrides ?? null,
           locked: updated.locked,
           updatedAt: updated.updated_at,

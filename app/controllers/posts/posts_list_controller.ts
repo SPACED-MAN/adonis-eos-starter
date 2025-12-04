@@ -31,13 +31,26 @@ export default class PostsListController extends BasePostsController {
     const page = Math.max(1, Number(request.input('page', 1)) || 1)
     const limit = Math.min(
       cmsConfig.pagination.maxLimit,
-      Math.max(1, Number(request.input('limit', cmsConfig.pagination.defaultLimit)) || cmsConfig.pagination.defaultLimit)
+      Math.max(
+        1,
+        Number(request.input('limit', cmsConfig.pagination.defaultLimit)) ||
+          cmsConfig.pagination.defaultLimit
+      )
     )
 
     // Include deleted posts if requested (admin only)
     const includeDeleted = String(request.input('includeDeleted', '')).trim() === '1'
 
-    const allowedSort = new Set(['title', 'slug', 'status', 'locale', 'updated_at', 'created_at', 'published_at', 'order_index'])
+    const allowedSort = new Set([
+      'title',
+      'slug',
+      'status',
+      'locale',
+      'updated_at',
+      'created_at',
+      'published_at',
+      'order_index',
+    ])
     const sortBy = allowedSort.has(sortByRaw) ? sortByRaw : 'updated_at'
     const sortOrder = sortOrderRaw.toLowerCase() === 'asc' ? 'asc' : 'desc'
 
@@ -47,7 +60,10 @@ export default class PostsListController extends BasePostsController {
     if (Array.isArray(request.qs().type)) {
       types = (request.qs().type as string[]).map((t) => String(t).trim()).filter(Boolean)
     } else if (typeof typesParam === 'string' && typesParam.trim()) {
-      types = typesParam.split(',').map((t) => t.trim()).filter(Boolean)
+      types = typesParam
+        .split(',')
+        .map((t) => t.trim())
+        .filter(Boolean)
     }
 
     const parentId = String(request.input('parentId', '')).trim()
@@ -91,7 +107,9 @@ export default class PostsListController extends BasePostsController {
             const taxonomyService = (await import('#services/taxonomy_service')).default
             const descendants = await taxonomyService.getDescendantIds(termIdRaw)
             termIds = termIds.concat(descendants)
-          } catch { /* ignore */ }
+          } catch {
+            /* ignore */
+          }
         }
         query.join('post_taxonomy_terms as ptt', 'ptt.post_id', 'posts.id')
         query.whereIn('ptt.taxonomy_term_id', termIds)
@@ -161,9 +179,13 @@ export default class PostsListController extends BasePostsController {
 
     try {
       const postTypeRegistry = (await import('#services/post_type_registry')).default as any
-      const regList: string[] = Array.isArray(postTypeRegistry.list?.()) ? postTypeRegistry.list() : []
+      const regList: string[] = Array.isArray(postTypeRegistry.list?.())
+        ? postTypeRegistry.list()
+        : []
       regList.forEach((t) => t && out.add(String(t)))
-    } catch { /* ignore */ }
+    } catch {
+      /* ignore */
+    }
 
     try {
       const fs = require('node:fs')
@@ -175,9 +197,10 @@ export default class PostsListController extends BasePostsController {
         .filter((f: string) => f.endsWith('.ts') || f.endsWith('.js'))
         .map((f: string) => f.replace(/\.ts$|\.js$/g, ''))
         .forEach((s: string) => s && out.add(s))
-    } catch { /* ignore */ }
+    } catch {
+      /* ignore */
+    }
 
     return response.ok({ data: Array.from(out).sort() })
   }
 }
-

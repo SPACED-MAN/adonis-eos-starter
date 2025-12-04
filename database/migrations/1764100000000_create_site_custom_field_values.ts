@@ -11,12 +11,12 @@ export default class extends BaseSchema {
       table.timestamp('created_at', { useTz: true }).notNullable().defaultTo(this.now())
       table.timestamp('updated_at', { useTz: true }).notNullable().defaultTo(this.now())
     })
-    this.schema.raw('CREATE INDEX IF NOT EXISTS site_custom_field_values_value_gin ON site_custom_field_values USING GIN (value)')
+    this.schema.raw(
+      'CREATE INDEX IF NOT EXISTS site_custom_field_values_value_gin ON site_custom_field_values USING GIN (value)'
+    )
   }
 
   async down() {
     this.schema.dropTable(this.tableName)
   }
 }
-
-

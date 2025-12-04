@@ -1,6 +1,21 @@
 import { BaseSeeder } from '@adonisjs/lucid/seeders'
 import db from '@adonisjs/lucid/services/db'
 import User from '#models/user'
+import fs from 'node:fs/promises'
+import path from 'node:path'
+
+/**
+ * Get file size in bytes for a given public URL
+ */
+async function getFileSize(publicUrl: string): Promise<number> {
+  try {
+    const filePath = path.join(process.cwd(), 'public', publicUrl.replace(/^\//, ''))
+    const stats = await fs.stat(filePath)
+    return stats.size
+  } catch {
+    return 0
+  }
+}
 
 export default class extends BaseSeeder {
   public static environment = ['development']
@@ -42,22 +57,25 @@ export default class extends BaseSeeder {
       .limit(1)
     const demoBlogId: string | null = demoBlogMedia ? String((demoBlogMedia as any).id) : null
 
-    // Test 1: Ensure a test template exists (idempotent)
-    const existingTemplate = await db.from('templates').where({ name: 'test-blog-template' }).first()
+    // Test 1: Ensure a Blog template exists (prefer registry-synced blog-default, but create if missing)
+    const existingTemplate = await db.from('templates').where({ post_type: 'blog' }).first()
     let template: any = existingTemplate
     if (!template) {
-      const [createdTemplate] = await db.table('templates').insert({
-        name: 'test-blog-template',
-        post_type: 'blog',
-        description: 'Test blog template',
-        locked: false,
-        created_at: new Date(),
-        updated_at: new Date(),
-      }).returning('*')
+      const [createdTemplate] = await db
+        .table('templates')
+        .insert({
+          name: 'blog-default',
+          post_type: 'blog',
+          description: 'Default Blog Template',
+          locked: false,
+          created_at: now,
+          updated_at: now,
+        })
+        .returning('*')
       template = createdTemplate
-      console.log('✅ Created template:', template.name)
+      console.log('✅ Created fallback blog template:', (template as any).name)
     } else {
-      console.log('✅ Template exists:', (template as any).name)
+      console.log('✅ Using blog template:', (template as any).name)
     }
 
     // Test 2: Add modules to template (use hero-with-callout as default hero)
@@ -73,46 +91,53 @@ export default class extends BaseSeeder {
     console.log('✅ Created template module')
 
     // Test 3: Create a post with template (default locale)
-    const [post] = await db.table('posts').insert({
-      type: 'blog',
-      slug: 'test-post',
-      title: 'Test Blog Post',
-      status: 'draft',
-      locale: 'en',
-      template_id: template.id,
-      user_id: user.id,
-      excerpt: 'This is a seeded excerpt for the primary test blog post, shown in Blog List teasers.',
-      meta_title: 'Test Meta Title',
-      meta_description: 'Test meta description',
-      robots_json: JSON.stringify({ index: true, follow: true }),
-      // Seed featured image for primary test blog post (if demo-blog exists)
-      featured_image_id: demoBlogId,
-      created_at: new Date(),
-      updated_at: new Date(),
-    }).returning('*')
+    const [post] = await db
+      .table('posts')
+      .insert({
+        type: 'blog',
+        slug: 'test-post',
+        title: 'Test Blog Post',
+        status: 'draft',
+        locale: 'en',
+        template_id: template.id,
+        user_id: user.id,
+        excerpt:
+          'This is a seeded excerpt for the primary test blog post, shown in Blog List teasers.',
+        meta_title: 'Test Meta Title',
+        meta_description: 'Test meta description',
+        robots_json: JSON.stringify({ index: true, follow: true }),
+        // Seed featured image for primary test blog post (if demo-blog exists)
+        featured_image_id: demoBlogId,
+        created_at: new Date(),
+        updated_at: new Date(),
+      })
+      .returning('*')
     console.log('✅ Created post (en):', post.slug)
 
     // Test 3b: Create a Spanish translation
-    const [postEs] = await db.table('posts').insert({
-      type: 'blog',
-      slug: 'publicacion-de-prueba',
-      title: 'Publicación de Prueba',
-      status: 'draft',
-      locale: 'es',
-      translation_of_id: post.id,
-      template_id: template.id,
-      user_id: user.id,
-      meta_title: 'Título Meta de Prueba',
-      meta_description: 'Descripción meta de prueba',
-      created_at: new Date(),
-      updated_at: new Date(),
-    }).returning('*')
+    const [postEs] = await db
+      .table('posts')
+      .insert({
+        type: 'blog',
+        slug: 'publicacion-de-prueba',
+        title: 'Publicación de Prueba',
+        status: 'draft',
+        locale: 'es',
+        translation_of_id: post.id,
+        template_id: template.id,
+        user_id: user.id,
+        meta_title: 'Título Meta de Prueba',
+        meta_description: 'Descripción meta de prueba',
+        created_at: new Date(),
+        updated_at: new Date(),
+      })
+      .returning('*')
     console.log('✅ Created post translation (es):', postEs.slug)
 
     // Test 3c: Create bulk posts to exercise pagination (en/es)
     {
       const statuses = ['draft', 'scheduled', 'published', 'archived'] as const
-      const now = Date.now()
+      const nowTimestamp = Date.now()
       const bulkRows: any[] = []
       for (let i = 1; i <= 120; i++) {
         const loc = i % 2 === 0 ? 'en' : 'es'
@@ -131,8 +156,8 @@ export default class extends BaseSeeder {
           robots_json: JSON.stringify({ index: i % 5 !== 0, follow: true }),
           // Apply demo-blog featured image to all English-language blog seeds
           featured_image_id: loc === 'en' && demoBlogId ? demoBlogId : null,
-          created_at: new Date(now - i * 3600 * 1000),
-          updated_at: new Date(now - i * 3500 * 1000),
+          created_at: new Date(nowTimestamp - i * 3600 * 1000),
+          updated_at: new Date(nowTimestamp - i * 3500 * 1000),
         })
       }
       await db.table('posts').insert(bulkRows)
@@ -140,14 +165,17 @@ export default class extends BaseSeeder {
     }
 
     // Test 4: Create global module (hero-with-callout)
-    const [globalModule] = await db.table('module_instances').insert({
-      scope: 'global',
-      type: 'hero-with-callout',
-      global_slug: 'main-hero',
-      props: JSON.stringify({ title: 'Welcome', subtitle: 'To our site' }),
-      created_at: new Date(),
-      updated_at: new Date(),
-    }).returning('*')
+    const [globalModule] = await db
+      .table('module_instances')
+      .insert({
+        scope: 'global',
+        type: 'hero-with-callout',
+        global_slug: 'main-hero',
+        props: JSON.stringify({ title: 'Welcome', subtitle: 'To our site' }),
+        created_at: new Date(),
+        updated_at: new Date(),
+      })
+      .returning('*')
     console.log('✅ Created global module:', globalModule.global_slug)
 
     // Test 5: Attach module to post
@@ -164,7 +192,10 @@ export default class extends BaseSeeder {
     // Test 6: Create URL patterns (with locale support), idempotent
     {
       const nowTs = new Date()
-      const existing = await db.from('url_patterns').whereIn('locale', ['en', 'es']).andWhere('post_type', 'blog')
+      const existing = await db
+        .from('url_patterns')
+        .whereIn('locale', ['en', 'es'])
+        .andWhere('post_type', 'blog')
       const hasEn = existing.some((r: any) => (r as any).locale === 'en')
       const hasEs = existing.some((r: any) => (r as any).locale === 'es')
       const toInsert: any[] = []
@@ -260,12 +291,13 @@ export default class extends BaseSeeder {
 
         if (legacyDemo) {
           const nowRepair = new Date()
+          const demoSize = await getFileSize('/uploads/demo-placeholder.jpg')
           const thumbVariant = {
             name: 'thumb',
             url: '/uploads/demo-placeholder.jpg',
             width: null,
             height: null,
-            size: 0,
+            size: demoSize,
           }
 
           await db
@@ -302,12 +334,13 @@ export default class extends BaseSeeder {
 
         let demoMedia = existingDemoMedia as any
         if (!demoMedia) {
+          const demoPlaceholderSize = await getFileSize('/uploads/demo-placeholder.jpg')
           const thumbVariant = {
             name: 'thumb',
             url: '/uploads/demo-placeholder.jpg',
             width: null,
             height: null,
-            size: 0,
+            size: demoPlaceholderSize,
           }
 
           const [createdDemoMedia] = await db
@@ -316,10 +349,11 @@ export default class extends BaseSeeder {
               url: '/uploads/demo-placeholder.jpg',
               original_filename: 'demo-placeholder.jpg',
               mime_type: 'image/jpeg',
-              size: 0,
+              size: demoPlaceholderSize,
               alt_text: 'Factory placeholder image',
               caption: 'Generic factory-style placeholder image for content module examples.',
-              description: 'Factory-themed demo image used to showcase content modules (hero, kitchen sink, etc.).',
+              description:
+                'Factory-themed demo image used to showcase content modules (hero, kitchen sink, etc.).',
               categories: db.raw('ARRAY[]::text[]') as any,
               metadata: { variants: [thumbVariant] } as any,
               created_at: nowTs,
@@ -413,8 +447,7 @@ export default class extends BaseSeeder {
             scope: 'post',
             props: {
               title: 'We invest in the world’s potential',
-              subtitle:
-                'This hero demonstrates a centered layout using neutral project tokens.',
+              subtitle: 'This hero demonstrates a centered layout using neutral project tokens.',
               primaryCta: {
                 label: 'Explore modules',
                 url: { kind: 'url', url: '#' },
@@ -482,8 +515,7 @@ export default class extends BaseSeeder {
             scope: 'post',
             props: {
               title: "Let's create more tools and ideas that bring us together.",
-              body:
-                'This layout pairs narrative content with a focused visual, ideal for feature callouts, product explainers, and lightweight storytelling.',
+              body: 'This layout pairs narrative content with a focused visual, ideal for feature callouts, product explainers, and lightweight storytelling.',
               image: (demoMedia as any).id,
               imageAlt: 'Prose with Media example',
               imagePosition: 'left',
@@ -587,7 +619,9 @@ export default class extends BaseSeeder {
           })
         }
 
-        console.log('✅ Seeded Module Catalog modules (hero, hero-with-media, hero-centered, prose, kitchen-sink)')
+        console.log(
+          '✅ Seeded Module Catalog modules (hero, hero-with-media, hero-centered, prose, kitchen-sink)'
+        )
       } else {
         console.log('ℹ️ Module Catalog already has modules; skipping initial module seeding')
 
@@ -606,8 +640,7 @@ export default class extends BaseSeeder {
               scope: 'post',
               props: {
                 title: 'We invest in the world’s potential',
-                subtitle:
-                  'This hero demonstrates a centered layout using neutral project tokens.',
+                subtitle: 'This hero demonstrates a centered layout using neutral project tokens.',
                 primaryCta: {
                   label: 'Explore modules',
                   url: '#',
@@ -652,7 +685,9 @@ export default class extends BaseSeeder {
 
           console.log('✅ Attached hero-with-callout module to existing Module Catalog')
         } else {
-          console.log('ℹ️ hero-with-callout module already attached to Module Catalog; skipping attach')
+          console.log(
+            'ℹ️ hero-with-callout module already attached to Module Catalog; skipping attach'
+          )
         }
       }
     }
@@ -668,7 +703,9 @@ export default class extends BaseSeeder {
         updated_at: new Date(),
       })
       console.log('✅ Set custom field value by slug (code-first)')
-    } catch { /* ignore */ }
+    } catch {
+      /* ignore */
+    }
 
     // Test 11: Create module scope for testimonial-list module
     await db.table('module_scopes').insert({

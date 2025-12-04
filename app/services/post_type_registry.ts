@@ -1,4 +1,4 @@
-import type { } from 'node:fs'
+import type {} from 'node:fs'
 
 export type RegisteredPostTypeConfig = {
   hideCoreFields?: Array<'title' | 'excerpt' | 'parent' | 'slug' | 'meta' | 'seo'>
@@ -42,5 +42,3 @@ class PostTypeRegistry {
 
 const postTypeRegistry = new PostTypeRegistry()
 export default postTypeRegistry
-
-

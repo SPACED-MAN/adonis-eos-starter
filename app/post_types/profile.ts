@@ -14,5 +14,3 @@ export default {
   template: { name: 'profile-default', description: 'Default Profile Template' },
   urlPatterns: [],
 } as const
-
-

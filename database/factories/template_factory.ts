@@ -25,12 +25,14 @@ class TemplateFactoryBuilder {
     return clone
   }
 
-  merge(overrides: Partial<{
-    name: string
-    postType: string
-    description: string | null
-    locked: boolean
-  }>): TemplateFactoryBuilder {
+  merge(
+    overrides: Partial<{
+      name: string
+      postType: string
+      description: string | null
+      locked: boolean
+    }>
+  ): TemplateFactoryBuilder {
     const clone = this.clone()
     clone._overrides = { ...clone._overrides, ...overrides }
     return clone
@@ -48,15 +50,18 @@ class TemplateFactoryBuilder {
     const attrs = { ...this.definition(), ...this._overrides }
     const id = randomUUID()
 
-    const [row] = await db.table('templates').insert({
-      id,
-      name: attrs.name,
-      post_type: attrs.postType,
-      description: attrs.description,
-      locked: attrs.locked,
-      created_at: new Date(),
-      updated_at: new Date(),
-    }).returning('*')
+    const [row] = await db
+      .table('templates')
+      .insert({
+        id,
+        name: attrs.name,
+        post_type: attrs.postType,
+        description: attrs.description,
+        locked: attrs.locked,
+        created_at: new Date(),
+        updated_at: new Date(),
+      })
+      .returning('*')
 
     return { ...attrs, id: row.id }
   }
@@ -71,5 +76,3 @@ class TemplateFactoryBuilder {
 }
 
 export const TemplateFactory = new TemplateFactoryBuilder()
-
-

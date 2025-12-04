@@ -34,7 +34,9 @@ export default class LocalesController {
     if (!row) {
       return response.notFound({ error: 'Locale not found', code: locale })
     }
-    return response.json({ data: { code: row.code, isDefault: row.is_default, isEnabled: row.is_enabled } })
+    return response.json({
+      data: { code: row.code, isDefault: row.is_default, isEnabled: row.is_enabled },
+    })
   }
 
   /**
@@ -54,7 +56,10 @@ export default class LocalesController {
       updates.is_enabled = isEnabled
       if (isEnabled === false) {
         // Archive posts when disabling this locale
-        await db.from('posts').where('locale', code).update({ status: 'archived', updated_at: new Date() })
+        await db
+          .from('posts')
+          .where('locale', code)
+          .update({ status: 'archived', updated_at: new Date() })
       }
     }
     if (typeof isDefault === 'boolean') {
@@ -64,7 +69,9 @@ export default class LocalesController {
       } else {
         // Prevent unsetting default on the current default
         if (row.is_default) {
-          return response.badRequest({ error: 'Cannot unset default locale. Set another locale as default instead.' })
+          return response.badRequest({
+            error: 'Cannot unset default locale. Set another locale as default instead.',
+          })
         }
       }
     }
@@ -90,4 +97,3 @@ export default class LocalesController {
     return response.noContent()
   }
 }
-

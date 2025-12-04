@@ -7,19 +7,26 @@ import mediaService from '#services/media_service'
 import sharp from 'sharp'
 import activityLogService from '#services/activity_log_service'
 import storageService from '#services/storage_service'
+import createDarkBaseAction from '#actions/create_dark_base_action'
+import generateMediaVariantsAction from '#actions/generate_media_variants_action'
 
 function sanitizeBaseName(name: string): string {
-	return name
-		.toLowerCase()
-		.replace(/[^a-z0-9._-]+/g, '-')
-		.replace(/-+/g, '-')
-		.replace(/^-+|-+$/g, '') || 'file'
+	return (
+		name
+			.toLowerCase()
+			.replace(/[^a-z0-9._-]+/g, '-')
+			.replace(/-+/g, '-')
+			.replace(/^-+|-+$/g, '') || 'file'
+	)
 }
 
 function computeDefaultAlt(fromClientName: string): string | null {
 	const dot = fromClientName.lastIndexOf('.')
 	const base = dot >= 0 ? fromClientName.slice(0, dot) : fromClientName
-	const cleaned = base.replace(/[-_]+/g, ' ').trim().replace(/\s{2,}/g, ' ')
+	const cleaned = base
+		.replace(/[-_]+/g, ' ')
+		.trim()
+		.replace(/\s{2,}/g, ' ')
 	return cleaned || null
 }
 
@@ -70,7 +77,11 @@ export default class MediaController {
 	 * multipart/form-data: file, altText?, caption?, description?
 	 */
 	async upload({ request, response, auth }: HttpContext) {
-		const role = (auth.use('web').user as any)?.role as 'admin' | 'editor' | 'translator' | undefined
+		const role = (auth.use('web').user as any)?.role as
+			| 'admin'
+			| 'editor'
+			| 'translator'
+			| undefined
 		if (!(role === 'admin' || role === 'editor')) {
 			return response.forbidden({ error: 'Not allowed to upload media' })
 		}
@@ -85,7 +96,8 @@ export default class MediaController {
 		}
 
 		const naming = String(request.input('naming', 'uuid')) === 'original' ? 'original' : 'uuid'
-		const appendIdIfExists = String(request.input('appendIdIfExists', 'false')).toLowerCase() === 'true'
+		const appendIdIfExists =
+			String(request.input('appendIdIfExists', 'false')).toLowerCase() === 'true'
 
 		const uploadsDir = path.join(process.cwd(), 'public', 'uploads')
 		await fs.promises.mkdir(uploadsDir, { recursive: true })
@@ -93,7 +105,7 @@ export default class MediaController {
 
 		let filename: string
 		if (naming === 'original') {
-			const base = sanitizeBaseName((path.parse(clientName).name || 'file'))
+			const base = sanitizeBaseName(path.parse(clientName).name || 'file')
 			let candidate = `${base}${ext}`
 			if (appendIdIfExists) {
 				// If file exists, append short id
@@ -101,7 +113,9 @@ export default class MediaController {
 					await fs.promises.access(path.join(uploadsDir, candidate))
 					const shortId = crypto.randomUUID().slice(0, 8)
 					candidate = `${base}-${shortId}${ext}`
-				} catch { /* ok */ }
+				} catch {
+					/* ok */
+				}
 			} else {
 				// Always ensure uniqueness by incrementing counter if needed
 				let counter = 1
@@ -142,40 +156,24 @@ export default class MediaController {
 		// Publish to storage (local no-op, R2 uploads)
 		try {
 			await storageService.publishFile(destPath, url, mime)
-		} catch { /* ignore publish errors; local file remains */ }
+		} catch {
+			/* ignore publish errors; local file remains */
+		}
 
 		// Normalize mime type
 		let mime = typeof type === 'string' ? type : ''
-		if (!mime.includes('/')) {
-			switch (ext) {
-				case '.jpg':
-				case '.jpeg':
-					mime = 'image/jpeg'
-					break
-				case '.png':
-					mime = 'image/png'
-					break
-				case '.webp':
-					mime = 'image/webp'
-					break
-				case '.gif':
-					mime = 'image/gif'
-					break
-				case '.svg':
-					mime = 'image/svg+xml'
-					break
-				case '.avif':
-					mime = 'image/avif'
-					break
-				default:
-					mime = type || 'application/octet-stream'
-			}
-		}
 
 		let metadata: any = null
 		if (mime.startsWith('image/')) {
 			try {
-				const variants = await mediaService.generateVariants(destPath, url, null, null, null, 'light')
+				const variants = await mediaService.generateVariants(
+					destPath,
+					url,
+					null,
+					null,
+					null,
+					'light'
+				)
 				metadata = { variants }
 			} catch {
 				// ignore variant generation errors; keep original
@@ -219,7 +217,11 @@ export default class MediaController {
 	 * Body: { altText?, caption? }
 	 */
 	async update({ params, request, response, auth }: HttpContext) {
-		const role = (auth.use('web').user as any)?.role as 'admin' | 'editor' | 'translator' | undefined
+		const role = (auth.use('web').user as any)?.role as
+			| 'admin'
+			| 'editor'
+			| 'translator'
+			| undefined
 		if (!(role === 'admin' || role === 'editor')) {
 			return response.forbidden({ error: 'Not allowed to update media' })
 		}
@@ -228,12 +230,17 @@ export default class MediaController {
 		const caption = request.input('caption')
 		const description = request.input('description')
 		let categoriesInput = request.input('categories')
-		let categories: string[] | undefined = undefined
+		let categories: string[] | undefined
 		if (categoriesInput !== undefined) {
 			if (Array.isArray(categoriesInput)) {
-				categories = (categoriesInput as any[]).map((t) => String(t)).filter((t) => t.trim().length > 0)
+				categories = (categoriesInput as any[])
+					.map((t) => String(t))
+					.filter((t) => t.trim().length > 0)
 			} else if (typeof categoriesInput === 'string') {
-				categories = categoriesInput.split(',').map((t) => t.trim()).filter((t) => t.length > 0)
+				categories = categoriesInput
+					.split(',')
+					.map((t) => t.trim())
+					.filter((t) => t.length > 0)
 			}
 		}
 		const now = new Date()
@@ -260,7 +267,11 @@ export default class MediaController {
 	 * DELETE /api/media/:id
 	 */
 	async destroy({ params, response, auth }: HttpContext) {
-		const role = (auth.use('web').user as any)?.role as 'admin' | 'editor' | 'translator' | undefined
+		const role = (auth.use('web').user as any)?.role as
+			| 'admin'
+			| 'editor'
+			| 'translator'
+			| undefined
 		if (role !== 'admin') {
 			return response.forbidden({ error: 'Admin only' })
 		}
@@ -275,7 +286,9 @@ export default class MediaController {
 			await fs.promises.unlink(originalPath)
 		} catch { }
 		// Also remove from storage driver
-		try { await storageService.deleteByUrl(String(row.url || '')) } catch { }
+		try {
+			await storageService.deleteByUrl(String(row.url || ''))
+		} catch { }
 
 		// Delete known variants from metadata
 		try {
@@ -284,8 +297,12 @@ export default class MediaController {
 			for (const v of variants) {
 				if (!v?.url || typeof v.url !== 'string') continue
 				const p = path.join(publicRoot, v.url.replace(/^\//, ''))
-				try { await fs.promises.unlink(p) } catch { }
-				try { await storageService.deleteByUrl(String(v.url)) } catch { }
+				try {
+					await fs.promises.unlink(p)
+				} catch { }
+				try {
+					await storageService.deleteByUrl(String(v.url))
+				} catch { }
 			}
 		} catch { }
 
@@ -297,12 +314,20 @@ export default class MediaController {
 			const base = parsed.name
 			const ext = parsed.ext
 			const files = await fs.promises.readdir(dir)
-			await Promise.all(files.map(async (f) => {
-				if (f.startsWith(base + '.') && f.endsWith(ext)) {
-					try { await fs.promises.unlink(path.join(dir, f)) } catch { }
-					try { await storageService.deleteByUrl(path.posix.join(String(path.posix.dirname(String(row.url || ''))), f)) } catch { }
-				}
-			}))
+			await Promise.all(
+				files.map(async (f) => {
+					if (f.startsWith(base + '.') && f.endsWith(ext)) {
+						try {
+							await fs.promises.unlink(path.join(dir, f))
+						} catch { }
+						try {
+							await storageService.deleteByUrl(
+								path.posix.join(String(path.posix.dirname(String(row.url || ''))), f)
+							)
+						} catch { }
+					}
+				})
+			)
 		} catch { }
 
 		await db.from('media_assets').where('id', id).delete()
@@ -350,25 +375,37 @@ export default class MediaController {
 	 * Generates derivative variants based on MEDIA_DERIVATIVES env (uses sharp) or a provided crop spec.
 	 */
 	async variants({ params, request, response, auth }: HttpContext) {
-		const role = (auth.use('web').user as any)?.role as 'admin' | 'editor' | 'translator' | undefined
+		const role = (auth.use('web').user as any)?.role as
+			| 'admin'
+			| 'editor'
+			| 'translator'
+			| undefined
 		if (!(role === 'admin' || role === 'editor')) {
 			return response.forbidden({ error: 'Not allowed to generate variants' })
 		}
 		const { id } = params
-		const row = await db.from('media_assets').where('id', id).first()
+		let row = await db.from('media_assets').where('id', id).first()
 		if (!row) return response.notFound({ error: 'Media not found' })
 
 		const body = request.all()
 
 		const theme: 'light' | 'dark' = body?.theme === 'dark' ? 'dark' : 'light'
 
-		// Optionally use a dedicated dark-source base if configured
-		const metaForBase = (row as any).metadata || {}
-		const useDarkBase = theme === 'dark' && typeof (metaForBase as any).darkSourceUrl === 'string' && (metaForBase as any).darkSourceUrl
-		const basePublicUrl: string = String(useDarkBase || row.url)
-		const absPath = path.join(process.cwd(), 'public', basePublicUrl.replace(/^\//, ''))
-		const publicUrl: string = basePublicUrl
+		// Create dark base if needed
+		if (theme === 'dark') {
+			const meta = ((row as any).metadata || {}) as any
+			const hasDarkBase = typeof meta.darkSourceUrl === 'string' && meta.darkSourceUrl
 
+			if (!hasDarkBase) {
+				try {
+					await createDarkBaseAction.execute({ mediaRecord: row, updateDatabase: true })
+					// Refresh row to get updated metadata
+					row = await db.from('media_assets').where('id', id).first()
+				} catch {
+					// Continue anyway
+				}
+			}
+		}
 
 		// cropRect mode
 		const cropRectRaw = body?.cropRect
@@ -378,8 +415,20 @@ export default class MediaController {
 			const y = Number(cropRectRaw.y)
 			const w = Number(cropRectRaw.width)
 			const h = Number(cropRectRaw.height)
-			if (Number.isFinite(x) && Number.isFinite(y) && Number.isFinite(w) && Number.isFinite(h) && w > 0 && h > 0) {
-				cropArgs = { left: Math.max(0, Math.floor(x)), top: Math.max(0, Math.floor(y)), width: Math.floor(w), height: Math.floor(h) }
+			if (
+				Number.isFinite(x) &&
+				Number.isFinite(y) &&
+				Number.isFinite(w) &&
+				Number.isFinite(h) &&
+				w > 0 &&
+				h > 0
+			) {
+				cropArgs = {
+					left: Math.max(0, Math.floor(x)),
+					top: Math.max(0, Math.floor(y)),
+					width: Math.floor(w),
+					height: Math.floor(h),
+				}
 			}
 		}
 
@@ -394,7 +443,8 @@ export default class MediaController {
 			}
 		}
 
-		const targetVariant: string | undefined = typeof body?.targetVariant === 'string' ? body.targetVariant : undefined
+		const targetVariant: string | undefined =
+			typeof body?.targetVariant === 'string' ? body.targetVariant : undefined
 		const target: string | undefined = typeof body?.target === 'string' ? body.target : undefined
 
 		// Single-variant rebuild
@@ -404,15 +454,14 @@ export default class MediaController {
 			if (!spec) {
 				return response.badRequest({ error: `Unknown variant: ${targetVariant}` })
 			}
-			const variants = await mediaService.generateVariants(absPath, publicUrl, [spec], cropArgs, focalPoint, theme)
-			const meta = row.metadata || {}
-			let list = Array.isArray((meta as any).variants) ? (meta as any).variants : []
-			for (const v of variants) {
-				const idx = list.findIndex((x: any) => x.name === v.name)
-				if (idx >= 0) list[idx] = v
-				else list.push(v)
-			}
-			await db.from('media_assets').where('id', id).update({ metadata: { ...(meta as any), variants: list } as any, updated_at: new Date() } as any)
+			const result = await generateMediaVariantsAction.execute({
+				mediaRecord: row,
+				theme,
+				specs: [spec],
+				cropRect: cropArgs,
+				focalPoint,
+				updateDatabase: true,
+			})
 			try {
 				await activityLogService.log({
 					action: 'media.variants.rebuildOne',
@@ -422,37 +471,61 @@ export default class MediaController {
 					metadata: { targetVariant },
 				})
 			} catch { }
-			return response.ok({ data: { variants } })
+			return response.ok({ data: { variants: result.variants } })
 		}
 
 		// Original cropped variant (does not overwrite original) + rebuild all configured variants from this crop
 		if (target === 'original-cropped' && cropArgs) {
+			const publicRoot = path.join(process.cwd(), 'public')
+			const publicUrl = String(row.url)
+			const absPath = path.join(publicRoot, publicUrl.replace(/^\//, ''))
 			const parsed = path.parse(absPath)
 			const outName = `${parsed.name}.cropped${parsed.ext}`
 			const outPath = path.join(parsed.dir, outName)
 			const outUrl = path.posix.join(path.posix.dirname(publicUrl), outName)
 			const info = await sharp(absPath)
-				.extract({ left: cropArgs.left, top: cropArgs.top, width: cropArgs.width, height: cropArgs.height })
+				.extract({
+					left: cropArgs.left,
+					top: cropArgs.top,
+					width: cropArgs.width,
+					height: cropArgs.height,
+				})
 				.toFile(outPath)
-			const cropped = { name: 'cropped', url: outUrl, width: info.width, height: info.height, size: info.size || 0 }
+			const cropped = {
+				name: 'cropped',
+				url: outUrl,
+				width: info.width,
+				height: info.height,
+				size: info.size || 0,
+			}
 
 			// Rebuild all configured variants using the same cropRect
-			const rebuilt = await mediaService.generateVariants(absPath, publicUrl, null, cropArgs, null, theme)
+			const result = await generateMediaVariantsAction.execute({
+				mediaRecord: row,
+				theme,
+				cropRect: cropArgs,
+				updateDatabase: true,
+			})
 
-			const meta = row.metadata || {}
-			let list = Array.isArray((meta as any).variants) ? (meta as any).variants : []
-			// Merge rebuilt variants
-			for (const v of rebuilt) {
-				const idx = list.findIndex((x: any) => x.name === v.name)
-				if (idx >= 0) list[idx] = v
-				else list.push(v)
+			// Manually add the cropped variant to metadata
+			const finalMetadata = {
+				...result.metadata,
+				cropRect: cropArgs,
 			}
-			// Merge/add cropped special
-			const croppedIdx = list.findIndex((x: any) => x.name === 'cropped')
-			if (croppedIdx >= 0) list[croppedIdx] = cropped
-			else list.push(cropped)
+			const variantsList = Array.isArray(finalMetadata.variants) ? finalMetadata.variants : []
+			const croppedIdx = variantsList.findIndex((v: any) => v.name === 'cropped')
+			if (croppedIdx >= 0) variantsList[croppedIdx] = cropped
+			else variantsList.push(cropped)
+			finalMetadata.variants = variantsList
 
-			await db.from('media_assets').where('id', id).update({ metadata: { ...(meta as any), variants: list, cropRect: cropArgs } as any, updated_at: new Date() } as any)
+			await db
+				.from('media_assets')
+				.where('id', row.id)
+				.update({
+					metadata: finalMetadata as any,
+					updated_at: new Date(),
+				} as any)
+
 			try {
 				await activityLogService.log({
 					action: 'media.crop.original',
@@ -462,7 +535,7 @@ export default class MediaController {
 					metadata: { cropRect: cropArgs },
 				})
 			} catch { }
-			return response.ok({ data: { variants: [...rebuilt, cropped] } })
+			return response.ok({ data: { variants: [...result.variants, cropped] } })
 		}
 
 		let specs: any = null
@@ -477,21 +550,17 @@ export default class MediaController {
 			}
 		}
 
-		const variants = await mediaService.generateVariants(absPath, publicUrl, specs || null, cropArgs, focalPoint, theme)
+		// Use action for DRY variant generation
+		const result = await generateMediaVariantsAction.execute({
+			mediaRecord: row,
+			theme,
+			specs: specs || null,
+			cropRect: cropArgs,
+			focalPoint,
+			updateDatabase: true,
+		})
 
-		const existingMeta = (row.metadata || {}) as any
-		const existingList: any[] = Array.isArray(existingMeta.variants) ? existingMeta.variants : []
-		const newNames = new Set(variants.map((v) => v.name))
-		// Drop only the variants we are regenerating; keep the others (e.g. light vs dark)
-		const mergedList = [...existingList.filter((v) => !v || typeof v.name !== 'string' || !newNames.has(v.name)), ...variants]
-
-		const metadata = {
-			...existingMeta,
-			...(cropArgs ? { cropRect: cropArgs } : {}),
-			...(focalPoint ? { focalPoint } : {}),
-			variants: mergedList,
-		}
-		await db.from('media_assets').where('id', id).update({ metadata: metadata as any, updated_at: new Date() } as any)
+		const { metadata } = result
 		try {
 			await activityLogService.log({
 				action: 'media.variants.rebuild',
@@ -501,7 +570,8 @@ export default class MediaController {
 				metadata: { specs: specs || null, cropRect: cropArgs, focalPoint },
 			})
 		} catch { }
-		return response.ok({ data: { variants } })
+		// Return the merged list and updated metadata so the client has all variants (light + dark)
+		return response.ok({ data: { variants: metadata.variants, metadata } })
 	}
 
 	/**
@@ -509,7 +579,11 @@ export default class MediaController {
 	 * Body: { filename: string }
 	 */
 	async rename({ params, request, response, auth }: HttpContext) {
-		const role = (auth.use('web').user as any)?.role as 'admin' | 'editor' | 'translator' | undefined
+		const role = (auth.use('web').user as any)?.role as
+			| 'admin'
+			| 'editor'
+			| 'translator'
+			| undefined
 		if (role !== 'admin') {
 			return response.forbidden({ error: 'Admin only' })
 		}
@@ -554,11 +628,15 @@ export default class MediaController {
 			}
 		}
 		const newBase = path.parse(candidate).name
-		const { newPath, newUrl, renamedVariants } = await mediaService.renameWithVariants(oldPath, oldUrl, newBase)
+		const { newPath, newUrl, renamedVariants } = await mediaService.renameWithVariants(
+			oldPath,
+			oldUrl,
+			newBase
+		)
 
 		let metadata = row.metadata || {}
 		if (metadata && (metadata as any).variants && Array.isArray((metadata as any).variants)) {
-			(metadata as any).variants = (metadata as any).variants.map((v: any) => {
+			; (metadata as any).variants = (metadata as any).variants.map((v: any) => {
 				const found = renamedVariants.find((rv) => rv.oldUrl === v.url)
 				if (found) {
 					return { ...v, url: found.newUrl }
@@ -567,20 +645,39 @@ export default class MediaController {
 					const trailing = v.url.substring(path.posix.dirname(oldUrl).length + 1)
 					if (trailing.startsWith(`${parsed.name}.`)) {
 						const variantName = trailing.slice(parsed.name.length + 1)
-						return { ...v, url: path.posix.join(path.posix.dirname(oldUrl), `${newBase}.${variantName}`) }
+						return {
+							...v,
+							url: path.posix.join(path.posix.dirname(oldUrl), `${newBase}.${variantName}`),
+						}
 					}
 				}
 				return v
 			})
 		}
-		await db.from('media_assets').where('id', id).update({ url: newUrl, original_filename: path.parse(newPath).base, metadata: metadata as any, updated_at: new Date() } as any)
+		await db
+			.from('media_assets')
+			.where('id', id)
+			.update({
+				url: newUrl,
+				original_filename: path.parse(newPath).base,
+				metadata: metadata as any,
+				updated_at: new Date(),
+			} as any)
 
 		const oldUrlEsc = oldUrl.replace(/'/g, "''")
 		const newUrlEsc = newUrl.replace(/'/g, "''")
-		await db.raw(`UPDATE module_instances SET props = REPLACE(props::text, '${oldUrlEsc}', '${newUrlEsc}')::jsonb WHERE props::text LIKE '%${oldUrlEsc}%'`)
-		await db.raw(`UPDATE module_instances SET review_props = REPLACE(review_props::text, '${oldUrlEsc}', '${newUrlEsc}')::jsonb WHERE review_props::text LIKE '%${oldUrlEsc}%'`)
-		await db.raw(`UPDATE post_modules SET overrides = REPLACE(overrides::text, '${oldUrlEsc}', '${newUrlEsc}')::jsonb WHERE overrides::text LIKE '%${oldUrlEsc}%'`)
-		await db.raw(`UPDATE post_modules SET review_overrides = REPLACE(review_overrides::text, '${oldUrlEsc}', '${newUrlEsc}')::jsonb WHERE review_overrides::text LIKE '%${oldUrlEsc}%'`)
+		await db.raw(
+			`UPDATE module_instances SET props = REPLACE(props::text, '${oldUrlEsc}', '${newUrlEsc}')::jsonb WHERE props::text LIKE '%${oldUrlEsc}%'`
+		)
+		await db.raw(
+			`UPDATE module_instances SET review_props = REPLACE(review_props::text, '${oldUrlEsc}', '${newUrlEsc}')::jsonb WHERE review_props::text LIKE '%${oldUrlEsc}%'`
+		)
+		await db.raw(
+			`UPDATE post_modules SET overrides = REPLACE(overrides::text, '${oldUrlEsc}', '${newUrlEsc}')::jsonb WHERE overrides::text LIKE '%${oldUrlEsc}%'`
+		)
+		await db.raw(
+			`UPDATE post_modules SET review_overrides = REPLACE(review_overrides::text, '${oldUrlEsc}', '${newUrlEsc}')::jsonb WHERE review_overrides::text LIKE '%${oldUrlEsc}%'`
+		)
 
 		try {
 			await activityLogService.log({
@@ -595,7 +692,11 @@ export default class MediaController {
 	}
 
 	async checkDuplicate({ request, response, auth }: HttpContext) {
-		const role = (auth.use('web').user as any)?.role as 'admin' | 'editor' | 'translator' | undefined
+		const role = (auth.use('web').user as any)?.role as
+			| 'admin'
+			| 'editor'
+			| 'translator'
+			| undefined
 		if (!(role === 'admin' || role === 'editor')) {
 			return response.forbidden({ error: 'Not allowed' })
 		}
@@ -610,7 +711,11 @@ export default class MediaController {
 	}
 
 	async override({ params, request, response, auth }: HttpContext) {
-		const role = (auth.use('web').user as any)?.role as 'admin' | 'editor' | 'translator' | undefined
+		const role = (auth.use('web').user as any)?.role as
+			| 'admin'
+			| 'editor'
+			| 'translator'
+			| undefined
 		if (role !== 'admin') {
 			return response.forbidden({ error: 'Admin only' })
 		}
@@ -649,7 +754,9 @@ export default class MediaController {
 		let targetPublicUrl: string
 
 		if (theme === 'light') {
-			const baseName = sanitizeBaseName(path.parse(clientName).name || parsedExisting.name || 'file')
+			const baseName = sanitizeBaseName(
+				path.parse(clientName).name || parsedExisting.name || 'file'
+			)
 			const newFilename = `${baseName}${clientExt || parsedExisting.ext}`
 
 			// Clean up old files (original + variants) before writing new one
@@ -657,11 +764,20 @@ export default class MediaController {
 				const files = await fs.promises.readdir(dir)
 				const oldBase = parsedExisting.name
 				for (const f of files) {
-					if (f === parsedExisting.base || (f.startsWith(`${oldBase}.`) && f.endsWith(parsedExisting.ext))) {
-						try { await fs.promises.unlink(path.join(dir, f)) } catch { /* ignore */ }
+					if (
+						f === parsedExisting.base ||
+						(f.startsWith(`${oldBase}.`) && f.endsWith(parsedExisting.ext))
+					) {
+						try {
+							await fs.promises.unlink(path.join(dir, f))
+						} catch {
+							/* ignore */
+						}
 					}
 				}
-			} catch { /* ignore */ }
+			} catch {
+				/* ignore */
+			}
 
 			targetAbsPath = path.join(dir, newFilename)
 			targetPublicUrl = path.posix.join(path.posix.dirname(existingPublicUrl), newFilename)
@@ -695,39 +811,62 @@ export default class MediaController {
 			switch (ext) {
 				case '.jpg':
 				case '.jpeg':
-					mime = 'image/jpeg'; break
-				case '.png': mime = 'image/png'; break
-				case '.webp': mime = 'image/webp'; break
-				case '.gif': mime = 'image/gif'; break
-				case '.svg': mime = 'image/svg+xml'; break
-				case '.avif': mime = 'image/avif'; break
-				default: mime = type || 'application/octet-stream'
+					mime = 'image/jpeg'
+					break
+				case '.png':
+					mime = 'image/png'
+					break
+				case '.webp':
+					mime = 'image/webp'
+					break
+				case '.gif':
+					mime = 'image/gif'
+					break
+				case '.svg':
+					mime = 'image/svg+xml'
+					break
+				case '.avif':
+					mime = 'image/avif'
+					break
+				default:
+					mime = type || 'application/octet-stream'
 			}
 		}
 
 		let metadata = (row.metadata || {}) as any
 		if (mime.startsWith('image/')) {
 			if (theme === 'dark') {
-				// Custom dark-theme base: generate dark variants from this file and merge into existing list
-				const variantsDark = await mediaService.generateVariants(targetAbsPath, targetPublicUrl, null, null, null, 'dark')
-				const existingList: any[] = Array.isArray(metadata.variants) ? metadata.variants : []
-				const newNames = new Set(variantsDark.map((v) => v.name))
-				const merged = [...existingList.filter((v) => !v || typeof v.name !== 'string' || !newNames.has(v.name)), ...variantsDark]
+				// Update darkSourceUrl to point to the newly uploaded dark base
 				metadata = {
 					...metadata,
 					darkSourceUrl: targetPublicUrl,
-					variants: merged,
 				}
+
+				// Update the row temporarily so the action can use it
+				const tempRow = { ...row, metadata, url: row.url }
+
+				// Use action to generate dark variants (handles tint logic automatically)
+				const result = await generateMediaVariantsAction.execute({
+					mediaRecord: tempRow,
+					theme: 'dark',
+					updateDatabase: false, // We'll update manually after
+				})
+
+				metadata = result.metadata
 			} else {
-				// Light override: regenerate light variants from the new original, discarding previous ones
-				const variantsLight = await mediaService.generateVariants(targetAbsPath, targetPublicUrl, null, null, null, 'light')
-				metadata = {
-					...metadata,
-					// When we fully replace the light image, clear out all variants and start fresh for light;
-					// dark variants can be regenerated or re-uploaded later.
-					variants: variantsLight,
-					darkSourceUrl: metadata.darkSourceUrl || undefined,
-				}
+				// Light override: use action to regenerate light variants
+				const result = await generateMediaVariantsAction.execute({
+					mediaRecord: {
+						...row,
+						url: targetPublicUrl,
+						metadata: { ...metadata, darkSourceUrl: metadata.darkSourceUrl },
+					},
+					theme: 'light',
+					updateDatabase: false,
+				})
+
+				// When we fully replace the light image, keep dark variants but update light ones
+				metadata = result.metadata
 			}
 		}
 
@@ -743,7 +882,10 @@ export default class MediaController {
 			updatePayload.original_filename = clientName
 		}
 
-		await db.from('media_assets').where('id', id).update(updatePayload as any)
+		await db
+			.from('media_assets')
+			.where('id', id)
+			.update(updatePayload as any)
 
 		try {
 			await activityLogService.log({
@@ -776,7 +918,7 @@ export default class MediaController {
 				metadata: row.metadata || null,
 				createdAt: row.created_at,
 				updatedAt: row.updated_at,
-			}
+			},
 		})
 	}
 
@@ -791,7 +933,7 @@ export default class MediaController {
 				metadata: row.metadata || null,
 				altText: row.alt_text,
 				categories: Array.isArray(row.categories) ? row.categories : [],
-			}
+			},
 		})
 	}
 
@@ -800,7 +942,9 @@ export default class MediaController {
 	 * Returns distinct list of categories used across all media
 	 */
 	async categories({ response }: HttpContext) {
-		const rows = await db.rawQuery("SELECT DISTINCT unnest(categories) AS category FROM media_assets WHERE array_length(categories,1) IS NOT NULL")
+		const rows = await db.rawQuery(
+			'SELECT DISTINCT unnest(categories) AS category FROM media_assets WHERE array_length(categories,1) IS NOT NULL'
+		)
 		const list: string[] = Array.isArray(rows?.rows)
 			? rows.rows.map((r: any) => String(r.category)).filter((x) => x.length > 0)
 			: []
@@ -812,7 +956,11 @@ export default class MediaController {
 	 * Optimizes an image to WebP and stores optimized size and URL.
 	 */
 	async optimize({ params, response, auth }: HttpContext) {
-		const role = (auth.use('web').user as any)?.role as 'admin' | 'editor' | 'translator' | undefined
+		const role = (auth.use('web').user as any)?.role as
+			| 'admin'
+			| 'editor'
+			| 'translator'
+			| undefined
 		if (!(role === 'admin' || role === 'editor')) {
 			return response.forbidden({ error: 'Not allowed to optimize media' })
 		}
@@ -829,12 +977,15 @@ export default class MediaController {
 			const result = await mediaService.optimizeToWebp(absPath, publicUrl)
 			if (!result) return response.badRequest({ error: 'Unsupported image type for optimization' })
 			const now = new Date()
-			await db.from('media_assets').where('id', id).update({
-				optimized_url: result.optimizedUrl,
-				optimized_size: Number(result.size || 0),
-				optimized_at: now,
-				updated_at: now,
-			} as any)
+			await db
+				.from('media_assets')
+				.where('id', id)
+				.update({
+					optimized_url: result.optimizedUrl,
+					optimized_size: Number(result.size || 0),
+					optimized_at: now,
+					updated_at: now,
+				} as any)
 			try {
 				await activityLogService.log({
 					action: 'media.optimize',
@@ -844,7 +995,9 @@ export default class MediaController {
 					metadata: { optimizedUrl: result.optimizedUrl, optimizedSize: Number(result.size || 0) },
 				})
 			} catch { }
-			return response.ok({ data: { optimizedUrl: result.optimizedUrl, optimizedSize: Number(result.size || 0) } })
+			return response.ok({
+				data: { optimizedUrl: result.optimizedUrl, optimizedSize: Number(result.size || 0) },
+			})
 		} catch (e: any) {
 			return response.badRequest({ error: e?.message || 'Optimization failed' })
 		}
@@ -855,11 +1008,17 @@ export default class MediaController {
 	 * Body: { ids: string[] }
 	 */
 	async optimizeBulk({ request, response, auth }: HttpContext) {
-		const role = (auth.use('web').user as any)?.role as 'admin' | 'editor' | 'translator' | undefined
+		const role = (auth.use('web').user as any)?.role as
+			| 'admin'
+			| 'editor'
+			| 'translator'
+			| undefined
 		if (!(role === 'admin' || role === 'editor')) {
 			return response.forbidden({ error: 'Not allowed to optimize media' })
 		}
-		const ids: string[] = Array.isArray(request.input('ids')) ? request.input('ids').map((x: any) => String(x)) : []
+		const ids: string[] = Array.isArray(request.input('ids'))
+			? request.input('ids').map((x: any) => String(x))
+			: []
 		if (!ids.length) return response.badRequest({ error: 'ids must be a non-empty array' })
 		const rows = await db.from('media_assets').whereIn('id', ids)
 		let success = 0
@@ -871,14 +1030,19 @@ export default class MediaController {
 				const absPath = path.join(process.cwd(), 'public', publicUrl.replace(/^\//, ''))
 				const result = await mediaService.optimizeToWebp(absPath, publicUrl)
 				if (!result) continue
-				await db.from('media_assets').where('id', (row as any).id).update({
-					optimized_url: result.optimizedUrl,
-					optimized_size: Number(result.size || 0),
-					optimized_at: new Date(),
-					updated_at: new Date(),
-				} as any)
+				await db
+					.from('media_assets')
+					.where('id', (row as any).id)
+					.update({
+						optimized_url: result.optimizedUrl,
+						optimized_size: Number(result.size || 0),
+						optimized_at: new Date(),
+						updated_at: new Date(),
+					} as any)
 				success++
-			} catch { /* continue */ }
+			} catch {
+				/* continue */
+			}
 		}
 		try {
 			await activityLogService.log({
@@ -898,11 +1062,17 @@ export default class MediaController {
 	 * Regenerates all configured variants for each selected image.
 	 */
 	async variantsBulk({ request, response, auth }: HttpContext) {
-		const role = (auth.use('web').user as any)?.role as 'admin' | 'editor' | 'translator' | undefined
+		const role = (auth.use('web').user as any)?.role as
+			| 'admin'
+			| 'editor'
+			| 'translator'
+			| undefined
 		if (!(role === 'admin' || role === 'editor')) {
 			return response.forbidden({ error: 'Not allowed to regenerate variants' })
 		}
-		const ids: string[] = Array.isArray(request.input('ids')) ? request.input('ids').map((x: any) => String(x)) : []
+		const ids: string[] = Array.isArray(request.input('ids'))
+			? request.input('ids').map((x: any) => String(x))
+			: []
 		if (!ids.length) return response.badRequest({ error: 'ids must be a non-empty array' })
 		const rows = await db.from('media_assets').whereIn('id', ids)
 		let success = 0
@@ -912,7 +1082,14 @@ export default class MediaController {
 				if (!mime.startsWith('image/')) continue
 				const publicUrl: string = String((row as any).url)
 				const absPath = path.join(process.cwd(), 'public', publicUrl.replace(/^\//, ''))
-				const variants = await mediaService.generateVariants(absPath, publicUrl, null, null, null, 'light')
+				const variants = await mediaService.generateVariants(
+					absPath,
+					publicUrl,
+					null,
+					null,
+					null,
+					'light'
+				)
 				const meta = (row as any).metadata || {}
 				let list = Array.isArray((meta as any).variants) ? (meta as any).variants : []
 				for (const v of variants) {
@@ -920,9 +1097,17 @@ export default class MediaController {
 					if (idx >= 0) list[idx] = v
 					else list.push(v)
 				}
-				await db.from('media_assets').where('id', (row as any).id).update({ metadata: { ...(meta as any), variants: list } as any, updated_at: new Date() } as any)
+				await db
+					.from('media_assets')
+					.where('id', (row as any).id)
+					.update({
+						metadata: { ...(meta as any), variants: list } as any,
+						updated_at: new Date(),
+					} as any)
 				success++
-			} catch { /* continue */ }
+			} catch {
+				/* continue */
+			}
 		}
 		try {
 			await activityLogService.log({
@@ -942,11 +1127,17 @@ export default class MediaController {
 	 * Admin-only permanent delete of media records (and files).
 	 */
 	async deleteBulk({ request, response, auth }: HttpContext) {
-		const role = (auth.use('web').user as any)?.role as 'admin' | 'editor' | 'translator' | undefined
+		const role = (auth.use('web').user as any)?.role as
+			| 'admin'
+			| 'editor'
+			| 'translator'
+			| undefined
 		if (role !== 'admin') {
 			return response.forbidden({ error: 'Admin only' })
 		}
-		const ids: string[] = Array.isArray(request.input('ids')) ? request.input('ids').map((x: any) => String(x)) : []
+		const ids: string[] = Array.isArray(request.input('ids'))
+			? request.input('ids').map((x: any) => String(x))
+			: []
 		if (!ids.length) return response.badRequest({ error: 'ids must be a non-empty array' })
 		const rows = await db.from('media_assets').whereIn('id', ids)
 		const publicRoot = path.join(process.cwd(), 'public')
@@ -954,8 +1145,13 @@ export default class MediaController {
 		for (const row of rows) {
 			try {
 				// Delete original
-				const originalPath = path.join(publicRoot, String((row as any).url || '').replace(/^\//, ''))
-				try { await fs.promises.unlink(originalPath) } catch { }
+				const originalPath = path.join(
+					publicRoot,
+					String((row as any).url || '').replace(/^\//, '')
+				)
+				try {
+					await fs.promises.unlink(originalPath)
+				} catch { }
 				// Delete variants from metadata
 				try {
 					const meta = (row as any).metadata as any
@@ -963,7 +1159,9 @@ export default class MediaController {
 					for (const v of variants) {
 						if (!v?.url || typeof v.url !== 'string') continue
 						const p = path.join(publicRoot, v.url.replace(/^\//, ''))
-						try { await fs.promises.unlink(p) } catch { }
+						try {
+							await fs.promises.unlink(p)
+						} catch { }
 					}
 				} catch { }
 				// Fallback pattern-based
@@ -975,13 +1173,20 @@ export default class MediaController {
 					const files = await fs.promises.readdir(dir)
 					for (const f of files) {
 						if (f.startsWith(base + '.') && f.endsWith(ext)) {
-							try { await fs.promises.unlink(path.join(dir, f)) } catch { }
+							try {
+								await fs.promises.unlink(path.join(dir, f))
+							} catch { }
 						}
 					}
 				} catch { }
-				await db.from('media_assets').where('id', (row as any).id).delete()
+				await db
+					.from('media_assets')
+					.where('id', (row as any).id)
+					.delete()
 				deleted++
-			} catch { /* continue */ }
+			} catch {
+				/* continue */
+			}
 		}
 		try {
 			await activityLogService.log({
@@ -1001,26 +1206,41 @@ export default class MediaController {
 	 * Adds/removes categories across selected items.
 	 */
 	async categoriesBulk({ request, response, auth }: HttpContext) {
-		const role = (auth.use('web').user as any)?.role as 'admin' | 'editor' | 'translator' | undefined
+		const role = (auth.use('web').user as any)?.role as
+			| 'admin'
+			| 'editor'
+			| 'translator'
+			| undefined
 		if (!(role === 'admin' || role === 'editor')) {
 			return response.forbidden({ error: 'Not allowed to update categories' })
 		}
-		const ids: string[] = Array.isArray(request.input('ids')) ? request.input('ids').map((x: any) => String(x)) : []
-		const addArr: string[] = Array.isArray(request.input('add')) ? (request.input('add') as any[]).map((x) => String(x).trim()).filter(Boolean) : []
-		const removeArr: string[] = Array.isArray(request.input('remove')) ? (request.input('remove') as any[]).map((x) => String(x).trim()).filter(Boolean) : []
+		const ids: string[] = Array.isArray(request.input('ids'))
+			? request.input('ids').map((x: any) => String(x))
+			: []
+		const addArr: string[] = Array.isArray(request.input('add'))
+			? (request.input('add') as any[]).map((x) => String(x).trim()).filter(Boolean)
+			: []
+		const removeArr: string[] = Array.isArray(request.input('remove'))
+			? (request.input('remove') as any[]).map((x) => String(x).trim()).filter(Boolean)
+			: []
 		if (!ids.length) return response.badRequest({ error: 'ids must be a non-empty array' })
 		const rows = await db.from('media_assets').whereIn('id', ids).select('id', 'categories')
 		const now = new Date()
 		let updated = 0
 		for (const row of rows) {
-			const current: string[] = Array.isArray((row as any).categories) ? (row as any).categories : []
+			const current: string[] = Array.isArray((row as any).categories)
+				? (row as any).categories
+				: []
 			const nextSet = new Set(current)
 			for (const r of removeArr) nextSet.delete(r)
 			for (const a of addArr) nextSet.add(a)
 			const next = Array.from(nextSet)
 			const changed = JSON.stringify(current.slice().sort()) !== JSON.stringify(next.slice().sort())
 			if (changed) {
-				await db.from('media_assets').where('id', (row as any).id).update({ categories: next as any, updated_at: now } as any)
+				await db
+					.from('media_assets')
+					.where('id', (row as any).id)
+					.update({ categories: next as any, updated_at: now } as any)
 				updated++
 			}
 		}
@@ -1036,5 +1256,3 @@ export default class MediaController {
 		return response.ok({ data: { updated } })
 	}
 }
-
-

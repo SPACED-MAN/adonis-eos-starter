@@ -104,5 +104,3 @@ export default class FaqModule extends BaseModule {
     }
   }
 }
-
-

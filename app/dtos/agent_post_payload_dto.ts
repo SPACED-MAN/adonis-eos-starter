@@ -43,5 +43,3 @@ export default class AgentPostPayloadDto extends BaseModelDto {
     this.context = context || {}
   }
 }
-
-

@@ -37,11 +37,15 @@ export default class PostsModulesController extends BasePostsController {
         return response.redirect().back()
       }
 
-      return this.response.created(response, {
-        postModuleId: result.postModule.id,
-        moduleInstanceId: result.moduleInstanceId,
-        orderIndex: result.postModule.order_index,
-      }, 'Module added to post successfully')
+      return this.response.created(
+        response,
+        {
+          postModuleId: result.postModule.id,
+          moduleInstanceId: result.moduleInstanceId,
+          orderIndex: result.postModule.order_index,
+        },
+        'Module added to post successfully'
+      )
     } catch (error) {
       if (error instanceof AddModuleToPostException) {
         if (request.header('x-inertia')) {
@@ -112,4 +116,3 @@ export default class PostsModulesController extends BasePostsController {
     return this.response.noContent(response)
   }
 }
-

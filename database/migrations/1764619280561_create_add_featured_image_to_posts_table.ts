@@ -6,7 +6,11 @@ export default class extends BaseSchema {
   async up() {
     this.schema.alterTable(this.tableName, (table) => {
       table.uuid('featured_image_id').nullable().after('excerpt')
-      table.foreign('featured_image_id').references('id').inTable('media_assets').onDelete('SET NULL')
+      table
+        .foreign('featured_image_id')
+        .references('id')
+        .inTable('media_assets')
+        .onDelete('SET NULL')
       table.index('featured_image_id')
     })
   }

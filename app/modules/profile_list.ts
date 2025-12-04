@@ -6,7 +6,8 @@ export default class ProfileListModule extends BaseModule {
     return {
       type: 'profile-list',
       name: 'Profile List',
-      description: 'Grid of featured team profiles with image, role, and bio. Defaults to all profiles if none are selected.',
+      description:
+        'Grid of featured team profiles with image, role, and bio. Defaults to all profiles if none are selected.',
       icon: 'users',
       allowedScopes: ['local', 'global'],
       lockable: true,
@@ -42,5 +43,3 @@ export default class ProfileListModule extends BaseModule {
     }
   }
 }
-
-

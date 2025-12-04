@@ -180,7 +180,13 @@ export default class PostSerializerService {
       .where('post_modules.post_id', postId)
       .select('post_modules.id as pmid', 'module_instances.id as miid', 'module_instances.scope')
     if (existing.length) {
-      await db.from('post_modules').whereIn('id', existing.map((r: any) => r.pmid)).delete()
+      await db
+        .from('post_modules')
+        .whereIn(
+          'id',
+          existing.map((r: any) => r.pmid)
+        )
+        .delete()
       const deletable = existing.filter((r: any) => r.scope !== 'global').map((r: any) => r.miid)
       if (deletable.length) {
         await db.from('module_instances').whereIn('id', deletable).delete()
@@ -208,7 +214,10 @@ export default class PostSerializerService {
       const now = new Date()
       for (const f of data.post!.customFields!) {
         const value = typeof f.value === 'string' ? JSON.stringify(f.value) : f.value
-        const updated = await db.from('post_custom_field_values').where({ post_id: postId, field_slug: f.slug }).update({ value: value as any, updated_at: now } as any)
+        const updated = await db
+          .from('post_custom_field_values')
+          .where({ post_id: postId, field_slug: f.slug })
+          .update({ value: value as any, updated_at: now } as any)
         if (!updated) {
           await db.table('post_custom_field_values').insert({
             id: (await import('node:crypto')).randomUUID(),
@@ -223,5 +232,3 @@ export default class PostSerializerService {
     }
   }
 }
-
-

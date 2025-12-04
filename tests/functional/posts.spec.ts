@@ -11,7 +11,9 @@ test.group('Posts API', (group) => {
   group.setup(async () => {
     // Create test users
     adminUser = await UserFactory.apply('admin').merge({ email: 'admin-test@example.com' }).create()
-    editorUser = await UserFactory.apply('editor').merge({ email: 'editor-test@example.com' }).create()
+    editorUser = await UserFactory.apply('editor')
+      .merge({ email: 'editor-test@example.com' })
+      .create()
   })
 
   group.teardown(async () => {
@@ -29,10 +31,7 @@ test.group('Posts API', (group) => {
     // Create some test posts with the correct user
     await postForUser(editorUser.id).createMany(5)
 
-    const response = await client
-      .get('/api/posts')
-      .withGuard('web')
-      .loginAs(editorUser)
+    const response = await client.get('/api/posts').withGuard('web').loginAs(editorUser)
 
     response.assertStatus(200)
     assert.exists(response.body().data)
@@ -44,10 +43,7 @@ test.group('Posts API', (group) => {
     await postForUser(editorUser.id).apply('blog').create()
     await postForUser(editorUser.id).apply('page').create()
 
-    const response = await client
-      .get('/api/posts?type=blog')
-      .withGuard('web')
-      .loginAs(editorUser)
+    const response = await client.get('/api/posts?type=blog').withGuard('web').loginAs(editorUser)
 
     response.assertStatus(200)
     const posts = response.body().data
@@ -268,7 +264,9 @@ test.group('Posts Modules API', (group) => {
   let post: any
 
   group.setup(async () => {
-    adminUser = await UserFactory.apply('admin').merge({ email: 'admin-modules@example.com' }).create()
+    adminUser = await UserFactory.apply('admin')
+      .merge({ email: 'admin-modules@example.com' })
+      .create()
     post = await postForUser(adminUser.id).create()
   })
 
@@ -328,7 +326,9 @@ test.group('Posts Revisions API', (group) => {
   let post: any
 
   group.setup(async () => {
-    adminUser = await UserFactory.apply('admin').merge({ email: 'admin-revisions@example.com' }).create()
+    adminUser = await UserFactory.apply('admin')
+      .merge({ email: 'admin-revisions@example.com' })
+      .create()
     post = await postForUser(adminUser.id).create()
 
     // Create some revisions
@@ -362,7 +362,10 @@ test.group('Posts Revisions API', (group) => {
   })
 
   test('POST /api/posts/:id/revisions/:revId/revert restores a revision', async ({ client }) => {
-    const revisions = await db.from('post_revisions').where('post_id', post.id).orderBy('created_at', 'desc')
+    const revisions = await db
+      .from('post_revisions')
+      .where('post_id', post.id)
+      .orderBy('created_at', 'desc')
     const revId = revisions[0]?.id
 
     if (revId) {
@@ -382,7 +385,9 @@ test.group('Posts Export/Import API', (group) => {
   let post: any
 
   group.setup(async () => {
-    adminUser = await UserFactory.apply('admin').merge({ email: 'admin-export@example.com' }).create()
+    adminUser = await UserFactory.apply('admin')
+      .merge({ email: 'admin-export@example.com' })
+      .create()
     post = await postForUser(adminUser.id).create()
   })
 

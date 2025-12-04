@@ -12,6 +12,3 @@ class FormConfigService {
 }
 
 export default new FormConfigService()
-
-
-

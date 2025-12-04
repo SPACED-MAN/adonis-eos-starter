@@ -37,5 +37,3 @@ class MenuTemplateRegistry {
 
 const singleton = new MenuTemplateRegistry()
 export default singleton
-
-

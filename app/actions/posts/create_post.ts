@@ -56,7 +56,11 @@ export default class CreatePost {
         const ui = postTypeConfigService.getUiConfig(type)
         const isBuiltIn = type === 'profile'
         if (!isBuiltIn && !ui) {
-          throw new CreatePostException(`Unknown post type: ${type}. Create app/post_types/${type}.ts first.`, 400, { type })
+          throw new CreatePostException(
+            `Unknown post type: ${type}. Create app/post_types/${type}.ts first.`,
+            400,
+            { type }
+          )
         }
       }
     } catch {
@@ -66,35 +70,46 @@ export default class CreatePost {
     if (type === 'profile') {
       // Role enablement from site settings
       const site = await siteSettingsService.get()
-      const enabledRoles: string[] = Array.isArray((site as any).profileRolesEnabled) ? (site as any).profileRolesEnabled : []
+      const enabledRoles: string[] = Array.isArray((site as any).profileRolesEnabled)
+        ? (site as any).profileRolesEnabled
+        : []
       // Determine user role
       const userRow = await db.from('users').where('id', userId).select('role').first()
       const userRole = String((userRow as any)?.role || '')
       if (!userRole || (enabledRoles.length > 0 && !enabledRoles.includes(userRole))) {
-        throw new CreatePostException('Profiles are disabled for your role', 403, { role: userRole })
+        throw new CreatePostException('Profiles are disabled for your role', 403, {
+          role: userRole,
+        })
       }
       // Enforce one profile per user
-      const existingProfile = await db.from('posts').where({ type: 'profile', author_id: userId }).first()
+      const existingProfile = await db
+        .from('posts')
+        .where({ type: 'profile', author_id: userId })
+        .first()
       if (existingProfile) {
-        throw new CreatePostException('A profile already exists for this user', 409, { postId: (existingProfile as any).id })
+        throw new CreatePostException('A profile already exists for this user', 409, {
+          postId: (existingProfile as any).id,
+        })
       }
     }
     // Validate slug uniqueness for this locale
     const existingPost = await Post.query().where('slug', slug).where('locale', locale).first()
 
     if (existingPost) {
-      throw new CreatePostException(
-        'A post with this slug already exists for this locale',
-        409,
-        { slug, locale }
-      )
+      throw new CreatePostException('A post with this slug already exists for this locale', 409, {
+        slug,
+        locale,
+      })
     }
 
     // Resolve default template when none provided
     let effectiveTemplateId: string | null = templateId
     if (!effectiveTemplateId) {
       const defaultName = `${type}-default`
-      const defaultTemplate = await db.from('templates').where({ post_type: type, name: defaultName }).first()
+      const defaultTemplate = await db
+        .from('templates')
+        .where({ post_type: type, name: defaultName })
+        .first()
       if (defaultTemplate) {
         effectiveTemplateId = (defaultTemplate as any).id as string
       } else {
@@ -137,7 +152,7 @@ export default class CreatePost {
     try {
       const locales = await LocaleService.getSupportedLocales()
       await urlPatternService.ensureDefaultsForPostType(type, locales)
-    } catch { }
+    } catch {}
 
     return post
   }
@@ -175,14 +190,17 @@ export default class CreatePost {
           .first()
         if (!global) {
           // If missing, create a new global instance using template default props
-          const [created] = await trx.table('module_instances').insert({
-            scope: 'global',
-            type: tm.type,
-            global_slug: (tm as any).global_slug,
-            props: tm.default_props || {},
-            created_at: now,
-            updated_at: now,
-          }).returning('*')
+          const [created] = await trx
+            .table('module_instances')
+            .insert({
+              scope: 'global',
+              type: tm.type,
+              global_slug: (tm as any).global_slug,
+              props: tm.default_props || {},
+              created_at: now,
+              updated_at: now,
+            })
+            .returning('*')
           moduleInstanceId = (created as any).id
         } else {
           moduleInstanceId = (global as any).id

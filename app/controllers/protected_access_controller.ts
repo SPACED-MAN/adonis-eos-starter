@@ -27,13 +27,21 @@ export default class ProtectedAccessController {
       const vals = await siteCustomFieldsService.getValues()
       expectedUser = String((vals as any)?.protected_access_username || '')
       expectedPass = String((vals as any)?.protected_access_password || '')
-    } catch { /* ignore */ }
+    } catch {
+      /* ignore */
+    }
     if (!expectedUser || !expectedPass) {
       expectedUser = process.env.PROTECTED_ACCESS_USERNAME || ''
       expectedPass = process.env.PROTECTED_ACCESS_PASSWORD || ''
     }
 
-    const ok = username && password && expectedUser && expectedPass && username === expectedUser && password === expectedPass
+    const ok =
+      username &&
+      password &&
+      expectedUser &&
+      expectedPass &&
+      username === expectedUser &&
+      password === expectedPass
     if (!ok) {
       return response.unauthorized({ error: 'Invalid credentials' })
     }
@@ -47,6 +55,3 @@ export default class ProtectedAccessController {
     return response.ok({ ok: true, redirect })
   }
 }
-
-
-

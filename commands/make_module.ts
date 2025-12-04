@@ -27,7 +27,7 @@ export default class MakeModule extends BaseCommand {
    */
   protected getModuleTemplate(moduleName: string, moduleType: string, mode: string): string {
     const renderMode = mode === 'static' ? 'static' : 'react'
-    
+
     return `import BaseModule from '#modules/base'
 import type { ModuleConfig } from '#types/module_types'
 
@@ -157,11 +157,10 @@ export default function ${moduleName}({
     const moduleType = string.snakeCase(this.name).replace(/_/g, '-')
     const backendFileName = `${string.snakeCase(this.name)}.ts`
     const appRoot = fileURLToPath(this.app.appRoot)
-    
+
     // Determine frontend file name based on mode
-    const frontendFileName = this.mode === 'static' 
-      ? `${moduleType}-static.tsx`
-      : `${moduleType}.tsx`
+    const frontendFileName =
+      this.mode === 'static' ? `${moduleType}-static.tsx` : `${moduleType}.tsx`
 
     // Create backend module class
     const backendPath = join(appRoot, 'app', 'modules', backendFileName)
@@ -170,9 +169,10 @@ export default function ${moduleName}({
 
     // Create frontend component
     const frontendPath = join(appRoot, 'inertia', 'modules', frontendFileName)
-    const frontendContent = this.mode === 'static'
-      ? this.getStaticComponentTemplate(moduleName, moduleType)
-      : this.getReactComponentTemplate(moduleName, moduleType)
+    const frontendContent =
+      this.mode === 'static'
+        ? this.getStaticComponentTemplate(moduleName, moduleType)
+        : this.getReactComponentTemplate(moduleName, moduleType)
     await writeFile(frontendPath, frontendContent, 'utf-8')
 
     // Success output
@@ -184,13 +184,23 @@ export default function ${moduleName}({
     this.logger.info('')
     this.logger.info('📝 Next steps:')
     this.logger.info('  1. Implement TODOs in both files:')
-    this.logger.info(this.colors.dim(`     - Define props schema in app/modules/${backendFileName}`))
+    this.logger.info(
+      this.colors.dim(`     - Define props schema in app/modules/${backendFileName}`)
+    )
     this.logger.info(this.colors.dim(`     - Build UI in inertia/modules/${frontendFileName}`))
     this.logger.info('  2. Register in start/modules.ts:')
-    this.logger.info(this.colors.dim(`     import ${moduleName}Module from '#modules/${string.snakeCase(this.name)}'`))
+    this.logger.info(
+      this.colors.dim(
+        `     import ${moduleName}Module from '#modules/${string.snakeCase(this.name)}'`
+      )
+    )
     this.logger.info(this.colors.dim(`     ModuleRegistry.register(new ${moduleName}Module())`))
     this.logger.info('  3. Create unit tests in tests/unit/modules/')
     this.logger.info('')
-    this.logger.info(this.colors.cyan('💡 Tip: Use --mode=static for simple content, --mode=react for interactivity'))
+    this.logger.info(
+      this.colors.cyan(
+        '💡 Tip: Use --mode=static for simple content, --mode=react for interactivity'
+      )
+    )
   }
 }

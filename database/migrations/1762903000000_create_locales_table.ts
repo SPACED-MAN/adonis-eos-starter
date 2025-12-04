@@ -46,7 +46,9 @@ $$;
       })
     }
     // Enforce a single default via a partial unique index (PostgreSQL)
-    await this.schema.raw(`CREATE UNIQUE INDEX IF NOT EXISTS ${this.tableName}_default_unique ON ${this.tableName} ((1)) WHERE is_default = true;`)
+    await this.schema.raw(
+      `CREATE UNIQUE INDEX IF NOT EXISTS ${this.tableName}_default_unique ON ${this.tableName} ((1)) WHERE is_default = true;`
+    )
   }
 
   async down() {
@@ -54,5 +56,3 @@ $$;
     await this.schema.dropTableIfExists(this.tableName)
   }
 }
-
-

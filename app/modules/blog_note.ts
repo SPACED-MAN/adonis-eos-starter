@@ -3,7 +3,7 @@ import type { ModuleConfig } from '#types/module_types'
 
 /**
  * Blog Note Module
- * 
+ *
  * A simple, blog-specific module that renders a single text field.
  */
 export default class BlogNoteModule extends BaseModule {
@@ -35,5 +35,3 @@ export default class BlogNoteModule extends BaseModule {
     }
   }
 }
-
-

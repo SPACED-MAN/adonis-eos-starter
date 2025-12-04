@@ -16,5 +16,3 @@ export default {
   // Exporting modules to avoid “unused import” elimination in some bundlers
   _exports: { primary },
 }
-
-

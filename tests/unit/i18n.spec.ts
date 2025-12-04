@@ -2,7 +2,11 @@ import { test } from '@japa/runner'
 import db from '@adonisjs/lucid/services/db'
 import Post from '#models/post'
 import localeService from '#services/locale_service'
-import { generateHreflangTags, buildLocaleSwitcher, getLocalizedContent } from '#helpers/i18n_helpers'
+import {
+  generateHreflangTags,
+  buildLocaleSwitcher,
+  getLocalizedContent,
+} from '#helpers/i18n_helpers'
 
 test.group('i18n - Locale Service', () => {
   test('should return supported locales', ({ assert }) => {
@@ -49,7 +53,7 @@ test.group('i18n - Post Model', (group) => {
 
   test('should identify post as translation', async ({ assert }) => {
     const posts = await db.from('posts').select('*').limit(2)
-    
+
     if (posts.length >= 2) {
       const originalPost = await Post.find(posts[0].id)
       const translationPost = await Post.find(posts[1].id)
@@ -76,7 +80,7 @@ test.group('i18n - Post Model', (group) => {
 
     if (enPost) {
       const hasEs = await enPost.hasTranslation('es')
-      
+
       if (hasEs) {
         const esTranslation = await enPost.getTranslation('es')
         assert.isNotNull(esTranslation)
@@ -87,7 +91,7 @@ test.group('i18n - Post Model', (group) => {
 
   test('should use byLocale query scope', async ({ assert }) => {
     const enPosts = await Post.query().apply((scopes) => scopes.byLocale('en'))
-    
+
     enPosts.forEach((post) => {
       assert.equal(post.locale, 'en')
     })
@@ -95,7 +99,7 @@ test.group('i18n - Post Model', (group) => {
 
   test('should use originals query scope', async ({ assert }) => {
     const originalPosts = await Post.query().apply((scopes) => scopes.originals())
-    
+
     originalPosts.forEach((post) => {
       assert.isNull(post.translationOfId)
     })
@@ -116,10 +120,10 @@ test.group('i18n - Helper Functions', (group) => {
 
     if (post) {
       const hreflangTags = await generateHreflangTags(post, 'https://example.com')
-      
+
       assert.isArray(hreflangTags)
       assert.isAtLeast(hreflangTags.length, 1)
-      
+
       // Check that tags contain proper hreflang format
       hreflangTags.forEach((tag) => {
         assert.include(tag, 'rel="alternate"')
@@ -138,9 +142,9 @@ test.group('i18n - Helper Functions', (group) => {
 
     if (post) {
       const switcher = await buildLocaleSwitcher(post, '/blog/test', 'https://example.com')
-      
+
       assert.isArray(switcher)
-      
+
       switcher.forEach((option) => {
         assert.property(option, 'locale')
         assert.property(option, 'label')
@@ -184,4 +188,3 @@ test.group('i18n - Helper Functions', (group) => {
     assert.equal(result, 'Simple string')
   })
 })
-

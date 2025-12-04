@@ -12,25 +12,22 @@ export default class extends BaseSchema {
       table.text('global_label').nullable()
 
       table.string('type', 100).notNullable()
-      
+
       // For post-scoped modules
-      table.uuid('post_id').nullable()
-        .references('id')
-        .inTable('posts')
-        .onDelete('CASCADE')
-      
+      table.uuid('post_id').nullable().references('id').inTable('posts').onDelete('CASCADE')
+
       // For global modules (unique when scope=global)
       table.string('global_slug', 255).nullable()
-      
+
       // Module configuration and data (includes locale-specific content)
       table.jsonb('props').notNullable().defaultTo('{}')
       // Review props for review workflow
       table.jsonb('review_props').nullable()
-      
+
       // Render caching
       table.text('render_cache_html').nullable()
       table.string('render_etag', 100).nullable()
-      
+
       table.timestamp('created_at').notNullable()
       table.timestamp('updated_at').notNullable()
 
@@ -39,11 +36,13 @@ export default class extends BaseSchema {
       table.index(['scope', 'type'], 'module_instances_scope_idx') // For module filtering
       table.index('post_id') // For post-module lookups
     })
-    
+
     // GIN index for JSONB queries (must be done after table creation)
     this.schema.raw('CREATE INDEX module_instances_props_gin ON module_instances USING GIN (props)')
     // Enforce allowed scope values at DB level
-    this.schema.raw(`ALTER TABLE "module_instances" ADD CONSTRAINT "module_instances_scope_chk" CHECK (scope IN ('post','global'))`)
+    this.schema.raw(
+      `ALTER TABLE "module_instances" ADD CONSTRAINT "module_instances_scope_chk" CHECK (scope IN ('post','global'))`
+    )
   }
 
   async down() {

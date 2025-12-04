@@ -10,7 +10,7 @@ export default class extends BaseSeeder {
       // Update existing user
       existingUser.password = 'supersecret'
       existingUser.fullName = 'Admin User'
-        ; (existingUser as any).role = 'admin'
+      ;(existingUser as any).role = 'admin'
       await existingUser.save()
       console.log('Updated existing admin user')
     } else {
@@ -19,7 +19,7 @@ export default class extends BaseSeeder {
       user.email = 'admin@example.com'
       user.password = 'supersecret'
       user.fullName = 'Admin User'
-        ; (user as any).role = 'admin'
+      ;(user as any).role = 'admin'
       await user.save()
       console.log('Created new admin user')
     }
@@ -29,7 +29,7 @@ export default class extends BaseSeeder {
     if (existingEditor) {
       existingEditor.password = 'supersecret'
       existingEditor.fullName = 'Editor User'
-        ; (existingEditor as any).role = 'editor'
+      ;(existingEditor as any).role = 'editor'
       await existingEditor.save()
       console.log('Updated existing editor user')
     } else {
@@ -37,7 +37,7 @@ export default class extends BaseSeeder {
       editor.email = 'editor@example.com'
       editor.password = 'supersecret'
       editor.fullName = 'Editor User'
-        ; (editor as any).role = 'editor'
+      ;(editor as any).role = 'editor'
       await editor.save()
       console.log('Created editor user')
     }
@@ -47,7 +47,7 @@ export default class extends BaseSeeder {
     if (existingTranslator) {
       existingTranslator.password = 'supersecret'
       existingTranslator.fullName = 'Translator User'
-        ; (existingTranslator as any).role = 'translator'
+      ;(existingTranslator as any).role = 'translator'
       await existingTranslator.save()
       console.log('Updated existing translator user')
     } else {
@@ -55,7 +55,7 @@ export default class extends BaseSeeder {
       translator.email = 'translator@example.com'
       translator.password = 'supersecret'
       translator.fullName = 'Translator User'
-        ; (translator as any).role = 'translator'
+      ;(translator as any).role = 'translator'
       await translator.save()
       console.log('Created translator user')
     }

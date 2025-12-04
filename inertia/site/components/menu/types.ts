@@ -12,5 +12,3 @@ export type MenuItem = {
 }
 
 export type TreeNode = MenuItem & { children: TreeNode[] }
-
-

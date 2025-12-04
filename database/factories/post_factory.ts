@@ -29,5 +29,3 @@ export const PostFactory = factory
     post.type = 'page'
   })
   .build()
-
-

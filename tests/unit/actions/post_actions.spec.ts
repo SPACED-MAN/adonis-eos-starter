@@ -9,7 +9,7 @@ import ProseModule from '#modules/prose'
 test.group('Post Actions - CreatePost', (group) => {
   group.each.setup(async () => {
     await testUtils.db().truncate()
-    
+
     // Register modules
     moduleRegistry.clear()
     moduleRegistry.register(new ProseModule())
@@ -184,4 +184,3 @@ test.group('Post Actions - UpdatePost', (group) => {
     }
   })
 })
-

@@ -16,9 +16,7 @@ export default class RedirectsMiddleware {
     // First try exact locale match (when provided in query),
     // then any redirect for this from_path regardless of locale.
     const redirect =
-      (locale
-        ? await db.from('url_redirects').where({ from_path: path, locale }).first()
-        : null) ||
+      (locale ? await db.from('url_redirects').where({ from_path: path, locale }).first() : null) ||
       (await db.from('url_redirects').where({ from_path: path }).first())
 
     if (redirect) {
@@ -29,5 +27,3 @@ export default class RedirectsMiddleware {
     await next()
   }
 }
-
-

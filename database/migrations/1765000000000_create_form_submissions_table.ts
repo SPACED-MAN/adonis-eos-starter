@@ -20,6 +20,3 @@ export default class CreateFormSubmissionsTable extends BaseSchema {
     this.schema.dropTable(this.tableName)
   }
 }
-
-
-

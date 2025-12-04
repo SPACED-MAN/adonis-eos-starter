@@ -13,6 +13,3 @@ export default class extends BaseSchema {
     await this.schema.raw(`DELETE FROM taxonomies WHERE slug = 'lipsum'`)
   }
 }
-
-
-

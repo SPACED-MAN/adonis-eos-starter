@@ -17,7 +17,9 @@ export default class FormsAdminController {
       fields: Array.isArray((r as any).fields_json) ? (r as any).fields_json : [],
       successMessage: (r as any).success_message ? String((r as any).success_message) : '',
       thankYouPostId: (r as any).thank_you_post_id ? String((r as any).thank_you_post_id) : '',
-      subscriptions: Array.isArray((r as any).subscriptions_json) ? (r as any).subscriptions_json : [],
+      subscriptions: Array.isArray((r as any).subscriptions_json)
+        ? (r as any).subscriptions_json
+        : [],
       createdAt: (r as any).created_at ? new Date((r as any).created_at).toISOString() : null,
       updatedAt: (r as any).updated_at ? new Date((r as any).updated_at).toISOString() : null,
     }))
@@ -58,7 +60,9 @@ export default class FormsAdminController {
       fields: Array.isArray((r as any).fields_json) ? (r as any).fields_json : [],
       successMessage: (r as any).success_message ? String((r as any).success_message) : '',
       thankYouPostId: (r as any).thank_you_post_id ? String((r as any).thank_you_post_id) : '',
-      subscriptions: Array.isArray((r as any).subscriptions_json) ? (r as any).subscriptions_json : [],
+      subscriptions: Array.isArray((r as any).subscriptions_json)
+        ? (r as any).subscriptions_json
+        : [],
       createdAt: (r as any).created_at ? new Date((r as any).created_at).toISOString() : null,
       updatedAt: (r as any).updated_at ? new Date((r as any).updated_at).toISOString() : null,
     }))
@@ -70,7 +74,11 @@ export default class FormsAdminController {
    * Create a new form definition.
    */
   async createDefinition({ request, response, auth }: HttpContext) {
-    const role = (auth.use('web').user as any)?.role as 'admin' | 'editor' | 'translator' | undefined
+    const role = (auth.use('web').user as any)?.role as
+      | 'admin'
+      | 'editor'
+      | 'translator'
+      | undefined
     if (!(role === 'admin' || role === 'editor')) {
       return response.forbidden({ error: 'Not allowed to create forms' })
     }
@@ -85,13 +93,16 @@ export default class FormsAdminController {
 
     const slug = String(slugRaw || '').trim()
     const title = String(titleRaw || '').trim()
-    const description = descriptionRaw !== undefined && descriptionRaw !== null ? String(descriptionRaw) : ''
+    const description =
+      descriptionRaw !== undefined && descriptionRaw !== null ? String(descriptionRaw) : ''
     const fields = Array.isArray(fieldsRaw) ? fieldsRaw : []
     const subscriptions = Array.isArray(subscriptionsRaw) ? subscriptionsRaw : []
     const successMessage =
       successMessageRaw !== undefined && successMessageRaw !== null ? String(successMessageRaw) : ''
     const thankYouPostId =
-      thankYouPostIdRaw !== undefined && thankYouPostIdRaw !== null && String(thankYouPostIdRaw).trim() !== ''
+      thankYouPostIdRaw !== undefined &&
+      thankYouPostIdRaw !== null &&
+      String(thankYouPostIdRaw).trim() !== ''
         ? String(thankYouPostIdRaw)
         : ''
 
@@ -137,7 +148,11 @@ export default class FormsAdminController {
    * Update an existing form definition.
    */
   async updateDefinition({ params, request, response, auth }: HttpContext) {
-    const role = (auth.use('web').user as any)?.role as 'admin' | 'editor' | 'translator' | undefined
+    const role = (auth.use('web').user as any)?.role as
+      | 'admin'
+      | 'editor'
+      | 'translator'
+      | undefined
     if (!(role === 'admin' || role === 'editor')) {
       return response.forbidden({ error: 'Not allowed to update forms' })
     }
@@ -212,9 +227,13 @@ export default class FormsAdminController {
         title: String((row as any).title),
         description: (row as any).description ? String((row as any).description) : '',
         fields: Array.isArray((row as any).fields_json) ? (row as any).fields_json : [],
-        subscriptions: Array.isArray((row as any).subscriptions_json) ? (row as any).subscriptions_json : [],
+        subscriptions: Array.isArray((row as any).subscriptions_json)
+          ? (row as any).subscriptions_json
+          : [],
         successMessage: (row as any).success_message ? String((row as any).success_message) : '',
-        thankYouPostId: (row as any).thank_you_post_id ? String((row as any).thank_you_post_id) : '',
+        thankYouPostId: (row as any).thank_you_post_id
+          ? String((row as any).thank_you_post_id)
+          : '',
         createdAt: (row as any).created_at ? new Date((row as any).created_at).toISOString() : null,
         updatedAt: (row as any).updated_at ? new Date((row as any).updated_at).toISOString() : null,
       },
@@ -226,7 +245,11 @@ export default class FormsAdminController {
    * Delete a form definition.
    */
   async deleteDefinition({ params, response, auth }: HttpContext) {
-    const role = (auth.use('web').user as any)?.role as 'admin' | 'editor' | 'translator' | undefined
+    const role = (auth.use('web').user as any)?.role as
+      | 'admin'
+      | 'editor'
+      | 'translator'
+      | undefined
     if (role !== 'admin') {
       return response.forbidden({ error: 'Admin only' })
     }
@@ -241,4 +264,3 @@ export default class FormsAdminController {
     return response.noContent()
   }
 }
-

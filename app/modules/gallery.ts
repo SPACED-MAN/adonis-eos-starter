@@ -3,10 +3,10 @@ import type { ModuleConfig } from '#types/module_types'
 
 /**
  * Gallery Module
- * 
+ *
  * Interactive image gallery with lightbox, navigation, and keyboard controls.
  * Uses React component for full interactivity.
- * 
+ *
  * Rendering: React component (inertia/modules/gallery.tsx)
  * Performance: SSR + hydration for interactivity
  */
@@ -58,5 +58,4 @@ export default class GalleryModule extends BaseModule {
       allowedPostTypes: [], // Available for all post types
     }
   }
-
 }

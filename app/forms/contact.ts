@@ -13,6 +13,3 @@ const contactForm: FormConfig = {
 }
 
 export default contactForm
-
-
-

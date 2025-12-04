@@ -71,13 +71,17 @@ export default class WebhooksController {
       maxRetries: payload.maxRetries || 3,
     })
 
-    return responseService.created(response, {
-      id: webhook.id,
-      name: webhook.name,
-      url: webhook.url,
-      events: webhook.events,
-      active: webhook.active,
-    }, 'Webhook created successfully')
+    return responseService.created(
+      response,
+      {
+        id: webhook.id,
+        name: webhook.name,
+        url: webhook.url,
+        events: webhook.events,
+        active: webhook.active,
+      },
+      'Webhook created successfully'
+    )
   }
 
   /**
@@ -203,4 +207,3 @@ export default class WebhooksController {
     })
   }
 }
-

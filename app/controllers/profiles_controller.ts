@@ -26,7 +26,12 @@ export default class ProfilesController {
     const limit = Math.min(100, Math.max(1, Number(request.input('limit', 50)) || 50))
 
     const idsParam = String(request.input('ids', '')).trim()
-    const ids: string[] = idsParam ? idsParam.split(',').map((v) => v.trim()).filter(Boolean) : []
+    const ids: string[] = idsParam
+      ? idsParam
+          .split(',')
+          .map((v) => v.trim())
+          .filter(Boolean)
+      : []
 
     const query = Post.query().where('type', 'profile')
 
@@ -118,7 +123,7 @@ export default class ProfilesController {
       // Prefer core featured image; fall back to legacy profile_image custom field for older data.
       const featuredImageId = (p as any).featuredImageId || (p as any).featured_image_id || null
       const legacyImageId = extras?.profile_image_id || null
-      const imageId = featuredImageId ? String(featuredImageId) : (legacyImageId || null)
+      const imageId = featuredImageId ? String(featuredImageId) : legacyImageId || null
 
       return {
         id: pid,
@@ -133,5 +138,3 @@ export default class ProfilesController {
     return response.ok({ data: items })
   }
 }
-
-

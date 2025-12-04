@@ -221,8 +221,11 @@ class PostRenderingService {
 
     // Build JSON-LD
     const title = useReview
-      ? ((reviewDraft as any).metaTitle ?? (reviewDraft as any).title ?? post.metaTitle ?? post.title)
-      : (post.metaTitle || post.title)
+      ? ((reviewDraft as any).metaTitle ??
+        (reviewDraft as any).title ??
+        post.metaTitle ??
+        post.title)
+      : post.metaTitle || post.title
     const description = useReview
       ? ((reviewDraft as any).metaDescription ?? post.metaDescription)
       : post.metaDescription
@@ -230,9 +233,9 @@ class PostRenderingService {
     const defaultJsonLd: Record<string, unknown> = {
       '@context': 'https://schema.org',
       '@type': 'BlogPosting',
-      headline: title,
-      inLanguage: post.locale,
-      mainEntityOfPage: canonical,
+      'headline': title,
+      'inLanguage': post.locale,
+      'mainEntityOfPage': canonical,
       ...(description && { description }),
     }
     const jsonLd = { ...defaultJsonLd, ...(post.jsonldOverrides || {}) }
@@ -349,4 +352,3 @@ class PostRenderingService {
 
 const postRenderingService = new PostRenderingService()
 export default postRenderingService
-

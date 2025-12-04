@@ -50,12 +50,18 @@ class UrlPatternService {
   /**
    * Build path using default pattern for postType+locale.
    */
-  async buildPostPath(postType: string, slug: string, locale: string, createdAt?: Date): Promise<string> {
+  async buildPostPath(
+    postType: string,
+    slug: string,
+    locale: string,
+    createdAt?: Date
+  ): Promise<string> {
     const stored = await this.getDefaultPattern(postType, locale)
     const hierarchical = postTypeConfigService.getUiConfig(postType).hierarchyEnabled
     const seg = hierarchical ? '{path}' : '{slug}'
     const defaultLocale = localeService.getDefaultLocale()
-    const fallbackPattern = locale === defaultLocale ? `/${postType}/${seg}` : `/{locale}/${postType}/${seg}`
+    const fallbackPattern =
+      locale === defaultLocale ? `/${postType}/${seg}` : `/{locale}/${postType}/${seg}`
     const defaultPattern = stored?.pattern || fallbackPattern
     const d = createdAt ? new Date(createdAt) : new Date()
     const yyyy = String(d.getUTCFullYear())
@@ -125,7 +131,9 @@ class UrlPatternService {
    * Try to match an incoming path to a stored pattern.
    * Returns { postType, locale, slug } or null.
    */
-  async matchPath(path: string): Promise<{ postType: string; locale: string; slug: string } | null> {
+  async matchPath(
+    path: string
+  ): Promise<{ postType: string; locale: string; slug: string } | null> {
     const patterns = await this.getAllPatterns()
     for (const p of patterns) {
       const re = this.compilePattern(p.pattern)
@@ -149,7 +157,11 @@ class UrlPatternService {
   /**
    * Ensure default patterns exist for a postType across all supported locales.
    */
-  async ensureDefaultsForPostType(postType: string, locales: string[], _defaultPattern = '/{locale}/posts/{slug}'): Promise<void> {
+  async ensureDefaultsForPostType(
+    postType: string,
+    locales: string[],
+    _defaultPattern = '/{locale}/posts/{slug}'
+  ): Promise<void> {
     const existing = await db.from('url_patterns').where({ post_type: postType }).select('locale')
     const existingLocales = new Set(existing.map((r) => r.locale))
     const missing = locales.filter((l) => !existingLocales.has(l))
@@ -161,12 +173,12 @@ class UrlPatternService {
     const rows = missing.map((locale) => {
       const pat = locale === defaultLocale ? `/${postType}/${seg}` : `/{locale}/${postType}/${seg}`
       return {
-      post_type: postType,
-      locale,
+        post_type: postType,
+        locale,
         pattern: pat,
-      is_default: true,
-      created_at: now,
-      updated_at: now,
+        is_default: true,
+        created_at: now,
+        updated_at: now,
       }
     })
     await db.table('url_patterns').insert(rows)
@@ -178,7 +190,11 @@ class UrlPatternService {
    */
   async getParentPathForPost(postId: string): Promise<string> {
     // Load the post to get type/locale/parent_id
-    const root = await db.from('posts').where('id', postId).select('id', 'parent_id as parentId', 'type', 'locale', 'slug').first()
+    const root = await db
+      .from('posts')
+      .where('id', postId)
+      .select('id', 'parent_id as parentId', 'type', 'locale', 'slug')
+      .first()
     if (!root) return ''
     const type = String((root as any).type)
     const locale = String((root as any).locale)
@@ -186,7 +202,11 @@ class UrlPatternService {
     const chain: string[] = []
     const guard = new Set<string>([String((root as any).id)])
     while (nextParent) {
-      const row = await db.from('posts').where('id', nextParent).select('id', 'parent_id as parentId', 'slug', 'type', 'locale').first()
+      const row = await db
+        .from('posts')
+        .where('id', nextParent)
+        .select('id', 'parent_id as parentId', 'slug', 'type', 'locale')
+        .first()
       if (!row) break
       if (String((row as any).type) !== type || String((row as any).locale) !== locale) break
       const slug = String((row as any).slug || '')
@@ -205,14 +225,23 @@ class UrlPatternService {
   async buildPostPathForPost(postId: string): Promise<string> {
     const row = await db.from('posts').where('id', postId).first()
     if (!row) return '/'
-    const pattern = (await this.getDefaultPattern(String(row.type), String(row.locale)))?.pattern || '/{locale}/posts/{slug}'
+    const pattern =
+      (await this.getDefaultPattern(String(row.type), String(row.locale)))?.pattern ||
+      '/{locale}/posts/{slug}'
     const d = (row as any).created_at ? new Date((row as any).created_at) : new Date()
     const yyyy = String(d.getUTCFullYear())
     const mm = String(d.getUTCMonth() + 1).padStart(2, '0')
     const dd = String(d.getUTCDate()).padStart(2, '0')
     const parentPath = await this.getParentPathForPost(String(row.id))
     const path = parentPath ? `${parentPath}/${String(row.slug)}` : String(row.slug)
-    return this.replaceTokens(pattern, { slug: String(row.slug), path, locale: String(row.locale), yyyy, mm, dd })
+    return this.replaceTokens(pattern, {
+      slug: String(row.slug),
+      path,
+      locale: String(row.locale),
+      yyyy,
+      mm,
+      dd,
+    })
   }
 
   async buildPostUrlForPost(postId: string, protocol: string, host: string): Promise<string> {
@@ -223,7 +252,10 @@ class UrlPatternService {
   /**
    * Ensure defaults for all post types found in posts table across provided locales.
    */
-  async ensureDefaultsForAll(locales: string[], defaultPattern = '/{locale}/posts/{slug}'): Promise<void> {
+  async ensureDefaultsForAll(
+    locales: string[],
+    defaultPattern = '/{locale}/posts/{slug}'
+  ): Promise<void> {
     const rows = await db.from('posts').distinct('type as post_type')
     const types = rows.map((r) => r.post_type as string)
     for (const t of types) {
@@ -251,7 +283,10 @@ class UrlPatternService {
    * Ensure a specific locale has default patterns across all known post types.
    * Known post types are derived from templates + posts union.
    */
-  async ensureLocaleForAllPostTypes(locale: string, _defaultPattern = '/{locale}/posts/{slug}'): Promise<void> {
+  async ensureLocaleForAllPostTypes(
+    locale: string,
+    _defaultPattern = '/{locale}/posts/{slug}'
+  ): Promise<void> {
     const [fromTemplates, fromPosts] = await Promise.all([
       this.getPostTypesFromTemplates(),
       this.getPostTypesFromPosts(),
@@ -259,7 +294,10 @@ class UrlPatternService {
     const types = Array.from(new Set<string>([...fromTemplates, ...fromPosts]))
     if (types.length === 0) return
     const now = new Date()
-    const existing = await db.from('url_patterns').whereIn('post_type', types).andWhere('locale', locale)
+    const existing = await db
+      .from('url_patterns')
+      .whereIn('post_type', types)
+      .andWhere('locale', locale)
     const existingByType = new Set(existing.map((r) => r.post_type as string))
     const defaultLocale = localeService.getDefaultLocale()
     const rows = types
@@ -269,12 +307,12 @@ class UrlPatternService {
         const seg = hierarchical ? '{path}' : '{slug}'
         const pat = locale === defaultLocale ? `/${t}/${seg}` : `/{locale}/${t}/${seg}`
         return {
-        post_type: t,
-        locale,
+          post_type: t,
+          locale,
           pattern: pat,
-        is_default: true,
-        created_at: now,
-        updated_at: now,
+          is_default: true,
+          created_at: now,
+          updated_at: now,
         }
       })
     if (rows.length) {
@@ -299,7 +337,10 @@ class UrlPatternService {
     return rowCount || 0
   }
 
-  async updatePattern(id: string, data: { pattern: string; isDefault?: boolean }): Promise<UrlPatternData> {
+  async updatePattern(
+    id: string,
+    data: { pattern: string; isDefault?: boolean }
+  ): Promise<UrlPatternData> {
     const [rec] = await db
       .from('url_patterns')
       .where('id', id)
@@ -320,7 +361,12 @@ class UrlPatternService {
     }
   }
 
-  async createPattern(postType: string, locale: string, pattern: string, isDefault: boolean = true): Promise<UrlPatternData> {
+  async createPattern(
+    postType: string,
+    locale: string,
+    pattern: string,
+    isDefault: boolean = true
+  ): Promise<UrlPatternData> {
     const [rec] = await db
       .table('url_patterns')
       .insert({
@@ -346,5 +392,3 @@ class UrlPatternService {
 
 const urlPatternService = new UrlPatternService()
 export default urlPatternService
-
-

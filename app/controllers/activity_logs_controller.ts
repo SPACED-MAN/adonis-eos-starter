@@ -11,7 +11,8 @@ export default class ActivityLogsController {
     const action = request.input('action')
     const limit = Math.min(Number(request.input('limit') || 50), 200)
     const offset = Math.max(Number(request.input('offset') || 0), 0)
-    let q = db.from('activity_logs')
+    let q = db
+      .from('activity_logs')
       .leftJoin('users', 'users.id', 'activity_logs.user_id')
       .select(
         'activity_logs.id',
@@ -23,7 +24,7 @@ export default class ActivityLogsController {
         'activity_logs.user_agent as userAgent',
         'activity_logs.created_at as createdAt',
         'users.email as userEmail',
-        'users.id as userId',
+        'users.id as userId'
       )
       .orderBy('activity_logs.created_at', 'desc')
       .limit(limit)
@@ -34,6 +35,3 @@ export default class ActivityLogsController {
     return response.ok({ data: rows })
   }
 }
-
-
-

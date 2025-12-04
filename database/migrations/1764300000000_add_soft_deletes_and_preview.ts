@@ -23,7 +23,7 @@ export default class extends BaseSchema {
       table.timestamp('expires_at').notNullable()
       table.integer('created_by').nullable().references('id').inTable('users').onDelete('SET NULL')
       table.timestamp('created_at').notNullable().defaultTo(this.now())
-      
+
       // Index for token lookups
       table.index(['token', 'expires_at'], 'idx_preview_tokens_lookup')
     })
@@ -51,7 +51,12 @@ export default class extends BaseSchema {
     // Create webhook delivery log
     this.schema.createTable('webhook_deliveries', (table) => {
       table.uuid('id').primary().defaultTo(this.raw('gen_random_uuid()'))
-      table.uuid('webhook_id').notNullable().references('id').inTable('webhooks').onDelete('CASCADE')
+      table
+        .uuid('webhook_id')
+        .notNullable()
+        .references('id')
+        .inTable('webhooks')
+        .onDelete('CASCADE')
       table.string('event', 100).notNullable()
       table.jsonb('payload').notNullable()
       table.integer('response_status').nullable()
@@ -89,4 +94,3 @@ export default class extends BaseSchema {
     })
   }
 }
-

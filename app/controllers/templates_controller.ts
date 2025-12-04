@@ -20,12 +20,12 @@ export default class TemplatesController {
    * Body: { name, postType, description?, locked? }
    */
   async store({ request, response }: HttpContext) {
-    const { name, postType, description = null, locked = false } = request.only([
-      'name',
-      'postType',
-      'description',
-      'locked',
-    ])
+    const {
+      name,
+      postType,
+      description = null,
+      locked = false,
+    } = request.only(['name', 'postType', 'description', 'locked'])
     if (!name || !postType) return response.badRequest({ error: 'name and postType are required' })
     const now = new Date()
     const [row] = await db
@@ -73,7 +73,10 @@ export default class TemplatesController {
    */
   async listModules({ params, response }: HttpContext) {
     const { id } = params
-    const rows = await db.from('template_modules').where('template_id', id).orderBy('order_index', 'asc')
+    const rows = await db
+      .from('template_modules')
+      .where('template_id', id)
+      .orderBy('order_index', 'asc')
     return response.ok({ data: rows })
   }
 
@@ -83,9 +86,18 @@ export default class TemplatesController {
    */
   async addModule({ params, request, response }: HttpContext) {
     const { id } = params
-    const { type, defaultProps = {}, locked = false, scope = 'post', globalSlug = null } = request.only(['type', 'defaultProps', 'locked', 'scope', 'globalSlug'])
+    const {
+      type,
+      defaultProps = {},
+      locked = false,
+      scope = 'post',
+      globalSlug = null,
+    } = request.only(['type', 'defaultProps', 'locked', 'scope', 'globalSlug'])
     if (!type) return response.badRequest({ error: 'type is required' })
-    const [{ max }] = await db.from('template_modules').where('template_id', id).max('order_index as max')
+    const [{ max }] = await db
+      .from('template_modules')
+      .where('template_id', id)
+      .max('order_index as max')
     const now = new Date()
     const [row] = await db
       .table('template_modules')
@@ -110,12 +122,20 @@ export default class TemplatesController {
    */
   async updateModule({ params, request, response }: HttpContext) {
     const { moduleId } = params
-    const { orderIndex, defaultProps, locked } = request.only(['orderIndex', 'defaultProps', 'locked'])
+    const { orderIndex, defaultProps, locked } = request.only([
+      'orderIndex',
+      'defaultProps',
+      'locked',
+    ])
     const updates: Record<string, any> = { updated_at: new Date() }
     if (orderIndex !== undefined) updates.order_index = Number(orderIndex)
     if (defaultProps !== undefined) updates.default_props = defaultProps
     if (locked !== undefined) updates.locked = !!locked
-    const [row] = await db.from('template_modules').where('id', moduleId).update(updates).returning('*')
+    const [row] = await db
+      .from('template_modules')
+      .where('id', moduleId)
+      .update(updates)
+      .returning('*')
     if (!row) return response.notFound({ error: 'Template module not found' })
     return response.ok({ data: row })
   }
@@ -130,5 +150,3 @@ export default class TemplatesController {
     return response.noContent()
   }
 }
-
-

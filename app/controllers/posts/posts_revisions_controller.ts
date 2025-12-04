@@ -55,10 +55,7 @@ export default class PostsRevisionsController extends BasePostsController {
       .leftJoin('users', 'post_revisions.user_id', 'users.id')
       .where('post_revisions.id', revId)
       .andWhere('post_revisions.post_id', id)
-      .select(
-        'post_revisions.*',
-        'users.email as userEmail'
-      )
+      .select('post_revisions.*', 'users.email as userEmail')
       .first()
 
     if (!rev) {
@@ -80,7 +77,11 @@ export default class PostsRevisionsController extends BasePostsController {
    */
   async revert({ params, response, auth }: HttpContext) {
     const { id, revId } = params
-    const role = (auth.use('web').user as any)?.role as 'admin' | 'editor' | 'translator' | undefined
+    const role = (auth.use('web').user as any)?.role as
+      | 'admin'
+      | 'editor'
+      | 'translator'
+      | undefined
 
     const rev = await db.from('post_revisions').where('id', revId).andWhere('post_id', id).first()
     if (!rev) {
@@ -92,12 +93,17 @@ export default class PostsRevisionsController extends BasePostsController {
 
     // Review revisions go to review_draft
     if (mode === 'review') {
-      await Post.query().where('id', id).update({ review_draft: snapshot } as any)
+      await Post.query()
+        .where('id', id)
+        .update({ review_draft: snapshot } as any)
       return response.ok({ message: 'Reverted review draft' })
     }
 
     // Approved revisions require permission
-    if (!authorizationService.canRevertRevision(role) || !authorizationService.canUpdateStatus(role, snapshot?.status)) {
+    if (
+      !authorizationService.canRevertRevision(role) ||
+      !authorizationService.canUpdateStatus(role, snapshot?.status)
+    ) {
       return this.response.forbidden(response, 'Not allowed to revert to this revision')
     }
 
@@ -124,7 +130,9 @@ export default class PostsRevisionsController extends BasePostsController {
         entityId: id,
         metadata: { revisionId: revId },
       })
-    } catch { /* ignore */ }
+    } catch {
+      /* ignore */
+    }
 
     return response.ok({ message: 'Reverted to revision' })
   }
@@ -154,8 +162,13 @@ export default class PostsRevisionsController extends BasePostsController {
     const diff: Record<string, { current: any; revision: any }> = {}
 
     const fieldsToCompare = [
-      'slug', 'title', 'status', 'excerpt',
-      'metaTitle', 'metaDescription', 'canonicalUrl',
+      'slug',
+      'title',
+      'status',
+      'excerpt',
+      'metaTitle',
+      'metaDescription',
+      'canonicalUrl',
     ]
 
     for (const field of fieldsToCompare) {
@@ -177,4 +190,3 @@ export default class PostsRevisionsController extends BasePostsController {
     })
   }
 }
-

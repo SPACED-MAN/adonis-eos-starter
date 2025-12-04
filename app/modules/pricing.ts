@@ -143,5 +143,3 @@ export default class PricingModule extends BaseModule {
     }
   }
 }
-
-

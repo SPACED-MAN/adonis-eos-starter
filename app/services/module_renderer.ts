@@ -68,9 +68,7 @@ class ModuleRenderer {
     }
 
     // Render each module
-    const rendered = await Promise.all(
-      postModules.map((pm) => this.renderModule(pm, context))
-    )
+    const rendered = await Promise.all(postModules.map((pm) => this.renderModule(pm, context)))
 
     // Combine HTML
     const html = rendered.map((r) => r.html).join('\n')
@@ -81,10 +79,7 @@ class ModuleRenderer {
       .filter((jld): jld is Record<string, any> => jld !== undefined)
 
     // Combine cache tags
-    const cacheTags = [
-      `post:${postId}`,
-      ...rendered.flatMap((r) => r.cacheTags || []),
-    ]
+    const cacheTags = [`post:${postId}`, ...rendered.flatMap((r) => r.cacheTags || [])]
 
     return {
       html,
@@ -233,4 +228,3 @@ class ModuleRenderer {
 // Export singleton instance
 const moduleRenderer = new ModuleRenderer()
 export default moduleRenderer
-

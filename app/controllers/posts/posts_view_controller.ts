@@ -68,7 +68,10 @@ export default class PostsViewController extends BasePostsController {
 
       let valuesBySlug = new Map<string, any>()
       if (slugs.length > 0) {
-        const vals = await db.from('post_custom_field_values').where('post_id', post.id).whereIn('field_slug', slugs)
+        const vals = await db
+          .from('post_custom_field_values')
+          .where('post_id', post.id)
+          .whereIn('field_slug', slugs)
         valuesBySlug = new Map(vals.map((v: any) => [String(v.field_slug), v.value]))
       }
 
@@ -151,7 +154,9 @@ export default class PostsViewController extends BasePostsController {
         if (uiConfig.permalinksEnabled === false) {
           return this.response.notFound(response, 'Permalinks disabled for this post type')
         }
-      } catch { /* proceed */ }
+      } catch {
+        /* proceed */
+      }
 
       const protocol = postRenderingService.getProtocolFromRequest(request)
       const host = postRenderingService.getHostFromRequest(request)
@@ -238,7 +243,9 @@ export default class PostsViewController extends BasePostsController {
         if (uiConfig.permalinksEnabled === false) {
           return this.response.notFound(response, 'Permalinks disabled for this post type')
         }
-      } catch { /* continue */ }
+      } catch {
+        /* continue */
+      }
     }
 
     const viewParam = String(request.input('view', '')).toLowerCase()
@@ -340,4 +347,3 @@ export default class PostsViewController extends BasePostsController {
     return this.response.noContent(response)
   }
 }
-

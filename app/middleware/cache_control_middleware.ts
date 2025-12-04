@@ -14,12 +14,12 @@ export default class CacheControlMiddleware {
     if ((ctx.response.getStatus() ?? 200) >= 200 && (ctx.response.getStatus() ?? 200) < 400) {
       if (contentType && contentType.includes('text/html')) {
         // CDN-friendly caching
-        ctx.response.header('Cache-Control', 'public, max-age=60, s-maxage=3600, stale-while-revalidate=604800')
+        ctx.response.header(
+          'Cache-Control',
+          'public, max-age=60, s-maxage=3600, stale-while-revalidate=604800'
+        )
         ctx.response.header('Vary', 'Accept-Encoding')
       }
     }
   }
 }
-
-
-

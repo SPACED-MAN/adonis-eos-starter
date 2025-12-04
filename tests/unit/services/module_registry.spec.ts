@@ -88,4 +88,3 @@ test.group('Module Registry', (group) => {
     assert.equal(schemas[0].type, 'prose')
   })
 })
-

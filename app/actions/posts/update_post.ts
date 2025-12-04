@@ -81,11 +81,23 @@ export default class UpdatePost {
         const shouldAutoRedirect = (() => {
           const cfg = postTypeConfigService.getUiConfig(post.type)
           // default true when not provided
-          return (cfg as any).autoRedirectOnSlugChange !== undefined ? !!(cfg as any).autoRedirectOnSlugChange : true
+          return (cfg as any).autoRedirectOnSlugChange !== undefined
+            ? !!(cfg as any).autoRedirectOnSlugChange
+            : true
         })()
         if (shouldAutoRedirect) {
-          const fromPath = await urlPatternService.buildPostPath(post.type, oldSlug, post.locale, (post as any).createdAt)
-          const toPath = await urlPatternService.buildPostPath(post.type, newSlug, post.locale, (post as any).createdAt)
+          const fromPath = await urlPatternService.buildPostPath(
+            post.type,
+            oldSlug,
+            post.locale,
+            (post as any).createdAt
+          )
+          const toPath = await urlPatternService.buildPostPath(
+            post.type,
+            newSlug,
+            post.locale,
+            (post as any).createdAt
+          )
           try {
             const existing = await db.from('url_redirects').where('from_path', fromPath).first()
             if (!existing) {

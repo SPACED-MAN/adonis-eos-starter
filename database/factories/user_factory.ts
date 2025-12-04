@@ -20,5 +20,3 @@ export const UserFactory = factory
     user.role = 'translator'
   })
   .build()
-
-

@@ -29,12 +29,12 @@ const inertiaConfig = defineConfig({
      * Only SSR public pages for SEO benefits.
      * Admin pages don't need SSR (behind auth, no SEO value)
      */
-    pages: (ctx, page) => !page.startsWith('admin')
-  }
+    pages: (ctx, page) => !page.startsWith('admin'),
+  },
 })
 
 export default inertiaConfig
 
 declare module '@adonisjs/inertia/types' {
-  export interface SharedProps extends InferSharedProps<typeof inertiaConfig> { }
+  export interface SharedProps extends InferSharedProps<typeof inertiaConfig> {}
 }

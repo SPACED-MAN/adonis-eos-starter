@@ -8,8 +8,9 @@ export default class GlobalModulesController {
    * Query: q?, type?
    */
   async index({ request, response, route }: HttpContext) {
-    const scope: 'global' | 'static' =
-      (route?.pattern || '').includes('/static') ? 'static' : 'global'
+    const scope: 'global' | 'static' = (route?.pattern || '').includes('/static')
+      ? 'static'
+      : 'global'
     const q = String(request.input('q', '')).trim()
     const type = String(request.input('type', '')).trim()
     const query = db.from('module_instances').where('scope', scope)
@@ -52,13 +53,18 @@ export default class GlobalModulesController {
    * Admin only; editors cannot create global/static modules
    */
   async create({ request, response, auth }: HttpContext) {
-    const role = (auth.use('web').user as any)?.role as 'admin' | 'editor' | 'translator' | undefined
+    const role = (auth.use('web').user as any)?.role as
+      | 'admin'
+      | 'editor'
+      | 'translator'
+      | undefined
     if (role !== 'admin') return response.forbidden({ error: 'Admin only' })
     const type = String(request.input('type', '')).trim()
     const labelRaw = request.input('label')
     const globalSlugRaw = request.input('globalSlug')
     const label = labelRaw === undefined || labelRaw === null ? null : String(labelRaw).trim()
-    let globalSlug = globalSlugRaw === undefined || globalSlugRaw === null ? '' : String(globalSlugRaw).trim()
+    let globalSlug =
+      globalSlugRaw === undefined || globalSlugRaw === null ? '' : String(globalSlugRaw).trim()
     if (!globalSlug && label) {
       globalSlug = label
         .toLowerCase()
@@ -112,7 +118,11 @@ export default class GlobalModulesController {
    * Body: { globalSlug?, props? }
    */
   async update({ params, request, response, auth }: HttpContext) {
-    const role = (auth.use('web').user as any)?.role as 'admin' | 'editor' | 'translator' | undefined
+    const role = (auth.use('web').user as any)?.role as
+      | 'admin'
+      | 'editor'
+      | 'translator'
+      | undefined
     if (role !== 'admin') return response.forbidden({ error: 'Admin only' })
     const { id } = params
     const globalSlugRaw = request.input('globalSlug')
@@ -120,10 +130,15 @@ export default class GlobalModulesController {
     const propsRaw = request.input('props')
     const update: any = { updated_at: new Date() }
     if (globalSlugRaw !== undefined) update.global_slug = String(globalSlugRaw).trim()
-    if (labelRaw !== undefined) update.global_label = labelRaw === null ? null : String(labelRaw).trim()
+    if (labelRaw !== undefined)
+      update.global_label = labelRaw === null ? null : String(labelRaw).trim()
     if (propsRaw !== undefined) update.props = propsRaw
     try {
-      const count = await db.from('module_instances').where('id', id).andWhere('scope', 'global').update(update)
+      const count = await db
+        .from('module_instances')
+        .where('id', id)
+        .andWhere('scope', 'global')
+        .update(update)
       if (!count) return response.notFound({ error: 'Global module not found' })
       return response.ok({ message: 'Updated' })
     } catch (e: any) {
@@ -140,17 +155,23 @@ export default class GlobalModulesController {
    * Only allowed when usageCount = 0
    */
   async destroy({ params, response, auth }: HttpContext) {
-    const role = (auth.use('web').user as any)?.role as 'admin' | 'editor' | 'translator' | undefined
+    const role = (auth.use('web').user as any)?.role as
+      | 'admin'
+      | 'editor'
+      | 'translator'
+      | undefined
     if (role !== 'admin') return response.forbidden({ error: 'Admin only' })
     const { id } = params
     const usage = await db.from('post_modules').where('module_id', id).count('* as cnt')
     const cnt = Number((usage?.[0] as any)?.cnt || 0)
-    if (cnt > 0) return response.badRequest({ error: 'Cannot delete a module while it is referenced' })
-    const deleted = await db.from('module_instances').where('id', id).andWhere('scope', 'global').delete()
+    if (cnt > 0)
+      return response.badRequest({ error: 'Cannot delete a module while it is referenced' })
+    const deleted = await db
+      .from('module_instances')
+      .where('id', id)
+      .andWhere('scope', 'global')
+      .delete()
     if (!deleted) return response.notFound({ error: 'Global module not found' })
     return response.noContent()
   }
 }
-
-
-

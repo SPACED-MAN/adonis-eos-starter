@@ -1,6 +1,7 @@
 import path from 'node:path'
 import db from '@adonisjs/lucid/services/db'
-import mediaService from '#services/media_service'
+import sharp from 'sharp'
+import storageService from '#services/storage_service'
 
 export type CreateDarkBaseOptions = {
   mediaId?: string
@@ -16,12 +17,12 @@ export type CreateDarkBaseResult = {
 
 /**
  * Action: Create a dark base file from a light original
- * 
+ *
  * When a media asset doesn't have a manually-uploaded dark version,
  * this creates one by applying dark tint to the original.
- * 
+ *
  * Stores the result as darkSourceUrl in metadata.
- * 
+ *
  * Usage:
  *   const result = await createDarkBaseAction.execute({ mediaId: '123' })
  */
@@ -59,29 +60,54 @@ class CreateDarkBaseAction {
     const darkAbsPath = path.join(parsed.dir, darkName)
     const darkPublicUrl = path.posix.join(path.posix.dirname(originalPublicUrl), darkName)
 
-    // Generate the dark base using a "base" variant (full size with tint applied)
-    const darkVariants = await mediaService.generateVariants(
-      originalAbsPath,
-      darkPublicUrl,
-      [
-        {
-          name: 'base',
-          width: undefined,
-          height: undefined,
-          fit: 'inside' as const,
-        },
-      ],
-      null,
-      null,
-      'dark' // Apply dark tint
-    )
+    // Get env-controlled dark tint settings
+    const darkBrightnessRaw = process.env.MEDIA_DARK_BRIGHTNESS
+    const darkSaturationRaw = process.env.MEDIA_DARK_SATURATION
+    const darkBrightness = (() => {
+      const n = darkBrightnessRaw !== undefined ? Number(darkBrightnessRaw) : 0.55
+      return Number.isFinite(n) ? Math.max(0.1, Math.min(2, n)) : 0.55
+    })()
+    const darkSaturation = (() => {
+      const n = darkSaturationRaw !== undefined ? Number(darkSaturationRaw) : 0.75
+      return Number.isFinite(n) ? Math.max(0, Math.min(2, n)) : 0.75
+    })()
 
-    const baseVariant = darkVariants[0]
-    if (!baseVariant?.url) {
-      throw new Error('Failed to generate dark base file')
+    // Generate the dark base directly with sharp to get exact filename we want
+    // (using generateVariants would add variant name suffix)
+    await sharp(originalAbsPath)
+      .modulate({
+        brightness: darkBrightness,
+        saturation: darkSaturation,
+      })
+      .toFile(darkAbsPath)
+
+    // Publish to storage (local no-op, R2 uploads)
+    const mimeType = (() => {
+      const ext = parsed.ext.toLowerCase()
+      switch (ext) {
+        case '.jpg':
+        case '.jpeg':
+          return 'image/jpeg'
+        case '.png':
+          return 'image/png'
+        case '.webp':
+          return 'image/webp'
+        case '.gif':
+          return 'image/gif'
+        case '.avif':
+          return 'image/avif'
+        default:
+          return 'image/jpeg'
+      }
+    })()
+
+    try {
+      await storageService.publishFile(darkAbsPath, darkPublicUrl, mimeType)
+    } catch {
+      // Ignore publish errors
     }
 
-    const darkSourceUrl = baseVariant.url
+    const darkSourceUrl = darkPublicUrl
 
     // Update metadata
     const metadata = {
@@ -109,4 +135,3 @@ class CreateDarkBaseAction {
 
 const createDarkBaseAction = new CreateDarkBaseAction()
 export default createDarkBaseAction
-

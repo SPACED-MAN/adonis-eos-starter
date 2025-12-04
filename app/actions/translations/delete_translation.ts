@@ -78,11 +78,9 @@ export default class DeleteTranslation {
     const translation = await post.getTranslation(locale)
 
     if (!translation) {
-      throw new DeleteTranslationException(
-        `Translation not found for locale: ${locale}`,
-        404,
-        { locale }
-      )
+      throw new DeleteTranslationException(`Translation not found for locale: ${locale}`, 404, {
+        locale,
+      })
     }
 
     return translation

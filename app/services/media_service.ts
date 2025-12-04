@@ -10,13 +10,20 @@ function inferMimeFromExt(ext: string): string {
   const lower = (ext || '').toLowerCase()
   switch (lower) {
     case '.jpg':
-    case '.jpeg': return 'image/jpeg'
-    case '.png': return 'image/png'
-    case '.webp': return 'image/webp'
-    case '.gif': return 'image/gif'
-    case '.svg': return 'image/svg+xml'
-    case '.avif': return 'image/avif'
-    default: return 'application/octet-stream'
+    case '.jpeg':
+      return 'image/jpeg'
+    case '.png':
+      return 'image/png'
+    case '.webp':
+      return 'image/webp'
+    case '.gif':
+      return 'image/gif'
+    case '.svg':
+      return 'image/svg+xml'
+    case '.avif':
+      return 'image/avif'
+    default:
+      return 'application/octet-stream'
   }
 }
 
@@ -26,8 +33,12 @@ type FocalPoint = { x: number; y: number } // normalized 0..1 in original image 
 
 class MediaService {
   parseDerivatives(): DerivSpec[] {
-    const raw = process.env.MEDIA_DERIVATIVES || 'thumb:200x200_crop,small:400x,medium:800x,large:1600x'
-    const parts = raw.split(',').map((s) => s.trim()).filter(Boolean)
+    const raw =
+      process.env.MEDIA_DERIVATIVES || 'thumb:200x200_crop,small:400x,medium:800x,large:1600x'
+    const parts = raw
+      .split(',')
+      .map((s) => s.trim())
+      .filter(Boolean)
     const specs: DerivSpec[] = []
     for (const p of parts) {
       const [namePart, dimsPartRaw] = p.split(':')
@@ -43,7 +54,12 @@ class MediaService {
     return specs
   }
 
-  private computeFocalCropRect(originalW: number, originalH: number, spec: DerivSpec, focal: FocalPoint): CropRect | null {
+  private computeFocalCropRect(
+    originalW: number,
+    originalH: number,
+    spec: DerivSpec,
+    focal: FocalPoint
+  ): CropRect | null {
     if (!spec.width || !spec.height) return null
     // Aspect ratio target
     const targetRatio = spec.width / spec.height
@@ -73,7 +89,8 @@ class MediaService {
     specsArg?: DerivSpec[] | null,
     cropRect?: CropRect | null,
     focalPoint?: FocalPoint | null,
-    theme: 'light' | 'dark' = 'light'
+    theme: 'light' | 'dark' = 'light',
+    options?: { applyTint?: boolean; nameSuffix?: string }
   ): Promise<VariantInfo[]> {
     const specs = specsArg && specsArg.length ? specsArg : this.parseDerivatives()
     if (specs.length === 0) return []
@@ -84,17 +101,57 @@ class MediaService {
     const originalW = meta.width || 0
     const originalH = meta.height || 0
 
+    // Dark-mode tuning (controlled via env, with safe defaults)
+    const darkBrightnessRaw = process.env.MEDIA_DARK_BRIGHTNESS
+    const darkSaturationRaw = process.env.MEDIA_DARK_SATURATION
+    const darkBrightness = (() => {
+      const n = darkBrightnessRaw !== undefined ? Number(darkBrightnessRaw) : 0.55
+      return Number.isFinite(n) ? Math.max(0.1, Math.min(2, n)) : 0.55
+    })()
+    const darkSaturation = (() => {
+      const n = darkSaturationRaw !== undefined ? Number(darkSaturationRaw) : 0.75
+      return Number.isFinite(n) ? Math.max(0, Math.min(2, n)) : 0.75
+    })()
+
+    // Allow caller to override whether tint is applied (default: follow theme)
+    const applyTint = options?.applyTint !== undefined ? options.applyTint : theme === 'dark'
+    // Allow caller to override name suffix (default: use theme)
+    const suffix =
+      options?.nameSuffix !== undefined ? options.nameSuffix : theme === 'dark' ? '-dark' : ''
+
+    console.log('[MediaService.generateVariants]', {
+      inputPath,
+      publicUrl,
+      parsedName: parsed.name,
+      theme,
+      options,
+      applyTint,
+      suffix,
+    })
+
     const variants: VariantInfo[] = []
     for (const spec of specs) {
-      const variantName = theme === 'dark' ? `${spec.name}-dark` : spec.name
+      const variantName = suffix ? `${spec.name}${suffix}` : spec.name
       const outName = `${parsed.name}.${variantName}${parsed.ext}`
       const outPath = path.join(parsed.dir, outName)
       const outUrl = path.posix.join(path.posix.dirname(publicUrl), outName)
 
+      console.log('[MediaService.generateVariants] Creating variant', {
+        specName: spec.name,
+        variantName,
+        outName,
+        outPath,
+      })
+
       let pipeline = sharp(inputPath)
       // Apply cropRect or focal crop (for cover)
       if (cropRect && cropRect.width > 0 && cropRect.height > 0) {
-        pipeline = pipeline.extract({ left: Math.max(0, Math.floor(cropRect.left)), top: Math.max(0, Math.floor(cropRect.top)), width: Math.floor(cropRect.width), height: Math.floor(cropRect.height) })
+        pipeline = pipeline.extract({
+          left: Math.max(0, Math.floor(cropRect.left)),
+          top: Math.max(0, Math.floor(cropRect.top)),
+          width: Math.floor(cropRect.width),
+          height: Math.floor(cropRect.height),
+        })
       } else if (focalPoint && spec.fit === 'cover' && originalW > 0 && originalH > 0) {
         const rect = this.computeFocalCropRect(originalW, originalH, spec, focalPoint)
         if (rect) {
@@ -106,23 +163,37 @@ class MediaService {
         pipeline = pipeline.resize({ width: spec.width, height: spec.height, fit: spec.fit })
       }
 
-      // Apply a stronger dark-mode transform when generating dark variants for raster images
-      if (theme === 'dark') {
+      // Apply a dark-mode transform when generating dark variants for raster images
+      if (applyTint) {
         pipeline = pipeline.modulate({
-          // Noticeably darker and slightly desaturated so the difference is obvious
-          brightness: 0.55,
-          saturation: 0.75,
+          // Tunable via MEDIA_DARK_BRIGHTNESS / MEDIA_DARK_SATURATION
+          brightness: darkBrightness,
+          saturation: darkSaturation,
         })
       }
 
       const info = await pipeline.toFile(outPath)
-      try { await storageService.publishFile(outPath, outUrl, inferMimeFromExt(parsed.ext)) } catch { /* ignore */ }
-      variants.push({ name: variantName, url: outUrl, width: info.width, height: info.height, size: info.size || 0 })
+      try {
+        await storageService.publishFile(outPath, outUrl, inferMimeFromExt(parsed.ext))
+      } catch {
+        /* ignore */
+      }
+      variants.push({
+        name: variantName,
+        url: outUrl,
+        width: info.width,
+        height: info.height,
+        size: info.size || 0,
+      })
     }
+
     return variants
   }
 
-  async optimizeToWebp(inputPath: string, publicUrl: string): Promise<{ optimizedPath: string; optimizedUrl: string; size: number } | null> {
+  async optimizeToWebp(
+    inputPath: string,
+    publicUrl: string
+  ): Promise<{ optimizedPath: string; optimizedUrl: string; size: number } | null> {
     // Only handle raster images supported by sharp
     const lower = inputPath.toLowerCase()
     const isRaster = /\.(jpe?g|png|webp|gif|tiff?|bmp|avif)$/.test(lower)
@@ -133,13 +204,29 @@ class MediaService {
     const outPath = path.join(parsed.dir, outName)
     const outUrl = path.posix.join(path.posix.dirname(publicUrl), outName)
     const quality = Number(process.env.MEDIA_WEBP_QUALITY || 82)
-    const info = await sharp(inputPath).webp({ quality: Number.isFinite(quality) ? Math.max(1, Math.min(100, Math.floor(quality))) : 82 }).toFile(outPath)
+    const info = await sharp(inputPath)
+      .webp({
+        quality: Number.isFinite(quality) ? Math.max(1, Math.min(100, Math.floor(quality))) : 82,
+      })
+      .toFile(outPath)
     const size = info.size || 0
-    try { await storageService.publishFile(outPath, outUrl, 'image/webp') } catch { /* ignore */ }
+    try {
+      await storageService.publishFile(outPath, outUrl, 'image/webp')
+    } catch {
+      /* ignore */
+    }
     return { optimizedPath: outPath, optimizedUrl: outUrl, size }
   }
 
-  async renameWithVariants(oldPath: string, oldUrl: string, newBaseName: string): Promise<{ newPath: string; newUrl: string; renamedVariants: Array<{ oldUrl: string; newUrl: string }> }> {
+  async renameWithVariants(
+    oldPath: string,
+    oldUrl: string,
+    newBaseName: string
+  ): Promise<{
+    newPath: string
+    newUrl: string
+    renamedVariants: Array<{ oldUrl: string; newUrl: string }>
+  }> {
     const parsed = path.parse(oldPath)
     const dir = parsed.dir
     const ext = parsed.ext
@@ -168,5 +255,3 @@ class MediaService {
 
 const mediaService = new MediaService()
 export default mediaService
-
-

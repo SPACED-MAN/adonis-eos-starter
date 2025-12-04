@@ -119,25 +119,30 @@ class WebhookService {
 
     // Add signature if secret is configured
     if (webhook.secret) {
-      headers['X-Webhook-Signature'] = `sha256=${this.generateSignature(payloadString, webhook.secret)}`
+      headers['X-Webhook-Signature'] =
+        `sha256=${this.generateSignature(payloadString, webhook.secret)}`
     }
 
     // Use global secret as fallback
     if (!webhook.secret && cmsConfig.webhooks.secret) {
-      headers['X-Webhook-Signature'] = `sha256=${this.generateSignature(payloadString, cmsConfig.webhooks.secret)}`
+      headers['X-Webhook-Signature'] =
+        `sha256=${this.generateSignature(payloadString, cmsConfig.webhooks.secret)}`
     }
 
     let deliveryId: string | undefined
 
     try {
       // Log the delivery attempt
-      const [insertResult] = await db.table('webhook_deliveries').insert({
-        webhook_id: webhook.id,
-        event: payload.event,
-        payload: payload,
-        attempt,
-        status: 'pending',
-      }).returning('id')
+      const [insertResult] = await db
+        .table('webhook_deliveries')
+        .insert({
+          webhook_id: webhook.id,
+          event: payload.event,
+          payload: payload,
+          attempt,
+          status: 'pending',
+        })
+        .returning('id')
 
       deliveryId = insertResult?.id
 
@@ -171,11 +176,14 @@ class WebhookService {
       }
 
       // Update webhook last triggered
-      await db.from('webhooks').where('id', webhook.id).update({
-        last_triggered_at: new Date(),
-        last_status: response.ok ? 'success' : `failed:${response.status}`,
-        updated_at: new Date(),
-      })
+      await db
+        .from('webhooks')
+        .where('id', webhook.id)
+        .update({
+          last_triggered_at: new Date(),
+          last_status: response.ok ? 'success' : `failed:${response.status}`,
+          updated_at: new Date(),
+        })
 
       return {
         webhookId: webhook.id,
@@ -200,11 +208,14 @@ class WebhookService {
       }
 
       // Update webhook last status
-      await db.from('webhooks').where('id', webhook.id).update({
-        last_triggered_at: new Date(),
-        last_status: `error:${errorMessage.substring(0, 50)}`,
-        updated_at: new Date(),
-      })
+      await db
+        .from('webhooks')
+        .where('id', webhook.id)
+        .update({
+          last_triggered_at: new Date(),
+          last_status: `error:${errorMessage.substring(0, 50)}`,
+          updated_at: new Date(),
+        })
 
       // Retry if not exhausted
       if (attempt < webhook.maxRetries) {
@@ -238,7 +249,9 @@ class WebhookService {
       data,
     }
     // Deliver to all webhooks in parallel
-    const results = await Promise.all(webhooks.map((webhook) => this.deliverWebhook(webhook, payload)))
+    const results = await Promise.all(
+      webhooks.map((webhook) => this.deliverWebhook(webhook, payload))
+    )
 
     return results
   }
@@ -275,7 +288,9 @@ class WebhookService {
       data,
     }
 
-    const results = await Promise.all(webhooks.map((webhook) => this.deliverWebhook(webhook, payload)))
+    const results = await Promise.all(
+      webhooks.map((webhook) => this.deliverWebhook(webhook, payload))
+    )
 
     return results
   }
@@ -412,4 +427,3 @@ class WebhookService {
 
 const webhookService = new WebhookService()
 export default webhookService
-

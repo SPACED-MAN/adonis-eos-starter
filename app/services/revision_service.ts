@@ -34,10 +34,14 @@ export default class RevisionService {
         .select('id')
 
       if (oldRows.length > 0) {
-        await db.from('post_revisions').whereIn('id', oldRows.map((r: any) => r.id)).delete()
+        await db
+          .from('post_revisions')
+          .whereIn(
+            'id',
+            oldRows.map((r: any) => r.id)
+          )
+          .delete()
       }
     }
   }
 }
-
-

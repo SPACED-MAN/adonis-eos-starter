@@ -49,12 +49,18 @@ async function syncFromRegistry() {
           created_at: now,
           updated_at: now,
         })
-      } else if ((existing as any).post_type !== type || (existing as any).description !== (cfg.template.description || null)) {
-        await db.from('templates').where({ name: cfg.template.name }).update({
-          post_type: type,
-          description: cfg.template.description || null,
-          updated_at: now,
-        })
+      } else if (
+        (existing as any).post_type !== type ||
+        (existing as any).description !== (cfg.template.description || null)
+      ) {
+        await db
+          .from('templates')
+          .where({ name: cfg.template.name })
+          .update({
+            post_type: type,
+            description: cfg.template.description || null,
+            updated_at: now,
+          })
       }
     }
     // URL patterns (remove if permalinks are disabled; otherwise ensure)
@@ -67,7 +73,10 @@ async function syncFromRegistry() {
     } else if (Array.isArray(cfg.urlPatterns)) {
       for (const p of cfg.urlPatterns) {
         const now = new Date()
-        const row = await db.from('url_patterns').where({ post_type: type, locale: p.locale }).first()
+        const row = await db
+          .from('url_patterns')
+          .where({ post_type: type, locale: p.locale })
+          .first()
         if (!row) {
           await db.table('url_patterns').insert({
             post_type: type,
@@ -77,7 +86,10 @@ async function syncFromRegistry() {
             created_at: now,
             updated_at: now,
           })
-        } else if ((row as any).pattern !== p.pattern || !!(row as any).is_default !== !!p.isDefault) {
+        } else if (
+          (row as any).pattern !== p.pattern ||
+          !!(row as any).is_default !== !!p.isDefault
+        ) {
           await db.from('url_patterns').where({ post_type: type, locale: p.locale }).update({
             pattern: p.pattern,
             is_default: !!p.isDefault,
@@ -100,5 +112,3 @@ if (process.env.NODE_ENV === 'development') {
   const types = postTypeRegistry.list()
   console.log(`🧩 Registered ${types.length} post types: ${types.join(', ')}`)
 }
-
-

@@ -157,6 +157,3 @@ export default class TaxonomiesController {
     return response.noContent()
   }
 }
-
-
-

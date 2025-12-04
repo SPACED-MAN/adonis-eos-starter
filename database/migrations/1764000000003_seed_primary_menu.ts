@@ -25,10 +25,70 @@ export default class extends BaseSchema {
     const servicesId = randomUUID()
     const sectionId = randomUUID()
     await db.table('menu_items').insert([
-      { id: homeId, menu_id: menuId, parent_id: null, order_index: 0, label: 'Home', type: 'custom', custom_url: '/', anchor: null, target: null, rel: null, created_at: now, updated_at: now, kind: 'item', locale: 'en' },
-      { id: aboutId, menu_id: menuId, parent_id: null, order_index: 1, label: 'About', type: 'custom', custom_url: '/about', anchor: null, target: null, rel: null, created_at: now, updated_at: now, kind: 'item', locale: 'en' },
-      { id: servicesId, menu_id: menuId, parent_id: null, order_index: 2, label: 'Services', type: 'custom', custom_url: '/services', anchor: null, target: null, rel: null, created_at: now, updated_at: now, kind: 'item', locale: 'en' },
-      { id: sectionId, menu_id: menuId, parent_id: servicesId, order_index: 0, label: 'Featured', type: 'custom', custom_url: null, anchor: null, target: null, rel: null, created_at: now, updated_at: now, kind: 'section', locale: 'en' },
+      {
+        id: homeId,
+        menu_id: menuId,
+        parent_id: null,
+        order_index: 0,
+        label: 'Home',
+        type: 'custom',
+        custom_url: '/',
+        anchor: null,
+        target: null,
+        rel: null,
+        created_at: now,
+        updated_at: now,
+        kind: 'item',
+        locale: 'en',
+      },
+      {
+        id: aboutId,
+        menu_id: menuId,
+        parent_id: null,
+        order_index: 1,
+        label: 'About',
+        type: 'custom',
+        custom_url: '/about',
+        anchor: null,
+        target: null,
+        rel: null,
+        created_at: now,
+        updated_at: now,
+        kind: 'item',
+        locale: 'en',
+      },
+      {
+        id: servicesId,
+        menu_id: menuId,
+        parent_id: null,
+        order_index: 2,
+        label: 'Services',
+        type: 'custom',
+        custom_url: '/services',
+        anchor: null,
+        target: null,
+        rel: null,
+        created_at: now,
+        updated_at: now,
+        kind: 'item',
+        locale: 'en',
+      },
+      {
+        id: sectionId,
+        menu_id: menuId,
+        parent_id: servicesId,
+        order_index: 0,
+        label: 'Featured',
+        type: 'custom',
+        custom_url: null,
+        anchor: null,
+        target: null,
+        rel: null,
+        created_at: now,
+        updated_at: now,
+        kind: 'section',
+        locale: 'en',
+      },
     ])
   }
 
@@ -39,5 +99,3 @@ export default class extends BaseSchema {
     await db.from('menus').where('id', row.id).delete()
   }
 }
-
-

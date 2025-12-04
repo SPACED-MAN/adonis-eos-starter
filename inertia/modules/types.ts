@@ -1,11 +1,18 @@
 /**
  * Shared types for module components
- * 
+ *
  * Common interfaces used across multiple content modules.
  */
 
 export type LinkValue =
-  | { kind: 'post'; postId: string; postType?: string; slug?: string; locale?: string; target?: '_self' | '_blank' }
+  | {
+      kind: 'post'
+      postId: string
+      postType?: string
+      slug?: string
+      locale?: string
+      target?: '_self' | '_blank'
+    }
   | { kind: 'url'; url: string; target?: '_self' | '_blank' }
 
 export interface Button {
@@ -27,17 +34,10 @@ export interface Image {
 
 export type TextAlignment = 'left' | 'center' | 'right'
 
-export type Spacing = 
-  | 'none' 
-  | 'sm' 
-  | 'md' 
-  | 'lg' 
-  | 'xl'
-  | string // Allow custom Tailwind classes
+export type Spacing = 'none' | 'sm' | 'md' | 'lg' | 'xl' | string // Allow custom Tailwind classes
 
 export interface ColorTheme {
   background?: string
   text?: string
   accent?: string
 }
-

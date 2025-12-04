@@ -56,18 +56,19 @@ export default class SiteSettingsController {
         const users = await db.from('users').whereIn('role', removed).select('id')
         const userIds = users.map((u: any) => Number(u.id)).filter((n) => !Number.isNaN(n))
         if (userIds.length > 0) {
-          await db.from('posts')
+          await db
+            .from('posts')
             .where('type', 'profile')
             .whereIn('author_id', userIds)
             .andWhereNot('status', 'archived')
             .update({ status: 'archived', updated_at: new Date() })
         }
       }
-    } catch { /* ignore archival errors */ }
+    } catch {
+      /* ignore archival errors */
+    }
     const defs = siteCustomFieldsService.listDefinitions()
     const vals = await siteCustomFieldsService.getValues()
     return response.ok({ data: { ...next, customFieldDefs: defs, customFields: vals } })
   }
 }
-
-

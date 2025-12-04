@@ -12,13 +12,24 @@ export default class extends BaseSchema {
       table.string('title', 500).notNullable()
       table.text('excerpt').nullable()
 
-      table.enum('status', ['draft', 'review', 'scheduled', 'published', 'private', 'protected', 'archived'])
+      table
+        .enum('status', [
+          'draft',
+          'review',
+          'scheduled',
+          'published',
+          'private',
+          'protected',
+          'archived',
+        ])
         .notNullable()
         .defaultTo('draft')
 
       // i18n fields
       table.string('locale', 10).notNullable().defaultTo('en')
-      table.uuid('translation_of_id').nullable()
+      table
+        .uuid('translation_of_id')
+        .nullable()
         .references('id')
         .inTable('posts')
         .onDelete('CASCADE')

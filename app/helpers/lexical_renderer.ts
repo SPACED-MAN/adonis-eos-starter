@@ -241,4 +241,3 @@ function extractTextFromNode(node: LexicalNode): string {
 
   return ''
 }
-

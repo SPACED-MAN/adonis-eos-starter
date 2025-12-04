@@ -6,25 +6,24 @@ import localeService from '#services/locale_service'
  * Locale middleware detects and sets the current locale for each request
  */
 export default class LocaleMiddleware {
-	async handle(ctx: HttpContext, next: NextFn) {
-		// Detect locale from request
-		const detectedLocale = await localeService.detectLocale(ctx)
+  async handle(ctx: HttpContext, next: NextFn) {
+    // Detect locale from request
+    const detectedLocale = await localeService.detectLocale(ctx)
 
-		// Store locale in context for use throughout the request
-		ctx.locale = detectedLocale
+    // Store locale in context for use throughout the request
+    ctx.locale = detectedLocale
 
-		// Store locale in session for persistence
-		await localeService.storeLocaleInSession(ctx, detectedLocale)
+    // Store locale in session for persistence
+    await localeService.storeLocaleInSession(ctx, detectedLocale)
 
-		// Continue to next middleware/controller
-		return next()
-	}
+    // Continue to next middleware/controller
+    return next()
+  }
 }
 
 // Extend HttpContext to include locale property
 declare module '@adonisjs/core/http' {
-	interface HttpContext {
-		locale: string
-	}
+  interface HttpContext {
+    locale: string
+  }
 }
-

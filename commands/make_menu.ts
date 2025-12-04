@@ -73,7 +73,10 @@ export default { list: listMenuTemplates, get: getMenuTemplate, _exports: {} }
     if (exportsMatch) {
       const before = exportsMatch[0]
       if (!before.includes(string.camelCase(slug))) {
-        const updated = before.replace(/\{([^}]*)\}/m, (_m, inner) => `{ ${inner.trim()}${inner.trim() ? ', ' : ''}${string.camelCase(slug)} }`)
+        const updated = before.replace(
+          /\{([^}]*)\}/m,
+          (_m, inner) => `{ ${inner.trim()}${inner.trim() ? ', ' : ''}${string.camelCase(slug)} }`
+        )
         src = src.replace(before, updated)
       }
     } else {
@@ -132,7 +135,9 @@ export default class extends BaseSeeder {
 
     // Write template file
     const templatePath = join(menusDir, `${slug}.ts`)
-    await writeFile(templatePath, this.buildTemplateContents(slug, displayName, pascalId), { flag: 'wx' }).catch(() => {})
+    await writeFile(templatePath, this.buildTemplateContents(slug, displayName, pascalId), {
+      flag: 'wx',
+    }).catch(() => {})
 
     // Patch app/menus/index.ts to import/register
     await this.patchMenusIndex(appRoot, slug)
@@ -142,7 +147,9 @@ export default class extends BaseSeeder {
       const seedersDir = join(appRoot, 'database', 'seeders')
       await mkdir(seedersDir, { recursive: true })
       const seederPath = join(seedersDir, `menu_${slug}_seeder.ts`)
-      await writeFile(seederPath, this.buildSeederContents(slug, displayName), { flag: 'wx' }).catch(() => {})
+      await writeFile(seederPath, this.buildSeederContents(slug, displayName), {
+        flag: 'wx',
+      }).catch(() => {})
     }
 
     this.logger.success(`Created code-first menu "${displayName}" (${slug})`)
@@ -160,5 +167,3 @@ export default class extends BaseSeeder {
     this.logger.info('  3) Optionally run the seeder: node ace db:seed')
   }
 }
-
-

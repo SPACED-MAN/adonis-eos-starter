@@ -19,7 +19,9 @@ export default class FormsController {
       title: String(row.title),
       description: row.description ? String(row.description) : undefined,
       fields,
-      successMessage: (row as any).success_message ? String((row as any).success_message) : undefined,
+      successMessage: (row as any).success_message
+        ? String((row as any).success_message)
+        : undefined,
     }
   }
 
@@ -58,12 +60,7 @@ export default class FormsController {
 
     for (const field of form.fields) {
       const raw = body[field.slug]
-      const val =
-        typeof raw === 'string'
-          ? raw.trim()
-          : raw === undefined
-            ? undefined
-            : raw
+      const val = typeof raw === 'string' ? raw.trim() : raw === undefined ? undefined : raw
 
       if (field.required && (val === undefined || val === null || val === '')) {
         errors[field.slug] = 'This field is required.'
@@ -123,7 +120,9 @@ export default class FormsController {
 
     // Fire any per-form subscriptions (webhook IDs stored on the form)
     try {
-      const subsRaw = Array.isArray((row as any).subscriptions_json) ? (row as any).subscriptions_json : []
+      const subsRaw = Array.isArray((row as any).subscriptions_json)
+        ? (row as any).subscriptions_json
+        : []
       const webhookIds: string[] = subsRaw
         .map((s: any) => {
           if (typeof s === 'string') return s
@@ -145,7 +144,9 @@ export default class FormsController {
 
     // Optional thank-you redirect
     let redirectTo: string | null = null
-    const thankYouPostId = (row as any).thank_you_post_id ? String((row as any).thank_you_post_id) : ''
+    const thankYouPostId = (row as any).thank_you_post_id
+      ? String((row as any).thank_you_post_id)
+      : ''
     if (thankYouPostId) {
       const post = await db.from('posts').where('id', thankYouPostId).first()
       if (post && (post as any).slug) {
@@ -162,5 +163,3 @@ export default class FormsController {
     })
   }
 }
-
-

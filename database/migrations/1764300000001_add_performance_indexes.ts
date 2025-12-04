@@ -81,4 +81,3 @@ export default class extends BaseSchema {
     this.schema.raw('DROP INDEX IF EXISTS idx_activity_logs_user')
   }
 }
-

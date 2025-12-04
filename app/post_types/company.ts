@@ -18,9 +18,7 @@ export default {
   template: { name: 'company-default', description: 'Default Company Template' },
 
   // URL patterns (ignored when permalinks are disabled, but defined for completeness)
-  urlPatterns: [
-    { locale: 'en', pattern: '/company/{slug}', isDefault: true },
-  ],
+  urlPatterns: [{ locale: 'en', pattern: '/company/{slug}', isDefault: true }],
 
   // Permalinks disabled – companies are only surfaced via modules/lists
   permalinksEnabled: false,
@@ -28,5 +26,3 @@ export default {
   // No taxonomies by default
   taxonomies: [],
 } as const
-
-

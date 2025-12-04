@@ -149,4 +149,3 @@ export interface MergedModuleData {
   locked: boolean
   orderIndex: number
 }
-

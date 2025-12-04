@@ -112,6 +112,7 @@ export default function MediaIndex() {
   const [editTheme, setEditTheme] = useState<'light' | 'dark'>('light')
   const [replaceFile, setReplaceFile] = useState<File | null>(null)
   const [replaceUploading, setReplaceUploading] = useState<boolean>(false)
+  const [darkPreviewVersion, setDarkPreviewVersion] = useState<number>(0)
 
   const page = usePage<PageProps>()
   const isAdmin = !!page.props?.isAdmin
@@ -176,6 +177,28 @@ export default function MediaIndex() {
   }
   useEffect(() => { load() }, [sortBy, sortOrder, selectedCategory])
 
+  // Refresh a single media item from the API (used after per-item operations)
+  async function refreshMediaItem(id: string) {
+    try {
+      const res = await fetch(`/api/media/${encodeURIComponent(id)}`, { credentials: 'same-origin' })
+      if (!res.ok) return null
+      const j = await res.json().catch(() => ({}))
+      const data = (j as any)?.data
+      if (!data || !data.id) return null
+
+      // Update collection list
+      setItems((prev) => prev.map((m) => (m.id === data.id ? { ...m, ...data } : m)))
+
+      // Update currently viewed item if it matches
+      setViewing((prev) => (prev && prev.id === data.id ? ({ ...prev, ...data } as any) : prev))
+
+      return data as any
+    } catch {
+      // non-fatal
+      return null
+    }
+  }
+
   function toggleSelect(id: string) {
     setSelectedIds((prev) => {
       const next = new Set(prev)
@@ -216,23 +239,104 @@ export default function MediaIndex() {
     await load()
   }
 
+  async function applyBulkGenerateMissing() {
+    if (selectedIds.size === 0) return
+    const ids = Array.from(selectedIds)
+    
+    // For each selected item, check if it's missing variants and generate only what's missing
+    let lightCount = 0
+    let darkCount = 0
+    
+    for (const id of ids) {
+      const item = items.find((i) => i.id === id)
+      if (!item) continue
+      
+      const status = getVariantStatus(item)
+      
+      try {
+        // Generate light if missing
+        if (!status.hasAllLight) {
+          await fetch(`/api/media/${encodeURIComponent(id)}/variants`, {
+            method: 'POST',
+            headers: {
+              'Accept': 'application/json',
+              'Content-Type': 'application/json',
+              ...(xsrfFromCookie ? { 'X-XSRF-TOKEN': xsrfFromCookie } : {}),
+            },
+            credentials: 'same-origin',
+            body: JSON.stringify({ theme: 'light' }),
+          })
+          lightCount++
+        }
+        
+        // Generate dark if missing
+        if (!status.hasAllDark || !status.hasDarkBase) {
+          await fetch(`/api/media/${encodeURIComponent(id)}/variants`, {
+            method: 'POST',
+            headers: {
+              'Accept': 'application/json',
+              'Content-Type': 'application/json',
+              ...(xsrfFromCookie ? { 'X-XSRF-TOKEN': xsrfFromCookie } : {}),
+            },
+            credentials: 'same-origin',
+            body: JSON.stringify({ theme: 'dark' }),
+          })
+          darkCount++
+        }
+      } catch {
+        // Continue with next item on error
+      }
+    }
+    
+    toast.success(`Generated ${lightCount} light and ${darkCount} dark variant sets`)
+    setSelectedIds(new Set())
+    setSelectAll(false)
+    setBulkKey((k) => k + 1)
+    await load()
+  }
+
   async function applyBulkRegenerate() {
     if (selectedIds.size === 0) return
     const ids = Array.from(selectedIds)
-    await toast.promise(
-      fetch('/api/media/variants-bulk', {
-        method: 'POST',
-        headers: { 'Accept': 'application/json', 'Content-Type': 'application/json', ...(xsrfFromCookie ? { 'X-XSRF-TOKEN': xsrfFromCookie } : {}) },
-        credentials: 'same-origin',
-        body: JSON.stringify({ ids }),
-      }).then(async (r) => {
-        if (!r.ok) {
-          const j = await r.json().catch(() => ({}))
-          throw new Error(j?.error || 'Bulk regenerate failed')
-        }
-      }),
-      { loading: 'Regenerating…', success: 'Variants regenerated', error: (e) => String(e.message || e) }
-    )
+    
+    // Regenerate ALL variants (light + dark) for all selected items
+    let count = 0
+    for (const id of ids) {
+      try {
+        // Regenerate light
+        await fetch(`/api/media/${encodeURIComponent(id)}/variants`, {
+          method: 'POST',
+          headers: {
+            'Accept': 'application/json',
+            'Content-Type': 'application/json',
+            ...(xsrfFromCookie ? { 'X-XSRF-TOKEN': xsrfFromCookie } : {}),
+          },
+          credentials: 'same-origin',
+          body: JSON.stringify({ theme: 'light' }),
+        })
+        
+        // Regenerate dark
+        await fetch(`/api/media/${encodeURIComponent(id)}/variants`, {
+          method: 'POST',
+          headers: {
+            'Accept': 'application/json',
+            'Content-Type': 'application/json',
+            ...(xsrfFromCookie ? { 'X-XSRF-TOKEN': xsrfFromCookie } : {}),
+          },
+          credentials: 'same-origin',
+          body: JSON.stringify({ theme: 'dark' }),
+        })
+        
+        count++
+      } catch {
+        // Continue with next item on error
+      }
+    }
+    
+    toast.success(`Regenerated all variants for ${count} items`)
+    setSelectedIds(new Set())
+    setSelectAll(false)
+    setBulkKey((k) => k + 1)
     await load()
   }
 
@@ -529,21 +633,77 @@ export default function MediaIndex() {
     return meta ? `${v.name} (${meta})` : v.name
   }
 
+  // Helper: check if media item has all expected variants (light + dark)
+  function getVariantStatus(m: MediaItem | null): { hasAllLight: boolean; hasAllDark: boolean; hasDarkBase: boolean } {
+    if (!m) return { hasAllLight: false, hasAllDark: false, hasDarkBase: false }
+    const meta = (m as any)?.metadata || {}
+    const variants: Variant[] = Array.isArray(meta.variants) ? meta.variants : []
+    const darkSourceUrl = typeof meta.darkSourceUrl === 'string' && meta.darkSourceUrl
+    
+    // Expected variant names from MEDIA_DERIVATIVES (default: thumb, small, medium, large)
+    const expectedBaseNames = ['thumb', 'small', 'medium', 'large']
+    
+    const lightVariants = variants.filter((v) => !String(v?.name || '').endsWith('-dark'))
+    const darkVariants = variants.filter((v) => String(v?.name || '').endsWith('-dark'))
+    
+    const hasAllLight = expectedBaseNames.every((name) => lightVariants.some((v) => v.name === name))
+    const hasAllDark = expectedBaseNames.every((name) => darkVariants.some((v) => v.name === `${name}-dark`))
+    const hasDarkBase = !!darkSourceUrl
+    
+    return { hasAllLight, hasAllDark, hasDarkBase }
+  }
+
   function getEditDisplayUrl(m: any, theme: 'light' | 'dark'): string {
     // During cropping, always show the light original so cropRect maps to original pixels
     if (cropping) return m.url
 
+    if ((import.meta as any).env?.DEV) {
+      // Lightweight debug to understand which URLs are being chosen in the editor
+      // eslint-disable-next-line no-console
+      console.log('[MediaAdmin] getEditDisplayUrl', {
+        theme,
+        selectedVariantName,
+        hasMetadata: !!(m as any)?.metadata,
+        variants: (m as any)?.metadata?.variants,
+      })
+    }
+
     if (selectedVariantName === 'original') {
       if (theme === 'dark') {
-        // Prefer a dedicated dark base if one exists, otherwise fall back to the light original
-        const darkSource = (m as any)?.metadata?.darkSourceUrl as string | undefined
-        return darkSource || m.url
+        const meta = (m as any)?.metadata || {}
+        const variants: any[] = Array.isArray((meta as any).variants) ? (meta as any).variants : []
+
+        // Prefer a dedicated dark base if one exists, otherwise fall back to the largest dark variant,
+        // and finally to the light original.
+        const darkSource = (meta as any).darkSourceUrl as string | undefined
+        let urlToUse: string | null = darkSource || null
+
+        if (!urlToUse && variants.length > 0) {
+          const darkVariants = variants.filter((v) => String(v?.name || '').endsWith('-dark'))
+          if (darkVariants.length > 0) {
+            const sortedDesc = [...darkVariants].sort(
+              (a, b) => ((b.width || b.height || 0) - (a.width || a.height || 0))
+            )
+            const best = sortedDesc[0]
+            urlToUse = best?.url || null
+          }
+        }
+
+        if (!urlToUse) urlToUse = m.url || null
+        if (!urlToUse) return m.url
+        // Cache‑bust dark preview so newly written files are visible immediately
+        return `${urlToUse}?v=${darkPreviewVersion}`
       }
       return m.url
     }
 
     const vUrl = getVariantUrlByName(m, selectedVariantName)
-    return vUrl || m.url
+    if (!vUrl) return m.url
+    if (theme === 'dark') {
+      // Also cache‑bust explicitly selected dark variants (e.g. thumb-dark)
+      return `${vUrl}?v=${darkPreviewVersion}`
+    }
+    return vUrl
   }
 
   async function applyCrop() {
@@ -684,6 +844,8 @@ export default function MediaIndex() {
                 onValueChange={(val: 'optimize' | 'regenerate' | 'delete' | 'categories') => {
                   if (val === 'optimize') {
                     applyBulk('optimize')
+                  } else if (val === 'generate-missing') {
+                    applyBulkGenerateMissing()
                   } else if (val === 'regenerate') {
                     applyBulkRegenerate()
                   } else if (val === 'delete') {
@@ -698,7 +860,8 @@ export default function MediaIndex() {
                 </SelectTrigger>
                 <SelectContent>
                   <SelectItem value="optimize">Optimize (WebP)</SelectItem>
-                  <SelectItem value="regenerate">Regenerate variations</SelectItem>
+                  <SelectItem value="generate-missing">Generate missing variations</SelectItem>
+                  <SelectItem value="regenerate">Regenerate all variations</SelectItem>
                   {isAdmin && <SelectItem value="delete">Delete</SelectItem>}
                   <SelectItem value="categories">Edit Category…</SelectItem>
                 </SelectContent>
@@ -1082,11 +1245,8 @@ export default function MediaIndex() {
                         Dark
                       </button>
                     </div>
-                    <div className="text-[11px] text-neutral-low">
-                      Theme controls which variants and replace target are active.
-                    </div>
                   </div>
-                  <div className="max-h-[55vh] overflow-auto">
+                    <div className="max-h-[55vh] overflow-auto">
                     <div className="relative inline-block" onMouseDown={onCropMouseDown} onMouseMove={onCropMouseMove} onMouseUp={onCropMouseUp} onClick={onFocalClick}>
                       <img ref={imgRef} src={getEditDisplayUrl(viewing, editTheme)} alt={viewing.altText || viewing.originalFilename} className="w-full h-auto max-h-[55vh]" />
                       {cropping && cropSel && (
@@ -1113,47 +1273,12 @@ export default function MediaIndex() {
                         ))}
                     </select>
                     {!focalMode && !cropping && selectedVariantName === 'original' && (
-                      <>
-                        <button
-                          className="px-2 py-1 text-xs border border-line rounded hover:bg-backdrop-medium"
-                          onClick={() => setCropping(true)}
-                        >
-                          Crop
-                        </button>
-                        {editTheme === 'light' && (
-                          <button
-                            className="px-2 py-1 text-xs border border-line rounded hover:bg-backdrop-medium"
-                            onClick={async () => {
-                              if (!viewing) return
-                              await toast.promise(
-                                fetch(`/api/media/${encodeURIComponent(viewing.id)}/variants`, {
-                                  method: 'POST',
-                                  headers: {
-                                    'Accept': 'application/json',
-                                    'Content-Type': 'application/json',
-                                    ...(xsrfFromCookie ? { 'X-XSRF-TOKEN': xsrfFromCookie } : {}),
-                                  },
-                                  credentials: 'same-origin',
-                                  body: JSON.stringify({ theme: 'dark' }),
-                                }).then(async (r) => {
-                                  if (!r.ok) {
-                                    const j = await r.json().catch(() => ({}))
-                                    throw new Error(j?.error || 'Dark variants generation failed')
-                                  }
-                                }),
-                                {
-                                  loading: 'Generating dark variants…',
-                                  success: 'Dark variants generated',
-                                  error: (e) => String((e as any).message || e),
-                                }
-                              )
-                              await load()
-                            }}
-                          >
-                            Generate dark variants
-                          </button>
-                        )}
-                      </>
+                      <button
+                        className="px-2 py-1 text-xs border border-line rounded hover:bg-backdrop-medium"
+                        onClick={() => setCropping(true)}
+                      >
+                        Crop
+                      </button>
                     )}
                     {cropping && (
                       <>
@@ -1162,7 +1287,89 @@ export default function MediaIndex() {
                       </>
                     )}
                     {!cropping && !focalMode && selectedVariantName === 'original' && (
-                      <button className="px-2 py-1 text-xs border border-line rounded hover:bg-backdrop-medium" onClick={() => setFocalMode(true)}>Focal point</button>
+                      <>
+                        <button className="px-2 py-1 text-xs border border-line rounded hover:bg-backdrop-medium" onClick={() => setFocalMode(true)}>Focal point</button>
+                        {(() => {
+                          const status = getVariantStatus(viewing)
+                          const allVariantsExist = status.hasAllLight && status.hasAllDark && status.hasDarkBase
+                          const buttonLabel = allVariantsExist ? 'Regenerate variations' : 'Generate missing variations'
+                          const isRegenerateMode = allVariantsExist
+
+                          return (
+                            <button
+                              className="px-2 py-1 text-xs border border-line rounded hover:bg-backdrop-medium"
+                              onClick={async () => {
+                                if (!viewing) return
+                                const targetId = viewing.id
+
+                                try {
+                                  // Generate light variants (if missing or if regenerating)
+                                  if (!status.hasAllLight || isRegenerateMode) {
+                                    await toast.promise(
+                                      fetch(`/api/media/${encodeURIComponent(targetId)}/variants`, {
+                                        method: 'POST',
+                                        headers: {
+                                          'Accept': 'application/json',
+                                          'Content-Type': 'application/json',
+                                          ...(xsrfFromCookie ? { 'X-XSRF-TOKEN': xsrfFromCookie } : {}),
+                                        },
+                                        credentials: 'same-origin',
+                                        body: JSON.stringify({ theme: 'light' }),
+                                      }).then((r) => {
+                                        if (!r.ok) throw new Error('Light variants generation failed')
+                                        return r
+                                      }),
+                                      {
+                                        loading: 'Generating light variants…',
+                                        success: 'Light variants generated',
+                                        error: (e) => String((e as any).message || e),
+                                      }
+                                    )
+                                  }
+
+                                  // Generate dark variants (if missing or if regenerating)
+                                  if (!status.hasAllDark || !status.hasDarkBase || isRegenerateMode) {
+                                    await toast.promise(
+                                      fetch(`/api/media/${encodeURIComponent(targetId)}/variants`, {
+                                        method: 'POST',
+                                        headers: {
+                                          'Accept': 'application/json',
+                                          'Content-Type': 'application/json',
+                                          ...(xsrfFromCookie ? { 'X-XSRF-TOKEN': xsrfFromCookie } : {}),
+                                        },
+                                        credentials: 'same-origin',
+                                        body: JSON.stringify({ theme: 'dark' }),
+                                      }).then((r) => {
+                                        if (!r.ok) throw new Error('Dark variants generation failed')
+                                        return r
+                                      }),
+                                      {
+                                        loading: 'Generating dark variants…',
+                                        success: 'Dark variants generated',
+                                        error: (e) => String((e as any).message || e),
+                                      }
+                                    )
+                                  }
+
+                                  // Refresh to show new variants
+                                  await refreshMediaItem(targetId)
+                                  setDarkPreviewVersion((v) => v + 1)
+
+                                  if (!isRegenerateMode) {
+                                    // Switch to Dark theme to show the newly generated dark variants
+                                    setEditTheme('dark')
+                                    setSelectedVariantName('original')
+                                  }
+                                } catch (err) {
+                                  toast.error(String((err as any).message || err))
+                                }
+                              }}
+                            >
+                              {buttonLabel}
+                            </button>
+                          )
+                        })()}
+                      </>
                     )}
                     {focalMode && (
                       <>
@@ -1175,20 +1382,6 @@ export default function MediaIndex() {
 
                 {/* Right: metadata + theme-aware replace */}
                 <div className="w-full max-w-xs space-y-3">
-                  <div className="p-2 border border-dashed border-line rounded">
-                    <div className="text-xs font-medium mb-2">Rename file</div>
-                    <div className="flex items-center gap-2">
-                      <input className="flex-1 px-2 py-1 border border-line bg-backdrop-low text-neutral-high" placeholder="new-filename (optional extension)" value={newFilename} onChange={(e) => setNewFilename(e.target.value)} />
-                      <button className="px-3 py-1.5 text-xs rounded bg-standout text-on-standout disabled:opacity-50" disabled={renaming || !newFilename} onClick={async () => {
-                        if (!viewing || !newFilename) return
-                        setRenaming(true)
-                        try {
-                          const res = await fetch(`/api/media/${encodeURIComponent(viewing.id)}/rename`, { method: 'PATCH', headers: { 'Accept': 'application/json', 'Content-Type': 'application/json', ...(xsrfFromCookie ? { 'X-XSRF-TOKEN': xsrfFromCookie } : {}) }, credentials: 'same-origin', body: JSON.stringify({ filename: newFilename }) })
-                          if (res.ok) { toast.success('Renamed'); await load(); setNewFilename('') } else { toast.error('Rename failed') }
-                        } finally { setRenaming(false) }
-                      }}>Rename</button>
-                    </div>
-                  </div>
                   <div>
                     <label className="block text-xs text-neutral-medium mb-1">Alt Text</label>
                     <input className="w-full px-2 py-1 border border-line bg-backdrop-low text-neutral-high" value={editAlt} onChange={(e) => setEditAlt(e.target.value)} />
@@ -1225,6 +1418,21 @@ export default function MediaIndex() {
                         }
                       }}
                     />
+                  </div>
+
+                  <div className="p-2 border border-dashed border-line rounded">
+                    <div className="text-xs font-medium mb-2">Rename file</div>
+                    <div className="flex items-center gap-2">
+                      <input className="flex-1 px-2 py-1 border border-line bg-backdrop-low text-neutral-high" placeholder="new-filename (optional extension)" value={newFilename} onChange={(e) => setNewFilename(e.target.value)} />
+                      <button className="px-3 py-1.5 text-xs rounded bg-standout text-on-standout disabled:opacity-50" disabled={renaming || !newFilename} onClick={async () => {
+                        if (!viewing || !newFilename) return
+                        setRenaming(true)
+                        try {
+                          const res = await fetch(`/api/media/${encodeURIComponent(viewing.id)}/rename`, { method: 'PATCH', headers: { 'Accept': 'application/json', 'Content-Type': 'application/json', ...(xsrfFromCookie ? { 'X-XSRF-TOKEN': xsrfFromCookie } : {}) }, credentials: 'same-origin', body: JSON.stringify({ filename: newFilename }) })
+                          if (res.ok) { toast.success('Renamed'); await load(); setNewFilename('') } else { toast.error('Rename failed') }
+                        } finally { setRenaming(false) }
+                      }}>Rename</button>
+                    </div>
                   </div>
 
                   <div className="p-2 border border-dashed border-line rounded space-y-2">

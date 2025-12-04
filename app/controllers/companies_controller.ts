@@ -26,7 +26,12 @@ export default class CompaniesController {
     const limit = Math.min(100, Math.max(1, Number(request.input('limit', 50)) || 50))
 
     const idsParam = String(request.input('ids', '')).trim()
-    const ids: string[] = idsParam ? idsParam.split(',').map((v) => v.trim()).filter(Boolean) : []
+    const ids: string[] = idsParam
+      ? idsParam
+          .split(',')
+          .map((v) => v.trim())
+          .filter(Boolean)
+      : []
 
     const query = Post.query().where('type', 'company')
 
@@ -61,5 +66,3 @@ export default class CompaniesController {
     return response.ok({ data: items })
   }
 }
-
-

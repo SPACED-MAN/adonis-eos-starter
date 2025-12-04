@@ -14,7 +14,10 @@ export default class extends BaseSchema {
       table.text('logo_light_media_id').nullable()
       table.text('logo_dark_media_id').nullable()
       // Profiles enabled per role (code-first control surface)
-      table.jsonb('profile_roles_enabled').notNullable().defaultTo(this.db.rawQuery(`'[]'::jsonb`).knexQuery)
+      table
+        .jsonb('profile_roles_enabled')
+        .notNullable()
+        .defaultTo(this.db.rawQuery(`'[]'::jsonb`).knexQuery)
       table.timestamp('created_at', { useTz: true }).notNullable().defaultTo(this.now())
       table.timestamp('updated_at', { useTz: true }).notNullable().defaultTo(this.now())
     })
@@ -24,5 +27,3 @@ export default class extends BaseSchema {
     this.schema.dropTable(this.tableName)
   }
 }
-
-

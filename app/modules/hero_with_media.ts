@@ -151,5 +151,3 @@ export default class HeroWithMediaModule extends BaseModule {
     }
   }
 }
-
-

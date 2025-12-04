@@ -35,13 +35,10 @@ export default class CompanyListModule extends BaseModule {
       },
       defaultProps: {
         title: 'You’ll be in good company',
-        subtitle:
-          'Logos and names of customers or partners, managed via the Company post type.',
+        subtitle: 'Logos and names of customers or partners, managed via the Company post type.',
         companies: [],
       },
       allowedPostTypes: ['page', 'blog'],
     }
   }
 }
-
-

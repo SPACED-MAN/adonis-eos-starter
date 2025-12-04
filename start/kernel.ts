@@ -31,7 +31,7 @@ server.use([
   () => import('@adonisjs/vite/vite_middleware'),
   () => import('@adonisjs/inertia/inertia_middleware'),
   // Run redirects for all requests (including unmatched routes)
-  () => import('#middleware/redirects_middleware')
+  () => import('#middleware/redirects_middleware'),
 ])
 
 /**
@@ -46,7 +46,7 @@ router.use([
   // Share auth context with Inertia props (must run after auth init)
   () => import('#middleware/inertia_auth_share_middleware'),
   () => import('#middleware/locale_middleware'),
-  () => import('#middleware/cache_control_middleware')
+  () => import('#middleware/cache_control_middleware'),
 ])
 
 /**

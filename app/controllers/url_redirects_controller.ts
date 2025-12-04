@@ -7,7 +7,10 @@ export default class UrlRedirectsController {
    */
   async index({ request, response }: HttpContext) {
     const type = String(request.input('type', '')).trim()
-    const query = db.from('url_redirects').select('url_redirects.*').orderBy('url_redirects.created_at', 'desc')
+    const query = db
+      .from('url_redirects')
+      .select('url_redirects.*')
+      .orderBy('url_redirects.created_at', 'desc')
     if (type) {
       query.leftJoin('posts', 'url_redirects.post_id', 'posts.id').where('posts.type', type)
     }
@@ -20,12 +23,12 @@ export default class UrlRedirectsController {
    * Body: { fromPath: string, toPath: string, httpStatus?: number, locale?: string | null }
    */
   async store({ request, response }: HttpContext) {
-    const { fromPath, toPath, httpStatus = 301, locale = null } = request.only([
-      'fromPath',
-      'toPath',
-      'httpStatus',
-      'locale',
-    ])
+    const {
+      fromPath,
+      toPath,
+      httpStatus = 301,
+      locale = null,
+    } = request.only(['fromPath', 'toPath', 'httpStatus', 'locale'])
     if (!fromPath || !toPath) {
       return response.badRequest({ error: 'fromPath and toPath are required' })
     }
@@ -57,7 +60,11 @@ export default class UrlRedirectsController {
     if (payload.httpStatus !== undefined) updateData.http_status = payload.httpStatus
     if (payload.locale !== undefined) updateData.locale = payload.locale || null
 
-    const [updated] = await db.from('url_redirects').where('id', id).update(updateData).returning('*')
+    const [updated] = await db
+      .from('url_redirects')
+      .where('id', id)
+      .update(updateData)
+      .returning('*')
     if (!updated) {
       return response.notFound({ error: 'Redirect not found' })
     }
@@ -75,7 +82,4 @@ export default class UrlRedirectsController {
     }
     return response.noContent()
   }
-
 }
-
-

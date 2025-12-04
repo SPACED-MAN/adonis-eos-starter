@@ -37,7 +37,11 @@ export default class UrlPatternsController {
    */
   async upsert({ params, request, response }: HttpContext) {
     const { locale } = params
-    const { postType, pattern, isDefault = true } = request.only(['postType', 'pattern', 'isDefault'])
+    const {
+      postType,
+      pattern,
+      isDefault = true,
+    } = request.only(['postType', 'pattern', 'isDefault'])
 
     if (!postType || typeof postType !== 'string') {
       return response.badRequest({ error: 'postType is required' })
@@ -57,7 +61,10 @@ export default class UrlPatternsController {
 
       // If pattern actually changed, create redirects from old -> new for all posts of this type+locale
       const cfg = postTypeConfigService.getUiConfig(postType)
-      const autoRedirect = (cfg as any).autoRedirectOnSlugChange !== undefined ? !!(cfg as any).autoRedirectOnSlugChange : true
+      const autoRedirect =
+        (cfg as any).autoRedirectOnSlugChange !== undefined
+          ? !!(cfg as any).autoRedirectOnSlugChange
+          : true
       if (oldPattern !== pattern && autoRedirect) {
         const posts = await db
           .from('posts')
@@ -67,11 +74,24 @@ export default class UrlPatternsController {
         const now = new Date()
         for (const p of posts) {
           const createdAt = p.created_at ? new Date(p.created_at) : undefined
-          const fromPath = UrlPatternService.buildPathWithPattern(oldPattern, p.slug, p.locale, createdAt)
-          const toPath = UrlPatternService.buildPathWithPattern(pattern, p.slug, p.locale, createdAt)
+          const fromPath = UrlPatternService.buildPathWithPattern(
+            oldPattern,
+            p.slug,
+            p.locale,
+            createdAt
+          )
+          const toPath = UrlPatternService.buildPathWithPattern(
+            pattern,
+            p.slug,
+            p.locale,
+            createdAt
+          )
           if (fromPath !== toPath) {
             try {
-              const existingRedirect = await db.from('url_redirects').where('from_path', fromPath).first()
+              const existingRedirect = await db
+                .from('url_redirects')
+                .where('from_path', fromPath)
+                .first()
               if (!existingRedirect) {
                 await db.table('url_redirects').insert({
                   from_path: fromPath,
@@ -97,5 +117,3 @@ export default class UrlPatternsController {
     }
   }
 }
-
-

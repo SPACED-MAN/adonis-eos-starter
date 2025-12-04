@@ -74,7 +74,10 @@ export default class UpdatePostModule {
     // If overrides provided and module is local (scope='post'), merge into module props instead
     // to reflect that local modules own their props rather than using per-post overrides.
     if (overrides !== undefined) {
-      const moduleInstance = await db.from('module_instances').where('id', postModule.module_id).first()
+      const moduleInstance = await db
+        .from('module_instances')
+        .where('id', postModule.module_id)
+        .first()
       if (moduleInstance && moduleInstance.scope === 'post') {
         // Local module: edit props; in review mode, write to review_props
         const baseProps =
@@ -84,10 +87,13 @@ export default class UpdatePostModule {
         // Deep-merge overrides to preserve nested richtext JSON
         const mergedProps = UpdatePostModule.deepMerge(baseProps, overrides || {})
         const propsColumn = mode === 'review' ? 'review_props' : 'props'
-        await db.from('module_instances').where('id', postModule.module_id).update({
-          [propsColumn]: mergedProps,
-          updated_at: new Date(),
-        } as any)
+        await db
+          .from('module_instances')
+          .where('id', postModule.module_id)
+          .update({
+            [propsColumn]: mergedProps,
+            updated_at: new Date(),
+          } as any)
         // Clear standard overrides for local modules (both fields)
         if (mode === 'review') {
           updateData.review_overrides = null

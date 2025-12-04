@@ -35,5 +35,3 @@ END $$;
     this.schema.dropTable(this.tableName)
   }
 }
-
-

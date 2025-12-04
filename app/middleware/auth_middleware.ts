@@ -19,7 +19,7 @@ export default class AuthMiddleware {
       guards?: (keyof Authenticators)[]
     } = {}
   ) {
-    const guardsToUse = (options.guards && options.guards.length > 0) ? options.guards : ['web']
+    const guardsToUse = options.guards && options.guards.length > 0 ? options.guards : ['web']
     await ctx.auth.authenticateUsing(guardsToUse, { loginRoute: this.redirectTo })
     return next()
   }

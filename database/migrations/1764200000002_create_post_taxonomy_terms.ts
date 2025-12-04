@@ -7,7 +7,12 @@ export default class extends BaseSchema {
     this.schema.createTable(this.tableName, (table) => {
       table.uuid('id').primary().defaultTo(this.db.rawQuery('gen_random_uuid()').knexQuery)
       table.uuid('post_id').notNullable().references('id').inTable('posts').onDelete('CASCADE')
-      table.uuid('taxonomy_term_id').notNullable().references('id').inTable('taxonomy_terms').onDelete('CASCADE')
+      table
+        .uuid('taxonomy_term_id')
+        .notNullable()
+        .references('id')
+        .inTable('taxonomy_terms')
+        .onDelete('CASCADE')
       table.timestamp('created_at', { useTz: true }).notNullable().defaultTo(this.now())
       table.timestamp('updated_at', { useTz: true }).notNullable().defaultTo(this.now())
       table.unique(['post_id', 'taxonomy_term_id'])
@@ -20,6 +25,3 @@ export default class extends BaseSchema {
     this.schema.dropTable(this.tableName)
   }
 }
-
-
-

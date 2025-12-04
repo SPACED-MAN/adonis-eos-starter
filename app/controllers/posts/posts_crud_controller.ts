@@ -9,7 +9,12 @@ import RevisionService from '#services/revision_service'
 import postTypeConfigService from '#services/post_type_config_service'
 import webhookService from '#services/webhook_service'
 import BasePostsController from './base_posts_controller.js'
-import { createPostValidator, updatePostValidator, bulkActionValidator, reorderPostsValidator } from '#validators/post'
+import {
+  createPostValidator,
+  updatePostValidator,
+  bulkActionValidator,
+  reorderPostsValidator,
+} from '#validators/post'
 
 /**
  * Posts CRUD Controller
@@ -22,7 +27,11 @@ export default class PostsCrudController extends BasePostsController {
    * Create a new post
    */
   async store({ request, response, auth }: HttpContext) {
-    const role = (auth.use('web').user as any)?.role as 'admin' | 'editor' | 'translator' | undefined
+    const role = (auth.use('web').user as any)?.role as
+      | 'admin'
+      | 'editor'
+      | 'translator'
+      | undefined
 
     if (!authorizationService.canCreatePost(role)) {
       return this.response.forbidden(response, 'Not allowed to create posts')
@@ -54,7 +63,9 @@ export default class PostsCrudController extends BasePostsController {
           entityId: post.id,
           metadata: { type: payload.type, locale: payload.locale, slug: payload.slug },
         })
-      } catch { /* ignore */ }
+      } catch {
+        /* ignore */
+      }
 
       // Dispatch webhook
       await webhookService.dispatch('post.created', {
@@ -65,15 +76,19 @@ export default class PostsCrudController extends BasePostsController {
         title: post.title,
       })
 
-      return this.response.created(response, {
-        id: post.id,
-        type: post.type,
-        locale: post.locale,
-        slug: post.slug,
-        title: post.title,
-        status: post.status,
-        createdAt: post.createdAt,
-      }, 'Post created successfully')
+      return this.response.created(
+        response,
+        {
+          id: post.id,
+          type: post.type,
+          locale: post.locale,
+          slug: post.slug,
+          title: post.title,
+          status: post.status,
+          createdAt: post.createdAt,
+        },
+        'Post created successfully'
+      )
     } catch (error) {
       if (error instanceof CreatePostException) {
         return this.handleActionException(response, error)
@@ -88,7 +103,11 @@ export default class PostsCrudController extends BasePostsController {
    */
   async update({ params, request, response, auth }: HttpContext) {
     const { id } = params
-    const role = (auth.use('web').user as any)?.role as 'admin' | 'editor' | 'translator' | undefined
+    const role = (auth.use('web').user as any)?.role as
+      | 'admin'
+      | 'editor'
+      | 'translator'
+      | undefined
 
     try {
       const payload = await request.validateUsing(updatePostValidator)
@@ -140,14 +159,19 @@ export default class PostsCrudController extends BasePostsController {
         // Featured image: support optional update when provided by the editor
         featuredImageId:
           payload.featuredImageId !== undefined
-            ? (payload.featuredImageId === null || payload.featuredImageId === '' ? null : payload.featuredImageId)
+            ? payload.featuredImageId === null || payload.featuredImageId === ''
+              ? null
+              : payload.featuredImageId
             : undefined,
       })
 
       // Handle timestamps
       const now = new Date()
       if (payload.status === 'published') {
-        await db.from('posts').where('id', id).update({ published_at: now, scheduled_at: null, updated_at: now })
+        await db
+          .from('posts')
+          .where('id', id)
+          .update({ published_at: now, scheduled_at: null, updated_at: now })
       } else if (payload.status === 'scheduled' && payload.scheduledAt) {
         const ts = new Date(payload.scheduledAt)
         if (!isNaN(ts.getTime())) {
@@ -190,7 +214,9 @@ export default class PostsCrudController extends BasePostsController {
           entityType: 'post',
           entityId: id,
         })
-      } catch { /* ignore */ }
+      } catch {
+        /* ignore */
+      }
 
       // Dispatch webhook
       await webhookService.dispatch('post.updated', { id })
@@ -236,7 +262,9 @@ export default class PostsCrudController extends BasePostsController {
         entityId: id,
         metadata: { type: post.type, slug: post.slug, locale: post.locale },
       })
-    } catch { /* ignore */ }
+    } catch {
+      /* ignore */
+    }
 
     // Dispatch webhook
     await webhookService.dispatch('post.deleted', { id, type: post.type, slug: post.slug })
@@ -275,7 +303,9 @@ export default class PostsCrudController extends BasePostsController {
         entityType: 'post',
         entityId: id,
       })
-    } catch { /* ignore */ }
+    } catch {
+      /* ignore */
+    }
 
     // Dispatch webhook
     await webhookService.dispatch('post.restored', { id })
@@ -288,7 +318,11 @@ export default class PostsCrudController extends BasePostsController {
    * Perform bulk actions on posts
    */
   async bulk({ request, response, auth }: HttpContext) {
-    const role = (auth.use('web').user as any)?.role as 'admin' | 'editor' | 'translator' | undefined
+    const role = (auth.use('web').user as any)?.role as
+      | 'admin'
+      | 'editor'
+      | 'translator'
+      | undefined
 
     try {
       const payload = await request.validateUsing(bulkActionValidator)
@@ -309,7 +343,9 @@ export default class PostsCrudController extends BasePostsController {
           entityId: 'bulk',
           metadata: { count: payload.ids.length },
         })
-      } catch { /* ignore */ }
+      } catch {
+        /* ignore */
+      }
 
       return response.ok(result)
     } catch (error: any) {
@@ -322,7 +358,11 @@ export default class PostsCrudController extends BasePostsController {
    * Bulk update order_index for posts
    */
   async reorder({ request, response, auth }: HttpContext) {
-    const role = (auth.use('web').user as any)?.role as 'admin' | 'editor' | 'translator' | undefined
+    const role = (auth.use('web').user as any)?.role as
+      | 'admin'
+      | 'editor'
+      | 'translator'
+      | undefined
 
     if (!(role === 'admin' || role === 'editor')) {
       return this.response.forbidden(response, 'Not allowed to reorder posts')
@@ -370,7 +410,9 @@ export default class PostsCrudController extends BasePostsController {
           entityId: 'bulk',
           metadata: { count: items.length },
         })
-      } catch { /* ignore */ }
+      } catch {
+        /* ignore */
+      }
 
       return response.ok({ updated: items.length })
     } catch (error: any) {
@@ -404,7 +446,8 @@ export default class PostsCrudController extends BasePostsController {
 
     // Prevent multiple profiles per user
     if (post.type === 'profile') {
-      const existing = await db.from('posts')
+      const existing = await db
+        .from('posts')
         .where({ type: 'profile', author_id: authorId })
         .andWhereNot('id', id)
         .first()
@@ -420,7 +463,12 @@ export default class PostsCrudController extends BasePostsController {
 
   // Private helper methods
 
-  private async saveReviewDraft(id: string, payload: any, auth: HttpContext['auth'], response: HttpContext['response']) {
+  private async saveReviewDraft(
+    id: string,
+    payload: any,
+    auth: HttpContext['auth'],
+    response: HttpContext['response']
+  ) {
     const draftPayload: Record<string, any> = {
       slug: payload.slug,
       title: payload.title,
@@ -439,7 +487,9 @@ export default class PostsCrudController extends BasePostsController {
       savedBy: (auth.use('web').user as any)?.email || null,
     }
 
-    await Post.query().where('id', id).update({ review_draft: draftPayload } as any)
+    await Post.query()
+      .where('id', id)
+      .update({ review_draft: draftPayload } as any)
 
     await RevisionService.record({
       postId: id,
@@ -451,7 +501,11 @@ export default class PostsCrudController extends BasePostsController {
     return response.ok({ message: 'Saved for review' })
   }
 
-  private async approveReviewDraft(id: string, auth: HttpContext['auth'], response: HttpContext['response']) {
+  private async approveReviewDraft(
+    id: string,
+    auth: HttpContext['auth'],
+    response: HttpContext['response']
+  ) {
     const current = await Post.findOrFail(id)
     const rd: any = current.reviewDraft
 
@@ -473,7 +527,9 @@ export default class PostsCrudController extends BasePostsController {
       jsonldOverrides: this.parseJsonField(rd.jsonldOverrides) ?? current.jsonldOverrides,
       featuredImageId:
         rd.featuredImageId !== undefined
-          ? (rd.featuredImageId === null || rd.featuredImageId === '' ? null : rd.featuredImageId)
+          ? rd.featuredImageId === null || rd.featuredImageId === ''
+            ? null
+            : rd.featuredImageId
           : current.featuredImageId,
     })
 
@@ -486,7 +542,9 @@ export default class PostsCrudController extends BasePostsController {
     await this.promoteModuleChanges(id)
 
     // Clear review draft
-    await Post.query().where('id', id).update({ review_draft: null } as any)
+    await Post.query()
+      .where('id', id)
+      .update({ review_draft: null } as any)
 
     await RevisionService.record({
       postId: id,
@@ -498,7 +556,10 @@ export default class PostsCrudController extends BasePostsController {
     return response.ok({ message: 'Review approved' })
   }
 
-  private async upsertCustomFields(postId: string, customFields: Array<{ slug?: string; value: any }>) {
+  private async upsertCustomFields(
+    postId: string,
+    customFields: Array<{ slug?: string; value: any }>
+  ) {
     const now = new Date()
     for (const cf of customFields) {
       if (!cf?.slug) continue
@@ -507,7 +568,8 @@ export default class PostsCrudController extends BasePostsController {
 
       const value = this.normalizeJsonb(cf.value === undefined ? null : cf.value)
 
-      const updated = await db.from('post_custom_field_values')
+      const updated = await db
+        .from('post_custom_field_values')
         .where({ post_id: postId, field_slug: fieldSlug })
         .update({ value, updated_at: now })
 
@@ -551,7 +613,10 @@ export default class PostsCrudController extends BasePostsController {
     await db.from('post_modules').where('post_id', postId).andWhere('review_deleted', true).delete()
 
     // Finalize newly added modules
-    await db.from('post_modules').where('post_id', postId).andWhere('review_added', true).update({ review_added: false, updated_at: new Date() })
+    await db
+      .from('post_modules')
+      .where('post_id', postId)
+      .andWhere('review_added', true)
+      .update({ review_added: false, updated_at: new Date() })
   }
 }
-

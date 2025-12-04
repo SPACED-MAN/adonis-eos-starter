@@ -37,12 +37,14 @@ class ModuleInstanceFactoryBuilder {
     return clone
   }
 
-  merge(overrides: Partial<{
-    type: string
-    scope: 'post' | 'global'
-    props: Record<string, unknown>
-    globalSlug: string | null
-  }>): ModuleInstanceFactoryBuilder {
+  merge(
+    overrides: Partial<{
+      type: string
+      scope: 'post' | 'global'
+      props: Record<string, unknown>
+      globalSlug: string | null
+    }>
+  ): ModuleInstanceFactoryBuilder {
     const clone = this.clone()
     clone._overrides = { ...clone._overrides, ...overrides }
     return clone
@@ -75,15 +77,18 @@ class ModuleInstanceFactoryBuilder {
     const attrs = { ...this.definition(), ...this._overrides }
     const id = randomUUID()
 
-    const [row] = await db.table('module_instances').insert({
-      id,
-      type: attrs.type,
-      scope: attrs.scope,
-      props: attrs.props,
-      global_slug: attrs.globalSlug,
-      created_at: new Date(),
-      updated_at: new Date(),
-    }).returning('*')
+    const [row] = await db
+      .table('module_instances')
+      .insert({
+        id,
+        type: attrs.type,
+        scope: attrs.scope,
+        props: attrs.props,
+        global_slug: attrs.globalSlug,
+        created_at: new Date(),
+        updated_at: new Date(),
+      })
+      .returning('*')
 
     return { ...attrs, id: row.id }
   }
@@ -98,5 +103,3 @@ class ModuleInstanceFactoryBuilder {
 }
 
 export const ModuleInstanceFactory = new ModuleInstanceFactoryBuilder()
-
-

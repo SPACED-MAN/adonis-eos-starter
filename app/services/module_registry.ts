@@ -152,4 +152,3 @@ class ModuleRegistry {
 // Export singleton instance
 const moduleRegistry = new ModuleRegistry()
 export default moduleRegistry
-

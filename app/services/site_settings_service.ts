@@ -17,7 +17,7 @@ class SiteSettingsService {
 
   async get(): Promise<SiteSettings> {
     const now = Date.now()
-    if (this.cache && (now - this.lastLoadedAt) < this.ttlMs) {
+    if (this.cache && now - this.lastLoadedAt < this.ttlMs) {
       return this.cache
     }
     const row = await db.from('site_settings').first()
@@ -28,7 +28,9 @@ class SiteSettingsService {
       defaultOgMediaId: row?.default_og_media_id || null,
       logoLightMediaId: row?.logo_light_media_id || null,
       logoDarkMediaId: row?.logo_dark_media_id || null,
-      profileRolesEnabled: Array.isArray(row?.profile_roles_enabled) ? row.profile_roles_enabled : [],
+      profileRolesEnabled: Array.isArray(row?.profile_roles_enabled)
+        ? row.profile_roles_enabled
+        : [],
     }
     this.cache = settings
     this.lastLoadedAt = now
@@ -80,5 +82,3 @@ class SiteSettingsService {
 
 const siteSettingsService = new SiteSettingsService()
 export default siteSettingsService
-
-

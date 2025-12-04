@@ -142,4 +142,3 @@ export default class RateLimitMiddleware {
 export const rateLimit = RateLimitMiddleware.make.bind(RateLimitMiddleware)
 export const rateLimitAuth = RateLimitMiddleware.auth.bind(RateLimitMiddleware)
 export const rateLimitApi = RateLimitMiddleware.api.bind(RateLimitMiddleware)
-

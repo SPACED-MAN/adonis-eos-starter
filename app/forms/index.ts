@@ -13,6 +13,3 @@ export function getFormBySlug(slug: string): FormConfig | null {
 }
 
 export default forms
-
-
-

@@ -32,7 +32,12 @@ class PreviewService {
   /**
    * Verify a token signature
    */
-  private verifySignature(token: string, postId: string, expiresAt: Date, signature: string): boolean {
+  private verifySignature(
+    token: string,
+    postId: string,
+    expiresAt: Date,
+    signature: string
+  ): boolean {
     const expected = this.signToken(token, postId, expiresAt)
     return expected === signature
   }
@@ -170,4 +175,3 @@ class PreviewService {
 
 const previewService = new PreviewService()
 export default previewService
-

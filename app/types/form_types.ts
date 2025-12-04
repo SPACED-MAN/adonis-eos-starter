@@ -14,6 +14,3 @@ export interface FormConfig {
   fields: FormFieldConfig[]
   successMessage?: string
 }
-
-
-

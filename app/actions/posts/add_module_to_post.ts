@@ -85,8 +85,8 @@ export default class AddModuleToPost {
           const moduleConfig = moduleRegistry.get(moduleType).getConfig()
           const initialProps =
             props === null ||
-              props === undefined ||
-              (typeof props === 'object' && Object.keys(props).length === 0)
+            props === undefined ||
+            (typeof props === 'object' && Object.keys(props).length === 0)
               ? moduleConfig.defaultProps
               : props
           const [newGlobal] = await trx
@@ -109,8 +109,8 @@ export default class AddModuleToPost {
         const moduleConfig = moduleRegistry.get(moduleType).getConfig()
         const initialProps =
           props === null ||
-            props === undefined ||
-            (typeof props === 'object' && Object.keys(props).length === 0)
+          props === undefined ||
+          (typeof props === 'object' && Object.keys(props).length === 0)
             ? moduleConfig.defaultProps
             : props
         const [newInstance] = await trx

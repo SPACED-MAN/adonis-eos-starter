@@ -43,5 +43,3 @@ export default class BlogListModule extends BaseModule {
     }
   }
 }
-
-

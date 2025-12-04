@@ -39,6 +39,3 @@ export default class FormModule extends BaseModule {
     }
   }
 }
-
-
-

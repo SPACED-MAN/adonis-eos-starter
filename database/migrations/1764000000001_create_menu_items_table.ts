@@ -16,7 +16,7 @@ export default class extends BaseSchema {
       table.text('custom_url').nullable()
       table.text('anchor').nullable()
       table.text('target').nullable() // e.g. _blank
-      table.text('rel').nullable()    // e.g. nofollow noopener
+      table.text('rel').nullable() // e.g. nofollow noopener
       table.timestamp('created_at', { useTz: true }).defaultTo(this.now())
       table.timestamp('updated_at', { useTz: true }).defaultTo(this.now())
     })
@@ -34,6 +34,3 @@ export default class extends BaseSchema {
     this.schema.dropTable(this.tableName)
   }
 }
-
-
-

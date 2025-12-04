@@ -118,10 +118,7 @@ export default class CreateTranslation {
    *
    * @private
    */
-  private static async checkDuplicateTranslation(
-    basePost: Post,
-    locale: string
-  ): Promise<void> {
+  private static async checkDuplicateTranslation(basePost: Post, locale: string): Promise<void> {
     const existingTranslation = await basePost.getTranslation(locale)
 
     if (existingTranslation) {
@@ -155,9 +152,11 @@ export default class CreateTranslation {
     }
   ): Promise<Post> {
     const generatedSlug =
-      (data.slug || '').trim() ||
-      `${basePost.slug}-${data.locale}-${Date.now()}`
-    const generatedTitle = (data.title || '').trim() || basePost.title || `${basePost.type} (${data.locale.toUpperCase()})`
+      (data.slug || '').trim() || `${basePost.slug}-${data.locale}-${Date.now()}`
+    const generatedTitle =
+      (data.title || '').trim() ||
+      basePost.title ||
+      `${basePost.type} (${data.locale.toUpperCase()})`
 
     return Post.create({
       type: basePost.type,

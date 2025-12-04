@@ -153,4 +153,3 @@ class ResponseService {
 
 const responseService = new ResponseService()
 export default responseService
-

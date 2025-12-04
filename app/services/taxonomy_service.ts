@@ -97,6 +97,3 @@ class TaxonomyService {
 
 const taxonomyService = new TaxonomyService()
 export default taxonomyService
-
-
-

@@ -26,13 +26,13 @@ export type GenerateMediaVariantsResult = {
 
 /**
  * Action: Generate media variants intelligently
- * 
+ *
  * Handles all the complexity of:
  * - Detecting auto-generated vs manually-uploaded dark bases
  * - Determining when to apply tint vs not
  * - Proper filename conventions (avoiding double -dark suffix)
  * - Metadata name mapping for proper tracking
- * 
+ *
  * Usage:
  *   const result = await generateMediaVariantsAction.execute({ mediaId: '123', theme: 'dark' })
  *   // or
@@ -41,7 +41,7 @@ export type GenerateMediaVariantsResult = {
 class GenerateMediaVariantsAction {
   async execute(options: GenerateMediaVariantsOptions): Promise<GenerateMediaVariantsResult> {
     const { theme, specs, cropRect, focalPoint, updateDatabase = true } = options
-    
+
     // Get media record
     let row = options.mediaRecord
     if (!row && options.mediaId) {
@@ -51,7 +51,8 @@ class GenerateMediaVariantsAction {
     if (!row) throw new Error('Either mediaId or mediaRecord must be provided')
 
     const existingMeta = (row.metadata || {}) as any
-    const darkSourceUrl = typeof existingMeta.darkSourceUrl === 'string' ? existingMeta.darkSourceUrl : undefined
+    const darkSourceUrl =
+      typeof existingMeta.darkSourceUrl === 'string' ? existingMeta.darkSourceUrl : undefined
 
     // Determine source file for variant generation
     let baseUrl: string
@@ -97,6 +98,16 @@ class GenerateMediaVariantsAction {
       }
     }
     // For light variants, variantOptions stays undefined (defaults apply)
+
+    // Debug logging
+    console.log('[GenerateMediaVariantsAction]', {
+      theme,
+      baseUrl,
+      absPath,
+      baseNameEndsWithDark,
+      isAlreadyDark,
+      variantOptions,
+    })
 
     // Generate variants
     const generatedVariants = await mediaService.generateVariants(
@@ -156,4 +167,3 @@ class GenerateMediaVariantsAction {
 
 const generateMediaVariantsAction = new GenerateMediaVariantsAction()
 export default generateMediaVariantsAction
-

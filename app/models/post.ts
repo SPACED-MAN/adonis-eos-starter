@@ -1,5 +1,13 @@
 import { DateTime } from 'luxon'
-import { BaseModel, column, belongsTo, hasMany, scope, beforeFind, beforeFetch } from '@adonisjs/lucid/orm'
+import {
+  BaseModel,
+  column,
+  belongsTo,
+  hasMany,
+  scope,
+  beforeFind,
+  beforeFetch,
+} from '@adonisjs/lucid/orm'
 import type { BelongsTo, HasMany } from '@adonisjs/lucid/types/relations'
 import type { ModelQueryBuilderContract } from '@adonisjs/lucid/types/model'
 import User from './user.js'
@@ -31,7 +39,14 @@ export default class Post extends BaseModel {
   declare featuredImageId: string | null
 
   @column()
-  declare status: 'draft' | 'review' | 'scheduled' | 'published' | 'private' | 'protected' | 'archived'
+  declare status:
+    | 'draft'
+    | 'review'
+    | 'scheduled'
+    | 'published'
+    | 'private'
+    | 'protected'
+    | 'archived'
 
   @column()
   declare locale: string
@@ -68,7 +83,7 @@ export default class Post extends BaseModel {
 
   @column()
   declare userId: number
-  
+
   @column({ columnName: 'author_id' })
   declare authorId: number | null
 
@@ -176,7 +191,7 @@ export default class Post extends BaseModel {
     foreignKey: 'parentId',
   })
   declare children: HasMany<typeof Post>
-  
+
   /**
    * Relationship: Author (user)
    */
@@ -196,7 +211,8 @@ export default class Post extends BaseModel {
    * Query scope: Get published posts
    */
   static published = scope((query) => {
-    query.where('status', 'published')
+    query
+      .where('status', 'published')
       .whereNotNull('publishedAt')
       .where('publishedAt', '<=', DateTime.now().toSQL())
   })
@@ -248,9 +264,7 @@ export default class Post extends BaseModel {
     }
 
     // If this is original, get all translations
-    return Post.query()
-      .where('translationOfId', this.id)
-      .orWhere('id', this.id)
+    return Post.query().where('translationOfId', this.id).orWhere('id', this.id)
   }
 
   /**
@@ -259,10 +273,7 @@ export default class Post extends BaseModel {
   async getTranslation(locale: string): Promise<Post | null> {
     const baseId = this.translationOfId || this.id
 
-    return Post.query()
-      .where('translationOfId', baseId)
-      .where('locale', locale)
-      .first()
+    return Post.query().where('translationOfId', baseId).where('locale', locale).first()
   }
 
   /**

@@ -36,7 +36,10 @@ class ModuleScopeService {
     }
 
     // If there are no scope restrictions for this post type, allow by default
-    const [{ total }] = await db.from('module_scopes').where('post_type', postType).count('* as total')
+    const [{ total }] = await db
+      .from('module_scopes')
+      .where('post_type', postType)
+      .count('* as total')
     const restrictionsForPostType = Number(total) > 0
     if (!restrictionsForPostType) {
       return true
@@ -104,7 +107,7 @@ class ModuleScopeService {
     if (!isAllowed) {
       throw new Error(
         `Module type '${moduleType}' is not allowed for post type '${postType}'. ` +
-        `Check module configuration or module_scopes table.`
+          `Check module configuration or module_scopes table.`
       )
     }
   }
@@ -184,10 +187,7 @@ class ModuleScopeService {
    * @returns Array of module types allowed for this post type
    */
   async getModuleTypesForPostType(postType: string): Promise<string[]> {
-    const scopes = await db
-      .from('module_scopes')
-      .where('post_type', postType)
-      .select('module_type')
+    const scopes = await db.from('module_scopes').where('post_type', postType).select('module_type')
 
     return scopes.map((s) => s.module_type)
   }
@@ -206,4 +206,3 @@ class ModuleScopeService {
 // Export singleton instance
 const moduleScopeService = new ModuleScopeService()
 export default moduleScopeService
-

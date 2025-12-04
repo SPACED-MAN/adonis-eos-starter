@@ -68,7 +68,11 @@ export default class MenusController {
   }
 
   async store({ request, response, auth }: HttpContext) {
-    const role = (auth.use('web').user as any)?.role as 'admin' | 'editor' | 'translator' | undefined
+    const role = (auth.use('web').user as any)?.role as
+      | 'admin'
+      | 'editor'
+      | 'translator'
+      | undefined
     if (!(role === 'admin' || role === 'editor')) {
       return response.forbidden({ error: 'Not allowed to create menus' })
     }
@@ -85,7 +89,12 @@ export default class MenusController {
       slug,
       locale,
       template,
-      meta_json: meta && typeof meta === 'object' ? JSON.stringify(meta) : this.db?.rawQuery ? this.db.rawQuery(`'{}'::jsonb`).knexQuery : '{}',
+      meta_json:
+        meta && typeof meta === 'object'
+          ? JSON.stringify(meta)
+          : this.db?.rawQuery
+            ? this.db.rawQuery(`'{}'::jsonb`).knexQuery
+            : '{}',
       created_at: now,
       updated_at: now,
     })
@@ -134,7 +143,11 @@ export default class MenusController {
   }
 
   async update({ params, request, response, auth }: HttpContext) {
-    const role = (auth.use('web').user as any)?.role as 'admin' | 'editor' | 'translator' | undefined
+    const role = (auth.use('web').user as any)?.role as
+      | 'admin'
+      | 'editor'
+      | 'translator'
+      | undefined
     if (!(role === 'admin' || role === 'editor')) {
       return response.forbidden({ error: 'Not allowed to update menus' })
     }
@@ -154,14 +167,19 @@ export default class MenusController {
     }
     if (request.input('meta') !== undefined) {
       const meta = request.input('meta')
-      update.meta_json = meta && typeof meta === 'object' ? JSON.stringify(meta) : JSON.stringify({})
+      update.meta_json =
+        meta && typeof meta === 'object' ? JSON.stringify(meta) : JSON.stringify({})
     }
     await db.from('menus').where('id', id).update(update)
     return response.ok({ message: 'Updated' })
   }
 
   async destroy({ params, response, auth }: HttpContext) {
-    const role = (auth.use('web').user as any)?.role as 'admin' | 'editor' | 'translator' | undefined
+    const role = (auth.use('web').user as any)?.role as
+      | 'admin'
+      | 'editor'
+      | 'translator'
+      | undefined
     if (role !== 'admin') {
       return response.forbidden({ error: 'Admin only' })
     }
@@ -173,7 +191,11 @@ export default class MenusController {
   }
 
   async storeItem({ params, request, response, auth }: HttpContext) {
-    const role = (auth.use('web').user as any)?.role as 'admin' | 'editor' | 'translator' | undefined
+    const role = (auth.use('web').user as any)?.role as
+      | 'admin'
+      | 'editor'
+      | 'translator'
+      | undefined
     if (!(role === 'admin' || role === 'editor')) {
       return response.forbidden({ error: 'Not allowed to add items' })
     }
@@ -198,10 +220,14 @@ export default class MenusController {
     if (!label) return response.badRequest({ error: 'label is required' })
     const hasLocale = await this.menuItemLocaleColumnExists()
     // Locale for this item (if supported)
-    const itemLocale = hasLocale ? String(request.input('locale', (menu as any).locale || 'en') || 'en') : null
+    const itemLocale = hasLocale
+      ? String(request.input('locale', (menu as any).locale || 'en') || 'en')
+      : null
     if (kind !== 'section') {
-      if (type === 'post' && !postId) return response.badRequest({ error: 'postId is required for type=post' })
-      if (type === 'custom' && !customUrl) return response.badRequest({ error: 'customUrl is required for type=custom' })
+      if (type === 'post' && !postId)
+        return response.badRequest({ error: 'postId is required for type=post' })
+      if (type === 'custom' && !customUrl)
+        return response.badRequest({ error: 'customUrl is required for type=custom' })
     }
     // Determine next order index within parent group
     const maxQ = db.from('menu_items').where('menu_id', menuId).max('order_index as max')
@@ -224,8 +250,8 @@ export default class MenusController {
       label,
       kind,
       type: kind === 'section' ? 'custom' : type,
-      post_id: kind === 'section' ? null : (type === 'post' ? postId : null),
-      custom_url: kind === 'section' ? null : (type === 'custom' ? customUrl : null),
+      post_id: kind === 'section' ? null : type === 'post' ? postId : null,
+      custom_url: kind === 'section' ? null : type === 'custom' ? customUrl : null,
       anchor,
       target,
       rel,
@@ -249,7 +275,10 @@ export default class MenusController {
     if (!menu) return response.notFound({ error: 'Menu not found' })
     const hasLocale = await this.menuItemLocaleColumnExists()
     const locale = String(request.input('locale', (menu as any).locale || 'en') || 'en')
-    const q = db.from('menu_items').where('menu_id', (menu as any).id).orderBy('order_index', 'asc')
+    const q = db
+      .from('menu_items')
+      .where('menu_id', (menu as any).id)
+      .orderBy('order_index', 'asc')
     if (hasLocale && locale) q.andWhere('locale', locale)
     const rows = await q.select(
       'id',
@@ -280,7 +309,11 @@ export default class MenusController {
   }
 
   async updateItem({ params, request, response, auth }: HttpContext) {
-    const role = (auth.use('web').user as any)?.role as 'admin' | 'editor' | 'translator' | undefined
+    const role = (auth.use('web').user as any)?.role as
+      | 'admin'
+      | 'editor'
+      | 'translator'
+      | undefined
     if (!(role === 'admin' || role === 'editor')) {
       return response.forbidden({ error: 'Not allowed to update items' })
     }
@@ -303,17 +336,21 @@ export default class MenusController {
         update.custom_url = null
       } else {
         const customUrl = String(request.input('customUrl') || '')
-        if (!customUrl) return response.badRequest({ error: 'customUrl is required for type=custom' })
+        if (!customUrl)
+          return response.badRequest({ error: 'customUrl is required for type=custom' })
         update.custom_url = customUrl
         update.post_id = null
       }
     } else {
-      if (request.input('postId') !== undefined) update.post_id = request.input('postId') ? String(request.input('postId')) : null
-      if (request.input('customUrl') !== undefined) update.custom_url = request.input('customUrl') ? String(request.input('customUrl')) : null
+      if (request.input('postId') !== undefined)
+        update.post_id = request.input('postId') ? String(request.input('postId')) : null
+      if (request.input('customUrl') !== undefined)
+        update.custom_url = request.input('customUrl') ? String(request.input('customUrl')) : null
     }
     if ((request.all() as any).hasOwnProperty('parentId')) {
       const pidRaw = request.input('parentId')
-      update.parent_id = pidRaw === undefined ? undefined : (pidRaw === null || pidRaw === '' ? null : String(pidRaw))
+      update.parent_id =
+        pidRaw === undefined ? undefined : pidRaw === null || pidRaw === '' ? null : String(pidRaw)
     }
     if (request.input('orderIndex') !== undefined) {
       const oi = Number(request.input('orderIndex'))
@@ -325,7 +362,11 @@ export default class MenusController {
   }
 
   async destroyItem({ params, response, auth }: HttpContext) {
-    const role = (auth.use('web').user as any)?.role as 'admin' | 'editor' | 'translator' | undefined
+    const role = (auth.use('web').user as any)?.role as
+      | 'admin'
+      | 'editor'
+      | 'translator'
+      | undefined
     if (!(role === 'admin' || role === 'editor')) {
       return response.forbidden({ error: 'Not allowed to delete items' })
     }
@@ -341,7 +382,11 @@ export default class MenusController {
    * Body: { scope: { menuId: string; parentId: string | null; locale: string }, items: Array<{ id: string; orderIndex: number; parentId?: string | null }> }
    */
   async reorder({ params, request, response, auth }: HttpContext) {
-    const role = (auth.use('web').user as any)?.role as 'admin' | 'editor' | 'translator' | undefined
+    const role = (auth.use('web').user as any)?.role as
+      | 'admin'
+      | 'editor'
+      | 'translator'
+      | undefined
     if (!(role === 'admin' || role === 'editor')) {
       return response.forbidden({ error: 'Not allowed to reorder menu items' })
     }
@@ -351,7 +396,9 @@ export default class MenusController {
     const scopeParentIdRaw = (scopeRaw as any)?.parentId
     const scopeParentId =
       scopeRaw && (scopeRaw as any).hasOwnProperty('parentId')
-        ? (scopeParentIdRaw === null || scopeParentIdRaw === '' ? null : String(scopeParentIdRaw).trim())
+        ? scopeParentIdRaw === null || scopeParentIdRaw === ''
+          ? null
+          : String(scopeParentIdRaw).trim()
         : null
     const hasLocale = await this.menuItemLocaleColumnExists()
     const scopeLocale = hasLocale ? String(scopeRaw?.locale || '').trim() : ''
@@ -369,10 +416,11 @@ export default class MenusController {
       const orderIndex = Number(oiRaw)
       const parentIdRaw = (it as any)?.parentId
       const hasParent = (it as any)?.hasOwnProperty('parentId')
-      const parentId =
-        hasParent
-          ? (parentIdRaw === null || parentIdRaw === '' ? null : String(parentIdRaw).trim())
-          : undefined
+      const parentId = hasParent
+        ? parentIdRaw === null || parentIdRaw === ''
+          ? null
+          : String(parentIdRaw).trim()
+        : undefined
       if (!id || Number.isNaN(orderIndex)) {
         return response.badRequest({ error: 'Each item must include valid id and orderIndex' })
       }
@@ -399,10 +447,11 @@ export default class MenusController {
             throw new Error('Reorder items must belong to the same locale')
           }
           const currentParent: string | null = (row as any).parent_id ?? null
-          const effectiveParent =
-            (it as any).hasOwnProperty('parentId')
-              ? (it.parentId === undefined ? currentParent : (it.parentId ?? null))
-              : currentParent
+          const effectiveParent = (it as any).hasOwnProperty('parentId')
+            ? it.parentId === undefined
+              ? currentParent
+              : (it.parentId ?? null)
+            : currentParent
           if ((effectiveParent ?? null) !== (scopeParentId ?? null)) {
             throw new Error('Reorder items must be in the same parent group as scope')
           }
@@ -426,27 +475,48 @@ export default class MenusController {
    * Body: { fromLocale: string, toLocales: string[], mode?: 'replace'|'merge' }
    */
   async generateVariations({ params, request, response, auth }: HttpContext) {
-    const role = (auth.use('web').user as any)?.role as 'admin' | 'editor' | 'translator' | undefined
+    const role = (auth.use('web').user as any)?.role as
+      | 'admin'
+      | 'editor'
+      | 'translator'
+      | undefined
     if (!(role === 'admin' || role === 'editor')) {
       return response.forbidden({ error: 'Not allowed' })
     }
     const hasLocale = await this.menuItemLocaleColumnExists()
     if (!hasLocale) {
-      return response.badRequest({ error: 'Locale-aware menu variations require menu_items.locale column. Run latest migrations.' })
+      return response.badRequest({
+        error:
+          'Locale-aware menu variations require menu_items.locale column. Run latest migrations.',
+      })
     }
     const { id } = params
     const menu = await db.from('menus').where('id', id).first()
     if (!menu) return response.notFound({ error: 'Menu not found' })
     const fromLocale = String(request.input('fromLocale', (menu as any).locale || 'en') || 'en')
-    const toLocales: string[] = Array.isArray(request.input('toLocales')) ? (request.input('toLocales') as any[]).map((x) => String(x).trim()).filter(Boolean) : []
+    const toLocales: string[] = Array.isArray(request.input('toLocales'))
+      ? (request.input('toLocales') as any[]).map((x) => String(x).trim()).filter(Boolean)
+      : []
     const mode = String(request.input('mode', 'replace') || 'replace')
-    if (!toLocales.length) return response.badRequest({ error: 'toLocales must be a non-empty array' })
+    if (!toLocales.length)
+      return response.badRequest({ error: 'toLocales must be a non-empty array' })
     // Load source items (flat)
     const sourceItems = await db
       .from('menu_items')
       .where({ menu_id: id, locale: fromLocale })
       .orderBy('order_index', 'asc')
-      .select('id', 'parent_id as parentId', 'order_index as orderIndex', 'label', 'type', 'post_id as postId', 'custom_url as customUrl', 'anchor', 'target', 'rel')
+      .select(
+        'id',
+        'parent_id as parentId',
+        'order_index as orderIndex',
+        'label',
+        'type',
+        'post_id as postId',
+        'custom_url as customUrl',
+        'anchor',
+        'target',
+        'rel'
+      )
     // Build adjacency for parent relations
     for (const loc of toLocales) {
       await db.transaction(async (trx) => {
@@ -465,7 +535,7 @@ export default class MenusController {
         const insertQueue: any[] = []
         const process = async (parentId: string | null) => {
           const group = byParent.get(parentId) || []
-          group.sort((a, b) => (a.orderIndex - b.orderIndex))
+          group.sort((a, b) => a.orderIndex - b.orderIndex)
           let oi = 0
           for (const it of group) {
             let destPostId: string | null = null
@@ -499,7 +569,7 @@ export default class MenusController {
             insertQueue.push({
               id: newId,
               menu_id: id,
-              parent_id: it.parentId ? (idMap.get(String(it.parentId)) || null) : null,
+              parent_id: it.parentId ? idMap.get(String(it.parentId)) || null : null,
               locale: loc,
               order_index: oi++,
               label: computedLabel,
@@ -531,5 +601,3 @@ export default class MenusController {
     return response.ok({ generated: toLocales.length })
   }
 }
-
-

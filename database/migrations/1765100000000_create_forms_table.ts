@@ -9,10 +9,7 @@ export default class extends BaseSchema {
       table.string('slug', 100).notNullable().unique()
       table.string('title', 255).notNullable()
       table.text('description').nullable()
-      table
-        .jsonb('fields_json')
-        .notNullable()
-        .defaultTo(this.db.rawQuery(`'[]'::jsonb`).knexQuery)
+      table.jsonb('fields_json').notNullable().defaultTo(this.db.rawQuery(`'[]'::jsonb`).knexQuery)
       table
         .jsonb('subscriptions_json')
         .notNullable()
@@ -31,5 +28,3 @@ export default class extends BaseSchema {
     this.schema.dropTable(this.tableName)
   }
 }
-
-
