@@ -72,7 +72,8 @@ export default defineConfig({
     () => import('#start/routes'),
     () => import('#start/kernel'),
     () => import('#start/modules'),
-    () => import('#start/url_patterns'),
+    () => import('#start/post_types'), // Register post types and sync URL patterns from config
+    () => import('#start/url_patterns'), // Ensure defaults exist for any missing patterns
     () => import('#start/menus'),
     () => import('#start/roles'),
     () => import('#start/agents'),

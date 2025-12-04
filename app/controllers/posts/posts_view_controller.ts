@@ -5,6 +5,7 @@ import urlPatternService from '#services/url_pattern_service'
 import postTypeConfigService from '#services/post_type_config_service'
 import postRenderingService from '#services/post_rendering_service'
 import previewService from '#services/preview_service'
+import postTypeViewService from '#services/post_type_view_service'
 import BasePostsController from './base_posts_controller.js'
 
 /**
@@ -132,54 +133,6 @@ export default class PostsViewController extends BasePostsController {
   }
 
   /**
-   * GET /posts/:slug
-   * Public post viewing with SSR modules
-   */
-  async show({ params, request, response, inertia }: HttpContext) {
-    const { slug } = params
-    const locale = request.input('locale', 'en')
-    const viewParam = String(request.input('view', '')).toLowerCase()
-    const wantReview = viewParam === 'review' && Boolean(request.header('cookie'))
-
-    try {
-      const post = await Post.query().where('slug', slug).where('locale', locale).first()
-
-      if (!post) {
-        return this.response.notFound(response, 'Post not found', { slug, locale })
-      }
-
-      // Check permalinks enabled
-      try {
-        const uiConfig = postTypeConfigService.getUiConfig(post.type)
-        if (uiConfig.permalinksEnabled === false) {
-          return this.response.notFound(response, 'Permalinks disabled for this post type')
-        }
-      } catch {
-        /* proceed */
-      }
-
-      const protocol = postRenderingService.getProtocolFromRequest(request)
-      const host = postRenderingService.getHostFromRequest(request)
-
-      const pageData = await postRenderingService.buildPageData(post, {
-        protocol,
-        host,
-        wantReview,
-      })
-
-      return inertia.render('site/post', {
-        post: pageData.post,
-        hasReviewDraft: pageData.hasReviewDraft,
-        siteSettings: pageData.siteSettings,
-        seo: pageData.seo,
-        modules: pageData.modules,
-      })
-    } catch (error) {
-      return this.response.serverError(response, 'Failed to load post', error)
-    }
-  }
-
-  /**
    * GET /preview/:id
    * Preview a post using a signed token
    */
@@ -213,6 +166,9 @@ export default class PostsViewController extends BasePostsController {
       wantReview: true, // Always show review version in preview
     })
 
+    // Get post-type-specific additional props (delegated to service)
+    const additionalProps = await postTypeViewService.getAdditionalProps(post)
+
     return inertia.render('site/post', {
       post: pageData.post,
       hasReviewDraft: pageData.hasReviewDraft,
@@ -220,6 +176,7 @@ export default class PostsViewController extends BasePostsController {
       seo: pageData.seo,
       modules: pageData.modules,
       isPreview: true,
+      ...additionalProps,
     })
   }
 
@@ -252,10 +209,14 @@ export default class PostsViewController extends BasePostsController {
     const wantReview = viewParam === 'review' && Boolean(request.header('cookie'))
 
     try {
-      const post = await Post.query().where('slug', slug).where('locale', locale).first()
+      const post = await Post.query()
+        .where('slug', slug)
+        .where('locale', locale)
+        .where('type', postType) // Ensure post type matches the URL pattern
+        .first()
 
       if (!post) {
-        return this.response.notFound(response, 'Post not found', { slug, locale })
+        return this.response.notFound(response, 'Post not found', { slug, locale, postType })
       }
 
       // Handle protected/private statuses
@@ -280,12 +241,16 @@ export default class PostsViewController extends BasePostsController {
         wantReview,
       })
 
+      // Get post-type-specific additional props (delegated to service)
+      const additionalProps = await postTypeViewService.getAdditionalProps(post)
+
       return inertia.render('site/post', {
         post: pageData.post,
         hasReviewDraft: pageData.hasReviewDraft,
         siteSettings: pageData.siteSettings,
         modules: pageData.modules,
         seo: pageData.seo,
+        ...additionalProps,
       })
     } catch (error) {
       return this.response.serverError(response, 'Failed to resolve post', error)

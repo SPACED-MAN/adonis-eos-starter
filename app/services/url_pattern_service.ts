@@ -97,8 +97,8 @@ class UrlPatternService {
   }
 
   async getAllPatterns(): Promise<UrlPatternData[]> {
-    const rows = await db.from('url_patterns').select('*').orderBy('updated_at', 'desc')
-    return rows.map((rec) => ({
+    const rows = await db.from('url_patterns').select('*')
+    const patterns = rows.map((rec) => ({
       id: rec.id,
       postType: rec.post_type,
       locale: rec.locale,
@@ -107,6 +107,31 @@ class UrlPatternService {
       createdAt: rec.created_at,
       updatedAt: rec.updated_at,
     }))
+    
+    // Sort by specificity: more specific patterns first
+    // Specificity is determined by:
+    // 1. Number of static path segments (higher is more specific)
+    // 2. Number of tokens (fewer is more specific)
+    // 3. Pattern length (longer is more specific)
+    return patterns.sort((a, b) => {
+      const aSegments = a.pattern.split('/').filter(s => s && !s.includes('{'))
+      const bSegments = b.pattern.split('/').filter(s => s && !s.includes('{'))
+      const aTokens = (a.pattern.match(/\{[^}]+\}/g) || []).length
+      const bTokens = (b.pattern.match(/\{[^}]+\}/g) || []).length
+      
+      // More static segments = more specific
+      if (aSegments.length !== bSegments.length) {
+        return bSegments.length - aSegments.length
+      }
+      
+      // Fewer tokens = more specific
+      if (aTokens !== bTokens) {
+        return aTokens - bTokens
+      }
+      
+      // Longer pattern = more specific
+      return b.pattern.length - a.pattern.length
+    })
   }
 
   /**

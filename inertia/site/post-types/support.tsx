@@ -21,6 +21,7 @@ interface SupportPageProps {
 		type: string
 		props: Record<string, any>
 	}>
+	supportNav?: SupportPage[]
 	seo?: {
 		canonical?: string
 		alternates?: Array<{ locale: string; href: string }>
@@ -46,11 +47,17 @@ function getModuleComponent(type: string): any {
 	return Modules[key as keyof typeof Modules] || null
 }
 
-export default function SupportPostType({ post, modules, seo }: SupportPageProps) {
-	const [supportPages, setSupportPages] = useState<SupportPage[]>([])
+export default function SupportPostType({ post, modules, supportNav, seo }: SupportPageProps) {
+	const [supportPages, setSupportPages] = useState<SupportPage[]>(supportNav || [])
 
 	useEffect(() => {
-		// Fetch all support pages for sidebar navigation
+		// If supportNav was provided from backend, use it
+		if (supportNav) {
+			setSupportPages(supportNav)
+			return
+		}
+
+		// Otherwise, fetch all support pages for sidebar navigation
 		fetch(`/api/posts?type=support&status=published&locale=${post.locale}`)
 			.then((res) => res.json())
 			.then((data) => {
@@ -61,7 +68,7 @@ export default function SupportPostType({ post, modules, seo }: SupportPageProps
 			.catch(() => {
 				// Silently handle error - supportNav will remain empty
 			})
-	}, [post.locale])
+	}, [post.locale, supportNav])
 
 	return (
 		<>
@@ -104,19 +111,20 @@ export default function SupportPostType({ post, modules, seo }: SupportPageProps
 									Support Documentation
 								</h2>
 								<nav className="space-y-1">
-									{(supportNav || supportPages).map((page) => {
-										// Calculate depth based on parentId (simple: if has parent, depth=1)
-										const hasParent = page.parentId !== null && page.parentId !== undefined
-										const indentClass = hasParent ? 'pl-6' : ''
+									{supportPages.map((page) => {
+										// Use depth from backend or calculate based on parentId
+										const depth = page.depth !== undefined ? page.depth : (page.parentId !== null && page.parentId !== undefined ? 1 : 0)
+										const paddingLeft = 12 + depth * 16
 
 										return (
 											<Link
 												key={page.id}
 												href={page.url || `/support/${page.slug}`}
-												className={`block px-3 py-2 rounded text-sm transition-colors ${indentClass} ${page.id === post.id
+												className={`block py-2 rounded text-sm transition-colors ${page.id === post.id
 													? 'bg-standout text-on-standout font-medium'
 													: 'text-neutral-medium hover:bg-backdrop-medium hover:text-neutral-high'
 													}`}
+												style={{ paddingLeft: `${paddingLeft}px` }}
 											>
 												{page.title}
 											</Link>

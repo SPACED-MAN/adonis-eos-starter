@@ -2,6 +2,7 @@ import db from '@adonisjs/lucid/services/db'
 import Post from '#models/post'
 import urlPatternService from '#services/url_pattern_service'
 import siteSettingsService from '#services/site_settings_service'
+import moduleRegistry from '#services/module_registry'
 import { robotsConfigToString, DEFAULT_ROBOTS, type PostSeoData } from '#types/seo'
 
 /**
@@ -50,7 +51,14 @@ export interface PostRenderData {
  */
 export interface PageRenderData {
   post: PostRenderData
-  modules: Array<{ id: string; type: string; props: Record<string, unknown> }>
+  modules: Array<{
+    id: string
+    type: string
+    componentName: string
+    renderingMode: 'static' | 'react'
+    props: Record<string, unknown>
+    html?: string
+  }>
   seo: PostSeoData
   siteSettings: Record<string, unknown>
   hasReviewDraft: boolean
@@ -127,7 +135,14 @@ class PostRenderingService {
       wantReview?: boolean
       reviewDraft?: Record<string, unknown> | null
     } = {}
-  ): Array<{ id: string; type: string; props: Record<string, unknown> }> {
+  ): Array<{
+    id: string
+    type: string
+    componentName: string
+    renderingMode: 'static' | 'react'
+    props: Record<string, unknown>
+    html?: string
+  }> {
     const { wantReview = false, reviewDraft = null } = options
 
     // Get removed module IDs from review draft
@@ -145,21 +160,36 @@ class PostRenderingService {
         const isLocal = pm.scope === 'post'
         const useReview = wantReview && reviewDraft
 
+        let mergedProps: Record<string, unknown>
+
         if (useReview) {
           if (isLocal) {
             const baseProps = (pm as any).reviewProps || pm.props || {}
             const overrides = (pm as any).overrides || {}
-            return { id: pm.id, type: pm.type, props: { ...baseProps, ...overrides } }
+            mergedProps = { ...baseProps, ...overrides }
           } else {
             const baseProps = pm.props || {}
             const overrides = (pm as any).reviewOverrides || (pm as any).overrides || {}
-            return { id: pm.id, type: pm.type, props: { ...baseProps, ...overrides } }
+            mergedProps = { ...baseProps, ...overrides }
           }
+        } else {
+          const baseProps = pm.props || {}
+          const overrides = (pm as any).overrides || {}
+          mergedProps = { ...baseProps, ...overrides }
         }
 
-        const baseProps = pm.props || {}
-        const overrides = (pm as any).overrides || {}
-        return { id: pm.id, type: pm.type, props: { ...baseProps, ...overrides } }
+        // Get module from registry to determine rendering mode
+        const module = moduleRegistry.get(pm.type)
+        const componentName = module.getComponentName()
+        const renderingMode = module.getRenderingMode()
+
+        return {
+          id: pm.id,
+          type: pm.type,
+          componentName,
+          renderingMode,
+          props: mergedProps,
+        }
       })
   }
 

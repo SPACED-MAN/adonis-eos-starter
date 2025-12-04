@@ -115,8 +115,8 @@ export default class FormsAdminController {
       successMessageRaw !== undefined && successMessageRaw !== null ? String(successMessageRaw) : ''
     const thankYouPostId =
       thankYouPostIdRaw !== undefined &&
-        thankYouPostIdRaw !== null &&
-        String(thankYouPostIdRaw).trim() !== ''
+      thankYouPostIdRaw !== null &&
+      String(thankYouPostIdRaw).trim() !== ''
         ? String(thankYouPostIdRaw)
         : ''
 

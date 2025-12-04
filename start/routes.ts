@@ -10,7 +10,20 @@
 import router from '@adonisjs/core/services/router'
 import { middleware } from '#start/kernel'
 
-router.on('/').renderInertia('site/home')
+// Homepage - resolve from posts (slug: 'home', type: 'page')
+// This delegates to the post resolution system
+router.get('/', async ({ request, response, inertia, auth }) => {
+  const { default: PostsViewController } = await import('#controllers/posts/posts_view_controller')
+  const instance = new PostsViewController()
+  // Manually set the request path to /home so the URL pattern matching works
+  const originalUrl = request.url.bind(request)
+  request.url = () => '/home'
+  try {
+    return await (instance as any).resolve({ request, response, inertia, auth })
+  } finally {
+    request.url = originalUrl
+  }
+})
 
 // Public media info (no auth)
 const MediaController = () => import('#controllers/media_controller')
@@ -320,11 +333,6 @@ router
   .use(middleware.admin())
 
 /**
- * Public Routes - Posts
- */
-router.get('/posts/:slug', [PostsViewController, 'show'])
-
-/**
  * Preview Routes (with token validation)
  */
 router.get('/preview/:id', [PostsViewController, 'preview'])
@@ -392,9 +400,7 @@ router
   .use(middleware.admin())
 
 // Admin Forms (submissions) - editors allowed
-router
-  .get('/admin/forms', [FormsAdminController, 'index'])
-  .use(middleware.auth())
+router.get('/admin/forms', [FormsAdminController, 'index']).use(middleware.auth())
 
 // Admin Menus - editors allowed
 router
