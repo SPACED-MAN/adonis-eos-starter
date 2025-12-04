@@ -11,6 +11,7 @@ export default class extends BaseSchema {
       table.string('slug', 255).notNullable()
       table.string('title', 500).notNullable()
       table.text('excerpt').nullable()
+      table.uuid('featured_image_id').nullable()
 
       table
         .enum('status', [
@@ -61,10 +62,12 @@ export default class extends BaseSchema {
 
       // Review draft (JSON snapshot)
       table.jsonb('review_draft').nullable()
+      table.jsonb('ai_review_draft').nullable()
 
       // Publishing timestamps
       table.timestamp('published_at').nullable()
       table.timestamp('scheduled_at').nullable()
+      table.timestamp('deleted_at').nullable()
 
       table.timestamp('created_at', { useTz: true }).notNullable().defaultTo(this.now())
       table.timestamp('updated_at', { useTz: true }).notNullable().defaultTo(this.now())
@@ -76,6 +79,7 @@ export default class extends BaseSchema {
       table.index('template_id') // For template queries
       table.index('user_id') // For user's posts queries
       table.index('author_id') // For author queries
+      table.index('featured_image_id') // For media queries
       table.index(['parent_id'])
       table.index(['type', 'parent_id'])
       table.index(['type', 'parent_id', 'order_index'])
@@ -90,6 +94,8 @@ BEGIN
   ) THEN
     CREATE INDEX IF NOT EXISTS posts_robots_json_gin ON posts USING GIN (robots_json);
     CREATE INDEX IF NOT EXISTS posts_jsonld_overrides_gin ON posts USING GIN (jsonld_overrides);
+    CREATE INDEX IF NOT EXISTS idx_posts_not_deleted ON posts(id) WHERE deleted_at IS NULL;
+    CREATE INDEX IF NOT EXISTS idx_posts_deleted ON posts(deleted_at) WHERE deleted_at IS NOT NULL;
   END IF;
 END
 $$;

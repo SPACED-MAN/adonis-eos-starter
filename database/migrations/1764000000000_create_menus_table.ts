@@ -10,6 +10,8 @@ export default class extends BaseSchema {
       table.string('slug', 255).notNullable()
       table.string('locale', 10).nullable()
       table.boolean('auto_generate_locales').notNullable().defaultTo(false)
+      table.string('template', 64).nullable()
+      table.jsonb('meta_json').notNullable().defaultTo(this.db.rawQuery(`'{}'::jsonb`).knexQuery)
       table.timestamp('created_at', { useTz: true }).defaultTo(this.now())
       table.timestamp('updated_at', { useTz: true }).defaultTo(this.now())
     })

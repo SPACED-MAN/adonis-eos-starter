@@ -17,6 +17,7 @@ export default class extends BaseSchema {
       table.text('anchor').nullable()
       table.text('target').nullable() // e.g. _blank
       table.text('rel').nullable() // e.g. nofollow noopener
+      table.string('kind', 20).notNullable().defaultTo('item') // 'item' | 'section'
       table.timestamp('created_at', { useTz: true }).defaultTo(this.now())
       table.timestamp('updated_at', { useTz: true }).defaultTo(this.now())
     })
@@ -27,6 +28,7 @@ export default class extends BaseSchema {
       table.index(['parent_id'])
       table.index(['order_index'])
       table.index(['type'])
+      table.index(['kind'])
     })
   }
 

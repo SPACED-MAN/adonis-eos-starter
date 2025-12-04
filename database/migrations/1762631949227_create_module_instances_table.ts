@@ -23,6 +23,7 @@ export default class extends BaseSchema {
       table.jsonb('props').notNullable().defaultTo('{}')
       // Review props for review workflow
       table.jsonb('review_props').nullable()
+      table.jsonb('ai_review_props').nullable()
 
       // Render caching
       table.text('render_cache_html').nullable()

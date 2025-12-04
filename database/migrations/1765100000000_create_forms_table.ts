@@ -14,6 +14,8 @@ export default class extends BaseSchema {
         .jsonb('subscriptions_json')
         .notNullable()
         .defaultTo(this.db.rawQuery(`'[]'::jsonb`).knexQuery)
+      table.text('success_message').nullable()
+      table.uuid('thank_you_post_id').nullable()
       table.timestamp('created_at', { useTz: true }).notNullable().defaultTo(this.now())
       table.timestamp('updated_at', { useTz: true }).notNullable().defaultTo(this.now())
     })
@@ -21,6 +23,7 @@ export default class extends BaseSchema {
     this.schema.alterTable(this.tableName, (table) => {
       table.index(['slug'], 'idx_forms_slug')
       table.index(['created_at'], 'idx_forms_created_at')
+      table.index(['thank_you_post_id'], 'idx_forms_thank_you_post_id')
     })
   }
 

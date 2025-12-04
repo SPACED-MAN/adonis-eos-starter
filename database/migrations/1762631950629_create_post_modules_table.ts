@@ -23,6 +23,10 @@ export default class extends BaseSchema {
       table.boolean('review_added').notNullable().defaultTo(false)
       // Overrides
       table.jsonb('review_overrides').nullable()
+      // AI Review workflow fields
+      table.jsonb('ai_review_overrides').nullable()
+      table.boolean('ai_review_added').defaultTo(false)
+      table.boolean('ai_review_deleted').defaultTo(false)
 
       // Shallow overrides for global/static modules on a per-post basis
       table.jsonb('overrides').nullable()

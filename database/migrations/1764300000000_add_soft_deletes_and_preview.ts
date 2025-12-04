@@ -10,10 +10,24 @@ import { BaseSchema } from '@adonisjs/lucid/schema'
  */
 export default class extends BaseSchema {
   async up() {
-    // Add soft delete to posts
-    this.schema.alterTable('posts', (table) => {
-      table.timestamp('deleted_at').nullable()
-    })
+    // Add soft delete to posts (already in main posts migration now)
+    // Add foreign key constraint for featured_image_id (must run after media_assets exists)
+    await this.schema.raw(`
+DO $$
+BEGIN
+  IF NOT EXISTS (
+    SELECT 1 FROM information_schema.table_constraints 
+    WHERE constraint_name = 'posts_featured_image_id_foreign'
+    AND table_name = 'posts'
+  ) THEN
+    ALTER TABLE posts 
+    ADD CONSTRAINT posts_featured_image_id_foreign 
+    FOREIGN KEY (featured_image_id) 
+    REFERENCES media_assets(id) 
+    ON DELETE SET NULL;
+  END IF;
+END $$;
+    `)
 
     // Create preview tokens table
     this.schema.createTable('preview_tokens', (table) => {
@@ -70,27 +84,15 @@ export default class extends BaseSchema {
       // Index for webhook delivery history
       table.index(['webhook_id', 'created_at'], 'idx_webhook_deliveries_history')
     })
-
-    // Add indexes for soft delete queries
-    this.schema.raw(`
-      CREATE INDEX idx_posts_not_deleted ON posts(id) WHERE deleted_at IS NULL;
-      CREATE INDEX idx_posts_deleted ON posts(deleted_at) WHERE deleted_at IS NOT NULL;
-    `)
   }
 
   async down() {
-    // Drop indexes
-    this.schema.raw('DROP INDEX IF EXISTS idx_posts_not_deleted')
-    this.schema.raw('DROP INDEX IF EXISTS idx_posts_deleted')
-
     // Drop tables
     this.schema.dropTableIfExists('webhook_deliveries')
     this.schema.dropTableIfExists('webhooks')
     this.schema.dropTableIfExists('preview_tokens')
 
-    // Remove soft delete column
-    this.schema.alterTable('posts', (table) => {
-      table.dropColumn('deleted_at')
-    })
+    // Drop foreign key constraint
+    await this.schema.raw('ALTER TABLE posts DROP CONSTRAINT IF EXISTS posts_featured_image_id_foreign')
   }
 }

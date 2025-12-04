@@ -14,7 +14,7 @@ export default class extends BaseSchema {
         .references('id')
         .inTable('users')
         .onDelete('SET NULL')
-      table.enum('mode', ['approved', 'review']).notNullable().defaultTo('approved')
+      table.enum('mode', ['approved', 'review', 'ai-review']).notNullable().defaultTo('approved')
       table.jsonb('snapshot').notNullable()
       table.timestamp('created_at').notNullable().defaultTo(this.now())
       table.index(['post_id', 'created_at'])
