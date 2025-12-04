@@ -23,25 +23,11 @@ export default class HeroModule extends BaseModule {
           description: 'Supporting text below the title',
           translatable: true,
         },
-        primaryCta: {
-          type: 'object',
-          required: false,
-          description: 'Primary call-to-action button',
-          properties: {
-            label: { type: 'string', translatable: true },
-            url: { type: 'link' },
-          },
-        },
       },
       defaultProps: {
         title: "We invest in the world's potential",
         subtitle:
           'We focus on markets where technology, innovation, and capital can unlock long-term value and drive durable growth.',
-        primaryCta: {
-          label: 'Learn more',
-          url: '#',
-          target: '_self',
-        },
         backgroundColor: 'bg-backdrop-low',
       },
       allowedPostTypes: [],
