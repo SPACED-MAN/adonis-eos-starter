@@ -74,6 +74,7 @@ export default defineConfig({
     () => import('#start/modules'),
     () => import('#start/url_patterns'),
     () => import('#start/menus'),
+    () => import('#start/roles'),
   ],
 
   /*

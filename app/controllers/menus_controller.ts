@@ -2,6 +2,7 @@ import type { HttpContext } from '@adonisjs/core/http'
 import menuTemplates from '#services/menu_template_registry'
 import db from '@adonisjs/lucid/services/db'
 import { randomUUID } from 'node:crypto'
+import roleRegistry from '#services/role_registry'
 import urlPatternService from '#services/url_pattern_service'
 
 function buildTree(items: any[]): any[] {
@@ -73,7 +74,7 @@ export default class MenusController {
       | 'editor'
       | 'translator'
       | undefined
-    if (!(role === 'admin' || role === 'editor')) {
+    if (!roleRegistry.hasPermission(role, 'menus.edit')) {
       return response.forbidden({ error: 'Not allowed to create menus' })
     }
     const name = String(request.input('name', '')).trim()
@@ -148,7 +149,7 @@ export default class MenusController {
       | 'editor'
       | 'translator'
       | undefined
-    if (!(role === 'admin' || role === 'editor')) {
+    if (!roleRegistry.hasPermission(role, 'menus.edit')) {
       return response.forbidden({ error: 'Not allowed to update menus' })
     }
     const { id } = params
@@ -180,7 +181,7 @@ export default class MenusController {
       | 'editor'
       | 'translator'
       | undefined
-    if (role !== 'admin') {
+    if (!roleRegistry.hasPermission(role, 'menus.delete')) {
       return response.forbidden({ error: 'Admin only' })
     }
     const { id } = params

@@ -103,14 +103,14 @@ export function AdminSidebar() {
 							</span>
 						</SidebarMenuItem>
 					)}
-					{isAdmin && (
+					{(isAdmin || isEditor) && (
 						<SidebarMenuItem href="/admin/forms" active={isActive('/admin/forms')}>
 							<span className="inline-flex items-center gap-2">
 								<FontAwesomeIcon icon={faEnvelope} className="w-4 h-4" /> <span>Forms</span>
 							</span>
 						</SidebarMenuItem>
 					)}
-					{isAdmin && (
+					{(isAdmin || isEditor) && (
 						<SidebarMenuItem href="/admin/menus" active={isActive('/admin/menus')}>
 							<span className="inline-flex items-center gap-2">
 								<FontAwesomeIcon icon={faBars} className="w-4 h-4" /> <span>Menus</span>

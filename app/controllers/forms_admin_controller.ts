@@ -1,12 +1,26 @@
 import type { HttpContext } from '@adonisjs/core/http'
 import db from '@adonisjs/lucid/services/db'
+import roleRegistry from '#services/role_registry'
 
 export default class FormsAdminController {
   /**
    * GET /admin/forms
    * Admin view for managing form definitions and recent submissions.
    */
-  async index({ inertia }: HttpContext) {
+  async index({ inertia, auth, request, response }: HttpContext) {
+    const role = (auth.use('web').user as any)?.role as
+      | 'admin'
+      | 'editor'
+      | 'translator'
+      | undefined
+    if (!roleRegistry.hasPermission(role, 'forms.view')) {
+      const isInertia = !!request.header('x-inertia')
+      if (isInertia) {
+        return response.redirect('/admin/forbidden')
+      }
+      return response.forbidden({ error: 'Not allowed to view forms' })
+    }
+
     const formRows = await db.from('forms').orderBy('created_at', 'desc')
 
     const forms = (formRows as any[]).map((r) => ({
@@ -79,7 +93,7 @@ export default class FormsAdminController {
       | 'editor'
       | 'translator'
       | undefined
-    if (!(role === 'admin' || role === 'editor')) {
+    if (!roleRegistry.hasPermission(role, 'forms.edit')) {
       return response.forbidden({ error: 'Not allowed to create forms' })
     }
 
@@ -101,8 +115,8 @@ export default class FormsAdminController {
       successMessageRaw !== undefined && successMessageRaw !== null ? String(successMessageRaw) : ''
     const thankYouPostId =
       thankYouPostIdRaw !== undefined &&
-      thankYouPostIdRaw !== null &&
-      String(thankYouPostIdRaw).trim() !== ''
+        thankYouPostIdRaw !== null &&
+        String(thankYouPostIdRaw).trim() !== ''
         ? String(thankYouPostIdRaw)
         : ''
 
@@ -153,7 +167,7 @@ export default class FormsAdminController {
       | 'editor'
       | 'translator'
       | undefined
-    if (!(role === 'admin' || role === 'editor')) {
+    if (!roleRegistry.hasPermission(role, 'forms.edit')) {
       return response.forbidden({ error: 'Not allowed to update forms' })
     }
 
@@ -250,8 +264,8 @@ export default class FormsAdminController {
       | 'editor'
       | 'translator'
       | undefined
-    if (role !== 'admin') {
-      return response.forbidden({ error: 'Admin only' })
+    if (!roleRegistry.hasPermission(role, 'forms.delete')) {
+      return response.forbidden({ error: 'Not allowed to delete forms' })
     }
 
     const { id } = params

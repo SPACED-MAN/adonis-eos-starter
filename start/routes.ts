@@ -270,19 +270,11 @@ router
       .delete('/modules/global/:id', [GlobalModulesController, 'destroy'])
       .use(middleware.admin())
     router.get('/modules/static', [GlobalModulesController, 'index']).use(middleware.admin())
-    // Forms definitions (Admin)
-    router
-      .get('/forms-definitions', [FormsAdminController, 'listDefinitions'])
-      .use(middleware.admin())
-    router
-      .post('/forms-definitions', [FormsAdminController, 'createDefinition'])
-      .use(middleware.admin())
-    router
-      .put('/forms-definitions/:id', [FormsAdminController, 'updateDefinition'])
-      .use(middleware.admin())
-    router
-      .delete('/forms-definitions/:id', [FormsAdminController, 'deleteDefinition'])
-      .use(middleware.admin())
+    // Forms definitions (RBAC checks in controller)
+    router.get('/forms-definitions', [FormsAdminController, 'listDefinitions'])
+    router.post('/forms-definitions', [FormsAdminController, 'createDefinition'])
+    router.put('/forms-definitions/:id', [FormsAdminController, 'updateDefinition'])
+    router.delete('/forms-definitions/:id', [FormsAdminController, 'deleteDefinition'])
     // Taxonomies (editors allowed)
     router.get('/taxonomies', [TaxonomiesController, 'list'])
     router.get('/taxonomies/:slug/terms', [TaxonomiesController, 'termsBySlug'])
@@ -399,19 +391,17 @@ router
   .use(middleware.auth())
   .use(middleware.admin())
 
-// Admin Forms (submissions)
+// Admin Forms (submissions) - editors allowed
 router
   .get('/admin/forms', [FormsAdminController, 'index'])
   .use(middleware.auth())
-  .use(middleware.admin())
 
-// Admin Menus
+// Admin Menus - editors allowed
 router
   .get('/admin/menus', async ({ inertia }) => {
     return inertia.render('admin/menus/index')
   })
   .use(middleware.auth())
-  .use(middleware.admin())
 
 // Admin Categories (Taxonomies) (editors allowed)
 router

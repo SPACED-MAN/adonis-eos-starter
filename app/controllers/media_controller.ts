@@ -7,6 +7,7 @@ import mediaService from '#services/media_service'
 import sharp from 'sharp'
 import activityLogService from '#services/activity_log_service'
 import storageService from '#services/storage_service'
+import roleRegistry from '#services/role_registry'
 import createDarkBaseAction from '#actions/create_dark_base_action'
 import generateMediaVariantsAction from '#actions/generate_media_variants_action'
 
@@ -82,7 +83,7 @@ export default class MediaController {
 			| 'editor'
 			| 'translator'
 			| undefined
-		if (!(role === 'admin' || role === 'editor')) {
+		if (!roleRegistry.hasPermission(role, 'media.upload')) {
 			return response.forbidden({ error: 'Not allowed to upload media' })
 		}
 		const uploadFile = (request as any).file?.('file') || (request as any).files?.file || null
@@ -222,7 +223,7 @@ export default class MediaController {
 			| 'editor'
 			| 'translator'
 			| undefined
-		if (!(role === 'admin' || role === 'editor')) {
+		if (!roleRegistry.hasPermission(role, 'media.replace') && !roleRegistry.hasPermission(role, 'media.upload')) {
 			return response.forbidden({ error: 'Not allowed to update media' })
 		}
 		const { id } = params
@@ -272,7 +273,7 @@ export default class MediaController {
 			| 'editor'
 			| 'translator'
 			| undefined
-		if (role !== 'admin') {
+		if (!roleRegistry.hasPermission(role, 'media.delete')) {
 			return response.forbidden({ error: 'Admin only' })
 		}
 		const { id } = params
@@ -380,7 +381,7 @@ export default class MediaController {
 			| 'editor'
 			| 'translator'
 			| undefined
-		if (!(role === 'admin' || role === 'editor')) {
+		if (!roleRegistry.hasPermission(role, 'media.variants.generate')) {
 			return response.forbidden({ error: 'Not allowed to generate variants' })
 		}
 		const { id } = params
@@ -584,7 +585,7 @@ export default class MediaController {
 			| 'editor'
 			| 'translator'
 			| undefined
-		if (role !== 'admin') {
+		if (!roleRegistry.hasPermission(role, 'media.replace')) {
 			return response.forbidden({ error: 'Admin only' })
 		}
 		const { id } = params
@@ -961,7 +962,7 @@ export default class MediaController {
 			| 'editor'
 			| 'translator'
 			| undefined
-		if (!(role === 'admin' || role === 'editor')) {
+		if (!roleRegistry.hasPermission(role, 'media.optimize')) {
 			return response.forbidden({ error: 'Not allowed to optimize media' })
 		}
 		const { id } = params
@@ -1013,7 +1014,7 @@ export default class MediaController {
 			| 'editor'
 			| 'translator'
 			| undefined
-		if (!(role === 'admin' || role === 'editor')) {
+		if (!roleRegistry.hasPermission(role, 'media.optimize')) {
 			return response.forbidden({ error: 'Not allowed to optimize media' })
 		}
 		const ids: string[] = Array.isArray(request.input('ids'))
@@ -1067,7 +1068,7 @@ export default class MediaController {
 			| 'editor'
 			| 'translator'
 			| undefined
-		if (!(role === 'admin' || role === 'editor')) {
+		if (!roleRegistry.hasPermission(role, 'media.variants.generate')) {
 			return response.forbidden({ error: 'Not allowed to regenerate variants' })
 		}
 		const ids: string[] = Array.isArray(request.input('ids'))
@@ -1132,7 +1133,7 @@ export default class MediaController {
 			| 'editor'
 			| 'translator'
 			| undefined
-		if (role !== 'admin') {
+		if (!roleRegistry.hasPermission(role, 'media.delete')) {
 			return response.forbidden({ error: 'Admin only' })
 		}
 		const ids: string[] = Array.isArray(request.input('ids'))

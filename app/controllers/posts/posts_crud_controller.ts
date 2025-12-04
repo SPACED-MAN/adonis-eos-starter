@@ -364,7 +364,7 @@ export default class PostsCrudController extends BasePostsController {
       | 'translator'
       | undefined
 
-    if (!(role === 'admin' || role === 'editor')) {
+    if (!authorizationService.canPublishOrArchive(role)) {
       return this.response.forbidden(response, 'Not allowed to reorder posts')
     }
 

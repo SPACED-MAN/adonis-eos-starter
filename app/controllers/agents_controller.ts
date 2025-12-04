@@ -3,6 +3,7 @@ import agentService from '#services/agent_service'
 import PostSerializerService from '#services/post_serializer_service'
 import Post from '#models/post'
 import authorizationService from '#services/authorization_service'
+import roleRegistry from '#services/role_registry'
 import RevisionService from '#services/revision_service'
 import db from '@adonisjs/lucid/services/db'
 import AgentPostPayloadDto from '#dtos/agent_post_payload_dto'
@@ -29,7 +30,7 @@ export default class AgentsController {
       | 'translator'
       | undefined
     // Editors and admins can run agents; translators cannot alter review drafts globally
-    if (!(role === 'admin' || role === 'editor')) {
+    if (!roleRegistry.hasPermission(role, 'agents.edit')) {
       return response.forbidden({ error: 'Not allowed to run agents' })
     }
     const { id, agentId } = params
