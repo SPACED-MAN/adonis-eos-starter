@@ -598,6 +598,15 @@ Env configuration:
   - name: label for the variant (e.g., thumb, small, large, hero)
   - W and H: numbers; either or both (e.g., `800x`, `x600`)
   - `_crop`: forces fit=cover; otherwise fit=inside
+- Dark mode variants (optional):
+  ```
+  MEDIA_DARK_BRIGHTNESS=0.55
+  MEDIA_DARK_SATURATION=0.75
+  ```
+  - Controls the tint applied when generating dark variants via "Generate dark variants" button
+  - MEDIA_DARK_BRIGHTNESS: multiplier for brightness (default 0.55, range 0.1–2.0)
+  - MEDIA_DARK_SATURATION: multiplier for saturation (default 0.75, range 0–2.0)
+  - Lower values = darker/more muted; higher values = brighter/more saturated
 - Admin display preferences (server-provided to client):
   ```
   MEDIA_ADMIN_THUMBNAIL_VARIANT=thumb
