@@ -22,6 +22,7 @@ import {
 	faUsers,
 	faListUl,
 	faEnvelope,
+	faDatabase,
 } from '@fortawesome/free-solid-svg-icons'
 import { faGauge } from '@fortawesome/free-solid-svg-icons'
 
@@ -166,6 +167,15 @@ export function AdminSidebar() {
 						<SidebarMenuItem href="/admin/users/activity" active={isActive('/admin/users/activity')}>
 							<span className="inline-flex items-center gap-2">
 								<FontAwesomeIcon icon={faListUl} className="w-4 h-4" /> <span>Activity Log</span>
+							</span>
+						</SidebarMenuItem>
+					</SidebarGroup>
+				)}
+				{isAdmin && (
+					<SidebarGroup title="System">
+						<SidebarMenuItem href="/admin/database" active={isActive('/admin/database')}>
+							<span className="inline-flex items-center gap-2">
+								<FontAwesomeIcon icon={faDatabase} className="w-4 h-4" /> <span>Database Export/Import</span>
 							</span>
 						</SidebarMenuItem>
 					</SidebarGroup>

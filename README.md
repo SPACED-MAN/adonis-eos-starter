@@ -989,6 +989,66 @@ How to test:
 7. Switch to Review tab, make additional edits if needed
 8. Click "Approve Review" to promote to live/Approved content
 
+### Milestone 32 — Database Export/Import (✅ Complete)
+- ✅ **Export functionality**: Complete database backup to portable JSON format
+  - Exports all tables (posts, media, users, settings, etc.)
+  - Versioned export format for compatibility checking
+  - Export statistics showing table counts and estimated file size
+  - Download as timestamped JSON file
+- ✅ **Import functionality**: Restore database from export file
+  - Three import strategies:
+    - **Merge** (recommended): Add new records, skip conflicts - safest option
+    - **Skip**: Only import to empty tables
+    - **Replace**: Clear and replace all data (destructive)
+  - Pre-import validation with detailed statistics
+  - Transaction-based import with rollback on failure
+  - Handles foreign key constraints and table dependencies
+  - Detailed import results with error reporting
+- ✅ **Admin UI** (`/admin/database`):
+  - View export statistics before downloading
+  - One-click database export with progress indication
+  - Drag-and-drop file upload for import
+  - File validation before import
+  - Strategy selector with explanations
+  - Real-time import progress and results
+- ✅ **API endpoints** (admin-only):
+  - `GET /api/database/export/stats` - Get export statistics
+  - `GET /api/database/export` - Download database export
+  - `POST /api/database/validate` - Validate import file
+  - `POST /api/database/import` - Import database from file
+- ✅ **RBAC permissions**:
+  - `admin.database.export` - Can export database
+  - `admin.database.import` - Can import database
+  - Both restricted to admin role by default
+- ✅ **Database support**: PostgreSQL, MySQL, and SQLite
+- ✅ **Safety features**:
+  - Export format version checking
+  - Pre-import validation
+  - Transaction-based imports with rollback
+  - Destructive operation confirmations
+  - Detailed error reporting
+
+**Use cases:**
+- **Backups**: Regular database backups before major changes
+- **Migration**: Move entire site between environments (dev → staging → prod)
+- **Disaster recovery**: Restore from backup after data loss
+- **Cloning**: Duplicate site for testing or development
+
+How to test:
+1. Log in as admin and navigate to `/admin/database`
+2. Click "View Stats" to see current database statistics
+3. Click "Export Database" to download a backup (saved as `adonis-eos-export_YYYY-MM-DD_HHMMSS.json`)
+4. Upload the exported file to test validation
+5. Select import strategy (try "Merge" for safety)
+6. Click "Import Database" to restore from backup
+7. Review import results showing tables/rows imported
+
+**Important notes:**
+- Media files are NOT included in exports (only metadata) - copy `public/uploads` separately if needed
+- Always test imports on a development environment first
+- Use "Merge" strategy for safest imports that preserve existing data
+- "Replace" strategy is destructive and should only be used when intentionally resetting the database
+
 ## Environment Variables (New)
 
 ```env

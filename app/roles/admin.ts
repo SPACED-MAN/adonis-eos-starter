@@ -10,6 +10,8 @@ const adminRole: RoleDefinition = {
     'admin.roles.manage',
     'admin.settings.view',
     'admin.settings.update',
+    'admin.database.export',
+    'admin.database.import',
     // Content
     'posts.create',
     'posts.edit',

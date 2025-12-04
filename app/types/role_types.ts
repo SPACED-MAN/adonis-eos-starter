@@ -16,6 +16,8 @@ export type PermissionKey =
   | 'admin.roles.manage'
   | 'admin.settings.view'
   | 'admin.settings.update'
+  | 'admin.database.export'
+  | 'admin.database.import'
   // Content / posts
   | 'posts.create'
   | 'posts.edit'

@@ -433,6 +433,33 @@ router
   .use(middleware.auth())
   .use(middleware.admin())
 
+// Admin Database Export/Import
+const DatabaseAdminController = () => import('#controllers/database_admin_controller')
+router
+  .get('/admin/database', [DatabaseAdminController, 'index'])
+  .use(middleware.auth())
+  .use(middleware.admin())
+
+router
+  .get('/api/database/export/stats', [DatabaseAdminController, 'getExportStats'])
+  .use(middleware.auth())
+  .use(middleware.admin())
+
+router
+  .get('/api/database/export', [DatabaseAdminController, 'export'])
+  .use(middleware.auth())
+  .use(middleware.admin())
+
+router
+  .post('/api/database/import', [DatabaseAdminController, 'import'])
+  .use(middleware.auth())
+  .use(middleware.admin())
+
+router
+  .post('/api/database/validate', [DatabaseAdminController, 'validate'])
+  .use(middleware.auth())
+  .use(middleware.admin())
+
 // Admin General Settings
 router
   .get('/admin/settings/general', async ({ inertia }) => {
