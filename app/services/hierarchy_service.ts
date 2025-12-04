@@ -77,14 +77,15 @@ class HierarchyService {
 	/**
 	 * Flatten a tree structure into an ordered array
 	 * @param tree - Tree nodes
-	 * @returns Flat array in hierarchical order
+	 * @returns Flat array in hierarchical order with depth preserved
 	 */
 	flattenTree<T extends HierarchicalItem>(tree: TreeNode<T>[]): T[] {
 		const result: T[] = []
 
 		const traverse = (nodes: TreeNode<T>[]) => {
 			for (const node of nodes) {
-				result.push(node.item)
+				// Preserve depth in the flattened item
+				result.push({ ...node.item, depth: node.depth } as T)
 				if (node.children.length > 0) {
 					traverse(node.children)
 				}
@@ -114,7 +115,8 @@ class HierarchyService {
 			.where('type', type)
 			.where('locale', locale)
 			.where('status', status)
-			.orderBy('order_index', 'asc')
+		// Don't pre-sort - order_index is for sorting WITHIN each hierarchy level,
+		// not globally. Sorting happens in buildHierarchy() at each level.
 
 		const posts = await query
 

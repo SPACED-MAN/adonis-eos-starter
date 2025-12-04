@@ -3,20 +3,17 @@ import { NavItem } from './NavItem'
 
 export function NavBar({
   primaryNodes,
-  supportNodes,
   menuMeta,
   menuName,
   logoLightUrl,
   logoDarkUrl,
 }: {
   primaryNodes: TreeNode[]
-  supportNodes?: TreeNode[]
   menuMeta?: Record<string, any> | null
   menuName?: string
   logoLightUrl?: string
   logoDarkUrl?: string
-}) {
-  const hasSupport = Array.isArray(supportNodes) && supportNodes.length > 0
+}){
 
   return (
     <header className="border-b border-line bg-backdrop-low/80 backdrop-blur">
@@ -44,13 +41,6 @@ export function NavBar({
               <NavItem key={n.id} node={n} menuMeta={menuMeta} />
             ))}
           </nav>
-          {hasSupport && (
-            <nav className="hidden md:flex items-center gap-4 text-sm">
-              {supportNodes!.map((n) => (
-            <NavItem key={n.id} node={n} menuMeta={menuMeta} />
-          ))}
-        </nav>
-          )}
         </div>
       </div>
     </header>

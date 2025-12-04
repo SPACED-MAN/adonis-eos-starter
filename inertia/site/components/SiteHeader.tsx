@@ -20,7 +20,6 @@ function buildTree(items: MenuItem[]): TreeNode[] {
 
 export function SiteHeader() {
   const [primaryNodes, setPrimaryNodes] = useState<TreeNode[]>([])
-  const [supportNodes, setSupportNodes] = useState<TreeNode[]>([])
   const [menuMeta, setMenuMeta] = useState<Record<string, any> | null>(null)
   const [siteTitle, setSiteTitle] = useState<string>('')
   const [logoLightUrl, setLogoLightUrl] = useState<string | null>(null)
@@ -37,21 +36,6 @@ export function SiteHeader() {
         setMenuMeta((j?.data?.meta as any) ?? null)
       } catch {
         setPrimaryNodes([])
-      }
-    })()
-  }, [])
-
-  useEffect(() => {
-    ;(async () => {
-      try {
-        // Optional Support menu
-        const res = await fetch('/api/menus/by-slug/support?locale=en', { credentials: 'same-origin' })
-        if (!res.ok) return
-        const j = await res.json().catch(() => ({}))
-        const items: MenuItem[] = Array.isArray(j?.data?.items) ? j.data.items : []
-        setSupportNodes(buildTree(items))
-      } catch {
-        setSupportNodes([])
       }
     })()
   }, [])
@@ -98,7 +82,6 @@ export function SiteHeader() {
   return (
     <NavBar
       primaryNodes={primaryNodes}
-      supportNodes={supportNodes}
       menuMeta={menuMeta || undefined}
       menuName={siteTitle}
       logoLightUrl={logoLightUrl || undefined}

@@ -31,13 +31,16 @@ type MenuItem = {
   parentId: string | null
   orderIndex: number
   label: string
-  type: 'post' | 'custom'
+  type: 'post' | 'custom' | 'dynamic'
   kind?: 'item' | 'section'
   postId?: string | null
   customUrl?: string | null
   anchor?: string | null
   target?: string | null
   rel?: string | null
+  dynamicPostType?: string | null
+  dynamicParentId?: string | null
+  dynamicDepthLimit?: number | null
 }
 
 export default function MenusIndex() {
@@ -61,7 +64,7 @@ export default function MenusIndex() {
   // Menus are code-defined; creation/deletion UI removed
 
   // Add item form
-  const [addType, setAddType] = useState<'post' | 'custom'>('post')
+  const [addType, setAddType] = useState<'post' | 'custom' | 'dynamic'>('post')
   const [addLabel, setAddLabel] = useState('')
   const [overrideLabel, setOverrideLabel] = useState<boolean>(false)
   const [addParentId, setAddParentId] = useState<string>('__ROOT__')
@@ -78,6 +81,9 @@ export default function MenusIndex() {
   const [target, setTarget] = useState<string>('default') // dropdown: 'default', _self, _blank, _parent, _top
   const [relOptions, setRelOptions] = useState<{ [key: string]: boolean }>({ nofollow: false, noopener: false, noreferrer: false, external: false })
   const [advancedOpen, setAdvancedOpen] = useState<boolean>(false)
+  const [dynamicPostType, setDynamicPostType] = useState<string>('')
+  const [dynamicParentId, setDynamicParentId] = useState<string>('')
+  const [dynamicDepthLimit, setDynamicDepthLimit] = useState<number>(1)
 
   // Reorder (always enabled)
   const [dragActiveId, setDragActiveId] = useState<string | null>(null)
@@ -91,7 +97,7 @@ export default function MenusIndex() {
   const [editOpen, setEditOpen] = useState<boolean>(false)
   const [editingItem, setEditingItem] = useState<MenuItem | null>(null)
   const [editLabel, setEditLabel] = useState<string>('')
-  const [editType, setEditType] = useState<'post' | 'custom' | 'section'>('custom')
+  const [editType, setEditType] = useState<'post' | 'custom' | 'dynamic' | 'section'>('custom')
   const [editCustomUrl, setEditCustomUrl] = useState<string>('')
   const [editPostPickerOpen, setEditPostPickerOpen] = useState<boolean>(false)
   const [editPostQuery, setEditPostQuery] = useState<string>('')
@@ -101,6 +107,9 @@ export default function MenusIndex() {
   const [editExtra, setEditExtra] = useState<string>('')
   const [editTarget, setEditTarget] = useState<string>('default')
   const [editRelOptions, setEditRelOptions] = useState<{ [key: string]: boolean }>({ nofollow: false, noopener: false, noreferrer: false, external: false })
+  const [editDynamicPostType, setEditDynamicPostType] = useState<string>('')
+  const [editDynamicParentId, setEditDynamicParentId] = useState<string>('')
+  const [editDynamicDepthLimit, setEditDynamicDepthLimit] = useState<number>(1)
   const [savingEdit, setSavingEdit] = useState<boolean>(false)
 
   async function loadMenus() {
@@ -238,6 +247,11 @@ export default function MenusIndex() {
     } else if (addType === 'custom') {
       if (!customUrl.trim()) { toast.error('Enter a URL'); return }
       payload.customUrl = customUrl.trim()
+    } else if (addType === 'dynamic') {
+      if (!dynamicPostType) { toast.error('Select a post type'); return }
+      payload.dynamicPostType = dynamicPostType
+      payload.dynamicParentId = dynamicParentId || null
+      payload.dynamicDepthLimit = dynamicDepthLimit
     } else if (addType === 'section') {
       payload.kind = 'section'
     }
@@ -256,7 +270,7 @@ export default function MenusIndex() {
       toast.error(j?.error || 'Add failed')
       return
     }
-    setAddLabel(''); setSelectedPostId(''); setCustomUrl(''); setExtra(''); setTarget('default'); setRelOptions({ nofollow: false, noopener: false, noreferrer: false, external: false })
+    setAddLabel(''); setSelectedPostId(''); setCustomUrl(''); setExtra(''); setTarget('default'); setRelOptions({ nofollow: false, noopener: false, noreferrer: false, external: false }); setDynamicPostType(''); setDynamicParentId(''); setDynamicDepthLimit(1)
     await loadMenu(selectedMenuId, editingLocale)
     toast.success('Item added')
   }
@@ -611,6 +625,7 @@ export default function MenusIndex() {
                       <SelectContent>
                         <SelectItem value="post">Post</SelectItem>
                         <SelectItem value="custom">Custom URL</SelectItem>
+                        <SelectItem value="dynamic">Dynamic</SelectItem>
                         <SelectItem value="section">Section</SelectItem>
                       </SelectContent>
                     </Select>
@@ -703,6 +718,43 @@ export default function MenusIndex() {
                         <label className="text-xs text-neutral-medium">URL</label>
                         <input className="px-2 py-1 text-sm border border-line bg-backdrop-low text-neutral-high" placeholder="https:// or /path" value={customUrl} onChange={(e) => setCustomUrl(e.target.value)} />
                       </div>
+                    ) : addType === 'dynamic' ? (
+                      <div className="flex flex-col gap-2">
+                        <div className="flex flex-col gap-1">
+                          <label className="text-xs text-neutral-medium">Post Type</label>
+                          <Select value={dynamicPostType} onValueChange={setDynamicPostType}>
+                            <SelectTrigger className="w-full">
+                              <SelectValue placeholder="Select post type" />
+                            </SelectTrigger>
+                            <SelectContent>
+                              <SelectItem value="documentation">Documentation</SelectItem>
+                              <SelectItem value="blog">Blog</SelectItem>
+                              <SelectItem value="page">Page</SelectItem>
+                              <SelectItem value="profile">Profile</SelectItem>
+                              <SelectItem value="company">Company</SelectItem>
+                              <SelectItem value="testimonial">Testimonial</SelectItem>
+                            </SelectContent>
+                          </Select>
+                        </div>
+                        <div className="flex flex-col gap-1">
+                          <label className="text-xs text-neutral-medium">Depth Limit</label>
+                          <Select value={String(dynamicDepthLimit)} onValueChange={(v) => setDynamicDepthLimit(Number(v))}>
+                            <SelectTrigger className="w-full">
+                              <SelectValue />
+                            </SelectTrigger>
+                            <SelectContent>
+                              <SelectItem value="1">1 level (direct children)</SelectItem>
+                              <SelectItem value="2">2 levels (children + grandchildren)</SelectItem>
+                              <SelectItem value="3">3 levels</SelectItem>
+                              <SelectItem value="4">4 levels</SelectItem>
+                              <SelectItem value="5">5 levels</SelectItem>
+                            </SelectContent>
+                          </Select>
+                        </div>
+                        <div className="text-xs text-neutral-medium px-2 py-1 bg-backdrop-low border border-line rounded">
+                          Dynamic menu items automatically populate with posts of the selected type
+                        </div>
+                      </div>
                     ) : (
                       <div className="flex items-center text-xs text-neutral-medium px-2 py-1">
                         Section (no destination) — used for mega menu content areas
@@ -783,7 +835,7 @@ export default function MenusIndex() {
                                 </TableCell>
                                 <TableCell>
                                   <span className="text-xs text-neutral-medium">
-                                    {(item as any).kind === 'section' ? 'Section' : (item.type === 'post' ? 'Post' : 'Custom')}
+                                    {(item as any).kind === 'section' ? 'Section' : (item.type === 'post' ? 'Post' : item.type === 'dynamic' ? 'Dynamic' : 'Custom')}
                                   </span>
                                 </TableCell>
                                 <TableCell>
@@ -797,14 +849,17 @@ export default function MenusIndex() {
                                     className="inline-flex items-center gap-1 px-2 py-1 text-xs border border-line rounded hover:bg-backdrop-medium"
                                     onClick={() => {
                                       setEditingItem(item)
-                                      setEditLabel(item.label)
-                                      const k = (item as any).kind as 'item' | 'section' | undefined
-                                      setEditType(k === 'section' ? 'section' : item.type)
-                                      setEditCustomUrl(item.customUrl || '')
-                                      setEditSelectedPostId(item.postId || '')
-                                      setEditSelectedPostTitle('') // can be filled after search
-                                      setEditExtra(item.anchor || '')
-                                      setEditTarget(item.target || 'default')
+                      setEditLabel(item.label)
+                      const k = (item as any).kind as 'item' | 'section' | undefined
+                      setEditType(k === 'section' ? 'section' : item.type)
+                      setEditCustomUrl(item.customUrl || '')
+                      setEditSelectedPostId(item.postId || '')
+                      setEditSelectedPostTitle('') // can be filled after search
+                      setEditExtra(item.anchor || '')
+                      setEditTarget(item.target || 'default')
+                      setEditDynamicPostType(item.dynamicPostType || '')
+                      setEditDynamicParentId(item.dynamicParentId || '')
+                      setEditDynamicDepthLimit(item.dynamicDepthLimit || 1)
                                       const relSet = new Set(String(item.rel || '').split(/\s+/).filter(Boolean))
                                       setEditRelOptions({
                                         nofollow: relSet.has('nofollow'),
@@ -853,16 +908,10 @@ export default function MenusIndex() {
               </div>
               <div className="flex flex-col gap-1">
                 <label className="text-xs text-neutral-medium">Type</label>
-                <Select value={editType} onValueChange={(v: any) => setEditType(v)}>
-                  <SelectTrigger className="w-full">
-                    <SelectValue placeholder="Type" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="post">Post</SelectItem>
-                    <SelectItem value="custom">Custom URL</SelectItem>
-                    <SelectItem value="section">Section</SelectItem>
-                  </SelectContent>
-                </Select>
+                <div className="px-2 py-1 text-sm border border-line bg-backdrop-medium text-neutral-medium rounded">
+                  {editType === 'post' ? 'Post' : editType === 'custom' ? 'Custom URL' : editType === 'dynamic' ? 'Dynamic' : 'Section'}
+                  <span className="ml-2 text-xs">(cannot be changed)</span>
+                </div>
               </div>
             </div>
             {editType === 'post' ? (
@@ -925,6 +974,40 @@ export default function MenusIndex() {
                 <label className="text-xs text-neutral-medium">URL</label>
                 <input className="px-2 py-1 text-sm border border-line bg-backdrop-low text-neutral-high" placeholder="https:// or /path" value={editCustomUrl} onChange={(e) => setEditCustomUrl(e.target.value)} />
               </div>
+            ) : editType === 'dynamic' ? (
+              <div className="flex flex-col gap-2">
+                <div className="flex flex-col gap-1">
+                  <label className="text-xs text-neutral-medium">Post Type</label>
+                  <Select value={editDynamicPostType} onValueChange={setEditDynamicPostType}>
+                    <SelectTrigger className="w-full">
+                      <SelectValue placeholder="Select post type" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="documentation">Documentation</SelectItem>
+                      <SelectItem value="blog">Blog</SelectItem>
+                      <SelectItem value="page">Page</SelectItem>
+                      <SelectItem value="profile">Profile</SelectItem>
+                      <SelectItem value="company">Company</SelectItem>
+                      <SelectItem value="testimonial">Testimonial</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+                <div className="flex flex-col gap-1">
+                  <label className="text-xs text-neutral-medium">Depth Limit</label>
+                  <Select value={String(editDynamicDepthLimit)} onValueChange={(v) => setEditDynamicDepthLimit(Number(v))}>
+                    <SelectTrigger className="w-full">
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="1">1 level (direct children)</SelectItem>
+                      <SelectItem value="2">2 levels (children + grandchildren)</SelectItem>
+                      <SelectItem value="3">3 levels</SelectItem>
+                      <SelectItem value="4">4 levels</SelectItem>
+                      <SelectItem value="5">5 levels</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+              </div>
             ) : (
               <div className="text-xs text-neutral-medium">Section has no destination.</div>
             )}
@@ -983,6 +1066,12 @@ export default function MenusIndex() {
                     payload.type = 'custom'
                     if (!editCustomUrl.trim()) throw new Error('Enter a URL')
                     payload.customUrl = editCustomUrl.trim()
+                  } else if (editType === 'dynamic') {
+                    payload.type = 'dynamic'
+                    if (!editDynamicPostType) throw new Error('Select a post type')
+                    payload.dynamicPostType = editDynamicPostType
+                    payload.dynamicParentId = editDynamicParentId || null
+                    payload.dynamicDepthLimit = editDynamicDepthLimit
                   } else {
                     // section: keep type unchanged, just label/anchor/target/rel
                   }
