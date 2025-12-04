@@ -11,6 +11,9 @@
 
 // Static modules (pure SSR, max performance)
 export { default as ProseStatic } from './prose-static'
+export { default as Prose } from './prose-static' // Alias for module type matching
+export { default as SeparatorStatic } from './separator-static'
+export { default as Separator } from './separator-static' // Alias for module type matching
 
 // React modules (SSR + hydration, interactive)
 export { default as Gallery } from './gallery'
@@ -40,6 +43,7 @@ export { default as Form } from './form'
 export const MODULE_COMPONENTS = {
   // Static variants
   'prose-static': () => import('./prose-static'),
+  'separator-static': () => import('./separator-static'),
 
   // React variants
   'gallery': () => import('./gallery'),
