@@ -202,10 +202,10 @@ export default function DatabaseIndex() {
 
           {/* Export Section */}
           <div className="bg-backdrop-medium border border-line rounded-lg p-6 mb-6">
-          <div className="flex items-center gap-2 mb-4">
-            <FontAwesomeIcon icon={faDownload} className="text-standout" />
-            <h2 className="text-xl font-semibold text-neutral-dark">Export Database</h2>
-          </div>
+            <div className="flex items-center gap-2 mb-4">
+              <FontAwesomeIcon icon={faDownload} className="text-standout" />
+              <h2 className="text-xl font-semibold text-neutral-dark">Export Database</h2>
+            </div>
 
             <p className="text-neutral-medium mb-4">
               Download a complete backup of your database as a JSON file. This includes all posts,
@@ -217,18 +217,18 @@ export default function DatabaseIndex() {
                 onClick={loadExportStats}
                 disabled={loadingStats}
                 className="px-4 py-2 bg-backdrop-high text-neutral-dark rounded-lg hover:bg-backdrop-medium transition disabled:opacity-50"
-            >
-              {loadingStats ? (
-                <>
-                  <FontAwesomeIcon icon={faSpinner} spin className="mr-2" />
-                  Loading...
-                </>
-              ) : (
-                <>
-                  <FontAwesomeIcon icon={faDatabase} className="mr-2" />
-                  View Stats
-                </>
-              )}
+              >
+                {loadingStats ? (
+                  <>
+                    <FontAwesomeIcon icon={faSpinner} spin className="mr-2" />
+                    Loading...
+                  </>
+                ) : (
+                  <>
+                    <FontAwesomeIcon icon={faDatabase} className="mr-2" />
+                    View Stats
+                  </>
+                )}
               </button>
 
               <button
