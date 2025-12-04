@@ -513,28 +513,36 @@ How to test:
 6. For post-reference:
    - Select one or more posts and verify saved IDs; render in a module/teaser if desired.
 
-### Milestone 15 — Agent Runner (Webhook-Based Suggestions) (✅ Complete)
+### Milestone 15 — Agent Runner (File-Based Definitions) (✅ Complete)
 **Implemented:**
-- ✅ Env-based agents configuration via `CMS_AGENTS` (JSON array)
-  - Example:
-    ```bash
-    CMS_AGENTS='[
-      {"id":"seo","name":"SEO Optimizer","url":"https://example.com/webhook","secret":"YOUR_TOKEN"},
-      {"id":"style","name":"Style Enhancer","url":"https://example.com/style"}
-    ]'
-    ```
-- ✅ API (admin-only; auth required)
-  - `GET /api/agents` → list configured agents (id, name)
+- ✅ **File-based agent system**: Agent definitions in `app/agents/*.ts` using `AgentDefinition` interface
+- ✅ **Agent Registry**: Central `agentRegistry` service (`app/services/agent_registry.ts`) for runtime agent management
+- ✅ **Agent types**:
+  - **External**: Webhook-based agents with support for dev/prod endpoints, authentication, and timeouts
+  - **Internal**: Placeholder for future internal AI service integration
+- ✅ **Agent scopes**: Agents can be configured for different triggers:
+  - `dropdown` - Manual execution from post editor
+  - `post.publish` - Auto-trigger on publish
+  - `post.approve` - Trigger when approving changes
+  - `post.review.save` - Trigger when saving for review
+  - `post.review.approve` - Trigger when approving review
+  - `post.ai-review.save` - Trigger when saving AI review
+  - `post.ai-review.approve` - Trigger when approving AI review
+  - `form.submit` - Trigger on form submission (with optional form slug filtering)
+- ✅ **Execution ordering**: Agents can specify order priority (lower numbers execute first)
+- ✅ **CLI command**: `node ace make:agent` to scaffold new agent definitions
+- ✅ API (RBAC-enforced)
+  - `GET /api/agents` → list agents available in dropdown scope (id, name, description)
   - `POST /api/posts/:id/agents/:agentId/run { context? }`
     - Sends canonical post JSON to the agent
     - Expects JSON response with optional `post` object containing suggested field updates
     - Applies suggestions to `review_draft` only and records a Review revision
 - ✅ UI (Post Editor → Actions)
-  - Agent dropdown (hidden “Run Agent” button until an agent is selected)
-  - “Run Agent” button styled as the primary action; appears below the dropdown
+  - Agent dropdown (filtered by dropdown scope)
+  - "Run Agent" button appears below the dropdown
   - On success, switches to Review view and toasts confirmation
 - ✅ Security / RBAC
-  - Admin/Editor may run agents; Translators cannot
+  - Permission-based access via `agents.edit`
   - CSRF header sent for all mutating requests
 
 Agent response contract (example):
@@ -548,14 +556,44 @@ Agent response contract (example):
 ```
 Only top-level post fields in `post` are merged into `review_draft`. Live content is not changed.
 
+**Example agent definition** (`app/agents/seo_optimizer.ts`):
+```typescript
+import type { AgentDefinition } from '#types/agent_types'
+
+const SeoOptimizerAgent: AgentDefinition = {
+  id: 'seo-optimizer',
+  name: 'SEO Optimizer',
+  description: 'Automatically generates and optimizes SEO metadata',
+  type: 'external',
+  enabled: true,
+
+  external: {
+    url: process.env.AGENT_SEO_OPTIMIZER_URL || '',
+    devUrl: process.env.AGENT_SEO_OPTIMIZER_DEV_URL,
+    secret: process.env.AGENT_SEO_OPTIMIZER_SECRET,
+    timeout: 30000,
+  },
+
+  scopes: [
+    { scope: 'dropdown', order: 20, enabled: true },
+    { scope: 'post.publish', order: 10, enabled: false },
+  ],
+}
+
+export default SeoOptimizerAgent
+```
+
 How to test:
-1. Configure agents in `.env` as shown above, then restart the dev server.
-2. Open `/admin/posts/:id/edit` → Actions panel.
-3. Select an agent, click “Run Agent”.
-4. On success, a toast confirms suggestions were saved; the editor switches to Review view.
-5. Verify Review view shows suggested fields. Approve when ready to promote to live.
-6. RBAC: Login as editor/admin to run; as translator, confirm you cannot run agents.
-7. Error handling: Make the webhook return a non-2xx status and verify you see an error toast.
+1. Create an agent using `node ace make:agent my-agent`
+2. Configure agent settings in `app/agents/my-agent.ts`
+3. Set environment variables (e.g., `AGENT_MY_AGENT_URL`, `AGENT_MY_AGENT_SECRET`)
+4. Restart the dev server to register the agent
+5. Open `/admin/posts/:id/edit` → Actions panel
+6. Select an agent from the dropdown, click "Run Agent"
+7. On success, a toast confirms suggestions were saved; the editor switches to Review view
+8. Verify Review view shows suggested fields. Approve when ready to promote to live
+9. RBAC: Login as editor/admin to run; as translator, confirm you cannot run agents
+10. Error handling: Make the webhook return a non-2xx status and verify you see an error toast
 
 ### Milestone 16 — Media Library & Attachment Tracking (✅ Complete)
 - ✅ Media Assets DB and API
@@ -985,6 +1023,16 @@ CMS_SSR_CACHE_TTL=3600
 CMS_PUBLIC_MAX_AGE=60
 CMS_CDN_MAX_AGE=3600
 CMS_SWR=604800
+
+# Agents (per-agent configuration)
+# Example for an agent with ID 'content-enhancer':
+AGENT_CONTENT_ENHANCER_URL=https://example.com/webhook
+AGENT_CONTENT_ENHANCER_DEV_URL=http://localhost:3001/webhook
+AGENT_CONTENT_ENHANCER_SECRET=your-secret-token
+
+# Example for an agent with ID 'seo-optimizer':
+AGENT_SEO_OPTIMIZER_URL=https://example.com/seo
+AGENT_SEO_OPTIMIZER_SECRET=your-seo-secret
 ```
 
 ## Local Development

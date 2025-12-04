@@ -386,7 +386,7 @@ export default function Editor({ post, modules: initialModules, translations, re
   const [revisions, setRevisions] = useState<Array<{ id: string; mode: 'approved' | 'review'; createdAt: string; user?: { id?: number; email?: string } }>>([])
   const [loadingRevisions, setLoadingRevisions] = useState(false)
   // Agents
-  const [agents, setAgents] = useState<Array<{ id: string; name: string }>>([])
+  const [agents, setAgents] = useState<Array<{ id: string; name: string; description?: string }>>([])
   const [selectedAgent, setSelectedAgent] = useState<string>('')
   const [runningAgent, setRunningAgent] = useState<boolean>(false)
   // Author management (admin)
@@ -424,7 +424,7 @@ export default function Editor({ post, modules: initialModules, translations, re
         try {
           const res = await fetch('/api/agents', { credentials: 'same-origin' })
           const json = await res.json().catch(() => ({}))
-          const list: Array<{ id: string; name: string }> = Array.isArray(json?.data) ? json.data : []
+          const list: Array<{ id: string; name: string; description?: string }> = Array.isArray(json?.data) ? json.data : []
           if (alive) setAgents(list)
         } catch {
           if (alive) setAgents([])

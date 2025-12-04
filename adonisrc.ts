@@ -75,6 +75,7 @@ export default defineConfig({
     () => import('#start/url_patterns'),
     () => import('#start/menus'),
     () => import('#start/roles'),
+    () => import('#start/agents'),
   ],
 
   /*

@@ -1,5 +1,5 @@
 import type { HttpContext } from '@adonisjs/core/http'
-import agentService from '#services/agent_service'
+import agentRegistry from '#services/agent_registry'
 import PostSerializerService from '#services/post_serializer_service'
 import Post from '#models/post'
 import authorizationService from '#services/authorization_service'
@@ -11,10 +11,12 @@ import AgentPostPayloadDto from '#dtos/agent_post_payload_dto'
 export default class AgentsController {
   /**
    * GET /api/agents
-   * List configured agents
+   * List configured agents available in the dropdown scope
    */
   async index({ response }: HttpContext) {
-    const agents = agentService.parseAgents().map((a) => ({ id: a.id, name: a.name }))
+    const agents = agentRegistry
+      .listByScope('dropdown')
+      .map((a) => ({ id: a.id, name: a.name, description: a.description }))
     return response.ok({ data: agents })
   }
 
@@ -34,9 +36,14 @@ export default class AgentsController {
       return response.forbidden({ error: 'Not allowed to run agents' })
     }
     const { id, agentId } = params
-    const agents = agentService.parseAgents()
-    const agent = agents.find((a) => a.id === agentId)
+    const agent = agentRegistry.get(agentId)
     if (!agent) return response.notFound({ error: 'Agent not found' })
+
+    // Check if agent is available in dropdown scope
+    if (!agentRegistry.isAvailableInScope(agentId, 'dropdown')) {
+      return response.forbidden({ error: 'Agent not available for manual execution' })
+    }
+
     try {
       const post = await Post.findOrFail(id)
       const canonical = await PostSerializerService.serialize(id)
@@ -44,24 +51,62 @@ export default class AgentsController {
         canonical,
         (request.input('context') as Record<string, unknown> | undefined) || {}
       )
-      const headers: Record<string, string> = { 'Content-Type': 'application/json' }
-      if (agent.secret) {
-        if (agent.secretHeader) {
-          headers[agent.secretHeader] = agent.secret
-        } else {
-          headers['Authorization'] = `Bearer ${agent.secret}`
+
+      let suggestions: any = {}
+
+      // Execute based on agent type
+      if (agent.type === 'external') {
+        if (!agent.external) {
+          return response.badRequest({ error: 'External agent missing configuration' })
         }
+
+        const webhookUrl = agentRegistry.getWebhookUrl(agentId)
+        if (!webhookUrl) {
+          return response.badRequest({ error: 'Agent webhook URL not configured' })
+        }
+
+        const headers: Record<string, string> = { 'Content-Type': 'application/json' }
+        if (agent.external.secret) {
+          if (agent.external.secretHeader) {
+            headers[agent.external.secretHeader] = agent.external.secret
+          } else {
+            headers['Authorization'] = `Bearer ${agent.external.secret}`
+          }
+        }
+
+        const timeout = agentRegistry.getTimeout(agentId)
+        const controller = new AbortController()
+        const timeoutId = setTimeout(() => controller.abort(), timeout)
+
+        try {
+          const res = await fetch(webhookUrl, {
+            method: 'POST',
+            headers,
+            body: JSON.stringify(payload),
+            signal: controller.signal,
+          })
+          clearTimeout(timeoutId)
+
+          if (!res.ok) {
+            const txt = await res.text().catch(() => '')
+            return response.badRequest({ error: `Agent failed: ${res.status} ${txt}` })
+          }
+
+          suggestions = await res.json().catch(() => ({}))
+        } catch (error: any) {
+          clearTimeout(timeoutId)
+          if (error.name === 'AbortError') {
+            return response.requestTimeout({ error: 'Agent request timed out' })
+          }
+          throw error
+        }
+      } else if (agent.type === 'internal') {
+        // Internal agents not yet implemented
+        return response.badRequest({
+          error: 'Internal agents are not yet implemented',
+        })
       }
-      const res = await fetch(agent.url, {
-        method: 'POST',
-        headers,
-        body: JSON.stringify(payload),
-      })
-      if (!res.ok) {
-        const txt = await res.text().catch(() => '')
-        return response.badRequest({ error: `Agent failed: ${res.status} ${txt}` })
-      }
-      const suggestions = await res.json().catch(() => ({}))
+
       const suggestedPost: any = (suggestions && suggestions.post) || {}
       // Apply to review_draft only: merge with existing review_draft, DO NOT change live fields here
       const current = await Post.findOrFail(id)

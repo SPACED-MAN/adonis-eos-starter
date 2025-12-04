@@ -107,14 +107,6 @@ const cmsConfig = {
   },
 
   /**
-   * Agent settings (AI assistants)
-   */
-  agents: {
-    /** JSON array of agent configurations */
-    config: env.get('CMS_AGENTS') ?? '[]',
-  },
-
-  /**
    * Scheduling settings
    */
   scheduling: {
