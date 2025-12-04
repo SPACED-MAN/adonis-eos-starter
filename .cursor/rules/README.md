@@ -54,6 +54,12 @@ This directory contains coding guidelines and conventions for the Adonis EOS pro
    - Styling conventions
    - Accessibility guidelines
 
+9. **[separation-of-concerns.md](./separation-of-concerns.md)** - **⭐ ARCHITECTURE** - Separation of concerns
+   - Post-type-specific logic delegation
+   - URL pattern handling
+   - Controller/service boundaries
+   - Preventing hardcoded patterns
+
 ## Actions Quick Start
 
 **For complex operations, use action classes with static methods:**
