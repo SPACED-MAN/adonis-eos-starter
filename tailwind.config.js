@@ -33,9 +33,86 @@ export default {
         placeholder: 'var(--color-placeholder)',
         disabled: 'var(--color-disabled)',
       },
+      typography: (theme) => ({
+        DEFAULT: {
+          css: {
+            '--tw-prose-body': 'var(--color-neutral-high)',
+            '--tw-prose-headings': 'var(--color-neutral-high)',
+            '--tw-prose-links': 'var(--color-standout)',
+            '--tw-prose-bold': 'var(--color-neutral-high)',
+            '--tw-prose-bullets': 'var(--color-neutral-medium)',
+            '--tw-prose-quotes': 'var(--color-neutral-medium)',
+            '--tw-prose-code': 'var(--color-neutral-high)',
+            '--tw-prose-hr': 'var(--color-line)',
+            maxWidth: 'none',
+            // Remove default h1 styling - prose should not have h1
+            h1: {
+              display: 'none',
+            },
+            h2: {
+              fontSize: '1.875rem',
+              fontWeight: '600',
+              marginTop: '2rem',
+              marginBottom: '1rem',
+              lineHeight: '2.25rem',
+            },
+            h3: {
+              fontSize: '1.5rem',
+              fontWeight: '600',
+              marginTop: '1.5rem',
+              marginBottom: '0.75rem',
+              lineHeight: '2rem',
+            },
+            p: {
+              marginTop: '1rem',
+              marginBottom: '1rem',
+              lineHeight: '1.75rem',
+            },
+            ul: {
+              listStyleType: 'disc',
+              paddingLeft: '1.5rem',
+              marginTop: '1rem',
+              marginBottom: '1rem',
+            },
+            ol: {
+              listStyleType: 'decimal',
+              paddingLeft: '1.5rem',
+              marginTop: '1rem',
+              marginBottom: '1rem',
+            },
+            li: {
+              marginTop: '0.5rem',
+              marginBottom: '0.5rem',
+            },
+            code: {
+              backgroundColor: 'var(--color-backdrop-medium)',
+              padding: '0.125rem 0.25rem',
+              borderRadius: '0.25rem',
+              fontWeight: '400',
+            },
+            'code::before': {
+              content: '""',
+            },
+            'code::after': {
+              content: '""',
+            },
+            strong: {
+              fontWeight: '600',
+            },
+            a: {
+              textDecoration: 'underline',
+              '&:hover': {
+                opacity: '0.8',
+              },
+            },
+          },
+        },
+      }),
     },
   },
-  plugins: [],
+  plugins: [
+    require('@tailwindcss/typography'),
+  ],
 }
 
 

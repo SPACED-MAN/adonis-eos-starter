@@ -11,12 +11,16 @@ import { LexicalErrorBoundary } from '@lexical/react/LexicalErrorBoundary'
 import { HeadingNode, QuoteNode } from '@lexical/rich-text'
 import { ListItemNode, ListNode } from '@lexical/list'
 import { LinkNode, AutoLinkNode } from '@lexical/link'
+import { CodeNode } from '@lexical/code'
+import { HorizontalRuleNode } from '@lexical/react/LexicalHorizontalRuleNode'
 import { FORMAT_TEXT_COMMAND, $getSelection, $isRangeSelection } from 'lexical'
 import { $setBlocksType } from '@lexical/selection'
 import { $createHeadingNode } from '@lexical/rich-text'
 import { INSERT_UNORDERED_LIST_COMMAND, INSERT_ORDERED_LIST_COMMAND, REMOVE_LIST_COMMAND } from '@lexical/list'
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome'
-import { faBold, faItalic, faUnderline, faListUl, faListOl, faParagraph, faHeading } from '@fortawesome/free-solid-svg-icons'
+import { faBold, faItalic, faUnderline, faListUl, faListOl, faParagraph, faHeading, faCode, faMinus } from '@fortawesome/free-solid-svg-icons'
+import { $createCodeNode } from '@lexical/code'
+import { $insertNodes } from 'lexical'
 
 function InitialContentPlugin({ initialValue }: { initialValue: any }) {
   const [editor] = useLexicalComposerContext()
@@ -144,7 +148,7 @@ export function LexicalEditor({
       namespace: `prose-editor${editorKey ? `-${editorKey}` : ''}`,
       theme,
       onError,
-      nodes: [HeadingNode, QuoteNode, ListNode, ListItemNode, LinkNode, AutoLinkNode],
+      nodes: [HeadingNode, QuoteNode, ListNode, ListItemNode, LinkNode, AutoLinkNode, CodeNode, HorizontalRuleNode],
     }),
     [theme, editorKey]
   )
@@ -256,6 +260,36 @@ function Toolbar() {
         onClick={() => editor.dispatchCommand(REMOVE_LIST_COMMAND, undefined)}
       >
         <FontAwesomeIcon icon={faParagraph} />
+      </button>
+      <div className="mx-2 h-4 w-px bg-line" />
+      <button
+        type="button"
+        className="px-2 py-1 text-xs rounded border border-line hover:bg-backdrop-low"
+        title="Code Block"
+        onClick={() =>
+          editor.update(() => {
+            const selection = $getSelection()
+            if ($isRangeSelection(selection)) {
+              const codeNode = $createCodeNode()
+              $insertNodes([codeNode])
+            }
+          })
+        }
+      >
+        <FontAwesomeIcon icon={faCode} />
+      </button>
+      <button
+        type="button"
+        className="px-2 py-1 text-xs rounded border border-line hover:bg-backdrop-low"
+        title="Horizontal Rule"
+        onClick={() =>
+          editor.update(() => {
+            const hrNode = new HorizontalRuleNode()
+            $insertNodes([hrNode])
+          })
+        }
+      >
+        <FontAwesomeIcon icon={faMinus} />
       </button>
     </div>
   )
