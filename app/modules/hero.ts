@@ -34,7 +34,7 @@ export default class HeroModule extends BaseModule {
         },
       },
       defaultProps: {
-        title: 'We invest in the world's potential',
+        title: "We invest in the world's potential",
         subtitle:
           'We focus on markets where technology, innovation, and capital can unlock long-term value and drive durable growth.',
         primaryCta: {
