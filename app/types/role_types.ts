@@ -2,7 +2,7 @@
  * Role and permission types for admin RBAC
  */
 
-export type RoleName = 'admin' | 'editor' | 'translator' | string
+export type RoleName = 'admin' | 'editor_admin' | 'editor' | 'translator' | string
 
 /**
  * High-level permission buckets, used by controllers and services.

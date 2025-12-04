@@ -362,7 +362,11 @@ How to test:
 ### Milestone 9 — RBAC (✅ Complete)
 - **File-based role system:** Role definitions in `app/roles/*.ts` using `RoleDefinition` interface with granular `PermissionKey` grants
 - **Role Registry:** Central `roleRegistry` service (`app/services/role_registry.ts`) for runtime permission checks via `hasPermission(role, permission)`
-- **Built-in roles:** admin, editor, translator (defined in `app/roles/`)
+- **Built-in roles:** admin, editor_admin, editor, translator (defined in `app/roles/`)
+  - **Admin**: Full system access including user management, settings, and database operations
+  - **Editor Admin**: Senior editor role with publish and approval capabilities, cannot manage users/settings
+  - **Editor**: Content creator role, can edit and submit for review but cannot publish or approve
+  - **Translator**: Limited to translating content, can submit for review but cannot publish
 - **Granular permissions** (see `app/types/role_types.ts`):
   - Content: `posts.create`, `posts.edit`, `posts.publish`, `posts.archive`, `posts.delete`, `posts.review.save`, `posts.review.approve`, `posts.ai-review.save`, `posts.ai-review.approve`
   - Media: `media.view`, `media.upload`, `media.replace`, `media.delete`, `media.variants.generate`, `media.optimize`
@@ -370,31 +374,42 @@ How to test:
   - Menus: `menus.view`, `menus.edit`, `menus.delete`
   - Globals: `globals.view`, `globals.edit`, `globals.delete`
   - Agents: `agents.view`, `agents.edit`
-  - Admin: `admin.access`, `admin.users.manage`, `admin.roles.manage`, `admin.settings.view`, `admin.settings.update`
+  - Admin: `admin.access`, `admin.users.manage`, `admin.roles.manage`, `admin.settings.view`, `admin.settings.update`, `admin.database.export`, `admin.database.import`
 - **Server enforcement:**
   - Auth uses `web` guard consistently (login/logout/middleware)
   - Controllers use `roleRegistry.hasPermission(role, permission)` for fine-grained checks
   - Admin always has all permissions (hardcoded in `roleRegistry`)
+  - Review/AI Review permissions enforce who can save drafts and approve changes
 - **UI gating:**
   - Admin header shows role-appropriate nav
   - Dashboard and bulk actions filtered by permission checks
+  - Post editor tabs (Review, AI Review) only shown if user has respective permissions
+  - Save buttons (Save for Review, Save for AI Review) conditionally rendered based on permissions
 - **Inertia shared props:**
-  - `currentUser`, `auth.user`, and `isAdmin` are shared on every request
+  - `currentUser`, `auth.user`, `isAdmin`, and `permissions` array are shared on every request via `InertiaAuthShareMiddleware`
+  - Frontend uses `useHasPermission(permission)` hook for permission checks
 - **Authorization service:**
   - `app/services/authorization_service.ts` centralizes role checks used by controllers/UI
+- **Scaffolding:** `node ace make:role <name>` generates new role definition files
 
 How to test:
-1. Seed users: `node ace db:seed --files database/seeders/user_seeder.ts`
-   - admin@example.com / supersecret
-   - editor@example.com / supersecret
-   - translator@example.com / supersecret
+1. Create test users via User Management UI or seed:
+   - admin@example.com / supersecret (role: admin)
+   - editoradmin@example.com / supersecret (role: editor_admin)
+   - editor@example.com / supersecret (role: editor)
+   - translator@example.com / supersecret (role: translator)
 2. Login as each role and visit `/admin`:
-   - Admin: sees admin nav; can create posts; can publish/archive/draft; can delete archived via bulk
-   - Editor: no admin nav; can create posts; can publish/archive/draft; cannot delete via bulk
-   - Translator: no admin nav; cannot create posts; bulk shows only “Move to Draft”
-3. Try restricted pages (as non-admin) like `/admin/settings/templates`:
+   - **Admin**: Full access to all features, can manage users and system settings
+   - **Editor Admin**: Can create, edit, publish posts; can approve reviews; no user/settings access
+   - **Editor**: Can create and edit posts, save for review/AI review; cannot publish or approve
+   - **Translator**: Can edit and translate posts, save for review; cannot create, publish, or approve
+3. Test Review/AI Review workflows:
+   - Editor: Can see and use "Save for Review" and "Save for AI Review" buttons
+   - Editor Admin: Can see all review tabs and approve reviews
+   - Translator: Can only see "Review" tab (if has permission), cannot approve
+4. Try restricted pages (as non-admin) like `/admin/settings/templates`:
    - Should redirect to `/admin/forbidden`.
-4. Try bulk operations as editor/translator and verify server responses enforce permissions.
+5. Try bulk operations and verify permissions are enforced.
 
 ### Milestone 10 — Admin UI Improvements & Dashboard (✅ Complete)
 - Admin dashboard:

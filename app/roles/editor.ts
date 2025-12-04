@@ -4,19 +4,18 @@ const editorRole: RoleDefinition = {
 	name: 'editor',
 	label: 'Editor',
 	description:
-		'Can create and edit content, media, menus, and forms, but cannot change system settings or manage users.',
+		'Can create and edit content, media, menus, and forms, but cannot publish or approve content. Cannot change system settings or manage users.',
 	permissions: [
 		'admin.access',
 		'admin.settings.view',
-		// Content
+		// Content - Can edit but not publish or approve
 		'posts.create',
 		'posts.edit',
-		'posts.publish',
 		'posts.archive',
 		'posts.revisions.manage',
 		'posts.export',
 		'posts.review.save',
-		'posts.review.approve',
+		'posts.ai-review.save',
 		// Media
 		'media.view',
 		'media.upload',
@@ -42,5 +41,3 @@ const editorRole: RoleDefinition = {
 }
 
 export default editorRole
-
-

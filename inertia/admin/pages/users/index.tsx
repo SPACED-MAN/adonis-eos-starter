@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react'
+import { usePage } from '@inertiajs/react'
 import { AdminHeader } from '../../components/AdminHeader'
 import { AdminFooter } from '../../components/AdminFooter'
 import { AdminBreadcrumbs } from '../../components/AdminBreadcrumbs'
@@ -17,7 +18,7 @@ import {
   AlertDialogAction,
 } from '~/components/ui/alert-dialog'
 import { getXsrf } from '~/utils/xsrf'
-import { ROLES, type Role } from '~/types/roles'
+import { type Role } from '~/types/roles'
 
 type UserRow = {
   id: number
@@ -29,12 +30,20 @@ type UserRow = {
 }
 
 export default function UsersIndex() {
+  const page = usePage()
+  const availableRoles = (page.props as any)?.roles || []
   const [loading, setLoading] = useState(false)
   const [rows, setRows] = useState<UserRow[]>([])
   const [filter, setFilter] = useState('')
   const [saving, setSaving] = useState<Record<number, boolean>>({})
   const [pwdFor, setPwdFor] = useState<number | null>(null)
   const [pwd, setPwd] = useState('')
+
+  // Helper to get role label from role name
+  function getRoleLabel(roleName: string): string {
+    const role = availableRoles.find((r: any) => r.name === roleName)
+    return role?.label || roleName.charAt(0).toUpperCase() + roleName.slice(1)
+  }
 
   async function load() {
     setLoading(true)
@@ -58,7 +67,8 @@ export default function UsersIndex() {
     return rows.filter((r) =>
       r.email.toLowerCase().includes(q) ||
       (r.username || '').toLowerCase().includes(q) ||
-      r.role.toLowerCase().includes(q)
+      r.role.toLowerCase().includes(q) ||
+      getRoleLabel(r.role).toLowerCase().includes(q)
     )
   }
 
@@ -161,9 +171,9 @@ export default function UsersIndex() {
                           <SelectValue />
                         </SelectTrigger>
                         <SelectContent>
-                          {ROLES.map((r) => (
-                            <SelectItem key={r} value={r}>
-                              {r.charAt(0).toUpperCase() + r.slice(1)}
+                          {availableRoles.map((r: any) => (
+                            <SelectItem key={r.name} value={r.name}>
+                              {r.label}
                             </SelectItem>
                           ))}
                         </SelectContent>

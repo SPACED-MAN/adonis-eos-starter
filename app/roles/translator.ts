@@ -11,6 +11,7 @@ const translatorRole: RoleDefinition = {
 		// Content (edit but not publish/delete)
 		'posts.edit',
 		'posts.revisions.manage',
+		'posts.review.save', // Can submit for review
 		// Media (view only)
 		'media.view',
 		// Menus (view only)

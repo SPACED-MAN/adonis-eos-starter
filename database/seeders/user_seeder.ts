@@ -24,6 +24,24 @@ export default class extends BaseSeeder {
       console.log('Created new admin user')
     }
 
+    // Ensure editor admin account
+    const existingEditorAdmin = await User.findBy('email', 'editoradmin@example.com')
+    if (existingEditorAdmin) {
+      existingEditorAdmin.password = 'supersecret'
+      existingEditorAdmin.fullName = 'Editor Admin User'
+      ;(existingEditorAdmin as any).role = 'editor_admin'
+      await existingEditorAdmin.save()
+      console.log('Updated existing editor admin user')
+    } else {
+      const editorAdmin = new User()
+      editorAdmin.email = 'editoradmin@example.com'
+      editorAdmin.password = 'supersecret'
+      editorAdmin.fullName = 'Editor Admin User'
+      ;(editorAdmin as any).role = 'editor_admin'
+      await editorAdmin.save()
+      console.log('Created editor admin user')
+    }
+
     // Ensure editor account
     const existingEditor = await User.findBy('email', 'editor@example.com')
     if (existingEditor) {

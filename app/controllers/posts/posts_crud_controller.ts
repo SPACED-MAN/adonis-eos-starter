@@ -8,6 +8,7 @@ import authorizationService from '#services/authorization_service'
 import RevisionService from '#services/revision_service'
 import postTypeConfigService from '#services/post_type_config_service'
 import webhookService from '#services/webhook_service'
+import roleRegistry from '#services/role_registry'
 import BasePostsController from './base_posts_controller.js'
 import {
   createPostValidator,
@@ -115,21 +116,33 @@ export default class PostsCrudController extends BasePostsController {
 
       // Handle review mode
       if (saveMode === 'review') {
+        if (!roleRegistry.hasPermission(role, 'posts.review.save')) {
+          return this.response.forbidden(response, 'Not allowed to save for review')
+        }
         return this.saveReviewDraft(id, payload, auth, response)
       }
 
       // Handle AI review mode
       if (saveMode === 'ai-review') {
+        if (!roleRegistry.hasPermission(role, 'posts.ai-review.save')) {
+          return this.response.forbidden(response, 'Not allowed to save for AI review')
+        }
         return this.saveAiReviewDraft(id, payload, auth, response)
       }
 
       // Handle approve mode
       if (saveMode === 'approve') {
+        if (!roleRegistry.hasPermission(role, 'posts.review.approve')) {
+          return this.response.forbidden(response, 'Not allowed to approve review')
+        }
         return this.approveReviewDraft(id, auth, response)
       }
 
       // Handle approve AI review mode
       if (saveMode === 'approve-ai-review') {
+        if (!roleRegistry.hasPermission(role, 'posts.ai-review.approve')) {
+          return this.response.forbidden(response, 'Not allowed to approve AI review')
+        }
         return this.approveAiReviewDraft(id, auth, response)
       }
 
@@ -643,9 +656,9 @@ export default class PostsCrudController extends BasePostsController {
     // Update review_draft with AI review content
     await Post.query()
       .where('id', id)
-      .update({ 
+      .update({
         review_draft: reviewPayload,
-        ai_review_draft: null 
+        ai_review_draft: null
       } as any)
 
     await RevisionService.record({
