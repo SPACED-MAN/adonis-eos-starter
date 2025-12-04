@@ -12,6 +12,7 @@ import BlogNoteModule from '#modules/blog_note'
 import HeroWithMediaModule from '#modules/hero_with_media'
 import HeroWithCalloutModule from '#modules/hero_with_callout'
 import FeaturesListModule from '#modules/features_list'
+import FeaturesListExpandedModule from '#modules/features_list_expanded'
 import BlockquoteModule from '#modules/blockquote'
 import ProfileListModule from '#modules/profile_list'
 import CompanyListModule from '#modules/company_list'
@@ -28,6 +29,7 @@ import FormModule from '#modules/form'
 moduleRegistry.register(new HeroWithMediaModule())
 moduleRegistry.register(new HeroWithCalloutModule())
 moduleRegistry.register(new FeaturesListModule())
+moduleRegistry.register(new FeaturesListExpandedModule())
 moduleRegistry.register(new BlockquoteModule())
 moduleRegistry.register(new ProfileListModule())
 moduleRegistry.register(new CompanyListModule())
@@ -51,4 +53,3 @@ if (process.env.NODE_ENV === 'development') {
   const types = moduleRegistry.getTypes()
   console.log(`📦 Registered ${types.length} modules: ${types.join(', ')}`)
 }
-
