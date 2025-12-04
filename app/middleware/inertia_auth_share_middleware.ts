@@ -8,15 +8,15 @@ export default class InertiaAuthShareMiddleware {
       // Ensure auth state is evaluated for this request
       try {
         await ctx.auth.use('web').check()
-      } catch { }
+      } catch {}
       const user = ctx.auth.use('web').user
       const sharedUser = user
         ? {
-          id: (user as any).id,
-          email: (user as any).email,
-          fullName: (user as any).fullName || null,
-          role: (user as any).role || 'editor',
-        }
+            id: (user as any).id,
+            email: (user as any).email,
+            fullName: (user as any).fullName || null,
+            role: (user as any).role || 'editor',
+          }
         : null
 
       // Get permissions for the current user's role

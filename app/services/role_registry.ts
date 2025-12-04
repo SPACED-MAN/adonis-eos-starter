@@ -44,5 +44,3 @@ class RoleRegistry {
 
 const roleRegistry = new RoleRegistry()
 export default roleRegistry
-
-

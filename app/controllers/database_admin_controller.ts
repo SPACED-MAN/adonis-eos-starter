@@ -11,7 +11,11 @@ export default class DatabaseAdminController {
    * Show database export/import page
    */
   async index({ inertia, auth }: HttpContext) {
-    const role = (auth.use('web').user as any)?.role as 'admin' | 'editor' | 'translator' | undefined
+    const role = (auth.use('web').user as any)?.role as
+      | 'admin'
+      | 'editor'
+      | 'translator'
+      | undefined
 
     if (!roleRegistry.hasPermission(role, 'admin.database.export')) {
       return inertia.render('admin/forbidden')
@@ -25,7 +29,11 @@ export default class DatabaseAdminController {
    * Get export statistics without performing export
    */
   async getExportStats({ response, auth }: HttpContext) {
-    const role = (auth.use('web').user as any)?.role as 'admin' | 'editor' | 'translator' | undefined
+    const role = (auth.use('web').user as any)?.role as
+      | 'admin'
+      | 'editor'
+      | 'translator'
+      | undefined
 
     if (!roleRegistry.hasPermission(role, 'admin.database.export')) {
       return response.forbidden({ error: 'Not allowed to export database' })
@@ -44,7 +52,11 @@ export default class DatabaseAdminController {
    * Export database and download as JSON file
    */
   async export({ response, auth }: HttpContext) {
-    const role = (auth.use('web').user as any)?.role as 'admin' | 'editor' | 'translator' | undefined
+    const role = (auth.use('web').user as any)?.role as
+      | 'admin'
+      | 'editor'
+      | 'translator'
+      | undefined
 
     if (!roleRegistry.hasPermission(role, 'admin.database.export')) {
       return response.forbidden({ error: 'Not allowed to export database' })
@@ -71,7 +83,11 @@ export default class DatabaseAdminController {
    * Body: { file: MultipartFile, strategy?: 'replace' | 'merge' | 'skip' }
    */
   async import({ request, response, auth }: HttpContext) {
-    const role = (auth.use('web').user as any)?.role as 'admin' | 'editor' | 'translator' | undefined
+    const role = (auth.use('web').user as any)?.role as
+      | 'admin'
+      | 'editor'
+      | 'translator'
+      | undefined
 
     if (!roleRegistry.hasPermission(role, 'admin.database.import')) {
       return response.forbidden({ error: 'Not allowed to import database' })
@@ -104,7 +120,7 @@ export default class DatabaseAdminController {
         return response.badRequest({ error: 'File upload failed' })
       }
       const content = await readFile(file.tmpPath)
-      
+
       // Perform import
       const result = await databaseImportService.importFromBuffer(content, {
         strategy,
@@ -142,7 +158,11 @@ export default class DatabaseAdminController {
    * Validate uploaded export file without importing
    */
   async validate({ request, response, auth }: HttpContext) {
-    const role = (auth.use('web').user as any)?.role as 'admin' | 'editor' | 'translator' | undefined
+    const role = (auth.use('web').user as any)?.role as
+      | 'admin'
+      | 'editor'
+      | 'translator'
+      | undefined
 
     if (!roleRegistry.hasPermission(role, 'admin.database.import')) {
       return response.forbidden({ error: 'Not allowed to validate import files' })
@@ -205,4 +225,3 @@ export default class DatabaseAdminController {
     }
   }
 }
-

@@ -78,5 +78,3 @@ export interface RoleDefinition {
    */
   permissions: PermissionKey[]
 }
-
-

@@ -56,4 +56,3 @@ try {
     console.error('❌ Failed to bootstrap agent registry:', error)
   }
 }
-

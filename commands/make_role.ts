@@ -51,9 +51,9 @@ export default ${roleName}Role
     this.logger.info('')
     this.logger.info('📝 Next steps:')
     this.logger.info('  1. Fill in permissions for this role in the new file.')
-    this.logger.info('  2. Ensure any controllers/services use roleRegistry.hasPermission(...) as needed.')
+    this.logger.info(
+      '  2. Ensure any controllers/services use roleRegistry.hasPermission(...) as needed.'
+    )
     this.logger.info('')
   }
 }
-
-

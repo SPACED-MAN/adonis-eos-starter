@@ -45,5 +45,3 @@ if (process.env.NODE_ENV === 'development') {
     `👤 Registered ${roles.length} roles: ${roles.map((r) => `${r.name} (${r.label})`).join(', ')}`
   )
 }
-
-

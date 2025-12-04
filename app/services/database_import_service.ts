@@ -77,10 +77,7 @@ class DatabaseImportService {
   /**
    * Import database from JSON export
    */
-  async importDatabase(
-    exportData: any,
-    options: ImportOptions = {}
-  ): Promise<ImportResult> {
+  async importDatabase(exportData: any, options: ImportOptions = {}): Promise<ImportResult> {
     const { strategy = 'merge', tables: tablesToImport, disableForeignKeyChecks = true } = options
 
     // Validate export data
@@ -278,15 +275,19 @@ class DatabaseImportService {
 
     try {
       if (dialectName === 'postgres' || dialectName === 'pg') {
-        await trx.raw(`INSERT INTO ?? (${Object.keys(row).join(',')}) VALUES (${Object.keys(row).map(() => '?').join(',')}) ON CONFLICT DO NOTHING`, [
-          tableName,
-          ...Object.values(row),
-        ])
+        await trx.raw(
+          `INSERT INTO ?? (${Object.keys(row).join(',')}) VALUES (${Object.keys(row)
+            .map(() => '?')
+            .join(',')}) ON CONFLICT DO NOTHING`,
+          [tableName, ...Object.values(row)]
+        )
       } else if (dialectName === 'mysql' || dialectName === 'mysql2') {
-        await trx.raw(`INSERT IGNORE INTO ?? (${Object.keys(row).join(',')}) VALUES (${Object.keys(row).map(() => '?').join(',')})`, [
-          tableName,
-          ...Object.values(row),
-        ])
+        await trx.raw(
+          `INSERT IGNORE INTO ?? (${Object.keys(row).join(',')}) VALUES (${Object.keys(row)
+            .map(() => '?')
+            .join(',')})`,
+          [tableName, ...Object.values(row)]
+        )
       } else {
         // SQLite and others - try insert, ignore on error
         try {
@@ -360,4 +361,3 @@ class DatabaseImportService {
 
 const databaseImportService = new DatabaseImportService()
 export default databaseImportService
-

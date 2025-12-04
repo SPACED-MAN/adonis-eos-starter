@@ -642,9 +642,12 @@ export default class PostsCrudController extends BasePostsController {
       canonicalUrl: ard.canonicalUrl ?? current.canonicalUrl,
       robotsJson: ard.robotsJson ?? current.robotsJson,
       jsonldOverrides: ard.jsonldOverrides ?? current.jsonldOverrides,
-      featuredImageId: ard.featuredImageId !== undefined
-        ? (ard.featuredImageId === null || ard.featuredImageId === '' ? null : ard.featuredImageId)
-        : current.featuredImageId,
+      featuredImageId:
+        ard.featuredImageId !== undefined
+          ? ard.featuredImageId === null || ard.featuredImageId === ''
+            ? null
+            : ard.featuredImageId
+          : current.featuredImageId,
       customFields: ard.customFields ?? [],
       savedAt: new Date().toISOString(),
       savedBy: (auth.use('web').user as any)?.email || null,
@@ -658,7 +661,7 @@ export default class PostsCrudController extends BasePostsController {
       .where('id', id)
       .update({
         review_draft: reviewPayload,
-        ai_review_draft: null
+        ai_review_draft: null,
       } as any)
 
     await RevisionService.record({

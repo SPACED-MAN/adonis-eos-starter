@@ -124,4 +124,3 @@ class AgentRegistry {
 
 const agentRegistry = new AgentRegistry()
 export default agentRegistry
-

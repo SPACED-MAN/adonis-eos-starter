@@ -54,5 +54,3 @@ const adminRole: RoleDefinition = {
 }
 
 export default adminRole
-
-

@@ -44,7 +44,9 @@ export default class MakeAgent extends BaseCommand {
     const fileName = `${agentId}.ts`
 
     // Determine template based on type
-    const template = this.internal ? this.getInternalTemplate(agentId, agentName, agentTitle) : this.getExternalTemplate(agentId, agentName, agentTitle)
+    const template = this.internal
+      ? this.getInternalTemplate(agentId, agentName, agentTitle)
+      : this.getExternalTemplate(agentId, agentName, agentTitle)
 
     // Ensure agents directory exists
     const agentsDir = this.app.makePath('app/agents')
@@ -160,4 +162,3 @@ export default ${name}Agent
 `
   }
 }
-

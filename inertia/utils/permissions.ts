@@ -30,4 +30,3 @@ export function usePermissions(): PermissionKey[] {
 export function hasPermission(permissions: PermissionKey[], permission: PermissionKey): boolean {
   return permissions.includes(permission)
 }
-

@@ -41,4 +41,3 @@ const ContentEnhancerAgent: AgentDefinition = {
 }
 
 export default ContentEnhancerAgent
-

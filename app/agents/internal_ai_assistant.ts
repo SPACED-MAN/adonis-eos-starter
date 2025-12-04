@@ -35,4 +35,3 @@ const InternalAiAssistantAgent: AgentDefinition = {
 }
 
 export default InternalAiAssistantAgent
-

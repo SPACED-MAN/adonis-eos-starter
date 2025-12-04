@@ -34,4 +34,3 @@ export default class HeroModule extends BaseModule {
     }
   }
 }
-

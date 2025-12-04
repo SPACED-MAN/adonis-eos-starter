@@ -82,7 +82,7 @@ class GenerateMediaVariantsAction {
 
     // Determine variant generation options
     let variantOptions: { applyTint: boolean; nameSuffix: string } | undefined
-    
+
     if (isAlreadyDark) {
       // Using an already-dark base (manually uploaded or previously generated)
       // Don't apply tint again. Only add -dark suffix if filename doesn't already have it.
@@ -98,7 +98,6 @@ class GenerateMediaVariantsAction {
       }
     }
     // For light variants, variantOptions stays undefined (defaults apply)
-
 
     // Generate variants
     const generatedVariants = await mediaService.generateVariants(

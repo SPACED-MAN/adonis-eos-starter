@@ -119,14 +119,12 @@ class MediaService {
     const suffix =
       options?.nameSuffix !== undefined ? options.nameSuffix : theme === 'dark' ? '-dark' : ''
 
-
     const variants: VariantInfo[] = []
     for (const spec of specs) {
       const variantName = suffix ? `${spec.name}${suffix}` : spec.name
       const outName = `${parsed.name}.${variantName}${parsed.ext}`
       const outPath = path.join(parsed.dir, outName)
       const outUrl = path.posix.join(path.posix.dirname(publicUrl), outName)
-
 
       let pipeline = sharp(inputPath)
       // Apply cropRect or focal crop (for cover)

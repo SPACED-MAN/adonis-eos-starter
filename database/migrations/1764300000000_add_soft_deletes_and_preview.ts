@@ -93,6 +93,8 @@ END $$;
     this.schema.dropTableIfExists('preview_tokens')
 
     // Drop foreign key constraint
-    await this.schema.raw('ALTER TABLE posts DROP CONSTRAINT IF EXISTS posts_featured_image_id_foreign')
+    await this.schema.raw(
+      'ALTER TABLE posts DROP CONSTRAINT IF EXISTS posts_featured_image_id_foreign'
+    )
   }
 }

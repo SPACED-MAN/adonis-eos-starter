@@ -33,4 +33,3 @@ const SeoOptimizerAgent: AgentDefinition = {
 }
 
 export default SeoOptimizerAgent
-
