@@ -360,26 +360,28 @@ How to test:
 4. Add/remove locales; verify system behavior.
 
 ### Milestone 9 — RBAC (✅ Complete)
-- Roles: admin, editor, translator
-- Server enforcement:
-  - Auth uses `web` guard consistently (login/logout/middleware).
-  - Admin-only middleware protects settings and destructive APIs (redirects, templates, delete single post).
-  - PostsController enforces action-level permissions:
-    - Create post: admin, editor
-    - Update status: translator can set draft only; editor/admin can publish/archive
-    - Bulk actions (auth required):
-      - translator: draft
-      - editor: publish, archive, draft
-      - admin: publish, archive, draft, delete (archived only)
-- UI gating:
-  - Admin header shows admin-only nav when `isAdmin` is true.
-  - Dashboard: 
-    - “Create New” visible to admin/editor
-    - Bulk actions filtered by role (delete visible only to admin)
-- Inertia shared props:
-  - `currentUser`, `auth.user`, and `isAdmin` are shared on every request.
-- Authorization service:
-  - `app/services/authorization_service.ts` centralizes role checks used by controllers/UI.
+- **File-based role system:** Role definitions in `app/roles/*.ts` using `RoleDefinition` interface with granular `PermissionKey` grants
+- **Role Registry:** Central `roleRegistry` service (`app/services/role_registry.ts`) for runtime permission checks via `hasPermission(role, permission)`
+- **Built-in roles:** admin, editor, translator (defined in `app/roles/`)
+- **Granular permissions** (see `app/types/role_types.ts`):
+  - Content: `posts.create`, `posts.edit`, `posts.publish`, `posts.archive`, `posts.delete`, `posts.review.save`, `posts.review.approve`, `posts.ai-review.save`, `posts.ai-review.approve`
+  - Media: `media.view`, `media.upload`, `media.replace`, `media.delete`, `media.variants.generate`, `media.optimize`
+  - Forms: `forms.view`, `forms.edit`, `forms.delete`, `forms.submissions.export`
+  - Menus: `menus.view`, `menus.edit`, `menus.delete`
+  - Globals: `globals.view`, `globals.edit`, `globals.delete`
+  - Agents: `agents.view`, `agents.edit`
+  - Admin: `admin.access`, `admin.users.manage`, `admin.roles.manage`, `admin.settings.view`, `admin.settings.update`
+- **Server enforcement:**
+  - Auth uses `web` guard consistently (login/logout/middleware)
+  - Controllers use `roleRegistry.hasPermission(role, permission)` for fine-grained checks
+  - Admin always has all permissions (hardcoded in `roleRegistry`)
+- **UI gating:**
+  - Admin header shows role-appropriate nav
+  - Dashboard and bulk actions filtered by permission checks
+- **Inertia shared props:**
+  - `currentUser`, `auth.user`, and `isAdmin` are shared on every request
+- **Authorization service:**
+  - `app/services/authorization_service.ts` centralizes role checks used by controllers/UI
 
 How to test:
 1. Seed users: `node ace db:seed --files database/seeders/user_seeder.ts`
@@ -425,12 +427,13 @@ How to test:
 ### Milestone 11 — Review Workflow & Dual-Version System (✅ Complete)
 - Dual version support:
   - Adds `review_draft` (JSONB) to `posts` to store a review version of the post without affecting the live data.
-  - Editor toggle: “Approved” vs “Review” views. Review view loads/saves to `review_draft`.
-  - “Save for Review” action stores changes in `review_draft` only.
+  - Editor toggle: "Approved" vs "Review" views. Review view loads/saves to `review_draft`.
+  - "Save for Review" action stores changes in `review_draft` only.
   - Live status remains Published even if a Review draft exists.
+  - **Note:** Extended in Milestone 31 with AI Review mode, creating a three-tier system (Approved → AI Review → Review → Approved).
 - UI:
   - Actions panel includes a segmented control to switch views.
-  - Primary button adapts: “Save for Review” (Review view), “Publish Changes” when status=Published, else “Save Changes”.
+  - Primary button adapts: "Save for Review" (Review view), "Publish Changes" when status=Published, else "Save Changes".
 
 How to test:
 1. Run migration: `node ace migration:run` (adds `review_draft`).
@@ -439,7 +442,7 @@ How to test:
 4. Switch to Published view and click “Publish Changes” to update live fields.
 
 ### Milestone 12 — Revision History (ENV-Based Retention) (✅ Complete)
-- ✅ Database: `post_revisions` table storing `mode` (approved/review), `snapshot` (JSONB), timestamps, and `user_id`
+- ✅ Database: `post_revisions` table storing `mode` (approved/review/ai-review), `snapshot` (JSONB), timestamps, and `user_id`
 - ✅ Env: `CMS_REVISIONS_LIMIT` (number) controls how many revisions to retain per post (default 20)
 - ✅ Auto-prune: After each new revision, older ones beyond the limit are pruned
 - ✅ API:
@@ -911,6 +914,42 @@ How to test:
   - Webhooks can subscribe to `form.submitted` from `/admin/webhooks` to forward submissions to external systems (e.g., n8n).
 - ✅ Basic admin view for submissions:
   - `/admin/forms` lists recent submissions (form slug, createdAt, basic sender info) for quick inspection.
+
+### Milestone 31 — AI Review Mode (✅ Complete)
+- ✅ Three-tier review system: **Approved** → **AI Review** → **Review** → **Approved**
+- ✅ Database schema:
+  - Added `ai_review_draft` (JSONB) column to `posts` table to store AI-generated suggestions
+  - Added `ai_review_props`, `ai_review_overrides`, `ai_review_added`, `ai_review_deleted` to module tables
+  - Extended `post_revisions.mode` enum to include `'ai-review'`
+- ✅ API endpoints:
+  - `PUT /api/posts/:id` with `mode: 'ai-review'` — Save AI-generated changes to AI Review draft
+  - `PUT /api/posts/:id` with `mode: 'approve-ai-review'` — Promote AI Review to Review mode (not directly to Approved)
+- ✅ Editor UI:
+  - **"AI Review" tab** appears when `aiReviewDraft` exists, allowing users to view AI-suggested changes
+  - **"Save for AI Review" button** in Approved view (above "Save for Review")
+  - **"Approve AI Review" button** moves AI review content to Review mode, clearing AI review draft
+  - Module changes tracked separately for AI review (props, overrides, added/deleted flags)
+- ✅ RBAC permissions:
+  - `posts.ai-review.save` — Can save changes to AI Review mode (admin only by default)
+  - `posts.ai-review.approve` — Can approve AI Review changes (admin only by default)
+  - `posts.review.save` / `posts.review.approve` — Granular review permissions for editors
+- ✅ Workflow:
+  1. AI agents (or manual action) save suggestions to **AI Review** mode
+  2. User views **AI Review** tab to inspect proposed changes
+  3. User clicks **"Approve AI Review"** to promote changes to **Review** mode
+  4. User can edit further in **Review** mode before final approval to **Approved**
+
+**Key Design:** Approving AI Review does NOT directly modify Approved content. It replaces the Review draft, giving users a chance to review and edit AI-generated changes before they go live. This prevents accidental publication of unvetted AI content.
+
+How to test:
+1. Run migrations: `node ace migration:run` (adds `ai_review_draft` column and related fields)
+2. Open a post in `/admin/posts/:id/edit`
+3. Click "Save for AI Review" to simulate AI-generated changes (or use API with `mode: 'ai-review'`)
+4. Verify the "AI Review" tab appears in the view toggle
+5. Switch to AI Review tab to view the staged changes
+6. Click "Approve AI Review" — changes move to Review mode and AI Review tab disappears
+7. Switch to Review tab, make additional edits if needed
+8. Click "Approve Review" to promote to live/Approved content
 
 ## Environment Variables (New)
 

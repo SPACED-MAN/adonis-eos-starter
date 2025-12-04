@@ -118,9 +118,19 @@ export default class PostsCrudController extends BasePostsController {
         return this.saveReviewDraft(id, payload, auth, response)
       }
 
+      // Handle AI review mode
+      if (saveMode === 'ai-review') {
+        return this.saveAiReviewDraft(id, payload, auth, response)
+      }
+
       // Handle approve mode
       if (saveMode === 'approve') {
         return this.approveReviewDraft(id, auth, response)
+      }
+
+      // Handle approve AI review mode
+      if (saveMode === 'approve-ai-review') {
+        return this.approveAiReviewDraft(id, auth, response)
       }
 
       // Authorization check for status changes
@@ -554,6 +564,142 @@ export default class PostsCrudController extends BasePostsController {
     })
 
     return response.ok({ message: 'Review approved' })
+  }
+
+  private async saveAiReviewDraft(
+    id: string,
+    payload: any,
+    auth: HttpContext['auth'],
+    response: HttpContext['response']
+  ) {
+    const draftPayload: Record<string, any> = {
+      slug: payload.slug,
+      title: payload.title,
+      status: payload.status,
+      excerpt: payload.excerpt,
+      parentId: payload.parentId,
+      orderIndex: payload.orderIndex,
+      metaTitle: payload.metaTitle,
+      metaDescription: payload.metaDescription,
+      canonicalUrl: payload.canonicalUrl,
+      robotsJson: payload.robotsJson,
+      jsonldOverrides: payload.jsonldOverrides,
+      featuredImageId: payload.featuredImageId,
+      customFields: payload.customFields,
+      savedAt: new Date().toISOString(),
+      savedBy: 'AI Agent',
+    }
+
+    await Post.query()
+      .where('id', id)
+      .update({ ai_review_draft: draftPayload } as any)
+
+    await RevisionService.record({
+      postId: id,
+      mode: 'ai-review' as any,
+      snapshot: draftPayload,
+      userId: (auth.use('web').user as any)?.id,
+    })
+
+    return response.ok({ message: 'Saved for AI review' })
+  }
+
+  private async approveAiReviewDraft(
+    id: string,
+    auth: HttpContext['auth'],
+    response: HttpContext['response']
+  ) {
+    const current = await Post.findOrFail(id)
+    const ard: any = current.aiReviewDraft
+
+    if (!ard) {
+      return this.response.badRequest(response, 'No AI review draft to approve')
+    }
+
+    // Instead of promoting to approved, promote to review_draft
+    const reviewPayload: Record<string, any> = {
+      slug: ard.slug ?? current.slug,
+      title: ard.title ?? current.title,
+      status: ard.status ?? current.status,
+      excerpt: ard.excerpt ?? current.excerpt,
+      parentId: ard.parentId ?? current.parentId,
+      orderIndex: ard.orderIndex ?? current.orderIndex,
+      metaTitle: ard.metaTitle ?? current.metaTitle,
+      metaDescription: ard.metaDescription ?? current.metaDescription,
+      canonicalUrl: ard.canonicalUrl ?? current.canonicalUrl,
+      robotsJson: ard.robotsJson ?? current.robotsJson,
+      jsonldOverrides: ard.jsonldOverrides ?? current.jsonldOverrides,
+      featuredImageId: ard.featuredImageId !== undefined
+        ? (ard.featuredImageId === null || ard.featuredImageId === '' ? null : ard.featuredImageId)
+        : current.featuredImageId,
+      customFields: ard.customFields ?? [],
+      savedAt: new Date().toISOString(),
+      savedBy: (auth.use('web').user as any)?.email || null,
+    }
+
+    // Promote AI review modules to review modules
+    await this.promoteAiReviewModulesToReview(id)
+
+    // Update review_draft with AI review content
+    await Post.query()
+      .where('id', id)
+      .update({ 
+        review_draft: reviewPayload,
+        ai_review_draft: null 
+      } as any)
+
+    await RevisionService.record({
+      postId: id,
+      mode: 'review',
+      snapshot: reviewPayload,
+      userId: (auth.use('web').user as any)?.id,
+    })
+
+    return response.ok({ message: 'AI review approved and moved to Review' })
+  }
+
+  private async promoteAiReviewModulesToReview(postId: string) {
+    // Promote ai_review_props to review_props for local modules
+    await db
+      .from('module_instances')
+      .where('scope', 'post')
+      .andWhereIn('id', db.from('post_modules').where('post_id', postId).select('module_id'))
+      .update({
+        review_props: db.raw('COALESCE(ai_review_props, review_props, props)'),
+        ai_review_props: null,
+        updated_at: new Date(),
+      })
+
+    // Promote ai_review_overrides to review_overrides for post_modules
+    await db
+      .from('post_modules')
+      .where('post_id', postId)
+      .update({
+        review_overrides: db.raw('COALESCE(ai_review_overrides, review_overrides, overrides)'),
+        ai_review_overrides: null,
+        updated_at: new Date(),
+      })
+
+    // Promote ai_review_added/deleted flags to review flags
+    await db
+      .from('post_modules')
+      .where('post_id', postId)
+      .andWhere('ai_review_added', true)
+      .update({
+        review_added: true,
+        ai_review_added: false,
+        updated_at: new Date(),
+      })
+
+    await db
+      .from('post_modules')
+      .where('post_id', postId)
+      .andWhere('ai_review_deleted', true)
+      .update({
+        review_deleted: true,
+        ai_review_deleted: false,
+        updated_at: new Date(),
+      })
   }
 
   private async upsertCustomFields(

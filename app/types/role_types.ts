@@ -24,6 +24,10 @@ export type PermissionKey =
   | 'posts.delete'
   | 'posts.revisions.manage'
   | 'posts.export'
+  | 'posts.review.save'
+  | 'posts.review.approve'
+  | 'posts.ai-review.save'
+  | 'posts.ai-review.approve'
   // Media
   | 'media.view'
   | 'media.upload'

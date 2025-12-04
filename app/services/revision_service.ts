@@ -1,7 +1,7 @@
 import db from '@adonisjs/lucid/services/db'
 import env from '#start/env'
 
-export type RevisionMode = 'approved' | 'review'
+export type RevisionMode = 'approved' | 'review' | 'ai-review'
 
 type RecordRevisionParams = {
   postId: string

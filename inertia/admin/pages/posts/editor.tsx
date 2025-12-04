@@ -65,15 +65,20 @@ interface EditorProps {
     scope: string
     props: Record<string, any>
     reviewProps?: Record<string, any> | null
+    aiReviewProps?: Record<string, any> | null
     overrides: Record<string, any> | null
     reviewOverrides?: Record<string, any> | null
+    aiReviewOverrides?: Record<string, any> | null
     reviewAdded?: boolean
     reviewDeleted?: boolean
+    aiReviewAdded?: boolean
+    aiReviewDeleted?: boolean
     locked: boolean
     orderIndex: number
   }[]
   translations: { id: string; locale: string }[]
   reviewDraft?: any | null
+  aiReviewDraft?: any | null
   customFields?: Array<{
     id: string
     slug: string
@@ -94,7 +99,7 @@ interface EditorProps {
   }
 }
 
-export default function Editor({ post, modules: initialModules, translations, reviewDraft, customFields: initialCustomFields, uiConfig }: EditorProps) {
+export default function Editor({ post, modules: initialModules, translations, reviewDraft, aiReviewDraft, customFields: initialCustomFields, uiConfig }: EditorProps) {
   const { data, setData, put, processing, errors } = useForm({
     title: post.title,
     slug: post.slug,
@@ -144,7 +149,7 @@ export default function Editor({ post, modules: initialModules, translations, re
     featuredImageId: String(reviewDraft.featuredImageId ?? (post.featuredImageId || '')),
     customFields: Array.isArray(reviewDraft.customFields) ? reviewDraft.customFields : ((Array.isArray(initialCustomFields) ? initialCustomFields.map(f => ({ fieldId: f.id, slug: f.slug, value: f.value ?? null })) : [])),
   } : null)
-  const [viewMode, setViewMode] = useState<'approved' | 'review'>('approved')
+  const [viewMode, setViewMode] = useState<'approved' | 'review' | 'ai-review'>('approved')
   const [pendingModules, setPendingModules] = useState<Record<string, { overrides: Record<string, any> | null; edited: Record<string, any> }>>({})
   const [pendingRemoved, setPendingRemoved] = useState<Set<string>>(new Set())
   const [pendingReviewRemoved, setPendingReviewRemoved] = useState<Set<string>>(new Set())
@@ -1151,6 +1156,15 @@ export default function Editor({ post, modules: initialModules, translations, re
                     >
                       Review
                     </button>
+                    {aiReviewDraft && (
+                      <button
+                        type="button"
+                        onClick={() => setViewMode('ai-review')}
+                        className={`px-2 py-1 text-xs ${viewMode === 'ai-review' ? 'bg-backdrop-medium text-neutral-high' : 'text-neutral-medium hover:bg-backdrop-medium'}`}
+                      >
+                        AI Review
+                      </button>
+                    )}
                   </div>
                 </div>
                 {/* Agent Runner */}
@@ -1353,6 +1367,34 @@ export default function Editor({ post, modules: initialModules, translations, re
                     View on Site
                   </button>
                 )}
+                {/* Save for AI Review button */}
+                {viewMode === 'approved' && (
+                  <button
+                    className="w-full px-4 py-2 text-sm border border-border rounded-lg hover:bg-backdrop-medium text-neutral-medium disabled:opacity-50"
+                    disabled={!isDirty || processing}
+                    onClick={async () => {
+                      await commitPendingModules('ai-review')
+                      const res = await fetch(`/api/posts/${post.id}`, {
+                        method: 'PUT',
+                        headers: {
+                          'Accept': 'application/json',
+                          'Content-Type': 'application/json',
+                          ...xsrfHeader(),
+                        },
+                        credentials: 'same-origin',
+                        body: JSON.stringify({ ...pickForm(data), mode: 'ai-review' }),
+                      })
+                      if (res.ok) {
+                        toast.success('Saved for AI review')
+                      } else {
+                        toast.error('Failed to save for AI review')
+                      }
+                    }}
+                    type="button"
+                  >
+                    Save for AI Review
+                  </button>
+                )}
                 <button
                   className={`w-full px-4 py-2 text-sm rounded-lg disabled:opacity-50 ${(!isDirty || processing) ? 'border border-border text-neutral-medium' : 'bg-standout text-on-standout font-medium'}`}
                   disabled={!isDirty || processing}
@@ -1360,6 +1402,23 @@ export default function Editor({ post, modules: initialModules, translations, re
                     if (viewMode === 'review') {
                       await commitPendingModules('review')
                       await saveForReview()
+                    } else if (viewMode === 'ai-review') {
+                      await commitPendingModules('ai-review')
+                      const res = await fetch(`/api/posts/${post.id}`, {
+                        method: 'PUT',
+                        headers: {
+                          'Accept': 'application/json',
+                          'Content-Type': 'application/json',
+                          ...xsrfHeader(),
+                        },
+                        credentials: 'same-origin',
+                        body: JSON.stringify({ ...pickForm(data), mode: 'ai-review' }),
+                      })
+                      if (res.ok) {
+                        toast.success('AI review updated')
+                      } else {
+                        toast.error('Failed to update AI review')
+                      }
                     } else {
                       await commitPendingModules('publish')
                       put(`/api/posts/${post.id}`, {
@@ -1375,8 +1434,35 @@ export default function Editor({ post, modules: initialModules, translations, re
                   }}
                   type="button"
                 >
-                  {viewMode === 'review' ? 'Save for Review' : (data.status === 'published' ? 'Publish Changes' : 'Save Changes')}
+                  {viewMode === 'ai-review' ? 'Save for AI Review' : (viewMode === 'review' ? 'Save for Review' : (data.status === 'published' ? 'Publish Changes' : 'Save Changes'))}
                 </button>
+                {aiReviewDraft && (
+                  <button
+                    className="w-full px-4 py-2 text-sm border border-border rounded-lg hover:bg-backdrop-medium text-neutral-medium"
+                    onClick={async () => {
+                      const res = await fetch(`/api/posts/${post.id}`, {
+                        method: 'PUT',
+                        headers: {
+                          'Accept': 'application/json',
+                          'Content-Type': 'application/json',
+                          ...xsrfHeader(),
+                        },
+                        credentials: 'same-origin',
+                        body: JSON.stringify({ mode: 'approve-ai-review' }),
+                      })
+                      if (res.ok) {
+                        toast.success('AI review approved and moved to Review')
+                        setViewMode('review')
+                        window.location.reload()
+                      } else {
+                        toast.error('Failed to approve AI review')
+                      }
+                    }}
+                    type="button"
+                  >
+                    Approve AI Review
+                  </button>
+                )}
                 {reviewInitialRef.current && (
                   <button
                     className="w-full px-4 py-2 text-sm border border-border rounded-lg hover:bg-backdrop-medium text-neutral-medium"
