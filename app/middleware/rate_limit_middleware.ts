@@ -130,7 +130,7 @@ export default class RateLimitMiddleware {
       return next()
     } catch (error) {
       // If Redis fails, allow the request but log the error
-      console.error('Rate limit middleware error:', error)
+      // Rate limit middleware error
       return next()
     }
   }

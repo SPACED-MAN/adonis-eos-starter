@@ -42,9 +42,9 @@ class DatabaseExportService {
       try {
         const rows = await db.from(tableName).select('*')
         tableData[tableName] = rows
-        console.log(`✓ Exported ${tableName}: ${rows.length} rows`)
+        // Exported table
       } catch (error) {
-        console.error(`✗ Failed to export ${tableName}:`, error)
+        // Failed to export table
         throw new Error(`Failed to export table ${tableName}: ${(error as Error).message}`)
       }
     }
@@ -138,7 +138,7 @@ class DatabaseExportService {
         stats.push({ name: tableName, rowCount })
         totalRows += rowCount
       } catch (error) {
-        console.error(`Failed to count rows in ${tableName}:`, error)
+        // Failed to count rows
         stats.push({ name: tableName, rowCount: 0 })
       }
     }

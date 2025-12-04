@@ -65,7 +65,7 @@ function ReactModuleRenderer({
   const Component = getModuleComponent(componentName)
 
   if (!Component) {
-    console.error(`Module component not found: ${componentName}`)
+    // Module component not found
     return (
       <div className="border border-error bg-[#fef2f2] p-4 rounded">
         <p className="text-error">

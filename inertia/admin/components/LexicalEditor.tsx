@@ -136,7 +136,7 @@ export function LexicalEditor({
   )
 
   function onError(error: Error) {
-    console.error(error)
+    // Error in Lexical editor
   }
 
   const initialConfig = useMemo(

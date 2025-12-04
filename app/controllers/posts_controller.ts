@@ -65,7 +65,7 @@ export default class PostsController {
         entityId: id,
         metadata: { authorId },
       })
-    } catch {}
+    } catch { }
     return response.ok({ message: 'Author updated' })
   }
   /**
@@ -120,9 +120,9 @@ export default class PostsController {
     const idsParam = String(request.input('ids', '')).trim()
     const ids: string[] = idsParam
       ? idsParam
-          .split(',')
-          .map((v) => v.trim())
-          .filter(Boolean)
+        .split(',')
+        .map((v) => v.trim())
+        .filter(Boolean)
       : []
 
     const query = Post.query()
@@ -499,7 +499,7 @@ export default class PostsController {
           entityId: (post as any).id,
           metadata: { type, locale, slug, title, status },
         })
-      } catch {}
+      } catch { }
       return response.created({
         data: {
           id: post.id,
@@ -655,7 +655,7 @@ export default class PostsController {
             entityId: id,
             metadata: { fields: Object.keys(draftPayload || {}) },
           })
-        } catch {}
+        } catch { }
         // For XHR/API clients, return JSON; avoid redirect which can confuse fetch()
         return response.ok({ message: 'Saved for review' })
       }
@@ -685,22 +685,22 @@ export default class PostsController {
           const nextRobots =
             typeof rd.robotsJson === 'string'
               ? (() => {
-                  try {
-                    return JSON.parse(rd.robotsJson)
-                  } catch {
-                    return null
-                  }
-                })()
+                try {
+                  return JSON.parse(rd.robotsJson)
+                } catch {
+                  return null
+                }
+              })()
               : (rd.robotsJson ?? current.robotsJson)
           const nextJsonLd =
             typeof rd.jsonldOverrides === 'string'
               ? (() => {
-                  try {
-                    return JSON.parse(rd.jsonldOverrides)
-                  } catch {
-                    return null
-                  }
-                })()
+                try {
+                  return JSON.parse(rd.jsonldOverrides)
+                } catch {
+                  return null
+                }
+              })()
               : (rd.jsonldOverrides ?? current.jsonldOverrides)
 
           await UpdatePost.handle({
@@ -812,7 +812,7 @@ export default class PostsController {
               entityType: 'post',
               entityId: id,
             })
-          } catch {}
+          } catch { }
           // Clear review draft
           await Post.query()
             .where('id', id)
@@ -920,7 +920,7 @@ export default class PostsController {
             .where('id', id)
             .update({ scheduled_at: null, updated_at: now } as any)
         }
-      } catch {}
+      } catch { }
       // Upsert custom fields (approved save only) by field_slug and track only changed slugs
       const customFieldSlugsChanged: string[] = []
       if (Array.isArray(customFields)) {
@@ -1039,7 +1039,7 @@ export default class PostsController {
             customFieldSlugs: customFieldSlugsChanged.length ? customFieldSlugsChanged : undefined,
           },
         })
-      } catch {}
+      } catch { }
       // For Inertia requests, redirect back to editor
       // Toast notification is handled client-side
       return response.redirect().back()
@@ -1159,22 +1159,22 @@ export default class PostsController {
       const nextRobots =
         typeof rd.robotsJson === 'string'
           ? (() => {
-              try {
-                return JSON.parse(rd.robotsJson)
-              } catch {
-                return null
-              }
-            })()
+            try {
+              return JSON.parse(rd.robotsJson)
+            } catch {
+              return null
+            }
+          })()
           : (rd.robotsJson ?? current.robotsJson)
       const nextJsonLd =
         typeof rd.jsonldOverrides === 'string'
           ? (() => {
-              try {
-                return JSON.parse(rd.jsonldOverrides)
-              } catch {
-                return null
-              }
-            })()
+            try {
+              return JSON.parse(rd.jsonldOverrides)
+            } catch {
+              return null
+            }
+          })()
           : (rd.jsonldOverrides ?? current.jsonldOverrides)
 
       await UpdatePost.handle({
@@ -1263,7 +1263,7 @@ export default class PostsController {
         entityId: id,
         metadata: { type: post.type, slug: post.slug, locale: post.locale },
       })
-    } catch {}
+    } catch { }
     return response.noContent()
   }
 
@@ -1298,7 +1298,7 @@ export default class PostsController {
           entityId: 'bulk',
           metadata: { count: ids.length },
         })
-      } catch {}
+      } catch { }
       return response.ok(result)
     } catch (e: any) {
       const status = e?.statusCode || 400
@@ -1424,7 +1424,7 @@ export default class PostsController {
           entityId: 'bulk',
           metadata: { count: sanitized.length },
         })
-      } catch {}
+      } catch { }
       return response.ok({ updated: sanitized.length })
     } catch (e: any) {
       return response.badRequest({ error: e?.message || 'Failed to reorder posts' })

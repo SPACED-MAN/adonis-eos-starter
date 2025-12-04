@@ -119,15 +119,6 @@ class MediaService {
     const suffix =
       options?.nameSuffix !== undefined ? options.nameSuffix : theme === 'dark' ? '-dark' : ''
 
-    console.log('[MediaService.generateVariants]', {
-      inputPath,
-      publicUrl,
-      parsedName: parsed.name,
-      theme,
-      options,
-      applyTint,
-      suffix,
-    })
 
     const variants: VariantInfo[] = []
     for (const spec of specs) {
@@ -136,12 +127,6 @@ class MediaService {
       const outPath = path.join(parsed.dir, outName)
       const outUrl = path.posix.join(path.posix.dirname(publicUrl), outName)
 
-      console.log('[MediaService.generateVariants] Creating variant', {
-        specName: spec.name,
-        variantName,
-        outName,
-        outPath,
-      })
 
       let pipeline = sharp(inputPath)
       // Apply cropRect or focal crop (for cover)

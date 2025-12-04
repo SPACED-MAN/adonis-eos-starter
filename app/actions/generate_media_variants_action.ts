@@ -99,15 +99,6 @@ class GenerateMediaVariantsAction {
     }
     // For light variants, variantOptions stays undefined (defaults apply)
 
-    // Debug logging
-    console.log('[GenerateMediaVariantsAction]', {
-      theme,
-      baseUrl,
-      absPath,
-      baseNameEndsWithDark,
-      isAlreadyDark,
-      variantOptions,
-    })
 
     // Generate variants
     const generatedVariants = await mediaService.generateVariants(

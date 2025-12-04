@@ -657,16 +657,6 @@ export default function MediaIndex() {
     // During cropping, always show the light original so cropRect maps to original pixels
     if (cropping) return m.url
 
-    if ((import.meta as any).env?.DEV) {
-      // Lightweight debug to understand which URLs are being chosen in the editor
-      // eslint-disable-next-line no-console
-      console.log('[MediaAdmin] getEditDisplayUrl', {
-        theme,
-        selectedVariantName,
-        hasMetadata: !!(m as any)?.metadata,
-        variants: (m as any)?.metadata?.variants,
-      })
-    }
 
     if (selectedVariantName === 'original') {
       if (theme === 'dark') {

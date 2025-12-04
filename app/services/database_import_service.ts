@@ -119,7 +119,7 @@ class DatabaseImportService {
           const rows = exportData.tables[tableName]
 
           if (!rows || rows.length === 0) {
-            console.log(`⊘ Skipped ${tableName}: no data`)
+            // Skipped table with no data
             result.skippedTables.push(tableName)
             continue
           }
@@ -127,7 +127,7 @@ class DatabaseImportService {
           // Check if table exists
           const tableExists = await this.tableExists(trx, tableName)
           if (!tableExists) {
-            console.warn(`⚠️  Table ${tableName} does not exist in target database`)
+            // Table does not exist in target database
             result.skippedTables.push(tableName)
             continue
           }
@@ -135,11 +135,11 @@ class DatabaseImportService {
           // Handle based on strategy
           if (strategy === 'replace') {
             await trx.from(tableName).delete()
-            console.log(`🗑️  Cleared ${tableName}`)
+            // Cleared table
           } else if (strategy === 'skip') {
             const count = await trx.from(tableName).count('* as count').first()
             if (Number(count?.count || 0) > 0) {
-              console.log(`⊘ Skipped ${tableName}: table not empty`)
+              // Skipped non-empty table
               result.skippedTables.push(tableName)
               continue
             }
@@ -168,10 +168,10 @@ class DatabaseImportService {
 
           result.tablesImported++
           result.rowsImported += importedCount
-          console.log(`✓ Imported ${tableName}: ${importedCount}/${rows.length} rows`)
+          // Imported table data
         } catch (error) {
           const errorMsg = (error as Error).message
-          console.error(`✗ Failed to import ${tableName}:`, errorMsg)
+          // Failed to import table
           result.errors.push({ table: tableName, error: errorMsg })
 
           // Continue with other tables in merge mode
@@ -187,11 +187,11 @@ class DatabaseImportService {
       }
 
       await trx.commit()
-      console.log(`\n✅ Import complete: ${result.tablesImported} tables, ${result.rowsImported} rows`)
+      // Import complete
     } catch (error) {
       await trx.rollback()
       result.success = false
-      console.error('❌ Import failed:', error)
+      // Import failed
       throw error
     }
 
@@ -318,7 +318,7 @@ class DatabaseImportService {
         await trx.raw('PRAGMA foreign_keys = OFF')
       }
     } catch (error) {
-      console.warn('Failed to disable foreign key checks:', error)
+      // Failed to disable foreign key checks
     }
   }
 
@@ -337,7 +337,7 @@ class DatabaseImportService {
         await trx.raw('PRAGMA foreign_keys = ON')
       }
     } catch (error) {
-      console.warn('Failed to enable foreign key checks:', error)
+      // Failed to enable foreign key checks
     }
   }
 

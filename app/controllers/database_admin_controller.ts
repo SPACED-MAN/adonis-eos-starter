@@ -60,7 +60,7 @@ export default class DatabaseAdminController {
 
       return response.send(buffer)
     } catch (error) {
-      console.error('Export failed:', error)
+      // Export failed
       return response.badRequest({ error: (error as Error).message })
     }
   }
@@ -132,7 +132,7 @@ export default class DatabaseAdminController {
         })
       }
     } catch (error) {
-      console.error('Import failed:', error)
+      // Import failed
       return response.badRequest({ error: (error as Error).message })
     }
   }
