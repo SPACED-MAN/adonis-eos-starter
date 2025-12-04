@@ -60,6 +60,12 @@ This directory contains coding guidelines and conventions for the Adonis EOS pro
    - Controller/service boundaries
    - Preventing hardcoded patterns
 
+10. **[seeding.md](./seeding.md)** - **⭐ DATA INTEGRITY** - Database seeding best practices
+   - Use actions/APIs, not direct inserts
+   - Respect module schemas
+   - Template-based seeding
+   - AI agent compatibility
+
 ## Actions Quick Start
 
 **For complex operations, use action classes with static methods:**

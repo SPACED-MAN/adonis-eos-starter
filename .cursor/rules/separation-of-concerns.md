@@ -13,8 +13,8 @@ alwaysApply: true
 ### ❌ Bad - Hardcoded post-type logic in controller
 ```typescript
 // app/controllers/posts/posts_view_controller.ts
-if (post.type === 'support') {
-  // support-specific logic here
+if (post.type === 'testimonial') {
+  // testimonial-specific logic here
   additionalProps.supportNav = [...];
 }
 if (post.type === 'blog') {
