@@ -91,6 +91,23 @@
   --color-line-input: var(--color-zinc-800);
   --color-placeholder: var(--color-zinc-500);
   --color-disabled: var(--color-zinc-600);
+
+  /* Dark-mode prose (site theme) */
+  .prose {
+    --tw-prose-body: var(--color-neutral-high);
+    --tw-prose-headings: var(--color-neutral-high);
+    --tw-prose-links: var(--color-standout);
+    --tw-prose-bold: var(--color-neutral-high);
+    --tw-prose-bullets: var(--color-neutral-medium);
+    --tw-prose-quotes: var(--color-neutral-medium);
+    --tw-prose-code: var(--color-neutral-high);
+    --tw-prose-hr: var(--color-line-low);
+  }
+
+  .prose blockquote {
+    color: var(--color-neutral-high);
+    border-left-color: var(--color-line-medium);
+  }
 }
 
 /* ShadCN theme variables */
@@ -336,33 +353,9 @@
     opacity: 0.8;
   }
 
-  /* Dark mode prose styles */
-  .dark .prose {
-    --tw-prose-body: var(--color-neutral-high);
-    --tw-prose-headings: var(--color-neutral-high);
-    --tw-prose-links: var(--color-standout);
-    --tw-prose-bold: var(--color-neutral-high);
-    --tw-prose-bullets: var(--color-neutral-medium);
-    --tw-prose-quotes: var(--color-neutral-medium);
-    --tw-prose-code: var(--color-neutral-high);
-    --tw-prose-hr: var(--color-line-low);
-  }
-
-  .dark .prose h2,
-  .dark .prose h3 {
+  /* Blockquote tweaks (light mode) */
+  .prose blockquote {
     color: var(--color-neutral-high);
-  }
-
-  .dark .prose code {
-    background-color: var(--color-backdrop-medium);
-  }
-
-  .dark .prose pre {
-    background-color: var(--color-backdrop-medium);
-    border-color: var(--color-line-low);
-  }
-
-  .dark .prose hr {
-    border-top-color: var(--color-line-low);
+    border-left-color: var(--color-line-medium);
   }
 }

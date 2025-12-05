@@ -763,11 +763,261 @@ export default class ModuleInstanceSeeder extends BaseSeeder {
       )
     }
 
-    // Prose instance
+    // Prose instance (shared rich-text example)
     const existingProseInstance = await db
       .from('module_instances')
       .where({ type: 'prose', scope: 'post' })
       .first()
+
+    // Rich Lexical sample to showcase typography and editor capabilities
+    const proseSampleContent = {
+      root: {
+        type: 'root',
+        children: [
+          {
+            type: 'heading',
+            tag: 'h2',
+            children: [
+              {
+                type: 'text',
+                text: 'Prose module typography & Lexical sample',
+              },
+            ],
+          },
+          {
+            type: 'paragraph',
+            children: [
+              {
+                type: 'text',
+                text: 'Use this section to preview how long-form content will look when authored with the rich text editor. Designers can validate typography, spacing, and rhythm; editors can explore headings, lists, code snippets, and more.',
+              },
+            ],
+          },
+          {
+            type: 'paragraph',
+            children: [
+              {
+                type: 'text',
+                text: 'Lorem ipsum dolor sit amet, consectetur adipiscing elit. Sed non risus. Suspendisse lectus tortor, dignissim sit amet, adipiscing nec, ultricies sed, dolor.',
+              },
+            ],
+          },
+          {
+            type: 'paragraph',
+            children: [
+              {
+                type: 'text',
+                text: 'Cras elementum ultrices diam. Maecenas ligula massa, varius a, semper congue, euismod non, mi. Proin porttitor, orci nec nonummy molestie, enim est eleifend mi, non fermentum diam nisl sit amet erat.',
+              },
+            ],
+          },
+          {
+            type: 'heading',
+            tag: 'h3',
+            children: [
+              {
+                type: 'text',
+                text: 'Bullet and numbered lists',
+              },
+            ],
+          },
+          {
+            type: 'paragraph',
+            children: [
+              {
+                type: 'text',
+                text: 'Below is a bulleted list followed by a numbered list. This is useful for checklists, feature breakdowns, and step‑by‑step instructions.',
+              },
+            ],
+          },
+          {
+            type: 'list',
+            listType: 'bullet',
+            children: [
+              {
+                type: 'listitem',
+                children: [
+                  {
+                    type: 'text',
+                    text: 'Typographic scale for headings and body copy',
+                  },
+                ],
+              },
+              {
+                type: 'listitem',
+                children: [
+                  {
+                    type: 'text',
+                    text: 'Comfortable line length and spacing for readability',
+                  },
+                ],
+              },
+              {
+                type: 'listitem',
+                children: [
+                  {
+                    type: 'text',
+                    text: 'Support for inline emphasis such as bold and italic text',
+                  },
+                ],
+              },
+            ],
+          },
+          {
+            type: 'list',
+            listType: 'number',
+            children: [
+              {
+                type: 'listitem',
+                children: [
+                  {
+                    type: 'text',
+                    text: 'Draft your content in the editor.',
+                  },
+                ],
+              },
+              {
+                type: 'listitem',
+                children: [
+                  {
+                    type: 'text',
+                    text: 'Add structure with headings, lists, and quotes.',
+                  },
+                ],
+              },
+              {
+                type: 'listitem',
+                children: [
+                  {
+                    type: 'text',
+                    text: 'Use inline code and code blocks for technical details.',
+                  },
+                ],
+              },
+            ],
+          },
+          {
+            type: 'heading',
+            tag: 'h3',
+            children: [
+              {
+                type: 'text',
+                text: 'Inline emphasis, links, and code',
+              },
+            ],
+          },
+          {
+            type: 'paragraph',
+            children: [
+              {
+                type: 'text',
+                text: 'This paragraph mixes ',
+              },
+              {
+                type: 'text',
+                text: 'bold',
+                format: 1,
+              },
+              {
+                type: 'text',
+                text: ', ',
+              },
+              {
+                type: 'text',
+                text: 'italic',
+                format: 2,
+              },
+              {
+                type: 'text',
+                text: ', and inline ',
+              },
+              {
+                type: 'text',
+                text: 'code',
+                format: 16,
+              },
+              {
+                type: 'text',
+                text: ' to show how emphasis is rendered in the final layout.',
+              },
+            ],
+          },
+          {
+            type: 'paragraph',
+            children: [
+              {
+                type: 'text',
+                text: 'You can also include links, for example to the ',
+              },
+              {
+                type: 'link',
+                url: 'https://lexical.dev/',
+                children: [
+                  {
+                    type: 'text',
+                    text: 'Lexical documentation',
+                  },
+                ],
+              },
+              {
+                type: 'text',
+                text: ', to provide additional context.',
+              },
+            ],
+          },
+          {
+            type: 'code',
+            language: 'typescript',
+            children: [
+              {
+                type: 'text',
+                text: "function greet(name: string) {\n  return `Hello, ${name}!`\n}",
+              },
+            ],
+          },
+          {
+            type: 'heading',
+            tag: 'h3',
+            children: [
+              {
+                type: 'text',
+                text: 'Quotes and separators',
+              },
+            ],
+          },
+          {
+            type: 'quote',
+            children: [
+              {
+                type: 'text',
+                text: '“Good typography is invisible. Great typography is felt.”',
+              },
+            ],
+          },
+          {
+            type: 'horizontalrule',
+          },
+          {
+            type: 'paragraph',
+            children: [
+              {
+                type: 'text',
+                text: 'More lorem ipsum: Sed posuere consectetur est at lobortis. Curabitur blandit tempus porttitor. Integer posuere erat a ante venenatis dapibus posuere velit aliquet. Vestibulum id ligula porta felis euismod semper.',
+              },
+            ],
+          },
+          {
+            type: 'paragraph',
+            children: [
+              {
+                type: 'text',
+                text: 'Designers can use this sample to inspect heading sizes, spacing between elements, and how long‑form content flows on different breakpoints. Editors can experiment with the Lexical toolbar to reproduce these patterns in their own posts.',
+              },
+            ],
+          },
+        ],
+      },
+    }
 
     let proseInstance: any = existingProseInstance
     if (!proseInstance) {
@@ -777,22 +1027,7 @@ export default class ModuleInstanceSeeder extends BaseSeeder {
           type: 'prose',
           scope: 'post',
           props: {
-            content: {
-              root: {
-                type: 'root',
-                children: [
-                  {
-                    type: 'paragraph',
-                    children: [
-                      {
-                        type: 'text',
-                        text: 'This is the Prose module, rendering rich text content.',
-                      },
-                    ],
-                  },
-                ],
-              },
-            },
+            content: proseSampleContent,
           },
           created_at: nowTs,
           updated_at: nowTs,
@@ -801,7 +1036,16 @@ export default class ModuleInstanceSeeder extends BaseSeeder {
       proseInstance = createdProse
       console.log('✅ [ModuleInstanceSeeder] Created prose module instance')
     } else {
-      console.log('ℹ️ [ModuleInstanceSeeder] prose module instance already exists; reusing')
+      // Update existing instance to use the richer sample content
+      await db
+        .from('module_instances')
+        .where('id', existingProseInstance.id)
+        .update({
+          props: { content: proseSampleContent } as any,
+          updated_at: nowTs,
+        })
+      proseInstance = { ...existingProseInstance, props: { content: proseSampleContent } }
+      console.log('ℹ️ [ModuleInstanceSeeder] Updated prose module instance content')
     }
 
     // Kitchen Sink instance

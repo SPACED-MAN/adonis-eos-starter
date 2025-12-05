@@ -1497,7 +1497,7 @@ export default function MediaIndex() {
                         if (!viewing) return
                         setSavingEdit(true)
                         try {
-                      const res = await fetch(`/api/media/${encodeURIComponent(viewing.id)}`, {
+                          const res = await fetch(`/api/media/${encodeURIComponent(viewing.id)}`, {
                             method: 'PATCH',
                             headers: {
                               'Accept': 'application/json',
