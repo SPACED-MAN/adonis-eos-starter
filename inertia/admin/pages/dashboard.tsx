@@ -126,22 +126,22 @@ export default function Dashboard({ }: DashboardProps) {
     // On first load (no locale filter), default to the site's configured default locale.
     if (locale) return
     let cancelled = false
-    ;(async () => {
-      try {
-        const res = await fetch('/api/locales', { credentials: 'same-origin' })
-        const json = await res.json().catch(() => null)
-        const fromMeta: string | undefined = json?.meta?.defaultLocale
-        const fromData: string | undefined = Array.isArray(json?.data)
-          ? (json.data.find((l: any) => l.isDefault)?.code as string | undefined)
-          : undefined
-        const effective = fromMeta || fromData
-        if (!cancelled && effective) {
-          setLocale(effective)
+      ; (async () => {
+        try {
+          const res = await fetch('/api/locales', { credentials: 'same-origin' })
+          const json = await res.json().catch(() => null)
+          const fromMeta: string | undefined = json?.meta?.defaultLocale
+          const fromData: string | undefined = Array.isArray(json?.data)
+            ? (json.data.find((l: any) => l.isDefault)?.code as string | undefined)
+            : undefined
+          const effective = fromMeta || fromData
+          if (!cancelled && effective) {
+            setLocale(effective)
+          }
+        } catch {
+          // If locale fetch fails, we simply leave the filter as "All locales"
         }
-      } catch {
-        // If locale fetch fails, we simply leave the filter as "All locales"
-      }
-    })()
+      })()
     return () => {
       cancelled = true
     }
