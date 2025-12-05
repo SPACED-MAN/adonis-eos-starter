@@ -175,6 +175,7 @@ export default class PostsViewController extends BasePostsController {
       siteSettings: pageData.siteSettings,
       seo: pageData.seo,
       modules: pageData.modules,
+      breadcrumbTrail: pageData.breadcrumbTrail,
       isPreview: true,
       ...additionalProps,
     })
@@ -250,6 +251,7 @@ export default class PostsViewController extends BasePostsController {
         siteSettings: pageData.siteSettings,
         modules: pageData.modules,
         seo: pageData.seo,
+        breadcrumbTrail: pageData.breadcrumbTrail,
         ...additionalProps,
       })
     } catch (error) {

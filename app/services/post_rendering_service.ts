@@ -62,6 +62,7 @@ export interface PageRenderData {
   seo: PostSeoData
   siteSettings: Record<string, unknown>
   hasReviewDraft: boolean
+  breadcrumbTrail?: Array<{ label: string; url: string; current?: boolean }>
 }
 
 /**
@@ -347,13 +348,79 @@ class PostRenderingService {
     const postData = this.resolvePostFields(post, { wantReview, reviewDraft })
     postData.author = author
 
+    // Build breadcrumb trail from hierarchy
+    const breadcrumbTrail = await this.buildBreadcrumbTrail(post)
+
     return {
       post: postData,
       modules,
       seo,
       siteSettings: siteSettings as Record<string, unknown>,
       hasReviewDraft: Boolean(reviewDraft),
+      breadcrumbTrail,
     }
+  }
+
+  /**
+   * Build breadcrumb trail from post hierarchy
+   *
+   * @param post - Current post
+   * @returns Array of breadcrumb items from root to current post
+   */
+  private async buildBreadcrumbTrail(
+    post: Post
+  ): Promise<Array<{ label: string; url: string; current?: boolean }>> {
+    const trail: Array<{ label: string; url: string; current?: boolean }> = []
+
+    // Build ancestor chain (from current post up to root)
+    const ancestors: Array<{ id: string; title: string; parentId: string | null }> = []
+    let currentPostId: string | null = post.id
+
+    // Traverse up the hierarchy (limit to 10 levels to prevent infinite loops)
+    let depth = 0
+    const maxDepth = 10
+
+    while (currentPostId && depth < maxDepth) {
+      // Load post data
+      const postData = await db
+        .from('posts')
+        .select('id', 'title', 'parent_id')
+        .where('id', currentPostId)
+        .where('status', 'published')
+        .first()
+
+      if (!postData) {
+        break // Post not found
+      }
+
+      // Add to beginning of ancestors array
+      ancestors.unshift({
+        id: postData.id,
+        title: postData.title || 'Untitled',
+        parentId: postData.parent_id,
+      })
+
+      // Move to parent
+      currentPostId = postData.parent_id
+      depth++
+    }
+
+    // Convert ancestors to breadcrumb items
+    for (let i = 0; i < ancestors.length; i++) {
+      const ancestor = ancestors[i]
+      const isLast = i === ancestors.length - 1
+
+      // Get the URL for this post
+      const url = await urlPatternService.buildPostPathForPost(ancestor.id)
+
+      trail.push({
+        label: ancestor.title,
+        url: url || '/',
+        current: isLast,
+      })
+    }
+
+    return trail
   }
 
   /**
