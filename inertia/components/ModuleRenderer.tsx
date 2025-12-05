@@ -1,11 +1,11 @@
 /**
  * Module Renderer
- * 
+ *
  * Dynamic component renderer for both static and React modules.
  * Used in both admin (preview) and public site (rendering).
- * 
+ *
  * Supports two rendering strategies:
- * 1. Static modules: Pre-rendered HTML from server (e.g. prose-static)
+ * 1. Static modules: Pre-rendered HTML from server
  * 2. React modules: Client-side components with interactivity (gallery, accordion)
  */
 
@@ -84,14 +84,14 @@ function ReactModuleRenderer({
 
 /**
  * Get module component from registry (auto-discovered)
- * 
+ *
  * Dynamically resolves module components by converting kebab-case names to PascalCase.
  * No manual mapping needed - all modules are auto-discovered via import.meta.glob.
- * 
+ *
  * Examples:
  * - 'hero' → Modules.Hero
  * - 'hero-with-media' → Modules.HeroWithMedia
- * - 'prose-static' → Modules.ProseStatic (or Modules.Prose alias)
+ * - 'prose' → Modules.Prose
  */
 function getModuleComponent(componentName: string): ComponentType<any> | null {
   // Convert kebab-case to PascalCase

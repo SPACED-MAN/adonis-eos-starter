@@ -2,6 +2,14 @@ import BaseModule from '#modules/base'
 import type { ModuleConfig } from '#types/module_types'
 
 export default class FormModule extends BaseModule {
+  /**
+   * Frontend forms are interactive (client-side validation, submission,
+   * conditional error states), so they must be rendered as React modules.
+   */
+  getRenderingMode() {
+    return 'react' as const
+  }
+
   getConfig(): ModuleConfig {
     return {
       type: 'form',

@@ -21,7 +21,7 @@ test.group('Prose Module', () => {
 
   test('should get correct component name', ({ assert }) => {
     const proseModule = new ProseModule()
-    assert.equal(proseModule.getComponentName(), 'prose-static')
+    assert.equal(proseModule.getComponentName(), 'prose')
   })
 
   test('should validate content structure', ({ assert }) => {

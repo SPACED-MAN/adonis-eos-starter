@@ -3,7 +3,7 @@ type Props = {
   className?: string
 }
 
-export default function BlogNoteStatic({ note = '', className }: Props) {
+export default function BlogNote({ note = '', className }: Props) {
   return (
     <section className={className} data-module="blog-note">
       <div className="container mx-auto px-4 sm:px-6 lg:px-8">

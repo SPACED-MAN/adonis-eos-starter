@@ -8,6 +8,8 @@ import { SortableContext, useSortable, verticalListSortingStrategy } from '@dnd-
 import { CSS } from '@dnd-kit/utilities'
 import { ModulePicker } from '../../components/modules/ModulePicker'
 import { Globe } from 'lucide-react'
+import { FontAwesomeIcon } from '@fortawesome/react-fontawesome'
+import { faReact } from '@fortawesome/free-brands-svg-icons'
 
 type TemplateModule = { id: string; type: string; default_props: any; order_index: number; locked: boolean; scope?: 'post' | 'global'; global_slug?: string | null }
 
@@ -25,7 +27,7 @@ export default function TemplateEditor() {
 	const [modules, setModules] = useState<TemplateModule[]>([])
 	const [draft, setDraft] = useState<TemplateModule[]>([])
 	const [dirty, setDirty] = useState<boolean>(false)
-	const [registry, setRegistry] = useState<Array<{ type: string; name: string }>>([])
+	const [registry, setRegistry] = useState<Array<{ type: string; name: string; renderingMode?: 'static' | 'react' }>>([])
 	const [globals, setGlobals] = useState<Array<{ id: string; type: string; globalSlug: string; label?: string | null }>>([])
 	const sensors = useSensors(useSensor(PointerSensor))
 
@@ -52,7 +54,7 @@ export default function TemplateEditor() {
 			const regRes = await fetch(regUrl, { credentials: 'same-origin' })
 			const regJson = await regRes.json().catch(() => ({}))
 			const regList = Array.isArray(regJson?.data) ? regJson.data : []
-			setRegistry(regList.map((m: any) => ({ type: m.type, name: m.name || m.type })))
+			setRegistry(regList.map((m: any) => ({ type: m.type, name: m.name || m.type, renderingMode: m.renderingMode })))
 			// Load globals
 			const gRes = await fetch('/api/modules/global', { credentials: 'same-origin' })
 			const gJson = await gRes.json().catch(() => ({}))
@@ -271,6 +273,16 @@ export default function TemplateEditor() {
 														</div>
 													</div>
 													<div className="flex items-center gap-2">
+														{registry.find(r => r.type === m.type)?.renderingMode === 'react' && (
+															<span
+																className="inline-flex items-center rounded border border-line-medium bg-backdrop-low px-2 py-1 text-xs text-neutral-high"
+																title="React module (client-side interactivity)"
+																aria-label="React module"
+															>
+																<FontAwesomeIcon icon={faReact} className="mr-1 text-sky-400" />
+																React
+															</span>
+														)}
 														{m.scope === 'global' && (
 															<span
 																className="inline-flex items-center rounded border border-line-medium bg-backdrop-low px-2 py-1 text-xs text-neutral-high"

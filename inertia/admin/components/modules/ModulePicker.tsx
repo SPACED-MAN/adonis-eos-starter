@@ -3,6 +3,8 @@ import { router } from '@inertiajs/react'
 import { toast } from 'sonner'
 import { AlertDialog, AlertDialogContent, AlertDialogHeader, AlertDialogTitle, AlertDialogFooter, AlertDialogCancel, AlertDialogDescription } from '~/components/ui/alert-dialog'
 import { getXsrf } from '~/utils/xsrf'
+import { FontAwesomeIcon } from '@fortawesome/react-fontawesome'
+import { faReact } from '@fortawesome/free-brands-svg-icons'
 
 type ModuleConfig = {
 	type: string
@@ -10,6 +12,7 @@ type ModuleConfig = {
 	description?: string
 	icon?: string
 	category?: string
+	renderingMode?: 'static' | 'react'
 }
 
 type GlobalItem = { id: string; type: string; globalSlug: string | null; label?: string | null }
@@ -186,24 +189,39 @@ export function ModulePicker({
 									{modules.length === 0 && !loading && (
 										<div className="px-4 py-6 text-neutral-low text-sm">No modules available</div>
 									)}
-									{modules.map((m) => (
-										<div key={m.type} className="px-3 py-3 hover:bg-backdrop-medium flex items-start justify-between gap-3">
-											<div>
-												<div className="text-sm font-medium text-neutral-high">{m.name || m.type}</div>
-												{m.description && (
-													<div className="text-xs text-neutral-low mt-1 line-clamp-2">{m.description}</div>
-												)}
+									{modules.map((m) => {
+										const isReact = m.renderingMode === 'react'
+										return (
+											<div key={m.type} className="px-3 py-3 hover:bg-backdrop-medium flex items-start justify-between gap-3">
+												<div>
+													<div className="text-sm font-medium text-neutral-high flex items-center gap-2">
+														<span>{m.name || m.type}</span>
+														{isReact && (
+															<span
+																className="inline-flex items-center rounded border border-line-medium bg-backdrop-low px-1.5 py-0.5 text-[10px] text-neutral-high"
+																title="React module (client-side interactivity)"
+																aria-label="React module"
+															>
+																<FontAwesomeIcon icon={faReact} className="mr-1 text-sky-400" />
+																React
+															</span>
+														)}
+													</div>
+													{m.description && (
+														<div className="text-xs text-neutral-low mt-1 line-clamp-2">{m.description}</div>
+													)}
+												</div>
+												<button
+													type="button"
+													onClick={() => addModule(m.type)}
+													className="shrink-0 inline-flex items-center rounded border border-line-medium bg-backdrop-low px-2.5 py-1.5 text-xs text-neutral-high hover:bg-backdrop-medium"
+													disabled={loading}
+												>
+													Add
+												</button>
 											</div>
-											<button
-												type="button"
-												onClick={() => addModule(m.type)}
-												className="shrink-0 inline-flex items-center rounded border border-line-medium bg-backdrop-low px-2.5 py-1.5 text-xs text-neutral-high hover:bg-backdrop-medium"
-												disabled={loading}
-											>
-												Add
-											</button>
-										</div>
-									))}
+										)
+									})}
 								</div>
 							) : (
 								<div className="divide-y divide-line max-h-[60vh] overflow-auto">

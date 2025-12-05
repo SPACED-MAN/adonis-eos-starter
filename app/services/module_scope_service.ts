@@ -88,7 +88,14 @@ class ModuleScopeService {
 
     return allowedTypes.map((type) => {
       const module = moduleRegistry.get(type)
-      return module.getConfig()
+      const config = module.getConfig()
+      const renderingMode =
+        (module as any).getRenderingMode?.() ?? 'static'
+
+      return {
+        ...config,
+        renderingMode,
+      }
     })
   }
 

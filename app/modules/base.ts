@@ -16,28 +16,31 @@ export default abstract class BaseModule {
   abstract getConfig(): ModuleConfig
 
   /**
-   * Rendering mode: 'static' for pure SSR, 'react' for interactive components
+   * Rendering mode: 'static' (default) or 'react'
    *
-   * - 'static': Server-only rendering in inertia/modules/*-static.tsx (max performance)
-   * - 'react': React component in inertia/modules/*.tsx (SSR + hydration, interactive)
+   * - 'static': Pure SSR, no client-side hydration (best performance)
+   * - 'react': SSR + hydration for interactive components
    *
-   * Default: 'react' (override to use 'static' for simple modules)
+   * Default: 'static' – opt in to 'react' only for modules that truly
+   * need client-side interactivity.
    */
   getRenderingMode(): RenderingMode {
-    return 'react'
+    return 'static'
   }
 
   /**
-   * Component file name in inertia/modules/
+   * Component file name in `inertia/modules/`
    *
-   * Convention:
-   * - Static modules: 'prose-static' (renders from prose-static.tsx)
-   * - React modules: 'hero' (renders from hero.tsx)
+   * We now use a single filename convention for both static and React
+   * modules: the component name always matches the module `type`.
+   *
+   * Example:
+   * - type: 'prose'  → inertia/modules/prose.tsx
+   * - type: 'gallery' → inertia/modules/gallery.tsx
    */
   getComponentName(): string {
     const config = this.getConfig()
-    const type = config.type
-    return this.getRenderingMode() === 'static' ? `${type}-static` : type
+    return config.type
   }
 
   /**

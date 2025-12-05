@@ -2,16 +2,15 @@
  * Module Registry (Filesystem-based Auto-discovery)
  *
  * Automatically discovers and exports all module components using Vite's import.meta.glob.
- * No need to manually add exports when creating new modules!
+ * No need to manually add exports when creating new modules.
  *
  * Naming convention:
- * - Static modules: '{type}-static' → prose-static.tsx
- * - React modules: '{type}' → hero.tsx
+ * - Each module lives in `inertia/modules/{type}.tsx`
+ *   e.g. type: 'prose'  → prose.tsx
+ *        type: 'gallery' → gallery.tsx
  *
- * To add a new module:
- * 1. Create your component file in inertia/modules/your-module.tsx
- * 2. Export default from the file
- * 3. That's it! It will be auto-discovered and available.
+ * Static vs React behaviour is controlled by the backend module's
+ * `getRenderingMode()` – not by filename suffixes.
  */
 
 // Auto-discover all .tsx module files with eager loading for named exports
@@ -41,14 +40,6 @@ for (const [path, module] of Object.entries(eagerModules)) {
 
   // Add to exports
   exports[exportName] = module.default
-
-  // Also export without 'Static' suffix for static modules
-  // 'ProseStatic' -> also export as 'Prose'
-  if (fileName.endsWith('-static')) {
-    const withoutStatic = fileName.replace(/-static$/, '')
-    const aliasName = toPascalCase(withoutStatic)
-    exports[aliasName] = module.default
-  }
 }
 
 // Export all discovered modules dynamically

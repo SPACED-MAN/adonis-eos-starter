@@ -17,8 +17,8 @@ export default class MakeModule extends BaseCommand {
   declare name: string
 
   @flags.string({
-    description: 'Rendering mode: "static" for pure SSR or "react" for interactive',
-    default: 'react',
+    description: 'Rendering mode: "static" (default, pure SSR) or "react" for interactive',
+    default: 'static',
   })
   declare mode: 'static' | 'react'
 
@@ -80,25 +80,26 @@ export default class ${moduleName}Module extends BaseModule {
    */
   protected getStaticComponentTemplate(moduleName: string, moduleType: string): string {
     return `/**
- * ${moduleName} Module - Static Variant
- *
- * Pure SSR component (no hydration, max performance)
- * Use for simple content that doesn't need interactivity
- *
- * Located in inertia/modules/ (shared between admin preview and public site)
- * Naming convention: -static suffix indicates pure SSR rendering
+* ${moduleName} Module (Static)
+*
+* Pure SSR-friendly component (no client-side hydration required).
+* Use for simple content that doesn't need interactivity.
+*
+* Located in inertia/modules/ (shared between admin preview and public site).
+* Rendering mode (static vs React) is controlled by the backend
+* module's getRenderingMode() implementation.
  */
 
-interface ${moduleName}StaticProps {
+interface ${moduleName}Props {
   // TODO: Define your props
   // Example:
   // title: string
   // content: string
 }
 
-export default function ${moduleName}Static({
+export default function ${moduleName}({
   // TODO: Destructure your props
-}: ${moduleName}StaticProps) {
+}: ${moduleName}Props) {
   return (
     <section className="py-12" data-module="${moduleType}">
       <div className="container mx-auto px-4 sm:px-6 lg:px-8">
@@ -116,13 +117,12 @@ export default function ${moduleName}Static({
    */
   protected getReactComponentTemplate(moduleName: string, moduleType: string): string {
     return `/**
- * ${moduleName} Module - React Variant
+* ${moduleName} Module (React)
  *
  * Interactive React component (SSR + hydration)
  * Use for components that need client-side interactivity
  *
  * Located in inertia/modules/ (shared between admin preview and public site)
- * No -static suffix = React component with full interactivity
  */
 
 import { useState } from 'react'
@@ -158,9 +158,9 @@ export default function ${moduleName}({
     const backendFileName = `${string.snakeCase(this.name)}.ts`
     const appRoot = fileURLToPath(this.app.appRoot)
 
-    // Determine frontend file name based on mode
-    const frontendFileName =
-      this.mode === 'static' ? `${moduleType}-static.tsx` : `${moduleType}.tsx`
+    // Frontend file name is always `{type}.tsx`; rendering mode is controlled
+    // by the backend module's getRenderingMode(), not by filename suffixes.
+    const frontendFileName = `${moduleType}.tsx`
 
     // Create backend module class
     const backendPath = join(appRoot, 'app', 'modules', backendFileName)

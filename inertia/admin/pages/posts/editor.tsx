@@ -37,6 +37,8 @@ import { DndContext, closestCenter, PointerSensor, useSensor, useSensors, DragEn
 import { SortableContext, useSortable, verticalListSortingStrategy } from '@dnd-kit/sortable'
 import { CSS } from '@dnd-kit/utilities'
 import { GripVertical, Globe, Star } from 'lucide-react'
+import { FontAwesomeIcon } from '@fortawesome/react-fontawesome'
+import { faReact } from '@fortawesome/free-brands-svg-icons'
 import { getXsrf } from '~/utils/xsrf'
 import { LinkField, type LinkFieldValue } from '~/components/forms/LinkField'
 import { useHasPermission } from '~/utils/permissions'
@@ -240,7 +242,9 @@ export default function Editor({ post, modules: initialModules, translations, re
   const [pathPattern, setPathPattern] = useState<string | null>(null)
   const [supportedLocales, setSupportedLocales] = useState<string[]>([])
   const [selectedLocale, setSelectedLocale] = useState<string>(post.locale)
-  const [moduleRegistry, setModuleRegistry] = useState<Record<string, { name: string; description?: string }>>({})
+  const [moduleRegistry, setModuleRegistry] = useState<
+    Record<string, { name: string; description?: string; renderingMode?: 'static' | 'react' }>
+  >({})
   const [globalSlugToLabel, setGlobalSlugToLabel] = useState<Map<string, string>>(new Map())
 
   // Keep local state in sync with server props after Inertia navigations
@@ -259,13 +263,16 @@ export default function Editor({ post, modules: initialModules, translations, re
             credentials: 'same-origin',
           })
           const json = await res.json().catch(() => null)
-          const list: Array<{ type: string; name?: string; description?: string }> = Array.isArray(json?.data)
-            ? json.data
-            : []
+          const list: Array<{ type: string; name?: string; description?: string; renderingMode?: 'static' | 'react' }> =
+            Array.isArray(json?.data) ? json.data : []
           if (!cancelled) {
-            const map: Record<string, { name: string; description?: string }> = {}
+            const map: Record<string, { name: string; description?: string; renderingMode?: 'static' | 'react' }> = {}
             list.forEach((m) => {
-              map[m.type] = { name: m.name || m.type, description: m.description }
+              map[m.type] = {
+                name: m.name || m.type,
+                description: m.description,
+                renderingMode: m.renderingMode,
+              }
             })
             setModuleRegistry(map)
           }
@@ -1052,6 +1059,16 @@ export default function Editor({ post, modules: initialModules, translations, re
                                   </div>
                                 </div>
                                 <div className="flex items-center gap-2">
+                                  {moduleRegistry[m.type]?.renderingMode === 'react' && (
+                                    <span
+                                      className="inline-flex items-center rounded border border-line-medium bg-backdrop-low px-2 py-1 text-xs text-neutral-high"
+                                      title="React module (client-side interactivity)"
+                                      aria-label="React module"
+                                    >
+                                      <FontAwesomeIcon icon={faReact} className="mr-1 text-sky-400" />
+                                      React
+                                    </span>
+                                  )}
                                   {m.scope === 'global'
                                     ? (
                                       <span

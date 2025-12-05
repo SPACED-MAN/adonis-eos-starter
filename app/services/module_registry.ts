@@ -67,10 +67,24 @@ class ModuleRegistry {
    *
    * Useful for generating API responses and admin UI.
    *
+   * Note: We enrich the raw ModuleConfig with the module's renderingMode so
+   * frontends can distinguish static vs React modules without additional
+   * requests.
+   *
    * @returns Array of module configurations
    */
-  getAllConfigs(): ModuleConfig[] {
-    return Array.from(this.modules.values()).map((module) => module.getConfig())
+  getAllConfigs(): Array<ModuleConfig & { renderingMode: 'static' | 'react' }> {
+    return Array.from(this.modules.values()).map((module) => {
+      const config = module.getConfig()
+      const renderingMode =
+        // Older modules may not implement getRenderingMode; default to 'static'
+        (module as any).getRenderingMode?.() ?? 'static'
+
+      return {
+        ...config,
+        renderingMode,
+      }
+    })
   }
 
   /**
