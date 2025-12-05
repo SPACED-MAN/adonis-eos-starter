@@ -452,7 +452,7 @@ export default class extends BaseSeeder {
 
     console.log(`   ✓ Post created with ID: ${overviewPost.id}`)
 
-    // Add Prose module with README content
+    // Add Prose module with README content (after template modules: reading-progress=0, breadcrumb=1)
     const readmeLexicalContent = await this.markdownToLexical(readmeContent)
     await AddModuleToPost.handle({
       postId: overviewPost.id,
@@ -463,7 +463,7 @@ export default class extends BaseSeeder {
         backgroundColor: 'bg-backdrop-low',
         maxWidth: '',
       },
-      orderIndex: 0,
+      orderIndex: 2,
     })
 
     console.log(`   ✓ Module added with README content\n`)
@@ -533,6 +533,7 @@ export default class extends BaseSeeder {
 
       // Add Prose module using AddModuleToPost action (same as API endpoint)
       // Note: Documentation pages don't use Hero module - title comes from the post itself
+      // Template modules: reading-progress=0, breadcrumb=1, so prose starts at 2
       const lexicalContent = await this.markdownToLexical(content)
       await AddModuleToPost.handle({
         postId: post.id,
@@ -543,7 +544,7 @@ export default class extends BaseSeeder {
           backgroundColor: 'bg-backdrop-low',
           maxWidth: '', // Remove max-width constraint for full-width documentation
         },
-        orderIndex: 0,
+        orderIndex: 2,
       })
 
       console.log(`   ✓ Module added via API action\n`)

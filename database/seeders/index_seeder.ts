@@ -3,6 +3,7 @@ import UserSeeder from './user_seeder.js'
 import MenuSeeder from './menu_seeder.js'
 import TaxonomySeeder from './taxonomy_seeder.js'
 import HomepageSeeder from './homepage_seeder.js'
+import DocumentationTemplateSeeder from './documentation_template_seeder.js'
 import DocumentationSeeder from './documentation_seeder.js'
 import DocumentationMenuSeeder from './documentation_menu_seeder.js'
 
@@ -21,6 +22,9 @@ export default class extends BaseSeeder {
 
     // Taxonomies (categories, tags, etc.)
     await new TaxonomySeeder(this.client).run()
+
+    // Documentation template (must run before documentation posts)
+    await new DocumentationTemplateSeeder(this.client).run()
 
     // Documentation (must run before homepage so posts can be referenced)
     await new DocumentationSeeder(this.client).run()
