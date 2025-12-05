@@ -28,7 +28,7 @@ export function AdminBreadcrumbs({
 			{rightLink && (
 				<Link
 					href={rightLink.href}
-					className="px-3 py-2 text-sm border border-line rounded bg-backdrop-low hover:bg-backdrop-medium text-neutral-high"
+					className="px-3 py-2 text-sm border border-line-medium rounded bg-backdrop-low hover:bg-backdrop-medium text-neutral-high"
 				>
 					{rightLink.label}
 				</Link>

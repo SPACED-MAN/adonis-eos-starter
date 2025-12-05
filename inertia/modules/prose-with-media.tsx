@@ -78,7 +78,7 @@ export default function ProseWithMedia({
 
 	const imageBlock = resolvedImageUrl ? (
 		<div className="w-full">
-			<div className="w-full rounded-xl overflow-hidden border border-line bg-backdrop-high">
+			<div className="w-full rounded-xl overflow-hidden border border-line-low bg-backdrop-high">
 				<img
 					src={resolvedImageUrl}
 					alt={imageAlt || ''}

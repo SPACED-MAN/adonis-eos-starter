@@ -12,7 +12,7 @@ export function NavItem({ node, menuMeta }: { node: TreeNode; menuMeta?: Record<
           {hasSection ? (
             <MegaMenuPanel parent={node} menuMeta={menuMeta} />
           ) : (
-            <div className="rounded-md border border-line bg-backdrop-low shadow-md p-4 min-w-[320px]">
+            <div className="rounded-md border border-line-low bg-backdrop-input shadow-md p-4 min-w-[320px]">
               <div className="grid grid-cols-1 gap-2">
                 {node.children.map((c) => (
                   <MenuItemLink key={c.id} item={c} />

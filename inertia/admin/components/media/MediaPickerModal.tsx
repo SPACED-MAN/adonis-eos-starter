@@ -51,17 +51,17 @@ export function MediaPickerModal({
 	useEffect(() => {
 		if (!open) return
 		let alive = true
-		;(async () => {
-			try {
-				setLoading(true)
-				const res = await fetch('/api/media?limit=100', { credentials: 'same-origin' })
-				const j = await res.json().catch(() => ({}))
-				const list: MediaItem[] = Array.isArray(j?.data) ? j.data : []
-				if (alive) setItems(list)
-			} finally {
-				if (alive) setLoading(false)
-			}
-		})()
+			; (async () => {
+				try {
+					setLoading(true)
+					const res = await fetch('/api/media?limit=100', { credentials: 'same-origin' })
+					const j = await res.json().catch(() => ({}))
+					const list: MediaItem[] = Array.isArray(j?.data) ? j.data : []
+					if (alive) setItems(list)
+				} finally {
+					if (alive) setLoading(false)
+				}
+			})()
 		return () => {
 			alive = false
 		}
@@ -114,14 +114,14 @@ export function MediaPickerModal({
 						<div className="mb-3 flex items-center gap-2">
 							<button
 								type="button"
-								className={`px-3 py-1.5 text-xs rounded ${tab === 'library' ? 'bg-backdrop-medium' : 'bg-backdrop-low'} border border-line`}
+								className={`px-3 py-1.5 text-xs rounded ${tab === 'library' ? 'bg-backdrop-medium' : 'bg-backdrop-low'} border border-line-medium`}
 								onClick={() => setTab('library')}
 							>
 								Library
 							</button>
 							<button
 								type="button"
-								className={`px-3 py-1.5 text-xs rounded ${tab === 'upload' ? 'bg-backdrop-medium' : 'bg-backdrop-low'} border border-line`}
+								className={`px-3 py-1.5 text-xs rounded ${tab === 'upload' ? 'bg-backdrop-medium' : 'bg-backdrop-low'} border border-line-medium`}
 								onClick={() => setTab('upload')}
 							>
 								Upload
@@ -132,7 +132,7 @@ export function MediaPickerModal({
 					{tab === 'library' && (
 						<div className="space-y-2">
 							<div className="text-sm text-neutral-medium">{loading ? 'Loading…' : `Items: ${items.length}`}</div>
-							<div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 gap-3 max-h-[60vh] overflow-auto p-1 border border-line rounded">
+							<div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 gap-3 max-h-[60vh] overflow-auto p-1 border border-line-low rounded">
 								{items.map((m) => (
 									<button
 										key={m.id}
@@ -142,7 +142,7 @@ export function MediaPickerModal({
 											onSelect(m)
 											onOpenChange(false)
 										}}
-										className={`group border rounded overflow-hidden ${selectedId === m.id ? 'border-standout' : 'border-line'} bg-backdrop-low`}
+										className={`group border rounded overflow-hidden ${selectedId === m.id ? 'border-standout' : 'border-line-low'} bg-backdrop-low`}
 										title={m.originalFilename || m.id}
 									>
 										<div className="aspect-square">

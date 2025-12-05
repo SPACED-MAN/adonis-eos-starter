@@ -147,12 +147,12 @@ export default function UserEdit() {
   }
 
   return (
-    <div className="min-h-screen bg-backdrop-low">
+    <div className="min-h-screen bg-backdrop-medium">
       <Head title="Edit User" />
       <AdminHeader title="Edit User" />
       <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
         <AdminBreadcrumbs items={[{ label: 'Dashboard', href: '/admin' }, { label: 'Users', href: '/admin/users' }, { label: 'Edit' }]} />
-        <div className="bg-backdrop-low rounded-lg border border-line p-6 space-y-6">
+        <div className="bg-backdrop-low rounded-lg border border-line-low p-6 space-y-6">
           {loading ? (
             <p className="text-sm text-neutral-low">Loading…</p>
           ) : (
@@ -193,7 +193,7 @@ export default function UserEdit() {
                 </button>
               </div>
 
-              <div className="border-t border-line pt-6">
+              <div className="border-t border-line-low pt-6">
                 <h3 className="text-sm font-semibold text-neutral-high mb-2">Reset Password</h3>
                 <div className="flex items-center gap-2">
                   <Input
@@ -205,7 +205,7 @@ export default function UserEdit() {
                   />
                   <button
                     type="button"
-                    className="px-3 py-2 text-sm border border-line rounded hover:bg-backdrop-medium text-neutral-high"
+                    className="px-3 py-2 text-sm border border-line-low rounded hover:bg-backdrop-medium text-neutral-high"
                     onClick={updatePassword}
                   >
                     Update Password
@@ -214,7 +214,7 @@ export default function UserEdit() {
               </div>
 
               {profileEnabledForRole && (
-                <div className="border-t border-line pt-6">
+                <div className="border-t border-line-low pt-6">
                   <h3 className="text-sm font-semibold text-neutral-high mb-3">Profile</h3>
                   {profileLoading ? (
                     <p className="text-sm text-neutral-low">Loading…</p>
@@ -232,7 +232,7 @@ export default function UserEdit() {
                                   return (
                                     <div key={`${f.slug}-${idx}`} className="text-sm">
                                       <div className="text-neutral-medium mb-1">{f.slug}</div>
-                                      <div className="border border-line rounded p-2 bg-backdrop-low inline-flex items-center gap-3">
+                                      <div className="border border-line-low rounded p-2 bg-backdrop-low inline-flex items-center gap-3">
                                         <div className="w-12 h-12 bg-backdrop-medium rounded overflow-hidden flex items-center justify-center">
                                           {url ? <img src={url} alt="" className="w-full h-full object-cover" /> : <span className="text-xs text-neutral-medium">{v.id}</span>}
                                         </div>
@@ -245,7 +245,7 @@ export default function UserEdit() {
                                 return (
                                   <div key={`${f.slug}-${idx}`} className="text-sm">
                                     <div className="text-neutral-medium mb-1">{f.slug}</div>
-                                    <div className="border border-line rounded p-2 bg-backdrop-low">{String(v ?? '') || <span className="text-neutral-low">—</span>}</div>
+                                    <div className="border border-line-low rounded p-2 bg-backdrop-low">{String(v ?? '') || <span className="text-neutral-low">—</span>}</div>
                                   </div>
                                 )
                               })}
@@ -256,7 +256,7 @@ export default function UserEdit() {
                           <div className="flex items-center gap-2">
                             <a
                               href={`/admin/posts/${profileId}/edit`}
-                              className="px-3 py-2 text-sm border border-line rounded hover:bg-backdrop-medium text-neutral-high"
+                              className="px-3 py-2 text-sm border border-line-low rounded hover:bg-backdrop-medium text-neutral-high"
                             >
                               Edit Profile
                             </a>
@@ -265,7 +265,7 @@ export default function UserEdit() {
                                 href={`/posts/${profileData.slug}`}
                                 target="_blank"
                                 rel="noreferrer"
-                                className="px-3 py-2 text-sm border border-line rounded hover:bg-backdrop-medium text-neutral-medium"
+                                className="px-3 py-2 text-sm border border-line-low rounded hover:bg-backdrop-medium text-neutral-medium"
                               >
                                 View Profile
                               </a>
@@ -275,7 +275,7 @@ export default function UserEdit() {
                       ) : (
                         <button
                           type="button"
-                          className="px-3 py-2 text-sm border border-line rounded hover:bg-backdrop-medium text-neutral-high"
+                          className="px-3 py-2 text-sm border border-line-low rounded hover:bg-backdrop-medium text-neutral-high"
                           onClick={async () => {
                             try {
                               const csrf = getXsrf()

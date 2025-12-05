@@ -51,7 +51,7 @@ export function ThemeToggle() {
 		<button
 			type="button"
 			onClick={toggle}
-			className="inline-flex items-center rounded border border-line bg-backdrop-low px-3 py-1.5 text-sm text-neutral-high hover:bg-backdrop-medium"
+			className="inline-flex items-center rounded border border-line-low bg-backdrop-input px-3 py-1.5 text-sm text-neutral-high hover:bg-backdrop-medium"
 			aria-label="Toggle dark mode"
 		>
 			{mode === 'dark' ? 'Light mode' : 'Dark mode'}

@@ -29,12 +29,12 @@ export default function ProfileIndex() {
   }, [])
 
   return (
-    <div className="min-h-screen bg-backdrop-low">
+    <div className="min-h-screen bg-backdrop-medium">
       <Head title="Profile" />
       <AdminHeader title="Profile" />
       <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
         <AdminBreadcrumbs items={[{ label: 'Dashboard', href: '/admin' }, { label: 'Profile' }]} />
-        <div className="bg-backdrop-low rounded-lg border border-line p-6">
+        <div className="bg-backdrop-low rounded-lg border border-line-low p-6">
           {loading ? (
             <p className="text-sm text-neutral-low">Loading…</p>
           ) : !status ? (
@@ -43,7 +43,7 @@ export default function ProfileIndex() {
             <div className="space-y-3">
               <p className="text-sm text-neutral-medium">You don’t have a Profile yet.</p>
               <button
-                className="px-3 py-2 text-sm border border-line rounded bg-standout text-on-standout"
+                className="px-3 py-2 text-sm border border-line-low rounded bg-standout text-on-standout"
                 onClick={async () => {
                   const res = await fetch('/api/users/me/profile', {
                     method: 'POST',

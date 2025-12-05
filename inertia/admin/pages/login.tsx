@@ -21,7 +21,7 @@ export default function Login() {
   }
 
   return (
-    <div className="min-h-screen w-full flex items-center justify-center bg-backdrop-low">
+    <div className="min-h-screen w-full flex items-center justify-center bg-backdrop-medium">
       <Head title="Admin Login" />
       <form onSubmit={submit} className="w-full max-w-sm p-6 rounded-xl border border-border bg-backdrop-low shadow-sm space-y-4">
         <h1 className="text-xl font-semibold text-neutral-high">Admin Login</h1>

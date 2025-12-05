@@ -68,9 +68,9 @@ export function AdminSidebar() {
 				<SidebarHeader>
 					<div className="flex items-center gap-2">
 						{avatarUrl ? (
-							<img src={avatarUrl} alt="Profile" className="w-8 h-8 rounded-full border border-line object-cover" />
+							<img src={avatarUrl} alt="Profile" className="w-8 h-8 rounded-full border border-line-low object-cover" />
 						) : (
-							<div className="w-8 h-8 rounded-full bg-backdrop-medium border border-line" />
+							<div className="w-8 h-8 rounded-full bg-backdrop-medium border border-line-medium" />
 						)}
 						<div className="text-sm">
 							<div className="font-semibold text-neutral-high">{userEmail}</div>

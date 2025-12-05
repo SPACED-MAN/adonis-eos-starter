@@ -6,11 +6,11 @@ type LinkValue =
   | undefined
   | string
   | {
-      kind?: 'url' | 'post'
-      url?: string
-      postId?: string | number | null
-      target?: '_self' | '_blank'
-    }
+    kind?: 'url' | 'post'
+    url?: string
+    postId?: string | number | null
+    target?: '_self' | '_blank'
+  }
 
 interface PricingPlan {
   name: string
@@ -56,9 +56,8 @@ export default function Pricing({ title, subtitle, plans }: PricingProps) {
             return (
               <div
                 key={idx}
-                className={`flex flex-col p-6 mx-auto max-w-lg text-center bg-backdrop-low rounded-lg border border-line shadow-sm xl:p-8 ${
-                  isPrimary ? 'ring-2 ring-standout shadow-md' : ''
-                }`}
+                className={`flex flex-col p-6 mx-auto max-w-lg text-center bg-backdrop-low rounded-lg border border-line-low shadow-sm xl:p-8 ${isPrimary ? 'ring-2 ring-standout shadow-md' : ''
+                  }`}
               >
                 <h3 className="mb-4 text-2xl font-semibold text-neutral-high">
                   {plan.name}

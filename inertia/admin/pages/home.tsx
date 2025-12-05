@@ -16,7 +16,7 @@ export default function Home() {
   const [profilePostId, setProfilePostId] = useState<string | null>(null)
 
   useEffect(() => {
-    ;(async () => {
+    ; (async () => {
       try {
         const res = await fetch('/api/profile/status', { credentials: 'same-origin' })
         const j = await res.json().catch(() => ({}))
@@ -30,22 +30,22 @@ export default function Home() {
   }, [])
 
   return (
-    <div className="min-h-screen bg-backdrop-low">
+    <div className="min-h-screen bg-backdrop-medium">
       <Head title="Dashboard" />
       <AdminHeader title="Dashboard" />
       <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
         <AdminBreadcrumbs items={[{ label: 'Dashboard' }]} />
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-          <div className="bg-backdrop-low rounded-lg border border-line p-6">
+          <div className="bg-backdrop-low rounded-lg border border-line-low p-6">
             <h3 className="text-base font-semibold text-neutral-high mb-2">Welcome</h3>
             <p className="text-sm text-neutral-medium">This dashboard will show useful insights and quick actions.</p>
           </div>
           {profileEnabled && !hasProfile && (
-            <div className="bg-backdrop-low rounded-lg border border-line p-6">
+            <div className="bg-backdrop-low rounded-lg border border-line-low p-6">
               <h3 className="text-base font-semibold text-neutral-high mb-2">Create your Profile</h3>
               <p className="text-sm text-neutral-medium mb-3">You don’t have a Profile yet. Create one to manage your bio.</p>
               <button
-                className="px-3 py-2 text-sm border border-line rounded bg-standout text-on-standout"
+                className="px-3 py-2 text-sm border border-line-low rounded bg-standout text-on-standout"
                 onClick={async () => {
                   const res = await fetch('/api/users/me/profile', {
                     method: 'POST',

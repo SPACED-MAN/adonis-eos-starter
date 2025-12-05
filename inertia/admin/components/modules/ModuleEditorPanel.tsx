@@ -512,11 +512,11 @@ export function ModuleEditorPanel({
 					<div className="flex items-start gap-3">
 						<div className="min-w-[72px]">
 							{preview ? (
-								<div className="w-[72px] h-[72px] border border-line rounded overflow-hidden bg-backdrop-medium">
+								<div className="w-[72px] h-[72px] border border-line-medium rounded overflow-hidden bg-backdrop-medium">
 									<img src={preview.url} alt={preview.alt || preview.originalFilename || ''} className="w-full h-full object-cover" />
 								</div>
 							) : (
-								<div className="w-[72px] h-[72px] border border-dashed border-line rounded flex items-center justify-center text-[10px] text-neutral-medium">
+								<div className="w-[72px] h-[72px] border border-dashed border-line-high rounded flex items-center justify-center text-[10px] text-neutral-medium">
 									No image
 								</div>
 							)}
@@ -535,7 +535,7 @@ export function ModuleEditorPanel({
 							<div className="mt-2 flex items-center gap-2">
 								<button
 									type="button"
-									className="px-2 py-1 text-xs border border-line rounded hover:bg-backdrop-medium text-neutral-medium"
+									className="px-2 py-1 text-xs border border-line-medium rounded hover:bg-backdrop-medium text-neutral-medium"
 									onClick={() => setModalOpen(true)}
 								>
 									{preview ? 'Change' : 'Choose'}
@@ -543,7 +543,7 @@ export function ModuleEditorPanel({
 								{preview && (
 									<button
 										type="button"
-										className="px-2 py-1 text-xs border border-line rounded hover:bg-backdrop-medium text-neutral-medium"
+										className="px-2 py-1 text-xs border border-line-medium rounded hover:bg-backdrop-medium text-neutral-medium"
 										onClick={clearSelection}
 									>
 										Clear
@@ -589,7 +589,7 @@ export function ModuleEditorPanel({
 				'palette': faPalette,
 				'bolt': faBolt,
 			}
-			
+
 			const availableIcons = [
 				{ name: 'arrow-right', label: 'Arrow Right', icon: faArrowRight },
 				{ name: 'bullhorn', label: 'Bullhorn', icon: faBullhorn },
@@ -609,7 +609,7 @@ export function ModuleEditorPanel({
 				{ name: 'palette', label: 'Palette', icon: faPalette },
 				{ name: 'bolt', label: 'Bolt', icon: faBolt },
 			]
-			
+
 			const initial = typeof value === 'string' ? value : ''
 			const [selectedIcon, setSelectedIcon] = useState<string>(initial)
 			const [pickerOpen, setPickerOpen] = useState(false)
@@ -640,9 +640,8 @@ export function ModuleEditorPanel({
 									<button
 										key={iconItem.name}
 										type="button"
-										className={`p-3 border rounded-lg hover:bg-backdrop-medium flex flex-col items-center gap-1 ${
-											selectedIcon === iconItem.name ? 'border-standout bg-standout/10' : 'border-line'
-										}`}
+										className={`p-3 border rounded-lg hover:bg-backdrop-medium flex flex-col items-center gap-1 ${selectedIcon === iconItem.name ? 'border-standout bg-standout/10' : 'border-line-low'
+											}`}
 										onClick={() => {
 											setSelectedIcon(iconItem.name)
 											if (hiddenRef.current) {
@@ -1043,7 +1042,7 @@ export function ModuleEditorPanel({
 
 			if (objectFields && objectFields.length > 0) {
 				return (
-					<fieldset className="border border-line rounded-lg p-3">
+					<fieldset className="border border-line-low rounded-lg p-3">
 						<legend className="px-1 text-xs font-medium text-neutral-low">{label}</legend>
 						<div className="grid grid-cols-1 gap-4">
 							{objectFields.map((f) => (
@@ -1082,18 +1081,18 @@ export function ModuleEditorPanel({
 				}
 			}
 			return (
-				<fieldset className="border border-line rounded-lg p-3">
+				<fieldset className="border border-line-low rounded-lg p-3">
 					<legend className="px-1 text-xs font-medium text-neutral-low">{label}</legend>
 					<div className="space-y-3">
 						{items.length === 0 && (
 							<p className="text-xs text-neutral-low">No items. Click “Add Item”.</p>
 						)}
 						{items.map((it, idx) => (
-							<div key={`${name}.${idx}`} className="border border-line rounded p-3 space-y-2">
+							<div key={`${name}.${idx}`} className="border border-line-low rounded p-3 space-y-2">
 								<div className="flex items-center justify-end gap-2">
 									<button
 										type="button"
-										className="px-2 py-1 text-xs border border-line rounded hover:bg-backdrop-medium text-neutral-medium"
+										className="px-2 py-1 text-xs border border-line-medium rounded hover:bg-backdrop-medium text-neutral-medium"
 										onMouseDown={(e) => e.preventDefault()}
 										onClick={() => {
 											const scroller = formRef.current
@@ -1113,7 +1112,7 @@ export function ModuleEditorPanel({
 									</button>
 									<button
 										type="button"
-										className="px-2 py-1 text-xs border border-line rounded hover:bg-backdrop-medium text-neutral-medium"
+										className="px-2 py-1 text-xs border border-line-medium rounded hover:bg-backdrop-medium text-neutral-medium"
 										onMouseDown={(e) => e.preventDefault()}
 										onClick={() => {
 											if (idx === 0) return
@@ -1135,7 +1134,7 @@ export function ModuleEditorPanel({
 									</button>
 									<button
 										type="button"
-										className="px-2 py-1 text-xs border border-line rounded hover:bg-backdrop-medium text-neutral-medium"
+										className="px-2 py-1 text-xs border border-line-medium rounded hover:bg-backdrop-medium text-neutral-medium"
 										onMouseDown={(e) => e.preventDefault()}
 										onClick={() => {
 											if (idx >= items.length - 1) return
@@ -1192,7 +1191,7 @@ export function ModuleEditorPanel({
 						))}
 						<button
 							type="button"
-							className="px-3 py-1 text-xs border border-line rounded hover:bg-backdrop-medium text-neutral-medium"
+							className="px-3 py-1 text-xs border border-line-medium rounded hover:bg-backdrop-medium text-neutral-medium"
 							onMouseDown={(e) => e.preventDefault()}
 							onClick={() => {
 								const scroller = formRef.current
@@ -1282,11 +1281,11 @@ export function ModuleEditorPanel({
 				onClose()
 			}} />
 			<div
-				className="absolute right-0 top-0 h-full w-full max-w-2xl bg-backdrop-low border-l border-line shadow-xl flex flex-col"
+				className="absolute right-0 top-0 h-full w-full max-w-2xl bg-backdrop-low border-l border-line-low shadow-xl flex flex-col"
 				role="dialog"
 				aria-modal="true"
 			>
-				<div className="px-5 py-4 border-b border-line flex items-center justify-between">
+				<div className="px-5 py-4 border-b border-line-low flex items-center justify-between">
 					<h3 className="text-sm font-semibold text-neutral-high">
 						Edit Module — {moduleLabel || moduleItem.type}
 					</h3>
@@ -1431,10 +1430,10 @@ export function ModuleEditorPanel({
 						})
 					)}
 				</form>
-				<div className="px-5 py-4 border-t border-line flex items-center justify-end gap-3">
+				<div className="px-5 py-4 border-t border-line-low flex items-center justify-end gap-3">
 					<button
 						type="button"
-						className="px-4 py-2 text-sm border border-line rounded-lg hover:bg-backdrop-medium text-neutral-medium"
+						className="px-4 py-2 text-sm border border-line-medium rounded-lg hover:bg-backdrop-medium text-neutral-medium"
 						onClick={async () => {
 							const base = moduleItem.props || {}
 							const edited = JSON.parse(JSON.stringify(merged))

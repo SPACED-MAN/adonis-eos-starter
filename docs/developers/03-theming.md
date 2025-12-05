@@ -277,7 +277,7 @@ Logos are automatically swapped based on theme.
 
 ```tsx
 // ✅ DO: Use the simplified tokens (Tailwind color names backed by CSS vars)
-<div className="bg-backdrop-low border border-line rounded">
+<div className="bg-backdrop-low border border-line-low rounded">
   <h1 className="text-neutral-high">Title</h1>
   <p className="text-neutral-low">Description</p>
   <button className="bg-standout text-on-standout rounded px-3 py-2">

@@ -670,7 +670,7 @@ export default function Editor({ post, modules: initialModules, translations, re
   }
 
   return (
-    <div className="min-h-screen bg-backdrop-low">
+    <div className="min-h-screen bg-backdrop-medium">
       <AdminHeader title={`Edit ${post.type ? humanizeSlug(post.type) : 'Post'}`} />
 
       {/* Main Content */}
@@ -685,7 +685,7 @@ export default function Editor({ post, modules: initialModules, translations, re
           {/* Left Column - Post Content */}
           <div className="lg:col-span-2 space-y-6">
             {/* Content Card */}
-            <div className="bg-backdrop-low rounded-lg shadow p-6 border border-line">
+            <div className="bg-backdrop-low rounded-lg p-6 border border-line-low">
               <h2 className="text-lg font-semibold text-neutral-high mb-4">
                 Content
               </h2>
@@ -1032,7 +1032,7 @@ export default function Editor({ post, modules: initialModules, translations, re
                         {sortedModules.map((m) => (
                           <SortableItem key={m.id} id={m.id} disabled={m.locked}>
                             {(listeners: any) => (
-                              <li className="bg-backdrop-low border border-line rounded-lg px-4 py-3 flex items-center justify-between">
+                              <li className="bg-backdrop-low border border-line-low rounded-lg px-4 py-3 flex items-center justify-between">
                                 <div className="flex items-center gap-3">
                                   <button
                                     type="button"
@@ -1055,7 +1055,7 @@ export default function Editor({ post, modules: initialModules, translations, re
                                   {m.scope === 'global'
                                     ? (
                                       <span
-                                        className="inline-flex items-center rounded border border-line bg-backdrop-low px-2 py-1 text-xs text-neutral-high"
+                                        className="inline-flex items-center rounded border border-line-medium bg-backdrop-low px-2 py-1 text-xs text-neutral-high"
                                         title="Global module"
                                         aria-label="Global module"
                                       >
@@ -1064,7 +1064,7 @@ export default function Editor({ post, modules: initialModules, translations, re
                                     )
                                     : (
                                       <button
-                                        className="text-xs px-2 py-1 rounded border border-line bg-backdrop-low text-neutral-high hover:bg-backdrop-medium"
+                                        className="text-xs px-2 py-1 rounded border border-line-low bg-backdrop-input text-neutral-high hover:bg-backdrop-medium"
                                         onClick={() => setEditing(m)}
                                         type="button"
                                       >
@@ -1109,7 +1109,7 @@ export default function Editor({ post, modules: initialModules, translations, re
             </div>
 
             {/* SEO Card */}
-            <div className="bg-backdrop-low rounded-lg shadow p-6 border border-line">
+            <div className="bg-backdrop-low rounded-lg p-6 border border-line-low">
               <h2 className="text-lg font-semibold text-neutral-high mb-4">
                 SEO
               </h2>
@@ -1367,7 +1367,7 @@ export default function Editor({ post, modules: initialModules, translations, re
                         <PopoverTrigger asChild>
                           <button
                             type="button"
-                            className="px-3 py-2 text-sm border border-line rounded hover:bg-backdrop-medium text-neutral-high"
+                            className="px-3 py-2 text-sm border border-line-low rounded hover:bg-backdrop-medium text-neutral-high"
                           >
                             {(data as any).scheduledAt
                               ? new Date((data as any).scheduledAt).toLocaleDateString()
@@ -1701,7 +1701,7 @@ export default function Editor({ post, modules: initialModules, translations, re
                   <div>
                     <label className="block text-xs font-medium text-neutral-medium mb-1">Reassign to</label>
                     <select
-                      className="w-full border border-line bg-backdrop-low text-neutral-high rounded px-2 py-1"
+                      className="w-full border border-line-low bg-backdrop-input text-neutral-high rounded px-2 py-1"
                       value={selectedAuthorId ?? ''}
                       onChange={(e) => setSelectedAuthorId(e.target.value ? Number(e.target.value) : null)}
                       onFocus={async () => {
@@ -1905,7 +1905,7 @@ export default function Editor({ post, modules: initialModules, translations, re
       {isAdmin && isImportModeOpen && (
         <div className="fixed inset-0 z-50 flex items-center justify-center">
           <div className="absolute inset-0 bg-black/50" onClick={() => { setIsImportModeOpen(false); setPendingImportJson(null) }} />
-          <div className="relative z-10 w-full max-w-md rounded-lg border border-line bg-backdrop-low p-6 shadow-xl">
+          <div className="relative z-10 w-full max-w-md rounded-lg border border-line-low bg-backdrop-input p-6 shadow-xl">
             <div className="flex items-center justify-between mb-4">
               <h3 className="text-base font-semibold text-neutral-high">Import JSON</h3>
               <button
@@ -1922,7 +1922,7 @@ export default function Editor({ post, modules: initialModules, translations, re
             <div className="flex flex-col gap-2">
               <button
                 type="button"
-                className="w-full px-3 py-2 text-sm rounded border border-line bg-backdrop-low hover:bg-backdrop-medium text-neutral-high"
+                className="w-full px-3 py-2 text-sm rounded border border-line-low bg-backdrop-input hover:bg-backdrop-medium text-neutral-high"
                 onClick={async () => {
                   if (!pendingImportJson) return
                   const res = await fetch(`/api/posts/${post.id}/import`, {
@@ -2164,7 +2164,7 @@ function MediaThumb({
     return () => { alive = false }
   }, [mediaId, url])
   return (
-    <div className="border border-line rounded p-2 bg-backdrop-low flex items-center gap-3">
+    <div className="border border-line-low rounded p-2 bg-backdrop-low flex items-center gap-3">
       <div className="w-16 h-16 bg-backdrop-medium rounded overflow-hidden flex items-center justify-center">
         {url ? (
           <img src={url} alt="" className="w-full h-full object-cover" />
@@ -2175,7 +2175,7 @@ function MediaThumb({
       <div className="flex items-center gap-2">
         <button
           type="button"
-          className="px-2 py-1 text-xs border border-line rounded hover:bg-backdrop-medium text-neutral-medium"
+          className="px-2 py-1 text-xs border border-line-medium rounded hover:bg-backdrop-medium text-neutral-medium"
           onClick={onChange}
         >
           {mediaId ? 'Change' : 'Choose'}
@@ -2183,7 +2183,7 @@ function MediaThumb({
         {mediaId && (
           <button
             type="button"
-            className="px-2 py-1 text-xs border border-line rounded hover:bg-backdrop-medium text-neutral-medium"
+            className="px-2 py-1 text-xs border border-line-medium rounded hover:bg-backdrop-medium text-neutral-medium"
             onClick={onClear}
           >
             Remove

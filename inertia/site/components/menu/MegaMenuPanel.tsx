@@ -3,7 +3,7 @@ import { MenuItemLink } from './MenuItemLink'
 
 export function MegaMenuPanel({ parent, menuMeta }: { parent: TreeNode; menuMeta?: Record<string, any> | null }) {
   return (
-    <div className="rounded-md border border-line bg-backdrop-low shadow-md p-5 w-[800px]">
+    <div className="rounded-md border border-line-low bg-backdrop-input shadow-md p-5 w-[800px]">
       {(menuMeta?.tagline || (menuMeta?.ctaText && menuMeta?.ctaUrl)) && (
         <div className="mb-4 flex items-center justify-between">
           <div className="text-sm text-neutral-medium">{menuMeta?.tagline || ''}</div>

@@ -13,10 +13,10 @@ export function NavBar({
   menuName?: string
   logoLightUrl?: string
   logoDarkUrl?: string
-}){
+}) {
 
   return (
-    <header className="border-b border-line bg-backdrop-low/80 backdrop-blur">
+    <header className="border-b border-line-low bg-backdrop-input/80 backdrop-blur">
       <div className="container mx-auto px-4 sm:px-6 lg:px-8 py-3 flex items-center justify-between gap-4">
         <a href="/" className="flex items-center gap-2 text-neutral-high font-semibold">
           {logoLightUrl || logoDarkUrl ? (

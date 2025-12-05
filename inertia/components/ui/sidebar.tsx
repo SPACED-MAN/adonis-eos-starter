@@ -42,7 +42,7 @@ export function Sidebar({ children, className }: { children: React.ReactNode; cl
 		<>
 			<aside
 				className={cn(
-					'fixed left-0 top-0 z-40 h-full w-64 bg-backdrop-low border-r border-line',
+					'fixed left-0 top-0 z-40 h-full w-64 bg-backdrop-low border-r border-line-low',
 					'transition-transform',
 					open ? 'translate-x-0' : '-translate-x-full',
 					className
@@ -83,7 +83,7 @@ export function SidebarHeader({ children, className }: { children: React.ReactNo
 
 export function SidebarGroup({ title, children }: { title?: string; children: React.ReactNode }) {
 	return (
-		<div className="px-2 py-4 border-t border-line">
+		<div className="px-2 py-4 border-t border-line-low">
 			{title && <div className="px-2 text-xs font-semibold text-neutral-medium uppercase tracking-wide mb-1">{title}</div>}
 			<nav className="space-y-1">{children}</nav>
 		</div>

@@ -25,7 +25,7 @@ export default function NotFound() {
           </a>
           <a
             href="/"
-            className="block w-full px-6 py-3 border-2 border-line hover:bg-backdrop-medium text-neutral-high font-semibold rounded-lg transition-colors"
+            className="block w-full px-6 py-3 border-2 border-line-low hover:bg-backdrop-medium text-neutral-high font-semibold rounded-lg transition-colors"
           >
             Go to Homepage
           </a>

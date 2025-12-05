@@ -8,7 +8,7 @@ export function SiteFooter() {
   const [siteTitle, setSiteTitle] = useState<string>('Site')
 
   useEffect(() => {
-    ;(async () => {
+    ; (async () => {
       try {
         const res = await fetch('/api/menus/by-slug/footer?locale=en', { credentials: 'same-origin' })
         if (!res.ok) return
@@ -24,7 +24,7 @@ export function SiteFooter() {
   }, [])
 
   useEffect(() => {
-    ;(async () => {
+    ; (async () => {
       try {
         const res = await fetch('/api/site-settings', { credentials: 'same-origin' })
         const j = await res.json().catch(() => ({}))
@@ -39,7 +39,7 @@ export function SiteFooter() {
   }, [])
 
   return (
-    <footer className="mt-12 border-t border-line bg-backdrop-low">
+    <footer className="mt-12 border-t border-line-low bg-backdrop-input">
       <div className="mx-auto max-w-5xl px-4 py-6 md:py-8 lg:py-10 text-center">
         <div className="flex justify-center mb-4">
           <a

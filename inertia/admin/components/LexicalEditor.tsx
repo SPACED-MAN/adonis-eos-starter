@@ -116,7 +116,7 @@ export function LexicalEditor({
   const theme = useMemo(
     () => ({
       paragraph: 'mb-2',
-      quote: 'border-l-4 border-line pl-3 italic text-neutral-medium',
+      quote: 'border-l-4 border-line-low pl-3 italic text-neutral-medium',
       heading: {
         h1: 'text-2xl font-semibold mb-2',
         h2: 'text-xl font-semibold mb-2',
@@ -186,24 +186,24 @@ export function LexicalEditor({
 function Toolbar() {
   const [editor] = useLexicalComposerContext()
   return (
-    <div className="flex items-center gap-1 border-b border-line bg-backdrop-medium px-2 py-1">
+    <div className="flex items-center gap-1 border-b border-line-low bg-backdrop-medium px-2 py-1">
       <button
         type="button"
-        className="px-2 py-1 text-xs rounded border border-line hover:bg-backdrop-low"
+        className="px-2 py-1 text-xs rounded border border-line-low hover:bg-backdrop-low"
         onClick={() => editor.dispatchCommand(FORMAT_TEXT_COMMAND, 'bold')}
       >
         <FontAwesomeIcon icon={faBold} />
       </button>
       <button
         type="button"
-        className="px-2 py-1 text-xs rounded border border-line hover:bg-backdrop-low"
+        className="px-2 py-1 text-xs rounded border border-line-low hover:bg-backdrop-low"
         onClick={() => editor.dispatchCommand(FORMAT_TEXT_COMMAND, 'italic')}
       >
         <FontAwesomeIcon icon={faItalic} />
       </button>
       <button
         type="button"
-        className="px-2 py-1 text-xs rounded border border-line hover:bg-backdrop-low"
+        className="px-2 py-1 text-xs rounded border border-line-low hover:bg-backdrop-low"
         onClick={() => editor.dispatchCommand(FORMAT_TEXT_COMMAND, 'underline')}
       >
         <FontAwesomeIcon icon={faUnderline} />
@@ -211,7 +211,7 @@ function Toolbar() {
       <div className="mx-2 h-4 w-px bg-line" />
       <button
         type="button"
-        className="px-2 py-1 text-xs rounded border border-line hover:bg-backdrop-low"
+        className="px-2 py-1 text-xs rounded border border-line-low hover:bg-backdrop-low"
         onClick={() =>
           editor.update(() => {
             const selection = $getSelection()
@@ -226,7 +226,7 @@ function Toolbar() {
       </button>
       <button
         type="button"
-        className="px-2 py-1 text-xs rounded border border-line hover:bg-backdrop-low"
+        className="px-2 py-1 text-xs rounded border border-line-low hover:bg-backdrop-low"
         onClick={() =>
           editor.update(() => {
             const selection = $getSelection()
@@ -242,21 +242,21 @@ function Toolbar() {
       <div className="mx-2 h-4 w-px bg-line" />
       <button
         type="button"
-        className="px-2 py-1 text-xs rounded border border-line hover:bg-backdrop-low"
+        className="px-2 py-1 text-xs rounded border border-line-low hover:bg-backdrop-low"
         onClick={() => editor.dispatchCommand(INSERT_UNORDERED_LIST_COMMAND, undefined)}
       >
         <FontAwesomeIcon icon={faListUl} />
       </button>
       <button
         type="button"
-        className="px-2 py-1 text-xs rounded border border-line hover:bg-backdrop-low"
+        className="px-2 py-1 text-xs rounded border border-line-low hover:bg-backdrop-low"
         onClick={() => editor.dispatchCommand(INSERT_ORDERED_LIST_COMMAND, undefined)}
       >
         <FontAwesomeIcon icon={faListOl} />
       </button>
       <button
         type="button"
-        className="px-2 py-1 text-xs rounded border border-line hover:bg-backdrop-low"
+        className="px-2 py-1 text-xs rounded border border-line-low hover:bg-backdrop-low"
         onClick={() => editor.dispatchCommand(REMOVE_LIST_COMMAND, undefined)}
       >
         <FontAwesomeIcon icon={faParagraph} />
@@ -264,7 +264,7 @@ function Toolbar() {
       <div className="mx-2 h-4 w-px bg-line" />
       <button
         type="button"
-        className="px-2 py-1 text-xs rounded border border-line hover:bg-backdrop-low"
+        className="px-2 py-1 text-xs rounded border border-line-low hover:bg-backdrop-low"
         title="Code Block"
         onClick={() =>
           editor.update(() => {
@@ -280,7 +280,7 @@ function Toolbar() {
       </button>
       <button
         type="button"
-        className="px-2 py-1 text-xs rounded border border-line hover:bg-backdrop-low"
+        className="px-2 py-1 text-xs rounded border border-line-low hover:bg-backdrop-low"
         title="Horizontal Rule"
         onClick={() =>
           editor.update(() => {

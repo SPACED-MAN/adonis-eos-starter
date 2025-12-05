@@ -294,14 +294,14 @@ export default function FormsIndex({ forms: initialForms, submissions }: FormsIn
   )
 
   return (
-    <div className="min-h-screen bg-backdrop-low">
+    <div className="min-h-screen bg-backdrop-medium">
       <Head title="Forms" />
       <AdminHeader title="Forms" />
       <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
         <AdminBreadcrumbs items={[{ label: 'Dashboard', href: '/admin' }, { label: 'Forms' }]} />
 
         {/* Tabs */}
-        <div className="mb-6 border-b border-line flex items-center gap-2 text-sm md:text-base">
+        <div className="mb-6 border-b border-line-low flex items-center gap-2 text-sm md:text-base">
           <button
             type="button"
             className={`px-4 py-2 font-medium rounded-t-md border-b-2 transition-colors ${activeTab === 'submissions'
@@ -326,8 +326,8 @@ export default function FormsIndex({ forms: initialForms, submissions }: FormsIn
 
         {/* Form definitions */}
         {activeTab === 'builder' && (
-          <div className="bg-backdrop-low border border-line rounded-lg mb-8">
-            <div className="px-6 py-4 border-b border-line flex items-center justify-between">
+          <div className="bg-backdrop-low border border-line-low rounded-lg mb-8">
+            <div className="px-6 py-4 border-b border-line-low flex items-center justify-between">
               <div>
                 <h2 className="text-lg font-semibold text-neutral-high">Form Definitions</h2>
                 <p className="text-xs text-neutral-low">
@@ -336,7 +336,7 @@ export default function FormsIndex({ forms: initialForms, submissions }: FormsIn
               </div>
               <button
                 type="button"
-                className="px-3 py-1.5 text-xs rounded border border-line bg-backdrop-medium hover:bg-backdrop-medium/80 text-neutral-high"
+                className="px-3 py-1.5 text-xs rounded border border-line-low bg-backdrop-medium hover:bg-backdrop-medium/80 text-neutral-high"
                 onClick={startCreate}
               >
                 New Form
@@ -345,7 +345,7 @@ export default function FormsIndex({ forms: initialForms, submissions }: FormsIn
             <div className="p-6 space-y-6">
               {/* Creation editor pinned to the top when creating a new form */}
               {creating && editing && editing.id === '__NEW__' && (
-                <div className="border border-line rounded-md bg-backdrop-medium/40 p-4">
+                <div className="border border-line-low rounded-md bg-backdrop-medium/40 p-4">
                   <EditorInner
                     editing={editing}
                     creating={true}
@@ -377,7 +377,7 @@ export default function FormsIndex({ forms: initialForms, submissions }: FormsIn
                   )}
                 </div>
                 {sortedForms.length === 0 ? (
-                  <div className="px-3 py-2 text-xs text-neutral-low border border-line rounded bg-backdrop-medium/40">
+                  <div className="px-3 py-2 text-xs text-neutral-low border border-line-low rounded bg-backdrop-medium/40">
                     No forms yet. Click “New Form” above to create one.
                   </div>
                 ) : (
@@ -388,7 +388,7 @@ export default function FormsIndex({ forms: initialForms, submissions }: FormsIn
                       return (
                         <div
                           key={f.id}
-                          className="border border-line rounded bg-backdrop-medium/40"
+                          className="border border-line-low rounded bg-backdrop-medium/40"
                         >
                           <button
                             type="button"
@@ -421,7 +421,7 @@ export default function FormsIndex({ forms: initialForms, submissions }: FormsIn
                             </span>
                           </button>
                           {isOpen && (
-                            <div className="border-t border-line p-4">
+                            <div className="border-t border-line-low p-4">
                               <EditorInner
                                 editing={editing}
                                 creating={false}
@@ -454,8 +454,8 @@ export default function FormsIndex({ forms: initialForms, submissions }: FormsIn
 
         {/* Submissions */}
         {activeTab === 'submissions' && (
-          <div className="bg-backdrop-low border border-line rounded-lg">
-            <div className="px-6 py-4 border-b border-line flex items-center justify-between">
+          <div className="bg-backdrop-low border border-line-low rounded-lg">
+            <div className="px-6 py-4 border-b border-line-low flex items-center justify-between">
               <h2 className="text-lg font-semibold text-neutral-high">Form Submissions</h2>
               <span className="text-xs text-neutral-low">
                 Showing latest {submissions.length} submissions
@@ -650,12 +650,12 @@ function EditorInner({
       </div>
 
       {/* Fields */}
-      <div className="border border-line rounded-md p-4 space-y-3 bg-backdrop-medium/40">
+      <div className="border border-line-low rounded-md p-4 space-y-3 bg-backdrop-medium/40">
         <div className="flex items-center justify-between mb-1">
           <h3 className="text-sm font-semibold text-neutral-high">Fields</h3>
           <button
             type="button"
-            className="px-2 py-1 text-xs rounded border border-line hover:bg-backdrop-medium text-neutral-medium"
+            className="px-2 py-1 text-xs rounded border border-line-low hover:bg-backdrop-medium text-neutral-medium"
             onClick={addField}
           >
             Add Field
@@ -726,13 +726,13 @@ function EditorInner({
       </div>
 
       {/* Subscriptions */}
-      <div className="border border-line rounded-md p-4 space-y-3 bg-backdrop-medium/40">
+      <div className="border border-line-low rounded-md p-4 space-y-3 bg-backdrop-medium/40">
         <div className="flex items-center justify-between mb-1">
           <h3 className="text-sm font-semibold text-neutral-high">Subscriptions</h3>
           {availableWebhooks.length > 0 && (
             <button
               type="button"
-              className="px-2 py-1 text-xs rounded border border-line hover:bg-backdrop-medium text-neutral-medium"
+              className="px-2 py-1 text-xs rounded border border-line-low hover:bg-backdrop-medium text-neutral-medium"
               onClick={addSubscriptionRow}
             >
               Add Webhook
@@ -778,7 +778,7 @@ function EditorInner({
                   </Select>
                   <button
                     type="button"
-                    className="px-2 py-1 text-xs border border-line rounded text-neutral-medium hover:bg-backdrop-medium"
+                    className="px-2 py-1 text-xs border border-line-medium rounded text-neutral-medium hover:bg-backdrop-medium"
                     onClick={() => removeSubscriptionRow(idx)}
                   >
                     Remove
@@ -808,7 +808,7 @@ function EditorInner({
         </button>
         <button
           type="button"
-          className="px-3 py-1.5 text-sm rounded border border-line text-neutral-medium"
+          className="px-3 py-1.5 text-sm rounded border border-line-low text-neutral-medium"
           onClick={cancelCreateOrEdit}
         >
           Cancel

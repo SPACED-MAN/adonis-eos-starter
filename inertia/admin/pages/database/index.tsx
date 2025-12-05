@@ -182,7 +182,7 @@ export default function DatabaseIndex() {
   }
 
   return (
-    <div className="min-h-screen bg-backdrop-low">
+    <div className="min-h-screen bg-backdrop-medium">
       <Head title="Database Export/Import" />
       <AdminHeader title="Database Export/Import" />
       <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
@@ -193,7 +193,7 @@ export default function DatabaseIndex() {
           ]}
         />
 
-        <div className="bg-backdrop-low rounded-lg shadow border border-line p-6">
+        <div className="bg-backdrop-low rounded-lg shadow border border-line-low p-6">
           <div className="mb-6">
             <p className="text-neutral-medium">
               Export your entire database for backup or migration, or import from a previous export.
@@ -201,7 +201,7 @@ export default function DatabaseIndex() {
           </div>
 
           {/* Export Section */}
-          <div className="bg-backdrop-medium border border-line rounded-lg p-6 mb-6">
+          <div className="bg-backdrop-medium border border-line-low rounded-lg p-6 mb-6">
             <div className="flex items-center gap-2 mb-4">
               <FontAwesomeIcon icon={faDownload} className="text-standout" />
               <h2 className="text-xl font-semibold text-neutral-dark">Export Database</h2>
@@ -251,7 +251,7 @@ export default function DatabaseIndex() {
             </div>
 
             {exportStats && (
-              <div className="mt-4 p-4 bg-backdrop-high rounded border border-line">
+              <div className="mt-4 p-4 bg-backdrop-high rounded border border-line-medium">
                 <h3 className="font-semibold text-neutral-dark mb-2">Export Statistics</h3>
                 <div className="grid grid-cols-3 gap-4 mb-3">
                   <div>
@@ -285,7 +285,7 @@ export default function DatabaseIndex() {
           </div>
 
           {/* Import Section */}
-          <div className="bg-backdrop-medium border border-line rounded-lg p-6">
+          <div className="bg-backdrop-medium border border-line-low rounded-lg p-6">
             <div className="flex items-center gap-2 mb-4">
               <FontAwesomeIcon icon={faUpload} className="text-standout" />
               <h2 className="text-xl font-semibold text-neutral-dark">Import Database</h2>
@@ -308,7 +308,7 @@ export default function DatabaseIndex() {
               <select
                 value={importStrategy}
                 onChange={(e) => setImportStrategy(e.target.value as any)}
-                className="w-full px-3 py-2 border border-line rounded-lg bg-backdrop-low"
+                className="w-full px-3 py-2 border border-line-medium rounded-lg bg-backdrop-low"
               >
                 <option value="merge">Merge - Add new records, skip conflicts (safest)</option>
                 <option value="skip">Skip - Only import to empty tables</option>
@@ -332,12 +332,12 @@ export default function DatabaseIndex() {
                     handleValidateFile(file)
                   }
                 }}
-                className="w-full px-3 py-2 border border-line rounded-lg bg-backdrop-low file:mr-4 file:py-2 file:px-4 file:rounded file:border-0 file:text-sm file:font-semibold file:bg-standout file:text-on-standout hover:file:opacity-90"
+                className="w-full px-3 py-2 border border-line-medium rounded-lg bg-backdrop-low file:mr-4 file:py-2 file:px-4 file:rounded file:border-0 file:text-sm file:font-semibold file:bg-standout file:text-on-standout hover:file:opacity-90"
               />
             </div>
 
             {validating && (
-              <div className="p-4 bg-backdrop-high rounded border border-line mb-4">
+              <div className="p-4 bg-backdrop-high rounded border border-line-low mb-4">
                 <FontAwesomeIcon icon={faSpinner} spin className="mr-2" />
                 Validating file...
               </div>
@@ -392,7 +392,7 @@ export default function DatabaseIndex() {
             )}
 
             {importResult && (
-              <div className="p-4 bg-backdrop-high rounded border border-line">
+              <div className="p-4 bg-backdrop-high rounded border border-line-medium">
                 <h3 className="font-semibold text-neutral-dark mb-2">Import Results</h3>
                 <div className="grid grid-cols-3 gap-4 mb-3">
                   <div>

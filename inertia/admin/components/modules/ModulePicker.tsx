@@ -174,7 +174,7 @@ export function ModulePicker({
 							<AlertDialogDescription>Select a module from Library or choose an existing Global module to insert.</AlertDialogDescription>
 						</AlertDialogHeader>
 						<div className="mt-2">
-							<div className="border-b border-line mb-2">
+							<div className="border-b border-line-low mb-2">
 								<div className="flex items-center gap-2 px-1">
 									<button type="button" className={`px-2 py-1 text-xs rounded-t ${tab === 'library' ? 'bg-backdrop-medium' : 'text-neutral-medium hover:bg-backdrop-medium'}`} onClick={() => setTab('library')}>Library</button>
 									<button type="button" className={`px-2 py-1 text-xs rounded-t ${tab === 'globals' ? 'bg-backdrop-medium' : 'text-neutral-medium hover:bg-backdrop-medium'}`} onClick={() => setTab('globals')}>Globals</button>
@@ -197,7 +197,7 @@ export function ModulePicker({
 											<button
 												type="button"
 												onClick={() => addModule(m.type)}
-												className="shrink-0 inline-flex items-center rounded border border-line bg-backdrop-low px-2.5 py-1.5 text-xs text-neutral-high hover:bg-backdrop-medium"
+												className="shrink-0 inline-flex items-center rounded border border-line-medium bg-backdrop-low px-2.5 py-1.5 text-xs text-neutral-high hover:bg-backdrop-medium"
 												disabled={loading}
 											>
 												Add
@@ -219,7 +219,7 @@ export function ModulePicker({
 											<button
 												type="button"
 												onClick={() => addGlobal(g.type, g.globalSlug)}
-												className="shrink-0 inline-flex items-center rounded border border-line bg-backdrop-low px-2.5 py-1.5 text-xs text-neutral-high hover:bg-backdrop-medium"
+												className="shrink-0 inline-flex items-center rounded border border-line-medium bg-backdrop-low px-2.5 py-1.5 text-xs text-neutral-high hover:bg-backdrop-medium"
 												disabled={loading}
 											>
 												Add

@@ -126,11 +126,11 @@ export default function UsersIndex() {
   }
 
   return (
-    <div className="min-h-screen bg-backdrop-low">
+    <div className="min-h-screen bg-backdrop-medium">
       <AdminHeader title="User Management" />
       <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
         <AdminBreadcrumbs items={[{ label: 'Dashboard', href: '/admin' }, { label: 'User Management' }]} />
-        <div className="bg-backdrop-low rounded-lg border border-line p-6">
+        <div className="bg-backdrop-low rounded-lg border border-line-low p-6">
           <div className="flex items-center justify-between mb-4">
             <Input
               value={filter}
@@ -152,7 +152,7 @@ export default function UsersIndex() {
               </thead>
               <tbody>
                 {filteredRows().map((u) => (
-                  <tr key={u.id} className="border-t border-line">
+                  <tr key={u.id} className="border-t border-line-low">
                     <td className="py-2 pr-2">{u.email}</td>
                     <td className="py-2 pr-2">
                       <Input
@@ -182,12 +182,12 @@ export default function UsersIndex() {
                     <td className="py-2 pl-2 text-right">
                       <a
                         href={`/admin/users/${u.id}/edit`}
-                        className="px-2 py-1 text-xs border border-line rounded hover:bg-backdrop-medium text-neutral-medium mr-2"
+                        className="px-2 py-1 text-xs border border-line-medium rounded hover:bg-backdrop-medium text-neutral-medium mr-2"
                       >
                         Edit
                       </a>
                       <button
-                        className="px-2 py-1 text-xs border border-line rounded hover:bg-backdrop-medium text-neutral-high mr-2"
+                        className="px-2 py-1 text-xs border border-line-medium rounded hover:bg-backdrop-medium text-neutral-high mr-2"
                         onClick={async () => {
                           try {
                             const res = await fetch(`/api/users/${encodeURIComponent(u.id)}/profile`, { credentials: 'same-origin' })
@@ -225,7 +225,7 @@ export default function UsersIndex() {
                             className="w-[200px]"
                           />
                           <button
-                            className="px-2 py-1 text-xs border border-line rounded hover:bg-backdrop-medium text-neutral-high"
+                            className="px-2 py-1 text-xs border border-line-medium rounded hover:bg-backdrop-medium text-neutral-high"
                             disabled={!!saving[u.id]}
                             onClick={() => {
                               resetPassword(u.id, pwd)
@@ -236,7 +236,7 @@ export default function UsersIndex() {
                             Save
                           </button>
                           <button
-                            className="px-2 py-1 text-xs border border-line rounded hover:bg-backdrop-medium text-neutral-medium"
+                            className="px-2 py-1 text-xs border border-line-medium rounded hover:bg-backdrop-medium text-neutral-medium"
                             onClick={() => { setPwdFor(null); setPwd('') }}
                           >
                             Cancel
@@ -244,7 +244,7 @@ export default function UsersIndex() {
                         </div>
                       ) : (
                         <button
-                          className="px-2 py-1 text-xs border border-line rounded hover:bg-backdrop-medium text-neutral-medium"
+                          className="px-2 py-1 text-xs border border-line-medium rounded hover:bg-backdrop-medium text-neutral-medium"
                           onClick={() => setPwdFor(u.id)}
                         >
                           Reset Password

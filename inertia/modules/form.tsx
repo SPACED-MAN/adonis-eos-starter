@@ -38,29 +38,29 @@ export default function FormModule({ title, subtitle, formSlug }: FormModuleProp
     setSubmitted(false)
     setErrors({})
 
-    ;(async () => {
-      try {
-        const res = await fetch(`/api/forms/${encodeURIComponent(formSlug)}`, {
-          credentials: 'same-origin',
-          headers: { Accept: 'application/json' },
-        })
-        if (!res.ok) {
-          throw new Error('Failed to load form')
+      ; (async () => {
+        try {
+          const res = await fetch(`/api/forms/${encodeURIComponent(formSlug)}`, {
+            credentials: 'same-origin',
+            headers: { Accept: 'application/json' },
+          })
+          if (!res.ok) {
+            throw new Error('Failed to load form')
+          }
+          const j = await res.json().catch(() => null)
+          if (!cancelled) {
+            const def: FormDefinition | null = j?.data ?? null
+            setDefinition(def)
+            setValues({})
+          }
+        } catch {
+          if (!cancelled) {
+            setDefinition(null)
+          }
+        } finally {
+          if (!cancelled) setLoading(false)
         }
-        const j = await res.json().catch(() => null)
-        if (!cancelled) {
-          const def: FormDefinition | null = j?.data ?? null
-          setDefinition(def)
-          setValues({})
-        }
-      } catch {
-        if (!cancelled) {
-          setDefinition(null)
-        }
-      } finally {
-        if (!cancelled) setLoading(false)
-      }
-    })()
+      })()
 
     return () => {
       cancelled = true
@@ -179,7 +179,7 @@ export default function FormModule({ title, subtitle, formSlug }: FormModuleProp
                 </label>
                 {field.type === 'textarea' ? (
                   <textarea
-                    className="block w-full rounded-md border border-line bg-backdrop-low px-3 py-2 text-sm text-neutral-high focus:outline-none focus:ring-2 focus:ring-standout/40"
+                    className="block w-full rounded-md border border-line-low bg-backdrop-input px-3 py-2 text-sm text-neutral-high focus:outline-none focus:ring-2 focus:ring-standout/40"
                     rows={4}
                     value={value}
                     onChange={(e) => handleChange(field, e.target.value)}
@@ -189,7 +189,7 @@ export default function FormModule({ title, subtitle, formSlug }: FormModuleProp
                     <input
                       id={field.slug}
                       type="checkbox"
-                      className="h-4 w-4 rounded border-line bg-backdrop-low text-standout focus:ring-standout/50"
+                      className="h-4 w-4 rounded border-line-low bg-backdrop-input text-standout focus:ring-standout/50"
                       checked={Boolean(value)}
                       onChange={(e) => handleChange(field, e.target.checked)}
                     />
@@ -200,7 +200,7 @@ export default function FormModule({ title, subtitle, formSlug }: FormModuleProp
                 ) : (
                   <input
                     type={field.type === 'email' ? 'email' : 'text'}
-                    className="block w-full rounded-md border border-line bg-backdrop-low px-3 py-2 text-sm text-neutral-high focus:outline-none focus:ring-2 focus:ring-standout/40"
+                    className="block w-full rounded-md border border-line-low bg-backdrop-input px-3 py-2 text-sm text-neutral-high focus:outline-none focus:ring-2 focus:ring-standout/40"
                     value={value}
                     onChange={(e) => handleChange(field, e.target.value)}
                   />

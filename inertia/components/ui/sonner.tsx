@@ -37,7 +37,7 @@ const Toaster = ({ ...props }: ToasterProps) => {
 			}}
 			toastOptions={{
 				classNames: {
-					toast: 'group-[.toaster]:bg-backdrop-low group-[.toaster]:border-line',
+					toast: 'group-[.toaster]:bg-backdrop-low group-[.toaster]:border-line-low',
 					description: 'group-[.toast]:text-neutral-low',
 					actionButton: 'group-[.toast]:bg-standout group-[.toast]:text-on-standout',
 					cancelButton: 'group-[.toast]:bg-backdrop-medium group-[.toast]:text-neutral-high',

@@ -40,14 +40,14 @@ export default function ProtectedPage({ redirect }: { redirect?: string }) {
 	return (
 		<div className="min-h-screen flex items-center justify-center bg-backdrop-low">
 			<Head title="Protected" />
-			<form onSubmit={submit} className="w-full max-w-sm bg-white border border-line rounded p-6 shadow">
+			<form onSubmit={submit} className="w-full max-w-sm bg-white border border-line-low rounded p-6 shadow">
 				<h1 className="text-lg font-semibold mb-4">Protected Content</h1>
 				<p className="text-sm text-neutral-medium mb-4">Enter credentials to view this page.</p>
 				{error && <div className="mb-3 text-sm text-red-600">{error}</div>}
 				<div className="mb-3">
 					<label className="block text-sm text-neutral-medium mb-1">Username</label>
 					<input
-						className="w-full px-3 py-2 border border-line rounded bg-backdrop-low"
+						className="w-full px-3 py-2 border border-line-low rounded bg-backdrop-low"
 						name="username"
 						autoComplete="username"
 						value={username}
@@ -58,14 +58,14 @@ export default function ProtectedPage({ redirect }: { redirect?: string }) {
 					<label className="block text-sm text-neutral-medium mb-1">Password</label>
 					<input
 						type="password"
-						className="w-full px-3 py-2 border border-line rounded bg-backdrop-low"
+						className="w-full px-3 py-2 border border-line-low rounded bg-backdrop-low"
 						name="password"
 						autoComplete="current-password"
 						value={password}
 						onChange={(e) => setPassword(e.target.value)}
 					/>
 				</div>
-				<button type="submit" className="w-full px-3 py-2 text-sm border border-line rounded bg-standout text-on-standout">Unlock</button>
+				<button type="submit" className="w-full px-3 py-2 text-sm border border-line-low rounded bg-standout text-on-standout">Unlock</button>
 			</form>
 		</div>
 	)

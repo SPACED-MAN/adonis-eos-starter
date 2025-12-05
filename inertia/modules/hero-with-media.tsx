@@ -97,7 +97,7 @@ export default function HeroWithMedia({
 
   const imageBlock = resolvedImageUrl ? (
     <div className="lg:col-span-5 flex justify-center lg:justify-end">
-      <div className="w-full max-w-md rounded-xl overflow-hidden border border-line bg-backdrop-high">
+      <div className="w-full max-w-md rounded-xl overflow-hidden border border-line-low bg-backdrop-high">
         <img
           src={resolvedImageUrl}
           alt={imageAlt || ''}
@@ -146,7 +146,7 @@ function ButtonComponent({ label, url, style = 'primary', target = '_self', rel 
       primary: 'bg-standout text-on-standout',
       secondary: 'bg-backdrop-medium hover:bg-backdrop-high text-neutral-high',
       outline:
-        'border border-line hover:bg-backdrop-medium text-neutral-high',
+        'border border-line-low hover:bg-backdrop-medium text-neutral-high',
     }[style] || 'bg-standout text-on-standout'
 
   const { href, target: finalTarget } = resolveHrefAndTarget(url, target)

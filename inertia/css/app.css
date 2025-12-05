@@ -10,7 +10,7 @@
  * tailwind.config.js color names (e.g., bg-backdrop-low, text-neutral-high).
  */
 @theme {
-  --color-standout: var(--color-emerald-600);
+  --color-standout: var(--color-violet-600);
   --color-on-standout: var(--color-white);
 
   --color-neutral-low: var(--color-zinc-400);
@@ -20,14 +20,18 @@
   --color-backdrop-low: var(--color-zinc-50);
   --color-backdrop-medium: var(--color-zinc-100);
   --color-backdrop-high: var(--color-zinc-200);
+  --color-backdrop-input: var(--color-zinc-100);
 
-  --color-line: var(--color-zinc-400);
-  --color-placeholder: var(--color-zinc-400);
+  --color-line-low: var(--color-zinc-200);
+  --color-line-medium: var(--color-zinc-300);
+  --color-line-high: var(--color-zinc-400);
+  --color-line-input: var(--color-zinc-100);
+  --color-placeholder: var(--color-zinc-500);
   --color-disabled: var(--color-zinc-300);
 }
 
 [data-theme="admin"].dark {
-  --color-standout: var(--color-emerald-700);
+  --color-standout: var(--color-violet-400);
   --color-on-standout: var(--color-white);
 
   --color-neutral-low: var(--color-zinc-400);
@@ -37,8 +41,12 @@
   --color-backdrop-low: var(--color-zinc-900);
   --color-backdrop-medium: var(--color-zinc-800);
   --color-backdrop-high: var(--color-zinc-700);
+  --color-backdrop-input: var(--color-zinc-800);
 
-  --color-line: var(--color-zinc-700);
+  --color-line-low: var(--color-zinc-800);
+  --color-line-medium: var(--color-zinc-700);
+  --color-line-high: var(--color-zinc-600);
+  --color-line-input: var(--color-zinc-800);
   --color-placeholder: var(--color-zinc-500);
   --color-disabled: var(--color-zinc-600);
 }
@@ -54,8 +62,12 @@
   --color-backdrop-low: var(--color-zinc-50);
   --color-backdrop-medium: var(--color-zinc-100);
   --color-backdrop-high: var(--color-zinc-200);
+  --color-backdrop-input: var(--color-zinc-100);
 
-  --color-line: var(--color-zinc-400);
+  --color-line-low: var(--color-zinc-200);
+  --color-line-medium: var(--color-zinc-300);
+  --color-line-high: var(--color-zinc-400);
+  --color-line-input: var(--color-zinc-100);
   --color-placeholder: var(--color-zinc-500);
   --color-disabled: var(--color-zinc-300);
 }
@@ -71,8 +83,12 @@
   --color-backdrop-low: var(--color-zinc-900);
   --color-backdrop-medium: var(--color-zinc-800);
   --color-backdrop-high: var(--color-zinc-700);
+  --color-backdrop-input: var(--color-zinc-800);
 
-  --color-line: var(--color-zinc-600);
+  --color-line-low: var(--color-zinc-800);
+  --color-line-medium: var(--color-zinc-700);
+  --color-line-high: var(--color-zinc-600);
+  --color-line-input: var(--color-zinc-800);
   --color-placeholder: var(--color-zinc-500);
   --color-disabled: var(--color-zinc-600);
 }
@@ -134,8 +150,8 @@
   --accent: var(--color-backdrop-medium);
   --accent-foreground: var(--color-neutral-high);
   --destructive: var(--color-red-500);
-  --border: var(--color-line);
-  --input: var(--color-line);
+  --border: var(--color-line-low);
+  --input: var(--color-line-low);
   --ring: var(--color-sky-400);
   --chart-1: var(--color-indigo-500);
   --chart-2: var(--color-emerald-500);
@@ -148,7 +164,7 @@
   --sidebar-primary-foreground: var(--color-on-standout);
   --sidebar-accent: var(--color-backdrop-medium);
   --sidebar-accent-foreground: var(--color-neutral-high);
-  --sidebar-border: var(--color-line);
+  --sidebar-border: var(--color-line-low);
   --sidebar-ring: var(--color-sky-400);
 }
 
@@ -168,8 +184,8 @@
   --accent: var(--color-backdrop-medium);
   --accent-foreground: var(--color-neutral-high);
   --destructive: var(--color-orange-500);
-  --border: var(--color-line);
-  --input: var(--color-line);
+  --border: var(--color-line-low);
+  --input: var(--color-line-low);
   --ring: var(--color-sky-900);
   --chart-1: var(--color-indigo-400);
   --chart-2: var(--color-emerald-400);
@@ -182,7 +198,7 @@
   --sidebar-primary-foreground: var(--color-on-standout);
   --sidebar-accent: var(--color-backdrop-medium);
   --sidebar-accent-foreground: var(--color-neutral-high);
-  --sidebar-border: var(--color-line);
+  --sidebar-border: var(--color-line-low);
   --sidebar-ring: var(--color-sky-900);
 }
 
@@ -204,7 +220,7 @@
     --tw-prose-bullets: var(--color-neutral-medium);
     --tw-prose-quotes: var(--color-neutral-medium);
     --tw-prose-code: var(--color-neutral-high);
-    --tw-prose-hr: var(--color-line);
+    --tw-prose-hr: var(--color-line-low);
 
     max-width: none;
   }
@@ -282,7 +298,7 @@
 
   .prose pre {
     background-color: var(--color-backdrop-medium);
-    border: 1px solid var(--color-line);
+    border: 1px solid var(--color-line-low);
     border-radius: 0.5rem;
     padding: 1rem;
     overflow-x: auto;
@@ -300,7 +316,7 @@
 
   .prose hr {
     border: none;
-    border-top: 1px solid var(--color-line);
+    border-top: 1px solid var(--color-line-low);
     margin-top: 2rem;
     margin-bottom: 2rem;
   }
@@ -329,7 +345,7 @@
     --tw-prose-bullets: var(--color-neutral-medium);
     --tw-prose-quotes: var(--color-neutral-medium);
     --tw-prose-code: var(--color-neutral-high);
-    --tw-prose-hr: var(--color-line);
+    --tw-prose-hr: var(--color-line-low);
   }
 
   .dark .prose h2,
@@ -343,10 +359,10 @@
 
   .dark .prose pre {
     background-color: var(--color-backdrop-medium);
-    border-color: var(--color-line);
+    border-color: var(--color-line-low);
   }
 
   .dark .prose hr {
-    border-top-color: var(--color-line);
+    border-top-color: var(--color-line-low);
   }
 }

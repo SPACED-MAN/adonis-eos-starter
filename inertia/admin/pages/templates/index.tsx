@@ -28,7 +28,7 @@ export default function TemplatesIndex() {
 	const [createForm, setCreateForm] = useState<{ name: string; postType: string }>({ name: '', postType: '' })
 
 	useEffect(() => {
-		;(async () => {
+		; (async () => {
 			const r = await fetch('/api/templates', { credentials: 'same-origin' })
 			const json = await r.json().catch(() => ({}))
 			setTemplates(Array.isArray(json?.data) ? json.data : [])
@@ -36,7 +36,7 @@ export default function TemplatesIndex() {
 	}, [])
 
 	useEffect(() => {
-		;(async () => {
+		; (async () => {
 			try {
 				const r = await fetch('/api/post-types', { credentials: 'same-origin' })
 				const json = await r.json().catch(() => ({}))
@@ -91,19 +91,19 @@ export default function TemplatesIndex() {
 	}
 
 	return (
-		<div className="min-h-screen bg-backdrop-low">
+		<div className="min-h-screen bg-backdrop-medium">
 			<Head title="Templates" />
 			<AdminHeader title="Templates" />
 			<main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
 				<AdminBreadcrumbs items={[{ label: 'Dashboard', href: '/admin' }, { label: 'Templates' }]} />
-				<div className="bg-backdrop-low rounded-lg border border-line">
-					<div className="px-6 py-4 border-b border-line flex items-center justify-between gap-3">
+				<div className="bg-backdrop-low rounded-lg border border-line-low">
+					<div className="px-6 py-4 border-b border-line-low flex items-center justify-between gap-3">
 						<div className="flex items-center gap-2">
 							<input
 								value={q}
 								onChange={(e) => setQ(e.target.value)}
 								placeholder="Search by name or post type…"
-								className="px-3 py-2 text-sm border border-line rounded bg-backdrop-low text-neutral-high"
+								className="px-3 py-2 text-sm border border-line-medium rounded bg-backdrop-low text-neutral-high"
 							/>
 							<Select defaultValue={type || undefined} onValueChange={(val) => setType(val === 'all' ? '' : val)}>
 								<SelectTrigger className="w-[200px]">
@@ -122,7 +122,7 @@ export default function TemplatesIndex() {
 								value={createForm.name}
 								onChange={(e) => setCreateForm((f) => ({ ...f, name: e.target.value }))}
 								placeholder="New template name"
-								className="px-3 py-2 text-sm border border-line rounded bg-backdrop-low text-neutral-high"
+								className="px-3 py-2 text-sm border border-line-medium rounded bg-backdrop-low text-neutral-high"
 							/>
 							<Select
 								defaultValue={createForm.postType}
@@ -160,7 +160,7 @@ export default function TemplatesIndex() {
 										{t.updated_at ? new Date(t.updated_at).toLocaleString() : ''}
 									</div>
 									<div className="col-span-2 text-right">
-										<Link href={`/admin/templates/${t.id}/edit`} className="px-3 py-1.5 text-xs border border-line rounded hover:bg-backdrop-medium text-neutral-medium">
+										<Link href={`/admin/templates/${t.id}/edit`} className="px-3 py-1.5 text-xs border border-line-low rounded hover:bg-backdrop-medium text-neutral-medium">
 											Edit
 										</Link>
 									</div>

@@ -58,7 +58,7 @@ export function ThankYouPagePicker({
 					value={query}
 					onChange={(e) => setQuery(e.target.value)}
 				/>
-				<div className="max-h-40 overflow-auto border border-line rounded bg-backdrop-medium/40">
+				<div className="max-h-40 overflow-auto border border-line-low rounded bg-backdrop-medium/40">
 					{loading ? (
 						<div className="px-3 py-2 text-xs text-neutral-low">Searching…</div>
 					) : results.length === 0 ? (

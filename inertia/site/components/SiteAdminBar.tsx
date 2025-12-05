@@ -85,8 +85,8 @@ export function SiteAdminBar() {
           onClick={toggleView}
           style={{ position: 'fixed', bottom: '16px', right: '64px', zIndex: 9999 }}
           className={`rounded-full border px-3 py-3 shadow ${viewMode === 'review'
-              ? 'bg-standout text-on-standout border-standout/60'
-              : 'bg-backdrop-low text-neutral-high border-line hover:bg-backdrop-medium'
+            ? 'bg-standout text-on-standout border-standout/60'
+            : 'bg-backdrop-low text-neutral-high border-line-low hover:bg-backdrop-medium'
             }`}
           title={viewMode === 'review' ? 'Viewing Review (click to switch to Approved)' : 'Viewing Approved (click to switch to Review)'}
         >
@@ -98,7 +98,7 @@ export function SiteAdminBar() {
         aria-label="Admin tools"
         onClick={() => setOpen((v) => !v)}
         style={{ position: 'fixed', bottom: '16px', right: '16px', zIndex: 9999 }}
-        className="rounded-full bg-backdrop-low border border-line text-neutral-high hover:bg-backdrop-medium px-3 py-3 shadow"
+        className="rounded-full bg-backdrop-low border border-line-low text-neutral-high hover:bg-backdrop-medium px-3 py-3 shadow"
       >
         <FontAwesomeIcon icon={faWrench} />
       </button>
@@ -113,9 +113,9 @@ export function SiteAdminBar() {
             zIndex: 9999,
             minWidth: '280px',
           }}
-          className="rounded-lg border border-line bg-backdrop-low text-neutral-high shadow-lg"
+          className="rounded-lg border border-line-low bg-backdrop-input text-neutral-high shadow-lg"
         >
-          <div className="flex items-center justify-between px-3 py-2 border-b border-line">
+          <div className="flex items-center justify-between px-3 py-2 border-b border-line-low">
             <div className="text-sm font-semibold">Admin</div>
             <button
               aria-label="Close"
@@ -130,7 +130,7 @@ export function SiteAdminBar() {
               <span>Go to Dashboard</span>
               <a
                 href="/admin"
-                className="px-2 py-1 rounded border border-line hover:bg-backdrop-medium text-neutral-medium"
+                className="px-2 py-1 rounded border border-line-low hover:bg-backdrop-medium text-neutral-medium"
               >
                 Open
               </a>

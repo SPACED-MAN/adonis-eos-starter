@@ -15,7 +15,7 @@ export function AdminHeader({ title = 'Admin' }: { title?: string }) {
 	return (
 		<SidebarProvider>
 			<AdminSidebar />
-			<header className="bg-backdrop-low border-b border-line">
+			<header className="bg-backdrop-low border-b border-line-low">
 				<div className="h-18 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4">
 					<div className="flex items-center justify-between">
 						<div className="flex items-center gap-3">
@@ -35,7 +35,7 @@ export function AdminHeader({ title = 'Admin' }: { title?: string }) {
 								href="/admin/logout"
 								method="post"
 								as="button"
-								className="px-3 py-1.5 border border-line rounded-lg text-sm text-neutral-medium hover:bg-backdrop-medium cursor-pointer"
+								className="px-3 py-1.5 border border-line-low rounded-lg text-sm text-neutral-medium hover:bg-backdrop-medium cursor-pointer"
 							>
 								Logout
 							</Link>

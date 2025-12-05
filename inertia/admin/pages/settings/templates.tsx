@@ -152,18 +152,18 @@ export default function TemplatesPage() {
 	}
 
 	return (
-		<div className="min-h-screen bg-backdrop-low">
+		<div className="min-h-screen bg-backdrop-medium">
 			<Head title="Templates" />
 			<AdminHeader title="Templates" />
 			<main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
 				<AdminBreadcrumbs items={[{ label: 'Dashboard', href: '/admin' }, { label: 'Templates' }]} />
-				<div className="bg-backdrop-low border border-line rounded-lg">
-					<div className="px-6 py-4 border-b border-line flex items-center justify-between">
+				<div className="bg-backdrop-low border border-line-low rounded-lg">
+					<div className="px-6 py-4 border-b border-line-low flex items-center justify-between">
 						<h2 className="text-lg font-semibold text-neutral-high">Template Builder</h2>
 						<div className="flex items-center gap-2">
 							{loading && <span className="text-sm text-neutral-low">Loading…</span>}
 							<button
-								className="px-3 py-2 text-sm rounded border border-line hover:bg-backdrop-medium text-neutral-medium disabled:opacity-50"
+								className="px-3 py-2 text-sm rounded border border-line-low hover:bg-backdrop-medium text-neutral-medium disabled:opacity-50"
 								disabled={creating}
 								onClick={() => setIsCreateOpen(true)}
 							>
@@ -175,7 +175,7 @@ export default function TemplatesPage() {
 						{/* Templates list */}
 						<div className="md:col-span-1">
 							<h3 className="text-sm font-semibold text-neutral-high mb-3">Templates</h3>
-							<div className="border border-line rounded divide-y divide-line">
+							<div className="border border-line-low rounded divide-y divide-line">
 								{templates.length === 0 ? (
 									<p className="p-3 text-neutral-low">No templates.</p>
 								) : (
@@ -205,15 +205,15 @@ export default function TemplatesPage() {
 										</div>
 										<div className="relative">
 											<button
-												className="px-3 py-2 text-sm rounded border border-line hover:bg-backdrop-medium text-neutral-medium"
+												className="px-3 py-2 text-sm rounded border border-line-low hover:bg-backdrop-medium text-neutral-medium"
 												onClick={() => setPickerOpen((v) => !v)}
 												type="button"
 											>
 												Add Module
 											</button>
 											{pickerOpen && (
-												<div className="absolute right-0 mt-2 w-[28rem] max-h-[24rem] overflow-auto rounded-lg border border-line bg-backdrop-low shadow-lg z-20">
-													<div className="sticky top-0 bg-backdrop-low border-b border-line px-3 py-2 text-sm font-medium">
+												<div className="absolute right-0 mt-2 w-[28rem] max-h-[24rem] overflow-auto rounded-lg border border-line-low bg-backdrop-input shadow-lg z-20">
+													<div className="sticky top-0 bg-backdrop-low border-b border-line-low px-3 py-2 text-sm font-medium">
 														Available Modules
 													</div>
 													<div className="divide-y divide-line">
@@ -229,7 +229,7 @@ export default function TemplatesPage() {
 																<button
 																	type="button"
 																	onClick={() => addModule(m.type)}
-																	className="shrink-0 inline-flex items-center rounded border border-line bg-backdrop-low px-2.5 py-1.5 text-xs text-neutral-high hover:bg-backdrop-medium"
+																	className="shrink-0 inline-flex items-center rounded border border-line-medium bg-backdrop-low px-2.5 py-1.5 text-xs text-neutral-high hover:bg-backdrop-medium"
 																>
 																	Add
 																</button>
@@ -240,7 +240,7 @@ export default function TemplatesPage() {
 											)}
 										</div>
 									</div>
-									<div className="border border-line rounded divide-y divide-line">
+									<div className="border border-line-low rounded divide-y divide-line">
 										{modules.length === 0 ? (
 											<p className="p-3 text-neutral-low">No modules in this template.</p>
 										) : (
@@ -251,7 +251,7 @@ export default function TemplatesPage() {
 														<div className="text-xs text-neutral-low">Order: {m.order_index}</div>
 													</div>
 													<button
-														className="px-3 py-1.5 text-xs rounded border border-line hover:bg-backdrop-medium text-neutral-medium"
+														className="px-3 py-1.5 text-xs rounded border border-line-low hover:bg-backdrop-medium text-neutral-medium"
 														onClick={() => removeModule(m.id)}
 													>
 														Remove
@@ -273,7 +273,7 @@ export default function TemplatesPage() {
 			{isCreateOpen && (
 				<div className="fixed inset-0 z-50 flex items-center justify-center">
 					<div className="absolute inset-0 bg-black/50" onClick={() => setIsCreateOpen(false)} />
-					<div className="relative z-10 w-full max-w-md rounded-lg border border-line bg-backdrop-low p-6 shadow-xl">
+					<div className="relative z-10 w-full max-w-md rounded-lg border border-line-low bg-backdrop-input p-6 shadow-xl">
 						<div className="flex items-center justify-between mb-4">
 							<h3 className="text-base font-semibold text-neutral-high">Create Template</h3>
 							<button
@@ -291,7 +291,7 @@ export default function TemplatesPage() {
 									type="text"
 									value={createForm.name}
 									onChange={(e) => setCreateForm((f) => ({ ...f, name: e.target.value }))}
-									className="w-full px-3 py-2 border border-line rounded bg-backdrop-low text-neutral-high"
+									className="w-full px-3 py-2 border border-line-low rounded bg-backdrop-low text-neutral-high"
 									placeholder="blog-default"
 								/>
 							</div>
@@ -313,7 +313,7 @@ export default function TemplatesPage() {
 							</div>
 							<div className="flex items-center justify-end gap-2 pt-2">
 								<button
-									className="px-3 py-2 text-sm rounded border border-line hover:bg-backdrop-medium text-neutral-medium"
+									className="px-3 py-2 text-sm rounded border border-line-low hover:bg-backdrop-medium text-neutral-medium"
 									onClick={() => setIsCreateOpen(false)}
 									type="button"
 								>

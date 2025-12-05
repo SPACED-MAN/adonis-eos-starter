@@ -13,9 +13,9 @@ export default function ServerError({ error }: ServerErrorProps) {
   const isDevelopment = import.meta.env.DEV
 
   return (
-    <div className="min-h-screen bg-backdrop-low flex items-center justify-center px-4">
+    <div className="min-h-screen bg-backdrop-medium flex items-center justify-center px-4">
       <div className="max-w-2xl w-full">
-        <div className="bg-backdrop-low rounded-lg shadow-lg p-8 border border-line">
+        <div className="bg-backdrop-low rounded-lg p-8 border border-line-low">
           <div className="mb-6">
             <h1 className="text-4xl font-bold text-error mb-2">
               Server Error

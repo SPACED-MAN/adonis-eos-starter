@@ -128,7 +128,7 @@ export default function ProfileList({ title, subtitle, profiles }: ProfileListPr
           {items.map((p) => (
             <article
               key={p.id}
-              className="items-center bg-backdrop-high rounded-lg shadow sm:flex border border-line"
+              className="items-center bg-backdrop-high rounded-lg shadow sm:flex border border-line-low"
             >
               {p.imageUrl && (
                 <a href={`/posts/${encodeURIComponent(p.slug)}`} className="sm:flex-shrink-0">

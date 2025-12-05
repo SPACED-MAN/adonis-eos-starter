@@ -164,13 +164,13 @@ export default function RedirectsPage() {
 	}
 
 	return (
-		<div className="min-h-screen bg-backdrop-low">
+		<div className="min-h-screen bg-backdrop-medium">
 			<Head title="Redirects" />
 			<AdminHeader title="Redirects" />
 			<main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
 				<AdminBreadcrumbs items={[{ label: 'Dashboard', href: '/admin' }, { label: 'Redirects' }]} />
-				<div className="bg-backdrop-low border border-line rounded-lg">
-					<div className="px-6 py-4 border-b border-line flex items-center justify-between">
+				<div className="bg-backdrop-low border border-line-low rounded-lg">
+					<div className="px-6 py-4 border-b border-line-low flex items-center justify-between">
 						<h2 className="text-lg font-semibold text-neutral-high">Redirect Rules</h2>
 						<div className="flex items-center gap-3">
 							<Select
@@ -206,7 +206,7 @@ export default function RedirectsPage() {
 												body: JSON.stringify({ autoRedirectOnSlugChange: enabled }),
 											})
 										}}
-										className="rounded border-line"
+										className="rounded border-line-medium"
 									/>
 									<span className="text-neutral-medium">Auto-redirect on slug change</span>
 								</label>
@@ -220,14 +220,14 @@ export default function RedirectsPage() {
 							<div className="grid grid-cols-1 md:grid-cols-4 gap-3 items-center">
 								<input
 									type="text"
-									className="md:col-span-2 px-3 py-2 border border-line rounded bg-backdrop-low text-neutral-high"
+									className="md:col-span-2 px-3 py-2 border border-line-low rounded bg-backdrop-low text-neutral-high"
 									placeholder="/from/path"
 									value={form.fromPath}
 									onChange={(e) => setForm((f) => ({ ...f, fromPath: e.target.value }))}
 								/>
 								<input
 									type="text"
-									className="md:col-span-2 px-3 py-2 border border-line rounded bg-backdrop-low text-neutral-high"
+									className="md:col-span-2 px-3 py-2 border border-line-low rounded bg-backdrop-low text-neutral-high"
 									placeholder="/to/path"
 									value={form.toPath}
 									onChange={(e) => setForm((f) => ({ ...f, toPath: e.target.value }))}
@@ -259,7 +259,7 @@ export default function RedirectsPage() {
 
 						<section>
 							<h3 className="text-base font-semibold text-neutral-high mb-3">Existing Redirects</h3>
-							<div className="divide-y divide-line border border-line rounded">
+							<div className="divide-y divide-line border border-line-low rounded">
 								{items.length === 0 ? (
 									<p className="p-4 text-neutral-low">No redirects.</p>
 								) : (
@@ -276,7 +276,7 @@ export default function RedirectsPage() {
 												<AlertDialogTrigger asChild>
 													<button
 														type="button"
-														className="px-3 py-1.5 text-xs rounded border border-line hover:bg-backdrop-medium text-neutral-medium"
+														className="px-3 py-1.5 text-xs rounded border border-line-low hover:bg-backdrop-medium text-neutral-medium"
 													>
 														Delete
 													</button>

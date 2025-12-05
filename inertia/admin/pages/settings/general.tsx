@@ -38,25 +38,25 @@ function SiteFormReferenceField({
 
   useEffect(() => {
     let alive = true
-    ;(async () => {
-      try {
-        setLoading(true)
-        const res = await fetch('/api/forms-definitions', { credentials: 'same-origin' })
-        const j = await res.json().catch(() => ({}))
-        if (!alive) return
-        const list: Array<any> = Array.isArray(j?.data) ? j.data : []
-        setOptions(
-          list.map((f) => ({
-            value: String(f.slug),
-            label: f.title ? String(f.title) : String(f.slug),
-          }))
-        )
-      } catch {
-        if (!alive) setOptions([])
-      } finally {
-        if (alive) setLoading(false)
-      }
-    })()
+      ; (async () => {
+        try {
+          setLoading(true)
+          const res = await fetch('/api/forms-definitions', { credentials: 'same-origin' })
+          const j = await res.json().catch(() => ({}))
+          if (!alive) return
+          const list: Array<any> = Array.isArray(j?.data) ? j.data : []
+          setOptions(
+            list.map((f) => ({
+              value: String(f.slug),
+              label: f.title ? String(f.title) : String(f.slug),
+            }))
+          )
+        } catch {
+          if (!alive) setOptions([])
+        } finally {
+          if (alive) setLoading(false)
+        }
+      })()
     return () => {
       alive = false
     }
@@ -66,7 +66,7 @@ function SiteFormReferenceField({
     <div>
       <label className="block text-sm font-medium text-neutral-medium mb-1">{label}</label>
       <select
-        className="block w-full border border-line rounded bg-backdrop-low px-3 py-2 text-sm text-neutral-high"
+        className="block w-full border border-line-low rounded bg-backdrop-low px-3 py-2 text-sm text-neutral-high"
         value={value || ''}
         onChange={(e) => onChange(e.target.value)}
         disabled={loading}
@@ -98,27 +98,27 @@ export default function GeneralSettings() {
 
   useEffect(() => {
     let alive = true
-    ;(async () => {
-      try {
-        setLoading(true)
-        const res = await fetch('/api/site-settings', { credentials: 'same-origin' })
-        const j = await res.json().catch(() => ({}))
-        if (!alive) return
-        const s: Settings = {
-          siteTitle: j?.data?.siteTitle || '',
-          defaultMetaDescription: j?.data?.defaultMetaDescription || '',
-          faviconMediaId: j?.data?.faviconMediaId || '',
-          defaultOgMediaId: j?.data?.defaultOgMediaId || '',
-          logoLightMediaId: j?.data?.logoLightMediaId || '',
-          profileRolesEnabled: Array.isArray(j?.data?.profileRolesEnabled) ? j.data.profileRolesEnabled : [],
-          customFieldDefs: Array.isArray(j?.data?.customFieldDefs) ? j.data.customFieldDefs : [],
-          customFields: (j?.data?.customFields && typeof j.data.customFields === 'object') ? j.data.customFields : {},
+      ; (async () => {
+        try {
+          setLoading(true)
+          const res = await fetch('/api/site-settings', { credentials: 'same-origin' })
+          const j = await res.json().catch(() => ({}))
+          if (!alive) return
+          const s: Settings = {
+            siteTitle: j?.data?.siteTitle || '',
+            defaultMetaDescription: j?.data?.defaultMetaDescription || '',
+            faviconMediaId: j?.data?.faviconMediaId || '',
+            defaultOgMediaId: j?.data?.defaultOgMediaId || '',
+            logoLightMediaId: j?.data?.logoLightMediaId || '',
+            profileRolesEnabled: Array.isArray(j?.data?.profileRolesEnabled) ? j.data.profileRolesEnabled : [],
+            customFieldDefs: Array.isArray(j?.data?.customFieldDefs) ? j.data.customFieldDefs : [],
+            customFields: (j?.data?.customFields && typeof j.data.customFields === 'object') ? j.data.customFields : {},
+          }
+          setForm(s)
+        } finally {
+          if (alive) setLoading(false)
         }
-        setForm(s)
-      } finally {
-        if (alive) setLoading(false)
-      }
-    })()
+      })()
     return () => { alive = false }
   }, [])
 
@@ -170,30 +170,30 @@ export default function GeneralSettings() {
 
     useEffect(() => {
       let alive = true
-      ;(async () => {
-        try {
-          if (!id) {
+        ; (async () => {
+          try {
+            if (!id) {
+              if (alive) {
+                setPreviewUrl(null)
+                setPreviewAlt('')
+              }
+              return
+            }
+            const res = await fetch(`/api/media/${encodeURIComponent(id)}`, { credentials: 'same-origin' })
+            const j = await res.json().catch(() => ({}))
+            const url = j?.data?.url || null
+            const alt = j?.data?.alt || j?.data?.originalFilename || ''
+            if (alive) {
+              setPreviewUrl(url)
+              setPreviewAlt(alt)
+            }
+          } catch {
             if (alive) {
               setPreviewUrl(null)
               setPreviewAlt('')
             }
-            return
           }
-          const res = await fetch(`/api/media/${encodeURIComponent(id)}`, { credentials: 'same-origin' })
-          const j = await res.json().catch(() => ({}))
-          const url = j?.data?.url || null
-          const alt = j?.data?.alt || j?.data?.originalFilename || ''
-          if (alive) {
-            setPreviewUrl(url)
-            setPreviewAlt(alt)
-          }
-        } catch {
-          if (alive) {
-            setPreviewUrl(null)
-            setPreviewAlt('')
-          }
-        }
-      })()
+        })()
       return () => {
         alive = false
       }
@@ -205,11 +205,11 @@ export default function GeneralSettings() {
         <div className="flex items-start gap-3">
           <div className="min-w-[72px]">
             {previewUrl ? (
-              <div className="w-[72px] h-[72px] border border-line rounded overflow-hidden bg-backdrop-medium">
+              <div className="w-[72px] h-[72px] border border-line-medium rounded overflow-hidden bg-backdrop-medium">
                 <img src={previewUrl} alt={previewAlt} className="w-full h-full object-cover" />
               </div>
             ) : (
-              <div className="w-[72px] h-[72px] border border-dashed border-line rounded flex items-center justify-center text-[10px] text-neutral-medium">
+              <div className="w-[72px] h-[72px] border border-dashed border-line-high rounded flex items-center justify-center text-[10px] text-neutral-medium">
                 No image
               </div>
             )}
@@ -218,7 +218,7 @@ export default function GeneralSettings() {
             <div className="mt-1 flex items-center gap-2">
               <button
                 type="button"
-                className="px-2 py-1 text-xs border border-line rounded hover:bg-backdrop-medium text-neutral-medium"
+                className="px-2 py-1 text-xs border border-line-medium rounded hover:bg-backdrop-medium text-neutral-medium"
                 onClick={() => setOpen(true)}
               >
                 {id ? 'Change' : 'Choose'}
@@ -226,7 +226,7 @@ export default function GeneralSettings() {
               {id && (
                 <button
                   type="button"
-                  className="px-2 py-1 text-xs border border-line rounded hover:bg-backdrop-medium text-neutral-medium"
+                  className="px-2 py-1 text-xs border border-line-medium rounded hover:bg-backdrop-medium text-neutral-medium"
                   onClick={() => onChange(null)}
                 >
                   Clear
@@ -247,11 +247,11 @@ export default function GeneralSettings() {
   }
 
   return (
-    <div className="min-h-screen bg-backdrop-low">
+    <div className="min-h-screen bg-backdrop-medium">
       <AdminHeader title="General Settings" />
       <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
         <AdminBreadcrumbs items={[{ label: 'Dashboard', href: '/admin' }, { label: 'Site Settings' }]} />
-        <div className="bg-backdrop-low rounded-lg border border-line p-6 space-y-6">
+        <div className="bg-backdrop-low rounded-lg border border-line-low p-6 space-y-6">
           <div>
             <label className="block text-sm font-medium text-neutral-medium mb-1">Site Title</label>
             <Input value={form.siteTitle} onChange={(e) => setForm({ ...form, siteTitle: e.target.value })} placeholder="Site Title" />
@@ -291,7 +291,7 @@ export default function GeneralSettings() {
           </div>
           {/* Site Custom Fields */}
           {Array.isArray(form.customFieldDefs) && form.customFieldDefs.length > 0 && (
-            <div className="border-t border-line pt-6">
+            <div className="border-t border-line-low pt-6">
               <h3 className="text-base font-semibold text-neutral-high mb-3">Site Fields</h3>
               <div className="space-y-4">
                 {form.customFieldDefs.map((f) => {

@@ -6,11 +6,11 @@ type LinkValue =
   | undefined
   | string
   | {
-      kind?: 'url' | 'post'
-      url?: string
-      postId?: string | number | null
-      target?: '_self' | '_blank'
-    }
+    kind?: 'url' | 'post'
+    url?: string
+    postId?: string | number | null
+    target?: '_self' | '_blank'
+  }
 
 interface FaqItem {
   question: string
@@ -81,7 +81,7 @@ export default function Faq({ title, subtitle, items }: FaqProps) {
             </p>
           )}
         </div>
-        <div className="grid gap-10 border-t border-line pt-8 md:grid-cols-2 md:gap-12">
+        <div className="grid gap-10 border-t border-line-low pt-8 md:grid-cols-2 md:gap-12">
           <div>
             {left.map((item, idx) => renderItem(item, idx))}
           </div>

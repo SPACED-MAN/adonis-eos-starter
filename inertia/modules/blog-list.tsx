@@ -150,7 +150,7 @@ export default function BlogList({ title, subtitle, posts }: BlogListProps) {
             return (
               <article
                 key={p.id}
-                className="bg-backdrop-high rounded-lg border border-line shadow-sm overflow-hidden flex flex-col"
+                className="bg-backdrop-high rounded-lg border border-line-low shadow-sm overflow-hidden flex flex-col"
               >
                 {p.imageUrl && (
                   <a href={`/posts/${encodeURIComponent(p.slug)}`} className="block">

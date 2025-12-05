@@ -23,70 +23,70 @@ export default function TestimonialList({ title, subtitle, testimonials }: Testi
 
   useEffect(() => {
     let cancelled = false
-    ;(async () => {
-      try {
-        const params = new URLSearchParams()
-        params.set('status', 'published')
-        params.set('limit', '8')
-        const ids = Array.isArray(testimonials) ? testimonials.filter(Boolean) : []
-        if (ids.length > 0) {
-          params.set('ids', ids.join(','))
+      ; (async () => {
+        try {
+          const params = new URLSearchParams()
+          params.set('status', 'published')
+          params.set('limit', '8')
+          const ids = Array.isArray(testimonials) ? testimonials.filter(Boolean) : []
+          if (ids.length > 0) {
+            params.set('ids', ids.join(','))
+          }
+          const res = await fetch(`/api/testimonials?${params.toString()}`, {
+            credentials: 'same-origin',
+            headers: { Accept: 'application/json' },
+          })
+          if (!res.ok) {
+            throw new Error('Failed to load testimonials')
+          }
+          const j = await res.json().catch(() => null)
+          const list: any[] = Array.isArray(j?.data) ? j.data : []
+          if (cancelled) return
+
+          const mapped: TestimonialSummary[] = list.map((t: any) => ({
+            id: String(t.id),
+            authorName: String(t.authorName || 'Anonymous'),
+            authorTitle: (t as any).authorTitle ?? null,
+            quote: (t as any).quote ?? null,
+            imageId: (t as any).imageId ?? null,
+            imageUrl: null,
+          }))
+
+          // Resolve avatar media variants in parallel for all testimonials
+          const uniqueIds = Array.from(
+            new Set(mapped.map((m) => m.imageId).filter(Boolean) as string[]),
+          )
+          const urlById = new Map<string, string>()
+          await Promise.all(
+            uniqueIds.map(async (id) => {
+              try {
+                const resMedia = await fetch(`/public/media/${encodeURIComponent(id)}`)
+                if (!resMedia.ok) return
+                const jm = await resMedia.json().catch(() => null)
+                const data = jm?.data
+                if (!data) return
+                const variants = Array.isArray(data.metadata?.variants)
+                  ? (data.metadata.variants as any[])
+                  : []
+                const url = pickMediaVariantUrl(data.url, variants, 'thumb')
+                urlById.set(id, url)
+              } catch {
+                // ignore
+              }
+            }),
+          )
+
+          const withImages = mapped.map((m) => ({
+            ...m,
+            imageUrl: m.imageId ? urlById.get(m.imageId) || null : null,
+          }))
+          setItems(withImages)
+        } catch {
+          if (!cancelled) setItems([])
+        } finally {
+          if (!cancelled) setLoading(false)
         }
-        const res = await fetch(`/api/testimonials?${params.toString()}`, {
-          credentials: 'same-origin',
-          headers: { Accept: 'application/json' },
-        })
-        if (!res.ok) {
-          throw new Error('Failed to load testimonials')
-        }
-        const j = await res.json().catch(() => null)
-        const list: any[] = Array.isArray(j?.data) ? j.data : []
-        if (cancelled) return
-
-        const mapped: TestimonialSummary[] = list.map((t: any) => ({
-          id: String(t.id),
-          authorName: String(t.authorName || 'Anonymous'),
-          authorTitle: (t as any).authorTitle ?? null,
-          quote: (t as any).quote ?? null,
-          imageId: (t as any).imageId ?? null,
-          imageUrl: null,
-        }))
-
-        // Resolve avatar media variants in parallel for all testimonials
-        const uniqueIds = Array.from(
-          new Set(mapped.map((m) => m.imageId).filter(Boolean) as string[]),
-        )
-        const urlById = new Map<string, string>()
-        await Promise.all(
-          uniqueIds.map(async (id) => {
-            try {
-              const resMedia = await fetch(`/public/media/${encodeURIComponent(id)}`)
-              if (!resMedia.ok) return
-              const jm = await resMedia.json().catch(() => null)
-              const data = jm?.data
-              if (!data) return
-              const variants = Array.isArray(data.metadata?.variants)
-                ? (data.metadata.variants as any[])
-                : []
-              const url = pickMediaVariantUrl(data.url, variants, 'thumb')
-              urlById.set(id, url)
-            } catch {
-              // ignore
-            }
-          }),
-        )
-
-        const withImages = mapped.map((m) => ({
-          ...m,
-          imageUrl: m.imageId ? urlById.get(m.imageId) || null : null,
-        }))
-        setItems(withImages)
-      } catch {
-        if (!cancelled) setItems([])
-      } finally {
-        if (!cancelled) setLoading(false)
-      }
-    })()
+      })()
     return () => {
       cancelled = true
     }
@@ -134,7 +134,7 @@ export default function TestimonialList({ title, subtitle, testimonials }: Testi
           {items.map((t) => (
             <figure
               key={t.id}
-              className="flex flex-col justify-center items-center p-8 text-center bg-backdrop-high border border-line md:p-10 lg:border-r-0 last:lg:border-r dark:border-none"
+              className="flex flex-col justify-center items-center p-8 text-center bg-backdrop-high border border-line-low md:p-10 lg:border-r-0 last:lg:border-r dark:border-none"
             >
               <blockquote className="mx-auto mb-6 max-w-2xl text-neutral-medium">
                 {t.quote && (
@@ -169,7 +169,7 @@ export default function TestimonialList({ title, subtitle, testimonials }: Testi
         <div className="text-center">
           <a
             href="#"
-            className="inline-flex items-center justify-center py-2.5 px-5 text-sm font-medium text-neutral-high bg-backdrop-high border border-line rounded-lg hover:bg-backdrop-medium focus:outline-none focus:ring-2 focus:ring-standout/40"
+            className="inline-flex items-center justify-center py-2.5 px-5 text-sm font-medium text-neutral-high bg-backdrop-high border border-line-low rounded-lg hover:bg-backdrop-medium focus:outline-none focus:ring-2 focus:ring-standout/40"
           >
             Show more…
           </a>

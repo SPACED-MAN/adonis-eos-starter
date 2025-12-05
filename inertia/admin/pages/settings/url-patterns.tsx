@@ -119,13 +119,13 @@ export default function UrlPatternsPage() {
 	}
 
 	return (
-		<div className="min-h-screen bg-backdrop-low">
+		<div className="min-h-screen bg-backdrop-medium">
 			<Head title="URL Patterns" />
 			<AdminHeader title="URL Patterns" />
 			<main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
 				<AdminBreadcrumbs items={[{ label: 'Dashboard', href: '/admin' }, { label: 'URL Patterns' }]} />
-				<div className="bg-backdrop-low border border-line rounded-lg">
-					<div className="px-6 py-4 border-b border-line flex items-center justify-between">
+				<div className="bg-backdrop-low border border-line-low rounded-lg">
+					<div className="px-6 py-4 border-b border-line-low flex items-center justify-between">
 						<h2 className="text-lg font-semibold text-neutral-high">Default Patterns by Post Type and Locale</h2>
 						{loading && <span className="text-sm text-neutral-low">Loading…</span>}
 					</div>

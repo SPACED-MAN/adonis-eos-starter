@@ -80,7 +80,7 @@ export default function FeaturesListExpanded({
 					return (
 						<div
 							key={idx}
-							className={`flex items-center lg:w-3/5 mx-auto border-b border-line pb-10 mb-10 sm:flex-row flex-col ${!isEven ? 'sm:flex-row-reverse' : ''
+							className={`flex items-center lg:w-3/5 mx-auto border-b border-line-low pb-10 mb-10 sm:flex-row flex-col ${!isEven ? 'sm:flex-row-reverse' : ''
 								}`}
 						>
 							{feature.icon && (
@@ -126,7 +126,7 @@ function SectionButton({ label, url, style = 'primary', target, rel }: Button) {
 		{
 			primary: 'bg-standout text-on-standout',
 			secondary: 'bg-backdrop-medium hover:bg-backdrop-high text-neutral-high',
-			outline: 'border border-line hover:bg-backdrop-medium text-neutral-high',
+			outline: 'border border-line-low hover:bg-backdrop-medium text-neutral-high',
 		}[style] || 'bg-standout text-on-standout'
 
 	const { href, target: finalTarget } = resolveHrefAndTarget(url, target)

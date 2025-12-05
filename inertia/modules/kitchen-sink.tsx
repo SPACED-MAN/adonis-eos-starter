@@ -57,13 +57,13 @@ export default function KitchenSink(props: KitchenSinkProps) {
 	}, [props.image, props.imageVariant])
 
 	return (
-		<section className="border border-line rounded-lg bg-backdrop-low p-6 space-y-4">
+		<section className="border border-line-low rounded-lg bg-backdrop-low p-6 space-y-4">
 			<header>
 				<h2 className="text-lg font-semibold text-neutral-high">{props.title}</h2>
 				{props.description && <p className="text-neutral-medium">{props.description}</p>}
 			</header>
 			{resolvedImageUrl && (
-				<div className="rounded overflow-hidden border border-line">
+				<div className="rounded overflow-hidden border border-line-medium">
 					<img src={resolvedImageUrl} alt={props.title} className="w-full h-auto" />
 				</div>
 			)}

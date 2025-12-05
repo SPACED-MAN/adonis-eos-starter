@@ -43,16 +43,16 @@ export default function ActivityLogPage() {
   useEffect(() => { load() }, [])
 
   return (
-    <div className="min-h-screen bg-backdrop-low">
+    <div className="min-h-screen bg-backdrop-medium">
       <AdminHeader title="Activity Log" />
       <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
         <AdminBreadcrumbs items={[{ label: 'Dashboard', href: '/admin' }, { label: 'Activity Log' }]} />
-        <div className="bg-backdrop-low rounded border border-line p-6">
+        <div className="bg-backdrop-low rounded border border-line-low p-6">
           <div className="flex items-center gap-3 mb-4">
             <Input placeholder="Filter by user ID" value={userFilter} onChange={(e) => setUserFilter(e.target.value)} className="w-48" />
             <Input placeholder="Filter by action" value={actionFilter} onChange={(e) => setActionFilter(e.target.value)} className="w-48" />
             <button
-              className="px-3 py-2 text-sm border border-line rounded hover:bg-backdrop-medium text-neutral-high"
+              className="px-3 py-2 text-sm border border-line-low rounded hover:bg-backdrop-medium text-neutral-high"
               onClick={load}
               disabled={loading}
             >
@@ -73,7 +73,7 @@ export default function ActivityLogPage() {
               </thead>
               <tbody>
                 {rows.map((r) => (
-                  <tr key={r.id} className="border-t border-line">
+                  <tr key={r.id} className="border-t border-line-low">
                     <td className="py-2 pr-2 whitespace-nowrap">{formatDateTime(r.createdAt)}</td>
                     <td className="py-2 pr-2">{r.userEmail || (r.userId ? `User ${r.userId}` : '—')}</td>
                     <td className="py-2 pr-2 font-mono">{r.action}</td>

@@ -219,12 +219,12 @@ export default function CategoriesPage() {
   }
 
   return (
-    <div className="min-h-screen bg-backdrop-low">
+    <div className="min-h-screen bg-backdrop-medium">
       <Head title="Categories" />
       <AdminHeader title="Categories" />
       <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
         <AdminBreadcrumbs items={[{ href: '/admin', label: 'Dashboard' }, { href: '/admin/categories', label: 'Categories' }]} />
-        <div className="mt-4 bg-backdrop-low rounded-lg shadow border border-line p-6">
+        <div className="mt-4 bg-backdrop-low rounded-lg shadow border border-line-low p-6">
           <div className="flex items-center gap-4 mb-4">
             <div className="w-64">
               <Select value={selectedTaxonomy || ''} onValueChange={(v) => setSelectedTaxonomy(v)}>
@@ -241,7 +241,7 @@ export default function CategoriesPage() {
             <div className="flex items-center gap-2">
               <Input value={newTermName} onChange={(e) => setNewTermName(e.target.value)} placeholder="New term name" />
               <button
-                className="px-3 py-1.5 text-sm border border-line rounded bg-standout text-on-standout whitespace-nowrap"
+                className="px-3 py-1.5 text-sm border border-line-low rounded bg-standout text-on-standout whitespace-nowrap"
                 onClick={() => createTerm(null)}
               >
                 Add term
@@ -295,7 +295,7 @@ export default function CategoriesPage() {
                 </h3>
                 <button
                   type="button"
-                  className="px-3 py-1.5 text-xs border border-line rounded text-neutral-medium hover:bg-backdrop-medium"
+                  className="px-3 py-1.5 text-xs border border-line-low rounded text-neutral-medium hover:bg-backdrop-medium"
                   onClick={() => {
                     setViewMode('terms')
                     setEditingTerm(null)
@@ -382,7 +382,7 @@ function SortableTermRow({
       >
         <button
           type="button"
-          className="mr-2 inline-flex items-center justify-center w-5 h-5 rounded border border-line text-[10px] text-neutral-medium hover:bg-backdrop-medium cursor-grab align-middle"
+          className="mr-2 inline-flex items-center justify-center w-5 h-5 rounded border border-line-low text-[10px] text-neutral-medium hover:bg-backdrop-medium cursor-grab align-middle"
           {...listeners}
           {...attributes}
           aria-label="Drag to reorder"
@@ -394,7 +394,7 @@ function SortableTermRow({
       <div className="flex items-center gap-2">
         <button
           type="button"
-          className="px-2 py-1 text-xs border border-line rounded hover:bg-backdrop-medium"
+          className="px-2 py-1 text-xs border border-line-medium rounded hover:bg-backdrop-medium"
           onClick={onEdit}
         >
           Edit
@@ -421,14 +421,14 @@ function SortableTermRow({
         </Select>
         <button
           type="button"
-          className="px-2 py-1 text-xs border border-line rounded hover:bg-backdrop-medium"
+          className="px-2 py-1 text-xs border border-line-medium rounded hover:bg-backdrop-medium"
           onClick={onAddChild}
         >
           Add Child
         </button>
         <button
           type="button"
-          className="px-2 py-1 text-xs border border-line rounded hover:bg-backdrop-medium text-red-600"
+          className="px-2 py-1 text-xs border border-line-medium rounded hover:bg-backdrop-medium text-red-600"
           onClick={onDelete}
         >
           Delete

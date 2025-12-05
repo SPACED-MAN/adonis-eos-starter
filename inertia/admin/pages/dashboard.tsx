@@ -580,7 +580,7 @@ export default function Dashboard({ }: DashboardProps) {
   }
 
   return (
-    <div className="min-h-screen bg-backdrop-low">
+    <div className="min-h-screen bg-backdrop-medium">
       <Head title="Posts" />
 
       <AdminHeader title="Posts" />
@@ -588,7 +588,7 @@ export default function Dashboard({ }: DashboardProps) {
       {/* Main Content */}
       <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
         <AdminBreadcrumbs items={[{ label: 'Dashboard', href: '/admin' }, { label: 'Posts' }]} />
-        <div className="bg-backdrop-low rounded-lg shadow">
+        <div className="bg-backdrop-low rounded-lg border border-line-low">
           {/* Posts Header */}
           <div className="px-6 py-4">
             {/* Top right: Create New button */}
@@ -596,7 +596,7 @@ export default function Dashboard({ }: DashboardProps) {
               {canCreatePost && (
                 <button
                   onClick={() => setIsCreateOpen(true)}
-                  className="px-3 py-2 text-sm border border-line rounded bg-standout text-on-standout cursor-pointer"
+                  className="px-3 py-2 text-sm border border-line-low rounded bg-standout text-on-standout cursor-pointer"
                 >
                   Create New
                 </button>
@@ -608,7 +608,7 @@ export default function Dashboard({ }: DashboardProps) {
                   value={q}
                   onChange={(e) => setQ(e.target.value)}
                   placeholder="Search title or slug..."
-                  className="px-3 py-1.75 text-sm border border-line bg-backdrop-low text-neutral-high"
+                  className="px-3 py-1.75 text-sm border border-line-low bg-backdrop-input text-neutral-high"
                 />
                 <Select
                   defaultValue={status || undefined}
@@ -993,7 +993,7 @@ export default function Dashboard({ }: DashboardProps) {
                             <TableCell className="text-right">
                               <Link
                                 href={`/admin/posts/${post.id}/edit`}
-                                className="px-3 py-1 text-xs border border-line rounded hover:bg-backdrop-medium text-neutral-medium"
+                                className="px-3 py-1 text-xs border border-line-medium rounded hover:bg-backdrop-medium text-neutral-medium"
                               >
                                 Edit
                               </Link>
@@ -1085,7 +1085,7 @@ export default function Dashboard({ }: DashboardProps) {
                         <TableCell className="text-right">
                           <Link
                             href={`/admin/posts/${post.id}/edit`}
-                            className="px-3 py-1 text-xs border border-line rounded hover:bg-backdrop-medium text-neutral-medium"
+                            className="px-3 py-1 text-xs border border-line-medium rounded hover:bg-backdrop-medium text-neutral-medium"
                           >
                             Edit
                           </Link>
@@ -1109,7 +1109,7 @@ export default function Dashboard({ }: DashboardProps) {
               </div>
               <div className="flex items-center gap-2">
                 <button
-                  className="px-2 py-1 border border-line rounded disabled:opacity-50"
+                  className="px-2 py-1 border border-line-low rounded disabled:opacity-50"
                   onClick={() => setPage((p) => Math.max(1, p - 1))}
                   disabled={page <= 1}
                 >
@@ -1117,7 +1117,7 @@ export default function Dashboard({ }: DashboardProps) {
                 </button>
                 <span className="px-2">{page}</span>
                 <button
-                  className="px-2 py-1 border border-line rounded disabled:opacity-50"
+                  className="px-2 py-1 border border-line-low rounded disabled:opacity-50"
                   onClick={() => {
                     const totalPages = Math.max(1, Math.ceil(total / limit))
                     setPage((p) => Math.min(totalPages, p + 1))
@@ -1136,7 +1136,7 @@ export default function Dashboard({ }: DashboardProps) {
       {isCreateOpen && (
         <div className="fixed inset-0 z-50 flex items-center justify-center">
           <div className="absolute inset-0 bg-black/50" onClick={() => setIsCreateOpen(false)} />
-          <div className="relative z-10 w-full max-w-md rounded-lg border border-line bg-backdrop-low p-6 shadow-xl">
+          <div className="relative z-10 w-full max-w-md rounded-lg border border-line-low bg-backdrop-input p-6 shadow-xl">
             <div className="flex items-center justify-between mb-4">
               <h3 className="text-base font-semibold text-neutral-high">Create New Post</h3>
               <button
@@ -1155,7 +1155,7 @@ export default function Dashboard({ }: DashboardProps) {
               {postTypes.map((t) => (
                 <button
                   key={t}
-                  className="w-full text-left px-3 py-2 rounded border border-line bg-backdrop-low hover:bg-backdrop-medium text-neutral-high"
+                  className="w-full text-left px-3 py-2 rounded border border-line-low bg-backdrop-input hover:bg-backdrop-medium text-neutral-high"
                   onClick={() => {
                     setIsCreateOpen(false)
                     createNew(t)

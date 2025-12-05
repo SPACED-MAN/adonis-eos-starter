@@ -13,7 +13,7 @@ type TeaserProps = {
 
 export default function PostTeaserDefault({ post }: TeaserProps) {
 	return (
-		<article className="border border-line rounded-md p-4 bg-backdrop-low">
+		<article className="border border-line-low rounded-md p-4 bg-backdrop-low">
 			<a href={`/posts/${post.slug}`} className="block hover:underline">
 				<h3 className="text-lg font-semibold text-neutral-high">{post.title}</h3>
 			</a>

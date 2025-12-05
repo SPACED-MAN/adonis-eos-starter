@@ -242,17 +242,17 @@ export default function MediaIndex() {
   async function applyBulkGenerateMissing() {
     if (selectedIds.size === 0) return
     const ids = Array.from(selectedIds)
-    
+
     // For each selected item, check if it's missing variants and generate only what's missing
     let lightCount = 0
     let darkCount = 0
-    
+
     for (const id of ids) {
       const item = items.find((i) => i.id === id)
       if (!item) continue
-      
+
       const status = getVariantStatus(item)
-      
+
       try {
         // Generate light if missing
         if (!status.hasAllLight) {
@@ -268,7 +268,7 @@ export default function MediaIndex() {
           })
           lightCount++
         }
-        
+
         // Generate dark if missing
         if (!status.hasAllDark || !status.hasDarkBase) {
           await fetch(`/api/media/${encodeURIComponent(id)}/variants`, {
@@ -287,7 +287,7 @@ export default function MediaIndex() {
         // Continue with next item on error
       }
     }
-    
+
     toast.success(`Generated ${lightCount} light and ${darkCount} dark variant sets`)
     setSelectedIds(new Set())
     setSelectAll(false)
@@ -298,7 +298,7 @@ export default function MediaIndex() {
   async function applyBulkRegenerate() {
     if (selectedIds.size === 0) return
     const ids = Array.from(selectedIds)
-    
+
     // Regenerate ALL variants (light + dark) for all selected items
     let count = 0
     for (const id of ids) {
@@ -314,7 +314,7 @@ export default function MediaIndex() {
           credentials: 'same-origin',
           body: JSON.stringify({ theme: 'light' }),
         })
-        
+
         // Regenerate dark
         await fetch(`/api/media/${encodeURIComponent(id)}/variants`, {
           method: 'POST',
@@ -326,13 +326,13 @@ export default function MediaIndex() {
           credentials: 'same-origin',
           body: JSON.stringify({ theme: 'dark' }),
         })
-        
+
         count++
       } catch {
         // Continue with next item on error
       }
     }
-    
+
     toast.success(`Regenerated all variants for ${count} items`)
     setSelectedIds(new Set())
     setSelectAll(false)
@@ -639,17 +639,17 @@ export default function MediaIndex() {
     const meta = (m as any)?.metadata || {}
     const variants: Variant[] = Array.isArray(meta.variants) ? meta.variants : []
     const darkSourceUrl = typeof meta.darkSourceUrl === 'string' && meta.darkSourceUrl
-    
+
     // Expected variant names from MEDIA_DERIVATIVES (default: thumb, small, medium, large)
     const expectedBaseNames = ['thumb', 'small', 'medium', 'large']
-    
+
     const lightVariants = variants.filter((v) => !String(v?.name || '').endsWith('-dark'))
     const darkVariants = variants.filter((v) => String(v?.name || '').endsWith('-dark'))
-    
+
     const hasAllLight = expectedBaseNames.every((name) => lightVariants.some((v) => v.name === name))
     const hasAllDark = expectedBaseNames.every((name) => darkVariants.some((v) => v.name === `${name}-dark`))
     const hasDarkBase = !!darkSourceUrl
-    
+
     return { hasAllLight, hasAllDark, hasDarkBase }
   }
 
@@ -755,13 +755,13 @@ export default function MediaIndex() {
   }
 
   return (
-    <div className="min-h-screen bg-backdrop-low">
+    <div className="min-h-screen bg-backdrop-medium">
       <AdminHeader title="Media Library" />
       <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
         <AdminBreadcrumbs items={[{ label: 'Dashboard', href: '/admin' }, { label: 'Media' }]} />
-        <div className="bg-backdrop-low rounded-lg shadow border border-line p-6">
+        <div className="bg-backdrop-low rounded-lg shadow border border-line-low p-6">
           <div
-            className={`mb-4 p-6 border-2 border-dashed rounded transition-colors ${isDragOver ? 'border-standout bg-backdrop-medium' : 'border-line bg-backdrop-low'}`}
+            className={`mb-4 p-6 border-2 border-dashed rounded transition-colors ${isDragOver ? 'border-standout bg-backdrop-medium' : 'border-line-high bg-backdrop-input'}`}
             onDragOver={(e) => { e.preventDefault(); setIsDragOver(true) }}
             onDragLeave={() => setIsDragOver(false)}
             onDrop={onDrop}
@@ -792,7 +792,7 @@ export default function MediaIndex() {
           <div className="flex items-center gap-3 mb-4">
             <label className="text-xs text-neutral-medium">Sort by</label>
             <select
-              className="text-sm border border-line bg-backdrop-low text-neutral-high px-2 py-1"
+              className="text-sm border border-line-low bg-backdrop-input text-neutral-high px-2 py-1"
               value={sortBy}
               onChange={(e) => setSortBy(e.target.value as any)}
             >
@@ -801,7 +801,7 @@ export default function MediaIndex() {
               <option value="size">Size</option>
             </select>
             <select
-              className="text-sm border border-line bg-backdrop-low text-neutral-high px-2 py-1"
+              className="text-sm border border-line-low bg-backdrop-input text-neutral-high px-2 py-1"
               value={sortOrder}
               onChange={(e) => setSortOrder(e.target.value as any)}
             >
@@ -811,7 +811,7 @@ export default function MediaIndex() {
             <div className="ml-auto flex items-center gap-2">
               <label className="text-xs text-neutral-medium">Category</label>
               <select
-                className="text-sm border border-line bg-backdrop-low text-neutral-high px-2 py-1"
+                className="text-sm border border-line-low bg-backdrop-input text-neutral-high px-2 py-1"
                 value={selectedCategory}
                 onChange={(e) => setSelectedCategory(e.target.value)}
               >
@@ -823,7 +823,7 @@ export default function MediaIndex() {
             </div>
           </div>
           {/* Bulk actions and view toggle */}
-          <div className="mt-4 pb-2 border-b border-line flex items-center gap-2">
+          <div className="mt-4 pb-2 border-b border-line-low flex items-center gap-2">
             <label className="inline-flex items-center gap-2 text-sm text-neutral-medium">
               <Checkbox checked={selectAll} onCheckedChange={() => toggleSelectAll()} />
               Select All
@@ -859,14 +859,14 @@ export default function MediaIndex() {
             </div>
             <div className="ml-auto flex items-center gap-2">
               <button
-                className={`px-2 py-1.5 text-sm border border-line rounded inline-flex items-center gap-1 ${viewMode === 'gallery' ? 'bg-backdrop-medium' : ''}`}
+                className={`px-2 py-1.5 text-sm border border-line-low rounded inline-flex items-center gap-1 ${viewMode === 'gallery' ? 'bg-backdrop-medium' : ''}`}
                 onClick={() => setViewMode('gallery')}
                 title="Gallery view"
               >
                 <LayoutGrid className="w-4 h-4" /> Gallery
               </button>
               <button
-                className={`px-2 py-1.5 text-sm border border-line rounded inline-flex items-center gap-1 ${viewMode === 'table' ? 'bg-backdrop-medium' : ''}`}
+                className={`px-2 py-1.5 text-sm border border-line-low rounded inline-flex items-center gap-1 ${viewMode === 'table' ? 'bg-backdrop-medium' : ''}`}
                 onClick={() => setViewMode('table')}
                 title="List view"
               >
@@ -875,243 +875,243 @@ export default function MediaIndex() {
             </div>
           </div>
           <div className="mt-4">
-          {loading ? (
-            <div className="text-sm text-neutral-medium">Loading…</div>
-          ) : items.length === 0 ? (
-            <div className="text-sm text-neutral-low">No media yet. Upload a file to get started.</div>
-          ) : (
-            <>
-              {viewMode === 'gallery' ? (
-                <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
-                  {items.map((m) => {
-                    const preview = getPreviewUrl(m)
-                    const isImage = (m.mimeType && m.mimeType.startsWith('image/')) || /\.(png|jpe?g|gif|webp|svg|avif)$/i.test(m.url || '')
-                    const checked = selectedIds.has(m.id)
-                    return (
-                      <div key={m.id} className="border border-line rounded p-2 bg-backdrop-low">
-                        <div className="flex items-center justify-between mb-1">
-                          <label className="inline-flex items-center gap-2 text-xs text-neutral-medium">
-                            <Checkbox checked={checked} onCheckedChange={() => toggleSelect(m.id)} />
-                            Select
-                          </label>
-                        </div>
-                        <div className="aspect-video bg-backdrop-medium border border-line overflow-hidden rounded">
-                          {isImage ? (
-                            <img src={preview || m.url} alt={m.altText || m.originalFilename} className="w-full h-full object-cover" />
-                          ) : (
-                            <div className="w-full h-full flex items-center justify-center text-xs text-neutral-low">No preview</div>
-                          )}
-                        </div>
-                        <div className="mt-2">
-                          <div className="text-xs text-neutral-high break-all">{m.altText || m.originalFilename}</div>
-                          <div className="text-[10px] text-neutral-low">
-                            {m.mimeType} • {(m.size / 1024).toFixed(1)} KB
-                            {typeof m.optimizedSize === 'number' && m.optimizedSize > 0 && (
-                              <> → {(m.optimizedSize / 1024).toFixed(1)} KB (WebP)</>
+            {loading ? (
+              <div className="text-sm text-neutral-medium">Loading…</div>
+            ) : items.length === 0 ? (
+              <div className="text-sm text-neutral-low">No media yet. Upload a file to get started.</div>
+            ) : (
+              <>
+                {viewMode === 'gallery' ? (
+                  <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
+                    {items.map((m) => {
+                      const preview = getPreviewUrl(m)
+                      const isImage = (m.mimeType && m.mimeType.startsWith('image/')) || /\.(png|jpe?g|gif|webp|svg|avif)$/i.test(m.url || '')
+                      const checked = selectedIds.has(m.id)
+                      return (
+                        <div key={m.id} className="border border-line-low rounded p-2 bg-backdrop-low">
+                          <div className="flex items-center justify-between mb-1">
+                            <label className="inline-flex items-center gap-2 text-xs text-neutral-medium">
+                              <Checkbox checked={checked} onCheckedChange={() => toggleSelect(m.id)} />
+                              Select
+                            </label>
+                          </div>
+                          <div className="aspect-video bg-backdrop-medium border border-line-low overflow-hidden rounded">
+                            {isImage ? (
+                              <img src={preview || m.url} alt={m.altText || m.originalFilename} className="w-full h-full object-cover" />
+                            ) : (
+                              <div className="w-full h-full flex items-center justify-center text-xs text-neutral-low">No preview</div>
                             )}
                           </div>
-                          <div className="text-[10px] text-neutral-low">Date Added: {new Date(m.createdAt).toLocaleString()}</div>
-                        </div>
-                        <div className="mt-2 flex items-center gap-2 flex-wrap">
-                          <button
-                            className="px-3 py-1.5 text-sm border border-line rounded hover:bg-backdrop-medium inline-flex items-center gap-1"
-                            onClick={() => { setViewing(m); setSelectedVariantName('original'); setEditTheme('light'); setCropping(false); setFocalMode(false); setCropSel(null); setFocalDot(null); setReplaceFile(null) }}
-                            aria-label="Edit"
-                            title="Edit"
-                          >
-                            <Pencil className="w-4 h-4" />
-                          </button>
-                          {isImage && (
+                          <div className="mt-2">
+                            <div className="text-xs text-neutral-high break-all">{m.altText || m.originalFilename}</div>
+                            <div className="text-[10px] text-neutral-low">
+                              {m.mimeType} • {(m.size / 1024).toFixed(1)} KB
+                              {typeof m.optimizedSize === 'number' && m.optimizedSize > 0 && (
+                                <> → {(m.optimizedSize / 1024).toFixed(1)} KB (WebP)</>
+                              )}
+                            </div>
+                            <div className="text-[10px] text-neutral-low">Date Added: {new Date(m.createdAt).toLocaleString()}</div>
+                          </div>
+                          <div className="mt-2 flex items-center gap-2 flex-wrap">
                             <button
-                              className="px-3 py-1.5 text-sm border border-line rounded hover:bg-backdrop-medium inline-flex items-center gap-1"
-                              onClick={async () => {
-                                await toast.promise(
-                                  fetch(`/api/media/${encodeURIComponent(m.id)}/optimize`, {
-                                    method: 'POST',
-                                    headers: { 'Accept': 'application/json', 'Content-Type': 'application/json', ...(xsrfFromCookie ? { 'X-XSRF-TOKEN': xsrfFromCookie } : {}) },
-                                    credentials: 'same-origin',
-                                  }).then(async (r) => {
-                                    if (!r.ok) {
-                                      const j = await r.json().catch(() => ({}))
-                                      throw new Error(j?.error || 'Optimize failed')
-                                    }
-                                  }),
-                                  { loading: 'Optimizing…', success: 'Optimized', error: (e) => String(e.message || e) }
-                                )
-                                await load()
-                              }}
-                              aria-label="Optimize"
-                              title="Optimize (WebP)"
+                              className="px-3 py-1.5 text-sm border border-line-low rounded hover:bg-backdrop-medium inline-flex items-center gap-1"
+                              onClick={() => { setViewing(m); setSelectedVariantName('original'); setEditTheme('light'); setCropping(false); setFocalMode(false); setCropSel(null); setFocalDot(null); setReplaceFile(null) }}
+                              aria-label="Edit"
+                              title="Edit"
                             >
-                              <Wand2 className="w-4 h-4" />
+                              <Pencil className="w-4 h-4" />
                             </button>
-                          )}
-                          <button
-                            className="px-3 py-1.5 text-sm border border-line rounded hover:bg-backdrop-medium inline-flex items-center gap-1"
-                            onClick={() => { setUsageFor(m); fetchWhereUsed(m.id) }}
-                            aria-label="Usage"
-                            title="Usage"
-                          >
-                            <BarChart3 className="w-4 h-4" />
-                          </button>
-                          {/* Replace is now handled inside the integrated editor modal */}
-                          {isAdmin && (
-                            <AlertDialog>
-                              <AlertDialogTrigger asChild>
-                                <button className="px-3 py-1.5 text-sm border border-line rounded hover:bg-backdrop-medium text-danger inline-flex items-center gap-1" aria-label="Delete" title="Delete">
-                                  <Trash2 className="w-4 h-4" />
-                                </button>
-                              </AlertDialogTrigger>
-                              <AlertDialogContent>
-                                <AlertDialogHeader>
-                                  <AlertDialogTitle>Delete this media?</AlertDialogTitle>
-                                  <AlertDialogDescription>
-                                    This will delete the original file and all generated variants. This action cannot be undone.
-                                  </AlertDialogDescription>
-                                </AlertDialogHeader>
-                                <AlertDialogFooter>
-                                  <AlertDialogCancel>Cancel</AlertDialogCancel>
-                                  <AlertDialogAction
-                                    onClick={async () => {
-                                      const res = await fetch(`/api/media/${encodeURIComponent(m.id)}`, {
-                                        method: 'DELETE',
-                                        headers: { ...(xsrfFromCookie ? { 'X-XSRF-TOKEN': xsrfFromCookie } : {}) },
-                                        credentials: 'same-origin',
-                                      })
-                                      if (res.ok) { toast.success('Deleted'); await load() } else { toast.error('Delete failed') }
-                                    }}
-                                  >Delete</AlertDialogAction>
-                                </AlertDialogFooter>
-                              </AlertDialogContent>
-                            </AlertDialog>
-                          )}
-                        </div>
-                      </div>
-                    )
-                  })}
-                </div>
-              ) : (
-                <div className="mt-3">
-                  <Table>
-                    <TableHeader>
-                      <TableRow>
-                        <TableHead className="w-[44px]">
-                          <Checkbox checked={selectAll} onCheckedChange={() => toggleSelectAll()} aria-label="Select all" />
-                        </TableHead>
-                        <TableHead>Preview</TableHead>
-                        <TableHead>Filename</TableHead>
-                        <TableHead>Type</TableHead>
-                        <TableHead>Size</TableHead>
-                        <TableHead>Optimized</TableHead>
-                        <TableHead>Created</TableHead>
-                        <TableHead className="text-right">Actions</TableHead>
-                      </TableRow>
-                    </TableHeader>
-                    <TableBody>
-                      {items.map((m) => {
-                        const isImage = (m.mimeType && m.mimeType.startsWith('image/')) || /\.(png|jpe?g|gif|webp|svg|avif)$/i.test(m.url || '')
-                        const preview = getPreviewUrl(m)
-                        const checked = selectedIds.has(m.id)
-                        return (
-                          <TableRow key={m.id}>
-                            <TableCell>
-                              <Checkbox checked={checked} onCheckedChange={() => toggleSelect(m.id)} aria-label="Select row" />
-                            </TableCell>
-                            <TableCell>
-                              <div className="w-16 h-10 border border-line overflow-hidden rounded bg-backdrop-medium">
-                                {isImage ? <img src={preview || m.url} alt="" className="w-full h-full object-cover" /> : <div className="w-full h-full flex items-center justify-center text-[10px] text-neutral-low">N/A</div>}
-                              </div>
-                            </TableCell>
-                            <TableCell className="max-w-[240px] truncate">{m.originalFilename}</TableCell>
-                            <TableCell>{m.mimeType}</TableCell>
-                            <TableCell>{(m.size / 1024).toFixed(1)} KB</TableCell>
-                            <TableCell>{typeof m.optimizedSize === 'number' ? `${(m.optimizedSize / 1024).toFixed(1)} KB` : '-'}</TableCell>
-                            <TableCell>{new Date(m.createdAt).toLocaleString()}</TableCell>
-                            <TableCell className="text-right">
-                              <div className="inline-flex items-center gap-2">
-                                <button
-                                  className="px-2 py-1 text-xs border border-line rounded hover:bg-backdrop-medium inline-flex items-center gap-1"
-                                  onClick={() => { setViewing(m); setSelectedVariantName('original'); setEditTheme('light'); setCropping(false); setFocalMode(false); setCropSel(null); setFocalDot(null); setReplaceFile(null) }}
-                                  aria-label="Edit"
-                                  title="Edit"
-                                >
-                                  <Pencil className="w-4 h-4" />
-                                </button>
-                                {isImage && (
-                                  <button
-                                    className="px-2 py-1 text-xs border border-line rounded hover:bg-backdrop-medium inline-flex items-center gap-1"
-                                    onClick={async () => {
-                                      await toast.promise(
-                                        fetch(`/api/media/${encodeURIComponent(m.id)}/optimize`, {
-                                          method: 'POST',
-                                          headers: { 'Accept': 'application/json', 'Content-Type': 'application/json', ...(xsrfFromCookie ? { 'X-XSRF-TOKEN': xsrfFromCookie } : {}) },
-                                          credentials: 'same-origin',
-                                        }).then(async (r) => {
-                                          if (!r.ok) {
-                                            const j = await r.json().catch(() => ({}))
-                                            throw new Error(j?.error || 'Optimize failed')
-                                          }
-                                        }),
-                                        { loading: 'Optimizing…', success: 'Optimized', error: (e) => String(e.message || e) }
-                                      )
-                                      await load()
-                                    }}
-                                    aria-label="Optimize"
-                                    title="Optimize (WebP)"
-                                  >
-                                    <Wand2 className="w-4 h-4" />
+                            {isImage && (
+                              <button
+                                className="px-3 py-1.5 text-sm border border-line-low rounded hover:bg-backdrop-medium inline-flex items-center gap-1"
+                                onClick={async () => {
+                                  await toast.promise(
+                                    fetch(`/api/media/${encodeURIComponent(m.id)}/optimize`, {
+                                      method: 'POST',
+                                      headers: { 'Accept': 'application/json', 'Content-Type': 'application/json', ...(xsrfFromCookie ? { 'X-XSRF-TOKEN': xsrfFromCookie } : {}) },
+                                      credentials: 'same-origin',
+                                    }).then(async (r) => {
+                                      if (!r.ok) {
+                                        const j = await r.json().catch(() => ({}))
+                                        throw new Error(j?.error || 'Optimize failed')
+                                      }
+                                    }),
+                                    { loading: 'Optimizing…', success: 'Optimized', error: (e) => String(e.message || e) }
+                                  )
+                                  await load()
+                                }}
+                                aria-label="Optimize"
+                                title="Optimize (WebP)"
+                              >
+                                <Wand2 className="w-4 h-4" />
+                              </button>
+                            )}
+                            <button
+                              className="px-3 py-1.5 text-sm border border-line-low rounded hover:bg-backdrop-medium inline-flex items-center gap-1"
+                              onClick={() => { setUsageFor(m); fetchWhereUsed(m.id) }}
+                              aria-label="Usage"
+                              title="Usage"
+                            >
+                              <BarChart3 className="w-4 h-4" />
+                            </button>
+                            {/* Replace is now handled inside the integrated editor modal */}
+                            {isAdmin && (
+                              <AlertDialog>
+                                <AlertDialogTrigger asChild>
+                                  <button className="px-3 py-1.5 text-sm border border-line-low rounded hover:bg-backdrop-medium text-danger inline-flex items-center gap-1" aria-label="Delete" title="Delete">
+                                    <Trash2 className="w-4 h-4" />
                                   </button>
-                                )}
-                                <button
-                                  className="px-2 py-1 text-xs border border-line rounded hover:bg-backdrop-medium inline-flex items-center gap-1"
-                                  onClick={() => { setUsageFor(m); fetchWhereUsed(m.id) }}
-                                  aria-label="Usage"
-                                  title="Usage"
-                                >
-                                  <BarChart3 className="w-4 h-4" />
-                                </button>
-                                {/* Replace is now handled inside the integrated editor modal */}
-                                {isAdmin && (
-                                  <AlertDialog>
-                                    <AlertDialogTrigger asChild>
-                                      <button className="px-2 py-1 text-xs border border-line rounded hover:bg-backdrop-medium text-danger inline-flex items-center gap-1" aria-label="Delete" title="Delete">
-                                        <Trash2 className="w-4 h-4" />
-                                      </button>
-                                    </AlertDialogTrigger>
-                                    <AlertDialogContent>
-                                      <AlertDialogHeader>
-                                        <AlertDialogTitle>Delete this media?</AlertDialogTitle>
-                                        <AlertDialogDescription>
-                                          This will delete the original file and all generated variants. This action cannot be undone.
-                                        </AlertDialogDescription>
-                                      </AlertDialogHeader>
-                                      <AlertDialogFooter>
-                                        <AlertDialogCancel>Cancel</AlertDialogCancel>
-                                        <AlertDialogAction
-                                          onClick={async () => {
-                                            const res = await fetch(`/api/media/${encodeURIComponent(m.id)}`, {
-                                              method: 'DELETE',
-                                              headers: { ...(xsrfFromCookie ? { 'X-XSRF-TOKEN': xsrfFromCookie } : {}) },
-                                              credentials: 'same-origin',
-                                            })
-                                            if (res.ok) { toast.success('Deleted'); await load() } else { toast.error('Delete failed') }
-                                          }}
-                                        >Delete</AlertDialogAction>
-                                      </AlertDialogFooter>
-                                    </AlertDialogContent>
-                                  </AlertDialog>
-                                )}
-                              </div>
-                            </TableCell>
-                          </TableRow>
-                        )
-                      })}
-                    </TableBody>
-                  </Table>
-                </div>
-              )}
-            </>
-          )}
+                                </AlertDialogTrigger>
+                                <AlertDialogContent>
+                                  <AlertDialogHeader>
+                                    <AlertDialogTitle>Delete this media?</AlertDialogTitle>
+                                    <AlertDialogDescription>
+                                      This will delete the original file and all generated variants. This action cannot be undone.
+                                    </AlertDialogDescription>
+                                  </AlertDialogHeader>
+                                  <AlertDialogFooter>
+                                    <AlertDialogCancel>Cancel</AlertDialogCancel>
+                                    <AlertDialogAction
+                                      onClick={async () => {
+                                        const res = await fetch(`/api/media/${encodeURIComponent(m.id)}`, {
+                                          method: 'DELETE',
+                                          headers: { ...(xsrfFromCookie ? { 'X-XSRF-TOKEN': xsrfFromCookie } : {}) },
+                                          credentials: 'same-origin',
+                                        })
+                                        if (res.ok) { toast.success('Deleted'); await load() } else { toast.error('Delete failed') }
+                                      }}
+                                    >Delete</AlertDialogAction>
+                                  </AlertDialogFooter>
+                                </AlertDialogContent>
+                              </AlertDialog>
+                            )}
+                          </div>
+                        </div>
+                      )
+                    })}
+                  </div>
+                ) : (
+                  <div className="mt-3">
+                    <Table>
+                      <TableHeader>
+                        <TableRow>
+                          <TableHead className="w-[44px]">
+                            <Checkbox checked={selectAll} onCheckedChange={() => toggleSelectAll()} aria-label="Select all" />
+                          </TableHead>
+                          <TableHead>Preview</TableHead>
+                          <TableHead>Filename</TableHead>
+                          <TableHead>Type</TableHead>
+                          <TableHead>Size</TableHead>
+                          <TableHead>Optimized</TableHead>
+                          <TableHead>Created</TableHead>
+                          <TableHead className="text-right">Actions</TableHead>
+                        </TableRow>
+                      </TableHeader>
+                      <TableBody>
+                        {items.map((m) => {
+                          const isImage = (m.mimeType && m.mimeType.startsWith('image/')) || /\.(png|jpe?g|gif|webp|svg|avif)$/i.test(m.url || '')
+                          const preview = getPreviewUrl(m)
+                          const checked = selectedIds.has(m.id)
+                          return (
+                            <TableRow key={m.id}>
+                              <TableCell>
+                                <Checkbox checked={checked} onCheckedChange={() => toggleSelect(m.id)} aria-label="Select row" />
+                              </TableCell>
+                              <TableCell>
+                                <div className="w-16 h-10 border border-line-low overflow-hidden rounded bg-backdrop-medium">
+                                  {isImage ? <img src={preview || m.url} alt="" className="w-full h-full object-cover" /> : <div className="w-full h-full flex items-center justify-center text-[10px] text-neutral-low">N/A</div>}
+                                </div>
+                              </TableCell>
+                              <TableCell className="max-w-[240px] truncate">{m.originalFilename}</TableCell>
+                              <TableCell>{m.mimeType}</TableCell>
+                              <TableCell>{(m.size / 1024).toFixed(1)} KB</TableCell>
+                              <TableCell>{typeof m.optimizedSize === 'number' ? `${(m.optimizedSize / 1024).toFixed(1)} KB` : '-'}</TableCell>
+                              <TableCell>{new Date(m.createdAt).toLocaleString()}</TableCell>
+                              <TableCell className="text-right">
+                                <div className="inline-flex items-center gap-2">
+                                  <button
+                                    className="px-2 py-1 text-xs border border-line-medium rounded hover:bg-backdrop-medium inline-flex items-center gap-1"
+                                    onClick={() => { setViewing(m); setSelectedVariantName('original'); setEditTheme('light'); setCropping(false); setFocalMode(false); setCropSel(null); setFocalDot(null); setReplaceFile(null) }}
+                                    aria-label="Edit"
+                                    title="Edit"
+                                  >
+                                    <Pencil className="w-4 h-4" />
+                                  </button>
+                                  {isImage && (
+                                    <button
+                                      className="px-2 py-1 text-xs border border-line-medium rounded hover:bg-backdrop-medium inline-flex items-center gap-1"
+                                      onClick={async () => {
+                                        await toast.promise(
+                                          fetch(`/api/media/${encodeURIComponent(m.id)}/optimize`, {
+                                            method: 'POST',
+                                            headers: { 'Accept': 'application/json', 'Content-Type': 'application/json', ...(xsrfFromCookie ? { 'X-XSRF-TOKEN': xsrfFromCookie } : {}) },
+                                            credentials: 'same-origin',
+                                          }).then(async (r) => {
+                                            if (!r.ok) {
+                                              const j = await r.json().catch(() => ({}))
+                                              throw new Error(j?.error || 'Optimize failed')
+                                            }
+                                          }),
+                                          { loading: 'Optimizing…', success: 'Optimized', error: (e) => String(e.message || e) }
+                                        )
+                                        await load()
+                                      }}
+                                      aria-label="Optimize"
+                                      title="Optimize (WebP)"
+                                    >
+                                      <Wand2 className="w-4 h-4" />
+                                    </button>
+                                  )}
+                                  <button
+                                    className="px-2 py-1 text-xs border border-line-medium rounded hover:bg-backdrop-medium inline-flex items-center gap-1"
+                                    onClick={() => { setUsageFor(m); fetchWhereUsed(m.id) }}
+                                    aria-label="Usage"
+                                    title="Usage"
+                                  >
+                                    <BarChart3 className="w-4 h-4" />
+                                  </button>
+                                  {/* Replace is now handled inside the integrated editor modal */}
+                                  {isAdmin && (
+                                    <AlertDialog>
+                                      <AlertDialogTrigger asChild>
+                                        <button className="px-2 py-1 text-xs border border-line-medium rounded hover:bg-backdrop-medium text-danger inline-flex items-center gap-1" aria-label="Delete" title="Delete">
+                                          <Trash2 className="w-4 h-4" />
+                                        </button>
+                                      </AlertDialogTrigger>
+                                      <AlertDialogContent>
+                                        <AlertDialogHeader>
+                                          <AlertDialogTitle>Delete this media?</AlertDialogTitle>
+                                          <AlertDialogDescription>
+                                            This will delete the original file and all generated variants. This action cannot be undone.
+                                          </AlertDialogDescription>
+                                        </AlertDialogHeader>
+                                        <AlertDialogFooter>
+                                          <AlertDialogCancel>Cancel</AlertDialogCancel>
+                                          <AlertDialogAction
+                                            onClick={async () => {
+                                              const res = await fetch(`/api/media/${encodeURIComponent(m.id)}`, {
+                                                method: 'DELETE',
+                                                headers: { ...(xsrfFromCookie ? { 'X-XSRF-TOKEN': xsrfFromCookie } : {}) },
+                                                credentials: 'same-origin',
+                                              })
+                                              if (res.ok) { toast.success('Deleted'); await load() } else { toast.error('Delete failed') }
+                                            }}
+                                          >Delete</AlertDialogAction>
+                                        </AlertDialogFooter>
+                                      </AlertDialogContent>
+                                    </AlertDialog>
+                                  )}
+                                </div>
+                              </TableCell>
+                            </TableRow>
+                          )
+                        })}
+                      </TableBody>
+                    </Table>
+                  </div>
+                )}
+              </>
+            )}
           </div>
         </div>
 
@@ -1144,7 +1144,7 @@ export default function MediaIndex() {
         {bulkCategoriesOpen && (
           <div className="fixed inset-0 z-50 flex items-center justify-center">
             <div className="absolute inset-0 bg-black/70" onClick={() => setBulkCategoriesOpen(false)} />
-            <div className="relative z-10 w-full max-w-xl rounded-lg border border-line bg-backdrop-low p-3 shadow-xl">
+            <div className="relative z-10 w-full max-w-xl rounded-lg border border-line-low bg-backdrop-input p-3 shadow-xl">
               <div className="flex items-center justify-between mb-2">
                 <div className="text-sm text-neutral-high">Categories (free tags)</div>
                 <button className="text-neutral-medium hover:text-neutral-high" onClick={() => setBulkCategoriesOpen(false)}>✕</button>
@@ -1155,7 +1155,7 @@ export default function MediaIndex() {
                 </div>
                 <div className="flex flex-wrap gap-2">
                   {bulkCats.map((c, idx) => (
-                    <span key={`${c}-${idx}`} className="inline-flex items-center gap-1 px-2 py-1 border border-line rounded">
+                    <span key={`${c}-${idx}`} className="inline-flex items-center gap-1 px-2 py-1 border border-line-low rounded">
                       {c}
                       <button className="text-neutral-low hover:text-neutral-high" onClick={() => setBulkCats(bulkCats.filter((x, i) => !(i === idx)))}>×</button>
                     </span>
@@ -1163,7 +1163,7 @@ export default function MediaIndex() {
                 </div>
                 <div className="flex items-center gap-2">
                   <input
-                    className="flex-1 px-2 py-1 border border-line bg-backdrop-low text-neutral-high"
+                    className="flex-1 px-2 py-1 border border-line-low bg-backdrop-input text-neutral-high"
                     placeholder="Add category and press Enter"
                     value={bulkCatInput}
                     onChange={(e) => setBulkCatInput(e.target.value)}
@@ -1188,7 +1188,7 @@ export default function MediaIndex() {
                   </button>
                 </div>
                 <div className="flex items-center justify-end gap-2">
-                  <button className="px-3 py-1.5 text-xs border border-line rounded" onClick={() => setBulkCategoriesOpen(false)}>Cancel</button>
+                  <button className="px-3 py-1.5 text-xs border border-line-low rounded" onClick={() => setBulkCategoriesOpen(false)}>Cancel</button>
                   <button className="px-3 py-1.5 text-xs rounded bg-standout text-on-standout" onClick={saveBulkCategories}>Save</button>
                 </div>
               </div>
@@ -1199,7 +1199,7 @@ export default function MediaIndex() {
         {/* Single-item integrated editor modal (meta + image editing) */}
         {viewing && (
           <div className="fixed inset-0 z-50 flex items-center justify-center">
-            <div className="relative z-10 w-full max-w-5xl rounded-lg border border-line bg-backdrop-low p-3 shadow-xl">
+            <div className="relative z-10 w-full max-w-5xl rounded-lg border border-line-low bg-backdrop-input p-3 shadow-xl">
               <div className="flex items-center justify-between mb-2">
                 <div className="text-sm text-neutral-high break-all">{viewing.altText || viewing.originalFilename}</div>
                 <div className="flex items-center gap-2">
@@ -1210,7 +1210,7 @@ export default function MediaIndex() {
                 {/* Left: image editor with theme + variants */}
                 <div className="flex-1">
                   <div className="mb-2 flex items-center justify-between">
-                    <div className="inline-flex items-center gap-1 text-xs border border-line rounded overflow-hidden">
+                    <div className="inline-flex items-center gap-1 text-xs border border-line-low rounded overflow-hidden">
                       <button
                         className={`px-2 py-1 ${editTheme === 'light' ? 'bg-backdrop-medium text-neutral-high' : 'bg-backdrop-low text-neutral-medium'}`}
                         onClick={() => {
@@ -1236,7 +1236,7 @@ export default function MediaIndex() {
                       </button>
                     </div>
                   </div>
-                    <div className="max-h-[55vh] overflow-auto">
+                  <div className="max-h-[55vh] overflow-auto">
                     <div className="relative inline-block" onMouseDown={onCropMouseDown} onMouseMove={onCropMouseMove} onMouseUp={onCropMouseUp} onClick={onFocalClick}>
                       <img ref={imgRef} src={getEditDisplayUrl(viewing, editTheme)} alt={viewing.altText || viewing.originalFilename} className="w-full h-auto max-h-[55vh]" />
                       {cropping && cropSel && (
@@ -1250,7 +1250,7 @@ export default function MediaIndex() {
                     </div>
                   </div>
                   <div className="mt-2 flex flex-wrap items-center gap-2">
-                    <select className="text-xs border border-line bg-backdrop-low text-neutral-high px-2 py-1" value={selectedVariantName} onChange={(e) => setSelectedVariantName(e.target.value)}>
+                    <select className="text-xs border border-line-low bg-backdrop-input text-neutral-high px-2 py-1" value={selectedVariantName} onChange={(e) => setSelectedVariantName(e.target.value)}>
                       <option value="original">
                         {editTheme === 'dark' ? 'Original image (dark)' : 'Original image (light)'}
                       </option>
@@ -1264,7 +1264,7 @@ export default function MediaIndex() {
                     </select>
                     {!focalMode && !cropping && selectedVariantName === 'original' && (
                       <button
-                        className="px-2 py-1 text-xs border border-line rounded hover:bg-backdrop-medium"
+                        className="px-2 py-1 text-xs border border-line-medium rounded hover:bg-backdrop-medium"
                         onClick={() => setCropping(true)}
                       >
                         Crop
@@ -1272,13 +1272,13 @@ export default function MediaIndex() {
                     )}
                     {cropping && (
                       <>
-                        <button className="px-2 py-1 text-xs border border-line rounded hover:bg-backdrop-medium" onClick={() => { setCropping(false); setCropSel(null) }}>Cancel</button>
+                        <button className="px-2 py-1 text-xs border border-line-medium rounded hover:bg-backdrop-medium" onClick={() => { setCropping(false); setCropSel(null) }}>Cancel</button>
                         <button className="px-2 py-1 text-xs rounded bg-standout text-on-standout" onClick={applyCrop}>Apply crop</button>
                       </>
                     )}
                     {!cropping && !focalMode && selectedVariantName === 'original' && (
                       <>
-                        <button className="px-2 py-1 text-xs border border-line rounded hover:bg-backdrop-medium" onClick={() => setFocalMode(true)}>Focal point</button>
+                        <button className="px-2 py-1 text-xs border border-line-medium rounded hover:bg-backdrop-medium" onClick={() => setFocalMode(true)}>Focal point</button>
                         {(() => {
                           const status = getVariantStatus(viewing)
                           const allVariantsExist = status.hasAllLight && status.hasAllDark && status.hasDarkBase
@@ -1287,7 +1287,7 @@ export default function MediaIndex() {
 
                           return (
                             <button
-                              className="px-2 py-1 text-xs border border-line rounded hover:bg-backdrop-medium"
+                              className="px-2 py-1 text-xs border border-line-medium rounded hover:bg-backdrop-medium"
                               onClick={async () => {
                                 if (!viewing) return
                                 const targetId = viewing.id
@@ -1363,7 +1363,7 @@ export default function MediaIndex() {
                     )}
                     {focalMode && (
                       <>
-                        <button className="px-2 py-1 text-xs border border-line rounded hover:bg-backdrop-medium" onClick={() => { setFocalMode(false); setFocalDot(null) }}>Cancel</button>
+                        <button className="px-2 py-1 text-xs border border-line-medium rounded hover:bg-backdrop-medium" onClick={() => { setFocalMode(false); setFocalDot(null) }}>Cancel</button>
                         <button className="px-2 py-1 text-xs rounded bg-standout text-on-standout" onClick={applyFocal}>Apply focal</button>
                       </>
                     )}
@@ -1374,28 +1374,28 @@ export default function MediaIndex() {
                 <div className="w-full max-w-xs space-y-3">
                   <div>
                     <label className="block text-xs text-neutral-medium mb-1">Alt Text</label>
-                    <input className="w-full px-2 py-1 border border-line bg-backdrop-low text-neutral-high" value={editAlt} onChange={(e) => setEditAlt(e.target.value)} />
+                    <input className="w-full px-2 py-1 border border-line-input bg-backdrop-input text-neutral-high" value={editAlt} onChange={(e) => setEditAlt(e.target.value)} />
                   </div>
                   <div>
                     <label className="block text-xs text-neutral-medium mb-1">Caption</label>
-                    <input className="w-full px-2 py-1 border border-line bg-backdrop-low text-neutral-high" value={editCaption} onChange={(e) => setEditCaption(e.target.value)} />
+                    <input className="w-full px-2 py-1 border border-line-input bg-backdrop-input text-neutral-high" value={editCaption} onChange={(e) => setEditCaption(e.target.value)} />
                   </div>
                   <div>
                     <label className="block text-xs text-neutral-medium mb-1">Description</label>
-                    <textarea className="w-full px-2 py-1 border border-line bg-backdrop-low text-neutral-high min-h-[80px]" value={editDescription} onChange={(e) => setEditDescription(e.target.value)} />
+                    <textarea className="w-full px-2 py-1 border border-line-low bg-backdrop-input text-neutral-high min-h-[80px]" value={editDescription} onChange={(e) => setEditDescription(e.target.value)} />
                   </div>
                   <div>
                     <label className="block text-xs text-neutral-medium mb-1">Categories (free tags)</label>
                     <div className="flex items-center gap-2 flex-wrap mb-2">
                       {editCategories.map((c) => (
-                        <span key={c} className="inline-flex items-center gap-1 px-2 py-0.5 text-xs rounded-full bg-backdrop-medium border border-line">
+                        <span key={c} className="inline-flex items-center gap-1 px-2 py-0.5 text-xs rounded-full bg-backdrop-medium border border-line-medium">
                           {c}
                           <button className="ml-1 text-neutral-medium hover:text-neutral-high" onClick={() => setEditCategories((prev) => prev.filter((x) => x !== c))}>×</button>
                         </span>
                       ))}
                     </div>
                     <input
-                      className="w-full px-2 py-1 border border-line bg-backdrop-low text-neutral-high"
+                      className="w-full px-2 py-1 border border-line-low bg-backdrop-input text-neutral-high"
                       placeholder="Type a tag and press Enter"
                       value={newCategory}
                       onChange={(e) => setNewCategory(e.target.value)}
@@ -1410,10 +1410,10 @@ export default function MediaIndex() {
                     />
                   </div>
 
-                  <div className="p-2 border border-dashed border-line rounded">
+                  <div className="p-2 border border-dashed border-line-high rounded">
                     <div className="text-xs font-medium mb-2">Rename file</div>
                     <div className="flex items-center gap-2">
-                      <input className="flex-1 px-2 py-1 border border-line bg-backdrop-low text-neutral-high" placeholder="new-filename (optional extension)" value={newFilename} onChange={(e) => setNewFilename(e.target.value)} />
+                      <input className="flex-1 px-2 py-1 border border-line-input bg-backdrop-input text-neutral-high" placeholder="new-filename (optional extension)" value={newFilename} onChange={(e) => setNewFilename(e.target.value)} />
                       <button className="px-3 py-1.5 text-xs rounded bg-standout text-on-standout disabled:opacity-50" disabled={renaming || !newFilename} onClick={async () => {
                         if (!viewing || !newFilename) return
                         setRenaming(true)
@@ -1425,7 +1425,7 @@ export default function MediaIndex() {
                     </div>
                   </div>
 
-                  <div className="p-2 border border-dashed border-line rounded space-y-2">
+                  <div className="p-2 border border-dashed border-line-high rounded space-y-2">
                     <div className="flex items-center justify-between gap-2">
                       <div className="text-xs font-medium">
                         Replace {editTheme === 'dark' ? 'dark' : 'light'} image
@@ -1485,7 +1485,7 @@ export default function MediaIndex() {
 
                   <div className="flex items-center justify-end gap-2 pt-1">
                     <button
-                      className="px-3 py-1.5 text-xs border border-line rounded hover:bg-backdrop-medium"
+                      className="px-3 py-1.5 text-xs border border-line-low rounded hover:bg-backdrop-medium"
                       onClick={() => { setViewing(null); setWhereUsed(null); setCropping(false); setCropSel(null); setFocalMode(false); setFocalDot(null); setSelectedVariantName('original'); setEditTheme('light'); setReplaceFile(null) }}
                     >
                       Close
@@ -1532,7 +1532,7 @@ export default function MediaIndex() {
         {usageFor && (
           <div className="fixed inset-0 z-50 flex items-center justify-center">
             <div className="absolute inset-0 bg-black/50" onClick={() => { setUsageFor(null); setWhereUsed(null) }} />
-            <div className="relative z-10 w-full max-w-lg rounded-lg border border-line bg-backdrop-low p-6 shadow-xl max-h-[90vh] overflow-auto">
+            <div className="relative z-10 w-full max-w-lg rounded-lg border border-line-low bg-backdrop-input p-6 shadow-xl max-h-[90vh] overflow-auto">
               <div className="flex items-center justify-between mb-4">
                 <h3 className="text-base font-semibold text-neutral-high">Usage</h3>
                 <button className="text-neutral-medium hover:text-neutral-high" onClick={() => { setUsageFor(null); setWhereUsed(null) }}>✕</button>

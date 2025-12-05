@@ -110,11 +110,11 @@ export default function GlobalModulesIndex() {
   }
 
   return (
-    <div className="min-h-screen bg-backdrop-low">
+    <div className="min-h-screen bg-backdrop-medium">
       <AdminHeader title="Global Modules" />
       <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
         <AdminBreadcrumbs items={[{ label: 'Dashboard', href: '/admin' }, { label: 'Modules' }]} />
-        <div className="bg-backdrop-low rounded-lg shadow border border-line p-6 space-y-6">
+        <div className="bg-backdrop-low rounded-lg shadow border border-line-low p-6 space-y-6">
           <div className="flex items-end gap-3">
             <FormField className="flex-1">
               <FormLabel>Search (slug)</FormLabel>
@@ -145,23 +145,23 @@ export default function GlobalModulesIndex() {
                 </button>
               )}
             </div>
-            <div className="border border-line rounded">
+            <div className="border border-line-low rounded">
               <table className="w-full text-sm">
                 <thead className="bg-backdrop-medium text-neutral-medium">
                   <tr>
-                    <th className="text-left px-3 py-2 border-b border-line">Label</th>
-                    <th className="text-left px-3 py-2 border-b border-line">Slug</th>
-                    <th className="text-left px-3 py-2 border-b border-line">Type</th>
-                    <th className="text-left px-3 py-2 border-b border-line">Updated</th>
-                    <th className="text-left px-3 py-2 border-b border-line">Usage</th>
-                    <th className="text-right px-3 py-2 border-b border-line">Actions</th>
+                    <th className="text-left px-3 py-2 border-b border-line-low">Label</th>
+                    <th className="text-left px-3 py-2 border-b border-line-low">Slug</th>
+                    <th className="text-left px-3 py-2 border-b border-line-low">Type</th>
+                    <th className="text-left px-3 py-2 border-b border-line-low">Updated</th>
+                    <th className="text-left px-3 py-2 border-b border-line-low">Usage</th>
+                    <th className="text-right px-3 py-2 border-b border-line-low">Actions</th>
                   </tr>
                 </thead>
                 <tbody>
                   {globals.length === 0 ? (
                     <tr><td className="px-3 py-3 text-xs text-neutral-low" colSpan={6}>{loading ? 'Loading…' : 'No global modules.'}</td></tr>
                   ) : globals.map((m) => (
-                    <tr key={m.id} className="border-b border-line">
+                    <tr key={m.id} className="border-b border-line-low">
                       <td className="px-3 py-2">{(m as any).label || '-'}</td>
                       <td className="px-3 py-2">{m.globalSlug || '-'}</td>
                       <td className="px-3 py-2">{m.type}</td>
@@ -169,8 +169,8 @@ export default function GlobalModulesIndex() {
                       <td className="px-3 py-2">{m.usageCount}</td>
                       <td className="px-3 py-2">
                         <div className="flex items-center justify-end gap-2">
-                          <button className="px-2 py-1 text-xs border border-line rounded hover:bg-backdrop-medium" onClick={() => setEditing(m)}>Edit</button>
-                          <button className="px-2 py-1 text-xs border border-line rounded hover:bg-backdrop-medium disabled:opacity-50"
+                          <button className="px-2 py-1 text-xs border border-line-medium rounded hover:bg-backdrop-medium" onClick={() => setEditing(m)}>Edit</button>
+                          <button className="px-2 py-1 text-xs border border-line-medium rounded hover:bg-backdrop-medium disabled:opacity-50"
                             disabled={m.usageCount > 0}
                             onClick={() => deleteGlobal(m.id)}
                             title={m.usageCount > 0 ? 'Cannot delete while referenced' : 'Delete'}>
@@ -209,7 +209,7 @@ export default function GlobalModulesIndex() {
                               .replace(/[^a-z0-9]+/g, '-')
                               .replace(/^-+|-+$/g, '')
                               .replace(/-{2,}/g, '-')
-                          setNewSlug(slug)
+                            setNewSlug(slug)
                           }
                         }}
                         placeholder="e.g., Footer Links"

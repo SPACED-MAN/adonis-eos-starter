@@ -49,8 +49,8 @@ export function OverridesPanel({
 	return (
 		<div className="fixed inset-0 z-40">
 			<div className="absolute inset-0 bg-black/40" onClick={onClose} />
-			<div className="absolute right-0 top-0 h-full w-full max-w-2xl bg-backdrop-low border-l border-line shadow-xl flex flex-col">
-				<div className="px-5 py-4 border-b border-line flex items-center justify-between">
+			<div className="absolute right-0 top-0 h-full w-full max-w-2xl bg-backdrop-low border-l border-line-low shadow-xl flex flex-col">
+				<div className="px-5 py-4 border-b border-line-low flex items-center justify-between">
 					<h3 className="text-sm font-semibold text-neutral-high">
 						Edit Module Overrides — {moduleItem.type}
 					</h3>
@@ -69,7 +69,7 @@ export function OverridesPanel({
 						</label>
 						<textarea
 							rows={16}
-							className="w-full px-3 py-2 border border-line rounded-lg bg-backdrop-low text-neutral-high font-mono text-xs focus:ring-1 ring-(--ring)"
+							className="w-full px-3 py-2 border border-line-medium rounded-lg bg-backdrop-low text-neutral-high font-mono text-xs focus:ring-1 ring-(--ring)"
 							value={draft}
 							onChange={(e) => setDraft(e.target.value)}
 							placeholder={JSON.stringify({ title: 'Custom title' }, null, 2)}
@@ -82,15 +82,15 @@ export function OverridesPanel({
 						<label className="block text-sm font-medium text-neutral-medium mb-1">
 							Base Props (read-only)
 						</label>
-						<pre className="w-full px-3 py-2 border border-line rounded-lg bg-backdrop-low text-neutral-high font-mono text-xs overflow-auto">
+						<pre className="w-full px-3 py-2 border border-line-medium rounded-lg bg-backdrop-low text-neutral-high font-mono text-xs overflow-auto">
 							{JSON.stringify(moduleItem.props, null, 2)}
 						</pre>
 					</div>
 				</div>
-				<div className="px-5 py-4 border-t border-line flex items-center justify-end gap-3">
+				<div className="px-5 py-4 border-t border-line-low flex items-center justify-end gap-3">
 					<button
 						type="button"
-						className="px-4 py-2 text-sm border border-line rounded-lg hover:bg-backdrop-medium text-neutral-medium"
+						className="px-4 py-2 text-sm border border-line-medium rounded-lg hover:bg-backdrop-medium text-neutral-medium"
 						onClick={onClose}
 						disabled={processing}
 					>

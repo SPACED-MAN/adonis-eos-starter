@@ -451,12 +451,12 @@ export default function MenusIndex() {
   }
 
   return (
-    <div className="min-h-screen bg-backdrop-low">
+    <div className="min-h-screen bg-backdrop-medium">
       <Head title="Menus" />
       <AdminHeader title="Menus" />
       <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
         <AdminBreadcrumbs items={[{ label: 'Dashboard', href: '/admin' }, { label: 'Menus' }]} />
-        <div className="bg-backdrop-low rounded-lg shadow p-4">
+        <div className="bg-backdrop-low rounded-lg p-4 border border-line-low">
           <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
             {/* Left: Menus list and create */}
             <div className="md:col-span-1">
@@ -468,7 +468,7 @@ export default function MenusIndex() {
                   {menus.map((m) => (
                     <button
                       key={m.id}
-                      className={`w-full text-left px-3 py-2 border border-line rounded ${selectedMenuId === m.id ? 'bg-backdrop-medium' : 'hover:bg-backdrop-medium'}`}
+                      className={`w-full text-left px-3 py-2 border border-line-low rounded ${selectedMenuId === m.id ? 'bg-backdrop-medium' : 'hover:bg-backdrop-medium'}`}
                       onClick={() => { setSelectedMenuId(m.id); setSelectedMenuSlug(m.slug || '') }}
                     >
                       <div className="text-sm text-neutral-high">{m.name}</div>
@@ -503,7 +503,7 @@ export default function MenusIndex() {
                     {(((menuLocale || 'en') === editingLocale) || (!menuLocale && editingLocale === 'en')) && (
                       <div className="flex items-center gap-2">
                         <button
-                          className="px-2 py-1 text-xs border border-line rounded"
+                          className="px-2 py-1 text-xs border border-line-medium rounded"
                           onClick={async () => {
                             if (!selectedMenuId) return
                             const targets = ['en', 'es', 'fr', 'pt'].filter((l) => l !== editingLocale)
@@ -538,7 +538,7 @@ export default function MenusIndex() {
                     const activeTemplateSlug = tmpl?.slug || null
                     if (!activeTemplateSlug || !tmpl) return null
                     return (
-                      <div className="mb-4 p-3 border border-line rounded">
+                      <div className="mb-4 p-3 border border-line-low rounded">
                         <div className="flex items-center justify-between mb-2">
                           <div className="text-sm font-medium">Menu Fields</div>
                           <button
@@ -589,21 +589,21 @@ export default function MenusIndex() {
                               ) : f.type === 'text' ? (
                                 f.multiline ? (
                                   <textarea
-                                    className="px-2 py-1 text-sm border border-line bg-backdrop-low text-neutral-high"
+                                    className="px-2 py-1 text-sm border border-line-low bg-backdrop-input text-neutral-high"
                                     rows={3}
                                     value={String(menuMeta[f.key] ?? '')}
                                     onChange={(e) => setMenuMeta((prev) => ({ ...prev, [f.key]: e.target.value }))}
                                   />
                                 ) : (
                                   <input
-                                    className="px-2 py-1 text-sm border border-line bg-backdrop-low text-neutral-high"
+                                    className="px-2 py-1 text-sm border border-line-low bg-backdrop-input text-neutral-high"
                                     value={String(menuMeta[f.key] ?? '')}
                                     onChange={(e) => setMenuMeta((prev) => ({ ...prev, [f.key]: e.target.value }))}
                                   />
                                 )
                               ) : (
                                 <input
-                                  className="px-2 py-1 text-sm border border-line bg-backdrop-low text-neutral-high"
+                                  className="px-2 py-1 text-sm border border-line-low bg-backdrop-input text-neutral-high"
                                   type="url"
                                   value={String(menuMeta[f.key] ?? '')}
                                   onChange={(e) => setMenuMeta((prev) => ({ ...prev, [f.key]: e.target.value }))}
@@ -645,7 +645,7 @@ export default function MenusIndex() {
                     <div className="flex flex-col gap-1">
                       <label className="text-xs text-neutral-medium">Label</label>
                       <input
-                        className="px-2 py-1 text-sm border border-line bg-backdrop-low text-neutral-high"
+                        className="px-2 py-1 text-sm border border-line-low bg-backdrop-input text-neutral-high"
                         placeholder="Label"
                         value={addType === 'post' && !overrideLabel ? (selectedPostLabel || '') : addLabel}
                         onChange={(e) => setAddLabel(e.target.value)}
@@ -663,14 +663,14 @@ export default function MenusIndex() {
                         <label className="text-xs text-neutral-medium">Post</label>
                         <Popover open={postPickerOpen} onOpenChange={setPostPickerOpen}>
                           <PopoverTrigger asChild>
-                            <button className="px-2 py-1 text-sm border border-line rounded bg-backdrop-low text-neutral-high text-left">
+                            <button className="px-2 py-1 text-sm border border-line-medium rounded bg-backdrop-low text-neutral-high text-left">
                               {selectedPostTitle || 'Select a post'}
                             </button>
                           </PopoverTrigger>
                           <PopoverContent className="w-[340px]">
                             <div className="space-y-2">
                               <input
-                                className="w-full px-2 py-1 text-sm border border-line bg-backdrop-low text-neutral-high"
+                                className="w-full px-2 py-1 text-sm border border-line-low bg-backdrop-input text-neutral-high"
                                 placeholder={`Search posts${menuLocale ? ` in ${menuLocale}` : ''}…`}
                                 value={postQuery}
                                 onChange={(e) => {
@@ -683,7 +683,7 @@ export default function MenusIndex() {
                                 <Checkbox checked={searchAllLocales} onCheckedChange={(c) => { setSearchAllLocales(!!c); debouncedSearchPosts(postQuery) }} />
                                 Search all locales
                               </label>
-                              <div className="max-h-[260px] overflow-auto border border-line rounded">
+                              <div className="max-h-[260px] overflow-auto border border-line-low rounded">
                                 {postLoading ? (
                                   <div className="p-2 text-xs text-neutral-medium">Loading…</div>
                                 ) : postResults.length === 0 ? (
@@ -692,7 +692,7 @@ export default function MenusIndex() {
                                   postResults.map((p) => (
                                     <button
                                       key={p.id}
-                                      className="w-full text-left px-2 py-1 text-sm hover:bg-backdrop-medium border-b border-line last:border-b-0"
+                                      className="w-full text-left px-2 py-1 text-sm hover:bg-backdrop-medium border-b border-line-low last:border-b-0"
                                       onClick={() => {
                                         setSelectedPostId(p.id)
                                         setSelectedPostLabel(`${p.title} (${p.locale})`)
@@ -716,7 +716,7 @@ export default function MenusIndex() {
                     ) : addType === 'custom' ? (
                       <div className="flex flex-col gap-1">
                         <label className="text-xs text-neutral-medium">URL</label>
-                        <input className="px-2 py-1 text-sm border border-line bg-backdrop-low text-neutral-high" placeholder="https:// or /path" value={customUrl} onChange={(e) => setCustomUrl(e.target.value)} />
+                        <input className="px-2 py-1 text-sm border border-line-input bg-backdrop-input text-neutral-high" placeholder="https:// or /path" value={customUrl} onChange={(e) => setCustomUrl(e.target.value)} />
                       </div>
                     ) : addType === 'dynamic' ? (
                       <div className="flex flex-col gap-2">
@@ -751,7 +751,7 @@ export default function MenusIndex() {
                             </SelectContent>
                           </Select>
                         </div>
-                        <div className="text-xs text-neutral-medium px-2 py-1 bg-backdrop-low border border-line rounded">
+                        <div className="text-xs text-neutral-medium px-2 py-1 bg-backdrop-low border border-line-low rounded">
                           Dynamic menu items automatically populate with posts of the selected type
                         </div>
                       </div>
@@ -764,7 +764,7 @@ export default function MenusIndex() {
                   <div className="mt-3 flex items-center gap-3">
                     <button
                       type="button"
-                      className="px-2 py-1 text-xs border border-line rounded"
+                      className="px-2 py-1 text-xs border border-line-medium rounded"
                       onClick={() => setAdvancedOpen((v) => !v)}
                     >
                       {advancedOpen ? 'Hide Advanced' : 'Show Advanced'}
@@ -772,10 +772,10 @@ export default function MenusIndex() {
                     <button className="px-3 py-1.5 text-sm rounded bg-standout text-on-standout" onClick={addItem}>Add Item</button>
                   </div>
                   {advancedOpen && (
-                    <div className="mt-3 p-2 border border-line rounded space-y-2">
+                    <div className="mt-3 p-2 border border-line-low rounded space-y-2">
                       <div className="flex flex-col gap-1">
                         <label className="text-xs text-neutral-medium">Additional (anchor or tokens)</label>
-                        <input className="px-2 py-1 text-sm border border-line bg-backdrop-low text-neutral-high" placeholder="#anchor or {token}" value={extra} onChange={(e) => setExtra(e.target.value)} />
+                        <input className="px-2 py-1 text-sm border border-line-input bg-backdrop-input text-neutral-high" placeholder="#anchor or {token}" value={extra} onChange={(e) => setExtra(e.target.value)} />
                       </div>
                       <div className="flex items-center gap-2">
                         <label className="text-xs text-neutral-medium min-w-[80px]">Target</label>
@@ -807,80 +807,80 @@ export default function MenusIndex() {
                   )}
                   <div className="mt-4">
                     <DndContext sensors={sensors} collisionDetection={closestCenter} onDragStart={handleDragStart} onDragMove={handleDragMove} onDragEnd={handleDragEnd}>
-                    <Table>
-                      <TableHeader>
-                        <TableRow>
-                          <TableHead className="w-[36px]"></TableHead>
-                          <TableHead>Label</TableHead>
-                          <TableHead>Type</TableHead>
-                          <TableHead>Destination</TableHead>
-                          <TableHead className="text-right">Actions</TableHead>
-                        </TableRow>
-                      </TableHeader>
-                      <TableBody>
-                        <SortableContext items={flatRows.map((r) => r.item.id)} strategy={verticalListSortingStrategy}>
-                          {flatRows.map(({ item, level }) => {
-                            return (
-                              <SortableRow key={item.id} id={item.id}>
-                                <TableCell></TableCell>
-                                <TableCell>
-                                  <div className="flex items-center" style={{ paddingLeft: level * 12 }}>
-                                    {(level > 0) || (dragActiveId === item.id && willNest) || nestFlashId === item.id ? (
-                                      <span className="mr-2 text-neutral-medium" aria-hidden="true" title="Will nest on drop">
-                                        <FontAwesomeIcon icon={faTurnUp} rotation={90} className="inline-block" size="sm" />
-                                      </span>
-                                    ) : null}
-                                    <span className="text-sm text-neutral-high">{item.label}</span>
-                                  </div>
-                                </TableCell>
-                                <TableCell>
-                                  <span className="text-xs text-neutral-medium">
-                                    {(item as any).kind === 'section' ? 'Section' : (item.type === 'post' ? 'Post' : item.type === 'dynamic' ? 'Dynamic' : 'Custom')}
-                                  </span>
-                                </TableCell>
-                                <TableCell>
-                                  <span className="text-xs text-neutral-medium">
-                                    {item.type === 'custom' ? (item.customUrl || '') : 'Post'}
-                                    {item.anchor ? ` ${item.anchor}` : ''}
-                                  </span>
-                                </TableCell>
-                                <TableCell className="text-right">
-                                  <button
-                                    className="inline-flex items-center gap-1 px-2 py-1 text-xs border border-line rounded hover:bg-backdrop-medium"
-                                    onClick={() => {
-                                      setEditingItem(item)
-                      setEditLabel(item.label)
-                      const k = (item as any).kind as 'item' | 'section' | undefined
-                      setEditType(k === 'section' ? 'section' : item.type)
-                      setEditCustomUrl(item.customUrl || '')
-                      setEditSelectedPostId(item.postId || '')
-                      setEditSelectedPostTitle('') // can be filled after search
-                      setEditExtra(item.anchor || '')
-                      setEditTarget(item.target || 'default')
-                      setEditDynamicPostType(item.dynamicPostType || '')
-                      setEditDynamicParentId(item.dynamicParentId || '')
-                      setEditDynamicDepthLimit(item.dynamicDepthLimit || 1)
-                                      const relSet = new Set(String(item.rel || '').split(/\s+/).filter(Boolean))
-                                      setEditRelOptions({
-                                        nofollow: relSet.has('nofollow'),
-                                        noopener: relSet.has('noopener'),
-                                        noreferrer: relSet.has('noreferrer'),
-                                        external: relSet.has('external'),
-                                      })
-                                      setEditOpen(true)
-                                    }}
-                                    title="Edit"
-                                  >
-                                    <Pencil size={14} />
-                                    Edit
-                                  </button>
-                                </TableCell>
-                              </SortableRow>
-                            )
-                          })}
-                        </SortableContext>
-                      </TableBody>
-                    </Table>
+                      <Table>
+                        <TableHeader>
+                          <TableRow>
+                            <TableHead className="w-[36px]"></TableHead>
+                            <TableHead>Label</TableHead>
+                            <TableHead>Type</TableHead>
+                            <TableHead>Destination</TableHead>
+                            <TableHead className="text-right">Actions</TableHead>
+                          </TableRow>
+                        </TableHeader>
+                        <TableBody>
+                          <SortableContext items={flatRows.map((r) => r.item.id)} strategy={verticalListSortingStrategy}>
+                            {flatRows.map(({ item, level }) => {
+                              return (
+                                <SortableRow key={item.id} id={item.id}>
+                                  <TableCell></TableCell>
+                                  <TableCell>
+                                    <div className="flex items-center" style={{ paddingLeft: level * 12 }}>
+                                      {(level > 0) || (dragActiveId === item.id && willNest) || nestFlashId === item.id ? (
+                                        <span className="mr-2 text-neutral-medium" aria-hidden="true" title="Will nest on drop">
+                                          <FontAwesomeIcon icon={faTurnUp} rotation={90} className="inline-block" size="sm" />
+                                        </span>
+                                      ) : null}
+                                      <span className="text-sm text-neutral-high">{item.label}</span>
+                                    </div>
+                                  </TableCell>
+                                  <TableCell>
+                                    <span className="text-xs text-neutral-medium">
+                                      {(item as any).kind === 'section' ? 'Section' : (item.type === 'post' ? 'Post' : item.type === 'dynamic' ? 'Dynamic' : 'Custom')}
+                                    </span>
+                                  </TableCell>
+                                  <TableCell>
+                                    <span className="text-xs text-neutral-medium">
+                                      {item.type === 'custom' ? (item.customUrl || '') : 'Post'}
+                                      {item.anchor ? ` ${item.anchor}` : ''}
+                                    </span>
+                                  </TableCell>
+                                  <TableCell className="text-right">
+                                    <button
+                                      className="inline-flex items-center gap-1 px-2 py-1 text-xs border border-line-medium rounded hover:bg-backdrop-medium"
+                                      onClick={() => {
+                                        setEditingItem(item)
+                                        setEditLabel(item.label)
+                                        const k = (item as any).kind as 'item' | 'section' | undefined
+                                        setEditType(k === 'section' ? 'section' : item.type)
+                                        setEditCustomUrl(item.customUrl || '')
+                                        setEditSelectedPostId(item.postId || '')
+                                        setEditSelectedPostTitle('') // can be filled after search
+                                        setEditExtra(item.anchor || '')
+                                        setEditTarget(item.target || 'default')
+                                        setEditDynamicPostType(item.dynamicPostType || '')
+                                        setEditDynamicParentId(item.dynamicParentId || '')
+                                        setEditDynamicDepthLimit(item.dynamicDepthLimit || 1)
+                                        const relSet = new Set(String(item.rel || '').split(/\s+/).filter(Boolean))
+                                        setEditRelOptions({
+                                          nofollow: relSet.has('nofollow'),
+                                          noopener: relSet.has('noopener'),
+                                          noreferrer: relSet.has('noreferrer'),
+                                          external: relSet.has('external'),
+                                        })
+                                        setEditOpen(true)
+                                      }}
+                                      title="Edit"
+                                    >
+                                      <Pencil size={14} />
+                                      Edit
+                                    </button>
+                                  </TableCell>
+                                </SortableRow>
+                              )
+                            })}
+                          </SortableContext>
+                        </TableBody>
+                      </Table>
                     </DndContext>
                   </div>
                 </div>
@@ -904,11 +904,11 @@ export default function MenusIndex() {
             <div className="grid grid-cols-1 md:grid-cols-2 gap-2">
               <div className="flex flex-col gap-1">
                 <label className="text-xs text-neutral-medium">Label</label>
-                <input className="px-2 py-1 text-sm border border-line bg-backdrop-low text-neutral-high" value={editLabel} onChange={(e) => setEditLabel(e.target.value)} />
+                <input className="px-2 py-1 text-sm border border-line-input bg-backdrop-input text-neutral-high" value={editLabel} onChange={(e) => setEditLabel(e.target.value)} />
               </div>
               <div className="flex flex-col gap-1">
                 <label className="text-xs text-neutral-medium">Type</label>
-                <div className="px-2 py-1 text-sm border border-line bg-backdrop-medium text-neutral-medium rounded">
+                <div className="px-2 py-1 text-sm border border-line-low bg-backdrop-medium text-neutral-medium rounded">
                   {editType === 'post' ? 'Post' : editType === 'custom' ? 'Custom URL' : editType === 'dynamic' ? 'Dynamic' : 'Section'}
                   <span className="ml-2 text-xs">(cannot be changed)</span>
                 </div>
@@ -919,14 +919,14 @@ export default function MenusIndex() {
                 <label className="text-xs text-neutral-medium">Post</label>
                 <Popover open={editPostPickerOpen} onOpenChange={setEditPostPickerOpen}>
                   <PopoverTrigger asChild>
-                    <button className="px-2 py-1 text-sm border border-line rounded bg-backdrop-low text-neutral-high text-left">
+                    <button className="px-2 py-1 text-sm border border-line-medium rounded bg-backdrop-low text-neutral-high text-left">
                       {editSelectedPostTitle || (editSelectedPostId ? `Selected: ${editSelectedPostId.slice(0, 6)}…` : 'Select a post')}
                     </button>
                   </PopoverTrigger>
                   <PopoverContent className="w-[340px]">
                     <div className="space-y-2">
                       <input
-                        className="w-full px-2 py-1 text-sm border border-line bg-backdrop-low text-neutral-high"
+                        className="w-full px-2 py-1 text-sm border border-line-low bg-backdrop-input text-neutral-high"
                         placeholder={`Search posts${menuLocale ? ` in ${menuLocale}` : ''}…`}
                         value={editPostQuery}
                         onChange={async (e) => {
@@ -945,14 +945,14 @@ export default function MenusIndex() {
                           setEditPostResults(list.map((p: any) => ({ id: p.id, title: p.title, slug: p.slug, locale: p.locale })))
                         }}
                       />
-                      <div className="max-h-[260px] overflow-auto border border-line rounded">
+                      <div className="max-h-[260px] overflow-auto border border-line-low rounded">
                         {editPostResults.length === 0 ? (
                           <div className="p-2 text-xs text-neutral-low">No matches. Type to search.</div>
                         ) : (
                           editPostResults.map((p) => (
                             <button
                               key={p.id}
-                              className="w-full text-left px-2 py-1 text-sm hover:bg-backdrop-medium border-b border-line last:border-b-0"
+                              className="w-full text-left px-2 py-1 text-sm hover:bg-backdrop-medium border-b border-line-low last:border-b-0"
                               onClick={() => {
                                 setEditSelectedPostId(p.id)
                                 setEditSelectedPostTitle(`${p.title} (${p.locale})`)
@@ -972,7 +972,7 @@ export default function MenusIndex() {
             ) : editType === 'custom' ? (
               <div className="flex flex-col gap-1">
                 <label className="text-xs text-neutral-medium">URL</label>
-                <input className="px-2 py-1 text-sm border border-line bg-backdrop-low text-neutral-high" placeholder="https:// or /path" value={editCustomUrl} onChange={(e) => setEditCustomUrl(e.target.value)} />
+                <input className="px-2 py-1 text-sm border border-line-input bg-backdrop-input text-neutral-high" placeholder="https:// or /path" value={editCustomUrl} onChange={(e) => setEditCustomUrl(e.target.value)} />
               </div>
             ) : editType === 'dynamic' ? (
               <div className="flex flex-col gap-2">
@@ -1014,7 +1014,7 @@ export default function MenusIndex() {
             <div className="grid grid-cols-1 md:grid-cols-2 gap-2">
               <div className="flex flex-col gap-1">
                 <label className="text-xs text-neutral-medium">Additional (anchor or tokens)</label>
-                <input className="px-2 py-1 text-sm border border-line bg-backdrop-low text-neutral-high" placeholder="#anchor or {token}" value={editExtra} onChange={(e) => setEditExtra(e.target.value)} />
+                <input className="px-2 py-1 text-sm border border-line-input bg-backdrop-input text-neutral-high" placeholder="#anchor or {token}" value={editExtra} onChange={(e) => setEditExtra(e.target.value)} />
               </div>
               <div className="flex items-center gap-2">
                 <label className="text-xs text-neutral-medium min-w-[60px]">Target</label>
