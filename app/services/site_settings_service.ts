@@ -22,7 +22,7 @@ class SiteSettingsService {
     }
     const row = await db.from('site_settings').first()
     const settings: SiteSettings = {
-      siteTitle: row?.site_title || 'My Site',
+      siteTitle: row?.site_title || 'EOS',
       defaultMetaDescription: row?.default_meta_description || null,
       faviconMediaId: row?.favicon_media_id || null,
       defaultOgMediaId: row?.default_og_media_id || null,

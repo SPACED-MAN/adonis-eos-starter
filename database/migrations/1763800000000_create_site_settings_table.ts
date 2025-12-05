@@ -6,7 +6,7 @@ export default class extends BaseSchema {
   async up() {
     this.schema.createTable(this.tableName, (table) => {
       table.increments('id').primary()
-      table.text('site_title').notNullable().defaultTo('My Site')
+      table.text('site_title').notNullable().defaultTo('EOS')
       table.text('default_meta_description').nullable()
       // Store media IDs for assets (referencing media_assets.id)
       table.text('favicon_media_id').nullable()
