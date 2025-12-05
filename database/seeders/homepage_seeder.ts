@@ -30,13 +30,6 @@ export default class extends BaseSeeder {
 
     console.log('✨ Creating homepage...')
 
-    // Get documentation posts for linking
-    const gettingStartedPost = await db
-      .from('posts')
-      .where('slug', 'getting-started')
-      .where('type', 'documentation')
-      .first()
-
     try {
       // Step 1: Create the post using the CreatePost action
       const post = await CreatePost.handle({
@@ -53,16 +46,45 @@ export default class extends BaseSeeder {
 
       console.log(`   ✓ Post created with ID: ${post.id}`)
 
+      // Get developer documentation post for callout button
+      const developerDocsPost = await db
+        .from('posts')
+        .where('slug', 'getting-started')
+        .where('type', 'documentation')
+        .first()
+
       // Step 2: Add modules using AddModuleToPost action (same as API endpoint)
-      // Hero module
+      // Hero with Callouts module
       await AddModuleToPost.handle({
         postId: post.id,
-        moduleType: 'hero',
+        moduleType: 'hero-with-callout',
         scope: 'local',
         props: {
           title: 'Build the web your way',
           subtitle:
             'Adonis EOS is a modern content management system built for developers and content creators. Create beautiful, performant websites with a modular architecture, powerful workflows, and an intuitive editing experience.',
+          callouts: [
+            {
+              label: 'Learn More',
+              url: { kind: 'url', url: '/docs/overview', target: '_self' },
+            },
+            {
+              label: 'For Editors',
+              url: { kind: 'url', url: '/docs/quick-start', target: '_self' },
+            },
+            {
+              label: 'For Developers',
+              url: developerDocsPost
+                ? {
+                  kind: 'post',
+                  postId: developerDocsPost.id,
+                  slug: developerDocsPost.slug,
+                  locale: developerDocsPost.locale || 'en',
+                  target: '_self',
+                }
+                : { kind: 'url', url: '/docs/getting-started', target: '_self' },
+            },
+          ],
           backgroundColor: 'bg-backdrop-low',
         },
         orderIndex: 0,
@@ -115,77 +137,6 @@ export default class extends BaseSeeder {
                 'Built on AdonisJS with TypeScript, Inertia.js, and React. Clean API, great DX, and comprehensive documentation.',
             },
           ],
-        },
-        orderIndex: 2,
-      })
-
-      // Prose module with CTAs
-      await AddModuleToPost.handle({
-        postId: post.id,
-        moduleType: 'prose',
-        scope: 'local',
-        props: {
-          content: {
-            root: {
-              type: 'root',
-              format: '',
-              indent: 0,
-              version: 1,
-              children: [
-                {
-                  type: 'heading',
-                  tag: 'h2',
-                  format: '',
-                  indent: 0,
-                  version: 1,
-                  children: [{ type: 'text', text: 'Get Started', format: 0, version: 1 }],
-                },
-                {
-                  type: 'paragraph',
-                  format: '',
-                  indent: 0,
-                  version: 1,
-                  children: [
-                    {
-                      type: 'text',
-                      text: 'Explore our comprehensive documentation to learn how to build with Adonis EOS, or check out the official AdonisJS docs for framework details.',
-                      format: 0,
-                      version: 1,
-                    },
-                  ],
-                },
-                {
-                  type: 'paragraph',
-                  format: '',
-                  indent: 0,
-                  version: 1,
-                  children: [
-                    {
-                      type: 'link',
-                      url: gettingStartedPost
-                        ? `/docs/${gettingStartedPost.slug}`
-                        : '/docs/getting-started',
-                      format: '',
-                      indent: 0,
-                      version: 1,
-                      children: [
-                        { type: 'text', text: 'View Documentation →', format: 1, version: 1 },
-                      ],
-                    },
-                    { type: 'text', text: '  |  ', format: 0, version: 1 },
-                    {
-                      type: 'link',
-                      url: 'https://docs.adonisjs.com',
-                      format: '',
-                      indent: 0,
-                      version: 1,
-                      children: [{ type: 'text', text: 'AdonisJS Docs →', format: 1, version: 1 }],
-                    },
-                  ],
-                },
-              ],
-            },
-          },
         },
         orderIndex: 1,
       })
