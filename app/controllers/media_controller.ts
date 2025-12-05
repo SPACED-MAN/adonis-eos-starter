@@ -62,7 +62,8 @@ export default class MediaController {
         optimizedUrl: r.optimized_url || null,
         optimizedSize: r.optimized_size ? Number(r.optimized_size) : null,
         altText: r.alt_text,
-        caption: r.caption,
+        // Expose DB `caption` as `title` in the API
+        title: r.caption,
         description: r.description,
         categories: Array.isArray(r.categories) ? r.categories : [],
         metadata: r.metadata || null,
@@ -75,7 +76,7 @@ export default class MediaController {
 
   /**
    * POST /api/media
-   * multipart/form-data: file, altText?, caption?, description?
+   * multipart/form-data: file, altText?, title?, description?
    */
   async upload({ request, response, auth }: HttpContext) {
     const role = (auth.use('web').user as any)?.role as
@@ -183,7 +184,8 @@ export default class MediaController {
 
     const altFromRequest = String(request.input('altText', '')).trim()
     const altText = altFromRequest || computeDefaultAlt(clientName)
-    const caption = String(request.input('caption', '')).trim() || null
+    // We continue to store this in the `caption` column but expose it as `title` in the API.
+    const caption = String(request.input('title', '')).trim() || null
     const description = String(request.input('description', '')).trim() || null
 
     await db.table('media_assets').insert({
@@ -215,7 +217,7 @@ export default class MediaController {
 
   /**
    * PATCH /api/media/:id
-   * Body: { altText?, caption? }
+   * Body: { altText?, title?, description?, categories? }
    */
   async update({ params, request, response, auth }: HttpContext) {
     const role = (auth.use('web').user as any)?.role as
@@ -231,7 +233,7 @@ export default class MediaController {
     }
     const { id } = params
     const altText = request.input('altText')
-    const caption = request.input('caption')
+    const title = request.input('title')
     const description = request.input('description')
     let categoriesInput = request.input('categories')
     let categories: string[] | undefined
@@ -250,7 +252,7 @@ export default class MediaController {
     const now = new Date()
     const update: any = { updated_at: now }
     if (altText !== undefined) update.alt_text = altText
-    if (caption !== undefined) update.caption = caption
+    if (title !== undefined) update.caption = title
     if (description !== undefined) update.description = description
     if (categories !== undefined) update.categories = categories
     const count = await db.from('media_assets').where('id', id).update(update)

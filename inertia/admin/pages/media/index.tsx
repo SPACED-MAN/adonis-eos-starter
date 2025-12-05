@@ -45,7 +45,7 @@ type MediaItem = {
   optimizedUrl?: string | null
   optimizedSize?: number | null
   altText?: string | null
-  caption?: string | null
+  title?: string | null
   description?: string | null
   categories?: string[]
   createdAt: string
@@ -64,7 +64,7 @@ export default function MediaIndex() {
   const [selected, setSelected] = useState<MediaItem | null>(null)
   const [viewing, setViewing] = useState<MediaItem | null>(null)
   const [editAlt, setEditAlt] = useState<string>('')
-  const [editCaption, setEditCaption] = useState<string>('')
+  const [editTitle, setEditTitle] = useState<string>('')
   const [editDescription, setEditDescription] = useState<string>('')
   const [savingEdit, setSavingEdit] = useState<boolean>(false)
   const [sortBy, setSortBy] = useState<'created_at' | 'original_filename' | 'size'>('created_at')
@@ -144,7 +144,7 @@ export default function MediaIndex() {
   useEffect(() => {
     if (viewing) {
       setEditAlt(viewing.altText || '')
-      setEditCaption(viewing.caption || '')
+      setEditTitle(viewing.title || '')
       setEditDescription((viewing as any).description || '')
       setEditCategories(Array.isArray(viewing.categories) ? viewing.categories : [])
       setNewFilename('')
@@ -1377,11 +1377,11 @@ export default function MediaIndex() {
                     <input className="w-full px-2 py-1 border border-line-input bg-backdrop-input text-neutral-high" value={editAlt} onChange={(e) => setEditAlt(e.target.value)} />
                   </div>
                   <div>
-                    <label className="block text-xs text-neutral-medium mb-1">Caption</label>
-                    <input className="w-full px-2 py-1 border border-line-input bg-backdrop-input text-neutral-high" value={editCaption} onChange={(e) => setEditCaption(e.target.value)} />
+                    <label className="block text-xs text-neutral-medium mb-1">Title</label>
+                    <input className="w-full px-2 py-1 border border-line-input bg-backdrop-input text-neutral-high" value={editTitle} onChange={(e) => setEditTitle(e.target.value)} />
                   </div>
                   <div>
-                    <label className="block text-xs text-neutral-medium mb-1">Description</label>
+                    <label className="block text-xs text-neutral-medium mb-1">Description (used as caption)</label>
                     <textarea className="w-full px-2 py-1 border border-line-low bg-backdrop-input text-neutral-high min-h-[80px]" value={editDescription} onChange={(e) => setEditDescription(e.target.value)} />
                   </div>
                   <div>
@@ -1497,7 +1497,7 @@ export default function MediaIndex() {
                         if (!viewing) return
                         setSavingEdit(true)
                         try {
-                          const res = await fetch(`/api/media/${encodeURIComponent(viewing.id)}`, {
+                      const res = await fetch(`/api/media/${encodeURIComponent(viewing.id)}`, {
                             method: 'PATCH',
                             headers: {
                               'Accept': 'application/json',
@@ -1505,7 +1505,7 @@ export default function MediaIndex() {
                               ...(xsrfFromCookie ? { 'X-XSRF-TOKEN': xsrfFromCookie } : {}),
                             },
                             credentials: 'same-origin',
-                            body: JSON.stringify({ altText: editAlt, caption: editCaption, description: editDescription, categories: editCategories }),
+                            body: JSON.stringify({ altText: editAlt, title: editTitle, description: editDescription, categories: editCategories }),
                           })
                           if (res.ok) {
                             toast.success('Saved')

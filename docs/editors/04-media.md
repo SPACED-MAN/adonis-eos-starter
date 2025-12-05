@@ -96,7 +96,7 @@ Some post types have custom image fields:
 ### Copyright and Licensing
 - Only upload images you have permission to use
 - Keep track of attribution requirements
-- Add credits in the caption field when needed
+- Add credits in the description field when needed (used as the visual caption)
 
 ### Accessibility
 - Write descriptive alt text (not just "image" or the filename)
@@ -107,7 +107,7 @@ Some post types have custom image fields:
 
 ### Editing Media
 1. Click on any media item in the library
-2. Update alt text, title, or caption
+2. Update alt text, title, or description (caption)
 3. Replace the file if needed
 4. Save changes
 
