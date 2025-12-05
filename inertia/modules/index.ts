@@ -1,70 +1,95 @@
 /**
- * Module Registry
+ * Module Registry (Filesystem-based Auto-discovery)
  *
- * Central export for all module components.
- * Components are dynamically imported based on module type from backend.
+ * Automatically discovers and exports all module components using Vite's import.meta.glob.
+ * No need to manually add exports when creating new modules!
  *
  * Naming convention:
  * - Static modules: '{type}-static' → prose-static.tsx
- * - React modules: '{type}' → gallery.tsx
+ * - React modules: '{type}' → hero.tsx
+ *
+ * To add a new module:
+ * 1. Create your component file in inertia/modules/your-module.tsx
+ * 2. Export default from the file
+ * 3. That's it! It will be auto-discovered and available.
  */
 
-// Static modules (pure SSR, max performance)
-export { default as ProseStatic } from './prose-static'
-export { default as Prose } from './prose-static' // Alias for module type matching
-export { default as SeparatorStatic } from './separator-static'
-export { default as Separator } from './separator-static' // Alias for module type matching
+// Auto-discover all .tsx module files with eager loading for named exports
+const eagerModules = import.meta.glob<{ default: any }>('./*.tsx', { eager: true })
 
-// React modules (SSR + hydration, interactive)
-export { default as Gallery } from './gallery'
-export { default as Accordion } from './accordion'
-export { default as KitchenSink } from './kitchen-sink'
-export { default as Hero } from './hero'
-export { default as HeroWithMedia } from './hero-with-media'
-export { default as HeroWithCallout } from './hero-with-callout'
-export { default as FeaturesList } from './features-list'
-export { default as FeaturesListExpanded } from './features-list-expanded'
-export { default as Blockquote } from './blockquote'
-export { default as ProseWithMedia } from './prose-with-media'
-export { default as ProseWithForm } from './prose-with-form'
-export { default as Statistics } from './statistics'
-export { default as ProfileList } from './profile-list'
-export { default as CompanyList } from './company-list'
-export { default as BlogList } from './blog-list'
-export { default as Pricing } from './pricing'
-export { default as Faq } from './faq'
-export { default as TestimonialList } from './testimonial-list'
-export { default as Form } from './form'
+// Auto-discover all .tsx module files with lazy loading for dynamic imports
+const lazyModules = import.meta.glob('./*.tsx')
+
+// Helper to convert kebab-case to PascalCase
+// 'hero-with-media' -> 'HeroWithMedia'
+function toPascalCase(str: string): string {
+  return str
+    .split('-')
+    .map(part => part.charAt(0).toUpperCase() + part.slice(1))
+    .join('')
+}
+
+// Build named exports dynamically
+const exports: Record<string, any> = {}
+
+for (const [path, module] of Object.entries(eagerModules)) {
+  // Extract filename: './hero-with-media.tsx' -> 'hero-with-media'
+  const fileName = path.replace(/^\.\//, '').replace(/\.tsx$/, '')
+
+  // Convert to PascalCase: 'hero-with-media' -> 'HeroWithMedia'
+  const exportName = toPascalCase(fileName)
+
+  // Add to exports
+  exports[exportName] = module.default
+
+  // Also export without 'Static' suffix for static modules
+  // 'ProseStatic' -> also export as 'Prose'
+  if (fileName.endsWith('-static')) {
+    const withoutStatic = fileName.replace(/-static$/, '')
+    const aliasName = toPascalCase(withoutStatic)
+    exports[aliasName] = module.default
+  }
+}
+
+// Export all discovered modules
+export const {
+  Prose,
+  ProseStatic,
+  Separator,
+  SeparatorStatic,
+  Gallery,
+  Accordion,
+  KitchenSink,
+  Hero,
+  HeroWithMedia,
+  HeroWithCallout,
+  FeaturesList,
+  FeaturesListExpanded,
+  Blockquote,
+  ProseWithMedia,
+  ProseWithForm,
+  Statistics,
+  ProfileList,
+  CompanyList,
+  BlogList,
+  Breadcrumb,
+  Pricing,
+  Faq,
+  TestimonialList,
+  Form,
+} = exports
 
 /**
  * Module component map for dynamic imports
- * Key is the component name returned from backend
+ * Auto-generated from discovered modules
  */
-export const MODULE_COMPONENTS = {
-  // Static variants
-  'prose-static': () => import('./prose-static'),
-  'separator-static': () => import('./separator-static'),
+const componentMap: Record<string, () => Promise<any>> = {}
 
-  // React variants
-  'gallery': () => import('./gallery'),
-  'accordion': () => import('./accordion'),
-  'kitchen-sink': () => import('./kitchen-sink'),
-  'hero': () => import('./hero'),
-  'hero-with-media': () => import('./hero-with-media'),
-  'hero-with-callout': () => import('./hero-with-callout'),
-  'features-list': () => import('./features-list'),
-  'features-list-expanded': () => import('./features-list-expanded'),
-  'blockquote': () => import('./blockquote'),
-  'prose-with-media': () => import('./prose-with-media'),
-  'prose-with-form': () => import('./prose-with-form'),
-  'statistics': () => import('./statistics'),
-  'profile-list': () => import('./profile-list'),
-  'company-list': () => import('./company-list'),
-  'blog-list': () => import('./blog-list'),
-  'pricing': () => import('./pricing'),
-  'faq': () => import('./faq'),
-  'testimonial-list': () => import('./testimonial-list'),
-  'form': () => import('./form'),
-} as const
+for (const [path, loader] of Object.entries(lazyModules)) {
+  // Extract filename: './hero-with-media.tsx' -> 'hero-with-media'
+  const fileName = path.replace(/^\.\//, '').replace(/\.tsx$/, '')
+  componentMap[fileName] = loader as () => Promise<any>
+}
 
+export const MODULE_COMPONENTS = componentMap as Record<string, () => Promise<{ default: any }>>
 export type ModuleComponentName = keyof typeof MODULE_COMPONENTS
