@@ -18,15 +18,15 @@ A high-performance, SEO-first CMS built with AdonisJS 6, Inertia, React, Tailwin
 
 If you're new to using the CMS, start here:
 
-👉 **[Editor Quick Start Guide](/docs/editors/quick-start)** - Learn how to create and manage content
+👉 **[Editor Quick Start Guide](/docs/quick-start)** - Learn how to create and manage content
 
 **Editor Documentation:**
-- [Content Management](/docs/editors/content-management) - Creating and editing posts
-- [Working with Modules](/docs/editors/modules-guide) - Understanding content blocks
-- [Review Workflow](/docs/editors/review-workflow) - Collaboration and approval
-- [Managing Media](/docs/editors/media) - Uploading and organizing images
-- [Translations](/docs/editors/translations) - Multi-language content
-- [Roles & Permissions](/docs/editors/roles-permissions) - Understanding your access level
+- [Content Management](/docs/quick-start/content-management) - Creating and editing posts
+- [Working with Modules](/docs/quick-start/modules-guide) - Understanding content blocks
+- [Review Workflow](/docs/quick-start/review-workflow) - Collaboration and approval
+- [Managing Media](/docs/quick-start/media) - Uploading and organizing images
+- [Translations](/docs/quick-start/translations) - Multi-language content
+- [Roles & Permissions](/docs/quick-start/roles-permissions) - Understanding your access level
 
 ### For Developers
 
@@ -50,17 +50,17 @@ npm run dev
 
 Visit `http://localhost:3333/admin` and log in with `admin@example.com` / `password`
 
-👉 **[Developer Getting Started Guide](/docs/developers/getting-started)** - Complete setup and configuration
+👉 **[Developer Getting Started Guide](/docs/getting-started)** - Complete setup and configuration
 
 **Developer Documentation:**
-- [API Reference](/docs/developers/api-reference) - RESTful endpoints
-- [Building Modules](/docs/developers/building-modules) - Creating custom content components
-- [Post Types](/docs/developers/content-management-overview) - Defining custom content types
-- [Theming System](/docs/developers/theming) - Customizing design and colors
-- [URL Patterns & Routing](/docs/developers/routing) - Dynamic URL generation
-- [AI Agents](/docs/developers/ai-agents) - Automated workflows and integrations
-- [Internationalization](/docs/developers/internationalization) - i18n implementation
-- [Deployment Guide](/docs/developers/deployment) - Production setup and best practices
+- [API Reference](/docs/getting-started/api-reference) - RESTful endpoints
+- [Building Modules](/docs/getting-started/building-modules) - Creating custom content components
+- [Content Management Overview](/docs/getting-started/content-management-overview) - Understanding the content model
+- [Theming System](/docs/getting-started/theming) - Customizing design and colors
+- [URL Patterns & Routing](/docs/getting-started/routing) - Dynamic URL generation
+- [AI Agents](/docs/getting-started/ai-agents) - Automated workflows and integrations
+- [Internationalization](/docs/getting-started/internationalization) - i18n implementation
+- [Deployment Guide](/docs/getting-started/deployment) - Production setup and best practices
 
 ## 📁 Project Structure
 
@@ -135,7 +135,7 @@ Centralized theme configuration with separate admin and site themes, automatic d
 
 ## 🛠️ Development
 
-For detailed development workflows, testing strategies, and advanced topics, see the **[Developer Documentation](/docs/developers/getting-started)**.
+For detailed development workflows, testing strategies, and advanced topics, see the **[Developer Documentation](/docs/getting-started)**.
 
 **Quick Commands:**
 ```bash
@@ -146,7 +146,7 @@ node ace make:agent seo    # Create AI agent
 
 ## 📦 Deployment
 
-For production deployment guides, environment configuration, and hosting recommendations, see the **[Deployment Guide](/docs/developers/deployment)**.
+For production deployment guides, environment configuration, and hosting recommendations, see the **[Deployment Guide](/docs/getting-started/deployment)**.
 
 **Quick Deploy:**
 ```bash
