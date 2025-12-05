@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react'
 import { pickMediaVariantUrl } from '../lib/media'
-import { FontAwesomeIcon } from '../site/lib/icons'
+import BlogTeaser from '../site/post-types/blog-teaser'
 
 interface BlogListProps {
   title: string
@@ -120,17 +120,6 @@ export default function BlogList({ title, subtitle, posts }: BlogListProps) {
     return null
   }
 
-  const formatDate = (iso?: string | null): string | null => {
-    if (!iso) return null
-    const d = new Date(iso)
-    if (Number.isNaN(d.getTime())) return null
-    return d.toLocaleDateString(undefined, {
-      year: 'numeric',
-      month: 'short',
-      day: 'numeric',
-    })
-  }
-
   return (
     <section className="bg-backdrop-low py-12 lg:py-16" data-module="blog-list">
       <div className="container mx-auto px-4 sm:px-6 lg:px-8">
@@ -145,64 +134,17 @@ export default function BlogList({ title, subtitle, posts }: BlogListProps) {
           )}
         </div>
         <div className="grid gap-8 md:grid-cols-2 lg:grid-cols-3">
-          {items.map((p) => {
-            const dateLabel = formatDate(p.updatedAt)
-            return (
-              <article
-                key={p.id}
-                className="bg-backdrop-high rounded-lg border border-line-low shadow-sm overflow-hidden flex flex-col"
-              >
-                {p.imageUrl && (
-                  <a href={`/posts/${encodeURIComponent(p.slug)}`} className="block">
-                    <img
-                      src={p.imageUrl}
-                      alt={p.title}
-                      className="w-full h-40 object-cover"
-                      loading="lazy"
-                      decoding="async"
-                    />
-                  </a>
-                )}
-                <div className="p-6 flex flex-col flex-1">
-                  <div className="flex justify-between items-center mb-4 text-neutral-medium text-xs">
-                    <span className="inline-flex items-center px-2.5 py-0.5 rounded bg-backdrop-medium text-neutral-high">
-                      {/* Semantic category placeholder; can be wired to taxonomies later */}
-                      Blog
-                    </span>
-                    {dateLabel && (
-                      <span className="text-xs text-neutral-low">
-                        {dateLabel}
-                      </span>
-                    )}
-                  </div>
-                  <h3 className="mb-2 text-2xl font-bold tracking-tight text-neutral-high">
-                    <a href={`/posts/${encodeURIComponent(p.slug)}`}>{p.title}</a>
-                  </h3>
-                  {p.excerpt && (
-                    <p className="mb-5 font-light text-neutral-medium">
-                      {p.excerpt}
-                    </p>
-                  )}
-                  <div className="mt-auto flex justify-between items-center">
-                    {/* Author block reserved for future blog-specific enrichment */}
-                    <div className="flex items-center space-x-3 text-sm text-neutral-medium">
-                      <span className="font-medium text-neutral-high">
-                        {/* Placeholder author label; real author wiring can come later */}
-                        Blog team
-                      </span>
-                    </div>
-                    <a
-                      href={`/posts/${encodeURIComponent(p.slug)}`}
-                      className="inline-flex items-center font-medium text-standout hover:underline"
-                    >
-                      Read more
-                      <FontAwesomeIcon icon="arrow-right" className="ml-2 text-xs" />
-                    </a>
-                  </div>
-                </div>
-              </article>
-            )
-          })}
+          {items.map((p) => (
+            <BlogTeaser
+              key={p.id}
+              id={p.id}
+              title={p.title}
+              excerpt={p.excerpt}
+              updatedAt={p.updatedAt}
+              imageUrl={p.imageUrl}
+              url={`/posts/${encodeURIComponent(p.slug)}`}
+            />
+          ))}
         </div>
       </div>
     </section>

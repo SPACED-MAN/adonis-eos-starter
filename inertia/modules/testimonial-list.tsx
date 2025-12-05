@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react'
 import { pickMediaVariantUrl } from '../lib/media'
+import TestimonialTeaser from '../site/post-types/testimonial-teaser'
 
 interface TestimonialListProps {
   title: string
@@ -132,37 +133,14 @@ export default function TestimonialList({ title, subtitle, testimonials }: Testi
 
         <div className="grid gap-6 mb-8 lg:mb-12 lg:grid-cols-2">
           {items.map((t) => (
-            <figure
+            <TestimonialTeaser
               key={t.id}
-              className="flex flex-col justify-center items-center p-8 text-center bg-backdrop-high border border-line-low md:p-10 lg:border-r-0 last:lg:border-r dark:border-none"
-            >
-              <blockquote className="mx-auto mb-6 max-w-2xl text-neutral-medium">
-                {t.quote && (
-                  <p className="my-4 text-sm md:text-base">
-                    “{t.quote}”
-                  </p>
-                )}
-              </blockquote>
-              <figcaption className="flex justify-center items-center space-x-4">
-                {t.imageUrl && (
-                  <img
-                    className="w-14 h-14 rounded-full object-cover"
-                    src={t.imageUrl}
-                    alt={t.authorName}
-                    loading="lazy"
-                    decoding="async"
-                  />
-                )}
-                <div className="space-y-0.5 font-medium text-left">
-                  <div className="text-neutral-high">{t.authorName}</div>
-                  {t.authorTitle && (
-                    <div className="text-xs font-light text-neutral-medium">
-                      {t.authorTitle}
-                    </div>
-                  )}
-                </div>
-              </figcaption>
-            </figure>
+              id={t.id}
+              quote={t.quote}
+              authorName={t.authorName}
+              authorTitle={t.authorTitle}
+              imageUrl={t.imageUrl}
+            />
           ))}
         </div>
 

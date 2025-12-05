@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react'
 import { pickMediaVariantUrl } from '../lib/media'
+import CompanyTeaser from '../site/post-types/company-teaser'
 
 interface CompanyListProps {
 	title: string
@@ -125,29 +126,13 @@ export default function CompanyList({ title, subtitle, companies }: CompanyListP
 				)}
 				<div className="grid grid-cols-2 gap-8 text-neutral-medium sm:gap-12 md:grid-cols-3 lg:grid-cols-6">
 					{items.map((c) => (
-						<div
+						<CompanyTeaser
 							key={c.id}
-							className="flex items-center justify-center"
-						>
-							<a
-								href={`/posts/${encodeURIComponent(c.slug)}`}
-								className="flex justify-center items-center"
-							>
-								{c.imageUrl ? (
-									<img
-										src={c.imageUrl}
-										alt={c.title}
-										className="h-30 w-auto object-contain hover:opacity-90 transition"
-										loading="lazy"
-										decoding="async"
-									/>
-								) : (
-									<span className="text-sm font-medium text-neutral-high">
-										{c.title}
-									</span>
-								)}
-							</a>
-						</div>
+							id={c.id}
+							title={c.title}
+							imageUrl={c.imageUrl}
+							url={`/posts/${encodeURIComponent(c.slug)}`}
+						/>
 					))}
 				</div>
 			</div>

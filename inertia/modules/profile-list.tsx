@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react'
 import { pickMediaVariantUrl } from '../lib/media'
+import ProfileTeaser from '../site/post-types/profile-teaser'
 
 interface ProfileListProps {
   title: string
@@ -24,68 +25,68 @@ export default function ProfileList({ title, subtitle, profiles }: ProfileListPr
 
   useEffect(() => {
     let cancelled = false
-    ;(async () => {
-      try {
-        const params = new URLSearchParams()
-        params.set('status', 'published')
-        params.set('limit', '50')
-        const ids = Array.isArray(profiles) ? profiles.filter(Boolean) : []
-        if (ids.length > 0) {
-          params.set('ids', ids.join(','))
+      ; (async () => {
+        try {
+          const params = new URLSearchParams()
+          params.set('status', 'published')
+          params.set('limit', '50')
+          const ids = Array.isArray(profiles) ? profiles.filter(Boolean) : []
+          if (ids.length > 0) {
+            params.set('ids', ids.join(','))
+          }
+          const res = await fetch(`/api/profiles?${params.toString()}`, {
+            credentials: 'same-origin',
+            headers: { Accept: 'application/json' },
+          })
+          if (!res.ok) {
+            throw new Error('Failed to load profiles')
+          }
+          const j = await res.json().catch(() => null)
+          const list: any[] = Array.isArray(j?.data) ? j.data : []
+          if (cancelled) return
+          const mapped: ProfileSummary[] = list.map((p: any) => ({
+            id: String(p.id),
+            name: String(p.name || 'Profile'),
+            role: (p as any).role ?? null,
+            bio: (p as any).bio ?? null,
+            slug: String(p.slug),
+            imageId: (p as any).imageId ?? null,
+            imageUrl: null,
+          }))
+          // Resolve avatar media variants in parallel for all profiles
+          const uniqueIds = Array.from(
+            new Set(mapped.map((m) => m.imageId).filter(Boolean) as string[]),
+          )
+          const urlById = new Map<string, string>()
+          await Promise.all(
+            uniqueIds.map(async (id) => {
+              try {
+                const resMedia = await fetch(`/public/media/${encodeURIComponent(id)}`)
+                if (!resMedia.ok) return
+                const jm = await resMedia.json().catch(() => null)
+                const data = jm?.data
+                if (!data) return
+                const variants = Array.isArray(data.metadata?.variants)
+                  ? (data.metadata.variants as any[])
+                  : []
+                const url = pickMediaVariantUrl(data.url, variants, 'thumb')
+                urlById.set(id, url)
+              } catch {
+                // ignore
+              }
+            }),
+          )
+          const withImages = mapped.map((m) => ({
+            ...m,
+            imageUrl: m.imageId ? urlById.get(m.imageId) || null : null,
+          }))
+          setItems(withImages)
+        } catch {
+          if (!cancelled) setItems([])
+        } finally {
+          if (!cancelled) setLoading(false)
         }
-        const res = await fetch(`/api/profiles?${params.toString()}`, {
-          credentials: 'same-origin',
-          headers: { Accept: 'application/json' },
-        })
-        if (!res.ok) {
-          throw new Error('Failed to load profiles')
-        }
-        const j = await res.json().catch(() => null)
-        const list: any[] = Array.isArray(j?.data) ? j.data : []
-        if (cancelled) return
-        const mapped: ProfileSummary[] = list.map((p: any) => ({
-          id: String(p.id),
-          name: String(p.name || 'Profile'),
-          role: (p as any).role ?? null,
-          bio: (p as any).bio ?? null,
-          slug: String(p.slug),
-          imageId: (p as any).imageId ?? null,
-          imageUrl: null,
-        }))
-        // Resolve avatar media variants in parallel for all profiles
-        const uniqueIds = Array.from(
-          new Set(mapped.map((m) => m.imageId).filter(Boolean) as string[]),
-        )
-        const urlById = new Map<string, string>()
-        await Promise.all(
-          uniqueIds.map(async (id) => {
-            try {
-              const resMedia = await fetch(`/public/media/${encodeURIComponent(id)}`)
-              if (!resMedia.ok) return
-              const jm = await resMedia.json().catch(() => null)
-              const data = jm?.data
-              if (!data) return
-              const variants = Array.isArray(data.metadata?.variants)
-                ? (data.metadata.variants as any[])
-                : []
-              const url = pickMediaVariantUrl(data.url, variants, 'thumb')
-              urlById.set(id, url)
-            } catch {
-              // ignore
-            }
-          }),
-        )
-        const withImages = mapped.map((m) => ({
-          ...m,
-          imageUrl: m.imageId ? urlById.get(m.imageId) || null : null,
-        }))
-        setItems(withImages)
-      } catch {
-        if (!cancelled) setItems([])
-      } finally {
-        if (!cancelled) setLoading(false)
-      }
-    })()
+      })()
     return () => {
       cancelled = true
     }
@@ -126,35 +127,15 @@ export default function ProfileList({ title, subtitle, profiles }: ProfileListPr
         </div>
         <div className="grid gap-8 mb-6 lg:mb-16 md:grid-cols-2">
           {items.map((p) => (
-            <article
+            <ProfileTeaser
               key={p.id}
-              className="items-center bg-backdrop-high rounded-lg shadow sm:flex border border-line-low"
-            >
-              {p.imageUrl && (
-                <a href={`/posts/${encodeURIComponent(p.slug)}`} className="sm:flex-shrink-0">
-                  <img
-                    className="w-full sm:w-44 h-full max-h-60 rounded-lg sm:rounded-none sm:rounded-l-lg object-cover"
-                    src={p.imageUrl}
-                    alt={p.name}
-                    loading="lazy"
-                    decoding="async"
-                  />
-                </a>
-              )}
-              <div className="p-5">
-                <h3 className="text-xl font-bold tracking-tight text-neutral-high">
-                  <a href={`/posts/${encodeURIComponent(p.slug)}`}>{p.name}</a>
-                </h3>
-                {p.role && (
-                  <span className="text-neutral-medium block mt-1">{p.role}</span>
-                )}
-                {p.bio && (
-                  <p className="mt-3 mb-4 font-light text-neutral-medium line-clamp-3">
-                    {p.bio}
-                  </p>
-                )}
-              </div>
-            </article>
+              id={p.id}
+              name={p.name}
+              role={p.role}
+              bio={p.bio}
+              imageUrl={p.imageUrl}
+              url={`/posts/${encodeURIComponent(p.slug)}`}
+            />
           ))}
         </div>
       </div>
