@@ -480,18 +480,21 @@ export default function Editor({ post, modules: initialModules, translations, re
   async function persistOrder(next: EditorProps['modules']) {
     // Always update all modules' order indices to ensure they're saved correctly
     // Don't skip based on current orderIndex since it may have been updated in local state
-    const updates = next.map((m, index) =>
-      fetch(`/api/post-modules/${encodeURIComponent(m.id)}`, {
-        method: 'PUT',
-        headers: {
-          Accept: 'application/json',
-          'Content-Type': 'application/json',
-          ...xsrfHeader(),
-        },
-        credentials: 'same-origin',
-        body: JSON.stringify({ orderIndex: index, mode: viewMode === 'review' ? 'review' : 'publish' }),
-      })
-    )
+    // Filter out temporary modules (pending creation)
+    const updates = next
+      .filter((m) => !m.id.startsWith('temp-'))
+      .map((m, index) =>
+        fetch(`/api/post-modules/${encodeURIComponent(m.id)}`, {
+          method: 'PUT',
+          headers: {
+            Accept: 'application/json',
+            'Content-Type': 'application/json',
+            ...xsrfHeader(),
+          },
+          credentials: 'same-origin',
+          body: JSON.stringify({ orderIndex: index, mode: viewMode === 'review' ? 'review' : 'publish' }),
+        })
+      )
     await Promise.allSettled(updates)
   }
 
