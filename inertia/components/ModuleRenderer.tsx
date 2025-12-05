@@ -11,8 +11,8 @@
 
 import { ComponentType, Suspense } from 'react'
 
-// Import module registry
-import * as Modules from '../modules'
+// Import module registry (auto-discovered)
+import Modules from '../modules'
 
 interface ModuleData {
   id: string

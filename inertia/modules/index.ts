@@ -25,7 +25,7 @@ const lazyModules = import.meta.glob('./*.tsx')
 function toPascalCase(str: string): string {
   return str
     .split('-')
-    .map(part => part.charAt(0).toUpperCase() + part.slice(1))
+    .map((part) => part.charAt(0).toUpperCase() + part.slice(1))
     .join('')
 }
 
@@ -51,33 +51,9 @@ for (const [path, module] of Object.entries(eagerModules)) {
   }
 }
 
-// Export all discovered modules
-export const {
-  Prose,
-  ProseStatic,
-  Separator,
-  SeparatorStatic,
-  Gallery,
-  Accordion,
-  KitchenSink,
-  Hero,
-  HeroWithMedia,
-  HeroWithCallout,
-  FeaturesList,
-  FeaturesListExpanded,
-  Blockquote,
-  ProseWithMedia,
-  ProseWithForm,
-  Statistics,
-  ProfileList,
-  CompanyList,
-  BlogList,
-  Breadcrumb,
-  Pricing,
-  Faq,
-  TestimonialList,
-  Form,
-} = exports
+// Export all discovered modules dynamically
+// No need to manually list each module - they're auto-discovered!
+export default exports
 
 /**
  * Module component map for dynamic imports

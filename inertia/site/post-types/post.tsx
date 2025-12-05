@@ -1,5 +1,5 @@
 import { Head } from '@inertiajs/react'
-import * as Modules from '../../modules'
+import Modules from '../../modules'
 import { SiteFooter } from '../components/SiteFooter'
 import { SiteHeader } from '../components/SiteHeader'
 
