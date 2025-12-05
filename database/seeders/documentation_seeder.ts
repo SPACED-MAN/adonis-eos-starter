@@ -399,7 +399,7 @@ export default class extends BaseSeeder {
     const hierarchy: Record<string, string[]> = {
       // "Documentation" (overview) is standalone with no children
       // "For Editors" and "For Developers" are top-level with their own children
-      
+
       // Group all editor guides under "For Editors"
       'quick-start': [
         'content-management',
@@ -429,7 +429,7 @@ export default class extends BaseSeeder {
     console.log('✨ Creating Documentation overview from README.md')
     const readmePath = join(process.cwd(), 'README.md')
     const readmeContent = await readFile(readmePath, 'utf-8')
-    
+
     // Extract title and subtitle from README
     const readmeTitleMatch = readmeContent.match(/^#\s+(.+)$/m)
     const readmeTitle = readmeTitleMatch ? readmeTitleMatch[1] : 'Documentation'
@@ -575,13 +575,13 @@ export default class extends BaseSeeder {
     console.log(`\n🔗 Regenerating canonical URLs with hierarchical paths...`)
     const urlPatternService = (await import('#services/url_pattern_service')).default
     const localeService = (await import('#services/locale_service')).default
-    
+
     // Ensure URL patterns are in the database before building paths
     const locales = await localeService.getSupportedLocales()
     await urlPatternService.ensureDefaultsForPostType('documentation', locales)
-    
+
     const allPostIds = Object.values(postIdsBySlug)
-    
+
     for (const postId of allPostIds) {
       try {
         const canonicalPath = await urlPatternService.buildPostPathForPost(postId)
@@ -590,7 +590,7 @@ export default class extends BaseSeeder {
         console.log(`   ⚠️  Failed to generate canonical URL for post ${postId}`)
       }
     }
-    
+
     console.log(`   ✓ Regenerated ${allPostIds.length} canonical URLs`)
 
     console.log(`\n✅ Documentation setup complete!`)
