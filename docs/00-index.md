@@ -32,6 +32,7 @@ Technical documentation for developers and system administrators:
 - [API Reference](/docs/getting-started/api-reference) - RESTful endpoints
 - [AI Agents](/docs/getting-started/ai-agents) - Automated content workflows
 - [Deployment Guide](/docs/getting-started/deployment) - Production deployment strategies
+ - [Update Philosophy](/docs/getting-started/update-philosophy) - How to approach upgrades and maintenance
 
 <!-- Coming Soon:
 - Post Types - Defining custom content types
