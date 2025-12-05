@@ -48,12 +48,7 @@ class PostTypeViewService {
 
       const flatItems = await Promise.all(
         documentationPosts.map(async (p: any) => {
-          const url = await urlPatternService.buildPostPath(
-            'documentation',
-            p.slug,
-            post.locale,
-            p.created_at
-          )
+          const url = await urlPatternService.buildPostPathForPost(p.id)
           
           return {
             id: p.id,
@@ -130,12 +125,7 @@ class PostTypeViewService {
       
       // Convert posts to menu items
       for (const p of posts) {
-        const url = await urlPatternService.buildPostPath(
-          dynamicPostType,
-          p.slug,
-          locale,
-          p.created_at
-        )
+        const url = await urlPatternService.buildPostPathForPost(p.id)
         
         expanded.push({
           id: p.id,

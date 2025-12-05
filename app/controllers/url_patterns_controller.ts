@@ -1,7 +1,6 @@
 import type { HttpContext } from '@adonisjs/core/http'
 import UrlPatternService from '#services/url_pattern_service'
 import postTypeConfigService from '#services/post_type_config_service'
-import db from '@adonisjs/lucid/services/db'
 
 export default class UrlPatternsController {
   /**
@@ -56,60 +55,7 @@ export default class UrlPatternsController {
     // Upsert default pattern (or non-default if explicitly requested)
     const existing = isDefault ? await UrlPatternService.getDefaultPattern(postType, locale) : null
     if (existing) {
-      const oldPattern = existing.pattern
       const updated = await UrlPatternService.updatePattern(existing.id, { pattern, isDefault })
-
-      // If pattern actually changed, create redirects from old -> new for all posts of this type+locale
-      const cfg = postTypeConfigService.getUiConfig(postType)
-      const autoRedirect =
-        (cfg as any).autoRedirectOnSlugChange !== undefined
-          ? !!(cfg as any).autoRedirectOnSlugChange
-          : true
-      if (oldPattern !== pattern && autoRedirect) {
-        const posts = await db
-          .from('posts')
-          .select('id', 'type', 'slug', 'locale', 'created_at')
-          .where({ type: postType, locale })
-
-        const now = new Date()
-        for (const p of posts) {
-          const createdAt = p.created_at ? new Date(p.created_at) : undefined
-          const fromPath = UrlPatternService.buildPathWithPattern(
-            oldPattern,
-            p.slug,
-            p.locale,
-            createdAt
-          )
-          const toPath = UrlPatternService.buildPathWithPattern(
-            pattern,
-            p.slug,
-            p.locale,
-            createdAt
-          )
-          if (fromPath !== toPath) {
-            try {
-              const existingRedirect = await db
-                .from('url_redirects')
-                .where('from_path', fromPath)
-                .first()
-              if (!existingRedirect) {
-                await db.table('url_redirects').insert({
-                  from_path: fromPath,
-                  to_path: toPath,
-                  http_status: 301,
-                  locale: p.locale,
-                  post_id: p.id,
-                  created_at: now,
-                  updated_at: now,
-                })
-              }
-            } catch {
-              // Ignore conflicts/errors for bulk creation
-            }
-          }
-        }
-      }
-
       return response.ok({ data: updated, message: 'URL pattern updated' })
     } else {
       const created = await UrlPatternService.createPattern(postType, locale, pattern, isDefault)

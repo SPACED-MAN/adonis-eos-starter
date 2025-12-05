@@ -36,13 +36,6 @@ export default class ProseWithFormModule extends BaseModule {
           required: true,
           description: 'Form to embed (e.g., contact). Choose from Forms defined in the admin.',
         },
-        successMessage: {
-          type: 'string',
-          label: 'Success Message (deprecated)',
-          required: false,
-          description: 'Legacy override (forms now manage success messages themselves).',
-          translatable: true,
-        },
         layout: {
           type: 'select',
           label: 'Form Position',

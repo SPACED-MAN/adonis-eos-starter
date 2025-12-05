@@ -86,18 +86,14 @@ export default class UpdatePost {
             : true
         })()
         if (shouldAutoRedirect) {
-          const fromPath = await urlPatternService.buildPostPath(
-            post.type,
-            oldSlug,
-            post.locale,
-            (post as any).createdAt
-          )
-          const toPath = await urlPatternService.buildPostPath(
-            post.type,
-            newSlug,
-            post.locale,
-            (post as any).createdAt
-          )
+          // Use canonical URL as fromPath (the old URL before slug change)
+          const fromPath = post.canonical_url || (await urlPatternService.buildPostPathForPost(post.id))
+          
+          // Temporarily update post slug to generate new path
+          const oldSlugForRestore = post.slug
+          post.slug = newSlug
+          const toPath = await urlPatternService.buildPostPathForPost(post.id)
+          post.slug = oldSlugForRestore
           try {
             const existing = await db.from('url_redirects').where('from_path', fromPath).first()
             if (!existing) {
@@ -147,6 +143,17 @@ export default class UpdatePost {
     }
 
     await post.save()
+
+    // Auto-update canonical URL if slug changed or if it's not set and wasn't explicitly provided
+    if ((slug && post.slug !== slug) || (canonicalUrl === undefined && !post.canonicalUrl)) {
+      try {
+        const newCanonicalPath = await urlPatternService.buildPostPathForPost(post.id)
+        post.canonicalUrl = newCanonicalPath
+        await post.save()
+      } catch {
+        // If canonical URL generation fails, continue without it
+      }
+    }
 
     return post
   }

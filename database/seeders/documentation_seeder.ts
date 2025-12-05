@@ -346,229 +346,6 @@ export default class extends BaseSeeder {
     return children
   }
 
-  /**
-   * @deprecated - Keeping for reference, now using marked.js
-   * Convert markdown to Lexical JSON format with proper node structures
-   */
-  private markdownToLexicalOld(markdown: string): any {
-    const lines = markdown.split('\n')
-    const children: any[] = []
-
-    let currentParagraph: string[] = []
-    let currentList: { type: string; items: any[] } | null = null
-
-    const flushParagraph = () => {
-      if (currentParagraph.length > 0) {
-        const text = currentParagraph.join(' ').trim()
-        if (text) {
-          children.push({
-            type: 'paragraph',
-            direction: 'ltr',
-            format: '',
-            indent: 0,
-            version: 1,
-            children: [
-              {
-                type: 'text',
-                text,
-                detail: 0,
-                format: 0,
-                mode: 'normal',
-                style: '',
-                version: 1,
-              },
-            ],
-          })
-        }
-        currentParagraph = []
-      }
-    }
-
-    const flushList = () => {
-      if (currentList && currentList.items.length > 0) {
-        children.push({
-          type: 'list',
-          listType: currentList.type === 'ul' ? 'bullet' : 'number',
-          start: 1,
-          tag: currentList.type,
-          direction: 'ltr',
-          format: '',
-          indent: 0,
-          version: 1,
-          children: currentList.items,
-        })
-        currentList = null
-      }
-    }
-
-    for (const line of lines) {
-      const trimmed = line.trim()
-
-      // Skip empty lines (they separate paragraphs and lists)
-      if (!trimmed) {
-        flushParagraph()
-        flushList()
-        continue
-      }
-
-      // Handle headings (Note: H1 is converted to H2 since Hero has the page H1)
-      if (trimmed.startsWith('# ')) {
-        flushParagraph()
-        flushList()
-        children.push({
-          type: 'heading',
-          tag: 'h2', // Convert H1 to H2 for prose content
-          direction: 'ltr',
-          format: '',
-          indent: 0,
-          version: 1,
-          children: [
-            {
-              type: 'text',
-              text: trimmed.slice(2),
-              detail: 0,
-              format: 0,
-              mode: 'normal',
-              style: '',
-              version: 1,
-            },
-          ],
-        })
-        continue
-      }
-      if (trimmed.startsWith('## ')) {
-        flushParagraph()
-        flushList()
-        children.push({
-          type: 'heading',
-          tag: 'h2',
-          direction: 'ltr',
-          format: '',
-          indent: 0,
-          version: 1,
-          children: [
-            {
-              type: 'text',
-              text: trimmed.slice(3),
-              detail: 0,
-              format: 0,
-              mode: 'normal',
-              style: '',
-              version: 1,
-            },
-          ],
-        })
-        continue
-      }
-      if (trimmed.startsWith('### ')) {
-        flushParagraph()
-        flushList()
-        children.push({
-          type: 'heading',
-          tag: 'h3',
-          direction: 'ltr',
-          format: '',
-          indent: 0,
-          version: 1,
-          children: [
-            {
-              type: 'text',
-              text: trimmed.slice(4),
-              detail: 0,
-              format: 0,
-              mode: 'normal',
-              style: '',
-              version: 1,
-            },
-          ],
-        })
-        continue
-      }
-
-      // Handle code blocks
-      if (trimmed.startsWith('```')) {
-        flushParagraph()
-        flushList()
-        continue
-      }
-
-      // Handle list items
-      if (trimmed.startsWith('- ')) {
-        flushParagraph()
-        const text = trimmed.slice(2)
-        if (!currentList || currentList.type !== 'ul') {
-          flushList()
-          currentList = { type: 'ul', items: [] }
-        }
-        currentList.items.push({
-          type: 'listitem',
-          value: currentList.items.length + 1,
-          direction: 'ltr',
-          format: '',
-          indent: 0,
-          version: 1,
-          children: [
-            {
-              type: 'text',
-              text,
-              detail: 0,
-              format: 0,
-              mode: 'normal',
-              style: '',
-              version: 1,
-            },
-          ],
-        })
-        continue
-      }
-      if (/^\d+\.\s/.test(trimmed)) {
-        flushParagraph()
-        const text = trimmed.replace(/^\d+\.\s+/, '')
-        if (!currentList || currentList.type !== 'ol') {
-          flushList()
-          currentList = { type: 'ol', items: [] }
-        }
-        currentList.items.push({
-          type: 'listitem',
-          value: currentList.items.length + 1,
-          direction: 'ltr',
-          format: '',
-          indent: 0,
-          version: 1,
-          children: [
-            {
-              type: 'text',
-              text,
-              detail: 0,
-              format: 0,
-              mode: 'normal',
-              style: '',
-              version: 1,
-            },
-          ],
-        })
-        continue
-      }
-
-      // Regular paragraph text
-      currentParagraph.push(trimmed)
-    }
-
-    // Flush any remaining content
-    flushParagraph()
-    flushList()
-
-    return {
-      root: {
-        type: 'root',
-        direction: 'ltr',
-        format: '',
-        indent: 0,
-        version: 1,
-        children,
-      },
-    }
-  }
   async run() {
     // Get admin user ID
     const admin = await db.from('users').where('email', 'admin@example.com').first()
@@ -785,6 +562,28 @@ export default class extends BaseSeeder {
         console.log(`   ✓ Set '${childSlug}' as child of '${parentSlug}'`)
       }
     }
+
+    // Third pass: ensure URL patterns exist, then regenerate canonical URLs now that hierarchy is established
+    console.log(`\n🔗 Regenerating canonical URLs with hierarchical paths...`)
+    const urlPatternService = (await import('#services/url_pattern_service')).default
+    const localeService = (await import('#services/locale_service')).default
+    
+    // Ensure URL patterns are in the database before building paths
+    const locales = await localeService.getSupportedLocales()
+    await urlPatternService.ensureDefaultsForPostType('documentation', locales)
+    
+    const allPostIds = Object.values(postIdsBySlug)
+    
+    for (const postId of allPostIds) {
+      try {
+        const canonicalPath = await urlPatternService.buildPostPathForPost(postId)
+        await db.from('posts').where('id', postId).update({ canonical_url: canonicalPath })
+      } catch (error) {
+        console.log(`   ⚠️  Failed to generate canonical URL for post ${postId}`)
+      }
+    }
+    
+    console.log(`   ✓ Regenerated ${allPostIds.length} canonical URLs`)
 
     console.log(`\n✅ Documentation setup complete!`)
   }

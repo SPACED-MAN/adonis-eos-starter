@@ -16,11 +16,14 @@ class UrlPatternService {
   /**
    * Replace tokens in a pattern string with provided values.
    * Supports {token} syntax only.
+   * Note: {path} token is NOT URL-encoded since it contains legitimate slashes.
    */
   private replaceTokens(pattern: string, values: Record<string, string>): string {
     let out = pattern
     for (const [key, rawVal] of Object.entries(values)) {
-      const val = encodeURIComponent(rawVal)
+      // Special case: {path} token contains slashes that should NOT be encoded
+      // All other tokens (slug, locale, yyyy, mm, dd) should be encoded
+      const val = key === 'path' ? rawVal : encodeURIComponent(rawVal)
       out = out.replace(new RegExp(`\\{${key}\\}`, 'g'), val)
     }
     if (!out.startsWith('/')) out = '/' + out
@@ -47,43 +50,6 @@ class UrlPatternService {
     }
   }
 
-  /**
-   * Build path using default pattern for postType+locale.
-   */
-  async buildPostPath(
-    postType: string,
-    slug: string,
-    locale: string,
-    createdAt?: Date
-  ): Promise<string> {
-    const stored = await this.getDefaultPattern(postType, locale)
-    const hierarchical = postTypeConfigService.getUiConfig(postType).hierarchyEnabled
-    const seg = hierarchical ? '{path}' : '{slug}'
-    const defaultLocale = localeService.getDefaultLocale()
-    const fallbackPattern =
-      locale === defaultLocale ? `/${postType}/${seg}` : `/{locale}/${postType}/${seg}`
-    const defaultPattern = stored?.pattern || fallbackPattern
-    const d = createdAt ? new Date(createdAt) : new Date()
-    const yyyy = String(d.getUTCFullYear())
-    const mm = String(d.getUTCMonth() + 1).padStart(2, '0')
-    const dd = String(d.getUTCDate()).padStart(2, '0')
-    // Backwards compatibility: if pattern contains {path}, use slug as path
-    const wantsPath = /\{path\}/.test(defaultPattern)
-    const path = slug
-    return this.replaceTokens(defaultPattern, { slug, path, locale, yyyy, mm, dd })
-  }
-
-  async buildPostUrl(
-    postType: string,
-    slug: string,
-    locale: string,
-    protocol: string,
-    host: string,
-    createdAt?: Date
-  ): Promise<string> {
-    const path = await this.buildPostPath(postType, slug, locale, createdAt)
-    return `${protocol}://${host}${path}`
-  }
 
   /**
    * Build path using an explicit pattern string.
@@ -107,7 +73,7 @@ class UrlPatternService {
       createdAt: rec.created_at,
       updatedAt: rec.updated_at,
     }))
-    
+
     // Sort by specificity: more specific patterns first
     // Specificity is determined by:
     // 1. Number of static path segments (higher is more specific)
@@ -118,17 +84,17 @@ class UrlPatternService {
       const bSegments = b.pattern.split('/').filter(s => s && !s.includes('{'))
       const aTokens = (a.pattern.match(/\{[^}]+\}/g) || []).length
       const bTokens = (b.pattern.match(/\{[^}]+\}/g) || []).length
-      
+
       // More static segments = more specific
       if (aSegments.length !== bSegments.length) {
         return bSegments.length - aSegments.length
       }
-      
+
       // Fewer tokens = more specific
       if (aTokens !== bTokens) {
         return aTokens - bTokens
       }
-      
+
       // Longer pattern = more specific
       return b.pattern.length - a.pattern.length
     })
@@ -154,11 +120,12 @@ class UrlPatternService {
 
   /**
    * Try to match an incoming path to a stored pattern.
-   * Returns { postType, locale, slug } or null.
+   * Returns { postType, locale, slug, fullPath, usesPath } or null.
+   * When pattern uses {path}, fullPath contains the hierarchical path for canonical_url matching.
    */
   async matchPath(
     path: string
-  ): Promise<{ postType: string; locale: string; slug: string } | null> {
+  ): Promise<{ postType: string; locale: string; slug: string; fullPath?: string; usesPath: boolean } | null> {
     const patterns = await this.getAllPatterns()
     for (const p of patterns) {
       const re = this.compilePattern(p.pattern)
@@ -167,12 +134,21 @@ class UrlPatternService {
         const locale = (m.groups['locale'] as string) || p.locale
         let slug = m.groups['slug'] as string | undefined
         const pathGroup = m.groups['path'] as string | undefined
+        const usesPath = Boolean(pathGroup)
+
         if (!slug && pathGroup) {
           const parts = pathGroup.split('/').filter(Boolean)
           slug = parts[parts.length - 1]
         }
+
         if (slug) {
-          return { postType: p.postType, locale, slug: decodeURIComponent(slug) }
+          return {
+            postType: p.postType,
+            locale,
+            slug: decodeURIComponent(slug),
+            fullPath: pathGroup || undefined,
+            usesPath
+          }
         }
       }
     }
@@ -192,11 +168,23 @@ class UrlPatternService {
     const missing = locales.filter((l) => !existingLocales.has(l))
     if (missing.length === 0) return
     const now = new Date()
-    const hierarchical = postTypeConfigService.getUiConfig(postType).hierarchyEnabled
+    
+    // Get URL patterns from post type definition
+    const postTypeConfig = postTypeConfigService.getUiConfig(postType)
+    const definedPatterns = postTypeConfig.urlPatterns || []
+    const hierarchical = postTypeConfig.hierarchyEnabled
     const seg = hierarchical ? '{path}' : '{slug}'
     const defaultLocale = localeService.getDefaultLocale()
+    
     const rows = missing.map((locale) => {
-      const pat = locale === defaultLocale ? `/${postType}/${seg}` : `/{locale}/${postType}/${seg}`
+      // Try to find pattern for this locale in post type definition
+      const definedPattern = definedPatterns.find((p) => p.locale === locale)
+      
+      // If found in definition, use it; otherwise fall back to generic pattern
+      const pat = definedPattern 
+        ? definedPattern.pattern 
+        : (locale === defaultLocale ? `/${postType}/${seg}` : `/{locale}/${postType}/${seg}`)
+      
       return {
         post_type: postType,
         locale,

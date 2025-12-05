@@ -31,29 +31,29 @@ function buildTree(items: any[]): any[] {
 async function expandDynamicMenuItems(items: any[], locale: string): Promise<any[]> {
   const hierarchyService = (await import('#services/hierarchy_service')).default
   const urlPatternService = (await import('#services/url_pattern_service')).default
-  
+
   const expanded: any[] = []
-  
+
   for (const item of items) {
     // If not dynamic, keep as-is
     if (item.type !== 'dynamic') {
       expanded.push(item)
       continue
     }
-    
+
     // Dynamic item: fetch posts and expand
     const dynamicPostType = item.dynamicPostType
     const dynamicParentId = item.dynamicParentId
     const dynamicDepthLimit = item.dynamicDepthLimit || 1
-    
+
     if (!dynamicPostType) {
       // Invalid dynamic item, skip
       continue
     }
-    
+
     // Fetch hierarchical posts
     let posts: any[]
-    
+
     if (dynamicParentId) {
       // Fetch children of specific parent
       posts = await db
@@ -73,16 +73,12 @@ async function expandDynamicMenuItems(items: any[], locale: string): Promise<any
         fields: ['id', 'title', 'slug', 'parent_id', 'order_index'],
       })
     }
-    
+
     // Convert posts to menu items
     for (const post of posts) {
-      const url = await urlPatternService.buildPostPath(
-        dynamicPostType,
-        post.slug,
-        locale,
-        post.created_at
-      )
-      
+      // Use hierarchical path for posts with parents
+      const url = await urlPatternService.buildPostPathForPost(post.id)
+
       expanded.push({
         id: `dynamic-${item.id}-${post.id}`,
         parentId: item.parentId,
@@ -101,7 +97,7 @@ async function expandDynamicMenuItems(items: any[], locale: string): Promise<any
       })
     }
   }
-  
+
   return expanded
 }
 
@@ -293,7 +289,7 @@ export default class MenusController {
     const anchor = request.input('anchor') ? String(request.input('anchor')) : null
     const target = request.input('target') ? String(request.input('target')) : null
     const rel = request.input('rel') ? String(request.input('rel')) : null
-    
+
     // Dynamic menu item fields
     const dynamicPostType = request.input('dynamicPostType')
       ? String(request.input('dynamicPostType'))
@@ -395,10 +391,10 @@ export default class MenusController {
       'dynamic_parent_id as dynamicParentId',
       'dynamic_depth_limit as dynamicDepthLimit'
     )
-    
+
     // Expand dynamic menu items
     const expandedRows = await expandDynamicMenuItems(rows, locale)
-    
+
     return response.ok({
       data: {
         id: (menu as any).id,

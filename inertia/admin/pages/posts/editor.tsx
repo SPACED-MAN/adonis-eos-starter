@@ -58,6 +58,7 @@ interface EditorProps {
     featuredImageId: string | null
     createdAt: string
     updatedAt: string
+    publicPath: string
     author?: { id: number; email: string; fullName: string | null } | null
   }
   modules: {
@@ -375,6 +376,20 @@ export default function Editor({ post, modules: initialModules, translations, re
 
   function buildPreviewPath(currentSlug: string): string | null {
     if (!pathPattern) return null
+
+    // For hierarchical patterns with {path}, use the publicPath from backend
+    // because we need parent slugs which we don't have in the frontend
+    if (pathPattern.includes('{path}')) {
+      // If slug hasn't changed, use the publicPath directly
+      if (currentSlug === post.slug) {
+        return post.publicPath
+      }
+      // If slug changed, show the pattern with {path} token
+      // (actual path will be calculated on save)
+      return pathPattern.replace(/\{locale\}/g, post.locale)
+    }
+
+    // For simple patterns with {slug}, build the preview
     const d = new Date(post.createdAt)
     const yyyy = String(d.getUTCFullYear())
     const mm = String(d.getUTCMonth() + 1).padStart(2, '0')

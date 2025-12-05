@@ -333,12 +333,7 @@ export default class PostsController {
       const translations = family.map((p) => ({ id: p.id, locale: p.locale }))
 
       // Build public path using pattern (relative URL for environment-agnostic linking)
-      const publicPath = await urlPatternService.buildPostPath(
-        post.type,
-        post.slug,
-        post.locale,
-        post.createdAt && post.createdAt.toISO() ? new Date(post.createdAt.toISO()!) : undefined
-      )
+      const publicPath = await urlPatternService.buildPostPathForPost(post.id)
 
       // Load author for editor context
       let author: { id: number; email: string; fullName: string | null } | null = null

@@ -120,10 +120,8 @@ export default class ProfilesController {
       const role = extras?.role || null
       const bio = p.excerpt ?? null
 
-      // Prefer core featured image; fall back to legacy profile_image custom field for older data.
       const featuredImageId = (p as any).featuredImageId || (p as any).featured_image_id || null
-      const legacyImageId = extras?.profile_image_id || null
-      const imageId = featuredImageId ? String(featuredImageId) : legacyImageId || null
+      const imageId = featuredImageId ? String(featuredImageId) : null
 
       return {
         id: pid,

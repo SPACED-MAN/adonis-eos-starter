@@ -70,7 +70,7 @@ export default class extends BaseSeeder {
             },
             {
               label: 'For Editors',
-              url: { kind: 'url', url: '/docs/quick-start', target: '_self' },
+              url: { kind: 'url', url: '/docs/overview/quick-start', target: '_self' },
             },
             {
               label: 'For Developers',
@@ -82,7 +82,7 @@ export default class extends BaseSeeder {
                   locale: developerDocsPost.locale || 'en',
                   target: '_self',
                 }
-                : { kind: 'url', url: '/docs/getting-started', target: '_self' },
+                : { kind: 'url', url: '/docs/overview/getting-started', target: '_self' },
             },
           ],
           backgroundColor: 'bg-backdrop-low',

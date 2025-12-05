@@ -58,6 +58,8 @@ export default function Dashboard({ }: DashboardProps) {
   const [total, setTotal] = useState(0)
   const [bulkKey, setBulkKey] = useState(0)
   const [confirmBulkDelete, setConfirmBulkDelete] = useState(false)
+  const [confirmBulkAction, setConfirmBulkAction] = useState(false)
+  const [pendingBulkAction, setPendingBulkAction] = useState<'publish' | 'draft' | 'archive' | 'delete' | 'duplicate' | 'regeneratePermalinks' | null>(null)
   const [hierarchical, setHierarchical] = useState(false)
   const [dndMode, setDndMode] = useState(false)
   const [reorderParentId, setReorderParentId] = useState<string | null>(null)
@@ -730,11 +732,11 @@ export default function Dashboard({ }: DashboardProps) {
                 <Select
                   key={bulkKey}
                   onValueChange={(val: 'publish' | 'draft' | 'archive' | 'delete' | 'duplicate' | 'regeneratePermalinks') => {
+                    setPendingBulkAction(val)
                     if (val === 'delete') {
                       setConfirmBulkDelete(true)
                     } else {
-                      applyBulk(val)
-                      setBulkKey((k) => k + 1)
+                      setConfirmBulkAction(true)
                     }
                   }}
                 >
@@ -773,6 +775,7 @@ export default function Dashboard({ }: DashboardProps) {
               </div>
               {loading && <span className="text-xs text-neutral-low">Loading...</span>}
             </div>
+            {/* Delete confirmation dialog */}
             <AlertDialog open={confirmBulkDelete} onOpenChange={setConfirmBulkDelete}>
               <AlertDialogContent>
                 <AlertDialogHeader>
@@ -791,6 +794,51 @@ export default function Dashboard({ }: DashboardProps) {
                     }}
                   >
                     Delete
+                  </AlertDialogAction>
+                </AlertDialogFooter>
+              </AlertDialogContent>
+            </AlertDialog>
+
+            {/* Generic bulk action confirmation dialog */}
+            <AlertDialog open={confirmBulkAction} onOpenChange={setConfirmBulkAction}>
+              <AlertDialogContent>
+                <AlertDialogHeader>
+                  <AlertDialogTitle>
+                    {pendingBulkAction === 'publish' && 'Publish selected posts?'}
+                    {pendingBulkAction === 'draft' && 'Move selected posts to draft?'}
+                    {pendingBulkAction === 'archive' && 'Archive selected posts?'}
+                    {pendingBulkAction === 'duplicate' && 'Duplicate selected posts?'}
+                    {pendingBulkAction === 'regeneratePermalinks' && 'Regenerate permalinks?'}
+                  </AlertDialogTitle>
+                  <AlertDialogDescription>
+                    {pendingBulkAction === 'publish' && `This will publish ${selected.size} post${selected.size === 1 ? '' : 's'}.`}
+                    {pendingBulkAction === 'draft' && `This will move ${selected.size} post${selected.size === 1 ? '' : 's'} to draft status.`}
+                    {pendingBulkAction === 'archive' && `This will archive ${selected.size} post${selected.size === 1 ? '' : 's'}.`}
+                    {pendingBulkAction === 'duplicate' && `This will create ${selected.size} duplicate post${selected.size === 1 ? '' : 's'}.`}
+                    {pendingBulkAction === 'regeneratePermalinks' && `This will regenerate permalinks for ${selected.size} post${selected.size === 1 ? '' : 's'} based on the current URL pattern. If "Auto-redirect on slug change" is enabled, redirects will be created from old URLs to new URLs.`}
+                  </AlertDialogDescription>
+                </AlertDialogHeader>
+                <AlertDialogFooter>
+                  <AlertDialogCancel onClick={() => {
+                    setConfirmBulkAction(false)
+                    setPendingBulkAction(null)
+                    setBulkKey((k) => k + 1)
+                  }}>Cancel</AlertDialogCancel>
+                  <AlertDialogAction
+                    onClick={() => {
+                      setConfirmBulkAction(false)
+                      if (pendingBulkAction) {
+                        applyBulk(pendingBulkAction)
+                      }
+                      setPendingBulkAction(null)
+                      setBulkKey((k) => k + 1)
+                    }}
+                  >
+                    {pendingBulkAction === 'publish' && 'Publish'}
+                    {pendingBulkAction === 'draft' && 'Move to Draft'}
+                    {pendingBulkAction === 'archive' && 'Archive'}
+                    {pendingBulkAction === 'duplicate' && 'Duplicate'}
+                    {pendingBulkAction === 'regeneratePermalinks' && 'Regenerate'}
                   </AlertDialogAction>
                 </AlertDialogFooter>
               </AlertDialogContent>

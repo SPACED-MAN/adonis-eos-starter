@@ -1369,10 +1369,10 @@ export default class ModuleInstanceSeeder extends BaseSeeder {
             subtitle: 'This hero demonstrates a centered layout using neutral project tokens.',
             callouts: [
               {
-                label: 'Explore modules',
-                url: { kind: 'url', url: '#' },
-                target: '_self',
-              },
+              label: 'Explore modules',
+              url: { kind: 'url', url: '#' },
+              target: '_self',
+            },
             ],
             backgroundColor: 'bg-backdrop-low',
           },

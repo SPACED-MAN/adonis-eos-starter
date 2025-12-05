@@ -67,15 +67,15 @@ export default function HeroWithCallout({
 							if (!callout.label || !href) return null
 							
 							return (
-								<a
+						<a
 									key={index}
-									href={href}
-									target={linkTarget}
-									rel={linkTarget === '_blank' ? 'noopener noreferrer' : undefined}
-									className="inline-flex justify-center items-center py-3 px-5 text-sm sm:text-base font-medium text-center text-on-standout rounded-lg bg-standout hover:bg-standout/90 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:ring-standout transition-colors"
-								>
+							href={href}
+							target={linkTarget}
+							rel={linkTarget === '_blank' ? 'noopener noreferrer' : undefined}
+							className="inline-flex justify-center items-center py-3 px-5 text-sm sm:text-base font-medium text-center text-on-standout rounded-lg bg-standout hover:bg-standout/90 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:ring-standout transition-colors"
+						>
 									{callout.label}
-								</a>
+						</a>
 							)
 						})}
 					</div>

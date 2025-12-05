@@ -284,41 +284,6 @@ export default class extends BaseSeeder {
         console.log('✅ Module Catalog post already exists, skipping create')
       }
 
-      // Repair demo media asset if it still points at the old demo-kitchen-sink.svg or demo-content.svg
-      {
-        const [legacyDemo] = await db
-          .from('media_assets')
-          .whereIn('original_filename', ['demo-kitchen-sink.svg', 'demo-content.svg'])
-          .limit(1)
-
-        if (legacyDemo) {
-          const nowRepair = new Date()
-          const demoSize = await getFileSize('/uploads/demo-placeholder.jpg')
-          const thumbVariant = {
-            name: 'thumb',
-            url: '/uploads/demo-placeholder.jpg',
-            width: null,
-            height: null,
-            size: demoSize,
-          }
-
-          await db
-            .from('media_assets')
-            .where('id', (legacyDemo as any).id)
-            .update({
-              url: '/uploads/demo-placeholder.jpg',
-              original_filename: 'demo-placeholder.jpg',
-              mime_type: 'image/jpeg',
-              metadata: {
-                ...(legacyDemo as any).metadata,
-                variants: [thumbVariant],
-              } as any,
-              updated_at: nowRepair,
-            } as any)
-
-          console.log('🛠 Repaired demo media asset to use demo-placeholder.jpg placeholder')
-        }
-      }
 
       // Only seed initial modules if this catalog page has no modules attached yet
       const existingCatalogModules = await db
@@ -452,10 +417,10 @@ export default class extends BaseSeeder {
               subtitle: 'This hero demonstrates a centered layout using neutral project tokens.',
               callouts: [
                 {
-                  label: 'Explore modules',
-                  url: { kind: 'url', url: '#' },
-                  target: '_self',
-                },
+                label: 'Explore modules',
+                url: { kind: 'url', url: '#' },
+                target: '_self',
+              },
               ],
               backgroundColor: 'bg-backdrop-low',
             },
@@ -647,10 +612,10 @@ export default class extends BaseSeeder {
                 subtitle: 'This hero demonstrates a centered layout using neutral project tokens.',
                 callouts: [
                   {
-                    label: 'Explore modules',
-                    url: '#',
-                    target: '_self',
-                  },
+                  label: 'Explore modules',
+                  url: '#',
+                  target: '_self',
+                },
                 ],
                 backgroundColor: 'bg-backdrop-low',
               },
@@ -727,7 +692,7 @@ export default class extends BaseSeeder {
     console.log('  - Modules: ✓')
     console.log('  - URL patterns (locale-aware): ✓')
     console.log('  - URL redirects (locale-aware): ✓')
-    console.log('  - Custom fields: ✓ (legacy or code-first)')
+    console.log('  - Custom fields: ✓')
     console.log('  - Module scopes: ✓')
   }
 }

@@ -51,13 +51,8 @@ export default class PostsViewController extends BasePostsController {
       })
       const translations = family.map((p) => ({ id: p.id, locale: p.locale }))
 
-      // Build public path
-      const publicPath = await urlPatternService.buildPostPath(
-        post.type,
-        post.slug,
-        post.locale,
-        post.createdAt?.toJSDate()
-      )
+      // Build public path (use hierarchical path if post has parents)
+      const publicPath = await urlPatternService.buildPostPathForPost(post.id)
 
       // Load author
       const author = await postRenderingService.loadAuthor(post.authorId)
@@ -186,13 +181,14 @@ export default class PostsViewController extends BasePostsController {
    */
   async resolve({ request, response, inertia, auth }: HttpContext) {
     const path = request.url().split('?')[0]
+
     const match = await urlPatternService.matchPath(path)
 
     if (!match) {
       return inertia.render('site/errors/not_found')
     }
 
-    const { slug, locale, postType } = match
+    const { slug, locale, postType, usesPath, fullPath } = match
 
     // Check permalinks
     if (postType) {
@@ -210,14 +206,31 @@ export default class PostsViewController extends BasePostsController {
     const wantReview = viewParam === 'review' && Boolean(request.header('cookie'))
 
     try {
+      // Query by slug to find the post
       const post = await Post.query()
         .where('slug', slug)
         .where('locale', locale)
-        .where('type', postType) // Ensure post type matches the URL pattern
+        .where('type', postType)
         .first()
 
       if (!post) {
         return inertia.render('site/errors/not_found')
+      }
+
+      // For hierarchical paths, verify the full path matches
+      if (usesPath && fullPath) {
+        try {
+          // Build the expected canonical path for this post
+          const expectedPath = await urlPatternService.buildPostPathForPost(post.id)
+
+          // If the incoming path doesn't match the expected path, it's a 404
+          if (path !== expectedPath) {
+            return inertia.render('site/errors/not_found')
+          }
+        } catch {
+          // If path building fails, fall back to allowing the request
+          // This can happen if URL patterns aren't properly set up
+        }
       }
 
       // Handle protected/private statuses

@@ -120,14 +120,51 @@ export default class BulkPostsAction {
       const rows = await Post.query().whereIn('id', uniqueIds)
       let updated = 0
       const now = new Date()
+      const urlPatternService = (await import('#services/url_pattern_service')).default
+      const postTypeConfigService = (await import('#services/post_type_config_service')).default
+
       for (const p of rows) {
-        // Build path (without host) to store in canonical_url
-        const pathOnly = await (
-          await import('#services/url_pattern_service')
-        ).default.buildPostPathForPost(p.id)
+        // Get current canonical URL (before regeneration)
+        const oldPath = p.canonicalUrl
+
+        // Build new path (without host) to store in canonical_url
+        const newPath = await urlPatternService.buildPostPathForPost(p.id)
+
+        // Update canonical URL
         await Post.query()
           .where('id', p.id)
-          .update({ canonicalUrl: pathOnly, updatedAt: now } as any)
+          .update({ canonicalUrl: newPath, updatedAt: now } as any)
+
+        // Create redirect if path changed and auto-redirect is enabled
+        if (oldPath && oldPath !== newPath) {
+          const shouldAutoRedirect = (() => {
+            try {
+              const cfg = postTypeConfigService.getUiConfig(p.type)
+              return (cfg as any).autoRedirectOnSlugChange !== undefined
+                ? !!(cfg as any).autoRedirectOnSlugChange
+                : true
+            } catch {
+              return true // Default to enabled
+            }
+          })()
+
+          if (shouldAutoRedirect) {
+            // Check if redirect already exists
+            const existing = await db.from('url_redirects').where('from_path', oldPath).first()
+            if (!existing) {
+              await db.table('url_redirects').insert({
+                from_path: oldPath,
+                to_path: newPath,
+                http_status: 301,
+                locale: p.locale,
+                post_id: p.id,
+                created_at: now,
+                updated_at: now,
+              })
+            }
+          }
+        }
+
         updated++
       }
       return { message: `Regenerated permalinks for ${updated} posts`, count: updated }

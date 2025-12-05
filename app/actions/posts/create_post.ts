@@ -152,7 +152,16 @@ export default class CreatePost {
     try {
       const locales = await LocaleService.getSupportedLocales()
       await urlPatternService.ensureDefaultsForPostType(type, locales)
-    } catch {}
+    } catch { }
+
+    // Set canonical URL for the post
+    try {
+      const canonicalPath = await urlPatternService.buildPostPathForPost(post.id)
+      post.canonicalUrl = canonicalPath
+      await post.save()
+    } catch {
+      // If canonical URL generation fails, continue without it
+    }
 
     return post
   }
