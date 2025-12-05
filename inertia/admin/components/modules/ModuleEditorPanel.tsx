@@ -18,6 +18,26 @@ import {
 import { FormField, FormLabel } from '~/components/forms/field'
 import { LinkField, type LinkFieldValue } from '~/components/forms/LinkField'
 import { MediaPickerModal } from '../media/MediaPickerModal'
+import { FontAwesomeIcon } from '@fortawesome/react-fontawesome'
+import {
+	faArrowRight,
+	faBullhorn,
+	faScaleBalanced,
+	faGear,
+	faCoins,
+	faPenRuler,
+	faDiagramProject,
+	faCircleQuestion,
+	faQuoteLeft,
+	faCheck,
+	faChevronDown,
+	faCube,
+	faLanguage,
+	faUsers,
+	faCodeBranch,
+	faPalette,
+	faBolt,
+} from '@fortawesome/free-solid-svg-icons'
 
 export interface ModuleListItem {
 	id: string
@@ -46,6 +66,7 @@ type FieldSchema =
 		| 'object'
 		| 'repeater'
 		| 'slider'
+		| 'icon'
 		required?: boolean
 		placeholder?: string
 		options?: Array<{ label: string; value: string }>
@@ -544,6 +565,110 @@ export function ModuleEditorPanel({
 							}}
 						/>
 					</div>
+				</FormField>
+			)
+		}
+		if (type === 'icon') {
+			// Icon picker - shows available Fort Awesome icons
+			const iconMap: Record<string, any> = {
+				'arrow-right': faArrowRight,
+				'bullhorn': faBullhorn,
+				'scale-balanced': faScaleBalanced,
+				'gear': faGear,
+				'coins': faCoins,
+				'pen-ruler': faPenRuler,
+				'diagram-project': faDiagramProject,
+				'circle-question': faCircleQuestion,
+				'quote-left': faQuoteLeft,
+				'check': faCheck,
+				'chevron-down': faChevronDown,
+				'cube': faCube,
+				'language': faLanguage,
+				'users': faUsers,
+				'code-branch': faCodeBranch,
+				'palette': faPalette,
+				'bolt': faBolt,
+			}
+			
+			const availableIcons = [
+				{ name: 'arrow-right', label: 'Arrow Right', icon: faArrowRight },
+				{ name: 'bullhorn', label: 'Bullhorn', icon: faBullhorn },
+				{ name: 'scale-balanced', label: 'Scale Balanced', icon: faScaleBalanced },
+				{ name: 'gear', label: 'Gear', icon: faGear },
+				{ name: 'coins', label: 'Coins', icon: faCoins },
+				{ name: 'pen-ruler', label: 'Pen Ruler', icon: faPenRuler },
+				{ name: 'diagram-project', label: 'Diagram Project', icon: faDiagramProject },
+				{ name: 'circle-question', label: 'Circle Question', icon: faCircleQuestion },
+				{ name: 'quote-left', label: 'Quote Left', icon: faQuoteLeft },
+				{ name: 'check', label: 'Check', icon: faCheck },
+				{ name: 'chevron-down', label: 'Chevron Down', icon: faChevronDown },
+				{ name: 'cube', label: 'Cube', icon: faCube },
+				{ name: 'language', label: 'Language', icon: faLanguage },
+				{ name: 'users', label: 'Users', icon: faUsers },
+				{ name: 'code-branch', label: 'Code Branch', icon: faCodeBranch },
+				{ name: 'palette', label: 'Palette', icon: faPalette },
+				{ name: 'bolt', label: 'Bolt', icon: faBolt },
+			]
+			
+			const initial = typeof value === 'string' ? value : ''
+			const [selectedIcon, setSelectedIcon] = useState<string>(initial)
+			const [pickerOpen, setPickerOpen] = useState(false)
+			const hiddenRef = useRef<HTMLInputElement | null>(null)
+
+			return (
+				<FormField>
+					{!hideLabel && <FormLabel>{label}</FormLabel>}
+					<Popover open={pickerOpen} onOpenChange={setPickerOpen}>
+						<PopoverTrigger asChild>
+							<button
+								type="button"
+								className="w-full text-left px-3 py-2 border border-border rounded-lg bg-backdrop-low text-neutral-high hover:bg-backdrop-medium flex items-center gap-2"
+							>
+								{selectedIcon && iconMap[selectedIcon] ? (
+									<>
+										<FontAwesomeIcon icon={iconMap[selectedIcon]} className="w-4 h-4" />
+										<span>{selectedIcon}</span>
+									</>
+								) : (
+									<span className="text-neutral-low">Select an icon</span>
+								)}
+							</button>
+						</PopoverTrigger>
+						<PopoverContent className="w-96">
+							<div className="grid grid-cols-4 gap-2 max-h-96 overflow-auto">
+								{availableIcons.map((iconItem) => (
+									<button
+										key={iconItem.name}
+										type="button"
+										className={`p-3 border rounded-lg hover:bg-backdrop-medium flex flex-col items-center gap-1 ${
+											selectedIcon === iconItem.name ? 'border-standout bg-standout/10' : 'border-line'
+										}`}
+										onClick={() => {
+											setSelectedIcon(iconItem.name)
+											if (hiddenRef.current) {
+												hiddenRef.current.value = iconItem.name
+												hiddenRef.current.dispatchEvent(new Event('input', { bubbles: true }))
+												hiddenRef.current.dispatchEvent(new Event('change', { bubbles: true }))
+											}
+											try {
+												const next = JSON.parse(JSON.stringify(draft))
+												setByPath(next, name, iconItem.name)
+												setDraft(next)
+											} catch { }
+											setPickerOpen(false)
+										}}
+										title={iconItem.label}
+									>
+										<FontAwesomeIcon icon={iconItem.icon} className="w-6 h-6" />
+										<span className="text-[10px] text-neutral-low truncate w-full text-center">
+											{iconItem.label}
+										</span>
+									</button>
+								))}
+							</div>
+						</PopoverContent>
+					</Popover>
+					<input type="hidden" name={name} ref={hiddenRef} defaultValue={initial} />
 				</FormField>
 			)
 		}

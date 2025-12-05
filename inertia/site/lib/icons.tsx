@@ -11,6 +11,12 @@ import {
   faQuoteLeft,
   faCheck,
   faChevronDown,
+  faCube,
+  faLanguage,
+  faUsers,
+  faCodeBranch,
+  faPalette,
+  faBolt,
 } from '@fortawesome/free-solid-svg-icons'
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome'
 
@@ -27,6 +33,12 @@ library.add(
   faQuoteLeft,
   faCheck,
   faChevronDown,
+  faCube,
+  faLanguage,
+  faUsers,
+  faCodeBranch,
+  faPalette,
+  faBolt,
 )
 
 export { FontAwesomeIcon }

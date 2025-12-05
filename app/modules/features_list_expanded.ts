@@ -33,10 +33,9 @@ export default class FeaturesListExpandedModule extends BaseModule {
             type: 'object',
             properties: {
               icon: {
-                type: 'string',
+                type: 'icon',
                 required: false,
-                description:
-                  'Font Awesome icon name (e.g., bolt, layers, users) resolved via Fort Awesome React implementation.',
+                description: 'Fort Awesome icon from the registered icon library',
               },
               title: {
                 type: 'string',
