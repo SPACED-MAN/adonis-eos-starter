@@ -49,8 +49,8 @@ export default class UrlPatternsController {
     if (!pattern || typeof pattern !== 'string') {
       return response.badRequest({ error: 'pattern is required' })
     }
-    if (!(pattern.includes('{slug}') || pattern.includes(':slug'))) {
-      return response.badRequest({ error: 'pattern must include {slug} token' })
+    if (!(pattern.includes('{slug}') || pattern.includes('{path}') || pattern.includes(':slug'))) {
+      return response.badRequest({ error: 'pattern must include {slug} or {path} token' })
     }
 
     // Upsert default pattern (or non-default if explicitly requested)

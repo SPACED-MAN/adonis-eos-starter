@@ -3,6 +3,16 @@ import { Head } from '@inertiajs/react'
 import { AdminHeader } from '../../components/AdminHeader'
 import { AdminFooter } from '../../components/AdminFooter'
 import { AdminBreadcrumbs } from '../../components/AdminBreadcrumbs'
+import { toast } from 'sonner'
+import {
+	AlertDialog,
+	AlertDialogContent,
+	AlertDialogDescription,
+	AlertDialogFooter,
+	AlertDialogHeader,
+	AlertDialogTitle,
+	AlertDialogAction,
+} from '~/components/ui/alert-dialog'
 // Select import removed (no add-pattern form)
 
 type Pattern = {
@@ -26,6 +36,8 @@ export default function UrlPatternsPage() {
 	const [loading, setLoading] = useState(false)
 	const [savingKey, setSavingKey] = useState<string | null>(null)
 	const [drafts, setDrafts] = useState<Record<string, string>>({})
+	const [alertOpen, setAlertOpen] = useState(false)
+	const [alertMessage, setAlertMessage] = useState('')
 
 	useEffect(() => {
 		let mounted = true
@@ -51,6 +63,11 @@ export default function UrlPatternsPage() {
 	}, [])
 
 	// Removed Add Pattern form; defaults are auto-managed by boot logic
+
+	const showError = (message: string) => {
+		setAlertMessage(message)
+		setAlertOpen(true)
+	}
 
 	const groups = useMemo(() => {
 		const map = new Map<string, Pattern[]>()
@@ -80,7 +97,7 @@ export default function UrlPatternsPage() {
 			})
 			if (!res.ok) {
 				const err = await res.json().catch(() => ({}))
-				alert(err?.error || 'Failed to save pattern')
+				showError(err?.error || 'Failed to save pattern')
 				return
 			}
 			const json = await res.json()
@@ -95,7 +112,7 @@ export default function UrlPatternsPage() {
 				}
 				return next
 			})
-			alert('Pattern saved')
+			toast.success('Pattern saved successfully')
 		} finally {
 			setSavingKey(null)
 		}
@@ -177,6 +194,18 @@ export default function UrlPatternsPage() {
 			<div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
 				<AdminFooter />
 			</div>
+
+			<AlertDialog open={alertOpen} onOpenChange={setAlertOpen}>
+				<AlertDialogContent>
+					<AlertDialogHeader>
+						<AlertDialogTitle>Error</AlertDialogTitle>
+						<AlertDialogDescription>{alertMessage}</AlertDialogDescription>
+					</AlertDialogHeader>
+					<AlertDialogFooter>
+						<AlertDialogAction onClick={() => setAlertOpen(false)}>OK</AlertDialogAction>
+					</AlertDialogFooter>
+				</AlertDialogContent>
+			</AlertDialog>
 		</div>
 	)
 }
