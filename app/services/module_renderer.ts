@@ -1,6 +1,7 @@
-import type { ModuleRenderContext } from '#types/module_types'
+import type { ModuleRenderContext, ModuleRenderResult } from '#types/module_types'
 import moduleRegistry from '#services/module_registry'
 import db from '@adonisjs/lucid/services/db'
+import redis from '@adonisjs/redis/services/main'
 
 /**
  * Rendered page result
@@ -120,10 +121,16 @@ class ModuleRenderer {
       props: mergedProps,
       locked: postModule.locked,
       orderIndex: postModule.orderIndex,
+    } as {
+      type: string
+      scope: 'local' | 'global' | 'static'
+      props: Record<string, any>
+      locked: boolean
+      orderIndex: number
     }
 
-    // Render the module
-    return module.render(mergedData, context)
+    // Render the module with optional per-module caching
+    return this.renderModuleWithCache(module, mergedData, context)
   }
 
   /**
@@ -219,9 +226,95 @@ class ModuleRenderer {
       orderIndex: 0,
     }
 
-    // Render and return HTML only
-    const result = await module.render(mergedData, context)
+    // Render (with optional per-module caching) and return HTML only
+    const result = await this.renderModuleWithCache(module, mergedData, context)
     return result.html
+  }
+
+  /**
+   * Internal helper to render a module with optional per-module caching.
+   *
+   * Caching rules (conservative by default):
+   * - Only for static modules (`getRenderingMode() === 'static'`)
+   * - Only when `isCacheEnabled()` returns true
+   * - Never for preview renders (`context.isPreview === true`)
+   */
+  private async renderModuleWithCache(
+    module: any,
+    data: {
+      type: string
+      scope: 'local' | 'global' | 'static'
+      props: Record<string, any>
+      locked: boolean
+      orderIndex: number
+    },
+    context: ModuleRenderContext
+  ): Promise<ModuleRenderResult> {
+    const isPreview = !!context.isPreview
+
+    // Determine rendering mode (default to 'static' if not implemented)
+    const renderingMode: 'static' | 'react' =
+      typeof module.getRenderingMode === 'function' ? module.getRenderingMode() : 'static'
+
+    // Allow modules to opt out or refine caching behavior
+    const cacheAllowedByModule =
+      typeof module.isCacheEnabled === 'function'
+        ? module.isCacheEnabled(data, context)
+        : renderingMode === 'static' && !isPreview
+
+    // Only cache static modules and non-preview renders
+    const shouldAttemptCache = cacheAllowedByModule && renderingMode === 'static' && !isPreview
+
+    let cacheKey: string | null = null
+
+    if (shouldAttemptCache) {
+      try {
+        cacheKey =
+          typeof module.generateCacheKey === 'function'
+            ? module.generateCacheKey(data, context)
+            : `module:${data.type}:${context.locale}:${JSON.stringify(data.props)}`
+
+        const cached = await redis.get(cacheKey as string)
+        if (cached) {
+          const parsed = JSON.parse(cached) as ModuleRenderResult
+          return parsed
+        }
+      } catch {
+        // Cache failures should never break rendering; fall through to fresh render
+        cacheKey = null
+      }
+    }
+
+    // Render the module
+    const result: ModuleRenderResult = await module.render(data, context)
+
+    // Attach default cache tags if the module didn't set any
+    if (!result.cacheTags && typeof module.getCacheTags === 'function') {
+      result.cacheTags = module.getCacheTags(data)
+    }
+
+    // Store in cache if appropriate
+    if (shouldAttemptCache && cacheKey) {
+      try {
+        const ttlFromResult =
+          typeof result.cacheTtl === 'number' && result.cacheTtl > 0 ? result.cacheTtl : undefined
+
+        const ttlFromModule =
+          typeof module.getDefaultCacheTtl === 'function'
+            ? module.getDefaultCacheTtl(data, context)
+            : undefined
+
+        const ttl = ttlFromResult ?? ttlFromModule ?? 300
+
+        if (ttl > 0) {
+          await redis.setex(cacheKey, ttl, JSON.stringify(result))
+        }
+      } catch {
+        // Ignore cache write errors; rendering already succeeded
+      }
+    }
+
+    return result
   }
 }
 

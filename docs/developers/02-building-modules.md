@@ -5,9 +5,9 @@ Modules are the building blocks of content in Adonis EOS. Each module is a reusa
 ## Module Architecture
 
 A module consists of:
-1. **Backend Definition** (`app/modules/*.ts`) - Schema and configuration
-2. **Frontend Component** (`inertia/modules/*.tsx`) - React component
-3. **Registration** (`start/modules.ts`) - Register with system
+1. **Backend Definition** (`app/modules/*.ts`) – schema, configuration, and rendering mode
+2. **Frontend Component** (`inertia/modules/*.tsx`) – the UI component (static or React)
+3. **Registration** (`start/modules.ts`) – register with the module registry
 
 ## Creating a Module
 
@@ -21,7 +21,7 @@ This creates:
 - `app/modules/hero_banner.ts`
 - `inertia/modules/hero-banner.tsx`
 
-### 2. Define Backend Schema
+### 2. Define Backend Schema & Rendering Mode
 
 Edit `app/modules/hero_banner.ts`:
 
@@ -30,6 +30,18 @@ import BaseModule from '#modules/base'
 import type { ModuleConfig } from '#types/module_types'
 
 export default class HeroBannerModule extends BaseModule {
+  /**
+   * Rendering mode:
+   * - 'static' (default in BaseModule): pure SSR, no client-side hydration
+   * - 'react': SSR + hydration for interactive components
+   *
+   * Hero banners usually have interactive CTAs and richer behavior,
+   * so we opt this module into React rendering explicitly.
+   */
+  getRenderingMode() {
+    return 'react' as const
+  }
+
   getConfig(): ModuleConfig {
     return {
       type: 'hero-banner',
@@ -38,7 +50,7 @@ export default class HeroBannerModule extends BaseModule {
       icon: 'image',
       allowedScopes: ['local', 'global'],
       lockable: true,
-      
+
       propsSchema: {
         title: {
           type: 'string',
@@ -67,20 +79,27 @@ export default class HeroBannerModule extends BaseModule {
           },
         },
       },
-      
+
       defaultProps: {
         title: 'Welcome',
         subtitle: 'Build amazing content',
         backgroundColor: 'bg-backdrop-low',
       },
-      
+
       allowedPostTypes: ['page', 'blog'],
     }
   }
 }
 ```
 
-### 3. Build Frontend Component
+### 3. Build Frontend Component (Single `{type}.tsx` Convention)
+
+The frontend component file **always** matches the module `type`:
+
+- `type: 'hero-banner'` → `inertia/modules/hero-banner.tsx`
+- `type: 'prose'` → `inertia/modules/prose.tsx`
+
+We no longer use `-static` suffixes. Whether a module is static or React is controlled entirely by `getRenderingMode()` on the backend.
 
 Edit `inertia/modules/hero-banner.tsx`:
 
@@ -138,18 +157,18 @@ export default function HeroBanner({
 }
 ```
 
-### 4. Register Module
+### 4. Registration & Auto-Discovery
 
-Update `inertia/modules/index.ts`:
+#### Frontend auto-discovery (no manual mapping)
 
-```typescript
-export { default as HeroBanner } from './hero-banner'
+Module components in `inertia/modules/*.tsx` are auto-discovered using `import.meta.glob`. As long as you:
 
-export const MODULE_COMPONENTS = {
-  // ... existing modules
-  'hero-banner': () => import('./hero-banner'),
-} as const
-```
+- Export a default component from `inertia/modules/{type}.tsx`
+- Use the same `type` value in your backend module config
+
+…the system will find and render your component automatically. You **do not** need to touch `inertia/modules/index.ts`.
+
+#### Backend registration
 
 Update `start/modules.ts`:
 

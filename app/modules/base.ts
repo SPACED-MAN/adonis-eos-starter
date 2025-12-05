@@ -183,4 +183,29 @@ export default abstract class BaseModule {
     const config = this.getConfig()
     return [`module:${config.type}`, `module:${data.scope}`]
   }
+
+  /**
+   * Whether this module should participate in per-module caching.
+   *
+   * By default we only cache:
+   * - Static modules (`getRenderingMode() === 'static'`)
+   * - Non-preview renders (`context.isPreview === false`)
+   *
+   * You can opt out completely by overriding and returning false.
+   */
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
+  isCacheEnabled(data: MergedModuleData, context: ModuleRenderContext): boolean {
+    return this.getRenderingMode() === 'static' && !context.isPreview
+  }
+
+  /**
+   * Default cache TTL (in seconds) for per-module caching.
+   *
+   * Individual renders can override this by returning `cacheTtl` from
+   * their `render` implementation.
+   */
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
+  getDefaultCacheTtl(data: MergedModuleData, context: ModuleRenderContext): number {
+    return 300 // 5 minutes
+  }
 }
