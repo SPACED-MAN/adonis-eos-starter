@@ -154,6 +154,16 @@ export default function Editor({ post, modules: initialModules, translations, re
   const [pendingModules, setPendingModules] = useState<Record<string, { overrides: Record<string, any> | null; edited: Record<string, any> }>>({})
   const [pendingRemoved, setPendingRemoved] = useState<Set<string>>(new Set())
   const [pendingReviewRemoved, setPendingReviewRemoved] = useState<Set<string>>(new Set())
+  // Track new modules that haven't been persisted yet (temporary client-side IDs)
+  const [pendingNewModules, setPendingNewModules] = useState<Array<{
+    tempId: string
+    type: string
+    scope: 'local' | 'global'
+    globalSlug?: string | null
+    orderIndex: number
+  }>>([])
+  // Track structural changes that need to be published
+  const [hasStructuralChanges, setHasStructuralChanges] = useState(false)
   const pickForm = (d: typeof data) => ({
     title: d.title,
     slug: d.slug,
@@ -178,11 +188,13 @@ export default function Editor({ post, modules: initialModules, translations, re
       const modulesPending = Object.keys(pendingModules).length > 0
       const removalsPendingApproved = pendingRemoved.size > 0
       const removalsPendingReview = pendingReviewRemoved.size > 0
-      return fieldsChanged || modulesPending || removalsPendingApproved || removalsPendingReview
+      const newModulesPending = pendingNewModules.length > 0
+      return fieldsChanged || modulesPending || removalsPendingApproved || removalsPendingReview || newModulesPending || hasStructuralChanges
     } catch {
       return true
     }
-  }, [data, viewMode, pendingModules, pendingRemoved, pendingReviewRemoved])
+  }, [data, viewMode, pendingModules, pendingRemoved, pendingReviewRemoved, pendingNewModules, hasStructuralChanges])
+
 
   // CSRF/XSRF token for fetch requests
   const page = usePage()
@@ -451,9 +463,10 @@ export default function Editor({ post, modules: initialModules, translations, re
   )
 
   async function persistOrder(next: EditorProps['modules']) {
-    const updates = next.map((m, index) => {
-      if (m.orderIndex === index) return Promise.resolve()
-      return fetch(`/api/post-modules/${encodeURIComponent(m.id)}`, {
+    // Always update all modules' order indices to ensure they're saved correctly
+    // Don't skip based on current orderIndex since it may have been updated in local state
+    const updates = next.map((m, index) =>
+      fetch(`/api/post-modules/${encodeURIComponent(m.id)}`, {
         method: 'PUT',
         headers: {
           Accept: 'application/json',
@@ -463,8 +476,79 @@ export default function Editor({ post, modules: initialModules, translations, re
         credentials: 'same-origin',
         body: JSON.stringify({ orderIndex: index, mode: viewMode === 'review' ? 'review' : 'publish' }),
       })
-    })
+    )
     await Promise.allSettled(updates)
+  }
+
+  // Create pending new modules via API
+  async function createPendingNewModules(mode: 'publish' | 'review' | 'ai-review' = 'publish') {
+    if (pendingNewModules.length === 0) return
+
+    const creates = pendingNewModules.map(async (pm) => {
+      const res = await fetch(`/api/posts/${post.id}/modules`, {
+        method: 'POST',
+        headers: {
+          Accept: 'application/json',
+          'Content-Type': 'application/json',
+          ...xsrfHeader(),
+        },
+        credentials: 'same-origin',
+        body: JSON.stringify({
+          moduleType: pm.type,
+          scope: pm.scope,
+          globalSlug: pm.globalSlug,
+          orderIndex: pm.orderIndex,
+          locked: false,
+          mode,
+        }),
+      })
+
+      if (!res.ok) {
+        throw new Error(`Failed to create module: ${pm.type}`)
+      }
+
+      return res.json()
+    })
+
+    try {
+      await Promise.all(creates)
+      setPendingNewModules([])
+    } catch (error) {
+      toast.error('Failed to save some new modules')
+      throw error
+    }
+  }
+
+  // Handle adding new modules locally (without API call)
+  async function handleAddModule(payload: { type: string; scope: 'post' | 'global'; globalSlug?: string | null }) {
+    const tempId = `temp-${Date.now()}-${Math.random().toString(36).substring(2, 9)}`
+    const nextOrderIndex = Math.max(-1, ...modules.map(m => m.orderIndex)) + 1
+
+    // Add to pending new modules
+    setPendingNewModules(prev => [
+      ...prev,
+      {
+        tempId,
+        type: payload.type,
+        scope: payload.scope === 'post' ? 'local' : 'global',
+        globalSlug: payload.globalSlug || null,
+        orderIndex: nextOrderIndex,
+      }
+    ])
+
+    // Add to modules display list with temporary data
+    const newModule: EditorProps['modules'][0] = {
+      id: tempId,
+      type: payload.type,
+      scope: payload.scope === 'post' ? 'local' : 'global',
+      props: {},
+      overrides: null,
+      locked: false,
+      orderIndex: nextOrderIndex,
+    }
+
+    setModules(prev => [...prev, newModule])
+    setHasStructuralChanges(true)
   }
 
   function onDragEnd(event: DragEndEvent) {
@@ -482,9 +566,8 @@ export default function Editor({ post, modules: initialModules, translations, re
     reordered.splice(newIndex, 0, moved)
     const next = reordered.map((m, idx) => ({ ...m, orderIndex: idx }))
     setModules(next)
-    persistOrder(next)
-      .then(() => toast.success('Module order updated'))
-      .catch(() => toast.error('Failed to save order'))
+    // Don't persist immediately - mark as pending change
+    setHasStructuralChanges(true)
   }
 
   const sortedModules = useMemo(() => {
@@ -913,7 +996,12 @@ export default function Editor({ post, modules: initialModules, translations, re
                   <h3 className="text-base font-semibold text-neutral-high">
                     Modules
                   </h3>
-                  <ModulePicker postId={post.id} postType={post.type} mode={viewMode === 'review' ? 'review' : 'publish'} />
+                  <ModulePicker
+                    postId={post.id}
+                    postType={post.type}
+                    mode={viewMode === 'review' ? 'review' : 'publish'}
+                    onAdd={handleAddModule}
+                  />
                 </div>
                 {modules.length === 0 ? (
                   <div className="text-center py-12 text-neutral-low">
@@ -1424,9 +1512,11 @@ export default function Editor({ post, modules: initialModules, translations, re
                     disabled={!isDirty || processing}
                     onClick={async () => {
                       if (viewMode === 'review') {
+                        await createPendingNewModules('review')
                         await commitPendingModules('review')
                         await saveForReview()
                       } else if (viewMode === 'ai-review') {
+                        await createPendingNewModules('ai-review')
                         await commitPendingModules('ai-review')
                         const res = await fetch(`/api/posts/${post.id}`, {
                           method: 'PUT',
@@ -1444,16 +1534,32 @@ export default function Editor({ post, modules: initialModules, translations, re
                           toast.error('Failed to update AI review')
                         }
                       } else {
-                        await commitPendingModules('publish')
-                        put(`/api/posts/${post.id}`, {
-                          headers: xsrfHeader(),
-                          preserveScroll: true,
-                          onSuccess: () => {
-                            toast.success('Changes saved')
-                            initialDataRef.current = pickForm(data)
-                          },
-                          onError: () => toast.error('Failed to save changes'),
-                        })
+                        try {
+                          // Create any new modules first
+                          await createPendingNewModules('publish')
+                          // Then commit edits to existing modules
+                          await commitPendingModules('publish')
+                          // Save module order if it changed (filter out temp modules)
+                          if (hasStructuralChanges) {
+                            const persistedModules = modules.filter(m => !m.id.startsWith('temp-'))
+                            await persistOrder(persistedModules)
+                          }
+                          // Finally save post fields (this triggers page refresh)
+                          put(`/api/posts/${post.id}`, {
+                            headers: xsrfHeader(),
+                            preserveScroll: true,
+                            onSuccess: () => {
+                              toast.success('Changes saved')
+                              initialDataRef.current = pickForm(data)
+                              // Clear structural changes flag after successful publish
+                              setHasStructuralChanges(false)
+                            },
+                            onError: () => toast.error('Failed to save changes'),
+                          })
+                        } catch (error) {
+                          console.error('Save error:', error)
+                          toast.error('Failed to save changes')
+                        }
                       }
                     }}
                     type="button"

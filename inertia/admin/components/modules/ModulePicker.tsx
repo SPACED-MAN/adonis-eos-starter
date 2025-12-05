@@ -149,7 +149,9 @@ export function ModulePicker({
 					toast.success(`Added global: ${globalSlug}`)
 					setOpen(false)
 				},
-				onError: () => toast.error('Failed to add global module'),
+				onError: () => {
+					toast.error('Failed to add global module')
+				},
 				preserveScroll: true,
 			}
 		)
