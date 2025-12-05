@@ -188,7 +188,7 @@ export default class PostsViewController extends BasePostsController {
     const match = await urlPatternService.matchPath(path)
 
     if (!match) {
-      return this.response.notFound(response, 'Not found')
+      return inertia.render('site/errors/not_found')
     }
 
     const { slug, locale, postType } = match
@@ -198,7 +198,7 @@ export default class PostsViewController extends BasePostsController {
       try {
         const uiConfig = postTypeConfigService.getUiConfig(postType)
         if (uiConfig.permalinksEnabled === false) {
-          return this.response.notFound(response, 'Permalinks disabled for this post type')
+          return inertia.render('site/errors/not_found')
         }
       } catch {
         /* continue */
@@ -216,7 +216,7 @@ export default class PostsViewController extends BasePostsController {
         .first()
 
       if (!post) {
-        return this.response.notFound(response, 'Post not found', { slug, locale, postType })
+        return inertia.render('site/errors/not_found')
       }
 
       // Handle protected/private statuses
