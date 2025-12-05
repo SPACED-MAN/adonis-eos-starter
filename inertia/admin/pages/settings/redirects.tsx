@@ -36,7 +36,10 @@ export default function RedirectsPage() {
 	const [items, setItems] = useState<Redirect[]>([])
 	const [postTypes, setPostTypes] = useState<string[]>([])
 	const [typeFilter, setTypeFilter] = useState<string>('')
-	const [autoRedirectEnabled, setAutoRedirectEnabled] = useState<boolean>(true)
+	const [autoRedirectEnabled, setAutoRedirectEnabled] = useState<boolean>(false)
+	const [savedAutoRedirectEnabled, setSavedAutoRedirectEnabled] = useState<boolean>(false)
+	const [saving, setSaving] = useState(false)
+	const [saveSuccess, setSaveSuccess] = useState(false)
 	const [loading, setLoading] = useState(false)
 	const [creating, setCreating] = useState(false)
 	const [form, setForm] = useState<{ fromPath: string; toPath: string; httpStatus: number }>({
@@ -57,23 +60,31 @@ export default function RedirectsPage() {
 				setItems(json?.data ?? [])
 			})
 			.finally(() => setLoading(false))
-		// Load setting for selected type
-		if (typeFilter) {
+		// Load setting for selected type (only if it's a valid post type)
+		if (typeFilter && postTypes.includes(typeFilter)) {
 			fetch(`/api/redirect-settings/${encodeURIComponent(typeFilter)}`, { credentials: 'same-origin' })
 				.then((r) => r.json())
 				.then((json) => {
 					if (!mounted) return
-					setAutoRedirectEnabled(!!json?.data?.autoRedirectOnSlugChange)
+					const enabled = !!json?.data?.autoRedirectOnSlugChange
+					setAutoRedirectEnabled(enabled)
+					setSavedAutoRedirectEnabled(enabled)
 				})
 				.catch(() => {
 					if (!mounted) return
-					setAutoRedirectEnabled(true)
+					setAutoRedirectEnabled(false)
+					setSavedAutoRedirectEnabled(false)
 				})
+		} else {
+			// Reset when "All post types" is selected or no valid type
+			setAutoRedirectEnabled(false)
+			setSavedAutoRedirectEnabled(false)
+			setSaveSuccess(false)
 		}
 		return () => {
 			mounted = false
 		}
-	}, [typeFilter])
+	}, [typeFilter, postTypes])
 
 	useEffect(() => {
 		; (async () => {
@@ -174,43 +185,81 @@ export default function RedirectsPage() {
 						<h2 className="text-lg font-semibold text-neutral-high">Redirect Rules</h2>
 						<div className="flex items-center gap-3">
 							<Select
-								defaultValue={typeFilter || undefined}
-								onValueChange={(val) => setTypeFilter(val === 'all' ? '' : val)}
+								value={typeFilter || 'all'}
+								onValueChange={(val) => {
+									const newFilter = val === 'all' ? '' : val
+									setTypeFilter(newFilter)
+									// Reset settings state when changing filter
+									setAutoRedirectEnabled(false)
+									setSavedAutoRedirectEnabled(false)
+									setSaveSuccess(false)
+								}}
 							>
-								<SelectTrigger className="w-[200px]">
-									<SelectValue placeholder="All post types" />
-								</SelectTrigger>
-								<SelectContent>
-									<SelectItem value="all">All post types</SelectItem>
-									{postTypes.map((t) => (
-										<SelectItem key={t} value={t}>{labelize(t)}</SelectItem>
-									))}
-								</SelectContent>
-							</Select>
-							{typeFilter && (
+                <SelectTrigger className="w-[200px]">
+                  <SelectValue placeholder="Select a post type" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">Select a post type</SelectItem>
+                  {postTypes.map((t) => (
+                    <SelectItem key={t} value={t}>{labelize(t)}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+						{typeFilter && postTypes.includes(typeFilter) && (
+							<div className="inline-flex items-center gap-3">
 								<label className="inline-flex items-center gap-2 text-sm text-neutral-high">
 									<input
 										type="checkbox"
 										checked={autoRedirectEnabled}
-										onChange={async (e) => {
-											const enabled = e.target.checked
-											setAutoRedirectEnabled(enabled)
-											await fetch(`/api/redirect-settings/${encodeURIComponent(typeFilter)}`, {
-												method: 'PATCH',
-												headers: {
-													'Accept': 'application/json',
-													'Content-Type': 'application/json',
-													...(getXsrfToken() ? { 'X-XSRF-TOKEN': getXsrfToken()! } : {}),
-												},
-												credentials: 'same-origin',
-												body: JSON.stringify({ autoRedirectOnSlugChange: enabled }),
-											})
+										onChange={(e) => {
+											setAutoRedirectEnabled(e.target.checked)
+											setSaveSuccess(false)
 										}}
 										className="rounded border-line-medium"
 									/>
-									<span className="text-neutral-medium">Auto-redirect on slug change</span>
+									<span className="text-neutral-medium">
+										Auto-redirect on slug change
+										<span className="text-xs text-neutral-low ml-1">(for {labelize(typeFilter)} posts)</span>
+									</span>
 								</label>
-							)}
+								{autoRedirectEnabled !== savedAutoRedirectEnabled && (
+									<button
+										onClick={async () => {
+											setSaving(true)
+											setSaveSuccess(false)
+											try {
+												const response = await fetch(`/api/redirect-settings/${encodeURIComponent(typeFilter)}`, {
+													method: 'POST',
+													headers: {
+														'Accept': 'application/json',
+														'Content-Type': 'application/json',
+														...(getXsrfToken() ? { 'X-XSRF-TOKEN': getXsrfToken()! } : {}),
+													},
+													credentials: 'same-origin',
+													body: JSON.stringify({ autoRedirectOnSlugChange: autoRedirectEnabled }),
+												})
+												if (response.ok) {
+													setSavedAutoRedirectEnabled(autoRedirectEnabled)
+													setSaveSuccess(true)
+													setTimeout(() => setSaveSuccess(false), 2000)
+												}
+											} catch (error) {
+												console.error('Failed to save setting:', error)
+											} finally {
+												setSaving(false)
+											}
+										}}
+										disabled={saving}
+										className="px-3 py-1 text-sm bg-accent text-white rounded hover:bg-accent/90 disabled:opacity-50"
+									>
+										{saving ? 'Saving...' : 'Save'}
+									</button>
+								)}
+								{saveSuccess && (
+									<span className="text-sm text-green-600">✓ Saved</span>
+								)}
+							</div>
+						)}
 							{loading && <span className="text-sm text-neutral-low">Loading…</span>}
 						</div>
 					</div>

@@ -60,7 +60,6 @@ export default class UpdatePost {
         newSlug = newSlug.replace(/^\/+/, '').split('/').pop() || newSlug
       }
       if (newSlug !== post.slug) {
-        const oldSlug = post.slug
         const existingPost = await Post.query()
           .where('slug', newSlug)
           .where('locale', post.locale)
@@ -75,25 +74,34 @@ export default class UpdatePost {
           )
         }
 
-        // Save new slug
-        post.slug = newSlug
         // Conditionally create a 301 redirect from old path to new path (locale-aware)
-        const shouldAutoRedirect = (() => {
+        // IMPORTANT: Must check and create redirect BEFORE changing the slug
+        const shouldAutoRedirect = await (async () => {
+          // Check database settings first (runtime configuration takes precedence)
+          const dbSettings = await db
+            .from('post_type_settings')
+            .where('post_type', post.type)
+            .first()
+
+          if (dbSettings && (dbSettings as any).settings?.autoRedirectOnSlugChange !== undefined) {
+            return !!(dbSettings as any).settings.autoRedirectOnSlugChange
+          }
+
+          // Fall back to post type config file
           const cfg = postTypeConfigService.getUiConfig(post.type)
-          // default true when not provided
           return (cfg as any).autoRedirectOnSlugChange !== undefined
             ? !!(cfg as any).autoRedirectOnSlugChange
-            : true
+            : false // default false when not provided (auto-redirects disabled by default)
         })()
+
         if (shouldAutoRedirect) {
-          // Use canonical URL as fromPath (the old URL before slug change)
-          const fromPath = post.canonical_url || (await urlPatternService.buildPostPathForPost(post.id))
-          
-          // Temporarily update post slug to generate new path
-          const oldSlugForRestore = post.slug
-          post.slug = newSlug
-          const toPath = await urlPatternService.buildPostPathForPost(post.id)
-          post.slug = oldSlugForRestore
+          // Capture old URL BEFORE changing slug
+          const fromPath =
+            post.canonicalUrl || (await urlPatternService.buildPostPathForPost(post.id))
+
+          // Generate new URL using the NEW slug but WITHOUT relying on DB state
+          const toPath = await urlPatternService.buildPostPathForPostWithSlug(post.id, newSlug)
+
           try {
             const existing = await db.from('url_redirects').where('from_path', fromPath).first()
             if (!existing) {
@@ -112,6 +120,9 @@ export default class UpdatePost {
             // ignore redirect insert errors
           }
         }
+
+        // Now save the new slug
+        post.slug = newSlug
       }
     }
 

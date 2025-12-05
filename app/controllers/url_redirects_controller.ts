@@ -82,4 +82,86 @@ export default class UrlRedirectsController {
     }
     return response.noContent()
   }
+
+  /**
+   * GET /api/redirect-settings/:postType
+   * Get redirect settings for a specific post type
+   */
+  async getSettings({ params, response }: HttpContext) {
+    const { postType } = params
+    const settings = await db
+      .from('post_type_settings')
+      .where('post_type', postType)
+      .first()
+
+    if (!settings) {
+      // Return default settings if none exist
+      return response.ok({
+        data: {
+          postType,
+          autoRedirectOnSlugChange: false, // Default disabled
+        },
+      })
+    }
+
+    return response.ok({
+      data: {
+        postType,
+        autoRedirectOnSlugChange: !!(settings as any).settings?.autoRedirectOnSlugChange,
+      },
+    })
+  }
+
+  /**
+   * POST /api/redirect-settings/:postType
+   * Update redirect settings for a specific post type
+   * Body: { autoRedirectOnSlugChange: boolean }
+   */
+  async updateSettings({ params, request, response }: HttpContext) {
+    const { postType } = params
+    const { autoRedirectOnSlugChange } = request.only(['autoRedirectOnSlugChange'])
+
+    // Check if settings exist for this post type
+    const existing = await db
+      .from('post_type_settings')
+      .where('post_type', postType)
+      .first()
+
+    const now = new Date()
+
+    if (existing) {
+      // Update existing settings
+      const currentSettings = (existing as any).settings || {}
+      const updatedSettings = {
+        ...currentSettings,
+        autoRedirectOnSlugChange: !!autoRedirectOnSlugChange,
+      }
+
+      await db
+        .from('post_type_settings')
+        .where('post_type', postType)
+        .update({
+          settings: JSON.stringify(updatedSettings),
+          updated_at: now,
+        })
+    } else {
+      // Create new settings entry
+      await db.table('post_type_settings').insert({
+        post_type: postType,
+        settings: JSON.stringify({
+          autoRedirectOnSlugChange: !!autoRedirectOnSlugChange,
+        }),
+        created_at: now,
+        updated_at: now,
+      })
+    }
+
+    return response.ok({
+      data: {
+        postType,
+        autoRedirectOnSlugChange: !!autoRedirectOnSlugChange,
+      },
+      message: 'Settings updated',
+    })
+  }
 }

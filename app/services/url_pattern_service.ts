@@ -233,11 +233,25 @@ class UrlPatternService {
   }
 
   /**
-   * Build hierarchical path using {path} token when present, otherwise {slug}.
+   * Build hierarchical path for a post using its current slug from the database.
+   * Uses {path} token when present, otherwise {slug}.
    */
   async buildPostPathForPost(postId: string): Promise<string> {
     const row = await db.from('posts').where('id', postId).first()
     if (!row) return '/'
+    return this.buildPostPathForRow(row)
+  }
+
+  /**
+   * Internal helper: build path for a given post row, with optional slug override.
+   *
+   * This lets callers generate a new URL for a post BEFORE the slug is persisted
+   * to the database, by passing a slugOverride.
+   */
+  private async buildPostPathForRow(
+    row: any,
+    slugOverride?: string
+  ): Promise<string> {
     const pattern =
       (await this.getDefaultPattern(String(row.type), String(row.locale)))?.pattern ||
       '/{locale}/posts/{slug}'
@@ -246,15 +260,27 @@ class UrlPatternService {
     const mm = String(d.getUTCMonth() + 1).padStart(2, '0')
     const dd = String(d.getUTCDate()).padStart(2, '0')
     const parentPath = await this.getParentPathForPost(String(row.id))
-    const path = parentPath ? `${parentPath}/${String(row.slug)}` : String(row.slug)
+    const slug = slugOverride ?? String(row.slug)
+    const path = parentPath ? `${parentPath}/${slug}` : slug
     return this.replaceTokens(pattern, {
-      slug: String(row.slug),
+      slug,
       path,
       locale: String(row.locale),
       yyyy,
       mm,
       dd,
     })
+  }
+
+  /**
+   * Build hierarchical path for a post, but with an explicit slug override.
+   *
+   * This is used when generating redirects BEFORE a slug change is persisted.
+   */
+  async buildPostPathForPostWithSlug(postId: string, slug: string): Promise<string> {
+    const row = await db.from('posts').where('id', postId).first()
+    if (!row) return '/'
+    return this.buildPostPathForRow(row, slug)
   }
 
   async buildPostUrlForPost(postId: string, protocol: string, host: string): Promise<string> {

@@ -135,6 +135,8 @@ router
     router.post('/redirects', [UrlRedirectsController, 'store']).use(middleware.admin())
     router.put('/redirects/:id', [UrlRedirectsController, 'update']).use(middleware.admin())
     router.delete('/redirects/:id', [UrlRedirectsController, 'destroy']).use(middleware.admin())
+    router.get('/redirect-settings/:postType', [UrlRedirectsController, 'getSettings']).use(middleware.admin())
+    router.post('/redirect-settings/:postType', [UrlRedirectsController, 'updateSettings']).use(middleware.admin())
   })
   .prefix('/api')
   .use(middleware.auth())
