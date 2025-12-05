@@ -39,7 +39,7 @@ export default function Dashboard({ }: DashboardProps) {
   const [selectAll, setSelectAll] = useState(false)
   const [q, setQ] = useState('')
   const [status, setStatus] = useState<string>('')
-  const [locale, setLocale] = useState<string>('')
+  const [locale, setLocale] = useState<string>('') // empty = all locales; will default to site's default on first load
   const [postType, setPostType] = useState<string>('')
   const [postTypes, setPostTypes] = useState<string[]>([])
   // Taxonomy filters
@@ -121,6 +121,31 @@ export default function Dashboard({ }: DashboardProps) {
       setLoading(false)
     }
   }
+
+  useEffect(() => {
+    // On first load (no locale filter), default to the site's configured default locale.
+    if (locale) return
+    let cancelled = false
+    ;(async () => {
+      try {
+        const res = await fetch('/api/locales', { credentials: 'same-origin' })
+        const json = await res.json().catch(() => null)
+        const fromMeta: string | undefined = json?.meta?.defaultLocale
+        const fromData: string | undefined = Array.isArray(json?.data)
+          ? (json.data.find((l: any) => l.isDefault)?.code as string | undefined)
+          : undefined
+        const effective = fromMeta || fromData
+        if (!cancelled && effective) {
+          setLocale(effective)
+        }
+      } catch {
+        // If locale fetch fails, we simply leave the filter as "All locales"
+      }
+    })()
+    return () => {
+      cancelled = true
+    }
+  }, [locale])
 
   useEffect(() => {
     fetchPosts()
@@ -632,9 +657,10 @@ export default function Dashboard({ }: DashboardProps) {
                   </SelectContent>
                 </Select>
                 <Select
-                  defaultValue={locale || undefined}
+                  value={locale || 'all'}
                   onValueChange={(val) => {
-                    setLocale(val === 'all' ? '' : val)
+                    const next = val === 'all' ? '' : val
+                    setLocale(next)
                     setPage(1)
                   }}
                 >
