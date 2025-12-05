@@ -208,6 +208,52 @@ export function ModuleEditorPanel({
 		}
 	}
 
+	function getByPath(obj: Record<string, any>, pathStr: string): any {
+		const parts = pathStr.split('.')
+		let target: any = obj
+		for (const part of parts) {
+			if (target === null || target === undefined) return undefined
+			target = target[part]
+		}
+		return target
+	}
+
+	function syncFormToDraft(): Record<string, any> {
+		const edited = JSON.parse(JSON.stringify(draft))
+		const form = formRef.current
+		if (form) {
+			const elements = form.querySelectorAll<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>('input[name], textarea[name], select[name]')
+			elements.forEach((el) => {
+				const name = el.getAttribute('name')!
+				if ((el as HTMLInputElement).type === 'checkbox') {
+					setByPath(edited, name, (el as HTMLInputElement).checked)
+				} else if ((el as HTMLInputElement).type === 'number') {
+					const val = (el as HTMLInputElement).value
+					setByPath(edited, name, val === '' ? 0 : Number(val))
+				} else if ((el as HTMLInputElement).dataset && (el as HTMLInputElement).dataset.json === '1') {
+					const val = (el as HTMLInputElement).value
+					try {
+						setByPath(edited, name, val ? JSON.parse(val) : null)
+					} catch {
+						setByPath(edited, name, val)
+					}
+				} else if ((el as HTMLInputElement).dataset && (el as HTMLInputElement).dataset.bool === '1') {
+					const val = (el as HTMLInputElement).value
+					setByPath(edited, name, val === 'true')
+				} else if ((el as HTMLInputElement).dataset && (el as HTMLInputElement).dataset.number === '1') {
+					const val = (el as HTMLInputElement).value
+					setByPath(edited, name, val === '' ? 0 : Number(val))
+				} else if ((el as HTMLSelectElement).multiple) {
+					const vals = Array.from((el as HTMLSelectElement).selectedOptions).map((o) => o.value)
+					setByPath(edited, name, vals)
+				} else {
+					setByPath(edited, name, (el as HTMLInputElement).value)
+				}
+			})
+		}
+		return edited
+	}
+
 	// removed unused trySave (we now save on explicit action buttons)
 
 	function humanizeKey(raw: string): string {
@@ -927,8 +973,9 @@ export function ModuleEditorPanel({
 										onClick={() => {
 											const scroller = formRef.current
 											const prevScrollTop = scroller ? scroller.scrollTop : 0
-											const next = JSON.parse(JSON.stringify(draft))
-											const arr = Array.isArray(value) ? [...value] : []
+											const next = syncFormToDraft()
+											const currentValue = getByPath(next, name)
+											const arr = Array.isArray(currentValue) ? [...currentValue] : []
 											arr.splice(idx, 1)
 											setByPath(next, name, arr)
 											setDraft(next)
@@ -947,8 +994,9 @@ export function ModuleEditorPanel({
 											if (idx === 0) return
 											const scroller = formRef.current
 											const prevScrollTop = scroller ? scroller.scrollTop : 0
-											const next = JSON.parse(JSON.stringify(draft))
-											const arr = Array.isArray(value) ? [...value] : []
+											const next = syncFormToDraft()
+											const currentValue = getByPath(next, name)
+											const arr = Array.isArray(currentValue) ? [...currentValue] : []
 											const [moved] = arr.splice(idx, 1)
 											arr.splice(idx - 1, 0, moved)
 											setByPath(next, name, arr)
@@ -968,8 +1016,9 @@ export function ModuleEditorPanel({
 											if (idx >= items.length - 1) return
 											const scroller = formRef.current
 											const prevScrollTop = scroller ? scroller.scrollTop : 0
-											const next = JSON.parse(JSON.stringify(draft))
-											const arr = Array.isArray(value) ? [...value] : []
+											const next = syncFormToDraft()
+											const currentValue = getByPath(next, name)
+											const arr = Array.isArray(currentValue) ? [...currentValue] : []
 											const [moved] = arr.splice(idx, 1)
 											arr.splice(idx + 1, 0, moved)
 											setByPath(next, name, arr)
@@ -1023,8 +1072,9 @@ export function ModuleEditorPanel({
 							onClick={() => {
 								const scroller = formRef.current
 								const prevScrollTop = scroller ? scroller.scrollTop : 0
-								const next = JSON.parse(JSON.stringify(draft))
-								const arr = Array.isArray(value) ? [...value] : []
+								const next = syncFormToDraft()
+								const currentValue = getByPath(next, name)
+								const arr = Array.isArray(currentValue) ? [...currentValue] : []
 								// Create an empty item based on schema
 								let empty: any = ''
 								if (itemSchema) {
