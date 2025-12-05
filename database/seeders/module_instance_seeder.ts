@@ -717,6 +717,33 @@ export default class ModuleInstanceSeeder extends BaseSeeder {
 
     // Ensure core demo module instances exist for the catalog
 
+    // Hero instance
+    const existingHero = await db
+      .from('module_instances')
+      .where({ type: 'hero', scope: 'post' })
+      .first()
+
+    let heroInstance: any = existingHero
+    if (!heroInstance) {
+      const [createdHero] = await db
+        .table('module_instances')
+        .insert({
+          type: 'hero',
+          scope: 'post',
+          props: {
+            title: 'Hero (Static)',
+            subtitle: 'Classic hero module using static SSR rendering.',
+          },
+          created_at: nowTs,
+          updated_at: nowTs,
+        })
+        .returning('*')
+      heroInstance = createdHero
+      console.log('✅ [ModuleInstanceSeeder] Created hero module instance')
+    } else {
+      console.log('ℹ️ [ModuleInstanceSeeder] hero module instance already exists; reusing')
+    }
+
     // Hero with Media instance
     const existingHeroWithMedia = await db
       .from('module_instances')
@@ -1106,6 +1133,158 @@ export default class ModuleInstanceSeeder extends BaseSeeder {
       console.log('✅ [ModuleInstanceSeeder] Created kitchen-sink module instance')
     } else {
       console.log('ℹ️ [ModuleInstanceSeeder] kitchen-sink module instance already exists; reusing')
+    }
+
+    // Reading Progress instance (for Module Catalog top-of-page demo)
+    const existingReadingProgress = await db
+      .from('module_instances')
+      .where({ type: 'reading-progress', scope: 'post' })
+      .first()
+
+    let readingProgressInstance: any = existingReadingProgress
+    if (!readingProgressInstance) {
+      const [createdReadingProgress] = await db
+        .table('module_instances')
+        .insert({
+          type: 'reading-progress',
+          scope: 'post',
+          props: {
+            position: 'top',
+            height: 4,
+            zIndex: 50,
+          },
+          created_at: nowTs,
+          updated_at: nowTs,
+        })
+        .returning('*')
+      readingProgressInstance = createdReadingProgress
+      console.log('✅ [ModuleInstanceSeeder] Created reading-progress module instance')
+    } else {
+      console.log(
+        'ℹ️ [ModuleInstanceSeeder] reading-progress module instance already exists; reusing'
+      )
+    }
+
+    // Gallery instance
+    const existingGallery = await db
+      .from('module_instances')
+      .where({ type: 'gallery', scope: 'post' })
+      .first()
+
+    let galleryInstance: any = existingGallery
+    if (!galleryInstance) {
+      const baseImageUrl = (demoMedia as any).url || '/uploads/demo-placeholder.jpg'
+      const [createdGallery] = await db
+        .table('module_instances')
+        .insert({
+          type: 'gallery',
+          scope: 'post',
+          props: {
+            layout: 'grid',
+            columns: 3,
+            images: [
+              {
+                url: baseImageUrl,
+                alt: 'Gallery example image 1',
+                caption: 'Sample gallery image one from the Module Catalog demo.',
+              },
+              {
+                url: baseImageUrl,
+                alt: 'Gallery example image 2',
+                caption: 'Sample gallery image two from the Module Catalog demo.',
+              },
+              {
+                url: baseImageUrl,
+                alt: 'Gallery example image 3',
+                caption: 'Sample gallery image three from the Module Catalog demo.',
+              },
+            ],
+          },
+          created_at: nowTs,
+          updated_at: nowTs,
+        })
+        .returning('*')
+      galleryInstance = createdGallery
+      console.log('✅ [ModuleInstanceSeeder] Created gallery module instance')
+    } else {
+      console.log('ℹ️ [ModuleInstanceSeeder] gallery module instance already exists; reusing')
+    }
+
+    // Features List (Expanded) instance
+    const existingFeaturesExpanded = await db
+      .from('module_instances')
+      .where({ type: 'features-list-expanded', scope: 'post' })
+      .first()
+
+    let featuresExpandedInstance: any = existingFeaturesExpanded
+    if (!featuresExpandedInstance) {
+      const [createdFeaturesExpanded] = await db
+        .table('module_instances')
+        .insert({
+          type: 'features-list-expanded',
+          scope: 'post',
+          props: {
+            title: 'Built for growing teams and ambitious roadmaps',
+            subtitle:
+              'Use this expanded layout to tell a longer story about major phases, advantages, or pillars of your product.',
+            features: [
+              {
+                icon: 'rocket',
+                title: 'Launch faster',
+                body: 'Streamline launch checklists, approvals, and handoffs so cross-functional teams can ship in days, not weeks.',
+              },
+              {
+                icon: 'layer-group',
+                title: 'Standardize playbooks',
+                body: 'Codify your best practices into repeatable workflows that every team can follow.',
+              },
+              {
+                icon: 'users',
+                title: 'Align stakeholders',
+                body: 'Give marketing, sales, and operations a shared view of what ships next.',
+              },
+            ],
+            cta: {
+              label: 'Explore all features',
+              url: { kind: 'url', url: '#', target: '_self' },
+              style: 'primary',
+            },
+            backgroundColor: 'bg-backdrop-low',
+          },
+          created_at: nowTs,
+          updated_at: nowTs,
+        })
+        .returning('*')
+      featuresExpandedInstance = createdFeaturesExpanded
+      console.log('✅ [ModuleInstanceSeeder] Created features-list-expanded module instance')
+    } else {
+      console.log(
+        'ℹ️ [ModuleInstanceSeeder] features-list-expanded module instance already exists; reusing'
+      )
+    }
+
+    // Separator instance
+    const existingSeparator = await db
+      .from('module_instances')
+      .where({ type: 'separator', scope: 'post' })
+      .first()
+
+    let separatorInstance: any = existingSeparator
+    if (!separatorInstance) {
+      const [createdSeparator] = await db
+        .table('module_instances')
+        .insert({
+          type: 'separator',
+          scope: 'post',
+          props: {},
+          created_at: nowTs,
+          updated_at: nowTs,
+        })
+        .returning('*')
+      separatorInstance = createdSeparator
+      console.log('✅ [ModuleInstanceSeeder] Created separator module instance')
+    } else {
+      console.log('ℹ️ [ModuleInstanceSeeder] separator module instance already exists; reusing')
     }
 
     // Features List instance
@@ -1613,10 +1792,10 @@ export default class ModuleInstanceSeeder extends BaseSeeder {
             subtitle: 'This hero demonstrates a centered layout using neutral project tokens.',
             callouts: [
               {
-              label: 'Explore modules',
-              url: { kind: 'url', url: '#' },
-              target: '_self',
-            },
+                label: 'Explore modules',
+                url: { kind: 'url', url: '#' },
+                target: '_self',
+              },
             ],
             backgroundColor: 'bg-backdrop-low',
           },
@@ -1665,9 +1844,12 @@ export default class ModuleInstanceSeeder extends BaseSeeder {
       console.log(`✅ [ModuleInstanceSeeder] Attached ${label} to Module Catalog`)
     }
 
+    await ensureAttached(String(readingProgressInstance.id), 'reading-progress module')
+    await ensureAttached(String(heroInstance.id), 'hero module')
     await ensureAttached(String(heroWithMediaInstance.id), 'hero-with-media module')
     await ensureAttached(String(heroCenteredInstance.id), 'hero-with-callout module')
     await ensureAttached(String(featuresListInstance.id), 'features-list module')
+    await ensureAttached(String(featuresExpandedInstance.id), 'features-list-expanded module')
     await ensureAttached(String(proseWithMediaInstance.id), 'prose-with-media module')
     await ensureAttached(String(statisticsInstance.id), 'statistics module')
     await ensureAttached(String(pricingInstance.id), 'pricing module')
@@ -1677,9 +1859,65 @@ export default class ModuleInstanceSeeder extends BaseSeeder {
     await ensureAttached(String(testimonialListInstance.id), 'testimonial-list module')
     await ensureAttached(String(companyListInstance.id), 'company-list module')
     await ensureAttached(String(blogListInstance.id), 'blog-list module')
+    await ensureAttached(String(galleryInstance.id), 'gallery module')
     await ensureAttached(String(formModuleInstance.id), 'form module')
     await ensureAttached(String(proseWithFormInstance.id), 'prose-with-form module')
     await ensureAttached(String(proseInstance.id), 'prose module')
     await ensureAttached(String(kitchenSinkInstance.id), 'kitchen-sink module')
+    await ensureAttached(String(separatorInstance.id), 'separator module')
+
+    // Re-order Module Catalog modules so Reading Progress appears first,
+    // followed by a curated sequence of section modules.
+    const desiredOrder: string[] = [
+      'reading-progress',
+      'hero',
+      'hero-with-media',
+      'hero-with-callout',
+      'features-list',
+      'features-list-expanded',
+      'prose-with-media',
+      'statistics',
+      'pricing',
+      'faq',
+      'blockquote',
+      'profile-list',
+      'testimonial-list',
+      'company-list',
+      'blog-list',
+      'gallery',
+      'form',
+      'prose-with-form',
+      'prose',
+      'separator',
+      'kitchen-sink',
+    ]
+
+    const postModuleRows = await db
+      .from('post_modules')
+      .join('module_instances', 'post_modules.module_id', 'module_instances.id')
+      .where('post_modules.post_id', catalogPost.id)
+      .select('post_modules.id', 'module_instances.type')
+
+    type PostModuleRow = { id: number; type: string }
+    const typedRows = postModuleRows as PostModuleRow[]
+
+    const sortedRows = typedRows.slice().sort((a, b) => {
+      const aIndex = desiredOrder.indexOf(a.type)
+      const bIndex = desiredOrder.indexOf(b.type)
+      const safeA = aIndex === -1 ? desiredOrder.length + 1 : aIndex
+      const safeB = bIndex === -1 ? desiredOrder.length + 1 : bIndex
+
+      if (safeA !== safeB) return safeA - safeB
+      return a.id - b.id
+    })
+
+    let orderIndex = 0
+    for (const row of sortedRows) {
+      await db.from('post_modules').where('id', row.id).update({
+        order_index: orderIndex,
+        updated_at: nowTs,
+      })
+      orderIndex++
+    }
   }
 }

@@ -57,58 +57,83 @@ export default function KitchenSink(props: KitchenSinkProps) {
 	}, [props.image, props.imageVariant])
 
 	return (
-		<section className="border border-line-low rounded-lg bg-backdrop-low p-6 space-y-4">
-			<header>
-				<h2 className="text-lg font-semibold text-neutral-high">{props.title}</h2>
-				{props.description && <p className="text-neutral-medium">{props.description}</p>}
-			</header>
-			{resolvedImageUrl && (
-				<div className="rounded overflow-hidden border border-line-medium">
-					<img src={resolvedImageUrl} alt={props.title} className="w-full h-auto" />
+		<section className="py-12 sm:py-16" data-module="kitchen-sink">
+			<div className="container mx-auto px-4 sm:px-6 lg:px-8">
+				<div className="border border-line-low rounded-lg bg-backdrop-low p-6 sm:p-8 space-y-6">
+					<header className="space-y-2">
+						<h2 className="text-2xl font-semibold tracking-tight text-neutral-high">
+							{props.title}
+						</h2>
+						{props.description && (
+							<p className="text-base text-neutral-medium">
+								{props.description}
+							</p>
+						)}
+					</header>
+
+					{resolvedImageUrl && (
+						<div className="rounded-lg overflow-hidden border border-line-medium">
+							<img src={resolvedImageUrl} alt={props.title} className="w-full h-auto" />
+						</div>
+					)}
+
+					<div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-sm">
+						<Info label="Count" value={String(props.count ?? '')} />
+						<Info label="Category" value={props.category ?? ''} />
+						<Info label="Tags" value={(props.tags || []).join(', ')} />
+						<Info label="Featured" value={props.featured ? 'Yes' : 'No'} />
+						<Info label="Publish Date" value={props.publishDate ?? ''} />
+						<Info label="Link URL" value={props.linkUrl ?? ''} />
+					</div>
+
+					{props.metadata && (
+						<div className="text-sm space-y-1">
+							<h3 className="font-medium text-neutral-high">Metadata</h3>
+							<ul className="list-disc pl-5 text-neutral-medium">
+								<li>Author: {props.metadata.author ?? ''}</li>
+								<li>Reading Time: {props.metadata.readingTime ?? ''} min</li>
+								<li>
+									Attribution Required:{' '}
+									{props.metadata.attributionRequired ? 'Yes' : 'No'}
+								</li>
+							</ul>
+						</div>
+					)}
+
+					{Array.isArray(props.postRefs) && (
+						<div className="text-sm space-y-1">
+							<h3 className="font-medium text-neutral-high">Post References</h3>
+							<div className="text-neutral-medium">
+								Selected IDs:{' '}
+								{(props.postRefs || []).join(', ') || '(none)'}
+							</div>
+						</div>
+					)}
+
+					{Array.isArray(props.items) && props.items.length > 0 && (
+						<div className="text-sm space-y-1">
+							<h3 className="font-medium text-neutral-high">Items</h3>
+							<ul className="list-disc pl-5">
+								{props.items.map((it, idx) => (
+									<li
+										key={idx}
+										className={it.highlight ? 'text-standout' : 'text-neutral-high'}
+									>
+										<strong>{it.label}:</strong> {it.value}
+									</li>
+								))}
+							</ul>
+						</div>
+					)}
+
+					{props.content?.root && (
+						<div className="prose max-w-none">
+							{/* Minimal preview of Lexical JSON */}
+							{renderLexicalPreview(props.content)}
+						</div>
+					)}
 				</div>
-			)}
-			<div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-sm">
-				<Info label="Count" value={String(props.count ?? '')} />
-				<Info label="Category" value={props.category ?? ''} />
-				<Info label="Tags" value={(props.tags || []).join(', ')} />
-				<Info label="Featured" value={props.featured ? 'Yes' : 'No'} />
-				<Info label="Publish Date" value={props.publishDate ?? ''} />
-				<Info label="Link URL" value={props.linkUrl ?? ''} />
 			</div>
-			{props.metadata && (
-				<div className="text-sm">
-					<h3 className="font-medium text-neutral-high mb-1">Metadata</h3>
-					<ul className="list-disc pl-5 text-neutral-medium">
-						<li>Author: {props.metadata.author ?? ''}</li>
-						<li>Reading Time: {props.metadata.readingTime ?? ''} min</li>
-						<li>Attribution Required: {props.metadata.attributionRequired ? 'Yes' : 'No'}</li>
-					</ul>
-				</div>
-			)}
-			{Array.isArray(props.postRefs) && (
-				<div className="text-sm">
-					<h3 className="font-medium text-neutral-high mb-1">Post References</h3>
-					<div className="text-neutral-medium">Selected IDs: {(props.postRefs || []).join(', ') || '(none)'}</div>
-				</div>
-			)}
-			{Array.isArray(props.items) && props.items.length > 0 && (
-				<div className="text-sm">
-					<h3 className="font-medium text-neutral-high mb-1">Items</h3>
-					<ul className="list-disc pl-5">
-						{props.items.map((it, idx) => (
-							<li key={idx} className={it.highlight ? 'text-standout' : 'text-neutral-high'}>
-								<strong>{it.label}:</strong> {it.value}
-							</li>
-						))}
-					</ul>
-				</div>
-			)}
-			{props.content?.root && (
-				<div className="prose prose-invert max-w-none">
-					{/* Minimal preview of Lexical JSON */}
-					{renderLexicalPreview(props.content)}
-				</div>
-			)}
 		</section>
 	)
 }
