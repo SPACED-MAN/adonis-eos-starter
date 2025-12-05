@@ -12,8 +12,7 @@ const documentationPostType: PostTypeDefinition = {
   hasTags: false,
   hasFeaturedImage: false,
   urlPatterns: [
-    { locale: 'en', pattern: '/docs/{slug}', isDefault: true },
-    { locale: '*', pattern: '/{locale}/docs/{slug}', isDefault: false },
+    { locale: 'en', pattern: '/docs/{path}', isDefault: true },
   ],
   allowedModules: [
     'hero',
