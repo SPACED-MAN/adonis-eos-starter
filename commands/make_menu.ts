@@ -1,7 +1,7 @@
 import { BaseCommand, args, flags } from '@adonisjs/core/ace'
 import type { CommandOptions } from '@adonisjs/core/types/ace'
 import string from '@adonisjs/core/helpers/string'
-import { mkdir, readFile, writeFile } from 'node:fs/promises'
+import { mkdir, writeFile } from 'node:fs/promises'
 import { join } from 'node:path'
 import { fileURLToPath } from 'node:url'
 
@@ -51,45 +51,6 @@ export default ${pascalId}
 `
   }
 
-  protected async patchMenusIndex(appRoot: string, slug: string): Promise<void> {
-    const indexPath = join(appRoot, 'app', 'menus', 'index.ts')
-    let src = await readFile(indexPath, 'utf-8').catch(() => '')
-    if (!src) {
-      // Create a minimal index if missing
-      src = `import templates from '#services/menu_template_registry'
-export function listMenuTemplates(){ return templates.list() }
-export function getMenuTemplate(slug: string){ return templates.get(slug) }
-export default { list: listMenuTemplates, get: getMenuTemplate, _exports: {} }
-`
-    }
-    // Add import if not present
-    const importLine = `import ${string.camelCase(slug)} from './${slug}.ts'`
-    if (!src.includes(importLine)) {
-      // Insert import after first line or at top
-      src = importLine + '\n' + src
-    }
-    // Ensure in _exports to avoid tree-shake
-    const exportsMatch = src.match(/_exports:\s*\{([^}]*)\}/m)
-    if (exportsMatch) {
-      const before = exportsMatch[0]
-      if (!before.includes(string.camelCase(slug))) {
-        const updated = before.replace(
-          /\{([^}]*)\}/m,
-          (_m, inner) => `{ ${inner.trim()}${inner.trim() ? ', ' : ''}${string.camelCase(slug)} }`
-        )
-        src = src.replace(before, updated)
-      }
-    } else {
-      // Add _exports block to default export
-      src = src.replace(/export\s+default\s+\{([\s\S]*?)\}\s*$/m, (m, inner) => {
-        const hasInner = inner?.trim() || ''
-        const newInner = `${hasInner}${hasInner ? ', ' : ''}_exports: { ${string.camelCase(slug)} }`
-        return `export default { ${newInner} }`
-      })
-    }
-    await writeFile(indexPath, src, 'utf-8')
-  }
-
   protected buildSeederContents(slug: string, displayName: string): string {
     return `import BaseSeeder from '@adonisjs/lucid/seeders'
 import db from '@adonisjs/lucid/services/db'
@@ -137,10 +98,7 @@ export default class extends BaseSeeder {
     const templatePath = join(menusDir, `${slug}.ts`)
     await writeFile(templatePath, this.buildTemplateContents(slug, displayName, pascalId), {
       flag: 'wx',
-    }).catch(() => {})
-
-    // Patch app/menus/index.ts to import/register
-    await this.patchMenusIndex(appRoot, slug)
+    }).catch(() => { })
 
     // Optional seeder
     if (this.withSeed) {
@@ -149,21 +107,24 @@ export default class extends BaseSeeder {
       const seederPath = join(seedersDir, `menu_${slug}_seeder.ts`)
       await writeFile(seederPath, this.buildSeederContents(slug, displayName), {
         flag: 'wx',
-      }).catch(() => {})
+      }).catch(() => { })
     }
 
     this.logger.success(`Created code-first menu "${displayName}" (${slug})`)
     this.logger.info('')
     this.logger.info('Files created:')
     this.logger.info(this.colors.dim(`   Template: app/menus/${slug}.ts`))
-    this.logger.info(this.colors.dim(`   Updated:  app/menus/index.ts (import + _exports)`))
     if (this.withSeed) {
       this.logger.info(this.colors.dim(`   Seeder:   database/seeders/menu_${slug}_seeder.ts`))
     }
     this.logger.info('')
     this.logger.info('Next steps:')
-    this.logger.info('  1) Restart the dev server to register templates.')
-    this.logger.info('  2) Open Admin → Menus; fields should appear under “Menu Fields”.')
-    this.logger.info('  3) Optionally run the seeder: node ace db:seed')
+    this.logger.info('  1) Restart the dev server:')
+    this.logger.info(this.colors.dim('     npm run dev'))
+    this.logger.info(this.colors.dim('     (Template will be automatically discovered and registered)'))
+    this.logger.info('  2) Open Admin → Menus; fields should appear under "Menu Fields".')
+    if (this.withSeed) {
+      this.logger.info('  3) Optionally run the seeder: node ace db:seed')
+    }
   }
 }

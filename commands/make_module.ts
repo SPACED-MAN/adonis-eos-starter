@@ -188,13 +188,11 @@ export default function ${moduleName}({
       this.colors.dim(`     - Define props schema in app/modules/${backendFileName}`)
     )
     this.logger.info(this.colors.dim(`     - Build UI in inertia/modules/${frontendFileName}`))
-    this.logger.info('  2. Register in start/modules.ts:')
+    this.logger.info('  2. Restart the dev server:')
+    this.logger.info(this.colors.dim('     npm run dev'))
     this.logger.info(
-      this.colors.dim(
-        `     import ${moduleName}Module from '#modules/${string.snakeCase(this.name)}'`
-      )
+      this.colors.dim('     (Module will be automatically discovered and registered)')
     )
-    this.logger.info(this.colors.dim(`     ModuleRegistry.register(new ${moduleName}Module())`))
     this.logger.info('  3. Create unit tests in tests/unit/modules/')
     this.logger.info('')
     this.logger.info(

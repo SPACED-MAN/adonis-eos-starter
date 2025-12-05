@@ -1,54 +1,48 @@
 /**
- * Module System Bootstrap
+ * Module System Bootstrap (filesystem-based auto-discovery)
  *
- * Registers all available modules with the module registry.
+ * Automatically discovers and registers all modules from app/modules/.
  * This file is loaded on application startup.
+ *
+ * To add a new module:
+ * 1. Create your module class in app/modules/your_module.ts
+ * 2. Export it as default
+ * 3. It will be auto-registered on next server start
  */
 
 import moduleRegistry from '#services/module_registry'
-import ProseModule from '#modules/prose'
-import KitchenSinkModule from '#modules/kitchen_sink'
-import BlogNoteModule from '#modules/blog_note'
-import HeroModule from '#modules/hero'
-import HeroWithMediaModule from '#modules/hero_with_media'
-import HeroWithCalloutModule from '#modules/hero_with_callout'
-import FeaturesListModule from '#modules/features_list'
-import FeaturesListExpandedModule from '#modules/features_list_expanded'
-import BlockquoteModule from '#modules/blockquote'
-import ProfileListModule from '#modules/profile_list'
-import CompanyListModule from '#modules/company_list'
-import ProseWithMediaModule from '#modules/prose_with_media'
-import ProseWithFormModule from '#modules/prose_with_form'
-import StatisticsModule from '#modules/statistics'
-import PricingModule from '#modules/pricing'
-import FaqModule from '#modules/faq'
-import BlogListModule from '#modules/blog_list'
-import TestimonialListModule from '#modules/testimonial_list'
-import FormModule from '#modules/form'
+import fs from 'node:fs'
+import path from 'node:path'
+import { pathToFileURL } from 'node:url'
 
-// Register Hero modules
-moduleRegistry.register(new HeroModule())
-moduleRegistry.register(new HeroWithMediaModule())
-moduleRegistry.register(new HeroWithCalloutModule())
-moduleRegistry.register(new FeaturesListModule())
-moduleRegistry.register(new FeaturesListExpandedModule())
-moduleRegistry.register(new BlockquoteModule())
-moduleRegistry.register(new ProfileListModule())
-moduleRegistry.register(new CompanyListModule())
-moduleRegistry.register(new BlogListModule())
-moduleRegistry.register(new TestimonialListModule())
-moduleRegistry.register(new ProseWithMediaModule())
-moduleRegistry.register(new ProseWithFormModule())
-moduleRegistry.register(new StatisticsModule())
-moduleRegistry.register(new PricingModule())
-moduleRegistry.register(new FaqModule())
-moduleRegistry.register(new FormModule())
-// Register Prose module
-moduleRegistry.register(new ProseModule())
-// Register Kitchen Sink module (demo)
-moduleRegistry.register(new KitchenSinkModule())
-// Register Blog Note (blog-specific) module
-moduleRegistry.register(new BlogNoteModule())
+// Auto-register all modules found in app/modules/*
+try {
+  const dir = path.join(process.cwd(), 'app', 'modules')
+  if (fs.existsSync(dir)) {
+    const files = fs
+      .readdirSync(dir)
+      .filter((f) => (f.endsWith('.ts') || f.endsWith('.js')) && f !== 'base.ts')
+
+    for (const file of files) {
+      try {
+        const full = path.join(dir, file)
+        const mod = await import(pathToFileURL(full).href)
+        const ModuleClass = mod?.default || mod
+
+        if (ModuleClass && typeof ModuleClass === 'function') {
+          const instance = new ModuleClass()
+          moduleRegistry.register(instance)
+        }
+      } catch (error) {
+        console.error(`Failed to register module from ${file}:`, error)
+        // Continue loading other modules even if one fails
+      }
+    }
+  }
+} catch (error) {
+  console.error('Failed to load modules directory:', error)
+  // Non-fatal - application can still start
+}
 
 // Log registered modules (development only)
 if (process.env.NODE_ENV === 'development') {
