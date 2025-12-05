@@ -83,38 +83,33 @@ function ReactModuleRenderer({
 }
 
 /**
- * Get module component from registry
- * Supports both direct imports and lazy loading
+ * Get module component from registry (auto-discovered)
+ * 
+ * Dynamically resolves module components by converting kebab-case names to PascalCase.
+ * No manual mapping needed - all modules are auto-discovered via import.meta.glob.
+ * 
+ * Examples:
+ * - 'hero' → Modules.Hero
+ * - 'hero-with-media' → Modules.HeroWithMedia
+ * - 'prose-static' → Modules.ProseStatic (or Modules.Prose alias)
  */
 function getModuleComponent(componentName: string): ComponentType<any> | null {
-  // Map component names to actual components
-  const componentMap: Record<string, ComponentType<any>> = {
-    'prose': Modules.ProseStatic, // Main prose module
-    'prose-static': Modules.ProseStatic,
-    'separator': Modules.SeparatorStatic, // Horizontal rule divider
-    'separator-static': Modules.SeparatorStatic,
-    'gallery': Modules.Gallery,
-    'accordion': Modules.Accordion,
-    'kitchen-sink': Modules.KitchenSink,
-    'hero': Modules.Hero,
-    'hero-with-media': Modules.HeroWithMedia,
-    'hero-with-callout': Modules.HeroWithCallout,
-    'features-list': Modules.FeaturesList,
-    'features-list-expanded': Modules.FeaturesListExpanded,
-    'blockquote': Modules.Blockquote,
-    'prose-with-media': Modules.ProseWithMedia,
-    'prose-with-form': Modules.ProseWithForm,
-    'statistics': Modules.Statistics,
-    'profile-list': Modules.ProfileList,
-    'company-list': Modules.CompanyList,
-    'blog-list': Modules.BlogList,
-    'testimonial-list': Modules.TestimonialList,
-    'pricing': Modules.Pricing,
-    'faq': Modules.Faq,
-    'form': Modules.Form,
+  // Convert kebab-case to PascalCase
+  // 'hero-with-media' → 'HeroWithMedia'
+  const pascalName = componentName
+    .split('-')
+    .map(part => part.charAt(0).toUpperCase() + part.slice(1))
+    .join('')
+
+  // Access the component from the Modules namespace
+  const component = (Modules as any)[pascalName]
+
+  if (component) {
+    return component
   }
 
-  return componentMap[componentName] || null
+  // If not found, return null (will show error in UI)
+  return null
 }
 
 /**
