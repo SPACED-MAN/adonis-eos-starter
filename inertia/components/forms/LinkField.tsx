@@ -83,11 +83,13 @@ export const LinkField: React.FC<LinkFieldProps> = ({
   helperText,
 }) => {
   const initial = React.useMemo(() => normalizeLinkValue(value), [value])
-  const [mode, setMode] = React.useState<LinkKind>(initial?.kind === 'post' ? 'post' : 'url')
+  // Default to 'post' mode unless explicitly set to 'url'
+  const [mode, setMode] = React.useState<LinkKind>(initial?.kind === 'url' ? 'url' : 'post')
   const [link, setLink] = React.useState<LinkFieldValue>(initial)
   const [posts, setPosts] = React.useState<PostOption[]>([])
   const [loading, setLoading] = React.useState(false)
   const [error, setError] = React.useState<string | null>(null)
+  const [urlError, setUrlError] = React.useState<string | null>(null)
 
   React.useEffect(() => {
     onChange(link)
@@ -142,6 +144,30 @@ export const LinkField: React.FC<LinkFieldProps> = ({
   const currentTarget: '_self' | '_blank' =
     link && (link as any).target === '_blank' ? '_blank' : '_self'
 
+  // Validate URL to reject internal relative paths or same-domain URLs
+  const validateUrl = (url: string): string | null => {
+    const trimmed = url.trim()
+    if (!trimmed) return null
+    
+    // Reject relative paths
+    if (trimmed.startsWith('/')) {
+      return 'Internal links should use "Existing post" instead of relative URLs'
+    }
+    
+    // Reject same-domain URLs
+    try {
+      const urlObj = new URL(trimmed)
+      const currentDomain = window.location.hostname
+      if (urlObj.hostname === currentDomain) {
+        return 'Internal links should use "Existing post" instead of full URLs to this site'
+      }
+    } catch {
+      // Invalid URL format - let the browser's native validation handle it
+    }
+    
+    return null
+  }
+
   return (
     <FormField>
       <FormLabel>{label}</FormLabel>
@@ -169,8 +195,8 @@ export const LinkField: React.FC<LinkFieldProps> = ({
               }
             }}
           >
-            <option value="url">Custom URL</option>
             <option value="post">Existing post</option>
+            <option value="url">Custom URL (external only)</option>
           </select>
         </div>
 
@@ -182,17 +208,26 @@ export const LinkField: React.FC<LinkFieldProps> = ({
               value={link && link.kind === 'url' ? link.url : ''}
               onChange={(e) => {
                 const val = e.target.value
+                const validationError = validateUrl(val)
+                setUrlError(validationError)
+                
                 setLink((prev) => {
                   const baseTarget =
                     prev && (prev as any).target === '_blank' ? '_blank' : '_self'
                   const trimmed = val.trim()
+                  // Only set the link if validation passes
+                  if (validationError) return prev
                   return trimmed ? { kind: 'url', url: trimmed, target: baseTarget } : null
                 })
               }}
             />
-            <FormHelper>
-              Enter a full URL. Use this for external destinations or when you don&apos;t want to bind to a specific post.
-            </FormHelper>
+            {urlError ? (
+              <FormHelper className="text-danger">{urlError}</FormHelper>
+            ) : (
+              <FormHelper>
+                Enter a full URL. Use this for external destinations only. For internal links, use &quot;Existing post&quot;.
+              </FormHelper>
+            )}
           </div>
         ) : (
           <div className="space-y-1">

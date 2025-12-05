@@ -47,11 +47,24 @@ export default class extends BaseSeeder {
       console.log(`   ✓ Post created with ID: ${post.id}`)
 
       // Get developer documentation post for callout button
-      const developerDocsPost = await db
-        .from('posts')
-        .where('slug', 'getting-started')
-        .where('type', 'documentation')
-        .first()
+      // Look up documentation posts for callouts
+      const [overviewPost, editorsPost, developerDocsPost] = await Promise.all([
+        db
+          .from('posts')
+          .where('slug', 'overview')
+          .where('type', 'documentation')
+          .first(),
+        db
+          .from('posts')
+          .where('slug', 'quick-start')
+          .where('type', 'documentation')
+          .first(),
+        db
+          .from('posts')
+          .where('slug', 'getting-started')
+          .where('type', 'documentation')
+          .first(),
+      ])
 
       // Step 2: Add modules using AddModuleToPost action (same as API endpoint)
       // Hero with Callouts module
@@ -66,11 +79,27 @@ export default class extends BaseSeeder {
           callouts: [
             {
               label: 'Learn More',
-              url: { kind: 'url', url: '/docs/overview', target: '_self' },
+              url: overviewPost
+                ? {
+                  kind: 'post',
+                  postId: overviewPost.id,
+                  slug: overviewPost.slug,
+                  locale: overviewPost.locale || 'en',
+                  target: '_self',
+                }
+                : { kind: 'url', url: 'https://adoniseos.com/docs', target: '_self' },
             },
             {
               label: 'For Editors',
-              url: { kind: 'url', url: '/docs/overview/quick-start', target: '_self' },
+              url: editorsPost
+                ? {
+                  kind: 'post',
+                  postId: editorsPost.id,
+                  slug: editorsPost.slug,
+                  locale: editorsPost.locale || 'en',
+                  target: '_self',
+                }
+                : { kind: 'url', url: 'https://adoniseos.com/docs/quick-start', target: '_self' },
             },
             {
               label: 'For Developers',
@@ -82,7 +111,7 @@ export default class extends BaseSeeder {
                   locale: developerDocsPost.locale || 'en',
                   target: '_self',
                 }
-                : { kind: 'url', url: '/docs/overview/getting-started', target: '_self' },
+                : { kind: 'url', url: 'https://adoniseos.com/docs/getting-started', target: '_self' },
             },
           ],
           backgroundColor: 'bg-backdrop-low',
