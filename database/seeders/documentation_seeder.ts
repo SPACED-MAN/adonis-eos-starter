@@ -397,8 +397,9 @@ export default class extends BaseSeeder {
 
     // Define hierarchical relationships (parent slug -> child slugs[])
     const hierarchy: Record<string, string[]> = {
-      // Top-level Documentation overview (from README.md)
-      overview: ['quick-start', 'getting-started'],
+      // "Documentation" (overview) is standalone with no children
+      // "For Editors" and "For Developers" are top-level with their own children
+      
       // Group all editor guides under "For Editors"
       'quick-start': [
         'content-management',
@@ -516,7 +517,14 @@ export default class extends BaseSeeder {
       })
 
       // Update order_index (not handled by CreatePost)
-      await db.from('posts').where('id', post.id).update({ order_index: orderIndex })
+      // Set specific order for top-level pages: Documentation (0), For Editors (1), For Developers (2)
+      let finalOrderIndex = orderIndex
+      if (slug === 'quick-start') {
+        finalOrderIndex = 1
+      } else if (slug === 'getting-started') {
+        finalOrderIndex = 2
+      }
+      await db.from('posts').where('id', post.id).update({ order_index: finalOrderIndex })
 
       // Store post ID for later parent-child linking
       postIdsBySlug[slug] = post.id

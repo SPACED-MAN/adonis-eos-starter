@@ -22,14 +22,14 @@ export default class extends BaseSeeder {
     // Taxonomies (categories, tags, etc.)
     await new TaxonomySeeder(this.client).run()
 
-    // Homepage
-    await new HomepageSeeder(this.client).run()
-
-    // Documentation
+    // Documentation (must run before homepage so posts can be referenced)
     await new DocumentationSeeder(this.client).run()
 
     // Documentation menu (dynamic menu for docs)
     await new DocumentationMenuSeeder(this.client).run()
+
+    // Homepage (references documentation posts, so must run after)
+    await new HomepageSeeder(this.client).run()
 
     console.log('\n✅ All seeders completed!')
   }

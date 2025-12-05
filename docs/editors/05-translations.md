@@ -158,5 +158,5 @@ A: Check the dashboard for translation status indicators or ask your administrat
 
 ---
 
-**Related**: [Content Management](/docs/editors/content-management) | [Roles & Permissions](/docs/editors/roles-permissions)
+**Related**: [Content Management](/docs/quick-start/content-management) | [Roles & Permissions](/docs/quick-start/roles-permissions)
 

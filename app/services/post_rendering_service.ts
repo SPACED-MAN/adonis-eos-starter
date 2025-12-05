@@ -4,6 +4,7 @@ import urlPatternService from '#services/url_pattern_service'
 import siteSettingsService from '#services/site_settings_service'
 import moduleRegistry from '#services/module_registry'
 import { robotsConfigToString, DEFAULT_ROBOTS, type PostSeoData } from '#types/seo'
+import { resolvePostReferences } from '#helpers/resolve_post_references'
 
 /**
  * Module data for rendering
@@ -130,20 +131,22 @@ class PostRenderingService {
   /**
    * Build modules array for view, applying review context if needed
    */
-  buildModulesForView(
+  async buildModulesForView(
     modules: ModuleRenderData[],
     options: {
       wantReview?: boolean
       reviewDraft?: Record<string, unknown> | null
     } = {}
-  ): Array<{
-    id: string
-    type: string
-    componentName: string
-    renderingMode: 'static' | 'react'
-    props: Record<string, unknown>
-    html?: string
-  }> {
+  ): Promise<
+    Array<{
+      id: string
+      type: string
+      componentName: string
+      renderingMode: 'static' | 'react'
+      props: Record<string, unknown>
+      html?: string
+    }>
+  > {
     const { wantReview = false, reviewDraft = null } = options
 
     // Get removed module IDs from review draft
@@ -153,11 +156,13 @@ class PostRenderingService {
         : []
     )
 
-    return modules
+    const filtered = modules
       .filter((pm) => !removedInReview.has(pm.id))
       .filter((pm) => !(wantReview && pm.reviewDeleted === true))
       .filter((pm) => (wantReview ? true : pm.reviewAdded !== true))
-      .map((pm) => {
+
+    const prepared = await Promise.all(
+      filtered.map(async (pm) => {
         const isLocal = pm.scope === 'post'
         const useReview = wantReview && reviewDraft
 
@@ -179,6 +184,9 @@ class PostRenderingService {
           mergedProps = { ...baseProps, ...overrides }
         }
 
+        // Resolve post references to actual URLs
+        mergedProps = await resolvePostReferences(mergedProps)
+
         // Get module from registry to determine rendering mode
         const module = moduleRegistry.get(pm.type)
         const componentName = module.getComponentName()
@@ -192,6 +200,9 @@ class PostRenderingService {
           props: mergedProps,
         }
       })
+    )
+
+    return prepared
   }
 
   /**
@@ -332,7 +343,7 @@ class PostRenderingService {
 
     // Load modules
     const modulesRaw = await this.loadPostModules(post.id, { includeReviewFields: true })
-    const modules = this.buildModulesForView(modulesRaw, { wantReview, reviewDraft })
+    const modules = await this.buildModulesForView(modulesRaw, { wantReview, reviewDraft })
 
     // Load author
     const authorId = (post as any).authorId || (post as any).author_id

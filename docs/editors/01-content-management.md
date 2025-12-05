@@ -243,14 +243,14 @@ Always fill in:
 
 ### Managing Translations
 
-See [Internationalization guide](/docs/internationalization) for full details.
+See [Internationalization guide](/docs/getting-started/internationalization) for full details.
 
 ## Getting Help
 
-- Check [API Reference](/docs/api-reference) for technical details
-- Review [Building Modules](/docs/building-modules) for custom modules
+- Check [API Reference](/docs/getting-started/api-reference) for technical details
+- Review [Building Modules](/docs/getting-started/building-modules) for custom modules
 - Contact your administrator for permission issues
-- Refer to [Roles & Permissions](/docs/roles-permissions) for access questions
+- Refer to [Roles & Permissions](/docs/quick-start/roles-permissions) for access questions
 
 
 
