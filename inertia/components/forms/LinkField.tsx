@@ -101,38 +101,38 @@ export const LinkField: React.FC<LinkFieldProps> = ({
     let cancelled = false
     setLoading(true)
     setError(null)
-    ;(async () => {
-      try {
-        const params = new URLSearchParams()
-        params.set('status', 'published')
-        if (currentLocale) params.set('locale', currentLocale)
-        params.set('limit', '50')
-        const res = await fetch(`/api/posts?${params.toString()}`, {
-          credentials: 'same-origin',
-          headers: { Accept: 'application/json' },
-        })
-        if (!res.ok) {
-          throw new Error('Failed to load posts')
+      ; (async () => {
+        try {
+          const params = new URLSearchParams()
+          params.set('status', 'published')
+          if (currentLocale) params.set('locale', currentLocale)
+          params.set('limit', '50')
+          const res = await fetch(`/api/posts?${params.toString()}`, {
+            credentials: 'same-origin',
+            headers: { Accept: 'application/json' },
+          })
+          if (!res.ok) {
+            throw new Error('Failed to load posts')
+          }
+          const j = await res.json().catch(() => null)
+          const list: any[] = Array.isArray(j?.data) ? j.data : []
+          if (cancelled) return
+          setPosts(
+            list.map((p: any) => ({
+              id: String(p.id),
+              title: p.title || '(untitled)',
+              slug: p.slug,
+              type: p.type,
+              locale: p.locale,
+              status: p.status,
+            }))
+          )
+        } catch (e) {
+          if (!cancelled) setError('Failed to load posts')
+        } finally {
+          if (!cancelled) setLoading(false)
         }
-        const j = await res.json().catch(() => null)
-        const list: any[] = Array.isArray(j?.data) ? j.data : []
-        if (cancelled) return
-        setPosts(
-          list.map((p: any) => ({
-            id: String(p.id),
-            title: p.title || '(untitled)',
-            slug: p.slug,
-            type: p.type,
-            locale: p.locale,
-            status: p.status,
-          }))
-        )
-      } catch (e) {
-        if (!cancelled) setError('Failed to load posts')
-      } finally {
-        if (!cancelled) setLoading(false)
-      }
-    })()
+      })()
     return () => {
       cancelled = true
     }
@@ -148,12 +148,12 @@ export const LinkField: React.FC<LinkFieldProps> = ({
   const validateUrl = (url: string): string | null => {
     const trimmed = url.trim()
     if (!trimmed) return null
-    
+
     // Reject relative paths
     if (trimmed.startsWith('/')) {
       return 'Internal links should use "Existing post" instead of relative URLs'
     }
-    
+
     // Reject same-domain URLs
     try {
       const urlObj = new URL(trimmed)
@@ -164,7 +164,7 @@ export const LinkField: React.FC<LinkFieldProps> = ({
     } catch {
       // Invalid URL format - let the browser's native validation handle it
     }
-    
+
     return null
   }
 
@@ -210,7 +210,7 @@ export const LinkField: React.FC<LinkFieldProps> = ({
                 const val = e.target.value
                 const validationError = validateUrl(val)
                 setUrlError(validationError)
-                
+
                 setLink((prev) => {
                   const baseTarget =
                     prev && (prev as any).target === '_blank' ? '_blank' : '_self'
