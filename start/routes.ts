@@ -382,7 +382,7 @@ router
 // Admin Posts (list) (editors allowed)
 router
   .get('/admin/posts', async ({ inertia }) => {
-    return inertia.render('admin/dashboard')
+    return inertia.render('admin/posts/index')
   })
   .use(middleware.auth())
 

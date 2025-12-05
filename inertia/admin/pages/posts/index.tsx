@@ -1,11 +1,13 @@
+// Posts admin index page (renamed from legacy dashboard.tsx)
+// This file now owns the full implementation for the Posts list/admin UI.
 import { Head, Link, usePage } from '@inertiajs/react'
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome'
 import { faTurnUp } from '@fortawesome/free-solid-svg-icons'
 import { useEffect, useMemo, useState } from 'react'
-import { AdminHeader } from '../components/AdminHeader'
-import { AdminFooter } from '../components/AdminFooter'
+import { AdminHeader } from '../../components/AdminHeader'
+import { AdminFooter } from '../../components/AdminFooter'
 import { useHasPermission } from '~/utils/permissions'
-import { AdminBreadcrumbs } from '../components/AdminBreadcrumbs'
+import { AdminBreadcrumbs } from '../../components/AdminBreadcrumbs'
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '~/components/ui/table'
 import { Checkbox } from '~/components/ui/checkbox'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '~/components/ui/select'
@@ -20,13 +22,24 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from '~/components/ui/alert-dialog'
-import { DndContext, PointerSensor, closestCenter, useSensor, useSensors, DragEndEvent, DragStartEvent, DragMoveEvent } from '@dnd-kit/core'
+import {
+  DndContext,
+  PointerSensor,
+  closestCenter,
+  useSensor,
+  useSensors,
+  DragEndEvent,
+  DragStartEvent,
+  DragMoveEvent,
+} from '@dnd-kit/core'
 import { SortableContext, useSortable, verticalListSortingStrategy } from '@dnd-kit/sortable'
 import { CSS } from '@dnd-kit/utilities'
 
-interface DashboardProps { }
+interface PostsIndexProps {}
 
-export default function Dashboard({ }: DashboardProps) {
+export default function PostsIndexPage({}: PostsIndexProps) {
+  // Entire implementation moved here from the former dashboard.tsx
+  // (content identical to LegacyDashboard).
   const inertiaPage = usePage()
   const role: string | undefined =
     (inertiaPage.props as any)?.currentUser?.role ??
@@ -70,7 +83,6 @@ export default function Dashboard({ }: DashboardProps) {
   const [dragBaseLevel, setDragBaseLevel] = useState<number>(0)
   const [dragProjectedLevel, setDragProjectedLevel] = useState<number | null>(null)
   const [willNest, setWillNest] = useState<boolean>(false)
-  // Profile CTA moved to Dashboard page
 
   // CSRF token for API calls
   const xsrfFromCookie: string | undefined = (() => {
@@ -110,10 +122,11 @@ export default function Dashboard({ }: DashboardProps) {
       params.set('withTranslations', '1')
       const res = await fetch(`/api/posts?${params.toString()}`, { credentials: 'same-origin' })
       const json = await res.json().catch(() => ({}))
-      const list: Array<{ id: string; title: string; slug: string; status: string; locale: string; updatedAt: string; parentId?: string | null; translationOfId?: string | null; familyLocales?: string[]; hasReviewDraft?: boolean }> =
+      const list: Array<{ id: string; type: string; title: string; slug: string; status: string; locale: string; updatedAt: string; parentId?: string | null; translationOfId?: string | null; familyLocales?: string[]; hasReviewDraft?: boolean }> =
         Array.isArray(json?.data) ? json.data : []
       setPosts(list)
-      setTotal(Number(json?.meta?.total || list.length || 0))
+      const metaTotal = (json as any)?.meta?.total
+      setTotal(typeof metaTotal === 'number' ? metaTotal : Number(metaTotal || 0))
       // Reset selection when list changes
       setSelected(new Set())
       setSelectAll(false)
@@ -122,26 +135,26 @@ export default function Dashboard({ }: DashboardProps) {
     }
   }
 
+  // On first load (no locale filter), default to site's default locale
   useEffect(() => {
-    // On first load (no locale filter), default to the site's configured default locale.
     if (locale) return
     let cancelled = false
-      ; (async () => {
-        try {
-          const res = await fetch('/api/locales', { credentials: 'same-origin' })
-          const json = await res.json().catch(() => null)
-          const fromMeta: string | undefined = json?.meta?.defaultLocale
-          const fromData: string | undefined = Array.isArray(json?.data)
-            ? (json.data.find((l: any) => l.isDefault)?.code as string | undefined)
-            : undefined
-          const effective = fromMeta || fromData
-          if (!cancelled && effective) {
-            setLocale(effective)
-          }
-        } catch {
-          // If locale fetch fails, we simply leave the filter as "All locales"
+    ;(async () => {
+      try {
+        const res = await fetch('/api/locales', { credentials: 'same-origin' })
+        const json = await res.json().catch(() => null)
+        const fromMeta: string | undefined = json?.meta?.defaultLocale
+        const fromData: string | undefined = Array.isArray(json?.data)
+          ? (json.data.find((l: any) => l.isDefault)?.code as string | undefined)
+          : undefined
+        const effective = fromMeta || fromData
+        if (!cancelled && effective) {
+          setLocale(effective)
         }
-      })()
+      } catch {
+        // leave as all locales
+      }
+    })()
     return () => {
       cancelled = true
     }
@@ -152,10 +165,8 @@ export default function Dashboard({ }: DashboardProps) {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [q, status, locale, postType, taxonomy, termId, sortBy, sortOrder, page, limit, hierarchical])
 
-  // Profile status removed here
-
   useEffect(() => {
-    ; (async () => {
+    ;(async () => {
       const res = await fetch('/api/post-types', { credentials: 'same-origin' })
       const json = await res.json().catch(() => ({}))
       const list: string[] = Array.isArray(json?.data) ? json.data : []
@@ -165,7 +176,7 @@ export default function Dashboard({ }: DashboardProps) {
 
   // Load taxonomies for filter
   useEffect(() => {
-    ; (async () => {
+    ;(async () => {
       try {
         const res = await fetch('/api/taxonomies', { credentials: 'same-origin' })
         const json = await res.json().catch(() => ({}))
@@ -179,12 +190,14 @@ export default function Dashboard({ }: DashboardProps) {
 
   // Load terms for selected taxonomy
   useEffect(() => {
-    ; (async () => {
+    ;(async () => {
       setTerms([])
       setTermId('')
       if (!taxonomy) return
       try {
-        const res = await fetch(`/api/taxonomies/${encodeURIComponent(taxonomy)}/terms`, { credentials: 'same-origin' })
+        const res = await fetch(`/api/taxonomies/${encodeURIComponent(taxonomy)}/terms`, {
+          credentials: 'same-origin',
+        })
         const json = await res.json().catch(() => ({}))
         const tree: TermNode[] = Array.isArray(json?.data) ? json.data : []
         setTerms(tree)
@@ -210,13 +223,22 @@ export default function Dashboard({ }: DashboardProps) {
   // Supported locales for translation progress
   const [supportedLocales, setSupportedLocales] = useState<string[]>([])
   useEffect(() => {
-    ; (async () => {
+    ;(async () => {
       try {
         const res = await fetch('/api/locales', { credentials: 'same-origin' })
         const json = await res.json().catch(() => ({}))
-        const list: Array<{ code: string; isEnabled?: boolean; is_enabled?: boolean }> = Array.isArray(json?.data) ? json.data : []
+        const list: Array<{ code: string; isEnabled?: boolean; is_enabled?: boolean }> = Array.isArray(
+          json?.data
+        )
+          ? json.data
+          : []
         const enabled = list
-          .filter((l) => (l as any).isEnabled === true || (l as any).is_enabled === true || (l as any).isEnabled === undefined)
+          .filter(
+            (l) =>
+              (l as any).isEnabled === true ||
+              (l as any).is_enabled === true ||
+              (l as any).isEnabled === undefined
+          )
           .map((l) => l.code)
         setSupportedLocales(enabled.length ? enabled : ['en'])
       } catch {
@@ -227,7 +249,9 @@ export default function Dashboard({ }: DashboardProps) {
 
   function labelize(type: string): string {
     if (!type) return ''
-    const withSpaces = type.replace(/([a-z])([A-Z])/g, '$1 $2').replace(/[-_]+/g, ' ')
+    const withSpaces = type
+      .replace(/([a-z])([A-Z])/g, '$1 $2')
+      .replace(/[-_]+/g, ' ')
     return withSpaces
       .split(' ')
       .filter(Boolean)
@@ -289,13 +313,15 @@ export default function Dashboard({ }: DashboardProps) {
     })
   }
 
-  async function applyBulk(action: 'publish' | 'draft' | 'archive' | 'delete' | 'duplicate' | 'regeneratePermalinks') {
+  async function applyBulk(
+    action: 'publish' | 'draft' | 'archive' | 'delete' | 'duplicate' | 'regeneratePermalinks'
+  ) {
     if (selected.size === 0) return
     const ids = Array.from(selected)
     const res = await fetch('/api/posts/bulk', {
       method: 'POST',
       headers: {
-        'Accept': 'application/json',
+        Accept: 'application/json',
         'Content-Type': 'application/json',
         ...(xsrfFromCookie ? { 'X-XSRF-TOKEN': xsrfFromCookie } : {}),
       },
@@ -310,7 +336,9 @@ export default function Dashboard({ }: DashboardProps) {
     }
   }
 
-  function toggleSort(column: typeof sortBy) {
+  function toggleSort(
+    column: 'title' | 'status' | 'locale' | 'updated_at' | 'created_at' | 'order_index'
+  ) {
     // Any manual sort disables Reorder, but keeps View hierarchy
     if (dndMode) {
       setDndMode(false)
@@ -338,12 +366,12 @@ export default function Dashboard({ }: DashboardProps) {
         roots.push(it)
       }
     })
-    const out: Array<{ post: typeof posts[number]; level: number }> = []
+    const out: Array<{ post: (typeof posts)[number]; level: number }> = []
     const sortKids = (arr: typeof posts) => {
       const copy = arr.slice()
       // In reorder mode, always use order_index ascending for stable handles
       if (dndMode) {
-        return copy.sort((a: any, b: any) => ((a.orderIndex ?? 0) - (b.orderIndex ?? 0)))
+        return copy.sort((a: any, b: any) => (a.orderIndex ?? 0) - (b.orderIndex ?? 0))
       }
       // Otherwise, respect the selected sortBy/sortOrder for sibling ordering
       const factor = sortOrder === 'asc' ? 1 : -1
@@ -353,9 +381,6 @@ export default function Dashboard({ }: DashboardProps) {
             const av = Number(a.orderIndex ?? 0)
             const bv = Number(b.orderIndex ?? 0)
             return (av - bv) * factor
-          }
-          case 'slug': {
-            return a.slug.localeCompare(b.slug) * factor
           }
           case 'status': {
             return a.status.localeCompare(b.status) * factor
@@ -376,7 +401,7 @@ export default function Dashboard({ }: DashboardProps) {
       })
     }
     const rootsSorted = sortKids(roots)
-    function dfs(node: typeof posts[number], level: number) {
+    function dfs(node: (typeof posts)[number], level: number) {
       out.push({ post: node, level })
       const kids = sortKids(idToChildren.get(node.id) || [])
       kids.forEach((c) => dfs(c, level + 1))
@@ -474,7 +499,7 @@ export default function Dashboard({ }: DashboardProps) {
     let newParentId: string | null = null
     if (willNest) {
       const idToParent = new Map<string, string | null>()
-      posts.forEach((p: any) => idToParent.set(p.id, (p.parentId || null)))
+      posts.forEach((p: any) => idToParent.set(p.id, p.parentId || null))
       const isDescendant = (candidateParent: string, node: string): boolean => {
         let cur: string | null = idToParent.get(node) ?? null
         while (cur) {
@@ -501,17 +526,24 @@ export default function Dashboard({ }: DashboardProps) {
     }
     // Prevent self-parenting
     if (newParentId && String(newParentId) === String(active.id)) {
-      setDragActiveId(null); setDragProjectedLevel(null)
+      setDragActiveId(null)
+      setDragProjectedLevel(null)
       return
     }
     // Assemble sibling lists for reindexing
     const allPosts = posts
     const oldSiblings = allPosts
-      .filter((p: any) => ((p.parentId || null) === (oldParentId || null)) && String(p.id) !== String(active.id))
+      .filter(
+        (p: any) =>
+          (p.parentId || null) === (oldParentId || null) && String(p.id) !== String(active.id)
+      )
       .sort((a: any, b: any) => (a.orderIndex ?? 0) - (b.orderIndex ?? 0))
       .map((p) => p.id)
     const newSiblingsExisting = allPosts
-      .filter((p: any) => ((p.parentId || null) === (newParentId || null)) && String(p.id) !== String(active.id))
+      .filter(
+        (p: any) =>
+          (p.parentId || null) === (newParentId || null) && String(p.id) !== String(active.id)
+      )
       .sort((a: any, b: any) => (a.orderIndex ?? 0) - (b.orderIndex ?? 0))
       .map((p) => p.id)
     // Determine insertion index among new parent's siblings based on targetIndex
@@ -524,7 +556,7 @@ export default function Dashboard({ }: DashboardProps) {
       const sliceEnd = movingDown ? targetIndex + 1 : targetIndex
       const siblingsBefore = listWithoutActive
         .slice(0, sliceEnd)
-        .filter((r) => (((r.post as any).parentId || null) === (newParentId || null)))
+        .filter((r) => (r.post.parentId || null) === (newParentId || null))
       insertionIndex = siblingsBefore.length
     }
     const newSiblings = newSiblingsExisting.slice()
@@ -541,7 +573,10 @@ export default function Dashboard({ }: DashboardProps) {
       }
     })
     // De-duplicate by last write wins
-    const dedupMap = new Map<string, { id: string; orderIndex: number; parentId?: string | null }>()
+    const dedupMap = new Map<
+      string,
+      { id: string; orderIndex: number; parentId?: string | null }
+    >()
     for (const it of items) dedupMap.set(String(it.id), it)
     const deduped = Array.from(dedupMap.values())
     // Optimistic UI
@@ -550,7 +585,7 @@ export default function Dashboard({ }: DashboardProps) {
         const f = deduped.find((it) => String(it.id) === String(p.id))
         if (f) {
           const next: any = { ...p, orderIndex: f.orderIndex }
-          if ((f as any).hasOwnProperty('parentId')) {
+          if (Object.prototype.hasOwnProperty.call(f, 'parentId')) {
             next.parentId = f.parentId ?? null
           }
           return next
@@ -558,7 +593,9 @@ export default function Dashboard({ }: DashboardProps) {
         return p
       })
     )
-    setDragActiveId(null); setDragProjectedLevel(null); setWillNest(false)
+    setDragActiveId(null)
+    setDragProjectedLevel(null)
+    setWillNest(false)
     // Persist batch with scoped updates per sibling group
     try {
       // If parent changed, reindex old group first
@@ -568,7 +605,7 @@ export default function Dashboard({ }: DashboardProps) {
         await fetch('/api/posts/reorder', {
           method: 'POST',
           headers: {
-            'Accept': 'application/json',
+            Accept: 'application/json',
             'Content-Type': 'application/json',
             ...(xsrfFromCookie ? { 'X-XSRF-TOKEN': xsrfFromCookie } : {}),
           },
@@ -582,13 +619,14 @@ export default function Dashboard({ }: DashboardProps) {
       // Then reindex new group (and set parent for moved item)
       const newItems: Array<{ id: string; orderIndex: number; parentId?: string | null }> = []
       newSiblings.forEach((id, idx) => {
-        if (String(id) === String(active.id)) newItems.push({ id, orderIndex: idx, parentId: newParentId })
+        if (String(id) === String(active.id))
+          newItems.push({ id, orderIndex: idx, parentId: newParentId })
         else newItems.push({ id, orderIndex: idx })
       })
       await fetch('/api/posts/reorder', {
         method: 'POST',
         headers: {
-          'Accept': 'application/json',
+          Accept: 'application/json',
           'Content-Type': 'application/json',
           ...(xsrfFromCookie ? { 'X-XSRF-TOKEN': xsrfFromCookie } : {}),
         },
@@ -688,7 +726,9 @@ export default function Dashboard({ }: DashboardProps) {
                   <SelectContent>
                     <SelectItem value="all">All post types</SelectItem>
                     {postTypes.map((t) => (
-                      <SelectItem key={t} value={t}>{labelize(t)}</SelectItem>
+                      <SelectItem key={t} value={t}>
+                        {labelize(t)}
+                      </SelectItem>
                     ))}
                   </SelectContent>
                 </Select>
@@ -708,7 +748,9 @@ export default function Dashboard({ }: DashboardProps) {
                   <SelectContent>
                     <SelectItem value="all">All taxonomies</SelectItem>
                     {taxonomies.map((t) => (
-                      <SelectItem key={t.slug} value={t.slug}>{t.name}</SelectItem>
+                      <SelectItem key={t.slug} value={t.slug}>
+                        {t.name}
+                      </SelectItem>
                     ))}
                   </SelectContent>
                 </Select>
@@ -726,26 +768,21 @@ export default function Dashboard({ }: DashboardProps) {
                     <SelectContent>
                       <SelectItem value="all">All categories</SelectItem>
                       {flatTerms.map((t) => (
-                        <SelectItem key={t.id} value={t.id}>{t.name}</SelectItem>
+                        <SelectItem key={t.id} value={t.id}>
+                          {t.name}
+                        </SelectItem>
                       ))}
                     </SelectContent>
                   </Select>
                 )}
                 <label className="flex items-center gap-2 text-sm text-neutral-high">
-                  <Checkbox
-                    checked={hierarchical}
-                    onCheckedChange={(c) => onToggleHierarchy(!!c)}
-                  />
+                  <Checkbox checked={hierarchical} onCheckedChange={(c) => onToggleHierarchy(!!c)} />
                   View hierarchy
                 </label>
                 <label className="flex items-center gap-2 text-sm text-neutral-high">
-                  <Checkbox
-                    checked={dndMode}
-                    onCheckedChange={(c) => onToggleDnd(!!c)}
-                  />
+                  <Checkbox checked={dndMode} onCheckedChange={(c) => onToggleDnd(!!c)} />
                   Reorder
                 </label>
-                {/* Reorder within selector removed; reordering now shows full hierarchy */}
               </div>
             </div>
             {/* Bulk actions */}
@@ -757,7 +794,15 @@ export default function Dashboard({ }: DashboardProps) {
               <div className="w-[200px]">
                 <Select
                   key={bulkKey}
-                  onValueChange={(val: 'publish' | 'draft' | 'archive' | 'delete' | 'duplicate' | 'regeneratePermalinks') => {
+                  onValueChange={(
+                    val:
+                      | 'publish'
+                      | 'draft'
+                      | 'archive'
+                      | 'delete'
+                      | 'duplicate'
+                      | 'regeneratePermalinks'
+                  ) => {
                     setPendingBulkAction(val)
                     if (val === 'delete') {
                       setConfirmBulkDelete(true)
@@ -774,12 +819,14 @@ export default function Dashboard({ }: DashboardProps) {
                     <SelectItem value="draft">Move to Draft</SelectItem>
                     {canPublish && <SelectItem value="archive">Archive</SelectItem>}
                     {canCreatePost && <SelectItem value="duplicate">Duplicate</SelectItem>}
-                    {canPublish && <SelectItem value="regeneratePermalinks">Regenerate permalinks</SelectItem>}
+                    {canPublish && (
+                      <SelectItem value="regeneratePermalinks">Regenerate permalinks</SelectItem>
+                    )}
                     {canDelete && <SelectItem value="delete">Delete (archived only)</SelectItem>}
                   </SelectContent>
                 </Select>
               </div>
-              {/* Per page selector moved next to Bulk Actions */}
+              {/* Per page selector */}
               <div className="w-[140px]">
                 <Select
                   defaultValue={String(limit)}
@@ -801,6 +848,7 @@ export default function Dashboard({ }: DashboardProps) {
               </div>
               {loading && <span className="text-xs text-neutral-low">Loading...</span>}
             </div>
+
             {/* Delete confirmation dialog */}
             <AlertDialog open={confirmBulkDelete} onOpenChange={setConfirmBulkDelete}>
               <AlertDialogContent>
@@ -811,7 +859,9 @@ export default function Dashboard({ }: DashboardProps) {
                   </AlertDialogDescription>
                 </AlertDialogHeader>
                 <AlertDialogFooter>
-                  <AlertDialogCancel onClick={() => setConfirmBulkDelete(false)}>Cancel</AlertDialogCancel>
+                  <AlertDialogCancel onClick={() => setConfirmBulkDelete(false)}>
+                    Cancel
+                  </AlertDialogCancel>
                   <AlertDialogAction
                     onClick={() => {
                       setConfirmBulkDelete(false)
@@ -837,19 +887,34 @@ export default function Dashboard({ }: DashboardProps) {
                     {pendingBulkAction === 'regeneratePermalinks' && 'Regenerate permalinks?'}
                   </AlertDialogTitle>
                   <AlertDialogDescription>
-                    {pendingBulkAction === 'publish' && `This will publish ${selected.size} post${selected.size === 1 ? '' : 's'}.`}
-                    {pendingBulkAction === 'draft' && `This will move ${selected.size} post${selected.size === 1 ? '' : 's'} to draft status.`}
-                    {pendingBulkAction === 'archive' && `This will archive ${selected.size} post${selected.size === 1 ? '' : 's'}.`}
-                    {pendingBulkAction === 'duplicate' && `This will create ${selected.size} duplicate post${selected.size === 1 ? '' : 's'}.`}
-                    {pendingBulkAction === 'regeneratePermalinks' && `This will regenerate permalinks for ${selected.size} post${selected.size === 1 ? '' : 's'} based on the current URL pattern. If "Auto-redirect on slug change" is enabled, redirects will be created from old URLs to new URLs.`}
+                    {pendingBulkAction === 'publish' &&
+                      `This will publish ${selected.size} post${selected.size === 1 ? '' : 's'}.`}
+                    {pendingBulkAction === 'draft' &&
+                      `This will move ${selected.size} post${
+                        selected.size === 1 ? '' : 's'
+                      } to draft status.`}
+                    {pendingBulkAction === 'archive' &&
+                      `This will archive ${selected.size} post${selected.size === 1 ? '' : 's'}.`}
+                    {pendingBulkAction === 'duplicate' &&
+                      `This will create ${selected.size} duplicate post${
+                        selected.size === 1 ? '' : 's'
+                      }.`}
+                    {pendingBulkAction === 'regeneratePermalinks' &&
+                      `This will regenerate permalinks for ${selected.size} post${
+                        selected.size === 1 ? '' : 's'
+                      } based on the current URL pattern. If "Auto-redirect on slug change" is enabled, redirects will be created from old URLs to new URLs.`}
                   </AlertDialogDescription>
                 </AlertDialogHeader>
                 <AlertDialogFooter>
-                  <AlertDialogCancel onClick={() => {
-                    setConfirmBulkAction(false)
-                    setPendingBulkAction(null)
-                    setBulkKey((k) => k + 1)
-                  }}>Cancel</AlertDialogCancel>
+                  <AlertDialogCancel
+                    onClick={() => {
+                      setConfirmBulkAction(false)
+                      setPendingBulkAction(null)
+                      setBulkKey((k) => k + 1)
+                    }}
+                  >
+                    Cancel
+                  </AlertDialogCancel>
                   <AlertDialogAction
                     onClick={() => {
                       setConfirmBulkAction(false)
@@ -869,6 +934,7 @@ export default function Dashboard({ }: DashboardProps) {
                 </AlertDialogFooter>
               </AlertDialogContent>
             </AlertDialog>
+
             {/* Reorder scope requirement dialog */}
             <AlertDialog open={reorderScopeAlertOpen} onOpenChange={setReorderScopeAlertOpen}>
               <AlertDialogContent>
@@ -898,26 +964,50 @@ export default function Dashboard({ }: DashboardProps) {
                   />
                 </TableHead>
                 <TableHead>
-                  <button className="hover:underline" onClick={() => { toggleSort('title'); setPage(1) }}>
+                  <button
+                    className="hover:underline"
+                    onClick={() => {
+                      toggleSort('title')
+                      setPage(1)
+                    }}
+                  >
                     Title {sortBy === 'title' ? (sortOrder === 'asc' ? '↑' : '↓') : ''}
                   </button>
                 </TableHead>
                 <TableHead>Post Type</TableHead>
                 {dndMode && (
                   <TableHead>
-                    <button className="hover:underline" onClick={() => { toggleSort('order_index' as any); setPage(1) }}>
+                    <button
+                      className="hover:underline"
+                      onClick={() => {
+                        toggleSort('order_index' as any)
+                        setPage(1)
+                      }}
+                    >
                       Order {sortBy === 'order_index' ? (sortOrder === 'asc' ? '↑' : '↓') : ''}
                     </button>
                   </TableHead>
                 )}
                 <TableHead>Locales</TableHead>
                 <TableHead>
-                  <button className="hover:underline" onClick={() => { toggleSort('status'); setPage(1) }}>
+                  <button
+                    className="hover:underline"
+                    onClick={() => {
+                      toggleSort('status')
+                      setPage(1)
+                    }}
+                  >
                     Status {sortBy === 'status' ? (sortOrder === 'asc' ? '↑' : '↓') : ''}
                   </button>
                 </TableHead>
                 <TableHead>
-                  <button className="hover:underline" onClick={() => { toggleSort('updated_at'); setPage(1) }}>
+                  <button
+                    className="hover:underline"
+                    onClick={() => {
+                      toggleSort('updated_at')
+                      setPage(1)
+                    }}
+                  >
                     Updated {sortBy === 'updated_at' ? (sortOrder === 'asc' ? '↑' : '↓') : ''}
                   </button>
                 </TableHead>
@@ -933,14 +1023,19 @@ export default function Dashboard({ }: DashboardProps) {
                 onDragMove={handleDragMove}
                 onDragEnd={handleDragEnd}
               >
-                <SortableContext items={flatRows.map((r) => r.post.id)} strategy={verticalListSortingStrategy}>
+                <SortableContext
+                  items={flatRows.map((r) => r.post.id)}
+                  strategy={verticalListSortingStrategy}
+                >
                   <TableBody>
                     {flatRows.length === 0 ? (
                       <TableRow>
                         <TableCell colSpan={dndMode ? 8 : 7}>
                           <div className="py-12 text-center">
                             <p className="text-neutral-low">No posts yet.</p>
-                            <p className="text-sm text-neutral-low mt-2">Run the seeder to create test posts.</p>
+                            <p className="text-sm text-neutral-low mt-2">
+                              Run the seeder to create test posts.
+                            </p>
                           </div>
                         </TableCell>
                       </TableRow>
@@ -957,16 +1052,33 @@ export default function Dashboard({ }: DashboardProps) {
                               />
                             </TableCell>
                             <TableCell>
-                              <div className="flex items-center" style={{ paddingLeft: hierarchical ? level * 12 : 0 }}>
+                              <div
+                                className="flex items-center"
+                                style={{ paddingLeft: hierarchical ? level * 12 : 0 }}
+                              >
                                 {hierarchical && level > 0 && (
                                   <span className="mr-2 text-neutral-medium" aria-hidden="true">
-                                    <FontAwesomeIcon icon={faTurnUp} rotation={90} className="inline-block" size="sm" />
+                                    <FontAwesomeIcon
+                                      icon={faTurnUp}
+                                      rotation={90}
+                                      className="inline-block"
+                                      size="sm"
+                                    />
                                   </span>
                                 )}
                                 {/* Show intent arrow on the dragged item to indicate it will become a child on drop */}
                                 {hierarchical && dragActiveId === post.id && willNest && (
-                                  <span className="mr-2 text-neutral-medium" aria-hidden="true" title="Will nest on drop">
-                                    <FontAwesomeIcon icon={faTurnUp} rotation={90} className="inline-block" size="sm" />
+                                  <span
+                                    className="mr-2 text-neutral-medium"
+                                    aria-hidden="true"
+                                    title="Will nest on drop"
+                                  >
+                                    <FontAwesomeIcon
+                                      icon={faTurnUp}
+                                      rotation={90}
+                                      className="inline-block"
+                                      size="sm"
+                                    />
                                   </span>
                                 )}
                                 <span
@@ -978,32 +1090,46 @@ export default function Dashboard({ }: DashboardProps) {
                               </div>
                             </TableCell>
                             <TableCell>
-                              <span className="text-sm text-neutral-medium">{labelize(post.type)}</span>
+                              <span className="text-sm text-neutral-medium">
+                                {labelize(post.type)}
+                              </span>
                             </TableCell>
                             {dndMode && (
                               <TableCell>
-                                <span className="font-mono text-sm text-neutral-medium">{(post as any).orderIndex ?? 0}</span>
+                                <span className="font-mono text-sm text-neutral-medium">
+                                  {(post as any).orderIndex ?? 0}
+                                </span>
                               </TableCell>
                             )}
                             <TableCell>
                               <div className="flex flex-wrap gap-1">
-                                {(supportedLocales.length > 1 ? supportedLocales : [post.locale]).map((loc) => {
-                                  const exists = (post.familyLocales || [post.locale]).includes(loc)
-                                  return (
-                                    <Badge
-                                      key={`${post.id}-${loc}`}
-                                      variant={exists ? 'default' : 'outline'}
-                                      title={exists ? `Has ${loc.toUpperCase()}` : `Missing ${loc.toUpperCase()}`}
-                                    >
-                                      {loc.toUpperCase()}
-                                    </Badge>
-                                  )
-                                })}
+                                {(supportedLocales.length > 1 ? supportedLocales : [post.locale]).map(
+                                  (loc) => {
+                                    const exists = (post.familyLocales || [post.locale]).includes(loc)
+                                    return (
+                                      <Badge
+                                        key={`${post.id}-${loc}`}
+                                        variant={exists ? 'default' : 'outline'}
+                                        title={
+                                          exists
+                                            ? `Has ${loc.toUpperCase()}`
+                                            : `Missing ${loc.toUpperCase()}`
+                                        }
+                                      >
+                                        {loc.toUpperCase()}
+                                      </Badge>
+                                    )
+                                  }
+                                )}
                               </div>
                             </TableCell>
                             <TableCell>
                               <span className="text-sm capitalize">{post.status}</span>
-                              {post.hasReviewDraft && <Badge variant="secondary" className="ml-2 align-middle">In Review</Badge>}
+                              {post.hasReviewDraft && (
+                                <Badge variant="secondary" className="ml-2 align-middle">
+                                  In Review
+                                </Badge>
+                              )}
                             </TableCell>
                             <TableCell>
                               <span className="text-xs text-neutral-low">
@@ -1033,12 +1159,14 @@ export default function Dashboard({ }: DashboardProps) {
               </DndContext>
             ) : (
               <TableBody>
-                {(hierarchical ? posts.length === 0 : posts.length === 0) ? (
+                {posts.length === 0 ? (
                   <TableRow>
                     <TableCell colSpan={dndMode ? 8 : 7}>
                       <div className="py-12 text-center">
                         <p className="text-neutral-low">No posts yet.</p>
-                        <p className="text-sm text-neutral-low mt-2">Run the seeder to create test posts.</p>
+                        <p className="text-sm text-neutral-low mt-2">
+                          Run the seeder to create test posts.
+                        </p>
                       </div>
                     </TableCell>
                   </TableRow>
@@ -1055,10 +1183,18 @@ export default function Dashboard({ }: DashboardProps) {
                           />
                         </TableCell>
                         <TableCell>
-                          <div className="flex items-center" style={{ paddingLeft: hierarchical ? level * 12 : 0 }}>
+                          <div
+                            className="flex items-center"
+                            style={{ paddingLeft: hierarchical ? level * 12 : 0 }}
+                          >
                             {hierarchical && level > 0 && (
                               <span className="mr-2 text-neutral-medium" aria-hidden="true">
-                                <FontAwesomeIcon icon={faTurnUp} rotation={90} className="inline-block" size="sm" />
+                                <FontAwesomeIcon
+                                  icon={faTurnUp}
+                                  rotation={90}
+                                  className="inline-block"
+                                  size="sm"
+                                />
                               </span>
                             )}
                             <span
@@ -1070,32 +1206,46 @@ export default function Dashboard({ }: DashboardProps) {
                           </div>
                         </TableCell>
                         <TableCell>
-                          <span className="text-sm text-neutral-medium">{labelize(post.type)}</span>
+                          <span className="text-sm text-neutral-medium">
+                            {labelize(post.type)}
+                          </span>
                         </TableCell>
                         {dndMode && (
                           <TableCell>
-                            <span className="font-mono text-sm text-neutral-medium">{(post as any).orderIndex ?? 0}</span>
+                            <span className="font-mono text-sm text-neutral-medium">
+                              {(post as any).orderIndex ?? 0}
+                            </span>
                           </TableCell>
                         )}
                         <TableCell>
                           <div className="flex flex-wrap gap-1">
-                            {(supportedLocales.length > 1 ? supportedLocales : [post.locale]).map((loc) => {
-                              const exists = (post.familyLocales || [post.locale]).includes(loc)
-                              return (
-                                <Badge
-                                  key={`${post.id}-${loc}`}
-                                  variant={exists ? 'default' : 'outline'}
-                                  title={exists ? `Has ${loc.toUpperCase()}` : `Missing ${loc.toUpperCase()}`}
-                                >
-                                  {loc.toUpperCase()}
-                                </Badge>
-                              )
-                            })}
+                            {(supportedLocales.length > 1 ? supportedLocales : [post.locale]).map(
+                              (loc) => {
+                                const exists = (post.familyLocales || [post.locale]).includes(loc)
+                                return (
+                                  <Badge
+                                    key={`${post.id}-${loc}`}
+                                    variant={exists ? 'default' : 'outline'}
+                                    title={
+                                      exists
+                                        ? `Has ${loc.toUpperCase()}`
+                                        : `Missing ${loc.toUpperCase()}`
+                                    }
+                                  >
+                                    {loc.toUpperCase()}
+                                  </Badge>
+                                )
+                              }
+                            )}
                           </div>
                         </TableCell>
                         <TableCell>
                           <span className="text-sm capitalize">{post.status}</span>
-                          {post.hasReviewDraft && <Badge variant="secondary" className="ml-2 align-middle">In Review</Badge>}
+                          {post.hasReviewDraft && (
+                            <Badge variant="secondary" className="ml-2 align-middle">
+                              In Review
+                            </Badge>
+                          )}
                         </TableCell>
                         <TableCell>
                           <span className="text-xs text-neutral-low">
@@ -1123,12 +1273,16 @@ export default function Dashboard({ }: DashboardProps) {
               </TableBody>
             )}
           </Table>
+
           {/* Pagination */}
           {!hierarchical && (
             <div className="px-6 py-3 flex items-center justify-between text-sm">
               <div className="text-neutral-medium">
                 {total > 0 ? (
-                  <>Showing {(total === 0 ? 0 : (page - 1) * limit + 1)}–{Math.min(page * limit, total)} of {total}</>
+                  <>
+                    Showing {total === 0 ? 0 : (page - 1) * limit + 1}–
+                    {Math.min(page * limit, total)} of {total}
+                  </>
                 ) : (
                   <>No results</>
                 )}
@@ -1158,6 +1312,7 @@ export default function Dashboard({ }: DashboardProps) {
         </div>
       </main>
       <AdminFooter />
+
       {/* Create New Modal */}
       {isCreateOpen && (
         <div className="fixed inset-0 z-50 flex items-center justify-center">
@@ -1197,5 +1352,4 @@ export default function Dashboard({ }: DashboardProps) {
     </div>
   )
 }
-
 

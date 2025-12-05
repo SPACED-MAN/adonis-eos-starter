@@ -1,7 +1,6 @@
 import type { HttpContext } from '@adonisjs/core/http'
 import Post from '#models/post'
 import db from '@adonisjs/lucid/services/db'
-import postTypeConfigService from '#services/post_type_config_service'
 import BasePostsController from './base_posts_controller.js'
 import cmsConfig from '#config/cms'
 import PostListItemDto from '#dtos/post_list_item_dto'
@@ -23,7 +22,6 @@ export default class PostsListController extends BasePostsController {
     const inReview = inReviewParam === '1' || inReviewParam.toLowerCase() === 'true'
     const status = String(request.input('status', '')).trim()
     const locale = String(request.input('locale', '')).trim()
-    const taxonomySlug = String(request.input('taxonomy', '')).trim()
     const termIdRaw = String(request.input('termId', '')).trim()
     const includeDescendants = String(request.input('includeDescendants', '1')).trim() === '1'
     const sortByRaw = String(request.input('sortBy', 'updated_at')).trim()
@@ -34,7 +32,7 @@ export default class PostsListController extends BasePostsController {
       Math.max(
         1,
         Number(request.input('limit', cmsConfig.pagination.defaultLimit)) ||
-          cmsConfig.pagination.defaultLimit
+        cmsConfig.pagination.defaultLimit
       )
     )
 
@@ -76,6 +74,7 @@ export default class PostsListController extends BasePostsController {
     }
 
     try {
+      // Build base query with filters
       const query = Post.query()
 
       if (q) {
@@ -100,19 +99,21 @@ export default class PostsListController extends BasePostsController {
       }
 
       // Taxonomy filtering
+      let termIdsForFilter: string[] | null = null
       if (termIdRaw) {
-        let termIds: string[] = [termIdRaw]
+        termIdsForFilter = [termIdRaw]
         if (includeDescendants) {
           try {
-            const taxonomyService = (await import('#services/taxonomy_service')).default
+            const taxonomyModule = await import('#services/taxonomy_service')
+            const taxonomyService = taxonomyModule.default
             const descendants = await taxonomyService.getDescendantIds(termIdRaw)
-            termIds = termIds.concat(descendants)
+            termIdsForFilter = termIdsForFilter.concat(descendants)
           } catch {
             /* ignore */
           }
         }
         query.join('post_taxonomy_terms as ptt', 'ptt.post_id', 'posts.id')
-        query.whereIn('ptt.taxonomy_term_id', termIds)
+        query.whereIn('ptt.taxonomy_term_id', termIdsForFilter)
       }
 
       if (parentId) {
@@ -121,14 +122,44 @@ export default class PostsListController extends BasePostsController {
         query.whereNull('parent_id')
       }
 
-      // Use window function for optimized count
-      const rows = await query
-        .select('*')
-        .select(db.raw('COUNT(*) OVER() as total_count'))
-        .orderBy(sortBy, sortOrder)
-        .forPage(page, limit)
+      // Separate count query with the same filters (no pagination)
+      const countQuery = db.from('posts')
+      if (q) {
+        countQuery.where((builder) => {
+          builder.whereILike('title', `%${q}%`).orWhereILike('slug', `%${q}%`)
+        })
+      }
+      if (type) {
+        countQuery.where('type', type)
+      }
+      if (!type && types.length > 0) {
+        countQuery.whereIn('type', types)
+      }
+      if (status) {
+        countQuery.where('status', status)
+      }
+      if (inReview) {
+        countQuery.whereNotNull('review_draft')
+      }
+      if (locale) {
+        countQuery.where('locale', locale)
+      }
+      if (termIdsForFilter && termIdsForFilter.length > 0) {
+        countQuery.join('post_taxonomy_terms as ptt', 'ptt.post_id', 'posts.id')
+        countQuery.whereIn('ptt.taxonomy_term_id', termIdsForFilter)
+      }
+      if (parentId) {
+        countQuery.where('parent_id', parentId)
+      } else if (wantRoots) {
+        countQuery.whereNull('parent_id')
+      }
 
-      const total = rows.length > 0 ? Number((rows[0] as any).total_count || 0) : 0
+      const countRows = await countQuery.count('* as total')
+      const countRow = countRows[0] as any
+      const total = Number(countRow?.total || 0)
+
+      // Apply sorting + pagination for current page
+      const rows = await query.orderBy(sortBy, sortOrder).forPage(page, limit)
 
       // Optional: include translation family locales
       const withTranslations = String(request.input('withTranslations', '0')).trim() === '1'
@@ -178,7 +209,8 @@ export default class PostsListController extends BasePostsController {
     const out = new Set<string>()
 
     try {
-      const postTypeRegistry = (await import('#services/post_type_registry')).default as any
+      const registryModule = await import('#services/post_type_registry')
+      const postTypeRegistry = registryModule.default as any
       const regList: string[] = Array.isArray(postTypeRegistry.list?.())
         ? postTypeRegistry.list()
         : []
