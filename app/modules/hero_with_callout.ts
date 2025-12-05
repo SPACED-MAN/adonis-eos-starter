@@ -5,8 +5,8 @@ export default class HeroWithCalloutModule extends BaseModule {
   getConfig(): ModuleConfig {
     return {
       type: 'hero-with-callout',
-      name: 'Hero with Callout',
-      description: 'Centered hero with headline, body copy, and primary call-to-action button.',
+      name: 'Hero with Callouts',
+      description: 'Centered hero with headline, body copy, and call-to-action buttons.',
       icon: 'megaphone',
       allowedScopes: ['local', 'global'],
       lockable: true,
@@ -23,25 +23,40 @@ export default class HeroWithCalloutModule extends BaseModule {
           description: 'Supporting text below the title',
           translatable: true,
         },
-        primaryCta: {
-          type: 'object',
+        callouts: {
+          type: 'array',
           required: false,
-          description: 'Primary call-to-action button',
-          properties: {
-            label: { type: 'string', translatable: true },
-            url: { type: 'link' },
+          description: 'Call-to-action buttons',
+          maxItems: 12,
+          items: {
+            type: 'object',
+            properties: {
+              label: {
+                type: 'string',
+                required: true,
+                translatable: true,
+                description: 'Button text',
+              },
+              url: {
+                type: 'link',
+                required: true,
+                description: 'Button destination',
+              },
+            },
           },
         },
       },
       defaultProps: {
-        title: 'We invest in the world’s potential',
+        title: "We invest in the world's potential",
         subtitle:
           'We focus on markets where technology, innovation, and capital can unlock long-term value and drive durable growth.',
-        primaryCta: {
-          label: 'Learn more',
-          url: '#',
-          target: '_self',
-        },
+        callouts: [
+          {
+            label: 'Learn more',
+            url: '#',
+            target: '_self',
+          },
+        ],
         backgroundColor: 'bg-backdrop-low',
       },
       allowedPostTypes: [],

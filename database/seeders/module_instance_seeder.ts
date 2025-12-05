@@ -1365,13 +1365,15 @@ export default class ModuleInstanceSeeder extends BaseSeeder {
           type: 'hero-with-callout',
           scope: 'post',
           props: {
-            title: 'We invest in the world’s potential',
+            title: "We invest in the world's potential",
             subtitle: 'This hero demonstrates a centered layout using neutral project tokens.',
-            primaryCta: {
-              label: 'Explore modules',
-              url: { kind: 'url', url: '#' },
-              target: '_self',
-            },
+            callouts: [
+              {
+                label: 'Explore modules',
+                url: { kind: 'url', url: '#' },
+                target: '_self',
+              },
+            ],
             backgroundColor: 'bg-backdrop-low',
           },
           created_at: nowTs,
