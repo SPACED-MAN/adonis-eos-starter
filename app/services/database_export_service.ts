@@ -23,12 +23,21 @@ export type ContentType = 'media' | 'posts' | 'modules' | 'forms' | 'menus' | 'c
 
 const CONTENT_TYPE_TABLES: Record<ContentType, string[]> = {
   media: ['media_assets'],
-  posts: ['posts', 'post_translations', 'post_revisions'],
-  modules: ['global_modules', 'module_instances', 'post_modules'],
-  forms: ['form_definitions', 'form_submissions'],
-  menus: ['menu_definitions', 'menu_items'],
-  categories: ['categories', 'post_categories'],
-  templates: ['page_templates'],
+  posts: [
+    'posts',
+    'post_revisions',
+    'post_modules',
+    'post_type_custom_fields',
+    'post_custom_field_values',
+  ],
+  modules: [
+    'module_instances',
+    'module_scopes',
+  ],
+  forms: ['forms', 'form_submissions'],
+  menus: ['menus', 'menu_items'],
+  categories: ['taxonomies', 'taxonomy_terms', 'post_taxonomy_terms'],
+  templates: ['templates', 'template_modules', 'url_patterns'],
 }
 
 /**
@@ -74,13 +83,24 @@ class DatabaseExportService {
     tables: Record<string, any[]>
   }> {
     const { contentTypes, preserveIds = true } = options
+    
+    console.log('📤 Starting database export...')
+    console.log(`   Content types: ${contentTypes ? contentTypes.join(', ') : 'ALL'}`)
+    console.log(`   Preserve IDs: ${preserveIds}`)
+    
     const tables = await this.getExportableTables(contentTypes)
+    console.log(`📊 Exporting ${tables.length} tables:`, tables.join(', '))
+    
     const tableData: Record<string, any[]> = {}
+    let totalRows = 0
 
     // Export each table
     for (const tableName of tables) {
       try {
         let rows = await db.from(tableName).select('*')
+        
+        console.log(`   📦 ${tableName}: ${rows.length} rows`)
+        totalRows += rows.length
         
         // Strip IDs if not preserving them
         if (!preserveIds) {
@@ -91,12 +111,13 @@ class DatabaseExportService {
         }
 
         tableData[tableName] = rows
-        // Exported table
       } catch (error) {
-        // Failed to export table
+        console.error(`   ❌ Failed to export table ${tableName}:`, (error as Error).message)
         throw new Error(`Failed to export table ${tableName}: ${(error as Error).message}`)
       }
     }
+
+    console.log(`✅ Export complete: ${tables.length} tables, ${totalRows} total rows`)
 
     return {
       metadata: {
@@ -150,12 +171,12 @@ class DatabaseExportService {
     if (contentTypes && contentTypes.length > 0) {
       const includedTables = new Set<string>()
       
-      // Always include essential tables (users, settings, etc.)
+      // Always include essential tables (users, settings, locales, etc.)
       includedTables.add('users')
       includedTables.add('user_profiles')
       includedTables.add('site_settings')
       includedTables.add('site_custom_field_values')
-      includedTables.add('post_types')
+      includedTables.add('locales')
       
       // Add tables for selected content types
       for (const contentType of contentTypes) {

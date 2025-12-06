@@ -1,5 +1,5 @@
 import { Head } from '@inertiajs/react'
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useMemo } from 'react'
 import { toast } from 'sonner'
 import { AdminHeader } from '../../components/AdminHeader'
 import { AdminFooter } from '../../components/AdminFooter'
@@ -12,6 +12,16 @@ import {
   faExclamationTriangle,
   faSpinner,
 } from '@fortawesome/free-solid-svg-icons'
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from '../../../components/ui/alert-dialog'
 
 interface ExportStats {
   tables: Array<{ name: string; rowCount: number; contentType?: string }>
@@ -20,6 +30,66 @@ interface ExportStats {
   contentTypes?: Record<string, { tables: string[]; rowCount: number }>
 }
 
+/**
+ * Tiny pie chart for summary
+ */
+function PieSummary({ data }: { data: { imported: number; skipped: number; errors: number } }) {
+  const total = Math.max(data.imported + data.skipped + data.errors, 1)
+  const toDeg = (val: number) => (val / total) * 360
+
+  const importedDeg = toDeg(data.imported)
+  const skippedDeg = toDeg(data.skipped)
+  const errorsDeg = toDeg(data.errors)
+
+  const arcs = [
+    { deg: importedDeg, color: '#22c55e', label: 'Imported' },
+    { deg: skippedDeg, color: '#f59e0b', label: 'Skipped' },
+    { deg: errorsDeg, color: '#ef4444', label: 'Errors' },
+  ]
+
+  let offset = 0
+
+  return (
+    <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+      <div className="w-32 h-32 mx-auto sm:mx-0 relative">
+        <svg viewBox="0 0 32 32" role="img" aria-label="Import summary pie chart">
+          {arcs.map((arc, idx) => {
+            const start = offset
+            const end = offset + arc.deg
+            const large = arc.deg > 180 ? 1 : 0
+            const x1 = 16 + 16 * Math.cos((Math.PI * start) / 180)
+            const y1 = 16 + 16 * Math.sin((Math.PI * start) / 180)
+            const x2 = 16 + 16 * Math.cos((Math.PI * end) / 180)
+            const y2 = 16 + 16 * Math.sin((Math.PI * end) / 180)
+            const d = `M16,16 L${x1},${y1} A16,16 0 ${large} 1 ${x2},${y2} Z`
+            offset = end
+            return <path key={idx} d={d} fill={arc.color} />
+          })}
+        </svg>
+      </div>
+      <div className="grid grid-cols-1 sm:grid-cols-3 gap-2 w-full">
+        {arcs.map((arc) => (
+          <div
+            key={arc.label}
+            className="flex items-center gap-2 px-3 py-2 rounded border border-line-low bg-backdrop-medium"
+          >
+            <span className="w-3 h-3 rounded-full" style={{ backgroundColor: arc.color }} />
+            <div>
+              <div className="text-xs text-neutral-medium">{arc.label}</div>
+              <div className="text-sm font-semibold text-neutral-dark">
+                {arc.label === 'Imported'
+                  ? data.imported.toLocaleString()
+                  : arc.label === 'Skipped'
+                  ? data.skipped.toLocaleString()
+                  : data.errors.toLocaleString()}
+              </div>
+            </div>
+          </div>
+        ))}
+      </div>
+    </div>
+  )
+}
 interface ImportResult {
   tablesImported: number
   rowsImported: number
@@ -28,6 +98,8 @@ interface ImportResult {
 }
 
 type ContentType = 'media' | 'posts' | 'modules' | 'forms' | 'menus' | 'categories' | 'templates'
+
+type StatusRow = { table: string; status: 'skipped' | 'error'; message?: string }
 
 const CONTENT_TYPE_LABELS: Record<ContentType, string> = {
   media: 'Media Assets',
@@ -63,6 +135,28 @@ export default function DatabaseIndex() {
   
   // Import options
   const [importPreserveIds, setImportPreserveIds] = useState(true)
+  const [confirmImportOpen, setConfirmImportOpen] = useState(false)
+    const [pendingImportFile, setPendingImportFile] = useState<File | null>(null)
+    const [resultFilter, setResultFilter] = useState('')
+
+    // Build rows for the status table (skipped + errors), with filter
+    const getStatusRows = (result: ImportResult, filter: string): StatusRow[] => {
+      const rows: StatusRow[] = []
+      result.skippedTables.forEach((table) => rows.push({ table, status: 'skipped' }))
+      result.errors.forEach((err) => rows.push({ table: err.table, status: 'error', message: err.error }))
+      const f = filter.trim().toLowerCase()
+      return f ? rows.filter((r) => r.table.toLowerCase().includes(f)) : rows
+    }
+
+    // Pie data
+    const pieData = useMemo(() => {
+      if (!importResult) return { imported: 0, skipped: 0, errors: 0 }
+      return {
+        imported: importResult.rowsImported,
+        skipped: importResult.skippedTables.length,
+        errors: importResult.errors.length,
+      }
+    }, [importResult])
 
   // Load export stats on mount
   useEffect(() => {
@@ -193,18 +287,23 @@ export default function DatabaseIndex() {
     }
   }
 
-  // Import database
-  const handleImport = async (file: File) => {
-    if (!confirm(`Are you sure you want to import this database with strategy "${importStrategy}"?\n\nThis operation cannot be undone.`)) {
-      return
-    }
+  // Import database (initiate confirm)
+  const handleImport = (file: File) => {
+    setPendingImportFile(file)
+    setConfirmImportOpen(true)
+  }
+
+  // Execute confirmed import
+  const executeImport = async () => {
+    if (!pendingImportFile) return
 
     setImporting(true)
     setImportResult(null)
+    setConfirmImportOpen(false)
 
     try {
       const formData = new FormData()
-      formData.append('file', file)
+      formData.append('file', pendingImportFile)
       formData.append('strategy', importStrategy)
       formData.append('preserveIds', importPreserveIds.toString())
 
@@ -236,6 +335,7 @@ export default function DatabaseIndex() {
       toast.error('Import failed')
     } finally {
       setImporting(false)
+      setPendingImportFile(null)
     }
   }
 
@@ -540,41 +640,161 @@ export default function DatabaseIndex() {
             )}
 
             {importResult && (
-              <div className="p-4 bg-backdrop-high rounded border border-line-medium">
-                <h3 className="font-semibold text-neutral-dark mb-2">Import Results</h3>
-                <div className="grid grid-cols-3 gap-4 mb-3">
-                  <div>
-                    <div className="text-sm text-neutral-medium">Tables Imported</div>
-                    <div className="text-lg font-semibold">{importResult.tablesImported}</div>
+              <div className="p-4 bg-backdrop-high rounded border border-line-medium space-y-5">
+                <div className="flex items-center justify-between">
+                  <h3 className="font-semibold text-neutral-dark">Import Results</h3>
+                  <span
+                    className={`px-2 py-1 text-xs font-semibold rounded ${
+                      importResult.errors.length === 0
+                        ? 'bg-emerald-100 text-emerald-700'
+                        : 'bg-amber-100 text-amber-700'
+                    }`}
+                  >
+                    {importResult.errors.length === 0 ? 'Success' : 'Completed with warnings'}
+                  </span>
+                </div>
+
+                {/* Pie chart summary */}
+                <PieSummary data={pieData} />
+
+                <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
+                  <div className="p-3 rounded bg-backdrop-medium border border-line-low">
+                    <div className="text-xs text-neutral-medium">Tables Imported</div>
+                    <div className="text-lg font-semibold text-neutral-dark">{importResult.tablesImported}</div>
                   </div>
-                  <div>
-                    <div className="text-sm text-neutral-medium">Rows Imported</div>
-                    <div className="text-lg font-semibold">{importResult.rowsImported.toLocaleString()}</div>
+                  <div className="p-3 rounded bg-backdrop-medium border border-line-low">
+                    <div className="text-xs text-neutral-medium">Rows Imported</div>
+                    <div className="text-lg font-semibold text-neutral-dark">
+                      {importResult.rowsImported.toLocaleString()}
+                    </div>
                   </div>
-                  <div>
-                    <div className="text-sm text-neutral-medium">Tables Skipped</div>
-                    <div className="text-lg font-semibold">{importResult.skippedTables.length}</div>
+                  <div className="p-3 rounded bg-backdrop-medium border border-line-low">
+                    <div className="text-xs text-neutral-medium">Tables Skipped</div>
+                    <div className="text-lg font-semibold text-neutral-dark">{importResult.skippedTables.length}</div>
+                  </div>
+                  <div className="p-3 rounded bg-backdrop-medium border border-line-low">
+                    <div className="text-xs text-neutral-medium">Errors</div>
+                    <div className="text-lg font-semibold text-neutral-dark">{importResult.errors.length}</div>
                   </div>
                 </div>
 
-                {importResult.errors.length > 0 && (
-                  <div className="mt-3 p-3 bg-red-50 border border-red-200 rounded">
-                    <p className="font-semibold text-red-800 mb-2">Errors:</p>
-                    <div className="space-y-1 text-sm text-red-700">
-                      {importResult.errors.map((err, i) => (
-                        <div key={i}>
-                          <span className="font-mono">{err.table}</span>: {err.error}
-                        </div>
-                      ))}
-                    </div>
+                {/* Filters */}
+                <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
+                  <div>
+                    <div className="text-sm font-semibold text-neutral-dark">Details</div>
+                    <p className="text-xs text-neutral-medium">Filter by table name for skipped or errors</p>
                   </div>
-                )}
+                  <input
+                    type="text"
+                    value={resultFilter}
+                    onChange={(e) => setResultFilter(e.target.value)}
+                    placeholder="Filter tables..."
+                    className="w-full sm:w-64 px-3 py-2 border border-line-medium rounded bg-backdrop-low text-sm"
+                  />
+                </div>
+
+                {/* Skipped and Errors table */}
+                <div className="overflow-auto border border-line-low rounded bg-backdrop-medium">
+                  <table className="min-w-full text-sm">
+                    <thead className="bg-backdrop-high border-b border-line-low">
+                      <tr>
+                        <th className="px-3 py-2 text-left font-semibold text-neutral-dark">Table</th>
+                        <th className="px-3 py-2 text-left font-semibold text-neutral-dark">Status</th>
+                        <th className="px-3 py-2 text-left font-semibold text-neutral-dark">Message</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {getStatusRows(importResult, resultFilter).map((row, i) => (
+                        <tr key={i} className="border-b border-line-low last:border-0">
+                          <td className="px-3 py-2 font-mono text-xs text-neutral-dark">{row.table}</td>
+                          <td className="px-3 py-2">
+                            <span
+                              className={`px-2 py-1 text-xs font-semibold rounded ${
+                                row.status === 'skipped'
+                                  ? 'bg-amber-100 text-amber-800'
+                                  : 'bg-rose-100 text-rose-800'
+                              }`}
+                            >
+                              {row.status === 'skipped' ? 'Skipped' : 'Error'}
+                            </span>
+                          </td>
+                          <td className="px-3 py-2 text-neutral-medium">
+                            {row.message ? row.message : '—'}
+                          </td>
+                        </tr>
+                      ))}
+                      {getStatusRows(importResult, resultFilter).length === 0 && (
+                        <tr>
+                          <td colSpan={3} className="px-3 py-3 text-neutral-medium text-center">
+                            No rows match your filter.
+                          </td>
+                        </tr>
+                      )}
+                    </tbody>
+                  </table>
+                </div>
+
+                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
+                  {[
+                    { label: 'Posts', href: '/admin/posts' },
+                    { label: 'Media', href: '/admin/media' },
+                    { label: 'Templates', href: '/admin/templates' },
+                    { label: 'Menus', href: '/admin/menus' },
+                  ].map((item) => (
+                    <a
+                      key={item.label}
+                      href={item.href}
+                      className="block p-3 rounded border border-line-low bg-backdrop-medium hover:border-standout hover:bg-standout/5 transition"
+                      target="_blank"
+                      rel="noreferrer"
+                    >
+                      <div className="text-sm font-semibold text-neutral-dark">{item.label}</div>
+                      <div className="text-xs text-neutral-medium">Open to spot-check imported records</div>
+                    </a>
+                  ))}
+                </div>
               </div>
             )}
           </div>
         </div>
       </main>
       <AdminFooter />
+
+      <AlertDialog
+        open={confirmImportOpen}
+        onOpenChange={(open) => {
+          if (!open && !importing) {
+            setConfirmImportOpen(false)
+            setPendingImportFile(null)
+          } else {
+            setConfirmImportOpen(open)
+          }
+        }}
+      >
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Import database?</AlertDialogTitle>
+            <AlertDialogDescription>
+              Strategy: <span className="font-semibold">{importStrategy}</span> · Preserve IDs:{' '}
+              {importPreserveIds ? 'Yes' : 'No'}
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <div className="text-sm text-neutral-medium space-y-2">
+            <p>This operation will overwrite existing content. Make sure you have a backup.</p>
+            <p className="text-neutral-dark">Proceed with the import now?</p>
+          </div>
+          <AlertDialogFooter>
+            <AlertDialogCancel disabled={importing}>Cancel</AlertDialogCancel>
+            <AlertDialogAction
+              disabled={importing}
+              onClick={executeImport}
+              className="bg-standout text-on-standout hover:opacity-90"
+            >
+              {importing ? 'Importing...' : 'Import'}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   )
 }
