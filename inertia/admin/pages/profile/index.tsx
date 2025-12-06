@@ -2,7 +2,6 @@ import { useEffect, useState } from 'react'
 import { Head } from '@inertiajs/react'
 import { AdminHeader } from '../../components/AdminHeader'
 import { AdminFooter } from '../../components/AdminFooter'
-import { AdminBreadcrumbs } from '../../components/AdminBreadcrumbs'
 import { getXsrf } from '~/utils/xsrf'
 import { toast } from 'sonner'
 
@@ -33,7 +32,6 @@ export default function ProfileIndex() {
       <Head title="Profile" />
       <AdminHeader title="Profile" />
       <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-        <AdminBreadcrumbs items={[{ label: 'Dashboard', href: '/admin' }, { label: 'Profile' }]} />
         <div className="bg-backdrop-low rounded-lg border border-line-low p-6">
           {loading ? (
             <p className="text-sm text-neutral-low">Loading…</p>

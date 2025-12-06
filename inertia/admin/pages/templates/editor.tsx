@@ -2,7 +2,6 @@ import { useEffect, useMemo, useState } from 'react'
 import { Head, usePage } from '@inertiajs/react'
 import { AdminHeader } from '../../components/AdminHeader'
 import { AdminFooter } from '../../components/AdminFooter'
-import { AdminBreadcrumbs } from '../../components/AdminBreadcrumbs'
 import { DndContext, closestCenter, PointerSensor, useSensor, useSensors, DragEndEvent } from '@dnd-kit/core'
 import { SortableContext, useSortable, verticalListSortingStrategy } from '@dnd-kit/sortable'
 import { CSS } from '@dnd-kit/utilities'
@@ -204,7 +203,6 @@ export default function TemplateEditor() {
 			<Head title={`Edit Template`} />
 			<AdminHeader title="Edit Template" />
 			<main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-				<AdminBreadcrumbs items={[{ label: 'Dashboard', href: '/admin' }, { label: 'Templates', href: '/admin/templates' }, { label: templateName || 'Edit' }]} rightLink={{ label: '← Back to Templates', href: '/admin/templates' }} />
 				<div className="bg-backdrop-low rounded-lg border border-line-low p-6">
 					<div className="flex items-center justify-between mb-4">
 						<div>

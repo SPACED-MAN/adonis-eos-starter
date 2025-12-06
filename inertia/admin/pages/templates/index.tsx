@@ -2,7 +2,6 @@ import { useEffect, useMemo, useState } from 'react'
 import { Head, Link } from '@inertiajs/react'
 import { AdminHeader } from '../../components/AdminHeader'
 import { AdminFooter } from '../../components/AdminFooter'
-import { AdminBreadcrumbs } from '../../components/AdminBreadcrumbs'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '~/components/ui/select'
 
 type Template = { id: string; name: string; post_type: string; description?: string | null; locked?: boolean; updated_at?: string }
@@ -95,7 +94,6 @@ export default function TemplatesIndex() {
 			<Head title="Templates" />
 			<AdminHeader title="Templates" />
 			<main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-				<AdminBreadcrumbs items={[{ label: 'Dashboard', href: '/admin' }, { label: 'Templates' }]} />
 				<div className="bg-backdrop-low rounded-lg border border-line-low">
 					<div className="px-6 py-4 border-b border-line-low flex items-center justify-between gap-3">
 						<div className="flex items-center gap-2">

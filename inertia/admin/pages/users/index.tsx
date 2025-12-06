@@ -2,7 +2,6 @@ import { useEffect, useState } from 'react'
 import { usePage } from '@inertiajs/react'
 import { AdminHeader } from '../../components/AdminHeader'
 import { AdminFooter } from '../../components/AdminFooter'
-import { AdminBreadcrumbs } from '../../components/AdminBreadcrumbs'
 import { Input } from '../../../components/ui/input'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '~/components/ui/select'
 import { toast } from 'sonner'
@@ -129,7 +128,6 @@ export default function UsersIndex() {
     <div className="min-h-screen bg-backdrop-medium">
       <AdminHeader title="User Management" />
       <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-        <AdminBreadcrumbs items={[{ label: 'Dashboard', href: '/admin' }, { label: 'User Management' }]} />
         <div className="bg-backdrop-low rounded-lg border border-line-low p-6">
           <div className="flex items-center justify-between mb-4">
             <Input

@@ -2,7 +2,6 @@ import { useEffect, useMemo, useState } from 'react'
 import { Head } from '@inertiajs/react'
 import { AdminHeader } from '../../components/AdminHeader'
 import { AdminFooter } from '../../components/AdminFooter'
-import { AdminBreadcrumbs } from '../../components/AdminBreadcrumbs'
 import { Input } from '../../../components/ui/input'
 import { Textarea } from '../../../components/ui/textarea'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '../../../components/ui/select'
@@ -295,10 +294,9 @@ export default function FormsIndex({ forms: initialForms, submissions }: FormsIn
 
   return (
     <div className="min-h-screen bg-backdrop-medium">
-      <Head title="Forms" />
-      <AdminHeader title="Forms" />
-      <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-        <AdminBreadcrumbs items={[{ label: 'Dashboard', href: '/admin' }, { label: 'Forms' }]} />
+				<Head title="Forms" />
+				<AdminHeader title="Forms" />
+				<main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
 
         {/* Tabs */}
         <div className="mb-6 border-b border-line-low flex items-center gap-2 text-sm md:text-base">

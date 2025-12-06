@@ -25,7 +25,6 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '~
 import { ModulePicker } from '../../components/modules/ModulePicker'
 import { FormEvent, useEffect, useMemo, useRef, useState } from 'react'
 import { toast } from 'sonner'
-import { AdminBreadcrumbs } from '../../components/AdminBreadcrumbs'
 import { humanizeSlug } from '~/utils/strings'
 import type { CustomFieldType } from '~/types/custom_field'
 import { ModuleEditorPanel, ModuleListItem } from '../../components/modules/ModuleEditorPanel'
@@ -682,12 +681,6 @@ export default function Editor({ post, modules: initialModules, translations, re
 
       {/* Main Content */}
       <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-        <AdminBreadcrumbs
-          items={[
-            { label: 'Dashboard', href: '/admin' },
-            { label: `Edit ${post.type ? humanizeSlug(post.type) : 'Post'}` },
-          ]}
-        />
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
           {/* Left Column - Post Content */}
           <div className="lg:col-span-2 space-y-6">

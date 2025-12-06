@@ -2,7 +2,6 @@ import { useEffect, useMemo, useRef, useState } from 'react'
 import { Head } from '@inertiajs/react'
 import { AdminHeader } from '../../components/AdminHeader'
 import { AdminFooter } from '../../components/AdminFooter'
-import { AdminBreadcrumbs } from '../../components/AdminBreadcrumbs'
 import { toast } from 'sonner'
 import { Checkbox } from '../../../components/ui/checkbox'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '../../../components/ui/select'
@@ -452,10 +451,9 @@ export default function MenusIndex() {
 
   return (
     <div className="min-h-screen bg-backdrop-medium">
-      <Head title="Menus" />
-      <AdminHeader title="Menus" />
-      <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-        <AdminBreadcrumbs items={[{ label: 'Dashboard', href: '/admin' }, { label: 'Menus' }]} />
+				<Head title="Menus" />
+				<AdminHeader title="Menus" />
+				<main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
         <div className="bg-backdrop-low rounded-lg p-4 border border-line-low">
           <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
             {/* Left: Menus list and create */}

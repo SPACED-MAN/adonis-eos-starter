@@ -3,7 +3,6 @@ import { useState } from 'react'
 import { toast } from 'sonner'
 import { AdminHeader } from '../../components/AdminHeader'
 import { AdminFooter } from '../../components/AdminFooter'
-import { AdminBreadcrumbs } from '../../components/AdminBreadcrumbs'
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome'
 import {
   faDownload,
@@ -186,12 +185,6 @@ export default function DatabaseIndex() {
       <Head title="Database Export/Import" />
       <AdminHeader title="Database Export/Import" />
       <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-        <AdminBreadcrumbs
-          items={[
-            { label: 'Dashboard', href: '/admin' },
-            { label: 'Database Export/Import' },
-          ]}
-        />
 
         <div className="bg-backdrop-low rounded-lg shadow border border-line-low p-6">
           <div className="mb-6">

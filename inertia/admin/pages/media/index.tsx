@@ -1,7 +1,6 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
 import { AdminHeader } from '../../components/AdminHeader'
 import { AdminFooter } from '../../components/AdminFooter'
-import { AdminBreadcrumbs } from '../../components/AdminBreadcrumbs'
 import { toast } from 'sonner'
 import { usePage } from '@inertiajs/react'
 import { Pencil, Trash2, BarChart3, RefreshCw, Wand2, ListOrdered, LayoutGrid } from 'lucide-react'
@@ -758,7 +757,6 @@ export default function MediaIndex() {
     <div className="min-h-screen bg-backdrop-medium">
       <AdminHeader title="Media Library" />
       <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-        <AdminBreadcrumbs items={[{ label: 'Dashboard', href: '/admin' }, { label: 'Media' }]} />
         <div className="bg-backdrop-low rounded-lg shadow border border-line-low p-6">
           <div
             className={`mb-4 p-6 border-2 border-dashed rounded transition-colors ${isDragOver ? 'border-standout bg-backdrop-medium' : 'border-line-high bg-backdrop-input'}`}

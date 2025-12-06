@@ -1,7 +1,6 @@
 import { useEffect, useMemo, useState } from 'react'
 import { AdminHeader } from '../../components/AdminHeader'
 import { AdminFooter } from '../../components/AdminFooter'
-import { AdminBreadcrumbs } from '../../components/AdminBreadcrumbs'
 import { toast } from 'sonner'
 import { usePage } from '@inertiajs/react'
 import { FormField, FormLabel } from '../../../components/forms/field'
@@ -113,7 +112,6 @@ export default function GlobalModulesIndex() {
     <div className="min-h-screen bg-backdrop-medium">
       <AdminHeader title="Global Modules" />
       <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-        <AdminBreadcrumbs items={[{ label: 'Dashboard', href: '/admin' }, { label: 'Modules' }]} />
         <div className="bg-backdrop-low rounded-lg shadow border border-line-low p-6 space-y-6">
           <div className="flex items-end gap-3">
             <FormField className="flex-1">

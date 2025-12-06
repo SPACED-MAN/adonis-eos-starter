@@ -2,7 +2,6 @@ import { useEffect, useMemo, useState } from 'react'
 import { Head } from '@inertiajs/react'
 import { AdminHeader } from '../../components/AdminHeader'
 import { AdminFooter } from '../../components/AdminFooter'
-import { AdminBreadcrumbs } from '../../components/AdminBreadcrumbs'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '~/components/ui/select'
 
 type Template = { id: string; name: string; post_type: string; description: string | null; locked: boolean; updated_at: string }
@@ -153,10 +152,9 @@ export default function TemplatesPage() {
 
 	return (
 		<div className="min-h-screen bg-backdrop-medium">
-			<Head title="Templates" />
-			<AdminHeader title="Templates" />
-			<main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-				<AdminBreadcrumbs items={[{ label: 'Dashboard', href: '/admin' }, { label: 'Templates' }]} />
+				<Head title="Templates" />
+				<AdminHeader title="Templates" />
+				<main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
 				<div className="bg-backdrop-low border border-line-low rounded-lg">
 					<div className="px-6 py-4 border-b border-line-low flex items-center justify-between">
 						<h2 className="text-lg font-semibold text-neutral-high">Template Builder</h2>

@@ -2,7 +2,6 @@ import { useEffect, useState } from 'react'
 import { Head } from '@inertiajs/react'
 import { AdminHeader } from '../components/AdminHeader'
 import { AdminFooter } from '../components/AdminFooter'
-import { AdminBreadcrumbs } from '../components/AdminBreadcrumbs'
 
 function getXsrf(): string | undefined {
   if (typeof document === 'undefined') return undefined
@@ -34,7 +33,6 @@ export default function Home() {
       <Head title="Dashboard" />
       <AdminHeader title="Dashboard" />
       <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-        <AdminBreadcrumbs items={[{ label: 'Dashboard' }]} />
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
           <div className="bg-backdrop-low rounded-lg border border-line-low p-6">
             <h3 className="text-base font-semibold text-neutral-high mb-2">Welcome</h3>

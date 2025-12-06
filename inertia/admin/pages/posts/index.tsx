@@ -7,7 +7,6 @@ import { useEffect, useMemo, useState } from 'react'
 import { AdminHeader } from '../../components/AdminHeader'
 import { AdminFooter } from '../../components/AdminFooter'
 import { useHasPermission } from '~/utils/permissions'
-import { AdminBreadcrumbs } from '../../components/AdminBreadcrumbs'
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '~/components/ui/table'
 import { Checkbox } from '~/components/ui/checkbox'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '~/components/ui/select'
@@ -650,7 +649,6 @@ export default function PostsIndexPage({}: PostsIndexProps) {
 
       {/* Main Content */}
       <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-        <AdminBreadcrumbs items={[{ label: 'Dashboard', href: '/admin' }, { label: 'Posts' }]} />
         <div className="bg-backdrop-low rounded-lg border border-line-low">
           {/* Posts Header */}
           <div className="px-6 py-4">

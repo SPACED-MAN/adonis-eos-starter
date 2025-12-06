@@ -84,7 +84,7 @@ export function SidebarHeader({ children, className }: { children: React.ReactNo
 export function SidebarGroup({ title, children }: { title?: string; children: React.ReactNode }) {
 	return (
 		<div className="px-2 py-4 border-t border-line-low">
-			{title && <div className="px-2 text-xs font-semibold text-neutral-medium uppercase tracking-wide mb-1">{title}</div>}
+			{title && <div className="px-2 text-xs font-semibold text-neutral-medium uppercase tracking-wide mb-2">{title}</div>}
 			<nav className="space-y-1">{children}</nav>
 		</div>
 	)
@@ -107,7 +107,7 @@ export function SidebarMenuItem({
 			href={href}
 			onClick={onClick}
 			className={cn(
-				'block w-full text-left px-3 py-2 rounded text-sm',
+				'block w-full text-left px-3 py-1 rounded text-sm',
 				active ? 'bg-backdrop-medium text-neutral-high' : 'text-neutral-medium hover:bg-backdrop-medium'
 			)}
 		>

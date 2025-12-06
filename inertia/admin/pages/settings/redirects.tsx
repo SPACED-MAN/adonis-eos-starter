@@ -2,7 +2,6 @@ import { useEffect, useState } from 'react'
 import { Head } from '@inertiajs/react'
 import { AdminHeader } from '../../components/AdminHeader'
 import { AdminFooter } from '../../components/AdminFooter'
-import { AdminBreadcrumbs } from '../../components/AdminBreadcrumbs'
 import {
 	AlertDialog,
 	AlertDialogAction,
@@ -176,10 +175,9 @@ export default function RedirectsPage() {
 
 	return (
 		<div className="min-h-screen bg-backdrop-medium">
-			<Head title="Redirects" />
-			<AdminHeader title="Redirects" />
-			<main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-				<AdminBreadcrumbs items={[{ label: 'Dashboard', href: '/admin' }, { label: 'Redirects' }]} />
+				<Head title="Redirects" />
+				<AdminHeader title="Redirects" />
+				<main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
 				<div className="bg-backdrop-low border border-line-low rounded-lg">
 					<div className="px-6 py-4 border-b border-line-low flex items-center justify-between">
 						<h2 className="text-lg font-semibold text-neutral-high">Redirect Rules</h2>

@@ -2,7 +2,6 @@ import { useEffect, useState } from 'react'
 import { Head, usePage } from '@inertiajs/react'
 import { AdminHeader } from '../../components/AdminHeader'
 import { AdminFooter } from '../../components/AdminFooter'
-import { AdminBreadcrumbs } from '../../components/AdminBreadcrumbs'
 import { Input } from '../../../components/ui/input'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '~/components/ui/select'
 import { toast } from 'sonner'
@@ -151,7 +150,6 @@ export default function UserEdit() {
       <Head title="Edit User" />
       <AdminHeader title="Edit User" />
       <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-        <AdminBreadcrumbs items={[{ label: 'Dashboard', href: '/admin' }, { label: 'Users', href: '/admin/users' }, { label: 'Edit' }]} />
         <div className="bg-backdrop-low rounded-lg border border-line-low p-6 space-y-6">
           {loading ? (
             <p className="text-sm text-neutral-low">Loading…</p>

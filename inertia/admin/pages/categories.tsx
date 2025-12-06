@@ -2,7 +2,6 @@ import { useEffect, useMemo, useState } from 'react'
 import { Head } from '@inertiajs/react'
 import { AdminHeader } from '../components/AdminHeader'
 import { AdminFooter } from '../components/AdminFooter'
-import { AdminBreadcrumbs } from '../components/AdminBreadcrumbs'
 import { Input } from '../../components/ui/input'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '../../components/ui/select'
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '../../components/ui/table'
@@ -223,7 +222,6 @@ export default function CategoriesPage() {
       <Head title="Categories" />
       <AdminHeader title="Categories" />
       <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-        <AdminBreadcrumbs items={[{ href: '/admin', label: 'Dashboard' }, { href: '/admin/categories', label: 'Categories' }]} />
         <div className="mt-4 bg-backdrop-low rounded-lg shadow border border-line-low p-6">
           <div className="flex items-center gap-4 mb-4">
             <div className="w-64">
