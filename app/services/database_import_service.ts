@@ -4,7 +4,7 @@ import dbConfig from '#config/database'
 /**
  * Import strategy for handling existing data
  */
-export type ImportStrategy = 'replace' | 'merge' | 'skip'
+export type ImportStrategy = 'replace' | 'merge' | 'skip' | 'overwrite'
 
 /**
  * Import options
@@ -15,6 +15,7 @@ export interface ImportOptions {
    * - 'replace': Drop all tables and recreate (destructive)
    * - 'merge': Insert new records, skip conflicts
    * - 'skip': Only import if table is empty
+   * - 'overwrite': Update existing records with matching IDs, insert new ones
    */
   strategy?: ImportStrategy
 
@@ -28,6 +29,17 @@ export interface ImportOptions {
    * (Required for proper import order)
    */
   disableForeignKeyChecks?: boolean
+
+  /**
+   * Whether to preserve original IDs from the export
+   * If false, will generate new IDs
+   */
+  preserveIds?: boolean
+
+  /**
+   * Content types to import (if export contains contentTypes metadata)
+   */
+  contentTypes?: string[]
 }
 
 /**
@@ -62,12 +74,12 @@ class DatabaseImportService {
       return { valid: false, error: 'Invalid export data: missing version' }
     }
 
-    // Check version compatibility (currently accepting 1.x.x)
+    // Check version compatibility (accepting 1.x.x and 2.x.x)
     const version = data.metadata.version
-    if (!version.startsWith('1.')) {
+    if (!version.startsWith('1.') && !version.startsWith('2.')) {
       return {
         valid: false,
-        error: `Incompatible export version: ${version} (expected 1.x.x)`,
+        error: `Incompatible export version: ${version} (expected 1.x.x or 2.x.x)`,
       }
     }
 
@@ -78,13 +90,21 @@ class DatabaseImportService {
    * Import database from JSON export
    */
   async importDatabase(exportData: any, options: ImportOptions = {}): Promise<ImportResult> {
-    const { strategy = 'merge', tables: tablesToImport, disableForeignKeyChecks = true } = options
+    const { 
+      strategy = 'merge', 
+      tables: tablesToImport, 
+      disableForeignKeyChecks = true,
+      preserveIds = true,
+    } = options
 
     // Validate export data
     const validation = this.validateExportData(exportData)
     if (!validation.valid) {
       throw new Error(validation.error)
     }
+
+    // Check if export has preserved IDs
+    const exportPreservedIds = exportData.metadata?.preserveIds !== false
 
     const result: ImportResult = {
       success: true,
@@ -146,16 +166,27 @@ class DatabaseImportService {
           let importedCount = 0
           for (const row of rows) {
             try {
+              // Handle ID preservation
+              let processedRow = { ...row }
+              if (!preserveIds && exportPreservedIds && 'id' in processedRow) {
+                // Remove ID to let database generate new one
+                const { id, ...rest } = processedRow
+                processedRow = rest
+              }
+
               if (strategy === 'merge') {
                 // Use insert ignore or on conflict do nothing
-                await this.insertOrIgnore(trx, tableName, row)
+                await this.insertOrIgnore(trx, tableName, processedRow)
+              } else if (strategy === 'overwrite') {
+                // Upsert: update if exists, insert if not
+                await this.upsertRow(trx, tableName, processedRow)
               } else {
-                await trx.table(tableName).insert(row)
+                await trx.table(tableName).insert(processedRow)
               }
               importedCount++
             } catch (error) {
-              // Continue on individual row errors in merge mode
-              if (strategy === 'merge') {
+              // Continue on individual row errors in merge/overwrite mode
+              if (strategy === 'merge' || strategy === 'overwrite') {
                 continue
               } else {
                 throw error
@@ -171,8 +202,10 @@ class DatabaseImportService {
           // Failed to import table
           result.errors.push({ table: tableName, error: errorMsg })
 
-          // Continue with other tables in merge mode
-          if (strategy !== 'merge') {
+          // Continue with other tables in merge/overwrite mode
+          if (strategy === 'merge' || strategy === 'overwrite') {
+            continue
+          } else {
             throw error
           }
         }
@@ -301,6 +334,52 @@ class DatabaseImportService {
       if ((error as any).code !== '23505' && (error as any).errno !== 1062) {
         throw error
       }
+    }
+  }
+
+  /**
+   * Upsert row (update if exists with matching ID, insert if not)
+   */
+  private async upsertRow(trx: any, tableName: string, row: any): Promise<void> {
+    const dialectName = dbConfig.connections[dbConfig.connection].client
+
+    // If no ID, just insert
+    if (!('id' in row)) {
+      await trx.table(tableName).insert(row)
+      return
+    }
+
+    try {
+      if (dialectName === 'postgres' || dialectName === 'pg') {
+        // PostgreSQL: ON CONFLICT UPDATE
+        const columns = Object.keys(row)
+        const updateClauses = columns.filter((c) => c !== 'id').map((c) => `${c} = EXCLUDED.${c}`)
+        
+        await trx.raw(
+          `INSERT INTO ?? (${columns.join(',')}) VALUES (${columns.map(() => '?').join(',')}) 
+           ON CONFLICT (id) DO UPDATE SET ${updateClauses.join(', ')}`,
+          [tableName, ...Object.values(row)]
+        )
+      } else if (dialectName === 'mysql' || dialectName === 'mysql2') {
+        // MySQL: ON DUPLICATE KEY UPDATE
+        const columns = Object.keys(row)
+        const updateClauses = columns.filter((c) => c !== 'id').map((c) => `${c} = VALUES(${c})`)
+        
+        await trx.raw(
+          `INSERT INTO ?? (${columns.join(',')}) VALUES (${columns.map(() => '?').join(',')}) 
+           ON DUPLICATE KEY UPDATE ${updateClauses.join(', ')}`,
+          [tableName, ...Object.values(row)]
+        )
+      } else {
+        // SQLite: Try update first, then insert
+        const { id, ...updateData } = row
+        const updated = await trx.from(tableName).where('id', id).update(updateData)
+        if (updated === 0) {
+          await trx.table(tableName).insert(row)
+        }
+      }
+    } catch (error) {
+      throw error
     }
   }
 

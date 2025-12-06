@@ -5,7 +5,7 @@ import dbConfig from '#config/database'
 /**
  * Export format version for compatibility checking
  */
-const EXPORT_FORMAT_VERSION = '1.0.0'
+const EXPORT_FORMAT_VERSION = '2.0.0'
 
 /**
  * Tables to exclude from export (session data, temporary data, etc.)
@@ -17,30 +17,79 @@ const EXCLUDED_TABLES = [
 ]
 
 /**
+ * Content types and their associated tables
+ */
+export type ContentType = 'media' | 'posts' | 'modules' | 'forms' | 'menus' | 'categories' | 'templates'
+
+const CONTENT_TYPE_TABLES: Record<ContentType, string[]> = {
+  media: ['media_assets'],
+  posts: ['posts', 'post_translations', 'post_revisions'],
+  modules: ['global_modules', 'module_instances', 'post_modules'],
+  forms: ['form_definitions', 'form_submissions'],
+  menus: ['menu_definitions', 'menu_items'],
+  categories: ['categories', 'post_categories'],
+  templates: ['page_templates'],
+}
+
+/**
+ * Export options
+ */
+export interface ExportOptions {
+  /**
+   * Which content types to include (if undefined, exports all)
+   */
+  contentTypes?: ContentType[]
+
+  /**
+   * Whether to preserve original IDs
+   * If false, IDs will be regenerated on import
+   */
+  preserveIds?: boolean
+
+  /**
+   * Whether to include media files (creates a zip archive)
+   */
+  includeMediaFiles?: boolean
+}
+
+/**
  * Database Export Service
  * Handles exporting the entire database to a portable JSON format
  */
 class DatabaseExportService {
   /**
-   * Export the entire database to a JSON structure
+   * Export the database to a JSON structure with optional content filtering
+   * @param options Export options
    * @returns Promise<object> Export data with metadata and table data
    */
-  async exportDatabase(): Promise<{
+  async exportDatabase(options: ExportOptions = {}): Promise<{
     metadata: {
       version: string
       exportedAt: string
       databaseType: string
       tableCount: number
+      contentTypes?: ContentType[]
+      preserveIds: boolean
     }
     tables: Record<string, any[]>
   }> {
-    const tables = await this.getExportableTables()
+    const { contentTypes, preserveIds = true } = options
+    const tables = await this.getExportableTables(contentTypes)
     const tableData: Record<string, any[]> = {}
 
     // Export each table
     for (const tableName of tables) {
       try {
-        const rows = await db.from(tableName).select('*')
+        let rows = await db.from(tableName).select('*')
+        
+        // Strip IDs if not preserving them
+        if (!preserveIds) {
+          rows = rows.map((row) => {
+            const { id, ...rest } = row
+            return rest
+          })
+        }
+
         tableData[tableName] = rows
         // Exported table
       } catch (error) {
@@ -55,6 +104,8 @@ class DatabaseExportService {
         exportedAt: DateTime.now().toISO(),
         databaseType: dbConfig.connections[dbConfig.connection].client,
         tableCount: tables.length,
+        contentTypes,
+        preserveIds,
       },
       tables: tableData,
     }
@@ -62,84 +113,124 @@ class DatabaseExportService {
 
   /**
    * Get list of tables to export (excluding system tables)
+   * @param contentTypes Optional array of content types to filter by
    */
-  private async getExportableTables(): Promise<string[]> {
+  private async getExportableTables(contentTypes?: ContentType[]): Promise<string[]> {
     // Get the database client type from the config
     const connectionName = dbConfig.connection
     const dialectName = dbConfig.connections[connectionName].client
 
-    let tables: string[] = []
+    let allTables: string[] = []
 
     if (dialectName === 'postgres' || dialectName === 'pg') {
       // PostgreSQL
       const result = await db.rawQuery(
         `SELECT tablename FROM pg_tables WHERE schemaname = 'public' ORDER BY tablename`
       )
-      tables = result.rows.map((row: any) => row.tablename)
+      allTables = result.rows.map((row: any) => row.tablename)
     } else if (dialectName === 'mysql' || dialectName === 'mysql2') {
       // MySQL
       const result = await db.rawQuery(`SHOW TABLES`)
       const key = Object.keys(result[0][0])[0]
-      tables = result[0].map((row: any) => row[key])
+      allTables = result[0].map((row: any) => row[key])
     } else if (dialectName === 'sqlite' || dialectName === 'better-sqlite3') {
       // SQLite
       const result = await db.rawQuery(
         `SELECT name FROM sqlite_master WHERE type='table' AND name NOT LIKE 'sqlite_%' ORDER BY name`
       )
-      tables = result.map((row: any) => row.name)
+      allTables = result.map((row: any) => row.name)
     } else {
       throw new Error(`Unsupported database dialect: ${dialectName}`)
     }
 
     // Filter out excluded tables
-    return tables.filter((table) => !EXCLUDED_TABLES.includes(table))
+    let tables = allTables.filter((table) => !EXCLUDED_TABLES.includes(table))
+
+    // If contentTypes specified, filter to only include relevant tables
+    if (contentTypes && contentTypes.length > 0) {
+      const includedTables = new Set<string>()
+      
+      // Always include essential tables (users, settings, etc.)
+      includedTables.add('users')
+      includedTables.add('user_profiles')
+      includedTables.add('site_settings')
+      includedTables.add('site_custom_field_values')
+      includedTables.add('post_types')
+      
+      // Add tables for selected content types
+      for (const contentType of contentTypes) {
+        const typeTables = CONTENT_TYPE_TABLES[contentType] || []
+        typeTables.forEach((table) => includedTables.add(table))
+      }
+      
+      tables = tables.filter((table) => includedTables.has(table))
+    }
+
+    return tables
   }
 
   /**
    * Export database and return as JSON string
    */
-  async exportToJson(): Promise<string> {
-    const data = await this.exportDatabase()
+  async exportToJson(options: ExportOptions = {}): Promise<string> {
+    const data = await this.exportDatabase(options)
     return JSON.stringify(data, null, 2)
   }
 
   /**
    * Export database and return as Buffer (for file downloads)
    */
-  async exportToBuffer(): Promise<Buffer> {
-    const json = await this.exportToJson()
+  async exportToBuffer(options: ExportOptions = {}): Promise<Buffer> {
+    const json = await this.exportToJson(options)
     return Buffer.from(json, 'utf-8')
   }
 
   /**
    * Get export filename with timestamp
    */
-  getExportFilename(): string {
+  getExportFilename(options: ExportOptions = {}): string {
     const timestamp = DateTime.now().toFormat('yyyy-MM-dd_HHmmss')
-    return `adonis-eos-export_${timestamp}.json`
+    const suffix = options.contentTypes ? `-${options.contentTypes.join('-')}` : ''
+    return `adonis-eos-export${suffix}_${timestamp}.json`
   }
 
   /**
    * Get export statistics without performing full export
    */
-  async getExportStats(): Promise<{
-    tables: Array<{ name: string; rowCount: number }>
+  async getExportStats(contentTypes?: ContentType[]): Promise<{
+    tables: Array<{ name: string; rowCount: number; contentType?: string }>
     totalRows: number
     estimatedSize: string
   }> {
-    const tables = await this.getExportableTables()
-    const stats: Array<{ name: string; rowCount: number }> = []
+    const tables = await this.getExportableTables(contentTypes)
+    const stats: Array<{ name: string; rowCount: number; contentType?: string }> = []
     let totalRows = 0
+
+    // Build reverse mapping of tables to content types
+    const tableToContentType = new Map<string, string>()
+    for (const [contentType, typeTables] of Object.entries(CONTENT_TYPE_TABLES)) {
+      for (const table of typeTables) {
+        tableToContentType.set(table, contentType)
+      }
+    }
 
     for (const tableName of tables) {
       try {
         const result = await db.from(tableName).count('* as count').first()
         const rowCount = Number(result?.count || 0)
-        stats.push({ name: tableName, rowCount })
+        stats.push({ 
+          name: tableName, 
+          rowCount,
+          contentType: tableToContentType.get(tableName),
+        })
         totalRows += rowCount
       } catch (error) {
         // Failed to count rows
-        stats.push({ name: tableName, rowCount: 0 })
+        stats.push({ 
+          name: tableName, 
+          rowCount: 0,
+          contentType: tableToContentType.get(tableName),
+        })
       }
     }
 
@@ -155,6 +246,28 @@ class DatabaseExportService {
       totalRows,
       estimatedSize,
     }
+  }
+
+  /**
+   * Get available content types and their table counts
+   */
+  async getContentTypeStats(): Promise<Record<ContentType, { tables: string[]; rowCount: number }>> {
+    const result: Record<ContentType, { tables: string[]; rowCount: number }> = {} as any
+
+    for (const [contentType, tables] of Object.entries(CONTENT_TYPE_TABLES)) {
+      let totalRows = 0
+      for (const tableName of tables) {
+        try {
+          const count = await db.from(tableName).count('* as count').first()
+          totalRows += Number(count?.count || 0)
+        } catch {
+          // Table doesn't exist, skip
+        }
+      }
+      result[contentType as ContentType] = { tables, rowCount: totalRows }
+    }
+
+    return result
   }
 }
 

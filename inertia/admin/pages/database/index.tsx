@@ -1,5 +1,5 @@
 import { Head } from '@inertiajs/react'
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { toast } from 'sonner'
 import { AdminHeader } from '../../components/AdminHeader'
 import { AdminFooter } from '../../components/AdminFooter'
@@ -14,9 +14,10 @@ import {
 } from '@fortawesome/free-solid-svg-icons'
 
 interface ExportStats {
-  tables: Array<{ name: string; rowCount: number }>
+  tables: Array<{ name: string; rowCount: number; contentType?: string }>
   totalRows: number
   estimatedSize: string
+  contentTypes?: Record<string, { tables: string[]; rowCount: number }>
 }
 
 interface ImportResult {
@@ -26,15 +27,47 @@ interface ImportResult {
   errors: Array<{ table: string; error: string }>
 }
 
+type ContentType = 'media' | 'posts' | 'modules' | 'forms' | 'menus' | 'categories' | 'templates'
+
+const CONTENT_TYPE_LABELS: Record<ContentType, string> = {
+  media: 'Media Assets',
+  posts: 'Posts & Translations',
+  modules: 'Modules (Global & Instances)',
+  forms: 'Forms & Submissions',
+  menus: 'Menus',
+  categories: 'Categories',
+  templates: 'Templates',
+}
+
 export default function DatabaseIndex() {
   const [exportStats, setExportStats] = useState<ExportStats | null>(null)
   const [loadingStats, setLoadingStats] = useState(false)
   const [exporting, setExporting] = useState(false)
   const [importing, setImporting] = useState(false)
   const [validating, setValidating] = useState(false)
-  const [importStrategy, setImportStrategy] = useState<'replace' | 'merge' | 'skip'>('merge')
+  const [importStrategy, setImportStrategy] = useState<'replace' | 'merge' | 'skip' | 'overwrite'>('merge')
   const [importResult, setImportResult] = useState<ImportResult | null>(null)
   const [validationResult, setValidationResult] = useState<any>(null)
+  
+  // Export options
+  const [selectedContentTypes, setSelectedContentTypes] = useState<ContentType[]>([
+    'media',
+    'posts',
+    'modules',
+    'forms',
+    'menus',
+    'categories',
+    'templates',
+  ])
+  const [preserveIds, setPreserveIds] = useState(true)
+  
+  // Import options
+  const [importPreserveIds, setImportPreserveIds] = useState(true)
+
+  // Load export stats on mount
+  useEffect(() => {
+    loadExportStats()
+  }, [])
 
   // Load export stats
   const loadExportStats = async () => {
@@ -57,11 +90,36 @@ export default function DatabaseIndex() {
     }
   }
 
+  // Toggle content type selection
+  const toggleContentType = (type: ContentType) => {
+    setSelectedContentTypes((prev) =>
+      prev.includes(type) ? prev.filter((t) => t !== type) : [...prev, type]
+    )
+  }
+
+  // Select/deselect all content types
+  const toggleAll = () => {
+    if (selectedContentTypes.length === 7) {
+      setSelectedContentTypes([])
+    } else {
+      setSelectedContentTypes(['media', 'posts', 'modules', 'forms', 'menus', 'categories', 'templates'])
+    }
+  }
+
   // Export database
   const handleExport = async () => {
+    if (selectedContentTypes.length === 0) {
+      toast.error('Please select at least one content type to export')
+      return
+    }
+
     setExporting(true)
     try {
-      const res = await fetch('/api/database/export', {
+      const params = new URLSearchParams()
+      params.set('contentTypes', selectedContentTypes.join(','))
+      params.set('preserveIds', preserveIds.toString())
+
+      const res = await fetch(`/api/database/export?${params.toString()}`, {
         credentials: 'same-origin',
       })
 
@@ -148,6 +206,7 @@ export default function DatabaseIndex() {
       const formData = new FormData()
       formData.append('file', file)
       formData.append('strategy', importStrategy)
+      formData.append('preserveIds', importPreserveIds.toString())
 
       const csrf = (() => {
         if (typeof document === 'undefined') return undefined
@@ -189,7 +248,8 @@ export default function DatabaseIndex() {
         <div className="bg-backdrop-low rounded-lg shadow border border-line-low p-6">
           <div className="mb-6">
             <p className="text-neutral-medium">
-              Export your entire database for backup or migration, or import from a previous export.
+              Export your database for backup or migration, or import from a previous export.
+              Select which content types to include and configure ID preservation options.
             </p>
           </div>
 
@@ -201,9 +261,74 @@ export default function DatabaseIndex() {
             </div>
 
             <p className="text-neutral-medium mb-4">
-              Download a complete backup of your database as a JSON file. This includes all posts,
-              media, users, and settings.
+              Download a backup of your database as a JSON file. Select which content types to include.
             </p>
+
+            {/* Content Type Selection */}
+            <div className="mb-4 p-4 bg-backdrop-high rounded border border-line-medium">
+              <div className="flex items-center justify-between mb-3">
+                <h3 className="font-semibold text-neutral-dark">Content Types to Export</h3>
+                <button
+                  type="button"
+                  onClick={toggleAll}
+                  className="text-xs text-standout hover:underline"
+                >
+                  {selectedContentTypes.length === 7 ? 'Deselect All' : 'Select All'}
+                </button>
+              </div>
+              <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
+                {(Object.keys(CONTENT_TYPE_LABELS) as ContentType[]).map((type) => {
+                  const stats = exportStats?.contentTypes?.[type]
+                  const isSelected = selectedContentTypes.includes(type)
+                  return (
+                    <label
+                      key={type}
+                      className={`flex items-center gap-2 p-3 rounded border cursor-pointer transition ${
+                        isSelected
+                          ? 'border-standout bg-standout/10'
+                          : 'border-line-medium hover:border-line-high'
+                      }`}
+                    >
+                      <input
+                        type="checkbox"
+                        checked={isSelected}
+                        onChange={() => toggleContentType(type)}
+                        className="rounded"
+                      />
+                      <div className="flex-1">
+                        <div className="text-sm font-medium text-neutral-dark">
+                          {CONTENT_TYPE_LABELS[type]}
+                        </div>
+                        {stats && (
+                          <div className="text-xs text-neutral-medium">
+                            {stats.rowCount.toLocaleString()} rows
+                          </div>
+                        )}
+                      </div>
+                    </label>
+                  )
+                })}
+              </div>
+            </div>
+
+            {/* Export Options */}
+            <div className="mb-4 p-4 bg-backdrop-high rounded border border-line-medium">
+              <h3 className="font-semibold text-neutral-dark mb-3">Export Options</h3>
+              <label className="flex items-center gap-2">
+                <input
+                  type="checkbox"
+                  checked={preserveIds}
+                  onChange={(e) => setPreserveIds(e.target.checked)}
+                  className="rounded"
+                />
+                <div>
+                  <span className="text-sm font-medium text-neutral-dark">Preserve Original IDs</span>
+                  <p className="text-xs text-neutral-medium">
+                    Keep the original database IDs. Recommended for migrations and backups.
+                  </p>
+                </div>
+              </label>
+            </div>
 
             <div className="flex gap-3">
               <button
@@ -219,14 +344,14 @@ export default function DatabaseIndex() {
                 ) : (
                   <>
                     <FontAwesomeIcon icon={faDatabase} className="mr-2" />
-                    View Stats
+                    Refresh Stats
                   </>
                 )}
               </button>
 
               <button
                 onClick={handleExport}
-                disabled={exporting}
+                disabled={exporting || selectedContentTypes.length === 0}
                 className="px-4 py-2 bg-standout text-on-standout rounded-lg hover:opacity-90 transition disabled:opacity-50 font-medium"
               >
                 {exporting ? (
@@ -267,7 +392,12 @@ export default function DatabaseIndex() {
                   <div className="mt-2 space-y-1 max-h-60 overflow-y-auto">
                     {exportStats.tables.map((table) => (
                       <div key={table.name} className="flex justify-between py-1">
-                        <span className="font-mono text-xs">{table.name}</span>
+                        <span className="font-mono text-xs">
+                          {table.name}
+                          {table.contentType && (
+                            <span className="ml-2 text-neutral-low">({table.contentType})</span>
+                          )}
+                        </span>
                         <span className="text-neutral-medium">{table.rowCount.toLocaleString()} rows</span>
                       </div>
                     ))}
@@ -304,14 +434,33 @@ export default function DatabaseIndex() {
                 className="w-full px-3 py-2 border border-line-medium rounded-lg bg-backdrop-low"
               >
                 <option value="merge">Merge - Add new records, skip conflicts (safest)</option>
+                <option value="overwrite">Overwrite - Update existing records with matching IDs, insert new</option>
                 <option value="skip">Skip - Only import to empty tables</option>
                 <option value="replace">Replace - Clear and replace all data (destructive)</option>
               </select>
               <p className="text-xs text-neutral-medium mt-1">
                 {importStrategy === 'merge' && 'Recommended: Adds new records without removing existing data'}
+                {importStrategy === 'overwrite' && 'Updates existing records if IDs match, inserts new ones otherwise'}
                 {importStrategy === 'skip' && 'Only imports data into tables that are currently empty'}
                 {importStrategy === 'replace' && 'WARNING: Deletes all existing data before importing'}
               </p>
+            </div>
+
+            <div className="mb-4 p-4 bg-backdrop-high rounded border border-line-medium">
+              <label className="flex items-center gap-2">
+                <input
+                  type="checkbox"
+                  checked={importPreserveIds}
+                  onChange={(e) => setImportPreserveIds(e.target.checked)}
+                  className="rounded"
+                />
+                <div>
+                  <span className="text-sm font-medium text-neutral-dark">Preserve IDs from Export</span>
+                  <p className="text-xs text-neutral-medium">
+                    Use the original IDs from the export file. Disable to generate new IDs on import.
+                  </p>
+                </div>
+              </label>
             </div>
 
             <div className="mb-4">
@@ -348,6 +497,12 @@ export default function DatabaseIndex() {
                       <p>Version: {validationResult.metadata?.version}</p>
                       <p>Tables: {validationResult.stats?.tables}</p>
                       <p>Total rows: {validationResult.stats?.totalRows.toLocaleString()}</p>
+                      {validationResult.metadata?.contentTypes && (
+                        <p>Content types: {validationResult.metadata.contentTypes.join(', ')}</p>
+                      )}
+                      {validationResult.metadata?.preserveIds !== undefined && (
+                        <p>Preserves IDs: {validationResult.metadata.preserveIds ? 'Yes' : 'No'}</p>
+                      )}
                     </div>
 
                     <button
@@ -423,4 +578,3 @@ export default function DatabaseIndex() {
     </div>
   )
 }
-

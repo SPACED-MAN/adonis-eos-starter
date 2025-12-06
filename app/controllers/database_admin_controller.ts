@@ -1,5 +1,5 @@
 import type { HttpContext } from '@adonisjs/core/http'
-import databaseExportService from '#services/database_export_service'
+import databaseExportService, { type ContentType } from '#services/database_export_service'
 import databaseImportService, { type ImportStrategy } from '#services/database_import_service'
 import roleRegistry from '#services/role_registry'
 import { MultipartFile } from '@adonisjs/core/bodyparser'
@@ -26,9 +26,9 @@ export default class DatabaseAdminController {
 
   /**
    * GET /api/database/export/stats
-   * Get export statistics without performing export
+   * Get export statistics and content type info
    */
-  async getExportStats({ response, auth }: HttpContext) {
+  async getExportStats({ request, response, auth }: HttpContext) {
     const role = (auth.use('web').user as any)?.role as
       | 'admin'
       | 'editor'
@@ -40,8 +40,18 @@ export default class DatabaseAdminController {
     }
 
     try {
-      const stats = await databaseExportService.getExportStats()
-      return response.ok(stats)
+      const contentTypesParam = request.input('contentTypes')
+      const contentTypes: ContentType[] | undefined = contentTypesParam 
+        ? (Array.isArray(contentTypesParam) ? contentTypesParam : contentTypesParam.split(','))
+        : undefined
+
+      const stats = await databaseExportService.getExportStats(contentTypes)
+      const contentTypeStats = await databaseExportService.getContentTypeStats()
+      
+      return response.ok({
+        ...stats,
+        contentTypes: contentTypeStats,
+      })
     } catch (error) {
       return response.badRequest({ error: (error as Error).message })
     }
@@ -50,8 +60,9 @@ export default class DatabaseAdminController {
   /**
    * GET /api/database/export
    * Export database and download as JSON file
+   * Query params: contentTypes (comma-separated), preserveIds (boolean)
    */
-  async export({ response, auth }: HttpContext) {
+  async export({ request, response, auth }: HttpContext) {
     const role = (auth.use('web').user as any)?.role as
       | 'admin'
       | 'editor'
@@ -63,8 +74,18 @@ export default class DatabaseAdminController {
     }
 
     try {
-      const buffer = await databaseExportService.exportToBuffer()
-      const filename = databaseExportService.getExportFilename()
+      const contentTypesParam = request.input('contentTypes')
+      const preserveIds = request.input('preserveIds', 'true') === 'true'
+      
+      const contentTypes: ContentType[] | undefined = contentTypesParam 
+        ? (Array.isArray(contentTypesParam) ? contentTypesParam : contentTypesParam.split(','))
+        : undefined
+
+      const buffer = await databaseExportService.exportToBuffer({
+        contentTypes,
+        preserveIds,
+      })
+      const filename = databaseExportService.getExportFilename({ contentTypes, preserveIds })
 
       response.header('Content-Type', 'application/json')
       response.header('Content-Disposition', `attachment; filename="${filename}"`)
@@ -80,7 +101,7 @@ export default class DatabaseAdminController {
   /**
    * POST /api/database/import
    * Import database from uploaded JSON file
-   * Body: { file: MultipartFile, strategy?: 'replace' | 'merge' | 'skip' }
+   * Body: { file: MultipartFile, strategy?: 'replace' | 'merge' | 'skip' | 'overwrite', preserveIds?: boolean }
    */
   async import({ request, response, auth }: HttpContext) {
     const role = (auth.use('web').user as any)?.role as
@@ -109,10 +130,11 @@ export default class DatabaseAdminController {
 
       // Get import strategy from request
       const strategy = (request.input('strategy') as ImportStrategy) || 'merge'
+      const preserveIds = request.input('preserveIds', 'true') === 'true'
 
       // Validate strategy
-      if (!['replace', 'merge', 'skip'].includes(strategy)) {
-        return response.badRequest({ error: 'Invalid strategy. Must be: replace, merge, or skip' })
+      if (!['replace', 'merge', 'skip', 'overwrite'].includes(strategy)) {
+        return response.badRequest({ error: 'Invalid strategy. Must be: replace, merge, skip, or overwrite' })
       }
 
       // Read file content from temporary path
@@ -124,6 +146,7 @@ export default class DatabaseAdminController {
       // Perform import
       const result = await databaseImportService.importFromBuffer(content, {
         strategy,
+        preserveIds,
         disableForeignKeyChecks: true,
       })
 
