@@ -66,10 +66,11 @@ export default function ProfileList({ title, subtitle, profiles }: ProfileListPr
                 const jm = await resMedia.json().catch(() => null)
                 const data = jm?.data
                 if (!data) return
-                const variants = Array.isArray(data.metadata?.variants)
-                  ? (data.metadata.variants as any[])
-                  : []
-                const url = pickMediaVariantUrl(data.url, variants, 'thumb')
+                const meta = (data as any).metadata || {}
+                const variants = Array.isArray(meta?.variants) ? (meta.variants as any[]) : []
+                const darkSourceUrl =
+                  typeof meta.darkSourceUrl === 'string' ? (meta.darkSourceUrl as string) : undefined
+                const url = pickMediaVariantUrl(data.url, variants, 'thumb', { darkSourceUrl })
                 urlById.set(id, url)
               } catch {
                 // ignore

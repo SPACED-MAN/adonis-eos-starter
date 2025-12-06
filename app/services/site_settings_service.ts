@@ -39,13 +39,14 @@ class SiteSettingsService {
 
   async upsert(payload: Partial<SiteSettings>): Promise<SiteSettings> {
     const current = await this.get()
+    // Use 'in' checks to distinguish between "not provided" (undefined) and "explicitly set to null"
     const next: SiteSettings = {
       siteTitle: payload.siteTitle ?? current.siteTitle,
-      defaultMetaDescription: payload.defaultMetaDescription ?? current.defaultMetaDescription,
-      faviconMediaId: payload.faviconMediaId ?? current.faviconMediaId,
-      defaultOgMediaId: payload.defaultOgMediaId ?? current.defaultOgMediaId,
-      logoLightMediaId: payload.logoLightMediaId ?? current.logoLightMediaId,
-      logoDarkMediaId: payload.logoDarkMediaId ?? current.logoDarkMediaId,
+      defaultMetaDescription: 'defaultMetaDescription' in payload ? payload.defaultMetaDescription! : current.defaultMetaDescription,
+      faviconMediaId: 'faviconMediaId' in payload ? payload.faviconMediaId! : current.faviconMediaId,
+      defaultOgMediaId: 'defaultOgMediaId' in payload ? payload.defaultOgMediaId! : current.defaultOgMediaId,
+      logoLightMediaId: 'logoLightMediaId' in payload ? payload.logoLightMediaId! : current.logoLightMediaId,
+      logoDarkMediaId: 'logoDarkMediaId' in payload ? payload.logoDarkMediaId! : current.logoDarkMediaId,
       profileRolesEnabled: payload.profileRolesEnabled ?? current.profileRolesEnabled ?? [],
     }
     const exists = await db.from('site_settings').count('* as c')

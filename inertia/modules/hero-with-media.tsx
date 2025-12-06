@@ -77,10 +77,11 @@ export default function HeroWithMedia({
           if (!cancelled) setResolvedImageUrl(null)
           return
         }
-        const variants = Array.isArray(data.metadata?.variants)
-          ? (data.metadata.variants as any[])
-          : []
-        const url = pickMediaVariantUrl(data.url, variants, undefined)
+        const meta = (data as any).metadata || {}
+        const variants = Array.isArray(meta?.variants) ? (meta.variants as any[]) : []
+        const darkSourceUrl =
+          typeof meta.darkSourceUrl === 'string' ? (meta.darkSourceUrl as string) : undefined
+        const url = pickMediaVariantUrl(data.url, variants, undefined, { darkSourceUrl })
         if (!cancelled) setResolvedImageUrl(url)
       } catch {
         if (!cancelled) setResolvedImageUrl(null)

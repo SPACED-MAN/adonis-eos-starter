@@ -40,10 +40,11 @@ export default function Blockquote({
 					if (!cancelled) setAvatarUrl(null)
 					return
 				}
-				const variants = Array.isArray(data.metadata?.variants)
-					? (data.metadata.variants as any[])
-					: []
-				const url = pickMediaVariantUrl(data.url, variants, 'thumb')
+				const meta = (data as any).metadata || {}
+				const variants = Array.isArray(meta?.variants) ? (meta.variants as any[]) : []
+				const darkSourceUrl =
+					typeof meta.darkSourceUrl === 'string' ? (meta.darkSourceUrl as string) : undefined
+				const url = pickMediaVariantUrl(data.url, variants, 'thumb', { darkSourceUrl })
 				if (!cancelled) setAvatarUrl(url)
 			} catch {
 				if (!cancelled) setAvatarUrl(null)

@@ -41,6 +41,7 @@ import { faReact } from '@fortawesome/free-brands-svg-icons'
 import { getXsrf } from '~/utils/xsrf'
 import { LinkField, type LinkFieldValue } from '~/components/forms/LinkField'
 import { useHasPermission } from '~/utils/permissions'
+import { pickMediaVariantUrl, type MediaVariant } from '../../../lib/media'
 
 interface EditorProps {
   post: {
@@ -2138,6 +2139,27 @@ function PostCustomPostReferenceField({
   )
 }
 
+function useIsDarkMode() {
+  const [isDark, setIsDark] = useState(false)
+
+  useEffect(() => {
+    // Initial check
+    setIsDark(document.documentElement.classList.contains('dark'))
+
+    // Watch for changes
+    const observer = new MutationObserver(() => {
+      setIsDark(document.documentElement.classList.contains('dark'))
+    })
+    observer.observe(document.documentElement, {
+      attributes: true,
+      attributeFilter: ['class'],
+    })
+    return () => observer.disconnect()
+  }, [])
+
+  return isDark
+}
+
 function MediaThumb({
   mediaId,
   mediaUrl,
@@ -2149,35 +2171,89 @@ function MediaThumb({
   onChange: () => void
   onClear: () => void
 }) {
-  const [url, setUrl] = useState<string | null>(mediaUrl)
+  const [url, setUrl] = useState<string | null>(null)
+  const [mediaData, setMediaData] = useState<{
+    baseUrl: string
+    variants: MediaVariant[]
+    darkSourceUrl?: string
+  } | null>(null)
+  const isDark = useIsDarkMode()
+
+  // Fetch media data when mediaId changes
   useEffect(() => {
     let alive = true
     async function load() {
-      if (url) return
-      if (!mediaId) return
+      if (!mediaId) {
+        if (alive) {
+          setMediaData(null)
+          setUrl(null)
+        }
+        return
+      }
       try {
-        const res = await fetch(`/api/media/${encodeURIComponent(mediaId)}`, { credentials: 'same-origin' })
+        const res = await fetch(`/api/media/${encodeURIComponent(mediaId)}`, {
+          credentials: 'same-origin',
+        })
         const j = await res.json().catch(() => ({}))
         const data = j?.data
-        if (!data) return
-        let u: string | null = data.url || null
-        const variants = Array.isArray(data?.metadata?.variants) ? data.metadata.variants : []
-        const adminThumb = (typeof process !== 'undefined' && process.env && (process.env as any).MEDIA_ADMIN_THUMBNAIL_VARIANT) || 'thumb'
-        const found = variants.find((v: any) => v?.name === adminThumb)
-        if (found?.url) u = found.url
-        if (alive) setUrl(u)
-      } catch {
-        // ignore
+        if (!data) {
+          if (alive) {
+            setMediaData(null)
+            setUrl(null)
+          }
+          return
+        }
+        const baseUrl: string | null = data.url || null
+        if (!baseUrl) {
+          if (alive) {
+            setMediaData(null)
+            setUrl(null)
+          }
+          return
+        }
+        const meta = (data as any).metadata || {}
+        const variants: MediaVariant[] = Array.isArray(meta?.variants)
+          ? (meta.variants as MediaVariant[])
+          : []
+        const darkSourceUrl =
+          typeof meta.darkSourceUrl === 'string' ? (meta.darkSourceUrl as string) : undefined
+        if (alive) {
+          setMediaData({ baseUrl, variants, darkSourceUrl })
+        }
+      } catch (err) {
+        console.error('MediaThumb: Failed to load media', err)
+        if (alive) {
+          setMediaData(null)
+          setUrl(null)
+        }
       }
     }
     load()
     return () => { alive = false }
-  }, [mediaId, url])
+  }, [mediaId])
+
+  // Resolve URL when media data or theme changes
+  useEffect(() => {
+    if (!mediaData) {
+      setUrl(null)
+      return
+    }
+    const adminThumb =
+      (typeof process !== 'undefined' &&
+        process.env &&
+        (process.env as any).MEDIA_ADMIN_THUMBNAIL_VARIANT) ||
+      'thumb'
+    const resolved = pickMediaVariantUrl(mediaData.baseUrl, mediaData.variants, adminThumb, {
+      darkSourceUrl: mediaData.darkSourceUrl,
+    })
+    setUrl(resolved)
+  }, [mediaData, isDark])
+
   return (
     <div className="border border-line-low rounded p-2 bg-backdrop-low flex items-center gap-3">
       <div className="w-16 h-16 bg-backdrop-medium rounded overflow-hidden flex items-center justify-center">
         {url ? (
-          <img src={url} alt="" className="w-full h-full object-cover" />
+          <img src={url} alt="" className="w-full h-full object-cover" key={`${url}-${isDark}`} />
         ) : (
           <span className="text-xs text-neutral-medium">No image</span>
         )}

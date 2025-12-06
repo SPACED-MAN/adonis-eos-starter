@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react'
 import type { MenuItem, TreeNode } from './menu/types'
 import { NavBar } from './menu/NavBar'
 import { usePage } from '@inertiajs/react'
+import { pickMediaVariantUrl, type MediaVariant } from '../../lib/media'
 
 function buildTree(items: MenuItem[]): TreeNode[] {
   const idToNode = new Map<string, TreeNode>()
@@ -23,8 +24,9 @@ export function SiteHeader() {
   const [primaryNodes, setPrimaryNodes] = useState<TreeNode[]>([])
   const [menuMeta, setMenuMeta] = useState<Record<string, any> | null>(null)
   const [siteTitle, setSiteTitle] = useState<string>('')
-  const [logoLightUrl, setLogoLightUrl] = useState<string | null>(null)
-  const [logoDarkUrl, setLogoDarkUrl] = useState<string | null>(null)
+  const [logoBaseUrl, setLogoBaseUrl] = useState<string | null>(null)
+  const [logoVariants, setLogoVariants] = useState<MediaVariant[] | null>(null)
+  const [logoDarkSourceUrl, setLogoDarkSourceUrl] = useState<string | null>(null)
 
   const page = usePage()
   const currentUser = (page.props as any)?.currentUser
@@ -54,28 +56,28 @@ export function SiteHeader() {
           setSiteTitle(String(data.siteTitle))
         }
         const logoLightId: string | null = data?.logoLightMediaId || null
-        const logoDarkId: string | null = data?.logoDarkMediaId || null
-
-        const loadLogo = async (id: string | null) => {
-          if (!id) return null
-          try {
-            const res = await fetch(`/api/media/${encodeURIComponent(id)}`, { credentials: 'same-origin' })
-            const m = await res.json().catch(() => ({}))
-            return m?.data?.url || null
-          } catch {
-            return null
-          }
-        }
 
         if (logoLightId) {
-          loadLogo(logoLightId).then((url) => {
-            if (url) setLogoLightUrl(url)
-          })
-        }
-        if (logoDarkId) {
-          loadLogo(logoDarkId).then((url) => {
-            if (url) setLogoDarkUrl(url)
-          })
+          try {
+            const resLogo = await fetch(`/public/media/${encodeURIComponent(logoLightId)}`, {
+              credentials: 'same-origin',
+            })
+            const jm = await resLogo.json().catch(() => ({}))
+            const media = jm?.data as any
+            if (media && media.url) {
+              const meta = (media as any).metadata || {}
+              const variants: MediaVariant[] = Array.isArray(meta?.variants)
+                ? (meta.variants as MediaVariant[])
+                : []
+              const darkSourceUrl =
+                typeof meta.darkSourceUrl === 'string' ? (meta.darkSourceUrl as string) : null
+              setLogoBaseUrl(String(media.url))
+              setLogoVariants(variants)
+              setLogoDarkSourceUrl(darkSourceUrl)
+            }
+          } catch {
+            // ignore logo load errors
+          }
         }
       } catch {
         // ignore
@@ -83,13 +85,20 @@ export function SiteHeader() {
     })()
   }, [])
 
+  const resolvedLogoUrl =
+    logoBaseUrl && logoVariants
+      ? pickMediaVariantUrl(logoBaseUrl, logoVariants, undefined, {
+          darkSourceUrl: logoDarkSourceUrl ?? undefined,
+        })
+      : logoBaseUrl
+
   return (
     <NavBar
       primaryNodes={primaryNodes}
       menuMeta={menuMeta || undefined}
       menuName={siteTitle}
-      logoLightUrl={logoLightUrl || undefined}
-      logoDarkUrl={logoDarkUrl || undefined}
+      logoLightUrl={resolvedLogoUrl || undefined}
+      logoDarkUrl={undefined}
       currentUser={currentUser || undefined}
     />
   )

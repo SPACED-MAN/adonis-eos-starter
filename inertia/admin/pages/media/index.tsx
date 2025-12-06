@@ -33,6 +33,7 @@ import {
   TableHeader,
   TableRow,
 } from '../../../components/ui/table'
+import { pickMediaVariantUrl, type MediaVariant } from '../../../lib/media'
 
 type Variant = { name: string; url: string; width?: number; height?: number; size?: number }
 type MediaItem = {
@@ -250,6 +251,12 @@ export default function MediaIndex() {
       const item = items.find((i) => i.id === id)
       if (!item) continue
 
+      // SVG media does not support generated variants – always use originals.
+      const mime = (item.mimeType || '').toLowerCase()
+      const isSvg =
+        mime === 'image/svg+xml' || (item.url || '').toLowerCase().endsWith('.svg')
+      if (isSvg) continue
+
       const status = getVariantStatus(item)
 
       try {
@@ -302,6 +309,14 @@ export default function MediaIndex() {
     let count = 0
     for (const id of ids) {
       try {
+        const item = items.find((i) => i.id === id)
+        if (!item) continue
+
+        const mime = (item.mimeType || '').toLowerCase()
+        const isSvg =
+          mime === 'image/svg+xml' || (item.url || '').toLowerCase().endsWith('.svg')
+        if (isSvg) continue
+
         // Regenerate light
         await fetch(`/api/media/${encodeURIComponent(id)}/variants`, {
           method: 'POST',
@@ -426,32 +441,38 @@ export default function MediaIndex() {
 
   function getPreviewUrl(m: MediaItem): string {
     const url = m.url || ''
-    const isImage = (m.mimeType && m.mimeType.startsWith('image/')) || /\.(png|jpe?g|gif|webp|svg|avif)$/i.test(url)
+    const isImage =
+      (m.mimeType && m.mimeType.startsWith('image/')) ||
+      /\.(png|jpe?g|gif|webp|svg|avif)$/i.test(url)
     if (!isImage) return ''
-    const variants = m.metadata?.variants || []
-    if (preferredThumb) {
-      const match = variants.find(v => v.name === preferredThumb)
-      if (match?.url) return match.url
-    }
-    const byName = variants.find(v => v.name === 'thumb' || v.name === 'thumbnail')
-    const chosen = byName?.url || (variants.length > 0
-      ? [...variants].sort((a, b) => ((a.width || a.height || 0) - (b.width || b.height || 0)))[0]?.url
-      : deriveThumbFromOriginal(url))
-    return chosen || url
+
+    const meta = (m as any).metadata || {}
+    const variants: MediaVariant[] = Array.isArray(meta?.variants)
+      ? (meta.variants as MediaVariant[])
+      : []
+    const darkSourceUrl =
+      typeof meta.darkSourceUrl === 'string' ? (meta.darkSourceUrl as string) : undefined
+
+    const desiredVariant = preferredThumb || null
+    return pickMediaVariantUrl(url, variants, desiredVariant, { darkSourceUrl })
   }
 
   function getViewUrl(m: MediaItem): string {
     const url = m.url || ''
-    const variants = m.metadata?.variants || []
-    if (preferredModal) {
-      const match = variants.find(v => v.name === preferredModal)
-      if (match?.url) return match.url
-    }
-    if (variants.length > 0) {
-      const sortedDesc = [...variants].sort((a, b) => ((b.width || b.height || 0) - (a.width || a.height || 0)))
-      return sortedDesc[0]?.url || url
-    }
-    return url
+    const isImage =
+      (m.mimeType && m.mimeType.startsWith('image/')) ||
+      /\.(png|jpe?g|gif|webp|svg|avif)$/i.test(url)
+    if (!isImage) return url
+
+    const meta = (m as any).metadata || {}
+    const variants: MediaVariant[] = Array.isArray(meta?.variants)
+      ? (meta.variants as MediaVariant[])
+      : []
+    const darkSourceUrl =
+      typeof meta.darkSourceUrl === 'string' ? (meta.darkSourceUrl as string) : undefined
+
+    const desiredVariant = preferredModal || null
+    return pickMediaVariantUrl(url, variants, desiredVariant, { darkSourceUrl })
   }
 
   function defaultAltFromFilename(name: string): string {
@@ -635,6 +656,15 @@ export default function MediaIndex() {
   // Helper: check if media item has all expected variants (light + dark)
   function getVariantStatus(m: MediaItem | null): { hasAllLight: boolean; hasAllDark: boolean; hasDarkBase: boolean } {
     if (!m) return { hasAllLight: false, hasAllDark: false, hasDarkBase: false }
+    const mime = (m.mimeType || '').toLowerCase()
+    const isSvg =
+      mime === 'image/svg+xml' || (m.url || '').toLowerCase().endsWith('.svg')
+    // SVGs never have generated size variants; only track presence of a dark base.
+    if (isSvg) {
+      const meta = (m as any)?.metadata || {}
+      const darkSourceUrl = typeof meta.darkSourceUrl === 'string' && meta.darkSourceUrl
+      return { hasAllLight: false, hasAllDark: false, hasDarkBase: !!darkSourceUrl }
+    }
     const meta = (m as any)?.metadata || {}
     const variants: Variant[] = Array.isArray(meta.variants) ? meta.variants : []
     const darkSourceUrl = typeof meta.darkSourceUrl === 'string' && meta.darkSourceUrl
@@ -1260,24 +1290,42 @@ export default function MediaIndex() {
                           <option key={v.name} value={v.name}>{getVariantLabel(v)}</option>
                         ))}
                     </select>
-                    {!focalMode && !cropping && selectedVariantName === 'original' && (
+                    {!focalMode && !cropping && selectedVariantName === 'original' && (() => {
+                      const mime = (viewing?.mimeType || '').toLowerCase()
+                      const isSvg =
+                        mime === 'image/svg+xml' || (viewing?.url || '').toLowerCase().endsWith('.svg')
+                      if (isSvg) return null
+                      return (
                       <button
                         className="px-2 py-1 text-xs border border-line-medium rounded hover:bg-backdrop-medium"
                         onClick={() => setCropping(true)}
                       >
                         Crop
                       </button>
-                    )}
+                      )
+                    })()}
                     {cropping && (
                       <>
                         <button className="px-2 py-1 text-xs border border-line-medium rounded hover:bg-backdrop-medium" onClick={() => { setCropping(false); setCropSel(null) }}>Cancel</button>
                         <button className="px-2 py-1 text-xs rounded bg-standout text-on-standout" onClick={applyCrop}>Apply crop</button>
                       </>
                     )}
-                    {!cropping && !focalMode && selectedVariantName === 'original' && (
-                      <>
-                        <button className="px-2 py-1 text-xs border border-line-medium rounded hover:bg-backdrop-medium" onClick={() => setFocalMode(true)}>Focal point</button>
-                        {(() => {
+                    {!cropping && !focalMode && selectedVariantName === 'original' && (() => {
+                      const mime = (viewing?.mimeType || '').toLowerCase()
+                      const isSvg =
+                        mime === 'image/svg+xml' || (viewing?.url || '').toLowerCase().endsWith('.svg')
+                      if (isSvg) {
+                        return null
+                      }
+                      return (
+                        <>
+                          <button
+                            className="px-2 py-1 text-xs border border-line-medium rounded hover:bg-backdrop-medium"
+                            onClick={() => setFocalMode(true)}
+                          >
+                            Focal point
+                          </button>
+                          {(() => {
                           const status = getVariantStatus(viewing)
                           const allVariantsExist = status.hasAllLight && status.hasAllDark && status.hasDarkBase
                           const buttonLabel = allVariantsExist ? 'Regenerate variations' : 'Generate missing variations'
@@ -1357,8 +1405,9 @@ export default function MediaIndex() {
                             </button>
                           )
                         })()}
-                      </>
-                    )}
+                        </>
+                      )
+                    })()}
                     {focalMode && (
                       <>
                         <button className="px-2 py-1 text-xs border border-line-medium rounded hover:bg-backdrop-medium" onClick={() => { setFocalMode(false); setFocalDot(null) }}>Cancel</button>

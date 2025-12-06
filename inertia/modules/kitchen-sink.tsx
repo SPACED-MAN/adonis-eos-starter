@@ -40,13 +40,15 @@ export default function KitchenSink(props: KitchenSinkProps) {
 					setResolvedImageUrl(null)
 					return
 				}
-				const variants = Array.isArray(data.metadata?.variants)
-					? (data.metadata.variants as any[])
-					: []
+				const meta = (data as any).metadata || {}
+				const variants = Array.isArray(meta?.variants) ? (meta.variants as any[]) : []
+				const darkSourceUrl =
+					typeof meta.darkSourceUrl === 'string' ? (meta.darkSourceUrl as string) : undefined
 				const url = pickMediaVariantUrl(
 					data.url,
 					variants,
 					props.imageVariant || null,
+					{ darkSourceUrl },
 				)
 				setResolvedImageUrl(url)
 			} catch {

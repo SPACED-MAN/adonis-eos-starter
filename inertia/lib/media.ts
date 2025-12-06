@@ -17,14 +17,30 @@ export type MediaVariant = {
 export function pickMediaVariantUrl(
   baseUrl: string,
   variants: MediaVariant[] | null | undefined,
-  desiredVariant?: string | null
+  desiredVariant?: string | null,
+  options?: { darkSourceUrl?: string | null }
 ): string {
+  const isDark =
+    typeof document !== 'undefined' && document.documentElement.classList.contains('dark')
+
+  const darkSourceUrl =
+    options && typeof options.darkSourceUrl === 'string' && options.darkSourceUrl
+      ? options.darkSourceUrl
+      : undefined
+
+  const isSvg = /\.svg$/i.test(baseUrl || '')
+
+  // If no variants exist, choose between base and dark base
   if (!Array.isArray(variants) || variants.length === 0) {
+    // In dark mode, prefer darkSourceUrl if available, otherwise fall back to baseUrl
+    if (isDark && darkSourceUrl) {
+      return darkSourceUrl
+    }
     return baseUrl
   }
 
-  const isDark =
-    typeof document !== 'undefined' && document.documentElement.classList.contains('dark')
+  // We have variants - prefer variants over raw base URLs
+  const isDarkTheme = isDark
 
   const pickLargest = (list: MediaVariant[]): string | null => {
     if (!list.length) return null
@@ -37,11 +53,11 @@ export function pickMediaVariantUrl(
     const darkName = `${desired}-dark`
 
     // Prefer theme-aware name first
-    const preferredName = isDark ? darkName : desired
+    const preferredName = isDarkTheme ? darkName : desired
     const exact =
       variants.find((v) => v.name === preferredName) ||
-      (!isDark && variants.find((v) => v.name === desired)) ||
-      (isDark && variants.find((v) => v.name === darkName))
+      (!isDarkTheme && variants.find((v) => v.name === desired)) ||
+      (isDarkTheme && variants.find((v) => v.name === darkName))
     if (exact?.url) {
       return exact.url
     }
@@ -51,14 +67,19 @@ export function pickMediaVariantUrl(
   const darkVariants = variants.filter((v) => String(v.name || '').endsWith('-dark'))
   const lightVariants = variants.filter((v) => !String(v.name || '').endsWith('-dark'))
 
-  if (isDark && darkVariants.length > 0) {
+  if (isDarkTheme && darkVariants.length > 0) {
     return pickLargest(darkVariants) || baseUrl
   }
-  if (!isDark && lightVariants.length > 0) {
+  if (!isDarkTheme && lightVariants.length > 0) {
     return pickLargest(lightVariants) || baseUrl
   }
 
-  // Fallback: any variant
+  // Fallback: if in dark mode and we have a darkSourceUrl, use it as last resort
+  if (isDarkTheme && darkSourceUrl) {
+    return darkSourceUrl
+  }
+
+  // Final fallback: any variant or base URL
   const anyUrl = pickLargest(variants)
   return anyUrl || baseUrl
 }

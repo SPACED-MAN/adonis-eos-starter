@@ -8,12 +8,17 @@ import {
 	AlertDialogAction,
 } from '~/components/ui/alert-dialog'
 import { Input } from '~/components/ui/input'
+import { pickMediaVariantUrl, type MediaVariant } from '../../../lib/media'
 
 type MediaItem = {
 	id: string
 	url: string
 	originalFilename?: string
 	alt?: string | null
+	metadata?: {
+		variants?: MediaVariant[]
+		darkSourceUrl?: string
+	} | null
 }
 
 function getXsrf(): string | undefined {
@@ -146,7 +151,27 @@ export function MediaPickerModal({
 										title={m.originalFilename || m.id}
 									>
 										<div className="aspect-square">
-											<img src={m.url} alt={m.originalFilename || ''} className="w-full h-full object-cover" />
+											{(() => {
+												const baseUrl = m.url
+												const meta = (m as any).metadata || {}
+												const variants: MediaVariant[] = Array.isArray(meta?.variants)
+													? (meta.variants as MediaVariant[])
+													: []
+												const darkSourceUrl =
+													typeof meta.darkSourceUrl === 'string'
+														? (meta.darkSourceUrl as string)
+														: undefined
+												const thumbUrl = pickMediaVariantUrl(baseUrl, variants, 'thumb', {
+													darkSourceUrl,
+												})
+												return (
+													<img
+														src={thumbUrl}
+														alt={m.originalFilename || ''}
+														className="w-full h-full object-cover"
+													/>
+												)
+											})()}
 										</div>
 										<div className="p-1 text-[10px] text-neutral-medium truncate">
 											{m.alt || m.originalFilename || m.id}

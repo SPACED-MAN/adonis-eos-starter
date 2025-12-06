@@ -54,6 +54,22 @@ class GenerateMediaVariantsAction {
     const darkSourceUrl =
       typeof existingMeta.darkSourceUrl === 'string' ? existingMeta.darkSourceUrl : undefined
 
+    const mime: string = String((row as any).mime_type || '')
+    const baseUrlRaw: string = String((row as any).url || '')
+    const isSvg =
+      mime.toLowerCase() === 'image/svg+xml' ||
+      baseUrlRaw.toLowerCase().endsWith('.svg')
+
+    // SVG media never receives rasterized variants; always serve the original SVG.
+    if (isSvg) {
+      const existingList = Array.isArray(existingMeta.variants) ? existingMeta.variants : []
+      return {
+        variants: existingList,
+        metadata: existingMeta,
+        darkSourceUrl,
+      }
+    }
+
     // Determine source file for variant generation
     let baseUrl: string
     let absPath: string

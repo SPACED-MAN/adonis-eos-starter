@@ -18,6 +18,7 @@ import {
 import { FormField, FormLabel } from '~/components/forms/field'
 import { LinkField, type LinkFieldValue } from '~/components/forms/LinkField'
 import { MediaPickerModal } from '../media/MediaPickerModal'
+import { pickMediaVariantUrl, type MediaVariant } from '../../../lib/media'
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome'
 import {
 	faArrowRight,
@@ -82,6 +83,27 @@ type FieldSchema =
 
 function isPlainObject(value: unknown): value is Record<string, any> {
 	return !!value && typeof value === 'object' && !Array.isArray(value)
+}
+
+function useIsDarkMode() {
+	const [isDark, setIsDark] = useState(false)
+
+	useEffect(() => {
+		// Initial check
+		setIsDark(document.documentElement.classList.contains('dark'))
+
+		// Watch for changes
+		const observer = new MutationObserver(() => {
+			setIsDark(document.documentElement.classList.contains('dark'))
+		})
+		observer.observe(document.documentElement, {
+			attributes: true,
+			attributeFilter: ['class'],
+		})
+		return () => observer.disconnect()
+	}, [])
+
+	return isDark
 }
 
 function mergeProps(base: Record<string, any>, overrides: Record<string, any> | null): Record<string, any> {
@@ -430,6 +452,12 @@ export function ModuleEditorPanel({
 			const displayRef = useRef<HTMLInputElement | null>(null)
 			const currentVal = typeof value === 'string' ? value : ''
 			const [preview, setPreview] = useState<ModalMediaItem | null>(null)
+			const [mediaData, setMediaData] = useState<{
+				baseUrl: string
+				variants: MediaVariant[]
+				darkSourceUrl?: string
+			} | null>(null)
+			const isDark = useIsDarkMode()
 
 			// Load preview for existing value
 			useEffect(() => {
@@ -438,28 +466,67 @@ export function ModuleEditorPanel({
 						try {
 							if (storeAsId) {
 								if (!currentVal) {
-									if (alive) setPreview(null)
+									if (alive) {
+										setPreview(null)
+										setMediaData(null)
+									}
 									return
 								}
 								const res = await fetch(`/api/media/${encodeURIComponent(currentVal)}`, { credentials: 'same-origin' })
 								const j = await res.json().catch(() => ({}))
-								const item: ModalMediaItem | null = j?.data ? { id: j.data.id, url: j.data.url, originalFilename: j.data.originalFilename, alt: j.data.alt } : null
-								if (alive) setPreview(item)
+								if (!j?.data) {
+									if (alive) {
+										setPreview(null)
+										setMediaData(null)
+									}
+									return
+								}
+								const item: ModalMediaItem = { 
+									id: j.data.id, 
+									url: j.data.url, 
+									originalFilename: j.data.originalFilename, 
+									alt: j.data.alt 
+								}
+								const meta = j.data.metadata || {}
+								const variants: MediaVariant[] = Array.isArray(meta?.variants) ? meta.variants : []
+								const darkSourceUrl = typeof meta.darkSourceUrl === 'string' ? meta.darkSourceUrl : undefined
+								if (alive) {
+									setPreview(item)
+									setMediaData({ baseUrl: j.data.url, variants, darkSourceUrl })
+								}
 							} else {
 								// If storing URL directly, best-effort preview
 								if (typeof value === 'string' && value) {
-									if (alive) setPreview({ id: '', url: value, originalFilename: value, alt: null })
+									if (alive) {
+										setPreview({ id: '', url: value, originalFilename: value, alt: null })
+										setMediaData(null)
+									}
 								} else {
-									if (alive) setPreview(null)
+									if (alive) {
+										setPreview(null)
+										setMediaData(null)
+									}
 								}
 							}
 						} catch {
-							if (alive) setPreview(null)
+							if (alive) {
+								setPreview(null)
+								setMediaData(null)
+							}
 						}
 					})()
 				return () => { alive = false }
 				// re-evaluate when selection changes
 			}, [storeAsId, currentVal])
+
+			// Compute the display URL based on theme
+			const displayUrl = useMemo(() => {
+				if (!preview) return null
+				if (!mediaData) return preview.url
+				return pickMediaVariantUrl(mediaData.baseUrl, mediaData.variants, 'thumb', {
+					darkSourceUrl: mediaData.darkSourceUrl,
+				})
+			}, [preview, mediaData, isDark])
 
 			function applySelection(m: ModalMediaItem) {
 				if (storeAsId) {
@@ -482,6 +549,8 @@ export function ModuleEditorPanel({
 					setDraft(next)
 				} catch { }
 				setPreview(m)
+				// Clear mediaData so it re-fetches on next render cycle
+				setMediaData(null)
 			}
 
 			function clearSelection() {
@@ -505,15 +574,16 @@ export function ModuleEditorPanel({
 					setDraft(next)
 				} catch { }
 				setPreview(null)
+				setMediaData(null)
 			}
 			return (
 				<FormField>
 					{!hideLabel && <FormLabel>{label}</FormLabel>}
 					<div className="flex items-start gap-3">
 						<div className="min-w-[72px]">
-							{preview ? (
+							{displayUrl ? (
 								<div className="w-[72px] h-[72px] border border-line-medium rounded overflow-hidden bg-backdrop-medium">
-									<img src={preview.url} alt={preview.alt || preview.originalFilename || ''} className="w-full h-full object-cover" />
+									<img src={displayUrl} alt={preview?.alt || preview?.originalFilename || ''} className="w-full h-full object-cover" key={`${displayUrl}-${isDark}`} />
 								</div>
 							) : (
 								<div className="w-[72px] h-[72px] border border-dashed border-line-high rounded flex items-center justify-center text-[10px] text-neutral-medium">

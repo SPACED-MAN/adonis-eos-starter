@@ -155,6 +155,10 @@ export default class MediaController {
     const now = new Date()
     const id = crypto.randomUUID()
     const url = `/uploads/${filename}`
+
+    // Normalize mime type
+    let mime = typeof type === 'string' ? type : ''
+
     // Publish to storage (local no-op, R2 uploads)
     try {
       await storageService.publishFile(destPath, url, mime)
@@ -162,11 +166,14 @@ export default class MediaController {
       /* ignore publish errors; local file remains */
     }
 
-    // Normalize mime type
-    let mime = typeof type === 'string' ? type : ''
+    const isSvg =
+      mime.toLowerCase() === 'image/svg+xml' ||
+      (ext && ext.toLowerCase() === '.svg') ||
+      url.toLowerCase().endsWith('.svg')
 
     let metadata: any = null
-    if (mime.startsWith('image/')) {
+    // For raster images only, generate size variants. SVGs keep a single original.
+    if (mime.startsWith('image/') && !isSvg) {
       try {
         const variants = await mediaService.generateVariants(
           destPath,
@@ -286,28 +293,44 @@ export default class MediaController {
     if (!row) return response.notFound({ error: 'Media not found' })
 
     const publicRoot = path.join(process.cwd(), 'public')
+    const originalUrl = String(row.url || '')
+
     // Delete original file
     try {
-      const originalPath = path.join(publicRoot, String(row.url || '').replace(/^\//, ''))
+      const originalPath = path.join(publicRoot, originalUrl.replace(/^\//, ''))
       await fs.promises.unlink(originalPath)
     } catch {}
     // Also remove from storage driver
     try {
-      await storageService.deleteByUrl(String(row.url || ''))
+      await storageService.deleteByUrl(originalUrl)
     } catch {}
 
-    // Delete known variants from metadata
+    // Delete known variants from metadata (light + dark)
     try {
-      const meta = row.metadata as any
+      const meta = (row as any).metadata as any
       const variants = meta && Array.isArray(meta.variants) ? meta.variants : []
       for (const v of variants) {
         if (!v?.url || typeof v.url !== 'string') continue
-        const p = path.join(publicRoot, v.url.replace(/^\//, ''))
+        const vUrl = String(v.url)
+        const p = path.join(publicRoot, vUrl.replace(/^\//, ''))
         try {
           await fs.promises.unlink(p)
         } catch {}
         try {
-          await storageService.deleteByUrl(String(v.url))
+          await storageService.deleteByUrl(vUrl)
+        } catch {}
+      }
+
+      // Delete dedicated dark base if present
+      const darkSourceUrl =
+        meta && typeof meta.darkSourceUrl === 'string' ? meta.darkSourceUrl : null
+      if (darkSourceUrl) {
+        const darkPath = path.join(publicRoot, darkSourceUrl.replace(/^\//, ''))
+        try {
+          await fs.promises.unlink(darkPath)
+        } catch {}
+        try {
+          await storageService.deleteByUrl(String(darkSourceUrl))
         } catch {}
       }
     } catch {}
@@ -322,7 +345,9 @@ export default class MediaController {
       const files = await fs.promises.readdir(dir)
       await Promise.all(
         files.map(async (f) => {
-          if (f.startsWith(base + '.') && f.endsWith(ext)) {
+          const isVariantPattern = f.startsWith(base + '.') && f.endsWith(ext)
+          const isDarkBase = f === `${base}-dark${ext}`
+          if (isVariantPattern || isDarkBase) {
             try {
               await fs.promises.unlink(path.join(dir, f))
             } catch {}
@@ -392,6 +417,21 @@ export default class MediaController {
     const { id } = params
     let row = await db.from('media_assets').where('id', id).first()
     if (!row) return response.notFound({ error: 'Media not found' })
+
+    const mime = String((row as any).mime_type || '')
+    const url: string = String((row as any).url || '')
+    const isSvg =
+      mime.toLowerCase() === 'image/svg+xml' ||
+      url.toLowerCase().endsWith('.svg')
+
+    // SVGs do not support generated size variants or cropping/focal operations.
+    // Editors should use the original SVG and, if needed, upload a separate dark-mode SVG.
+    if (isSvg) {
+      return response.badRequest({
+        error:
+          'SVG media does not support generated variants. Upload a separate dark-mode SVG instead.',
+      })
+    }
 
     const body = request.all()
 
@@ -810,7 +850,7 @@ export default class MediaController {
     }
     await fs.promises.writeFile(targetAbsPath, data)
 
-    // Derive mime and regenerate variants if image
+    // Derive mime and regenerate variants if raster image
     const ext = (path.extname(targetAbsPath) || '').toLowerCase()
     let mime = typeof type === 'string' ? type : ''
     if (!mime.includes('/')) {
@@ -840,39 +880,54 @@ export default class MediaController {
     }
 
     let metadata = (row.metadata || {}) as any
+    const isSvg =
+      mime.toLowerCase() === 'image/svg+xml' ||
+      targetPublicUrl.toLowerCase().endsWith('.svg')
+
     if (mime.startsWith('image/')) {
-      if (theme === 'dark') {
-        // Update darkSourceUrl to point to the newly uploaded dark base
-        metadata = {
-          ...metadata,
-          darkSourceUrl: targetPublicUrl,
+      if (isSvg) {
+        // SVGs do not get generated size variants. For dark theme overrides, just
+        // track a dedicated dark-source SVG and always serve originals.
+        if (theme === 'dark') {
+          metadata = {
+            ...metadata,
+            darkSourceUrl: targetPublicUrl,
+          }
         }
-
-        // Update the row temporarily so the action can use it
-        const tempRow = { ...row, metadata, url: row.url }
-
-        // Use action to generate dark variants (handles tint logic automatically)
-        const result = await generateMediaVariantsAction.execute({
-          mediaRecord: tempRow,
-          theme: 'dark',
-          updateDatabase: false, // We'll update manually after
-        })
-
-        metadata = result.metadata
       } else {
-        // Light override: use action to regenerate light variants
-        const result = await generateMediaVariantsAction.execute({
-          mediaRecord: {
-            ...row,
-            url: targetPublicUrl,
-            metadata: { ...metadata, darkSourceUrl: metadata.darkSourceUrl },
-          },
-          theme: 'light',
-          updateDatabase: false,
-        })
+        if (theme === 'dark') {
+          // Update darkSourceUrl to point to the newly uploaded dark base
+          metadata = {
+            ...metadata,
+            darkSourceUrl: targetPublicUrl,
+          }
 
-        // When we fully replace the light image, keep dark variants but update light ones
-        metadata = result.metadata
+          // Update the row temporarily so the action can use it
+          const tempRow = { ...row, metadata, url: row.url }
+
+          // Use action to generate dark variants (handles tint logic automatically)
+          const result = await generateMediaVariantsAction.execute({
+            mediaRecord: tempRow,
+            theme: 'dark',
+            updateDatabase: false, // We'll update manually after
+          })
+
+          metadata = result.metadata
+        } else {
+          // Light override: use action to regenerate light variants
+          const result = await generateMediaVariantsAction.execute({
+            mediaRecord: {
+              ...row,
+              url: targetPublicUrl,
+              metadata: { ...metadata, darkSourceUrl: metadata.darkSourceUrl },
+            },
+            theme: 'light',
+            updateDatabase: false,
+          })
+
+          // When we fully replace the light image, keep dark variants but update light ones
+          metadata = result.metadata
+        }
       }
     }
 
@@ -1085,8 +1140,12 @@ export default class MediaController {
     for (const row of rows) {
       try {
         const mime = String((row as any).mime_type || '')
-        if (!mime.startsWith('image/')) continue
         const publicUrl: string = String((row as any).url)
+        const isSvg =
+          mime.toLowerCase() === 'image/svg+xml' ||
+          publicUrl.toLowerCase().endsWith('.svg')
+        if (!mime.startsWith('image/') || isSvg) continue
+
         const absPath = path.join(process.cwd(), 'public', publicUrl.replace(/^\//, ''))
         const variants = await mediaService.generateVariants(
           absPath,
@@ -1150,27 +1209,48 @@ export default class MediaController {
     let deleted = 0
     for (const row of rows) {
       try {
+        const originalUrl: string = String((row as any).url || '')
+        const originalPath = path.join(publicRoot, originalUrl.replace(/^\//, ''))
+
         // Delete original
-        const originalPath = path.join(
-          publicRoot,
-          String((row as any).url || '').replace(/^\//, '')
-        )
         try {
           await fs.promises.unlink(originalPath)
         } catch {}
+        try {
+          await storageService.deleteByUrl(originalUrl)
+        } catch {}
+
         // Delete variants from metadata
         try {
           const meta = (row as any).metadata as any
           const variants = meta && Array.isArray(meta.variants) ? meta.variants : []
           for (const v of variants) {
             if (!v?.url || typeof v.url !== 'string') continue
-            const p = path.join(publicRoot, v.url.replace(/^\//, ''))
+            const vUrl = String(v.url)
+            const p = path.join(publicRoot, vUrl.replace(/^\//, ''))
             try {
               await fs.promises.unlink(p)
             } catch {}
+            try {
+              await storageService.deleteByUrl(vUrl)
+            } catch {}
+          }
+
+          // Delete dedicated dark base if present
+          const darkSourceUrl =
+            meta && typeof meta.darkSourceUrl === 'string' ? meta.darkSourceUrl : null
+          if (darkSourceUrl) {
+            const darkPath = path.join(publicRoot, darkSourceUrl.replace(/^\//, ''))
+            try {
+              await fs.promises.unlink(darkPath)
+            } catch {}
+            try {
+              await storageService.deleteByUrl(String(darkSourceUrl))
+            } catch {}
           }
         } catch {}
-        // Fallback pattern-based
+
+        // Fallback pattern-based (variants and -dark base on disk + storage)
         try {
           const parsed = path.parse(originalPath)
           const dir = parsed.dir
@@ -1178,13 +1258,22 @@ export default class MediaController {
           const ext = parsed.ext
           const files = await fs.promises.readdir(dir)
           for (const f of files) {
-            if (f.startsWith(base + '.') && f.endsWith(ext)) {
+            const isVariantPattern = f.startsWith(base + '.') && f.endsWith(ext)
+            const isDarkBase = f === `${base}-dark${ext}`
+            if (isVariantPattern || isDarkBase) {
+              const diskPath = path.join(dir, f)
               try {
-                await fs.promises.unlink(path.join(dir, f))
+                await fs.promises.unlink(diskPath)
+              } catch {}
+              try {
+                await storageService.deleteByUrl(
+                  path.posix.join(path.posix.dirname(originalUrl), f)
+                )
               } catch {}
             }
           }
         } catch {}
+
         await db
           .from('media_assets')
           .where('id', (row as any).id)

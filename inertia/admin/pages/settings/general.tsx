@@ -5,6 +5,7 @@ import { Input } from '../../../components/ui/input'
 import { Textarea } from '../../../components/ui/textarea'
 import { toast } from 'sonner'
 import { MediaPickerModal } from '../../components/media/MediaPickerModal'
+import { pickMediaVariantUrl, type MediaVariant } from '../../../lib/media'
 
 type Settings = {
   siteTitle: string
@@ -153,6 +154,27 @@ export default function GeneralSettings() {
     }
   }
 
+  function useIsDarkMode() {
+    const [isDark, setIsDark] = useState(false)
+
+    useEffect(() => {
+      // Initial check
+      setIsDark(document.documentElement.classList.contains('dark'))
+
+      // Watch for changes
+      const observer = new MutationObserver(() => {
+        setIsDark(document.documentElement.classList.contains('dark'))
+      })
+      observer.observe(document.documentElement, {
+        attributes: true,
+        attributeFilter: ['class'],
+      })
+      return () => observer.disconnect()
+    }, [])
+
+    return isDark
+  }
+
   function MediaIdPicker({
     label,
     value,
@@ -165,14 +187,22 @@ export default function GeneralSettings() {
     const [open, setOpen] = useState(false)
     const [previewUrl, setPreviewUrl] = useState<string | null>(null)
     const [previewAlt, setPreviewAlt] = useState<string>('')
+    const [mediaData, setMediaData] = useState<{
+      baseUrl: string
+      variants: MediaVariant[]
+      darkSourceUrl?: string
+    } | null>(null)
     const id = value || ''
+    const isDark = useIsDarkMode()
 
+    // Fetch media data when id changes
     useEffect(() => {
       let alive = true
         ; (async () => {
           try {
             if (!id) {
               if (alive) {
+                setMediaData(null)
                 setPreviewUrl(null)
                 setPreviewAlt('')
               }
@@ -180,14 +210,23 @@ export default function GeneralSettings() {
             }
             const res = await fetch(`/api/media/${encodeURIComponent(id)}`, { credentials: 'same-origin' })
             const j = await res.json().catch(() => ({}))
-            const url = j?.data?.url || null
+            const baseUrl = j?.data?.url || null
             const alt = j?.data?.alt || j?.data?.originalFilename || ''
+            const meta = j?.data?.metadata || {}
+            const variants: MediaVariant[] = Array.isArray(meta?.variants) ? meta.variants : []
+            const darkSourceUrl = typeof meta.darkSourceUrl === 'string' ? meta.darkSourceUrl : undefined
             if (alive) {
-              setPreviewUrl(url)
+              if (baseUrl) {
+                setMediaData({ baseUrl, variants, darkSourceUrl })
+              } else {
+                setMediaData(null)
+                setPreviewUrl(null)
+              }
               setPreviewAlt(alt)
             }
           } catch {
             if (alive) {
+              setMediaData(null)
               setPreviewUrl(null)
               setPreviewAlt('')
             }
@@ -198,6 +237,18 @@ export default function GeneralSettings() {
       }
     }, [id])
 
+    // Resolve URL when media data or theme changes
+    useEffect(() => {
+      if (!mediaData) {
+        setPreviewUrl(null)
+        return
+      }
+      const resolved = pickMediaVariantUrl(mediaData.baseUrl, mediaData.variants, 'thumb', {
+        darkSourceUrl: mediaData.darkSourceUrl,
+      })
+      setPreviewUrl(resolved)
+    }, [mediaData, isDark])
+
     return (
       <div>
         <label className="block text-sm font-medium text-neutral-medium mb-1">{label}</label>
@@ -205,7 +256,7 @@ export default function GeneralSettings() {
           <div className="min-w-[72px]">
             {previewUrl ? (
               <div className="w-[72px] h-[72px] border border-line-medium rounded overflow-hidden bg-backdrop-medium">
-                <img src={previewUrl} alt={previewAlt} className="w-full h-full object-cover" />
+                <img src={previewUrl} alt={previewAlt} className="w-full h-full object-cover" key={`${previewUrl}-${isDark}`} />
               </div>
             ) : (
               <div className="w-[72px] h-[72px] border border-dashed border-line-high rounded flex items-center justify-center text-[10px] text-neutral-medium">
