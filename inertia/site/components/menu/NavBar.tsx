@@ -49,14 +49,14 @@ export function NavBar({
             {currentUser ? (
               <a
                 href="/admin"
-                className="text-sm text-neutral-high hover:text-standout"
+                className="inline-flex items-center rounded-md border border-line-high bg-backdrop px-3 py-1.5 text-xs sm:text-sm font-medium text-neutral-high hover:bg-backdrop-input hover:text-standout"
               >
                 Dashboard
               </a>
             ) : (
               <a
                 href="/admin/login"
-                className="text-sm text-neutral-high hover:text-standout"
+                className="inline-flex items-center rounded-md border border-line-high bg-backdrop px-3 py-1.5 text-xs sm:text-sm font-medium text-neutral-high hover:bg-backdrop-input hover:text-standout"
               >
                 Login
               </a>

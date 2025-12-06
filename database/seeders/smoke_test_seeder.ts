@@ -284,7 +284,6 @@ export default class extends BaseSeeder {
         console.log('✅ Module Catalog post already exists, skipping create')
       }
 
-
       // Only seed initial modules if this catalog page has no modules attached yet
       const existingCatalogModules = await db
         .from('post_modules')
@@ -663,54 +662,7 @@ export default class extends BaseSeeder {
       }
     }
 
-    // Test 9: Seed top-level marketing pages used by primary navigation
-    {
-      const nowTs = new Date()
-
-      async function ensurePage(
-        slug: string,
-        title: string,
-        excerpt: string,
-        metaDescription: string
-      ) {
-        const [existing] = await db
-          .from('posts')
-          .where({ type: 'page', slug, locale: 'en' })
-          .limit(1)
-
-        if (existing) {
-          console.log(`ℹ️ Page "${slug}" already exists, skipping create`)
-          return
-        }
-
-        await db
-          .table('posts')
-          .insert({
-            type: 'page',
-            slug,
-            title,
-            excerpt,
-            status: 'published',
-            locale: 'en',
-            user_id: user!.id,
-            meta_title: title,
-            meta_description: metaDescription,
-            robots_json: JSON.stringify({ index: true, follow: true }),
-            created_at: nowTs,
-            updated_at: nowTs,
-          })
-        console.log(`✅ Created marketing page: ${slug}`)
-      }
-
-      await ensurePage(
-        'learn-more',
-        'Learn More about EOS',
-        'Overview of the EOS starter kit, its architecture, and how it fits into your stack.',
-        'Learn more about the EOS AdonisJS + Inertia starter: goals, architecture, and when to use it.'
-      )
-    }
-
-    // Test 10-11: Custom fields (code-first only): store by slug in post_custom_field_values
+    // Test 10: Custom fields (code-first only): store by slug in post_custom_field_values
     try {
       await db.table('post_custom_field_values').insert({
         id: crypto.randomUUID(),
@@ -731,6 +683,128 @@ export default class extends BaseSeeder {
       post_type: 'testimonial',
     })
     console.log('✅ Created testimonial-list module scope restriction')
+
+    // Test 12: Seed pricing page used by primary/footer navigation
+    {
+      const nowTs = new Date()
+      const [existingPricing] = await db
+        .from('posts')
+        .where({ type: 'page', slug: 'pricing', locale: 'en' })
+        .limit(1)
+
+      if (!existingPricing) {
+        const [pricingPost] = await db
+          .table('posts')
+          .insert({
+            type: 'page',
+            slug: 'pricing',
+            title: 'Pricing',
+            excerpt: 'Adonis EOS is open source and free to use under the Apache 2.0 license.',
+            status: 'published',
+            locale: 'en',
+            user_id: user!.id,
+            meta_title: 'Adonis EOS Pricing - Open Source & Free',
+            meta_description:
+              'There is no license fee for Adonis EOS. It is 100% open source under the Apache 2.0 license, ready to run in your own infrastructure.',
+            robots_json: JSON.stringify({ index: true, follow: true }),
+            created_at: nowTs,
+            updated_at: nowTs,
+          })
+          .returning('*')
+        console.log(`✅ Created pricing page: ${pricingPost.slug}`)
+
+        // Attach a playful Pricing module instance if one exists, otherwise create one
+        const existingPricingInstance = await db
+          .from('module_instances')
+          .where({ type: 'pricing', scope: 'post' })
+          .first()
+
+        let pricingModuleId: string | null = null
+
+        if (existingPricingInstance) {
+          pricingModuleId = String(existingPricingInstance.id)
+        } else {
+          const [createdPricingInstance] = await db
+            .table('module_instances')
+            .insert({
+              type: 'pricing',
+              scope: 'post',
+              props: {
+                title: 'No tiers. No tricks. Just open source.',
+                subtitle:
+                  'Adonis EOS is 100% free to run in your own infrastructure under the Apache 2.0 license. Keep your budget for coffee, not licenses.',
+                plans: [
+                  {
+                    name: 'Solo Hacker',
+                    description: 'Perfect for side projects and experiments.',
+                    price: '0',
+                    period: 'forever',
+                    features: [
+                      'Unlimited content types and modules',
+                      'Local development with hot reload',
+                      'Keep your data on your own infrastructure',
+                    ],
+                    primary: false,
+                    ctaLabel: 'Clone the repo',
+                    ctaUrl: {
+                      kind: 'url',
+                      url: 'https://github.com/your-org/your-repo',
+                      target: '_blank',
+                    },
+                  },
+                  {
+                    name: 'Product Team',
+                    description: 'Launch fast with a production-ready Node.js CMS starter.',
+                    price: '0',
+                    period: 'per project',
+                    features: [
+                      'AdonisJS + Inertia + React stack',
+                      'Module-based page building',
+                      'Bring your own hosting and CI/CD',
+                    ],
+                    primary: true,
+                    ctaLabel: 'View docs',
+                    ctaUrl: { kind: 'url', url: '/docs/for-developers', target: '_self' },
+                  },
+                  {
+                    name: 'Enterprise',
+                    description: 'Self-hosted, extensible, and ready for compliance reviews.',
+                    price: '0',
+                    period: 'per cluster',
+                    features: [
+                      'Apache 2.0 license - no seat-based pricing',
+                      'Integrate with your SSO, logging, and observability stack',
+                      'Full control over data residency and security posture',
+                    ],
+                    primary: false,
+                    ctaLabel: 'Talk to your team',
+                    ctaUrl: { kind: 'url', url: '/docs/for-developers', target: '_self' },
+                  },
+                ],
+              },
+              created_at: nowTs,
+              updated_at: nowTs,
+            })
+            .returning('*')
+
+          pricingModuleId = String((createdPricingInstance as any).id)
+          console.log('✅ Created pricing module instance for pricing page')
+        }
+
+        if (pricingModuleId) {
+          await db.table('post_modules').insert({
+            post_id: pricingPost.id,
+            module_id: pricingModuleId,
+            order_index: 0,
+            created_at: nowTs,
+            updated_at: nowTs,
+          })
+          console.log('✅ Attached pricing module to pricing page')
+        }
+      } else {
+        console.log('ℹ️ Pricing page already exists, skipping...')
+      }
+    }
 
     console.log('\n✨ Smoke tests completed for database schema (with i18n).')
     console.log('📊 Summary:')

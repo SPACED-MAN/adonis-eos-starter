@@ -61,7 +61,7 @@
 
   --color-backdrop-low: var(--color-zinc-50);
   --color-backdrop-medium: var(--color-zinc-100);
-  --color-backdrop-high: var(--color-zinc-200);
+  --color-backdrop-high: var(--color-zinc-400);
   --color-backdrop-input: var(--color-zinc-100);
 
   --color-line-low: var(--color-zinc-200);

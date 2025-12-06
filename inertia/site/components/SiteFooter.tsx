@@ -74,7 +74,6 @@ export function SiteFooter() {
             © {new Date().getFullYear()} {siteTitle}. All rights reserved.
           </span>
           <div className="flex items-center gap-3">
-            <span className="text-xs text-neutral-low">Theme</span>
             <ThemeToggle />
           </div>
         </div>

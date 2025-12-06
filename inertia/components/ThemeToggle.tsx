@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react'
+import { FontAwesomeIcon } from '../site/lib/icons'
 
 export function ThemeToggle() {
 	const [mode, setMode] = useState<'light' | 'dark'>('light')
@@ -51,10 +52,14 @@ export function ThemeToggle() {
 		<button
 			type="button"
 			onClick={toggle}
-			className="inline-flex items-center rounded border border-line-low bg-backdrop-input px-3 py-1.5 text-sm text-neutral-high hover:bg-backdrop-medium"
+			className="inline-flex items-center justify-center rounded-full bg-backdrop-high dark:bg-neutral-low w-10 h-10 text-neutral-high dark:text-backdrop-low hover:bg-neutral-high hover:text-backdrop-low hover:dark:bg-neutral-high hover:dark:text-backdrop-low"
 			aria-label="Toggle dark mode"
 		>
-			{mode === 'dark' ? 'Light mode' : 'Dark mode'}
+			{mode === 'dark' ? (
+				<FontAwesomeIcon icon={['fas', 'sun']} className="w-4 h-4" />
+			) : (
+				<FontAwesomeIcon icon={['fas', 'moon']} className="w-4 h-4" />
+			)}
 		</button>
 	)
 }
