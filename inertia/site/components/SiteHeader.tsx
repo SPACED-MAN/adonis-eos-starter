@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react'
 import type { MenuItem, TreeNode } from './menu/types'
 import { NavBar } from './menu/NavBar'
+import { usePage } from '@inertiajs/react'
 
 function buildTree(items: MenuItem[]): TreeNode[] {
   const idToNode = new Map<string, TreeNode>()
@@ -24,6 +25,9 @@ export function SiteHeader() {
   const [siteTitle, setSiteTitle] = useState<string>('')
   const [logoLightUrl, setLogoLightUrl] = useState<string | null>(null)
   const [logoDarkUrl, setLogoDarkUrl] = useState<string | null>(null)
+
+  const page = usePage()
+  const currentUser = (page.props as any)?.currentUser
 
   useEffect(() => {
     ;(async () => {
@@ -86,6 +90,7 @@ export function SiteHeader() {
       menuName={siteTitle}
       logoLightUrl={logoLightUrl || undefined}
       logoDarkUrl={logoDarkUrl || undefined}
+      currentUser={currentUser || undefined}
     />
   )
 }

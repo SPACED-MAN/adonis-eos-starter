@@ -6,7 +6,7 @@ export default class extends BaseSeeder {
   async run() {
     const now = new Date()
 
-    // Seed Primary Menu
+    // Seed Primary Menu (code-first default site navigation)
     const existingPrimary = await db.from('menus').where('slug', 'primary').first()
     if (!existingPrimary) {
       const menuId = randomUUID()
@@ -21,20 +21,22 @@ export default class extends BaseSeeder {
         updated_at: now,
       })
 
-      // Seed sample items and a section under the first item
-      const homeId = randomUUID()
-      const aboutId = randomUUID()
-      const servicesId = randomUUID()
-      const sectionId = randomUUID()
+      // Top-level primary nav items
+      const learnMoreId = randomUUID()
+      const editorsId = randomUUID()
+      const developersId = randomUUID()
+      const modulesId = randomUUID()
+      const downloadId = randomUUID()
+
       await db.table('menu_items').insert([
         {
-          id: homeId,
+          id: learnMoreId,
           menu_id: menuId,
           parent_id: null,
           order_index: 0,
-          label: 'Home',
+          label: 'Learn More',
           type: 'custom',
-          custom_url: '/',
+          custom_url: '/learn-more',
           anchor: null,
           target: null,
           rel: null,
@@ -44,13 +46,13 @@ export default class extends BaseSeeder {
           locale: 'en',
         },
         {
-          id: aboutId,
+          id: editorsId,
           menu_id: menuId,
           parent_id: null,
           order_index: 1,
-          label: 'About',
+          label: 'For Editors',
           type: 'custom',
-          custom_url: '/about',
+          custom_url: '/for-editors',
           anchor: null,
           target: null,
           rel: null,
@@ -60,13 +62,13 @@ export default class extends BaseSeeder {
           locale: 'en',
         },
         {
-          id: servicesId,
+          id: developersId,
           menu_id: menuId,
           parent_id: null,
           order_index: 2,
-          label: 'Services',
+          label: 'For Developers',
           type: 'custom',
-          custom_url: '/services',
+          custom_url: '/for-developers',
           anchor: null,
           target: null,
           rel: null,
@@ -76,19 +78,36 @@ export default class extends BaseSeeder {
           locale: 'en',
         },
         {
-          id: sectionId,
+          id: modulesId,
           menu_id: menuId,
-          parent_id: servicesId,
-          order_index: 0,
-          label: 'Featured',
+          parent_id: null,
+          order_index: 3,
+          label: 'Modules',
           type: 'custom',
-          custom_url: null,
+          custom_url: '/module-catalog',
           anchor: null,
           target: null,
           rel: null,
           created_at: now,
           updated_at: now,
-          kind: 'section',
+          kind: 'item',
+          locale: 'en',
+        },
+        {
+          id: downloadId,
+          menu_id: menuId,
+          parent_id: null,
+          order_index: 4,
+          label: 'Download',
+          type: 'custom',
+          // Placeholder; point this at your public Git repo when ready
+          custom_url: 'https://github.com/your-org/your-repo',
+          anchor: null,
+          target: '_blank',
+          rel: 'noopener noreferrer',
+          created_at: now,
+          updated_at: now,
+          kind: 'item',
           locale: 'en',
         },
       ])

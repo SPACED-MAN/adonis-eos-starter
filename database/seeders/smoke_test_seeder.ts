@@ -417,10 +417,10 @@ export default class extends BaseSeeder {
               subtitle: 'This hero demonstrates a centered layout using neutral project tokens.',
               callouts: [
                 {
-                label: 'Explore modules',
-                url: { kind: 'url', url: '#' },
-                target: '_self',
-              },
+                  label: 'Explore modules',
+                  url: { kind: 'url', url: '#' },
+                  target: '_self',
+                },
               ],
               backgroundColor: 'bg-backdrop-low',
             },
@@ -612,10 +612,10 @@ export default class extends BaseSeeder {
                 subtitle: 'This hero demonstrates a centered layout using neutral project tokens.',
                 callouts: [
                   {
-                  label: 'Explore modules',
-                  url: '#',
-                  target: '_self',
-                },
+                    label: 'Explore modules',
+                    url: '#',
+                    target: '_self',
+                  },
                 ],
                 backgroundColor: 'bg-backdrop-low',
               },
@@ -663,7 +663,68 @@ export default class extends BaseSeeder {
       }
     }
 
-    // Test 9-11: Custom fields (code-first only): store by slug in post_custom_field_values
+    // Test 9: Seed top-level marketing pages used by primary navigation
+    {
+      const nowTs = new Date()
+
+      async function ensurePage(
+        slug: string,
+        title: string,
+        excerpt: string,
+        metaDescription: string
+      ) {
+        const [existing] = await db
+          .from('posts')
+          .where({ type: 'page', slug, locale: 'en' })
+          .limit(1)
+
+        if (existing) {
+          console.log(`ℹ️ Page "${slug}" already exists, skipping create`)
+          return
+        }
+
+        await db
+          .table('posts')
+          .insert({
+            type: 'page',
+            slug,
+            title,
+            excerpt,
+            status: 'published',
+            locale: 'en',
+            user_id: user!.id,
+            meta_title: title,
+            meta_description: metaDescription,
+            robots_json: JSON.stringify({ index: true, follow: true }),
+            created_at: nowTs,
+            updated_at: nowTs,
+          })
+        console.log(`✅ Created marketing page: ${slug}`)
+      }
+
+      await ensurePage(
+        'learn-more',
+        'Learn More about EOS',
+        'Overview of the EOS starter kit, its architecture, and how it fits into your stack.',
+        'Learn more about the EOS AdonisJS + Inertia starter: goals, architecture, and when to use it.'
+      )
+
+      await ensurePage(
+        'for-editors',
+        'For Editors',
+        'Guide for editors on using modules, media, and rich text to compose pages.',
+        'Editorial guide to using the EOS starter: modules, media, and rich text workflows for content teams.'
+      )
+
+      await ensurePage(
+        'for-developers',
+        'For Developers',
+        'Developer-focused overview of the module system, rendering modes, and extension points.',
+        'Developer guide to the EOS starter: module architecture, rendering modes, and extension hooks.'
+      )
+    }
+
+    // Test 10-11: Custom fields (code-first only): store by slug in post_custom_field_values
     try {
       await db.table('post_custom_field_values').insert({
         id: crypto.randomUUID(),

@@ -7,12 +7,14 @@ export function NavBar({
   menuName,
   logoLightUrl,
   logoDarkUrl,
+  currentUser,
 }: {
   primaryNodes: TreeNode[]
   menuMeta?: Record<string, any> | null
   menuName?: string
   logoLightUrl?: string
   logoDarkUrl?: string
+  currentUser?: any
 }) {
 
   return (
@@ -41,6 +43,25 @@ export function NavBar({
               <NavItem key={n.id} node={n} menuMeta={menuMeta} />
             ))}
           </nav>
+
+          {/* Auth-aware login/logout shortcut */}
+          <div className="hidden md:flex items-center">
+            {currentUser ? (
+              <a
+                href="/admin"
+                className="text-sm text-neutral-high hover:text-standout"
+              >
+                Dashboard
+              </a>
+            ) : (
+              <a
+                href="/admin/login"
+                className="text-sm text-neutral-high hover:text-standout"
+              >
+                Login
+              </a>
+            )}
+          </div>
         </div>
       </div>
     </header>

@@ -151,7 +151,7 @@ export const LinkField: React.FC<LinkFieldProps> = ({
 
     // Reject relative paths
     if (trimmed.startsWith('/')) {
-      return 'Internal links should use "Existing post" instead of relative URLs'
+      return 'Internal links should use "Post" instead of relative URLs'
     }
 
     // Reject same-domain URLs
@@ -159,7 +159,7 @@ export const LinkField: React.FC<LinkFieldProps> = ({
       const urlObj = new URL(trimmed)
       const currentDomain = window.location.hostname
       if (urlObj.hostname === currentDomain) {
-        return 'Internal links should use "Existing post" instead of full URLs to this site'
+        return 'Internal links should use "Post" instead of full URLs to this site'
       }
     } catch {
       // Invalid URL format - let the browser's native validation handle it
@@ -195,7 +195,7 @@ export const LinkField: React.FC<LinkFieldProps> = ({
               }
             }}
           >
-            <option value="post">Existing post</option>
+            <option value="post">Post</option>
             <option value="url">Custom URL (external only)</option>
           </select>
         </div>
@@ -225,7 +225,7 @@ export const LinkField: React.FC<LinkFieldProps> = ({
               <FormHelper className="text-danger">{urlError}</FormHelper>
             ) : (
               <FormHelper>
-                Enter a full URL. Use this for external destinations only. For internal links, use &quot;Existing post&quot;.
+                Enter a full URL. Use this for external destinations only. For internal links, use &quot;Post&quot;.
               </FormHelper>
             )}
           </div>

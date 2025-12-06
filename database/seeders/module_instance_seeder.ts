@@ -724,16 +724,19 @@ export default class ModuleInstanceSeeder extends BaseSeeder {
       .first()
 
     let heroInstance: any = existingHero
+    const heroProps = {
+      title: 'Explore the Module Catalog',
+      subtitle:
+        'This page is a working gallery of content modules used across the EOS starter. Designers can inspect layout and typography; editors can see what each module can do before using it in real content.',
+      backgroundColor: 'bg-backdrop-low',
+    }
     if (!heroInstance) {
       const [createdHero] = await db
         .table('module_instances')
         .insert({
           type: 'hero',
           scope: 'post',
-          props: {
-            title: 'Hero (Static)',
-            subtitle: 'Classic hero module using static SSR rendering.',
-          },
+          props: heroProps,
           created_at: nowTs,
           updated_at: nowTs,
         })
@@ -741,7 +744,15 @@ export default class ModuleInstanceSeeder extends BaseSeeder {
       heroInstance = createdHero
       console.log('✅ [ModuleInstanceSeeder] Created hero module instance')
     } else {
-      console.log('ℹ️ [ModuleInstanceSeeder] hero module instance already exists; reusing')
+      await db
+        .from('module_instances')
+        .where('id', existingHero.id)
+        .update({
+          props: heroProps as any,
+          updated_at: nowTs,
+        })
+      heroInstance = { ...existingHero, props: heroProps }
+      console.log('ℹ️ [ModuleInstanceSeeder] Updated hero module instance props for Module Catalog')
     }
 
     // Hero with Media instance
