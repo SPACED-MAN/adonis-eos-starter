@@ -74,11 +74,11 @@ Depending on your role, you'll have different publishing options:
 
 ## Need Help?
 
-- Check the [Content Management Guide](/docs/quick-start/content-management) for detailed instructions
-- Learn about [Roles & Permissions](/docs/quick-start/roles-permissions) to understand your access level
-- Explore [Working with Modules](/docs/quick-start/modules-guide) for tips on each content type
+- Check the [Content Management Guide](/docs/for-editors/content-management) for detailed instructions
+- Learn about [Roles & Permissions](/docs/for-editors/roles-permissions) to understand your access level
+- Explore [Working with Modules](/docs/for-editors/modules-guide) for tips on each content type
 
 ---
 
-**Next Steps**: [Content Management Guide](/docs/quick-start/content-management)
+**Next Steps**: [Content Management Guide](/docs/for-editors/content-management)
 

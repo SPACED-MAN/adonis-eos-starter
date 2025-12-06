@@ -218,5 +218,5 @@ A: They're the same thing! "Module" and "block" are often used interchangeably.
 
 ---
 
-**Related**: [Content Management](/docs/quick-start/content-management) | [Quick Start](/docs/quick-start)
+**Related**: [Content Management](/docs/for-editors/content-management) | [For Editors](/docs/for-editors)
 

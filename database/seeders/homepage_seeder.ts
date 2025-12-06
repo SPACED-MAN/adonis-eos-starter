@@ -38,9 +38,9 @@ export default class extends BaseSeeder {
         slug: 'home',
         title: 'Home',
         status: 'published',
-        metaTitle: 'Adonis EOS - Modern Content Management System',
+        metaTitle: 'Adonis EOS - Node.js-first CMS starter',
         metaDescription:
-          'Build beautiful, performant websites with Adonis EOS. A modern CMS built on AdonisJS with modular architecture, multi-language support, and powerful content workflows.',
+          'Adonis EOS is a Node.js-first CMS starter built on AdonisJS, Inertia, and React. Model content with modules, keep everything in your TypeScript codebase, and ship fast with a modern editorial experience.',
         userId: admin.id,
       })
 
@@ -56,12 +56,12 @@ export default class extends BaseSeeder {
           .first(),
         db
           .from('posts')
-          .where('slug', 'quick-start')
+          .where('slug', 'for-editors')
           .where('type', 'documentation')
           .first(),
         db
           .from('posts')
-          .where('slug', 'getting-started')
+          .where('slug', 'for-developers')
           .where('type', 'documentation')
           .first(),
       ])
@@ -73,9 +73,9 @@ export default class extends BaseSeeder {
         moduleType: 'hero-with-callout',
         scope: 'local',
         props: {
-          title: 'Build the web your way',
+          title: 'A Node.js-first CMS starter for product teams',
           subtitle:
-            'Adonis EOS is a modern content management system built for developers and content creators. Create beautiful, performant websites with a modular architecture, powerful workflows, and an intuitive editing experience.',
+            'Adonis EOS is an AdonisJS + Inertia + React starter that treats content modeling, modules, and performance as first-class concerns. It feels like a modern page builder, but lives entirely in your Node.js stack.',
           callouts: [
             {
               label: 'Learn More',
@@ -99,7 +99,7 @@ export default class extends BaseSeeder {
                   locale: editorsPost.locale || 'en',
                   target: '_self',
                 }
-                : { kind: 'url', url: 'https://adoniseos.com/docs/quick-start', target: '_self' },
+                : { kind: 'url', url: 'https://adoniseos.com/docs/for-editors', target: '_self' },
             },
             {
               label: 'For Developers',
@@ -111,7 +111,7 @@ export default class extends BaseSeeder {
                   locale: developerDocsPost.locale || 'en',
                   target: '_self',
                 }
-                : { kind: 'url', url: 'https://adoniseos.com/docs/getting-started', target: '_self' },
+                : { kind: 'url', url: 'https://adoniseos.com/docs/for-developers', target: '_self' },
             },
           ],
           backgroundColor: 'bg-backdrop-low',
@@ -126,7 +126,7 @@ export default class extends BaseSeeder {
         scope: 'local',
         props: {
           title: 'Why Adonis EOS?',
-          subtitle: 'Built for modern web development with everything you need out of the box',
+          subtitle: 'Built for modern Node.js development with everything you need out of the box',
           backgroundColor: 'bg-backdrop',
           features: [
             {

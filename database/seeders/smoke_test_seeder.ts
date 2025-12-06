@@ -708,20 +708,6 @@ export default class extends BaseSeeder {
         'Overview of the EOS starter kit, its architecture, and how it fits into your stack.',
         'Learn more about the EOS AdonisJS + Inertia starter: goals, architecture, and when to use it.'
       )
-
-      await ensurePage(
-        'for-editors',
-        'For Editors',
-        'Guide for editors on using modules, media, and rich text to compose pages.',
-        'Editorial guide to using the EOS starter: modules, media, and rich text workflows for content teams.'
-      )
-
-      await ensurePage(
-        'for-developers',
-        'For Developers',
-        'Developer-focused overview of the module system, rendering modes, and extension points.',
-        'Developer guide to the EOS starter: module architecture, rendering modes, and extension hooks.'
-      )
     }
 
     // Test 10-11: Custom fields (code-first only): store by slug in post_custom_field_values

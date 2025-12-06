@@ -17,6 +17,8 @@ import {
   faCodeBranch,
   faPalette,
   faBolt,
+  faRocket,
+  faLayerGroup,
 } from '@fortawesome/free-solid-svg-icons'
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome'
 
@@ -39,6 +41,8 @@ library.add(
   faCodeBranch,
   faPalette,
   faBolt,
+  faRocket,
+  faLayerGroup,
 )
 
 export { FontAwesomeIcon }

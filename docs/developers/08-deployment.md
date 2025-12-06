@@ -516,5 +516,5 @@ After deployment:
 
 ---
 
-**Related:** [Getting Started](/docs/getting-started) | [Configuration](/docs/getting-started/configuration)
+**Related:** [Getting Started](/docs/for-developers) | [Configuration](/docs/for-developers/configuration)
 

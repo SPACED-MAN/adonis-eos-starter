@@ -801,10 +801,16 @@ export default class ModuleInstanceSeeder extends BaseSeeder {
       )
     }
 
-    // Prose instance (shared rich-text example)
+    // Prose instance (shared rich-text example for the Module Catalog only)
+    // We intentionally scope this to the Module Catalog post so we don't overwrite
+    // other prose instances (e.g., documentation pages).
     const existingProseInstance = await db
       .from('module_instances')
-      .where({ type: 'prose', scope: 'post' })
+      .join('post_modules', 'module_instances.id', 'post_modules.module_id')
+      .where('module_instances.type', 'prose')
+      .where('module_instances.scope', 'post')
+      .where('post_modules.post_id', catalogPost.id)
+      .select('module_instances.*')
       .first()
 
     // Rich Lexical sample to showcase typography and editor capabilities

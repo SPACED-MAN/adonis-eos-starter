@@ -105,10 +105,10 @@ adonis-eos/
 
 ## Next Steps
 
-- [API Reference](/docs/getting-started/api-reference) - Learn about available endpoints
-- [Building Modules](/docs/getting-started/building-modules) - Create custom content modules
-- [Theming](/docs/getting-started/theming) - Customize the design system
-- [Content Management](/docs/quick-start/content-management) - Managing posts and pages
+- [API Reference](/docs/for-developers/api-reference) - Learn about available endpoints
+- [Building Modules](/docs/for-developers/building-modules) - Create custom content modules
+- [Theming](/docs/for-developers/theming) - Customize the design system
+- [Content Management](/docs/for-editors/content-management) - Managing posts and pages
 
 
 

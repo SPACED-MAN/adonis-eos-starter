@@ -322,5 +322,5 @@ export default SeoAgent
 
 ---
 
-**Related**: [API Reference](/docs/getting-started/api-reference) | [Webhooks](/docs/getting-started/webhooks)
+**Related**: [API Reference](/docs/for-developers/api-reference) | [Webhooks](/docs/for-developers/webhooks)
 

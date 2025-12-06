@@ -401,7 +401,7 @@ export default class extends BaseSeeder {
       // "For Editors" and "For Developers" are top-level with their own children
 
       // Group all editor guides under "For Editors"
-      'quick-start': [
+      'for-editors': [
         'content-management',
         'modules-guide',
         'review-workflow',
@@ -410,7 +410,7 @@ export default class extends BaseSeeder {
         'roles-permissions',
       ],
       // Group all developer guides under "For Developers"
-      'getting-started': [
+      'for-developers': [
         'api-reference',
         'building-modules',
         'theming',
@@ -425,24 +425,24 @@ export default class extends BaseSeeder {
     // First pass: create all posts and store IDs by slug
     const postIdsBySlug: Record<string, string> = {}
 
-    // Create the "Documentation" overview post from README.md FIRST
-    console.log('✨ Creating Documentation overview from README.md')
-    const readmePath = join(process.cwd(), 'README.md')
-    const readmeContent = await readFile(readmePath, 'utf-8')
+    // Create the "Documentation" overview post from docs/00-index.md FIRST
+    console.log('✨ Creating Documentation overview from docs/00-index.md')
+    const docsIndexPath = join(docsPath, '00-index.md')
+    const indexContent = await readFile(docsIndexPath, 'utf-8')
 
-    // Extract title and subtitle from README
-    const readmeTitleMatch = readmeContent.match(/^#\s+(.+)$/m)
-    const readmeTitle = readmeTitleMatch ? readmeTitleMatch[1] : 'Documentation'
-    const readmeSubtitleMatch = readmeContent.match(/^#\s+.+\n\n(.+)$/m)
-    const readmeSubtitle = readmeSubtitleMatch ? readmeSubtitleMatch[1] : null
+    // Extract title and subtitle from docs index
+    const indexTitleMatch = indexContent.match(/^#\s+(.+)$/m)
+    const indexTitle = indexTitleMatch ? indexTitleMatch[1] : 'Documentation'
+    const indexSubtitleMatch = indexContent.match(/^#\s+.+\n\n(.+)$/m)
+    const indexSubtitle = indexSubtitleMatch ? indexSubtitleMatch[1] : null
 
     const overviewPost = await CreatePost.handle({
       type: 'documentation',
       locale: 'en',
       slug: 'overview',
-      title: 'Documentation',
+      title: indexTitle,
       status: 'published',
-      excerpt: readmeSubtitle,
+      excerpt: indexSubtitle,
       userId: admin.id,
     })
 
@@ -452,21 +452,21 @@ export default class extends BaseSeeder {
 
     console.log(`   ✓ Post created with ID: ${overviewPost.id}`)
 
-    // Add Prose module with README content (after template modules: reading-progress=0, breadcrumb=1)
-    const readmeLexicalContent = await this.markdownToLexical(readmeContent)
+    // Add Prose module with docs index content (after template modules: reading-progress=0, breadcrumb=1)
+    const indexLexicalContent = await this.markdownToLexical(indexContent)
     await AddModuleToPost.handle({
       postId: overviewPost.id,
       moduleType: 'prose',
       scope: 'local',
       props: {
-        content: readmeLexicalContent,
+        content: indexLexicalContent,
         backgroundColor: 'bg-backdrop-low',
         maxWidth: '',
       },
       orderIndex: 2,
     })
 
-    console.log(`   ✓ Module added with README content\n`)
+    console.log(`   ✓ Module added with docs index content\n`)
 
     for (const [i, fileInfo] of allFiles.entries()) {
       const { file, path: filePath } = fileInfo
@@ -481,9 +481,16 @@ export default class extends BaseSeeder {
       const title = titleMatch ? titleMatch[1] : file.replace('.md', '')
 
       // Generate slug from filename (remove both numeric prefix and letter suffix)
-      const slug = file
+      let slug = file
         .replace(/^\d+[a-z]?-/, '') // Remove number prefix (with optional letter like 03a-)
         .replace('.md', '')
+
+      // Remap key landing pages to friendly slugs for top-level docs navigation
+      if (slug === 'quick-start') {
+        slug = 'for-editors'
+      } else if (slug === 'getting-started') {
+        slug = 'for-developers'
+      }
 
       // Skip the index page - it's just a reference page, not needed in the CMS
       if (slug === 'index' || slug === 'overview') {
@@ -497,9 +504,9 @@ export default class extends BaseSeeder {
 
       // Rename pages for better navigation structure
       let displayTitle = title
-      if (slug === 'quick-start') {
+      if (slug === 'for-editors') {
         displayTitle = 'For Editors'
-      } else if (slug === 'getting-started') {
+      } else if (slug === 'for-developers') {
         displayTitle = 'For Developers'
       }
 
@@ -519,9 +526,9 @@ export default class extends BaseSeeder {
       // Update order_index (not handled by CreatePost)
       // Set specific order for top-level pages: Documentation (0), For Editors (1), For Developers (2)
       let finalOrderIndex = orderIndex
-      if (slug === 'quick-start') {
+      if (slug === 'for-editors') {
         finalOrderIndex = 1
-      } else if (slug === 'getting-started') {
+      } else if (slug === 'for-developers') {
         finalOrderIndex = 2
       }
       await db.from('posts').where('id', post.id).update({ order_index: finalOrderIndex })
