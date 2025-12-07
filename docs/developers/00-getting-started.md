@@ -109,6 +109,7 @@ adonis-eos/
 - [Building Modules](/docs/for-developers/building-modules) - Create custom content modules
 - [Theming](/docs/for-developers/theming) - Customize the design system
 - [Content Management](/docs/for-editors/content-management) - Managing posts and pages
+- [CLI Commands](/docs/for-developers/cli-commands) - Scaffold post types, modules, roles, menus, taxonomies
 
 
 

@@ -1,6 +1,6 @@
 # Content Management Overview
 
-Learn how to create, organize, and manage content in Adonis EOS. This section covers posts, modules, module groups, and custom fields.
+Learn how to create, organize, and manage content in Adonis EOS. This section covers posts, modules, module groups, custom fields, and taxonomies.
 
 ## Overview
 
@@ -10,6 +10,7 @@ Adonis EOS uses a flexible content management system built around:
 - **Modules**: Reusable content blocks that make up posts
 - **Module Groups**: Pre-configured module layouts for rapid post creation
 - **Custom Fields**: Post-type-specific metadata fields
+- **Taxonomies**: Code-first category/tag systems that constrain and organize posts by type
 
 ## Key Concepts
 
@@ -35,6 +36,14 @@ Modules are the building blocks of content. They can be:
 - **Local**: Specific to one post
 - **Global**: Reusable across multiple posts
 - **Locked**: Editable but cannot be removed (when seeded from module groups)
+
+### Taxonomies (Categories/Tags)
+
+- **Code-first**: Define taxonomies in `app/taxonomies/*.ts` with `slug`, `name`, `hierarchical`, `freeTagging`, and optional `maxSelections`.
+- **Scoping**: Post types opt-in via their config `taxonomies: ['lipsum', ...]`; only opted types see them in the editor.
+- **Hierarchy**: If `hierarchical` is true, terms can be nested and reordered; otherwise, the list is flat.
+- **Free-tagging**: If enabled, editors can create new terms inline while editing a post.
+- **Selection limits**: `maxSelections` can cap how many terms a post can select (or unlimited).
 
 ### Content Workflow
 
