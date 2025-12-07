@@ -14,8 +14,8 @@ export default {
     label: 'Logo',
   },
 
-  // Default template metadata (not used publicly since permalinks are disabled)
-  template: { name: 'company-default', description: 'Default Company Template' },
+  // Default module group metadata (not used publicly since permalinks are disabled)
+  moduleGroup: { name: 'company-default', description: 'Default Company Module Group' },
 
   // URL patterns (ignored when permalinks are disabled, but defined for completeness)
   urlPatterns: [{ locale: 'en', pattern: '/company/{slug}', isDefault: true }],

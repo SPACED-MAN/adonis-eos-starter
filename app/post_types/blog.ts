@@ -15,8 +15,8 @@ export default {
     label: 'Featured Image',
   },
 
-  // Default template metadata (synced on boot)
-  template: { name: 'blog-default', description: 'Default Blog Template' },
+  // Default module group metadata (synced on boot)
+  moduleGroup: { name: 'blog-default', description: 'Default Blog Module Group' },
 
   // URL patterns (synced on boot)
   // Tokens: {locale}, {slug}, {yyyy}, {mm}, {dd}

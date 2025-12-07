@@ -19,7 +19,14 @@ const EXCLUDED_TABLES = [
 /**
  * Content types and their associated tables
  */
-export type ContentType = 'media' | 'posts' | 'modules' | 'forms' | 'menus' | 'categories' | 'templates'
+export type ContentType =
+  | 'media'
+  | 'posts'
+  | 'modules'
+  | 'forms'
+  | 'menus'
+  | 'categories'
+  | 'module_groups'
 
 const CONTENT_TYPE_TABLES: Record<ContentType, string[]> = {
   media: ['media_assets'],
@@ -37,7 +44,7 @@ const CONTENT_TYPE_TABLES: Record<ContentType, string[]> = {
   forms: ['forms', 'form_submissions'],
   menus: ['menus', 'menu_items'],
   categories: ['taxonomies', 'taxonomy_terms', 'post_taxonomy_terms'],
-  templates: ['templates', 'template_modules', 'url_patterns'],
+  module_groups: ['module_groups', 'module_group_modules', 'url_patterns'],
 }
 
 /**
@@ -83,14 +90,14 @@ class DatabaseExportService {
     tables: Record<string, any[]>
   }> {
     const { contentTypes, preserveIds = true } = options
-    
+
     console.log('📤 Starting database export...')
     console.log(`   Content types: ${contentTypes ? contentTypes.join(', ') : 'ALL'}`)
     console.log(`   Preserve IDs: ${preserveIds}`)
-    
+
     const tables = await this.getExportableTables(contentTypes)
     console.log(`📊 Exporting ${tables.length} tables:`, tables.join(', '))
-    
+
     const tableData: Record<string, any[]> = {}
     let totalRows = 0
 
@@ -98,10 +105,10 @@ class DatabaseExportService {
     for (const tableName of tables) {
       try {
         let rows = await db.from(tableName).select('*')
-        
+
         console.log(`   📦 ${tableName}: ${rows.length} rows`)
         totalRows += rows.length
-        
+
         // Strip IDs if not preserving them
         if (!preserveIds) {
           rows = rows.map((row) => {
@@ -170,20 +177,20 @@ class DatabaseExportService {
     // If contentTypes specified, filter to only include relevant tables
     if (contentTypes && contentTypes.length > 0) {
       const includedTables = new Set<string>()
-      
+
       // Always include essential tables (users, settings, locales, etc.)
       includedTables.add('users')
       includedTables.add('user_profiles')
       includedTables.add('site_settings')
       includedTables.add('site_custom_field_values')
       includedTables.add('locales')
-      
+
       // Add tables for selected content types
       for (const contentType of contentTypes) {
         const typeTables = CONTENT_TYPE_TABLES[contentType] || []
         typeTables.forEach((table) => includedTables.add(table))
       }
-      
+
       tables = tables.filter((table) => includedTables.has(table))
     }
 
@@ -239,16 +246,16 @@ class DatabaseExportService {
       try {
         const result = await db.from(tableName).count('* as count').first()
         const rowCount = Number(result?.count || 0)
-        stats.push({ 
-          name: tableName, 
+        stats.push({
+          name: tableName,
           rowCount,
           contentType: tableToContentType.get(tableName),
         })
         totalRows += rowCount
       } catch (error) {
         // Failed to count rows
-        stats.push({ 
-          name: tableName, 
+        stats.push({
+          name: tableName,
           rowCount: 0,
           contentType: tableToContentType.get(tableName),
         })

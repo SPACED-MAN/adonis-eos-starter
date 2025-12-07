@@ -10,7 +10,7 @@ export type RegisteredPostTypeConfig = {
     translatable?: boolean
     config?: Record<string, any>
   }>
-  template?: { name: string; description?: string }
+  moduleGroup?: { name: string; description?: string }
   urlPatterns?: Array<{ locale: string; pattern: string; isDefault?: boolean }>
 }
 

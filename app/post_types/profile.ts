@@ -11,6 +11,6 @@ export default {
     enabled: true,
     label: 'Profile image',
   },
-  template: { name: 'profile-default', description: 'Default Profile Template' },
+  moduleGroup: { name: 'profile-default', description: 'Default Profile Module Group' },
   urlPatterns: [],
 } as const

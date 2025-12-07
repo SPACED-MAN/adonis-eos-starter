@@ -17,7 +17,7 @@ export default {
   ],
 
   // Template metadata (not used for public pages here, but kept for consistency)
-  template: { name: 'testimonial-default', description: 'Default Testimonial Template' },
+  moduleGroup: { name: 'testimonial-default', description: 'Default Testimonial Module Group' },
 
   // No URL patterns since permalinks are disabled
   urlPatterns: [],

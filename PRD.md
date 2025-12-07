@@ -1,12 +1,12 @@
 # Custom CMS Plan (AdonisJS + Inertia + React)
 
 ## Vision
-A high-performance, SEO-first, **multilingual** CMS built with **AdonisJS 6 + Inertia + React**, styled with **TailwindCSS** and **ShadCN**. Content is composed of **modules** (hero, callouts, etc.) that can be reordered, reused globally, or grouped into **templates** for fast post creation.
+A high-performance, SEO-first, **multilingual** CMS built with **AdonisJS 6 + Inertia + React**, styled with **TailwindCSS** and **ShadCN**. Content is composed of **modules** (hero, callouts, etc.) that can be reordered, reused globally, or grouped into **module groups** for fast post creation.
 
 Key priorities:
 - Performance & SEO (SSR, structured data, caching)
 - Internationalization (i18n) with locale-specific URLs
-- Editor ease-of-use (drag-and-drop, module templates)
+- Editor ease-of-use (drag-and-drop, module groups)
 - Developer clarity (consistent naming, per-module models, strong typing)
 
 ---
@@ -94,11 +94,11 @@ inertia/
 - translation_of_id (nullable, fk → posts, self-referencing)
 - meta_title, meta_description, canonical_url, robots_json
 - jsonld_overrides (jsonb)
-- template_id (fk → templates)
+- module_group_id (fk → module_groups)
 - published_at, scheduled_at
 - created_at, updated_at
 
-**Description:** The core content table that stores all posts regardless of type (blog, page, product, testimonial, etc.). Each post has a type, unique slug, SEO metadata, publishing workflow status, and can optionally be created from a template. Posts are composed of modules via the `post_modules` join table. The `locale` field indicates the post's language, and `translation_of_id` links translations to their source post.
+**Description:** The core content table that stores all posts regardless of type (blog, page, product, testimonial, etc.). Each post has a type, unique slug, SEO metadata, publishing workflow status, and can optionally be created from a module group. Posts are composed of modules via the `post_modules` join table. The `locale` field indicates the post's language, and `translation_of_id` links translations to their source post.
 
 **Performance:** Indexed on (locale, status, type) for efficient filtering. Composite index on (translation_of_id, locale) for fast translation lookups.
 
@@ -128,7 +128,7 @@ inertia/
 
 **Performance:** Composite index on (post_id, order_index) for efficient ordered retrieval when rendering pages. This is critical for page load performance.
 
-### templates
+### module_groups
 - id (uuid)
 - name (unique slug)
 - post_type (text)
@@ -136,21 +136,21 @@ inertia/
 - **locked** (boolean, default false)
 - created_at, updated_at
 
-**Description:** Defines reusable templates that seed new posts with a pre-configured set of modules. For example, a "blog-post" template might include a hero, prose content, and author bio modules. When `locked` is true, posts using this template cannot add or remove modules, enforcing a consistent structure.
+**Description:** Defines reusable module groups that seed new posts with a pre-configured set of modules. For example, a "blog-post" group might include a hero, prose content, and author bio modules. When `locked` is true, posts using this group cannot add or remove modules, enforcing a consistent structure.
 
-**Performance:** Index on (post_type) for template filtering.
+**Performance:** Index on (post_type) for module group filtering.
 
-### template_modules
+### module_group_modules
 - id (uuid)
-- template_id (fk → templates)
+- module_group_id (fk → module_groups)
 - type (text)
 - default_props (jsonb)
 - order_index (int)
 - **locked** (boolean, default false)
 
-**Description:** Defines which modules are included in a template, their default configuration, and display order. Individual modules can be `locked`, preventing their removal from posts that use the template while still allowing other modules to be added/removed (unless the template itself is locked).
+**Description:** Defines which modules are included in a module group, their default configuration, and display order. Individual modules can be `locked`, preventing their removal from posts that use the group while still allowing other modules to be added/removed (unless the group itself is locked).
 
-**Performance:** Composite index on (template_id, order_index) for ordered retrieval.
+**Performance:** Composite index on (module_group_id, order_index) for ordered retrieval.
 
 ### url_patterns
 - id (uuid)
@@ -380,5 +380,5 @@ Recommendation: Use prefix approach with locale subdirectories.
 4. Add i18n: locale detection, translation UI, hreflang generation
 5. Editor: DnD modules, locks UI, custom fields panel, sidebar, translation interface
 6. Admin: URL pattern manager, redirects manager
-7. Ship MVP with SSR, SEO, caching, templates, routing, and i18n
+7. Ship MVP with SSR, SEO, caching, module groups, routing, and i18n
 

@@ -303,10 +303,10 @@ class UrlPatternService {
   }
 
   /**
-   * Get distinct post types from templates table.
+   * Get distinct post types from module_groups table.
    */
-  async getPostTypesFromTemplates(): Promise<string[]> {
-    const rows = await db.from('templates').distinct('post_type')
+  async getPostTypesFromModuleGroups(): Promise<string[]> {
+    const rows = await db.from('module_groups').distinct('post_type')
     return rows.map((r) => r.post_type as string)
   }
 
@@ -320,17 +320,17 @@ class UrlPatternService {
 
   /**
    * Ensure a specific locale has default patterns across all known post types.
-   * Known post types are derived from templates + posts union.
+   * Known post types are derived from module_groups + posts union.
    */
   async ensureLocaleForAllPostTypes(
     locale: string,
     _defaultPattern = '/{locale}/posts/{slug}'
   ): Promise<void> {
-    const [fromTemplates, fromPosts] = await Promise.all([
-      this.getPostTypesFromTemplates(),
+    const [fromModuleGroups, fromPosts] = await Promise.all([
+      this.getPostTypesFromModuleGroups(),
       this.getPostTypesFromPosts(),
     ])
-    const types = Array.from(new Set<string>([...fromTemplates, ...fromPosts]))
+    const types = Array.from(new Set<string>([...fromModuleGroups, ...fromPosts]))
     if (types.length === 0) return
     const now = new Date()
     const existing = await db
@@ -361,14 +361,14 @@ class UrlPatternService {
 
   /**
    * Prune default url patterns for post types that are no longer recognized.
-   * Allowed post types = templates.post_type ∪ posts.type
+   * Allowed post types = module_groups.post_type ∪ posts.type
    */
   async pruneDefaultsForUnknownPostTypes(): Promise<number> {
-    const [fromTemplates, fromPosts] = await Promise.all([
-      this.getPostTypesFromTemplates(),
+    const [fromModuleGroups, fromPosts] = await Promise.all([
+      this.getPostTypesFromModuleGroups(),
       this.getPostTypesFromPosts(),
     ])
-    const allowed = new Set<string>([...fromTemplates, ...fromPosts])
+    const allowed = new Set<string>([...fromModuleGroups, ...fromPosts])
     const allPatterns = await db.from('url_patterns').distinct('post_type')
     const toRemove = allPatterns.map((r) => r.post_type as string).filter((t) => !allowed.has(t))
     if (toRemove.length === 0) return 0

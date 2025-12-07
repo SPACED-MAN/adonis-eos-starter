@@ -4,8 +4,8 @@ import { AdminHeader } from '../../components/AdminHeader'
 import { AdminFooter } from '../../components/AdminFooter'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '~/components/ui/select'
 
-type Template = { id: string; name: string; post_type: string; description: string | null; locked: boolean; updated_at: string }
-type TemplateModule = { id: string; type: string; default_props: any; order_index: number; locked: boolean }
+type ModuleGroup = { id: string; name: string; post_type: string; description: string | null; locked: boolean; updated_at: string }
+type ModuleGroupModule = { id: string; type: string; default_props: any; order_index: number; locked: boolean }
 
 function getXsrfToken(): string | undefined {
 	if (typeof document === 'undefined') return undefined
@@ -22,36 +22,36 @@ function labelize(type: string): string {
 		.join(' ')
 }
 
-export default function TemplatesPage() {
-	const [templates, setTemplates] = useState<Template[]>([])
+export default function ModuleGroupsSettingsPage() {
+	const [moduleGroups, setModuleGroups] = useState<ModuleGroup[]>([])
 	const [selectedId, setSelectedId] = useState<string | null>(null)
-	const [modules, setModules] = useState<TemplateModule[]>([])
+	const [modules, setModules] = useState<ModuleGroupModule[]>([])
 	const [loading, setLoading] = useState(false)
 	const [creating, setCreating] = useState(false)
 	const [isCreateOpen, setIsCreateOpen] = useState(false)
 	const [postTypes, setPostTypes] = useState<string[]>([])
 	const [createForm, setCreateForm] = useState<{ name: string; postType: string }>({ name: '', postType: '' })
 	const [registry, setRegistry] = useState<Array<{ type: string; name: string }>>([])
-	const selected = useMemo(() => templates.find((t) => t.id === selectedId) || null, [templates, selectedId])
+	const selected = useMemo(() => moduleGroups.find((t) => t.id === selectedId) || null, [moduleGroups, selectedId])
 	const [pickerOpen, setPickerOpen] = useState(false)
 
-	async function loadTemplates() {
+	async function loadModuleGroups() {
 		setLoading(true)
 		try {
-			const r = await fetch('/api/templates', { credentials: 'same-origin' })
+			const r = await fetch('/api/module-groups', { credentials: 'same-origin' })
 			const json = await r.json().catch(() => ({}))
-			setTemplates(Array.isArray(json?.data) ? json.data : [])
+			setModuleGroups(Array.isArray(json?.data) ? json.data : [])
 		} finally {
 			setLoading(false)
 		}
 	}
 	async function loadModules(id: string) {
-		const r = await fetch(`/api/templates/${encodeURIComponent(id)}/modules`, { credentials: 'same-origin' })
+		const r = await fetch(`/api/module-groups/${encodeURIComponent(id)}/modules`, { credentials: 'same-origin' })
 		const json = await r.json().catch(() => ({}))
 		setModules(Array.isArray(json?.data) ? json.data : [])
 	}
 	useEffect(() => {
-		loadTemplates()
+		loadModuleGroups()
 	}, [])
 	useEffect(() => {
 		; (async () => {
@@ -71,8 +71,8 @@ export default function TemplatesPage() {
 	useEffect(() => {
 		if (selectedId) {
 			loadModules(selectedId)
-			// Load registry for the template's post type
-			const t = templates.find((x) => x.id === selectedId)
+			// Load registry for the module group's post type
+			const t = moduleGroups.find((x) => x.id === selectedId)
 			const url = t ? `/api/modules/registry?post_type=${encodeURIComponent(t.post_type)}` : '/api/modules/registry'
 			fetch(url, { credentials: 'same-origin' })
 				.then((r) => r.json())
@@ -84,15 +84,15 @@ export default function TemplatesPage() {
 		} else {
 			setModules([])
 		}
-	}, [selectedId, templates])
+	}, [selectedId, moduleGroups])
 
-	async function submitCreateTemplate() {
+	async function submitCreateModuleGroup() {
 		const name = createForm.name.trim()
 		const postType = createForm.postType.trim()
 		if (!name || !postType) return
 		setCreating(true)
 		try {
-			const res = await fetch('/api/templates', {
+			const res = await fetch('/api/module-groups', {
 				method: 'POST',
 				headers: {
 					Accept: 'application/json',
@@ -103,11 +103,11 @@ export default function TemplatesPage() {
 				body: JSON.stringify({ name, postType }),
 			})
 			if (res.ok) {
-				await loadTemplates()
+				await loadModuleGroups()
 				setIsCreateOpen(false)
 				setCreateForm({ name: '', postType: postTypes[0] || '' })
 			} else {
-				alert('Failed to create template')
+				alert('Failed to create module group')
 			}
 		} finally {
 			setCreating(false)
@@ -116,7 +116,7 @@ export default function TemplatesPage() {
 
 	async function addModule(type: string) {
 		if (!selectedId) return
-		const res = await fetch(`/api/templates/${encodeURIComponent(selectedId)}/modules`, {
+		const res = await fetch(`/api/module-groups/${encodeURIComponent(selectedId)}/modules`, {
 			method: 'POST',
 			headers: {
 				Accept: 'application/json',
@@ -136,7 +136,7 @@ export default function TemplatesPage() {
 
 	async function removeModule(id: string) {
 		if (!selectedId) return
-		const res = await fetch(`/api/templates/modules/${encodeURIComponent(id)}`, {
+		const res = await fetch(`/api/module-groups/modules/${encodeURIComponent(id)}`, {
 			method: 'DELETE',
 			headers: {
 				...(getXsrfToken() ? { 'X-XSRF-TOKEN': getXsrfToken()! } : {}),
@@ -152,12 +152,12 @@ export default function TemplatesPage() {
 
 	return (
 		<div className="min-h-screen bg-backdrop-medium">
-				<Head title="Templates" />
-				<AdminHeader title="Templates" />
+				<Head title="Module Groups" />
+				<AdminHeader title="Module Groups" />
 				<main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
 				<div className="bg-backdrop-low border border-line-low rounded-lg">
 					<div className="px-6 py-4 border-b border-line-low flex items-center justify-between">
-						<h2 className="text-lg font-semibold text-neutral-high">Template Builder</h2>
+						<h2 className="text-lg font-semibold text-neutral-high">Module Group Builder</h2>
 						<div className="flex items-center gap-2">
 							{loading && <span className="text-sm text-neutral-low">Loading…</span>}
 							<button
@@ -165,19 +165,19 @@ export default function TemplatesPage() {
 								disabled={creating}
 								onClick={() => setIsCreateOpen(true)}
 							>
-								Create Template
+								Create Module Group
 							</button>
 						</div>
 					</div>
 					<div className="p-6 grid grid-cols-1 md:grid-cols-3 gap-6">
-						{/* Templates list */}
+						{/* Module Groups list */}
 						<div className="md:col-span-1">
-							<h3 className="text-sm font-semibold text-neutral-high mb-3">Templates</h3>
+							<h3 className="text-sm font-semibold text-neutral-high mb-3">Module Groups</h3>
 							<div className="border border-line-low rounded divide-y divide-line">
-								{templates.length === 0 ? (
-									<p className="p-3 text-neutral-low">No templates.</p>
+								{moduleGroups.length === 0 ? (
+									<p className="p-3 text-neutral-low">No module groups.</p>
 								) : (
-									templates.map((t) => (
+									moduleGroups.map((t) => (
 										<button
 											key={t.id}
 											className={`w-full text-left p-3 hover:bg-backdrop-medium ${selectedId === t.id ? 'bg-backdrop-medium' : ''}`}
@@ -193,7 +193,7 @@ export default function TemplatesPage() {
 						{/* Modules editor */}
 						<div className="md:col-span-2">
 							{!selected ? (
-								<p className="text-neutral-low">Select a template to edit modules.</p>
+								<p className="text-neutral-low">Select a module group to edit modules.</p>
 							) : (
 								<>
 									<div className="flex items-center justify-between mb-3">
@@ -240,7 +240,7 @@ export default function TemplatesPage() {
 									</div>
 									<div className="border border-line-low rounded divide-y divide-line">
 										{modules.length === 0 ? (
-											<p className="p-3 text-neutral-low">No modules in this template.</p>
+											<p className="p-3 text-neutral-low">No modules in this module group.</p>
 										) : (
 											modules.map((m) => (
 												<div key={m.id} className="p-3 flex items-center justify-between">
@@ -267,13 +267,13 @@ export default function TemplatesPage() {
 			<div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
 				<AdminFooter />
 			</div>
-			{/* Create Template Modal */}
+			{/* Create Module Group Modal */}
 			{isCreateOpen && (
 				<div className="fixed inset-0 z-50 flex items-center justify-center">
 					<div className="absolute inset-0 bg-black/50" onClick={() => setIsCreateOpen(false)} />
 					<div className="relative z-10 w-full max-w-md rounded-lg border border-line-low bg-backdrop-input p-6 shadow-xl">
 						<div className="flex items-center justify-between mb-4">
-							<h3 className="text-base font-semibold text-neutral-high">Create Template</h3>
+							<h3 className="text-base font-semibold text-neutral-high">Create Module Group</h3>
 							<button
 								className="text-neutral-medium hover:text-neutral-high"
 								onClick={() => setIsCreateOpen(false)}
@@ -320,7 +320,7 @@ export default function TemplatesPage() {
 								<button
 									className="px-3 py-2 text-sm rounded bg-standout text-on-standout disabled:opacity-50"
 									disabled={creating || !createForm.name.trim() || !createForm.postType.trim()}
-									onClick={submitCreateTemplate}
+									onClick={submitCreateModuleGroup}
 									type="button"
 								>
 									{creating ? 'Creating…' : 'Create'}

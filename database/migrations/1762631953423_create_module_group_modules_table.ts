@@ -1,17 +1,17 @@
 import { BaseSchema } from '@adonisjs/lucid/schema'
 
 export default class extends BaseSchema {
-  protected tableName = 'template_modules'
+  protected tableName = 'module_group_modules'
 
   async up() {
     this.schema.createTable(this.tableName, (table) => {
       table.uuid('id').primary().defaultTo(this.db.rawQuery('gen_random_uuid()').knexQuery)
 
       table
-        .uuid('template_id')
+        .uuid('module_group_id')
         .notNullable()
         .references('id')
-        .inTable('templates')
+        .inTable('module_groups')
         .onDelete('CASCADE')
 
       table.string('type', 100).notNullable()
@@ -22,20 +22,20 @@ export default class extends BaseSchema {
       // For scope=global, the global module slug to reference
       table.string('global_slug', 255).nullable()
 
-      // If true, this module cannot be removed from posts using this template
+      // If true, this module cannot be removed from posts using this module group
       table.boolean('locked').notNullable().defaultTo(false)
 
       table.timestamp('created_at').notNullable()
       table.timestamp('updated_at').notNullable()
 
       // Performance: Composite index for ordered retrieval
-      table.index(['template_id', 'order_index'])
-      table.index(['template_id', 'order_index', 'scope'], 'template_modules_scope_idx')
+      table.index(['module_group_id', 'order_index'])
+      table.index(['module_group_id', 'order_index', 'scope'], 'module_group_modules_scope_idx')
     })
 
     // GIN index for JSONB default_props
     this.schema.raw(
-      'CREATE INDEX template_modules_default_props_gin ON template_modules USING GIN (default_props)'
+      'CREATE INDEX module_group_modules_default_props_gin ON module_group_modules USING GIN (default_props)'
     )
   }
 

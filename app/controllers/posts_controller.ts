@@ -264,7 +264,7 @@ export default class PostsController {
 
   /**
    * GET /api/post-types
-   * List distinct post types from templates and posts
+   * List distinct post types from registered configs (module groups + posts)
    */
   async types({ response }: HttpContext) {
     // Strict code-first: prefer registry list + file scan, deduped
@@ -444,10 +444,20 @@ export default class PostsController {
   /**
    * POST /api/posts
    *
-   * Create a new post, optionally with a template.
+   * Create a new post, optionally with a module group.
    */
   async store({ request, response, auth }: HttpContext) {
-    const { type, locale, slug, title, status, excerpt, metaTitle, metaDescription, templateId } =
+    const {
+      type,
+      locale,
+      slug,
+      title,
+      status,
+      excerpt,
+      metaTitle,
+      metaDescription,
+      moduleGroupId,
+    } =
       request.only([
         'type',
         'locale',
@@ -457,7 +467,7 @@ export default class PostsController {
         'excerpt',
         'metaTitle',
         'metaDescription',
-        'templateId',
+        'moduleGroupId',
       ])
 
     try {
@@ -479,7 +489,7 @@ export default class PostsController {
         excerpt,
         metaTitle,
         metaDescription,
-        templateId,
+        moduleGroupId,
         userId: auth.user!.id,
       })
 

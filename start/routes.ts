@@ -142,9 +142,9 @@ router
   .use(middleware.auth())
 
 /**
- * API Routes - Templates (Admin)
+ * API Routes - Module Groups (Admin)
  */
-const TemplatesController = () => import('#controllers/templates_controller')
+const ModuleGroupsController = () => import('#controllers/module_groups_controller')
 const AgentsController = () => import('#controllers/agents_controller')
 const GlobalModulesController = () => import('#controllers/global_modules_controller')
 const ProfilesController = () => import('#controllers/profiles_controller')
@@ -161,21 +161,21 @@ const ProtectedAccessController = () => import('#controllers/protected_access_co
 // MediaController imported above
 router
   .group(() => {
-    router.get('/templates', [TemplatesController, 'index']).use(middleware.admin())
-    router.post('/templates', [TemplatesController, 'store']).use(middleware.admin())
-    router.put('/templates/:id', [TemplatesController, 'update']).use(middleware.admin())
-    router.delete('/templates/:id', [TemplatesController, 'destroy']).use(middleware.admin())
+    router.get('/module-groups', [ModuleGroupsController, 'index']).use(middleware.admin())
+    router.post('/module-groups', [ModuleGroupsController, 'store']).use(middleware.admin())
+    router.put('/module-groups/:id', [ModuleGroupsController, 'update']).use(middleware.admin())
+    router.delete('/module-groups/:id', [ModuleGroupsController, 'destroy']).use(middleware.admin())
     router
-      .get('/templates/:id/modules', [TemplatesController, 'listModules'])
+      .get('/module-groups/:id/modules', [ModuleGroupsController, 'listModules'])
       .use(middleware.admin())
     router
-      .post('/templates/:id/modules', [TemplatesController, 'addModule'])
+      .post('/module-groups/:id/modules', [ModuleGroupsController, 'addModule'])
       .use(middleware.admin())
     router
-      .put('/templates/modules/:moduleId', [TemplatesController, 'updateModule'])
+      .put('/module-groups/modules/:moduleId', [ModuleGroupsController, 'updateModule'])
       .use(middleware.admin())
     router
-      .delete('/templates/modules/:moduleId', [TemplatesController, 'deleteModule'])
+      .delete('/module-groups/modules/:moduleId', [ModuleGroupsController, 'deleteModule'])
       .use(middleware.admin())
   })
   .prefix('/api')
@@ -366,8 +366,8 @@ router
   .use(middleware.admin())
 
 router
-  .get('/admin/settings/templates', async ({ inertia }) => {
-    return inertia.render('admin/settings/templates')
+  .get('/admin/settings/module-groups', async ({ inertia }) => {
+    return inertia.render('admin/settings/module-groups')
   })
   .use(middleware.auth())
   .use(middleware.admin())
@@ -475,21 +475,6 @@ router
   })
   .use(middleware.auth())
   .use(middleware.admin())
-// Templates list and editor pages (new)
-router
-  .get('/admin/templates', async ({ inertia }) => {
-    return inertia.render('admin/templates/index')
-  })
-  .use(middleware.auth())
-  .use(middleware.admin())
-
-router
-  .get('/admin/templates/:id/edit', async ({ params, inertia }) => {
-    return inertia.render('admin/templates/editor', { templateId: params.id })
-  })
-  .use(middleware.auth())
-  .use(middleware.admin())
-
 /**
  * Protected content access
  */

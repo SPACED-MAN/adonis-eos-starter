@@ -1,6 +1,6 @@
 # Content Management Overview
 
-Learn how to create, organize, and manage content in Adonis EOS. This section covers posts, modules, templates, and custom fields.
+Learn how to create, organize, and manage content in Adonis EOS. This section covers posts, modules, module groups, and custom fields.
 
 ## Overview
 
@@ -8,7 +8,7 @@ Adonis EOS uses a flexible content management system built around:
 
 - **Posts**: The core content unit (pages, blog posts, profiles, etc.)
 - **Modules**: Reusable content blocks that make up posts
-- **Templates**: Pre-configured module layouts for rapid post creation
+- **Module Groups**: Pre-configured module layouts for rapid post creation
 - **Custom Fields**: Post-type-specific metadata fields
 
 ## Key Concepts
@@ -34,11 +34,11 @@ Each post type can have:
 Modules are the building blocks of content. They can be:
 - **Local**: Specific to one post
 - **Global**: Reusable across multiple posts
-- **Locked**: Editable but cannot be removed (when seeded from templates)
+- **Locked**: Editable but cannot be removed (when seeded from module groups)
 
 ### Content Workflow
 
-1. Create a post (optionally from a template)
+1. Create a post (optionally from a module group)
 2. Add and configure modules
 3. Set metadata (title, SEO, custom fields)
 4. Save for review (optional)
@@ -52,6 +52,6 @@ Modules are the building blocks of content. They can be:
 
 ## Next Steps
 
-Explore the detailed Content Management guide to learn about creating posts, managing modules, and using templates effectively.
+Explore the detailed Content Management guide to learn about creating posts, managing modules, and using module groups effectively.
 
 

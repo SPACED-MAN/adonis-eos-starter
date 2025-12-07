@@ -26,7 +26,7 @@ export const createPostValidator = vine.compile(
     excerpt: vine.string().trim().maxLength(1000).nullable().optional(),
     metaTitle: vine.string().trim().maxLength(255).nullable().optional(),
     metaDescription: vine.string().trim().maxLength(500).nullable().optional(),
-    templateId: vine.string().uuid().nullable().optional(),
+    moduleGroupId: vine.string().uuid().nullable().optional(),
   })
 )
 

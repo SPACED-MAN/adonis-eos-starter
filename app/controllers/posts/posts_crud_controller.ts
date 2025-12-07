@@ -50,7 +50,7 @@ export default class PostsCrudController extends BasePostsController {
         excerpt: payload.excerpt,
         metaTitle: payload.metaTitle,
         metaDescription: payload.metaDescription,
-        templateId: payload.templateId,
+        moduleGroupId: (payload as any).moduleGroupId,
         userId: auth.user!.id,
       })
 

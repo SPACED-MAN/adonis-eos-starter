@@ -17,7 +17,7 @@ type CreatePostParams = {
   excerpt?: string | null
   metaTitle?: string | null
   metaDescription?: string | null
-  templateId?: string | null
+  moduleGroupId?: string | null
   userId: number
 }
 
@@ -42,7 +42,7 @@ export default class CreatePost {
     excerpt = null,
     metaTitle = null,
     metaDescription = null,
-    templateId = null,
+    moduleGroupId = null,
     userId,
   }: CreatePostParams): Promise<Post> {
     // Enforce: post types must be defined in code (app/post_types/*)
@@ -102,20 +102,21 @@ export default class CreatePost {
       })
     }
 
-    // Resolve default template when none provided
-    let effectiveTemplateId: string | null = templateId
-    if (!effectiveTemplateId) {
-      const defaultName = `${type}-default`
-      const defaultTemplate = await db
-        .from('templates')
+    // Resolve default module group when none provided
+    let effectiveModuleGroupId: string | null = moduleGroupId
+    if (!effectiveModuleGroupId) {
+      const defaultName =
+        postTypeConfigService.getUiConfig(type)?.moduleGroup?.name || `${type}-default`
+      const defaultGroup = await db
+        .from('module_groups')
         .where({ post_type: type, name: defaultName })
         .first()
-      if (defaultTemplate) {
-        effectiveTemplateId = (defaultTemplate as any).id as string
+      if (defaultGroup) {
+        effectiveModuleGroupId = (defaultGroup as any).id as string
       } else {
-        const candidates = await db.from('templates').where({ post_type: type }).select('id')
+        const candidates = await db.from('module_groups').where({ post_type: type }).select('id')
         if (Array.isArray(candidates) && candidates.length === 1) {
-          effectiveTemplateId = (candidates[0] as any).id as string
+          effectiveModuleGroupId = (candidates[0] as any).id as string
         }
       }
     }
@@ -133,16 +134,16 @@ export default class CreatePost {
           excerpt,
           metaTitle,
           metaDescription,
-          templateId: effectiveTemplateId,
+          moduleGroupId: effectiveModuleGroupId,
           userId,
           authorId: userId,
         },
         { client: trx }
       )
 
-      // If template is specified, seed modules from template
-      if (effectiveTemplateId) {
-        await this.seedModulesFromTemplate(newPost.id, effectiveTemplateId, trx)
+      // If module group is specified, seed modules from that group
+      if (effectiveModuleGroupId) {
+        await this.seedModulesFromModuleGroup(newPost.id, effectiveModuleGroupId, trx)
       }
 
       return newPost
@@ -167,27 +168,27 @@ export default class CreatePost {
   }
 
   /**
-   * Seed modules from a template
+   * Seed modules from a module group
    *
-   * Copies all modules from a template to the post, maintaining order and locks.
+   * Copies all modules from a module group to the post, maintaining order and locks.
    */
-  private static async seedModulesFromTemplate(
+  private static async seedModulesFromModuleGroup(
     postId: string,
-    templateId: string,
+    moduleGroupId: string,
     trx: any
   ): Promise<void> {
-    // Load template modules in order
-    const templateModules = await trx
-      .from('template_modules')
-      .where('template_id', templateId)
+    // Load module group modules in order
+    const groupModules = await trx
+      .from('module_group_modules')
+      .where('module_group_id', moduleGroupId)
       .orderBy('order_index', 'asc')
 
-    if (!Array.isArray(templateModules) || templateModules.length === 0) {
+    if (!Array.isArray(groupModules) || groupModules.length === 0) {
       return
     }
 
     const now = new Date()
-    for (const tm of templateModules) {
+    for (const tm of groupModules) {
       const isGlobal = (tm as any).scope === 'global' && (tm as any).global_slug
       let moduleInstanceId: string
       if (isGlobal) {
@@ -198,7 +199,7 @@ export default class CreatePost {
           .where('global_slug', (tm as any).global_slug)
           .first()
         if (!global) {
-          // If missing, create a new global instance using template default props
+          // If missing, create a new global instance using module group default props
           const [created] = await trx
             .table('module_instances')
             .insert({

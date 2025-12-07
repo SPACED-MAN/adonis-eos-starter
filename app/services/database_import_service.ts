@@ -65,10 +65,10 @@ class DatabaseImportService {
    */
   private normalizeJsonbFields(tableName: string, row: any): any {
     const normalized = { ...row }
-    
+
     // Known JSONB columns by table
     const jsonbColumns: Record<string, string[]> = this.jsonbColumns
-    
+
     const columns = jsonbColumns[tableName] || []
     for (const col of columns) {
       if (col in normalized && normalized[col] !== null && normalized[col] !== undefined) {
@@ -82,14 +82,14 @@ class DatabaseImportService {
             normalized[col] = normalized[col]
           }
         }
-          // If it's already an object/array, leave it as-is - Knex will serialize it properly
+        // If it's already an object/array, leave it as-is - Knex will serialize it properly
         // But ensure it's a plain object/array (not a class instance)
         if (typeof normalized[col] === 'object' && normalized[col] !== null && normalized[col].constructor !== Object && !Array.isArray(normalized[col])) {
           normalized[col] = JSON.parse(JSON.stringify(normalized[col]))
         }
       }
     }
-    
+
     return normalized
   }
 
@@ -101,7 +101,7 @@ class DatabaseImportService {
     media_assets: ['metadata'],
     module_instances: ['props', 'review_props', 'ai_review_props'],
     post_modules: ['overrides', 'review_overrides', 'ai_review_overrides'],
-    template_modules: ['default_props'],
+    module_group_modules: ['default_props'],
     post_custom_field_values: ['value'],
     site_custom_field_values: ['value'],
     custom_fields: ['config'],
@@ -118,19 +118,19 @@ class DatabaseImportService {
   private prepareRowForPostgres(trx: any, tableName: string, row: any): any {
     const processedRow = { ...row }
     const columns = this.jsonbColumns[tableName] || []
-    
+
     for (const col of columns) {
       if (col in processedRow && processedRow[col] !== null && processedRow[col] !== undefined) {
         // Always stringify to ensure valid JSON input for ::jsonb cast
         // normalizeJsonbFields should have already parsed valid JSON strings into objects
         // so this safely re-serializes them, or treats unparsable strings as JSON string values
         const val = JSON.stringify(processedRow[col])
-          
+
         // Use raw SQL with explicit JSONB casting to avoid "invalid input syntax" errors
         processedRow[col] = trx.raw('?::jsonb', [val])
       }
     }
-    
+
     return processedRow
   }
 
@@ -227,7 +227,7 @@ class DatabaseImportService {
 
       for (const tableName of orderedTables) {
         console.log(`\n📦 Processing table: ${tableName}`)
-        
+
         try {
           const rows = exportData.tables[tableName]
 
@@ -265,11 +265,11 @@ class DatabaseImportService {
           let importedCount = 0
           let skippedCount = 0
           let errorCount = 0
-          
+
           // For posts table, track detailed statistics
           const isPostsTable = tableName === 'posts'
           const postTypeStats: Record<string, { total: number; imported: number; skipped: number }> = {}
-          
+
           // Analyze posts in export
           if (isPostsTable) {
             console.log('   📊 Analyzing posts in export...')
@@ -281,14 +281,14 @@ class DatabaseImportService {
             }
             console.log('   📋 Posts by type in export:', JSON.stringify(typeCount, null, 2))
           }
-          
+
           // For posts table with overwrite/replace/merge strategy, sort by dependencies (parent + translation) first
           let sortedRows = rows
           if (isPostsTable && (effectiveStrategy === 'overwrite' || effectiveStrategy === 'replace' || effectiveStrategy === 'merge')) {
             console.log('   🔀 Sorting posts by dependencies (parent/translation first)...')
             sortedRows = this.sortPostsByDependencies(rows)
           }
-          
+
           for (const row of sortedRows) {
             try {
               // Handle ID preservation
@@ -299,8 +299,8 @@ class DatabaseImportService {
                 processedRow = rest
               }
 
-        // Normalize JSONB fields for PostgreSQL - ensure they're proper JSON objects/arrays
-        processedRow = this.normalizeJsonbFields(tableName, processedRow)
+              // Normalize JSONB fields for PostgreSQL - ensure they're proper JSON objects/arrays
+              processedRow = this.normalizeJsonbFields(tableName, processedRow)
 
               // Track post types
               const postType = isPostsTable ? (processedRow.type || 'unknown') : null
@@ -337,7 +337,7 @@ class DatabaseImportService {
                 if (hasIdPk) {
                   try {
                     const affectedRows = await this.upsertRow(trx, tableName, processedRow)
-                    
+
                     if (affectedRows === 0) {
                       // Upsert reported no rows affected - this shouldn't happen but log it
                       console.log(`   ⚠️  WARNING: Upsert returned 0 affected rows for ${tableName} (id: ${processedRow.id}, type: ${postType || 'N/A'})`)
@@ -347,7 +347,7 @@ class DatabaseImportService {
                       }
                       continue
                     }
-                    
+
                     // Verify the row was actually inserted/updated (for posts table only, to debug)
                     if (isPostsTable) {
                       const verifyRow = await trx.from(tableName).where('id', processedRow.id).first()
@@ -364,7 +364,7 @@ class DatabaseImportService {
                         console.log(`   ✅ Verified insert: ${postType} post ${processedRow.id} (title: ${processedRow.title?.substring(0, 30) || 'N/A'})`)
                       }
                     }
-                    
+
                     importedCount++
                     if (postType && postTypeStats[postType]) {
                       postTypeStats[postType].imported++
@@ -401,7 +401,7 @@ class DatabaseImportService {
                 // Ensure JSONB fields are properly handled by Knex (pre-cast for Postgres)
                 const rowForInsert =
                   dbConfig.connections[dbConfig.connection].client === 'pg' ||
-                  dbConfig.connections[dbConfig.connection].client === 'postgres'
+                    dbConfig.connections[dbConfig.connection].client === 'postgres'
                     ? this.prepareRowForPostgres(trx, tableName, processedRow)
                     : processedRow
                 try {
@@ -428,12 +428,12 @@ class DatabaseImportService {
             } catch (error) {
               errorCount++
               const errorMsg = (error as Error).message
-              
+
               // Log first few errors for debugging
               if (errorCount <= 3) {
                 console.log(`   ⚠️  Row error: ${errorMsg}`)
               }
-              
+
               // Continue on individual row errors in merge/overwrite mode
               if (effectiveStrategy === 'merge' || effectiveStrategy === 'overwrite') {
                 skippedCount++
@@ -446,12 +446,12 @@ class DatabaseImportService {
 
           result.tablesImported++
           result.rowsImported += importedCount
-          
+
           console.log(`   ✅ Imported ${importedCount} rows`)
           if (skippedCount > 0) {
             console.log(`   ⚠️  Skipped ${skippedCount} rows (conflicts/errors)`)
           }
-          
+
           // For posts table, show detailed breakdown by type
           if (isPostsTable && Object.keys(postTypeStats).length > 0) {
             console.log('   📊 Posts breakdown by type:')
@@ -459,7 +459,7 @@ class DatabaseImportService {
               console.log(`      ${type}: ${stats.imported} imported, ${stats.skipped} skipped (of ${stats.total} total)`)
             }
           }
-          
+
         } catch (error) {
           const errorMsg = (error as Error).message
           console.error(`   ❌ Failed to import table: ${errorMsg}`)
@@ -483,7 +483,7 @@ class DatabaseImportService {
       await trx.commit()
       console.log('\n✅ Import transaction committed successfully')
       console.log(`📊 Final stats: ${result.tablesImported} tables, ${result.rowsImported} rows imported`)
-      
+
       // DEBUG: Check what's actually in the database after import
       try {
         // Summaries for UI-friendly output
@@ -505,14 +505,16 @@ class DatabaseImportService {
         await summarize('media_assets', 'media')
         await summarize('menus', 'menus')
         await summarize('taxonomies', 'taxonomies')
-        await summarize('templates', 'templates')
+        await summarize('module_groups', 'module_groups')
 
         console.log('════════ Import Summary ════════')
         console.log(`Status: ${result.success ? 'SUCCESS' : 'FAILED'}`)
         console.log(`Tables imported: ${result.tablesImported}, Rows imported: ${result.rowsImported}`)
         console.log('Content counts:')
         console.log(`  Posts: ${summaryCounts.posts} (by type: ${JSON.stringify(postTypeCounts)})`)
-        console.log(`  Media: ${summaryCounts.media}, Templates: ${summaryCounts.templates}, Menus: ${summaryCounts.menus}`)
+        console.log(
+          `  Media: ${summaryCounts.media}, Module Groups: ${summaryCounts.module_groups}, Menus: ${summaryCounts.menus}`
+        )
         console.log(`  Forms: ${summaryCounts.forms}, Taxonomies: ${summaryCounts.taxonomies}`)
         if (result.errors.length > 0) {
           console.log('Errors:')
@@ -561,12 +563,12 @@ class DatabaseImportService {
       if (result.skippedTables.length > 0) {
         console.log(`⏭️  Skipped tables (${result.skippedTables.length}):`, result.skippedTables.join(', '))
       }
-      
+
       if (result.errors.length > 0) {
         console.log(`⚠️  Errors (${result.errors.length}):`)
         result.errors.forEach(err => console.log(`   - ${err.table}: ${err.error}`))
       }
-      
+
     } catch (error) {
       await trx.rollback()
       result.success = false
@@ -640,8 +642,8 @@ class DatabaseImportService {
       'user_profiles',
       'forms',
       'media_assets',
-      'templates',
-      'template_modules',
+      'module_groups',
+      'module_group_modules',
       'url_patterns',
       'module_scopes',
       'posts',
@@ -744,7 +746,7 @@ class DatabaseImportService {
    */
   private async insertOrIgnoreWithResult(trx: any, tableName: string, row: any): Promise<{ inserted: boolean }> {
     const dialectName = dbConfig.connections[dbConfig.connection].client
-    
+
     // Create a savepoint for Postgres to prevent transaction abortion on failure
     const useSavepoint = dialectName === 'postgres' || dialectName === 'pg'
     // Generate safe savepoint name
@@ -761,7 +763,7 @@ class DatabaseImportService {
     try {
       if (dialectName === 'postgres' || dialectName === 'pg') {
         // Proactive conflict resolution for known unique constraints (merge mode should be non-fatal)
-        if (tableName === 'templates' && row.name) {
+        if (tableName === 'module_groups' && row.name) {
           const conflicting = await trx.from(tableName).where('name', row.name).where('id', '!=', row.id).first()
           if (conflicting) {
             await trx.from(tableName).where('id', conflicting.id).delete()
@@ -807,11 +809,11 @@ class DatabaseImportService {
             return { inserted: false }
           }
         }
-        
+
         // Try to insert
         try {
           await trx.table(tableName).insert(rowToInsert)
-          
+
           // Verify it was actually inserted
           if ('id' in row) {
             const verify = await trx.from(tableName).where('id', row.id).first()
@@ -826,7 +828,7 @@ class DatabaseImportService {
           // Log constraint violations for debugging
           const errorCode = insertError?.code
           const errorMsg = insertError?.message || String(insertError)
-          
+
           if (errorCode === '23505') {
             // Unique constraint violation - row already exists (by some unique constraint)
             // Log for debugging (log first few, then sample)
@@ -872,7 +874,7 @@ class DatabaseImportService {
       }
     } catch (error) {
       if (useSavepoint && !((error as any).message?.includes('ROLLBACK TO SAVEPOINT'))) {
-         // Should have been handled above, but just in case
+        // Should have been handled above, but just in case
       }
       // Constraint violations mean row was not inserted
       if ((error as any).code === '23505' || (error as any).errno === 1062) {
@@ -910,16 +912,16 @@ class DatabaseImportService {
       if (dialectName === 'postgres' || dialectName === 'pg') {
         // PostgreSQL: Check if row exists first, then INSERT or UPDATE separately
         const existing = await trx.from(tableName).where('id', row.id).first()
-        
+
         if (existing) {
           // Row exists - update it
           const { id, ...updateData } = rowToUpsert
-          
+
           await trx.from(tableName).where('id', id).update(updateData)
-          
+
           // Verify update succeeded
           const verify = await trx.from(tableName).where('id', row.id).first()
-          
+
           if (useSavepoint) {
             await trx.raw(`RELEASE SAVEPOINT ${savepointName}`)
           }
@@ -927,10 +929,10 @@ class DatabaseImportService {
         } else {
           // Row doesn't exist by ID. Check for unique constraint conflicts and resolve them proactively.
           // Overwrite strategy: the incoming row wins; delete conflicting rows with same unique keys.
-          if (tableName === 'templates' && row.name) {
+          if (tableName === 'module_groups' && row.name) {
             const conflicting = await trx.from(tableName).where('name', row.name).where('id', '!=', row.id).first()
             if (conflicting) {
-              console.log(`   ⚠️  Resolving conflict for templates: deleting ${conflicting.id} (name: ${row.name})`)
+              console.log(`   ⚠️  Resolving conflict for module_groups: deleting ${conflicting.id} (name: ${row.name})`)
               await trx.from(tableName).where('id', conflicting.id).delete()
             }
           } else if (tableName === 'forms' && row.slug) {

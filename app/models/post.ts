@@ -81,8 +81,8 @@ export default class Post extends BaseModel {
   @column({ columnName: 'order_index' })
   declare orderIndex: number
 
-  @column()
-  declare templateId: string | null
+  @column({ columnName: 'module_group_id' })
+  declare moduleGroupId: string | null
 
   @column()
   declare userId: number

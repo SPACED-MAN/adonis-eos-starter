@@ -1,6 +1,6 @@
 # Adonis EOS — Modern Headless CMS
 
-A high-performance, SEO-first CMS built with AdonisJS 6, Inertia, React, Tailwind, and PostgreSQL. Content is composed of reusable modules that can be reordered, shared globally, or grouped into templates for rapid creation.
+A high-performance, SEO-first CMS built with AdonisJS 6, Inertia, React, Tailwind, and PostgreSQL. Content is composed of reusable modules that can be reordered, shared globally, or grouped into module groups for rapid creation.
 
 ## 🚀 Tech Stack
 

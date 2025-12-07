@@ -137,7 +137,7 @@ export default class TranslationsController {
         metaTitle: translation.metaTitle,
         metaDescription: translation.metaDescription,
         translationOfId: translation.translationOfId,
-        templateId: translation.templateId,
+        moduleGroupId: (translation as any).moduleGroupId,
         createdAt: translation.createdAt,
         updatedAt: translation.updatedAt,
       },

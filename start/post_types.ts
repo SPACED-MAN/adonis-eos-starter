@@ -1,7 +1,7 @@
 /**
  * Post Types bootstrap (code-first, registry-based)
  *
- * Register all post types and ensure DB artifacts (templates, URL patterns)
+ * Register all post types and ensure DB artifacts (module groups, URL patterns)
  * reflect the version-controlled configuration.
  */
 import postTypeRegistry from '#services/post_type_registry'
@@ -36,29 +36,32 @@ try {
 // Ensure DB reflects code config (idempotent)
 async function syncFromRegistry() {
   for (const [type, cfg] of postTypeRegistry.entries()) {
-    // Template
-    if (cfg.template?.name) {
+    // Module Group (formerly template)
+    if ((cfg as any).moduleGroup?.name) {
       const now = new Date()
-      const existing = await db.from('templates').where({ name: cfg.template.name }).first()
+      const existing = await db
+        .from('module_groups')
+        .where({ name: (cfg as any).moduleGroup.name })
+        .first()
       if (!existing) {
-        await db.table('templates').insert({
-          name: cfg.template.name,
+        await db.table('module_groups').insert({
+          name: (cfg as any).moduleGroup.name,
           post_type: type,
-          description: cfg.template.description || null,
+          description: (cfg as any).moduleGroup.description || null,
           locked: false,
           created_at: now,
           updated_at: now,
         })
       } else if (
         (existing as any).post_type !== type ||
-        (existing as any).description !== (cfg.template.description || null)
+        (existing as any).description !== ((cfg as any).moduleGroup.description || null)
       ) {
         await db
-          .from('templates')
-          .where({ name: cfg.template.name })
+          .from('module_groups')
+          .where({ name: (cfg as any).moduleGroup.name })
           .update({
             post_type: type,
-            description: cfg.template.description || null,
+            description: (cfg as any).moduleGroup.description || null,
             updated_at: now,
           })
       }

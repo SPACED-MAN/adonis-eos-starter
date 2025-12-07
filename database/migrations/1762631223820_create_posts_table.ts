@@ -44,9 +44,9 @@ export default class extends BaseSchema {
       table.jsonb('jsonld_overrides').nullable()
       // GIN indexes for JSONB (added post-create)
 
-      // Template relationship (nullable)
-      table.uuid('template_id').nullable()
-      // Note: FK to templates will be added separately (after templates table migration)
+      // Module group relationship (nullable)
+      table.uuid('module_group_id').nullable()
+      // Note: FK to module_groups will be added separately (after module_groups table migration)
 
       // Creator relationship (who created/owns this post)
       table.integer('user_id').unsigned().notNullable()
@@ -76,7 +76,7 @@ export default class extends BaseSchema {
       table.unique(['slug', 'locale']) // Unique slug per locale
       table.index(['locale', 'status', 'type']) // For filtered content lists
       table.index(['translation_of_id', 'locale']) // For translation lookups
-      table.index('template_id') // For template queries
+      table.index('module_group_id') // For module group queries
       table.index('user_id') // For user's posts queries
       table.index('author_id') // For author queries
       table.index('featured_image_id') // For media queries

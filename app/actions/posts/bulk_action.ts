@@ -42,7 +42,7 @@ export default class BulkPostsAction {
               canonicalUrl: post.canonicalUrl ?? null,
               robotsJson: post.robotsJson ?? null,
               jsonldOverrides: post.jsonldOverrides ?? null,
-              templateId: post.templateId ?? null,
+              moduleGroupId: post.moduleGroupId ?? null,
               userId: post.userId,
               authorId: post.authorId ?? null,
               parentId: post.parentId ?? null,

@@ -130,13 +130,6 @@ export function AdminSidebar() {
 							</span>
 						</SidebarMenuItem>
 					)}
-					{canAccessSettings && (
-						<SidebarMenuItem href="/admin/templates" active={isActive('/admin/templates')}>
-							<span className="inline-flex items-center gap-2">
-								<FontAwesomeIcon icon={faLayerGroup} className="w-4 h-4" /> <span>Templates</span>
-							</span>
-						</SidebarMenuItem>
-					)}
 				</SidebarGroup>
 				{isAdmin && (
 					<SidebarGroup title="Settings">

@@ -59,30 +59,30 @@ export default class extends BaseSeeder {
 			.limit(1)
 		const demoBlogId: string | null = demoBlogMedia ? String((demoBlogMedia as any).id) : null
 
-		// Test 1: Ensure a Blog template exists (prefer registry-synced blog-default, but create if missing)
-		const existingTemplate = await db.from('templates').where({ post_type: 'blog' }).first()
+		// Test 1: Ensure a Blog module group exists (prefer registry-synced blog-default, but create if missing)
+		const existingTemplate = await db.from('module_groups').where({ post_type: 'blog' }).first()
 		let template: any = existingTemplate
 		if (!template) {
 			const [createdTemplate] = await db
-				.table('templates')
+				.table('module_groups')
 				.insert({
 					name: 'blog-default',
 					post_type: 'blog',
-					description: 'Default Blog Template',
+					description: 'Default Blog Module Group',
 					locked: false,
 					created_at: now,
 					updated_at: now,
 				})
 				.returning('*')
 			template = createdTemplate
-			console.log('✅ Created fallback blog template:', (template as any).name)
+			console.log('✅ Created fallback blog module group:', (template as any).name)
 		} else {
-			console.log('✅ Using blog template:', (template as any).name)
+			console.log('✅ Using blog module group:', (template as any).name)
 		}
 
-		// Test 2: Add modules to template (use hero-with-callout as default hero)
-		await db.table('template_modules').insert({
-			template_id: template.id,
+		// Test 2: Add modules to module group (use hero-with-callout as default hero)
+		await db.table('module_group_modules').insert({
+			module_group_id: template.id,
 			type: 'hero-with-callout',
 			default_props: JSON.stringify({ title: 'Default Hero', subtitle: 'Powered by modules' }),
 			order_index: 0,
@@ -90,9 +90,9 @@ export default class extends BaseSeeder {
 			created_at: new Date(),
 			updated_at: new Date(),
 		})
-		console.log('✅ Created template module')
+		console.log('✅ Created module group module')
 
-		// Test 3: Create a post with template (default locale)
+		// Test 3: Create a post with module group (default locale)
 		const [post] = await db
 			.table('posts')
 			.insert({
@@ -101,7 +101,7 @@ export default class extends BaseSeeder {
 				title: 'Test Blog Post',
 				status: 'draft',
 				locale: 'en',
-				template_id: template.id,
+				module_group_id: template.id,
 				user_id: user.id,
 				excerpt:
 					'This is a seeded excerpt for the primary test blog post, shown in Blog List teasers.',
@@ -126,7 +126,7 @@ export default class extends BaseSeeder {
 				status: 'draft',
 				locale: 'es',
 				translation_of_id: post.id,
-				template_id: template.id,
+				module_group_id: template.id,
 				user_id: user.id,
 				meta_title: 'Título Meta de Prueba',
 				meta_description: 'Descripción meta de prueba',
@@ -150,7 +150,7 @@ export default class extends BaseSeeder {
 					status: statuses[i % statuses.length],
 					locale: loc,
 					translation_of_id: null,
-					template_id: template.id,
+					module_group_id: template.id,
 					user_id: user.id,
 					excerpt: `This is a seeded excerpt for Seed Post ${i} (${loc.toUpperCase()}) to demonstrate Blog List teasers.`,
 					meta_title: null,

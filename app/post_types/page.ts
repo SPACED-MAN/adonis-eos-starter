@@ -9,8 +9,8 @@ export default {
   // Custom fields attached to this post type (editorial only)
   fields: [],
 
-  // Default template metadata (synced on boot)
-  template: { name: 'page-default', description: 'Default Page Template' },
+  // Default module group metadata (synced on boot)
+  moduleGroup: { name: 'page-default', description: 'Default Page Module Group' },
 
   // URL patterns (synced on boot)
   // Tokens: {locale}, {slug}, {yyyy}, {mm}, {dd}

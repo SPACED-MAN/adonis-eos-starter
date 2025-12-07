@@ -172,11 +172,11 @@ All modules share these actions:
 
 ⚠️ **Warning**: Be careful editing global modules—changes appear everywhere they're used!
 
-## Module Templates (if available)
+## Module Groups / Blueprints (if available)
 
-Some systems let you save module combinations as templates:
+Some systems let you save module combinations as reusable groups:
 1. Build a page with modules
-2. Save as a template
+2. Save as a module group
 3. Reuse the structure for new posts
 4. Customize content as needed
 
@@ -211,7 +211,7 @@ A: Contact your developer or administrator. Custom modules require development w
 A: It might be locked. Look for a lock icon and unlock it first. Or you may not have permission.
 
 **Q: Can I copy modules between posts?**
-A: Some systems support this. Look for "Copy Module" or "Duplicate" actions. Or use templates.
+A: Some systems support this. Look for "Copy Module" or "Duplicate" actions. Or use module groups/blueprints.
 
 **Q: What's the difference between a module and a block?**
 A: They're the same thing! "Module" and "block" are often used interchangeably.

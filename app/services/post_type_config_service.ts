@@ -4,7 +4,7 @@ type PostTypeUiConfig = {
   hideCoreFields?: Array<'title' | 'excerpt' | 'parent' | 'slug' | 'meta' | 'seo'>
   hierarchyEnabled?: boolean
   fields?: PostTypeField[]
-  template?: { name: string; description?: string }
+  moduleGroup?: { name: string; description?: string }
   urlPatterns?: Array<{ locale: string; pattern: string; isDefault?: boolean }>
   permalinksEnabled?: boolean
   taxonomies?: string[]
@@ -25,7 +25,7 @@ class PostTypeConfigService {
       hideCoreFields: [],
       hierarchyEnabled: true,
       fields: [],
-      template: { name: `${postType}-default` },
+      moduleGroup: { name: `${postType}-default` },
       urlPatterns: [],
       permalinksEnabled: true,
       taxonomies: [],
@@ -64,7 +64,7 @@ class PostTypeConfigService {
       hierarchyEnabled:
         cfg.hierarchyEnabled !== undefined ? !!cfg.hierarchyEnabled : base.hierarchyEnabled,
       fields: Array.isArray(cfg.fields) ? cfg.fields : [],
-      template: cfg.template && cfg.template.name ? cfg.template : base.template,
+      moduleGroup: cfg.moduleGroup && cfg.moduleGroup.name ? cfg.moduleGroup : base.moduleGroup,
       urlPatterns: Array.isArray(cfg.urlPatterns) ? cfg.urlPatterns : [],
       permalinksEnabled: cfg.permalinksEnabled !== undefined ? !!cfg.permalinksEnabled : true,
       taxonomies: Array.isArray(cfg.taxonomies) ? cfg.taxonomies : [],

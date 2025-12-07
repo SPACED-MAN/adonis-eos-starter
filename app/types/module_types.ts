@@ -37,7 +37,7 @@ export interface ModuleConfig {
   allowedScopes: ModuleScope[]
 
   /**
-   * Whether this module can be locked in templates
+   * Whether this module can be locked in module groups
    */
   lockable: boolean
 

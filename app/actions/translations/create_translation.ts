@@ -136,7 +136,7 @@ export default class CreateTranslation {
   /**
    * Create the translation post
    *
-   * Inherits type and template from the base post.
+   * Inherits type and module group from the base post.
    * Sets initial status to 'draft'.
    *
    * @private
@@ -165,7 +165,7 @@ export default class CreateTranslation {
       status: 'draft',
       locale: data.locale,
       translationOfId: basePost.id,
-      templateId: basePost.templateId,
+      moduleGroupId: (basePost as any).moduleGroupId,
       userId: basePost.userId,
       metaTitle: data.metaTitle || null,
       metaDescription: data.metaDescription || null,

@@ -42,7 +42,7 @@ test.group('CreateTranslationAction', (group) => {
     assert.equal(translation.status, 'draft')
     assert.equal(translation.translationOfId, originalPost.id)
     assert.equal(translation.type, originalPost.type)
-    assert.equal(translation.templateId, originalPost.templateId)
+    assert.equal((translation as any).moduleGroupId, (originalPost as any).moduleGroupId)
   })
 
   test('should throw exception when post not found', async ({ assert }) => {

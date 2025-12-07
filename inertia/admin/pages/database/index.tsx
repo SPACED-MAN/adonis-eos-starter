@@ -97,7 +97,14 @@ interface ImportResult {
   errors: Array<{ table: string; error: string }>
 }
 
-type ContentType = 'media' | 'posts' | 'modules' | 'forms' | 'menus' | 'categories' | 'templates'
+type ContentType =
+  | 'media'
+  | 'posts'
+  | 'modules'
+  | 'forms'
+  | 'menus'
+  | 'categories'
+  | 'module_groups'
 
 type StatusRow = { table: string; status: 'skipped' | 'error'; message?: string }
 
@@ -108,7 +115,7 @@ const CONTENT_TYPE_LABELS: Record<ContentType, string> = {
   forms: 'Forms & Submissions',
   menus: 'Menus',
   categories: 'Categories',
-  templates: 'Templates',
+  module_groups: 'Module Groups',
 }
 
 export default function DatabaseIndex() {
@@ -129,7 +136,7 @@ export default function DatabaseIndex() {
     'forms',
     'menus',
     'categories',
-    'templates',
+    'module_groups',
   ])
   const [preserveIds, setPreserveIds] = useState(true)
   
@@ -196,7 +203,15 @@ export default function DatabaseIndex() {
     if (selectedContentTypes.length === 7) {
       setSelectedContentTypes([])
     } else {
-      setSelectedContentTypes(['media', 'posts', 'modules', 'forms', 'menus', 'categories', 'templates'])
+      setSelectedContentTypes([
+        'media',
+        'posts',
+        'modules',
+        'forms',
+        'menus',
+        'categories',
+        'module_groups',
+      ])
     }
   }
 
@@ -732,15 +747,15 @@ export default function DatabaseIndex() {
                       )}
                     </tbody>
                   </table>
-                </div>
+                    </div>
 
                 <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
-                  {[
-                    { label: 'Posts', href: '/admin/posts' },
-                    { label: 'Media', href: '/admin/media' },
-                    { label: 'Templates', href: '/admin/templates' },
-                    { label: 'Menus', href: '/admin/menus' },
-                  ].map((item) => (
+                    {[
+                      { label: 'Posts', href: '/admin/posts' },
+                      { label: 'Media', href: '/admin/media' },
+                      { label: 'Modules', href: '/admin/modules' },
+                      { label: 'Menus', href: '/admin/menus' },
+                    ].map((item) => (
                     <a
                       key={item.label}
                       href={item.href}
@@ -752,7 +767,7 @@ export default function DatabaseIndex() {
                       <div className="text-xs text-neutral-medium">Open to spot-check imported records</div>
                     </a>
                   ))}
-                </div>
+                  </div>
               </div>
             )}
           </div>
