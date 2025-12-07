@@ -90,7 +90,7 @@ export default function FeaturesListExpanded({
 								>
 									<FontAwesomeIcon
 										icon={feature.icon as any}
-										className="sm:w-12 sm:h-12 w-8 h-8"
+										size="2x"
 									/>
 								</div>
 							)}
