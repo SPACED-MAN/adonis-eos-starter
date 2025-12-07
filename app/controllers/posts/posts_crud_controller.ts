@@ -186,6 +186,9 @@ export default class PostsCrudController extends BasePostsController {
               ? null
               : payload.featuredImageId
             : undefined,
+        taxonomyTermIds: Array.isArray((payload as any).taxonomyTermIds)
+          ? ((payload as any).taxonomyTermIds as string[])
+          : undefined,
       })
 
       // Handle timestamps

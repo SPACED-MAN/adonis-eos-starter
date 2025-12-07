@@ -1,4 +1,5 @@
 import Post from '#models/post'
+import crypto from 'node:crypto'
 import db from '@adonisjs/lucid/services/db'
 import urlPatternService from '#services/url_pattern_service'
 import postTypeConfigService from '#services/post_type_config_service'
@@ -17,6 +18,7 @@ type UpdatePostParams = {
   robotsJson?: Record<string, any> | null
   jsonldOverrides?: Record<string, any> | null
   featuredImageId?: string | null
+  taxonomyTermIds?: string[]
 }
 
 export class UpdatePostException extends Error {
@@ -45,6 +47,7 @@ export default class UpdatePost {
     robotsJson,
     jsonldOverrides,
     featuredImageId,
+    taxonomyTermIds,
   }: UpdatePostParams): Promise<Post> {
     // Find the post
     const post = await Post.find(postId)
@@ -154,6 +157,44 @@ export default class UpdatePost {
     }
 
     await post.save()
+
+    if (taxonomyTermIds) {
+      const cfg = postTypeConfigService.getUiConfig(post.type)
+      const allowedTaxonomies = Array.isArray((cfg as any).taxonomies) ? (cfg as any).taxonomies : []
+      if (allowedTaxonomies.length > 0) {
+        const allowedTerms = await db
+          .from('taxonomy_terms as tt')
+          .join('taxonomies as t', 'tt.taxonomy_id', 't.id')
+          .whereIn('tt.id', taxonomyTermIds)
+          .whereIn('t.slug', allowedTaxonomies)
+          .select('tt.id')
+        const allowedTermIds = Array.from(new Set(allowedTerms.map((r: any) => String(r.id))))
+
+        // Remove existing assignments for the allowed taxonomies, then reinsert the provided ones
+        const allowedTaxonomyIds = await db.from('taxonomies').whereIn('slug', allowedTaxonomies).select('id')
+        const allowedIds = allowedTaxonomyIds.map((r: any) => String(r.id))
+        if (allowedIds.length > 0) {
+          await db
+            .from('post_taxonomy_terms as ptt')
+            .join('taxonomy_terms as tt', 'ptt.taxonomy_term_id', 'tt.id')
+            .where('ptt.post_id', post.id)
+            .whereIn('tt.taxonomy_id', allowedIds)
+            .delete()
+        }
+
+        if (allowedTermIds.length > 0) {
+          const now = new Date()
+          const rows = allowedTermIds.map((tid) => ({
+            id: crypto.randomUUID(),
+            post_id: post.id,
+            taxonomy_term_id: tid,
+            created_at: now,
+            updated_at: now,
+          }))
+          await db.table('post_taxonomy_terms').insert(rows)
+        }
+      }
+    }
 
     // Auto-update canonical URL if slug changed or if it's not set and wasn't explicitly provided
     if ((slug && post.slug !== slug) || (canonicalUrl === undefined && !post.canonicalUrl)) {

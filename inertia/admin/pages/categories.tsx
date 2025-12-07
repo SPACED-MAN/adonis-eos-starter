@@ -10,7 +10,7 @@ import { DndContext, closestCenter, PointerSensor, useSensor, useSensors, DragEn
 import { SortableContext, useSortable, verticalListSortingStrategy } from '@dnd-kit/sortable'
 import { CSS } from '@dnd-kit/utilities'
 
-type Taxonomy = { id: string; slug: string; name: string }
+type Taxonomy = { id: string; slug: string; name: string; hierarchical?: boolean }
 type TermNode = {
   id: string
   taxonomyId: string
@@ -178,6 +178,8 @@ export default function CategoriesPage() {
   async function handleDragEnd(event: DragEndEvent) {
     const { active, over } = event
     if (!over || active.id === over.id) return
+    const selectedTax = taxonomies.find((t) => t.slug === selectedTaxonomy)
+    if (selectedTax && selectedTax.hierarchical === false) return
     const activeId = String(active.id)
     const overId = String(over.id)
     const idToParent = new Map<string, string | null>()

@@ -43,6 +43,28 @@ import { LinkField, type LinkFieldValue } from '~/components/forms/LinkField'
 import { useHasPermission } from '~/utils/permissions'
 import { pickMediaVariantUrl, type MediaVariant } from '../../../lib/media'
 
+const flattenTerms = (
+  nodes: TaxonomyTermNode[],
+  prefix = ''
+): Array<{ id: string; label: string }> => {
+  const out: Array<{ id: string; label: string }> = []
+  for (const node of nodes) {
+    const label = prefix ? `${prefix} › ${node.name}` : node.name
+    out.push({ id: node.id, label })
+    if (Array.isArray(node.children) && node.children.length > 0) {
+      out.push(...flattenTerms(node.children, label))
+    }
+  }
+  return out
+}
+
+type TaxonomyTermNode = {
+  id: string
+  slug: string
+  name: string
+  children?: TaxonomyTermNode[]
+}
+
 interface EditorProps {
   post: {
     id: string
@@ -101,9 +123,21 @@ interface EditorProps {
       label?: string
     }
   }
+  taxonomies?: Array<{ slug: string; name: string; terms: TaxonomyTermNode[] }>
+  selectedTaxonomyTermIds?: string[]
 }
 
-export default function Editor({ post, modules: initialModules, translations, reviewDraft, aiReviewDraft, customFields: initialCustomFields, uiConfig }: EditorProps) {
+export default function Editor({
+  post,
+  modules: initialModules,
+  translations,
+  reviewDraft,
+  aiReviewDraft,
+  customFields: initialCustomFields,
+  uiConfig,
+  taxonomies = [],
+  selectedTaxonomyTermIds = [],
+}: EditorProps) {
   const { data, setData, put, processing, errors } = useForm({
     title: post.title,
     slug: post.slug,
@@ -120,6 +154,7 @@ export default function Editor({ post, modules: initialModules, translations, re
     customFields: Array.isArray(initialCustomFields)
       ? initialCustomFields.map((f) => ({ fieldId: f.id, slug: f.slug, value: f.value ?? null }))
       : [],
+    taxonomyTermIds: selectedTaxonomyTermIds,
   })
   const initialDataRef = useRef({
     title: post.title,
@@ -137,6 +172,7 @@ export default function Editor({ post, modules: initialModules, translations, re
     customFields: Array.isArray(initialCustomFields)
       ? initialCustomFields.map((f) => ({ fieldId: f.id, slug: f.slug, value: f.value ?? null }))
       : [],
+    taxonomyTermIds: selectedTaxonomyTermIds,
   })
   const reviewInitialRef = useRef<null | typeof initialDataRef.current>(reviewDraft ? {
     title: String(reviewDraft.title ?? post.title),
@@ -152,6 +188,7 @@ export default function Editor({ post, modules: initialModules, translations, re
     jsonldOverrides: typeof reviewDraft.jsonldOverrides === 'string' ? reviewDraft.jsonldOverrides : (reviewDraft.jsonldOverrides ? JSON.stringify(reviewDraft.jsonldOverrides, null, 2) : ''),
     featuredImageId: String(reviewDraft.featuredImageId ?? (post.featuredImageId || '')),
     customFields: Array.isArray(reviewDraft.customFields) ? reviewDraft.customFields : ((Array.isArray(initialCustomFields) ? initialCustomFields.map(f => ({ fieldId: f.id, slug: f.slug, value: f.value ?? null })) : [])),
+    taxonomyTermIds: selectedTaxonomyTermIds,
   } : null)
   const [viewMode, setViewMode] = useState<'approved' | 'review' | 'ai-review'>('approved')
   const [pendingModules, setPendingModules] = useState<Record<string, { overrides: Record<string, any> | null; edited: Record<string, any> }>>({})
@@ -167,6 +204,97 @@ export default function Editor({ post, modules: initialModules, translations, re
   }>>([])
   // Track structural changes that need to be published
   const [hasStructuralChanges, setHasStructuralChanges] = useState(false)
+  const [taxonomyTrees, setTaxonomyTrees] = useState(taxonomies)
+  const [newTermNames, setNewTermNames] = useState<Record<string, string>>({})
+  const [selectedTaxonomyTerms, setSelectedTaxonomyTerms] = useState<Set<string>>(
+    new Set(selectedTaxonomyTermIds)
+  )
+  const taxonomyInputRefs = useRef<Record<string, HTMLInputElement | null>>({})
+
+  useEffect(() => {
+    setTaxonomyTrees(taxonomies)
+    setSelectedTaxonomyTerms(new Set(selectedTaxonomyTermIds))
+    setData('taxonomyTermIds' as any, selectedTaxonomyTermIds)
+  }, [taxonomies, selectedTaxonomyTermIds])
+
+  const taxonomyOptions = useMemo(
+    () =>
+      Array.isArray(taxonomyTrees)
+        ? taxonomyTrees.map((t) => ({
+          slug: t.slug,
+          name: t.name,
+          hierarchical: !!(t as any).hierarchical,
+          freeTagging: !!(t as any).freeTagging,
+          maxSelections:
+            (t as any).maxSelections === null || (t as any).maxSelections === undefined
+              ? null
+              : Number((t as any).maxSelections),
+          options: flattenTerms(t.terms || []),
+        }))
+        : [],
+    [taxonomyTrees]
+  )
+
+  const toggleTaxonomyTerm = (termId: string, checked: boolean) => {
+    setSelectedTaxonomyTerms((prev) => {
+      const next = new Set(prev)
+      if (checked) {
+        next.add(termId)
+      } else {
+        next.delete(termId)
+      }
+      return next
+    })
+  }
+
+  useEffect(() => {
+    setData('taxonomyTermIds' as any, Array.from(selectedTaxonomyTerms))
+  }, [selectedTaxonomyTerms])
+
+  async function refreshTaxonomy(slug: string) {
+    try {
+      const res = await fetch(`/api/taxonomies/${encodeURIComponent(slug)}/terms`, { credentials: 'same-origin' })
+      const json = await res.json().catch(() => ({}))
+      const terms = Array.isArray(json?.data) ? json.data : []
+      setTaxonomyTrees((prev) =>
+        prev.map((t) => (t.slug === slug ? { ...t, terms } : t))
+      )
+    } catch {
+      /* ignore */
+    }
+  }
+
+  async function createInlineTerm(slug: string, keepFocus?: boolean) {
+    const name = (newTermNames[slug] || '').trim()
+    if (!name) {
+      toast.error('Enter a category name')
+      return
+    }
+    try {
+      const res = await fetch(`/api/taxonomies/${encodeURIComponent(slug)}/terms`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          ...(xsrfHeader() ? xsrfHeader() : {}),
+        },
+        credentials: 'same-origin',
+        body: JSON.stringify({ name, parentId: null }),
+      })
+      const json = await res.json().catch(() => ({}))
+      if (!res.ok) {
+        toast.error(json?.error || 'Failed to create category')
+        return
+      }
+      toast.success('Category created')
+      setNewTermNames((m) => ({ ...m, [slug]: '' }))
+      await refreshTaxonomy(slug)
+      if (keepFocus && taxonomyInputRefs.current[slug]) {
+        taxonomyInputRefs.current[slug]?.focus()
+      }
+    } catch {
+      toast.error('Failed to create category')
+    }
+  }
   const pickForm = (d: typeof data) => ({
     title: d.title,
     slug: d.slug,
@@ -183,6 +311,7 @@ export default function Editor({ post, modules: initialModules, translations, re
     customFields: Array.isArray((d as any).customFields)
       ? (d as any).customFields.map((e: any) => ({ fieldId: e.fieldId, slug: e.slug, value: e.value }))
       : [],
+    taxonomyTermIds: Array.isArray((d as any).taxonomyTermIds) ? (d as any).taxonomyTermIds : [],
   })
   const isDirty = useMemo(() => {
     try {
@@ -744,7 +873,6 @@ export default function Editor({ post, modules: initialModules, translations, re
                     </label>
                     <MediaThumb
                       mediaId={(data as any).featuredImageId || null}
-                      mediaUrl={null}
                       onChange={() => setOpenMediaForField('featuredImage')}
                       onClear={() => setData('featuredImageId', '')}
                     />
@@ -757,6 +885,72 @@ export default function Editor({ post, modules: initialModules, translations, re
                         setOpenMediaForField(null)
                       }}
                     />
+                  </div>
+                )}
+
+                {/* Categories (Taxonomies) */}
+                {taxonomyOptions.length > 0 && (
+                  <div className="space-y-4">
+                    <div className="text-sm font-semibold text-neutral-high">Categories</div>
+                    {taxonomyOptions.map((tax) => {
+                      const selectedCount = Array.from(selectedTaxonomyTerms).filter((id) =>
+                        tax.options.some((o) => o.id === id)
+                      ).length
+                      const limit = tax.maxSelections === null ? Infinity : tax.maxSelections
+                      return (
+                        <div key={tax.slug} className="space-y-2 rounded border border-border p-3 bg-backdrop-low">
+                          <div className="text-sm font-medium text-neutral-high">{tax.name}</div>
+                          {tax.options.length === 0 ? (
+                            <p className="text-xs text-neutral-low">No terms available for {tax.name}</p>
+                          ) : (
+                            <div className="space-y-2">
+                              {tax.options.map((opt) => {
+                                const checked = selectedTaxonomyTerms.has(opt.id)
+                                const disableUnchecked = !checked && selectedCount >= limit
+                                return (
+                                  <label key={opt.id} className="flex items-center gap-2 text-sm text-neutral-high">
+                                    <Checkbox
+                                      checked={checked}
+                                      disabled={disableUnchecked}
+                                      onCheckedChange={(val) => toggleTaxonomyTerm(opt.id, !!val)}
+                                      aria-label={opt.label}
+                                    />
+                                    <span className={disableUnchecked ? 'text-neutral-low' : ''}>{opt.label}</span>
+                                  </label>
+                                )
+                              })}
+                            </div>
+                          )}
+                          {tax.freeTagging && (
+                            <div className="flex items-center gap-2">
+                              <Input
+                                ref={(el) => {
+                                  taxonomyInputRefs.current[tax.slug] = el
+                                }}
+                                value={newTermNames[tax.slug] || ''}
+                                onChange={(e) => setNewTermNames((m) => ({ ...m, [tax.slug]: e.target.value }))}
+                                onKeyDown={(e) => {
+                                  if (e.key === 'Enter') {
+                                    e.preventDefault()
+                                    createInlineTerm(tax.slug, true)
+                                  }
+                                }}
+                                placeholder={`Add ${tax.name}`}
+                                className="flex-1"
+                              />
+                              <button
+                                type="button"
+                                className="px-3 py-2 text-sm rounded bg-standout text-on-standout disabled:opacity-50"
+                                onClick={() => createInlineTerm(tax.slug, true)}
+                                disabled={!newTermNames[tax.slug]?.trim()}
+                              >
+                                Add
+                              </button>
+                            </div>
+                          )}
+                        </div>
+                      )
+                    })}
                   </div>
                 )}
 
@@ -834,10 +1028,6 @@ export default function Editor({ post, modules: initialModules, translations, re
                           typeof entry.value === 'string'
                             ? (entry.value || null)
                             : (entry.value?.id ? String(entry.value.id) : null)
-                        const currentUrl: string | null =
-                          typeof entry.value === 'object' && entry.value?.url
-                            ? String(entry.value.url)
-                            : null
                         return (
                           <div key={f.id}>
                             <label className="block text-sm font-medium text-neutral-medium mb-1">
@@ -845,7 +1035,6 @@ export default function Editor({ post, modules: initialModules, translations, re
                             </label>
                             <MediaThumb
                               mediaId={currentId}
-                              mediaUrl={currentUrl}
                               onChange={() => setOpenMediaForField(f.id)}
                               onClear={() => setValue(null)}
                             />
@@ -2162,12 +2351,10 @@ function useIsDarkMode() {
 
 function MediaThumb({
   mediaId,
-  mediaUrl,
   onChange,
   onClear,
 }: {
   mediaId: string | null
-  mediaUrl: string | null
   onChange: () => void
   onClear: () => void
 }) {

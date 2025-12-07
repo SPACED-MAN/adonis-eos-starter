@@ -6,6 +6,7 @@ import postTypeConfigService from '#services/post_type_config_service'
 import postRenderingService from '#services/post_rendering_service'
 import previewService from '#services/preview_service'
 import postTypeViewService from '#services/post_type_view_service'
+import taxonomyService from '#services/taxonomy_service'
 import BasePostsController from './base_posts_controller.js'
 
 /**
@@ -81,6 +82,49 @@ export default class PostsViewController extends BasePostsController {
         value: valuesBySlug.get(String(f.slug)) ?? null,
       }))
 
+      // Load taxonomies (by slug) configured for this post type
+      const taxonomySlugs = Array.isArray((uiCfg as any).taxonomies) ? (uiCfg as any).taxonomies : []
+      let taxonomyData: Array<{
+        slug: string
+        name: string
+        terms: any[]
+        hierarchical: boolean
+        freeTagging: boolean
+        maxSelections: number | null
+      }> = []
+      let selectedTaxonomyTermIds: string[] = []
+
+      if (taxonomySlugs.length > 0) {
+        const taxonomies = await db.from('taxonomies').whereIn('slug', taxonomySlugs)
+        taxonomyData = await Promise.all(
+          (taxonomies as any[]).map(async (t: any) => {
+            const cfg = taxonomyService.getConfig(t.slug)
+            const terms = await taxonomyService.getTermsTreeBySlug(t.slug)
+            return {
+              slug: t.slug,
+              name: t.name,
+              terms,
+              hierarchical: !!cfg?.hierarchical,
+              freeTagging: !!cfg?.freeTagging,
+              maxSelections:
+                cfg?.maxSelections === null || cfg?.maxSelections === undefined
+                  ? null
+                  : Number(cfg.maxSelections),
+            }
+          })
+        )
+
+        const assignedTerms = await db
+          .from('post_taxonomy_terms as ptt')
+          .join('taxonomy_terms as tt', 'ptt.taxonomy_term_id', 'tt.id')
+          .join('taxonomies as t', 'tt.taxonomy_id', 't.id')
+          .where('ptt.post_id', post.id)
+          .whereIn('t.slug', taxonomySlugs)
+          .select('ptt.taxonomy_term_id as termId')
+
+        selectedTaxonomyTermIds = assignedTerms.map((r: any) => String(r.termId))
+      }
+
       return inertia.render('admin/posts/editor', {
         post: {
           id: post.id,
@@ -121,6 +165,8 @@ export default class PostsViewController extends BasePostsController {
         translations,
         customFields,
         uiConfig: uiCfg,
+        taxonomies: taxonomyData,
+        selectedTaxonomyTermIds,
       })
     } catch {
       return inertia.render('admin/errors/not_found')

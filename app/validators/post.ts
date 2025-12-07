@@ -59,6 +59,7 @@ export const updatePostValidator = vine.compile(
     // Featured image (Media ID). Optional and nullable.
     featuredImageId: vine.string().uuid().nullable().optional(),
     customFields: vine.array(vine.any()).optional(),
+    taxonomyTermIds: vine.array(vine.string().uuid()).optional(),
   })
 )
 

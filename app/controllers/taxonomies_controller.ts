@@ -67,6 +67,14 @@ export default class TaxonomiesController {
     const parentIdRaw = request.input('parentId')
     const name = String(nameRaw || '').trim()
     if (!name) return response.badRequest({ error: 'name is required' })
+    const existingByName = await db
+      .from('taxonomy_terms')
+      .where('taxonomy_id', tax.id)
+      .whereRaw('LOWER(name) = LOWER(?)', [name])
+      .first()
+    if (existingByName) {
+      return response.badRequest({ error: 'A term with this name already exists in this taxonomy' })
+    }
     const parentId = parentIdRaw ? String(parentIdRaw).trim() : null
     const makeSlug = (s: string) =>
       s

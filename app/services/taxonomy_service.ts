@@ -1,6 +1,14 @@
 import db from '@adonisjs/lucid/services/db'
+import taxonomyRegistry, { type RegisteredTaxonomyConfig } from '#services/taxonomy_registry'
 
-export type Taxonomy = { id: string; slug: string; name: string }
+export type Taxonomy = {
+  id: string
+  slug: string
+  name: string
+  hierarchical: boolean
+  freeTagging: boolean
+  maxSelections: number | null
+}
 export type TaxonomyTerm = {
   id: string
   taxonomyId: string
@@ -14,12 +22,23 @@ export type TaxonomyTerm = {
 export type TaxonomyTermNode = TaxonomyTerm & { children: TaxonomyTermNode[] }
 
 class TaxonomyService {
+  getConfig(slug: string): RegisteredTaxonomyConfig | undefined {
+    return taxonomyRegistry.get(slug)
+  }
+
   async listTaxonomies(): Promise<Taxonomy[]> {
     const rows = await db.from('taxonomies').select('*').orderBy('name', 'asc')
     return rows.map((r: any) => ({
       id: r.id,
       slug: r.slug,
       name: r.name,
+      hierarchical: !!taxonomyRegistry.get(r.slug)?.hierarchical,
+      freeTagging: !!taxonomyRegistry.get(r.slug)?.freeTagging,
+      maxSelections:
+        taxonomyRegistry.get(r.slug)?.maxSelections === undefined ||
+        taxonomyRegistry.get(r.slug)?.maxSelections === null
+          ? null
+          : Number(taxonomyRegistry.get(r.slug)!.maxSelections),
     }))
   }
 

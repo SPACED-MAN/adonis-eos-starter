@@ -1,7 +1,6 @@
 import { BaseSeeder } from '@adonisjs/lucid/seeders'
 import UserSeeder from './user_seeder.js'
 import MenuSeeder from './menu_seeder.js'
-import TaxonomySeeder from './taxonomy_seeder.js'
 import HomepageSeeder from './homepage_seeder.js'
 import DocumentationModuleGroupSeeder from './documentation_module_group_seeder.js'
 import DocumentationSeeder from './documentation_seeder.js'
@@ -19,9 +18,6 @@ export default class extends BaseSeeder {
 
     // Menu structure
     await new MenuSeeder(this.client).run()
-
-    // Taxonomies (categories, tags, etc.)
-    await new TaxonomySeeder(this.client).run()
 
     // Documentation module group (must run before documentation posts)
     await new DocumentationModuleGroupSeeder(this.client).run()

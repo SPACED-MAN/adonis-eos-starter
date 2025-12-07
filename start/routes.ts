@@ -9,6 +9,7 @@
 
 import router from '@adonisjs/core/services/router'
 import { middleware } from '#start/kernel'
+import '#start/taxonomies'
 
 // Homepage - resolve from posts (slug: 'home', type: 'page')
 // This delegates to the post resolution system
