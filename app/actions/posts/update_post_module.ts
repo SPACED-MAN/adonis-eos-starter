@@ -80,6 +80,12 @@ export default class UpdatePostModule {
       })
     }
 
+    if (postModule.locked && orderIndex !== undefined) {
+      throw new UpdatePostModuleException('Cannot reorder a locked module', 400, {
+        postModuleId,
+      })
+    }
+
     // Build update object for post_modules
     const updateData: Record<string, any> = {
       updated_at: new Date(),

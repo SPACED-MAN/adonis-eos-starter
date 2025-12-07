@@ -723,18 +723,37 @@ export default function Editor({
     const { active, over } = event
     if (!over || active.id === over.id) return
     const current = modules.slice().sort((a, b) => a.orderIndex - b.orderIndex)
-    // Prevent dragging locked modules
     const dragged = current.find((m) => m.id === active.id)
-    if (dragged?.locked) return
-    const oldIndex = current.findIndex((m) => m.id === active.id)
-    const newIndex = current.findIndex((m) => m.id === over.id)
-    if (oldIndex === -1 || newIndex === -1) return
-    const reordered = current.slice()
-    const [moved] = reordered.splice(oldIndex, 1)
-    reordered.splice(newIndex, 0, moved)
-    const next = reordered.map((m, idx) => ({ ...m, orderIndex: idx }))
+    const overItem = current.find((m) => m.id === over.id)
+    // Prevent any interaction involving locked modules
+    if (dragged?.locked || overItem?.locked) return
+
+    // Reorder only within unlocked modules while keeping locked modules fixed
+    const lockedPositions = current
+      .map((m, idx) => ({ m, idx }))
+      .filter(({ m }) => m.locked)
+    const unlocked = current.filter((m) => !m.locked)
+    const unlockedOld = unlocked.findIndex((m) => m.id === active.id)
+    const unlockedNew = unlocked.findIndex((m) => m.id === over.id)
+    if (unlockedOld === -1 || unlockedNew === -1) return
+    const unlockedReordered = unlocked.slice()
+    const [moved] = unlockedReordered.splice(unlockedOld, 1)
+    unlockedReordered.splice(unlockedNew, 0, moved)
+
+    // Rebuild list with locked items frozen in place
+    const rebuilt: typeof modules = []
+    let uPtr = 0
+    for (let i = 0; i < current.length; i++) {
+      const lockedAt = lockedPositions.find((p) => p.idx === i)
+      if (lockedAt) {
+        rebuilt.push(lockedAt.m)
+      } else {
+        rebuilt.push(unlockedReordered[uPtr]!)
+        uPtr++
+      }
+    }
+    const next = rebuilt.map((m, idx) => ({ ...m, orderIndex: idx }))
     setModules(next)
-    // Don't persist immediately - mark as pending change
     setHasStructuralChanges(true)
   }
 
@@ -1277,17 +1296,22 @@ export default function Editor({
                                         </span>
                                       )
                                       : (
-                                        <button
-                                          className="text-xs px-2 py-1 rounded border border-line-low bg-backdrop-input text-neutral-high hover:bg-backdrop-medium"
-                                          onClick={() => setEditing(m)}
-                                          type="button"
-                                        >
-                                          Edit
-                                        </button>
-                                      )}
                                     <button
-                                      className="text-xs px-2 py-1 rounded border border-[#ef4444] text-[#ef4444] hover:bg-[rgba(239,68,68,0.1)]"
+                                      className="text-xs px-2 py-1 rounded border border-line-low bg-backdrop-input text-neutral-high hover:bg-backdrop-medium"
+                                      onClick={() => setEditing(m)}
+                                      type="button"
+                                    >
+                                      Edit
+                                    </button>
+                                  )}
+                                    <button
+                                      className="text-xs px-2 py-1 rounded border border-[#ef4444] text-[#ef4444] hover:bg-[rgba(239,68,68,0.1)] disabled:opacity-50"
+                                      disabled={m.locked}
                                       onClick={async () => {
+                                        if (m.locked) {
+                                          toast.error('Locked modules cannot be removed')
+                                          return
+                                        }
                                         // Mark for removal in appropriate mode; actual apply on save
                                         if (viewMode === 'review') {
                                           setPendingReviewRemoved((prev) => {

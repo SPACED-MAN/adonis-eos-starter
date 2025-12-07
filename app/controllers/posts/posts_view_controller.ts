@@ -30,25 +30,25 @@ export default class PostsViewController extends BasePostsController {
       // Load post modules for editor
       const postModules = modulesEnabled
         ? await db
-            .from('post_modules')
-            .join('module_instances', 'post_modules.module_id', 'module_instances.id')
-            .where('post_modules.post_id', post.id)
-            .select(
-              'post_modules.id as postModuleId',
-              'post_modules.review_added as reviewAdded',
-              'post_modules.review_deleted as reviewDeleted',
-              'module_instances.type',
-              'module_instances.scope',
-              'module_instances.props',
-              'module_instances.review_props',
-              'post_modules.overrides',
-              'post_modules.review_overrides',
-              'post_modules.locked',
-              'post_modules.order_index as orderIndex',
-              'module_instances.global_slug as globalSlug',
-              'module_instances.global_label as globalLabel'
-            )
-            .orderBy('post_modules.order_index', 'asc')
+          .from('post_modules')
+          .join('module_instances', 'post_modules.module_id', 'module_instances.id')
+          .where('post_modules.post_id', post.id)
+          .select(
+            'post_modules.id as postModuleId',
+            'post_modules.review_added as reviewAdded',
+            'post_modules.review_deleted as reviewDeleted',
+            'module_instances.type',
+            'module_instances.scope',
+            'module_instances.props',
+            'module_instances.review_props',
+            'post_modules.overrides',
+            'post_modules.review_overrides',
+            'post_modules.locked',
+            'post_modules.order_index as orderIndex',
+            'module_instances.global_slug as globalSlug',
+            'module_instances.global_label as globalLabel'
+          )
+          .orderBy('post_modules.order_index', 'asc')
         : []
 
       // Load translations
@@ -154,20 +154,20 @@ export default class PostsViewController extends BasePostsController {
         reviewDraft: post.reviewDraft || null,
         modules: modulesEnabled
           ? postModules.map((pm) => ({
-              id: pm.postModuleId,
-              type: pm.type,
-              scope: pm.scope,
-              props: pm.props || {},
-              reviewProps: pm.review_props || null,
-              overrides: pm.overrides || null,
-              reviewOverrides: pm.review_overrides || null,
-              reviewAdded: pm.reviewAdded || false,
-              reviewDeleted: pm.reviewDeleted || false,
-              locked: pm.locked,
-              orderIndex: pm.orderIndex,
-              globalSlug: pm.globalSlug || null,
-              globalLabel: pm.globalLabel || null,
-            }))
+            id: pm.postModuleId,
+            type: pm.type,
+            scope: pm.scope,
+            props: pm.props || {},
+            reviewProps: pm.review_props || null,
+            overrides: pm.overrides || null,
+            reviewOverrides: pm.review_overrides || null,
+            reviewAdded: pm.reviewAdded || false,
+            reviewDeleted: pm.reviewDeleted || false,
+            locked: pm.locked,
+            orderIndex: pm.orderIndex,
+            globalSlug: pm.globalSlug || null,
+            globalLabel: pm.globalLabel || null,
+          }))
           : [],
         translations,
         customFields,

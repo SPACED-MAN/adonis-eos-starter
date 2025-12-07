@@ -1,5 +1,6 @@
 import type { HttpContext } from '@adonisjs/core/http'
 import db from '@adonisjs/lucid/services/db'
+import roleRegistry from '#services/role_registry'
 
 export default class GlobalModulesController {
   /**
