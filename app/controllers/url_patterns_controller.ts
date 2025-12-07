@@ -19,7 +19,8 @@ export default class UrlPatternsController {
     const filtered = patterns.filter((p: any) => {
       try {
         const cfg = postTypeConfigService.getUiConfig(p.postType)
-        return cfg.permalinksEnabled !== false
+        const hasPermalinks = cfg.permalinksEnabled !== false && cfg.urlPatterns.length > 0
+        return hasPermalinks
       } catch {
         // If config lookup fails, default to showing the pattern
         return true

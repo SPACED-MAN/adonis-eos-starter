@@ -1,5 +1,6 @@
 import Post from '#models/post'
 import localeService from '#services/locale_service'
+import postTypeConfigService from '#services/post_type_config_service'
 
 /**
  * Parameters for creating a translation
@@ -158,6 +159,10 @@ export default class CreateTranslation {
       basePost.title ||
       `${basePost.type} (${data.locale.toUpperCase()})`
 
+    const uiConfig = postTypeConfigService.getUiConfig(basePost.type)
+    const moduleGroupsEnabled =
+      uiConfig.moduleGroupsEnabled !== false && uiConfig.urlPatterns.length > 0
+
     return Post.create({
       type: basePost.type,
       slug: generatedSlug,
@@ -165,7 +170,7 @@ export default class CreateTranslation {
       status: 'draft',
       locale: data.locale,
       translationOfId: basePost.id,
-      moduleGroupId: (basePost as any).moduleGroupId,
+      moduleGroupId: moduleGroupsEnabled ? (basePost as any).moduleGroupId : null,
       userId: basePost.userId,
       metaTitle: data.metaTitle || null,
       metaDescription: data.metaDescription || null,

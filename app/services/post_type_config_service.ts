@@ -4,9 +4,19 @@ type PostTypeUiConfig = {
   hideCoreFields?: Array<'title' | 'excerpt' | 'parent' | 'slug' | 'meta' | 'seo'>
   hierarchyEnabled?: boolean
   fields?: PostTypeField[]
-  moduleGroup?: { name: string; description?: string }
+  moduleGroup?: { name: string; description?: string } | null
   urlPatterns?: Array<{ locale: string; pattern: string; isDefault?: boolean }>
   permalinksEnabled?: boolean
+  /**
+   * Whether modules should be available for this post type.
+   * Defaults to true when permalinks are enabled AND urlPatterns exist.
+   */
+  modulesEnabled?: boolean
+  /**
+   * Whether module groups should be available for this post type.
+   * Defaults to true when permalinks are enabled AND urlPatterns exist.
+   */
+  moduleGroupsEnabled?: boolean
   taxonomies?: string[]
   featuredImage?: {
     enabled: boolean
@@ -59,14 +69,30 @@ class PostTypeConfigService {
     } catch {
       /* ignore dynamic import errors */
     }
+    const urlPatterns = Array.isArray(cfg.urlPatterns) ? cfg.urlPatterns : []
+    const permalinksEnabled =
+      cfg.permalinksEnabled !== undefined ? !!cfg.permalinksEnabled : base.permalinksEnabled
+    const hasPermalinks = permalinksEnabled && urlPatterns.length > 0
+    const modulesEnabled =
+      cfg.modulesEnabled !== undefined ? !!cfg.modulesEnabled : hasPermalinks
+    const moduleGroupsEnabled =
+      cfg.moduleGroupsEnabled !== undefined ? !!cfg.moduleGroupsEnabled : hasPermalinks
+
     const full: Required<PostTypeUiConfig> = {
       hideCoreFields: Array.isArray(cfg.hideCoreFields) ? (cfg.hideCoreFields as any) : [],
       hierarchyEnabled:
         cfg.hierarchyEnabled !== undefined ? !!cfg.hierarchyEnabled : base.hierarchyEnabled,
       fields: Array.isArray(cfg.fields) ? cfg.fields : [],
-      moduleGroup: cfg.moduleGroup && cfg.moduleGroup.name ? cfg.moduleGroup : base.moduleGroup,
-      urlPatterns: Array.isArray(cfg.urlPatterns) ? cfg.urlPatterns : [],
-      permalinksEnabled: cfg.permalinksEnabled !== undefined ? !!cfg.permalinksEnabled : true,
+      moduleGroup:
+        moduleGroupsEnabled && cfg.moduleGroup && cfg.moduleGroup.name
+          ? cfg.moduleGroup
+          : moduleGroupsEnabled
+            ? base.moduleGroup
+            : null,
+      urlPatterns,
+      permalinksEnabled,
+      modulesEnabled,
+      moduleGroupsEnabled,
       taxonomies: Array.isArray(cfg.taxonomies) ? cfg.taxonomies : [],
       featuredImage:
         cfg.featuredImage && cfg.featuredImage.enabled

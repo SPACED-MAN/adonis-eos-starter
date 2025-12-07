@@ -1476,7 +1476,8 @@ export default class PostsController {
       // Block public rendering if permalinks are disabled for this post type
       try {
         const uiConfig = postTypeConfigService.getUiConfig(post.type)
-        if (uiConfig.permalinksEnabled === false) {
+        const hasPermalinks = uiConfig.permalinksEnabled !== false && uiConfig.urlPatterns.length > 0
+        if (!hasPermalinks) {
           return response.notFound({ error: 'Permalinks disabled for this post type' })
         }
       } catch {
@@ -1836,7 +1837,8 @@ export default class PostsController {
     if (match.postType) {
       try {
         const uiConfig = postTypeConfigService.getUiConfig(match.postType)
-        if (uiConfig.permalinksEnabled === false) {
+        const hasPermalinks = uiConfig.permalinksEnabled !== false && uiConfig.urlPatterns.length > 0
+        if (!hasPermalinks) {
           return response.notFound({ error: 'Permalinks disabled for this post type' })
         }
       } catch {

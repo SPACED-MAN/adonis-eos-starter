@@ -163,6 +163,11 @@ class UrlPatternService {
     locales: string[],
     _defaultPattern = '/{locale}/posts/{slug}'
   ): Promise<void> {
+    const postTypeConfig = postTypeConfigService.getUiConfig(postType)
+    const hasPermalinks =
+      postTypeConfig.permalinksEnabled !== false && postTypeConfig.urlPatterns.length > 0
+    if (!hasPermalinks) return
+
     const existing = await db.from('url_patterns').where({ post_type: postType }).select('locale')
     const existingLocales = new Set(existing.map((r) => r.locale))
     const missing = locales.filter((l) => !existingLocales.has(l))
@@ -170,7 +175,6 @@ class UrlPatternService {
     const now = new Date()
     
     // Get URL patterns from post type definition
-    const postTypeConfig = postTypeConfigService.getUiConfig(postType)
     const definedPatterns = postTypeConfig.urlPatterns || []
     const hierarchical = postTypeConfig.hierarchyEnabled
     const seg = hierarchical ? '{path}' : '{slug}'

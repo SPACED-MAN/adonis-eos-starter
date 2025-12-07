@@ -23,27 +23,33 @@ export default class PostsViewController extends BasePostsController {
     try {
       const post = await Post.findOrFail(params.id)
 
+      const uiCfg = postTypeConfigService.getUiConfig(post.type)
+      const hasPermalinks = uiCfg.permalinksEnabled !== false && uiCfg.urlPatterns.length > 0
+      const modulesEnabled = uiCfg.modulesEnabled !== false && uiCfg.urlPatterns.length > 0
+
       // Load post modules for editor
-      const postModules = await db
-        .from('post_modules')
-        .join('module_instances', 'post_modules.module_id', 'module_instances.id')
-        .where('post_modules.post_id', post.id)
-        .select(
-          'post_modules.id as postModuleId',
-          'post_modules.review_added as reviewAdded',
-          'post_modules.review_deleted as reviewDeleted',
-          'module_instances.type',
-          'module_instances.scope',
-          'module_instances.props',
-          'module_instances.review_props',
-          'post_modules.overrides',
-          'post_modules.review_overrides',
-          'post_modules.locked',
-          'post_modules.order_index as orderIndex',
-          'module_instances.global_slug as globalSlug',
-          'module_instances.global_label as globalLabel'
-        )
-        .orderBy('post_modules.order_index', 'asc')
+      const postModules = modulesEnabled
+        ? await db
+            .from('post_modules')
+            .join('module_instances', 'post_modules.module_id', 'module_instances.id')
+            .where('post_modules.post_id', post.id)
+            .select(
+              'post_modules.id as postModuleId',
+              'post_modules.review_added as reviewAdded',
+              'post_modules.review_deleted as reviewDeleted',
+              'module_instances.type',
+              'module_instances.scope',
+              'module_instances.props',
+              'module_instances.review_props',
+              'post_modules.overrides',
+              'post_modules.review_overrides',
+              'post_modules.locked',
+              'post_modules.order_index as orderIndex',
+              'module_instances.global_slug as globalSlug',
+              'module_instances.global_label as globalLabel'
+            )
+            .orderBy('post_modules.order_index', 'asc')
+        : []
 
       // Load translations
       const baseId = post.translationOfId || post.id
@@ -53,13 +59,12 @@ export default class PostsViewController extends BasePostsController {
       const translations = family.map((p) => ({ id: p.id, locale: p.locale }))
 
       // Build public path (use hierarchical path if post has parents)
-      const publicPath = await urlPatternService.buildPostPathForPost(post.id)
+      const publicPath = hasPermalinks ? await urlPatternService.buildPostPathForPost(post.id) : ''
 
       // Load author
       const author = await postRenderingService.loadAuthor(post.authorId)
 
       // Load custom fields
-      const uiCfg = postTypeConfigService.getUiConfig(post.type)
       const fields = Array.isArray(uiCfg.fields) ? uiCfg.fields : []
       const slugs = fields.map((f: any) => String(f.slug))
 
@@ -147,24 +152,26 @@ export default class PostsViewController extends BasePostsController {
           author,
         },
         reviewDraft: post.reviewDraft || null,
-        modules: postModules.map((pm) => ({
-          id: pm.postModuleId,
-          type: pm.type,
-          scope: pm.scope,
-          props: pm.props || {},
-          reviewProps: pm.review_props || null,
-          overrides: pm.overrides || null,
-          reviewOverrides: pm.review_overrides || null,
-          reviewAdded: pm.reviewAdded || false,
-          reviewDeleted: pm.reviewDeleted || false,
-          locked: pm.locked,
-          orderIndex: pm.orderIndex,
-          globalSlug: pm.globalSlug || null,
-          globalLabel: pm.globalLabel || null,
-        })),
+        modules: modulesEnabled
+          ? postModules.map((pm) => ({
+              id: pm.postModuleId,
+              type: pm.type,
+              scope: pm.scope,
+              props: pm.props || {},
+              reviewProps: pm.review_props || null,
+              overrides: pm.overrides || null,
+              reviewOverrides: pm.review_overrides || null,
+              reviewAdded: pm.reviewAdded || false,
+              reviewDeleted: pm.reviewDeleted || false,
+              locked: pm.locked,
+              orderIndex: pm.orderIndex,
+              globalSlug: pm.globalSlug || null,
+              globalLabel: pm.globalLabel || null,
+            }))
+          : [],
         translations,
         customFields,
-        uiConfig: uiCfg,
+        uiConfig: { ...uiCfg, modulesEnabled, hasPermalinks },
         taxonomies: taxonomyData,
         selectedTaxonomyTermIds,
       })
@@ -240,7 +247,8 @@ export default class PostsViewController extends BasePostsController {
     if (postType) {
       try {
         const uiConfig = postTypeConfigService.getUiConfig(postType)
-        if (uiConfig.permalinksEnabled === false) {
+        const hasPermalinks = uiConfig.permalinksEnabled !== false && uiConfig.urlPatterns.length > 0
+        if (!hasPermalinks) {
           return inertia.render('site/errors/not_found')
         }
       } catch {

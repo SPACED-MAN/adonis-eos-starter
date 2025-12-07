@@ -2,6 +2,7 @@ import Post from '#models/post'
 import db from '@adonisjs/lucid/services/db'
 import moduleScopeService from '#services/module_scope_service'
 import moduleRegistry from '#services/module_registry'
+import postTypeConfigService from '#services/post_type_config_service'
 import { randomUUID } from 'node:crypto'
 import type { ModuleScope } from '#types/module_types'
 
@@ -43,6 +44,15 @@ export default class AddModuleToPost {
 
     if (!post) {
       throw new AddModuleToPostException('Post not found', 404, { postId })
+    }
+
+    // Respect post type configuration: disable modules when permalinks or URL patterns are absent
+    const postTypeConfig = postTypeConfigService.getUiConfig(post.type)
+    const modulesEnabled = postTypeConfig.modulesEnabled !== false && postTypeConfig.urlPatterns.length > 0
+    if (!modulesEnabled) {
+      throw new AddModuleToPostException('Modules are disabled for this post type', 400, {
+        postType: post.type,
+      })
     }
 
     // Validate module type exists

@@ -222,6 +222,37 @@ export default function GlobalModulesIndex() {
     }
   }
 
+  async function deleteGroup(id: string) {
+    if (!isAdmin) {
+      toast.error('Only admins can delete module groups')
+      return
+    }
+    const ok = window.confirm('Delete this module group? This cannot be undone.')
+    if (!ok) return
+    try {
+      const res = await fetch(`/api/module-groups/${encodeURIComponent(id)}`, {
+        method: 'DELETE',
+        credentials: 'same-origin',
+        headers: { ...(xsrfToken ? { 'X-XSRF-TOKEN': xsrfToken } : {}) },
+      })
+      if (res.status === 204) {
+        toast.success('Module group deleted')
+        if (selectedGroup?.id === id) {
+          setSelectedGroup(null)
+          setGroupModules([])
+          setGroupDraft([])
+          setGroupDirty(false)
+        }
+        await loadGroups()
+      } else {
+        const j = await res.json().catch(() => ({}))
+        toast.error(j?.error || 'Failed to delete module group')
+      }
+    } catch {
+      toast.error('Failed to delete module group')
+    }
+  }
+
   async function loadGroupEditor(group: ModuleGroup) {
     setSelectedGroup(group)
     setGroupEditorLoading(true)
@@ -660,6 +691,15 @@ export default function GlobalModulesIndex() {
                         >
                           Edit
                         </button>
+                        {isAdmin && (
+                          <button
+                            onClick={() => deleteGroup(g.id)}
+                            className="ml-2 px-3 py-1.5 text-xs border border-line-low rounded hover:bg-backdrop-medium text-danger"
+                            type="button"
+                          >
+                            Delete
+                          </button>
+                        )}
                       </div>
                     </div>
                   ))

@@ -118,6 +118,8 @@ interface EditorProps {
     hideCoreFields?: string[]
     hierarchyEnabled?: boolean
     permalinksEnabled?: boolean
+    hasPermalinks?: boolean
+    modulesEnabled?: boolean
     featuredImage?: {
       enabled: boolean
       label?: string
@@ -313,19 +315,21 @@ export default function Editor({
       : [],
     taxonomyTermIds: Array.isArray((d as any).taxonomyTermIds) ? (d as any).taxonomyTermIds : [],
   })
+  const modulesEnabled = uiConfig?.modulesEnabled !== false
   const isDirty = useMemo(() => {
     try {
       const baseline = viewMode === 'review' && reviewInitialRef.current ? reviewInitialRef.current : initialDataRef.current
       const fieldsChanged = JSON.stringify(pickForm(data)) !== JSON.stringify(baseline)
-      const modulesPending = Object.keys(pendingModules).length > 0
-      const removalsPendingApproved = pendingRemoved.size > 0
-      const removalsPendingReview = pendingReviewRemoved.size > 0
-      const newModulesPending = pendingNewModules.length > 0
-      return fieldsChanged || modulesPending || removalsPendingApproved || removalsPendingReview || newModulesPending || hasStructuralChanges
+      const modulesPending = modulesEnabled ? Object.keys(pendingModules).length > 0 : false
+      const removalsPendingApproved = modulesEnabled ? pendingRemoved.size > 0 : false
+      const removalsPendingReview = modulesEnabled ? pendingReviewRemoved.size > 0 : false
+      const newModulesPending = modulesEnabled ? pendingNewModules.length > 0 : false
+      const structuralChanges = modulesEnabled ? hasStructuralChanges : false
+      return fieldsChanged || modulesPending || removalsPendingApproved || removalsPendingReview || newModulesPending || structuralChanges
     } catch {
       return true
     }
-  }, [data, viewMode, pendingModules, pendingRemoved, pendingReviewRemoved, pendingNewModules, hasStructuralChanges])
+  }, [data, viewMode, pendingModules, pendingRemoved, pendingReviewRemoved, pendingNewModules, hasStructuralChanges, modulesEnabled])
 
 
   // CSRF/XSRF token for fetch requests
@@ -367,7 +371,9 @@ export default function Editor({
   })
 
   // Modules state (sortable)
-  const [modules, setModules] = useState<EditorProps['modules']>(initialModules || [])
+  const [modules, setModules] = useState<EditorProps['modules']>(
+    modulesEnabled ? initialModules || [] : []
+  )
   const [pathPattern, setPathPattern] = useState<string | null>(null)
   const [supportedLocales, setSupportedLocales] = useState<string[]>([])
   const [selectedLocale, setSelectedLocale] = useState<string>(post.locale)
@@ -379,54 +385,59 @@ export default function Editor({
   // Keep local state in sync with server props after Inertia navigations
   // Useful after adding modules or reloading the page
   useEffect(() => {
-    setModules(initialModules || [])
-  }, [initialModules])
+    setModules(modulesEnabled ? initialModules || [] : [])
+  }, [initialModules, modulesEnabled])
 
   // Load module registry for display names
   useEffect(() => {
+    if (!modulesEnabled) return
     let cancelled = false
-      ; (async () => {
-        try {
-          const res = await fetch(`/api/modules/registry?post_type=${encodeURIComponent(post.type)}`, {
-            headers: { Accept: 'application/json' },
-            credentials: 'same-origin',
+    ;(async () => {
+      try {
+        const res = await fetch(`/api/modules/registry?post_type=${encodeURIComponent(post.type)}`, {
+          headers: { Accept: 'application/json' },
+          credentials: 'same-origin',
+        })
+        const json = await res.json().catch(() => null)
+        const list: Array<{ type: string; name?: string; description?: string; renderingMode?: 'static' | 'react' }> =
+          Array.isArray(json?.data) ? json.data : []
+        if (!cancelled) {
+          const map: Record<string, { name: string; description?: string; renderingMode?: 'static' | 'react' }> = {}
+          list.forEach((m) => {
+            map[m.type] = {
+              name: m.name || m.type,
+              description: m.description,
+              renderingMode: m.renderingMode,
+            }
           })
-          const json = await res.json().catch(() => null)
-          const list: Array<{ type: string; name?: string; description?: string; renderingMode?: 'static' | 'react' }> =
-            Array.isArray(json?.data) ? json.data : []
-          if (!cancelled) {
-            const map: Record<string, { name: string; description?: string; renderingMode?: 'static' | 'react' }> = {}
-            list.forEach((m) => {
-              map[m.type] = {
-                name: m.name || m.type,
-                description: m.description,
-                renderingMode: m.renderingMode,
-              }
-            })
-            setModuleRegistry(map)
-          }
-          // Load globals for slug->label mapping
-          try {
-            const gRes = await fetch('/api/modules/global', { credentials: 'same-origin' })
-            const gJson = await gRes.json().catch(() => ({}))
-            const gList: Array<{ globalSlug: string; label?: string | null }> = Array.isArray(gJson?.data) ? gJson.data : []
-            const gMap = new Map<string, string>()
-            gList.forEach((g) => {
-              if (g.globalSlug) gMap.set(g.globalSlug, (g as any).label || g.globalSlug)
-            })
-            if (!cancelled) setGlobalSlugToLabel(gMap)
-          } catch { /* ignore */ }
-        } catch {
-          if (!cancelled) setModuleRegistry({})
+          setModuleRegistry(map)
         }
-      })()
+        // Load globals for slug->label mapping
+        try {
+          const gRes = await fetch('/api/modules/global', { credentials: 'same-origin' })
+          const gJson = await gRes.json().catch(() => ({}))
+          const gList: Array<{ globalSlug: string; label?: string | null }> = Array.isArray(gJson?.data) ? gJson.data : []
+          const gMap = new Map<string, string>()
+          gList.forEach((g) => {
+            if (g.globalSlug) gMap.set(g.globalSlug, (g as any).label || g.globalSlug)
+          })
+          if (!cancelled) setGlobalSlugToLabel(gMap)
+        } catch { /* ignore */ }
+      } catch {
+        if (!cancelled) setModuleRegistry({})
+      }
+    })()
     return () => {
       cancelled = true
     }
-  }, [post.type])
+  }, [post.type, modulesEnabled])
 
   // Load URL pattern for this post type/locale to preview final path
   useEffect(() => {
+    if (uiConfig?.hasPermalinks === false) {
+      setPathPattern(null)
+      return
+    }
     let mounted = true
       ; (async () => {
         try {
@@ -614,6 +625,7 @@ export default function Editor({
   )
 
   async function persistOrder(next: EditorProps['modules']) {
+    if (!modulesEnabled) return
     // Always update all modules' order indices to ensure they're saved correctly
     // Don't skip based on current orderIndex since it may have been updated in local state
     // Filter out temporary modules (pending creation)
@@ -636,6 +648,7 @@ export default function Editor({
 
   // Create pending new modules via API
   async function createPendingNewModules(mode: 'publish' | 'review' | 'ai-review' = 'publish') {
+    if (!modulesEnabled) return
     if (pendingNewModules.length === 0) return
 
     const creates = pendingNewModules.map(async (pm) => {
@@ -675,6 +688,7 @@ export default function Editor({
 
   // Handle adding new modules locally (without API call)
   async function handleAddModule(payload: { type: string; scope: 'post' | 'global'; globalSlug?: string | null }) {
+    if (!modulesEnabled) return
     const tempId = `temp-${Date.now()}-${Math.random().toString(36).substring(2, 9)}`
     const nextOrderIndex = Math.max(-1, ...modules.map(m => m.orderIndex)) + 1
 
@@ -751,6 +765,7 @@ export default function Editor({
   // saveOverrides removed; overrides are handled via ModuleEditorPanel onSave and pendingModules batching.
 
   async function commitPendingModules(mode: 'review' | 'publish' | 'ai-review') {
+    if (!modulesEnabled) return
     const entries = Object.entries(pendingModules)
     // 1) Apply updates
     if (entries.length > 0) {
@@ -1198,114 +1213,114 @@ export default function Editor({
                 </div>
               )}
 
-              {/* Modules integrated into Content */}
-              <div className="mt-6">
-                <div className="flex items-center justify-between mb-4">
-                  <h3 className="text-base font-semibold text-neutral-high">
-                    Modules
-                  </h3>
-                  <ModulePicker
-                    postId={post.id}
-                    postType={post.type}
-                    mode={viewMode === 'review' ? 'review' : 'publish'}
-                    onAdd={handleAddModule}
-                  />
-                </div>
-                {modules.length === 0 ? (
-                  <div className="text-center py-12 text-neutral-low">
-                    <p>No modules yet. Use “Add Module” to insert one.</p>
+              {/* Modules integrated into Content (hidden when modules are disabled) */}
+              {modulesEnabled && (
+                <div className="mt-6">
+                  <div className="flex items-center justify-between mb-4">
+                    <h3 className="text-base font-semibold text-neutral-high">Modules</h3>
+                    <ModulePicker
+                      postId={post.id}
+                      postType={post.type}
+                      mode={viewMode === 'review' ? 'review' : 'publish'}
+                      onAdd={handleAddModule}
+                    />
                   </div>
-                ) : (
-                  <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={onDragEnd}>
-                    <SortableContext items={orderedIds} strategy={verticalListSortingStrategy}>
-                      <ul className="space-y-3">
-                        {sortedModules.map((m) => (
-                          <SortableItem key={m.id} id={m.id} disabled={m.locked}>
-                            {(listeners: any) => (
-                              <li className="bg-backdrop-low border border-line-low rounded-lg px-4 py-3 flex items-center justify-between">
-                                <div className="flex items-center gap-3">
-                                  <button
-                                    type="button"
-                                    aria-label="Drag"
-                                    className={`text-neutral-low hover:text-neutral-high ${m.locked ? 'opacity-40 cursor-not-allowed' : 'cursor-grab'}`}
-                                    {...(m.locked ? {} : listeners)}
-                                  >
-                                    <GripVertical size={16} />
-                                  </button>
-                                  <div>
-                                    <div className="text-sm font-medium text-neutral-high">
-                                      {m.scope === 'global'
-                                        ? (globalSlugToLabel.get(String((m as any).globalSlug || '')) || (m as any).globalLabel || (m as any).globalSlug || (moduleRegistry[m.type]?.name || m.type))
-                                        : (moduleRegistry[m.type]?.name || m.type)}
-                                    </div>
-                                    <div className="text-xs text-neutral-low">Order: {m.orderIndex}</div>
-                                  </div>
-                                </div>
-                                <div className="flex items-center gap-2">
-                                  {moduleRegistry[m.type]?.renderingMode === 'react' && (
-                                    <span
-                                      className="inline-flex items-center rounded border border-line-medium bg-backdrop-low px-2 py-1 text-xs text-neutral-high"
-                                      title="React module (client-side interactivity)"
-                                      aria-label="React module"
+                  {modules.length === 0 ? (
+                    <div className="text-center py-12 text-neutral-low">
+                      <p>No modules yet. Use “Add Module” to insert one.</p>
+                    </div>
+                  ) : (
+                    <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={onDragEnd}>
+                      <SortableContext items={orderedIds} strategy={verticalListSortingStrategy}>
+                        <ul className="space-y-3">
+                          {sortedModules.map((m) => (
+                            <SortableItem key={m.id} id={m.id} disabled={m.locked}>
+                              {(listeners: any) => (
+                                <li className="bg-backdrop-low border border-line-low rounded-lg px-4 py-3 flex items-center justify-between">
+                                  <div className="flex items-center gap-3">
+                                    <button
+                                      type="button"
+                                      aria-label="Drag"
+                                      className={`text-neutral-low hover:text-neutral-high ${m.locked ? 'opacity-40 cursor-not-allowed' : 'cursor-grab'}`}
+                                      {...(m.locked ? {} : listeners)}
                                     >
-                                      <FontAwesomeIcon icon={faReact} className="mr-1 text-sky-400" />
-                                      React
-                                    </span>
-                                  )}
-                                  {m.scope === 'global'
-                                    ? (
+                                      <GripVertical size={16} />
+                                    </button>
+                                    <div>
+                                      <div className="text-sm font-medium text-neutral-high">
+                                        {m.scope === 'global'
+                                          ? (globalSlugToLabel.get(String((m as any).globalSlug || '')) || (m as any).globalLabel || (m as any).globalSlug || (moduleRegistry[m.type]?.name || m.type))
+                                          : (moduleRegistry[m.type]?.name || m.type)}
+                                      </div>
+                                      <div className="text-xs text-neutral-low">Order: {m.orderIndex}</div>
+                                    </div>
+                                  </div>
+                                  <div className="flex items-center gap-2">
+                                    {moduleRegistry[m.type]?.renderingMode === 'react' && (
                                       <span
                                         className="inline-flex items-center rounded border border-line-medium bg-backdrop-low px-2 py-1 text-xs text-neutral-high"
-                                        title="Global module"
-                                        aria-label="Global module"
+                                        title="React module (client-side interactivity)"
+                                        aria-label="React module"
                                       >
-                                        <Globe size={14} />
+                                        <FontAwesomeIcon icon={faReact} className="mr-1 text-sky-400" />
+                                        React
                                       </span>
-                                    )
-                                    : (
-                                      <button
-                                        className="text-xs px-2 py-1 rounded border border-line-low bg-backdrop-input text-neutral-high hover:bg-backdrop-medium"
-                                        onClick={() => setEditing(m)}
-                                        type="button"
-                                      >
-                                        Edit
-                                      </button>
                                     )}
-                                  <button
-                                    className="text-xs px-2 py-1 rounded border border-[#ef4444] text-[#ef4444] hover:bg-[rgba(239,68,68,0.1)]"
-                                    onClick={async () => {
-                                      // Mark for removal in appropriate mode; actual apply on save
-                                      if (viewMode === 'review') {
-                                        setPendingReviewRemoved((prev) => {
-                                          const next = new Set(prev)
-                                          next.add(m.id)
-                                          return next
-                                        })
-                                      } else {
-                                        setPendingRemoved((prev) => {
-                                          const next = new Set(prev)
-                                          next.add(m.id)
-                                          return next
-                                        })
-                                        // For approved mode, optimistically remove from UI
-                                        setModules((prev) => prev.filter((pm) => pm.id !== m.id))
-                                      }
-                                      toast.success('Module marked for removal (apply by saving)')
-                                    }}
-                                    type="button"
-                                  >
-                                    Remove
-                                  </button>
-                                </div>
-                              </li>
-                            )}
-                          </SortableItem>
-                        ))}
-                      </ul>
-                    </SortableContext>
-                  </DndContext>
-                )}
-              </div>
+                                    {m.scope === 'global'
+                                      ? (
+                                        <span
+                                          className="inline-flex items-center rounded border border-line-medium bg-backdrop-low px-2 py-1 text-xs text-neutral-high"
+                                          title="Global module"
+                                          aria-label="Global module"
+                                        >
+                                          <Globe size={14} />
+                                        </span>
+                                      )
+                                      : (
+                                        <button
+                                          className="text-xs px-2 py-1 rounded border border-line-low bg-backdrop-input text-neutral-high hover:bg-backdrop-medium"
+                                          onClick={() => setEditing(m)}
+                                          type="button"
+                                        >
+                                          Edit
+                                        </button>
+                                      )}
+                                    <button
+                                      className="text-xs px-2 py-1 rounded border border-[#ef4444] text-[#ef4444] hover:bg-[rgba(239,68,68,0.1)]"
+                                      onClick={async () => {
+                                        // Mark for removal in appropriate mode; actual apply on save
+                                        if (viewMode === 'review') {
+                                          setPendingReviewRemoved((prev) => {
+                                            const next = new Set(prev)
+                                            next.add(m.id)
+                                            return next
+                                          })
+                                        } else {
+                                          setPendingRemoved((prev) => {
+                                            const next = new Set(prev)
+                                            next.add(m.id)
+                                            return next
+                                          })
+                                          // For approved mode, optimistically remove from UI
+                                          setModules((prev) => prev.filter((pm) => pm.id !== m.id))
+                                        }
+                                        toast.success('Module marked for removal (apply by saving)')
+                                      }}
+                                      type="button"
+                                    >
+                                      Remove
+                                    </button>
+                                  </div>
+                                </li>
+                              )}
+                            </SortableItem>
+                          ))}
+                        </ul>
+                      </SortableContext>
+                    </DndContext>
+                  )}
+                </div>
+              )}
             </div>
 
             {/* SEO Card */}
@@ -1658,7 +1673,7 @@ export default function Editor({
                     </button>
                   )}
                 </div>
-                {uiConfig?.permalinksEnabled !== false && (
+                {uiConfig?.hasPermalinks !== false && (
                   <button
                     className="w-full px-4 py-2 text-sm border border-border rounded-lg hover:bg-backdrop-medium text-neutral-medium"
                     onClick={() => {

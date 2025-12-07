@@ -36,8 +36,15 @@ try {
 // Ensure DB reflects code config (idempotent)
 async function syncFromRegistry() {
   for (const [type, cfg] of postTypeRegistry.entries()) {
+    const urlPatterns = Array.isArray((cfg as any).urlPatterns) ? (cfg as any).urlPatterns : []
+    const permalinksEnabled = (cfg as any).permalinksEnabled !== false && urlPatterns.length > 0
+    const moduleGroupsEnabled =
+      (cfg as any).moduleGroupsEnabled !== undefined
+        ? !!(cfg as any).moduleGroupsEnabled
+        : permalinksEnabled
+
     // Module Group (formerly template)
-    if ((cfg as any).moduleGroup?.name) {
+    if (moduleGroupsEnabled && (cfg as any).moduleGroup?.name) {
       const now = new Date()
       const existing = await db
         .from('module_groups')
@@ -67,14 +74,14 @@ async function syncFromRegistry() {
       }
     }
     // URL patterns (remove if permalinks are disabled; otherwise ensure)
-    if (cfg.permalinksEnabled === false) {
+    if (!permalinksEnabled) {
       try {
         await db.from('url_patterns').where({ post_type: type }).delete()
       } catch {
         // ignore
       }
-    } else if (Array.isArray(cfg.urlPatterns)) {
-      for (const p of cfg.urlPatterns) {
+    } else if (urlPatterns.length > 0) {
+      for (const p of urlPatterns) {
         const now = new Date()
         const row = await db
           .from('url_patterns')

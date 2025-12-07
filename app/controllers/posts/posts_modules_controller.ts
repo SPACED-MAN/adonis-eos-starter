@@ -4,6 +4,7 @@ import UpdatePostModule, { UpdatePostModuleException } from '#actions/posts/upda
 import db from '@adonisjs/lucid/services/db'
 import BasePostsController from './base_posts_controller.js'
 import { addModuleValidator, updateModuleValidator } from '#validators/post'
+import postTypeConfigService from '#services/post_type_config_service'
 
 const uuidRegex = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i
 const isUuid = (val: unknown): val is string => typeof val === 'string' && uuidRegex.test(val)
@@ -115,6 +116,20 @@ export default class PostsModulesController extends BasePostsController {
     const row = await db.from('post_modules').where('id', id).first()
     if (!row) {
       return this.response.notFound(response, 'Post module not found')
+    }
+
+    // Disallow module operations when modules are disabled for the post type
+    try {
+      const postRow = await db.from('posts').where('id', (row as any).post_id).first()
+      if (postRow) {
+        const cfg = postTypeConfigService.getUiConfig((postRow as any).type)
+        const modulesEnabled = cfg.modulesEnabled !== false && cfg.urlPatterns.length > 0
+        if (!modulesEnabled) {
+          return this.response.badRequest(response, 'Modules are disabled for this post type')
+        }
+      }
+    } catch {
+      /* ignore and proceed */
     }
 
     // Check if locked

@@ -1,4 +1,5 @@
 import db from '@adonisjs/lucid/services/db'
+import postTypeConfigService from '#services/post_type_config_service'
 
 type UpdatePostModuleParams = {
   postModuleId: string
@@ -64,6 +65,19 @@ export default class UpdatePostModule {
 
     if (!postModule) {
       throw new UpdatePostModuleException('Post module not found', 404, { postModuleId })
+    }
+
+    const postRow = await db.from('posts').where('id', postModule.post_id).first()
+    if (!postRow) {
+      throw new UpdatePostModuleException('Post not found for module', 404, { postModuleId })
+    }
+    const postTypeConfig = postTypeConfigService.getUiConfig((postRow as any).type)
+    const modulesEnabled =
+      postTypeConfig.modulesEnabled !== false && postTypeConfig.urlPatterns.length > 0
+    if (!modulesEnabled) {
+      throw new UpdatePostModuleException('Modules are disabled for this post type', 400, {
+        postType: (postRow as any).type,
+      })
     }
 
     // Build update object for post_modules

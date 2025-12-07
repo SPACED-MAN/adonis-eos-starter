@@ -102,11 +102,16 @@ export default class CreatePost {
       })
     }
 
+    const uiConfig = postTypeConfigService.getUiConfig(type)
+    const hasPermalinks = uiConfig.permalinksEnabled !== false && uiConfig.urlPatterns.length > 0
+    const modulesEnabled = uiConfig.modulesEnabled !== false && uiConfig.urlPatterns.length > 0
+    const moduleGroupsEnabled = uiConfig.moduleGroupsEnabled !== false && uiConfig.urlPatterns.length > 0
+
     // Resolve default module group when none provided
     let effectiveModuleGroupId: string | null = moduleGroupId
-    if (!effectiveModuleGroupId) {
+    if (moduleGroupsEnabled && !effectiveModuleGroupId) {
       const defaultName =
-        postTypeConfigService.getUiConfig(type)?.moduleGroup?.name || `${type}-default`
+        uiConfig.moduleGroup?.name || `${type}-default`
       const defaultGroup = await db
         .from('module_groups')
         .where({ post_type: type, name: defaultName })
@@ -134,7 +139,7 @@ export default class CreatePost {
           excerpt,
           metaTitle,
           metaDescription,
-          moduleGroupId: effectiveModuleGroupId,
+          moduleGroupId: moduleGroupsEnabled ? effectiveModuleGroupId : null,
           userId,
           authorId: userId,
         },
@@ -142,7 +147,7 @@ export default class CreatePost {
       )
 
       // If module group is specified, seed modules from that group
-      if (effectiveModuleGroupId) {
+      if (moduleGroupsEnabled && effectiveModuleGroupId && modulesEnabled) {
         await this.seedModulesFromModuleGroup(newPost.id, effectiveModuleGroupId, trx)
       }
 
@@ -150,18 +155,22 @@ export default class CreatePost {
     })
 
     // Ensure default URL patterns for this post type across supported locales
-    try {
-      const locales = await LocaleService.getSupportedLocales()
-      await urlPatternService.ensureDefaultsForPostType(type, locales)
-    } catch { }
+    if (hasPermalinks) {
+      try {
+        const locales = await LocaleService.getSupportedLocales()
+        await urlPatternService.ensureDefaultsForPostType(type, locales)
+      } catch { }
+    }
 
     // Set canonical URL for the post
-    try {
-      const canonicalPath = await urlPatternService.buildPostPathForPost(post.id)
-      post.canonicalUrl = canonicalPath
-      await post.save()
-    } catch {
-      // If canonical URL generation fails, continue without it
+    if (hasPermalinks) {
+      try {
+        const canonicalPath = await urlPatternService.buildPostPathForPost(post.id)
+        post.canonicalUrl = canonicalPath
+        await post.save()
+      } catch {
+        // If canonical URL generation fails, continue without it
+      }
     }
 
     return post
