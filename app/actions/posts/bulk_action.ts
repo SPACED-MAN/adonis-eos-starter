@@ -95,7 +95,7 @@ export default class BulkPostsAction {
 
             await PostModule.create(
               {
-                id: randomUUID(),
+              id: randomUUID(),
                 postId: newPost.id,
                 moduleId: targetModuleId!,
                 orderIndex: Number(pm.orderIndex ?? 0),

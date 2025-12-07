@@ -4,6 +4,8 @@ export type SiteField =
   | { slug: string; label: string; type: 'boolean' }
   | { slug: string; label: string; type: 'media' }
   | { slug: string; label: string; type: 'form-reference' }
+  | { slug: string; label: string; type: 'link' }
+  | { slug: string; label: string; type: 'file' }
 
 // Code-first site custom fields. Edit as needed.
 const siteFields: SiteField[] = [

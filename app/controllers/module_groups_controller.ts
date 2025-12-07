@@ -29,11 +29,11 @@ export default class ModuleGroupsController {
     } = request.only(['name', 'postType', 'description', 'locked'])
     if (!name || !postType) return response.badRequest({ error: 'name and postType are required' })
     const row = await ModuleGroup.create({
-      name,
+        name,
       postType,
-      description,
-      locked: !!locked,
-    })
+        description,
+        locked: !!locked,
+      })
     return response.created({ data: row })
   }
 
@@ -95,13 +95,13 @@ export default class ModuleGroupsController {
     const nextOrder = ((maxOrder as any)?.$extras?.maxOrder || 0) + 1
     const row = await ModuleGroupModule.create({
       moduleGroupId: id,
-      type,
+        type,
       defaultProps: defaultProps || {},
-      scope: String(scope || 'post'),
+        scope: String(scope || 'post'),
       globalSlug: globalSlug ? String(globalSlug) : null,
       orderIndex: nextOrder,
-      locked: !!locked,
-    })
+        locked: !!locked,
+      })
     return response.created({ data: row })
   }
 

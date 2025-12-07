@@ -32,14 +32,14 @@ class TaxonomyService {
     return rows.map((r) => {
       const cfg = taxonomyRegistry.get(r.slug)
       return {
-        id: r.id,
-        slug: r.slug,
-        name: r.name,
+      id: r.id,
+      slug: r.slug,
+      name: r.name,
         hierarchical: !!cfg?.hierarchical,
         freeTagging: !!cfg?.freeTagging,
-        maxSelections:
+      maxSelections:
           cfg?.maxSelections === undefined || cfg?.maxSelections === null
-            ? null
+          ? null
             : Number(cfg.maxSelections),
       }
     })

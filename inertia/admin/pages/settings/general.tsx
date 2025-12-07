@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useState, useMemo } from 'react'
 import { AdminHeader } from '../../components/AdminHeader'
 import { AdminFooter } from '../../components/AdminFooter'
 import { Input } from '../../../components/ui/input'
@@ -24,64 +24,6 @@ function getXsrf(): string | undefined {
   return m ? decodeURIComponent(m[1]) : undefined
 }
 
-function SiteFormReferenceField({
-  label,
-  value,
-  onChange,
-}: {
-  label: string
-  value: string
-  onChange: (slug: string) => void
-}) {
-  const [options, setOptions] = useState<Array<{ label: string; value: string }>>([])
-  const [loading, setLoading] = useState(false)
-
-  useEffect(() => {
-    let alive = true
-      ; (async () => {
-        try {
-          setLoading(true)
-          const res = await fetch('/api/forms-definitions', { credentials: 'same-origin' })
-          const j = await res.json().catch(() => ({}))
-          if (!alive) return
-          const list: Array<any> = Array.isArray(j?.data) ? j.data : []
-          setOptions(
-            list.map((f) => ({
-              value: String(f.slug),
-              label: f.title ? String(f.title) : String(f.slug),
-            }))
-          )
-        } catch {
-          if (!alive) setOptions([])
-        } finally {
-          if (alive) setLoading(false)
-        }
-      })()
-    return () => {
-      alive = false
-    }
-  }, [])
-
-  return (
-    <div>
-      <label className="block text-sm font-medium text-neutral-medium mb-1">{label}</label>
-      <select
-        className="block w-full border border-line-low rounded bg-backdrop-low px-3 py-2 text-sm text-neutral-high"
-        value={value || ''}
-        onChange={(e) => onChange(e.target.value)}
-        disabled={loading}
-      >
-        <option value="">— Select a form —</option>
-        {options.map((opt) => (
-          <option key={opt.value} value={opt.value}>
-            {opt.label}
-          </option>
-        ))}
-      </select>
-    </div>
-  )
-}
-
 export default function GeneralSettings() {
   const [loading, setLoading] = useState(false)
   const [saving, setSaving] = useState(false)
@@ -96,6 +38,27 @@ export default function GeneralSettings() {
     customFields: {},
   })
 
+  const fieldComponents = useMemo(() => {
+    const modules = import.meta.glob('../fields/*.tsx', { eager: true }) as Record<
+      string,
+      { default: any }
+    >
+    const map: Record<string, any> = {}
+    Object.entries(modules).forEach(([path, mod]) => {
+      const name = path.split('/').pop()?.replace(/\.\w+$/, '')
+      if (name && mod?.default) {
+        map[name] = mod.default
+      }
+    })
+    return map
+  }, [])
+
+  const pascalFromType = (t: string) =>
+    t
+      .split(/[-_]/g)
+      .map((s) => s.charAt(0).toUpperCase() + s.slice(1))
+      .join('')
+
   useEffect(() => {
     let alive = true
       ; (async () => {
@@ -109,7 +72,7 @@ export default function GeneralSettings() {
             defaultMetaDescription: j?.data?.defaultMetaDescription || '',
             faviconMediaId: j?.data?.faviconMediaId || '',
             defaultOgMediaId: j?.data?.defaultOgMediaId || '',
-          logoMediaId: j?.data?.logoMediaId || '',
+            logoMediaId: j?.data?.logoMediaId || '',
             profileRolesEnabled: Array.isArray(j?.data?.profileRolesEnabled) ? j.data.profileRolesEnabled : [],
             customFieldDefs: Array.isArray(j?.data?.customFieldDefs) ? j.data.customFieldDefs : [],
             customFields: (j?.data?.customFields && typeof j.data.customFields === 'object') ? j.data.customFields : {},
@@ -345,63 +308,37 @@ export default function GeneralSettings() {
               <div className="space-y-4">
                 {form.customFieldDefs.map((f) => {
                   const val = form.customFields?.[f.slug]
-                  if (f.type === 'boolean') {
-                    return (
-                      <label key={f.slug} className="inline-flex items-center gap-2 text-sm text-neutral-high">
-                        <input
-                          type="checkbox"
-                          checked={!!val}
-                          onChange={(e) => setForm((prev) => ({ ...prev, customFields: { ...(prev.customFields || {}), [f.slug]: e.target.checked } }))}
-                        />
-                        {f.label}
-                      </label>
-                    )
-                  }
-                  if (f.type === 'textarea') {
+                  const compName = `${pascalFromType(f.type)}Field`
+                  const Renderer = (fieldComponents as Record<string, any>)[compName]
+                  if (Renderer) {
                     return (
                       <div key={f.slug}>
                         <label className="block text-sm font-medium text-neutral-medium mb-1">{f.label}</label>
-                        <Textarea
-                          value={typeof val === 'string' ? val : ''}
-                          onChange={(e) => setForm((prev) => ({ ...prev, customFields: { ...(prev.customFields || {}), [f.slug]: e.target.value } }))}
-                          rows={3}
+                        <Renderer
+                          value={val ?? null}
+                          onChange={(next: any) =>
+                            setForm((prev) => ({
+                              ...prev,
+                              customFields: { ...(prev.customFields || {}), [f.slug]: next },
+                            }))
+                          }
+                          {...(f as any)}
                         />
                       </div>
                     )
                   }
-                  if (f.type === 'media') {
-                    return (
-                      <div key={f.slug}>
-                        <MediaIdPicker
-                          label={f.label}
-                          value={typeof val === 'string' ? val : null}
-                          onChange={(id) => setForm((prev) => ({ ...prev, customFields: { ...(prev.customFields || {}), [f.slug]: id } }))}
-                        />
-                      </div>
-                    )
-                  }
-                  if (f.type === 'form-reference') {
-                    return (
-                      <SiteFormReferenceField
-                        key={f.slug}
-                        label={f.label}
-                        value={typeof val === 'string' ? val : ''}
-                        onChange={(slug) =>
-                          setForm((prev) => ({
-                            ...prev,
-                            customFields: { ...(prev.customFields || {}), [f.slug]: slug || '' },
-                          }))
-                        }
-                      />
-                    )
-                  }
-                  // text or url
+                  // fallback
                   return (
                     <div key={f.slug}>
                       <label className="block text-sm font-medium text-neutral-medium mb-1">{f.label}</label>
                       <Input
                         value={typeof val === 'string' ? val : ''}
-                        onChange={(e) => setForm((prev) => ({ ...prev, customFields: { ...(prev.customFields || {}), [f.slug]: e.target.value } }))}
+                        onChange={(e) =>
+                          setForm((prev) => ({
+                            ...prev,
+                            customFields: { ...(prev.customFields || {}), [f.slug]: e.target.value },
+                          }))
+                        }
                         placeholder={f.type === 'url' ? 'https://' : ''}
                       />
                     </div>

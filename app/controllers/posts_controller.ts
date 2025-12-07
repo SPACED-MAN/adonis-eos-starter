@@ -17,6 +17,7 @@ import PostSerializerService from '#services/post_serializer_service'
 import siteSettingsService from '#services/site_settings_service'
 import roleRegistry from '#services/role_registry'
 import PostCustomFieldValue from '#models/post_custom_field_value'
+import fieldTypeRegistry from '#services/field_type_registry'
 
 /**
  * Posts Controller
@@ -39,6 +40,39 @@ export default class PostsController {
 
   private filterValidUuids(values: any[]): string[] {
     return values.filter((val) => this.isUuid(val)) as string[]
+  }
+
+  private validateCustomFieldValues(
+    fieldDefs: Array<{ slug?: string; type?: string; fieldType?: string }>,
+    entries: Array<{ slug?: string; value: any }> | undefined | null
+  ): Array<{ slug: string; value: any }> {
+    if (!Array.isArray(entries) || entries.length === 0) return []
+    const defsBySlug = new Map<string, { slug: string; type?: string; fieldType?: string }>()
+    for (const def of fieldDefs || []) {
+      const slug = String((def as any).slug || '').trim()
+      if (slug) defsBySlug.set(slug, def as any)
+    }
+    const out: Array<{ slug: string; value: any }> = []
+    for (const entry of entries) {
+      if (!entry) continue
+      const slug = String((entry as any).slug || '').trim()
+      if (!slug) continue
+      const def = defsBySlug.get(slug)
+      if (!def) {
+        throw new Error(`Unknown custom field: ${slug}`)
+      }
+      const fieldType = String((def as any).type || (def as any).fieldType || '').trim()
+      if (!fieldType) {
+        throw new Error(`Missing field type for custom field: ${slug}`)
+      }
+      const cfg = fieldTypeRegistry.get(fieldType)
+      const parsed = cfg.valueSchema.safeParse((entry as any).value ?? null)
+      if (!parsed.success) {
+        throw new Error(`Invalid value for field "${slug}": ${parsed.error.issues[0]?.message || 'invalid'}`)
+      }
+      out.push({ slug, value: parsed.data })
+    }
+    return out
   }
   /**
    * PATCH /api/posts/:id/author
@@ -77,7 +111,7 @@ export default class PostsController {
         entityId: id,
         metadata: { authorId },
       })
-    } catch {}
+    } catch { }
     return response.ok({ message: 'Author updated' })
   }
   /**
@@ -132,9 +166,9 @@ export default class PostsController {
     const idsParam = String(request.input('ids', '')).trim()
     const ids: string[] = idsParam
       ? idsParam
-          .split(',')
-          .map((v) => v.trim())
-          .filter(Boolean)
+        .split(',')
+        .map((v) => v.trim())
+        .filter(Boolean)
       : []
 
     const query = Post.query()
@@ -392,6 +426,10 @@ export default class PostsController {
       }
 
       const uiConfig = postTypeConfigService.getUiConfig(post.type)
+      const fieldTypes = fieldTypeRegistry.list().map((f) => ({
+        type: f.type,
+        adminComponent: f.adminComponent,
+      }))
       return inertia.render('admin/posts/editor', {
         post: {
           id: post.id,
@@ -445,6 +483,7 @@ export default class PostsController {
           value: (f as any).value ?? null,
         })),
         uiConfig,
+        fieldTypes,
       })
     } catch (error) {
       // Return an Inertia 404 page instead of JSON to satisfy Inertia expectations
@@ -515,7 +554,7 @@ export default class PostsController {
           entityId: (post as any).id,
           metadata: { type, locale, slug, title, status },
         })
-      } catch {}
+      } catch { }
       return response.created({
         data: {
           id: post.id,
@@ -674,7 +713,7 @@ export default class PostsController {
             entityId: id,
             metadata: { fields: Object.keys(draftPayload || {}) },
           })
-        } catch {}
+        } catch { }
         // For XHR/API clients, return JSON; avoid redirect which can confuse fetch()
         return response.ok({ message: 'Saved for review' })
       }
@@ -682,9 +721,17 @@ export default class PostsController {
         // Load current post to get persisted review_draft and status
         try {
           const current = await Post.findOrFail(id)
+          const uiFields = postTypeConfigService.getUiConfig(current.type).fields || []
           const rd: any = (current as any).reviewDraft || (current as any).review_draft
           if (!rd) {
             return response.badRequest({ error: 'No review draft to approve' })
+          }
+          if (Array.isArray((rd as any)?.customFields)) {
+            try {
+              this.validateCustomFieldValues(uiFields, (rd as any).customFields as any)
+            } catch (e: any) {
+              return response.badRequest({ error: e?.message || 'Invalid custom fields' })
+            }
           }
           // Prepare fields from review draft, but DO NOT alter status
           const nextSlug = rd.slug ?? current.slug
@@ -704,22 +751,22 @@ export default class PostsController {
           const nextRobots =
             typeof rd.robotsJson === 'string'
               ? (() => {
-                  try {
-                    return JSON.parse(rd.robotsJson)
-                  } catch {
-                    return null
-                  }
-                })()
+                try {
+                  return JSON.parse(rd.robotsJson)
+                } catch {
+                  return null
+                }
+              })()
               : (rd.robotsJson ?? current.robotsJson)
           const nextJsonLd =
             typeof rd.jsonldOverrides === 'string'
               ? (() => {
-                  try {
-                    return JSON.parse(rd.jsonldOverrides)
-                  } catch {
-                    return null
-                  }
-                })()
+                try {
+                  return JSON.parse(rd.jsonldOverrides)
+                } catch {
+                  return null
+                }
+              })()
               : (rd.jsonldOverrides ?? current.jsonldOverrides)
 
           await UpdatePost.handle({
@@ -831,7 +878,7 @@ export default class PostsController {
               entityType: 'post',
               entityId: id,
             })
-          } catch {}
+          } catch { }
           // Clear review draft
           await Post.query()
             .where('id', id)
@@ -939,10 +986,16 @@ export default class PostsController {
             .where('id', id)
             .update({ scheduled_at: null, updated_at: now } as any)
         }
-      } catch {}
+      } catch { }
       // Upsert custom fields (approved save only) by field_slug and track only changed slugs
       const customFieldSlugsChanged: string[] = []
       if (Array.isArray(customFields)) {
+        const uiFields = postTypeConfigService.getUiConfig(currentForDiff.type).fields || []
+        try {
+          this.validateCustomFieldValues(uiFields, customFields as any)
+        } catch (e: any) {
+          return response.badRequest({ error: e?.message || 'Invalid custom fields' })
+        }
         const slugs = (customFields as Array<{ slug?: string }>)
           .map((cf) => String((cf as any).slug || '').trim())
           .filter(Boolean)
@@ -1058,7 +1111,7 @@ export default class PostsController {
             customFieldSlugs: customFieldSlugsChanged.length ? customFieldSlugsChanged : undefined,
           },
         })
-      } catch {}
+      } catch { }
       // For Inertia requests, redirect back to editor
       // Toast notification is handled client-side
       return response.redirect().back()
@@ -1178,22 +1231,22 @@ export default class PostsController {
       const nextRobots =
         typeof rd.robotsJson === 'string'
           ? (() => {
-              try {
-                return JSON.parse(rd.robotsJson)
-              } catch {
-                return null
-              }
-            })()
+            try {
+              return JSON.parse(rd.robotsJson)
+            } catch {
+              return null
+            }
+          })()
           : (rd.robotsJson ?? current.robotsJson)
       const nextJsonLd =
         typeof rd.jsonldOverrides === 'string'
           ? (() => {
-              try {
-                return JSON.parse(rd.jsonldOverrides)
-              } catch {
-                return null
-              }
-            })()
+            try {
+              return JSON.parse(rd.jsonldOverrides)
+            } catch {
+              return null
+            }
+          })()
           : (rd.jsonldOverrides ?? current.jsonldOverrides)
 
       await UpdatePost.handle({
@@ -1282,7 +1335,7 @@ export default class PostsController {
         entityId: id,
         metadata: { type: post.type, slug: post.slug, locale: post.locale },
       })
-    } catch {}
+    } catch { }
     return response.noContent()
   }
 
@@ -1317,7 +1370,7 @@ export default class PostsController {
           entityId: 'bulk',
           metadata: { count: ids.length },
         })
-      } catch {}
+      } catch { }
       return response.ok(result)
     } catch (e: any) {
       const status = e?.statusCode || 400
@@ -1443,7 +1496,7 @@ export default class PostsController {
           entityId: 'bulk',
           metadata: { count: sanitized.length },
         })
-      } catch {}
+      } catch { }
       return response.ok({ updated: sanitized.length })
     } catch (e: any) {
       return response.badRequest({ error: e?.message || 'Failed to reorder posts' })

@@ -42,6 +42,7 @@ import { getXsrf } from '~/utils/xsrf'
 import { LinkField, type LinkFieldValue } from '~/components/forms/LinkField'
 import { useHasPermission } from '~/utils/permissions'
 import { pickMediaVariantUrl, type MediaVariant } from '../../../lib/media'
+// Field components are auto-discovered via Vite glob below
 
 const flattenTerms = (
   nodes: TaxonomyTermNode[],
@@ -127,6 +128,7 @@ interface EditorProps {
   }
   taxonomies?: Array<{ slug: string; name: string; terms: TaxonomyTermNode[] }>
   selectedTaxonomyTermIds?: string[]
+  fieldTypes?: Array<{ type: string; adminComponent: string }>
 }
 
 export default function Editor({
@@ -139,6 +141,7 @@ export default function Editor({
   uiConfig,
   taxonomies = [],
   selectedTaxonomyTermIds = [],
+  fieldTypes = [],
 }: EditorProps) {
   const { data, setData, put, processing, errors } = useForm({
     title: post.title,
@@ -212,6 +215,35 @@ export default function Editor({
     new Set(selectedTaxonomyTermIds)
   )
   const taxonomyInputRefs = useRef<Record<string, HTMLInputElement | null>>({})
+  const fieldComponents = useMemo(() => {
+    const modules = import.meta.glob('../fields/*.tsx', { eager: true }) as Record<
+      string,
+      { default: any }
+    >
+    const map: Record<string, any> = {}
+    Object.entries(modules).forEach(([path, mod]) => {
+      const name = path.split('/').pop()?.replace(/\.\w+$/, '')
+      if (name && mod?.default) {
+        map[name] = mod.default
+      }
+    })
+    return map
+  }, [])
+
+  const fieldRenderers = useMemo(() => {
+    const byType = new Map<string, string>()
+    fieldTypes.forEach((f) => {
+      const compName = f.adminComponent?.split('/').pop()?.replace(/\.\w+$/, '')
+      if (f.type && compName) byType.set(f.type, compName)
+    })
+    return byType
+  }, [fieldTypes])
+
+  const pascalFromType = (t: string) =>
+    t
+      .split(/[-_]/g)
+      .map((s) => s.charAt(0).toUpperCase() + s.slice(1))
+      .join('')
 
   useEffect(() => {
     setTaxonomyTrees(taxonomies)
@@ -392,41 +424,41 @@ export default function Editor({
   useEffect(() => {
     if (!modulesEnabled) return
     let cancelled = false
-    ;(async () => {
-      try {
-        const res = await fetch(`/api/modules/registry?post_type=${encodeURIComponent(post.type)}`, {
-          headers: { Accept: 'application/json' },
-          credentials: 'same-origin',
-        })
-        const json = await res.json().catch(() => null)
-        const list: Array<{ type: string; name?: string; description?: string; renderingMode?: 'static' | 'react' }> =
-          Array.isArray(json?.data) ? json.data : []
-        if (!cancelled) {
-          const map: Record<string, { name: string; description?: string; renderingMode?: 'static' | 'react' }> = {}
-          list.forEach((m) => {
-            map[m.type] = {
-              name: m.name || m.type,
-              description: m.description,
-              renderingMode: m.renderingMode,
-            }
-          })
-          setModuleRegistry(map)
-        }
-        // Load globals for slug->label mapping
+      ; (async () => {
         try {
-          const gRes = await fetch('/api/modules/global', { credentials: 'same-origin' })
-          const gJson = await gRes.json().catch(() => ({}))
-          const gList: Array<{ globalSlug: string; label?: string | null }> = Array.isArray(gJson?.data) ? gJson.data : []
-          const gMap = new Map<string, string>()
-          gList.forEach((g) => {
-            if (g.globalSlug) gMap.set(g.globalSlug, (g as any).label || g.globalSlug)
+          const res = await fetch(`/api/modules/registry?post_type=${encodeURIComponent(post.type)}`, {
+            headers: { Accept: 'application/json' },
+            credentials: 'same-origin',
           })
-          if (!cancelled) setGlobalSlugToLabel(gMap)
-        } catch { /* ignore */ }
-      } catch {
-        if (!cancelled) setModuleRegistry({})
-      }
-    })()
+          const json = await res.json().catch(() => null)
+          const list: Array<{ type: string; name?: string; description?: string; renderingMode?: 'static' | 'react' }> =
+            Array.isArray(json?.data) ? json.data : []
+          if (!cancelled) {
+            const map: Record<string, { name: string; description?: string; renderingMode?: 'static' | 'react' }> = {}
+            list.forEach((m) => {
+              map[m.type] = {
+                name: m.name || m.type,
+                description: m.description,
+                renderingMode: m.renderingMode,
+              }
+            })
+            setModuleRegistry(map)
+          }
+          // Load globals for slug->label mapping
+          try {
+            const gRes = await fetch('/api/modules/global', { credentials: 'same-origin' })
+            const gJson = await gRes.json().catch(() => ({}))
+            const gList: Array<{ globalSlug: string; label?: string | null }> = Array.isArray(gJson?.data) ? gJson.data : []
+            const gMap = new Map<string, string>()
+            gList.forEach((g) => {
+              if (g.globalSlug) gMap.set(g.globalSlug, (g as any).label || g.globalSlug)
+            })
+            if (!cancelled) setGlobalSlugToLabel(gMap)
+          } catch { /* ignore */ }
+        } catch {
+          if (!cancelled) setModuleRegistry({})
+        }
+      })()
     return () => {
       cancelled = true
     }
@@ -1027,18 +1059,35 @@ export default function Editor({
                         else list.push(next)
                         setData('customFields', list as any)
                       }
-                      if (f.fieldType === 'text' || f.fieldType === 'url' || f.fieldType === 'number') {
+                      const rendererKey = (f as any).fieldType || (f as any).type
+                      const compName =
+                        fieldRenderers.get(rendererKey) ||
+                        rendererKey?.split('/').pop()?.replace(/\.\w+$/, '') ||
+                        `${pascalFromType(rendererKey)}Field`
+                      const Renderer = compName ? (fieldComponents as Record<string, any>)[compName] : undefined
+                      if (Renderer) {
+                        const cfg = (f as any).config || {}
+                        const isSelect = compName === 'SelectField'
                         return (
                           <div key={f.id}>
                             <label className="block text-sm font-medium text-neutral-medium mb-1">
                               {f.label}
                             </label>
-                            <Input
-                              type={f.fieldType === 'number' ? 'number' : (f.fieldType === 'url' ? 'url' : 'text')}
-                              value={entry.value ?? ''}
-                              onChange={(e) => setValue(f.fieldType === 'number' ? Number(e.target.value) : e.target.value)}
-                              placeholder={f.label}
-                            />
+                            {isSelect ? (
+                              <Renderer
+                                value={entry.value ?? null}
+                                onChange={setValue}
+                                options={Array.isArray(cfg.options) ? cfg.options : []}
+                                multiple={!!cfg.multiple}
+                              />
+                            ) : (
+                              <Renderer
+                                value={entry.value ?? null}
+                                onChange={setValue}
+                                placeholder={cfg.placeholder}
+                                maxLength={cfg.maxLength}
+                              />
+                            )}
                           </div>
                         )
                       }
@@ -1296,14 +1345,14 @@ export default function Editor({
                                         </span>
                                       )
                                       : (
-                                    <button
-                                      className="text-xs px-2 py-1 rounded border border-line-low bg-backdrop-input text-neutral-high hover:bg-backdrop-medium"
-                                      onClick={() => setEditing(m)}
-                                      type="button"
-                                    >
-                                      Edit
-                                    </button>
-                                  )}
+                                        <button
+                                          className="text-xs px-2 py-1 rounded border border-line-low bg-backdrop-input text-neutral-high hover:bg-backdrop-medium"
+                                          onClick={() => setEditing(m)}
+                                          type="button"
+                                        >
+                                          Edit
+                                        </button>
+                                      )}
                                     <button
                                       className="text-xs px-2 py-1 rounded border border-[#ef4444] text-[#ef4444] hover:bg-[rgba(239,68,68,0.1)] disabled:opacity-50"
                                       disabled={m.locked}

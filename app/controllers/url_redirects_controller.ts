@@ -48,8 +48,8 @@ export default class UrlRedirectsController {
       fromPath,
       toPath,
       httpStatus,
-      locale: locale || null,
-    })
+        locale: locale || null,
+      })
     return response.created({ data: created, message: 'Redirect created' })
   }
 
