@@ -135,6 +135,17 @@ export function SiteAdminBar() {
                 Open
               </a>
             </div>
+            {post?.id && (
+              <div className="flex items-center justify-between">
+                <span>Edit this page</span>
+                <a
+                  href={`/admin/posts/${post.id}/edit`}
+                  className="px-2 py-1 rounded border border-line-low hover:bg-backdrop-medium text-neutral-medium"
+                >
+                  Edit
+                </a>
+              </div>
+            )}
             {/* Removed duplicate 'View Review' toggle inside the panel per request */}
           </div>
         </div>
