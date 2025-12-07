@@ -16,6 +16,7 @@ import RevisionService from '#services/revision_service'
 import PostSerializerService from '#services/post_serializer_service'
 import siteSettingsService from '#services/site_settings_service'
 import roleRegistry from '#services/role_registry'
+import PostCustomFieldValue from '#models/post_custom_field_value'
 
 /**
  * Posts Controller
@@ -372,11 +373,10 @@ export default class PostsController {
         const slugs: string[] = fields.map((f: any) => String(f.slug))
         let valuesBySlug = new Map<string, any>()
         if (slugs.length > 0) {
-          const vals = await db
-            .from('post_custom_field_values')
-            .where('post_id', post.id)
-            .whereIn('field_slug', slugs)
-          valuesBySlug = new Map<string, any>(vals.map((v: any) => [String(v.field_slug), v.value]))
+          const vals = await PostCustomFieldValue.query()
+            .where('postId', post.id)
+            .whereIn('fieldSlug', slugs)
+          valuesBySlug = new Map<string, any>(vals.map((v: any) => [String(v.fieldSlug), v.value]))
         }
         cfRows = fields.map((f: any) => ({
           id: f.slug,
@@ -739,25 +739,25 @@ export default class PostsController {
           })
           // Promote review custom fields to live values (by slug)
           if (Array.isArray((rd as any)?.customFields)) {
-            const now = new Date()
+            const { randomUUID } = await import('node:crypto')
             for (const cf of (rd as any).customFields as Array<{ slug?: string; value: any }>) {
               if (!cf) continue
               const fieldSlug = String((cf as any).slug || '').trim()
               if (!fieldSlug) continue
               const valueRaw = (cf as any).value === undefined ? null : (cf as any).value
               const value = this.normalizeJsonb(valueRaw)
-              const updated = await db
-                .from('post_custom_field_values')
-                .where({ post_id: id, field_slug: fieldSlug })
-                .update({ value, updated_at: now } as any)
-              if (!updated) {
-                await db.table('post_custom_field_values').insert({
-                  id: (await import('node:crypto')).randomUUID(),
-                  post_id: id,
-                  field_slug: fieldSlug,
+              const existing = await PostCustomFieldValue.query()
+                .where({ postId: id, fieldSlug })
+                .first()
+              if (existing) {
+                existing.value = value
+                await existing.save()
+              } else {
+                await PostCustomFieldValue.create({
+                  id: randomUUID(),
+                  postId: id,
+                  fieldSlug,
                   value,
-                  created_at: now,
-                  updated_at: now,
                 })
               }
             }
@@ -948,11 +948,10 @@ export default class PostsController {
           .filter(Boolean)
         let existingMap = new Map<string, any>()
         if (slugs.length > 0) {
-          const rows = await db
-            .from('post_custom_field_values')
-            .where({ post_id: id })
-            .whereIn('field_slug', slugs)
-          existingMap = new Map<string, any>(rows.map((r: any) => [String(r.field_slug), r.value]))
+          const rows = await PostCustomFieldValue.query()
+            .where('postId', id)
+            .whereIn('fieldSlug', slugs)
+          existingMap = new Map<string, any>(rows.map((r: any) => [String(r.fieldSlug), r.value]))
         }
         const toComparable = (v: any) => {
           if (typeof v === 'string') {
@@ -975,18 +974,19 @@ export default class PostsController {
           const changed = JSON.stringify(toComparable(value)) !== JSON.stringify(toComparable(prev))
           if (changed) {
             customFieldSlugsChanged.push(fieldSlug)
-            const updated = await db
-              .from('post_custom_field_values')
-              .where({ post_id: id, field_slug: fieldSlug })
-              .update({ value, updated_at: now } as any)
-            if (!updated) {
-              await db.table('post_custom_field_values').insert({
-                id: (await import('node:crypto')).randomUUID(),
-                post_id: id,
-                field_slug: fieldSlug,
+            const existing = await PostCustomFieldValue.query()
+              .where({ postId: id, fieldSlug })
+              .first()
+            if (existing) {
+              existing.value = value
+              await existing.save()
+            } else {
+              const { randomUUID } = await import('node:crypto')
+              await PostCustomFieldValue.create({
+                id: randomUUID(),
+                postId: id,
+                fieldSlug,
                 value,
-                created_at: now,
-                updated_at: now,
               })
             }
           }

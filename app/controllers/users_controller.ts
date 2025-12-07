@@ -5,6 +5,7 @@ import hash from '@adonisjs/core/services/hash'
 import LocaleService from '#services/locale_service'
 import CreatePost from '#actions/posts/create_post'
 import siteSettingsService from '#services/site_settings_service'
+import PostCustomFieldValue from '#models/post_custom_field_value'
 import activityLogService from '#services/activity_log_service'
 
 export default class UsersController {
@@ -233,9 +234,8 @@ export default class UsersController {
         profilePostId = (row as any).id
         try {
           // Resolve profile_image custom field value by slug (assumes value stores media id string)
-          const val = await db
-            .from('post_custom_field_values')
-            .where({ post_id: (row as any).id, field_slug: 'profile_image' })
+          const val = await PostCustomFieldValue.query()
+            .where({ postId: (row as any).id, fieldSlug: 'profile_image' })
             .first()
           const mediaId =
             val && (val as any).value

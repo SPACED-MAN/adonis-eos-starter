@@ -2,6 +2,10 @@ import db from '@adonisjs/lucid/services/db'
 import CreatePost from '#actions/posts/create_post'
 import UpdatePost from '#actions/posts/update_post'
 import AddModuleToPost from '#actions/posts/add_module_to_post'
+import Post from '#models/post'
+import PostModule from '#models/post_module'
+import ModuleInstance from '#models/module_instance'
+import PostCustomFieldValue from '#models/post_custom_field_value'
 
 type CanonicalModule = {
   type: string
@@ -38,38 +42,26 @@ export default class PostSerializerService {
    * Serialize a post (approved/live fields) and its modules into a canonical JSON object.
    */
   static async serialize(postId: string): Promise<CanonicalPost> {
-    const post = await db.from('posts').where('id', postId).first()
+    const post = await Post.query().where('id', postId).first()
     if (!post) {
       throw new Error('Post not found')
     }
-    const modules = await db
-      .from('post_modules')
-      .join('module_instances', 'post_modules.module_id', 'module_instances.id')
-      .where('post_modules.post_id', postId)
-      .orderBy('post_modules.order_index', 'asc')
-      .select(
-        'module_instances.type',
-        'module_instances.scope',
-        'module_instances.global_slug',
-        'module_instances.props',
-        'post_modules.overrides',
-        'post_modules.order_index as orderIndex',
-        'post_modules.locked'
-      )
+    const modules = await PostModule.query()
+      .where('postId', postId)
+      .orderBy('orderIndex', 'asc')
+      .preload('moduleInstance')
 
     // Family translations list
-    const baseId = post.translation_of_id || post.id
-    const family = await db
-      .from('posts')
-      .where('translation_of_id', baseId)
+    const baseId = (post as any).translationOfId || post.id
+    const family = await Post.query()
+      .where('translationOfId', baseId)
       .orWhere('id', baseId)
       .select('id', 'locale')
 
     // Custom fields (slug:value) by slug from values table
-    const cfVals = await db
-      .from('post_custom_field_values as v')
-      .where('v.post_id', postId)
-      .select('v.field_slug as slug', 'v.value as value')
+    const cfVals = await PostCustomFieldValue.query()
+      .where('postId', postId)
+      .select('fieldSlug as slug', 'value')
 
     const canonical: CanonicalPost = {
       version: 1 as const,
@@ -78,24 +70,27 @@ export default class PostSerializerService {
         locale: post.locale,
         slug: post.slug,
         title: post.title,
-        status: post.status,
-        excerpt: post.excerpt ?? null,
-        metaTitle: post.meta_title ?? null,
-        metaDescription: post.meta_description ?? null,
-        canonicalUrl: post.canonical_url ?? null,
-        robotsJson: post.robots_json ?? null,
-        jsonldOverrides: post.jsonld_overrides ?? null,
+        status: (post as any).status,
+        excerpt: (post as any).excerpt ?? null,
+        metaTitle: (post as any).metaTitle ?? (post as any).meta_title ?? null,
+        metaDescription: (post as any).metaDescription ?? (post as any).meta_description ?? null,
+        canonicalUrl: (post as any).canonicalUrl ?? (post as any).canonical_url ?? null,
+        robotsJson: (post as any).robotsJson ?? (post as any).robots_json ?? null,
+        jsonldOverrides: (post as any).jsonldOverrides ?? (post as any).jsonld_overrides ?? null,
         customFields: (cfVals || []).map((r: any) => ({ slug: r.slug, value: r.value })),
       },
-      modules: modules.map((m: any) => ({
-        type: m.type,
-        scope: m.scope === 'post' ? 'local' : m.scope,
-        orderIndex: m.orderindex,
-        locked: m.locked,
-        props: m.props ?? null,
-        overrides: m.overrides ?? null,
-        globalSlug: m.global_slug ?? null,
-      })),
+      modules: modules.map((pm: any) => {
+        const mi = pm.moduleInstance as any as ModuleInstance
+        return {
+          type: mi?.type,
+          scope: mi?.scope === 'post' ? 'local' : mi?.scope,
+          orderIndex: pm.orderIndex,
+          locked: pm.locked,
+          props: mi?.props ?? null,
+          overrides: pm.overrides ?? null,
+          globalSlug: mi?.globalSlug ?? null,
+        }
+      }),
       translations: family.map((f: any) => ({ id: f.id, locale: f.locale })),
     }
     return canonical
@@ -131,24 +126,21 @@ export default class PostSerializerService {
       })
       // Apply overrides for non-local modules
       if ((m.scope === 'static' || m.scope === 'global') && m.overrides) {
-        await db
-          .from('post_modules')
+        await PostModule.query()
           .where('id', created.postModule.id)
-          .update({ overrides: m.overrides, updated_at: new Date() })
+          .update({ overrides: m.overrides, updated_at: new Date() } as any)
       }
     }
     // set custom fields by slug
     if (Array.isArray(data.post?.customFields) && data.post!.customFields!.length > 0) {
-      const now = new Date()
+      const { randomUUID } = await import('node:crypto')
       for (const f of data.post!.customFields!) {
         const value = typeof f.value === 'string' ? JSON.stringify(f.value) : f.value
-        await db.table('post_custom_field_values').insert({
-          id: (await import('node:crypto')).randomUUID(),
-          post_id: post.id,
-          field_slug: f.slug,
+        await PostCustomFieldValue.create({
+          id: randomUUID(),
+          postId: post.id,
+          fieldSlug: f.slug,
           value: value as any,
-          created_at: now,
-          updated_at: now,
         })
       }
     }
@@ -174,22 +166,18 @@ export default class PostSerializerService {
       jsonldOverrides: p.jsonldOverrides ?? null,
     })
     // Remove existing modules and recreate
-    const existing = await db
-      .from('post_modules')
-      .join('module_instances', 'post_modules.module_id', 'module_instances.id')
-      .where('post_modules.post_id', postId)
-      .select('post_modules.id as pmid', 'module_instances.id as miid', 'module_instances.scope')
+    const existing = await PostModule.query()
+      .where('postId', postId)
+      .preload('moduleInstance')
     if (existing.length) {
-      await db
-        .from('post_modules')
-        .whereIn(
-          'id',
-          existing.map((r: any) => r.pmid)
-        )
-        .delete()
-      const deletable = existing.filter((r: any) => r.scope !== 'global').map((r: any) => r.miid)
+      const pmIds = existing.map((r: any) => r.id)
+      await PostModule.query().whereIn('id', pmIds).delete()
+      const deletable = existing
+        .filter((r: any) => (r as any).moduleInstance?.scope !== 'global')
+        .map((r: any) => (r as any).moduleInstance?.id)
+        .filter(Boolean)
       if (deletable.length) {
-        await db.from('module_instances').whereIn('id', deletable).delete()
+        await ModuleInstance.query().whereIn('id', deletable as string[]).delete()
       }
     }
     for (const m of data.modules || []) {
@@ -203,29 +191,28 @@ export default class PostSerializerService {
         locked: !!m.locked,
       })
       if ((m.scope === 'static' || m.scope === 'global') && m.overrides) {
-        await db
-          .from('post_modules')
+        await PostModule.query()
           .where('id', created.postModule.id)
-          .update({ overrides: m.overrides, updated_at: new Date() })
+          .update({ overrides: m.overrides, updated_at: new Date() } as any)
       }
     }
     // Replace custom fields by slug
     if (Array.isArray(data.post?.customFields)) {
-      const now = new Date()
+      const { randomUUID } = await import('node:crypto')
       for (const f of data.post!.customFields!) {
         const value = typeof f.value === 'string' ? JSON.stringify(f.value) : f.value
-        const updated = await db
-          .from('post_custom_field_values')
-          .where({ post_id: postId, field_slug: f.slug })
-          .update({ value: value as any, updated_at: now } as any)
-        if (!updated) {
-          await db.table('post_custom_field_values').insert({
-            id: (await import('node:crypto')).randomUUID(),
-            post_id: postId,
-            field_slug: f.slug,
+        const existing = await PostCustomFieldValue.query()
+          .where({ postId, fieldSlug: f.slug })
+          .first()
+        if (existing) {
+          existing.value = value as any
+          await existing.save()
+        } else {
+          await PostCustomFieldValue.create({
+            id: randomUUID(),
+            postId,
+            fieldSlug: f.slug,
             value: value as any,
-            created_at: now,
-            updated_at: now,
           })
         }
       }

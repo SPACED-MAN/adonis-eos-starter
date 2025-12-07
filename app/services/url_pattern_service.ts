@@ -1,6 +1,8 @@
-import db from '@adonisjs/lucid/services/db'
 import postTypeConfigService from '#services/post_type_config_service'
 import localeService from '#services/locale_service'
+import UrlPattern from '#models/url_pattern'
+import Post from '#models/post'
+import ModuleGroup from '#models/module_group'
 
 type UrlPatternData = {
   id: string
@@ -34,22 +36,18 @@ class UrlPatternService {
    * Get default pattern for postType+locale.
    */
   async getDefaultPattern(postType: string, locale: string): Promise<UrlPatternData | null> {
-    const rec = await db
-      .from('url_patterns')
-      .where({ post_type: postType, locale, is_default: true })
-      .first()
+    const rec = await UrlPattern.query().where({ postType, locale, isDefault: true }).first()
     if (!rec) return null
     return {
       id: rec.id,
-      postType: rec.post_type,
+      postType: rec.postType,
       locale: rec.locale,
       pattern: rec.pattern,
-      isDefault: rec.is_default,
-      createdAt: rec.created_at,
-      updatedAt: rec.updated_at,
+      isDefault: rec.isDefault,
+      createdAt: rec.createdAt.toJSDate(),
+      updatedAt: rec.updatedAt.toJSDate(),
     }
   }
-
 
   /**
    * Build path using an explicit pattern string.
@@ -63,15 +61,15 @@ class UrlPatternService {
   }
 
   async getAllPatterns(): Promise<UrlPatternData[]> {
-    const rows = await db.from('url_patterns').select('*')
+    const rows = await UrlPattern.query()
     const patterns = rows.map((rec) => ({
       id: rec.id,
-      postType: rec.post_type,
+      postType: rec.postType,
       locale: rec.locale,
       pattern: rec.pattern,
-      isDefault: rec.is_default,
-      createdAt: rec.created_at,
-      updatedAt: rec.updated_at,
+      isDefault: rec.isDefault,
+      createdAt: rec.createdAt.toJSDate(),
+      updatedAt: rec.updatedAt.toJSDate(),
     }))
 
     // Sort by specificity: more specific patterns first
@@ -80,8 +78,8 @@ class UrlPatternService {
     // 2. Number of tokens (fewer is more specific)
     // 3. Pattern length (longer is more specific)
     return patterns.sort((a, b) => {
-      const aSegments = a.pattern.split('/').filter(s => s && !s.includes('{'))
-      const bSegments = b.pattern.split('/').filter(s => s && !s.includes('{'))
+      const aSegments = a.pattern.split('/').filter((s) => s && !s.includes('{'))
+      const bSegments = b.pattern.split('/').filter((s) => s && !s.includes('{'))
       const aTokens = (a.pattern.match(/\{[^}]+\}/g) || []).length
       const bTokens = (b.pattern.match(/\{[^}]+\}/g) || []).length
 
@@ -123,9 +121,13 @@ class UrlPatternService {
    * Returns { postType, locale, slug, fullPath, usesPath } or null.
    * When pattern uses {path}, fullPath contains the hierarchical path for canonical_url matching.
    */
-  async matchPath(
-    path: string
-  ): Promise<{ postType: string; locale: string; slug: string; fullPath?: string; usesPath: boolean } | null> {
+  async matchPath(path: string): Promise<{
+    postType: string
+    locale: string
+    slug: string
+    fullPath?: string
+    usesPath: boolean
+  } | null> {
     const patterns = await this.getAllPatterns()
     for (const p of patterns) {
       const re = this.compilePattern(p.pattern)
@@ -147,7 +149,7 @@ class UrlPatternService {
             locale,
             slug: decodeURIComponent(slug),
             fullPath: pathGroup || undefined,
-            usesPath
+            usesPath,
           }
         }
       }
@@ -168,37 +170,35 @@ class UrlPatternService {
       postTypeConfig.permalinksEnabled !== false && postTypeConfig.urlPatterns.length > 0
     if (!hasPermalinks) return
 
-    const existing = await db.from('url_patterns').where({ post_type: postType }).select('locale')
-    const existingLocales = new Set(existing.map((r) => r.locale))
+    const existing = await UrlPattern.query().where({ postType }).select('locale')
+    const existingLocales = new Set(existing.map((r) => r.locale as string))
     const missing = locales.filter((l) => !existingLocales.has(l))
     if (missing.length === 0) return
-    const now = new Date()
-    
     // Get URL patterns from post type definition
     const definedPatterns = postTypeConfig.urlPatterns || []
     const hierarchical = postTypeConfig.hierarchyEnabled
     const seg = hierarchical ? '{path}' : '{slug}'
     const defaultLocale = localeService.getDefaultLocale()
-    
+
     const rows = missing.map((locale) => {
       // Try to find pattern for this locale in post type definition
       const definedPattern = definedPatterns.find((p) => p.locale === locale)
-      
+
       // If found in definition, use it; otherwise fall back to generic pattern
-      const pat = definedPattern 
-        ? definedPattern.pattern 
-        : (locale === defaultLocale ? `/${postType}/${seg}` : `/{locale}/${postType}/${seg}`)
-      
+      const pat = definedPattern
+        ? definedPattern.pattern
+        : locale === defaultLocale
+          ? `/${postType}/${seg}`
+          : `/{locale}/${postType}/${seg}`
+
       return {
-        post_type: postType,
+        postType,
         locale,
         pattern: pat,
-        is_default: true,
-        created_at: now,
-        updated_at: now,
+        isDefault: true,
       }
     })
-    await db.table('url_patterns').insert(rows)
+    await UrlPattern.createMany(rows)
   }
 
   /**
@@ -207,29 +207,27 @@ class UrlPatternService {
    */
   async getParentPathForPost(postId: string): Promise<string> {
     // Load the post to get type/locale/parent_id
-    const root = await db
-      .from('posts')
+    const root = await Post.query()
       .where('id', postId)
-      .select('id', 'parent_id as parentId', 'type', 'locale', 'slug')
+      .select('id', 'parentId', 'type', 'locale', 'slug')
       .first()
     if (!root) return ''
-    const type = String((root as any).type)
-    const locale = String((root as any).locale)
+    const type = String(root.type)
+    const locale = String(root.locale)
     let nextParent: string | null = (root as any).parentId ?? null
     const chain: string[] = []
-    const guard = new Set<string>([String((root as any).id)])
+    const guard = new Set<string>([String(root.id)])
     while (nextParent) {
-      const row = await db
-        .from('posts')
+      const row = await Post.query()
         .where('id', nextParent)
-        .select('id', 'parent_id as parentId', 'slug', 'type', 'locale')
+        .select('id', 'parentId', 'slug', 'type', 'locale')
         .first()
       if (!row) break
-      if (String((row as any).type) !== type || String((row as any).locale) !== locale) break
+      if (String(row.type) !== type || String(row.locale) !== locale) break
       const slug = String((row as any).slug || '')
       if (slug) chain.push(slug)
       const candidate = (row as any).parentId ?? null
-      if (candidate && guard.has(String((row as any).id))) break
+      if (candidate && guard.has(String(row.id))) break
       if (candidate) guard.add(String(candidate))
       nextParent = candidate
     }
@@ -241,7 +239,10 @@ class UrlPatternService {
    * Uses {path} token when present, otherwise {slug}.
    */
   async buildPostPathForPost(postId: string): Promise<string> {
-    const row = await db.from('posts').where('id', postId).first()
+    const row = await Post.query()
+      .where('id', postId)
+      .select('id', 'parentId', 'type', 'locale', 'slug', 'createdAt')
+      .first()
     if (!row) return '/'
     return this.buildPostPathForRow(row)
   }
@@ -252,14 +253,10 @@ class UrlPatternService {
    * This lets callers generate a new URL for a post BEFORE the slug is persisted
    * to the database, by passing a slugOverride.
    */
-  private async buildPostPathForRow(
-    row: any,
-    slugOverride?: string
-  ): Promise<string> {
-    const pattern =
-      (await this.getDefaultPattern(String(row.type), String(row.locale)))?.pattern ||
-      '/{locale}/posts/{slug}'
-    const d = (row as any).created_at ? new Date((row as any).created_at) : new Date()
+  private async buildPostPathForRow(row: any, slugOverride?: string): Promise<string> {
+    const patternRec = await this.getDefaultPattern(String(row.type), String(row.locale))
+    const pattern = patternRec?.pattern || '/{locale}/posts/{slug}'
+    const d = (row as any).createdAt ? new Date((row as any).createdAt) : new Date()
     const yyyy = String(d.getUTCFullYear())
     const mm = String(d.getUTCMonth() + 1).padStart(2, '0')
     const dd = String(d.getUTCDate()).padStart(2, '0')
@@ -282,7 +279,10 @@ class UrlPatternService {
    * This is used when generating redirects BEFORE a slug change is persisted.
    */
   async buildPostPathForPostWithSlug(postId: string, slug: string): Promise<string> {
-    const row = await db.from('posts').where('id', postId).first()
+    const row = await Post.query()
+      .where('id', postId)
+      .select('id', 'parentId', 'type', 'locale', 'slug', 'createdAt')
+      .first()
     if (!row) return '/'
     return this.buildPostPathForRow(row, slug)
   }
@@ -299,8 +299,8 @@ class UrlPatternService {
     locales: string[],
     defaultPattern = '/{locale}/posts/{slug}'
   ): Promise<void> {
-    const rows = await db.from('posts').distinct('type as post_type')
-    const types = rows.map((r) => r.post_type as string)
+    const rows = await Post.query().distinct('type')
+    const types = rows.map((r: any) => r.type as string)
     for (const t of types) {
       await this.ensureDefaultsForPostType(t, locales, defaultPattern)
     }
@@ -310,16 +310,16 @@ class UrlPatternService {
    * Get distinct post types from module_groups table.
    */
   async getPostTypesFromModuleGroups(): Promise<string[]> {
-    const rows = await db.from('module_groups').distinct('post_type')
-    return rows.map((r) => r.post_type as string)
+    const rows = await ModuleGroup.query().distinct('postType')
+    return rows.map((r: any) => r.postType as string)
   }
 
   /**
    * Get distinct post types from posts table.
    */
   async getPostTypesFromPosts(): Promise<string[]> {
-    const rows = await db.from('posts').distinct('type as post_type')
-    return rows.map((r) => r.post_type as string)
+    const rows = await Post.query().distinct('type')
+    return rows.map((r: any) => r.type as string)
   }
 
   /**
@@ -336,12 +336,8 @@ class UrlPatternService {
     ])
     const types = Array.from(new Set<string>([...fromModuleGroups, ...fromPosts]))
     if (types.length === 0) return
-    const now = new Date()
-    const existing = await db
-      .from('url_patterns')
-      .whereIn('post_type', types)
-      .andWhere('locale', locale)
-    const existingByType = new Set(existing.map((r) => r.post_type as string))
+    const existing = await UrlPattern.query().whereIn('postType', types).andWhere('locale', locale)
+    const existingByType = new Set(existing.map((r) => r.postType as string))
     const defaultLocale = localeService.getDefaultLocale()
     const rows = types
       .filter((t) => !existingByType.has(t))
@@ -350,16 +346,14 @@ class UrlPatternService {
         const seg = hierarchical ? '{path}' : '{slug}'
         const pat = locale === defaultLocale ? `/${t}/${seg}` : `/{locale}/${t}/${seg}`
         return {
-          post_type: t,
+          postType: t,
           locale,
           pattern: pat,
-          is_default: true,
-          created_at: now,
-          updated_at: now,
+          isDefault: true,
         }
       })
     if (rows.length) {
-      await db.table('url_patterns').insert(rows)
+      await UrlPattern.createMany(rows)
     }
   }
 
@@ -373,34 +367,33 @@ class UrlPatternService {
       this.getPostTypesFromPosts(),
     ])
     const allowed = new Set<string>([...fromModuleGroups, ...fromPosts])
-    const allPatterns = await db.from('url_patterns').distinct('post_type')
-    const toRemove = allPatterns.map((r) => r.post_type as string).filter((t) => !allowed.has(t))
+    const allPatterns = await UrlPattern.query().distinct('postType')
+    const toRemove = allPatterns
+      .map((r: any) => r.postType as string)
+      .filter((t: string) => !allowed.has(t))
     if (toRemove.length === 0) return 0
-    const { rowCount } = await db.from('url_patterns').whereIn('post_type', toRemove).delete()
-    return rowCount || 0
+    const deletedCount = await UrlPattern.query().whereIn('postType', toRemove).delete()
+    return Number(deletedCount || 0)
   }
 
   async updatePattern(
     id: string,
     data: { pattern: string; isDefault?: boolean }
   ): Promise<UrlPatternData> {
-    const [rec] = await db
-      .from('url_patterns')
-      .where('id', id)
-      .update({
-        pattern: data.pattern,
-        is_default: data.isDefault ?? true,
-        updated_at: new Date(),
-      })
-      .returning('*')
+    const rec = await UrlPattern.findOrFail(id)
+    rec.merge({
+      pattern: data.pattern,
+      isDefault: data.isDefault ?? true,
+    })
+    await rec.save()
     return {
       id: rec.id,
-      postType: rec.post_type,
+      postType: rec.postType,
       locale: rec.locale,
       pattern: rec.pattern,
-      isDefault: rec.is_default,
-      createdAt: rec.created_at,
-      updatedAt: rec.updated_at,
+      isDefault: rec.isDefault,
+      createdAt: rec.createdAt.toJSDate(),
+      updatedAt: rec.updatedAt.toJSDate(),
     }
   }
 
@@ -410,25 +403,20 @@ class UrlPatternService {
     pattern: string,
     isDefault: boolean = true
   ): Promise<UrlPatternData> {
-    const [rec] = await db
-      .table('url_patterns')
-      .insert({
-        post_type: postType,
-        locale,
-        pattern,
-        is_default: isDefault,
-        created_at: new Date(),
-        updated_at: new Date(),
-      })
-      .returning('*')
+    const rec = await UrlPattern.create({
+      postType,
+      locale,
+      pattern,
+      isDefault,
+    })
     return {
       id: rec.id,
-      postType: rec.post_type,
+      postType: rec.postType,
       locale: rec.locale,
       pattern: rec.pattern,
-      isDefault: rec.is_default,
-      createdAt: rec.created_at,
-      updatedAt: rec.updated_at,
+      isDefault: rec.isDefault,
+      createdAt: rec.createdAt.toJSDate(),
+      updatedAt: rec.updatedAt.toJSDate(),
     }
   }
 }

@@ -1,5 +1,6 @@
 import type { HttpContext } from '@adonisjs/core/http'
 import db from '@adonisjs/lucid/services/db'
+import UrlRedirect from '#models/url_redirect'
 
 export default class UrlRedirectsController {
   /**
@@ -7,15 +8,26 @@ export default class UrlRedirectsController {
    */
   async index({ request, response }: HttpContext) {
     const type = String(request.input('type', '')).trim()
-    const query = db
-      .from('url_redirects')
-      .select('url_redirects.*')
-      .orderBy('url_redirects.created_at', 'desc')
+    const query = UrlRedirect.query().orderBy('createdAt', 'desc')
     if (type) {
-      query.leftJoin('posts', 'url_redirects.post_id', 'posts.id').where('posts.type', type)
+      query
+        .join('posts', 'url_redirects.post_id', 'posts.id')
+        .where('posts.type', type)
+        .select('url_redirects.*')
     }
     const rows = await query
-    return response.ok({ data: rows, meta: { count: rows.length } })
+    return response.ok({
+      data: rows.map((r) => ({
+        id: r.id,
+        fromPath: (r as any).fromPath ?? (r as any).from_path,
+        toPath: (r as any).toPath ?? (r as any).to_path,
+        httpStatus: (r as any).httpStatus ?? (r as any).http_status,
+        locale: (r as any).locale ?? null,
+        postId: (r as any).postId ?? (r as any).post_id ?? null,
+        createdAt: (r as any).createdAt ?? (r as any).created_at,
+      })),
+      meta: { count: rows.length },
+    })
   }
 
   /**
@@ -32,18 +44,12 @@ export default class UrlRedirectsController {
     if (!fromPath || !toPath) {
       return response.badRequest({ error: 'fromPath and toPath are required' })
     }
-    const now = new Date()
-    const [created] = await db
-      .table('url_redirects')
-      .insert({
-        from_path: fromPath,
-        to_path: toPath,
-        http_status: httpStatus,
-        locale: locale || null,
-        created_at: now,
-        updated_at: now,
-      })
-      .returning('*')
+    const created = await UrlRedirect.create({
+      fromPath,
+      toPath,
+      httpStatus,
+      locale: locale || null,
+    })
     return response.created({ data: created, message: 'Redirect created' })
   }
 
@@ -54,21 +60,16 @@ export default class UrlRedirectsController {
   async update({ params, request, response }: HttpContext) {
     const { id } = params
     const payload = request.only(['fromPath', 'toPath', 'httpStatus', 'locale'])
-    const updateData: Record<string, any> = { updated_at: new Date() }
-    if (payload.fromPath !== undefined) updateData.from_path = payload.fromPath
-    if (payload.toPath !== undefined) updateData.to_path = payload.toPath
-    if (payload.httpStatus !== undefined) updateData.http_status = payload.httpStatus
-    if (payload.locale !== undefined) updateData.locale = payload.locale || null
-
-    const [updated] = await db
-      .from('url_redirects')
-      .where('id', id)
-      .update(updateData)
-      .returning('*')
-    if (!updated) {
+    const rec = await UrlRedirect.find(id)
+    if (!rec) {
       return response.notFound({ error: 'Redirect not found' })
     }
-    return response.ok({ data: updated, message: 'Redirect updated' })
+    if (payload.fromPath !== undefined) rec.fromPath = payload.fromPath
+    if (payload.toPath !== undefined) rec.toPath = payload.toPath
+    if (payload.httpStatus !== undefined) rec.httpStatus = Number(payload.httpStatus)
+    if (payload.locale !== undefined) rec.locale = payload.locale || null
+    await rec.save()
+    return response.ok({ data: rec, message: 'Redirect updated' })
   }
 
   /**
@@ -76,7 +77,7 @@ export default class UrlRedirectsController {
    */
   async destroy({ params, response }: HttpContext) {
     const { id } = params
-    const deleted = await db.from('url_redirects').where('id', id).delete()
+    const deleted = await UrlRedirect.query().where('id', id).delete()
     if (!deleted) {
       return response.notFound({ error: 'Redirect not found' })
     }

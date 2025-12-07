@@ -30,8 +30,7 @@ export default class SiteSettingsController {
       'defaultMetaDescription',
       'faviconMediaId',
       'defaultOgMediaId',
-      'logoLightMediaId',
-      'logoDarkMediaId',
+      'logoMediaId',
       'profileRolesEnabled',
     ])
     const next = await siteSettingsService.upsert({
@@ -39,8 +38,7 @@ export default class SiteSettingsController {
       defaultMetaDescription: payload.defaultMetaDescription,
       faviconMediaId: payload.faviconMediaId,
       defaultOgMediaId: payload.defaultOgMediaId,
-      logoLightMediaId: payload.logoLightMediaId,
-      logoDarkMediaId: payload.logoDarkMediaId,
+      logoMediaId: payload.logoMediaId,
       profileRolesEnabled: Array.isArray(payload.profileRolesEnabled)
         ? payload.profileRolesEnabled.filter((r: any) => typeof r === 'string')
         : current.profileRolesEnabled,

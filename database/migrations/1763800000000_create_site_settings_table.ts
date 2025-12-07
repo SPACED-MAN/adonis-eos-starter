@@ -11,8 +11,7 @@ export default class extends BaseSchema {
       // Store media IDs for assets (referencing media_assets.id)
       table.text('favicon_media_id').nullable()
       table.text('default_og_media_id').nullable()
-      table.text('logo_light_media_id').nullable()
-      table.text('logo_dark_media_id').nullable()
+      table.text('logo_media_id').nullable()
       // Profiles enabled per role (code-first control surface)
       table
         .jsonb('profile_roles_enabled')

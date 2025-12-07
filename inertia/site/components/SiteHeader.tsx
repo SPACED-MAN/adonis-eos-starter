@@ -55,11 +55,11 @@ export function SiteHeader() {
         if (data?.siteTitle) {
           setSiteTitle(String(data.siteTitle))
         }
-        const logoLightId: string | null = data?.logoLightMediaId || null
+        const logoMediaId: string | null = data?.logoMediaId || null
 
-        if (logoLightId) {
+        if (logoMediaId) {
           try {
-            const resLogo = await fetch(`/public/media/${encodeURIComponent(logoLightId)}`, {
+            const resLogo = await fetch(`/public/media/${encodeURIComponent(logoMediaId)}`, {
               credentials: 'same-origin',
             })
             const jm = await resLogo.json().catch(() => ({}))

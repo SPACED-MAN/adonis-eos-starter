@@ -12,7 +12,7 @@ type Settings = {
   defaultMetaDescription: string | null
   faviconMediaId: string | null
   defaultOgMediaId: string | null
-  logoLightMediaId: string | null
+  logoMediaId: string | null
   profileRolesEnabled: string[]
   customFieldDefs?: Array<{ slug: string; label: string; type: 'text' | 'url' | 'textarea' | 'boolean' | 'media' | 'form-reference' }>
   customFields?: Record<string, any>
@@ -90,7 +90,7 @@ export default function GeneralSettings() {
     defaultMetaDescription: '',
     faviconMediaId: '',
     defaultOgMediaId: '',
-    logoLightMediaId: '',
+    logoMediaId: '',
     profileRolesEnabled: [],
     customFieldDefs: [],
     customFields: {},
@@ -109,7 +109,7 @@ export default function GeneralSettings() {
             defaultMetaDescription: j?.data?.defaultMetaDescription || '',
             faviconMediaId: j?.data?.faviconMediaId || '',
             defaultOgMediaId: j?.data?.defaultOgMediaId || '',
-            logoLightMediaId: j?.data?.logoLightMediaId || '',
+          logoMediaId: j?.data?.logoMediaId || '',
             profileRolesEnabled: Array.isArray(j?.data?.profileRolesEnabled) ? j.data.profileRolesEnabled : [],
             customFieldDefs: Array.isArray(j?.data?.customFieldDefs) ? j.data.customFieldDefs : [],
             customFields: (j?.data?.customFields && typeof j.data.customFields === 'object') ? j.data.customFields : {},
@@ -138,7 +138,7 @@ export default function GeneralSettings() {
           defaultMetaDescription: form.defaultMetaDescription,
           faviconMediaId: form.faviconMediaId || null,
           defaultOgMediaId: form.defaultOgMediaId || null,
-          logoLightMediaId: form.logoLightMediaId || null,
+          logoMediaId: form.logoMediaId || null,
           profileRolesEnabled: form.profileRolesEnabled || [],
           customFields: form.customFields || {},
         }),
@@ -330,8 +330,8 @@ export default function GeneralSettings() {
             <div>
               <MediaIdPicker
                 label="Logo"
-                value={form.logoLightMediaId}
-                onChange={(id) => setForm({ ...form, logoLightMediaId: id })}
+                value={form.logoMediaId}
+                onChange={(id) => setForm({ ...form, logoMediaId: id })}
               />
               <p className="text-xs text-neutral-low mt-1">
                 Recommended SVG/PNG sized for your header. Theme-specific variants can be managed on the media item.

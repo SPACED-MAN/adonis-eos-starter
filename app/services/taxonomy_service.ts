@@ -1,5 +1,6 @@
-import db from '@adonisjs/lucid/services/db'
 import taxonomyRegistry, { type RegisteredTaxonomyConfig } from '#services/taxonomy_registry'
+import Taxonomy from '#models/taxonomy'
+import TaxonomyTerm from '#models/taxonomy_term'
 
 export type Taxonomy = {
   id: string
@@ -27,42 +28,32 @@ class TaxonomyService {
   }
 
   async listTaxonomies(): Promise<Taxonomy[]> {
-    const rows = await db.from('taxonomies').select('*').orderBy('name', 'asc')
-    return rows.map((r: any) => ({
-      id: r.id,
-      slug: r.slug,
-      name: r.name,
-      hierarchical: !!taxonomyRegistry.get(r.slug)?.hierarchical,
-      freeTagging: !!taxonomyRegistry.get(r.slug)?.freeTagging,
-      maxSelections:
-        taxonomyRegistry.get(r.slug)?.maxSelections === undefined ||
-        taxonomyRegistry.get(r.slug)?.maxSelections === null
-          ? null
-          : Number(taxonomyRegistry.get(r.slug)!.maxSelections),
-    }))
+    const rows = await Taxonomy.query().orderBy('name', 'asc')
+    return rows.map((r) => {
+      const cfg = taxonomyRegistry.get(r.slug)
+      return {
+        id: r.id,
+        slug: r.slug,
+        name: r.name,
+        hierarchical: !!cfg?.hierarchical,
+        freeTagging: !!cfg?.freeTagging,
+        maxSelections:
+          cfg?.maxSelections === undefined || cfg?.maxSelections === null
+            ? null
+            : Number(cfg.maxSelections),
+      }
+    })
   }
 
   async getTaxonomyBySlug(slug: string): Promise<Taxonomy | null> {
-    const row = await db.from('taxonomies').where('slug', slug).first()
-    if (!row) return null
-    return { id: (row as any).id, slug: (row as any).slug, name: (row as any).name }
+    return Taxonomy.query().where('slug', slug).first()
   }
 
   async listTermsFlat(taxonomyId: string): Promise<TaxonomyTerm[]> {
-    const rows = await db
-      .from('taxonomy_terms')
-      .where('taxonomy_id', taxonomyId)
-      .orderBy('order_index', 'asc')
+    return TaxonomyTerm.query()
+      .where('taxonomyId', taxonomyId)
+      .orderBy('orderIndex', 'asc')
       .orderBy('name', 'asc')
-    return rows.map((r: any) => ({
-      id: r.id,
-      taxonomyId: r.taxonomy_id,
-      parentId: r.parent_id,
-      slug: r.slug,
-      name: r.name,
-      description: r.description,
-      orderIndex: r.order_index,
-    }))
   }
 
   async getTermsTreeBySlug(slug: string): Promise<TaxonomyTermNode[]> {
@@ -90,10 +81,9 @@ class TaxonomyService {
   }
 
   async getDescendantIds(termId: string): Promise<string[]> {
-    const term = await db.from('taxonomy_terms').where('id', termId).first()
+    const term = await TaxonomyTerm.query().where('id', termId).first()
     if (!term) return []
-    const taxonomyId = (term as any).taxonomy_id as string
-    const flat = await this.listTermsFlat(taxonomyId)
+    const flat = await this.listTermsFlat(term.taxonomyId)
     const childrenByParent = new Map<string, TaxonomyTerm[]>()
     for (const t of flat) {
       const pid = t.parentId || '__root__'

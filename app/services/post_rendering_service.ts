@@ -1,5 +1,6 @@
 import db from '@adonisjs/lucid/services/db'
 import Post from '#models/post'
+import PostModule from '#models/post_module'
 import urlPatternService from '#services/url_pattern_service'
 import siteSettingsService from '#services/site_settings_service'
 import moduleRegistry from '#services/module_registry'
@@ -14,6 +15,9 @@ export interface ModuleRenderData {
   type: string
   props: Record<string, unknown>
   scope: string
+  overrides?: Record<string, unknown> | null
+  reviewProps?: Record<string, unknown> | null
+  reviewOverrides?: Record<string, unknown> | null
   globalSlug?: string | null
   globalLabel?: string | null
   locked?: boolean
@@ -82,50 +86,29 @@ class PostRenderingService {
   ): Promise<ModuleRenderData[]> {
     const { includeReviewFields = false } = options
 
-    const query = db
-      .from('post_modules')
-      .join('module_instances', 'post_modules.module_id', 'module_instances.id')
-      .where('post_modules.post_id', postId)
-      .orderBy('post_modules.order_index', 'asc')
+    const rows = await PostModule.query()
+      .where('postId', postId)
+      .orderBy('orderIndex', 'asc')
+      .preload('moduleInstance')
 
-    const columns = [
-      'post_modules.id as postModuleId',
-      'module_instances.type',
-      'module_instances.scope',
-      'module_instances.props',
-      'post_modules.overrides',
-      'post_modules.locked',
-      'post_modules.order_index as orderIndex',
-      'module_instances.global_slug as globalSlug',
-      'module_instances.global_label as globalLabel',
-    ]
-
-    if (includeReviewFields) {
-      columns.push(
-        'post_modules.review_added as reviewAdded',
-        'post_modules.review_deleted as reviewDeleted',
-        'module_instances.review_props',
-        'post_modules.review_overrides'
-      )
-    }
-
-    const rows = await query.select(...columns)
-
-    return rows.map((row) => ({
-      id: row.postModuleId,
-      type: row.type,
-      scope: row.scope,
-      props: row.props || {},
-      overrides: row.overrides || null,
-      reviewProps: (row as any).review_props || null,
-      reviewOverrides: (row as any).review_overrides || null,
-      locked: row.locked,
-      orderIndex: row.orderIndex,
-      globalSlug: row.globalSlug || null,
-      globalLabel: row.globalLabel || null,
-      reviewAdded: (row as any).reviewAdded || false,
-      reviewDeleted: (row as any).reviewDeleted || false,
-    }))
+    return rows.map((row) => {
+      const module = row.moduleInstance
+      return {
+        id: row.id,
+        type: module?.type || 'unknown',
+        scope: module?.scope || 'post',
+        props: (module as any)?.props || {},
+        overrides: row.overrides || null,
+        reviewProps: includeReviewFields ? (module as any)?.reviewProps || null : null,
+        reviewOverrides: includeReviewFields ? row.reviewOverrides || null : null,
+        locked: row.locked,
+        orderIndex: row.orderIndex,
+        globalSlug: (module as any)?.globalSlug || null,
+        globalLabel: (module as any)?.globalLabel || null,
+        reviewAdded: includeReviewFields ? row.reviewAdded || false : false,
+        reviewDeleted: includeReviewFields ? row.reviewDeleted || false : false,
+      }
+    })
   }
 
   /**

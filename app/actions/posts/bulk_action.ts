@@ -2,6 +2,10 @@ import Post from '#models/post'
 import authorizationService from '#services/authorization_service'
 import db from '@adonisjs/lucid/services/db'
 import { randomUUID } from 'node:crypto'
+import PostCustomFieldValue from '#models/post_custom_field_value'
+import ModuleInstance from '#models/module_instance'
+import PostModule from '#models/post_module'
+import UrlRedirect from '#models/url_redirect'
 
 export default class BulkPostsAction {
   static async handle(input: {
@@ -53,61 +57,53 @@ export default class BulkPostsAction {
             { client: trx }
           )
           // Duplicate custom field values
-          const cfValues = await trx.from('post_custom_field_values').where({ post_id: post.id })
+          const cfValues = await PostCustomFieldValue.query({ client: trx }).where('postId', post.id)
           if (Array.isArray(cfValues) && cfValues.length) {
             const rows = cfValues.map((r: any) => ({
               id: randomUUID(),
-              post_id: newPost.id,
-              field_slug: String(r.field_slug),
+              postId: newPost.id,
+              fieldSlug: String((r as any).fieldSlug ?? (r as any).field_slug),
               value: r.value,
-              created_at: now,
-              updated_at: now,
+              createdAt: now,
+              updatedAt: now,
             }))
-            await trx.table('post_custom_field_values').insert(rows)
+            await PostCustomFieldValue.createMany(rows, { client: trx })
           }
           // Duplicate modules (clone local modules; reuse global)
-          const modules = await trx
-            .from('post_modules')
-            .join('module_instances', 'post_modules.module_id', 'module_instances.id')
-            .where('post_modules.post_id', post.id)
-            .select(
-              'post_modules.order_index as orderIndex',
-              'post_modules.overrides',
-              'post_modules.locked',
-              'module_instances.id as moduleId',
-              'module_instances.scope as scope',
-              'module_instances.type as type',
-              'module_instances.global_slug as globalSlug',
-              'module_instances.props as props'
-            )
-            .orderBy('post_modules.order_index', 'asc')
-          for (const m of modules) {
-            let targetModuleId = m.moduleId
-            if (String(m.scope) === 'post') {
-              const [created] = await trx
-                .table('module_instances')
-                .insert({
+          const modules = await PostModule.query({ client: trx })
+            .where('postId', post.id)
+            .orderBy('orderIndex', 'asc')
+            .preload('moduleInstance')
+
+          for (const pm of modules) {
+            const mi = pm.moduleInstance as any as ModuleInstance
+            let targetModuleId = mi?.id
+
+            if (String(mi?.scope) === 'post') {
+              const createdMi = await ModuleInstance.create(
+                {
                   id: randomUUID(),
                   scope: 'post',
-                  type: String(m.type),
-                  global_slug: null,
-                  props: m.props ?? {},
-                  created_at: now,
-                  updated_at: now,
-                })
-                .returning('id')
-              targetModuleId = (created as any).id
+                  type: String(mi.type),
+                  globalSlug: null,
+                  props: mi.props ?? {},
+                },
+                { client: trx }
+              )
+              targetModuleId = createdMi.id
             }
-            await trx.table('post_modules').insert({
-              id: randomUUID(),
-              post_id: newPost.id,
-              module_id: targetModuleId,
-              order_index: Number(m.orderIndex ?? 0),
-              overrides: m.overrides ?? null,
-              locked: !!m.locked,
-              created_at: now,
-              updated_at: now,
-            })
+
+            await PostModule.create(
+              {
+                id: randomUUID(),
+                postId: newPost.id,
+                moduleId: targetModuleId!,
+                orderIndex: Number(pm.orderIndex ?? 0),
+                overrides: pm.overrides ?? null,
+                locked: !!pm.locked,
+              },
+              { client: trx }
+            )
           }
         })
         duplicated++
@@ -150,16 +146,14 @@ export default class BulkPostsAction {
 
           if (shouldAutoRedirect) {
             // Check if redirect already exists
-            const existing = await db.from('url_redirects').where('from_path', oldPath).first()
+            const existing = await UrlRedirect.query().where('fromPath', oldPath).first()
             if (!existing) {
-              await db.table('url_redirects').insert({
-                from_path: oldPath,
-                to_path: newPath,
-                http_status: 301,
+              await UrlRedirect.create({
+                fromPath: oldPath,
+                toPath: newPath,
+                httpStatus: 301,
                 locale: p.locale,
-                post_id: p.id,
-                created_at: now,
-                updated_at: now,
+                postId: p.id,
               })
             }
           }

@@ -310,6 +310,24 @@ class DatabaseImportService {
                 }
               }
 
+              // Normalize site_settings legacy logo columns to new single logo_media_id
+              if (tableName === 'site_settings') {
+                const logo =
+                  (processedRow as any).logo_media_id ??
+                  (processedRow as any).logoMediaId ??
+                  (processedRow as any).logo_light_media_id ??
+                  (processedRow as any).logoLightMediaId ??
+                  (processedRow as any).logo_dark_media_id ??
+                  (processedRow as any).logoDarkMediaId ??
+                  null
+                delete (processedRow as any).logo_light_media_id
+                delete (processedRow as any).logoLightMediaId
+                delete (processedRow as any).logo_dark_media_id
+                delete (processedRow as any).logoDarkMediaId
+                delete (processedRow as any).logoMediaId
+                  ; (processedRow as any).logo_media_id = logo
+              }
+
               // Normalize JSONB fields for PostgreSQL - ensure they're proper JSON objects/arrays
               processedRow = this.normalizeJsonbFields(tableName, processedRow)
 

@@ -1,6 +1,5 @@
 import type { HttpContext } from '@adonisjs/core/http'
 import Post from '#models/post'
-import db from '@adonisjs/lucid/services/db'
 import urlPatternService from '#services/url_pattern_service'
 import postTypeConfigService from '#services/post_type_config_service'
 import postRenderingService from '#services/post_rendering_service'
@@ -8,6 +7,11 @@ import previewService from '#services/preview_service'
 import postTypeViewService from '#services/post_type_view_service'
 import taxonomyService from '#services/taxonomy_service'
 import BasePostsController from './base_posts_controller.js'
+import PostModule from '#models/post_module'
+import ModuleInstance from '#models/module_instance'
+import PostCustomFieldValue from '#models/post_custom_field_value'
+import Taxonomy from '#models/taxonomy'
+import TaxonomyTerm from '#models/taxonomy_term'
 
 /**
  * Posts View Controller
@@ -29,26 +33,10 @@ export default class PostsViewController extends BasePostsController {
 
       // Load post modules for editor
       const postModules = modulesEnabled
-        ? await db
-          .from('post_modules')
-          .join('module_instances', 'post_modules.module_id', 'module_instances.id')
-          .where('post_modules.post_id', post.id)
-          .select(
-            'post_modules.id as postModuleId',
-            'post_modules.review_added as reviewAdded',
-            'post_modules.review_deleted as reviewDeleted',
-            'module_instances.type',
-            'module_instances.scope',
-            'module_instances.props',
-            'module_instances.review_props',
-            'post_modules.overrides',
-            'post_modules.review_overrides',
-            'post_modules.locked',
-            'post_modules.order_index as orderIndex',
-            'module_instances.global_slug as globalSlug',
-            'module_instances.global_label as globalLabel'
-          )
-          .orderBy('post_modules.order_index', 'asc')
+        ? await PostModule.query()
+          .where('postId', post.id)
+          .orderBy('orderIndex', 'asc')
+          .preload('moduleInstance')
         : []
 
       // Load translations
@@ -70,11 +58,10 @@ export default class PostsViewController extends BasePostsController {
 
       let valuesBySlug = new Map<string, any>()
       if (slugs.length > 0) {
-        const vals = await db
-          .from('post_custom_field_values')
-          .where('post_id', post.id)
-          .whereIn('field_slug', slugs)
-        valuesBySlug = new Map(vals.map((v: any) => [String(v.field_slug), v.value]))
+        const vals = await PostCustomFieldValue.query()
+          .where('postId', post.id)
+          .whereIn('fieldSlug', slugs)
+        valuesBySlug = new Map(vals.map((v: any) => [String(v.fieldSlug), v.value]))
       }
 
       const customFields = fields.map((f: any) => ({
@@ -88,7 +75,9 @@ export default class PostsViewController extends BasePostsController {
       }))
 
       // Load taxonomies (by slug) configured for this post type
-      const taxonomySlugs = Array.isArray((uiCfg as any).taxonomies) ? (uiCfg as any).taxonomies : []
+      const taxonomySlugs = Array.isArray((uiCfg as any).taxonomies)
+        ? (uiCfg as any).taxonomies
+        : []
       let taxonomyData: Array<{
         slug: string
         name: string
@@ -100,7 +89,7 @@ export default class PostsViewController extends BasePostsController {
       let selectedTaxonomyTermIds: string[] = []
 
       if (taxonomySlugs.length > 0) {
-        const taxonomies = await db.from('taxonomies').whereIn('slug', taxonomySlugs)
+        const taxonomies = await Taxonomy.query().whereIn('slug', taxonomySlugs)
         taxonomyData = await Promise.all(
           (taxonomies as any[]).map(async (t: any) => {
             const cfg = taxonomyService.getConfig(t.slug)
@@ -119,10 +108,9 @@ export default class PostsViewController extends BasePostsController {
           })
         )
 
-        const assignedTerms = await db
-          .from('post_taxonomy_terms as ptt')
-          .join('taxonomy_terms as tt', 'ptt.taxonomy_term_id', 'tt.id')
-          .join('taxonomies as t', 'tt.taxonomy_id', 't.id')
+        const assignedTerms = await TaxonomyTerm.query()
+          .join('post_taxonomy_terms as ptt', 'ptt.taxonomy_term_id', 'taxonomy_terms.id')
+          .join('taxonomies as t', 'taxonomy_terms.taxonomy_id', 't.id')
           .where('ptt.post_id', post.id)
           .whereIn('t.slug', taxonomySlugs)
           .select('ptt.taxonomy_term_id as termId')
@@ -153,21 +141,25 @@ export default class PostsViewController extends BasePostsController {
         },
         reviewDraft: post.reviewDraft || null,
         modules: modulesEnabled
-          ? postModules.map((pm) => ({
-            id: pm.postModuleId,
-            type: pm.type,
-            scope: pm.scope,
-            props: pm.props || {},
-            reviewProps: pm.review_props || null,
-            overrides: pm.overrides || null,
-            reviewOverrides: pm.review_overrides || null,
-            reviewAdded: pm.reviewAdded || false,
-            reviewDeleted: pm.reviewDeleted || false,
-            locked: pm.locked,
-            orderIndex: pm.orderIndex,
-            globalSlug: pm.globalSlug || null,
-            globalLabel: pm.globalLabel || null,
-          }))
+          ? postModules.map((pm) => {
+            const mi = pm.moduleInstance as any as ModuleInstance
+            return {
+              id: pm.id,
+              type: mi?.type,
+              scope: mi?.scope,
+              props: mi?.props || {},
+              reviewProps: (mi as any)?.reviewProps || (mi as any)?.review_props || null,
+              overrides: pm.overrides || null,
+              reviewOverrides:
+                (pm as any).reviewOverrides || (pm as any).review_overrides || null,
+              reviewAdded: (pm as any).reviewAdded || false,
+              reviewDeleted: (pm as any).reviewDeleted || false,
+              locked: pm.locked,
+              orderIndex: pm.orderIndex,
+              globalSlug: mi?.globalSlug || null,
+              globalLabel: mi?.globalLabel || null,
+            }
+          })
           : [],
         translations,
         customFields,
@@ -247,7 +239,8 @@ export default class PostsViewController extends BasePostsController {
     if (postType) {
       try {
         const uiConfig = postTypeConfigService.getUiConfig(postType)
-        const hasPermalinks = uiConfig.permalinksEnabled !== false && uiConfig.urlPatterns.length > 0
+        const hasPermalinks =
+          uiConfig.permalinksEnabled !== false && uiConfig.urlPatterns.length > 0
         if (!hasPermalinks) {
           return inertia.render('site/errors/not_found')
         }

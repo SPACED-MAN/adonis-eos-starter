@@ -1,6 +1,7 @@
 import type { HttpContext } from '@adonisjs/core/http'
 import Post from '#models/post'
 import db from '@adonisjs/lucid/services/db'
+import PostCustomFieldValue from '#models/post_custom_field_value'
 
 /**
  * ProfilesController
@@ -54,11 +55,10 @@ export default class ProfilesController {
     // Load profile custom fields (first_name, last_name, role, profile_image)
     const profileIds = rows.map((p) => p.id as string)
 
-    const cfRows = await db
-      .from('post_custom_field_values as v')
-      .whereIn('v.post_id', profileIds)
-      .whereIn('v.field_slug', ['first_name', 'last_name', 'role', 'profile_image'])
-      .select('v.post_id', 'v.field_slug', 'v.value')
+    const cfRows = await PostCustomFieldValue.query()
+      .whereIn('postId', profileIds)
+      .whereIn('fieldSlug', ['first_name', 'last_name', 'role', 'profile_image'])
+      .select('postId', 'fieldSlug', 'value')
 
     const byPostId = new Map<
       string,
@@ -66,14 +66,14 @@ export default class ProfilesController {
     >()
 
     for (const r of cfRows as any[]) {
-      const pid = String(r.post_id)
+      const pid = String((r as any).postId || (r as any).post_id)
       let entry = byPostId.get(pid)
       if (!entry) {
         entry = {}
         byPostId.set(pid, entry)
       }
-      const slug = String(r.field_slug)
-      let rawVal: any = r.value
+      const slug = String((r as any).fieldSlug || (r as any).field_slug)
+      let rawVal: any = (r as any).value
 
       // Values are stored as JSON. For historical reasons, media fields can be:
       // - a plain string media ID: `"uuid"`

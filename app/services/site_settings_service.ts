@@ -1,12 +1,11 @@
-import db from '@adonisjs/lucid/services/db'
+import SiteSetting from '#models/site_setting'
 
 type SiteSettings = {
   siteTitle: string
   defaultMetaDescription: string | null
   faviconMediaId: string | null
   defaultOgMediaId: string | null
-  logoLightMediaId: string | null
-  logoDarkMediaId: string | null
+  logoMediaId: string | null
   profileRolesEnabled: string[]
 }
 
@@ -20,17 +19,14 @@ class SiteSettingsService {
     if (this.cache && now - this.lastLoadedAt < this.ttlMs) {
       return this.cache
     }
-    const row = await db.from('site_settings').first()
+    const row = await SiteSetting.query().first()
     const settings: SiteSettings = {
-      siteTitle: row?.site_title || 'EOS',
-      defaultMetaDescription: row?.default_meta_description || null,
-      faviconMediaId: row?.favicon_media_id || null,
-      defaultOgMediaId: row?.default_og_media_id || null,
-      logoLightMediaId: row?.logo_light_media_id || null,
-      logoDarkMediaId: row?.logo_dark_media_id || null,
-      profileRolesEnabled: Array.isArray(row?.profile_roles_enabled)
-        ? row.profile_roles_enabled
-        : [],
+      siteTitle: row?.siteTitle || 'EOS',
+      defaultMetaDescription: row?.defaultMetaDescription || null,
+      faviconMediaId: row?.faviconMediaId || null,
+      defaultOgMediaId: row?.defaultOgMediaId || null,
+      logoMediaId: row?.logoMediaId || null,
+      profileRolesEnabled: Array.isArray(row?.profileRolesEnabled) ? row.profileRolesEnabled : [],
     }
     this.cache = settings
     this.lastLoadedAt = now
@@ -38,41 +34,44 @@ class SiteSettingsService {
   }
 
   async upsert(payload: Partial<SiteSettings>): Promise<SiteSettings> {
-    const current = await this.get()
-    // Use 'in' checks to distinguish between "not provided" (undefined) and "explicitly set to null"
+    const currentRow = await SiteSetting.query().first()
+    const current: SiteSettings = currentRow
+      ? {
+        siteTitle: currentRow.siteTitle,
+        defaultMetaDescription: currentRow.defaultMetaDescription,
+        faviconMediaId: currentRow.faviconMediaId,
+        defaultOgMediaId: currentRow.defaultOgMediaId,
+        logoMediaId: currentRow.logoMediaId,
+        profileRolesEnabled: currentRow.profileRolesEnabled || [],
+      }
+      : await this.get()
+
     const next: SiteSettings = {
       siteTitle: payload.siteTitle ?? current.siteTitle,
       defaultMetaDescription: 'defaultMetaDescription' in payload ? payload.defaultMetaDescription! : current.defaultMetaDescription,
       faviconMediaId: 'faviconMediaId' in payload ? payload.faviconMediaId! : current.faviconMediaId,
       defaultOgMediaId: 'defaultOgMediaId' in payload ? payload.defaultOgMediaId! : current.defaultOgMediaId,
-      logoLightMediaId: 'logoLightMediaId' in payload ? payload.logoLightMediaId! : current.logoLightMediaId,
-      logoDarkMediaId: 'logoDarkMediaId' in payload ? payload.logoDarkMediaId! : current.logoDarkMediaId,
+      logoMediaId: 'logoMediaId' in payload ? payload.logoMediaId! : current.logoMediaId,
       profileRolesEnabled: payload.profileRolesEnabled ?? current.profileRolesEnabled ?? [],
     }
-    const exists = await db.from('site_settings').count('* as c')
-    const count = Number((exists?.[0] as any)?.c || 0)
-    if (count === 0) {
-      await db.table('site_settings').insert({
-        site_title: next.siteTitle,
-        default_meta_description: next.defaultMetaDescription,
-        favicon_media_id: next.faviconMediaId,
-        default_og_media_id: next.defaultOgMediaId,
-        logo_light_media_id: next.logoLightMediaId,
-        logo_dark_media_id: next.logoDarkMediaId,
-        profile_roles_enabled: next.profileRolesEnabled,
-        created_at: new Date(),
-        updated_at: new Date(),
+    if (currentRow) {
+      currentRow.merge({
+        siteTitle: next.siteTitle,
+        defaultMetaDescription: next.defaultMetaDescription,
+        faviconMediaId: next.faviconMediaId,
+        defaultOgMediaId: next.defaultOgMediaId,
+        logoMediaId: next.logoMediaId,
+        profileRolesEnabled: next.profileRolesEnabled,
       })
+      await currentRow.save()
     } else {
-      await db.from('site_settings').update({
-        site_title: next.siteTitle,
-        default_meta_description: next.defaultMetaDescription,
-        favicon_media_id: next.faviconMediaId,
-        default_og_media_id: next.defaultOgMediaId,
-        logo_light_media_id: next.logoLightMediaId,
-        logo_dark_media_id: next.logoDarkMediaId,
-        profile_roles_enabled: next.profileRolesEnabled,
-        updated_at: new Date(),
+      await SiteSetting.create({
+        siteTitle: next.siteTitle,
+        defaultMetaDescription: next.defaultMetaDescription,
+        faviconMediaId: next.faviconMediaId,
+        defaultOgMediaId: next.defaultOgMediaId,
+        logoMediaId: next.logoMediaId,
+        profileRolesEnabled: next.profileRolesEnabled,
       })
     }
     this.cache = next

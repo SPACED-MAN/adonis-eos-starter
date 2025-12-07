@@ -1,5 +1,5 @@
 import type { HttpContext } from '@adonisjs/core/http'
-import db from '@adonisjs/lucid/services/db'
+import UrlRedirect from '#models/url_redirect'
 
 export default class RedirectsMiddleware {
   public async handle(ctx: HttpContext, next: () => Promise<void>) {
@@ -16,12 +16,16 @@ export default class RedirectsMiddleware {
     // First try exact locale match (when provided in query),
     // then any redirect for this from_path regardless of locale.
     const redirect =
-      (locale ? await db.from('url_redirects').where({ from_path: path, locale }).first() : null) ||
-      (await db.from('url_redirects').where({ from_path: path }).first())
+      (locale
+        ? await UrlRedirect.query().where({ fromPath: path, locale }).first()
+        : null) || (await UrlRedirect.query().where({ fromPath: path }).first())
 
     if (redirect) {
       // Correct argument order: redirect(url, status)
-      return ctx.response.redirect(redirect.to_path, redirect.http_status || 301)
+      return ctx.response.redirect(
+        redirect.toPath,
+        (redirect as any).httpStatus || (redirect as any).http_status || 301
+      )
     }
 
     await next()
