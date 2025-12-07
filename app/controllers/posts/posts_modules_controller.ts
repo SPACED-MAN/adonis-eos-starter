@@ -5,6 +5,9 @@ import db from '@adonisjs/lucid/services/db'
 import BasePostsController from './base_posts_controller.js'
 import { addModuleValidator, updateModuleValidator } from '#validators/post'
 
+const uuidRegex = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i
+const isUuid = (val: unknown): val is string => typeof val === 'string' && uuidRegex.test(val)
+
 /**
  * Posts Modules Controller
  *
@@ -64,6 +67,10 @@ export default class PostsModulesController extends BasePostsController {
   async update({ params, request, response }: HttpContext) {
     const { id } = params
 
+    if (!isUuid(id)) {
+      return this.response.badRequest(response, 'Invalid module id')
+    }
+
     try {
       const payload = await request.validateUsing(updateModuleValidator)
 
@@ -100,6 +107,10 @@ export default class PostsModulesController extends BasePostsController {
    */
   async destroy({ params, response }: HttpContext) {
     const { id } = params
+
+    if (!isUuid(id)) {
+      return this.response.badRequest(response, 'Invalid module id')
+    }
 
     const row = await db.from('post_modules').where('id', id).first()
     if (!row) {

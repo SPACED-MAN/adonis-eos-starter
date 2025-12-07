@@ -23,10 +23,21 @@ import roleRegistry from '#services/role_registry'
  * Handles CRUD operations for posts and their modules.
  */
 export default class PostsController {
+  private static uuidRegex =
+    /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i
+
   private normalizeJsonb(value: any): any {
     if (value === undefined) return null
     if (typeof value === 'string') return JSON.stringify(value)
     return value
+  }
+
+  private isUuid(value: unknown): value is string {
+    return typeof value === 'string' && PostsController.uuidRegex.test(value)
+  }
+
+  private filterValidUuids(values: any[]): string[] {
+    return values.filter((val) => this.isUuid(val)) as string[]
   }
   /**
    * PATCH /api/posts/:id/author
@@ -611,7 +622,10 @@ export default class PostsController {
     try {
       const saveMode = String(mode || 'publish').toLowerCase()
       if (saveMode === 'review') {
-        const reviewModuleRemovals = request.input('reviewModuleRemovals', [])
+        const reviewModuleRemovalsRaw = request.input('reviewModuleRemovals', [])
+        const reviewModuleRemovals = Array.isArray(reviewModuleRemovalsRaw)
+          ? this.filterValidUuids(reviewModuleRemovalsRaw)
+          : []
         const reviewCustomFields = request.input('customFields', undefined)
         const draftPayload: Record<string, any> = {
           slug,
@@ -627,7 +641,7 @@ export default class PostsController {
           jsonldOverrides,
           featuredImageId,
           customFields: Array.isArray(reviewCustomFields) ? reviewCustomFields : undefined,
-          removedModuleIds: Array.isArray(reviewModuleRemovals) ? reviewModuleRemovals : [],
+          removedModuleIds: reviewModuleRemovals,
           savedAt: new Date().toISOString(),
           savedBy: (auth.use('web').user as any)?.email || null,
         }
@@ -636,7 +650,7 @@ export default class PostsController {
           .where('id', id)
           .update({ review_draft: draftPayload } as any)
         // Mark review deletions in post_modules so they persist across reloads
-        if (Array.isArray(reviewModuleRemovals) && reviewModuleRemovals.length > 0) {
+        if (reviewModuleRemovals.length > 0) {
           await db
             .from('post_modules')
             .whereIn('id', reviewModuleRemovals)
@@ -782,7 +796,7 @@ export default class PostsController {
             .update({ review_added: false, updated_at: new Date() } as any)
           // Apply module removals captured in review draft (if any)
           const toRemove: string[] = Array.isArray((rd as any).removedModuleIds)
-            ? (rd as any).removedModuleIds
+            ? this.filterValidUuids((rd as any).removedModuleIds)
             : []
           if (toRemove.length > 0) {
             await db.from('post_modules').whereIn('id', toRemove).delete()

@@ -8,6 +8,9 @@ type UpdatePostModuleParams = {
   mode?: 'review' | 'publish'
 }
 
+const uuidRegex = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i
+const isUuid = (val: unknown): val is string => typeof val === 'string' && uuidRegex.test(val)
+
 export class UpdatePostModuleException extends Error {
   constructor(
     message: string,
@@ -52,6 +55,10 @@ export default class UpdatePostModule {
     locked,
     mode,
   }: UpdatePostModuleParams) {
+    if (!isUuid(postModuleId)) {
+      throw new UpdatePostModuleException('Invalid post module id', 400, { postModuleId })
+    }
+
     // Find the post_module
     const postModule = await db.from('post_modules').where('id', postModuleId).first()
 
