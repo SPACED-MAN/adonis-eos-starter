@@ -33,6 +33,7 @@ Technical documentation for developers and system administrators:
 - [AI Agents](/docs/for-developers/ai-agents) - Automated content workflows
 - [Deployment Guide](/docs/for-developers/deployment) - Production deployment strategies
  - [Update Philosophy](/docs/for-developers/update-philosophy) - How to approach upgrades and maintenance
+- [Launch Guide](/docs/for-developers/launch) - Production seeding via curated export
 - [CLI Commands](/docs/for-developers/cli-commands) - Code-first makers (post types, modules, roles, menus, taxonomies)
 
 <!-- Coming Soon:

@@ -233,7 +233,7 @@ inertia/
    - `posts(locale, status, type)` - For filtered content lists
    - `posts(translation_of_id, locale)` - For translation lookups
    - `url_patterns(post_type, locale, is_default)` - For URL generation
-   - `template_modules(template_id, order_index)` - For template loading
+   - `module_group_modules(module_group_id, order_index)` - For module_group loading
 4. **JSONB Indexes:**
    - GIN indexes on `props`, `overrides`, `value` columns for JSONB querying
    - Enables efficient searches within JSON data

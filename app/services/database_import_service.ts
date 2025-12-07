@@ -289,6 +289,8 @@ class DatabaseImportService {
             sortedRows = this.sortPostsByDependencies(rows)
           }
 
+          let loggedTemplateIdStrip = false
+
           for (const row of sortedRows) {
             try {
               // Handle ID preservation
@@ -297,6 +299,15 @@ class DatabaseImportService {
                 // Remove ID to let database generate new one
                 const { id, ...rest } = processedRow
                 processedRow = rest
+              }
+
+              // Strip legacy template_id if present (no backward compatibility)
+              if ('template_id' in processedRow) {
+                delete (processedRow as any).template_id
+                if (!loggedTemplateIdStrip) {
+                  console.log('   🔧 Removed legacy "template_id" column from import rows')
+                  loggedTemplateIdStrip = true
+                }
               }
 
               // Normalize JSONB fields for PostgreSQL - ensure they're proper JSON objects/arrays

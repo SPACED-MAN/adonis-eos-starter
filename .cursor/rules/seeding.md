@@ -133,9 +133,9 @@ const template = await db.table('templates').insert({
 }).returning('*')
 
 // 2. Add modules to template
-await db.table('template_modules').insert([
+await db.table('module_group_modules').insert([
   {
-    template_id: template.id,
+    module_group_id: template.id,
     type: 'hero',
     order_index: 0,
     default_props: { title: 'Welcome', subtitle: 'To our site' },
