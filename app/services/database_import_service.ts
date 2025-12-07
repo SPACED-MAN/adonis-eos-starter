@@ -1,4 +1,5 @@
 import db from '@adonisjs/lucid/services/db'
+import { randomUUID } from 'node:crypto'
 import dbConfig from '#config/database'
 
 /**
@@ -203,6 +204,18 @@ class DatabaseImportService {
     }
 
     const tables = Object.keys(exportData.tables)
+
+    // Cache module_instances rows from export for downstream table processing (post_modules dedupe)
+    const moduleInstanceRows: Map<string, any> = new Map()
+    const miTable = exportData.tables?.module_instances
+    const miRows = Array.isArray(miTable?.rows)
+      ? miTable.rows
+      : Array.isArray(miTable)
+        ? miTable
+        : []
+    for (const row of miRows) {
+      if (row && row.id) moduleInstanceRows.set(String(row.id), row)
+    }
     console.log(`📊 Export contains ${tables.length} tables:`, tables.join(', '))
 
     const tablesToProcess = tablesToImport
@@ -261,7 +274,7 @@ class DatabaseImportService {
             }
           }
 
-          // Import rows
+        // Import rows
           let importedCount = 0
           let skippedCount = 0
           let errorCount = 0
@@ -289,6 +302,9 @@ class DatabaseImportService {
             sortedRows = this.sortPostsByDependencies(rows)
           }
 
+          // For post_modules: ensure post-scoped module instances are not reused; clone when duplicated
+          const postModuleUsedBy = new Map<string, string>() // module_id -> post_id
+
           let loggedTemplateIdStrip = false
 
           for (const row of sortedRows) {
@@ -299,6 +315,37 @@ class DatabaseImportService {
                 // Remove ID to let database generate new one
                 const { id, ...rest } = processedRow
                 processedRow = rest
+              }
+
+              // Special case: post_modules dedupe for post-scoped module instances
+              if (tableName === 'post_modules') {
+                const moduleId = (processedRow as any).module_id || (processedRow as any).moduleId
+                const postId = (processedRow as any).post_id || (processedRow as any).postId
+                const mi = moduleInstanceRows.get(String(moduleId))
+                const scope = mi?.scope
+                if (scope === 'post') {
+                  const firstPost = postModuleUsedBy.get(String(moduleId))
+                  if (firstPost && firstPost !== String(postId)) {
+                    // Clone module_instance to avoid cross-post reuse
+                    const newId = randomUUID()
+                    const now = new Date()
+                    const cloneRow = {
+                      ...mi,
+                      id: newId,
+                      post_id: mi?.post_id ?? null,
+                      global_slug: null,
+                      global_label: mi?.global_label ?? null,
+                      created_at: now,
+                      updated_at: now,
+                    }
+                    await trx.table('module_instances').insert(this.prepareRowForPostgres(trx, 'module_instances', cloneRow))
+                    moduleInstanceRows.set(newId, cloneRow)
+                    processedRow = { ...processedRow, module_id: newId }
+                    postModuleUsedBy.set(String(newId), String(postId))
+                  } else {
+                    postModuleUsedBy.set(String(moduleId), String(postId))
+                  }
+                }
               }
 
               // Strip legacy template_id if present (no backward compatibility)

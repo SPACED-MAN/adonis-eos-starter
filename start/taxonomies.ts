@@ -31,7 +31,24 @@ async function loadFromFs() {
   }
 }
 
+async function tableExists(name: string): Promise<boolean> {
+  try {
+    const result = await db.rawQuery<{ exists: string | null }>(
+      'SELECT to_regclass(?) as exists',
+      [`public.${name}`]
+    )
+    const exists = (result?.rows?.[0]?.exists ?? null) !== null
+    return exists
+  } catch {
+    return false
+  }
+}
+
 async function ensureDatabaseRows() {
+  // Skip if migrations have not created the table yet (e.g., during migration:fresh startup)
+  const hasTable = await tableExists('taxonomies')
+  if (!hasTable) return
+
   const configs = taxonomyRegistry.list()
   for (const cfg of configs) {
     const existing = await db.from('taxonomies').where('slug', cfg.slug).first()
