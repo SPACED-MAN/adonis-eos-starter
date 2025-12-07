@@ -37,6 +37,11 @@ export default function UsersIndex() {
   const [saving, setSaving] = useState<Record<number, boolean>>({})
   const [pwdFor, setPwdFor] = useState<number | null>(null)
   const [pwd, setPwd] = useState('')
+  const [createOpen, setCreateOpen] = useState(false)
+  const [createEmail, setCreateEmail] = useState('')
+  const [createPassword, setCreatePassword] = useState('')
+  const [createRole, setCreateRole] = useState<string>('')
+  const [creating, setCreating] = useState(false)
 
   // Helper to get role label from role name
   function getRoleLabel(roleName: string): string {
@@ -124,6 +129,50 @@ export default function UsersIndex() {
     }
   }
 
+  async function createUser() {
+    const email = createEmail.trim()
+    const password = createPassword
+    const role = createRole
+    if (!email || !email.includes('@')) {
+      toast.error('Valid email is required')
+      return
+    }
+    if (!password || password.length < 8) {
+      toast.error('Password must be at least 8 characters')
+      return
+    }
+    if (!role) {
+      toast.error('Select a role')
+      return
+    }
+    setCreating(true)
+    try {
+      const res = await fetch('/api/users', {
+        method: 'POST',
+        headers: {
+          Accept: 'application/json',
+          'Content-Type': 'application/json',
+          ...(getXsrf() ? { 'X-XSRF-TOKEN': getXsrf()! } : {}),
+        },
+        credentials: 'same-origin',
+        body: JSON.stringify({ email, password, role }),
+      })
+      const j = await res.json().catch(() => ({}))
+      if (!res.ok) {
+        toast.error(j?.error || 'Failed to create user')
+        return
+      }
+      toast.success('User created')
+      setCreateEmail('')
+      setCreatePassword('')
+      setCreateRole('')
+      setCreateOpen(false)
+      await load()
+    } finally {
+      setCreating(false)
+    }
+  }
+
   return (
     <div className="min-h-screen bg-backdrop-medium">
       <AdminHeader title="User Management" />
@@ -136,7 +185,85 @@ export default function UsersIndex() {
               placeholder="Filter by email, name, role…"
               className="max-w-sm"
             />
-            {loading && <span className="text-xs text-neutral-low">Loading…</span>}
+            <div className="flex items-center gap-2">
+              {loading && <span className="text-xs text-neutral-low">Loading…</span>}
+              <AlertDialog open={createOpen} onOpenChange={setCreateOpen}>
+                <AlertDialogTrigger asChild>
+                  <button
+                    className="px-3 py-2 text-sm rounded bg-standout text-on-standout hover:opacity-90"
+                    type="button"
+                  >
+                    Add user
+                  </button>
+                </AlertDialogTrigger>
+                <AlertDialogContent>
+                  <AlertDialogHeader>
+                    <AlertDialogTitle>Add new user</AlertDialogTitle>
+                  </AlertDialogHeader>
+                  <div className="space-y-3">
+                    <div className="space-y-1">
+                      <label className="text-sm text-neutral-medium" htmlFor="create-email">
+                        Email
+                      </label>
+                      <Input
+                        id="create-email"
+                        value={createEmail}
+                        onChange={(e) => setCreateEmail(e.target.value)}
+                        placeholder="user@example.com"
+                        type="email"
+                      />
+                    </div>
+                    <div className="space-y-1">
+                      <label className="text-sm text-neutral-medium" htmlFor="create-password">
+                        Password
+                      </label>
+                      <Input
+                        id="create-password"
+                        value={createPassword}
+                        onChange={(e) => setCreatePassword(e.target.value)}
+                        placeholder="At least 8 characters"
+                        type="password"
+                      />
+                    </div>
+                    <div className="space-y-1">
+                      <label className="text-sm text-neutral-medium" htmlFor="create-role">
+                        Role
+                      </label>
+                      <Select value={createRole} onValueChange={setCreateRole}>
+                        <SelectTrigger id="create-role">
+                          <SelectValue placeholder="Select role" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          {availableRoles.map((r: any) => (
+                            <SelectItem key={r.name} value={r.name}>
+                              {r.label}
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                    </div>
+                  </div>
+                  <AlertDialogFooter>
+                    <button
+                      type="button"
+                      className="px-3 py-2 text-sm rounded border border-line-medium hover:bg-backdrop-medium text-neutral-medium"
+                      onClick={() => setCreateOpen(false)}
+                      disabled={creating}
+                    >
+                      Cancel
+                    </button>
+                    <button
+                      type="button"
+                      className="px-3 py-2 text-sm rounded bg-standout text-on-standout hover:opacity-90 disabled:opacity-50"
+                      onClick={createUser}
+                      disabled={creating}
+                    >
+                      {creating ? 'Creating…' : 'Create'}
+                    </button>
+                  </AlertDialogFooter>
+                </AlertDialogContent>
+              </AlertDialog>
+            </div>
           </div>
           <div className="overflow-auto">
             <table className="w-full text-sm">

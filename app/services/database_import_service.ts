@@ -523,6 +523,17 @@ class DatabaseImportService {
           result.tablesImported++
           result.rowsImported += importedCount
 
+          // If we used "replace" or "overwrite" with preserved integer IDs on a serial table,
+          // sync the sequence so subsequent inserts don't collide (e.g., users.id).
+          if (
+            (effectiveStrategy === 'replace' || effectiveStrategy === 'overwrite') &&
+            importedCount > 0 &&
+            this.isPostgres(trx) &&
+            tableName === 'users'
+          ) {
+            await this.resetSerialSequence(trx, tableName, 'id')
+          }
+
           console.log(`   ✅ Imported ${importedCount} rows`)
           if (skippedCount > 0) {
             console.log(`   ⚠️  Skipped ${skippedCount} rows (conflicts/errors)`)
@@ -653,6 +664,24 @@ class DatabaseImportService {
     }
 
     return result
+  }
+
+  private isPostgres(trx: any): boolean {
+    const client =
+      trx?.client?.config?.client || dbConfig.connections[dbConfig.connection].client || ''
+    return client === 'pg' || client === 'postgres'
+  }
+
+  private async resetSerialSequence(trx: any, tableName: string, column: string) {
+    // Set sequence to MAX(id); nextval will produce max+1
+    const sql = `
+      SELECT setval(
+        pg_get_serial_sequence('${tableName}', '${column}'),
+        COALESCE((SELECT MAX("${column}") FROM "${tableName}"), 0),
+        true
+      );
+    `
+    await trx.rawQuery(sql)
   }
 
   /**

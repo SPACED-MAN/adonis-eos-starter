@@ -10,6 +10,86 @@ import activityLogService from '#services/activity_log_service'
 
 export default class UsersController {
   /**
+   * POST /api/users (admin)
+   */
+  async store({ request, response }: HttpContext) {
+    const { email, password, role, username, fullName } = request.only([
+      'email',
+      'password',
+      'role',
+      'username',
+      'fullName',
+    ])
+
+    const emailStr = String(email || '').trim().toLowerCase()
+    if (!emailStr || !emailStr.includes('@')) {
+      return response.badRequest({ error: 'Valid email is required' })
+    }
+
+    const pwd = String(password || '')
+    if (!pwd || pwd.length < 8) {
+      return response.badRequest({ error: 'Password must be at least 8 characters' })
+    }
+
+    if (!role || !ROLES.includes(String(role) as any)) {
+      return response.badRequest({ error: 'Invalid role' })
+    }
+
+    // Uniqueness checks
+    const emailExists = await db.from('users').where('email', emailStr).first()
+    if (emailExists) {
+      return response.status(409).json({ error: 'Email already in use' })
+    }
+    if (username) {
+      const usernameExists = await db
+        .from('users')
+        .whereRaw('LOWER(username) = LOWER(?)', [String(username)])
+        .first()
+      if (usernameExists) {
+        return response.status(409).json({ error: 'Username already in use' })
+      }
+    }
+
+    const hashed = await hash.make(pwd)
+    const now = new Date()
+    const [created] = await db
+      .table('users')
+      .insert({
+        email: emailStr,
+        password: hashed,
+        role: String(role),
+        username: username ? String(username) : null,
+        full_name: fullName ? String(fullName) : null,
+        created_at: now,
+        updated_at: now,
+      })
+      .returning(['id', 'email', 'username', 'full_name', 'role', 'created_at', 'updated_at'])
+
+    try {
+      await activityLogService.log({
+        action: 'user.create',
+        userId: Number((created as any).id),
+        entityType: 'user',
+        entityId: (created as any).id,
+      })
+    } catch {
+      /* ignore logging errors */
+    }
+
+    return response.created({
+      data: {
+        id: (created as any).id,
+        email: (created as any).email,
+        username: (created as any).username ?? null,
+        fullName: (created as any).full_name ?? null,
+        role: (created as any).role,
+        createdAt: (created as any).created_at,
+        updatedAt: (created as any).updated_at,
+      },
+    })
+  }
+
+  /**
    * GET /api/users (admin)
    */
   async index({ response }: HttpContext) {

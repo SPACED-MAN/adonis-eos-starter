@@ -225,6 +225,7 @@ router
       .post('/posts/:id/agents/:agentId/run', [AgentsController, 'runForPost'])
       .use(middleware.admin())
     // Users (admin)
+    router.post('/users', [UsersController, 'store']).use(middleware.admin())
     router.get('/users', [UsersController, 'index']).use(middleware.admin())
     router.patch('/users/:id', [UsersController, 'update']).use(middleware.admin())
     router.patch('/users/:id/password', [UsersController, 'resetPassword']).use(middleware.admin())
