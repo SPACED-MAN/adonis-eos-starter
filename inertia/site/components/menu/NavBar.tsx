@@ -26,7 +26,7 @@ export function NavBar({
               <img
                 src={logoLightUrl || logoDarkUrl}
                 alt={menuName || 'Site'}
-                className="h-7 w-auto"
+                className="h-11 w-auto"
               />
               {/* Keep site title accessible but visually hidden when logo is present */}
               {menuName && <span className="sr-only">{menuName}</span>}
