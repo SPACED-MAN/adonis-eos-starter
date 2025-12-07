@@ -3,7 +3,7 @@
 Code-first makers to scaffold common CMS artifacts.
 
 ## Post Types
-- Command: `node ace make:post_type "Blog"`
+- Command: `node ace make:post-type "Blog"` (alias: `make:post_type`)
 - Flags:
   - `--pattern` (default `/{locale}/{post_type}/{slug}`) – URL pattern template.
 - Output: `app/post_types/blog.ts` with starter config (fields, module group/template defaults, URL patterns).
