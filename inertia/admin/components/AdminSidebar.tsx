@@ -24,6 +24,7 @@ import {
 	faListUl,
 	faEnvelope,
 	faDatabase,
+	faMagnifyingGlass,
 } from '@fortawesome/free-solid-svg-icons'
 import { faGauge } from '@fortawesome/free-solid-svg-icons'
 
@@ -146,6 +147,11 @@ export function AdminSidebar() {
 						<SidebarMenuItem href="/admin/settings/redirects" active={isActive('/admin/settings/redirects')}>
 							<span className="inline-flex items-center gap-2">
 								<FontAwesomeIcon icon={faRightLeft} className="w-4 h-4" /> <span>Redirects</span>
+							</span>
+						</SidebarMenuItem>
+						<SidebarMenuItem href="/admin/settings/seo" active={isActive('/admin/settings/seo')}>
+							<span className="inline-flex items-center gap-2">
+								<FontAwesomeIcon icon={faMagnifyingGlass} className="w-4 h-4" /> <span>SEO</span>
 							</span>
 						</SidebarMenuItem>
 						<SidebarMenuItem href="/admin/settings/locales" active={isActive('/admin/settings/locales')}>

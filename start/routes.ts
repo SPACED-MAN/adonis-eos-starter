@@ -11,6 +11,9 @@ import router from '@adonisjs/core/services/router'
 import { middleware } from '#start/kernel'
 import '#start/taxonomies'
 
+const SitemapController = () => import('#controllers/sitemap_controller')
+const SeoController = () => import('#controllers/seo_controller')
+
 // Homepage - resolve from posts (slug: 'home', type: 'page')
 // This delegates to the post resolution system
 router.get('/', async ({ request, response, inertia, auth }) => {
@@ -136,8 +139,12 @@ router
     router.post('/redirects', [UrlRedirectsController, 'store']).use(middleware.admin())
     router.put('/redirects/:id', [UrlRedirectsController, 'update']).use(middleware.admin())
     router.delete('/redirects/:id', [UrlRedirectsController, 'destroy']).use(middleware.admin())
-    router.get('/redirect-settings/:postType', [UrlRedirectsController, 'getSettings']).use(middleware.admin())
-    router.post('/redirect-settings/:postType', [UrlRedirectsController, 'updateSettings']).use(middleware.admin())
+    router
+      .get('/redirect-settings/:postType', [UrlRedirectsController, 'getSettings'])
+      .use(middleware.admin())
+    router
+      .post('/redirect-settings/:postType', [UrlRedirectsController, 'updateSettings'])
+      .use(middleware.admin())
   })
   .prefix('/api')
   .use(middleware.auth())
@@ -344,6 +351,18 @@ router
   .use(middleware.admin())
 
 /**
+ * SEO endpoints (admin)
+ */
+router
+  .group(() => {
+    router.get('/seo/sitemap/status', [SeoController, 'sitemapStatus'])
+    router.post('/seo/sitemap/rebuild', [SeoController, 'sitemapRebuild'])
+  })
+  .prefix('/api')
+  .use(middleware.auth())
+  .use(middleware.admin())
+
+/**
  * Preview Routes (with token validation)
  */
 router.get('/preview/:id', [PostsViewController, 'preview'])
@@ -484,6 +503,13 @@ router
   })
   .use(middleware.auth())
   .use(middleware.admin())
+
+router
+  .get('/admin/settings/seo', async ({ inertia }) => {
+    return inertia.render('admin/settings/seo')
+  })
+  .use(middleware.auth())
+  .use(middleware.admin())
 /**
  * Protected content access
  */
@@ -496,6 +522,11 @@ router
     return inertia.render('admin/errors/forbidden')
   })
   .use(middleware.auth())
+
+/**
+ * XML Sitemap
+ */
+router.get('/sitemap.xml', [SitemapController, 'index'])
 
 /**
  * Catch-all: resolve posts by URL patterns (must be last)
