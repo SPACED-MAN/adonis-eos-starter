@@ -34,7 +34,7 @@ export default class PostsCrudController extends BasePostsController {
       | 'translator'
       | undefined
 
-    if (!authorizationService.canCreatePost(role)) {
+    if (!authorizationService.canCreatePost(role, (request.all() as any)?.type)) {
       return this.response.forbidden(response, 'Not allowed to create posts')
     }
 
@@ -113,10 +113,12 @@ export default class PostsCrudController extends BasePostsController {
     try {
       const payload = await request.validateUsing(updatePostValidator)
       const saveMode = String(payload.mode || 'publish').toLowerCase()
+      const currentPost = await Post.findOrFail(id)
+      const postType = currentPost.type
 
       // Handle review mode
       if (saveMode === 'review') {
-        if (!roleRegistry.hasPermission(role, 'posts.review.save')) {
+        if (!roleRegistry.hasPermission(role, 'posts.review.save', postType)) {
           return this.response.forbidden(response, 'Not allowed to save for review')
         }
         return this.saveReviewDraft(id, payload, auth, response)
@@ -124,7 +126,7 @@ export default class PostsCrudController extends BasePostsController {
 
       // Handle AI review mode
       if (saveMode === 'ai-review') {
-        if (!roleRegistry.hasPermission(role, 'posts.ai-review.save')) {
+        if (!roleRegistry.hasPermission(role, 'posts.ai-review.save', postType)) {
           return this.response.forbidden(response, 'Not allowed to save for AI review')
         }
         return this.saveAiReviewDraft(id, payload, auth, response)
@@ -132,7 +134,7 @@ export default class PostsCrudController extends BasePostsController {
 
       // Handle approve mode
       if (saveMode === 'approve') {
-        if (!roleRegistry.hasPermission(role, 'posts.review.approve')) {
+        if (!roleRegistry.hasPermission(role, 'posts.review.approve', postType)) {
           return this.response.forbidden(response, 'Not allowed to approve review')
         }
         return this.approveReviewDraft(id, auth, response)
@@ -140,19 +142,16 @@ export default class PostsCrudController extends BasePostsController {
 
       // Handle approve AI review mode
       if (saveMode === 'approve-ai-review') {
-        if (!roleRegistry.hasPermission(role, 'posts.ai-review.approve')) {
+        if (!roleRegistry.hasPermission(role, 'posts.ai-review.approve', postType)) {
           return this.response.forbidden(response, 'Not allowed to approve AI review')
         }
         return this.approveAiReviewDraft(id, auth, response)
       }
 
       // Authorization check for status changes
-      if (!authorizationService.canUpdateStatus(role, payload.status)) {
+      if (!authorizationService.canUpdateStatus(role, payload.status, postType)) {
         return this.response.forbidden(response, 'Not allowed to set this status')
       }
-
-      // Load current post for comparison
-      const currentPost = await Post.findOrFail(id)
 
       // Parse JSON fields
       const robotsJson = this.parseJsonField(payload.robotsJson)

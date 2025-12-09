@@ -77,4 +77,15 @@ export interface RoleDefinition {
    * Set of permissions granted to this role
    */
   permissions: PermissionKey[]
+
+  /**
+   * Optional per-post-type permissions.
+   * When provided, these override/augment the base permissions for the given post type.
+   * Example:
+   * postTypePermissions: {
+   *   blog: ['posts.edit', 'posts.publish'],
+   *   docs: ['posts.edit'] // no publish on docs
+   * }
+   */
+  postTypePermissions?: Record<string, PermissionKey[]>
 }

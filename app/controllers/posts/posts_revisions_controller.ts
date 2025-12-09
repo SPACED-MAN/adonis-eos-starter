@@ -99,10 +99,11 @@ export default class PostsRevisionsController extends BasePostsController {
       return response.ok({ message: 'Reverted review draft' })
     }
 
+    const postType = snapshot?.type || (await Post.find(id))?.type
     // Approved revisions require permission
     if (
-      !authorizationService.canRevertRevision(role) ||
-      !authorizationService.canUpdateStatus(role, snapshot?.status)
+      !authorizationService.canRevertRevision(role, postType) ||
+      !authorizationService.canUpdateStatus(role, snapshot?.status, postType)
     ) {
       return this.response.forbidden(response, 'Not allowed to revert to this revision')
     }

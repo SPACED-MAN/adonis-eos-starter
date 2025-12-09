@@ -44,11 +44,13 @@ export default class PostsExportController extends BasePostsController {
       | 'translator'
       | undefined
 
-    if (!authorizationService.canCreatePost(role)) {
+    const { data } = request.only(['data'])
+    const importType = (data as any)?.post?.type || (data as any)?.type
+
+    if (!authorizationService.canCreatePost(role, importType)) {
       return this.response.forbidden(response, 'Not allowed to import')
     }
 
-    const { data } = request.only(['data'])
     if (!data) {
       return this.response.badRequest(response, 'Missing data')
     }
@@ -112,7 +114,9 @@ export default class PostsExportController extends BasePostsController {
         | 'editor'
         | 'translator'
         | undefined
-      if (!authorizationService.canUpdateStatus(role, data?.post?.status)) {
+      const existing = await Post.find(id)
+      const targetType = (data as any)?.post?.type || existing?.type
+      if (!authorizationService.canUpdateStatus(role, data?.post?.status, targetType)) {
         return this.response.forbidden(response, 'Not allowed to set target status')
       }
 

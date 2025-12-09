@@ -527,7 +527,7 @@ export default class PostsController {
         | 'editor'
         | 'translator'
         | undefined
-      if (!authorizationService.canCreatePost(role)) {
+      if (!authorizationService.canCreatePost(role, type)) {
         return response.forbidden({ error: 'Not allowed to create posts' })
       }
       const post = await CreatePost.handle({
@@ -894,7 +894,9 @@ export default class PostsController {
         | 'editor'
         | 'translator'
         | undefined
-      if (!authorizationService.canUpdateStatus(role, status)) {
+      const current = await Post.find(id)
+      const postType = current?.type
+      if (!authorizationService.canUpdateStatus(role, status, postType)) {
         return response.forbidden({ error: 'Not allowed to set status' })
       }
       // Parse JSON fields when provided as strings
@@ -1737,10 +1739,11 @@ export default class PostsController {
       | 'editor'
       | 'translator'
       | undefined
-    if (!authorizationService.canCreatePost(role)) {
+    const { data } = request.only(['data'])
+    const importType = (data as any)?.post?.type || (data as any)?.type
+    if (!authorizationService.canCreatePost(role, importType)) {
       return response.forbidden({ error: 'Not allowed to import' })
     }
-    const { data } = request.only(['data'])
     if (!data) return response.badRequest({ error: 'Missing data' })
     try {
       const post = await PostSerializerService.importCreate(data, (auth.use('web').user as any)?.id)
@@ -1780,7 +1783,10 @@ export default class PostsController {
         | 'editor'
         | 'translator'
         | undefined
-      if (!authorizationService.canUpdateStatus(role, data?.post?.status)) {
+      const existing = await Post.find(id)
+      const targetType = (data as any)?.post?.type || existing?.type
+
+      if (!authorizationService.canUpdateStatus(role, data?.post?.status, targetType)) {
         return response.forbidden({ error: 'Not allowed to set target status' })
       }
       await PostSerializerService.importReplace(id, data)
@@ -1854,9 +1860,11 @@ export default class PostsController {
     }
 
     // Approved (live) revert requires permission to set target status
+    const postType = snapshot?.type || (await Post.find(id))?.type
+
     if (
-      !authorizationService.canRevertRevision(role) ||
-      !authorizationService.canUpdateStatus(role, snapshot?.status)
+      !authorizationService.canRevertRevision(role, postType) ||
+      !authorizationService.canUpdateStatus(role, snapshot?.status, postType)
     ) {
       return response.forbidden({ error: 'Not allowed to revert to this revision' })
     }

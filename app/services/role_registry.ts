@@ -32,12 +32,24 @@ class RoleRegistry {
     )
   }
 
-  hasPermission(roleName: RoleName | null | undefined, permission: PermissionKey): boolean {
+  hasPermission(
+    roleName: RoleName | null | undefined,
+    permission: PermissionKey,
+    postType?: string
+  ): boolean {
     if (!roleName) return false
     const role = this.roles.get(roleName)
     if (!role) return false
     // Admin is always allowed everything
     if (role.name === 'admin') return true
+    // Per-post-type override: if a specific list exists for this type (or '*'),
+    // use it exclusively (no fallback to global list). Otherwise, use global permissions.
+    if (postType && role.postTypePermissions) {
+      const specific = role.postTypePermissions[postType] ?? role.postTypePermissions['*']
+      if (specific) {
+        return specific.includes(permission)
+      }
+    }
     return role.permissions.includes(permission)
   }
 }

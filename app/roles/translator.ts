@@ -23,6 +23,9 @@ const translatorRole: RoleDefinition = {
     // Profiles (view only)
     'profiles.view',
   ],
+  postTypePermissions: {
+    documentation: [], // documentation is admin-only
+  },
 }
 
 export default translatorRole

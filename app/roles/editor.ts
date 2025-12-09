@@ -38,6 +38,9 @@ const editorRole: RoleDefinition = {
     'profiles.view',
     'profiles.edit',
   ],
+  postTypePermissions: {
+    documentation: [], // documentation is admin-only
+  },
 }
 
 export default editorRole
