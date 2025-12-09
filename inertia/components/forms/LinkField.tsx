@@ -1,5 +1,6 @@
 import * as React from 'react'
 import { Input } from '~/components/ui/input'
+import { Popover, PopoverContent, PopoverTrigger } from '~/components/ui/popover'
 import { FormField, FormLabel, FormHelper } from './field'
 
 export type LinkKind = 'post' | 'url'
@@ -87,6 +88,7 @@ export const LinkField: React.FC<LinkFieldProps> = ({
   const [mode, setMode] = React.useState<LinkKind>(initial?.kind === 'url' ? 'url' : 'post')
   const [link, setLink] = React.useState<LinkFieldValue>(initial)
   const [posts, setPosts] = React.useState<PostOption[]>([])
+  const [query, setQuery] = React.useState('')
   const [loading, setLoading] = React.useState(false)
   const [error, setError] = React.useState<string | null>(null)
   const [urlError, setUrlError] = React.useState<string | null>(null)
@@ -106,7 +108,7 @@ export const LinkField: React.FC<LinkFieldProps> = ({
           const params = new URLSearchParams()
           params.set('status', 'published')
           if (currentLocale) params.set('locale', currentLocale)
-          params.set('limit', '50')
+          params.set('limit', '200')
           const res = await fetch(`/api/posts?${params.toString()}`, {
             credentials: 'same-origin',
             headers: { Accept: 'application/json' },
@@ -167,6 +169,19 @@ export const LinkField: React.FC<LinkFieldProps> = ({
 
     return null
   }
+
+  const filteredPosts =
+    query.trim().length === 0
+      ? posts
+      : posts.filter((p) => {
+          const needle = query.toLowerCase()
+          return (
+            (p.title || '').toLowerCase().includes(needle) ||
+            (p.slug || '').toLowerCase().includes(needle) ||
+            (p.type || '').toLowerCase().includes(needle) ||
+            (p.locale || '').toLowerCase().includes(needle)
+          )
+        })
 
   return (
     <FormField>
@@ -231,33 +246,70 @@ export const LinkField: React.FC<LinkFieldProps> = ({
           </div>
         ) : (
           <div className="space-y-1">
-            <select
-              className="w-full px-2 py-1 text-sm border border-border rounded bg-backdrop-low text-neutral-high"
-              value={selectedPostId}
-              disabled={loading}
-              onChange={(e) => {
-                const postId = e.target.value
-                if (!postId) {
-                  setLink(null)
-                  return
-                }
-                const p = posts.find((x) => x.id === postId)
-                setLink({
-                  kind: 'post',
-                  postId,
-                  postType: p?.type,
-                  slug: p?.slug,
-                  locale: p?.locale,
-                })
-              }}
-            >
-              <option value="">{loading ? 'Loading…' : 'Select a post…'}</option>
-              {posts.map((p) => (
-                <option key={p.id} value={p.id}>
-                  {p.title} ({p.type}, {p.locale})
-                </option>
-              ))}
-            </select>
+            <Popover>
+              <PopoverTrigger asChild>
+                <button
+                  type="button"
+                  className="w-full text-left px-3 py-2 border border-border rounded-lg bg-backdrop-low text-neutral-high hover:bg-backdrop-medium"
+                >
+                  {loading
+                    ? 'Loading…'
+                    : selectedPostId
+                      ? (() => {
+                          const p = posts.find((x) => x.id === selectedPostId)
+                          return p
+                            ? `${p.title} (${p.type}, ${p.locale})`
+                            : 'Select a post…'
+                        })()
+                      : 'Select a post…'}
+                </button>
+              </PopoverTrigger>
+              <PopoverContent className="w-96">
+                <div className="space-y-2">
+                  <Input
+                    type="text"
+                    placeholder="Search posts… (title, slug, type, locale)"
+                    value={query}
+                    onChange={(e) => setQuery(e.target.value)}
+                    className="h-8 text-xs"
+                  />
+                  <div className="max-h-64 overflow-auto space-y-2">
+                    {loading ? (
+                      <div className="text-xs text-neutral-low">Loading…</div>
+                    ) : filteredPosts.length === 0 ? (
+                      <div className="text-xs text-neutral-low">No posts found.</div>
+                    ) : (
+                      filteredPosts.map((p) => {
+                        const isSelected = selectedPostId === p.id
+                        return (
+                          <button
+                            key={p.id}
+                            type="button"
+                            className={`w-full text-left px-3 py-2 rounded border ${
+                              isSelected ? 'border-standout bg-standout/5' : 'border-border'
+                            } hover:bg-backdrop-low`}
+                            onClick={() => {
+                              setLink({
+                                kind: 'post',
+                                postId: p.id,
+                                postType: p.type,
+                                slug: p.slug,
+                                locale: p.locale,
+                              })
+                            }}
+                          >
+                            <div className="text-sm text-neutral-high">{p.title}</div>
+                            <div className="text-[11px] text-neutral-low">
+                              {p.type} · {p.locale} · {p.slug}
+                            </div>
+                          </button>
+                        )
+                      })
+                    )}
+                  </div>
+                </div>
+              </PopoverContent>
+            </Popover>
             {error ? (
               <FormHelper className="text-danger">{error}</FormHelper>
             ) : (
