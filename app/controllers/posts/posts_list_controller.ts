@@ -39,16 +39,6 @@ export default class PostsListController extends BasePostsController {
     // Include deleted posts if requested (admin only)
     const includeDeleted = String(request.input('includeDeleted', '')).trim() === '1'
 
-    console.log('📥 PostsListController.index filters:', {
-      q,
-      type,
-      status,
-      locale,
-      inReview,
-      page,
-      limit,
-    })
-
     const allowedSort = new Set([
       'title',
       'slug',
@@ -84,26 +74,6 @@ export default class PostsListController extends BasePostsController {
     }
 
     try {
-      // DEBUG: show all post types in DB
-      try {
-        const allTypes = await db
-          .from('posts')
-          .select('type')
-          .count('* as count')
-          .groupBy('type')
-          .orderBy('type')
-        const typeCounts: Record<string, number> = {}
-        allTypes.forEach((row: any) => {
-          typeCounts[row.type] = Number(row.count || 0)
-        })
-        console.log('📊 DEBUG all post types in DB:', typeCounts)
-        
-        const totalPosts = await db.from('posts').count('* as total')
-        console.log('📊 DEBUG total posts in DB:', Number((totalPosts[0] as any)?.total || 0))
-      } catch (err) {
-        console.error('📊 DEBUG error checking post types:', err)
-      }
-
       // Build base query with filters
       const query = Post.query()
 
@@ -190,12 +160,6 @@ export default class PostsListController extends BasePostsController {
 
       // Apply sorting + pagination for current page
       const rows = await query.orderBy(sortBy, sortOrder).forPage(page, limit)
-
-      console.log('📦 PostsListController.index result count:', {
-        total,
-        rows: rows.length,
-        sampleTypes: Array.from(new Set(rows.map((p) => p.type))),
-      })
 
       // Optional: include translation family locales
       const withTranslations = String(request.input('withTranslations', '0')).trim() === '1'
