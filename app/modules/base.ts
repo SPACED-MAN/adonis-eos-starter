@@ -56,7 +56,7 @@ export default abstract class BaseModule {
     const config = this.getConfig()
 
     // Basic validation: check required fields exist
-    const schema = config.propsSchema
+    const schema = config.propsSchema || {}
 
     for (const [key, fieldSchema] of Object.entries(schema)) {
       if (fieldSchema.required && !(key in props)) {

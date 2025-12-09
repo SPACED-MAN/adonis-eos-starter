@@ -1,4 +1,4 @@
-import BaseModule from '#modules/base_module'
+import BaseModule from '#modules/base'
 import type { ModuleConfig } from '#types/module_types'
 
 /**
@@ -133,8 +133,8 @@ class ModuleRegistry {
       icon: config.icon,
       allowedScopes: config.allowedScopes,
       lockable: config.lockable,
-      propsSchema: config.propsSchema,
-      defaultProps: config.defaultProps,
+      propsSchema: config.propsSchema || {},
+      defaultProps: config.defaultProps || {},
       allowedPostTypes: config.allowedPostTypes,
     }
   }

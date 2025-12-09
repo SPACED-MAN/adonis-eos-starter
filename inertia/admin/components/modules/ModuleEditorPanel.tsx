@@ -257,11 +257,13 @@ export function ModuleEditorPanel({
 		return map
 	}, [])
 
-	const pascalFromType = (t: string) =>
-		t
+	const pascalFromType = (t?: string | null) => {
+		if (!t || typeof t !== 'string') return ''
+		return t
 			.split(/[-_]/g)
 			.map((s) => s.charAt(0).toUpperCase() + s.slice(1))
 			.join('')
+	}
 
 	const supportedFieldTypes = useMemo(
 		() =>
@@ -288,6 +290,13 @@ export function ModuleEditorPanel({
 	useEffect(() => {
 		latestDraft.current = draft
 	}, [draft])
+
+	const fallbackDraftKeys = useMemo(
+		() => Object.keys(draft || {}).filter((k) => k !== 'type' && k !== 'properties'),
+		[draft]
+	)
+
+	const isNoFieldModule = moduleItem?.type === 'reading-progress'
 
 	const syncFormToDraft = useCallback((): Record<string, any> => {
 		const edited = JSON.parse(JSON.stringify(latestDraft.current))
@@ -502,10 +511,10 @@ export function ModuleEditorPanel({
 								ctx={ctx}
 							/>
 						))
-					) : Object.keys(draft).length === 0 ? (
+					) : isNoFieldModule || fallbackDraftKeys.length === 0 ? (
 						<p className="text-sm text-neutral-low">No editable fields.</p>
 					) : (
-						Object.keys(draft).map((key) => {
+						fallbackDraftKeys.map((key) => {
 							const rawVal = draft[key]
 							// Heuristic: always treat 'content' as rich text
 							if (key === 'content') {

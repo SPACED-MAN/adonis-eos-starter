@@ -27,6 +27,11 @@ export interface ModuleConfig {
   description: string
 
   /**
+   * Optional category for grouping modules in the UI
+   */
+  category?: string
+
+  /**
    * Icon identifier (for admin UI)
    */
   icon?: string
@@ -42,14 +47,14 @@ export interface ModuleConfig {
   lockable: boolean
 
   /**
-   * JSON schema for module props validation
+   * JSON schema for module props validation (omit when module has no props)
    */
-  propsSchema: Record<string, any>
+  propsSchema?: Record<string, any>
 
   /**
-   * Default props for new instances
+   * Default props for new instances (omit when module has no props)
    */
-  defaultProps: Record<string, any>
+  defaultProps?: Record<string, any>
 
   /**
    * Which post types can use this module (empty = all)
