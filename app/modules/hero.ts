@@ -28,7 +28,6 @@ export default class HeroModule extends BaseModule {
         title: "We invest in the world's potential",
         subtitle:
           'We focus on markets where technology, innovation, and capital can unlock long-term value and drive durable growth.',
-        backgroundColor: 'bg-backdrop-low',
       },
       allowedPostTypes: [],
     }

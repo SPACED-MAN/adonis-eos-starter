@@ -89,7 +89,6 @@ export default class FeaturesListModule extends BaseModule {
             body: 'Keep the business running smoothly with repeatable, measurable processes.',
           },
         ],
-        backgroundColor: 'bg-backdrop-low',
       },
       allowedPostTypes: [],
     }

@@ -129,15 +129,12 @@ export default class HeroWithMediaModule extends BaseModule {
           label: 'Get started',
           url: '#',
           style: 'primary',
-          target: '_self',
         },
         secondaryCta: {
           label: 'Speak to Sales',
           url: '#',
           style: 'outline',
-          target: '_self',
         },
-        backgroundColor: 'bg-backdrop-low',
       },
       allowedPostTypes: [], // Available for all post types
     }

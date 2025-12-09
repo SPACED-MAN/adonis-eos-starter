@@ -108,7 +108,6 @@ export default class FeaturesListExpandedModule extends BaseModule {
           url: { kind: 'url', url: '#', target: '_self' },
           style: 'primary',
         },
-        backgroundColor: 'bg-backdrop-low',
       },
       allowedPostTypes: [],
     }

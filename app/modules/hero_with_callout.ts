@@ -30,7 +30,7 @@ export default class HeroWithCalloutModule extends BaseModule {
           maxItems: 12,
           items: {
             type: 'object',
-          properties: {
+            properties: {
               label: {
                 type: 'string',
                 required: true,
@@ -52,12 +52,10 @@ export default class HeroWithCalloutModule extends BaseModule {
           'We focus on markets where technology, innovation, and capital can unlock long-term value and drive durable growth.',
         callouts: [
           {
-          label: 'Learn more',
-          url: '#',
-          target: '_self',
-        },
+            label: 'Learn more',
+            url: '#',
+          },
         ],
-        backgroundColor: 'bg-backdrop-low',
       },
       allowedPostTypes: [],
     }

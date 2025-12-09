@@ -54,11 +54,6 @@ export default class ProseModule extends BaseModule {
             ],
           },
         },
-        maxWidth: 'max-w-4xl',
-        fontSize: 'text-base',
-        backgroundColor: 'bg-transparent',
-        textColor: 'text-neutral-high',
-        padding: 'py-12',
       },
       allowedPostTypes: [], // Available for all post types
     }

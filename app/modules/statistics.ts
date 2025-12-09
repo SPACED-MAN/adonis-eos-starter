@@ -49,7 +49,6 @@ export default class StatisticsModule extends BaseModule {
           { value: 1_000_000_000, suffix: 'B+', label: 'contributors' },
           { value: 4_000_000, suffix: 'M+', label: 'organizations' },
         ],
-        backgroundColor: 'bg-backdrop-low',
       },
       allowedPostTypes: [],
     }

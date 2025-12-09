@@ -73,9 +73,7 @@ export default class ProseWithMediaModule extends BaseModule {
         primaryCta: {
           label: 'Get started',
           url: '#',
-          target: '_self',
         },
-        backgroundColor: 'bg-backdrop-low',
       },
       allowedPostTypes: [],
     }
