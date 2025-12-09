@@ -728,8 +728,13 @@ function FieldPrimitiveInternal({
 							? ''
 							: typeof value === 'object'
 								? JSON.stringify(value)
-								: String(value)
+								: typeof value === 'boolean'
+									? value
+										? 'true'
+										: 'false'
+									: String(value)
 					}
+					data-bool={type === 'boolean' ? '1' : undefined}
 				/>
 			</FormField>
 		)
@@ -1443,20 +1448,40 @@ function FieldPrimitiveInternal({
 		)
 	}
 	if (type === 'boolean') {
+		const hiddenRef = useRef<HTMLInputElement | null>(null)
+		const checked = !!value
+
+		useEffect(() => {
+			if (hiddenRef.current) hiddenRef.current.value = checked ? 'true' : 'false'
+		}, [checked])
+
 		return (
 			<div className="flex items-center gap-2">
 				<Checkbox
-					defaultChecked={!!value}
+					checked={checked}
 					onCheckedChange={(checked) => {
-						const hidden = document.querySelector<HTMLInputElement>(`input[type="hidden"][name="${name}"]`)
-						if (hidden) hidden.value = checked ? 'true' : 'false'
+						if (hiddenRef.current) hiddenRef.current.value = checked ? 'true' : 'false'
+						// Keep draft state in sync so adding/removing repeater rows doesn't reset booleans
+						if (ctx && typeof ctx.setDraft === 'function' && typeof ctx.setByPath === 'function') {
+							ctx.setDraft((prev) => {
+								const next = JSON.parse(JSON.stringify(prev))
+								ctx.setByPath(next, name, checked ? true : false)
+								return next
+							})
+						}
 					}}
 					id={`${rootId}:${name}`}
 				/>
 				<label htmlFor={`${rootId}:${name}`} className="text-sm text-neutral-high">
 					{label}
 				</label>
-				<input type="hidden" name={name} defaultValue={!!value ? 'true' : 'false'} data-bool="1" />
+				<input
+					ref={hiddenRef}
+					type="hidden"
+					name={name}
+					defaultValue={!!value ? 'true' : 'false'}
+					data-bool="1"
+				/>
 			</div>
 		)
 	}
