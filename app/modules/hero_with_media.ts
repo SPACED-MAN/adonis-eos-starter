@@ -49,13 +49,6 @@ export default class HeroWithMediaModule extends BaseModule {
           storeAs: 'id',
           description: 'Hero image (stored as media ID, resolved via the media API)',
         },
-        imageAlt: {
-          type: 'text',
-          label: 'Image Alt Text',
-          required: false,
-          description: 'Accessible alt text for the hero image',
-          translatable: true,
-        },
         imagePosition: {
           type: 'select',
           label: 'Image Position',
@@ -131,7 +124,6 @@ export default class HeroWithMediaModule extends BaseModule {
         subtitle:
           'From checkout to global sales tax compliance, companies around the world use this platform to simplify their payment stack.',
         image: null,
-        imageAlt: 'Product mockup',
         imagePosition: 'right',
         primaryCta: {
           label: 'Get started',

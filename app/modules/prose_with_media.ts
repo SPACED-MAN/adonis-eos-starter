@@ -36,13 +36,6 @@ export default class ProseWithMediaModule extends BaseModule {
           storeAs: 'id',
           description: 'Image or illustration shown beside the prose (stored as media ID).',
         },
-        imageAlt: {
-          type: 'text',
-          label: 'Image Alt Text',
-          required: false,
-          description: 'Accessible alt text for the image',
-          translatable: true,
-        },
         imagePosition: {
           type: 'select',
           label: 'Image Position',
@@ -76,7 +69,6 @@ export default class ProseWithMediaModule extends BaseModule {
         title: "Let's create more tools and ideas that bring us together.",
         body: 'This layout pairs narrative content with a focused visual, ideal for feature callouts, product explainers, and lightweight storytelling.',
         image: null,
-        imageAlt: 'Dashboard illustration',
         imagePosition: 'left',
         primaryCta: {
           label: 'Get started',
