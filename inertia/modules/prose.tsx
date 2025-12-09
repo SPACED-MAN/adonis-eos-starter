@@ -31,12 +31,26 @@ export default function Prose({
 	textColor = 'text-neutral-high',
 	padding = 'py-12',
 }: ProseProps) {
-	// If content is already HTML string, use it directly
-	// Otherwise, it's Lexical JSON that needs to be rendered on the server
-	// (For now, we expect server to pre-render Lexical → HTML; this is a
-	// client-side fallback.)
-	const htmlContent =
-		typeof content === 'string' ? content : renderLexicalToHtml(content)
+	// Normalize content so that saved JSON strings from the editor still render
+	// as rich text instead of showing the raw JSON to the visitor.
+	let htmlContent: string
+	if (typeof content === 'string') {
+		const trimmed = content.trim()
+		const looksJson = trimmed.startsWith('{') || trimmed.startsWith('[')
+		if (looksJson) {
+			try {
+				const parsed = JSON.parse(trimmed)
+				htmlContent = renderLexicalToHtml(parsed)
+			} catch {
+				// Fall back to treating the string as already-rendered HTML
+				htmlContent = content
+			}
+		} else {
+			htmlContent = content
+		}
+	} else {
+		htmlContent = renderLexicalToHtml(content)
+	}
 
 	return (
 		<section className={`${backgroundColor} ${padding}`} data-module="prose">
