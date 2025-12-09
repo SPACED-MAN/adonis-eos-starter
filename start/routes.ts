@@ -160,6 +160,15 @@ const ActivityLogsController = () => import('#controllers/activity_logs_controll
 const TaxonomiesController = () => import('#controllers/taxonomies_controller')
 const ProtectedAccessController = () => import('#controllers/protected_access_controller')
 // MediaController imported above
+
+// Public API for site chrome (no auth required)
+router
+  .group(() => {
+    router.get('/menus/by-slug/:slug', [MenusController, 'bySlug'])
+    router.get('/site-settings', [SiteSettingsController, 'show'])
+  })
+  .prefix('/api')
+
 router
   .group(() => {
     router.get('/module-groups', [ModuleGroupsController, 'index']).use(middleware.admin())
@@ -262,7 +271,6 @@ router
     router.post('/media/:id/variants', [MediaController, 'variants']).use(middleware.admin())
     router.patch('/media/:id/rename', [MediaController, 'rename']).use(middleware.admin())
     // Site Settings
-    router.get('/site-settings', [SiteSettingsController, 'show'])
     router.patch('/site-settings', [SiteSettingsController, 'update']).use(middleware.admin())
     // Menus (Admin)
     router.get('/menus', [MenusController, 'index'])
@@ -277,7 +285,6 @@ router
     router
       .post('/menus/:id/generate-variations', [MenusController, 'generateVariations'])
       .use(middleware.admin())
-    router.get('/menus/by-slug/:slug', [MenusController, 'bySlug'])
     router.get('/menu-templates', [MenusController, 'templates']).use(middleware.admin())
     // Global/Static modules
     router.get('/modules/global', [GlobalModulesController, 'index']).use(middleware.admin())
