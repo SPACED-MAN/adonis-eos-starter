@@ -1352,13 +1352,32 @@ function FieldPrimitiveInternal({
 			return (
 				<FormField>
 					{!hideLabel && <FormLabel>{label}</FormLabel>}
+					{vals.length > 0 && (
+						<div className="flex flex-wrap gap-2 mb-2">
+							{vals.map((val) => {
+								const opt = options.find((o: any) => o.value === val)
+								const text = opt?.label ?? opt?.value ?? val
+								return (
+									<button
+										key={val}
+										type="button"
+										className="inline-flex items-center gap-1 rounded-full bg-backdrop-low border border-border px-3 py-1 text-sm text-neutral-high hover:bg-backdrop-medium"
+										onClick={() => setVals((prev) => prev.filter((v) => v !== val))}
+									>
+										<span>{text}</span>
+										<span className="text-neutral-low">✕</span>
+									</button>
+								)
+							})}
+						</div>
+					)}
 					<Popover>
 						<PopoverTrigger asChild>
 							<button
 								type="button"
 								className="w-full text-left px-3 py-2 border border-border rounded-lg bg-backdrop-low text-neutral-high hover:bg-backdrop-medium"
 							>
-								{vals.length === 0 ? 'Select options' : `${vals.length} selected`}
+								{vals.length === 0 ? 'Select options' : 'Edit selection'}
 							</button>
 						</PopoverTrigger>
 						<PopoverContent className="w-64">

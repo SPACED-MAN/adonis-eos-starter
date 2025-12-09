@@ -58,9 +58,27 @@ export default function PostCustomPostReferenceField({ label, value, onChange, c
 
   return (
     <div>
-      <label className="block text-sm font-medium text-neutral-medium mb-1">
-        {label}
-      </label>
+      {vals.length > 0 && (
+        <div className="flex flex-wrap gap-2 mb-2">
+          {vals.map((v) => {
+            const opt = options.find((o) => o.value === v)
+            const text = opt?.label || v
+            return (
+              <button
+                key={v}
+                type="button"
+                className="inline-flex items-center gap-1 rounded-full bg-backdrop-low border border-border px-3 py-1 text-sm text-neutral-high hover:bg-backdrop-medium"
+                onClick={() =>
+                  setVals((prev) => prev.filter((id) => id !== v))
+                }
+              >
+                <span>{text}</span>
+                <span className="text-neutral-low">✕</span>
+              </button>
+            )
+          })}
+        </div>
+      )}
       <Popover>
         <PopoverTrigger asChild>
           <button
