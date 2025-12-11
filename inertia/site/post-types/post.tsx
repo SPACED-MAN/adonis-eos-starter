@@ -2,6 +2,8 @@ import { Head } from '@inertiajs/react'
 import Modules from '../../modules'
 import { SiteFooter } from '../components/SiteFooter'
 import { SiteHeader } from '../components/SiteHeader'
+import { InlineEditorProvider } from '../../components/inline-edit/InlineEditorContext'
+import { InlineOverlay } from '../../components/inline-edit/InlineOverlay'
 
 interface PostPageProps {
 	post: {
@@ -19,6 +21,11 @@ interface PostPageProps {
 		id: string
 		type: string
 		props: Record<string, any>
+		reviewProps?: Record<string, any>
+		aiReviewProps?: Record<string, any>
+		overrides?: Record<string, any>
+		reviewOverrides?: Record<string, any>
+		aiReviewOverrides?: Record<string, any>
 	}>
 	seo?: {
 		canonical?: string
@@ -60,23 +67,41 @@ export default function PostTypeDefault({ post, modules, seo }: PostPageProps) {
 					<script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(seo.jsonLd) }} />
 				)}
 			</Head>
-			<SiteHeader />
-			{/* Post Content - Rendered Modules */}
-			<main className="overflow-x-hidden">
-				{modules.map((module) => {
-					const Component = getModuleComponent(module.type)
-					if (!Component) {
-						return null
-					}
-					return (
-						<section key={module.id} className="container mx-auto px-4 sm:px-6 lg:px-8 py-8">
-							<Component {...module.props} />
-						</section>
-					)
-				})}
-			</main>
+			<InlineEditorProvider
+				postId={post.id}
+				modules={modules.map((m) => ({
+					id: m.id,
+					props: m.props,
+					reviewProps: m.reviewProps,
+					aiReviewProps: m.aiReviewProps,
+					overrides: m.overrides,
+					reviewOverrides: m.reviewOverrides,
+					aiReviewOverrides: m.aiReviewOverrides,
+				}))}
+			>
+				<SiteHeader />
+				{/* Post Content - Rendered Modules */}
+				<main className="overflow-x-hidden">
+					{modules.map((module) => {
+						const Component = getModuleComponent(module.type)
+						if (!Component) {
+							return null
+						}
+						return (
+							<section
+								key={module.id}
+								className="container mx-auto px-4 sm:px-6 lg:px-8 py-8"
+								data-inline-module={module.id}
+							>
+								<Component {...module.props} __postId={post.id} __moduleId={module.id} />
+							</section>
+						)
+					})}
+				</main>
 
-			<SiteFooter />
+				<SiteFooter />
+				<InlineOverlay />
+			</InlineEditorProvider>
 		</>
 	)
 }

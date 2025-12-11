@@ -6,6 +6,7 @@
  * `getRenderingMode()` – this component is shared between admin preview
  * and the public site.
  */
+import { useInlineValue } from '../components/inline-edit/InlineEditorContext'
 
 interface LexicalJSON {
 	root: {
@@ -21,16 +22,25 @@ interface ProseProps {
 	backgroundColor?: string // Tailwind class
 	textColor?: string // Tailwind class
 	padding?: string // Tailwind class
+	__moduleId?: string
 }
 
 export default function Prose({
-	content,
-	maxWidth = 'max-w-4xl',
-	fontSize = 'text-base',
-	backgroundColor = 'bg-transparent',
-	textColor = 'text-neutral-high',
-	padding = 'py-12',
+	content: initialContent,
+	maxWidth: initialMaxWidth = 'max-w-4xl',
+	fontSize: initialFontSize = 'text-base',
+	backgroundColor: initialBackground = 'bg-transparent',
+	textColor: initialTextColor = 'text-neutral-high',
+	padding: initialPadding = 'py-12',
+	__moduleId,
 }: ProseProps) {
+	const content = useInlineValue(__moduleId, 'content', initialContent)
+	const maxWidth = useInlineValue(__moduleId, 'maxWidth', initialMaxWidth)
+	const fontSize = useInlineValue(__moduleId, 'fontSize', initialFontSize)
+	const backgroundColor = useInlineValue(__moduleId, 'backgroundColor', initialBackground)
+	const textColor = useInlineValue(__moduleId, 'textColor', initialTextColor)
+	const padding = useInlineValue(__moduleId, 'padding', initialPadding)
+
 	// Normalize content so that saved JSON strings from the editor still render
 	// as rich text instead of showing the raw JSON to the visitor.
 	let htmlContent: string
@@ -58,6 +68,9 @@ export default function Prose({
 				<div className={`${maxWidth} mx-auto`}>
 					<div
 						className={`prose ${fontSize} ${textColor}`}
+						suppressHydrationWarning
+						data-inline-type="richtext"
+						data-inline-path="content"
 						dangerouslySetInnerHTML={{ __html: htmlContent }}
 					/>
 				</div>

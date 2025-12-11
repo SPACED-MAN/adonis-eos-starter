@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react'
 import { pickMediaVariantUrl } from '../lib/media'
 import { FontAwesomeIcon } from '../site/lib/icons'
 import type { Button, LinkValue } from './types'
+import { useInlineValue } from '../components/inline-edit/InlineEditorContext'
 
 interface ProseWithMediaProps {
 	title: string
@@ -11,6 +12,7 @@ interface ProseWithMediaProps {
 	imagePosition?: 'left' | 'right'
 	primaryCta?: Button | null
 	backgroundColor?: string
+	__moduleId?: string
 }
 
 export default function ProseWithMedia({
@@ -21,20 +23,24 @@ export default function ProseWithMedia({
 	imagePosition = 'left',
 	primaryCta,
 	backgroundColor = 'bg-backdrop-low',
+	__moduleId,
 }: ProseWithMediaProps) {
+	const titleValue = useInlineValue(__moduleId, 'title', title)
+	const bodyValue = useInlineValue(__moduleId, 'body', body)
+	const imageId = useInlineValue(__moduleId, 'image', image)
 	const [resolvedImageUrl, setResolvedImageUrl] = useState<string | null>(null)
 
 	useEffect(() => {
 		let cancelled = false
 
 		async function resolveImage() {
-			if (!image) {
+			if (!imageId) {
 				if (!cancelled) setResolvedImageUrl(null)
 				return
 			}
 
 			try {
-				const res = await fetch(`/public/media/${encodeURIComponent(String(image))}`)
+				const res = await fetch(`/public/media/${encodeURIComponent(String(imageId))}`)
 				if (!res.ok) {
 					if (!cancelled) setResolvedImageUrl(null)
 					return
@@ -60,7 +66,7 @@ export default function ProseWithMedia({
 		return () => {
 			cancelled = true
 		}
-	}, [image])
+	}, [imageId])
 
 	function resolveButtonHref(url: string | LinkValue): string | undefined {
 		if (!url) return undefined
@@ -79,7 +85,11 @@ export default function ProseWithMedia({
 
 	const imageBlock = resolvedImageUrl ? (
 		<div className="w-full">
-			<div className="w-full rounded-xl overflow-hidden border border-line-low bg-backdrop-high">
+			<div
+				className="w-full rounded-xl overflow-hidden border border-line-low bg-backdrop-high"
+				data-inline-type="media"
+				data-inline-path="image"
+			>
 				<img
 					src={resolvedImageUrl}
 					alt={imageAlt || ''}
@@ -98,12 +108,18 @@ export default function ProseWithMedia({
 					{imagePosition === 'left' && imageBlock}
 
 					<div className="mt-8 md:mt-0">
-						<h2 className="mb-4 text-3xl sm:text-4xl font-extrabold tracking-tight text-neutral-high">
-							{title}
+						<h2
+							className="mb-4 text-3xl sm:text-4xl font-extrabold tracking-tight text-neutral-high"
+							data-inline-path="title"
+						>
+							{titleValue}
 						</h2>
-						{body && (
-							<p className="mb-6 text-base md:text-lg font-normal text-neutral-medium">
-								{body}
+						{bodyValue && (
+							<p
+								className="mb-6 text-base md:text-lg font-normal text-neutral-medium"
+								data-inline-path="body"
+							>
+								{bodyValue}
 							</p>
 						)}
 						{hasCta && primaryCta && primaryCta.label && primaryCta.url && (() => {

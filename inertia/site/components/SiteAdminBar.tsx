@@ -2,11 +2,39 @@ import { useEffect, useMemo, useState } from 'react'
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome'
 import { faWrench, faToggleOn, faToggleOff, faXmark } from '@fortawesome/free-solid-svg-icons'
 import { router } from '@inertiajs/react'
+type InlineBridge = {
+  enabled: boolean
+  canEdit: boolean
+  mode: 'approved' | 'review' | 'ai'
+  toggle: () => void
+  setMode: (m: 'approved' | 'review' | 'ai') => void
+  dirty: boolean
+  saveAll: () => Promise<void>
+}
 
 export function SiteAdminBar() {
+  const [inline, setInline] = useState<InlineBridge>({
+    enabled: false,
+    canEdit: false,
+    mode: 'approved',
+    toggle: () => { },
+    setMode: () => { },
+    dirty: false,
+    saveAll: async () => { },
+  })
   const [mounted, setMounted] = useState(false)
   useEffect(() => {
     setMounted(true)
+  }, [])
+  useEffect(() => {
+    const handler = (e: any) => {
+      if (e?.detail) setInline(e.detail as InlineBridge)
+    }
+    if (typeof window !== 'undefined' && (window as any).__inlineBridge) {
+      setInline((window as any).__inlineBridge as InlineBridge)
+    }
+    window.addEventListener('inline:state', handler as EventListener)
+    return () => window.removeEventListener('inline:state', handler as EventListener)
   }, [])
 
   const getProps = () => {
@@ -83,7 +111,7 @@ export function SiteAdminBar() {
         <button
           aria-label="Toggle review preview"
           onClick={toggleView}
-          style={{ position: 'fixed', bottom: '16px', right: '64px', zIndex: 9999 }}
+          style={{ position: 'fixed', bottom: '16px', right: '72px', zIndex: 9999 }}
           className={`rounded-full border px-3 py-3 shadow ${viewMode === 'review'
             ? 'bg-standout text-on-standout border-standout/60'
             : 'bg-backdrop-low text-neutral-high border-line-low hover:bg-backdrop-medium'
@@ -93,15 +121,58 @@ export function SiteAdminBar() {
           <FontAwesomeIcon icon={viewMode === 'review' ? faToggleOn : faToggleOff} />
         </button>
       )}
-      {/* Toggle button */}
-      <button
-        aria-label="Admin tools"
-        onClick={() => setOpen((v) => !v)}
-        style={{ position: 'fixed', bottom: '16px', right: '16px', zIndex: 9999 }}
-        className="rounded-full bg-backdrop-low border border-line-low text-neutral-high hover:bg-backdrop-medium px-3 py-3 shadow"
+      {/* Unified bottom bar */}
+      <div
+        className="fixed z-50 flex items-center gap-2 pointer-events-auto"
+        style={{ bottom: '16px', right: '16px' }}
       >
-        <FontAwesomeIcon icon={faWrench} />
-      </button>
+        <div className="inline-flex overflow-hidden rounded-md border border-line-medium bg-backdrop-high shadow">
+          <button
+            type="button"
+            className={`px-3 py-2 text-xs font-medium border-r border-line-medium ${inline.mode === 'approved' ? 'bg-standout text-on-standout' : 'text-neutral-high hover:bg-backdrop-medium'}`}
+            onClick={() => inline.setMode('approved')}
+          >
+            Approved
+          </button>
+          <button
+            type="button"
+            className={`px-3 py-2 text-xs font-medium border-r border-line-medium ${inline.mode === 'review' ? 'bg-standout text-on-standout' : 'text-neutral-high hover:bg-backdrop-medium'}`}
+            onClick={() => inline.setMode('review')}
+          >
+            Review
+          </button>
+          <button
+            type="button"
+            className={`px-3 py-2 text-xs font-medium border-r border-line-medium ${inline.mode === 'ai' ? 'bg-standout text-on-standout' : 'text-neutral-high hover:bg-backdrop-medium'}`}
+            onClick={() => inline.setMode('ai')}
+          >
+            AI Review
+          </button>
+          <button
+            type="button"
+            className={`px-3 py-2 text-xs font-medium border-r border-line-medium ${inline.enabled ? 'bg-standout text-on-standout' : 'text-neutral-high hover:bg-backdrop-medium'}`}
+            onClick={inline.toggle}
+          >
+            {inline.enabled ? 'Edits On' : 'Edits Off'}
+          </button>
+          <button
+            aria-label="Admin tools"
+            onClick={() => setOpen((v) => !v)}
+            className="px-3 py-2 text-xs font-medium text-neutral-high hover:bg-backdrop-medium"
+          >
+            <FontAwesomeIcon icon={faWrench} />
+          </button>
+        </div>
+        {inline.dirty && inline.canEdit && (
+          <button
+            type="button"
+            className="px-3 py-2 text-xs font-medium rounded-md border border-line-medium bg-standout text-on-standout"
+            onClick={inline.saveAll}
+          >
+            Save
+          </button>
+        )}
+      </div>
 
       {/* Panel */}
       {open && (
@@ -146,7 +217,6 @@ export function SiteAdminBar() {
                 </a>
               </div>
             )}
-            {/* Removed duplicate 'View Review' toggle inside the panel per request */}
           </div>
         </div>
       )}

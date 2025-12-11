@@ -1,4 +1,6 @@
 import { useEffect, useState } from 'react'
+import { useInlineEditor, useInlineValue } from '../components/inline-edit/InlineEditorContext'
+import { FontAwesomeIcon } from '../site/lib/icons'
 import { pickMediaVariantUrl } from '../lib/media'
 import CompanyTeaser from '../site/post-types/company-teaser'
 
@@ -7,6 +9,7 @@ interface CompanyListProps {
 	subtitle?: string | null
 	// IDs of Company posts selected via post-reference field; if empty, show all.
 	companies?: string[] | null
+	__moduleId?: string
 }
 
 type CompanySummary = {
@@ -17,9 +20,13 @@ type CompanySummary = {
 	imageUrl?: string | null
 }
 
-export default function CompanyList({ title, subtitle, companies }: CompanyListProps) {
+export default function CompanyList({ title: initialTitle, subtitle: initialSubtitle, companies: initialCompanies, __moduleId }: CompanyListProps) {
 	const [items, setItems] = useState<CompanySummary[]>([])
 	const [loading, setLoading] = useState(true)
+	const { enabled } = useInlineEditor()
+	const title = useInlineValue(__moduleId, 'title', initialTitle)
+	const subtitle = useInlineValue(__moduleId, 'subtitle', initialSubtitle)
+	const companies = useInlineValue(__moduleId, 'companies', initialCompanies)
 
 	useEffect(() => {
 		let cancelled = false
@@ -96,11 +103,17 @@ export default function CompanyList({ title, subtitle, companies }: CompanyListP
 		return (
 			<section className="bg-backdrop-low py-8 lg:py-16" data-module="company-list">
 				<div className="container mx-auto px-4 lg:px-6">
-					<h2 className="mb-4 lg:mb-8 text-3xl md:text-4xl font-extrabold tracking-tight text-center text-neutral-high">
+					<h2
+						className="mb-4 lg:mb-8 text-3xl md:text-4xl font-extrabold tracking-tight text-center text-neutral-high"
+						data-inline-path="title"
+					>
 						{title}
 					</h2>
 					{subtitle && (
-						<p className="max-w-2xl mx-auto text-center font-light text-neutral-medium sm:text-xl">
+						<p
+							className="max-w-2xl mx-auto text-center font-light text-neutral-medium sm:text-xl"
+							data-inline-path="subtitle"
+						>
 							{subtitle}
 						</p>
 					)}
@@ -117,13 +130,35 @@ export default function CompanyList({ title, subtitle, companies }: CompanyListP
 	return (
 		<section className="bg-backdrop-low py-8 lg:py-16" data-module="company-list">
 			<div className="container mx-auto px-4 lg:px-6">
-				<h2 className="mb-8 lg:mb-16 text-3xl md:text-4xl font-extrabold tracking-tight leading-tight text-center text-neutral-high">
+				<h2
+					className="mb-8 lg:mb-16 text-3xl md:text-4xl font-extrabold tracking-tight leading-tight text-center text-neutral-high"
+					data-inline-path="title"
+				>
 					{title}
 				</h2>
 				{subtitle && (
-					<p className="max-w-2xl mx-auto mb-10 text-center font-light text-neutral-medium sm:text-xl">
+					<p
+						className="max-w-2xl mx-auto mb-10 text-center font-light text-neutral-medium sm:text-xl"
+						data-inline-path="subtitle"
+					>
 						{subtitle}
 					</p>
+				)}
+				{enabled && (
+					<div className="mb-6 text-center">
+						<button
+							type="button"
+							className="inline-flex items-center gap-2 text-xs text-neutral-low underline underline-offset-2"
+							data-inline-type="post-reference"
+							data-inline-path="companies"
+							data-inline-multi="true"
+							data-inline-post-type="company"
+							aria-label="Edit companies"
+						>
+							<FontAwesomeIcon icon="pencil" className="w-3 h-3" />
+							Edit companies ({items.length})
+						</button>
+					</div>
 				)}
 				<div className="grid grid-cols-2 gap-8 text-neutral-medium sm:gap-12 md:grid-cols-3 lg:grid-cols-6">
 					{items.map((c) => (

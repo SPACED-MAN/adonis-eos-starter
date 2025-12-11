@@ -1,4 +1,6 @@
 import { useEffect, useState } from 'react'
+import { useInlineEditor, useInlineValue } from '../components/inline-edit/InlineEditorContext'
+import { FontAwesomeIcon } from '../site/lib/icons'
 import { pickMediaVariantUrl } from '../lib/media'
 import BlogTeaser from '../site/post-types/blog-teaser'
 
@@ -7,6 +9,7 @@ interface BlogListProps {
   subtitle?: string | null
   // IDs of Blog posts selected via post-reference field; if empty, show all.
   posts?: string[] | null
+  __moduleId?: string
 }
 
 type BlogSummary = {
@@ -19,9 +22,13 @@ type BlogSummary = {
   imageUrl?: string | null
 }
 
-export default function BlogList({ title, subtitle, posts }: BlogListProps) {
+export default function BlogList({ title: initialTitle, subtitle: initialSubtitle, posts: initialPosts, __moduleId }: BlogListProps) {
   const [items, setItems] = useState<BlogSummary[]>([])
   const [loading, setLoading] = useState(true)
+  const { enabled } = useInlineEditor()
+  const title = useInlineValue(__moduleId, 'title', initialTitle)
+  const subtitle = useInlineValue(__moduleId, 'subtitle', initialSubtitle)
+  const posts = useInlineValue(__moduleId, 'posts', initialPosts)
 
   useEffect(() => {
     let cancelled = false
@@ -125,13 +132,32 @@ export default function BlogList({ title, subtitle, posts }: BlogListProps) {
     <section className="bg-backdrop-low py-12 lg:py-16" data-module="blog-list">
       <div className="container mx-auto px-4 sm:px-6 lg:px-8">
         <div className="mx-auto max-w-screen-sm text-center mb-8 lg:mb-16">
-          <h2 className="mb-4 text-3xl lg:text-4xl tracking-tight font-extrabold text-neutral-high">
+          <h2
+            className="mb-4 text-3xl lg:text-4xl tracking-tight font-extrabold text-neutral-high"
+            data-inline-path="title"
+          >
             {title}
           </h2>
           {subtitle && (
-            <p className="font-light text-neutral-medium sm:text-xl">
+            <p className="font-light text-neutral-medium sm:text-xl" data-inline-path="subtitle">
               {subtitle}
             </p>
+          )}
+          {enabled && (
+            <div className="mt-3 flex justify-center">
+              <button
+                type="button"
+                className="inline-flex items-center gap-2 text-xs text-neutral-low underline underline-offset-2"
+                data-inline-type="post-reference"
+                data-inline-path="posts"
+                data-inline-multi="true"
+                data-inline-post-type="blog"
+                aria-label="Edit posts"
+              >
+                <FontAwesomeIcon icon="pencil" className="w-3 h-3" />
+                Edit posts ({items.length})
+              </button>
+            </div>
           )}
         </div>
         <div className="grid gap-8 md:grid-cols-2 lg:grid-cols-3">

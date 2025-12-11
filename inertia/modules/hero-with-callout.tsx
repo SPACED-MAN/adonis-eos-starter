@@ -1,4 +1,5 @@
 import type { LinkValue } from './types'
+import { useInlineValue } from '../components/inline-edit/InlineEditorContext'
 
 interface CalloutButton {
 	label?: string
@@ -11,25 +12,26 @@ interface HeroWithCalloutProps {
 	subtitle?: string | null
 	callouts?: CalloutButton[] | null
 	backgroundColor?: string
+	__moduleId?: string
 }
 
 function getHrefFromUrl(url: string | LinkValue | undefined): string | undefined {
 	if (!url) return undefined
-	
+
 	if (typeof url === 'string') {
 		return url
 	}
-	
+
 	if (url.kind === 'url') {
 		return url.url
 	}
-	
+
 	if (url.slug) {
 		return url.locale
 			? `/${encodeURIComponent(url.locale)}/${encodeURIComponent(url.slug)}`
 			: `/${encodeURIComponent(url.slug)}`
 	}
-	
+
 	return undefined
 }
 
@@ -41,19 +43,30 @@ function getLinkTarget(url: string | LinkValue | undefined, fallbackTarget?: '_s
 }
 
 export default function HeroWithCallout({
-	title,
-	subtitle,
-	callouts,
+	title: initialTitle,
+	subtitle: initialSubtitle,
+	callouts: initialCallouts,
 	backgroundColor = 'bg-backdrop-low',
+	__moduleId,
 }: HeroWithCalloutProps) {
+	const title = useInlineValue(__moduleId, 'title', initialTitle)
+	const subtitle = useInlineValue(__moduleId, 'subtitle', initialSubtitle)
+	const callouts = useInlineValue(__moduleId, 'callouts', initialCallouts)
+	const bg = useInlineValue(__moduleId, 'backgroundColor', backgroundColor)
 	return (
-		<section className={`${backgroundColor} py-12 lg:py-16`} data-module="hero-with-callout">
+		<section className={`${bg} py-12 lg:py-16`} data-module="hero-with-callout">
 			<div className="max-w-5xl mx-auto px-4 sm:px-6 lg:px-12 text-center">
-				<h1 className="mb-4 text-4xl font-extrabold tracking-tight leading-tight text-neutral-high md:text-5xl lg:text-6xl">
+				<h1
+					className="mb-4 text-4xl font-extrabold tracking-tight leading-tight text-neutral-high md:text-5xl lg:text-6xl"
+					data-inline-path="title"
+				>
 					{title}
 				</h1>
 				{subtitle && (
-					<p className="mb-8 text-lg font-normal text-neutral-medium lg:text-xl sm:px-4">
+					<p
+						className="mb-8 text-lg font-normal text-neutral-medium lg:text-xl sm:px-4"
+						data-inline-path="subtitle"
+					>
 						{subtitle}
 					</p>
 				)}
@@ -61,21 +74,37 @@ export default function HeroWithCallout({
 				{callouts && callouts.length > 0 && (
 					<div className="flex flex-col mb-8 lg:mb-12 space-y-4 sm:flex-row sm:justify-center sm:space-y-0 sm:space-x-4">
 						{callouts.map((callout, index) => {
-							const href = getHrefFromUrl(callout.url)
-							const linkTarget = getLinkTarget(callout.url, callout.target)
-							
+							const href = getHrefFromUrl(callout?.url)
+							const linkTarget = getLinkTarget(callout?.url, callout?.target)
+
 							if (!callout.label || !href) return null
-							
+
 							return (
-						<a
+								<a
 									key={index}
-							href={href}
-							target={linkTarget}
-							rel={linkTarget === '_blank' ? 'noopener noreferrer' : undefined}
-							className="inline-flex justify-center items-center py-3 px-5 text-sm sm:text-base font-medium text-center text-on-standout rounded-lg bg-standout hover:bg-standout/90 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:ring-standout transition-colors"
-						>
+									href={href}
+									target={linkTarget}
+									rel={linkTarget === '_blank' ? 'noopener noreferrer' : undefined}
+									className="inline-flex justify-center items-center py-3 px-5 text-sm sm:text-base font-medium text-center text-on-standout rounded-lg bg-standout hover:bg-standout/90 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:ring-standout transition-colors"
+									data-inline-type="object"
+									data-inline-path={`callouts.${index}`}
+									data-inline-label={`Callout ${index + 1}`}
+									data-inline-fields={JSON.stringify([
+										{ name: 'label', type: 'text', label: 'Label' },
+										{ name: 'url', type: 'link', label: 'Destination' },
+										{
+											name: 'target',
+											type: 'select',
+											label: 'Target',
+											options: [
+												{ label: 'Same tab', value: '_self' },
+												{ label: 'New tab', value: '_blank' },
+											],
+										},
+									])}
+								>
 									{callout.label}
-						</a>
+								</a>
 							)
 						})}
 					</div>

@@ -10,6 +10,7 @@
 
 import { useState } from 'react'
 import { FontAwesomeIcon } from '../site/lib/icons'
+import { useInlineValue } from '../components/inline-edit/InlineEditorContext'
 
 interface AccordionItem {
   title: string
@@ -20,13 +21,16 @@ interface AccordionProps {
   items: AccordionItem[]
   allowMultiple?: boolean
   defaultOpenIndex?: number
+  __moduleId?: string
 }
 
 export default function Accordion({
-  items,
+  items: initialItems,
   allowMultiple = false,
   defaultOpenIndex,
+  __moduleId,
 }: AccordionProps) {
+  const items = useInlineValue(__moduleId, 'items', initialItems) || []
   const [openIndices, setOpenIndices] = useState<Set<number>>(
     new Set(defaultOpenIndex !== undefined ? [defaultOpenIndex] : [])
   )
@@ -65,14 +69,13 @@ export default function Accordion({
                 className="w-full flex items-center justify-between p-4 text-left bg-backdrop-low hover:bg-backdrop-medium transition-colors"
                 aria-expanded={isOpen}
               >
-                <span className="font-semibold text-neutral-high">
+                <span className="font-semibold text-neutral-high" data-inline-path={`items.${index}.title`}>
                   {item.title}
                 </span>
                 <FontAwesomeIcon
                   icon="chevron-down"
-                  className={`w-5 h-5 text-neutral-low transition-transform ${
-                    isOpen ? 'rotate-180' : ''
-                  }`}
+                  className={`w-5 h-5 text-neutral-low transition-transform ${isOpen ? 'rotate-180' : ''
+                    }`}
                 />
               </button>
 
@@ -81,6 +84,8 @@ export default function Accordion({
                 <div className="p-4 bg-backdrop-low border-t border-border">
                   <div
                     className="text-neutral-medium prose max-w-none"
+                    data-inline-type="richtext"
+                    data-inline-path={`items.${index}.content`}
                     dangerouslySetInnerHTML={{ __html: item.content }}
                   />
                 </div>

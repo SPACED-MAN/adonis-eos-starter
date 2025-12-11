@@ -98,11 +98,11 @@ class PostRenderingService {
         type: module?.type || 'unknown',
         scope: module?.scope || 'post',
         props: (module as any)?.props || {},
-      overrides: row.overrides || null,
+        overrides: row.overrides || null,
         reviewProps: includeReviewFields ? (module as any)?.reviewProps || null : null,
         reviewOverrides: includeReviewFields ? row.reviewOverrides || null : null,
-      locked: row.locked,
-      orderIndex: row.orderIndex,
+        locked: row.locked,
+        orderIndex: row.orderIndex,
         globalSlug: (module as any)?.globalSlug || null,
         globalLabel: (module as any)?.globalLabel || null,
         reviewAdded: includeReviewFields ? row.reviewAdded || false : false,
@@ -128,6 +128,11 @@ class PostRenderingService {
       renderingMode: 'static' | 'react'
       props: Record<string, unknown>
       html?: string
+      reviewProps?: Record<string, unknown> | null
+      aiReviewProps?: Record<string, unknown> | null
+      overrides?: Record<string, unknown> | null
+      reviewOverrides?: Record<string, unknown> | null
+      aiReviewOverrides?: Record<string, unknown> | null
     }>
   > {
     const { wantReview = false, reviewDraft = null } = options
@@ -181,6 +186,11 @@ class PostRenderingService {
           componentName,
           renderingMode,
           props: mergedProps,
+          reviewProps: (pm as any).reviewProps || null,
+          aiReviewProps: (pm as any).aiReviewProps || null,
+          overrides: (pm as any).overrides || null,
+          reviewOverrides: (pm as any).reviewOverrides || null,
+          aiReviewOverrides: (pm as any).aiReviewOverrides || null,
         }
       })
     )

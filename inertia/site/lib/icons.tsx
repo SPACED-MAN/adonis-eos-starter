@@ -21,6 +21,8 @@ import {
   faLayerGroup,
   faMoon,
   faSun,
+  faWrench,
+  faPencil,
 } from '@fortawesome/free-solid-svg-icons'
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome'
 
@@ -47,6 +49,8 @@ library.add(
   faLayerGroup,
   faMoon,
   faSun,
+  faWrench,
+  faPencil,
 )
 
 export { FontAwesomeIcon }

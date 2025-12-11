@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react'
 import { pickMediaVariantUrl } from '../lib/media'
 import { FontAwesomeIcon } from '../site/lib/icons'
+import { useInlineValue } from '../components/inline-edit/InlineEditorContext'
 
 interface BlockquoteProps {
 	quote: string
@@ -8,15 +9,22 @@ interface BlockquoteProps {
 	authorTitle?: string | null
 	avatar?: string | null // media ID
 	backgroundColor?: string
+	__moduleId?: string
 }
 
 export default function Blockquote({
-	quote,
-	authorName,
-	authorTitle,
-	avatar,
+	quote: initialQuote,
+	authorName: initialAuthorName,
+	authorTitle: initialAuthorTitle,
+	avatar: initialAvatar,
 	backgroundColor = 'bg-backdrop-low',
+	__moduleId,
 }: BlockquoteProps) {
+	const quote = useInlineValue(__moduleId, 'quote', initialQuote)
+	const authorName = useInlineValue(__moduleId, 'authorName', initialAuthorName)
+	const authorTitle = useInlineValue(__moduleId, 'authorTitle', initialAuthorTitle)
+	const avatar = useInlineValue(__moduleId, 'avatar', initialAvatar)
+	const bg = useInlineValue(__moduleId, 'backgroundColor', backgroundColor)
 	const [avatarUrl, setAvatarUrl] = useState<string | null>(null)
 
 	useEffect(() => {
@@ -58,9 +66,9 @@ export default function Blockquote({
 	}, [avatar])
 
 	return (
-		<section className={`${backgroundColor} py-8 lg:py-16`} data-module="blockquote">
-			<div className="max-w-screen-xl px-4 mx-auto text-center">
-				<figure className="max-w-screen-md mx-auto">
+		<section className={`${bg} py-8 lg:py-16`} data-module="blockquote">
+			<div className="max-w-7xl px-4 mx-auto text-center">
+				<figure className="max-w-3xl mx-auto">
 					<div className="mx-auto mb-6 flex items-center justify-center text-neutral-low">
 						<FontAwesomeIcon
 							icon="quote-left"
@@ -69,7 +77,11 @@ export default function Blockquote({
 						/>
 					</div>
 					<blockquote>
-						<p className="text-2xl md:text-3xl font-medium text-neutral-high">
+						<p
+							className="text-2xl md:text-3xl font-medium text-neutral-high"
+							data-inline-path="quote"
+							data-inline-type="textarea"
+						>
 							“{quote}”
 						</p>
 					</blockquote>
@@ -81,14 +93,22 @@ export default function Blockquote({
 								alt={authorName}
 								loading="lazy"
 								decoding="async"
+								data-inline-type="media"
+								data-inline-path="avatar"
 							/>
 						)}
 						<div className="flex items-center divide-x-2 divide-neutral-low/60">
-							<div className="pr-3 font-medium text-neutral-high">
+							<div
+								className="pr-3 font-medium text-neutral-high"
+								data-inline-path="authorName"
+							>
 								{authorName}
 							</div>
 							{authorTitle && (
-								<div className="pl-3 text-sm font-light text-neutral-medium">
+								<div
+									className="pl-3 text-sm font-light text-neutral-medium"
+									data-inline-path="authorTitle"
+								>
 									{authorTitle}
 								</div>
 							)}

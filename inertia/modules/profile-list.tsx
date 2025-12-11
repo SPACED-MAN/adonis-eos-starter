@@ -1,4 +1,6 @@
 import { useEffect, useState } from 'react'
+import { useInlineEditor, useInlineValue } from '../components/inline-edit/InlineEditorContext'
+import { FontAwesomeIcon } from '../site/lib/icons'
 import { pickMediaVariantUrl } from '../lib/media'
 import ProfileTeaser from '../site/post-types/profile-teaser'
 
@@ -7,6 +9,7 @@ interface ProfileListProps {
   subtitle?: string | null
   // IDs of Profile posts selected via post-reference field; if empty, show all profiles.
   profiles?: string[] | null
+  __moduleId?: string
 }
 
 type ProfileSummary = {
@@ -19,9 +22,13 @@ type ProfileSummary = {
   imageUrl?: string | null
 }
 
-export default function ProfileList({ title, subtitle, profiles }: ProfileListProps) {
+export default function ProfileList({ title: initialTitle, subtitle: initialSubtitle, profiles: initialProfiles, __moduleId }: ProfileListProps) {
   const [items, setItems] = useState<ProfileSummary[]>([])
   const [loading, setLoading] = useState(true)
+  const { enabled } = useInlineEditor()
+  const title = useInlineValue(__moduleId, 'title', initialTitle)
+  const subtitle = useInlineValue(__moduleId, 'subtitle', initialSubtitle)
+  const profiles = useInlineValue(__moduleId, 'profiles', initialProfiles)
 
   useEffect(() => {
     let cancelled = false
@@ -119,11 +126,35 @@ export default function ProfileList({ title, subtitle, profiles }: ProfileListPr
     <section className="bg-backdrop-low py-12 lg:py-16" data-module="profile-list">
       <div className="container mx-auto px-4 sm:px-6 lg:px-8">
         <div className="mx-auto max-w-screen-sm text-center mb-8 lg:mb-16">
-          <h2 className="mb-4 text-4xl tracking-tight font-extrabold text-neutral-high">{title}</h2>
+          <h2
+            className="mb-4 text-4xl tracking-tight font-extrabold text-neutral-high"
+            data-inline-path="title"
+          >
+            {title}
+          </h2>
           {subtitle && (
-            <p className="font-light text-neutral-medium lg:mb-4 sm:text-xl">
+            <p
+              className="font-light text-neutral-medium lg:mb-4 sm:text-xl"
+              data-inline-path="subtitle"
+            >
               {subtitle}
             </p>
+          )}
+          {enabled && (
+            <div className="mt-2">
+              <button
+                type="button"
+                className="inline-flex items-center gap-2 text-xs text-neutral-low underline underline-offset-2"
+                data-inline-type="post-reference"
+                data-inline-path="profiles"
+                data-inline-multi="true"
+                data-inline-post-type="profile"
+                aria-label="Edit profiles"
+              >
+                <FontAwesomeIcon icon="pencil" className="w-3 h-3" />
+                Edit profiles ({items.length})
+              </button>
+            </div>
           )}
         </div>
         <div className="grid gap-8 mb-6 lg:mb-16 md:grid-cols-2">

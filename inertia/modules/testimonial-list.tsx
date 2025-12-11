@@ -1,4 +1,6 @@
 import { useEffect, useState } from 'react'
+import { useInlineEditor, useInlineValue } from '../components/inline-edit/InlineEditorContext'
+import { FontAwesomeIcon } from '../site/lib/icons'
 import { pickMediaVariantUrl } from '../lib/media'
 import TestimonialTeaser from '../site/post-types/testimonial-teaser'
 
@@ -7,6 +9,7 @@ interface TestimonialListProps {
   subtitle?: string | null
   // IDs of Testimonial posts selected via post-reference field; if empty, show all.
   testimonials?: string[] | null
+  __moduleId?: string
 }
 
 type TestimonialSummary = {
@@ -18,9 +21,13 @@ type TestimonialSummary = {
   imageUrl?: string | null
 }
 
-export default function TestimonialList({ title, subtitle, testimonials }: TestimonialListProps) {
+export default function TestimonialList({ title: initialTitle, subtitle: initialSubtitle, testimonials: initialTestimonials, __moduleId }: TestimonialListProps) {
   const [items, setItems] = useState<TestimonialSummary[]>([])
   const [loading, setLoading] = useState(true)
+  const { enabled } = useInlineEditor()
+  const title = useInlineValue(__moduleId, 'title', initialTitle)
+  const subtitle = useInlineValue(__moduleId, 'subtitle', initialSubtitle)
+  const testimonials = useInlineValue(__moduleId, 'testimonials', initialTestimonials)
 
   useEffect(() => {
     let cancelled = false
@@ -122,13 +129,32 @@ export default function TestimonialList({ title, subtitle, testimonials }: Testi
     <section className="bg-backdrop-low py-8 lg:py-16" data-module="testimonial-list">
       <div className="container mx-auto px-4 lg:px-6 text-center">
         <div className="mx-auto max-w-screen-sm mb-8 lg:mb-12">
-          <h2 className="mb-4 text-3xl md:text-4xl tracking-tight font-extrabold text-neutral-high">
+          <h2
+            className="mb-4 text-3xl md:text-4xl tracking-tight font-extrabold text-neutral-high"
+            data-inline-path="title"
+          >
             {title}
           </h2>
           {subtitle && (
-            <p className="mb-8 font-light text-neutral-medium sm:text-lg">
+            <p className="mb-8 font-light text-neutral-medium sm:text-lg" data-inline-path="subtitle">
               {subtitle}
             </p>
+          )}
+          {enabled && (
+            <div className="mt-2">
+              <button
+                type="button"
+                className="inline-flex items-center gap-2 text-xs text-neutral-low underline underline-offset-2"
+                data-inline-type="post-reference"
+                data-inline-path="testimonials"
+                data-inline-multi="true"
+                data-inline-post-type="testimonial"
+                aria-label="Edit testimonials"
+              >
+                <FontAwesomeIcon icon="pencil" className="w-3 h-3" />
+                Edit testimonials ({items.length})
+              </button>
+            </div>
           )}
         </div>
 

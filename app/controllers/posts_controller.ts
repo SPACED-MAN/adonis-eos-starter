@@ -126,7 +126,6 @@ export default class PostsController {
     const inReviewParam = String(request.input('inReview', '')).trim()
     const inReview = inReviewParam === '1' || inReviewParam.toLowerCase() === 'true'
     const locale = String(request.input('locale', '')).trim()
-    const taxonomySlug = String(request.input('taxonomy', '')).trim()
     const termIdRaw = String(request.input('termId', '')).trim()
     const includeDescendants = String(request.input('includeDescendants', '1')).trim() === '1'
     const sortByRaw = String(request.input('sortBy', 'updated_at')).trim()
@@ -1022,7 +1021,6 @@ export default class PostsController {
           if (!cf) continue
           const fieldSlug = String((cf as any).slug || '').trim()
           if (!fieldSlug) continue
-          const now = new Date()
           const valueRaw = (cf as any).value === undefined ? null : (cf as any).value
           const value = this.normalizeJsonb(valueRaw)
           const prev = existingMap.get(fieldSlug)
@@ -1612,20 +1610,51 @@ export default class PostsController {
         .map((pm: any) => {
           const isLocal = pm.scope === 'post'
           const useReview = wantReview && ((post as any).reviewDraft || (post as any).review_draft)
+          const baseProps = pm.props || {}
+          const reviewProps = pm.review_props || null
+          const aiReviewProps = pm.ai_review_props || null
+          const overrides = pm.overrides || {}
+          const reviewOverrides = pm.review_overrides || null
+          const aiReviewOverrides = pm.ai_review_overrides || null
+
           if (useReview) {
             if (isLocal) {
-              const baseProps = pm.review_props || pm.props || {}
-              const overrides = pm.overrides || {}
-              return { id: pm.postModuleId, type: pm.type, props: { ...baseProps, ...overrides } }
+              const merged = { ...(reviewProps || baseProps), ...overrides }
+              return {
+                id: pm.postModuleId,
+                type: pm.type,
+                props: merged,
+                reviewProps,
+                aiReviewProps,
+                overrides,
+                reviewOverrides,
+                aiReviewOverrides,
+              }
             } else {
-              const baseProps = pm.props || {}
-              const overrides = pm.review_overrides || pm.overrides || {}
-              return { id: pm.postModuleId, type: pm.type, props: { ...baseProps, ...overrides } }
+              const merged = { ...baseProps, ...(reviewOverrides || overrides || {}) }
+              return {
+                id: pm.postModuleId,
+                type: pm.type,
+                props: merged,
+                reviewProps,
+                aiReviewProps,
+                overrides,
+                reviewOverrides,
+                aiReviewOverrides,
+              }
             }
           } else {
-            const baseProps = pm.props || {}
-            const overrides = pm.overrides || {}
-            return { id: pm.postModuleId, type: pm.type, props: { ...baseProps, ...overrides } }
+            const merged = { ...baseProps, ...(overrides || {}) }
+            return {
+              id: pm.postModuleId,
+              type: pm.type,
+              props: merged,
+              reviewProps,
+              aiReviewProps,
+              overrides,
+              reviewOverrides,
+              aiReviewOverrides,
+            }
           }
         })
 

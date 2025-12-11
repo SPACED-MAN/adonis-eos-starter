@@ -72,6 +72,7 @@ const PostsViewController = () => import('#controllers/posts/posts_view_controll
 const PostsModulesController = () => import('#controllers/posts/posts_modules_controller')
 const PostsRevisionsController = () => import('#controllers/posts/posts_revisions_controller')
 const PostsExportController = () => import('#controllers/posts/posts_export_controller')
+const InlineEditorController = () => import('#controllers/inline_editor_controller')
 
 /**
  * Admin - Posts (using split controllers)
@@ -101,6 +102,19 @@ router
     router.post('/posts/:id/translations', [TranslationsController, 'store'])
     router.get('/posts/:id/translations/:locale', [TranslationsController, 'show'])
     router.delete('/posts/:id/translations/:locale', [TranslationsController, 'destroy'])
+  })
+  .prefix('/api')
+  .use(middleware.auth())
+
+/**
+ * API Routes - Inline editor (authenticated; permission checked in controller)
+ */
+router
+  .group(() => {
+    router.patch('/inline/posts/:postId/modules/:moduleId', [
+      InlineEditorController,
+      'updateModuleField',
+    ])
   })
   .prefix('/api')
   .use(middleware.auth())

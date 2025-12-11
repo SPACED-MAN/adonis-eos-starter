@@ -20,25 +20,7 @@ import { LinkField, type LinkFieldValue } from '~/components/forms/LinkField'
 import { MediaPickerModal } from '../media/MediaPickerModal'
 import { pickMediaVariantUrl, type MediaVariant } from '../../../lib/media'
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome'
-import {
-	faArrowRight,
-	faBullhorn,
-	faScaleBalanced,
-	faGear,
-	faCoins,
-	faPenRuler,
-	faDiagramProject,
-	faCircleQuestion,
-	faQuoteLeft,
-	faCheck,
-	faChevronDown,
-	faCube,
-	faLanguage,
-	faUsers,
-	faCodeBranch,
-	faPalette,
-	faBolt,
-} from '@fortawesome/free-solid-svg-icons'
+import { iconOptions, iconMap } from '../ui/iconOptions'
 
 export interface ModuleListItem {
 	id: string
@@ -1023,46 +1005,8 @@ function FieldPrimitiveInternal({
 		)
 	}
 	if (type === 'icon') {
-		// Icon picker - shows available Fort Awesome icons
-		const iconMap: Record<string, any> = {
-			'arrow-right': faArrowRight,
-			'bullhorn': faBullhorn,
-			'scale-balanced': faScaleBalanced,
-			'gear': faGear,
-			'coins': faCoins,
-			'pen-ruler': faPenRuler,
-			'diagram-project': faDiagramProject,
-			'circle-question': faCircleQuestion,
-			'quote-left': faQuoteLeft,
-			'check': faCheck,
-			'chevron-down': faChevronDown,
-			'cube': faCube,
-			'language': faLanguage,
-			'users': faUsers,
-			'code-branch': faCodeBranch,
-			'palette': faPalette,
-			'bolt': faBolt,
-		}
-
-		const availableIcons = [
-			{ name: 'arrow-right', label: 'Arrow Right', icon: faArrowRight },
-			{ name: 'bullhorn', label: 'Bullhorn', icon: faBullhorn },
-			{ name: 'scale-balanced', label: 'Scale Balanced', icon: faScaleBalanced },
-			{ name: 'gear', label: 'Gear', icon: faGear },
-			{ name: 'coins', label: 'Coins', icon: faCoins },
-			{ name: 'pen-ruler', label: 'Pen Ruler', icon: faPenRuler },
-			{ name: 'diagram-project', label: 'Diagram Project', icon: faDiagramProject },
-			{ name: 'circle-question', label: 'Circle Question', icon: faCircleQuestion },
-			{ name: 'quote-left', label: 'Quote Left', icon: faQuoteLeft },
-			{ name: 'check', label: 'Check', icon: faCheck },
-			{ name: 'chevron-down', label: 'Chevron Down', icon: faChevronDown },
-			{ name: 'cube', label: 'Cube', icon: faCube },
-			{ name: 'language', label: 'Language', icon: faLanguage },
-			{ name: 'users', label: 'Users', icon: faUsers },
-			{ name: 'code-branch', label: 'Code Branch', icon: faCodeBranch },
-			{ name: 'palette', label: 'Palette', icon: faPalette },
-			{ name: 'bolt', label: 'Bolt', icon: faBolt },
-		]
+		// Icon picker - shared options
+		const availableIcons = iconOptions
 
 		const initial = typeof value === 'string' ? value : ''
 		const [selectedIcon, setSelectedIcon] = useState<string>(initial)
