@@ -171,6 +171,25 @@
   background-color: color-mix(in srgb, var(--color-sky-400) 35%, transparent);
 }
 
+.inline-diff-add {
+  background-color: color-mix(in srgb, var(--color-amber-200) 70%, transparent);
+  border-radius: 2px;
+}
+
+.inline-diff-del {
+  background-color: color-mix(in srgb, var(--color-red-200) 70%, transparent);
+  border-radius: 2px;
+  text-decoration: line-through;
+}
+
+.dark .inline-diff-add {
+  background-color: color-mix(in srgb, var(--color-amber-500) 40%, transparent);
+}
+
+.dark .inline-diff-del {
+  background-color: color-mix(in srgb, var(--color-red-500) 40%, transparent);
+}
+
 :root {
   --radius: 0.35rem;
   --background: var(--color-backdrop-low);

@@ -41,6 +41,7 @@ export function InlineOverlay() {
 	useEffect(() => setMounted(true), [])
 	const [mediaTarget, setMediaTarget] = useState<{ moduleId: string; path: string } | null>(null)
 	const [dialogState, setDialogState] = useState<PopoverState | null>(null)
+	const [showDiffs, setShowDiffs] = useState(false)
 
 	function resolveModuleId(el: HTMLElement | null): string | undefined {
 		if (!el) return undefined
@@ -56,6 +57,56 @@ export function InlineOverlay() {
 		if (domFlag) return true
 		if (moduleId && fallbackCheck) return fallbackCheck(moduleId)
 		return false
+	}
+
+	// Simple word-level diff: returns HTML with spans for insertions/deletions
+	function renderWordDiffHtml(base: string, target: string): string {
+		const baseWords = base.split(/(\s+)/) // keep spaces as tokens
+		const targetWords = target.split(/(\s+)/)
+		const out: string[] = []
+		let i = 0
+		let j = 0
+		while (i < baseWords.length || j < targetWords.length) {
+			const bw = baseWords[i] ?? ''
+			const tw = targetWords[j] ?? ''
+			if (bw === tw) {
+				out.push(escapeHtml(tw))
+				i++
+				j++
+				continue
+			}
+			// If next target matches current base, treat target[j] as insertion
+			if (bw && targetWords[j + 1] === bw) {
+				out.push(`<span class="inline-diff-add">${escapeHtml(tw)}</span>`)
+				j++
+				continue
+			}
+			// If next base matches current target, treat base[i] as deletion
+			if (tw && baseWords[i + 1] === tw) {
+				const display = bw.trim() === '' ? '&nbsp;' : escapeHtml(bw)
+				out.push(`<span class="inline-diff-del">${display}</span>`)
+				i++
+				continue
+			}
+			// Fallback: replace
+			if (tw) out.push(`<span class="inline-diff-add">${escapeHtml(tw)}</span>`)
+			if (bw) {
+				const display = bw.trim() === '' ? '&nbsp;' : escapeHtml(bw)
+				out.push(`<span class="inline-diff-del">${display}</span>`)
+			}
+			i++
+			j++
+		}
+		return out.join('')
+	}
+
+	function escapeHtml(text: string): string {
+		return text
+			.replace(/&/g, '&amp;')
+			.replace(/</g, '&lt;')
+			.replace(/>/g, '&gt;')
+			.replace(/"/g, '&quot;')
+			.replace(/'/g, '&#039;')
 	}
 
 	// Attach inline editors to elements marked with data-inline-path
@@ -134,31 +185,28 @@ export function InlineOverlay() {
 				el.removeEventListener('mouseenter', onEnter)
 				el.removeEventListener('mouseleave', onLeave)
 				el.classList.remove('inline-edit-hover')
+				el.removeAttribute('data-inline-diff-active')
 			})
 
 			// set initial text from context (merge props/overrides + drafts)
 			const current = getValue(moduleId, path, el.innerText || '')
 			const asString = typeof current === 'string' ? current : String(current ?? '')
-			if (el.innerText !== asString) {
-				el.innerText = asString
-			}
-
-			// Highlight diffs for review/ai modes
 			const baselineMode = mode === 'review' ? 'approved' : mode === 'ai' ? 'review' : null
-			if (baselineMode) {
+			if (showDiffs && baselineMode) {
 				const baselineVal = getModeValue(moduleId, path, baselineMode as any, asString)
-				const baselineStr = typeof baselineVal === 'string' ? baselineVal : String(baselineVal ?? '')
-				if (baselineStr !== asString) {
-					el.classList.add(
-						baselineMode === 'approved' ? 'inline-diff-review' : 'inline-diff-ai'
-					)
-				} else {
-					el.classList.remove('inline-diff-review')
-					el.classList.remove('inline-diff-ai')
-				}
+				const baselineStr =
+					typeof baselineVal === 'string' ? baselineVal : String(baselineVal ?? '')
+				const diffHtml = renderWordDiffHtml(baselineStr, asString)
+				el.innerHTML = diffHtml
+				el.contentEditable = 'false'
+				el.removeAttribute('data-inline-active')
+				el.dataset.inlineDiffActive = '1'
 			} else {
-				el.classList.remove('inline-diff-review')
-				el.classList.remove('inline-diff-ai')
+				if (el.innerText !== asString) {
+					el.innerText = asString
+				}
+				el.contentEditable = 'true'
+				el.removeAttribute('data-inline-diff-active')
 			}
 
 			if (enabled) {
@@ -358,7 +406,7 @@ export function InlineOverlay() {
 		return () => {
 			cleanups.forEach((fn) => fn())
 		}
-	}, [enabled, canEdit, getValue, setValue, mode])
+	}, [enabled, canEdit, getValue, getModeValue, setValue, mode, showDiffs, isGlobalModule])
 
 	// Detach when disabled
 	useEffect(() => {
@@ -386,6 +434,23 @@ export function InlineOverlay() {
           outline-offset: 6px;
         }
       `}</style>
+			{enabled && (
+				<div className="fixed bottom-28 right-3 z-1000">
+					<div className="relative group">
+						<button
+							type="button"
+							className="inline-flex items-center justify-center rounded-full bg-backdrop-high border border-line-medium text-neutral-high p-2 shadow hover:bg-backdrop-medium"
+							onClick={() => setShowDiffs((v) => !v)}
+							aria-label="Toggle diff highlights"
+						>
+							<FontAwesomeIcon icon="highlighter" className="w-4 h-4" />
+						</button>
+						<div className="absolute bottom-full mb-2 right-0 hidden group-hover:block bg-backdrop-high text-neutral-high text-xs px-2 py-1 rounded border border-line-medium shadow">
+							Highlight changes ({mode === 'review' ? 'vs Approved' : mode === 'ai' ? 'vs Review' : 'n/a'})
+						</div>
+					</div>
+				</div>
+			)}
 			{mediaTarget && (
 				<MediaPickerModal
 					open
