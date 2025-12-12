@@ -36,7 +36,7 @@ type PopoverState = {
 }
 
 export function InlineOverlay() {
-	const { enabled, canEdit, getValue, setValue, mode, isGlobalModule } = useInlineEditor()
+	const { enabled, canEdit, getValue, getModeValue, setValue, mode, isGlobalModule } = useInlineEditor()
 	const [mounted, setMounted] = useState(false)
 	useEffect(() => setMounted(true), [])
 	const [mediaTarget, setMediaTarget] = useState<{ moduleId: string; path: string } | null>(null)
@@ -143,6 +143,24 @@ export function InlineOverlay() {
 				el.innerText = asString
 			}
 
+			// Highlight diffs for review/ai modes
+			const baselineMode = mode === 'review' ? 'approved' : mode === 'ai' ? 'review' : null
+			if (baselineMode) {
+				const baselineVal = getModeValue(moduleId, path, baselineMode as any, asString)
+				const baselineStr = typeof baselineVal === 'string' ? baselineVal : String(baselineVal ?? '')
+				if (baselineStr !== asString) {
+					el.classList.add(
+						baselineMode === 'approved' ? 'inline-diff-review' : 'inline-diff-ai'
+					)
+				} else {
+					el.classList.remove('inline-diff-review')
+					el.classList.remove('inline-diff-ai')
+				}
+			} else {
+				el.classList.remove('inline-diff-review')
+				el.classList.remove('inline-diff-ai')
+			}
+
 			if (enabled) {
 				const onInput = () => {
 					// keep DOM text only; save on blur/Enter
@@ -203,6 +221,8 @@ export function InlineOverlay() {
 				el.removeEventListener('mouseenter', onEnter)
 				el.removeEventListener('mouseleave', onLeave)
 				el.classList.remove('inline-edit-hover')
+				el.classList.remove('inline-diff-review')
+				el.classList.remove('inline-diff-ai')
 			})
 
 			// only add pencil when enabled

@@ -379,11 +379,9 @@ export function ModuleEditorPanel({
 		[setDraft, fieldComponents, supportedFieldTypes, pascalFromType, syncFormToDraft]
 	)
 
-	// Note: We rely on Pointer-only DnD in the parent. Avoid global key interception to not break typing.
-	if (!open || !moduleItem) return null
-
 	const collectEdited = useCallback(() => {
-		const base = moduleItem.props || {}
+		if (!moduleItem) return { overrides: null, edited: {} }
+		const base = moduleItem?.props || {}
 		const edited = JSON.parse(JSON.stringify(merged))
 		const form = formRef.current
 		if (form) {
@@ -420,13 +418,16 @@ export function ModuleEditorPanel({
 		}
 		const overrides = diffOverrides(base, edited)
 		return { overrides, edited }
-	}, [merged, moduleItem.props])
+	}, [merged, moduleItem])
 
 	const saveAndClose = useCallback(async () => {
 		const { overrides, edited } = collectEdited()
 		await onSave(overrides, edited)
 		onClose()
 	}, [collectEdited, onSave, onClose])
+
+	// Keep hooks order stable; render null late.
+	if (!open || !moduleItem) return null
 
 	return createPortal(
 		<div

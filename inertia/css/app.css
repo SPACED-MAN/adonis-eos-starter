@@ -154,6 +154,23 @@
   --color-sidebar-ring: var(--sidebar-ring);
 }
 
+/* Inline diff highlights */
+.inline-diff-review {
+  background-color: color-mix(in srgb, var(--color-amber-100) 60%, transparent);
+}
+
+.dark .inline-diff-review {
+  background-color: color-mix(in srgb, var(--color-amber-400) 35%, transparent);
+}
+
+.inline-diff-ai {
+  background-color: color-mix(in srgb, var(--color-sky-100) 60%, transparent);
+}
+
+.dark .inline-diff-ai {
+  background-color: color-mix(in srgb, var(--color-sky-400) 35%, transparent);
+}
+
 :root {
   --radius: 0.35rem;
   --background: var(--color-backdrop-low);

@@ -34,6 +34,7 @@ type InlineEditorContextValue = {
 	mode: Mode
 	setMode: (m: Mode) => void
 	getValue: (moduleId: string, path: string, fallback: any) => any
+	getModeValue: (moduleId: string, path: string, mode: Mode, fallback: any) => any
 	setValue: (moduleId: string, path: string, value: any) => void
 	isGlobalModule: (moduleId: string) => boolean
 	dirtyModules: Set<string>
@@ -48,6 +49,7 @@ const InlineEditorContext = createContext<InlineEditorContextValue>({
 	mode: 'approved',
 	setMode: () => { },
 	getValue: (_m, _p, f) => f,
+	getModeValue: (_m, _p, _mode, f) => f,
 	setValue: () => { },
 	isGlobalModule: () => false,
 	dirtyModules: new Set(),
@@ -115,20 +117,16 @@ export function InlineEditorProvider({
 		return out
 	})
 
-	const getValue = useCallback(
-		(moduleId: string, path: string, fallback: any) => {
-			const patch = drafts[moduleId] || {}
-			if (Object.prototype.hasOwnProperty.call(patch, path)) {
-				return patch[path]
-			}
+	const getModeValue = useCallback(
+		(moduleId: string, path: string, targetMode: Mode, fallback: any) => {
 			const mod = base[moduleId]
 			if (!mod) return fallback
 			const hasReviewProps = !!(mod.reviewProps && Object.keys(mod.reviewProps).length)
 			const hasAiReviewProps = !!(mod.aiReviewProps && Object.keys(mod.aiReviewProps).length)
 			const baseProps =
-				mode === 'approved'
+				targetMode === 'approved'
 					? mod.props
-					: mode === 'review'
+					: targetMode === 'review'
 						? hasReviewProps
 							? mod.reviewProps
 							: mod.props
@@ -141,9 +139,9 @@ export function InlineEditorProvider({
 			const hasAiReviewOverrides =
 				!!(mod.aiReviewOverrides && Object.keys(mod.aiReviewOverrides as any).length > 0)
 			const baseOverrides =
-				mode === 'approved'
+				targetMode === 'approved'
 					? mod.overrides
-					: mode === 'review'
+					: targetMode === 'review'
 						? hasReviewOverrides
 							? mod.reviewOverrides
 							: mod.overrides
@@ -153,7 +151,18 @@ export function InlineEditorProvider({
 			const merged = { ...(baseProps || {}), ...(baseOverrides || {}) }
 			return getAtPath(merged, path, fallback)
 		},
-		[drafts, base, mode]
+		[base]
+	)
+
+	const getValue = useCallback(
+		(moduleId: string, path: string, fallback: any) => {
+			const patch = drafts[moduleId] || {}
+			if (Object.prototype.hasOwnProperty.call(patch, path)) {
+				return patch[path]
+			}
+			return getModeValue(moduleId, path, mode, fallback)
+		},
+		[drafts, mode, getModeValue]
 	)
 
 	const setValue = useCallback((moduleId: string, path: string, value: any) => {
@@ -262,6 +271,7 @@ export function InlineEditorProvider({
 			setMode,
 			toggle: () => setEnabled((v) => !v),
 			getValue,
+			getModeValue,
 			setValue,
 			isGlobalModule: (moduleId: string) => {
 				const meta = moduleMeta.get(moduleId)
@@ -277,7 +287,7 @@ export function InlineEditorProvider({
 			dirtyModules,
 			saveAll,
 		}),
-		[enabled, canEdit, postId, mode, getValue, setValue, moduleMeta, dirtyModules, saveAll]
+		[enabled, canEdit, postId, mode, getValue, getModeValue, setValue, moduleMeta, dirtyModules, saveAll]
 	)
 
 	// publish bridge state for SiteAdminBar

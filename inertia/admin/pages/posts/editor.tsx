@@ -23,7 +23,7 @@ import {
 } from '~/components/ui/alert-dialog'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '~/components/ui/select'
 import { ModulePicker } from '../../components/modules/ModulePicker'
-import { FormEvent, useEffect, useMemo, useRef, useState } from 'react'
+import { FormEvent, useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { toast } from 'sonner'
 import { humanizeSlug } from '~/utils/strings'
 import type { CustomFieldType } from '~/types/custom_field'
@@ -790,22 +790,71 @@ export default function Editor({
     setHasStructuralChanges(true)
   }
 
+  const adjustModuleForView = useCallback(
+    (m: EditorProps['modules'][number]) => {
+      if (viewMode === 'review') {
+        if (m.scope === 'post') {
+          return {
+            ...m,
+            props: m.reviewProps ?? m.props ?? {},
+            overrides: m.overrides,
+          }
+        }
+        return {
+          ...m,
+          overrides: (m as any).reviewOverrides ?? m.overrides ?? null,
+        }
+      }
+      if (viewMode === 'ai-review') {
+        if (m.scope === 'post') {
+          return {
+            ...m,
+            props: (m as any).aiReviewProps ?? m.props ?? {},
+            overrides: m.overrides,
+          }
+        }
+        return {
+          ...m,
+          overrides: (m as any).aiReviewOverrides ?? m.overrides ?? null,
+        }
+      }
+      return m
+    },
+    [viewMode]
+  )
+
   const sortedModules = useMemo(() => {
     const baseAll = modules.slice().sort((a, b) => a.orderIndex - b.orderIndex)
+
     if (viewMode === 'review') {
       const base = baseAll
         .filter((m) => !pendingReviewRemoved.has(m.id))
         .filter((m) => !m.reviewDeleted)
-      return base.map((m) => ({
-        ...m,
-        props: m.scope === 'post' ? (m.reviewProps ?? m.props) : m.props,
-        overrides: m.scope !== 'post' ? (m.reviewOverrides ?? m.overrides ?? null) : m.overrides,
-      }))
+      return base.map(adjustModuleForView)
     }
+
+    if (viewMode === 'ai-review') {
+      // hide review-added modules in approved view but show them in ai-review?
+      const base = baseAll.filter((m) => !m.reviewDeleted)
+      return base.map(adjustModuleForView)
+    }
+
     // Approved view: hide review-added modules
     const base = baseAll.filter((m) => !m.reviewAdded)
-    return base
-  }, [modules, viewMode, pendingReviewRemoved])
+    return base.map(adjustModuleForView)
+  }, [modules, viewMode, pendingReviewRemoved, adjustModuleForView])
+
+  // Keep editing module in sync when view mode changes
+  useEffect(() => {
+    if (!editing) return
+    const match = modules.find((m) => m.id === editing.id)
+    if (!match) return
+    const adjusted = adjustModuleForView(match)
+    const sameProps = adjusted.props === editing.props
+    const sameOverrides = adjusted.overrides === editing.overrides
+    if (sameProps && sameOverrides) return
+    setEditing(adjusted)
+  }, [viewMode, modules, editing?.id, adjustModuleForView])
 
   const translationsSet = useMemo(() => new Set((translations || []).map((t) => t.locale)), [translations])
   const availableLocales = useMemo(() => {
@@ -1348,7 +1397,7 @@ export default function Editor({
                                       : (
                                         <button
                                           className="text-xs px-2 py-1 rounded border border-line-low bg-backdrop-input text-neutral-high hover:bg-backdrop-medium"
-                                          onClick={() => setEditing(m)}
+                                          onClick={() => setEditing(adjustModuleForView(m))}
                                           type="button"
                                         >
                                           Edit
@@ -2270,6 +2319,7 @@ export default function Editor({
         </div>
       )}
       <ModuleEditorPanel
+        key={`${editing ? editing.id : 'none'}-${viewMode}`}
         open={!!editing}
         moduleItem={editing}
         onClose={() => setEditing(null)}
