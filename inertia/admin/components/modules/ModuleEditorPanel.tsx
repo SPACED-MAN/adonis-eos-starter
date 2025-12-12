@@ -382,6 +382,52 @@ export function ModuleEditorPanel({
 	// Note: We rely on Pointer-only DnD in the parent. Avoid global key interception to not break typing.
 	if (!open || !moduleItem) return null
 
+	const collectEdited = useCallback(() => {
+		const base = moduleItem.props || {}
+		const edited = JSON.parse(JSON.stringify(merged))
+		const form = formRef.current
+		if (form) {
+			const elements = form.querySelectorAll<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>(
+				'input[name], textarea[name], select[name]'
+			)
+			elements.forEach((el) => {
+				const name = el.getAttribute('name')!
+				if ((el as HTMLInputElement).type === 'checkbox') {
+					setByPath(edited, name, (el as HTMLInputElement).checked)
+				} else if ((el as HTMLInputElement).type === 'number') {
+					const val = (el as HTMLInputElement).value
+					setByPath(edited, name, val === '' ? 0 : Number(val))
+				} else if ((el as HTMLInputElement).dataset && (el as HTMLInputElement).dataset.json === '1') {
+					const val = (el as HTMLInputElement).value
+					try {
+						setByPath(edited, name, val ? JSON.parse(val) : null)
+					} catch {
+						setByPath(edited, name, val)
+					}
+				} else if ((el as HTMLInputElement).dataset && (el as HTMLInputElement).dataset.bool === '1') {
+					const val = (el as HTMLInputElement).value
+					setByPath(edited, name, val === 'true')
+				} else if ((el as HTMLInputElement).dataset && (el as HTMLInputElement).dataset.number === '1') {
+					const val = (el as HTMLInputElement).value
+					setByPath(edited, name, val === '' ? 0 : Number(val))
+				} else if ((el as HTMLSelectElement).multiple) {
+					const vals = Array.from((el as HTMLSelectElement).selectedOptions).map((o) => o.value)
+					setByPath(edited, name, vals)
+				} else {
+					setByPath(edited, name, (el as HTMLInputElement).value)
+				}
+			})
+		}
+		const overrides = diffOverrides(base, edited)
+		return { overrides, edited }
+	}, [merged, moduleItem.props])
+
+	const saveAndClose = useCallback(async () => {
+		const { overrides, edited } = collectEdited()
+		await onSave(overrides, edited)
+		onClose()
+	}, [collectEdited, onSave, onClose])
+
 	return createPortal(
 		<div
 			className="fixed inset-0 z-40"
@@ -390,41 +436,7 @@ export function ModuleEditorPanel({
 				e.stopPropagation()
 			}}
 		>
-			<div className="absolute inset-0 bg-black/40" onClick={async () => {
-				// Apply changes to parent as pending and close
-				await (async () => {
-					const base = moduleItem.props || {}
-					const edited = JSON.parse(JSON.stringify(merged))
-					const form = formRef.current
-					if (form) {
-						const elements = form.querySelectorAll<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>('input[name], textarea[name], select[name]')
-						elements.forEach((el) => {
-							const name = el.getAttribute('name')!
-							if ((el as HTMLInputElement).type === 'checkbox') {
-								setByPath(edited, name, (el as HTMLInputElement).checked)
-							} else if ((el as HTMLInputElement).type === 'number') {
-								const val = (el as HTMLInputElement).value
-								setByPath(edited, name, val === '' ? 0 : Number(val))
-							} else if ((el as HTMLInputElement).dataset && (el as HTMLInputElement).dataset.json === '1') {
-								const val = (el as HTMLInputElement).value
-								try {
-									setByPath(edited, name, val ? JSON.parse(val) : null)
-								} catch {
-									setByPath(edited, name, val)
-								}
-							} else if ((el as HTMLSelectElement).multiple) {
-								const vals = Array.from((el as HTMLSelectElement).selectedOptions).map((o) => o.value)
-								setByPath(edited, name, vals)
-							} else {
-								setByPath(edited, name, (el as HTMLInputElement).value)
-							}
-						})
-					}
-					const overrides = diffOverrides(base, edited)
-					await onSave(overrides, edited)
-				})()
-				onClose()
-			}} />
+			<div className="absolute inset-0 bg-black/40" onClick={onClose} />
 			<div
 				className="absolute right-0 top-0 h-full w-full max-w-2xl bg-backdrop-low border-l border-line-low shadow-xl flex flex-col"
 				role="dialog"
@@ -434,46 +446,6 @@ export function ModuleEditorPanel({
 					<h3 className="text-sm font-semibold text-neutral-high">
 						Edit Module — {moduleLabel || moduleItem.type}
 					</h3>
-					<button type="button" className="text-neutral-low hover:text-neutral-high" onClick={async () => {
-						const base = moduleItem.props || {}
-						const edited = JSON.parse(JSON.stringify(merged))
-						const form = formRef.current
-						if (form) {
-							const elements = form.querySelectorAll<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>('input[name], textarea[name], select[name]')
-							elements.forEach((el) => {
-								const name = el.getAttribute('name')!
-								if ((el as HTMLInputElement).type === 'checkbox') {
-									setByPath(edited, name, (el as HTMLInputElement).checked)
-								} else if ((el as HTMLInputElement).type === 'number') {
-									const val = (el as HTMLInputElement).value
-									setByPath(edited, name, val === '' ? 0 : Number(val))
-								} else if ((el as HTMLInputElement).dataset && (el as HTMLInputElement).dataset.json === '1') {
-									const val = (el as HTMLInputElement).value
-									try {
-										setByPath(edited, name, val ? JSON.parse(val) : null)
-									} catch {
-										setByPath(edited, name, val)
-									}
-								} else if ((el as HTMLInputElement).dataset && (el as HTMLInputElement).dataset.bool === '1') {
-									const val = (el as HTMLInputElement).value
-									setByPath(edited, name, val === 'true')
-								} else if ((el as HTMLInputElement).dataset && (el as HTMLInputElement).dataset.number === '1') {
-									const val = (el as HTMLInputElement).value
-									setByPath(edited, name, val === '' ? 0 : Number(val))
-								} else if ((el as HTMLSelectElement).multiple) {
-									const vals = Array.from((el as HTMLSelectElement).selectedOptions).map((o) => o.value)
-									setByPath(edited, name, vals)
-								} else {
-									setByPath(edited, name, (el as HTMLInputElement).value)
-								}
-							})
-						}
-						const overrides = diffOverrides(base, edited)
-						await onSave(overrides, edited)
-						onClose()
-					}}>
-						Close
-					</button>
 				</div>
 				<form
 					ref={formRef}
@@ -599,54 +571,25 @@ export function ModuleEditorPanel({
 							)
 						})
 					)}
+					<div className="flex items-center justify-end gap-2 border-t border-line-low pt-4">
+						<button
+							type="button"
+							className="px-3 py-1.5 text-xs rounded border border-line-medium text-neutral-high hover:bg-backdrop-medium"
+							onClick={onClose}
+							disabled={processing}
+						>
+							Cancel
+						</button>
+						<button
+							type="button"
+							className="px-3 py-1.5 text-xs rounded bg-standout text-on-standout disabled:opacity-60"
+							onClick={saveAndClose}
+							disabled={processing}
+						>
+							Save
+						</button>
+					</div>
 				</form>
-				<div className="px-5 py-4 border-t border-line-low flex items-center justify-end gap-3">
-					<button
-						type="button"
-						className="px-4 py-2 text-sm border border-line-medium rounded-lg hover:bg-backdrop-medium text-neutral-medium"
-						onClick={async () => {
-							const base = moduleItem.props || {}
-							const edited = JSON.parse(JSON.stringify(merged))
-							const form = formRef.current
-							if (form) {
-								const elements = form.querySelectorAll<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>('input[name], textarea[name], select[name]')
-								elements.forEach((el) => {
-									const name = el.getAttribute('name')!
-									if ((el as HTMLInputElement).type === 'checkbox') {
-										setByPath(edited, name, (el as HTMLInputElement).checked)
-									} else if ((el as HTMLInputElement).type === 'number') {
-										const val = (el as HTMLInputElement).value
-										setByPath(edited, name, val === '' ? 0 : Number(val))
-									} else if ((el as HTMLInputElement).dataset && (el as HTMLInputElement).dataset.json === '1') {
-										const val = (el as HTMLInputElement).value
-										try {
-											setByPath(edited, name, val ? JSON.parse(val) : null)
-										} catch {
-											setByPath(edited, name, val)
-										}
-									} else if ((el as HTMLInputElement).dataset && (el as HTMLInputElement).dataset.bool === '1') {
-										const val = (el as HTMLInputElement).value
-										setByPath(edited, name, val === 'true')
-									} else if ((el as HTMLInputElement).dataset && (el as HTMLInputElement).dataset.number === '1') {
-										const val = (el as HTMLInputElement).value
-										setByPath(edited, name, val === '' ? 0 : Number(val))
-									} else if ((el as HTMLSelectElement).multiple) {
-										const vals = Array.from((el as HTMLSelectElement).selectedOptions).map((o) => o.value)
-										setByPath(edited, name, vals)
-									} else {
-										setByPath(edited, name, (el as HTMLInputElement).value)
-									}
-								})
-							}
-							const overrides = diffOverrides(base, edited)
-							await onSave(overrides, edited)
-							onClose()
-						}}
-						disabled={processing}
-					>
-						Done
-					</button>
-				</div>
 			</div>
 		</div>,
 		document.body

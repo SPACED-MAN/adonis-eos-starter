@@ -77,6 +77,7 @@ export default function GlobalModulesIndex() {
   const [groupEditorLoading, setGroupEditorLoading] = useState(false)
   const [groupSaving, setGroupSaving] = useState(false)
   const [groupRegistry, setGroupRegistry] = useState<Array<{ type: string; name: string; renderingMode?: 'static' | 'react' }>>([])
+  const [pendingEditSlug, setPendingEditSlug] = useState<string | null>(null)
   const sensors = useSensors(useSensor(PointerSensor))
 
   const xsrfToken: string | undefined = (() => {
@@ -131,9 +132,29 @@ export default function GlobalModulesIndex() {
   }
   useEffect(() => { load() }, [q, typeFilter])
   useEffect(() => {
+    if (typeof window === 'undefined') return
+    const params = new URLSearchParams(window.location.search)
+    const slug = params.get('editSlug')
+    if (slug) {
+      setActiveTab('globals')
+      setPendingEditSlug(slug)
+    }
+  }, [])
+  useEffect(() => {
     loadGroups()
     loadPostTypes()
   }, [])
+
+  useEffect(() => {
+    if (!pendingEditSlug || globals.length === 0) return
+    const match = globals.find(
+      (g) => (g.globalSlug || '').toLowerCase() === pendingEditSlug.toLowerCase()
+    )
+    if (match) {
+      setEditing(match)
+      setPendingEditSlug(null)
+    }
+  }, [pendingEditSlug, globals])
 
   const availableTypes = useMemo(() => registryTypes, [registryTypes])
   const groupFiltered = useMemo(() => {

@@ -97,7 +97,7 @@ export function InlineOverlay() {
 				modEl.dataset.inlineGlobalLabel || modEl.dataset.inlineGlobalSlug || 'Global module'
 			const link = document.createElement('a')
 			const slug = modEl.dataset.inlineGlobalSlug
-			link.href = `/admin/modules?tab=globals${slug ? `&slug=${encodeURIComponent(slug)}` : ''}`
+			link.href = `/admin/modules?tab=globals${slug ? `&editSlug=${encodeURIComponent(slug)}` : ''}`
 			link.target = '_blank'
 			link.rel = 'noopener noreferrer'
 			link.className =
