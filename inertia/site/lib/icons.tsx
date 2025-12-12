@@ -23,6 +23,7 @@ import {
   faSun,
   faWrench,
   faPencil,
+  faGlobe,
 } from '@fortawesome/free-solid-svg-icons'
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome'
 
@@ -51,6 +52,7 @@ library.add(
   faSun,
   faWrench,
   faPencil,
+  faGlobe,
 )
 
 export { FontAwesomeIcon }

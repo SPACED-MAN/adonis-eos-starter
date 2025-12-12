@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react'
 import { createPortal } from 'react-dom'
+import { renderToStaticMarkup } from 'react-dom/server'
 import { MediaPickerModal } from '../../admin/components/media/MediaPickerModal'
 import { useInlineEditor } from './InlineEditorContext'
 import { LinkField, type LinkFieldValue } from '../forms/LinkField'
@@ -35,7 +36,7 @@ type PopoverState = {
 }
 
 export function InlineOverlay() {
-	const { enabled, canEdit, getValue, setValue, mode } = useInlineEditor()
+	const { enabled, canEdit, getValue, setValue, mode, isGlobalModule } = useInlineEditor()
 	const [mounted, setMounted] = useState(false)
 	useEffect(() => setMounted(true), [])
 	const [mediaTarget, setMediaTarget] = useState<{ moduleId: string; path: string } | null>(null)
@@ -48,6 +49,14 @@ export function InlineOverlay() {
 			(el.closest('[data-inline-module]') as HTMLElement | null)?.dataset.inlineModule
 		)
 	}
+	function isGlobalModuleDom(el: HTMLElement | null, fallbackCheck?: (moduleId: string) => boolean): boolean {
+		const mod = el?.closest('[data-inline-module]') as HTMLElement | null
+		const moduleId = mod?.dataset.inlineModule
+		const domFlag = mod?.dataset.inlineScope === 'global' || !!mod?.dataset.inlineGlobalSlug
+		if (domFlag) return true
+		if (moduleId && fallbackCheck) return fallbackCheck(moduleId)
+		return false
+	}
 
 	// Attach inline editors to elements marked with data-inline-path
 	useEffect(() => {
@@ -55,11 +64,61 @@ export function InlineOverlay() {
 
 		const cleanups: HandlerCleanup[] = []
 
+		// Global module notice + outline + disable editing
+		const moduleNodes = Array.from(
+			document.querySelectorAll<HTMLElement>('[data-inline-module]')
+		)
+		moduleNodes.forEach((modEl) => {
+			const moduleId = modEl.dataset.inlineModule
+			if (
+				!(
+					modEl.dataset.inlineScope === 'global' ||
+					modEl.dataset.inlineGlobalSlug ||
+					(moduleId && isGlobalModule(moduleId))
+				)
+			)
+				return
+			modEl.classList.add('inline-global-module')
+			const onEnterMod = () => modEl.classList.add('inline-edit-hover')
+			const onLeaveMod = () => modEl.classList.remove('inline-edit-hover')
+			modEl.addEventListener('mouseenter', onEnterMod)
+			modEl.addEventListener('mouseleave', onLeaveMod)
+			cleanups.push(() => {
+				modEl.removeEventListener('mouseenter', onEnterMod)
+				modEl.removeEventListener('mouseleave', onLeaveMod)
+				modEl.classList.remove('inline-edit-hover')
+				modEl.classList.remove('inline-global-module')
+			})
+			if (modEl.querySelector('.inline-global-indicator')) return
+			const badge = document.createElement('div')
+			badge.className =
+				'inline-global-indicator mb-3 flex items-center justify-end gap-2 text-xs text-neutral-high bg-backdrop-high border border-line-medium rounded px-3 py-2'
+			const labelText =
+				modEl.dataset.inlineGlobalLabel || modEl.dataset.inlineGlobalSlug || 'Global module'
+			const link = document.createElement('a')
+			const slug = modEl.dataset.inlineGlobalSlug
+			link.href = `/admin/modules?tab=globals${slug ? `&slug=${encodeURIComponent(slug)}` : ''}`
+			link.target = '_blank'
+			link.rel = 'noopener noreferrer'
+			link.className =
+				'inline-flex items-center gap-1 text-standout hover:underline font-medium'
+			const globeIcon = renderToStaticMarkup(
+				<FontAwesomeIcon icon="globe" className="w-4 h-4" />
+			)
+			link.innerHTML = `${globeIcon}<span>Edit ${labelText}</span>`
+			link.title = `Edit ${labelText} (opens in new tab)`
+			link.setAttribute('aria-label', `Edit ${labelText} (opens in new tab)`)
+			badge.appendChild(link)
+			modEl.prepend(badge)
+			cleanups.push(() => badge.remove())
+		})
+
 		const textNodes = Array.from(
 			document.querySelectorAll<HTMLElement>('[data-inline-path][data-inline-type="text"], [data-inline-path]:not([data-inline-type])')
 		)
 
 		textNodes.forEach((el) => {
+			if (isGlobalModuleDom(el, isGlobalModule)) return
 			const path = el.dataset.inlinePath
 			const moduleId = resolveModuleId(el)
 			if (!path || !moduleId) return
@@ -132,6 +191,7 @@ export function InlineOverlay() {
 		)
 
 		mediaNodes.forEach((el) => {
+			if (isGlobalModuleDom(el, isGlobalModule)) return
 			const path = el.dataset.inlinePath
 			const moduleId = resolveModuleId(el)
 			if (!path || !moduleId) return
@@ -174,6 +234,7 @@ export function InlineOverlay() {
 			document.querySelectorAll<HTMLElement>('[data-inline-type="richtext"][data-inline-path]')
 		)
 		richtextNodes.forEach((el) => {
+			if (isGlobalModuleDom(el, isGlobalModule)) return
 			const path = el.dataset.inlinePath
 			const moduleId = resolveModuleId(el)
 			if (!path || !moduleId) return
@@ -209,6 +270,7 @@ export function InlineOverlay() {
 			)
 		)
 		otherNodes.forEach((el) => {
+			if (isGlobalModuleDom(el, isGlobalModule)) return
 			const path = el.dataset.inlinePath
 			const moduleId = resolveModuleId(el)
 			const type = (el.dataset.inlineType || '').toLowerCase()
@@ -298,6 +360,10 @@ export function InlineOverlay() {
         [data-inline-path].inline-edit-hover {
           outline: 1px dashed var(--inline-edit-accent, #5c7cfa);
           outline-offset: 2px;
+        }
+        .inline-global-module.inline-edit-hover {
+          outline: 2px solid var(--color-line-inline-input-global, #f97316);
+          outline-offset: 6px;
         }
       `}</style>
 			{mediaTarget && (

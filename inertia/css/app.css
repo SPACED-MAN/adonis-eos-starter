@@ -25,7 +25,8 @@
   --color-line-low: var(--color-zinc-200);
   --color-line-medium: var(--color-zinc-300);
   --color-line-high: var(--color-zinc-400);
-  --color-line-input: var(--color-zinc-100);
+  --color-line-inline-input-editable: var(--color-zinc-100);
+  --color-line-inline-input-global: var(--color-amber-500);
   --color-placeholder: var(--color-zinc-500);
   --color-disabled: var(--color-zinc-300);
 }
@@ -46,7 +47,8 @@
   --color-line-low: var(--color-zinc-800);
   --color-line-medium: var(--color-zinc-700);
   --color-line-high: var(--color-zinc-600);
-  --color-line-input: var(--color-zinc-800);
+  --color-line-inline-input-editable: var(--color-zinc-800);
+  --color-line-inline-input-global: var(--color-amber-400);
   --color-placeholder: var(--color-zinc-500);
   --color-disabled: var(--color-zinc-600);
 }
@@ -67,7 +69,8 @@
   --color-line-low: var(--color-zinc-200);
   --color-line-medium: var(--color-zinc-300);
   --color-line-high: var(--color-zinc-400);
-  --color-line-input: var(--color-zinc-100);
+  --color-line-inline-input-editable: var(--color-zinc-100);
+  --color-line-inline-input-global: var(--color-amber-500);
   --color-placeholder: var(--color-zinc-500);
   --color-disabled: var(--color-zinc-300);
 }
@@ -88,7 +91,8 @@
   --color-line-low: var(--color-zinc-800);
   --color-line-medium: var(--color-zinc-700);
   --color-line-high: var(--color-zinc-600);
-  --color-line-input: var(--color-zinc-800);
+  --color-line-inline-input-editable: var(--color-zinc-800);
+  --color-line-inline-input-global: var(--color-amber-400);
   --color-placeholder: var(--color-zinc-500);
   --color-disabled: var(--color-zinc-600);
 

@@ -17,21 +17,21 @@ interface HeroWithCalloutProps {
 
 function getHrefFromUrl(url: string | LinkValue | undefined): string | undefined {
 	if (!url) return undefined
-
+	
 	if (typeof url === 'string') {
 		return url
 	}
-
+	
 	if (url.kind === 'url') {
 		return url.url
 	}
-
+	
 	if (url.slug) {
 		return url.locale
 			? `/${encodeURIComponent(url.locale)}/${encodeURIComponent(url.slug)}`
 			: `/${encodeURIComponent(url.slug)}`
 	}
-
+	
 	return undefined
 }
 
@@ -76,16 +76,16 @@ export default function HeroWithCallout({
 						{callouts.map((callout, index) => {
 							const href = getHrefFromUrl(callout?.url)
 							const linkTarget = getLinkTarget(callout?.url, callout?.target)
-
+							
 							if (!callout.label || !href) return null
-
+							
 							return (
-								<a
+						<a
 									key={index}
-									href={href}
-									target={linkTarget}
-									rel={linkTarget === '_blank' ? 'noopener noreferrer' : undefined}
-									className="inline-flex justify-center items-center py-3 px-5 text-sm sm:text-base font-medium text-center text-on-standout rounded-lg bg-standout hover:bg-standout/90 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:ring-standout transition-colors"
+							href={href}
+							target={linkTarget}
+							rel={linkTarget === '_blank' ? 'noopener noreferrer' : undefined}
+							className="inline-flex justify-center items-center py-3 px-5 text-sm sm:text-base font-medium text-center text-on-standout rounded-lg bg-standout hover:bg-standout/90 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:ring-standout transition-colors"
 									data-inline-type="object"
 									data-inline-path={`callouts.${index}`}
 									data-inline-label={`Callout ${index + 1}`}
@@ -102,9 +102,9 @@ export default function HeroWithCallout({
 											],
 										},
 									])}
-								>
+						>
 									{callout.label}
-								</a>
+						</a>
 							)
 						})}
 					</div>

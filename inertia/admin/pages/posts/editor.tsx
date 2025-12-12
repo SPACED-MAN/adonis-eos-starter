@@ -35,9 +35,10 @@ import { Checkbox } from '~/components/ui/checkbox'
 import { DndContext, closestCenter, PointerSensor, useSensor, useSensors, DragEndEvent } from '@dnd-kit/core'
 import { SortableContext, useSortable, verticalListSortingStrategy } from '@dnd-kit/sortable'
 import { CSS } from '@dnd-kit/utilities'
-import { GripVertical, Globe, Star } from 'lucide-react'
+import { GripVertical, Star } from 'lucide-react'
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome'
 import { faReact } from '@fortawesome/free-brands-svg-icons'
+import { faGlobe } from '@fortawesome/free-solid-svg-icons'
 import { getXsrf } from '~/utils/xsrf'
 import { LinkField, type LinkFieldValue } from '~/components/forms/LinkField'
 import { useHasPermission } from '~/utils/permissions'
@@ -1341,7 +1342,7 @@ export default function Editor({
                                           title="Global module"
                                           aria-label="Global module"
                                         >
-                                          <Globe size={14} />
+                                          <FontAwesomeIcon icon={faGlobe} className="w-3.5 h-3.5" />
                                         </span>
                                       )
                                       : (

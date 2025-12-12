@@ -35,6 +35,7 @@ type InlineEditorContextValue = {
 	setMode: (m: Mode) => void
 	getValue: (moduleId: string, path: string, fallback: any) => any
 	setValue: (moduleId: string, path: string, value: any) => void
+	isGlobalModule: (moduleId: string) => boolean
 	dirtyModules: Set<string>
 	saveAll: () => Promise<void>
 }
@@ -48,12 +49,16 @@ const InlineEditorContext = createContext<InlineEditorContextValue>({
 	setMode: () => { },
 	getValue: (_m, _p, f) => f,
 	setValue: () => { },
+	isGlobalModule: () => false,
 	dirtyModules: new Set(),
 	saveAll: async () => { },
 })
 
 type ModuleSeed = {
 	id: string
+	scope?: 'local' | 'global' | 'static'
+	globalSlug?: string | null
+	globalLabel?: string | null
 	props: Record<string, any>
 	reviewProps?: Record<string, any>
 	aiReviewProps?: Record<string, any>
@@ -78,6 +83,11 @@ export function InlineEditorProvider({
 	const [mode, setMode] = useState<Mode>('approved')
 	const [drafts, setDrafts] = useState<Record<string, DraftPatch>>({})
 	const [dirtyModules, setDirtyModules] = useState<Set<string>>(new Set())
+	const moduleMeta = useMemo(() => {
+		const map = new Map<string, { scope?: 'local' | 'global' | 'static'; globalSlug?: string | null; globalLabel?: string | null }>()
+		modules.forEach((m) => map.set(m.id, { scope: m.scope, globalSlug: m.globalSlug, globalLabel: m.globalLabel }))
+		return map
+	}, [modules])
 
 	// seed lookup for original props/overrides across modes
 	const [base, setBase] = useState<Record<
@@ -147,6 +157,20 @@ export function InlineEditorProvider({
 	)
 
 	const setValue = useCallback((moduleId: string, path: string, value: any) => {
+		const meta = moduleMeta.get(moduleId)
+		if (meta?.scope === 'global' || meta?.scope === 'static' || meta?.globalSlug) {
+			// Global/static modules are view-only in inline editor
+			return
+		}
+		// Fallback: if DOM marks this module as global/static, block
+		if (typeof document !== 'undefined') {
+			const el = document.querySelector<HTMLElement>(`[data-inline-module="${moduleId}"]`)
+			if (el) {
+				const scope = el.dataset.inlineScope
+				const slug = el.dataset.inlineGlobalSlug
+				if (scope === 'global' || scope === 'static' || slug) return
+			}
+		}
 		setDrafts((prev) => {
 			const next = { ...(prev[moduleId] || {}) }
 			next[path] = value
@@ -157,7 +181,7 @@ export function InlineEditorProvider({
 			copy.add(moduleId)
 			return copy
 		})
-	}, [])
+	}, [moduleMeta])
 
 	const saveAll = useCallback(async () => {
 		if (!enabled || !canEdit || dirtyModules.size === 0) return
@@ -239,10 +263,21 @@ export function InlineEditorProvider({
 			toggle: () => setEnabled((v) => !v),
 			getValue,
 			setValue,
+			isGlobalModule: (moduleId: string) => {
+				const meta = moduleMeta.get(moduleId)
+				if (meta?.scope === 'global' || meta?.scope === 'static' || !!meta?.globalSlug) return true
+				if (typeof document !== 'undefined') {
+					const el = document.querySelector<HTMLElement>(`[data-inline-module="${moduleId}"]`)
+					const scope = el?.dataset.inlineScope
+					const slug = el?.dataset.inlineGlobalSlug
+					if (scope === 'global' || scope === 'static' || slug) return true
+				}
+				return false
+			},
 			dirtyModules,
 			saveAll,
 		}),
-		[enabled, canEdit, postId, mode, getValue, setValue, dirtyModules, saveAll]
+		[enabled, canEdit, postId, mode, getValue, setValue, moduleMeta, dirtyModules, saveAll]
 	)
 
 	// publish bridge state for SiteAdminBar

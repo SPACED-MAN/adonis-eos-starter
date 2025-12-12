@@ -183,6 +183,9 @@ class PostRenderingService {
         return {
           id: pm.id,
           type: pm.type,
+          scope: pm.scope || 'post',
+          globalSlug: (pm as any)?.globalSlug || null,
+          globalLabel: (pm as any)?.globalLabel || null,
           componentName,
           renderingMode,
           props: mergedProps,

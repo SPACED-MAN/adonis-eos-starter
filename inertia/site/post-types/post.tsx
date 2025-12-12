@@ -20,6 +20,9 @@ interface PostPageProps {
 	modules: Array<{
 		id: string
 		type: string
+		scope?: 'local' | 'global' | 'static'
+		globalSlug?: string | null
+		globalLabel?: string | null
 		props: Record<string, any>
 		reviewProps?: Record<string, any>
 		aiReviewProps?: Record<string, any>
@@ -71,6 +74,9 @@ export default function PostTypeDefault({ post, modules, seo }: PostPageProps) {
 				postId={post.id}
 				modules={modules.map((m) => ({
 					id: m.id,
+					scope: m.scope,
+					globalSlug: m.globalSlug,
+					globalLabel: m.globalLabel,
 					props: m.props,
 					reviewProps: m.reviewProps,
 					aiReviewProps: m.aiReviewProps,
@@ -92,6 +98,9 @@ export default function PostTypeDefault({ post, modules, seo }: PostPageProps) {
 								key={module.id}
 								className="container mx-auto px-4 sm:px-6 lg:px-8 py-8"
 								data-inline-module={module.id}
+								data-inline-scope={module.scope || 'local'}
+								data-inline-global-slug={module.globalSlug || undefined}
+								data-inline-global-label={module.globalLabel || undefined}
 							>
 								<Component {...module.props} __postId={post.id} __moduleId={module.id} />
 							</section>
