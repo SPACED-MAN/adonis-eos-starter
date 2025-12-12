@@ -30,6 +30,13 @@ const SeoOptimizerAgent: AgentDefinition = {
       enabled: false, // Can be enabled to auto-optimize on publish
     },
   ],
+  openEndedContext: {
+    enabled: true,
+    label: 'SEO goals / constraints',
+    placeholder:
+      'Example: “Target keyword: ‘fleet management software’. Keep title under 60 chars, meta under 155 chars.”',
+    maxChars: 800,
+  },
 }
 
 export default SeoOptimizerAgent

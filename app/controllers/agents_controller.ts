@@ -16,7 +16,19 @@ export default class AgentsController {
   async index({ response }: HttpContext) {
     const agents = agentRegistry
       .listByScope('dropdown')
-      .map((a) => ({ id: a.id, name: a.name, description: a.description }))
+      .map((a) => ({
+        id: a.id,
+        name: a.name,
+        description: a.description,
+        openEndedContext: a.openEndedContext?.enabled
+          ? {
+              enabled: true,
+              label: a.openEndedContext.label,
+              placeholder: a.openEndedContext.placeholder,
+              maxChars: a.openEndedContext.maxChars,
+            }
+          : { enabled: false },
+      }))
     return response.ok({ data: agents })
   }
 
@@ -47,10 +59,29 @@ export default class AgentsController {
     try {
       const post = await Post.findOrFail(id)
       const canonical = await PostSerializerService.serialize(id)
-      const payload = new AgentPostPayloadDto(
-        canonical,
-        (request.input('context') as Record<string, unknown> | undefined) || {}
-      )
+      const ctx = (request.input('context') as Record<string, unknown> | undefined) || {}
+      const openEnded = request.input('openEndedContext')
+      const openEndedContext =
+        typeof openEnded === 'string' && openEnded.trim() ? openEnded.trim() : undefined
+
+      // Server-side enforcement: only allow openEndedContext if the agent explicitly opts in
+      if (openEndedContext) {
+        const enabled = agent.openEndedContext?.enabled === true
+        if (!enabled) {
+          return response.badRequest({ error: 'This agent does not accept open-ended context' })
+        }
+        const max = agent.openEndedContext?.maxChars
+        if (typeof max === 'number' && Number.isFinite(max) && max > 0 && openEndedContext.length > max) {
+          return response.badRequest({
+            error: `Open-ended context exceeds maxChars (${max})`,
+          })
+        }
+      }
+
+      const payload = new AgentPostPayloadDto(canonical, {
+        ...ctx,
+        ...(openEndedContext ? { openEndedContext } : {}),
+      })
 
       let suggestions: any = {}
 

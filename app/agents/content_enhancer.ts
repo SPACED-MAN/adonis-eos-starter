@@ -38,6 +38,13 @@ const ContentEnhancerAgent: AgentDefinition = {
       enabled: false, // Disabled by default, can be enabled as needed
     },
   ],
+  openEndedContext: {
+    enabled: true,
+    label: 'What would you like to improve?',
+    placeholder:
+      'Example: “Make this clearer for beginners. Keep the tone friendly. Don’t change the CTA.”',
+    maxChars: 1200,
+  },
 }
 
 export default ContentEnhancerAgent

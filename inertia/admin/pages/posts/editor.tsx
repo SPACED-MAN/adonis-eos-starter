@@ -589,9 +589,18 @@ export default function Editor({
   const [revisions, setRevisions] = useState<Array<{ id: string; mode: 'approved' | 'review'; createdAt: string; user?: { id?: number; email?: string } }>>([])
   const [loadingRevisions, setLoadingRevisions] = useState(false)
   // Agents
-  const [agents, setAgents] = useState<Array<{ id: string; name: string; description?: string }>>([])
+  const [agents, setAgents] = useState<
+    Array<{
+      id: string
+      name: string
+      description?: string
+      openEndedContext?: { enabled: boolean; label?: string; placeholder?: string; maxChars?: number }
+    }>
+  >([])
   const [selectedAgent, setSelectedAgent] = useState<string>('')
   const [runningAgent, setRunningAgent] = useState<boolean>(false)
+  const [agentPromptOpen, setAgentPromptOpen] = useState(false)
+  const [agentOpenEndedContext, setAgentOpenEndedContext] = useState('')
   // Author management (admin)
   const [users, setUsers] = useState<Array<{ id: number; email: string; fullName: string | null }>>([])
   const [selectedAuthorId, setSelectedAuthorId] = useState<number | null>(post.author?.id ?? null)
@@ -627,7 +636,12 @@ export default function Editor({
         try {
           const res = await fetch('/api/agents', { credentials: 'same-origin' })
           const json = await res.json().catch(() => ({}))
-          const list: Array<{ id: string; name: string; description?: string }> = Array.isArray(json?.data) ? json.data : []
+          const list: Array<{
+            id: string
+            name: string
+            description?: string
+            openEndedContext?: { enabled: boolean; label?: string; placeholder?: string; maxChars?: number }
+          }> = Array.isArray(json?.data) ? json.data : []
           if (alive) setAgents(list)
         } catch {
           if (alive) setAgents([])
@@ -1631,45 +1645,155 @@ export default function Editor({
                       </SelectContent>
                     </Select>
                     {selectedAgent && (
-                      <button
-                        className="mt-2 w-full px-4 py-2 text-sm rounded-lg bg-standout text-on-standout font-medium disabled:opacity-50"
-                        disabled={runningAgent}
-                        onClick={async () => {
-                          if (!selectedAgent) return
-                          setRunningAgent(true)
-                          try {
-                            const csrf = (() => {
-                              if (typeof document === 'undefined') return undefined
-                              const m = document.cookie.match(/(?:^|; )XSRF-TOKEN=([^;]+)/)
-                              return m ? decodeURIComponent(m[1]) : undefined
-                            })()
-                            const res = await fetch(`/api/posts/${post.id}/agents/${encodeURIComponent(selectedAgent)}/run`, {
-                              method: 'POST',
-                              headers: {
-                                'Accept': 'application/json',
-                                'Content-Type': 'application/json',
-                                ...(csrf ? { 'X-XSRF-TOKEN': csrf } : {}),
-                              },
-                              credentials: 'same-origin',
-                              body: JSON.stringify({ context: { locale: selectedLocale } }),
-                            })
-                            const j = await res.json().catch(() => ({}))
-                            if (res.ok) {
-                              toast.success('Agent suggestions saved to review draft')
-                              setViewMode('review')
-                            } else {
-                              toast.error(j?.error || 'Agent run failed')
+                      <>
+                        <AlertDialog open={agentPromptOpen} onOpenChange={setAgentPromptOpen}>
+                          <AlertDialogContent>
+                            <AlertDialogHeader>
+                              <AlertDialogTitle>
+                                {(() => {
+                                  const a = agents.find((x) => x.id === selectedAgent)
+                                  return a?.openEndedContext?.label || 'Instructions'
+                                })()}
+                              </AlertDialogTitle>
+                              <AlertDialogDescription>
+                                Provide any extra context or requirements for this agent run. This will be sent to the agent as `context.openEndedContext`.
+                              </AlertDialogDescription>
+                            </AlertDialogHeader>
+                            <div className="mt-3 space-y-2">
+                              <Textarea
+                                value={agentOpenEndedContext}
+                                onChange={(e) => setAgentOpenEndedContext(e.target.value)}
+                                placeholder={(() => {
+                                  const a = agents.find((x) => x.id === selectedAgent)
+                                  return (
+                                    a?.openEndedContext?.placeholder ||
+                                    'Example: “Rewrite this page for a more confident tone. Keep it under 500 words. Preserve the CTA.”'
+                                  )
+                                })()}
+                                className="min-h-[120px]"
+                              />
+                              {(() => {
+                                const a = agents.find((x) => x.id === selectedAgent)
+                                const max = a?.openEndedContext?.maxChars
+                                if (!max) return null
+                                return (
+                                  <div className="text-xs text-neutral-medium">
+                                    {agentOpenEndedContext.length}/{max}
+                                  </div>
+                                )
+                              })()}
+                            </div>
+                            <AlertDialogFooter>
+                              <AlertDialogCancel
+                                type="button"
+                                onClick={() => {
+                                  setAgentPromptOpen(false)
+                                }}
+                              >
+                                Cancel
+                              </AlertDialogCancel>
+                              <AlertDialogAction
+                                type="button"
+                                onClick={async () => {
+                                  if (!selectedAgent) return
+                                  setAgentPromptOpen(false)
+                                  setRunningAgent(true)
+                                  try {
+                                    const csrf = (() => {
+                                      if (typeof document === 'undefined') return undefined
+                                      const m = document.cookie.match(/(?:^|; )XSRF-TOKEN=([^;]+)/)
+                                      return m ? decodeURIComponent(m[1]) : undefined
+                                    })()
+
+                                    const openEnded = agentOpenEndedContext.trim()
+                                    const res = await fetch(
+                                      `/api/posts/${post.id}/agents/${encodeURIComponent(selectedAgent)}/run`,
+                                      {
+                                        method: 'POST',
+                                        headers: {
+                                          Accept: 'application/json',
+                                          'Content-Type': 'application/json',
+                                          ...(csrf ? { 'X-XSRF-TOKEN': csrf } : {}),
+                                        },
+                                        credentials: 'same-origin',
+                                        body: JSON.stringify({
+                                          context: { locale: selectedLocale },
+                                          openEndedContext: openEnded || undefined,
+                                        }),
+                                      }
+                                    )
+                                    const j = await res.json().catch(() => ({}))
+                                    if (res.ok) {
+                                      toast.success('Agent suggestions saved to review draft')
+                                      setViewMode('review')
+                                      setAgentOpenEndedContext('')
+                                    } else {
+                                      toast.error(j?.error || 'Agent run failed')
+                                    }
+                                  } catch {
+                                    toast.error('Agent run failed')
+                                  } finally {
+                                    setRunningAgent(false)
+                                  }
+                                }}
+                              >
+                                Run Agent
+                              </AlertDialogAction>
+                            </AlertDialogFooter>
+                          </AlertDialogContent>
+                        </AlertDialog>
+
+                        <button
+                          className="mt-2 w-full px-4 py-2 text-sm rounded-lg bg-standout text-on-standout font-medium disabled:opacity-50"
+                          disabled={runningAgent}
+                          onClick={() => {
+                            const a = agents.find((x) => x.id === selectedAgent)
+                            const enabled = a?.openEndedContext?.enabled === true
+                            if (enabled) {
+                              setAgentPromptOpen(true)
+                              return
                             }
-                          } catch {
-                            toast.error('Agent run failed')
-                          } finally {
-                            setRunningAgent(false)
-                          }
-                        }}
-                        type="button"
-                      >
-                        {runningAgent ? 'Running…' : 'Run Agent'}
-                      </button>
+                            // No prompt required: run immediately
+                            ;(async () => {
+                              setRunningAgent(true)
+                              try {
+                                const csrf = (() => {
+                                  if (typeof document === 'undefined') return undefined
+                                  const m = document.cookie.match(/(?:^|; )XSRF-TOKEN=([^;]+)/)
+                                  return m ? decodeURIComponent(m[1]) : undefined
+                                })()
+                                const res = await fetch(
+                                  `/api/posts/${post.id}/agents/${encodeURIComponent(selectedAgent)}/run`,
+                                  {
+                                    method: 'POST',
+                                    headers: {
+                                      Accept: 'application/json',
+                                      'Content-Type': 'application/json',
+                                      ...(csrf ? { 'X-XSRF-TOKEN': csrf } : {}),
+                                    },
+                                    credentials: 'same-origin',
+                                    body: JSON.stringify({ context: { locale: selectedLocale } }),
+                                  }
+                                )
+                                const j = await res.json().catch(() => ({}))
+                                if (res.ok) {
+                                  toast.success('Agent suggestions saved to review draft')
+                                  setViewMode('review')
+                                } else {
+                                  toast.error(j?.error || 'Agent run failed')
+                                }
+                              } catch {
+                                toast.error('Agent run failed')
+                              } finally {
+                                setRunningAgent(false)
+                              }
+                            })()
+                          }}
+                          type="button"
+                        >
+                          {runningAgent ? 'Running…' : 'Run Agent'}
+                        </button>
+                      </>
                     )}
                   </div>
                 </div>

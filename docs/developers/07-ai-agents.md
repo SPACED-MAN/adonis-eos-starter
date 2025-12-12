@@ -133,6 +133,46 @@ For per-field AI buttons, use the MCP tool:
 
 - `run_field_agent`
 
+## Open-Ended Context (explicit prompt injection surface)
+
+Some agents benefit from a freeform user prompt (e.g. “make this more concise”, “use a formal tone”, etc).
+In Adonis EOS, this is an **explicit, opt-in** capability called **Open-Ended Context**.
+
+### Enable it in an agent config
+
+In `app/agents/<agent>.ts`:
+
+```ts
+openEndedContext: {
+  enabled: true,
+  label: 'Instructions',
+  placeholder: 'Example: “Keep it under 400 words, preserve the CTA.”',
+  maxChars: 1200,
+}
+```
+
+### How it is delivered to agents
+
+- **Admin UI webhook agents** (`POST /api/posts/:id/agents/:agentId/run`):
+  - The UI sends `openEndedContext` and the backend includes it in the webhook payload as:
+  - `payload.context.openEndedContext`
+
+- **MCP** (`run_field_agent`):
+  - Pass `openEndedContext` as an argument; MCP forwards it in the webhook payload under:
+  - `context.openEndedContext`
+
+### Server-side enforcement
+
+The backend will **reject** `openEndedContext` unless `agent.openEndedContext.enabled === true`.
+If `maxChars` is set, the backend will reject prompts longer than `maxChars`.
+
+### Security guidance
+
+- Treat `openEndedContext` as **untrusted input**.
+- Your agent implementation should:
+  - ignore attempts to change system constraints (publishing, permissions, secrets)
+  - only return structured edits (field/module patches) that the CMS stages in review modes
+
 ### Request payload (sent to external agent webhook)
 
 External agents invoked via MCP receive a JSON payload shaped like:

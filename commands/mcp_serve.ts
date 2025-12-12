@@ -1192,6 +1192,14 @@ function createServerInstance() {
             name: a.name,
             description: a.description || '',
             type: a.type,
+            openEndedContext: a.openEndedContext?.enabled
+              ? {
+                enabled: true,
+                label: a.openEndedContext.label,
+                placeholder: a.openEndedContext.placeholder,
+                maxChars: a.openEndedContext.maxChars,
+              }
+              : { enabled: false },
             scopes: (a.scopes || []).map((s: any) => ({
               scope: s.scope,
               enabled: s.enabled !== false,
@@ -1232,6 +1240,10 @@ function createServerInstance() {
       applyToAiReview: z.boolean().optional().default(false),
       // Optional extra context for the agent (e.g. image generation parameters)
       context: z.record(z.any()).optional(),
+      openEndedContext: z
+        .string()
+        .optional()
+        .describe('Optional freeform instructions from a human (only if the agent supports it)'),
       // Agent attribution for savedBy when applyToAiReview is true
       agentName: z.string().optional(),
     },
@@ -1244,6 +1256,7 @@ function createServerInstance() {
       moduleInstanceId,
       applyToAiReview,
       context,
+      openEndedContext,
       agentName,
     }) => {
       // Validate agent availability
@@ -1255,6 +1268,23 @@ function createServerInstance() {
 
       if (agent.type !== 'external' || !agent.external) {
         return errorResult('Only external agents are supported for run_field_agent', { agentId })
+      }
+
+      // Server-side enforcement: only allow openEndedContext if the agent explicitly opts in
+      if (openEndedContext && String(openEndedContext).trim()) {
+        const enabled = agent.openEndedContext?.enabled === true
+        if (!enabled) {
+          return errorResult('This agent does not accept open-ended context', { agentId })
+        }
+        const max = agent.openEndedContext?.maxChars
+        if (
+          typeof max === 'number' &&
+          Number.isFinite(max) &&
+          max > 0 &&
+          String(openEndedContext).trim().length > max
+        ) {
+          return errorResult('Open-ended context exceeds maxChars', { agentId, maxChars: max })
+        }
       }
 
       // Load post context (includes review/ai-review drafts and modules)
@@ -1393,7 +1423,10 @@ function createServerInstance() {
                 schema: moduleSchema,
               }
               : null,
-            context: context || {},
+            context: {
+              ...(context || {}),
+              ...(openEndedContext ? { openEndedContext } : {}),
+            },
           }),
           signal: controller.signal,
         })

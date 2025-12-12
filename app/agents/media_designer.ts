@@ -44,6 +44,13 @@ const MediaDesignerAgent: AgentDefinition = {
       ],
     },
   ],
+  openEndedContext: {
+    enabled: true,
+    label: 'Creative direction',
+    placeholder:
+      'Example: “Warm, modern, minimal. Avoid stock-photo vibes. Include diverse people if applicable.”',
+    maxChars: 800,
+  },
 }
 
 export default MediaDesignerAgent

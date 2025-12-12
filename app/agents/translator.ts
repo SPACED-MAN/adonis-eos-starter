@@ -31,6 +31,13 @@ const TranslatorAgent: AgentDefinition = {
     // Per-field translation buttons (optional; enable in UI as needed)
     { scope: 'field', order: 20, enabled: true },
   ],
+  openEndedContext: {
+    enabled: true,
+    label: 'Translation instructions',
+    placeholder:
+      'Example: “Use a formal tone. Keep proper nouns untranslated. Prefer Latin American Spanish.”',
+    maxChars: 800,
+  },
 }
 
 export default TranslatorAgent

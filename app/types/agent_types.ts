@@ -157,6 +157,33 @@ export interface AgentDefinition {
    * Default: true
    */
   enabled?: boolean
+
+  /**
+   * Optional "Open-Ended Context" capability.
+   *
+   * If enabled, the admin UI should prompt the user for freeform instructions
+   * when running this agent, and the backend will pass it to the agent payload.
+   *
+   * This is intentionally explicit to avoid accidental prompt injection surfaces.
+   */
+  openEndedContext?: {
+    /**
+     * Whether the agent accepts freeform user context.
+     */
+    enabled: boolean
+    /**
+     * Optional UI label (e.g. "Instructions", "What do you want to change?")
+     */
+    label?: string
+    /**
+     * Optional UI placeholder text.
+     */
+    placeholder?: string
+    /**
+     * Optional max character count to enforce in the UI.
+     */
+    maxChars?: number
+  }
 }
 
 /**

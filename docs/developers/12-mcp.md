@@ -34,6 +34,12 @@ Start the MCP server over **SSE**:
 node ace mcp:serve --transport=sse --host=0.0.0.0 --port=8787
 ```
 
+Or via npm scripts:
+
+```bash
+npm run mcp
+```
+
 Endpoints:
 
 - **SSE endpoint**: `GET /mcp`
@@ -46,6 +52,12 @@ Useful for local MCP clients that launch the server as a subprocess:
 
 ```bash
 node ace mcp:serve --transport=stdio
+```
+
+Or:
+
+```bash
+npm run mcp:stdio
 ```
 
 ## Authentication (optional)
@@ -163,6 +175,18 @@ Creating posts requires a real `users.id` to satisfy `posts.user_id`:
 ## Updating MCP context (authoring)
 
 See: [MCP Authoring](/docs/for-developers/mcp-authoring)
+
+## Open-Ended Context (agent prompt input)
+
+Some webhook agents and MCP agent calls can accept a freeform user prompt. This is an explicit, opt-in capability:
+
+- Agents declare it via `openEndedContext` in `app/agents/*`
+- MCP exposes it in `list_agents` output
+- MCP `run_field_agent` accepts `openEndedContext` and forwards it to the webhook under `context.openEndedContext`
+
+Server-side enforcement:
+- `openEndedContext` is rejected unless `agent.openEndedContext.enabled === true`
+- `maxChars` is enforced when set
 
 ## CLI: dump MCP context (automation)
 
