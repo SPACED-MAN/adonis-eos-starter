@@ -53,7 +53,7 @@ export default class ${moduleName}Module extends BaseModule {
       name: '${moduleName}',
       description: 'TODO: Describe this module',
       icon: 'cube',
-      allowedScopes: ['local', 'global', 'static'],
+      allowedScopes: ['local', 'global'],
       lockable: true,
       propsSchema: {
         // TODO: Define your schema here

@@ -17,7 +17,7 @@ export default class BlogNoteModule extends BaseModule {
       name: 'Blog Note',
       description: 'A simple text note, only available for blog posts',
       icon: 'note',
-      allowedScopes: ['local', 'global', 'static'],
+      allowedScopes: ['local', 'global'],
       lockable: true,
       propsSchema: {
         note: {
