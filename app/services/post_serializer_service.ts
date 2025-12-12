@@ -9,7 +9,7 @@ import PostCustomFieldValue from '#models/post_custom_field_value'
 
 type CanonicalModule = {
   type: string
-  scope: 'local' | 'static' | 'global'
+  scope: 'local' | 'global'
   orderIndex: number
   locked?: boolean
   props?: Record<string, any> | null
@@ -83,7 +83,7 @@ export default class PostSerializerService {
         const mi = pm.moduleInstance as any as ModuleInstance
         return {
           type: mi?.type,
-          scope: mi?.scope === 'post' ? 'local' : mi?.scope,
+          scope: mi?.scope === 'post' ? 'local' : 'global',
           orderIndex: pm.orderIndex,
           locked: pm.locked,
           props: mi?.props ?? null,
@@ -118,14 +118,14 @@ export default class PostSerializerService {
       const created = await AddModuleToPost.handle({
         postId: post.id,
         moduleType: m.type,
-        scope: m.scope === 'local' ? 'local' : (m.scope as any),
+        scope: m.scope,
         props: m.props ?? {},
         globalSlug: m.globalSlug ?? null,
         orderIndex: m.orderIndex,
         locked: !!m.locked,
       })
       // Apply overrides for non-local modules
-      if ((m.scope === 'static' || m.scope === 'global') && m.overrides) {
+      if (m.scope === 'global' && m.overrides) {
         await PostModule.query()
           .where('id', created.postModule.id)
           .update({ overrides: m.overrides, updated_at: new Date() } as any)
@@ -184,13 +184,13 @@ export default class PostSerializerService {
       const created = await AddModuleToPost.handle({
         postId,
         moduleType: m.type,
-        scope: m.scope === 'local' ? 'local' : (m.scope as any),
+        scope: m.scope,
         props: m.props ?? {},
         globalSlug: m.globalSlug ?? null,
         orderIndex: m.orderIndex,
         locked: !!m.locked,
       })
-      if ((m.scope === 'static' || m.scope === 'global') && m.overrides) {
+      if (m.scope === 'global' && m.overrides) {
         await PostModule.query()
           .where('id', created.postModule.id)
           .update({ overrides: m.overrides, updated_at: new Date() } as any)

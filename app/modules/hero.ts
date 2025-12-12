@@ -10,6 +10,20 @@ export default class HeroModule extends BaseModule {
       icon: 'star',
       allowedScopes: ['local', 'global'],
       lockable: true,
+      aiGuidance: {
+        layoutRoles: ['hero', 'intro', 'cta'],
+        useWhen: [
+          'You need a strong opening section for a page (headline + supporting copy).',
+          'You want a simple, centered hero without complex media layout.',
+          'The page needs a clear primary CTA near the top.',
+        ],
+        avoidWhen: [
+          'You need a hero with an image/video; prefer hero-with-media or a dedicated media hero.',
+          'The page already has a hero; use a smaller callout/CTA instead.',
+        ],
+        compositionNotes:
+          'Typically first module on a page. Pair with Prose or Features List as the next section; keep copy concise.',
+      },
       propsSchema: {
         title: {
           type: 'string',

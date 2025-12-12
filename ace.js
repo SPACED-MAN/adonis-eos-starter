@@ -17,9 +17,46 @@
 */
 
 /**
- * Register hook to process TypeScript files using ts-node-maintained
+ * Ensure the process working directory is the project root.
+ *
+ * Cursor starts MCP stdio servers without setting `cwd`, which can cause Adonis/Ace
+ * to crash when code assumes `process.cwd()` points at the app root.
  */
-import 'ts-node-maintained/register/esm'
+import { fileURLToPath } from 'node:url'
+import path from 'node:path'
+try {
+  const appRoot = path.dirname(fileURLToPath(import.meta.url))
+  process.chdir(appRoot)
+} catch {
+  // ignore
+}
+
+/**
+ * Register hook to process TypeScript files using ts-node-maintained.
+ *
+ * NOTE: This must be a dynamic import so we can `chdir()` before ts-node
+ * evaluates tsconfig resolution (Cursor launches MCP processes without cwd).
+ */
+await import('ts-node-maintained/register/esm')
+
+/**
+ * Cursor/stdio MCP mode must not write non-protocol output to stdout.
+ * When we detect stdio MCP, enable "quiet" boot to prevent start/* logging.
+ */
+try {
+  const argv = process.argv || []
+  const isMcpServe = argv.includes('mcp:serve')
+  const isStdio =
+    argv.includes('--transport=stdio') ||
+    argv.includes('--transport', 'stdio') ||
+    process.env.MCP_TRANSPORT === 'stdio'
+  if (isMcpServe && isStdio) {
+    process.env.MCP_QUIET = process.env.MCP_QUIET || '1'
+    process.env.MCP_TRANSPORT = 'stdio'
+  }
+} catch {
+  // ignore
+}
 
 /**
  * Import ace console entrypoint

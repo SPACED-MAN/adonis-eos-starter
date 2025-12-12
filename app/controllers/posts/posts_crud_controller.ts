@@ -9,6 +9,7 @@ import RevisionService from '#services/revision_service'
 import postTypeConfigService from '#services/post_type_config_service'
 import webhookService from '#services/webhook_service'
 import roleRegistry from '#services/role_registry'
+import taxonomyService from '#services/taxonomy_service'
 import BasePostsController from './base_posts_controller.js'
 import {
   createPostValidator,
@@ -508,6 +509,9 @@ export default class PostsCrudController extends BasePostsController {
       jsonldOverrides: payload.jsonldOverrides,
       featuredImageId: payload.featuredImageId,
       customFields: payload.customFields,
+      taxonomyTermIds: Array.isArray((payload as any).taxonomyTermIds)
+        ? ((payload as any).taxonomyTermIds as string[])
+        : undefined,
       savedAt: new Date().toISOString(),
       savedBy: (auth.use('web').user as any)?.email || null,
     }
@@ -566,6 +570,15 @@ export default class PostsCrudController extends BasePostsController {
     // Promote module changes
     await this.promoteModuleChanges(id)
 
+    // Promote taxonomy term assignments (if present in review draft)
+    if (Array.isArray((rd as any).taxonomyTermIds)) {
+      const termIds = ((rd as any).taxonomyTermIds as any[]).map((x) => String(x))
+      const applied = await this.applyTaxonomyAssignments(id, current.type, termIds)
+      if (!applied.ok) {
+        return this.response.badRequest(response, applied.error || 'Invalid taxonomy assignments')
+      }
+    }
+
     // Clear review draft
     await Post.query()
       .where('id', id)
@@ -601,6 +614,9 @@ export default class PostsCrudController extends BasePostsController {
       jsonldOverrides: payload.jsonldOverrides,
       featuredImageId: payload.featuredImageId,
       customFields: payload.customFields,
+      taxonomyTermIds: Array.isArray((payload as any).taxonomyTermIds)
+        ? ((payload as any).taxonomyTermIds as string[])
+        : undefined,
       savedAt: new Date().toISOString(),
       savedBy: 'AI Agent',
     }
@@ -782,5 +798,86 @@ export default class PostsCrudController extends BasePostsController {
       .where('post_id', postId)
       .andWhere('review_added', true)
       .update({ review_added: false, updated_at: new Date() })
+  }
+
+  /**
+   * Replace taxonomy term assignments for this post (scoped to taxonomies enabled for the post type).
+   *
+   * This is invoked during Review approval, so it never runs on AI Review directly.
+   */
+  private async applyTaxonomyAssignments(
+    postId: string,
+    postType: string,
+    requestedTermIds: string[]
+  ): Promise<{ ok: true } | { ok: false; error: string }> {
+    const uiCfg = postTypeConfigService.getUiConfig(postType)
+    const allowedTaxonomySlugs = Array.isArray((uiCfg as any).taxonomies) ? (uiCfg as any).taxonomies : []
+    if (allowedTaxonomySlugs.length === 0) {
+      return { ok: true }
+    }
+
+    // Normalize ids
+    const termIds = Array.from(new Set(requestedTermIds.map((x) => String(x)).filter(Boolean)))
+
+    // Resolve requested terms -> taxonomy slug and filter to allowed taxonomies
+    const rows = termIds.length
+      ? await db
+          .from('taxonomy_terms as tt')
+          .join('taxonomies as t', 'tt.taxonomy_id', 't.id')
+          .whereIn('tt.id', termIds)
+          .whereIn('t.slug', allowedTaxonomySlugs)
+          .select('tt.id as termId', 't.slug as taxonomySlug')
+      : []
+
+    const byTaxonomy = new Map<string, string[]>()
+    for (const r of rows as any[]) {
+      const slug = String(r.taxonomyslug || r.taxonomySlug)
+      const id = String(r.termid || r.termId)
+      if (!byTaxonomy.has(slug)) byTaxonomy.set(slug, [])
+      byTaxonomy.get(slug)!.push(id)
+    }
+
+    // Enforce maxSelections per taxonomy (when configured)
+    for (const [slug, ids] of byTaxonomy.entries()) {
+      const cfg = taxonomyService.getConfig(slug)
+      const max =
+        cfg?.maxSelections === undefined || cfg?.maxSelections === null
+          ? null
+          : Number(cfg.maxSelections)
+      if (max !== null && Number.isFinite(max) && ids.length > max) {
+        return { ok: false, error: `Too many selections for taxonomy '${slug}' (max ${max})` }
+      }
+    }
+
+    // Remove existing assignments for allowed taxonomies only
+    await db
+      .from('post_taxonomy_terms')
+      .where('post_id', postId)
+      .whereIn(
+        'taxonomy_term_id',
+        db
+          .from('taxonomy_terms as tt')
+          .join('taxonomies as t', 'tt.taxonomy_id', 't.id')
+          .whereIn('t.slug', allowedTaxonomySlugs)
+          .select('tt.id')
+      )
+      .delete()
+
+    if (rows.length === 0) return { ok: true }
+
+    // Insert requested (filtered) assignments
+    const { randomUUID } = await import('node:crypto')
+    const now = new Date()
+    await db.table('post_taxonomy_terms').insert(
+      (rows as any[]).map((r) => ({
+        id: randomUUID(),
+        post_id: postId,
+        taxonomy_term_id: String(r.termid || r.termId),
+        created_at: now,
+        updated_at: now,
+      }))
+    )
+
+    return { ok: true }
   }
 }

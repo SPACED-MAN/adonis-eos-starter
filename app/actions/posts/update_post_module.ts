@@ -6,7 +6,7 @@ type UpdatePostModuleParams = {
   orderIndex?: number
   overrides?: Record<string, any> | null
   locked?: boolean
-  mode?: 'review' | 'publish'
+  mode?: 'review' | 'ai-review' | 'publish'
 }
 
 const uuidRegex = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i
@@ -92,8 +92,8 @@ export default class UpdatePostModule {
     }
 
     if (orderIndex !== undefined) {
-      // Only apply order changes to approved version; review ordering can be staged in UI or future field
-      if (mode !== 'review') {
+      // Only apply order changes to approved version; review/ai-review ordering is staged
+      if (mode !== 'review' && mode !== 'ai-review') {
         updateData.order_index = orderIndex
       }
     }
@@ -106,14 +106,25 @@ export default class UpdatePostModule {
         .where('id', postModule.module_id)
         .first()
       if (moduleInstance && moduleInstance.scope === 'post') {
-        // Local module: edit props; in review mode, write to review_props
-        const baseProps =
-          mode === 'review'
-            ? (moduleInstance as any).review_props || {}
-            : moduleInstance.props || {}
+        // Local module: edit props; in review/ai-review mode, write to review_props/ai_review_props
+        const baseProps = (() => {
+          if (mode === 'ai-review') {
+            return (
+              (moduleInstance as any).ai_review_props ||
+              (moduleInstance as any).review_props ||
+              moduleInstance.props ||
+              {}
+            )
+          }
+          if (mode === 'review') {
+            return (moduleInstance as any).review_props || moduleInstance.props || {}
+          }
+          return moduleInstance.props || {}
+        })()
         // Deep-merge overrides to preserve nested richtext JSON
         const mergedProps = UpdatePostModule.deepMerge(baseProps, overrides || {})
-        const propsColumn = mode === 'review' ? 'review_props' : 'props'
+        const propsColumn =
+          mode === 'ai-review' ? 'ai_review_props' : mode === 'review' ? 'review_props' : 'props'
         await db
           .from('module_instances')
           .where('id', postModule.module_id)
@@ -122,14 +133,18 @@ export default class UpdatePostModule {
             updated_at: new Date(),
           } as any)
         // Clear standard overrides for local modules (both fields)
-        if (mode === 'review') {
+        if (mode === 'ai-review') {
+          updateData.ai_review_overrides = null
+        } else if (mode === 'review') {
           updateData.review_overrides = null
         } else {
           updateData.overrides = null
         }
       } else {
-        // Global/static: edit overrides on join table; in review mode, write to review_overrides
-        if (mode === 'review') {
+        // Global: edit overrides on join table; in review/ai-review mode, write to review_overrides/ai_review_overrides
+        if (mode === 'ai-review') {
+          updateData.ai_review_overrides = overrides
+        } else if (mode === 'review') {
           updateData.review_overrides = overrides
         } else {
           updateData.overrides = overrides

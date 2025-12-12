@@ -61,7 +61,7 @@ class AgentRegistry {
    * List agents available in a specific scope
    * Results are sorted by order (ascending)
    */
-  listByScope(scope: AgentScope, formSlug?: string): AgentDefinition[] {
+  listByScope(scope: AgentScope, formSlug?: string, fieldKey?: string): AgentDefinition[] {
     return this.listEnabled()
       .map((agent) => {
         const scopeConfig = agent.scopes.find((s) => s.scope === scope && s.enabled !== false)
@@ -77,6 +77,13 @@ class AgentRegistry {
           if (!formSlugs || formSlugs.length === 0) return true
           // Otherwise, check if the form slug is in the list
           return formSlugs.includes(formSlug)
+        }
+
+        // For field scope, check if the agent is allowed for the specific field key
+        if (scope === 'field' && fieldKey) {
+          const keys = (item.scopeConfig as any).fieldKeys as string[] | undefined
+          if (!keys || keys.length === 0) return true
+          return keys.includes(fieldKey)
         }
 
         return true

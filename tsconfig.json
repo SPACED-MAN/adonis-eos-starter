@@ -3,7 +3,12 @@
   "compilerOptions": {
     "rootDir": "./",
     "outDir": "./build",
-    "typeRoots": ["./types", "./node_modules/@types"]
+    "typeRoots": ["./types", "./node_modules/@types"],
+    /**
+     * Use the standard TS lib name ("node"), not the package name ("@types/node").
+     * Otherwise TS will look for `node_modules/@types/@types/node`.
+     */
+    "types": ["node"]
   },
   "exclude": [
     "./inertia/**/*",

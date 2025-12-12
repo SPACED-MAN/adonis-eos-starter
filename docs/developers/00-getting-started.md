@@ -108,6 +108,7 @@ adonis-eos/
 - [API Reference](/docs/for-developers/api-reference) - Learn about available endpoints
 - [Building Modules](/docs/for-developers/building-modules) - Create custom content modules
 - [Theming](/docs/for-developers/theming) - Customize the design system
+- [MCP (Model Context Protocol)](/docs/for-developers/mcp) - Connect external AI agents (Cursor, n8n) to CMS context + safe write tools
 - [Content Management](/docs/for-editors/content-management) - Managing posts and pages
 - [CLI Commands](/docs/for-developers/cli-commands) - Scaffold post types, modules, roles, menus, taxonomies
 

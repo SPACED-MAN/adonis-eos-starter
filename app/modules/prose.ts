@@ -27,6 +27,19 @@ export default class ProseModule extends BaseModule {
       icon: 'text-paragraph',
       allowedScopes: ['local', 'global'],
       lockable: true,
+      aiGuidance: {
+        layoutRoles: ['body', 'content', 'text'],
+        useWhen: [
+          'You need primary page content (headings, paragraphs, lists, links).',
+          'You need a flexible section for editorial writing or documentation-style content.',
+        ],
+        avoidWhen: [
+          'You need a structured layout (columns/cards/pricing); use a dedicated module instead.',
+          'You need interactive behavior; prefer a React module designed for interaction.',
+        ],
+        compositionNotes:
+          'Commonly used after a hero. Pair with media modules (prose-with-media, gallery) or CTA modules to break up long text.',
+      },
       propsSchema: {
         content: {
           type: 'richtext', // Lexical JSON rich text editor

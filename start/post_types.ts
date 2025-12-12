@@ -118,7 +118,7 @@ try {
 }
 
 // Log registered post types (development only)
-if (process.env.NODE_ENV === 'development') {
+if (process.env.NODE_ENV === 'development' && process.env.MCP_QUIET !== '1') {
   const types = postTypeRegistry.list()
   console.log(`🧩 Registered ${types.length} post types: ${types.join(', ')}`)
 }

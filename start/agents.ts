@@ -35,7 +35,7 @@ try {
       agentRegistry.register(definition)
 
       // In development, log registered agents
-      if (process.env.NODE_ENV === 'development') {
+      if (process.env.NODE_ENV === 'development' && process.env.MCP_QUIET !== '1') {
         console.log(`✓ Registered agent: ${definition.name} (${definition.id})`)
       }
     } catch (error) {
@@ -47,7 +47,7 @@ try {
   const enabledCount = agentRegistry.listEnabled().length
   const totalCount = agentRegistry.list().length
 
-  if (process.env.NODE_ENV === 'development') {
+  if (process.env.NODE_ENV === 'development' && process.env.MCP_QUIET !== '1') {
     console.log(`\n📋 Agent Registry: ${enabledCount}/${totalCount} agents enabled`)
   }
 } catch (error) {

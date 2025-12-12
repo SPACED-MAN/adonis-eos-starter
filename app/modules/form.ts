@@ -19,6 +19,19 @@ export default class FormModule extends BaseModule {
       icon: 'envelope',
       allowedScopes: ['local', 'global'],
       lockable: true,
+      aiGuidance: {
+        layoutRoles: ['form', 'cta', 'lead-capture'],
+        useWhen: [
+          'You need lead capture or contact submission on a page.',
+          'You already have a form definition in Forms admin (referenced by formSlug).',
+        ],
+        avoidWhen: [
+          'You only need a simple CTA link/button; use a hero/callout module instead.',
+          'You need a custom form behavior not supported by existing form definitions; extend forms first.',
+        ],
+        compositionNotes:
+          'Commonly placed near the bottom of a landing page or after a persuasive content section. Keep surrounding copy short and specific.',
+      },
       propsSchema: {
         title: {
           type: 'string',

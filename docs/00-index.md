@@ -31,6 +31,8 @@ Technical documentation for developers and system administrators:
 ### Advanced Features
 - [API Reference](/docs/for-developers/api-reference) - RESTful endpoints
 - [AI Agents](/docs/for-developers/ai-agents) - Automated content workflows
+- [MCP (Model Context Protocol)](/docs/for-developers/mcp) - Connect external AI agents (Cursor, n8n) to CMS context + safe write tools
+- [MCP Authoring](/docs/for-developers/mcp-authoring) - How to keep MCP context up-to-date (module guidance, schema dumps)
 - [Deployment Guide](/docs/for-developers/deployment) - Production deployment strategies
  - [Update Philosophy](/docs/for-developers/update-philosophy) - How to approach upgrades and maintenance
 - [Launch Guide](/docs/for-developers/launch) - Production seeding via curated export

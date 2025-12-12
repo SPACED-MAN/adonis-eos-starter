@@ -60,6 +60,35 @@ export interface ModuleConfig {
    * Which post types can use this module (empty = all)
    */
   allowedPostTypes?: string[]
+
+  /**
+   * Optional, structured guidance for AI agents and humans.
+   *
+   * This is intended to answer:
+   * - when is this module appropriate?
+   * - when should it be avoided?
+   * - what role does it play in a page layout?
+   *
+   * The MCP server will expose this as part of module schema/config responses.
+   */
+  aiGuidance?: {
+    /**
+     * Short bullets describing when to use this module.
+     */
+    useWhen: string[]
+    /**
+     * Short bullets describing when not to use this module.
+     */
+    avoidWhen?: string[]
+    /**
+     * High-level layout roles this module can fulfill (e.g. "hero", "body", "gallery", "cta").
+     */
+    layoutRoles?: string[]
+    /**
+     * Composition notes (how to pair with other modules, recommended ordering, etc.).
+     */
+    compositionNotes?: string
+  }
 }
 
 /**

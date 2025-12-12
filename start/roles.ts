@@ -39,7 +39,7 @@ try {
 }
 
 // Log registered roles (development only)
-if (process.env.NODE_ENV === 'development') {
+if (process.env.NODE_ENV === 'development' && process.env.MCP_QUIET !== '1') {
   const roles = roleRegistry.list()
   console.log(
     `👤 Registered ${roles.length} roles: ${roles.map((r) => `${r.name} (${r.label})`).join(', ')}`

@@ -4,17 +4,16 @@ import moduleScopeService from '#services/module_scope_service'
 import moduleRegistry from '#services/module_registry'
 import postTypeConfigService from '#services/post_type_config_service'
 import { randomUUID } from 'node:crypto'
-import type { ModuleScope } from '#types/module_types'
 
 type AddModuleToPostParams = {
   postId: string
   moduleType: string
-  scope: ModuleScope
+  scope: 'local' | 'global'
   props?: Record<string, any>
   globalSlug?: string | null
   orderIndex?: number
   locked?: boolean
-  mode?: 'review' | 'publish'
+  mode?: 'review' | 'ai-review' | 'publish'
 }
 
 export class AddModuleToPostException extends Error {
@@ -73,8 +72,8 @@ export default class AddModuleToPost {
       })
     }
 
-    // Normalize scope for database (DB enum uses 'post' instead of 'local')
-    const dbScope = scope === 'local' ? ('post' as ModuleScope) : scope
+    // Normalize scope for database (DB uses 'post' instead of 'local')
+    const dbScope: 'post' | 'global' = scope === 'local' ? 'post' : 'global'
 
     // Use transaction
     const result = await db.transaction(async (trx) => {
@@ -131,6 +130,9 @@ export default class AddModuleToPost {
             type: moduleType,
             global_slug: null,
             props: initialProps,
+            // For AI review, stage changes without affecting the "approved" props later.
+            // This also ensures the AI Review UI can show the staged content immediately.
+            ai_review_props: mode === 'ai-review' ? initialProps : null,
             created_at: new Date(),
             updated_at: new Date(),
           })
@@ -165,7 +167,11 @@ export default class AddModuleToPost {
           module_id: moduleInstanceId,
           order_index: finalOrderIndex,
           overrides: null,
+          ai_review_overrides: null,
           review_added: mode === 'review' ? true : false,
+          ai_review_added: mode === 'ai-review' ? true : false,
+          ai_review_deleted: false,
+          review_deleted: false,
           locked,
           created_at: new Date(),
           updated_at: new Date(),

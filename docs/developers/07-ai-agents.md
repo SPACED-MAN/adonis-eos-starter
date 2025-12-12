@@ -74,6 +74,7 @@ AGENT_SEO_OPTIMIZER_SECRET=your-secret-key
 Agents can be triggered in different contexts:
 
 - **`dropdown`** - Manual execution from post editor
+- **`field`** - Per-field AI button (e.g. translate a single field, generate image suggestions for a specific module prop)
 - **`post.publish`** - Auto-trigger when publishing
 - **`post.approve`** - Trigger when approving changes
 - **`post.review.save`** - Trigger when saving for review
@@ -81,6 +82,93 @@ Agents can be triggered in different contexts:
 - **`post.ai-review.save`** - Trigger when saving AI review
 - **`post.ai-review.approve`** - Trigger when approving AI review
 - **`form.submit`** - Trigger on form submission
+
+## Example: Media Designer (Nano Banana / image generation)
+
+We recommend defining image-generation agents as **field-scoped** agents so they can be used from per-field AI buttons.
+
+Example (`app/agents/media_designer.ts`):
+
+- scope: `field`
+- fieldKeys: include media-related module props (e.g. `module.hero-with-media.image`)
+- external webhook: points to your n8n workflow or a dedicated service that talks to the image model
+
+## Example: Translator (bulk translations)
+
+We provide:
+
+- An agent definition: `app/agents/translator.ts`
+- MCP helpers: `create_translation_ai_review` and `create_translations_ai_review_bulk`
+
+Recommended flow:
+1. Call `create_translations_ai_review_bulk` to create translation posts (one per locale) and clone module structure into AI Review.
+2. Use `run_field_agent` (with the Translator agent) to translate individual fields/modules and stage results.
+3. Call `submit_ai_review_to_review` so a human can approve.
+
+### Field scope filtering (recommended)
+
+Use `fieldKeys` to restrict an agent to specific fields:
+
+```typescript
+scopes: [
+  {
+    scope: 'field',
+    enabled: true,
+    order: 10,
+    fieldKeys: [
+      'post.title',
+      'post.metaTitle',
+      'module.hero.title',
+      'module.prose.content',
+    ],
+  },
+]
+```
+
+If `fieldKeys` is omitted/empty, the agent is considered available for all fields.
+
+## Field-scope execution via MCP
+
+For per-field AI buttons, use the MCP tool:
+
+- `run_field_agent`
+
+### Request payload (sent to external agent webhook)
+
+External agents invoked via MCP receive a JSON payload shaped like:
+
+```json
+{
+  "scope": "field",
+  "post": { "id": "uuid", "type": "page", "locale": "en", "status": "draft" },
+  "field": { "key": "post.title", "currentValue": "..." },
+  "draftBase": { "title": "...", "metaTitle": "...", "...": "..." },
+  "module": {
+    "postModuleId": "uuid",
+    "moduleInstanceId": "uuid",
+    "type": "hero",
+    "scope": "local",
+    "props": {},
+    "reviewProps": null,
+    "aiReviewProps": null,
+    "overrides": null,
+    "reviewOverrides": null,
+    "aiReviewOverrides": null,
+    "schema": { "type": "hero", "propsSchema": {}, "defaultProps": {} }
+  },
+  "context": {}
+}
+```
+
+### Response expectations (recommended)
+
+For the best UX, have the agent respond using one of these patterns:
+
+- `{ "value": <newValue> }` (recommended for true per-field edits)
+- `{ "post": { ...partialPostPatch } }` (for core post fields)
+- `{ "module": { "props": { ... } } }` or `{ "module": { "overrides": { ... } } }` (for module edits)
+
+If `applyToAiReview=true` was passed to `run_field_agent`, MCP will **best-effort** stage these responses into AI Review.
 
 ###  Example with Form Filtering
 

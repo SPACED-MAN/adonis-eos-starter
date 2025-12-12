@@ -122,6 +122,12 @@ class ModuleRegistry {
     propsSchema: Record<string, any>
     defaultProps: Record<string, any>
     allowedPostTypes?: string[]
+    aiGuidance?: {
+      useWhen: string[]
+      avoidWhen?: string[]
+      layoutRoles?: string[]
+      compositionNotes?: string
+    }
   } {
     const module = this.get(type)
     const config = module.getConfig()
@@ -136,6 +142,7 @@ class ModuleRegistry {
       propsSchema: config.propsSchema || {},
       defaultProps: config.defaultProps || {},
       allowedPostTypes: config.allowedPostTypes,
+      aiGuidance: (config as any).aiGuidance,
     }
   }
 

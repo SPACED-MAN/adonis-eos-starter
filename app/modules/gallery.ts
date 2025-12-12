@@ -25,11 +25,25 @@ export default class GalleryModule extends BaseModule {
   getConfig(): ModuleConfig {
     return {
       type: 'gallery',
-      version: '1.0.0',
       name: 'Image Gallery',
       description: 'Interactive image gallery with lightbox and navigation',
       icon: 'image-multiple',
       category: 'media',
+      allowedScopes: ['local', 'global'],
+      lockable: true,
+      aiGuidance: {
+        layoutRoles: ['media', 'gallery'],
+        useWhen: [
+          'You need to showcase multiple images with optional lightbox interaction.',
+          'The content benefits from visual proof (portfolio, case studies, product photos).',
+        ],
+        avoidWhen: [
+          'You only need a single supporting image; use hero-with-media or prose-with-media.',
+          'You need complex, editorial image layouts (before/after, sliders); consider a dedicated module.',
+        ],
+        compositionNotes:
+          'Works best after explanatory prose. Prefer 6–12 images; keep alt text meaningful and consistent.',
+      },
       propsSchema: {
         images: {
           type: 'array',

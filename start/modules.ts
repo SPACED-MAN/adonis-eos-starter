@@ -45,7 +45,7 @@ try {
 }
 
 // Log registered modules (development only)
-if (process.env.NODE_ENV === 'development') {
+if (process.env.NODE_ENV === 'development' && process.env.MCP_QUIET !== '1') {
   const types = moduleRegistry.getTypes()
   console.log(`📦 Registered ${types.length} modules: ${types.join(', ')}`)
 }

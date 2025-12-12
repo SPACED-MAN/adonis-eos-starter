@@ -24,6 +24,11 @@ Code-first makers to scaffold common CMS artifacts.
 - Command: `node ace make:menu "Footer"`
 - Output: Menu scaffold registration file.
 
+## MCP (Model Context Protocol)
+- Command: `node ace mcp:serve`
+- Purpose: Serve CMS context (post types, module schemas, global modules) to external AI agents via MCP.
+- See: `docs/developers/12-mcp.md`
+
 ## Post Types (duplicate detection)
 - If a file exists, the command is skipped gracefully (no overwrite).
 
