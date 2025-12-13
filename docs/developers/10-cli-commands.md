@@ -1,4 +1,4 @@
-# CLI Scaffolding (node ace make:\*)
+# CLI Scaffolding
 
 Code-first makers to scaffold common CMS artifacts.
 

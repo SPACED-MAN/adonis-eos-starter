@@ -23,16 +23,15 @@ Technical documentation for developers and system administrators:
 - [Content Management Overview](/docs/for-developers/content-management-overview) - Understanding the content model
 
 ### Core Concepts
+- [Theming System](/docs/for-developers/theming) - Customizing colors and design
 - [Building Modules](/docs/for-developers/building-modules) - Creating content components
 - [URL Patterns & Routing](/docs/for-developers/routing) - Dynamic URL generation
-- [Theming System](/docs/for-developers/theming) - Customizing colors and design
 - [Internationalization (i18n)](/docs/for-developers/internationalization) - Multi-language content
 
 ### Advanced Features
 - [API Reference](/docs/for-developers/api-reference) - RESTful endpoints
 - [AI Agents](/docs/for-developers/ai-agents) - Automated content workflows
 - [MCP (Model Context Protocol)](/docs/for-developers/mcp) - Connect external AI agents (Cursor, n8n) to CMS context + safe write tools
-- [MCP Authoring](/docs/for-developers/mcp-authoring) - How to keep MCP context up-to-date (module guidance, schema dumps)
 - [Deployment Guide](/docs/for-developers/deployment) - Production deployment strategies
  - [Update Philosophy](/docs/for-developers/update-philosophy) - How to approach upgrades and maintenance
 - [Launch Guide](/docs/for-developers/launch) - Production seeding via curated export

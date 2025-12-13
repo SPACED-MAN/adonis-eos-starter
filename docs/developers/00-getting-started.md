@@ -86,12 +86,24 @@ After seeding, you'll have these accounts:
 ```
 adonis-eos/
 ├── app/                    # Backend application code
-│   ├── controllers/        # Route handlers
-│   ├── models/            # Database models
-│   ├── services/          # Business logic
-│   ├── modules/           # CMS module definitions
-│   ├── roles/             # RBAC role definitions
-│   └── agents/            # AI agent definitions
+│   ├── actions/            # Business actions (CreatePost, UpdatePostModule, translations, etc.)
+│   ├── agents/             # AI agent definitions (webhook + internal)
+│   ├── controllers/        # Route handlers (admin + public)
+│   ├── dtos/               # Typed payload/response objects (e.g. agent payload)
+│   ├── fields/             # Custom field types (admin rendering + validation)
+│   ├── forms/              # Code-first form definitions (seed + admin)
+│   ├── helpers/            # Shared helpers (i18n, lexical rendering, reference resolution)
+│   ├── menus/              # Code-first menu definitions (seed + admin)
+│   ├── middleware/         # HTTP middleware (auth, locale, rate limit, redirects, etc.)
+│   ├── models/             # Lucid models (posts, modules, media, taxonomies, etc.)
+│   ├── modules/            # CMS module definitions (schema/defaults/rendering mode)
+│   ├── post_types/         # Code-first post type definitions (page, blog, docs, etc.)
+│   ├── roles/              # RBAC role definitions
+│   ├── services/           # Core services (registries, serializers, preview, revisions, etc.)
+│   ├── site/               # Site-wide config + site-level custom fields
+│   ├── taxonomies/         # Code-first taxonomy definitions
+│   ├── types/              # Shared TypeScript types
+│   └── validators/         # Request validators
 ├── inertia/               # Frontend React code
 │   ├── pages/             # Page components
 │   ├── components/        # Reusable components
@@ -100,14 +112,17 @@ adonis-eos/
 │   ├── migrations/        # Database schema
 │   └── seeders/          # Seed data
 ├── docs/                  # Documentation
+├── start/                 # App boot files (auto-register post types/modules/agents/roles/etc.)
+├── commands/              # Ace commands (including MCP + dump context)
 └── public/               # Static assets
 ```
 
 ## Next Steps
 
-- [API Reference](/docs/for-developers/api-reference) - Learn about available endpoints
-- [Building Modules](/docs/for-developers/building-modules) - Create custom content modules
+- [Content Management Overview](/docs/for-developers/content-management-overview) - Understanding the content model
 - [Theming](/docs/for-developers/theming) - Customize the design system
+- [Building Modules](/docs/for-developers/building-modules) - Create custom content modules
+- [API Reference](/docs/for-developers/api-reference) - Learn about available endpoints
 - [MCP (Model Context Protocol)](/docs/for-developers/mcp) - Connect external AI agents (Cursor, n8n) to CMS context + safe write tools
 - [Content Management](/docs/for-editors/content-management) - Managing posts and pages
 - [CLI Commands](/docs/for-developers/cli-commands) - Scaffold post types, modules, roles, menus, taxonomies

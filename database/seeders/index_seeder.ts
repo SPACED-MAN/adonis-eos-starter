@@ -23,6 +23,13 @@ export default class extends BaseSeeder {
       console.log('🧩 Development environment detected – importing development-export.json')
       await new DevelopmentImportSeeder(this.client).run()
       console.log('✅ Completed development import seeder\n')
+
+      // Always (re)seed documentation from markdown so new docs files are reflected
+      // even if the development export is stale.
+      await new DocumentationModuleGroupSeeder(this.client).run()
+      await new DocumentationSeeder(this.client).run()
+      await new DocumentationMenuSeeder(this.client).run()
+      console.log('✅ Completed documentation seeders (markdown-based)\n')
       return
     }
 

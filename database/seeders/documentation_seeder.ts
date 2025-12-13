@@ -403,22 +403,27 @@ export default class extends BaseSeeder {
 			// Group all editor guides under "For Editors"
 			'for-editors': [
 				'content-management',
-				'modules-guide',
 				'review-workflow',
+				'modules-guide',
 				'media',
 				'translations',
 				'roles-permissions',
 			],
-			// Group all developer guides under "For Developers"
+			// Group all developer guides under "For Developers" (ordered)
 			'for-developers': [
-				'api-reference',
-				'building-modules',
+				'content-management-overview',
 				'theming',
+				'building-modules',
+				'api-reference',
 				'routing',
 				'internationalization',
-				'content-management-overview',
+				'taxonomies',
 				'ai-agents',
+				'mcp',
 				'deployment',
+				'update-philosophy',
+				'cli-commands',
+				'launch',
 			],
 		}
 
@@ -492,8 +497,8 @@ export default class extends BaseSeeder {
 				slug = 'for-developers'
 			}
 
-			// Skip the index page - it's just a reference page, not needed in the CMS
-			if (slug === 'index' || slug === 'overview') {
+			// Skip reference-only pages (handled elsewhere or consolidated)
+			if (slug === 'index' || slug === 'overview' || slug === 'sitemap') {
 				console.log(`   ⏭️  Skipping ${slug} page (handled separately)\n`)
 				continue
 			}
@@ -557,7 +562,7 @@ export default class extends BaseSeeder {
 			console.log(`   ✓ Module added via API action\n`)
 		}
 
-		// Second pass: set parent_id relationships
+		// Second pass: set parent_id relationships (and ordering where defined)
 		console.log(`🔗 Setting up hierarchical relationships...`)
 		for (const [parentSlug, childSlugs] of Object.entries(hierarchy)) {
 			const parentId = postIdsBySlug[parentSlug]
@@ -566,14 +571,17 @@ export default class extends BaseSeeder {
 				continue
 			}
 
-			for (const childSlug of childSlugs) {
+			for (const [idx, childSlug] of childSlugs.entries()) {
 				const childId = postIdsBySlug[childSlug]
 				if (!childId) {
 					console.log(`   ⚠️  Child '${childSlug}' not found`)
 					continue
 				}
 
-				await db.from('posts').where('id', childId).update({ parent_id: parentId })
+				await db
+					.from('posts')
+					.where('id', childId)
+					.update({ parent_id: parentId, order_index: idx + 1 })
 
 				console.log(`   ✓ Set '${childSlug}' as child of '${parentSlug}'`)
 			}

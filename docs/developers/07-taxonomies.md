@@ -1,4 +1,4 @@
-# Taxonomies (Code-First Categories/Tags)
+# Taxonomies
 
 Adonis EOS supports code-first taxonomies that define how posts can be organized into categories or tags.
 
