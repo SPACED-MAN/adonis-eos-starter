@@ -82,6 +82,36 @@ node ace db:seed --force
 
 **Important:** Change the default admin password immediately after first login!
 
+## Launch (initial production content)
+
+Production seeding uses the same JSON import pipeline as the admin UI.
+
+### Before you launch
+- **Export curated content**: create `database/seed_data/production-export.json` from your staging or prep environment (Admin → Database Export, include IDs).
+- **Safety**: the production import seeder should only run on a **fresh/empty** database to avoid clobbering live data.
+- **Run migrations**: `node ace migration:run --force` on the target environment.
+
+### Seed production with the curated export
+
+Use the production import seeder (see `database/seeders/production_import_seeder.ts`):
+
+1) Copy your curated export to `database/seed_data/production-export.json` in your deploy artifact.
+2) Ensure the DB is empty and migrations are applied.
+3) Run:
+
+```bash
+NODE_ENV=production node ace db:seed --files database/seeders/production_import_seeder --force
+```
+
+4) Verify admin access and content in the UI.
+
+### Updating launch content close to go-live
+- Re-export from staging, replace `production-export.json`, and re-run the seeder on a fresh database.
+- If the database is not empty, the seeder will stop; drop/recreate (or truncate) before re-running.
+
+### Development parity
+- Development imports `database/seed_data/development-export.json` when `NODE_ENV=development` / `APP_ENV=development`.
+
 ## Build for Production
 
 ### 1. Install Dependencies

@@ -1,4 +1,4 @@
-# CLI Scaffolding
+# CLI Commands
 
 Code-first makers to scaffold common CMS artifacts.
 
@@ -27,7 +27,27 @@ Code-first makers to scaffold common CMS artifacts.
 ## MCP (Model Context Protocol)
 - Command: `node ace mcp:serve`
 - Purpose: Serve CMS context (post types, module schemas, global modules) to external AI agents via MCP.
-- See: `docs/developers/12-mcp.md`
+- See: `/docs/for-developers/mcp`
+
+## MCP context dump
+- Command: `node ace mcp:dump-context --out /tmp/mcp-context.json`
+- Purpose: Export code-derived MCP context (post types, module schemas, taxonomies) for auditing/diffing.
+
+## Database export/import (admin UI + services)
+- See: `/docs/for-developers/export-import`
+
+## Maintenance utilities
+- `node ace audit:internal-links` – scan for hardcoded internal URLs in content and suggest post references.
+- `node ace populate:canonical-urls` – backfill canonical URLs after URL pattern changes.
+
+## Operations & debugging
+
+- Activity logs:
+  - controller: `app/controllers/activity_logs_controller.ts`
+  - service: `app/services/activity_log_service.ts`
+
+- Webhooks:
+  - See: `/docs/for-developers/webhooks`
 
 ## Post Types (duplicate detection)
 - If a file exists, the command is skipped gracefully (no overwrite).

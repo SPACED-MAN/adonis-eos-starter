@@ -25,9 +25,9 @@ export function SidebarMenu({ nodes = [], currentPageId, title }: SidebarMenuPro
 			<div key={node.id}>
 				<Link
 					href={node.customUrl || node.url || '#'}
-					className={`block py-2 rounded text-sm transition-colors ${isCurrent
+					className={`block py-1.5 rounded text-xs transition-colors ${isCurrent
 						? 'bg-standout text-on-standout font-medium'
-						: 'text-neutral-medium hover:bg-backdrop-medium hover:text-neutral-high'
+						: 'text-neutral-high hover:bg-backdrop-medium'
 						}`}
 					style={{ paddingLeft: `${paddingLeft}px` }}
 				>

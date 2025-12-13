@@ -200,6 +200,29 @@ Your module is now available in the admin!
 }
 ```
 
+## Module Groups (Layout Templates)
+
+Module Groups are reusable “page templates” that help editors start from a consistent layout.
+
+### Key files
+
+- Admin controller: `app/controllers/module_groups_controller.ts`
+- Models: `app/models/module_group.ts`, `app/models/module_group_module.ts`
+- Tables: `module_groups`, `module_group_modules`
+
+### Concepts
+
+- A **module group** contains an ordered list of module types and default props.
+- When used to create a post, the system can:
+  - create modules in the correct order
+  - mark some modules as locked (cannot be removed)
+
+### Developer workflow
+
+- Add/modify allowed modules by updating module definitions and post type config.
+- Use the admin UI to curate “starter layouts” for editors.
+- When adding new modules, consider updating common module groups.
+
 ### Media Type
 
 ```typescript

@@ -415,15 +415,22 @@ export default class extends BaseSeeder {
 				'theming',
 				'building-modules',
 				'api-reference',
-				'routing',
+				'webhooks',
+				'seo-and-routing',
 				'internationalization',
 				'taxonomies',
 				'ai-agents',
 				'mcp',
+				'export-import',
+				'review-workflow-developers',
+				'media-pipeline',
+				'preview-system',
+				'menus',
+				'custom-fields',
+				'rbac-and-permissions',
 				'deployment',
 				'update-philosophy',
 				'cli-commands',
-				'launch',
 			],
 		}
 
@@ -474,7 +481,7 @@ export default class extends BaseSeeder {
 		console.log(`   ✓ Module added with docs index content\n`)
 
 		for (const [i, fileInfo] of allFiles.entries()) {
-			const { file, path: filePath } = fileInfo
+			const { file, path: filePath, dir } = fileInfo
 			const content = await readFile(filePath, 'utf-8')
 
 			// Extract order from filename (e.g., "00-index.md" -> 0)
@@ -502,6 +509,31 @@ export default class extends BaseSeeder {
 				console.log(`   ⏭️  Skipping ${slug} page (handled separately)\n`)
 				continue
 			}
+
+			/**
+			 * Slug collision handling
+			 *
+			 * Editors + Developers can legitimately have similarly named pages
+			 * (e.g. both may have "review-workflow"). Since slugs are unique per locale,
+			 * ensure we generate a deterministic unique slug for docs pages.
+			 *
+			 * Policy:
+			 * - Prefer the "plain" slug when available.
+			 * - If it collides, suffix with "-developers" or "-editors" based on the source dir.
+			 */
+			const dirSuffix = dir === 'developers' ? 'developers' : dir === 'editors' ? 'editors' : 'root'
+			const baseSlug = slug
+			let candidate = slug
+			if (postIdsBySlug[candidate]) {
+				candidate = `${baseSlug}-${dirSuffix}`
+			}
+			if (postIdsBySlug[candidate]) {
+				// last-resort: append counter
+				let n = 2
+				while (postIdsBySlug[`${candidate}-${n}`]) n++
+				candidate = `${candidate}-${n}`
+			}
+			slug = candidate
 
 			// Extract subtitle from first paragraph after H1
 			const subtitleMatch = content.match(/^#\s+.+\n\n(.+)$/m)

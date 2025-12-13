@@ -25,7 +25,7 @@ Technical documentation for developers and system administrators:
 ### Core Concepts
 - [Theming System](/docs/for-developers/theming) - Customizing colors and design
 - [Building Modules](/docs/for-developers/building-modules) - Creating content components
-- [URL Patterns & Routing](/docs/for-developers/routing) - Dynamic URL generation
+- [SEO & Routing](/docs/for-developers/seo-and-routing) - URL patterns, redirects, sitemap, and SEO
 - [Internationalization (i18n)](/docs/for-developers/internationalization) - Multi-language content
 
 ### Advanced Features
@@ -34,7 +34,7 @@ Technical documentation for developers and system administrators:
 - [MCP (Model Context Protocol)](/docs/for-developers/mcp) - Connect external AI agents (Cursor, n8n) to CMS context + safe write tools
 - [Deployment Guide](/docs/for-developers/deployment) - Production deployment strategies
  - [Update Philosophy](/docs/for-developers/update-philosophy) - How to approach upgrades and maintenance
-- [Launch Guide](/docs/for-developers/launch) - Production seeding via curated export
+- [Export/Import](/docs/for-developers/export-import) - Database export/import pipeline (dev seeding + production promotion)
 - [CLI Commands](/docs/for-developers/cli-commands) - Code-first makers (post types, modules, roles, menus, taxonomies)
 
 <!-- Coming Soon:
