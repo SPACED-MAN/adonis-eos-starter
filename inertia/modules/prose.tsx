@@ -16,7 +16,10 @@ interface LexicalJSON {
 }
 
 interface ProseProps {
-	content: LexicalJSON | string // Lexical JSON or pre-rendered HTML
+	// Lexical JSON or pre-rendered HTML.
+	// Note: content can be missing/undefined for older or partially-staged drafts;
+	// the renderer must be resilient to avoid SSR 500s.
+	content?: LexicalJSON | string | null
 	maxWidth?: string // Tailwind class (e.g., 'max-w-4xl')
 	fontSize?: string // Tailwind class (e.g., 'text-base')
 	backgroundColor?: string // Tailwind class
@@ -44,7 +47,9 @@ export default function Prose({
 	// Normalize content so that saved JSON strings from the editor still render
 	// as rich text instead of showing the raw JSON to the visitor.
 	let htmlContent: string
-	if (typeof content === 'string') {
+	if (content === undefined || content === null) {
+		htmlContent = '<p>Empty content</p>'
+	} else if (typeof content === 'string') {
 		const trimmed = content.trim()
 		const looksJson = trimmed.startsWith('{') || trimmed.startsWith('[')
 		if (looksJson) {
@@ -97,7 +102,7 @@ function escapeHtml(text: string): string {
  * For now, this is a client-side fallback.
  */
 function renderLexicalToHtml(json: LexicalJSON): string {
-	if (!json.root || !json.root.children) {
+	if (!json || !(json as any).root || !(json as any).root.children) {
 		return '<p>Empty content</p>'
 	}
 
@@ -171,7 +176,7 @@ function renderLexicalToHtml(json: LexicalJSON): string {
 		}
 	}
 
-	return json.root.children.map(renderNode).join('')
+	return (json as any).root.children.map(renderNode).join('')
 }
 
 

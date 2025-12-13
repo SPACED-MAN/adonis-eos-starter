@@ -18,12 +18,16 @@ export interface ModuleRenderData {
   overrides?: Record<string, unknown> | null
   reviewProps?: Record<string, unknown> | null
   reviewOverrides?: Record<string, unknown> | null
+  aiReviewProps?: Record<string, unknown> | null
+  aiReviewOverrides?: Record<string, unknown> | null
   globalSlug?: string | null
   globalLabel?: string | null
   locked?: boolean
   orderIndex: number
   reviewAdded?: boolean
   reviewDeleted?: boolean
+  aiReviewAdded?: boolean
+  aiReviewDeleted?: boolean
 }
 
 /**
@@ -101,12 +105,16 @@ class PostRenderingService {
         overrides: row.overrides || null,
         reviewProps: includeReviewFields ? (module as any)?.reviewProps || null : null,
         reviewOverrides: includeReviewFields ? row.reviewOverrides || null : null,
+        aiReviewProps: includeReviewFields ? (module as any)?.aiReviewProps || null : null,
+        aiReviewOverrides: includeReviewFields ? (row as any).aiReviewOverrides || null : null,
         locked: row.locked,
         orderIndex: row.orderIndex,
         globalSlug: (module as any)?.globalSlug || null,
         globalLabel: (module as any)?.globalLabel || null,
         reviewAdded: includeReviewFields ? row.reviewAdded || false : false,
         reviewDeleted: includeReviewFields ? row.reviewDeleted || false : false,
+        aiReviewAdded: includeReviewFields ? (row as any).aiReviewAdded || false : false,
+        aiReviewDeleted: includeReviewFields ? (row as any).aiReviewDeleted || false : false,
       }
     })
   }
@@ -119,6 +127,7 @@ class PostRenderingService {
     options: {
       wantReview?: boolean
       reviewDraft?: Record<string, unknown> | null
+      draftMode?: 'review' | 'ai-review' | 'auto'
     } = {}
   ): Promise<
     Array<{
@@ -135,7 +144,7 @@ class PostRenderingService {
       aiReviewOverrides?: Record<string, unknown> | null
     }>
   > {
-    const { wantReview = false, reviewDraft = null } = options
+    const { wantReview = false, reviewDraft = null, draftMode = 'review' } = options
 
     // Get removed module IDs from review draft
     const removedInReview = new Set<string>(
@@ -147,36 +156,66 @@ class PostRenderingService {
     const filtered = modules
       .filter((pm) => !removedInReview.has(pm.id))
       .filter((pm) => !(wantReview && pm.reviewDeleted === true))
-      .filter((pm) => (wantReview ? true : pm.reviewAdded !== true))
+      .filter((pm) => (wantReview ? true : pm.reviewAdded !== true && (pm as any).aiReviewAdded !== true))
 
     const prepared = await Promise.all(
       filtered.map(async (pm) => {
         const isLocal = pm.scope === 'post'
-        const useReview = wantReview && reviewDraft
+
+        // Draft selection:
+        // - review: only use review_* fields (requires reviewDraft)
+        // - ai-review: only use ai_review_* fields (requires aiReviewDraft)
+        // - auto: prefer reviewDraft when present; otherwise fall back to ai-review fields
+        const useReviewDraft = (() => {
+          if (!wantReview) return false
+          if (draftMode === 'ai-review') return false
+          return Boolean(reviewDraft)
+        })()
+
+        const useAiReviewDraft = (() => {
+          if (!wantReview) return false
+          if (draftMode === 'review') return false
+          // auto: use ai-review when no reviewDraft
+          return !reviewDraft
+        })()
 
         let mergedProps: Record<string, unknown>
 
-        if (useReview) {
+        // Always start from module defaults to prevent SSR crashes when props are partial/malformed.
+        // This is especially important for AI-generated drafts or legacy data.
+        const module = moduleRegistry.get(pm.type)
+        const defaultProps = (module.getConfig?.().defaultProps || {}) as Record<string, unknown>
+
+        if (useReviewDraft) {
           if (isLocal) {
             const baseProps = (pm as any).reviewProps || pm.props || {}
             const overrides = (pm as any).overrides || {}
-            mergedProps = { ...baseProps, ...overrides }
+            mergedProps = { ...defaultProps, ...(baseProps as any), ...(overrides as any) }
           } else {
             const baseProps = pm.props || {}
             const overrides = (pm as any).reviewOverrides || (pm as any).overrides || {}
-            mergedProps = { ...baseProps, ...overrides }
+            mergedProps = { ...defaultProps, ...(baseProps as any), ...(overrides as any) }
+          }
+        } else if (useAiReviewDraft) {
+          if (isLocal) {
+            const baseProps = (pm as any).aiReviewProps || pm.props || {}
+            const overrides = (pm as any).overrides || {}
+            mergedProps = { ...defaultProps, ...(baseProps as any), ...(overrides as any) }
+          } else {
+            const baseProps = pm.props || {}
+            const overrides = (pm as any).aiReviewOverrides || (pm as any).overrides || {}
+            mergedProps = { ...defaultProps, ...(baseProps as any), ...(overrides as any) }
           }
         } else {
           const baseProps = pm.props || {}
           const overrides = (pm as any).overrides || {}
-          mergedProps = { ...baseProps, ...overrides }
+          mergedProps = { ...defaultProps, ...(baseProps as any), ...(overrides as any) }
         }
 
         // Resolve post references to actual URLs
         mergedProps = await resolvePostReferences(mergedProps)
 
-        // Get module from registry to determine rendering mode
-        const module = moduleRegistry.get(pm.type)
+        // Determine rendering mode
         const componentName = module.getComponentName()
         const renderingMode = module.getRenderingMode()
 
@@ -332,27 +371,40 @@ class PostRenderingService {
       protocol: string
       host: string
       wantReview?: boolean
+      draftMode?: 'review' | 'ai-review' | 'auto'
     } = { protocol: 'https', host: 'localhost' }
   ): Promise<PageRenderData> {
     const reviewDraft = (post as any).reviewDraft || (post as any).review_draft || null
-    const { wantReview = false } = options
+    const aiReviewDraft = (post as any).aiReviewDraft || (post as any).ai_review_draft || null
+    const { wantReview = false, draftMode = 'review' } = options
 
     // Load modules
     const modulesRaw = await this.loadPostModules(post.id, { includeReviewFields: true })
-    const modules = await this.buildModulesForView(modulesRaw, { wantReview, reviewDraft })
+    const modules = await this.buildModulesForView(modulesRaw, {
+      wantReview,
+      reviewDraft: draftMode === 'ai-review' ? null : reviewDraft,
+      draftMode: draftMode === 'auto' ? (reviewDraft ? 'review' : 'ai-review') : draftMode,
+    })
 
     // Load author
     const authorId = (post as any).authorId || (post as any).author_id
     const author = await this.loadAuthor(authorId)
 
     // Build SEO
-    const seo = await this.buildSeoData(post, { ...options, reviewDraft })
+    // SEO is currently derived from reviewDraft; for AI review previews, fall back to aiReviewDraft
+    const seo = await this.buildSeoData(post, {
+      ...options,
+      reviewDraft: draftMode === 'ai-review' ? (aiReviewDraft as any) : reviewDraft,
+    })
 
     // Load site settings
     const siteSettings = await siteSettingsService.get()
 
     // Resolve post fields
-    const postData = this.resolvePostFields(post, { wantReview, reviewDraft })
+    const postData = this.resolvePostFields(post, {
+      wantReview,
+      reviewDraft: draftMode === 'ai-review' ? (aiReviewDraft as any) : reviewDraft,
+    })
     postData.author = author
 
     // Build breadcrumb trail from hierarchy
@@ -363,7 +415,7 @@ class PostRenderingService {
       modules,
       seo,
       siteSettings: siteSettings as Record<string, unknown>,
-      hasReviewDraft: Boolean(reviewDraft),
+      hasReviewDraft: Boolean(reviewDraft || aiReviewDraft),
       breadcrumbTrail,
     }
   }

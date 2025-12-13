@@ -196,7 +196,6 @@ export default function Editor({
     customFields: Array.isArray(reviewDraft.customFields) ? reviewDraft.customFields : ((Array.isArray(initialCustomFields) ? initialCustomFields.map(f => ({ fieldId: f.id, slug: f.slug, value: f.value ?? null })) : [])),
     taxonomyTermIds: selectedTaxonomyTermIds,
   } : null)
-  const [viewMode, setViewMode] = useState<'approved' | 'review' | 'ai-review'>('approved')
   const [pendingModules, setPendingModules] = useState<Record<string, { overrides: Record<string, any> | null; edited: Record<string, any> }>>({})
   const [pendingRemoved, setPendingRemoved] = useState<Set<string>>(new Set())
   const [pendingReviewRemoved, setPendingReviewRemoved] = useState<Set<string>>(new Set())
@@ -335,34 +334,20 @@ export default function Editor({
     slug: d.slug,
     excerpt: d.excerpt,
     status: d.status,
-    parentId: (d as any).parentId,
+    parentId: String((d as any).parentId || '').trim() || null,
     orderIndex: d.orderIndex,
-    metaTitle: d.metaTitle,
-    metaDescription: d.metaDescription,
-    canonicalUrl: d.canonicalUrl,
+    metaTitle: String(d.metaTitle || '').trim() || null,
+    metaDescription: String(d.metaDescription || '').trim() || null,
+    canonicalUrl: String(d.canonicalUrl || '').trim() || null,
     robotsJson: d.robotsJson,
     jsonldOverrides: d.jsonldOverrides,
-    featuredImageId: (d as any).featuredImageId,
+    featuredImageId: String((d as any).featuredImageId || '').trim() || null,
     customFields: Array.isArray((d as any).customFields)
       ? (d as any).customFields.map((e: any) => ({ fieldId: e.fieldId, slug: e.slug, value: e.value }))
       : [],
     taxonomyTermIds: Array.isArray((d as any).taxonomyTermIds) ? (d as any).taxonomyTermIds : [],
   })
   const modulesEnabled = uiConfig?.modulesEnabled !== false
-  const isDirty = useMemo(() => {
-    try {
-      const baseline = viewMode === 'review' && reviewInitialRef.current ? reviewInitialRef.current : initialDataRef.current
-      const fieldsChanged = JSON.stringify(pickForm(data)) !== JSON.stringify(baseline)
-      const modulesPending = modulesEnabled ? Object.keys(pendingModules).length > 0 : false
-      const removalsPendingApproved = modulesEnabled ? pendingRemoved.size > 0 : false
-      const removalsPendingReview = modulesEnabled ? pendingReviewRemoved.size > 0 : false
-      const newModulesPending = modulesEnabled ? pendingNewModules.length > 0 : false
-      const structuralChanges = modulesEnabled ? hasStructuralChanges : false
-      return fieldsChanged || modulesPending || removalsPendingApproved || removalsPendingReview || newModulesPending || structuralChanges
-    } catch {
-      return true
-    }
-  }, [data, viewMode, pendingModules, pendingRemoved, pendingReviewRemoved, pendingNewModules, hasStructuralChanges, modulesEnabled])
 
 
   // CSRF/XSRF token for fetch requests
@@ -407,6 +392,53 @@ export default function Editor({
   const [modules, setModules] = useState<EditorProps['modules']>(
     modulesEnabled ? initialModules || [] : []
   )
+
+  const hasApprovedBaseline = useMemo(() => {
+    // "Approved" should only exist if there is at least one module not introduced via Review/AI Review
+    return (modules || []).some((m) => !m.reviewAdded && !(m as any).aiReviewAdded)
+  }, [modules])
+
+  const hasReviewBaseline = useMemo(() => Boolean(reviewDraft), [reviewDraft])
+  const hasAiReviewBaseline = useMemo(() => Boolean(aiReviewDraft), [aiReviewDraft])
+
+  const initialViewMode: 'approved' | 'review' | 'ai-review' = useMemo(() => {
+    if (hasReviewBaseline) return 'review'
+    if (!hasApprovedBaseline && hasAiReviewBaseline) return 'ai-review'
+    return 'approved'
+  }, [hasReviewBaseline, hasApprovedBaseline, hasAiReviewBaseline])
+
+  const [viewMode, setViewMode] = useState<'approved' | 'review' | 'ai-review'>(initialViewMode)
+  const isDirty = useMemo(() => {
+    try {
+      const baseline =
+        viewMode === 'review' && reviewInitialRef.current ? reviewInitialRef.current : initialDataRef.current
+      const fieldsChanged = JSON.stringify(pickForm(data)) !== JSON.stringify(baseline)
+      const modulesPending = modulesEnabled ? Object.keys(pendingModules).length > 0 : false
+      const removalsPendingApproved = modulesEnabled ? pendingRemoved.size > 0 : false
+      const removalsPendingReview = modulesEnabled ? pendingReviewRemoved.size > 0 : false
+      const newModulesPending = modulesEnabled ? pendingNewModules.length > 0 : false
+      const structuralChanges = modulesEnabled ? hasStructuralChanges : false
+      return (
+        fieldsChanged ||
+        modulesPending ||
+        removalsPendingApproved ||
+        removalsPendingReview ||
+        newModulesPending ||
+        structuralChanges
+      )
+    } catch {
+      return true
+    }
+  }, [
+    data,
+    viewMode,
+    pendingModules,
+    pendingRemoved,
+    pendingReviewRemoved,
+    pendingNewModules,
+    hasStructuralChanges,
+    modulesEnabled,
+  ])
   const [pathPattern, setPathPattern] = useState<string | null>(null)
   const [supportedLocales, setSupportedLocales] = useState<string[]>([])
   const [selectedLocale, setSelectedLocale] = useState<string>(post.locale)
@@ -837,6 +869,17 @@ export default function Editor({
     [viewMode]
   )
 
+  // If a post has no approved baseline and only AI Review exists, keep the UI on AI Review.
+  useEffect(() => {
+    if (!hasApprovedBaseline && hasAiReviewBaseline && viewMode === 'approved') {
+      setViewMode('ai-review')
+    }
+    if (!hasReviewBaseline && viewMode === 'review') {
+      // Review draft removed/absent; fall back safely.
+      setViewMode(hasAiReviewBaseline ? 'ai-review' : (hasApprovedBaseline ? 'approved' : 'ai-review'))
+    }
+  }, [hasApprovedBaseline, hasAiReviewBaseline, hasReviewBaseline, viewMode])
+
   const sortedModules = useMemo(() => {
     const baseAll = modules.slice().sort((a, b) => a.orderIndex - b.orderIndex)
 
@@ -853,8 +896,8 @@ export default function Editor({
       return base.map(adjustModuleForView)
     }
 
-    // Approved view: hide review-added modules
-    const base = baseAll.filter((m) => !m.reviewAdded)
+    // Approved view: hide review-added and ai-review-added modules
+    const base = baseAll.filter((m) => !m.reviewAdded && !(m as any).aiReviewAdded)
     return base.map(adjustModuleForView)
   }, [modules, viewMode, pendingReviewRemoved, adjustModuleForView])
 
@@ -1034,11 +1077,14 @@ export default function Editor({
                             <p className="text-xs text-neutral-low">No terms available for {tax.name}</p>
                           ) : (
                             <div className="space-y-2">
-                              {tax.options.map((opt) => {
+                              {tax.options.map((opt, idx) => {
                                 const checked = selectedTaxonomyTerms.has(opt.id)
                                 const disableUnchecked = !checked && selectedCount >= limit
                                 return (
-                                  <label key={opt.id} className="flex items-center gap-2 text-sm text-neutral-high">
+                                  <label
+                                    key={`${tax.slug}:${String(opt.id || idx)}`}
+                                    className="flex items-center gap-2 text-sm text-neutral-high"
+                                  >
                                     <Checkbox
                                       checked={checked}
                                       disabled={disableUnchecked}
@@ -1596,14 +1642,16 @@ export default function Editor({
                 {/* View toggle */}
                 <div className="flex items-center gap-2">
                   <div className="inline-flex rounded border border-border overflow-hidden">
-                    <button
-                      type="button"
-                      onClick={() => setViewMode('approved')}
-                      className={`px-2 py-1 text-xs ${viewMode === 'approved' ? 'bg-backdrop-medium text-neutral-high' : 'text-neutral-medium hover:bg-backdrop-medium'}`}
-                    >
-                      Approved
-                    </button>
-                    {canSaveForReview && (
+                    {hasApprovedBaseline && (
+                      <button
+                        type="button"
+                        onClick={() => setViewMode('approved')}
+                        className={`px-2 py-1 text-xs ${viewMode === 'approved' ? 'bg-backdrop-medium text-neutral-high' : 'text-neutral-medium hover:bg-backdrop-medium'}`}
+                      >
+                        Approved
+                      </button>
+                    )}
+                    {hasReviewBaseline && canSaveForReview && (
                       <button
                         type="button"
                         onClick={() => setViewMode('review')}
@@ -1612,7 +1660,7 @@ export default function Editor({
                         Review
                       </button>
                     )}
-                    {aiReviewDraft && canSaveForAiReview && (
+                    {hasAiReviewBaseline && canSaveForAiReview && (
                       <button
                         type="button"
                         onClick={() => setViewMode('ai-review')}
@@ -2066,7 +2114,9 @@ export default function Editor({
                         setViewMode('review')
                         window.location.reload()
                       } else {
-                        toast.error('Failed to approve AI review')
+                        const err = await res.json().catch(() => null)
+                        console.error('Approve AI Review failed:', res.status, err)
+                        toast.error(err?.errors ? 'Failed to approve AI review (validation)' : 'Failed to approve AI review')
                       }
                     }}
                     type="button"
@@ -2096,7 +2146,9 @@ export default function Editor({
                         reviewInitialRef.current = null
                         setViewMode('approved')
                       } else {
-                        toast.error('Failed to approve review')
+                        const err = await res.json().catch(() => null)
+                        console.error('Approve Review failed:', res.status, err)
+                        toast.error(err?.errors ? 'Failed to approve review (validation)' : 'Failed to approve review')
                       }
                     }}
                     type="button"

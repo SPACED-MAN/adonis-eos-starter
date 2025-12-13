@@ -1,0 +1,297 @@
+import { marked } from 'marked'
+
+/**
+ * Convert markdown to Lexical JSON using marked.js lexer.
+ *
+ * This is used for seeding docs and for MCP helpers so agents can provide markdown
+ * instead of hand-authoring Lexical JSON.
+ */
+export function markdownToLexical(
+  markdown: string,
+  opts: { skipFirstH1?: boolean } = {}
+): any {
+  const skipFirstH1 = opts.skipFirstH1 !== false
+
+  marked.setOptions({
+    gfm: true,
+    breaks: false,
+    pedantic: false,
+  })
+
+  const tokens = marked.lexer(markdown || '')
+
+  const children: any[] = []
+  let skippedFirstH1 = false
+
+  for (const token of tokens as any[]) {
+    if (skipFirstH1 && token.type === 'heading' && token.depth === 1 && !skippedFirstH1) {
+      skippedFirstH1 = true
+      continue
+    }
+    const node = tokenToLexicalNode(token)
+    if (node) children.push(node)
+  }
+
+  return {
+    root: {
+      type: 'root',
+      direction: 'ltr',
+      format: '',
+      indent: 0,
+      version: 1,
+      children,
+    },
+  }
+}
+
+function tokenToLexicalNode(token: any): any {
+  switch (token.type) {
+    case 'heading': {
+      let headingTokens = token.tokens
+      if (!headingTokens && token.text) {
+        headingTokens = marked.lexer.lexInline(token.text)
+      }
+      return {
+        type: 'heading',
+        tag: `h${token.depth}`,
+        direction: 'ltr',
+        format: '',
+        indent: 0,
+        version: 1,
+        children: inlineTokensToLexical(headingTokens || []),
+      }
+    }
+
+    case 'paragraph': {
+      let inlineTokens = token.tokens
+      if (!inlineTokens && token.text) {
+        inlineTokens = marked.lexer.lexInline(token.text)
+      }
+      return {
+        type: 'paragraph',
+        direction: 'ltr',
+        format: '',
+        indent: 0,
+        version: 1,
+        children: inlineTokensToLexical(inlineTokens || []),
+      }
+    }
+
+    case 'list':
+      return {
+        type: 'list',
+        listType: token.ordered ? 'number' : 'bullet',
+        start: token.start || 1,
+        tag: token.ordered ? 'ol' : 'ul',
+        direction: 'ltr',
+        format: '',
+        indent: 0,
+        version: 1,
+        children: (token.items || []).map((item: any) => listItemToLexical(item)),
+      }
+
+    case 'code':
+      return {
+        type: 'code',
+        language: token.lang || 'typescript',
+        direction: 'ltr',
+        format: '',
+        indent: 0,
+        version: 1,
+        children: [
+          {
+            type: 'text',
+            text: token.text,
+            detail: 0,
+            format: 0,
+            mode: 'normal',
+            style: '',
+            version: 1,
+          },
+        ],
+      }
+
+    case 'blockquote': {
+      const childTokens = token.tokens || []
+      const quoteChildren = childTokens.map((t: any) => tokenToLexicalNode(t)).filter(Boolean)
+      return {
+        type: 'quote',
+        direction: 'ltr',
+        format: '',
+        indent: 0,
+        version: 1,
+        children: quoteChildren.length ? quoteChildren : [{ type: 'paragraph', children: [], direction: 'ltr', format: '', indent: 0, version: 1 }],
+      }
+    }
+
+    case 'hr':
+      return {
+        type: 'horizontalrule',
+        version: 1,
+      }
+
+    case 'space':
+    case 'text': {
+      const raw = String(token.text || '').trim()
+      if (!raw) return null
+      const inline = marked.lexer.lexInline(raw)
+      return {
+        type: 'paragraph',
+        direction: 'ltr',
+        format: '',
+        indent: 0,
+        version: 1,
+        children: inlineTokensToLexical(inline || []),
+      }
+    }
+
+    default:
+      return null
+  }
+}
+
+function listItemToLexical(item: any): any {
+  const children: any[] = []
+
+  // marked list items often contain tokens for nested content
+  const itemTokens: any[] = Array.isArray(item.tokens) ? item.tokens : []
+
+  // When item has inline tokens only (e.g. task list), normalize to a paragraph
+  if (itemTokens.length === 0 && item.text) {
+    const inline = marked.lexer.lexInline(String(item.text))
+    children.push({
+      type: 'paragraph',
+      direction: 'ltr',
+      format: '',
+      indent: 0,
+      version: 1,
+      children: inlineTokensToLexical(inline || []),
+    })
+  } else {
+    for (const token of itemTokens) {
+      if (token.type === 'text') {
+        const inlineTokens = token.tokens || marked.lexer.lexInline(String(token.text || ''))
+        children.push({
+          type: 'paragraph',
+          direction: 'ltr',
+          format: '',
+          indent: 0,
+          version: 1,
+          children: inlineTokensToLexical(inlineTokens),
+        })
+        continue
+      }
+      const node = tokenToLexicalNode(token)
+      if (node) children.push(node)
+    }
+  }
+
+  return {
+    type: 'listitem',
+    direction: 'ltr',
+    format: '',
+    indent: 0,
+    version: 1,
+    checked: undefined,
+    value: 1,
+    children,
+  }
+}
+
+function inlineTokensToLexical(tokens: any[]): any[] {
+  const out: any[] = []
+
+  for (const token of tokens || []) {
+    switch (token.type) {
+      case 'text':
+        if (token.text) {
+          out.push({
+            type: 'text',
+            text: token.text,
+            detail: 0,
+            format: 0,
+            mode: 'normal',
+            style: '',
+            version: 1,
+          })
+        }
+        break
+
+      case 'strong': {
+        const children = inlineTokensToLexical(token.tokens || [])
+        for (const child of children) {
+          if (child.type === 'text') child.format = (child.format || 0) | 1
+          out.push(child)
+        }
+        break
+      }
+
+      case 'em': {
+        const children = inlineTokensToLexical(token.tokens || [])
+        for (const child of children) {
+          if (child.type === 'text') child.format = (child.format || 0) | 2
+          out.push(child)
+        }
+        break
+      }
+
+      case 'codespan':
+        out.push({
+          type: 'text',
+          text: token.text || '',
+          detail: 0,
+          format: 16,
+          mode: 'normal',
+          style: '',
+          version: 1,
+        })
+        break
+
+      case 'br':
+        out.push({ type: 'linebreak', version: 1 })
+        break
+
+      case 'link': {
+        const linkTokens = token.tokens || marked.lexer.lexInline(String(token.text || ''))
+        const children = inlineTokensToLexical(linkTokens || [])
+        out.push({
+          type: 'link',
+          url: token.href || '#',
+          title: token.title || '',
+          rel: 'noreferrer noopener',
+          target: '_blank',
+          direction: 'ltr',
+          format: '',
+          indent: 0,
+          version: 1,
+          children,
+        })
+        break
+      }
+
+      default:
+        if (token.raw) {
+          out.push({
+            type: 'text',
+            text: String(token.raw),
+            detail: 0,
+            format: 0,
+            mode: 'normal',
+            style: '',
+            version: 1,
+          })
+        }
+        break
+    }
+  }
+
+  return out
+}
+
+
+
+
+
+
+
+

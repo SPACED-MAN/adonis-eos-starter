@@ -4,6 +4,7 @@ import CreatePost from '#actions/posts/create_post'
 import AddModuleToPost from '#actions/posts/add_module_to_post'
 import { readFile, readdir } from 'node:fs/promises'
 import { join } from 'node:path'
+import { markdownToLexical } from '#helpers/markdown_to_lexical'
 import { marked } from 'marked'
 
 export default class extends BaseSeeder {
@@ -11,42 +12,7 @@ export default class extends BaseSeeder {
 	 * Convert markdown to Lexical JSON using marked.js lexer
 	 */
 	private async markdownToLexical(markdown: string): Promise<any> {
-		// Configure marked to enable all features
-		marked.setOptions({
-			gfm: true, // GitHub Flavored Markdown
-			breaks: false,
-			pedantic: false,
-		})
-
-		// Use marked lexer to parse markdown into tokens with full inline parsing
-		const tokens = marked.lexer(markdown)
-
-		const children: any[] = []
-		let skippedFirstH1 = false
-
-		for (const token of tokens) {
-			// Skip the first H1 since the page title will be rendered separately
-			if (token.type === 'heading' && token.depth === 1 && !skippedFirstH1) {
-				skippedFirstH1 = true
-				continue
-			}
-
-			const lexicalNode = this.tokenToLexicalNode(token)
-			if (lexicalNode) {
-				children.push(lexicalNode)
-			}
-		}
-
-		return {
-			root: {
-				type: 'root',
-				direction: 'ltr',
-				format: '',
-				indent: 0,
-				version: 1,
-				children,
-			},
-		}
+		return markdownToLexical(markdown, { skipFirstH1: true })
 	}
 
 	/**

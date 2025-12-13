@@ -21,6 +21,7 @@ import CreateTranslation from '#actions/translations/create_translation'
 import previewService from '#services/preview_service'
 import taxonomyService from '#services/taxonomy_service'
 import { getUserIdForAgent } from '#services/agent_user_service'
+import { markdownToLexical } from '#helpers/markdown_to_lexical'
 
 type JsonTextResult = {
   content: Array<{ type: 'text'; text: string }>
@@ -59,6 +60,75 @@ function resolveAgentLabel(input?: { agentId?: string; agentName?: string }): st
   const agentName = (input?.agentName || '').trim()
   return agentName || 'AI Agent'
 }
+
+function stripMarkdownInline(s: string): string {
+  return String(s || '')
+    .replace(/`{1,3}([^`]+)`{1,3}/g, '$1')
+    .replace(/\*\*([^*]+)\*\*/g, '$1')
+    .replace(/\*([^*]+)\*/g, '$1')
+    .replace(/_([^_]+)_/g, '$1')
+    .replace(/\[([^\]]+)\]\([^)]+\)/g, '$1')
+    .replace(/!\[([^\]]*)\]\([^)]+\)/g, '$1')
+    .trim()
+}
+
+function extractMarkdownH1(md: string): string | null {
+  const s = String(md || '')
+  // Prefer the first ATX h1
+  const m = s.match(/^\s*#\s+(.+?)\s*$/m)
+  if (m?.[1]) return stripMarkdownInline(m[1])
+  return null
+}
+
+function extractMarkdownParagraphs(md: string): string[] {
+  const s = String(md || '')
+  // Very lightweight: split on blank lines, ignore headings/code blocks.
+  const blocks = s.split(/\n\s*\n+/g).map((b) => b.trim())
+  const paras: string[] = []
+  for (const b of blocks) {
+    if (!b) continue
+    if (/^\s*#{1,6}\s+/.test(b)) continue
+    if (/^\s*```/.test(b)) continue
+    // skip lists; we only want short descriptive paragraphs
+    if (/^\s*[-*]\s+/.test(b) || /^\s*\d+\.\s+/.test(b)) continue
+    const oneLine = stripMarkdownInline(b.replace(/\s+/g, ' '))
+    if (oneLine.length >= 20) paras.push(oneLine)
+    if (paras.length >= 5) break
+  }
+  return paras
+}
+
+function extractMarkdownH2s(md: string): string[] {
+  const s = String(md || '')
+  const matches = [...s.matchAll(/^\s*##\s+(.+?)\s*$/gm)]
+  return matches.map((m) => stripMarkdownInline(m[1] || '')).filter(Boolean)
+}
+
+const moduleEditSchema = z.object({
+  /**
+   * Preferred targeting: explicit postModuleId.
+   */
+  postModuleId: z.string().optional().describe('Target postModuleId (recommended if known).'),
+  /**
+   * Convenience targeting when creating a post: match the seeded template module.
+   */
+  type: z.string().optional().describe('Module type selector (used when postModuleId is not provided).'),
+  orderIndex: z
+    .number()
+    .int()
+    .optional()
+    .describe('Order index selector (used with type when postModuleId is not provided).'),
+  /**
+   * Props/overrides to apply in AI Review.
+   * Note: for local modules these are merged into ai_review_props; for global modules into ai_review_overrides.
+   */
+  overrides: z.record(z.any()).nullable().optional(),
+  /**
+   * Convenience for prose modules: provide markdown and the server will convert it to Lexical JSON
+   * and apply it as overrides.content.
+   */
+  contentMarkdown: z.string().optional(),
+})
 
 function getSystemUserId(): number | null {
   const raw = String(process.env.MCP_SYSTEM_USER_ID || '').trim()
@@ -177,9 +247,76 @@ function createServerInstance() {
     async ({ postType }) => {
       try {
         const cfg = postTypeConfigService.getUiConfig(postType)
-        return jsonResult({ data: cfg })
+        // Enrich with module group context from DB (editor parity)
+        const moduleGroups = cfg.moduleGroupsEnabled
+          ? await db
+            .from('module_groups')
+            .where('post_type', postType)
+            .orderBy('updated_at', 'desc')
+            .select('id', 'name', 'description', 'locked', 'post_type')
+          : []
+
+        const defaultName = cfg.moduleGroup?.name
+        const defaultModuleGroup = cfg.moduleGroupsEnabled
+          ? moduleGroups.find((g: any) => defaultName && String(g.name) === String(defaultName)) ||
+          (moduleGroups.length === 1 ? moduleGroups[0] : null)
+          : null
+
+        return jsonResult({
+          data: {
+            ...cfg,
+            moduleGroups,
+            defaultModuleGroup,
+          },
+        })
       } catch (e: any) {
         return errorResult('Failed to load post type config', { message: e?.message })
+      }
+    }
+  )
+
+  // Module Groups (DB-backed templates for module layouts)
+  server.tool(
+    'list_module_groups',
+    'List module groups (layout templates) from the database (optionally filtered by post type)',
+    {
+      postType: z.string().optional().describe('Optional post type slug (e.g. "page", "blog")'),
+      q: z.string().optional().describe('Optional substring match for module group name'),
+      limit: z.number().int().min(1).max(500).optional().describe('Max rows (default 200)'),
+    },
+    async ({ postType, q, limit }) => {
+      try {
+        const max = typeof limit === 'number' ? limit : 200
+        const query = db.from('module_groups')
+        if (postType) query.where('post_type', postType)
+        if (q) query.andWhereILike('name', `%${q}%`)
+        const rows = await query.orderBy('updated_at', 'desc').limit(max)
+        return jsonResult({ data: rows })
+      } catch (e: any) {
+        return errorResult('Failed to list module groups', { message: e?.message })
+      }
+    }
+  )
+
+  server.tool(
+    'get_module_group',
+    'Get a single module group and its ordered module list',
+    {
+      moduleGroupId: z.string().min(1),
+    },
+    async ({ moduleGroupId }) => {
+      try {
+        const group = await db.from('module_groups').where('id', moduleGroupId).first()
+        if (!group) return errorResult('Module group not found', { moduleGroupId })
+
+        const modules = await db
+          .from('module_group_modules')
+          .where('module_group_id', moduleGroupId)
+          .orderBy('order_index', 'asc')
+
+        return jsonResult({ data: { ...group, modules } })
+      } catch (e: any) {
+        return errorResult('Failed to load module group', { message: e?.message })
       }
     }
   )
@@ -400,6 +537,8 @@ function createServerInstance() {
           .join('module_instances as mi', 'pm.module_id', 'mi.id')
           .where('pm.post_id', postId)
           .orderBy('pm.order_index', 'asc')
+          .orderBy('pm.created_at', 'asc')
+          .orderBy('pm.id', 'asc')
           .select(
             'pm.id as postModuleId',
             'pm.order_index as orderIndex',
@@ -486,10 +625,44 @@ function createServerInstance() {
       slug: z.string().min(1),
       title: z.string().min(1),
       excerpt: z.string().optional(),
+      contentMarkdown: z
+        .string()
+        .optional()
+        .describe(
+          'Convenience: if provided, Adonis EOS will populate the first seeded `prose` module by converting this markdown to Lexical JSON and staging it into `content` (AI Review).'
+        ),
+      moduleGroupId: z
+        .string()
+        .optional()
+        .describe('Optional module group id to seed modules from (overrides default post type module group).'),
+      moduleGroupName: z
+        .string()
+        .optional()
+        .describe(
+          'Optional module group name to seed modules from (looked up by {post_type,type}+name). If provided, takes precedence over moduleGroupId.'
+        ),
+      moduleEdits: z
+        .array(moduleEditSchema)
+        .optional()
+        .describe(
+          'Optional module edits to apply immediately after creation (AI Review). Useful for populating seeded template modules.'
+        ),
       agentId: z.string().optional(),
       agentName: z.string().optional(),
     },
-    async ({ type, locale, slug, title, excerpt, agentId, agentName }) => {
+    async ({
+      type,
+      locale,
+      slug,
+      title,
+      excerpt,
+      contentMarkdown,
+      moduleGroupId,
+      moduleGroupName,
+      moduleEdits,
+      agentId,
+      agentName,
+    }) => {
       const actorUserId = await resolveActorUserId({ agentId })
       if (!actorUserId) {
         return errorResult(
@@ -502,6 +675,16 @@ function createServerInstance() {
       }
       const savedBy = resolveAgentLabel({ agentId, agentName })
       try {
+        const resolvedModuleGroupId = await (async () => {
+          const name = String(moduleGroupName || '').trim()
+          if (name) {
+            const row = await db.from('module_groups').where({ post_type: type, name }).first()
+            if (row) return String((row as any).id)
+          }
+          const id = String(moduleGroupId || '').trim()
+          return id || null
+        })()
+
         const post = await CreatePost.handle({
           type,
           locale,
@@ -511,6 +694,8 @@ function createServerInstance() {
           excerpt: excerpt ?? null,
           metaTitle: null,
           metaDescription: null,
+          moduleGroupId: resolvedModuleGroupId,
+          seedMode: 'ai-review',
           userId: actorUserId,
         })
 
@@ -534,8 +719,196 @@ function createServerInstance() {
           userId: actorUserId,
         })
 
+        const seededModules = await db
+          .from('post_modules as pm')
+          .join('module_instances as mi', 'pm.module_id', 'mi.id')
+          .where('pm.post_id', post.id)
+          .orderBy('pm.order_index', 'asc')
+          .orderBy('pm.created_at', 'asc')
+          .orderBy('pm.id', 'asc')
+          .select(
+            'pm.id as postModuleId',
+            'pm.order_index as orderIndex',
+            'pm.locked as locked',
+            'pm.ai_review_added as aiReviewAdded',
+            'mi.id as moduleInstanceId',
+            'mi.type as type',
+            'mi.scope as scope',
+            'mi.global_slug as globalSlug'
+          )
+
+        const appliedEdits: Array<{ ok: boolean; postModuleId?: string; error?: string }> = []
+        const editsToApply: any[] = []
+
+        if (Array.isArray(moduleEdits) && moduleEdits.length > 0) {
+          editsToApply.push(...moduleEdits)
+        }
+
+        // Convenience: if contentMarkdown is provided, ensure at least one seeded `prose` module
+        // receives rich text content (unless the caller already provided a prose content edit).
+        const mdTop = String(contentMarkdown || '').trim()
+        if (mdTop) {
+          const hasProseContentEdit = (() => {
+            for (const edit of editsToApply) {
+              const hasContentMarkdown = String((edit as any)?.contentMarkdown || '').trim().length > 0
+              const hasContentOverride =
+                !!(edit as any)?.overrides &&
+                typeof (edit as any).overrides === 'object' &&
+                (edit as any).overrides.content !== undefined
+
+              if (!hasContentMarkdown && !hasContentOverride) continue
+
+              const explicitId = String((edit as any)?.postModuleId || '').trim()
+              if (explicitId) {
+                const m = (seededModules as any[]).find((x: any) => String(x.postModuleId) === explicitId)
+                if (String(m?.type || '') === 'prose') return true
+                continue
+              }
+
+              const t = String((edit as any)?.type || '').trim()
+              if (t === 'prose') return true
+            }
+            return false
+          })()
+
+          if (!hasProseContentEdit) {
+            // Prefer explicitly targeting the first seeded prose module to avoid ambiguity.
+            const firstProse = (seededModules as any[]).find((m: any) => String(m.type) === 'prose')
+            if (firstProse) {
+              editsToApply.push({
+                postModuleId: String((firstProse as any).postModuleId),
+                contentMarkdown: mdTop,
+              })
+            } else {
+              appliedEdits.push({
+                ok: false,
+                error: 'contentMarkdown was provided but no seeded prose module exists to populate.',
+              })
+            }
+          }
+
+          // Also auto-populate other common template modules when a post is newly created from a module group:
+          // - hero: title/subtitle from post title/excerpt (or markdown h1/first paragraph)
+          // - prose-with-media: title/body from markdown h2 + first paragraph
+          //
+          // These are best-effort convenience fills; callers can override by providing explicit moduleEdits.
+          const mdH1 = extractMarkdownH1(mdTop)
+          const mdParas = extractMarkdownParagraphs(mdTop)
+          const mdH2s = extractMarkdownH2s(mdTop)
+
+          const alreadyEditsModule = (postModuleId: string) =>
+            editsToApply.some((e) => String((e as any)?.postModuleId || '').trim() === postModuleId)
+
+          const firstHero = (seededModules as any[]).find((m: any) => String(m.type) === 'hero')
+          if (firstHero && !alreadyEditsModule(String(firstHero.postModuleId))) {
+            const heroTitle = String(title || '').trim() || mdH1 || ''
+            const heroSubtitle =
+              String(excerpt || '').trim() || (mdParas.length > 0 ? mdParas[0] : '')
+            if (heroTitle || heroSubtitle) {
+              editsToApply.push({
+                postModuleId: String(firstHero.postModuleId),
+                overrides: {
+                  ...(heroTitle ? { title: heroTitle } : {}),
+                  ...(heroSubtitle ? { subtitle: heroSubtitle } : {}),
+                },
+              })
+            }
+          }
+
+          const firstProseWithMedia = (seededModules as any[]).find(
+            (m: any) => String(m.type) === 'prose-with-media'
+          )
+          if (firstProseWithMedia && !alreadyEditsModule(String(firstProseWithMedia.postModuleId))) {
+            const pwmTitle = (mdH2s[0] || '').trim()
+            const pwmBody = (mdParas[0] || '').trim()
+            if (pwmTitle || pwmBody) {
+              editsToApply.push({
+                postModuleId: String(firstProseWithMedia.postModuleId),
+                overrides: {
+                  ...(pwmTitle ? { title: pwmTitle } : {}),
+                  ...(pwmBody ? { body: pwmBody } : {}),
+                },
+              })
+            }
+          }
+        }
+
+        if (editsToApply.length > 0) {
+          for (const edit of editsToApply) {
+            try {
+              const explicitId = String((edit as any)?.postModuleId || '').trim()
+              let targetId = explicitId || ''
+              if (!targetId) {
+                const t = String((edit as any)?.type || '').trim()
+                const oi = (edit as any)?.orderIndex
+                const candidates = (seededModules as any[]).filter((m: any) => {
+                  if (!t) return false
+                  if (String(m.type) !== t) return false
+                  if (oi === undefined || oi === null) return true
+                  return Number(m.orderIndex) === Number(oi)
+                })
+                if (candidates.length === 0) {
+                  appliedEdits.push({
+                    ok: false,
+                    error: `No module found to edit (type=${t || 'n/a'} orderIndex=${oi ?? 'n/a'})`,
+                  })
+                  continue
+                }
+                // If ambiguous, pick the first (lowest orderIndex due to query ordering)
+                targetId = String(candidates[0].postModuleId)
+              }
+
+              const targetMeta = (seededModules as any[]).find((m: any) => String(m.postModuleId) === targetId)
+              const isProse = String(targetMeta?.type || (edit as any)?.type || '') === 'prose'
+
+              let overrides =
+                (edit as any)?.overrides === undefined ? undefined : ((edit as any)?.overrides as any)
+
+              const md = String((edit as any)?.contentMarkdown || '').trim()
+              if (md) {
+                if (!isProse) {
+                  appliedEdits.push({
+                    ok: false,
+                    postModuleId: targetId,
+                    error: 'contentMarkdown is only supported for prose modules.',
+                  })
+                  continue
+                }
+                const lexical = markdownToLexical(md, { skipFirstH1: false })
+                overrides = {
+                  ...(overrides && typeof overrides === 'object' ? overrides : {}),
+                  content: lexical,
+                }
+              }
+
+              await UpdatePostModule.handle({
+                postModuleId: targetId,
+                overrides,
+                mode: 'ai-review',
+              })
+              appliedEdits.push({ ok: true, postModuleId: targetId })
+            } catch (e: any) {
+              appliedEdits.push({
+                ok: false,
+                error: e?.message || 'Failed to apply module edit',
+              })
+            }
+          }
+        }
+
         return jsonResult({
           data: { id: post.id, type: post.type, locale: post.locale, slug: post.slug },
+          seededModules: (seededModules as any[]).map((m: any) => ({
+            postModuleId: m.postModuleId,
+            moduleInstanceId: m.moduleInstanceId,
+            type: m.type,
+            scope: m.scope === 'post' ? 'local' : m.scope,
+            orderIndex: Number(m.orderIndex ?? 0),
+            globalSlug: m.globalSlug ?? null,
+            locked: !!m.locked,
+            aiReviewAdded: !!m.aiReviewAdded,
+          })),
+          appliedModuleEdits: appliedEdits,
         })
       } catch (e: any) {
         return errorResult('Failed to create post', { message: e?.message })
@@ -731,10 +1104,17 @@ function createServerInstance() {
     },
     async ({ postModuleId, overrides, locked, orderIndex }) => {
       try {
+        // Locked modules are structural constraints from module groups and should not be changed by agents.
+        // If an agent could unlock a module, it could then remove it, defeating the "locked modules must stay" contract.
+        if (locked !== undefined) {
+          return errorResult('Cannot change locked state via MCP (AI Review)', {
+            postModuleId,
+            hint: 'Locked modules must remain locked. Populate content via `overrides` (or use `contentMarkdown` for prose).',
+          })
+        }
         const updated = await UpdatePostModule.handle({
           postModuleId,
           overrides: overrides === undefined ? undefined : overrides,
-          locked,
           orderIndex,
           mode: 'ai-review',
         })

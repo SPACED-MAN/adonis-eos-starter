@@ -5,6 +5,7 @@ import LocaleService from '#services/locale_service'
 import { randomUUID } from 'node:crypto'
 import siteSettingsService from '#services/site_settings_service'
 import postTypeConfigService from '#services/post_type_config_service'
+import moduleRegistry from '#services/module_registry'
 import { existsSync } from 'node:fs'
 import { join } from 'node:path'
 
@@ -18,6 +19,12 @@ type CreatePostParams = {
   metaTitle?: string | null
   metaDescription?: string | null
   moduleGroupId?: string | null
+  /**
+   * Controls how seeded modules are staged.
+   * - approved: write into module_instances.props + post_modules.overrides (default behavior)
+   * - ai-review: write seeded props into module_instances.ai_review_props and mark post_modules.ai_review_added=true
+   */
+  seedMode?: 'approved' | 'ai-review'
   userId: number
 }
 
@@ -43,6 +50,7 @@ export default class CreatePost {
     metaTitle = null,
     metaDescription = null,
     moduleGroupId = null,
+    seedMode = 'approved',
     userId,
   }: CreatePostParams): Promise<Post> {
     // Enforce: post types must be defined in code (app/post_types/*)
@@ -119,9 +127,18 @@ export default class CreatePost {
       if (defaultGroup) {
         effectiveModuleGroupId = (defaultGroup as any).id as string
       } else {
-        const candidates = await db.from('module_groups').where({ post_type: type }).select('id')
-        if (Array.isArray(candidates) && candidates.length === 1) {
-          effectiveModuleGroupId = (candidates[0] as any).id as string
+        // Fallbacks:
+        // 1) If there is exactly one module group for this post type, use it.
+        // 2) If there are multiple (common in seeded/dev DBs), choose the most recently updated.
+        const candidates = await db
+          .from('module_groups')
+          .where({ post_type: type })
+          .orderBy('updated_at', 'desc')
+          .select('id')
+
+        if (Array.isArray(candidates) && candidates.length >= 1) {
+          effectiveModuleGroupId =
+            candidates.length === 1 ? ((candidates[0] as any).id as string) : ((candidates[0] as any).id as string)
         }
       }
     }
@@ -148,7 +165,9 @@ export default class CreatePost {
 
       // If module group is specified, seed modules from that group
       if (moduleGroupsEnabled && effectiveModuleGroupId && modulesEnabled) {
-        await this.seedModulesFromModuleGroup(newPost.id, effectiveModuleGroupId, trx)
+        await this.seedModulesFromModuleGroup(newPost.id, effectiveModuleGroupId, trx, {
+          seedMode,
+        })
       }
 
       return newPost
@@ -184,20 +203,31 @@ export default class CreatePost {
   private static async seedModulesFromModuleGroup(
     postId: string,
     moduleGroupId: string,
-    trx: any
+    trx: any,
+    options: { seedMode?: 'approved' | 'ai-review' } = {}
   ): Promise<void> {
+    const seedMode = options.seedMode || 'approved'
     // Load module group modules in order
     const groupModules = await trx
       .from('module_group_modules')
       .where('module_group_id', moduleGroupId)
       .orderBy('order_index', 'asc')
+      // Deterministic ordering when order_index ties exist
+      .orderBy('created_at', 'asc')
+      .orderBy('id', 'asc')
 
     if (!Array.isArray(groupModules) || groupModules.length === 0) {
       return
     }
 
     const now = new Date()
-    for (const tm of groupModules) {
+    for (const [idx, tm] of groupModules.entries()) {
+      // Merge module defaults + module group defaults (module group wins)
+      const defaultsFromRegistry = (moduleRegistry.get(tm.type).getConfig().defaultProps ||
+        {}) as Record<string, any>
+      const defaultsFromGroup = ((tm as any).default_props || {}) as Record<string, any>
+      const mergedTemplateProps = { ...defaultsFromRegistry, ...defaultsFromGroup }
+
       const isGlobal = (tm as any).scope === 'global' && (tm as any).global_slug
       let moduleInstanceId: string
       if (isGlobal) {
@@ -215,7 +245,7 @@ export default class CreatePost {
               scope: 'global',
               type: tm.type,
               global_slug: (tm as any).global_slug,
-              props: tm.default_props || {},
+              props: mergedTemplateProps,
               created_at: now,
               updated_at: now,
             })
@@ -232,7 +262,9 @@ export default class CreatePost {
             scope: 'post',
             type: tm.type,
             global_slug: null,
-            props: tm.default_props || {},
+            // Always keep a sane approved default (registry defaults); stage template into AI Review when requested.
+            props: defaultsFromRegistry,
+            ai_review_props: seedMode === 'ai-review' ? mergedTemplateProps : null,
             created_at: now,
             updated_at: now,
           })
@@ -244,9 +276,17 @@ export default class CreatePost {
         id: randomUUID(),
         post_id: postId,
         module_id: moduleInstanceId,
-        order_index: (tm as any).order_index,
+        // Respect module group ordering by position; using sequential indices avoids issues
+        // when module_group_modules.order_index is missing/duplicated due to UI or import quirks.
+        order_index: idx + 1,
         overrides: null,
+        ai_review_overrides: null,
+        review_overrides: null,
         locked: !!(tm as any).locked,
+        review_added: false,
+        review_deleted: false,
+        ai_review_added: seedMode === 'ai-review',
+        ai_review_deleted: false,
         created_at: now,
         updated_at: now,
       })

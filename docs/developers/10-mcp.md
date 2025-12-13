@@ -96,7 +96,7 @@ Use n8n in one of two patterns:
 
 - n8n AI Agent node is given MCP tools (via MCP Client Tool node).
 - The AI Agent calls tools like:
-  - `get_allowed_modules_for_post_type`, `get_module_schema`
+  - `get_allowed_modules_for_post_type`, `get_module_schema`, `get_post_type_config` (includes default module group info)
   - `create_post_ai_review`, `add_module_to_post_ai_review`, `save_post_ai_review`
   - `create_translations_ai_review_bulk`
   - `list_media`, `media_where_used`
@@ -125,6 +125,8 @@ If you build your own service (instead of n8n), treat MCP as your “CMS tool AP
 
 - `list_post_types`
 - `get_post_type_config`
+- `list_module_groups`
+- `get_module_group`
 - `list_modules`
 - `get_module_schema`
 - `get_allowed_modules_for_post_type`
@@ -158,6 +160,60 @@ If you build your own service (instead of n8n), treat MCP as your “CMS tool AP
 - `get_post_taxonomy_term_ids`
 - `set_post_taxonomy_terms_ai_review`
 - `suggest_modules_for_layout`
+
+## Module groups (default templates) and AI-created posts
+
+Many post types have a **default module group** (a layout template stored in `module_groups` + `module_group_modules`).
+
+MCP supports editor-parity behavior here:
+
+- `get_post_type_config` includes:
+  - `moduleGroups`: available templates for that post type
+  - `defaultModuleGroup`: the resolved default template (based on the post type config’s `moduleGroup.name`)
+- `create_post_ai_review` will seed modules from the resolved default module group **in AI Review mode**.
+- If you want a specific template, pass **either**:
+  - `moduleGroupName` (recommended), or
+  - `moduleGroupId`
+  to `create_post_ai_review`.
+
+### Populating seeded template modules (recommended)
+
+By default, `create_post_ai_review` seeds the **module structure** (from the default module group), but the modules will contain only their **default props** until you update them.
+
+To avoid an extra “update each module” step, you can pass `moduleEdits` to `create_post_ai_review` and the server will apply those edits immediately in **AI Review**.
+
+- For `prose` modules, you can provide `contentMarkdown` and Adonis EOS will convert it to **Lexical JSON** and stage it to the module’s `content` prop.
+- You can target seeded modules using either:
+  - `postModuleId` (preferred, if known), or
+  - `{ type, orderIndex }` (convenient when creating from a module group template).
+
+#### Shortcut: `contentMarkdown`
+
+If you’re creating posts and just want to populate the main body, you can pass a top-level `contentMarkdown` to `create_post_ai_review`.
+
+Adonis EOS will automatically apply it to the **first seeded `prose` module** (AI Review) by converting it to Lexical JSON (even if you also provide other `moduleEdits`, unless you already provided a prose content edit).
+
+#### Troubleshooting: “modules are still defaults”
+
+When `create_post_ai_review` is called with `moduleEdits` (or `contentMarkdown`), the tool response includes:
+
+- `seededModules`: the modules that were seeded from the template (with their `postModuleId`)
+- `appliedModuleEdits`: per-edit results (`ok: true/false`) and error messages
+
+If your modules are still defaults, check `appliedModuleEdits` for errors (most commonly: the model didn’t send any edits, or it targeted the wrong module type/orderIndex).
+
+### Locked modules (module-group constraints)
+
+Module groups can mark certain modules as **locked**. Locked modules are structural constraints:
+
+- **They must remain on the post** (cannot be removed).
+- **They cannot be reordered**.
+- **They must be populated**, just like any other module (agents should provide copy via `moduleEdits` / `contentMarkdown`).
+
+MCP enforces this:
+
+- `remove_post_module_ai_review` rejects removal of locked modules.
+- `update_post_module_ai_review` rejects attempts to change `locked` state (agents cannot unlock modules).
 
 ## Taxonomy staging semantics
 

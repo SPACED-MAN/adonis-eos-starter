@@ -112,6 +112,25 @@ export default class PostsCrudController extends BasePostsController {
       | undefined
 
     try {
+      // Approvals don't need the full update payload; validate as little as possible.
+      // This avoids 422s caused by empty-string fields (canonicalUrl/featuredImageId) when the
+      // user is only trying to approve a draft.
+      const requestedMode = String(request.input('mode') || '').toLowerCase()
+      if (requestedMode === 'approve' || requestedMode === 'approve-ai-review') {
+        const currentPost = await Post.findOrFail(id)
+        const postType = currentPost.type
+        if (requestedMode === 'approve') {
+          if (!roleRegistry.hasPermission(role, 'posts.review.approve', postType)) {
+            return this.response.forbidden(response, 'Not allowed to approve review')
+          }
+          return this.approveReviewDraft(id, auth, response)
+        }
+        if (!roleRegistry.hasPermission(role, 'posts.ai-review.approve', postType)) {
+          return this.response.forbidden(response, 'Not allowed to approve AI review')
+        }
+        return this.approveAiReviewDraft(id, auth, response)
+      }
+
       const payload = await request.validateUsing(updatePostValidator)
       const saveMode = String(payload.mode || 'publish').toLowerCase()
       const currentPost = await Post.findOrFail(id)

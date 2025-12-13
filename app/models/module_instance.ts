@@ -37,6 +37,9 @@ export default class ModuleInstance extends BaseModel {
   @column({ columnName: 'review_props' })
   declare reviewProps: Record<string, unknown> | null
 
+  @column({ columnName: 'ai_review_props' })
+  declare aiReviewProps: Record<string, unknown> | null
+
   @column({ columnName: 'render_cache_html' })
   declare renderCacheHtml: string | null
 

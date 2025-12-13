@@ -26,6 +26,9 @@ export default class PostModule extends BaseModel {
   @column({ columnName: 'review_overrides' })
   declare reviewOverrides: Record<string, unknown> | null
 
+  @column({ columnName: 'ai_review_overrides' })
+  declare aiReviewOverrides: Record<string, unknown> | null
+
   @column()
   declare locked: boolean
 
@@ -37,6 +40,12 @@ export default class PostModule extends BaseModel {
 
   @column({ columnName: 'review_deleted' })
   declare reviewDeleted: boolean
+
+  @column({ columnName: 'ai_review_added' })
+  declare aiReviewAdded: boolean
+
+  @column({ columnName: 'ai_review_deleted' })
+  declare aiReviewDeleted: boolean
 
   @column.dateTime({ autoCreate: true, columnName: 'created_at' })
   declare createdAt: DateTime

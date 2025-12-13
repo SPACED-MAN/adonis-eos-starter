@@ -12,6 +12,7 @@ import ModuleInstance from '#models/module_instance'
 import PostCustomFieldValue from '#models/post_custom_field_value'
 import Taxonomy from '#models/taxonomy'
 import TaxonomyTerm from '#models/taxonomy_term'
+import ModuleGroupModule from '#models/module_group_module'
 
 /**
  * Posts View Controller
@@ -36,8 +37,47 @@ export default class PostsViewController extends BasePostsController {
         ? await PostModule.query()
           .where('postId', post.id)
           .orderBy('orderIndex', 'asc')
+          .orderBy('createdAt', 'asc')
           .preload('moduleInstance')
         : []
+
+      // If the post has a module group template, but the post modules all share the same orderIndex
+      // (common when older/generated posts were seeded with a bad order_index), fall back to the
+      // module group ordering so the editor respects the template order.
+      if (modulesEnabled && post.moduleGroupId && postModules.length > 1) {
+        const uniq = new Set(postModules.map((pm) => Number((pm as any).orderIndex ?? 0)))
+        if (uniq.size <= 1) {
+          const groupRows = await ModuleGroupModule.query()
+            .where('moduleGroupId', post.moduleGroupId)
+            .orderBy('orderIndex', 'asc')
+            .orderBy('createdAt', 'asc')
+
+          const rank = new Map<string, number>()
+          groupRows.forEach((gm, idx) => {
+            const scope = String((gm as any).scope || 'post')
+            const globalSlug = String((gm as any).globalSlug || '')
+            const key = `${gm.type}|${scope}|${globalSlug}`
+            if (!rank.has(key)) rank.set(key, idx)
+          })
+
+          const getKeyForPm = (pm: any) => {
+            const mi = pm.moduleInstance as any as ModuleInstance
+            const scope = String(mi?.scope || 'post') // 'post' or 'global'
+            const globalSlug = String(mi?.globalSlug || '')
+            return `${String(mi?.type || '')}|${scope}|${globalSlug}`
+          }
+
+          postModules.sort((a: any, b: any) => {
+            const ra = rank.get(getKeyForPm(a))
+            const rb = rank.get(getKeyForPm(b))
+            if (ra !== undefined && rb !== undefined) return ra - rb
+            if (ra !== undefined) return -1
+            if (rb !== undefined) return 1
+            // fallback: keep deterministic
+            return String(a.id).localeCompare(String(b.id))
+          })
+        }
+      }
 
       // Load translations
       const baseId = post.translationOfId || post.id
@@ -140,6 +180,7 @@ export default class PostsViewController extends BasePostsController {
           author,
         },
         reviewDraft: post.reviewDraft || null,
+        aiReviewDraft: post.aiReviewDraft || null,
         modules: modulesEnabled
           ? postModules.map((pm) => {
             const mi = pm.moduleInstance as any as ModuleInstance
@@ -149,11 +190,16 @@ export default class PostsViewController extends BasePostsController {
               scope: mi?.scope,
               props: mi?.props || {},
               reviewProps: (mi as any)?.reviewProps || (mi as any)?.review_props || null,
+              aiReviewProps: (mi as any)?.aiReviewProps || (mi as any)?.ai_review_props || null,
               overrides: pm.overrides || null,
               reviewOverrides:
                 (pm as any).reviewOverrides || (pm as any).review_overrides || null,
+              aiReviewOverrides:
+                (pm as any).aiReviewOverrides || (pm as any).ai_review_overrides || null,
               reviewAdded: (pm as any).reviewAdded || false,
               reviewDeleted: (pm as any).reviewDeleted || false,
+              aiReviewAdded: (pm as any).aiReviewAdded || (pm as any).ai_review_added || false,
+              aiReviewDeleted: (pm as any).aiReviewDeleted || (pm as any).ai_review_deleted || false,
               locked: pm.locked,
               orderIndex: pm.orderIndex,
               globalSlug: mi?.globalSlug || null,
@@ -203,7 +249,8 @@ export default class PostsViewController extends BasePostsController {
     const pageData = await postRenderingService.buildPageData(post, {
       protocol,
       host,
-      wantReview: true, // Always show review version in preview
+      wantReview: true, // Always show latest draft version in preview
+      draftMode: 'auto', // Prefer reviewDraft; otherwise fall back to AI Review
     })
 
     // Get post-type-specific additional props (delegated to service)

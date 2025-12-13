@@ -55,7 +55,7 @@ export const updatePostValidator = vine.compile(
     robotsJson: vine.any().optional(),
     jsonldOverrides: vine.any().optional(),
     scheduledAt: vine.string().optional(),
-    mode: vine.enum(['publish', 'review', 'approve']).optional(),
+    mode: vine.enum(['publish', 'review', 'ai-review', 'approve', 'approve-ai-review']).optional(),
     // Featured image (Media ID). Optional and nullable.
     featuredImageId: vine.string().uuid().nullable().optional(),
     customFields: vine.array(vine.any()).optional(),
@@ -74,7 +74,7 @@ export const addModuleValidator = vine.compile(
     globalSlug: vine.string().trim().maxLength(100).nullable().optional(),
     orderIndex: vine.number().min(0).optional(),
     locked: vine.boolean().optional(),
-    mode: vine.enum(['publish', 'review']).optional(),
+    mode: vine.enum(['publish', 'review', 'ai-review']).optional(),
   })
 )
 
@@ -86,7 +86,7 @@ export const updateModuleValidator = vine.compile(
     orderIndex: vine.number().min(0).optional(),
     overrides: vine.any().optional(),
     locked: vine.boolean().optional(),
-    mode: vine.enum(['publish', 'review']).optional(),
+    mode: vine.enum(['publish', 'review', 'ai-review']).optional(),
   })
 )
 
