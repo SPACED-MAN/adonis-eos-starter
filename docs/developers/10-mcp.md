@@ -172,6 +172,52 @@ Creating posts requires a real `users.id` to satisfy `posts.user_id`:
 
 - `MCP_SYSTEM_USER_ID` (numeric)
 
+### Setting up MCP_SYSTEM_USER_ID
+
+The MCP server requires a system user account to attribute AI-generated content operations. We recommend using the dedicated **AI Agent** user created by the seeder:
+
+1. **Run the database seeder** (if not already done):
+   ```bash
+   node ace db:seed
+   ```
+
+2. **Find the AI Agent user id**:
+   - The default seeder creates `ai@example.com` (role `ai_agent`) and will **try** to assign ID `5` on a fresh database.
+   - On existing databases, the ID may differ (because IDs are already taken).
+
+3. **Set the environment variable** in your `.env` (recommended for clarity):
+   ```
+   MCP_SYSTEM_USER_ID=<users.id for ai@example.com>
+   ```
+
+   The `ai_agent` role is least-privilege for MCP operations:
+   - Can create and edit content (staged to AI Review)
+   - Cannot publish, approve, or delete content
+   - Cannot access admin UI or manage users/settings
+
+4. **Restart the MCP server** to pick up the new environment variable.
+
+**Note:** If `MCP_SYSTEM_USER_ID` is not set, the MCP server will attempt to resolve a system user automatically (preferring `ai@example.com`, then any `ai_agent` user). Explicitly setting `MCP_SYSTEM_USER_ID` is still recommended for deterministic behavior.
+
+### Per-agent attribution (recommended)
+
+If you pass `agentId` to MCP tools (for example `create_post_ai_review`), Adonis EOS will attempt to map that `agentId` to a **dedicated agent user account** (created at boot via `app/agents/*` + `start/agents.ts`).
+
+This gives you accurate authorship such as:
+- `Content Enhancer` authored posts it created
+- `Translator` authored translation posts it created
+
+If no agent user is found, MCP falls back to the system AI user (`MCP_SYSTEM_USER_ID` / `ai@example.com`).
+
+If you're using an existing database or need to find the user ID, you can list users with:
+```bash
+node ace tinker
+# Then in the REPL:
+await User.query().select('id', 'email', 'role')
+```
+
+**Security:** The AI Agent role is designed with least-privilege principles. All content created by AI agents is staged to **AI Review** (or **Review** after submission), requiring human approval before publication.
+
 ## Updating MCP context (authoring)
 
 MCP in Adonis EOS is **code-derived**: the server reads from your code-first registries and returns structured JSON.

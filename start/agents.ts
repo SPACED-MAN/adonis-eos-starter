@@ -8,6 +8,7 @@ import { readdir } from 'node:fs/promises'
 import { join } from 'node:path'
 import agentRegistry from '#services/agent_registry'
 import type { AgentDefinition } from '#types/agent_types'
+import agentUserService from '#services/agent_user_service'
 
 const agentsPath = join(getDirname(import.meta.url), '..', 'app', 'agents')
 
@@ -50,6 +51,9 @@ try {
   if (process.env.NODE_ENV === 'development' && process.env.MCP_QUIET !== '1') {
     console.log(`\n📋 Agent Registry: ${enabledCount}/${totalCount} agents enabled`)
   }
+
+  // Boot-time provisioning of per-agent user accounts (for attribution / MCP actor mapping)
+  await agentUserService.syncAtBoot(agentRegistry.listEnabled())
 } catch (error) {
   // If the agents directory doesn't exist yet, that's okay
   if ((error as any).code !== 'ENOENT') {

@@ -77,5 +77,47 @@ export default class extends BaseSeeder {
       await translator.save()
       console.log('Created translator user')
     }
+
+    // Ensure AI agent account (for MCP operations)
+    // This user is used by the MCP server via MCP_SYSTEM_USER_ID
+    const aiEmail = 'ai@example.com'
+    const legacyAiEmail = 'ai-agent@system.local'
+
+    let aiUser = await User.findBy('email', aiEmail)
+    const legacyAiUser = aiUser ? null : await User.findBy('email', legacyAiEmail)
+
+    if (!aiUser && legacyAiUser) {
+      // Migrate legacy seeded user to the new canonical email (if available)
+      legacyAiUser.email = aiEmail
+      legacyAiUser.password = 'supersecret'
+      legacyAiUser.fullName = 'AI Agent'
+      ;(legacyAiUser as any).role = 'ai_agent'
+      await legacyAiUser.save()
+      aiUser = legacyAiUser
+      console.log(`Updated legacy AI agent user → ${aiEmail} (ID: ${aiUser.id})`)
+      console.log(`→ Set MCP_SYSTEM_USER_ID=${aiUser.id} in your .env file (recommended)`)
+    } else if (aiUser) {
+      aiUser.password = 'supersecret'
+      aiUser.fullName = 'AI Agent'
+      ;(aiUser as any).role = 'ai_agent'
+      await aiUser.save()
+      console.log(`Updated existing AI agent user (ID: ${aiUser.id})`)
+      console.log(`→ Set MCP_SYSTEM_USER_ID=${aiUser.id} in your .env file (recommended)`)
+    } else {
+      // Try to create with explicit ID 5 for MCP_SYSTEM_USER_ID (fresh DB convenience)
+      // If ID 5 is taken, let it auto-increment (do not delete/overwrite existing users).
+      const newAi = new User()
+      const id5Exists = await User.find(5)
+      if (!id5Exists) {
+        ;(newAi as any).id = 5
+      }
+      newAi.email = aiEmail
+      newAi.password = 'supersecret'
+      newAi.fullName = 'AI Agent'
+      ;(newAi as any).role = 'ai_agent'
+      await newAi.save()
+      console.log(`Created AI agent user (ID: ${newAi.id})`)
+      console.log(`→ Set MCP_SYSTEM_USER_ID=${newAi.id} in your .env file (recommended)`)
+    }
   }
 }

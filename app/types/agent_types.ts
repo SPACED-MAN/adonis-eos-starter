@@ -184,6 +184,37 @@ export interface AgentDefinition {
      */
     maxChars?: number
   }
+
+  /**
+   * Optional user account configuration for this agent.
+   *
+   * If enabled, the system will create/update a dedicated `users` row for the agent
+   * at boot time (role: `ai_agent`). This enables per-agent attribution (author_id/user_id)
+   * while keeping least-privilege permissions.
+   *
+   * Note: `users.email` is non-null + unique in this project. If you do not provide an email,
+   * a deterministic internal email will be generated (e.g. agent+translator@agents.local).
+   */
+  userAccount?: {
+    /**
+     * Enable per-agent user account creation.
+     * Default: true (if userAccount object is present)
+     */
+    enabled?: boolean
+    /**
+     * Optional email to use for the user. If omitted, a generated internal email is used.
+     */
+    email?: string
+    /**
+     * Optional username. If omitted, a generated username is used (e.g. agent:translator).
+     */
+    username?: string
+    /**
+     * Whether this account should be created at boot time.
+     * Default: true
+     */
+    createAtBoot?: boolean
+  }
 }
 
 /**

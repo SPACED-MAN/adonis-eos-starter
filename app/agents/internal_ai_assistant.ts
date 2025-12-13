@@ -32,6 +32,9 @@ const InternalAiAssistantAgent: AgentDefinition = {
       enabled: false,
     },
   ],
+
+  // Disabled agent; leave user provisioning off until enabled/implemented
+  userAccount: { enabled: false },
 }
 
 export default InternalAiAssistantAgent

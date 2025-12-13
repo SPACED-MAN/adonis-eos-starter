@@ -69,6 +69,47 @@ AGENT_SEO_OPTIMIZER_DEV_URL=http://localhost:5678/webhook/seo-optimizer
 AGENT_SEO_OPTIMIZER_SECRET=your-secret-key
 ```
 
+## Per-agent user accounts (recommended)
+
+Adonis EOS can automatically create **dedicated user accounts per agent** at boot time. This enables:
+
+- **Attribution**: posts created via MCP can have `author_id` / `user_id` set to the specific agent (e.g. “Translator”).
+- **Auditing**: activity is tied to a distinct user row per agent.
+- **Least privilege**: all agent users should use the `ai_agent` role (cannot publish/approve/admin).
+
+### Why emails are “optional”
+
+In this project, `users.email` is **required and unique** in the database schema.
+
+So “optional email” means:
+- you typically **don’t provide a real email**, and
+- the system generates an internal-only email like `agent+translator@agents.local`.
+
+### Enabling per-agent accounts
+
+Add `userAccount` to your agent definition:
+
+```typescript
+userAccount: {
+  enabled: true,
+  // email?: optional (generated if omitted)
+  // username?: optional (defaults to agent:<agentId>)
+  // createAtBoot?: default true
+}
+```
+
+Boot-time creation happens automatically during app start (via `start/agents.ts`).
+
+### Disabling boot provisioning (rare)
+
+Set:
+
+```env
+AGENT_USERS_BOOTSTRAP_DISABLED=1
+```
+
+This is mainly for special CI/testing workflows.
+
 ## Agent Scopes
 
 Agents can be triggered in different contexts:

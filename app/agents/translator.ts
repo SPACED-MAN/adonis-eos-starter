@@ -38,6 +38,9 @@ const TranslatorAgent: AgentDefinition = {
       'Example: “Use a formal tone. Keep proper nouns untranslated. Prefer Latin American Spanish.”',
     maxChars: 800,
   },
+
+  // Create a dedicated user account for attribution (email auto-generated if omitted)
+  userAccount: { enabled: true },
 }
 
 export default TranslatorAgent

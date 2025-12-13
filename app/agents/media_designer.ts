@@ -51,6 +51,9 @@ const MediaDesignerAgent: AgentDefinition = {
       'Example: “Warm, modern, minimal. Avoid stock-photo vibes. Include diverse people if applicable.”',
     maxChars: 800,
   },
+
+  // Create a dedicated user account for attribution (email auto-generated if omitted)
+  userAccount: { enabled: true },
 }
 
 export default MediaDesignerAgent

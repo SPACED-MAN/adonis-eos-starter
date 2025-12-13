@@ -45,6 +45,9 @@ const ContentEnhancerAgent: AgentDefinition = {
       'Example: “Make this clearer for beginners. Keep the tone friendly. Don’t change the CTA.”',
     maxChars: 1200,
   },
+
+  // Create a dedicated user account for attribution (email auto-generated if omitted)
+  userAccount: { enabled: true },
 }
 
 export default ContentEnhancerAgent

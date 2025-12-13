@@ -28,6 +28,9 @@ const FormProcessorAgent: AgentDefinition = {
       formSlugs: ['contact', 'newsletter'],
     },
   ],
+
+  // Create a dedicated user account for attribution/auditing (email auto-generated if omitted)
+  userAccount: { enabled: true },
 }
 
 export default FormProcessorAgent

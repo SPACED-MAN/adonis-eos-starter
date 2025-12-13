@@ -20,6 +20,7 @@ import PostSerializerService from '#services/post_serializer_service'
 import CreateTranslation from '#actions/translations/create_translation'
 import previewService from '#services/preview_service'
 import taxonomyService from '#services/taxonomy_service'
+import { getUserIdForAgent } from '#services/agent_user_service'
 
 type JsonTextResult = {
   content: Array<{ type: 'text'; text: string }>
@@ -65,6 +66,59 @@ function getSystemUserId(): number | null {
   const n = Number(raw)
   if (!Number.isFinite(n) || n <= 0) return null
   return Math.floor(n)
+}
+
+let _cachedSystemUserId: number | null | undefined
+async function resolveSystemUserId(): Promise<number | null> {
+  if (_cachedSystemUserId !== undefined) return _cachedSystemUserId
+
+  const envId = getSystemUserId()
+  if (envId) {
+    _cachedSystemUserId = envId
+    return envId
+  }
+
+  // Fallback to a dedicated seeded AI user (or any user with ai_agent role)
+  try {
+    const byEmail = await db.from('users').select('id').where('email', 'ai@example.com').first()
+    if (byEmail?.id) {
+      _cachedSystemUserId = Number(byEmail.id)
+      return _cachedSystemUserId
+    }
+    const legacy = await db
+      .from('users')
+      .select('id')
+      .where('email', 'ai-agent@system.local')
+      .first()
+    if (legacy?.id) {
+      _cachedSystemUserId = Number(legacy.id)
+      return _cachedSystemUserId
+    }
+    const byRole = await db
+      .from('users')
+      .select('id')
+      .where('role', 'ai_agent')
+      .orderBy('id', 'asc')
+      .first()
+    if (byRole?.id) {
+      _cachedSystemUserId = Number(byRole.id)
+      return _cachedSystemUserId
+    }
+  } catch {
+    // ignore DB errors; MCP tools will surface a helpful error when needed
+  }
+
+  _cachedSystemUserId = null
+  return null
+}
+
+async function resolveActorUserId(input?: { agentId?: string }): Promise<number | null> {
+  const agentId = (input?.agentId || '').trim()
+  if (agentId) {
+    const id = await getUserIdForAgent(agentId)
+    if (typeof id === 'number' && id > 0) return id
+  }
+  return await resolveSystemUserId()
 }
 
 function getHeader(req: http.IncomingMessage, name: string): string | undefined {
@@ -436,10 +490,14 @@ function createServerInstance() {
       agentName: z.string().optional(),
     },
     async ({ type, locale, slug, title, excerpt, agentId, agentName }) => {
-      const systemUserId = getSystemUserId()
-      if (!systemUserId) {
+      const actorUserId = await resolveActorUserId({ agentId })
+      if (!actorUserId) {
         return errorResult(
-          'Missing MCP_SYSTEM_USER_ID env var (numeric user id required to create posts)'
+          'Missing MCP_SYSTEM_USER_ID (and no AI system user found). Seed users or set MCP_SYSTEM_USER_ID to a valid users.id.',
+          {
+            hint:
+              "Run `node ace db:seed --files database/seeders/user_seeder.ts` (creates ai@example.com) then set MCP_SYSTEM_USER_ID=<that id>.",
+          }
         )
       }
       const savedBy = resolveAgentLabel({ agentId, agentName })
@@ -453,7 +511,7 @@ function createServerInstance() {
           excerpt: excerpt ?? null,
           metaTitle: null,
           metaDescription: null,
-          userId: systemUserId,
+          userId: actorUserId,
         })
 
         const draftPayload = {
@@ -473,7 +531,7 @@ function createServerInstance() {
           postId: post.id,
           mode: 'ai-review',
           snapshot: draftPayload,
-          userId: null,
+          userId: actorUserId,
         })
 
         return jsonResult({
@@ -1517,7 +1575,7 @@ function createServerInstance() {
       try {
         const post = await db.from('posts').where('id', postId).whereNull('deleted_at').first()
         if (!post) return errorResult('Post not found', { postId })
-        const fallbackUserId = getSystemUserId()
+        const fallbackUserId = await resolveSystemUserId()
         const createdBy =
           typeof createdByUserId === 'number' ? createdByUserId : (fallbackUserId ?? undefined)
         const data = await previewService.createPreviewLink(postId, createdBy, expirationHours)

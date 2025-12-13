@@ -37,6 +37,9 @@ const SeoOptimizerAgent: AgentDefinition = {
       'Example: “Target keyword: ‘fleet management software’. Keep title under 60 chars, meta under 155 chars.”',
     maxChars: 800,
   },
+
+  // Create a dedicated user account for attribution (email auto-generated if omitted)
+  userAccount: { enabled: true },
 }
 
 export default SeoOptimizerAgent
