@@ -86,14 +86,14 @@ export default function ProseWithMedia({
 	const imageBlock = resolvedImageUrl ? (
 		<div className="w-full">
 			<div
-				className="w-full rounded-xl overflow-hidden border border-line-low bg-backdrop-high"
+				className="w-full rounded-xl overflow-hidden border border-line-low bg-backdrop-high aspect-[4/3]"
 				data-inline-type="media"
 				data-inline-path="image"
 			>
 				<img
 					src={resolvedImageUrl}
 					alt={imageAlt || ''}
-					className="w-full h-auto object-cover"
+					className="w-full h-full object-cover"
 					loading="lazy"
 					decoding="async"
 				/>

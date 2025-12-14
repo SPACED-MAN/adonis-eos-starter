@@ -105,15 +105,15 @@ export default function HeroWithMedia({
   const imageBlock = resolvedImageUrl ? (
     <div className="lg:col-span-5 flex justify-center lg:justify-end">
       <div
-        className="w-full max-w-md rounded-xl overflow-hidden border border-line-low bg-backdrop-high relative"
+        className="w-full max-w-md rounded-xl overflow-hidden border border-line-low bg-backdrop-high relative aspect-[4/3]"
         data-inline-type="media"
         data-inline-path="image"
       >
         <img
           src={resolvedImageUrl}
           alt={imageAlt || ''}
-          className="w-full h-auto object-cover"
-          loading="lazy"
+          className="w-full h-full object-cover"
+          fetchPriority="high"
           decoding="async"
         />
       </div>

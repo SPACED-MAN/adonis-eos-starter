@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react'
 import { createPortal } from 'react-dom'
-import { renderToStaticMarkup } from 'react-dom/server'
+import { createRoot } from 'react-dom/client'
 import { MediaPickerModal } from '../../admin/components/media/MediaPickerModal'
 import { useInlineEditor } from './InlineEditorContext'
 import { LinkField, type LinkFieldValue } from '../forms/LinkField'
@@ -152,10 +152,17 @@ export function InlineOverlay() {
 			link.rel = 'noopener noreferrer'
 			link.className =
 				'inline-flex items-center gap-1 text-standout-high hover:underline font-medium'
-			const globeIcon = renderToStaticMarkup(
-				<FontAwesomeIcon icon="globe" className="w-4 h-4" />
-			)
-			link.innerHTML = `${globeIcon}<span>Edit ${labelText}</span>`
+			link.title = `Edit ${labelText} (opens in new tab)`
+			link.setAttribute('aria-label', `Edit ${labelText} (opens in new tab)`)
+			// Render icon client-side instead of using renderToStaticMarkup
+			const iconContainer = document.createElement('span')
+			iconContainer.className = 'w-4 h-4'
+			const root = createRoot(iconContainer)
+			root.render(<FontAwesomeIcon icon="globe" className="w-4 h-4" />)
+			const textSpan = document.createElement('span')
+			textSpan.textContent = `Edit ${labelText}`
+			link.appendChild(iconContainer)
+			link.appendChild(textSpan)
 			link.title = `Edit ${labelText} (opens in new tab)`
 			link.setAttribute('aria-label', `Edit ${labelText} (opens in new tab)`)
 			badge.appendChild(link)

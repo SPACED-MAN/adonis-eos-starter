@@ -1,4 +1,4 @@
-import { Head } from '@inertiajs/react'
+import { Head, usePage } from '@inertiajs/react'
 import Modules from '../../modules'
 import { SiteFooter } from '../components/SiteFooter'
 import { SiteHeader } from '../components/SiteHeader'
@@ -51,6 +51,10 @@ function getModuleComponent(type: string): any {
 }
 
 export default function PostTypeDefault({ post, modules, seo, siteSettings }: PostPageProps) {
+	const page = usePage()
+	const currentUser = (page.props as any)?.currentUser
+	const isAuthenticated = !!currentUser && ['admin', 'editor', 'translator'].includes(String(currentUser.role || ''))
+	
 	// Generate meta description with fallback chain
 	const metaDescription =
 		post.metaDescription ||
@@ -58,6 +62,36 @@ export default function PostTypeDefault({ post, modules, seo, siteSettings }: Po
 		seo?.og?.description ||
 		siteSettings?.defaultMetaDescription ||
 		null
+
+	const content = (
+		<>
+			<SiteHeader />
+			{/* Post Content - Rendered Modules */}
+			<main className="overflow-x-hidden">
+				{modules.map((module) => {
+					const Component = getModuleComponent(module.type)
+					if (!Component) {
+						return null
+					}
+					return (
+						<section
+							key={module.id}
+							className="container mx-auto px-4 sm:px-6 lg:px-8 py-8"
+							{...(isAuthenticated ? {
+								'data-inline-module': module.id,
+								'data-inline-scope': module.scope || 'local',
+								'data-inline-global-slug': module.globalSlug || undefined,
+								'data-inline-global-label': module.globalLabel || undefined,
+							} : {})}
+						>
+							<Component {...module.props} {...(isAuthenticated ? { __postId: post.id, __moduleId: module.id } : {})} />
+						</section>
+					)
+				})}
+			</main>
+			<SiteFooter />
+		</>
+	)
 
 	return (
 		<>
@@ -82,47 +116,28 @@ export default function PostTypeDefault({ post, modules, seo, siteSettings }: Po
 					<script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(seo.jsonLd) }} />
 				)}
 			</Head>
-			<InlineEditorProvider
-				postId={post.id}
-				modules={modules.map((m) => ({
-					id: m.id,
-					scope: m.scope,
-					globalSlug: m.globalSlug,
-					globalLabel: m.globalLabel,
-					props: m.props,
-					reviewProps: m.reviewProps,
-					aiReviewProps: m.aiReviewProps,
-					overrides: m.overrides,
-					reviewOverrides: m.reviewOverrides,
-					aiReviewOverrides: m.aiReviewOverrides,
-				}))}
-			>
-				<SiteHeader />
-				{/* Post Content - Rendered Modules */}
-				<main className="overflow-x-hidden">
-					{modules.map((module) => {
-						const Component = getModuleComponent(module.type)
-						if (!Component) {
-							return null
-						}
-						return (
-							<section
-								key={module.id}
-								className="container mx-auto px-4 sm:px-6 lg:px-8 py-8"
-								data-inline-module={module.id}
-								data-inline-scope={module.scope || 'local'}
-								data-inline-global-slug={module.globalSlug || undefined}
-								data-inline-global-label={module.globalLabel || undefined}
-							>
-								<Component {...module.props} __postId={post.id} __moduleId={module.id} />
-							</section>
-						)
-					})}
-				</main>
-
-				<SiteFooter />
-				<InlineOverlay />
-			</InlineEditorProvider>
+			{isAuthenticated ? (
+				<InlineEditorProvider
+					postId={post.id}
+					modules={modules.map((m) => ({
+						id: m.id,
+						scope: m.scope,
+						globalSlug: m.globalSlug,
+						globalLabel: m.globalLabel,
+						props: m.props,
+						reviewProps: m.reviewProps,
+						aiReviewProps: m.aiReviewProps,
+						overrides: m.overrides,
+						reviewOverrides: m.reviewOverrides,
+						aiReviewOverrides: m.aiReviewOverrides,
+					}))}
+				>
+					{content}
+					<InlineOverlay />
+				</InlineEditorProvider>
+			) : (
+				content
+			)}
 		</>
 	)
 }

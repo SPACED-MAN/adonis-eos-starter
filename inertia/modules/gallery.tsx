@@ -77,13 +77,13 @@ export default function Gallery({
           return (
             <figure
               key={idx}
-              className="cursor-pointer overflow-hidden rounded-lg transition-transform hover:scale-105"
+              className="cursor-pointer overflow-hidden rounded-lg transition-transform hover:scale-105 aspect-square"
               onClick={() => openLightbox(idx)}
             >
               <img
                 src={image.url}
                 alt={altText}
-                className="w-full h-auto object-cover"
+                className="w-full h-full object-cover"
                 loading="lazy"
                 decoding="async"
               />

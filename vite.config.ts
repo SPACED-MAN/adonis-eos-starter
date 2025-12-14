@@ -22,4 +22,34 @@ export default defineConfig({
       '~/': `${getDirname(import.meta.url)}/inertia/`,
     },
   },
+
+  /**
+   * Build configuration to exclude SSR-only Node.js dependencies from client bundles
+   * Note: We only exclude truly Node.js-only packages (redis, crypto)
+   * react-dom/server is kept because InlineOverlay uses renderToStaticMarkup on client
+   */
+  build: {
+    rollupOptions: {
+      external: (id) => {
+        // Exclude SSR-only Node.js dependencies from client bundle
+        // These are only used in inertia/app/ssr.tsx and cannot run in browser
+        if (
+          id.includes('@adonisjs/redis') ||
+          id === 'node:crypto' ||
+          id === 'crypto'
+        ) {
+          return true
+        }
+        // Allow react-dom/server - it's used in client code (InlineOverlay)
+        return false
+      },
+    },
+  },
+
+  /**
+   * Optimize dependencies - exclude only Node.js-specific SSR packages
+   */
+  optimizeDeps: {
+    exclude: ['@adonisjs/redis/services/main', 'node:crypto'],
+  },
 })

@@ -11,7 +11,7 @@ const inertiaConfig = defineConfig({
    * Data that should be shared with all rendered pages
    */
   sharedData: {
-    // user: (ctx) => ctx.inertia.always(() => ctx.auth.user),
+    currentUser: (ctx) => ctx.inertia.always(() => ctx.auth.user || null),
     csrf: (ctx) => ctx.request.csrfToken,
     errors: (ctx) => ctx.session?.flashMessages?.get('errors') ?? {},
     errorsBag: (ctx) => ctx.session?.flashMessages?.get('errorsBag') ?? {},

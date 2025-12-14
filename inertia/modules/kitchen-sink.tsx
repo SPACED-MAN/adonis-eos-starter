@@ -82,11 +82,11 @@ export default function KitchenSink(props: KitchenSinkProps) {
 						)}
 					</header>
 
-					{resolvedImageUrl && (
-						<div className="rounded-lg overflow-hidden border border-line-medium" data-inline-type="media" data-inline-path="image">
-							<img src={resolvedImageUrl} alt={props.title} className="w-full h-auto" />
-						</div>
-					)}
+				{resolvedImageUrl && (
+					<div className="rounded-lg overflow-hidden border border-line-medium aspect-[16/9]" data-inline-type="media" data-inline-path="image">
+						<img src={resolvedImageUrl} alt={props.title} className="w-full h-full object-cover" />
+					</div>
+				)}
 
 					<div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-sm">
 						<Info label="Count" value={String(props.count ?? '')} dataPath="count" type="number" />
