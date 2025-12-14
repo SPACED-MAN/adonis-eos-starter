@@ -144,7 +144,23 @@ class PostRenderingService {
       aiReviewOverrides?: Record<string, unknown> | null
     }>
   > {
-    const { wantReview = false, reviewDraft = null, draftMode = 'review' } = options
+    let { wantReview = false, reviewDraft = null, draftMode = 'review' } = options
+    
+    // If not in review mode, check if we need to fall back to AI Review content
+    if (!wantReview) {
+      const hasApprovedModules = modules.some(
+        (pm) => pm.reviewAdded !== true && (pm as any).aiReviewAdded !== true && !pm.reviewDeleted && !(pm as any).aiReviewDeleted
+      )
+      const hasAiReviewContent = modules.some((pm) => (pm as any).aiReviewProps || (pm as any).aiReviewOverrides)
+      
+      // If no approved modules but AI Review content exists, use AI Review as fallback
+      if (!hasApprovedModules && hasAiReviewContent) {
+        wantReview = true
+        draftMode = 'ai-review'
+        // Clear reviewDraft since we're using AI Review mode
+        reviewDraft = null
+      }
+    }
 
     // Get removed module IDs from review draft
     const removedInReview = new Set<string>(
@@ -156,7 +172,11 @@ class PostRenderingService {
     const filtered = modules
       .filter((pm) => !removedInReview.has(pm.id))
       .filter((pm) => !(wantReview && pm.reviewDeleted === true))
-      .filter((pm) => (wantReview ? true : pm.reviewAdded !== true && (pm as any).aiReviewAdded !== true))
+      .filter((pm) => {
+        if (wantReview) return true
+        // When not in review mode, only show approved modules (not in review/AI review)
+        return pm.reviewAdded !== true && (pm as any).aiReviewAdded !== true
+      })
 
     const prepared = await Promise.all(
       filtered.map(async (pm) => {
