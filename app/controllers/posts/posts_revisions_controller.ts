@@ -163,11 +163,21 @@ export default class PostsRevisionsController extends BasePostsController {
       if (Array.isArray(snapshot?.modules)) {
         for (const m of snapshot.modules as any[]) {
           if (m?.moduleInstanceId) {
+            // If props is not provided in revision, load current props to preserve them
+            let propsToSet = m.props
+            if (!propsToSet) {
+              const current = await db
+                .from('module_instances')
+                .where('id', String(m.moduleInstanceId))
+                .select('props')
+                .first()
+              propsToSet = (current?.props as Record<string, any>) || {}
+            }
             await db
               .from('module_instances')
               .where('id', String(m.moduleInstanceId))
               .update({
-                props: m.props ?? db.raw('props'),
+                props: propsToSet,
                 review_props: m.reviewProps ?? null,
                 ai_review_props: m.aiReviewProps ?? null,
                 updated_at: now,

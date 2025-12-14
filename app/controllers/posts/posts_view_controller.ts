@@ -327,10 +327,11 @@ export default class PostsViewController extends BasePostsController {
         }
       }
 
-      // Draft posts are not visible to unauthenticated users
       // Check if user is authenticated using the web guard
       const isAuthenticated = await auth.use('web').check()
-      if (post.status === 'draft' && !isAuthenticated) {
+      
+      // Draft and archived posts are not visible to unauthenticated users
+      if ((post.status === 'draft' || post.status === 'archived') && !isAuthenticated) {
         return inertia.render('site/errors/not_found')
       }
 

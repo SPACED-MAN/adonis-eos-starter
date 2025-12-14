@@ -816,16 +816,15 @@ export default class PostsCrudController extends BasePostsController {
       .select('id', 'props', 'review_props', 'ai_review_props')
 
     // Promote ai_review_props to review_props for local modules
-    // Merge order: ai_review_props (AI content) + review_props (existing review) + props (source edits, wins)
-    // This ensures that any edits made on the Source tab override AI Review content
+    // Only merge ai_review_props and review_props - do NOT include props (source/approved content)
+    // Props is the approved/live content and should not be mixed into review content
     for (const instance of moduleInstances) {
-      const props = (instance.props as Record<string, any>) || {}
       const reviewProps = (instance.review_props as Record<string, any>) || {}
       const aiReviewProps = (instance.ai_review_props as Record<string, any>) || {}
 
-      // Merge: AI review props (base AI content) + existing review props + source props (source edits win)
-      // This ensures user edits made on Source tab are preserved over AI Review content
-      const mergedReviewProps = { ...aiReviewProps, ...reviewProps, ...props }
+      // Merge: AI review props (base AI content) + existing review props
+      // Review props should only contain review-stage content, not source/approved content
+      const mergedReviewProps = { ...aiReviewProps, ...reviewProps }
 
       await db
         .from('module_instances')
@@ -844,14 +843,14 @@ export default class PostsCrudController extends BasePostsController {
       .select('id', 'overrides', 'review_overrides', 'ai_review_overrides')
 
     // Promote ai_review_overrides to review_overrides for post_modules
+    // Only merge ai_review_overrides and review_overrides - do NOT include overrides (source/approved content)
     for (const pm of postModules) {
-      const overrides = (pm.overrides as Record<string, any>) || {}
       const reviewOverrides = (pm.review_overrides as Record<string, any>) || {}
       const aiReviewOverrides = (pm.ai_review_overrides as Record<string, any>) || {}
 
-      // Merge: AI review overrides (base AI content) + existing review overrides + source overrides (source edits win)
-      // This ensures user edits made on Source tab are preserved over AI Review content
-      const mergedReviewOverrides = { ...aiReviewOverrides, ...reviewOverrides, ...overrides }
+      // Merge: AI review overrides (base AI content) + existing review overrides
+      // Review overrides should only contain review-stage content, not source/approved content
+      const mergedReviewOverrides = { ...aiReviewOverrides, ...reviewOverrides }
 
       await db
         .from('post_modules')
@@ -917,16 +916,39 @@ export default class PostsCrudController extends BasePostsController {
   }
 
   private async promoteModuleChanges(postId: string) {
-    // Promote review_props to props for local modules
-    await db
+    // Load all module instances for this post to merge props properly in JavaScript
+    // This prevents SQL expressions from being saved as JSON data
+    const moduleInstances = await db
       .from('module_instances')
       .where('scope', 'post')
       .andWhereIn('id', db.from('post_modules').where('post_id', postId).select('module_id'))
-      .update({
-        props: db.raw('COALESCE(review_props, props)'),
-        review_props: null,
-        updated_at: new Date(),
-      })
+      .select('id', 'props', 'review_props')
+
+    // Promote review_props to props for local modules
+    // Merge: props (base) + review_props (if exists, overrides props)
+    for (const instance of moduleInstances) {
+      const props = (instance.props as Record<string, any>) || {}
+      const reviewProps = (instance.review_props as Record<string, any>) || {}
+
+      // If props contains a SQL expression (corrupted data), use review_props or empty object
+      let mergedProps: Record<string, any>
+      if (props && typeof props === 'object' && 'sql' in props) {
+        // Props is corrupted (contains SQL expression), use review_props or empty
+        mergedProps = reviewProps && Object.keys(reviewProps).length > 0 ? reviewProps : {}
+      } else {
+        // Normal case: merge review_props over props
+        mergedProps = { ...props, ...reviewProps }
+      }
+
+      await db
+        .from('module_instances')
+        .where('id', instance.id)
+        .update({
+          props: mergedProps,
+          review_props: null,
+          updated_at: new Date(),
+        } as any)
+    }
 
     // Promote review_overrides to overrides
     await db

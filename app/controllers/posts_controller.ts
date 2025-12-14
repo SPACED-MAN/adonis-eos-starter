@@ -810,15 +810,36 @@ export default class PostsController {
           }
           // Promote review module changes to approved
           // 1) Local modules: review_props -> props
-          await db
+          // Load modules first to merge props in JavaScript (prevents SQL expressions from being saved as JSON)
+          const moduleInstances = await db
             .from('module_instances')
             .where('scope', 'post')
             .andWhereIn('id', db.from('post_modules').where('post_id', id).select('module_id'))
-            .update({
-              props: db.raw('COALESCE(review_props, props)'),
-              review_props: null,
-              updated_at: new Date(),
-            } as any)
+            .select('id', 'props', 'review_props')
+
+          for (const instance of moduleInstances) {
+            const props = (instance.props as Record<string, any>) || {}
+            const reviewProps = (instance.review_props as Record<string, any>) || {}
+
+            // If props contains a SQL expression (corrupted data), use review_props or empty object
+            let mergedProps: Record<string, any>
+            if (props && typeof props === 'object' && 'sql' in props) {
+              // Props is corrupted (contains SQL expression), use review_props or empty
+              mergedProps = reviewProps && Object.keys(reviewProps).length > 0 ? reviewProps : {}
+            } else {
+              // Normal case: merge review_props over props
+              mergedProps = { ...props, ...reviewProps }
+            }
+
+            await db
+              .from('module_instances')
+              .where('id', instance.id)
+              .update({
+                props: mergedProps,
+                review_props: null,
+                updated_at: new Date(),
+              } as any)
+          }
           // 2) Global/static overrides: review_overrides -> overrides
           await db
             .from('post_modules')
@@ -1263,15 +1284,36 @@ export default class PostsController {
         jsonldOverrides: nextJsonLd,
       })
       // Promote review module changes to approved
-      await db
+      // Load modules first to merge props in JavaScript (prevents SQL expressions from being saved as JSON)
+      const moduleInstancesForPublish = await db
         .from('module_instances')
         .where('scope', 'post')
         .andWhereIn('id', db.from('post_modules').where('post_id', id).select('module_id'))
-        .update({
-          props: db.raw('COALESCE(review_props, props)'),
-          review_props: null,
-          updated_at: new Date(),
-        } as any)
+        .select('id', 'props', 'review_props')
+
+      for (const instance of moduleInstancesForPublish) {
+        const props = (instance.props as Record<string, any>) || {}
+        const reviewProps = (instance.review_props as Record<string, any>) || {}
+
+        // If props contains a SQL expression (corrupted data), use review_props or empty object
+        let mergedProps: Record<string, any>
+        if (props && typeof props === 'object' && 'sql' in props) {
+          // Props is corrupted (contains SQL expression), use review_props or empty
+          mergedProps = reviewProps && Object.keys(reviewProps).length > 0 ? reviewProps : {}
+        } else {
+          // Normal case: merge review_props over props
+          mergedProps = { ...props, ...reviewProps }
+        }
+
+        await db
+          .from('module_instances')
+          .where('id', instance.id)
+          .update({
+            props: mergedProps,
+            review_props: null,
+            updated_at: new Date(),
+          } as any)
+      }
       await db
         .from('post_modules')
         .where('post_id', id)
