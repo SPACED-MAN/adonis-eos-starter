@@ -54,24 +54,82 @@ export interface ExternalAgentConfig {
 }
 
 /**
+ * AI Provider type
+ */
+export type AIProvider = 'openai' | 'anthropic' | 'google'
+
+/**
  * Configuration for internal (AI service-based) agents
- * Placeholder for future internal AI implementation
  */
 export interface InternalAgentConfig {
   /**
-   * Internal service identifier
+   * AI provider identifier (openai, anthropic, google)
    */
-  serviceId: string
+  provider: AIProvider
 
   /**
-   * Model or configuration parameters
+   * Model identifier (provider-specific)
+   * Examples: 'gpt-4', 'claude-3-opus-20240229', 'gemini-pro'
    */
-  model?: string
+  model: string
 
   /**
-   * Additional configuration for the internal service
+   * API key for the provider (or env var name)
+   * If omitted, will look for env var: AI_PROVIDER_<PROVIDER>_API_KEY
+   * Example: AI_PROVIDER_OPENAI_API_KEY
    */
-  options?: Record<string, any>
+  apiKey?: string
+
+  /**
+   * Base URL for custom providers (optional)
+   */
+  baseUrl?: string
+
+  /**
+   * Model-agnostic options
+   */
+  options?: {
+    /**
+     * Temperature (0-2, higher = more creative)
+     */
+    temperature?: number
+
+    /**
+     * Maximum tokens to generate
+     */
+    maxTokens?: number
+
+    /**
+     * Top-p sampling (0-1)
+     */
+    topP?: number
+
+    /**
+     * Stop sequences
+     */
+    stop?: string[]
+
+    /**
+     * Additional provider-specific options
+     */
+    [key: string]: any
+  }
+
+  /**
+   * System prompt template
+   * Supports variables: {{postType}}, {{context}}, {{agentName}}, etc.
+   */
+  systemPrompt?: string
+
+  /**
+   * Whether to enable MCP tool usage for this agent
+   */
+  useMCP?: boolean
+
+  /**
+   * MCP tool restrictions (if empty, all tools available)
+   */
+  allowedMCPTools?: string[]
 }
 
 /**
@@ -215,6 +273,85 @@ export interface AgentDefinition {
      */
     createAtBoot?: boolean
   }
+
+  /**
+   * Optional reactions to execute after agent execution
+   */
+  reactions?: AgentReaction[]
+}
+
+/**
+ * Reaction trigger condition
+ */
+export interface AgentReactionCondition {
+  /**
+   * Field path to check (e.g., 'response.status', 'data.postId')
+   */
+  field: string
+
+  /**
+   * Comparison operator
+   */
+  operator: 'equals' | 'contains' | 'greater_than' | 'less_than' | 'matches' | 'exists'
+
+  /**
+   * Value to compare against
+   */
+  value?: any
+}
+
+/**
+ * Agent reaction configuration
+ * Reactions are executed after agent completion based on trigger conditions
+ */
+export interface AgentReaction {
+  /**
+   * Reaction type
+   */
+  type: 'webhook' | 'slack' | 'email' | 'mcp_tool' | 'custom'
+
+  /**
+   * When to trigger the reaction
+   */
+  trigger: 'always' | 'on_success' | 'on_error' | 'on_condition'
+
+  /**
+   * Condition for 'on_condition' trigger
+   */
+  condition?: AgentReactionCondition
+
+  /**
+   * Reaction configuration (type-specific)
+   */
+  config: {
+    // For webhook
+    url?: string
+    method?: 'POST' | 'GET' | 'PUT' | 'PATCH'
+    headers?: Record<string, string>
+    bodyTemplate?: string // Supports {{variable}} interpolation
+
+    // For Slack
+    webhookUrl?: string
+    channel?: string
+    template?: string // Message template with {{variable}} interpolation
+
+    // For email
+    to?: string | string[]
+    subject?: string
+    template?: string
+
+    // For MCP tool
+    toolName?: string
+    toolParams?: Record<string, any> | string // Can be template string
+
+    // For custom handler
+    handler?: string // Path to custom handler function
+  }
+
+  /**
+   * Whether this reaction is enabled
+   */
+  enabled?: boolean
 }
 
 /**

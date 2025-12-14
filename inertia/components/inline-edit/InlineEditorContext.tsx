@@ -367,25 +367,25 @@ export function InlineEditorProvider({
 	const deepRemoveDOMElements = useCallback((val: any, visited = new WeakSet(), depth = 0): any => {
 		// Prevent infinite recursion
 		if (depth > 20) return null
-		
+
 		if (val === null || val === undefined) return val
 		if (typeof val !== 'object') return val
-		
+
 		// Check for circular references
 		if (visited.has(val)) return '[Circular Reference]'
 		visited.add(val)
-		
+
 		// Check if it's a DOM element
 		if (isDOMElement(val)) {
 			return null // Remove DOM elements
 		}
-		
+
 		if (Array.isArray(val)) {
 			return val
 				.map((item) => deepRemoveDOMElements(item, visited, depth + 1))
 				.filter((item) => item !== null)
 		}
-		
+
 		if (val.constructor === Object) {
 			const cleaned: Record<string, any> = {}
 			for (const [key, v] of Object.entries(val)) {
@@ -399,7 +399,7 @@ export function InlineEditorProvider({
 			}
 			return cleaned
 		}
-		
+
 		return val
 	}, [isDOMElement])
 
@@ -407,29 +407,29 @@ export function InlineEditorProvider({
 	const sanitizeValue = useCallback((val: any, visited = new WeakSet()): any => {
 		// Handle null/undefined
 		if (val === null || val === undefined) return val
-		
+
 		// Handle primitives
 		if (typeof val !== 'object') return val
-		
+
 		// Check for circular references
 		if (visited.has(val)) {
 			return '[Circular Reference]'
 		}
-		
+
 		// Check for DOM elements first (before adding to visited)
 		if (isDOMElement(val)) {
 			return (val as any).textContent || (val as any).innerText || (val as any).value || ''
 		}
-		
+
 		// Add to visited set to detect circular references
 		visited.add(val)
-		
+
 		try {
 			// Handle arrays
 			if (Array.isArray(val)) {
 				return val.map((item) => sanitizeValue(item, visited))
 			}
-			
+
 			// Handle plain objects - recursively sanitize all properties
 			if (val.constructor === Object) {
 				const sanitized: Record<string, any> = {}
@@ -439,10 +439,10 @@ export function InlineEditorProvider({
 						console.warn(`Skipping DOM element at key: ${key}`)
 						continue
 					}
-					
+
 					// Recursively check nested objects for DOM elements
 					let sanitizedV = sanitizeValue(v, visited)
-					
+
 					// Double-check: if the sanitized value still contains DOM elements, try to extract
 					if (sanitizedV && typeof sanitizedV === 'object' && sanitizedV.constructor === Object) {
 						try {
@@ -463,12 +463,12 @@ export function InlineEditorProvider({
 							sanitizedV = extracted
 						}
 					}
-					
+
 					sanitized[key] = sanitizedV
 				}
 				return sanitized
 			}
-			
+
 			// For other objects (Date, RegExp, etc.), try to serialize
 			// But first check if it contains DOM elements
 			if (typeof val === 'object') {
@@ -483,7 +483,7 @@ export function InlineEditorProvider({
 					return String(val)
 				}
 			}
-			
+
 			return val
 		} finally {
 			// Note: We don't remove from visited here to keep the WeakSet small
@@ -516,7 +516,7 @@ export function InlineEditorProvider({
 				}
 				// If we couldn't produce a usable JSON payload, skip
 				if (finalValue === undefined) continue
-				
+
 				// Build body with extra safety - use safeJsonClone on entire payload
 				const payload = { path, value: finalValue, mode: saveMode }
 				console.log('[InlineEditor] Saving field', { moduleId, path, saveMode, finalValueType: typeof finalValue })
@@ -601,25 +601,32 @@ export function InlineEditorProvider({
 
 	// Determine which modes are available based on module data
 	const availableModes = useMemo(() => {
-		let hasSource = modules.length > 0 // Source exists if there are modules
+		// Source exists if there are modules with approved props (not just AI Review)
+		// Check if modules have actual source content (props that aren't just from AI Review)
+		let hasSource = false
 		let hasReview = false
 		let hasAiReview = false
-		
+
 		for (const m of modules) {
+			// Source exists if module has props (approved content) and wasn't added via AI Review
+			if (m.props && Object.keys(m.props).length > 0 && !m.aiReviewAdded) {
+				hasSource = true
+			}
 			if (m.reviewProps && Object.keys(m.reviewProps).length > 0) hasReview = true
 			if (m.reviewOverrides && Object.keys(m.reviewOverrides).length > 0) hasReview = true
 			if (m.aiReviewProps && Object.keys(m.aiReviewProps).length > 0) hasAiReview = true
 			if (m.aiReviewOverrides && Object.keys(m.aiReviewOverrides).length > 0) hasAiReview = true
 		}
-		
-		// Hide Source tab if there's AI Review content but no Review content
-		// This prevents editing Source when there's no actual approved source content to edit
-		// Users should edit in AI Review mode instead, then promote to Review
-		// This happens when posts are created via AI Review and haven't been promoted yet
-		if (hasAiReview && !hasReview) {
-			hasSource = false
+
+		// If no modules at all, but we have some content, assume source exists
+		// This handles edge cases where modules might be empty but post has content
+		if (modules.length === 0) {
+			hasSource = false // No modules means no source
+		} else if (!hasSource && !hasReview && !hasAiReview) {
+			// If we have modules but no review/ai-review data, they must be source
+			hasSource = true
 		}
-		
+
 		return { hasSource, hasReview, hasAiReview }
 	}, [modules])
 

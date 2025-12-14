@@ -60,7 +60,7 @@ export default class PostSerializerService {
     // Custom fields (slug:value) by slug from values table
     const cfVals = await PostCustomFieldValue.query()
       .where('postId', postId)
-      .select('fieldSlug as slug', 'value')
+      .select('field_slug as slug', 'value')
 
     const canonical: CanonicalPost = {
       version: 1 as const,

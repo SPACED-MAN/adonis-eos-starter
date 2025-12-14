@@ -4,7 +4,7 @@
  * Main editing interface for posts with modules, translations, and metadata.
  */
 
-import { useForm, usePage } from '@inertiajs/react'
+import { useForm, usePage, router } from '@inertiajs/react'
 import { AdminHeader } from '../../components/AdminHeader'
 import { AdminFooter } from '../../components/AdminFooter'
 import { Input } from '~/components/ui/input'
@@ -33,6 +33,7 @@ import { MediaPickerModal } from '../../components/media/MediaPickerModal'
 import { Popover, PopoverTrigger, PopoverContent } from '~/components/ui/popover'
 import { Calendar } from '~/components/ui/calendar'
 import { Checkbox } from '~/components/ui/checkbox'
+import { Spinner } from '~/components/ui/spinner'
 import { DndContext, closestCenter, PointerSensor, useSensor, useSensors, DragEndEvent } from '@dnd-kit/core'
 import { SortableContext, useSortable, verticalListSortingStrategy } from '@dnd-kit/sortable'
 import { CSS } from '@dnd-kit/utilities'
@@ -195,6 +196,22 @@ export default function Editor({
     jsonldOverrides: typeof reviewDraft.jsonldOverrides === 'string' ? reviewDraft.jsonldOverrides : (reviewDraft.jsonldOverrides ? JSON.stringify(reviewDraft.jsonldOverrides, null, 2) : ''),
     featuredImageId: String(reviewDraft.featuredImageId ?? (post.featuredImageId || '')),
     customFields: Array.isArray(reviewDraft.customFields) ? reviewDraft.customFields : ((Array.isArray(initialCustomFields) ? initialCustomFields.map(f => ({ fieldId: f.id, slug: f.slug, value: f.value ?? null })) : [])),
+    taxonomyTermIds: selectedTaxonomyTermIds,
+  } : null)
+  const aiReviewInitialRef = useRef<null | typeof initialDataRef.current>(aiReviewDraft ? {
+    title: String(aiReviewDraft.title ?? post.title),
+    slug: String(aiReviewDraft.slug ?? post.slug),
+    excerpt: String(aiReviewDraft.excerpt ?? (post.excerpt || '')),
+    status: String(aiReviewDraft.status ?? post.status),
+    parentId: String((aiReviewDraft.parentId ?? (post as any).parentId ?? '') || ''),
+    orderIndex: Number(aiReviewDraft.orderIndex ?? ((post as any).orderIndex ?? 0)),
+    metaTitle: String(aiReviewDraft.metaTitle ?? (post.metaTitle || '')),
+    metaDescription: String(aiReviewDraft.metaDescription ?? (post.metaDescription || '')),
+    canonicalUrl: String(aiReviewDraft.canonicalUrl ?? (post.canonicalUrl || '')),
+    robotsJson: typeof aiReviewDraft.robotsJson === 'string' ? aiReviewDraft.robotsJson : (aiReviewDraft.robotsJson ? JSON.stringify(aiReviewDraft.robotsJson, null, 2) : ''),
+    jsonldOverrides: typeof aiReviewDraft.jsonldOverrides === 'string' ? aiReviewDraft.jsonldOverrides : (aiReviewDraft.jsonldOverrides ? JSON.stringify(aiReviewDraft.jsonldOverrides, null, 2) : ''),
+    featuredImageId: String(aiReviewDraft.featuredImageId ?? (post.featuredImageId || '')),
+    customFields: Array.isArray(aiReviewDraft.customFields) ? aiReviewDraft.customFields : ((Array.isArray(initialCustomFields) ? initialCustomFields.map(f => ({ fieldId: f.id, slug: f.slug, value: f.value ?? null })) : [])),
     taxonomyTermIds: selectedTaxonomyTermIds,
   } : null)
   const [pendingModules, setPendingModules] = useState<Record<string, { overrides: Record<string, any> | null; edited: Record<string, any> }>>({})
@@ -414,9 +431,15 @@ export default function Editor({
   )
 
   const hasSourceBaseline = useMemo(() => {
-    // "Source" should only exist if there is at least one module not introduced via Review/AI Review
-    return (modules || []).some((m) => !m.reviewAdded && !(m as any).aiReviewAdded)
-  }, [modules])
+    // "Source" exists if:
+    // 1. There is at least one module not introduced via Review/AI Review, OR
+    // 2. The post has approved content (post itself exists with approved fields)
+    // This ensures Source tab shows even when all modules have aiReviewProps but post has source content
+    const hasSourceModules = (modules || []).some((m) => !m.reviewAdded && !(m as any).aiReviewAdded)
+    // Post has source content if it exists (has id, title, etc.) - this is always true for existing posts
+    const hasSourcePost = !!post?.id
+    return hasSourceModules || hasSourcePost
+  }, [modules, post])
 
   const hasReviewBaseline = useMemo(() => {
     // Check post-level review draft
@@ -537,12 +560,12 @@ export default function Editor({
         customFields: data.customFields,
         taxonomyTermIds: data.taxonomyTermIds,
       }
-      
+
       console.log('[Editor] Sending cleaned data:', {
         canonicalUrl: cleanedData.canonicalUrl,
         canonicalUrlType: typeof cleanedData.canonicalUrl,
       })
-      
+
       // Use fetch directly to have full control over the request.
       // NOTE: We force an absolute URL + manual redirect handling because a redirect (often due to CSRF/auth)
       // can cause the browser to follow to `/admin/posts/:id/edit` and then "PUT" that URL (404).
@@ -565,7 +588,7 @@ export default function Editor({
         credentials: 'same-origin',
         body: JSON.stringify(cleanedData),
       })
-      
+
       if (res.ok) {
         toast.success('Saved to Source')
         initialDataRef.current = pickForm(data)
@@ -763,18 +786,20 @@ export default function Editor({
     }
   }, [])
 
-  // Switch between Published view and Review view
+  // Switch between Published view, Review view, and AI Review view
   useEffect(() => {
     if (viewMode === 'review' && reviewInitialRef.current) {
       // Load review draft into form
       setData({ ...data, ...reviewInitialRef.current })
-    }
-    if (viewMode === 'source') {
+    } else if (viewMode === 'ai-review' && aiReviewInitialRef.current) {
+      // Load AI review draft into form
+      setData({ ...data, ...aiReviewInitialRef.current })
+    } else if (viewMode === 'source') {
       // Restore source values
       setData({ ...data, ...initialDataRef.current })
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [viewMode])
+  }, [viewMode, aiReviewDraft])
 
   async function saveForReview() {
     const payload = {
@@ -856,6 +881,12 @@ export default function Editor({
   const [runningAgent, setRunningAgent] = useState<boolean>(false)
   const [agentPromptOpen, setAgentPromptOpen] = useState(false)
   const [agentOpenEndedContext, setAgentOpenEndedContext] = useState('')
+  const [agentResponse, setAgentResponse] = useState<{
+    rawResponse?: string
+    summary?: string | null
+    applied?: string[]
+    message?: string
+  } | null>(null)
   // Author management (admin)
   const [users, setUsers] = useState<Array<{ id: number; email: string; fullName: string | null }>>([])
   const [selectedAuthorId, setSelectedAuthorId] = useState<number | null>(post.author?.id ?? null)
@@ -2010,99 +2041,283 @@ export default function Editor({
                     </Select>
                     {selectedAgent && (
                       <>
-                        <AlertDialog open={agentPromptOpen} onOpenChange={setAgentPromptOpen}>
-                          <AlertDialogContent>
+                        <AlertDialog
+                          open={agentPromptOpen}
+                          onOpenChange={(open) => {
+                            // Always allow opening (even if running - shouldn't happen but be safe)
+                            if (open && !agentPromptOpen) {
+                              setAgentPromptOpen(true)
+                              return
+                            }
+                            // Don't allow closing if agent is running or has a response
+                            if ((runningAgent || agentResponse) && !open) {
+                              // Force dialog to stay open - prevent closing
+                              return
+                            }
+                            // Only allow closing when not running and no response
+                            if (!runningAgent && !agentResponse) {
+                              setAgentPromptOpen(open)
+                              if (!open) {
+                                // Reset response when closing
+                                setAgentResponse(null)
+                                setAgentOpenEndedContext('')
+                              }
+                            }
+                          }}
+                        >
+                          <AlertDialogContent className="max-w-2xl max-h-[80vh] overflow-y-auto">
                             <AlertDialogHeader>
                               <AlertDialogTitle>
-                                {(() => {
-                                  const a = agents.find((x) => x.id === selectedAgent)
-                                  return a?.openEndedContext?.label || 'Instructions'
-                                })()}
+                                {agentResponse
+                                  ? 'Agent Response'
+                                  : (() => {
+                                    const a = agents.find((x) => x.id === selectedAgent)
+                                    return a?.openEndedContext?.label || 'Instructions'
+                                  })()}
                               </AlertDialogTitle>
                               <AlertDialogDescription>
-                                Provide any extra context or requirements for this agent run. This will be sent to the agent as `context.openEndedContext`.
+                                {agentResponse
+                                  ? 'Review the AI response and changes that were applied:'
+                                  : 'Provide any extra context or requirements for this agent run.'}
                               </AlertDialogDescription>
                             </AlertDialogHeader>
-                            <div className="mt-3 space-y-2">
-                              <Textarea
-                                value={agentOpenEndedContext}
-                                onChange={(e) => setAgentOpenEndedContext(e.target.value)}
-                                placeholder={(() => {
+
+                            {runningAgent ? (
+                              <div className="mt-3 space-y-4">
+                                <div className="flex items-center gap-3">
+                                  <Spinner className="size-5 text-primary" />
+                                  <div className="text-sm font-medium">Running agent...</div>
+                                </div>
+                                <div className="text-xs text-neutral-medium">
+                                  Please wait while the agent processes your request.
+                                </div>
+                              </div>
+                            ) : !agentResponse ? (
+                              <div className="mt-3 space-y-2">
+                                <Textarea
+                                  value={agentOpenEndedContext}
+                                  onChange={(e) => setAgentOpenEndedContext(e.target.value)}
+                                  placeholder={(() => {
+                                    const a = agents.find((x) => x.id === selectedAgent)
+                                    return (
+                                      a?.openEndedContext?.placeholder ||
+                                      'Example: "Rewrite this page for a more confident tone. Keep it under 500 words. Preserve the CTA."'
+                                    )
+                                  })()}
+                                  className="min-h-[120px]"
+                                />
+                                {(() => {
                                   const a = agents.find((x) => x.id === selectedAgent)
+                                  const max = a?.openEndedContext?.maxChars
+                                  if (!max) return null
                                   return (
-                                    a?.openEndedContext?.placeholder ||
-                                    'Example: “Rewrite this page for a more confident tone. Keep it under 500 words. Preserve the CTA.”'
+                                    <div className="text-xs text-neutral-medium">
+                                      {agentOpenEndedContext.length}/{max}
+                                    </div>
                                   )
                                 })()}
-                                className="min-h-[120px]"
-                              />
-                              {(() => {
-                                const a = agents.find((x) => x.id === selectedAgent)
-                                const max = a?.openEndedContext?.maxChars
-                                if (!max) return null
-                                return (
-                                  <div className="text-xs text-neutral-medium">
-                                    {agentOpenEndedContext.length}/{max}
+                              </div>
+                            ) : (
+                              <div className="mt-3 space-y-4">
+                                {/* Show user's request */}
+                                {agentOpenEndedContext && (
+                                  <div className="space-y-1">
+                                    <div className="text-xs text-neutral-medium">Your request:</div>
+                                    <div className="bg-backdrop-medium p-3 rounded border border-neutral-border text-sm">
+                                      {agentOpenEndedContext}
+                                    </div>
                                   </div>
-                                )
-                              })()}
-                            </div>
-                            <AlertDialogFooter>
-                              <AlertDialogCancel
-                                type="button"
-                                onClick={() => {
-                                  setAgentPromptOpen(false)
-                                }}
-                              >
-                                Cancel
-                              </AlertDialogCancel>
-                              <AlertDialogAction
-                                type="button"
-                                onClick={async () => {
-                                  if (!selectedAgent) return
-                                  setAgentPromptOpen(false)
-                                  setRunningAgent(true)
-                                  try {
-                                    const csrf = (() => {
-                                      if (typeof document === 'undefined') return undefined
-                                      const m = document.cookie.match(/(?:^|; )XSRF-TOKEN=([^;]+)/)
-                                      return m ? decodeURIComponent(m[1]) : undefined
-                                    })()
+                                )}
 
-                                    const openEnded = agentOpenEndedContext.trim()
-                                    const res = await fetch(
-                                      `/api/posts/${post.id}/agents/${encodeURIComponent(selectedAgent)}/run`,
-                                      {
-                                        method: 'POST',
-                                        headers: {
-                                          Accept: 'application/json',
-                                          'Content-Type': 'application/json',
-                                          ...(csrf ? { 'X-XSRF-TOKEN': csrf } : {}),
-                                        },
-                                        credentials: 'same-origin',
-                                        body: JSON.stringify({
-                                          context: { locale: selectedLocale },
-                                          openEndedContext: openEnded || undefined,
-                                        }),
-                                      }
-                                    )
-                                    const j = await res.json().catch(() => ({}))
-                                    if (res.ok) {
-                                      toast.success('Agent suggestions saved to review draft')
-                                      setViewMode('review')
+                                {/* Show AI's natural response */}
+                                {agentResponse.summary && (
+                                  <div className="space-y-1">
+                                    <div className="text-xs text-neutral-medium">AI Response:</div>
+                                    <div className="bg-standout-light p-4 rounded-lg border border-standout-medium text-sm whitespace-pre-wrap break-words">
+                                      {agentResponse.summary}
+                                    </div>
+                                  </div>
+                                )}
+                                {/* Fallback: Show raw response if no summary */}
+                                {!agentResponse.summary && agentResponse.rawResponse && (
+                                  <div className="space-y-1">
+                                    <div className="text-xs text-neutral-medium">AI Response (raw):</div>
+                                    <div className="bg-standout-light p-4 rounded-lg border border-standout-medium text-sm whitespace-pre-wrap break-words max-h-96 overflow-y-auto">
+                                      {/* Try to extract natural text from JSON response */}
+                                      {(() => {
+                                        const raw = agentResponse.rawResponse
+                                        // If it's JSON in markdown, try to extract just the content
+                                        const jsonMatch = raw.match(/```(?:json)?\s*(\{[\s\S]*\})\s*```/)
+                                        if (jsonMatch) {
+                                          try {
+                                            const parsed = JSON.parse(jsonMatch[1])
+                                            // Return a more natural summary
+                                            const parts: string[] = []
+                                            if (parsed.post) {
+                                              parts.push('I\'ve updated the post with the following changes:')
+                                              if (parsed.post.title) parts.push(`- Title: "${parsed.post.title}"`)
+                                              if (parsed.post.excerpt) parts.push(`- Excerpt: "${parsed.post.excerpt.substring(0, 100)}..."`)
+                                            }
+                                            if (parsed.modules && Array.isArray(parsed.modules)) {
+                                              parsed.modules.forEach((m: any) => {
+                                                if (m.props?.title) parts.push(`- ${m.type} module title: "${m.props.title}"`)
+                                              })
+                                            }
+                                            return parts.length > 0 ? parts.join('\n') : raw
+                                          } catch {
+                                            return raw
+                                          }
+                                        }
+                                        return raw
+                                      })()}
+                                    </div>
+                                  </div>
+                                )}
+
+                                {agentResponse.applied && agentResponse.applied.length > 0 && (
+                                  <div className="space-y-1">
+                                    <div className="text-xs text-neutral-medium">Changes applied:</div>
+                                    <div className="bg-success-light p-3 rounded border border-success-medium">
+                                      <ul className="list-disc list-inside space-y-1 text-sm">
+                                        {agentResponse.applied.map((field, i) => (
+                                          <li key={i}>{field}</li>
+                                        ))}
+                                      </ul>
+                                    </div>
+                                  </div>
+                                )}
+
+                                {agentResponse.message && (
+                                  <div className="text-sm text-success-medium font-medium">
+                                    {agentResponse.message}
+                                  </div>
+                                )}
+                              </div>
+                            )}
+
+                            <AlertDialogFooter>
+                              {agentResponse ? (
+                                <>
+                                  <AlertDialogCancel
+                                    type="button"
+                                    onClick={() => {
+                                      setAgentPromptOpen(false)
+                                      setAgentResponse(null)
                                       setAgentOpenEndedContext('')
-                                    } else {
-                                      toast.error(j?.error || 'Agent run failed')
-                                    }
-                                  } catch {
-                                    toast.error('Agent run failed')
-                                  } finally {
-                                    setRunningAgent(false)
-                                  }
-                                }}
-                              >
-                                Run Agent
-                              </AlertDialogAction>
+                                    }}
+                                  >
+                                    Close
+                                  </AlertDialogCancel>
+                                  <AlertDialogAction
+                                    type="button"
+                                    onClick={() => {
+                                      setAgentPromptOpen(false)
+                                      setAgentResponse(null)
+                                      setAgentOpenEndedContext('')
+                                      // Switch to AI Review view to see the changes
+                                      const agent = agents.find((x) => x.id === selectedAgent)
+                                      if ((agent as any)?.type === 'internal') {
+                                        setViewMode('ai-review')
+                                      } else {
+                                        setViewMode('review')
+                                      }
+                                    }}
+                                  >
+                                    View Changes
+                                  </AlertDialogAction>
+                                </>
+                              ) : (
+                                <>
+                                  <AlertDialogCancel
+                                    type="button"
+                                    onClick={() => {
+                                      setAgentPromptOpen(false)
+                                      setAgentResponse(null)
+                                    }}
+                                  >
+                                    Cancel
+                                  </AlertDialogCancel>
+                                  <AlertDialogAction
+                                    type="button"
+                                    disabled={runningAgent}
+                                    onClick={async (e) => {
+                                      // Prevent default form submission behavior and stop propagation
+                                      e.preventDefault()
+                                      e.stopPropagation()
+                                      if (!selectedAgent) return
+                                      // CRITICAL: Set running state BEFORE any async operations
+                                      // This prevents the dialog from closing via onOpenChange
+                                      setRunningAgent(true)
+                                      setAgentResponse(null)
+                                      // Force dialog to stay open
+                                      setAgentPromptOpen(true)
+                                      try {
+                                        const csrf = (() => {
+                                          if (typeof document === 'undefined') return undefined
+                                          const m = document.cookie.match(/(?:^|; )XSRF-TOKEN=([^;]+)/)
+                                          return m ? decodeURIComponent(m[1]) : undefined
+                                        })()
+
+                                        const openEnded = agentOpenEndedContext.trim()
+                                        const res = await fetch(
+                                          `/api/posts/${post.id}/agents/${encodeURIComponent(selectedAgent)}/run`,
+                                          {
+                                            method: 'POST',
+                                            headers: {
+                                              Accept: 'application/json',
+                                              'Content-Type': 'application/json',
+                                              ...(csrf ? { 'X-XSRF-TOKEN': csrf } : {}),
+                                            },
+                                            credentials: 'same-origin',
+                                            body: JSON.stringify({
+                                              context: { locale: selectedLocale },
+                                              openEndedContext: openEnded || undefined,
+                                            }),
+                                          }
+                                        )
+                                        const j = await res.json().catch(() => ({}))
+                                        if (res.ok) {
+                                          // Keep dialog open and show response
+                                          setAgentResponse({
+                                            rawResponse: j.rawResponse,
+                                            summary: j.summary || null,
+                                            applied: j.applied || [],
+                                            message: j.message,
+                                          })
+                                          toast.success('Agent completed successfully')
+
+                                          // Refresh page data to load updated aiReviewDraft and modules
+                                          // Delay reload slightly to ensure dialog state is set first
+                                          // Wrap in try-catch to prevent reload errors from affecting the UI
+                                          setTimeout(() => {
+                                            try {
+                                              router.reload({ only: ['aiReviewDraft', 'post', 'modules'] })
+                                            } catch (reloadError) {
+                                              console.warn('Page reload failed (non-critical):', reloadError)
+                                              // Reload failed but agent succeeded - user can manually refresh
+                                            }
+                                          }, 100)
+                                        } else {
+                                          toast.error(j?.error || 'Agent run failed')
+                                          setAgentResponse({
+                                            message: `Error: ${j?.error || 'Agent run failed'}`,
+                                          })
+                                        }
+                                      } catch (error: any) {
+                                        console.error('Agent execution error:', error)
+                                        toast.error('Agent run failed')
+                                        setAgentResponse({
+                                          message: `Error: ${error?.message || 'Agent run failed'}`,
+                                        })
+                                      } finally {
+                                        setRunningAgent(false)
+                                      }
+                                    }}
+                                  >
+                                    {runningAgent ? 'Running…' : 'Run Agent'}
+                                  </AlertDialogAction>
+                                </>
+                              )}
                             </AlertDialogFooter>
                           </AlertDialogContent>
                         </AlertDialog>
@@ -2117,9 +2332,14 @@ export default function Editor({
                               setAgentPromptOpen(true)
                               return
                             }
-                            // No prompt required: run immediately
-                            ;(async () => {
+                            // No prompt required: run immediately, but still show response in dialog
+                            ; (async () => {
+                              // Open dialog FIRST to ensure it's open before setting running state
+                              setAgentPromptOpen(true)
+                              // Use requestAnimationFrame to ensure dialog state is set before preventing close
+                              await new Promise(resolve => requestAnimationFrame(resolve))
                               setRunningAgent(true)
+                              setAgentResponse(null)
                               try {
                                 const csrf = (() => {
                                   if (typeof document === 'undefined') return undefined
@@ -2141,13 +2361,34 @@ export default function Editor({
                                 )
                                 const j = await res.json().catch(() => ({}))
                                 if (res.ok) {
-                                  toast.success('Agent suggestions saved to review draft')
-                                  setViewMode('review')
+                                  // Show response in dialog
+                                  setAgentResponse({
+                                    rawResponse: j.rawResponse,
+                                    applied: j.applied || [],
+                                    message: j.message,
+                                  })
+                                  toast.success('Agent completed successfully')
+
+                                  // Refresh page data to load updated aiReviewDraft
+                                  setTimeout(() => {
+                                    try {
+                                      router.reload({ only: ['aiReviewDraft', 'post'] })
+                                    } catch (reloadError) {
+                                      console.warn('Page reload failed (non-critical):', reloadError)
+                                    }
+                                  }, 100)
                                 } else {
                                   toast.error(j?.error || 'Agent run failed')
+                                  setAgentResponse({
+                                    message: `Error: ${j?.error || 'Agent run failed'}`,
+                                  })
                                 }
-                              } catch {
+                              } catch (error: any) {
+                                console.error('Agent execution error:', error)
                                 toast.error('Agent run failed')
+                                setAgentResponse({
+                                  message: `Error: ${error?.message || 'Agent run failed'}`,
+                                })
                               } finally {
                                 setRunningAgent(false)
                               }
@@ -2287,127 +2528,127 @@ export default function Editor({
                   (hasAiReviewBaseline && canApproveAiReview) ||
                   (hasReviewBaseline && canApproveReview)
                 )) && (
-                  <div className="space-y-2">
-                    <label className="block text-xs font-medium text-neutral-medium">
-                      Decision
-                    </label>
-                    <RadioGroup
-                      value={decision}
-                      onValueChange={(val) => setDecision(val as any)}
-                      className="space-y-2"
-                    >
-                      {hasReviewBaseline && canApproveReview && (
-                        <label className="flex items-center gap-2 text-xs text-neutral-high">
-                          <RadioGroupItem value="approve-review-to-source" />
-                          <span>Promote to Source</span>
-                        </label>
-                      )}
-                      {hasAiReviewBaseline && canApproveAiReview && viewMode === 'ai-review' && (
-                        <label className="flex items-center gap-2 text-xs text-neutral-high">
-                          <RadioGroupItem value="approve-ai-review-to-review" />
-                          <span>Promote to Review</span>
-                        </label>
-                      )}
-                      {hasReviewBaseline && canApproveReview && viewMode === 'review' && (
-                        <label className="flex items-center gap-2 text-xs text-neutral-high">
-                          <RadioGroupItem value="reject-review" />
-                          <span>Reject this version</span>
-                        </label>
-                      )}
-                      {hasAiReviewBaseline && canApproveAiReview && viewMode === 'ai-review' && (
-                        <label className="flex items-center gap-2 text-xs text-neutral-high">
-                          <RadioGroupItem value="reject-ai-review" />
-                          <span>Reject this version</span>
-                        </label>
-                      )}
-                    </RadioGroup>
-
-                    <div className="mt-2 flex items-center gap-2">
-                      <button
-                        type="button"
-                        className="h-8 px-3 text-xs border border-border rounded-lg hover:bg-backdrop-medium text-neutral-medium disabled:opacity-50"
-                        disabled={!decision || processing}
-                        onClick={async () => {
-                          if (!decision) return
-                          if (decision.startsWith('reject-')) {
-                            setRejectConfirmOpen(true)
-                            return
-                          }
-                          setApproveConfirmOpen(true)
-                        }}
+                    <div className="space-y-2">
+                      <label className="block text-xs font-medium text-neutral-medium">
+                        Decision
+                      </label>
+                      <RadioGroup
+                        value={decision}
+                        onValueChange={(val) => setDecision(val as any)}
+                        className="space-y-2"
                       >
-                        {decision.startsWith('reject-') ? 'Reject' : 'Approve'}
-                      </button>
+                        {hasReviewBaseline && canApproveReview && (
+                          <label className="flex items-center gap-2 text-xs text-neutral-high">
+                            <RadioGroupItem value="approve-review-to-source" />
+                            <span>Promote to Source</span>
+                          </label>
+                        )}
+                        {hasAiReviewBaseline && canApproveAiReview && viewMode === 'ai-review' && (
+                          <label className="flex items-center gap-2 text-xs text-neutral-high">
+                            <RadioGroupItem value="approve-ai-review-to-review" />
+                            <span>Promote to Review</span>
+                          </label>
+                        )}
+                        {hasReviewBaseline && canApproveReview && viewMode === 'review' && (
+                          <label className="flex items-center gap-2 text-xs text-neutral-high">
+                            <RadioGroupItem value="reject-review" />
+                            <span>Reject this version</span>
+                          </label>
+                        )}
+                        {hasAiReviewBaseline && canApproveAiReview && viewMode === 'ai-review' && (
+                          <label className="flex items-center gap-2 text-xs text-neutral-high">
+                            <RadioGroupItem value="reject-ai-review" />
+                            <span>Reject this version</span>
+                          </label>
+                        )}
+                      </RadioGroup>
+
+                      <div className="mt-2 flex items-center gap-2">
+                        <button
+                          type="button"
+                          className="h-8 px-3 text-xs border border-border rounded-lg hover:bg-backdrop-medium text-neutral-medium disabled:opacity-50"
+                          disabled={!decision || processing}
+                          onClick={async () => {
+                            if (!decision) return
+                            if (decision.startsWith('reject-')) {
+                              setRejectConfirmOpen(true)
+                              return
+                            }
+                            setApproveConfirmOpen(true)
+                          }}
+                        >
+                          {decision.startsWith('reject-') ? 'Reject' : 'Approve'}
+                        </button>
+                      </div>
+
+                      <AlertDialog open={approveConfirmOpen} onOpenChange={setApproveConfirmOpen}>
+                        <AlertDialogContent>
+                          <AlertDialogHeader>
+                            <AlertDialogTitle>Approve changes?</AlertDialogTitle>
+                            <AlertDialogDescription>
+                              {decision === 'approve-ai-review-to-review'
+                                ? 'This will promote AI Review into Review (and clear AI Review staging).'
+                                : 'This will promote Review into Source (and clear the Review draft).'}
+                            </AlertDialogDescription>
+                          </AlertDialogHeader>
+                          <AlertDialogFooter>
+                            <AlertDialogCancel>Cancel</AlertDialogCancel>
+                            <AlertDialogAction
+                              onClick={async () => {
+                                setApproveConfirmOpen(false)
+                                const mode =
+                                  decision === 'approve-ai-review-to-review' ? 'approve-ai-review' : 'approve'
+                                await executeApprove(mode)
+                              }}
+                            >
+                              Approve
+                            </AlertDialogAction>
+                          </AlertDialogFooter>
+                        </AlertDialogContent>
+                      </AlertDialog>
+
+                      <AlertDialog open={rejectConfirmOpen} onOpenChange={setRejectConfirmOpen}>
+                        <AlertDialogContent>
+                          <AlertDialogHeader>
+                            <AlertDialogTitle>Reject this version?</AlertDialogTitle>
+                            <AlertDialogDescription>
+                              This will remove the selected draft/staging version. A revision will be recorded so you can revert.
+                            </AlertDialogDescription>
+                          </AlertDialogHeader>
+                          <AlertDialogFooter>
+                            <AlertDialogCancel>Cancel</AlertDialogCancel>
+                            <AlertDialogAction
+                              onClick={async () => {
+                                if (!decision || !decision.startsWith('reject-')) return
+                                const mode = decision === 'reject-ai-review' ? 'reject-ai-review' : 'reject-review'
+                                const res = await fetch(`/api/posts/${post.id}`, {
+                                  method: 'PUT',
+                                  headers: {
+                                    'Accept': 'application/json',
+                                    'Content-Type': 'application/json',
+                                    ...xsrfHeader(),
+                                  },
+                                  credentials: 'same-origin',
+                                  body: JSON.stringify({ mode }),
+                                })
+                                if (res.ok) {
+                                  toast.success(mode === 'reject-ai-review' ? 'AI Review discarded' : 'Review discarded')
+                                  setRejectConfirmOpen(false)
+                                  window.location.reload()
+                                } else {
+                                  const err = await res.json().catch(() => null)
+                                  console.error('Reject failed:', res.status, err)
+                                  toast.error(err?.errors ? 'Failed (validation)' : 'Failed')
+                                }
+                              }}
+                            >
+                              Reject
+                            </AlertDialogAction>
+                          </AlertDialogFooter>
+                        </AlertDialogContent>
+                      </AlertDialog>
                     </div>
-
-                    <AlertDialog open={approveConfirmOpen} onOpenChange={setApproveConfirmOpen}>
-                      <AlertDialogContent>
-                        <AlertDialogHeader>
-                          <AlertDialogTitle>Approve changes?</AlertDialogTitle>
-                          <AlertDialogDescription>
-                            {decision === 'approve-ai-review-to-review'
-                              ? 'This will promote AI Review into Review (and clear AI Review staging).'
-                              : 'This will promote Review into Source (and clear the Review draft).'}
-                          </AlertDialogDescription>
-                        </AlertDialogHeader>
-                        <AlertDialogFooter>
-                          <AlertDialogCancel>Cancel</AlertDialogCancel>
-                          <AlertDialogAction
-                            onClick={async () => {
-                              setApproveConfirmOpen(false)
-                              const mode =
-                                decision === 'approve-ai-review-to-review' ? 'approve-ai-review' : 'approve'
-                              await executeApprove(mode)
-                            }}
-                          >
-                            Approve
-                          </AlertDialogAction>
-                        </AlertDialogFooter>
-                      </AlertDialogContent>
-                    </AlertDialog>
-
-                    <AlertDialog open={rejectConfirmOpen} onOpenChange={setRejectConfirmOpen}>
-                      <AlertDialogContent>
-                        <AlertDialogHeader>
-                          <AlertDialogTitle>Reject this version?</AlertDialogTitle>
-                          <AlertDialogDescription>
-                            This will remove the selected draft/staging version. A revision will be recorded so you can revert.
-                          </AlertDialogDescription>
-                        </AlertDialogHeader>
-                        <AlertDialogFooter>
-                          <AlertDialogCancel>Cancel</AlertDialogCancel>
-                          <AlertDialogAction
-                            onClick={async () => {
-                              if (!decision || !decision.startsWith('reject-')) return
-                              const mode = decision === 'reject-ai-review' ? 'reject-ai-review' : 'reject-review'
-                              const res = await fetch(`/api/posts/${post.id}`, {
-                                method: 'PUT',
-                                headers: {
-                                  'Accept': 'application/json',
-                                  'Content-Type': 'application/json',
-                                  ...xsrfHeader(),
-                                },
-                                credentials: 'same-origin',
-                                body: JSON.stringify({ mode }),
-                              })
-                              if (res.ok) {
-                                toast.success(mode === 'reject-ai-review' ? 'AI Review discarded' : 'Review discarded')
-                                setRejectConfirmOpen(false)
-                                window.location.reload()
-                              } else {
-                                const err = await res.json().catch(() => null)
-                                console.error('Reject failed:', res.status, err)
-                                toast.error(err?.errors ? 'Failed (validation)' : 'Failed')
-                              }
-                            }}
-                          >
-                            Reject
-                          </AlertDialogAction>
-                        </AlertDialogFooter>
-                      </AlertDialogContent>
-                    </AlertDialog>
-                  </div>
-                )}
+                  )}
 
                 <AlertDialog open={saveConfirmOpen} onOpenChange={setSaveConfirmOpen}>
                   <AlertDialogContent>

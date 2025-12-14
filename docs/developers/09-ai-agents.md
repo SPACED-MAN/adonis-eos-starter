@@ -19,10 +19,219 @@ Webhook-based agents that call external services:
 - Custom microservices
 - Third-party integrations
 
-### Internal Agents (Planned)
-Future support for in-process AI services.
+### Internal Agents
+
+In-process AI agents that use AI providers directly (OpenAI, Anthropic, Google) without external webhooks. These agents:
+
+- **Run directly in your application** - No external service required
+- **Model-agnostic** - Switch between OpenAI, Anthropic, and Google easily
+- **MCP integration** - Can use MCP tools for CMS operations
+- **Reaction system** - Execute webhooks, Slack notifications, and more after completion
+- **Faster execution** - No network latency to external services
+
+Internal agents are ideal for:
+- Quick content improvements
+- SEO optimization
+- Content enhancement
+- Automated workflows that need CMS context
 
 ## Creating an Agent
+
+### Internal Agent Example
+
+Here's a complete example of an internal agent:
+
+```typescript
+import type { AgentDefinition } from '#types/agent_types'
+
+const InternalAiAssistantAgent: AgentDefinition = {
+  id: 'internal-ai-assistant',
+  name: 'Internal AI Assistant',
+  description: 'Built-in AI assistant powered by OpenAI',
+  type: 'internal',
+  enabled: true,
+
+  internal: {
+    // Provider: 'openai' | 'anthropic' | 'google'
+    provider: 'openai',
+    
+    // Model identifier (provider-specific)
+    model: 'gpt-4',
+    
+    // API key (optional - uses AI_PROVIDER_OPENAI_API_KEY env var if not set)
+    // apiKey: process.env.AI_PROVIDER_OPENAI_API_KEY,
+    
+    // System prompt template
+    systemPrompt: `You are a helpful content assistant.
+Help improve content while maintaining the original intent.`,
+    
+    // Model options
+    options: {
+      temperature: 0.7,
+      maxTokens: 2000,
+    },
+    
+    // Enable MCP tool usage
+    useMCP: false,
+  },
+
+  scopes: [
+    { scope: 'dropdown', order: 5, enabled: true },
+  ],
+
+  // Optional: Reactions (execute after completion)
+  reactions: [
+    {
+      type: 'slack',
+      trigger: 'on_success',
+      config: {
+        webhookUrl: process.env.SLACK_WEBHOOK_URL || '',
+        channel: '#content-alerts',
+        template: 'AI Assistant completed: {{agent}} processed post {{data.postId}}',
+      },
+    },
+  ],
+
+  userAccount: { enabled: true },
+}
+
+export default InternalAiAssistantAgent
+```
+
+### Environment Configuration
+
+Set your API keys in `.env`:
+
+```env
+# OpenAI
+AI_PROVIDER_OPENAI_API_KEY=sk-...
+
+# Anthropic
+AI_PROVIDER_ANTHROPIC_API_KEY=sk-ant-...
+
+# Google
+AI_PROVIDER_GOOGLE_API_KEY=...
+```
+
+### Supported Providers and Models
+
+#### OpenAI
+- Models: `gpt-4`, `gpt-4-turbo`, `gpt-3.5-turbo`
+- API Key: `AI_PROVIDER_OPENAI_API_KEY`
+
+#### Anthropic (Claude)
+- Models: `claude-3-opus-20240229`, `claude-3-sonnet-20240229`, `claude-3-haiku-20240307`
+- API Key: `AI_PROVIDER_ANTHROPIC_API_KEY`
+
+#### Google (Gemini)
+- Models: `gemini-pro`, `gemini-pro-vision`
+- API Key: `AI_PROVIDER_GOOGLE_API_KEY`
+
+### MCP Integration
+
+Internal agents can use MCP tools to interact with the CMS:
+
+```typescript
+internal: {
+  provider: 'openai',
+  model: 'gpt-4',
+  useMCP: true,
+  // Optional: restrict to specific tools
+  allowedMCPTools: ['list_posts', 'get_post_context', 'create_post_ai_review'],
+}
+```
+
+When `useMCP: true`, the agent can:
+- List and query posts
+- Get post context
+- Create and edit posts
+- Add/update modules
+- Use layout planning tools
+
+### Reactions
+
+Reactions execute after agent completion. Supported types:
+
+#### Webhook Reaction
+
+```typescript
+reactions: [
+  {
+    type: 'webhook',
+    trigger: 'on_success',
+    config: {
+      url: 'https://example.com/webhook',
+      method: 'POST',
+      headers: { 'X-Custom-Header': 'value' },
+      bodyTemplate: '{"agent": "{{agent}}", "result": {{result}}}',
+    },
+  },
+]
+```
+
+#### Slack Reaction
+
+```typescript
+reactions: [
+  {
+    type: 'slack',
+    trigger: 'on_success',
+    config: {
+      webhookUrl: process.env.SLACK_WEBHOOK_URL || '',
+      channel: '#content-alerts',
+      template: 'Agent {{agent}} completed successfully!',
+    },
+  },
+]
+```
+
+#### MCP Tool Reaction
+
+```typescript
+reactions: [
+  {
+    type: 'mcp_tool',
+    trigger: 'on_condition',
+    condition: {
+      field: 'result.status',
+      operator: 'equals',
+      value: 'published',
+    },
+    config: {
+      toolName: 'create_post_ai_review',
+      toolParams: {
+        type: 'blog',
+        locale: 'en',
+        slug: '{{result.slug}}',
+        title: '{{result.title}}',
+      },
+    },
+  },
+]
+```
+
+#### Reaction Triggers
+
+- `always` - Always execute
+- `on_success` - Only on successful completion
+- `on_error` - Only on errors
+- `on_condition` - Based on condition evaluation
+
+### System Prompt Templates
+
+System prompts support variable interpolation:
+
+```typescript
+systemPrompt: `You are helping with {{postType}} content.
+Current scope: {{scope}}
+User context: {{context}}`
+```
+
+Available variables:
+- `{{agent}}` - Agent name
+- `{{scope}}` - Execution scope
+- `{{postType}}` - Post type (if available)
+- `{{context}}` - Additional context data
 
 ### 1. Generate Agent Scaffold
 
@@ -33,6 +242,8 @@ node ace make:agent seo-optimizer
 This creates `app/agents/seo_optimizer.ts`.
 
 ### 2. Define Agent Configuration
+
+#### External Agent
 
 ```typescript
 import type { AgentDefinition } from '#types/agent_types'
@@ -60,13 +271,60 @@ const SeoOptimizerAgent: AgentDefinition = {
 export default SeoOptimizerAgent
 ```
 
+#### Internal Agent
+
+```typescript
+import type { AgentDefinition } from '#types/agent_types'
+
+const SeoOptimizerAgent: AgentDefinition = {
+  id: 'seo-optimizer',
+  name: 'SEO Optimizer',
+  description: 'Automatically generates and optimizes SEO metadata',
+  type: 'internal',
+  enabled: true,
+
+  internal: {
+    provider: 'openai',
+    model: 'gpt-4',
+    systemPrompt: 'You are an SEO expert. Optimize metadata for better search rankings.',
+    options: {
+      temperature: 0.7,
+      maxTokens: 1000,
+    },
+  },
+
+  scopes: [
+    { scope: 'dropdown', order: 20, enabled: true },
+  ],
+}
+
+export default SeoOptimizerAgent
+```
+
 ### 3. Configure Environment
+
+#### External Agent Environment
 
 ```env
 # .env
 AGENT_SEO_OPTIMIZER_URL=https://n8n.example.com/webhook/seo-optimizer
 AGENT_SEO_OPTIMIZER_DEV_URL=http://localhost:5678/webhook/seo-optimizer
 AGENT_SEO_OPTIMIZER_SECRET=your-secret-key
+```
+
+#### Internal Agent Environment
+
+```env
+# .env
+# Set API key for your chosen provider
+AI_PROVIDER_OPENAI_API_KEY=sk-...
+# OR
+AI_PROVIDER_ANTHROPIC_API_KEY=sk-ant-...
+# OR
+AI_PROVIDER_GOOGLE_API_KEY=...
+
+# Optional: Slack webhook for reactions
+SLACK_WEBHOOK_URL=https://hooks.slack.com/services/...
 ```
 
 ## Per-agent user accounts (recommended)
@@ -464,14 +722,26 @@ export default SeoAgent
 
 ## Best Practices
 
+### General
 1. **Always use Review mode**: Never modify live content directly
-2. **Add timeouts**: Prevent hanging on slow webhooks
+2. **Add timeouts**: Prevent hanging on slow webhooks (external) or long AI completions (internal)
 3. **Handle errors gracefully**: Return helpful error messages
 4. **Log agent runs**: Track successes and failures
-5. **Test in development**: Use `devUrl` for local testing
-6. **Secure webhooks**: Always verify signatures
-7. **Order execution**: Use `order` field for dependent agents
-8. **Scope appropriately**: Don't auto-run destructive agents
+5. **Order execution**: Use `order` field for dependent agents
+6. **Scope appropriately**: Don't auto-run destructive agents
+
+### External Agents
+1. **Test in development**: Use `devUrl` for local testing
+2. **Secure webhooks**: Always verify signatures
+3. **Handle network errors**: Implement retry logic for transient failures
+
+### Internal Agents
+1. **Choose the right provider**: OpenAI for general tasks, Anthropic for complex reasoning, Google for multimodal
+2. **Optimize prompts**: Clear system prompts improve results
+3. **Set appropriate limits**: Use `maxTokens` to control costs
+4. **Use MCP wisely**: Enable MCP only when agents need CMS operations
+5. **Monitor usage**: Track API costs and usage
+6. **Test reactions**: Ensure webhooks/Slack notifications work correctly
 
 ## Troubleshooting
 
