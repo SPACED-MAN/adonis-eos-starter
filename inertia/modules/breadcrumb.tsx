@@ -100,7 +100,7 @@ export default function Breadcrumb() {
                 ) : (
                   <a
                     href={item.url}
-                    className="text-neutral-high hover:text-standout transition-colors"
+                    className="text-neutral-high hover:text-standout-high transition-colors"
                   >
                     {item.label}
                   </a>

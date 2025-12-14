@@ -38,6 +38,10 @@ interface PostPageProps {
 		twitter?: { card?: string; title?: string; description?: string }
 		jsonLd?: any
 	}
+	siteSettings?: {
+		defaultMetaDescription?: string | null
+		[key: string]: any
+	}
 }
 
 function getModuleComponent(type: string): any {
@@ -46,7 +50,15 @@ function getModuleComponent(type: string): any {
 	return Modules[key as keyof typeof Modules] || null
 }
 
-export default function PostTypeDefault({ post, modules, seo }: PostPageProps) {
+export default function PostTypeDefault({ post, modules, seo, siteSettings }: PostPageProps) {
+	// Generate meta description with fallback chain
+	const metaDescription =
+		post.metaDescription ||
+		post.excerpt ||
+		seo?.og?.description ||
+		siteSettings?.defaultMetaDescription ||
+		null
+
 	return (
 		<>
 			<Head title={post.metaTitle || post.title}>
@@ -54,7 +66,7 @@ export default function PostTypeDefault({ post, modules, seo }: PostPageProps) {
 				{seo?.alternates?.map((alt) => (
 					<link key={alt.locale} rel="alternate" hrefLang={alt.locale} href={alt.href} />
 				))}
-				{post.metaDescription && <meta name="description" content={post.metaDescription} />}
+				{metaDescription && <meta name="description" content={metaDescription} />}
 				{seo?.robots && <meta name="robots" content={seo.robots} />}
 				{/* OpenGraph */}
 				{seo?.og?.title && <meta property="og:title" content={seo.og.title} />}

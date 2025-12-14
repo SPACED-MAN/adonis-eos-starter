@@ -138,10 +138,10 @@ export default function KitchenSink(props: KitchenSinkProps) {
 								{props.items.map((it, idx) => (
 									<li
 										key={idx}
-										className={it.highlight ? 'text-standout' : 'text-neutral-high'}
+										className={it.highlight ? 'text-standout-high' : 'text-neutral-high'}
 									>
-										<strong data-inline-path={`items.${idx}.label`}>{it.label}:</strong>{' '}
-										<span data-inline-path={`items.${idx}.value`}>{it.value}</span>{' '}
+										<strong className={it.highlight ? 'text-standout-high' : 'text-neutral-high'} data-inline-path={`items.${idx}.label`}>{it.label}:</strong>{' '}
+										<span className={it.highlight ? 'text-standout-high' : 'text-neutral-high'} data-inline-path={`items.${idx}.value`}>{it.value}</span>{' '}
 										<span
 											className="text-xs text-neutral-medium"
 											data-inline-path={`items.${idx}.highlight`}

@@ -134,7 +134,7 @@ export default function ProseWithMedia({
 									href={href}
 									target={linkTarget}
 									rel={linkTarget === '_blank' ? 'noopener noreferrer' : undefined}
-									className="inline-flex items-center text-on-standout bg-standout hover:bg-standout/90 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:ring-standout font-medium rounded-lg text-sm px-5 py-2.5 transition-colors"
+									className="inline-flex items-center text-on-standout bg-standout-medium hover:bg-standout-medium/90 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:ring-standout-medium font-medium rounded-lg text-sm px-5 py-2.5 transition-colors"
 								>
 									{primaryCta.label}
 									<FontAwesomeIcon icon="arrow-right" className="ml-2 -mr-1 text-sm" />

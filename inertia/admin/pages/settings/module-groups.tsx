@@ -318,7 +318,7 @@ export default function ModuleGroupsSettingsPage() {
 									Cancel
 								</button>
 								<button
-									className="px-3 py-2 text-sm rounded bg-standout text-on-standout disabled:opacity-50"
+									className="px-3 py-2 text-sm rounded bg-standout-medium text-on-standout disabled:opacity-50"
 									disabled={creating || !createForm.name.trim() || !createForm.postType.trim()}
 									onClick={submitCreateModuleGroup}
 									type="button"

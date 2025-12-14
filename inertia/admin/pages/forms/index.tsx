@@ -303,7 +303,7 @@ export default function FormsIndex({ forms: initialForms, submissions }: FormsIn
           <button
             type="button"
             className={`px-4 py-2 font-medium rounded-t-md border-b-2 transition-colors ${activeTab === 'submissions'
-              ? 'border-standout text-neutral-high bg-backdrop-medium'
+              ? 'border-standout-medium text-neutral-high bg-backdrop-medium'
               : 'border-transparent text-neutral-medium hover:text-neutral-high hover:bg-backdrop-medium/60'
               }`}
             onClick={() => setActiveTab('submissions')}
@@ -313,7 +313,7 @@ export default function FormsIndex({ forms: initialForms, submissions }: FormsIn
           <button
             type="button"
             className={`px-4 py-2 font-medium rounded-t-md border-b-2 transition-colors ${activeTab === 'builder'
-              ? 'border-standout text-neutral-high bg-backdrop-medium'
+              ? 'border-standout-medium text-neutral-high bg-backdrop-medium'
               : 'border-transparent text-neutral-medium hover:text-neutral-high hover:bg-backdrop-medium/60'
               }`}
             onClick={() => setActiveTab('builder')}
@@ -559,7 +559,7 @@ function EditorInner({
           )}
         </div>
         {(creating || editing.id === '__NEW__') && (
-          <span className="px-2 py-0.5 text-[11px] rounded-full border border-standout/40 bg-standout/10 text-standout">
+          <span className="px-2 py-0.5 text-[11px] rounded-full border border-standout-medium/40 bg-standout-medium/10 text-standout-medium">
             Creating new
           </span>
         )}
@@ -798,7 +798,7 @@ function EditorInner({
       <div className="flex items-center gap-3">
         <button
           type="button"
-          className="px-3 py-1.5 text-sm rounded bg-standout text-on-standout disabled:opacity-60"
+          className="px-3 py-1.5 text-sm rounded bg-standout-medium text-on-standout disabled:opacity-60"
           onClick={saveForm}
           disabled={saving}
         >

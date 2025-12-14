@@ -85,7 +85,7 @@ export default function HeroWithCallout({
 							href={href}
 							target={linkTarget}
 							rel={linkTarget === '_blank' ? 'noopener noreferrer' : undefined}
-							className="inline-flex justify-center items-center py-3 px-5 text-sm sm:text-base font-medium text-center text-on-standout rounded-lg bg-standout hover:bg-standout/90 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:ring-standout transition-colors"
+							className="inline-flex justify-center items-center py-3 px-5 text-sm sm:text-base font-medium text-center text-on-standout rounded-lg bg-standout-medium hover:bg-standout-medium/90 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:ring-standout-medium transition-colors"
 									data-inline-type="object"
 									data-inline-path={`callouts.${index}`}
 									data-inline-label={`Callout ${index + 1}`}

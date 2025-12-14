@@ -27,7 +27,7 @@ export function AdminHeader({ title = 'Admin' }: { title?: string }) {
 								href="/"
 								target="_blank"
 								rel="noopener noreferrer"
-								className="text-sm text-neutral-low hover:text-standout cursor-pointer"
+								className="text-sm text-neutral-low hover:text-standout-high cursor-pointer"
 							>
 								View Site
 							</a>

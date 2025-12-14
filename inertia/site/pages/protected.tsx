@@ -65,7 +65,7 @@ export default function ProtectedPage({ redirect }: { redirect?: string }) {
 						onChange={(e) => setPassword(e.target.value)}
 					/>
 				</div>
-				<button type="submit" className="w-full px-3 py-2 text-sm border border-line-low rounded bg-standout text-on-standout">Unlock</button>
+				<button type="submit" className="w-full px-3 py-2 text-sm border border-line-low rounded bg-standout-medium text-on-standout">Unlock</button>
 			</form>
 		</div>
 	)

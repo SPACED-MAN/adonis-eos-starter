@@ -98,7 +98,7 @@ export function OverridesPanel({
 					</button>
 					<button
 						type="button"
-						className="px-4 py-2 text-sm rounded-md bg-standout text-on-standout disabled:opacity-50"
+						className="px-4 py-2 text-sm rounded-md bg-standout-medium text-on-standout disabled:opacity-50"
 						onClick={trySave}
 						disabled={processing}
 					>

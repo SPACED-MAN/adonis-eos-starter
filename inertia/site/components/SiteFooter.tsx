@@ -63,7 +63,7 @@ export function SiteFooter() {
               <li key={item.id}>
                 <MenuItemLink
                   item={item}
-                  className="hover:underline text-sm text-neutral-high hover:text-standout"
+                  className="hover:underline text-sm text-neutral-high hover:text-standout-high"
                 />
               </li>
             ))}

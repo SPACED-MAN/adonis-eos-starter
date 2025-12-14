@@ -65,7 +65,7 @@ export default function ReadingProgress({
 			data-module="reading-progress"
 		>
 			<div
-				className="h-full bg-standout transition-all duration-150 ease-out"
+				className="h-full bg-standout-medium transition-all duration-150 ease-out"
 				style={{
 					width: `${progress}%`,
 				}}

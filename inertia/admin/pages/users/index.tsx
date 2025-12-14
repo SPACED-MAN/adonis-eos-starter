@@ -190,7 +190,7 @@ export default function UsersIndex() {
               <AlertDialog open={createOpen} onOpenChange={setCreateOpen}>
                 <AlertDialogTrigger asChild>
                   <button
-                    className="px-3 py-2 text-sm rounded bg-standout text-on-standout hover:opacity-90"
+                    className="px-3 py-2 text-sm rounded bg-standout-medium text-on-standout hover:opacity-90"
                     type="button"
                   >
                     Add user
@@ -254,7 +254,7 @@ export default function UsersIndex() {
                     </button>
                     <button
                       type="button"
-                      className="px-3 py-2 text-sm rounded bg-standout text-on-standout hover:opacity-90 disabled:opacity-50"
+                      className="px-3 py-2 text-sm rounded bg-standout-medium text-on-standout hover:opacity-90 disabled:opacity-50"
                       onClick={createUser}
                       disabled={creating}
                     >

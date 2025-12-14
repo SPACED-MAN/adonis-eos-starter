@@ -10,21 +10,23 @@
  * tailwind.config.js color names (e.g., bg-backdrop-low, text-neutral-high).
  */
 @theme {
-  --color-standout: var(--color-violet-600);
+  --color-standout-low: var(--color-violet-400);
+  --color-standout-medium: var(--color-violet-600);
+  --color-standout-high: var(--color-violet-800);
   --color-on-standout: var(--color-white);
 
-  --color-neutral-low: var(--color-zinc-400);
-  --color-neutral-medium: var(--color-zinc-600);
+  --color-neutral-low: var(--color-zinc-600);
+  --color-neutral-medium: var(--color-zinc-700);
   --color-neutral-high: var(--color-zinc-900);
 
   --color-backdrop-low: var(--color-zinc-50);
   --color-backdrop-medium: var(--color-zinc-100);
-  --color-backdrop-high: var(--color-zinc-200);
+  --color-backdrop-high: var(--color-zinc-400);
   --color-backdrop-input: var(--color-zinc-100);
 
-  --color-line-low: var(--color-zinc-200);
-  --color-line-medium: var(--color-zinc-300);
-  --color-line-high: var(--color-zinc-400);
+  --color-line-low: var(--color-zinc-300);
+  --color-line-medium: var(--color-zinc-400);
+  --color-line-high: var(--color-zinc-500);
   --color-line-inline-input-editable: var(--color-zinc-100);
   --color-line-inline-input-global: var(--color-amber-500);
   --color-placeholder: var(--color-zinc-500);
@@ -32,12 +34,14 @@
 }
 
 [data-theme="admin"].dark {
-  --color-standout: var(--color-violet-400);
+  --color-standout-low: var(--color-violet-800);
+  --color-standout-medium: var(--color-violet-600);
+  --color-standout-high: var(--color-violet-400);
   --color-on-standout: var(--color-white);
 
   --color-neutral-low: var(--color-zinc-400);
-  --color-neutral-medium: var(--color-zinc-500);
-  --color-neutral-high: var(--color-zinc-200);
+  --color-neutral-medium: var(--color-zinc-300);
+  --color-neutral-high: var(--color-zinc-100);
 
   --color-backdrop-low: var(--color-zinc-900);
   --color-backdrop-medium: var(--color-zinc-800);
@@ -54,11 +58,13 @@
 }
 
 [data-theme="site"] {
-  --color-standout: var(--color-violet-600);
+  --color-standout-low: var(--color-violet-400);
+  --color-standout-medium: var(--color-violet-600);
+  --color-standout-high: var(--color-violet-800);
   --color-on-standout: var(--color-white);
 
-  --color-neutral-low: var(--color-zinc-400);
-  --color-neutral-medium: var(--color-zinc-600);
+  --color-neutral-low: var(--color-zinc-600);
+  --color-neutral-medium: var(--color-zinc-700);
   --color-neutral-high: var(--color-zinc-900);
 
   --color-backdrop-low: var(--color-zinc-50);
@@ -66,9 +72,9 @@
   --color-backdrop-high: var(--color-zinc-400);
   --color-backdrop-input: var(--color-zinc-100);
 
-  --color-line-low: var(--color-zinc-200);
-  --color-line-medium: var(--color-zinc-300);
-  --color-line-high: var(--color-zinc-400);
+  --color-line-low: var(--color-zinc-300);
+  --color-line-medium: var(--color-zinc-400);
+  --color-line-high: var(--color-zinc-500);
   --color-line-inline-input-editable: var(--color-zinc-100);
   --color-line-inline-input-global: var(--color-amber-500);
   --color-placeholder: var(--color-zinc-500);
@@ -76,12 +82,14 @@
 }
 
 [data-theme="site"].dark {
-  --color-standout: var(--color-violet-400);
+  --color-standout-low: var(--color-violet-800);
+  --color-standout-medium: var(--color-violet-600);
+  --color-standout-high: var(--color-violet-400);
   --color-on-standout: var(--color-white);
 
   --color-neutral-low: var(--color-zinc-400);
-  --color-neutral-medium: var(--color-zinc-500);
-  --color-neutral-high: var(--color-zinc-200);
+  --color-neutral-medium: var(--color-zinc-300);
+  --color-neutral-high: var(--color-zinc-100);
 
   --color-backdrop-low: var(--color-zinc-900);
   --color-backdrop-medium: var(--color-zinc-800);
@@ -100,7 +108,7 @@
   .prose {
     --tw-prose-body: var(--color-neutral-high);
     --tw-prose-headings: var(--color-neutral-high);
-    --tw-prose-links: var(--color-standout);
+    --tw-prose-links: var(--color-standout-high);
     --tw-prose-bold: var(--color-neutral-high);
     --tw-prose-bullets: var(--color-neutral-medium);
     --tw-prose-quotes: var(--color-neutral-medium);
@@ -198,7 +206,7 @@
   --card-foreground: var(--color-neutral-high);
   --popover: var(--color-backdrop-low);
   --popover-foreground: var(--color-neutral-high);
-  --primary: var(--color-standout);
+  --primary: var(--color-standout-medium);
   --primary-foreground: var(--color-on-standout);
   --secondary: var(--color-backdrop-medium);
   --secondary-foreground: var(--color-neutral-high);
@@ -217,7 +225,7 @@
   --chart-5: var(--color-pink-500);
   --sidebar: var(--color-backdrop-low);
   --sidebar-foreground: var(--color-neutral-high);
-  --sidebar-primary: var(--color-standout);
+  --sidebar-primary: var(--color-standout-medium);
   --sidebar-primary-foreground: var(--color-on-standout);
   --sidebar-accent: var(--color-backdrop-medium);
   --sidebar-accent-foreground: var(--color-neutral-high);
@@ -232,7 +240,7 @@
   --card-foreground: var(--color-neutral-high);
   --popover: var(--color-backdrop-low);
   --popover-foreground: var(--color-neutral-high);
-  --primary: var(--color-standout);
+  --primary: var(--color-standout-medium);
   --primary-foreground: var(--color-on-standout);
   --secondary: var(--color-backdrop-medium);
   --secondary-foreground: var(--color-neutral-high);
@@ -251,7 +259,7 @@
   --chart-5: var(--color-pink-400);
   --sidebar: var(--color-backdrop-low);
   --sidebar-foreground: var(--color-neutral-high);
-  --sidebar-primary: var(--color-standout);
+  --sidebar-primary: var(--color-standout-medium);
   --sidebar-primary-foreground: var(--color-on-standout);
   --sidebar-accent: var(--color-backdrop-medium);
   --sidebar-accent-foreground: var(--color-neutral-high);
@@ -272,7 +280,7 @@
   .prose {
     --tw-prose-body: var(--color-neutral-high);
     --tw-prose-headings: var(--color-neutral-high);
-    --tw-prose-links: var(--color-standout);
+    --tw-prose-links: var(--color-standout-high);
     --tw-prose-bold: var(--color-neutral-high);
     --tw-prose-bullets: var(--color-neutral-medium);
     --tw-prose-quotes: var(--color-neutral-medium);
@@ -385,7 +393,7 @@
   }
 
   .prose a {
-    color: var(--color-standout) !important;
+    color: var(--color-standout-high) !important;
     text-decoration: underline;
   }
 

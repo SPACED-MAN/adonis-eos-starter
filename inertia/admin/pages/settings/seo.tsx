@@ -99,7 +99,7 @@ export default function SeoSettingsPage() {
               <button
                 onClick={rebuild}
                 disabled={rebuilding}
-                className="inline-flex h-9 items-center rounded-md bg-standout px-3 text-sm text-white hover:bg-standout/90 disabled:opacity-60"
+                className="inline-flex h-9 items-center rounded-md bg-standout-medium px-3 text-sm text-white hover:bg-standout-medium/90 disabled:opacity-60"
               >
                 {rebuilding ? 'Rebuilding…' : 'Rebuild sitemap'}
               </button>

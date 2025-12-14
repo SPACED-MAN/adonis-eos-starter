@@ -472,14 +472,14 @@ export default function GlobalModulesIndex() {
           <div className="flex gap-3">
             <button
               type="button"
-              className={`px-3 py-2 rounded text-sm font-semibold border ${activeTab === 'globals' ? 'bg-standout text-on-standout border-standout' : 'bg-backdrop-medium text-neutral-dark border-line-medium'}`}
+              className={`px-3 py-2 rounded text-sm font-semibold border ${activeTab === 'globals' ? 'bg-standout-medium text-on-standout border-standout-medium' : 'bg-backdrop-medium text-neutral-dark border-line-medium'}`}
               onClick={() => setActiveTab('globals')}
             >
               Globals
             </button>
             <button
               type="button"
-              className={`px-3 py-2 rounded text-sm font-semibold border ${activeTab === 'groups' ? 'bg-standout text-on-standout border-standout' : 'bg-backdrop-medium text-neutral-dark border-line-medium'}`}
+              className={`px-3 py-2 rounded text-sm font-semibold border ${activeTab === 'groups' ? 'bg-standout-medium text-on-standout border-standout-medium' : 'bg-backdrop-medium text-neutral-dark border-line-medium'}`}
               onClick={() => setActiveTab('groups')}
             >
               Groups
@@ -510,7 +510,7 @@ export default function GlobalModulesIndex() {
                   <h3 className="text-sm font-semibold text-neutral-high">Global Modules</h3>
                   {isAdmin && (
                     <button
-                      className="px-3 py-1.5 text-xs rounded bg-standout text-on-standout cursor-pointer"
+                      className="px-3 py-1.5 text-xs rounded bg-standout-medium text-on-standout cursor-pointer"
                       onClick={() => setCreateOpen(true)}
                       type="button"
                     >
@@ -681,7 +681,7 @@ export default function GlobalModulesIndex() {
                     <button
                       onClick={createGroup}
                       disabled={groupCreating || !groupCreateForm.name.trim() || !groupCreateForm.postType.trim()}
-                      className="px-3 py-2 text-sm rounded bg-standout text-on-standout disabled:opacity-50"
+                      className="px-3 py-2 text-sm rounded bg-standout-medium text-on-standout disabled:opacity-50"
                     >
                       {groupCreating ? 'Creating…' : 'Create Group'}
                     </button>
@@ -739,7 +739,7 @@ export default function GlobalModulesIndex() {
                     <div className="flex items-center gap-2">
                       <button
                         type="button"
-                        className={`px-3 py-2 text-sm rounded ${groupDirty ? 'bg-standout text-on-standout' : 'border border-line-low text-neutral-medium'}`}
+                        className={`px-3 py-2 text-sm rounded ${groupDirty ? 'bg-standout-medium text-on-standout' : 'border border-line-low text-neutral-medium'}`}
                         onClick={saveGroupChanges}
                         disabled={!groupDirty || groupSaving}
                       >

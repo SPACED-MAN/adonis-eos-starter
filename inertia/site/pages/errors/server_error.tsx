@@ -28,7 +28,7 @@ export default function ServerError({ error }: ServerErrorProps) {
         <div className="space-y-3">
           <button
             onClick={() => window.location.reload()}
-            className="block w-full px-6 py-3 bg-standout text-on-standout font-semibold rounded-lg transition-colors"
+            className="block w-full px-6 py-3 bg-standout-medium text-on-standout font-semibold rounded-lg transition-colors"
           >
             Try Again
           </button>

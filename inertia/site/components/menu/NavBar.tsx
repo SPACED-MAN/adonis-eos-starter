@@ -23,9 +23,11 @@ export function NavBar({
         <a href="/" className="flex items-center gap-2 text-neutral-high font-semibold">
           {logoLightUrl || logoDarkUrl ? (
             <span className="inline-flex items-center">
+              {/* Logo image: if menuName exists, use empty alt since it's decorative (menuName is in link text via sr-only) */}
+              {/* If no menuName, use generic alt text */}
               <img
                 src={logoLightUrl || logoDarkUrl}
-                alt={menuName || 'Site'}
+                alt={menuName ? '' : 'Site logo'}
                 className="h-11 w-auto"
               />
               {/* Keep site title accessible but visually hidden when logo is present */}
@@ -49,14 +51,14 @@ export function NavBar({
             {currentUser ? (
               <a
                 href="/admin"
-                className="inline-flex items-center rounded-md border border-line-high bg-backdrop px-3 py-1.5 text-xs sm:text-sm font-medium text-neutral-high hover:bg-backdrop-input hover:text-standout"
+                className="inline-flex items-center rounded-md border border-line-high bg-backdrop px-4 py-3 text-xs sm:text-sm font-medium text-neutral-high hover:bg-backdrop-input hover:text-standout-high min-h-[48px]"
               >
                 Dashboard
               </a>
             ) : (
               <a
                 href="/admin/login"
-                className="inline-flex items-center rounded-md border border-line-high bg-backdrop px-3 py-1.5 text-xs sm:text-sm font-medium text-neutral-high hover:bg-backdrop-input hover:text-standout"
+                className="inline-flex items-center rounded-md border border-line-high bg-backdrop px-4 py-3 text-xs sm:text-sm font-medium text-neutral-high hover:bg-backdrop-input hover:text-standout-high min-h-[48px]"
               >
                 Login
               </a>

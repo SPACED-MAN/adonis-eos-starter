@@ -171,38 +171,46 @@ export default function FormModule({ title, subtitle, formSlug }: FormModuleProp
             const fieldError = errors[field.slug]
             const value = values[field.slug] ?? (field.type === 'checkbox' ? false : '')
 
+            const fieldId = `form-field-${field.slug}`
             return (
               <div key={field.slug} className="space-y-1">
-                <label className="block text-sm font-medium text-neutral-high">
-                  {field.label}
-                  {field.required && <span className="text-danger ml-0.5">*</span>}
-                </label>
+                {field.type !== 'checkbox' && (
+                  <label htmlFor={fieldId} className="block text-sm font-medium text-neutral-high">
+                    {field.label}
+                    {field.required && <span className="text-danger ml-0.5">*</span>}
+                  </label>
+                )}
                 {field.type === 'textarea' ? (
                   <textarea
-                    className="block w-full rounded-md border border-line-low bg-backdrop-input px-3 py-2 text-sm text-neutral-high focus:outline-none focus:ring-2 focus:ring-standout/40"
+                    id={fieldId}
+                    className="block w-full rounded-md border border-line-low bg-backdrop-input px-3 py-2 text-sm text-neutral-high focus:outline-none focus:ring-2 focus:ring-standout-medium/40"
                     rows={4}
                     value={value}
                     onChange={(e) => handleChange(field, e.target.value)}
+                    required={field.required}
                   />
                 ) : field.type === 'checkbox' ? (
                   <div className="flex items-center gap-2">
                     <input
-                      id={field.slug}
+                      id={fieldId}
                       type="checkbox"
-                      className="h-4 w-4 rounded border-line-low bg-backdrop-input text-standout focus:ring-standout/50"
+                      className="h-4 w-4 rounded border-line-low bg-backdrop-input text-standout-medium focus:ring-standout-medium/50"
                       checked={Boolean(value)}
                       onChange={(e) => handleChange(field, e.target.checked)}
                     />
-                    <label htmlFor={field.slug} className="text-sm text-neutral-medium">
+                    <label htmlFor={fieldId} className="text-sm text-neutral-medium">
                       {field.label}
+                      {field.required && <span className="text-danger ml-0.5">*</span>}
                     </label>
                   </div>
                 ) : (
                   <input
+                    id={fieldId}
                     type={field.type === 'email' ? 'email' : 'text'}
-                    className="block w-full rounded-md border border-line-low bg-backdrop-input px-3 py-2 text-sm text-neutral-high focus:outline-none focus:ring-2 focus:ring-standout/40"
+                    className="block w-full rounded-md border border-line-low bg-backdrop-input px-3 py-2 text-sm text-neutral-high focus:outline-none focus:ring-2 focus:ring-standout-medium/40"
                     value={value}
                     onChange={(e) => handleChange(field, e.target.value)}
+                    required={field.required}
                   />
                 )}
                 {fieldError && (
@@ -218,7 +226,7 @@ export default function FormModule({ title, subtitle, formSlug }: FormModuleProp
             <button
               type="submit"
               disabled={submitting}
-              className="inline-flex items-center px-5 py-2.5 rounded-md bg-standout text-on-standout text-sm font-medium hover:bg-standout/90 disabled:opacity-60 focus:outline-none focus:ring-2 focus:ring-standout/40"
+              className="inline-flex items-center px-5 py-2.5 rounded-md bg-standout-medium text-on-standout text-sm font-medium hover:bg-standout-medium/90 disabled:opacity-60 focus:outline-none focus:ring-2 focus:ring-standout-medium/40"
             >
               {submitting ? 'Sending…' : 'Submit'}
             </button>

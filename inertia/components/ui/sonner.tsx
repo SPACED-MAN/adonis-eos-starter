@@ -39,7 +39,7 @@ const Toaster = ({ ...props }: ToasterProps) => {
 				classNames: {
 					toast: 'group-[.toaster]:bg-backdrop-low group-[.toaster]:border-line-low',
 					description: 'group-[.toast]:text-neutral-low',
-					actionButton: 'group-[.toast]:bg-standout group-[.toast]:text-on-standout',
+					actionButton: 'group-[.toast]:bg-standout-medium group-[.toast]:text-on-standout',
 					cancelButton: 'group-[.toast]:bg-backdrop-medium group-[.toast]:text-neutral-high',
 				},
 			}}

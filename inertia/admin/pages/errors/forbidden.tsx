@@ -15,7 +15,7 @@ export default function Forbidden({ message = 'Access denied.' }: { message?: st
             <Link href="/admin" className="px-3 py-2 text-sm border border-line-low rounded hover:bg-backdrop-medium text-neutral-medium">
               Back to Dashboard
             </Link>
-            <Link href="/admin/logout" method="post" as="button" className="px-3 py-2 text-sm rounded bg-standout text-on-standout">
+            <Link href="/admin/logout" method="post" as="button" className="px-3 py-2 text-sm rounded bg-standout-medium text-on-standout">
               Switch Account
             </Link>
           </div>

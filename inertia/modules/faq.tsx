@@ -76,7 +76,7 @@ export default function Faq({ title: initialTitle, subtitle: initialSubtitle, it
                 href={link.href}
                 target={link.target}
                 rel={link.target === '_blank' ? 'noopener noreferrer' : undefined}
-                className="font-medium text-standout hover:underline"
+                className="font-medium text-standout-high hover:underline"
                 data-inline-type="link"
                 data-inline-path={`items.${idx}.linkUrl`}
               >

@@ -11,7 +11,7 @@ export const Textarea = React.forwardRef<HTMLTextAreaElement, TextareaProps>(
 				className={cn(
 					'w-full px-3 py-2 rounded-lg',
 					'border border-line-input bg-backdrop-input text-foreground',
-					'focus-visible:outline-none focus-visible:ring-2 ring-standout',
+					'focus-visible:outline-none focus-visible:ring-2 ring-standout-medium',
 					className
 				)}
 				{...props}

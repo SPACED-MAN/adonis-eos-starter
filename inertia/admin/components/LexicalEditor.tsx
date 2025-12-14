@@ -134,7 +134,7 @@ export function LexicalEditor({
         strikethrough: 'line-through',
         code: 'font-mono bg-backdrop-medium px-1 rounded',
       },
-      link: 'text-standout underline',
+      link: 'text-standout-high underline',
     }),
     []
   )

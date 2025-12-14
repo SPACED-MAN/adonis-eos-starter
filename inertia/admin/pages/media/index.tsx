@@ -789,7 +789,7 @@ export default function MediaIndex() {
       <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
         <div className="bg-backdrop-low rounded-lg shadow border border-line-low p-6">
           <div
-            className={`mb-4 p-6 border-2 border-dashed rounded transition-colors ${isDragOver ? 'border-standout bg-backdrop-medium' : 'border-line-high bg-backdrop-input'}`}
+            className={`mb-4 p-6 border-2 border-dashed rounded transition-colors ${isDragOver ? 'border-standout-medium bg-backdrop-medium' : 'border-line-high bg-backdrop-input'}`}
             onDragOver={(e) => { e.preventDefault(); setIsDragOver(true) }}
             onDragLeave={() => setIsDragOver(false)}
             onDrop={onDrop}
@@ -806,7 +806,7 @@ export default function MediaIndex() {
                 <label className="inline-flex items-center gap-2 text-sm">
                   <input type="file" onChange={onUpload} disabled={uploading} className="hidden" id="mediaUploadInput" />
                   <button
-                    className="px-3 py-1.5 text-xs rounded bg-standout text-on-standout disabled:opacity-50 cursor-pointer disabled:cursor-not-allowed"
+                    className="px-3 py-1.5 text-xs rounded bg-standout-medium text-on-standout disabled:opacity-50 cursor-pointer disabled:cursor-not-allowed"
                     disabled={uploading}
                     onClick={() => (document.getElementById('mediaUploadInput') as HTMLInputElement)?.click()}
                   >
@@ -1205,7 +1205,7 @@ export default function MediaIndex() {
                     }}
                   />
                   <button
-                    className="px-3 py-1.5 text-xs rounded bg-standout text-on-standout disabled:opacity-50"
+                    className="px-3 py-1.5 text-xs rounded bg-standout-medium text-on-standout disabled:opacity-50"
                     onClick={() => {
                       const v = bulkCatInput.trim()
                       if (v && !bulkCats.includes(v)) setBulkCats([...bulkCats, v])
@@ -1217,7 +1217,7 @@ export default function MediaIndex() {
                 </div>
                 <div className="flex items-center justify-end gap-2">
                   <button className="px-3 py-1.5 text-xs border border-line-low rounded" onClick={() => setBulkCategoriesOpen(false)}>Cancel</button>
-                  <button className="px-3 py-1.5 text-xs rounded bg-standout text-on-standout" onClick={saveBulkCategories}>Save</button>
+                  <button className="px-3 py-1.5 text-xs rounded bg-standout-medium text-on-standout" onClick={saveBulkCategories}>Save</button>
                 </div>
               </div>
             </div>
@@ -1268,11 +1268,11 @@ export default function MediaIndex() {
                     <div className="relative inline-block" onMouseDown={onCropMouseDown} onMouseMove={onCropMouseMove} onMouseUp={onCropMouseUp} onClick={onFocalClick}>
                       <img ref={imgRef} src={getEditDisplayUrl(viewing, editTheme)} alt={viewing.altText || viewing.originalFilename} className="w-full h-auto max-h-[55vh]" />
                       {cropping && cropSel && (
-                        <div className="absolute border-2 border-standout bg-standout/10" style={{ left: `${cropSel.x}px`, top: `${cropSel.y}px`, width: `${cropSel.w}px`, height: `${cropSel.h}px` }} />
+                        <div className="absolute border-2 border-standout-medium bg-standout-medium/10" style={{ left: `${cropSel.x}px`, top: `${cropSel.y}px`, width: `${cropSel.w}px`, height: `${cropSel.h}px` }} />
                       )}
                       {focalMode && focalDot && (
                         <div className="absolute -translate-x-1/2 -translate-y-1/2" style={{ left: `${focalDot.x}px`, top: `${focalDot.y}px` }}>
-                          <div className="w-4 h-4 rounded-full bg-standout border-2 border-white shadow" />
+                          <div className="w-4 h-4 rounded-full bg-standout-medium border-2 border-white shadow" />
                         </div>
                       )}
                     </div>
@@ -1307,7 +1307,7 @@ export default function MediaIndex() {
                     {cropping && (
                       <>
                         <button className="px-2 py-1 text-xs border border-line-medium rounded hover:bg-backdrop-medium" onClick={() => { setCropping(false); setCropSel(null) }}>Cancel</button>
-                        <button className="px-2 py-1 text-xs rounded bg-standout text-on-standout" onClick={applyCrop}>Apply crop</button>
+                        <button className="px-2 py-1 text-xs rounded bg-standout-medium text-on-standout" onClick={applyCrop}>Apply crop</button>
                       </>
                     )}
                     {!cropping && !focalMode && selectedVariantName === 'original' && (() => {
@@ -1411,7 +1411,7 @@ export default function MediaIndex() {
                     {focalMode && (
                       <>
                         <button className="px-2 py-1 text-xs border border-line-medium rounded hover:bg-backdrop-medium" onClick={() => { setFocalMode(false); setFocalDot(null) }}>Cancel</button>
-                        <button className="px-2 py-1 text-xs rounded bg-standout text-on-standout" onClick={applyFocal}>Apply focal</button>
+                        <button className="px-2 py-1 text-xs rounded bg-standout-medium text-on-standout" onClick={applyFocal}>Apply focal</button>
                       </>
                     )}
                   </div>
@@ -1461,7 +1461,7 @@ export default function MediaIndex() {
                     <div className="text-xs font-medium mb-2">Rename file</div>
                     <div className="flex items-center gap-2">
                       <input className="flex-1 px-2 py-1 border border-line-input bg-backdrop-input text-neutral-high" placeholder="new-filename (optional extension)" value={newFilename} onChange={(e) => setNewFilename(e.target.value)} />
-                      <button className="px-3 py-1.5 text-xs rounded bg-standout text-on-standout disabled:opacity-50" disabled={renaming || !newFilename} onClick={async () => {
+                      <button className="px-3 py-1.5 text-xs rounded bg-standout-medium text-on-standout disabled:opacity-50" disabled={renaming || !newFilename} onClick={async () => {
                         if (!viewing || !newFilename) return
                         setRenaming(true)
                         try {
@@ -1499,7 +1499,7 @@ export default function MediaIndex() {
                       </p>
                     </div>
                     <button
-                      className="w-full px-3 py-1.5 text-xs rounded bg-standout text-on-standout disabled:opacity-50"
+                      className="w-full px-3 py-1.5 text-xs rounded bg-standout-medium text-on-standout disabled:opacity-50"
                       disabled={replaceUploading || !replaceFile}
                       onClick={async () => {
                         if (!viewing || !replaceFile) return
@@ -1538,7 +1538,7 @@ export default function MediaIndex() {
                       Close
                     </button>
                     <button
-                      className="px-3 py-1.5 text-xs rounded bg-standout text-on-standout disabled:opacity-50"
+                      className="px-3 py-1.5 text-xs rounded bg-standout-medium text-on-standout disabled:opacity-50"
                       disabled={savingEdit}
                       onClick={async () => {
                         if (!viewing) return

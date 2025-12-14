@@ -1363,7 +1363,7 @@ export default function Editor({
                               />
                               <button
                                 type="button"
-                                className="px-3 py-2 text-sm rounded bg-standout text-on-standout disabled:opacity-50"
+                                className="px-3 py-2 text-sm rounded bg-standout-medium text-on-standout disabled:opacity-50"
                                 onClick={() => createInlineTerm(tax.slug, true)}
                                 disabled={!newTermNames[tax.slug]?.trim()}
                               >
@@ -1893,7 +1893,7 @@ export default function Editor({
                       <button
                         type="button"
                         onClick={() => setViewMode('source')}
-                        className={`px-2 py-1 text-xs ${viewMode === 'source' ? 'bg-standout text-on-standout' : 'text-neutral-medium hover:bg-backdrop-medium'}`}
+                        className={`px-2 py-1 text-xs ${viewMode === 'source' ? 'bg-standout-medium text-on-standout' : 'text-neutral-medium hover:bg-backdrop-medium'}`}
                       >
                         Source
                       </button>
@@ -1902,7 +1902,7 @@ export default function Editor({
                       <button
                         type="button"
                         onClick={() => setViewMode('review')}
-                        className={`px-2 py-1 text-xs ${viewMode === 'review' ? 'bg-standout text-on-standout' : 'text-neutral-medium hover:bg-backdrop-medium'}`}
+                        className={`px-2 py-1 text-xs ${viewMode === 'review' ? 'bg-standout-medium text-on-standout' : 'text-neutral-medium hover:bg-backdrop-medium'}`}
                       >
                         Review
                       </button>
@@ -1911,7 +1911,7 @@ export default function Editor({
                       <button
                         type="button"
                         onClick={() => setViewMode('ai-review')}
-                        className={`px-2 py-1 text-xs ${viewMode === 'ai-review' ? 'bg-standout text-on-standout' : 'text-neutral-medium hover:bg-backdrop-medium'}`}
+                        className={`px-2 py-1 text-xs ${viewMode === 'ai-review' ? 'bg-standout-medium text-on-standout' : 'text-neutral-medium hover:bg-backdrop-medium'}`}
                       >
                         AI Review
                       </button>
@@ -2108,7 +2108,7 @@ export default function Editor({
                         </AlertDialog>
 
                         <button
-                          className="mt-2 w-full h-8 px-3 text-xs rounded-lg bg-standout text-on-standout font-medium disabled:opacity-50"
+                          className="mt-2 w-full h-8 px-3 text-xs rounded-lg bg-standout-medium text-on-standout font-medium disabled:opacity-50"
                           disabled={runningAgent}
                           onClick={() => {
                             const a = agents.find((x) => x.id === selectedAgent)
@@ -2242,7 +2242,7 @@ export default function Editor({
                       </Select>
                       <button
                         type="button"
-                        className={`h-8 px-3 text-xs rounded-lg disabled:opacity-50 ${(!isDirty || processing) ? 'border border-border text-neutral-medium' : 'bg-standout text-on-standout font-medium'}`}
+                        className={`h-8 px-3 text-xs rounded-lg disabled:opacity-50 ${(!isDirty || processing) ? 'border border-border text-neutral-medium' : 'bg-standout-medium text-on-standout font-medium'}`}
                         disabled={
                           !isDirty ||
                           processing ||
@@ -2753,7 +2753,7 @@ export default function Editor({
               </button>
               <button
                 type="button"
-                className="w-full px-3 py-2 text-sm rounded bg-standout text-on-standout hover:opacity-90"
+                className="w-full px-3 py-2 text-sm rounded bg-standout-medium text-on-standout hover:opacity-90"
                 onClick={async () => {
                   if (!pendingImportJson) return
                   const res = await fetch(`/api/posts/${post.id}/import`, {

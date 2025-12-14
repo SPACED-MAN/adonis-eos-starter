@@ -8,7 +8,7 @@ export function MegaMenuPanel({ parent, menuMeta }: { parent: TreeNode; menuMeta
         <div className="mb-4 flex items-center justify-between">
           <div className="text-sm text-neutral-medium">{menuMeta?.tagline || ''}</div>
           {menuMeta?.ctaText && menuMeta?.ctaUrl && (
-            <a href={String(menuMeta.ctaUrl)} className="px-3 py-1.5 text-xs rounded bg-standout text-on-standout">
+            <a href={String(menuMeta.ctaUrl)} className="inline-flex items-center px-4 py-3 text-xs rounded bg-standout-medium text-on-standout min-h-[48px]">
               {String(menuMeta.ctaText)}
             </a>
           )}

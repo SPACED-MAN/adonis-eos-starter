@@ -540,7 +540,7 @@ export default function MenusIndex() {
                         <div className="flex items-center justify-between mb-2">
                           <div className="text-sm font-medium">Menu Fields</div>
                           <button
-                            className="px-3 py-1.5 text-sm rounded bg-standout text-on-standout"
+                            className="px-3 py-1.5 text-sm rounded bg-standout-medium text-on-standout"
                             onClick={async () => {
                               if (!selectedMenuId) return
                               setSavingMenuMeta(true)
@@ -767,7 +767,7 @@ export default function MenusIndex() {
                     >
                       {advancedOpen ? 'Hide Advanced' : 'Show Advanced'}
                     </button>
-                    <button className="px-3 py-1.5 text-sm rounded bg-standout text-on-standout" onClick={addItem}>Add Item</button>
+                    <button className="px-3 py-1.5 text-sm rounded bg-standout-medium text-on-standout" onClick={addItem}>Add Item</button>
                   </div>
                   {advancedOpen && (
                     <div className="mt-3 p-2 border border-line-low rounded space-y-2">

@@ -12,6 +12,7 @@ import { middleware } from '#start/kernel'
 import '#start/taxonomies'
 
 const SitemapController = () => import('#controllers/sitemap_controller')
+const RobotsController = () => import('#controllers/robots_controller')
 const SeoController = () => import('#controllers/seo_controller')
 
 // Homepage - resolve from posts (slug: 'home', type: 'page')
@@ -546,6 +547,11 @@ router
     return inertia.render('admin/errors/forbidden')
   })
   .use(middleware.auth())
+
+/**
+ * robots.txt
+ */
+router.get('/robots.txt', [RobotsController, 'index'])
 
 /**
  * XML Sitemap

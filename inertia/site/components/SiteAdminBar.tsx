@@ -91,7 +91,7 @@ export function SiteAdminBar() {
           {inline.availableModes.hasSource && (
             <button
               type="button"
-              className={`px-3 py-2 text-xs font-medium border-r border-line-medium ${inline.mode === 'source' ? 'bg-standout text-on-standout' : 'text-neutral-high hover:bg-backdrop-medium'}`}
+              className={`px-3 py-2 text-xs font-medium border-r border-line-medium ${inline.mode === 'source' ? 'bg-standout-medium text-on-standout' : 'text-neutral-high hover:bg-backdrop-medium'}`}
               onClick={() => inline.setMode('source')}
             >
               Source
@@ -100,7 +100,7 @@ export function SiteAdminBar() {
           {inline.availableModes.hasReview && (
             <button
               type="button"
-              className={`px-3 py-2 text-xs font-medium border-r border-line-medium ${inline.mode === 'review' ? 'bg-standout text-on-standout' : 'text-neutral-high hover:bg-backdrop-medium'}`}
+              className={`px-3 py-2 text-xs font-medium border-r border-line-medium ${inline.mode === 'review' ? 'bg-standout-medium text-on-standout' : 'text-neutral-high hover:bg-backdrop-medium'}`}
               onClick={() => inline.setMode('review')}
             >
               Review
@@ -109,7 +109,7 @@ export function SiteAdminBar() {
           {inline.availableModes.hasAiReview && (
             <button
               type="button"
-              className={`px-3 py-2 text-xs font-medium border-r border-line-medium ${inline.mode === 'ai-review' ? 'bg-standout text-on-standout' : 'text-neutral-high hover:bg-backdrop-medium'}`}
+              className={`px-3 py-2 text-xs font-medium border-r border-line-medium ${inline.mode === 'ai-review' ? 'bg-standout-medium text-on-standout' : 'text-neutral-high hover:bg-backdrop-medium'}`}
               onClick={() => inline.setMode('ai-review')}
             >
               AI Review
@@ -117,7 +117,7 @@ export function SiteAdminBar() {
           )}
           <button
             type="button"
-            className={`px-3 py-2 text-xs font-medium border-r border-line-medium ${inline.enabled ? 'bg-standout text-on-standout' : 'text-neutral-high hover:bg-backdrop-medium'}`}
+            className={`px-3 py-2 text-xs font-medium border-r border-line-medium ${inline.enabled ? 'bg-standout-medium text-on-standout' : 'text-neutral-high hover:bg-backdrop-medium'}`}
             onClick={inline.toggle}
           >
             {inline.enabled ? 'Edits On' : 'Edits Off'}
@@ -125,9 +125,10 @@ export function SiteAdminBar() {
           {inline.enabled && (inline.mode === 'review' || inline.mode === 'ai-review') && (
             <button
               type="button"
-              className={`px-3 py-2 text-xs font-medium border-r border-line-medium ${inline.showDiffs ? 'bg-standout text-on-standout' : 'text-neutral-high hover:bg-backdrop-medium'}`}
+              className={`px-3 py-2 text-xs font-medium border-r border-line-medium ${inline.showDiffs ? 'bg-standout-medium text-on-standout' : 'text-neutral-high hover:bg-backdrop-medium'}`}
               onClick={() => inline.toggleShowDiffs()}
               title={`Highlight changes (${inline.mode === 'review' ? 'vs Source' : 'vs Review'})`}
+              aria-label={`Highlight changes (${inline.mode === 'review' ? 'vs Source' : 'vs Review'})`}
             >
               <FontAwesomeIcon icon={faHighlighter} />
             </button>
@@ -144,7 +145,7 @@ export function SiteAdminBar() {
           <div className="flex items-center gap-2">
             <button
               type="button"
-              className="px-3 py-2 text-xs font-medium rounded-md border border-line-medium bg-standout text-on-standout"
+              className="px-3 py-2 text-xs font-medium rounded-md border border-line-medium bg-standout-medium text-on-standout"
               onClick={() => inline.saveAll()}
             >
               Save
@@ -189,7 +190,7 @@ export function SiteAdminBar() {
               <span>Go to Dashboard</span>
               <a
                 href="/admin"
-                className="px-2 py-1 rounded border border-line-low hover:bg-backdrop-medium text-neutral-medium"
+                className="inline-flex items-center px-4 py-3 rounded border border-line-low hover:bg-backdrop-medium text-neutral-medium min-h-[48px]"
               >
                 Open
               </a>
@@ -199,7 +200,7 @@ export function SiteAdminBar() {
                 <span>Edit this page</span>
                 <a
                   href={`/admin/posts/${post.id}/edit`}
-                  className="px-2 py-1 rounded border border-line-low hover:bg-backdrop-medium text-neutral-medium"
+                  className="inline-flex items-center px-4 py-3 rounded border border-line-low hover:bg-backdrop-medium text-neutral-medium min-h-[48px]"
                 >
                   Edit
                 </a>

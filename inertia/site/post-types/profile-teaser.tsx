@@ -9,11 +9,11 @@ interface ProfileTeaserProps {
 
 export default function ProfileTeaser({ name, role, bio, imageUrl, url }: ProfileTeaserProps) {
 	return (
-		<article className="items-center bg-backdrop-medium rounded-lg shadow sm:flex border border-line-low">
+		<article className="items-center bg-backdrop-medium shadow sm:flex border border-line-low">
 			{imageUrl && (
-				<a href={url} className="sm:shrink-0">
+				<a href={url} className="p-1 sm:shrink-0">
 					<img
-						className="w-full sm:w-44 h-full max-h-60 rounded-lg sm:rounded-none sm:rounded-l-lg object-cover"
+						className="w-full sm:w-44 h-full max-h-60 object-cover"
 						src={imageUrl}
 						alt={name}
 						loading="lazy"
@@ -22,7 +22,7 @@ export default function ProfileTeaser({ name, role, bio, imageUrl, url }: Profil
 				</a>
 			)}
 			<div className="p-5">
-				<h3 className="text-xl font-bold tracking-tight text-neutral-high">
+				<h3 className="py-1 text-xl font-bold tracking-tight text-neutral-high">
 					<a href={url}>{name}</a>
 				</h3>
 				{role && (

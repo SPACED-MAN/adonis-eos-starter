@@ -147,7 +147,7 @@ export function MediaPickerModal({
 											onSelect(m)
 											onOpenChange(false)
 										}}
-										className={`group border rounded overflow-hidden ${selectedId === m.id ? 'border-standout' : 'border-line-low'} bg-backdrop-low`}
+										className={`group border rounded overflow-hidden ${selectedId === m.id ? 'border-standout-medium' : 'border-line-low'} bg-backdrop-low`}
 										title={m.originalFilename || m.id}
 									>
 										<div className="aspect-square">
@@ -196,7 +196,7 @@ export function MediaPickerModal({
 							<div>
 								<button
 									type="button"
-									className={`px-3 py-2 text-sm rounded ${uploading || !file ? 'opacity-60 cursor-not-allowed' : 'bg-standout text-on-standout'}`}
+									className={`px-3 py-2 text-sm rounded ${uploading || !file ? 'opacity-60 cursor-not-allowed' : 'bg-standout-medium text-on-standout'}`}
 									disabled={uploading || !file}
 									onClick={handleUpload}
 								>

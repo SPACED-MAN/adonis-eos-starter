@@ -286,7 +286,7 @@ export const LinkField: React.FC<LinkFieldProps> = ({
                             key={p.id}
                             type="button"
                             className={`w-full text-left px-3 py-2 rounded border ${
-                              isSelected ? 'border-standout bg-standout/5' : 'border-border'
+                              isSelected ? 'border-standout-medium bg-standout-medium/5' : 'border-border'
                             } hover:bg-backdrop-low`}
                             onClick={() => {
                               setLink({

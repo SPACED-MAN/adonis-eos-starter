@@ -65,7 +65,7 @@ export default function Pricing({ title: initialTitle, subtitle: initialSubtitle
             return (
               <div
                 key={idx}
-                className={`flex flex-col p-6 mx-auto max-w-lg text-center bg-backdrop-low rounded-lg border border-line-low shadow-sm xl:p-8 ${isPrimary ? 'ring-2 ring-standout shadow-md' : ''
+                className={`flex flex-col p-6 mx-auto max-w-lg text-center bg-backdrop-low rounded-lg border border-line-low shadow-sm xl:p-8 ${isPrimary ? 'ring-2 ring-standout-medium shadow-md' : ''
                   }`}
                 data-inline-type="object"
                 data-inline-path={`plans.${idx}`}
@@ -119,7 +119,7 @@ export default function Pricing({ title: initialTitle, subtitle: initialSubtitle
                     href={hrefInfo.href}
                     target={hrefInfo.target}
                     rel={hrefInfo.target === '_blank' ? 'noopener noreferrer' : undefined}
-                    className={`mt-auto inline-flex justify-center items-center px-5 py-2.5 text-sm font-medium rounded-lg text-on-standout bg-standout hover:opacity-90 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-standout/60`}
+                    className={`mt-auto inline-flex justify-center items-center px-5 py-2.5 text-sm font-medium rounded-lg text-on-standout bg-standout-medium hover:opacity-90 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-standout-medium/60`}
                     data-inline-type="link"
                     data-inline-path={`plans.${idx}.ctaUrl`}
                   >

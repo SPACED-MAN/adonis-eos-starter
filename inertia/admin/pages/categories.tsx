@@ -241,7 +241,7 @@ export default function CategoriesPage() {
             <div className="flex items-center gap-2">
               <Input value={newTermName} onChange={(e) => setNewTermName(e.target.value)} placeholder="New term name" />
               <button
-                className="px-3 py-1.5 text-sm border border-line-low rounded bg-standout text-on-standout whitespace-nowrap"
+                className="px-3 py-1.5 text-sm border border-line-low rounded bg-standout-medium text-on-standout whitespace-nowrap"
                 onClick={() => createTerm(null)}
               >
                 Add term

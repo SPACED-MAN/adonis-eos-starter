@@ -210,7 +210,7 @@ function ButtonComponent({
   const style: 'primary' | 'secondary' | 'outline' = obj?.style ?? initialStyle
 
   const styleMap = {
-    primary: 'bg-standout text-on-standout',
+    primary: 'bg-standout-medium text-on-standout',
     secondary: 'bg-backdrop-medium hover:bg-backdrop-high text-neutral-high',
     outline: 'border border-line-low hover:bg-backdrop-medium text-neutral-high',
   }

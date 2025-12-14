@@ -61,13 +61,14 @@ export default function BlogTeaser({ title, excerpt, updatedAt, imageUrl, url }:
 							Blog team
 						</span>
 					</div>
-					<a
-						href={url}
-						className="inline-flex items-center font-medium text-standout hover:underline"
-					>
-						Read more
-						<FontAwesomeIcon icon="arrow-right" className="ml-2 text-xs" />
-					</a>
+				<a
+					href={url}
+					className="inline-flex items-center font-medium text-standout-high hover:underline"
+					aria-label={`Read more about ${title}`}
+				>
+					Read more
+					<FontAwesomeIcon icon="arrow-right" className="ml-2 text-xs" />
+				</a>
 				</div>
 			</div>
 		</article>

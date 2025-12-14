@@ -114,7 +114,7 @@ export default function FeaturesListExpanded({
 							{feature.icon && (
 								<div
 									className={`sm:w-32 sm:h-32 h-16 w-16 ${isEven ? 'sm:mr-10' : 'sm:ml-10'
-										} inline-flex items-center justify-center rounded-full bg-standout/10 text-standout shrink-0`}
+										} inline-flex items-center justify-center rounded-full bg-standout-medium/10 text-standout-medium shrink-0`}
 								>
 									<FontAwesomeIcon
 										icon={feature.icon as any}
@@ -153,10 +153,10 @@ export default function FeaturesListExpanded({
 function SectionButton({ label, url, style = 'primary', target, rel, inlinePath }: Button & { inlinePath?: string }) {
 	const styleClasses =
 		{
-			primary: 'bg-standout text-on-standout',
+			primary: 'bg-standout-medium text-on-standout',
 			secondary: 'bg-backdrop-medium hover:bg-backdrop-high text-neutral-high',
 			outline: 'border border-line-low hover:bg-backdrop-medium text-neutral-high',
-		}[style] || 'bg-standout text-on-standout'
+		}[style] || 'bg-standout-medium text-on-standout'
 
 	const { href, target: finalTarget } = resolveHrefAndTarget(url, target)
 	if (!href) return null

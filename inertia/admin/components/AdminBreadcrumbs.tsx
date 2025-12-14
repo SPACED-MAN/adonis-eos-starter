@@ -14,7 +14,7 @@ export function AdminBreadcrumbs({
 					{items.map((item, idx) => (
 						<li key={idx} className="flex items-center gap-2">
 							{item.href ? (
-								<Link href={item.href} className="hover:text-standout">
+								<Link href={item.href} className="hover:text-standout-high">
 									{item.label}
 								</Link>
 							) : (

@@ -70,7 +70,7 @@ export default function FeaturesList({
 								])}
 							>
 								{feature.icon && (
-									<div className="flex justify-center items-center mb-4 w-10 h-10 lg:w-12 lg:h-12 rounded-full bg-standout/10 text-standout">
+									<div className="flex justify-center items-center mb-4 w-10 h-10 lg:w-12 lg:h-12 rounded-full bg-standout-medium/10 text-standout-medium">
 										<FontAwesomeIcon icon={feature.icon as any} className="text-base lg:text-lg" />
 									</div>
 								)}

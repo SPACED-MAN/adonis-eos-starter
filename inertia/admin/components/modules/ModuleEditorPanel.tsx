@@ -583,7 +583,7 @@ export function ModuleEditorPanel({
 						</button>
 						<button
 							type="button"
-							className="px-3 py-1.5 text-xs rounded bg-standout text-on-standout disabled:opacity-60"
+							className="px-3 py-1.5 text-xs rounded bg-standout-medium text-on-standout disabled:opacity-60"
 							onClick={saveAndClose}
 							disabled={processing}
 						>
@@ -982,7 +982,7 @@ function FieldPrimitiveInternal({
 								<button
 									key={iconItem.name}
 									type="button"
-									className={`p-3 border rounded-lg hover:bg-backdrop-medium flex flex-col items-center gap-1 ${selectedIcon === iconItem.name ? 'border-standout bg-standout/10' : 'border-line-low'
+									className={`p-3 border rounded-lg hover:bg-backdrop-medium flex flex-col items-center gap-1 ${selectedIcon === iconItem.name ? 'border-standout-medium bg-standout-medium/10' : 'border-line-low'
 										}`}
 									onClick={() => {
 										setSelectedIcon(iconItem.name)

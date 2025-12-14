@@ -174,7 +174,7 @@ export default function TestimonialList({ title: initialTitle, subtitle: initial
         <div className="text-center">
           <a
             href="#"
-            className="inline-flex items-center justify-center py-2.5 px-5 text-sm font-medium text-neutral-high bg-backdrop-high border border-line-low rounded-lg hover:bg-backdrop-medium focus:outline-none focus:ring-2 focus:ring-standout/40"
+            className="inline-flex items-center justify-center py-2.5 px-5 text-sm font-medium text-neutral-high bg-backdrop-high border border-line-low rounded-lg hover:bg-backdrop-medium focus:outline-none focus:ring-2 focus:ring-standout-medium/40"
           >
             Show more…
           </a>

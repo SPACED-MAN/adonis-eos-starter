@@ -17,6 +17,7 @@ const inertiaConfig = defineConfig({
     errorsBag: (ctx) => ctx.session?.flashMessages?.get('errorsBag') ?? {},
     error: (ctx) => ctx.session?.flashMessages?.get('error') ?? null,
     success: (ctx) => ctx.session?.flashMessages?.get('success') ?? null,
+    locale: (ctx) => ctx.locale || 'en',
   },
 
   /**

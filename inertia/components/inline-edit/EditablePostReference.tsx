@@ -169,7 +169,7 @@ export function EditablePostReference({ moduleId, path, multiple, postType, labe
 		<>
 			<button
 				type="button"
-				className="text-sm text-standout underline underline-offset-2"
+				className="text-sm text-standout-high underline underline-offset-2"
 				onClick={() => setOpen(true)}
 				data-inline-path={path}
 				data-inline-type="post-reference"
@@ -227,7 +227,7 @@ export function EditablePostReference({ moduleId, path, multiple, postType, labe
 											key={p.id}
 											type="button"
 											className={`w-full text-left px-3 py-2 rounded border text-sm ${
-												isSelected ? 'border-standout bg-standout/5' : 'border-border'
+												isSelected ? 'border-standout-medium bg-standout-medium/5' : 'border-border'
 											} hover:bg-backdrop-low`}
 											onClick={() => toggleSelect(p.id)}
 										>
@@ -244,7 +244,7 @@ export function EditablePostReference({ moduleId, path, multiple, postType, labe
 							<div className="flex justify-end">
 								<button
 									type="button"
-									className="px-3 py-1.5 rounded bg-standout text-on-standout text-sm"
+									className="px-3 py-1.5 rounded bg-standout-medium text-on-standout text-sm"
 									onClick={() => setOpen(false)}
 								>
 									Done

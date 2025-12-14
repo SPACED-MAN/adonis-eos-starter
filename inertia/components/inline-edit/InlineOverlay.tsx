@@ -151,7 +151,7 @@ export function InlineOverlay() {
 			link.target = '_blank'
 			link.rel = 'noopener noreferrer'
 			link.className =
-				'inline-flex items-center gap-1 text-standout hover:underline font-medium'
+				'inline-flex items-center gap-1 text-standout-high hover:underline font-medium'
 			const globeIcon = renderToStaticMarkup(
 				<FontAwesomeIcon icon="globe" className="w-4 h-4" />
 			)
@@ -525,7 +525,7 @@ function FieldDialogContent({ pop, onClose, getValue, setValue }: DialogContentP
 							editorKey={`${moduleId}-${path}-richtext`}
 						/>
 						<button
-							className="w-full mt-2 bg-standout text-on-standout px-3 py-1.5 rounded font-medium"
+							className="w-full mt-2 bg-standout-medium text-on-standout px-3 py-1.5 rounded font-medium"
 							onClick={() => commit(draft)}
 						>
 							Save
@@ -555,7 +555,7 @@ function FieldDialogContent({ pop, onClose, getValue, setValue }: DialogContentP
 							onChange={(val: LinkFieldValue) => setDraft(val)}
 						/>
 						<button
-							className="w-full mt-2 bg-standout text-on-standout px-3 py-1.5 rounded font-medium"
+							className="w-full mt-2 bg-standout-medium text-on-standout px-3 py-1.5 rounded font-medium"
 							onClick={() => commit(draft)}
 						>
 							Save Link
@@ -577,7 +577,7 @@ function FieldDialogContent({ pop, onClose, getValue, setValue }: DialogContentP
 										<button
 											key={val}
 											type="button"
-											className={`p-3 border rounded-lg hover:bg-backdrop-medium flex flex-col items-center gap-1 ${draft === val ? 'border-standout bg-standout/10' : 'border-line-low'
+											className={`p-3 border rounded-lg hover:bg-backdrop-medium flex flex-col items-center gap-1 ${draft === val ? 'border-standout-medium bg-standout-medium/10' : 'border-line-low'
 												}`}
 											onClick={() => setDraft(val)}
 											title={o.label}
@@ -591,7 +591,7 @@ function FieldDialogContent({ pop, onClose, getValue, setValue }: DialogContentP
 								})}
 							</div>
 							<button
-								className="w-full mt-1 bg-standout text-on-standout px-3 py-1 rounded"
+								className="w-full mt-1 bg-standout-medium text-on-standout px-3 py-1 rounded"
 								onClick={() => commit(draft || '')}
 							>
 								Save
@@ -618,7 +618,7 @@ function FieldDialogContent({ pop, onClose, getValue, setValue }: DialogContentP
 							})}
 						</select>
 						<button
-							className="w-full mt-2 bg-standout text-on-standout px-3 py-1 rounded"
+							className="w-full mt-2 bg-standout-medium text-on-standout px-3 py-1 rounded"
 							onClick={() => commit(draft || '')}
 						>
 							Save
@@ -636,7 +636,7 @@ function FieldDialogContent({ pop, onClose, getValue, setValue }: DialogContentP
 							onChange={(e) => setDraft(e.target.value)}
 						/>
 						<button
-							className="w-full mt-2 bg-standout text-on-standout px-3 py-1 rounded"
+							className="w-full mt-2 bg-standout-medium text-on-standout px-3 py-1 rounded"
 							onClick={() => commit(draft ?? '')}
 						>
 							Save
@@ -659,7 +659,7 @@ function FieldDialogContent({ pop, onClose, getValue, setValue }: DialogContentP
 							onChange={(e) => setDraft(e.target.value.split('\n'))}
 						/>
 						<button
-							className="w-full mt-2 bg-standout text-on-standout px-3 py-1 rounded"
+							className="w-full mt-2 bg-standout-medium text-on-standout px-3 py-1 rounded"
 							onClick={() => commit(asArray)}
 						>
 							Save
@@ -694,7 +694,7 @@ function FieldDialogContent({ pop, onClose, getValue, setValue }: DialogContentP
 							})}
 						</div>
 						<button
-							className="w-full mt-2 bg-standout text-on-standout px-3 py-1 rounded"
+							className="w-full mt-2 bg-standout-medium text-on-standout px-3 py-1 rounded"
 							onClick={() => commit(current)}
 						>
 							Save
@@ -714,7 +714,7 @@ function FieldDialogContent({ pop, onClose, getValue, setValue }: DialogContentP
 							onChange={(e) => setDraft(e.target.value === '' ? null : Number(e.target.value))}
 						/>
 						<button
-							className="w-full mt-2 bg-standout text-on-standout px-3 py-1 rounded"
+							className="w-full mt-2 bg-standout-medium text-on-standout px-3 py-1 rounded"
 							onClick={() => commit(draft === '' ? null : draft)}
 						>
 							Save
@@ -735,7 +735,7 @@ function FieldDialogContent({ pop, onClose, getValue, setValue }: DialogContentP
 							Toggle
 						</label>
 						<button
-							className="w-full mt-2 bg-standout text-on-standout px-3 py-1 rounded"
+							className="w-full mt-2 bg-standout-medium text-on-standout px-3 py-1 rounded"
 							onClick={() => commit(!!draft)}
 						>
 							Save
@@ -754,7 +754,7 @@ function FieldDialogContent({ pop, onClose, getValue, setValue }: DialogContentP
 							onChange={(e) => setDraft(e.target.value || null)}
 						/>
 						<button
-							className="w-full mt-2 bg-standout text-on-standout px-3 py-1 rounded"
+							className="w-full mt-2 bg-standout-medium text-on-standout px-3 py-1 rounded"
 							onClick={() => commit(draft || null)}
 						>
 							Save
@@ -965,7 +965,7 @@ function FieldDialogContent({ pop, onClose, getValue, setValue }: DialogContentP
 							}
 						})}
 						<button
-							className="w-full mt-2 bg-standout text-on-standout px-3 py-1.5 rounded font-medium"
+							className="w-full mt-2 bg-standout-medium text-on-standout px-3 py-1.5 rounded font-medium"
 							onClick={() => commit(obj)}
 						>
 							Save

@@ -65,26 +65,36 @@ export default function Gallery({
     <div className="gallery-module py-8" data-module="gallery">
       {/* Gallery Grid */}
       <div className={gridClass}>
-        {images.map((image, idx) => (
-          <figure
-            key={idx}
-            className="cursor-pointer overflow-hidden rounded-lg transition-transform hover:scale-105"
-            onClick={() => openLightbox(idx)}
-          >
-            <img
-              src={image.url}
-              alt={image.alt}
-              className="w-full h-auto object-cover"
-              loading="lazy"
-              decoding="async"
-            />
-            {image.caption && (
-              <figcaption className="p-2 text-sm text-neutral-low">
-                {image.caption}
-              </figcaption>
-            )}
-          </figure>
-        ))}
+        {images.map((image, idx) => {
+          // Avoid redundant alt text - if alt exactly matches caption, use a concise alternative
+          // This prevents screen readers from reading the same text twice
+          const hasCaption = image.caption?.trim()
+          const altMatchesCaption = hasCaption && image.alt?.trim() === hasCaption
+          const altText = altMatchesCaption
+            ? `Image ${idx + 1}${hasCaption ? `: ${hasCaption.substring(0, 50)}` : ''}`
+            : image.alt || (hasCaption ? `Image ${idx + 1}` : `Gallery image ${idx + 1}`)
+          
+          return (
+            <figure
+              key={idx}
+              className="cursor-pointer overflow-hidden rounded-lg transition-transform hover:scale-105"
+              onClick={() => openLightbox(idx)}
+            >
+              <img
+                src={image.url}
+                alt={altText}
+                className="w-full h-auto object-cover"
+                loading="lazy"
+                decoding="async"
+              />
+              {hasCaption && (
+                <figcaption className="p-2 text-sm text-neutral-low">
+                  {image.caption}
+                </figcaption>
+              )}
+            </figure>
+          )
+        })}
       </div>
 
       {/* Lightbox */}
@@ -122,15 +132,28 @@ export default function Gallery({
 
           {/* Image */}
           <div className="max-w-7xl max-h-full" onClick={(e) => e.stopPropagation()}>
-            <img
-              src={images[currentIndex].url}
-              alt={images[currentIndex].alt}
-              className="max-w-full max-h-[90vh] object-contain"
-              decoding="async"
-            />
-            {images[currentIndex].caption && (
-              <p className="text-center text-white mt-4">{images[currentIndex].caption}</p>
-            )}
+            {(() => {
+              const currentImage = images[currentIndex]
+              const hasCaption = currentImage.caption?.trim()
+              const altMatchesCaption = hasCaption && currentImage.alt?.trim() === hasCaption
+              const altText = altMatchesCaption
+                ? `Image ${currentIndex + 1}${hasCaption ? `: ${hasCaption.substring(0, 50)}` : ''}`
+                : currentImage.alt || (hasCaption ? `Image ${currentIndex + 1}` : `Gallery image ${currentIndex + 1}`)
+              
+              return (
+                <>
+                  <img
+                    src={currentImage.url}
+                    alt={altText}
+                    className="max-w-full max-h-[90vh] object-contain"
+                    decoding="async"
+                  />
+                  {hasCaption && (
+                    <p className="text-center text-white mt-4">{currentImage.caption}</p>
+                  )}
+                </>
+              )
+            })()}
           </div>
 
           {/* Next Button */}

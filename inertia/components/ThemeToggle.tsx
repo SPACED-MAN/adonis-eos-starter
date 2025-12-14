@@ -52,7 +52,7 @@ export function ThemeToggle() {
 		<button
 			type="button"
 			onClick={toggle}
-			className="inline-flex items-center justify-center rounded-full bg-backdrop-high dark:bg-neutral-low w-10 h-10 text-neutral-high dark:text-backdrop-low hover:bg-neutral-high hover:text-backdrop-low hover:dark:bg-neutral-high hover:dark:text-backdrop-low"
+			className="inline-flex items-center justify-center rounded-full bg-backdrop-high dark:bg-neutral-low w-12 h-12 text-neutral-high dark:text-backdrop-low hover:bg-neutral-high hover:text-backdrop-low hover:dark:bg-neutral-high hover:dark:text-backdrop-low min-w-[48px] min-h-[48px]"
 			aria-label="Toggle dark mode"
 		>
 			{mode === 'dark' ? (

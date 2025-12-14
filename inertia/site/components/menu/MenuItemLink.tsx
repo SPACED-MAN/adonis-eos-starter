@@ -7,7 +7,7 @@ export function MenuItemLink({ item, className }: { item: MenuItem; className?: 
       href={href}
       target={item.target || undefined}
       rel={item.rel || undefined}
-      className={className || 'text-sm text-neutral-high hover:text-standout'}
+      className={className || 'text-sm text-neutral-high hover:text-standout-high'}
     >
       {item.label}
     </a>
