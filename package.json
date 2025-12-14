@@ -1,6 +1,6 @@
 {
   "name": "adonis-eos-starter",
-  "version": "1.0.0",
+  "version": "0.1.0",
   "description": "A high-performance, SEO-first CMS starter kit built with AdonisJS 6, Inertia, React, and PostgreSQL. Turnkey solution with modular content system, RBAC, i18n, AI agents, and more.",
   "keywords": [
     "adonisjs",

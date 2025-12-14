@@ -209,9 +209,9 @@ Licensed under the Apache License, Version 2.0. See the [LICENSE](LICENSE) file 
 
 ## Version History
 
-### Version 1.0.0 (Pre-Beta) - December 2025
+### Version 0.1.0 (Pre-Beta) - December 2025
 
-**Current Status:** Feature-complete for 1.0, undergoing final testing and documentation before beta release.
+**Current Status:** Feature-complete for 1.0, undergoing final testing and documentation before beta release. This is the initial public release - functional but not yet production-ready.
 
 **Major Features Completed:**
 - ✅ Complete modular content system with 19+ built-in modules
