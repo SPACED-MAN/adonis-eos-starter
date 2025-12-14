@@ -18,51 +18,170 @@ Before deploying to production:
 
 ## Environment Configuration
 
+### Environment File Convention
+
+**Development:**
+- Use `.env` file in the project root
+- This file is git-ignored and contains your local development settings
+- Never commit `.env` to version control
+
+**Production:**
+- Set environment variables through your hosting platform's configuration (e.g., DigitalOcean App Platform, Heroku config vars, AWS Parameter Store)
+- Or use a `.env` file on the server (ensure it's not in the repository and has proper file permissions)
+- Platform-specific: Many platforms (Heroku, Railway, etc.) prefer environment variables set through their UI/CLI
+
+**Best Practice:**
+- Keep a `.env.example` file (committed to git) as a template with all available variables and documentation
+- Each developer clones the repo, copies `.env.example` to `.env`, and fills in their local values
+- Production environments should set variables through their platform's secure configuration system
+
+**Note:** A complete `.env.example` template file is maintained in the repository root. Copy it to `.env` and fill in your values.
+
 ### Required Environment Variables
 
-```env
-# Application
-NODE_ENV=production
-PORT=3333
-HOST=0.0.0.0
-APP_KEY=<generate with: node ace generate:key>
-APP_NAME=Adonis EOS
+These variables **must** be set for the application to run:
 
-# Database
-DB_HOST=localhost
-DB_PORT=5432
-DB_USER=your_user
-DB_PASSWORD=your_secure_password
-DB_DATABASE=adonis_eos
+```env
+# Core Application
+NODE_ENV=production                    # 'development', 'production', or 'test'
+PORT=3333                              # Port the server listens on
+HOST=0.0.0.0                          # Host to bind to (use 0.0.0.0 for production)
+APP_KEY=<generate with: node ace generate:key>  # Encryption key (REQUIRED - see below)
+LOG_LEVEL=info                        # Logging level: 'trace', 'debug', 'info', 'warn', 'error', 'fatal'
+
+# Database (PostgreSQL)
+DB_HOST=localhost                     # Database host
+DB_PORT=5432                          # Database port
+DB_USER=your_user                     # Database username
+DB_PASSWORD=your_secure_password      # Database password (optional but recommended)
+DB_DATABASE=adonis_eos                # Database name
 
 # Session
-SESSION_DRIVER=cookie
+SESSION_DRIVER=cookie                  # 'cookie' or 'memory' (use 'cookie' for production)
 
-# Redis (recommended for production)
-REDIS_HOST=localhost
-REDIS_PORT=6379
-REDIS_PASSWORD=your_redis_password
+# Redis (recommended for production caching and sessions)
+REDIS_HOST=localhost                  # Redis host
+REDIS_PORT=6379                       # Redis port
+REDIS_PASSWORD=                       # Redis password (optional)
+```
 
-# Cache
-CACHE_DRIVER=redis  # or 'database' if Redis not available
+### Optional Environment Variables
 
-# Security
-CSRF_ENABLED=true
+These have sensible defaults but can be customized:
+
+```env
+# Application Metadata
+APP_NAME=Adonis EOS                   # Application name (used in logs)
+TZ=UTC                                # Timezone (defaults to UTC)
+
+# Database Pool Configuration
+DB_POOL_MIN=2                         # Minimum pool connections (default: 2)
+DB_POOL_MAX=10                        # Maximum pool connections (default: 10)
+DB_DEBUG=false                        # Enable SQL query debugging (default: false)
+
+# Internationalization (i18n)
+DEFAULT_LOCALE=en                     # Default locale code (default: 'en')
+SUPPORTED_LOCALES=en,es,fr            # Comma-separated list of supported locales (default: 'en')
+
+# CMS Configuration
+CMS_REVISIONS_LIMIT=20                # Maximum revisions to keep per post (0 = unlimited, default: 20)
+CMS_REVISIONS_AUTO_PRUNE=true         # Auto-delete old revisions on save (default: true)
+CMS_PREVIEW_EXPIRATION_HOURS=24       # Preview link expiration in hours (default: 24)
+CMS_PREVIEW_SECRET=                   # Preview token secret (defaults to APP_KEY)
+CMS_SOFT_DELETE_ENABLED=true          # Enable soft deletes for posts (default: true)
+CMS_SOFT_DELETE_RETENTION_DAYS=30     # Days to retain soft-deleted posts (default: 30)
+
+# Media Configuration
+MEDIA_UPLOAD_DIR=uploads              # Upload directory relative to public/ (default: 'uploads')
+MEDIA_MAX_FILE_SIZE=10485760          # Max file size in bytes (default: 10MB)
+MEDIA_ALLOWED_TYPES=image/jpeg,image/png,image/gif,image/webp,image/avif,application/pdf
+MEDIA_DERIVATIVES=thumb:200x200_crop,small:400x,medium:800x,large:1600x
+MEDIA_ADMIN_THUMBNAIL_VARIANT=thumb   # Variant name for admin thumbnails
+MEDIA_ADMIN_MODAL_VARIANT=large       # Variant name for admin modal preview
+MEDIA_WEBP_QUALITY=82                 # WebP quality (1-100, default: 82)
+MEDIA_DARK_BRIGHTNESS=0.6             # Dark mode image brightness (0.1-2.0, default: 0.6)
+MEDIA_DARK_SATURATION=0.75            # Dark mode image saturation (0-2.0, default: 0.75)
+
+# Storage Configuration
+STORAGE_DRIVER=local                  # 'local' or 'r2' (default: 'local')
+# Cloudflare R2 (required when STORAGE_DRIVER=r2)
+R2_ACCOUNT_ID=                        # Cloudflare R2 account ID
+R2_ENDPOINT=                          # R2 endpoint URL (auto-generated if account ID provided)
+R2_BUCKET=                            # R2 bucket name
+R2_ACCESS_KEY_ID=                     # R2 access key ID
+R2_SECRET_ACCESS_KEY=                 # R2 secret access key
+R2_PUBLIC_BASE_URL=                   # Optional CDN/custom domain base URL for R2 assets
+
+# Cache Configuration
+CMS_SSR_CACHE_TTL=3600                # SSR cache TTL in seconds (default: 3600)
+CMS_PUBLIC_MAX_AGE=60                 # Public cache max-age in seconds (default: 60)
+CMS_CDN_MAX_AGE=3600                  # CDN cache max-age in seconds (default: 3600)
+CMS_SWR=604800                        # Stale-while-revalidate duration in seconds (default: 604800)
 
 # Rate Limiting
-RATE_LIMIT_ENABLED=true
-RATE_LIMIT_STORE=redis  # or 'memory'
+CMS_RATE_LIMIT_REQUESTS=100           # Default requests per window (default: 100)
+CMS_RATE_LIMIT_WINDOW=60              # Default window duration in seconds (default: 60)
+CMS_RATE_LIMIT_AUTH_REQUESTS=5        # Auth endpoint requests per window (default: 5)
+CMS_RATE_LIMIT_AUTH_WINDOW=60         # Auth endpoint window duration (default: 60)
+CMS_RATE_LIMIT_API_REQUESTS=120       # API endpoint requests per window (default: 120)
+CMS_RATE_LIMIT_API_WINDOW=60          # API endpoint window duration (default: 60)
+
+# Webhooks
+CMS_WEBHOOKS_ENABLED=false            # Enable webhook dispatching (default: false)
+CMS_WEBHOOK_TIMEOUT=5000              # Webhook timeout in milliseconds (default: 5000)
+CMS_WEBHOOK_MAX_RETRIES=3             # Maximum retry attempts (default: 3)
+CMS_WEBHOOK_SECRET=                   # Secret for signing webhook payloads
+
+# Scheduler
+CMS_SCHEDULER_DEV_INTERVAL=30         # Scheduler check interval in seconds (dev, default: 30)
+CMS_SCHEDULER_PROD_INTERVAL=60        # Scheduler check interval in seconds (prod, default: 60)
+SCHEDULER_DISABLED=0                  # Set to '1' to disable scheduler (default: 0)
+
+# Protected Content Access
+# Used as fallback when site settings fields are not configured
+PROTECTED_ACCESS_USERNAME=            # Default username for password-protected posts
+PROTECTED_ACCESS_PASSWORD=            # Default password for password-protected posts
+
+# MCP (Model Context Protocol)
+MCP_SYSTEM_USER_ID=                   # User ID for MCP system operations (should match ai@example.com user)
 ```
+
+**Note on Variable Access:**
+Most variables are accessed through AdonisJS's `env` service (defined in `start/env.ts`), which provides validation and type safety. Some variables (like `STORAGE_DRIVER`, `R2_*`, `MEDIA_WEBP_QUALITY`, `MEDIA_DARK_*`, `PROTECTED_ACCESS_*`, `SCHEDULER_DISABLED`, `MCP_SYSTEM_USER_ID`) are currently accessed directly via `process.env`. This is fine for optional variables with defaults, but for consistency, consider migrating them to the `env` service in the future.
 
 ### Generate Secure Keys
 
 ```bash
-# Generate APP_KEY
+# Generate APP_KEY (REQUIRED)
 node ace generate:key
 
-# Generate webhook secret
+# Generate webhook secret (if using webhooks)
+openssl rand -hex 32
+
+# Generate preview secret (optional, defaults to APP_KEY)
 openssl rand -hex 32
 ```
+
+### Environment File Location
+
+The `.env` file should be placed in the **project root directory** (same level as `package.json`, `adonisrc.ts`, etc.).
+
+**Development:**
+```bash
+# In your project root
+/path/to/adonis-eos/.env
+```
+
+**Production:**
+- Platform-managed: Set variables through your hosting platform's environment variable configuration (recommended)
+- Server-based: Place `.env` in the project root on your server
+- Ensure the file has restrictive permissions: `chmod 600 .env`
+
+**Important Security Notes:**
+- Never commit `.env` to version control (it's in `.gitignore`)
+- Use `.env.example` as a template for documentation
+- In production, prefer platform environment variables over `.env` files when possible
+- Rotate secrets regularly, especially `APP_KEY` and password hashes
 
 ## Database Setup
 
