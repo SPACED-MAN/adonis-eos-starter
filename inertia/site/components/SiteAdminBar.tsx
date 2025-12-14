@@ -73,6 +73,7 @@ export function SiteAdminBar() {
   }, [])
 
   const currentUser = (props as any)?.currentUser
+  const post = (props as any)?.post
   const isAuthenticated =
     !!currentUser && ['admin', 'editor', 'translator'].includes(String(currentUser.role || ''))
   const [open, setOpen] = useState(false)
