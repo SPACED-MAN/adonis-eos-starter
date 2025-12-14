@@ -562,6 +562,10 @@ export default class PostsCrudController extends BasePostsController {
       .where('id', id)
       .update({ review_draft: draftPayload } as any)
 
+    // Promote AI Review module content to Review when saving for review
+    // This ensures that any AI Review edits (including inline edits) are available in Review mode
+    await this.promoteAiReviewModulesToReview(id)
+
     await RevisionService.recordActiveVersionsSnapshot({
       postId: id,
       mode: 'review',
@@ -804,26 +808,60 @@ export default class PostsCrudController extends BasePostsController {
   }
 
   private async promoteAiReviewModulesToReview(postId: string) {
-    // Promote ai_review_props to review_props for local modules
-    await db
+    // Load all module instances for this post to merge props properly in JavaScript
+    const moduleInstances = await db
       .from('module_instances')
       .where('scope', 'post')
       .andWhereIn('id', db.from('post_modules').where('post_id', postId).select('module_id'))
-      .update({
-        review_props: db.raw('COALESCE(ai_review_props, review_props, props)'),
-        ai_review_props: null,
-        updated_at: new Date(),
-      })
+      .select('id', 'props', 'review_props', 'ai_review_props')
 
-    // Promote ai_review_overrides to review_overrides for post_modules
-    await db
+    // Promote ai_review_props to review_props for local modules
+    // Merge order: ai_review_props (AI content) + review_props (existing review) + props (source edits, wins)
+    // This ensures that any edits made on the Source tab override AI Review content
+    for (const instance of moduleInstances) {
+      const props = (instance.props as Record<string, any>) || {}
+      const reviewProps = (instance.review_props as Record<string, any>) || {}
+      const aiReviewProps = (instance.ai_review_props as Record<string, any>) || {}
+
+      // Merge: AI review props (base AI content) + existing review props + source props (source edits win)
+      // This ensures user edits made on Source tab are preserved over AI Review content
+      const mergedReviewProps = { ...aiReviewProps, ...reviewProps, ...props }
+
+      await db
+        .from('module_instances')
+        .where('id', instance.id)
+        .update({
+          review_props: mergedReviewProps,
+          ai_review_props: null,
+          updated_at: new Date(),
+        } as any)
+    }
+
+    // Load all post_modules for this post to merge overrides properly
+    const postModules = await db
       .from('post_modules')
       .where('post_id', postId)
-      .update({
-        review_overrides: db.raw('COALESCE(ai_review_overrides, review_overrides, overrides)'),
-        ai_review_overrides: null,
-        updated_at: new Date(),
-      })
+      .select('id', 'overrides', 'review_overrides', 'ai_review_overrides')
+
+    // Promote ai_review_overrides to review_overrides for post_modules
+    for (const pm of postModules) {
+      const overrides = (pm.overrides as Record<string, any>) || {}
+      const reviewOverrides = (pm.review_overrides as Record<string, any>) || {}
+      const aiReviewOverrides = (pm.ai_review_overrides as Record<string, any>) || {}
+
+      // Merge: AI review overrides (base AI content) + existing review overrides + source overrides (source edits win)
+      // This ensures user edits made on Source tab are preserved over AI Review content
+      const mergedReviewOverrides = { ...aiReviewOverrides, ...reviewOverrides, ...overrides }
+
+      await db
+        .from('post_modules')
+        .where('id', pm.id)
+        .update({
+          review_overrides: mergedReviewOverrides,
+          ai_review_overrides: null,
+          updated_at: new Date(),
+        } as any)
+    }
 
     // Promote ai_review_added/deleted flags to review flags
     await db

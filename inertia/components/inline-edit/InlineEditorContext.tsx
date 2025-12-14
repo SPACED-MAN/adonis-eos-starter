@@ -71,6 +71,7 @@ type ModuleSeed = {
 	overrides?: Record<string, any>
 	reviewOverrides?: Record<string, any>
 	aiReviewOverrides?: Record<string, any>
+	aiReviewAdded?: boolean
 }
 
 export function InlineEditorProvider({
@@ -600,17 +601,38 @@ export function InlineEditorProvider({
 
 	// Determine which modes are available based on module data
 	const availableModes = useMemo(() => {
-		const hasSource = modules.length > 0 // Source always exists if there are modules
+		let hasSource = modules.length > 0 // Source exists if there are modules
 		let hasReview = false
 		let hasAiReview = false
+		
 		for (const m of modules) {
 			if (m.reviewProps && Object.keys(m.reviewProps).length > 0) hasReview = true
 			if (m.reviewOverrides && Object.keys(m.reviewOverrides).length > 0) hasReview = true
 			if (m.aiReviewProps && Object.keys(m.aiReviewProps).length > 0) hasAiReview = true
 			if (m.aiReviewOverrides && Object.keys(m.aiReviewOverrides).length > 0) hasAiReview = true
 		}
+		
+		// Hide Source tab if there's AI Review content but no Review content
+		// This prevents editing Source when there's no actual approved source content to edit
+		// Users should edit in AI Review mode instead, then promote to Review
+		// This happens when posts are created via AI Review and haven't been promoted yet
+		if (hasAiReview && !hasReview) {
+			hasSource = false
+		}
+		
 		return { hasSource, hasReview, hasAiReview }
 	}, [modules])
+
+	// If Source is not available and we're in source mode, switch to AI Review mode
+	useEffect(() => {
+		if (!availableModes.hasSource && mode === 'source') {
+			if (availableModes.hasAiReview) {
+				setMode('ai-review')
+			} else if (availableModes.hasReview) {
+				setMode('review')
+			}
+		}
+	}, [availableModes, mode])
 
 	const toggleShowDiffs = useCallback(() => setShowDiffs((v) => !v), [])
 
