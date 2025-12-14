@@ -7,7 +7,7 @@ A high-performance, SEO-first CMS built with AdonisJS 6, Inertia, React, Tailwin
 Create a new project using this starter kit:
 
 ```bash
-npm init adonisjs@latest my-cms-project -- --kit=your-username/adonis-eos-starter
+npm init adonisjs@latest my-cms-project -- --kit=spaced-man/adonis-eos-starter
 cd my-cms-project
 npm install
 ```
@@ -29,17 +29,15 @@ Then follow the setup steps below.
 ### Option 1: Use as Starter Kit (Recommended)
 
 ```bash
-npm init adonisjs@latest my-cms-project -- --kit=your-username/adonis-eos-starter
+npm init adonisjs@latest my-cms-project -- --kit=spaced-man/adonis-eos-starter
 ```
-
-> **Note:** Replace `your-username` with the actual GitHub username/organization where this starter kit is hosted.
 
 This creates a new project with all CMS features pre-configured.
 
 ### Option 2: Clone Repository
 
 ```bash
-git clone https://github.com/your-username/adonis-eos-starter.git
+git clone https://github.com/spaced-man/adonis-eos-starter.git
 cd adonis-eos-starter
 npm install
 ```

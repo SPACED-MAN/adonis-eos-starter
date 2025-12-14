@@ -29,7 +29,7 @@ This starter kit provides a complete, production-ready CMS with:
 ### Step 1: Create New Project
 
 ```bash
-npm init adonisjs@latest my-cms-project -- --kit=your-username/adonis-eos-starter
+npm init adonisjs@latest my-cms-project -- --kit=spaced-man/adonis-eos-starter
 cd my-cms-project
 ```
 
