@@ -1007,7 +1007,7 @@ export default class MediaController {
       'SELECT DISTINCT unnest(categories) AS category FROM media_assets WHERE array_length(categories,1) IS NOT NULL'
     )
     const list: string[] = Array.isArray(rows?.rows)
-      ? rows.rows.map((r: any) => String(r.category)).filter((x) => x.length > 0)
+      ? rows.rows.map((r: any) => String(r.category)).filter((x: string) => x.length > 0)
       : []
     return response.ok({ data: list.sort((a, b) => a.localeCompare(b)) })
   }

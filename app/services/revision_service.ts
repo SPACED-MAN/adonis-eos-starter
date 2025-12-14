@@ -1,6 +1,5 @@
 import db from '@adonisjs/lucid/services/db'
 import env from '#start/env'
-import { randomUUID } from 'node:crypto'
 
 export type RevisionMode = 'approved' | 'review' | 'ai-review'
 export type ActiveVersion = 'source' | 'review' | 'ai-review'

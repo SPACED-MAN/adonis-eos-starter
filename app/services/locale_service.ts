@@ -132,6 +132,7 @@ export class LocaleService {
    */
   private detectFromDomain(ctx: HttpContext): string | null {
     const hostname = ctx.request.hostname()
+    if (!hostname) return null
 
     // Check domain mapping
     if (i18nConfig.domainLocaleMap[hostname]) {

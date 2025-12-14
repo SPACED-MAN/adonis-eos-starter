@@ -38,6 +38,8 @@ class PostTypeConfigService {
       moduleGroup: { name: `${postType}-default` },
       urlPatterns: [],
       permalinksEnabled: true,
+      modulesEnabled: true,
+      moduleGroupsEnabled: true,
       taxonomies: [],
       featuredImage: { enabled: false, label: 'Featured Image' },
     }

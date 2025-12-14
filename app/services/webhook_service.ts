@@ -366,7 +366,7 @@ class WebhookService {
    */
   async delete(id: string): Promise<boolean> {
     const deleted = await db.from('webhooks').where('id', id).delete()
-    return deleted > 0
+    return Array.isArray(deleted) ? deleted.length > 0 : Number(deleted) > 0
   }
 
   /**

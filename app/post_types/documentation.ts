@@ -1,4 +1,19 @@
-import type { PostTypeDefinition } from '#types/post_types'
+// PostTypeDefinition is defined inline in post_type_config_service
+type PostTypeDefinition = {
+  type: string
+  label: string
+  pluralLabel: string
+  description?: string
+  icon?: string
+  hierarchical?: boolean
+  hasExcerpt?: boolean
+  hasCategories?: boolean
+  hasTags?: boolean
+  hasFeaturedImage?: boolean
+  urlPatterns?: Array<{ locale: string; pattern: string; isDefault?: boolean }>
+  allowedModules?: string[]
+  fields?: any[]
+}
 
 const documentationPostType: PostTypeDefinition = {
   type: 'documentation',

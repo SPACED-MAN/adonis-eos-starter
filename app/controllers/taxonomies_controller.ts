@@ -97,10 +97,13 @@ export default class TaxonomiesController {
     termSlug = candidate
     // Determine order_index at end of siblings
     let orderIndex = 0
-    const row = await db
-      .from('taxonomy_terms')
-      .where({ taxonomy_id: tax.id })
-      .where('parent_id', parentId)
+    const query = db.from('taxonomy_terms').where({ taxonomy_id: tax.id })
+    if (parentId) {
+      query.where('parent_id', parentId)
+    } else {
+      query.whereNull('parent_id')
+    }
+    const row = await query
       .max('order_index as max')
       .first()
     orderIndex = (Number((row as any)?.max) || 0) + 1

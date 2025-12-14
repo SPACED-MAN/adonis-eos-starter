@@ -25,7 +25,9 @@ export default class extends BaseSeeder {
 				let headingTokens = token.tokens
 				if (!headingTokens && token.text) {
 					// Manually inline lex if tokens aren't provided
-					headingTokens = marked.lexer.lexInline(token.text)
+        // Parse inline tokens from text
+        const inlineMarkdown = marked.lexer(token.text)
+        headingTokens = inlineMarkdown.flatMap((t: any) => t.tokens || [t])
 				}
 				return {
 					type: 'heading',
@@ -43,7 +45,9 @@ export default class extends BaseSeeder {
 				let inlineTokens = token.tokens
 				if (!inlineTokens && token.text) {
 					// Manually inline lex if tokens aren't provided
-					inlineTokens = marked.lexer.lexInline(token.text)
+					// Parse inline tokens from text
+					const inlineMarkdown = marked.lexer(token.text)
+					inlineTokens = inlineMarkdown.flatMap((t: any) => t.tokens || [t])
 				}
 				return {
 					type: 'paragraph',
@@ -166,7 +170,9 @@ export default class extends BaseSeeder {
 			}
 		} else if (item.text) {
 			// If no tokens, parse the text as inline content and wrap in paragraph
-			const inlineTokens = marked.lexer.lexInline(item.text)
+			// Parse inline tokens from text
+			const inlineMarkdown = marked.lexer(item.text)
+			const inlineTokens = inlineMarkdown.flatMap((t: any) => t.tokens || [t])
 			children = [
 				{
 					type: 'paragraph',

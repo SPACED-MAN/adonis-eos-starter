@@ -2,7 +2,6 @@ import type { HttpContext } from '@adonisjs/core/http'
 import databaseExportService, { type ContentType } from '#services/database_export_service'
 import databaseImportService, { type ImportStrategy } from '#services/database_import_service'
 import roleRegistry from '#services/role_registry'
-import { MultipartFile } from '@adonisjs/core/bodyparser'
 import { readFile } from 'node:fs/promises'
 
 export default class DatabaseAdminController {

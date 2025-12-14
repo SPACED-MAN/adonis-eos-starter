@@ -117,7 +117,7 @@ export default class RateLimitMiddleware {
       }
 
       // Add current request
-      await redis.zadd(redisKey, { score: now, member: `${now}:${Math.random()}` })
+      await redis.zadd(redisKey, now, `${now}:${Math.random()}`)
 
       // Set expiry on the key
       await redis.expire(redisKey, this.options.window + 10)

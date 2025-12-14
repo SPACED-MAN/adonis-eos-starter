@@ -1,6 +1,29 @@
 import { marked } from 'marked'
 
 /**
+ * Helper to parse inline markdown text into tokens
+ * marked.js doesn't have lexInline, so we parse as a paragraph and extract tokens
+ */
+function parseInlineTokens(text: string): any[] {
+  if (!text) return []
+  try {
+    const tokens = marked.lexer(text)
+    // Extract inline tokens from paragraph or other block tokens
+    const inlineTokens: any[] = []
+    for (const token of tokens) {
+      if ('tokens' in token && token.tokens && Array.isArray(token.tokens)) {
+        inlineTokens.push(...token.tokens)
+      } else if (token.type === 'text') {
+        inlineTokens.push(token)
+      }
+    }
+    return inlineTokens.length > 0 ? inlineTokens : [{ type: 'text', text }]
+  } catch {
+    return [{ type: 'text', text }]
+  }
+}
+
+/**
  * Convert markdown to Lexical JSON using marked.js lexer.
  *
  * This is used for seeding docs and for MCP helpers so agents can provide markdown
@@ -49,7 +72,7 @@ function tokenToLexicalNode(token: any): any {
     case 'heading': {
       let headingTokens = token.tokens
       if (!headingTokens && token.text) {
-        headingTokens = marked.lexer.lexInline(token.text)
+        headingTokens = parseInlineTokens(token.text)
       }
       return {
         type: 'heading',
@@ -65,7 +88,7 @@ function tokenToLexicalNode(token: any): any {
     case 'paragraph': {
       let inlineTokens = token.tokens
       if (!inlineTokens && token.text) {
-        inlineTokens = marked.lexer.lexInline(token.text)
+        inlineTokens = parseInlineTokens(token.text)
       }
       return {
         type: 'paragraph',
@@ -134,7 +157,7 @@ function tokenToLexicalNode(token: any): any {
     case 'text': {
       const raw = String(token.text || '').trim()
       if (!raw) return null
-      const inline = marked.lexer.lexInline(raw)
+      const inline = parseInlineTokens(raw)
       return {
         type: 'paragraph',
         direction: 'ltr',
@@ -158,7 +181,7 @@ function listItemToLexical(item: any): any {
 
   // When item has inline tokens only (e.g. task list), normalize to a paragraph
   if (itemTokens.length === 0 && item.text) {
-    const inline = marked.lexer.lexInline(String(item.text))
+    const inline = parseInlineTokens(String(item.text))
     children.push({
       type: 'paragraph',
       direction: 'ltr',
@@ -170,7 +193,7 @@ function listItemToLexical(item: any): any {
   } else {
     for (const token of itemTokens) {
       if (token.type === 'text') {
-        const inlineTokens = token.tokens || marked.lexer.lexInline(String(token.text || ''))
+        const inlineTokens = token.tokens || parseInlineTokens(String(token.text || ''))
         children.push({
           type: 'paragraph',
           direction: 'ltr',
@@ -252,7 +275,7 @@ function inlineTokensToLexical(tokens: any[]): any[] {
         break
 
       case 'link': {
-        const linkTokens = token.tokens || marked.lexer.lexInline(String(token.text || ''))
+        const linkTokens = token.tokens || parseInlineTokens(String(token.text || ''))
         const children = inlineTokensToLexical(linkTokens || [])
         out.push({
           type: 'link',

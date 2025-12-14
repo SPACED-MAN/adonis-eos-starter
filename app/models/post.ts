@@ -151,7 +151,7 @@ export default class Post extends BaseModel {
   /**
    * Query scope: Include soft-deleted posts
    */
-  static withTrashed = scope((query) => {
+  static withTrashed = scope((_query) => {
     // Remove the whereNull clause by using a no-op
     // This works because we're in a separate scope
   })

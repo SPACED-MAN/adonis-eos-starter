@@ -116,7 +116,6 @@ export default class ModuleGroupsController {
       'defaultProps',
       'locked',
     ])
-    const updates: Record<string, any> = { updated_at: new Date() }
     const row = await ModuleGroupModule.find(moduleId)
     if (!row) return response.notFound({ error: 'Module group module not found' })
     if (orderIndex !== undefined) row.orderIndex = Number(orderIndex)

@@ -59,13 +59,14 @@ export default class BulkPostsAction {
           // Duplicate custom field values
           const cfValues = await PostCustomFieldValue.query({ client: trx }).where('postId', post.id)
           if (Array.isArray(cfValues) && cfValues.length) {
+            const { DateTime } = await import('luxon')
             const rows = cfValues.map((r: any) => ({
               id: randomUUID(),
               postId: newPost.id,
               fieldSlug: String((r as any).fieldSlug ?? (r as any).field_slug),
               value: r.value,
-              createdAt: now,
-              updatedAt: now,
+              createdAt: DateTime.fromJSDate(now),
+              updatedAt: DateTime.fromJSDate(now),
             }))
             await PostCustomFieldValue.createMany(rows, { client: trx })
           }

@@ -37,7 +37,7 @@ async function tableExists(name: string): Promise<boolean> {
       'SELECT to_regclass(?) as exists',
       [`public.${name}`]
     )
-    const exists = (result?.rows?.[0]?.exists ?? null) !== null
+    const exists = (result as any)?.rows?.[0]?.exists !== null && (result as any)?.rows?.[0]?.exists !== undefined
     return exists
   } catch {
     return false

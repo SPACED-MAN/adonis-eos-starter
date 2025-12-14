@@ -194,7 +194,7 @@ export default abstract class BaseModule {
    * You can opt out completely by overriding and returning false.
    */
   // eslint-disable-next-line @typescript-eslint/no-unused-vars
-  isCacheEnabled(data: MergedModuleData, context: ModuleRenderContext): boolean {
+  isCacheEnabled(_data: MergedModuleData, context: ModuleRenderContext): boolean {
     return this.getRenderingMode() === 'static' && !context.isPreview
   }
 
@@ -205,7 +205,7 @@ export default abstract class BaseModule {
    * their `render` implementation.
    */
   // eslint-disable-next-line @typescript-eslint/no-unused-vars
-  getDefaultCacheTtl(data: MergedModuleData, context: ModuleRenderContext): number {
+  getDefaultCacheTtl(_data: MergedModuleData, _context: ModuleRenderContext): number {
     return 300 // 5 minutes
   }
 }

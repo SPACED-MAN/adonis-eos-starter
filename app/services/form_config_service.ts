@@ -1,4 +1,4 @@
-import { getFormBySlug, listForms } from '#forms/index'
+import { getFormBySlug, listForms } from '../forms/index.js'
 import type { FormConfig } from '#types/form_types'
 
 class FormConfigService {

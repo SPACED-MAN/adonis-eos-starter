@@ -1,6 +1,6 @@
 import { test } from '@japa/runner'
 import db from '@adonisjs/lucid/services/db'
-import { publishDueScheduledPosts } from '../../start/scheduler.ts'
+import { publishDueScheduledPosts } from '../../start/scheduler.js'
 
 test.group('Scheduler publish', (group) => {
   group.each.setup(async () => {

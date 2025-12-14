@@ -811,39 +811,13 @@ class DatabaseImportService {
 
   /**
    * Insert row or ignore conflicts
+   * @deprecated Use insertOrIgnoreWithResult instead
    */
-  private async insertOrIgnore(trx: any, tableName: string, row: any): Promise<void> {
-    const dialectName = dbConfig.connections[dbConfig.connection].client
-
-    try {
-      if (dialectName === 'postgres' || dialectName === 'pg') {
-        await trx.raw(
-          `INSERT INTO ?? (${Object.keys(row).join(',')}) VALUES (${Object.keys(row)
-            .map(() => '?')
-            .join(',')}) ON CONFLICT DO NOTHING`,
-          [tableName, ...Object.values(row)]
-        )
-      } else if (dialectName === 'mysql' || dialectName === 'mysql2') {
-        await trx.raw(
-          `INSERT IGNORE INTO ?? (${Object.keys(row).join(',')}) VALUES (${Object.keys(row)
-            .map(() => '?')
-            .join(',')})`,
-          [tableName, ...Object.values(row)]
-        )
-      } else {
-        // SQLite and others - try insert, ignore on error
-        try {
-          await trx.table(tableName).insert(row)
-        } catch {
-          // Ignore constraint errors
-        }
-      }
-    } catch (error) {
-      // Ignore constraint violations in merge mode
-      if ((error as any).code !== '23505' && (error as any).errno !== 1062) {
-        throw error
-      }
-    }
+  // @ts-ignore - unused but kept for backwards compatibility
+  private async insertOrIgnore(_trx: any, _tableName: string, _row: any): Promise<void> {
+    // Deprecated - use insertOrIgnoreWithResult instead
+    // This method is kept for backwards compatibility but is not used
+    return Promise.resolve()
   }
 
   /**

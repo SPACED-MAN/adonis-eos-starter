@@ -126,7 +126,7 @@ export default class AuditInternalLinks extends BaseCommand {
       byPost.get(key)!.push(issue)
     }
 
-    for (const [key, postIssues] of byPost.entries()) {
+    for (const [, postIssues] of byPost.entries()) {
       const first = postIssues[0]
       this.logger.info(
         `📄 ${first.postTitle} (${first.postType}) - ID: ${first.postId}`

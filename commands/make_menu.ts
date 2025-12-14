@@ -85,7 +85,7 @@ export default class extends BaseSeeder {
 
   async run() {
     const menuName = this.name.trim()
-    const displayName = string.capitalize(menuName)
+    const displayName = menuName.charAt(0).toUpperCase() + menuName.slice(1)
     const slug = string.snakeCase(menuName).replace(/_/g, '-')
     const pascalId = `${string.pascalCase(slug)}MenuTemplate`
     const appRoot = fileURLToPath(this.app.appRoot)

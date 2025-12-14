@@ -2,7 +2,6 @@ import type { HttpContext } from '@adonisjs/core/http'
 import agentRegistry from '#services/agent_registry'
 import PostSerializerService from '#services/post_serializer_service'
 import Post from '#models/post'
-import authorizationService from '#services/authorization_service'
 import roleRegistry from '#services/role_registry'
 import RevisionService from '#services/revision_service'
 import db from '@adonisjs/lucid/services/db'
@@ -57,7 +56,7 @@ export default class AgentsController {
     }
 
     try {
-      const post = await Post.findOrFail(id)
+      await Post.findOrFail(id)
       const canonical = await PostSerializerService.serialize(id)
       const ctx = (request.input('context') as Record<string, unknown> | undefined) || {}
       const openEnded = request.input('openEndedContext')

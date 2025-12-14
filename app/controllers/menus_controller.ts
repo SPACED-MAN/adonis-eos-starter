@@ -3,7 +3,6 @@ import menuTemplates from '#services/menu_template_registry'
 import db from '@adonisjs/lucid/services/db'
 import { randomUUID } from 'node:crypto'
 import roleRegistry from '#services/role_registry'
-import urlPatternService from '#services/url_pattern_service'
 
 function buildTree(items: any[]): any[] {
   const idToNode = new Map<string, any>()
@@ -44,7 +43,7 @@ async function expandDynamicMenuItems(items: any[], locale: string): Promise<any
     // Dynamic item: fetch posts and expand
     const dynamicPostType = item.dynamicPostType
     const dynamicParentId = item.dynamicParentId
-    const dynamicDepthLimit = item.dynamicDepthLimit || 1
+    // const dynamicDepthLimit = item.dynamicDepthLimit || 1 // Unused for now
 
     if (!dynamicPostType) {
       // Invalid dynamic item, skip
@@ -166,9 +165,7 @@ export default class MenusController {
       meta_json:
         meta && typeof meta === 'object'
           ? JSON.stringify(meta)
-          : this.db?.rawQuery
-            ? this.db.rawQuery(`'{}'::jsonb`).knexQuery
-            : '{}',
+          : db.rawQuery(`'{}'::jsonb`).knexQuery,
       created_at: now,
       updated_at: now,
     })

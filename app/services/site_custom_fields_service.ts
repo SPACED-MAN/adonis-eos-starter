@@ -1,6 +1,6 @@
-import siteFields, { type SiteField } from '../site/fields.ts'
+import siteFields, { type SiteField } from '../site/fields.js'
 import fieldTypeRegistry from '#services/field_type_registry'
-import SiteCustomFieldValue from '#models/site_custom_field_value'
+import SiteCustomFieldValueModel from '#models/site_custom_field_value'
 
 export type SiteCustomFieldValue = Record<string, any>
 
@@ -10,7 +10,7 @@ class SiteCustomFieldsService {
   }
 
   async getValues(): Promise<Record<string, SiteCustomFieldValue>> {
-    const rows = await SiteCustomFieldValue.query().select('fieldSlug', 'value')
+    const rows = await SiteCustomFieldValueModel.query().select('fieldSlug', 'value')
     const out: Record<string, SiteCustomFieldValue> = {}
     for (const r of rows) {
       out[String((r as any).fieldSlug)] = (r as any).value ?? null
@@ -36,14 +36,14 @@ class SiteCustomFieldsService {
         // skip invalid entries
         continue
       }
-      const existing = await SiteCustomFieldValue.query().where('fieldSlug', slug).first()
+      const existing = await SiteCustomFieldValueModel.query().where('fieldSlug', slug).first()
       const normalized = value === undefined ? null : value
       if (existing) {
         existing.value = normalized as any
         await existing.save()
         continue
       }
-      await SiteCustomFieldValue.create({
+      await SiteCustomFieldValueModel.create({
         fieldSlug: slug,
         value: normalized as any,
       })

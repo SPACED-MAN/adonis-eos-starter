@@ -1,6 +1,6 @@
 import taxonomyRegistry, { type RegisteredTaxonomyConfig } from '#services/taxonomy_registry'
-import Taxonomy from '#models/taxonomy'
-import TaxonomyTerm from '#models/taxonomy_term'
+import TaxonomyModel from '#models/taxonomy'
+import TaxonomyTermModel from '#models/taxonomy_term'
 
 export type Taxonomy = {
   id: string
@@ -28,7 +28,7 @@ class TaxonomyService {
   }
 
   async listTaxonomies(): Promise<Taxonomy[]> {
-    const rows = await Taxonomy.query().orderBy('name', 'asc')
+    const rows = await TaxonomyModel.query().orderBy('name', 'asc')
     return rows.map((r) => {
       const cfg = taxonomyRegistry.get(r.slug)
       return {
@@ -46,21 +46,36 @@ class TaxonomyService {
   }
 
   async getTaxonomyBySlug(slug: string): Promise<Taxonomy | null> {
-    return Taxonomy.query().where('slug', slug).first()
+    const tax = await TaxonomyModel.query().where('slug', slug).first()
+    if (!tax) return null
+    const cfg = taxonomyRegistry.get(tax.slug)
+    return {
+      id: tax.id,
+      slug: tax.slug,
+      name: tax.name,
+      hierarchical: !!cfg?.hierarchical,
+      freeTagging: !!cfg?.freeTagging,
+      maxSelections:
+        cfg?.maxSelections === undefined || cfg?.maxSelections === null
+          ? null
+          : Number(cfg.maxSelections),
+    }
   }
 
   async listTermsFlat(taxonomyId: string): Promise<TaxonomyTerm[]> {
-    return TaxonomyTerm.query()
+    const rows = await TaxonomyTermModel.query()
       .where('taxonomyId', taxonomyId)
       .orderBy('orderIndex', 'asc')
       .orderBy('name', 'asc')
-  }
-
-  async getTermsTreeBySlug(slug: string): Promise<TaxonomyTermNode[]> {
-    const tax = await this.getTaxonomyBySlug(slug)
-    if (!tax) return []
-    const flat = await this.listTermsFlat(tax.id)
-    return this.buildTree(flat)
+    return rows.map((t) => ({
+      id: t.id,
+      taxonomyId: t.taxonomyId,
+      parentId: t.parentId,
+      slug: t.slug,
+      name: t.name,
+      description: t.description,
+      orderIndex: t.orderIndex,
+    }))
   }
 
   buildTree(flat: TaxonomyTerm[]): TaxonomyTermNode[] {
@@ -80,8 +95,15 @@ class TaxonomyService {
     return roots
   }
 
+  async getTermsTreeBySlug(slug: string): Promise<TaxonomyTermNode[]> {
+    const tax = await this.getTaxonomyBySlug(slug)
+    if (!tax) return []
+    const flat = await this.listTermsFlat(tax.id)
+    return this.buildTree(flat)
+  }
+
   async getDescendantIds(termId: string): Promise<string[]> {
-    const term = await TaxonomyTerm.query().where('id', termId).first()
+    const term = await TaxonomyTermModel.query().where('id', termId).first()
     if (!term) return []
     const flat = await this.listTermsFlat(term.taxonomyId)
     const childrenByParent = new Map<string, TaxonomyTerm[]>()

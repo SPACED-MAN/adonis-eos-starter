@@ -165,11 +165,12 @@ class ModuleScopeService {
    * @returns Number of deleted rows
    */
   async removeModuleScope(moduleType: string, postType: string): Promise<number> {
-    return db
+    const result = await db
       .from('module_scopes')
       .where('module_type', moduleType)
       .where('post_type', postType)
       .delete()
+    return Array.isArray(result) ? result.length : Number(result)
   }
 
   /**

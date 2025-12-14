@@ -1,5 +1,5 @@
 import templates from '#services/menu_template_registry'
-import primary from './primary.ts'
+import primary from './primary.js'
 
 // This file exists to ensure templates are imported at boot
 export function listMenuTemplates() {

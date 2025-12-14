@@ -102,7 +102,7 @@ class PostTypeViewService {
    * Expand dynamic menu items (same logic as menus_controller)
    */
   private async expandDynamicMenuItems(items: any[], locale: string): Promise<any[]> {
-    const db = (await import('@adonisjs/lucid/services/db')).default
+    // const db = (await import('@adonisjs/lucid/services/db')).default // Unused for now
     const expanded: any[] = []
     
     for (const item of items) {

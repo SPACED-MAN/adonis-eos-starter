@@ -128,14 +128,15 @@ class PreviewService {
       .where('token', token)
       .delete()
 
-    return deleted > 0
+    return Array.isArray(deleted) ? deleted.length > 0 : Number(deleted) > 0
   }
 
   /**
    * Revoke all preview tokens for a post
    */
   async revokeAllForPost(postId: string): Promise<number> {
-    return db.from('preview_tokens').where('post_id', postId).delete()
+    const deleted = await db.from('preview_tokens').where('post_id', postId).delete()
+    return Array.isArray(deleted) ? deleted.length : Number(deleted)
   }
 
   /**
@@ -169,7 +170,8 @@ class PreviewService {
    * Cleanup expired tokens (run periodically)
    */
   async cleanupExpiredTokens(): Promise<number> {
-    return db.from('preview_tokens').where('expires_at', '<', new Date()).delete()
+    const deleted = await db.from('preview_tokens').where('expires_at', '<', new Date()).delete()
+    return Array.isArray(deleted) ? deleted.length : Number(deleted)
   }
 }
 

@@ -107,12 +107,6 @@ export default class CreateTranslation {
     }
   }
 
-  private static async ensureLocaleSupported(locale: string): Promise<void> {
-    const supported = await localeService.isLocaleSupported(locale)
-    if (!supported) {
-      throw new CreateTranslationException(`Unsupported locale: ${locale}`, 400, { locale })
-    }
-  }
 
   /**
    * Check if a translation already exists for the given locale

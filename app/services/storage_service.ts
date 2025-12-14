@@ -33,7 +33,7 @@ class LocalDriver {
   async put(
     key: string,
     data: Buffer | Uint8Array | string,
-    contentType?: string
+    _contentType?: string
   ): Promise<string> {
     const rel = key.replace(/^\/+/, '')
     const dest = path.join(process.cwd(), 'public', rel)
@@ -42,7 +42,7 @@ class LocalDriver {
     return `/${rel}`
   }
 
-  async publishFile(absPath: string, publicUrlPath: string, contentType?: string): Promise<string> {
+  async publishFile(absPath: string, publicUrlPath: string, _contentType?: string): Promise<string> {
     // Already in public, nothing to do; ensure directory exists in case of move
     const rel = publicUrlPath.replace(/^\/+/, '')
     const dest = path.join(process.cwd(), 'public', rel)

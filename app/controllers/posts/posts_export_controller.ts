@@ -56,7 +56,11 @@ export default class PostsExportController extends BasePostsController {
     }
 
     try {
-      const post = await PostSerializerService.importCreate(data, auth.user?.id)
+      const userId = auth.user?.id
+      if (!userId) {
+        return response.unauthorized({ error: 'User must be authenticated' })
+      }
+      const post = await PostSerializerService.importCreate(data, userId)
 
       // Log activity
       try {

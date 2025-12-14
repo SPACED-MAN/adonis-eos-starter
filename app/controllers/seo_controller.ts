@@ -19,7 +19,7 @@ export default class SeoController {
 
   async sitemapRebuild({ request, response }: HttpContext) {
     const protocol = request.protocol() || 'https'
-    const host = request.host() || request.hostname()
+    const host = request.host() || request.hostname() || 'localhost'
     sitemapService.clearCache()
     await sitemapService.generate({ protocol, host })
     response.type('application/json')

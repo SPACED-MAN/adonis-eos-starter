@@ -1,6 +1,5 @@
 import type { HttpContext } from '@adonisjs/core/http'
 import Post from '#models/post'
-import db from '@adonisjs/lucid/services/db'
 import PostCustomFieldValue from '#models/post_custom_field_value'
 
 /**
@@ -29,9 +28,9 @@ export default class ProfilesController {
     const idsParam = String(request.input('ids', '')).trim()
     const ids: string[] = idsParam
       ? idsParam
-          .split(',')
-          .map((v) => v.trim())
-          .filter(Boolean)
+        .split(',')
+        .map((v) => v.trim())
+        .filter(Boolean)
       : []
 
     const query = Post.query().where('type', 'profile')

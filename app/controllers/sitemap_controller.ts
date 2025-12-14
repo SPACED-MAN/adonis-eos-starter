@@ -4,7 +4,7 @@ import sitemapService from '#services/sitemap_service'
 export default class SitemapController {
   async index({ request, response }: HttpContext) {
     const protocol = request.protocol() || 'https'
-    const host = request.host() || request.hostname()
+    const host = request.host() || request.hostname() || 'localhost'
     const xml = await sitemapService.generate({ protocol, host })
     return response
       .status(200)

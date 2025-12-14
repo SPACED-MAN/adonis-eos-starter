@@ -10,8 +10,8 @@ test.group('Prose Module', () => {
     assert.equal(config.name, 'Rich Text (Prose)')
     assert.includeMembers(config.allowedScopes, ['local', 'global'])
     assert.isTrue(config.lockable)
-    assert.isDefined(config.propsSchema.content)
-    assert.isDefined(config.defaultProps.content)
+    assert.isDefined(config.propsSchema?.content)
+    assert.isDefined(config.defaultProps?.content)
   })
 
   test('should specify static rendering mode', ({ assert }) => {

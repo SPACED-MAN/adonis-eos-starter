@@ -1,4 +1,3 @@
-import db from '@adonisjs/lucid/services/db'
 import CreatePost from '#actions/posts/create_post'
 import UpdatePost from '#actions/posts/update_post'
 import AddModuleToPost from '#actions/posts/add_module_to_post'

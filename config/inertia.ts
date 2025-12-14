@@ -29,7 +29,7 @@ const inertiaConfig = defineConfig({
      * Only SSR public pages for SEO benefits.
      * Admin pages don't need SSR (behind auth, no SEO value)
      */
-    pages: (ctx, page) => !page.startsWith('admin'),
+    pages: (_ctx, page) => !page.startsWith('admin'),
   },
 })
 
