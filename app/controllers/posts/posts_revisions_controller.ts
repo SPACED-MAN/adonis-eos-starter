@@ -100,7 +100,7 @@ export default class PostsRevisionsController extends BasePostsController {
     }
 
     const postType = snapshot?.type || (await Post.find(id))?.type
-    // Approved revisions require permission
+    // Source (approved/live) revisions require permission
     if (
       !authorizationService.canRevertRevision(role, postType) ||
       !authorizationService.canUpdateStatus(role, snapshot?.status, postType)

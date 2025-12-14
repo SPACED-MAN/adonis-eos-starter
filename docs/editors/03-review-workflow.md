@@ -2,13 +2,13 @@
 
 Learn how to collaborate with your team using the review system.
 
-## Understanding Review Modes
+## Understanding Active Versions
 
-Adonis EOS has a three-tier review system to ensure content quality:
+Adonis EOS supports staged editing with three active versions:
 
-1. **Approved** (Live Content) - Currently published content
-2. **AI Review** - AI-generated suggestions (admin only)
-3. **Review** - Human review before publishing
+1. **Source** (Canonical Content) - The current saved version (previously labeled “Approved”)
+2. **Review** - Human review draft before changes are applied to Source
+3. **AI Review** - AI-generated suggestions staged for human review (admin only)
 
 ## For Editors
 
@@ -23,7 +23,7 @@ Adonis EOS has a three-tier review system to ensure content quality:
 ### Viewing Your Review Status
 
 Look at the tabs at the top of the editor:
-- **Approved**: Currently live content
+- **Source**: Current canonical content
 - **Review**: Your pending changes (if any)
 
 Switch between tabs to compare what's live vs. what you've submitted for review.
@@ -79,7 +79,7 @@ Every save creates a revision:
 ## Common Questions
 
 **Q: Can I edit published content?**
-A: Yes! Edit the Approved version and click "Save Changes" to update live content immediately (Editor Admins only). Or save for review to have changes approved first.
+A: Yes! Edit the Source version and click "Save Changes" to update live content immediately (Editor Admins only). Or save for review to have changes approved first.
 
 **Q: What happens if I accidentally save changes?**
 A: Use the Revisions panel to revert to a previous version.

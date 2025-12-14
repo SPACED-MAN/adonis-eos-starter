@@ -393,35 +393,35 @@ export default function Editor({
     modulesEnabled ? initialModules || [] : []
   )
 
-  const hasApprovedBaseline = useMemo(() => {
-    // "Approved" should only exist if there is at least one module not introduced via Review/AI Review
+  const hasSourceBaseline = useMemo(() => {
+    // "Source" should only exist if there is at least one module not introduced via Review/AI Review
     return (modules || []).some((m) => !m.reviewAdded && !(m as any).aiReviewAdded)
   }, [modules])
 
   const hasReviewBaseline = useMemo(() => Boolean(reviewDraft), [reviewDraft])
   const hasAiReviewBaseline = useMemo(() => Boolean(aiReviewDraft), [aiReviewDraft])
 
-  const initialViewMode: 'approved' | 'review' | 'ai-review' = useMemo(() => {
+  const initialViewMode: 'source' | 'review' | 'ai-review' = useMemo(() => {
     if (hasReviewBaseline) return 'review'
-    if (!hasApprovedBaseline && hasAiReviewBaseline) return 'ai-review'
-    return 'approved'
-  }, [hasReviewBaseline, hasApprovedBaseline, hasAiReviewBaseline])
+    if (!hasSourceBaseline && hasAiReviewBaseline) return 'ai-review'
+    return 'source'
+  }, [hasReviewBaseline, hasSourceBaseline, hasAiReviewBaseline])
 
-  const [viewMode, setViewMode] = useState<'approved' | 'review' | 'ai-review'>(initialViewMode)
+  const [viewMode, setViewMode] = useState<'source' | 'review' | 'ai-review'>(initialViewMode)
   const isDirty = useMemo(() => {
     try {
       const baseline =
         viewMode === 'review' && reviewInitialRef.current ? reviewInitialRef.current : initialDataRef.current
       const fieldsChanged = JSON.stringify(pickForm(data)) !== JSON.stringify(baseline)
       const modulesPending = modulesEnabled ? Object.keys(pendingModules).length > 0 : false
-      const removalsPendingApproved = modulesEnabled ? pendingRemoved.size > 0 : false
+      const removalsPendingSource = modulesEnabled ? pendingRemoved.size > 0 : false
       const removalsPendingReview = modulesEnabled ? pendingReviewRemoved.size > 0 : false
       const newModulesPending = modulesEnabled ? pendingNewModules.length > 0 : false
       const structuralChanges = modulesEnabled ? hasStructuralChanges : false
       return (
         fieldsChanged ||
         modulesPending ||
-        removalsPendingApproved ||
+        removalsPendingSource ||
         removalsPendingReview ||
         newModulesPending ||
         structuralChanges
@@ -553,8 +553,8 @@ export default function Editor({
       // Load review draft into form
       setData({ ...data, ...reviewInitialRef.current })
     }
-    if (viewMode === 'approved') {
-      // Restore published values
+    if (viewMode === 'source') {
+      // Restore source values
       setData({ ...data, ...initialDataRef.current })
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -869,16 +869,16 @@ export default function Editor({
     [viewMode]
   )
 
-  // If a post has no approved baseline and only AI Review exists, keep the UI on AI Review.
+  // If a post has no source baseline and only AI Review exists, keep the UI on AI Review.
   useEffect(() => {
-    if (!hasApprovedBaseline && hasAiReviewBaseline && viewMode === 'approved') {
+    if (!hasSourceBaseline && hasAiReviewBaseline && viewMode === 'source') {
       setViewMode('ai-review')
     }
     if (!hasReviewBaseline && viewMode === 'review') {
       // Review draft removed/absent; fall back safely.
-      setViewMode(hasAiReviewBaseline ? 'ai-review' : (hasApprovedBaseline ? 'approved' : 'ai-review'))
+      setViewMode(hasAiReviewBaseline ? 'ai-review' : (hasSourceBaseline ? 'source' : 'ai-review'))
     }
-  }, [hasApprovedBaseline, hasAiReviewBaseline, hasReviewBaseline, viewMode])
+  }, [hasSourceBaseline, hasAiReviewBaseline, hasReviewBaseline, viewMode])
 
   const sortedModules = useMemo(() => {
     const baseAll = modules.slice().sort((a, b) => a.orderIndex - b.orderIndex)
@@ -891,12 +891,12 @@ export default function Editor({
     }
 
     if (viewMode === 'ai-review') {
-      // hide review-added modules in approved view but show them in ai-review?
+      // hide review-added modules in source view but show them in ai-review?
       const base = baseAll.filter((m) => !m.reviewDeleted)
       return base.map(adjustModuleForView)
     }
 
-    // Approved view: hide review-added and ai-review-added modules
+    // Source view: hide review-added and ai-review-added modules
     const base = baseAll.filter((m) => !m.reviewAdded && !(m as any).aiReviewAdded)
     return base.map(adjustModuleForView)
   }, [modules, viewMode, pendingReviewRemoved, adjustModuleForView])
@@ -1484,7 +1484,7 @@ export default function Editor({
                                             next.add(m.id)
                                             return next
                                           })
-                                          // For approved mode, optimistically remove from UI
+                                          // For source mode, optimistically remove from UI
                                           setModules((prev) => prev.filter((pm) => pm.id !== m.id))
                                         }
                                         toast.success('Module marked for removal (apply by saving)')
@@ -1642,13 +1642,13 @@ export default function Editor({
                 {/* View toggle */}
                 <div className="flex items-center gap-2">
                   <div className="inline-flex rounded border border-border overflow-hidden">
-                    {hasApprovedBaseline && (
+                    {hasSourceBaseline && (
                       <button
                         type="button"
-                        onClick={() => setViewMode('approved')}
-                        className={`px-2 py-1 text-xs ${viewMode === 'approved' ? 'bg-backdrop-medium text-neutral-high' : 'text-neutral-medium hover:bg-backdrop-medium'}`}
+                        onClick={() => setViewMode('source')}
+                        className={`px-2 py-1 text-xs ${viewMode === 'source' ? 'bg-backdrop-medium text-neutral-high' : 'text-neutral-medium hover:bg-backdrop-medium'}`}
                       >
-                        Approved
+                        Source
                       </button>
                     )}
                     {hasReviewBaseline && canSaveForReview && (
@@ -1845,64 +1845,66 @@ export default function Editor({
                     )}
                   </div>
                 </div>
-                {/* Status */}
-                <div>
-                  <label className="block text-xs font-medium text-neutral-medium mb-1">
-                    Status
-                  </label>
-                  <div className="flex items-center gap-2">
-                    <Select defaultValue={data.status} onValueChange={(val) => setData('status', val)}>
-                      <SelectTrigger className="w-[180px]">
-                        <SelectValue />
-                      </SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="draft">Draft</SelectItem>
-                        <SelectItem value="scheduled">Scheduled</SelectItem>
-                        {canPublish && <SelectItem value="published">Published</SelectItem>}
-                        <SelectItem value="private">Private</SelectItem>
-                        <SelectItem value="protected">Protected</SelectItem>
-                        {canPublish && <SelectItem value="archived">Archived</SelectItem>}
-                      </SelectContent>
-                    </Select>
-                  </div>
-                  {errors.status && (
-                    <p className="text-xs text-red-600 dark:text-red-400 mt-1">{errors.status}</p>
-                  )}
-                  {data.status === 'scheduled' && (
-                    <div className="mt-3 space-y-2">
-                      <label className="block text-xs font-medium text-neutral-medium">
-                        Scheduled Date
-                      </label>
-                      <Popover>
-                        <PopoverTrigger asChild>
-                          <button
-                            type="button"
-                            className="px-3 py-2 text-sm border border-line-low rounded hover:bg-backdrop-medium text-neutral-high"
-                          >
-                            {(data as any).scheduledAt
-                              ? new Date((data as any).scheduledAt).toLocaleDateString()
-                              : 'Pick a date'}
-                          </button>
-                        </PopoverTrigger>
-                        <PopoverContent className="p-0">
-                          <Calendar
-                            mode="single"
-                            selected={(data as any).scheduledAt ? new Date((data as any).scheduledAt) : undefined}
-                            onSelect={(d: Date | undefined) => {
-                              if (!d) {
-                                setData('scheduledAt' as any, '')
-                                return
-                              }
-                              const local = new Date(d.getFullYear(), d.getMonth(), d.getDate(), 0, 0, 0)
-                              setData('scheduledAt' as any, local.toISOString())
-                            }}
-                          />
-                        </PopoverContent>
-                      </Popover>
-                      <p className="text-xs text-neutral-low">Scheduler will publish on the selected day.</p>
+                {/* Status (Source only) */}
+                {viewMode === 'source' && (
+                  <div>
+                    <label className="block text-xs font-medium text-neutral-medium mb-1">
+                      Status
+                    </label>
+                    <div className="flex items-center gap-2">
+                      <Select defaultValue={data.status} onValueChange={(val) => setData('status', val)}>
+                        <SelectTrigger className="w-[180px]">
+                          <SelectValue />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="draft">Draft</SelectItem>
+                          <SelectItem value="scheduled">Scheduled</SelectItem>
+                          {canPublish && <SelectItem value="published">Published</SelectItem>}
+                          <SelectItem value="private">Private</SelectItem>
+                          <SelectItem value="protected">Protected</SelectItem>
+                          {canPublish && <SelectItem value="archived">Archived</SelectItem>}
+                        </SelectContent>
+                      </Select>
                     </div>
-                  )}
-                </div>
+                    {errors.status && (
+                      <p className="text-xs text-red-600 dark:text-red-400 mt-1">{errors.status}</p>
+                    )}
+                    {data.status === 'scheduled' && (
+                      <div className="mt-3 space-y-2">
+                        <label className="block text-xs font-medium text-neutral-medium">
+                          Scheduled Date
+                        </label>
+                        <Popover>
+                          <PopoverTrigger asChild>
+                            <button
+                              type="button"
+                              className="px-3 py-2 text-sm border border-line-low rounded hover:bg-backdrop-medium text-neutral-high"
+                            >
+                              {(data as any).scheduledAt
+                                ? new Date((data as any).scheduledAt).toLocaleDateString()
+                                : 'Pick a date'}
+                            </button>
+                          </PopoverTrigger>
+                          <PopoverContent className="p-0">
+                            <Calendar
+                              mode="single"
+                              selected={(data as any).scheduledAt ? new Date((data as any).scheduledAt) : undefined}
+                              onSelect={(d: Date | undefined) => {
+                                if (!d) {
+                                  setData('scheduledAt' as any, '')
+                                  return
+                                }
+                                const local = new Date(d.getFullYear(), d.getMonth(), d.getDate(), 0, 0, 0)
+                                setData('scheduledAt' as any, local.toISOString())
+                              }}
+                            />
+                          </PopoverContent>
+                        </Popover>
+                        <p className="text-xs text-neutral-low">Scheduler will publish on the selected day.</p>
+                      </div>
+                    )}
+                  </div>
+                )}
                 {/* Locale Switcher */}
                 <div>
                   <label className="block text-xs font-medium text-neutral-medium mb-1">
@@ -1983,7 +1985,7 @@ export default function Editor({
                 )}
 
                 {/* Draft Actions - Compact section for Save for Review/AI Review */}
-                {viewMode === 'approved' && (canSaveForReview || canSaveForAiReview) && (
+                {viewMode === 'source' && (canSaveForReview || canSaveForAiReview) && (
                   <div className="space-y-1">
                     <div className="text-xs font-medium text-neutral-low px-1">Save as Draft</div>
                     <div className="grid grid-cols-2 gap-2">
@@ -2034,7 +2036,7 @@ export default function Editor({
                 )}
 
                 {/* Main save button - conditionally shown based on mode and permissions */}
-                {((viewMode === 'review' && canSaveForReview) || (viewMode === 'ai-review' && canSaveForAiReview) || viewMode === 'approved') && (
+                {((viewMode === 'review' && canSaveForReview) || (viewMode === 'ai-review' && canSaveForAiReview) || viewMode === 'source') && (
                   <button
                     className={`w-full px-4 py-2.5 text-sm rounded-lg disabled:opacity-50 ${(!isDirty || processing) ? 'border border-border text-neutral-medium' : 'bg-standout text-on-standout font-medium'}`}
                     disabled={!isDirty || processing}
@@ -2140,11 +2142,11 @@ export default function Editor({
                       })
                       if (res.ok) {
                         toast.success('Review approved')
-                        // Adopt the review values as the new approved baseline
+                        // Adopt the review values as the new source baseline
                         const adopted = reviewInitialRef.current ? reviewInitialRef.current : pickForm(data)
                         initialDataRef.current = adopted as any
                         reviewInitialRef.current = null
-                        setViewMode('approved')
+                        setViewMode('source')
                       } else {
                         const err = await res.json().catch(() => null)
                         console.error('Approve Review failed:', res.status, err)
@@ -2307,7 +2309,7 @@ export default function Editor({
                         <span className="text-neutral-high">
                           {new Date(r.createdAt).toLocaleString()}
                           <Badge className="ml-2" variant={r.mode === 'review' ? 'secondary' : 'default'}>
-                            {r.mode === 'review' ? 'Review' : 'Approved'}
+                            {r.mode === 'review' ? 'Review' : 'Source'}
                           </Badge>
                         </span>
                         {r.user?.email ? <span className="text-xs text-neutral-low">{r.user.email}</span> : null}

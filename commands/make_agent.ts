@@ -103,7 +103,7 @@ const ${name}Agent: AgentDefinition = {
     // Available scopes:
     // - 'dropdown' - Shows up in the agent dropdown menu
     // - 'post.publish' - Triggers on post publish
-    // - 'post.approve' - Triggers when approving changes (Approved mode)
+    // - 'post.approve' - Triggers when approving changes (Source mode)
     // - 'post.review.save' - Triggers when saving for review
     // - 'post.review.approve' - Triggers when approving review draft
     // - 'post.ai-review.save' - Triggers when saving AI review
@@ -149,7 +149,7 @@ const ${name}Agent: AgentDefinition = {
     // Available scopes:
     // - 'dropdown' - Shows up in the agent dropdown menu
     // - 'post.publish' - Triggers on post publish
-    // - 'post.approve' - Triggers when approving changes (Approved mode)
+    // - 'post.approve' - Triggers when approving changes (Source mode)
     // - 'post.review.save' - Triggers when saving for review
     // - 'post.review.approve' - Triggers when approving review draft
     // - 'post.ai-review.save' - Triggers when saving AI review

@@ -107,7 +107,7 @@ Upload images with automatic variant generation, dark mode support, and optimiza
 Extensible agent framework for content enhancement, SEO optimization, automated workflows, and n8n integration.
 
 ### 📋 Review Workflow
-Three-tier system: **Approved** → **AI Review** → **Review** → **Approved**
+Three-tier system: **Source** → **AI Review** → **Review** → **Source**
 - Collaborative editing
 - AI-suggested improvements
 - Manual review and approval
@@ -174,7 +174,7 @@ Proprietary - All rights reserved
 **Major Features Completed:**
 - ✅ Complete modular content system with 19+ built-in modules
 - ✅ RBAC with 4 default roles and 60+ granular permissions
-- ✅ Three-tier review workflow (Approved, AI Review, Review)
+- ✅ Three-tier review workflow (Source, AI Review, Review)
 - ✅ Multi-language support with translation workflows
 - ✅ AI agent system with external webhook integration (n8n)
 - ✅ Advanced media management with dark mode variants

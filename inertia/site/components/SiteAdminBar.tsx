@@ -5,9 +5,9 @@ import { router } from '@inertiajs/react'
 type InlineBridge = {
   enabled: boolean
   canEdit: boolean
-  mode: 'approved' | 'review' | 'ai'
+  mode: 'source' | 'review' | 'ai-review'
   toggle: () => void
-  setMode: (m: 'approved' | 'review' | 'ai') => void
+  setMode: (m: 'source' | 'review' | 'ai-review') => void
   dirty: boolean
   saveAll: () => Promise<void>
 }
@@ -16,7 +16,7 @@ export function SiteAdminBar() {
   const [inline, setInline] = useState<InlineBridge>({
     enabled: false,
     canEdit: false,
-    mode: 'approved',
+    mode: 'source',
     toggle: () => { },
     setMode: () => { },
     dirty: false,
@@ -82,11 +82,11 @@ export function SiteAdminBar() {
   )
 
   // Determine current view mode from URL
-  const viewMode: 'approved' | 'review' = useMemo(() => {
-    if (typeof window === 'undefined') return 'approved'
+  const viewMode: 'source' | 'review' = useMemo(() => {
+    if (typeof window === 'undefined') return 'source'
     const url = new URL(window.location.origin + window.location.pathname + (search || ''))
     const v = url.searchParams.get('view')
-    return v === 'review' ? 'review' : 'approved'
+    return v === 'review' ? 'review' : 'source'
   }, [search])
 
   if (!isAuthenticated) return null
@@ -116,7 +116,7 @@ export function SiteAdminBar() {
             ? 'bg-standout text-on-standout border-standout/60'
             : 'bg-backdrop-low text-neutral-high border-line-low hover:bg-backdrop-medium'
             }`}
-          title={viewMode === 'review' ? 'Viewing Review (click to switch to Approved)' : 'Viewing Approved (click to switch to Review)'}
+          title={viewMode === 'review' ? 'Viewing Review (click to switch to Source)' : 'Viewing Source (click to switch to Review)'}
         >
           <FontAwesomeIcon icon={viewMode === 'review' ? faToggleOn : faToggleOff} />
         </button>
@@ -129,10 +129,10 @@ export function SiteAdminBar() {
         <div className="inline-flex overflow-hidden rounded-md border border-line-medium bg-backdrop-high shadow">
           <button
             type="button"
-            className={`px-3 py-2 text-xs font-medium border-r border-line-medium ${inline.mode === 'approved' ? 'bg-standout text-on-standout' : 'text-neutral-high hover:bg-backdrop-medium'}`}
-            onClick={() => inline.setMode('approved')}
+            className={`px-3 py-2 text-xs font-medium border-r border-line-medium ${inline.mode === 'source' ? 'bg-standout text-on-standout' : 'text-neutral-high hover:bg-backdrop-medium'}`}
+            onClick={() => inline.setMode('source')}
           >
-            Approved
+            Source
           </button>
           <button
             type="button"
@@ -143,8 +143,8 @@ export function SiteAdminBar() {
           </button>
           <button
             type="button"
-            className={`px-3 py-2 text-xs font-medium border-r border-line-medium ${inline.mode === 'ai' ? 'bg-standout text-on-standout' : 'text-neutral-high hover:bg-backdrop-medium'}`}
-            onClick={() => inline.setMode('ai')}
+            className={`px-3 py-2 text-xs font-medium border-r border-line-medium ${inline.mode === 'ai-review' ? 'bg-standout text-on-standout' : 'text-neutral-high hover:bg-backdrop-medium'}`}
+            onClick={() => inline.setMode('ai-review')}
           >
             AI Review
           </button>

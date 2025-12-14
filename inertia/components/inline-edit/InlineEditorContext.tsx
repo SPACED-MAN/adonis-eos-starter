@@ -9,7 +9,7 @@ import {
 } from 'react'
 import { usePage } from '@inertiajs/react'
 
-type Mode = 'approved' | 'review' | 'ai'
+type Mode = 'source' | 'review' | 'ai-review'
 type DraftPatch = Record<string, any> // path -> value
 
 function getAtPath(obj: any, path: string, fallback?: any) {
@@ -46,7 +46,7 @@ const InlineEditorContext = createContext<InlineEditorContextValue>({
 	canEdit: false,
 	toggle: () => { },
 	postId: undefined,
-	mode: 'approved',
+	mode: 'source',
 	setMode: () => { },
 	getValue: (_m, _p, f) => f,
 	getModeValue: (_m, _p, _mode, f) => f,
@@ -82,7 +82,7 @@ export function InlineEditorProvider({
 	const permissions: string[] = (page.props as any)?.permissions || []
 	const canEdit = permissions.includes('posts.edit')
 	const [enabled, setEnabled] = useState(false)
-	const [mode, setMode] = useState<Mode>('approved')
+	const [mode, setMode] = useState<Mode>('source')
 	const [drafts, setDrafts] = useState<Record<string, DraftPatch>>({})
 	const [dirtyModules, setDirtyModules] = useState<Set<string>>(new Set())
 	const moduleMeta = useMemo(() => {
@@ -124,7 +124,7 @@ export function InlineEditorProvider({
 			const hasReviewProps = !!(mod.reviewProps && Object.keys(mod.reviewProps).length)
 			const hasAiReviewProps = !!(mod.aiReviewProps && Object.keys(mod.aiReviewProps).length)
 			const baseProps =
-				targetMode === 'approved'
+				targetMode === 'source'
 					? mod.props
 					: targetMode === 'review'
 						? hasReviewProps
@@ -139,7 +139,7 @@ export function InlineEditorProvider({
 			const hasAiReviewOverrides =
 				!!(mod.aiReviewOverrides && Object.keys(mod.aiReviewOverrides as any).length > 0)
 			const baseOverrides =
-				targetMode === 'approved'
+				targetMode === 'source'
 					? mod.overrides
 					: targetMode === 'review'
 						? hasReviewOverrides
@@ -234,7 +234,7 @@ export function InlineEditorProvider({
 					}
 					const clone = { ...mod }
 					const target =
-						mode === 'approved'
+						mode === 'source'
 							? 'props'
 							: mode === 'review'
 								? 'reviewProps'

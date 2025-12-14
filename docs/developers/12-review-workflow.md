@@ -2,7 +2,7 @@
 
 This project supports **staged editing** and auditability:
 
-- **Approved / Live**: canonical content
+- **Source (Live)**: canonical content (previously called “Approved” in the UI)
 - **Review**: human review draft
 - **AI Review**: agent-only staging area
 - **Revisions**: database snapshots for audit/rollback
@@ -16,9 +16,9 @@ The `posts` table stores draft payloads:
 
 Module data is stored separately:
 
-- `module_instances.props` (approved)
+- `module_instances.props` (source/live)
 - `module_instances.review_props` / `module_instances.ai_review_props` (staged props for global/local modules)
-- `post_modules.overrides` (approved per-post overrides)
+- `post_modules.overrides` (source/live per-post overrides)
 - `post_modules.review_overrides` / `post_modules.ai_review_overrides` (staged overrides)
 - Structural flags:
   - `post_modules.review_added` / `review_deleted`
@@ -35,7 +35,7 @@ Module data is stored separately:
 
 ## Promotion flow (high level)
 
-### Approved → Review
+### Source → Review
 
 Editors save partial changes into `review_draft` (and module review_* fields).
 
@@ -43,7 +43,7 @@ Editors save partial changes into `review_draft` (and module review_* fields).
 
 Agents must stage changes into `ai_review_draft` / `ai_review_*` fields.
 
-Agents should **not** mutate Approved or Review content directly.
+Agents should **not** mutate Source or Review content directly.
 
 ### AI Review → Review
 
@@ -54,11 +54,11 @@ When agents submit AI Review, the system:
 
 This ensures humans always approve “Review” content.
 
-### Review → Approved
+### Review → Source
 
 When a human approves Review in the admin UI:
 
-- Review draft content is promoted into approved fields
+- Review draft content is promoted into source/live fields
 - module staging is promoted
 - taxonomy assignments are applied if provided (see MCP docs for staging behavior)
 

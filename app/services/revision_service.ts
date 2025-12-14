@@ -2,10 +2,11 @@ import db from '@adonisjs/lucid/services/db'
 import env from '#start/env'
 
 export type RevisionMode = 'approved' | 'review' | 'ai-review'
+export type ActiveVersion = 'source' | 'review' | 'ai-review'
 
 type RecordRevisionParams = {
   postId: string
-  mode: RevisionMode
+  mode: RevisionMode | ActiveVersion
   snapshot: Record<string, any>
   userId?: number | null
 }
@@ -15,11 +16,13 @@ export default class RevisionService {
    * Record a revision snapshot and prune older ones based on CMS_REVISIONS_LIMIT.
    */
   static async record({ postId, mode, snapshot, userId }: RecordRevisionParams): Promise<void> {
+    // DB uses legacy enum values; map Source -> approved for storage.
+    const dbMode: RevisionMode = mode === 'source' ? 'approved' : (mode as RevisionMode)
     const now = new Date()
     await db.table('post_revisions').insert({
       post_id: postId,
       user_id: userId ?? null,
-      mode,
+      mode: dbMode,
       snapshot,
       created_at: now,
     })

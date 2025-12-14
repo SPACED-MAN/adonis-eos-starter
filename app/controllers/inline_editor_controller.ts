@@ -23,16 +23,21 @@ export default class InlineEditorController {
 	/**
 	 * PATCH /api/posts/:postId/inline/modules/:moduleId
 	 * Update a single field of a module for inline editing.
-	 * Body: { path: string; value: any; scope?: 'props'|'overrides'; mode?: 'approved'|'review'|'ai' }
+	 * Body: { path: string; value: any; scope?: 'props'|'overrides'; mode?: 'source'|'review'|'ai-review' }
 	 */
 	async updateModuleField({ params, request, auth, response }: HttpContext) {
 		const { postId, moduleId } = params
 		const path = String(request.input('path', '')).trim()
 		const value = request.input('value')
 		const scopeRaw = String(request.input('scope', '')).trim()
-		const modeRaw = String(request.input('mode', 'approved')).trim().toLowerCase()
-		const mode: 'approved' | 'review' | 'ai' =
-			modeRaw === 'review' ? 'review' : modeRaw === 'ai' ? 'ai' : 'approved'
+		const modeRaw = String(request.input('mode', 'source')).trim().toLowerCase()
+		// Back-compat: accept legacy 'approved' and 'ai'
+		const mode: 'source' | 'review' | 'ai-review' =
+			modeRaw === 'review'
+				? 'review'
+				: modeRaw === 'ai' || modeRaw === 'ai-review' || modeRaw === 'ai_review'
+					? 'ai-review'
+					: 'source'
 
 		if (!path) return response.badRequest({ error: 'path is required' })
 
@@ -93,7 +98,7 @@ export default class InlineEditorController {
 			const baseProps =
 				mode === 'review'
 					? (row as any).review_props || (row as any).props || {}
-					: mode === 'ai'
+					: mode === 'ai-review'
 						? (row as any).ai_review_props || (row as any).props || {}
 						: (row as any).props || {}
 			const next = { ...baseProps }
@@ -101,7 +106,7 @@ export default class InlineEditorController {
 			const update: Record<string, any> = { updated_at: new Date() }
 			if (mode === 'review') {
 				update.review_props = next
-			} else if (mode === 'ai') {
+			} else if (mode === 'ai-review') {
 				update.ai_review_props = next
 			} else {
 				update.props = next
@@ -114,7 +119,7 @@ export default class InlineEditorController {
 		const baseOverrides =
 			mode === 'review'
 				? (row as any).review_overrides || (row as any).overrides || {}
-				: mode === 'ai'
+				: mode === 'ai-review'
 					? (row as any).ai_review_overrides || (row as any).overrides || {}
 					: (row as any).overrides || {}
 		const nextOverrides = { ...baseOverrides }
@@ -122,7 +127,7 @@ export default class InlineEditorController {
 		const update: Record<string, any> = { updated_at: new Date() }
 		if (mode === 'review') {
 			update.review_overrides = nextOverrides
-		} else if (mode === 'ai') {
+		} else if (mode === 'ai-review') {
 			update.ai_review_overrides = nextOverrides
 		} else {
 			update.overrides = nextOverrides

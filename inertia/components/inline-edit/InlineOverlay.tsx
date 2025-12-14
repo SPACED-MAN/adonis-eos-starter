@@ -191,7 +191,7 @@ export function InlineOverlay() {
 			// set initial text from context (merge props/overrides + drafts)
 			const current = getValue(moduleId, path, el.innerText || '')
 			const asString = typeof current === 'string' ? current : String(current ?? '')
-			const baselineMode = mode === 'review' ? 'approved' : mode === 'ai' ? 'review' : null
+			const baselineMode = mode === 'review' ? 'source' : mode === 'ai-review' ? 'review' : null
 			if (showDiffs && baselineMode) {
 				const baselineVal = getModeValue(moduleId, path, baselineMode as any, asString)
 				const baselineStr =
@@ -446,7 +446,7 @@ export function InlineOverlay() {
 							<FontAwesomeIcon icon="highlighter" className="w-4 h-4" />
 						</button>
 						<div className="absolute bottom-full mb-2 right-0 hidden group-hover:block bg-backdrop-high text-neutral-high text-xs px-2 py-1 rounded border border-line-medium shadow">
-							Highlight changes ({mode === 'review' ? 'vs Approved' : mode === 'ai' ? 'vs Review' : 'n/a'})
+							Highlight changes ({mode === 'review' ? 'vs Source' : mode === 'ai-review' ? 'vs Review' : 'n/a'})
 						</div>
 					</div>
 				</div>

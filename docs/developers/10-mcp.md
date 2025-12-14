@@ -19,7 +19,7 @@ There are two complementary AI integration mechanisms in Adonis EOS:
 
 - **MCP Server (this document)**:
   - Used by external LLM runtimes (Cursor, n8n AI Agent, custom services) to **read context** and perform **safe writes**.
-  - MCP tools enforce your intended workflow (AI Review → Review → Approve) so an LLM cannot accidentally mutate Approved state.
+  - MCP tools enforce your intended workflow (AI Review → Review → Approve) so an LLM cannot accidentally mutate Source (live) state.
 
 In practice:
 - n8n can be both an **agent implementation** (webhook target) *and* an **MCP client** (calling back into Adonis EOS).
