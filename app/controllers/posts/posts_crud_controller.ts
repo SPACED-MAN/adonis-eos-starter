@@ -292,10 +292,10 @@ export default class PostsCrudController extends BasePostsController {
         await webhookService.dispatch('post.published', { id })
       }
 
-      return response.redirect().back()
+      return response.ok({ message: 'Post updated successfully', id })
     } catch (error) {
       if (error instanceof UpdatePostException) {
-        return response.redirect().back()
+        return this.handleActionException(response, error)
       }
       throw error
     }
@@ -933,11 +933,11 @@ export default class PostsCrudController extends BasePostsController {
     // Resolve requested terms -> taxonomy slug and filter to allowed taxonomies
     const rows = termIds.length
       ? await db
-          .from('taxonomy_terms as tt')
-          .join('taxonomies as t', 'tt.taxonomy_id', 't.id')
-          .whereIn('tt.id', termIds)
-          .whereIn('t.slug', allowedTaxonomySlugs)
-          .select('tt.id as termId', 't.slug as taxonomySlug')
+        .from('taxonomy_terms as tt')
+        .join('taxonomies as t', 'tt.taxonomy_id', 't.id')
+        .whereIn('tt.id', termIds)
+        .whereIn('t.slug', allowedTaxonomySlugs)
+        .select('tt.id as termId', 't.slug as taxonomySlug')
       : []
 
     const byTaxonomy = new Map<string, string[]>()
