@@ -11,6 +11,9 @@ import {
   faCheckCircle,
   faExclamationTriangle,
   faSpinner,
+  faTrash,
+  faBroom,
+  faRefresh,
 } from '@fortawesome/free-solid-svg-icons'
 import {
   AlertDialog,
@@ -119,6 +122,9 @@ const CONTENT_TYPE_LABELS: Record<ContentType, string> = {
 }
 
 export default function DatabaseIndex() {
+  const [activeTab, setActiveTab] = useState<'export' | 'optimize'>('export')
+  
+  // Export/Import state
   const [exportStats, setExportStats] = useState<ExportStats | null>(null)
   const [loadingStats, setLoadingStats] = useState(false)
   const [exporting, setExporting] = useState(false)
@@ -127,6 +133,29 @@ export default function DatabaseIndex() {
   const [importStrategy, setImportStrategy] = useState<'replace' | 'merge' | 'skip' | 'overwrite'>('merge')
   const [importResult, setImportResult] = useState<ImportResult | null>(null)
   const [validationResult, setValidationResult] = useState<any>(null)
+  
+  // Optimize state
+  const [optimizeStats, setOptimizeStats] = useState<{
+    orphanedModuleInstances: number
+    invalidPostReferences: number
+    invalidModuleReferences: number
+    staleRenderCache: number
+    totalIssues: number
+  } | null>(null)
+  const [loadingOptimizeStats, setLoadingOptimizeStats] = useState(false)
+  const [optimizing, setOptimizing] = useState(false)
+  const [optimizeResults, setOptimizeResults] = useState<{
+    orphanedModulesDeleted: number
+    invalidPostRefsDeleted: number
+    invalidModuleRefsDeleted: number
+    renderCacheCleared: number
+  } | null>(null)
+  const [confirmOptimizeOpen, setConfirmOptimizeOpen] = useState(false)
+  const [optimizeOptions, setOptimizeOptions] = useState({
+    cleanOrphanedModules: true,
+    cleanInvalidRefs: true,
+    clearRenderCache: false,
+  })
   
   // Export options
   const [selectedContentTypes, setSelectedContentTypes] = useState<ContentType[]>([
@@ -167,8 +196,75 @@ export default function DatabaseIndex() {
 
   // Load export stats on mount
   useEffect(() => {
-    loadExportStats()
-  }, [])
+    if (activeTab === 'export') {
+      loadExportStats()
+    } else if (activeTab === 'optimize') {
+      loadOptimizeStats()
+    }
+  }, [activeTab])
+
+  // Load optimize stats
+  const loadOptimizeStats = async () => {
+    setLoadingOptimizeStats(true)
+    try {
+      const res = await fetch('/api/database/optimize/stats', {
+        credentials: 'same-origin',
+        headers: { Accept: 'application/json' },
+      })
+      if (res.ok) {
+        const data = await res.json()
+        setOptimizeStats(data)
+      } else {
+        const json = await res.json().catch(() => ({}))
+        toast.error(json.error || 'Failed to load optimization statistics')
+      }
+    } catch (error) {
+      toast.error('Failed to load optimization statistics')
+    } finally {
+      setLoadingOptimizeStats(false)
+    }
+  }
+
+  const handleOptimize = async () => {
+    setOptimizing(true)
+    setOptimizeResults(null)
+    setConfirmOptimizeOpen(false)
+
+    try {
+      const csrf = (() => {
+        if (typeof document === 'undefined') return undefined
+        const m = document.cookie.match(/(?:^|; )XSRF-TOKEN=([^;]+)/)
+        return m ? decodeURIComponent(m[1]) : undefined
+      })()
+
+      const res = await fetch('/api/database/optimize', {
+        method: 'POST',
+        credentials: 'same-origin',
+        headers: {
+          'Content-Type': 'application/json',
+          Accept: 'application/json',
+          ...(csrf ? { 'X-XSRF-TOKEN': csrf } : {}),
+        },
+        body: JSON.stringify(optimizeOptions),
+      })
+
+      const json = await res.json()
+
+      if (res.ok) {
+        setOptimizeResults(json.results)
+        toast.success(json.message || 'Database optimization completed')
+        loadOptimizeStats()
+      } else {
+        toast.error(json.error || 'Optimization failed')
+      }
+    } catch (error) {
+      toast.error('Optimization failed')
+    } finally {
+      setOptimizing(false)
+    }
+  }
+
+  const canOptimize = optimizeOptions.cleanOrphanedModules || optimizeOptions.cleanInvalidRefs || optimizeOptions.clearRenderCache
 
   // Load export stats
   const loadExportStats = async () => {
@@ -356,17 +452,35 @@ export default function DatabaseIndex() {
 
   return (
     <div className="min-h-screen bg-backdrop-medium">
-      <Head title="Database Export/Import" />
-      <AdminHeader title="Database Export/Import" />
+      <Head title="Database" />
+      <AdminHeader title="Database" />
       <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-
-        <div className="bg-backdrop-low rounded-lg shadow border border-line-low p-6">
-          <div className="mb-6">
-            <p className="text-neutral-medium">
-              Export your database for backup or migration, or import from a previous export.
-              Select which content types to include and configure ID preservation options.
-            </p>
+        <div className="bg-backdrop-low rounded-lg shadow border border-line-low p-6 space-y-6">
+          <div className="flex gap-3">
+            <button
+              type="button"
+              className={`px-3 py-2 rounded text-sm font-semibold border ${activeTab === 'export' ? 'bg-standout text-on-standout border-standout' : 'bg-backdrop-medium text-neutral-dark border-line-medium'}`}
+              onClick={() => setActiveTab('export')}
+            >
+              Export/Import
+            </button>
+            <button
+              type="button"
+              className={`px-3 py-2 rounded text-sm font-semibold border ${activeTab === 'optimize' ? 'bg-standout text-on-standout border-standout' : 'bg-backdrop-medium text-neutral-dark border-line-medium'}`}
+              onClick={() => setActiveTab('optimize')}
+            >
+              Optimize
+            </button>
           </div>
+
+          {activeTab === 'export' && (
+            <>
+              <div className="mb-6">
+                <p className="text-neutral-medium">
+                  Export your database for backup or migration, or import from a previous export.
+                  Select which content types to include and configure ID preservation options.
+                </p>
+              </div>
 
           {/* Export Section */}
           <div className="bg-backdrop-medium border border-line-low rounded-lg p-6 mb-6">
@@ -771,6 +885,287 @@ export default function DatabaseIndex() {
               </div>
             )}
           </div>
+            </>
+          )}
+
+          {activeTab === 'optimize' && (
+            <>
+              <div className="mb-6">
+                <p className="text-neutral-medium">
+                  Clean up orphaned data and optimize your database. This tool identifies and removes unused module instances,
+                  invalid references, and optionally clears stale render cache.
+                </p>
+              </div>
+
+              {/* Statistics Section */}
+              <div className="bg-backdrop-medium border border-line-low rounded-lg p-6 mb-6">
+                <div className="flex items-center justify-between mb-4">
+                  <div className="flex items-center gap-2">
+                    <FontAwesomeIcon icon={faDatabase} className="text-standout" />
+                    <h2 className="text-xl font-semibold text-neutral-dark">Database Statistics</h2>
+                  </div>
+                  <button
+                    onClick={loadOptimizeStats}
+                    disabled={loadingOptimizeStats}
+                    className="px-3 py-2 bg-backdrop-high text-neutral-dark rounded-lg hover:bg-backdrop-medium transition disabled:opacity-50 text-sm"
+                  >
+                    {loadingOptimizeStats ? (
+                      <>
+                        <FontAwesomeIcon icon={faSpinner} spin className="mr-2" />
+                        Loading...
+                      </>
+                    ) : (
+                      <>
+                        <FontAwesomeIcon icon={faRefresh} className="mr-2" />
+                        Refresh
+                      </>
+                    )}
+                  </button>
+                </div>
+
+                {loadingOptimizeStats ? (
+                  <div className="text-center py-8">
+                    <FontAwesomeIcon icon={faSpinner} spin className="text-2xl text-neutral-medium" />
+                    <p className="mt-2 text-neutral-medium">Loading statistics...</p>
+                  </div>
+                ) : optimizeStats ? (
+                  <>
+                    {optimizeStats.totalIssues > 0 ? (
+                      <div className="p-4 bg-yellow-50 border border-yellow-200 rounded-lg mb-4">
+                        <div className="flex items-start gap-2">
+                          <FontAwesomeIcon icon={faExclamationTriangle} className="text-yellow-600 mt-1" />
+                          <div>
+                            <p className="font-semibold text-yellow-800 mb-1">Issues Found</p>
+                            <p className="text-sm text-yellow-700">
+                              Your database has {optimizeStats.totalIssues} issue{optimizeStats.totalIssues !== 1 ? 's' : ''} that can be cleaned up.
+                            </p>
+                          </div>
+                        </div>
+                      </div>
+                    ) : (
+                      <div className="p-4 bg-green-50 border border-green-200 rounded-lg mb-4">
+                        <div className="flex items-start gap-2">
+                          <FontAwesomeIcon icon={faCheckCircle} className="text-green-600 mt-1" />
+                          <div>
+                            <p className="font-semibold text-green-800 mb-1">Database is Clean</p>
+                            <p className="text-sm text-green-700">No orphaned data or invalid references found.</p>
+                          </div>
+                        </div>
+                      </div>
+                    )}
+
+                    <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+                      <div className="p-4 rounded bg-backdrop-high border border-line-medium">
+                        <div className="text-sm text-neutral-medium mb-1">Orphaned Modules</div>
+                        <div className="text-2xl font-semibold text-neutral-dark">
+                          {optimizeStats.orphanedModuleInstances.toLocaleString()}
+                        </div>
+                        <div className="text-xs text-neutral-medium mt-1">
+                          Module instances not referenced by any post
+                        </div>
+                      </div>
+                      <div className="p-4 rounded bg-backdrop-high border border-line-medium">
+                        <div className="text-sm text-neutral-medium mb-1">Invalid Post Refs</div>
+                        <div className="text-2xl font-semibold text-neutral-dark">
+                          {optimizeStats.invalidPostReferences.toLocaleString()}
+                        </div>
+                        <div className="text-xs text-neutral-medium mt-1">
+                          Modules referencing non-existent posts
+                        </div>
+                      </div>
+                      <div className="p-4 rounded bg-backdrop-high border border-line-medium">
+                        <div className="text-sm text-neutral-medium mb-1">Invalid Module Refs</div>
+                        <div className="text-2xl font-semibold text-neutral-dark">
+                          {optimizeStats.invalidModuleReferences.toLocaleString()}
+                        </div>
+                        <div className="text-xs text-neutral-medium mt-1">
+                          Post modules referencing non-existent instances
+                        </div>
+                      </div>
+                      <div className="p-4 rounded bg-backdrop-high border border-line-medium">
+                        <div className="text-sm text-neutral-medium mb-1">Stale Cache Entries</div>
+                        <div className="text-2xl font-semibold text-neutral-dark">
+                          {optimizeStats.staleRenderCache.toLocaleString()}
+                        </div>
+                        <div className="text-xs text-neutral-medium mt-1">
+                          Cached render HTML (can be regenerated)
+                        </div>
+                      </div>
+                    </div>
+                  </>
+                ) : (
+                  <div className="text-center py-8 text-neutral-medium">
+                    Failed to load statistics. Click Refresh to try again.
+                  </div>
+                )}
+              </div>
+
+              {/* Optimization Options */}
+              <div className="bg-backdrop-medium border border-line-low rounded-lg p-6 mb-6">
+                <div className="flex items-center gap-2 mb-4">
+                  <FontAwesomeIcon icon={faBroom} className="text-standout" />
+                  <h2 className="text-xl font-semibold text-neutral-dark">Optimization Options</h2>
+                </div>
+
+                <div className="space-y-4">
+                  <label className="flex items-start gap-3 p-4 rounded border border-line-medium hover:border-line-high transition cursor-pointer">
+                    <input
+                      type="checkbox"
+                      checked={optimizeOptions.cleanOrphanedModules}
+                      onChange={(e) =>
+                        setOptimizeOptions({ ...optimizeOptions, cleanOrphanedModules: e.target.checked })
+                      }
+                      className="mt-1 rounded"
+                    />
+                    <div className="flex-1">
+                      <div className="font-semibold text-neutral-dark mb-1">Clean Orphaned Module Instances</div>
+                      <p className="text-sm text-neutral-medium">
+                        Remove module instances with scope='post' that are not referenced by any post_modules entries.
+                        These are safe to delete as they're not being used.
+                      </p>
+                      {optimizeStats && optimizeStats.orphanedModuleInstances > 0 && (
+                        <p className="text-xs text-standout mt-1">
+                          {optimizeStats.orphanedModuleInstances} orphaned module{optimizeStats.orphanedModuleInstances !== 1 ? 's' : ''} will be deleted
+                        </p>
+                      )}
+                    </div>
+                  </label>
+
+                  <label className="flex items-start gap-3 p-4 rounded border border-line-medium hover:border-line-high transition cursor-pointer">
+                    <input
+                      type="checkbox"
+                      checked={optimizeOptions.cleanInvalidRefs}
+                      onChange={(e) =>
+                        setOptimizeOptions({ ...optimizeOptions, cleanInvalidRefs: e.target.checked })
+                      }
+                      className="mt-1 rounded"
+                    />
+                    <div className="flex-1">
+                      <div className="font-semibold text-neutral-dark mb-1">Clean Invalid References</div>
+                      <p className="text-sm text-neutral-medium">
+                        Remove module instances referencing non-existent posts, and post_modules entries referencing
+                        non-existent module instances. These can cause errors and should be cleaned up.
+                      </p>
+                      {optimizeStats &&
+                        (optimizeStats.invalidPostReferences > 0 || optimizeStats.invalidModuleReferences > 0) && (
+                          <p className="text-xs text-standout mt-1">
+                            {optimizeStats.invalidPostReferences + optimizeStats.invalidModuleReferences} invalid reference
+                            {optimizeStats.invalidPostReferences + optimizeStats.invalidModuleReferences !== 1 ? 's' : ''} will be deleted
+                          </p>
+                        )}
+                    </div>
+                  </label>
+
+                  <label className="flex items-start gap-3 p-4 rounded border border-line-medium hover:border-line-high transition cursor-pointer">
+                    <input
+                      type="checkbox"
+                      checked={optimizeOptions.clearRenderCache}
+                      onChange={(e) =>
+                        setOptimizeOptions({ ...optimizeOptions, clearRenderCache: e.target.checked })
+                      }
+                      className="mt-1 rounded"
+                    />
+                    <div className="flex-1">
+                      <div className="font-semibold text-neutral-dark mb-1">Clear Render Cache</div>
+                      <p className="text-sm text-neutral-medium">
+                        Clear all cached render HTML from module instances. This can free up space, but cached HTML will
+                        be regenerated on next render (may slightly slow down initial page loads temporarily).
+                      </p>
+                      {optimizeStats && optimizeStats.staleRenderCache > 0 && (
+                        <p className="text-xs text-standout mt-1">
+                          Render cache for {optimizeStats.staleRenderCache} module{optimizeStats.staleRenderCache !== 1 ? 's' : ''} will be cleared
+                        </p>
+                      )}
+                    </div>
+                  </label>
+                </div>
+
+                <div className="mt-6 p-4 bg-yellow-50 border border-yellow-200 rounded-lg">
+                  <div className="flex items-start gap-2">
+                    <FontAwesomeIcon icon={faExclamationTriangle} className="text-yellow-600 mt-1" />
+                    <div className="text-sm">
+                      <p className="font-semibold text-yellow-800 mb-1">Warning</p>
+                      <p className="text-yellow-700">
+                        Database optimization is a destructive operation. Make sure you have a backup before proceeding.
+                        The changes cannot be undone.
+                      </p>
+                    </div>
+                  </div>
+                </div>
+
+                <div className="mt-6 flex gap-3">
+                  <button
+                    onClick={() => setConfirmOptimizeOpen(true)}
+                    disabled={!canOptimize || optimizing || !optimizeStats || optimizeStats.totalIssues === 0}
+                    className="px-4 py-2 bg-standout text-on-standout rounded-lg hover:opacity-90 transition disabled:opacity-50 disabled:cursor-not-allowed font-medium"
+                  >
+                    {optimizing ? (
+                      <>
+                        <FontAwesomeIcon icon={faSpinner} spin className="mr-2" />
+                        Optimizing...
+                      </>
+                    ) : (
+                      <>
+                        <FontAwesomeIcon icon={faTrash} className="mr-2" />
+                        Optimize Database
+                      </>
+                    )}
+                  </button>
+                </div>
+              </div>
+
+              {/* Results Section */}
+              {optimizeResults && (
+                <div className="bg-backdrop-medium border border-line-low rounded-lg p-6">
+                  <div className="flex items-center gap-2 mb-4">
+                    <FontAwesomeIcon icon={faCheckCircle} className="text-green-600" />
+                    <h2 className="text-xl font-semibold text-neutral-dark">Optimization Results</h2>
+                  </div>
+
+                  <div className="p-4 bg-green-50 border border-green-200 rounded-lg mb-4">
+                    <p className="text-sm text-green-800">
+                      Database optimization completed successfully. The following items were cleaned:
+                    </p>
+                  </div>
+
+                  <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+                    {optimizeResults.orphanedModulesDeleted > 0 && (
+                      <div className="p-4 rounded bg-backdrop-high border border-line-medium">
+                        <div className="text-sm text-neutral-medium mb-1">Orphaned Modules Deleted</div>
+                        <div className="text-2xl font-semibold text-neutral-dark">
+                          {optimizeResults.orphanedModulesDeleted.toLocaleString()}
+                        </div>
+                      </div>
+                    )}
+                    {optimizeResults.invalidPostRefsDeleted > 0 && (
+                      <div className="p-4 rounded bg-backdrop-high border border-line-medium">
+                        <div className="text-sm text-neutral-medium mb-1">Invalid Post Refs Deleted</div>
+                        <div className="text-2xl font-semibold text-neutral-dark">
+                          {optimizeResults.invalidPostRefsDeleted.toLocaleString()}
+                        </div>
+                      </div>
+                    )}
+                    {optimizeResults.invalidModuleRefsDeleted > 0 && (
+                      <div className="p-4 rounded bg-backdrop-high border border-line-medium">
+                        <div className="text-sm text-neutral-medium mb-1">Invalid Module Refs Deleted</div>
+                        <div className="text-2xl font-semibold text-neutral-dark">
+                          {optimizeResults.invalidModuleRefsDeleted.toLocaleString()}
+                        </div>
+                      </div>
+                    )}
+                    {optimizeResults.renderCacheCleared > 0 && (
+                      <div className="p-4 rounded bg-backdrop-high border border-line-medium">
+                        <div className="text-sm text-neutral-medium mb-1">Render Cache Cleared</div>
+                        <div className="text-2xl font-semibold text-neutral-dark">
+                          {optimizeResults.renderCacheCleared.toLocaleString()}
+                        </div>
+                      </div>
+                    )}
+                  </div>
+                </div>
+              )}
+            </>
+          )}
         </div>
       </main>
       <AdminFooter />
@@ -806,6 +1201,53 @@ export default function DatabaseIndex() {
               className="bg-standout text-on-standout hover:opacity-90"
             >
               {importing ? 'Importing...' : 'Import'}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+
+      <AlertDialog
+        open={confirmOptimizeOpen}
+        onOpenChange={(open) => {
+          if (!open && !optimizing) {
+            setConfirmOptimizeOpen(false)
+          } else {
+            setConfirmOptimizeOpen(open)
+          }
+        }}
+      >
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Optimize database?</AlertDialogTitle>
+            <AlertDialogDescription>
+              This will permanently delete orphaned data and invalid references. Make sure you have a backup.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <div className="text-sm text-neutral-medium space-y-2">
+            <p>Selected optimizations:</p>
+            <ul className="list-disc list-inside space-y-1">
+              {optimizeOptions.cleanOrphanedModules && (
+                <li>Clean orphaned module instances ({optimizeStats?.orphanedModuleInstances || 0})</li>
+              )}
+              {optimizeOptions.cleanInvalidRefs && (
+                <li>
+                  Clean invalid references ({optimizeStats ? optimizeStats.invalidPostReferences + optimizeStats.invalidModuleReferences : 0})
+                </li>
+              )}
+              {optimizeOptions.clearRenderCache && (
+                <li>Clear render cache ({optimizeStats?.staleRenderCache || 0})</li>
+              )}
+            </ul>
+            <p className="text-neutral-dark font-semibold mt-4">Proceed with optimization?</p>
+          </div>
+          <AlertDialogFooter>
+            <AlertDialogCancel disabled={optimizing}>Cancel</AlertDialogCancel>
+            <AlertDialogAction
+              disabled={optimizing}
+              onClick={handleOptimize}
+              className="bg-standout text-on-standout hover:opacity-90"
+            >
+              {optimizing ? 'Optimizing...' : 'Optimize'}
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>

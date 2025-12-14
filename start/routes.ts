@@ -483,7 +483,7 @@ router
   .use(middleware.auth())
   .use(middleware.admin())
 
-// Admin Database Export/Import
+// Admin Database (Export/Import and Optimize)
 const DatabaseAdminController = () => import('#controllers/database_admin_controller')
 router
   .get('/admin/database', [DatabaseAdminController, 'index'])
@@ -507,6 +507,16 @@ router
 
 router
   .post('/api/database/validate', [DatabaseAdminController, 'validate'])
+  .use(middleware.auth())
+  .use(middleware.admin())
+
+router
+  .get('/api/database/optimize/stats', [DatabaseAdminController, 'getOptimizeStats'])
+  .use(middleware.auth())
+  .use(middleware.admin())
+
+router
+  .post('/api/database/optimize', [DatabaseAdminController, 'optimize'])
   .use(middleware.auth())
   .use(middleware.admin())
 

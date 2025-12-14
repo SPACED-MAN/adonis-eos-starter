@@ -3,6 +3,7 @@ import databaseExportService, { type ContentType } from '#services/database_expo
 import databaseImportService, { type ImportStrategy } from '#services/database_import_service'
 import roleRegistry from '#services/role_registry'
 import { readFile } from 'node:fs/promises'
+import db from '@adonisjs/lucid/services/db'
 
 export default class DatabaseAdminController {
   /**
@@ -244,6 +245,179 @@ export default class DatabaseAdminController {
         valid: false,
         error: `Failed to parse file: ${(error as Error).message}`,
       })
+    }
+  }
+
+  /**
+   * GET /api/database/optimize/stats
+   * Get statistics about orphaned data that can be cleaned
+   */
+  async getOptimizeStats({ response, auth }: HttpContext) {
+    const role = (auth.use('web').user as any)?.role as
+      | 'admin'
+      | 'editor'
+      | 'translator'
+      | undefined
+
+    if (!roleRegistry.hasPermission(role, 'admin.database.export')) {
+      return response.forbidden({ error: 'Admin role required' })
+    }
+
+    try {
+      // Find orphaned module_instances with scope='post' that are not referenced by post_modules
+      const orphanedResult = await db
+        .from('module_instances')
+        .leftJoin('post_modules', 'module_instances.id', 'post_modules.module_id')
+        .where('module_instances.scope', 'post')
+        .whereNull('post_modules.id')
+        .count('* as count')
+        .first()
+
+      const orphanedCount = Number(orphanedResult?.count || 0)
+
+      // Find module_instances with invalid post_id references (posts that don't exist)
+      const invalidPostRefs = await db
+        .from('module_instances')
+        .leftJoin('posts', 'module_instances.post_id', 'posts.id')
+        .whereNotNull('module_instances.post_id')
+        .whereNull('posts.id')
+        .count('* as count')
+        .first()
+
+      const invalidPostRefCount = Number(invalidPostRefs?.count || 0)
+
+      // Find post_modules that reference non-existent module_instances
+      const invalidModuleRefs = await db
+        .from('post_modules')
+        .leftJoin('module_instances', 'post_modules.module_id', 'module_instances.id')
+        .whereNull('module_instances.id')
+        .count('* as count')
+        .first()
+
+      const invalidModuleRefCount = Number(invalidModuleRefs?.count || 0)
+
+      // Find stale render cache entries (optional - could be large)
+      const staleCacheEntries = await db
+        .from('module_instances')
+        .whereNotNull('render_cache_html')
+        .count('* as count')
+        .first()
+
+      const staleCacheCount = Number(staleCacheEntries?.count || 0)
+
+      return response.ok({
+        orphanedModuleInstances: orphanedCount,
+        invalidPostReferences: invalidPostRefCount,
+        invalidModuleReferences: invalidModuleRefCount,
+        staleRenderCache: staleCacheCount,
+        totalIssues: orphanedCount + invalidPostRefCount + invalidModuleRefCount,
+      })
+    } catch (error) {
+      return response.badRequest({ error: (error as Error).message })
+    }
+  }
+
+  /**
+   * POST /api/database/optimize
+   * Clean orphaned data from the database
+   * Body: { cleanOrphanedModules?: boolean, cleanInvalidRefs?: boolean, clearRenderCache?: boolean }
+   */
+  async optimize({ request, response, auth }: HttpContext) {
+    const role = (auth.use('web').user as any)?.role as
+      | 'admin'
+      | 'editor'
+      | 'translator'
+      | undefined
+
+    if (!roleRegistry.hasPermission(role, 'admin.database.export')) {
+      return response.forbidden({ error: 'Admin role required' })
+    }
+
+    try {
+      const cleanOrphanedModules = request.input('cleanOrphanedModules', true) !== false
+      const cleanInvalidRefs = request.input('cleanInvalidRefs', true) !== false
+      const clearRenderCache = request.input('clearRenderCache', false) === true
+
+      const results: {
+        orphanedModulesDeleted: number
+        invalidPostRefsDeleted: number
+        invalidModuleRefsDeleted: number
+        renderCacheCleared: number
+      } = {
+        orphanedModulesDeleted: 0,
+        invalidPostRefsDeleted: 0,
+        invalidModuleRefsDeleted: 0,
+        renderCacheCleared: 0,
+      }
+
+      await db.transaction(async (trx) => {
+        // 1. Delete orphaned module_instances (scope='post' not referenced by post_modules)
+        if (cleanOrphanedModules) {
+          const orphanedRows = await trx
+            .from('module_instances')
+            .leftJoin('post_modules', 'module_instances.id', 'post_modules.module_id')
+            .where('module_instances.scope', 'post')
+            .whereNull('post_modules.id')
+            .select('module_instances.id')
+
+          const orphanedIds = orphanedRows.map((row: any) => row.id)
+
+          if (orphanedIds.length > 0) {
+            await trx.from('module_instances').whereIn('id', orphanedIds).delete()
+            results.orphanedModulesDeleted = orphanedIds.length
+          }
+        }
+
+        // 2. Delete module_instances with invalid post_id references
+        if (cleanInvalidRefs) {
+          const invalidPostRefRows = await trx
+            .from('module_instances')
+            .leftJoin('posts', 'module_instances.post_id', 'posts.id')
+            .whereNotNull('module_instances.post_id')
+            .whereNull('posts.id')
+            .select('module_instances.id')
+
+          const invalidPostRefIds = invalidPostRefRows.map((row: any) => row.id)
+
+          if (invalidPostRefIds.length > 0) {
+            await trx.from('module_instances').whereIn('id', invalidPostRefIds).delete()
+            results.invalidPostRefsDeleted = invalidPostRefIds.length
+          }
+
+          // Delete post_modules that reference non-existent module_instances
+          const invalidModuleRefRows = await trx
+            .from('post_modules')
+            .leftJoin('module_instances', 'post_modules.module_id', 'module_instances.id')
+            .whereNull('module_instances.id')
+            .select('post_modules.id')
+
+          const invalidModuleRefIds = invalidModuleRefRows.map((row: any) => row.id)
+
+          if (invalidModuleRefIds.length > 0) {
+            await trx.from('post_modules').whereIn('id', invalidModuleRefIds).delete()
+            results.invalidModuleRefsDeleted = invalidModuleRefIds.length
+          }
+        }
+
+        // 3. Clear render cache (optional, can be regenerated)
+        if (clearRenderCache) {
+          const cleared = await trx
+            .from('module_instances')
+            .whereNotNull('render_cache_html')
+            .update({
+              render_cache_html: null,
+              render_etag: null,
+            })
+          results.renderCacheCleared = cleared
+        }
+      })
+
+      return response.ok({
+        message: 'Database optimization completed',
+        results,
+      })
+    } catch (error) {
+      return response.badRequest({ error: (error as Error).message })
     }
   }
 }

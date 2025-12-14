@@ -179,7 +179,7 @@ export function AdminSidebar() {
 					<SidebarGroup title="System">
 						<SidebarMenuItem href="/admin/database" active={isActive('/admin/database')}>
 							<span className="inline-flex items-center gap-2">
-								<FontAwesomeIcon icon={faDatabase} className="w-4 h-4" /> <span>Database Export/Import</span>
+								<FontAwesomeIcon icon={faDatabase} className="w-4 h-4" /> <span>Database</span>
 							</span>
 						</SidebarMenuItem>
 					</SidebarGroup>
