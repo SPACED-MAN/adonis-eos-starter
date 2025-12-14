@@ -1,9 +1,26 @@
 {
-  "name": "adonis-eos",
-  "version": "0.0.0",
-  "private": true,
+  "name": "adonis-eos-starter",
+  "version": "1.0.0",
+  "description": "A high-performance, SEO-first CMS starter kit built with AdonisJS 6, Inertia, React, and PostgreSQL. Turnkey solution with modular content system, RBAC, i18n, AI agents, and more.",
+  "keywords": [
+    "adonisjs",
+    "cms",
+    "starter-kit",
+    "headless-cms",
+    "content-management",
+    "inertia",
+    "react",
+    "postgresql",
+    "seo",
+    "i18n"
+  ],
   "type": "module",
-  "license": "UNLICENSED",
+  "license": "Apache-2.0",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/your-username/adonis-eos-starter.git"
+  },
+  "author": "Tyler Shingleton",
   "scripts": {
     "start": "node bin/server.js",
     "build": "node ace build",

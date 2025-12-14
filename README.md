@@ -1,6 +1,18 @@
-# Adonis EOS — Modern Headless CMS
+# Adonis EOS — Modern Headless CMS Starter Kit
 
 A high-performance, SEO-first CMS built with AdonisJS 6, Inertia, React, Tailwind, and PostgreSQL. Content is composed of reusable modules that can be reordered, shared globally, or grouped into module groups for rapid creation.
+
+## 🚀 Quick Start (Starter Kit Installation)
+
+Create a new project using this starter kit:
+
+```bash
+npm init adonisjs@latest my-cms-project -- --kit=your-username/adonis-eos-starter
+cd my-cms-project
+npm install
+```
+
+Then follow the setup steps below.
 
 ## Tech Stack
 
@@ -11,6 +23,26 @@ A high-performance, SEO-first CMS built with AdonisJS 6, Inertia, React, Tailwin
 - **Rich Text:** Lexical (JSON stored, SSR-rendered to HTML)
 - **Database:** PostgreSQL
 - **Drag & Drop:** dnd-kit
+
+## 📦 Installation Options
+
+### Option 1: Use as Starter Kit (Recommended)
+
+```bash
+npm init adonisjs@latest my-cms-project -- --kit=your-username/adonis-eos-starter
+```
+
+> **Note:** Replace `your-username` with the actual GitHub username/organization where this starter kit is hosted.
+
+This creates a new project with all CMS features pre-configured.
+
+### Option 2: Clone Repository
+
+```bash
+git clone https://github.com/your-username/adonis-eos-starter.git
+cd adonis-eos-starter
+npm install
+```
 
 ## ⚡ Getting Started
 
@@ -33,12 +65,18 @@ If you're new to using the CMS, start here:
 **Quick Installation:**
 
 ```bash
-# Install dependencies
-npm install
+# If using the starter kit, skip npm install (already done)
+# Otherwise: npm install
 
 # Configure environment
 cp .env.example .env
+
+# Generate APP_KEY (required)
+node ace generate:key
+
 # Edit .env with your database credentials
+# Required: DB_HOST, DB_PORT, DB_USER, DB_PASSWORD, DB_DATABASE
+# Required: REDIS_HOST, REDIS_PORT
 
 # Run migrations and seed data
 node ace migration:run
@@ -48,7 +86,13 @@ node ace db:seed
 npm run dev
 ```
 
-Visit `http://localhost:3333/admin` and log in with `admin@example.com` / `password`
+Visit `http://localhost:3333/admin` and log in with:
+- **Admin:** `admin@example.com` / `supersecret`
+- **Editor Admin:** `editoradmin@example.com` / `supersecret`
+- **Editor:** `editor@example.com` / `supersecret`
+- **Translator:** `translator@example.com` / `supersecret`
+
+> **⚠️ Security Note:** Change these default passwords immediately in production!
 
 👉 **[For Developers](/docs/for-developers)** - Complete setup and configuration
 
@@ -157,11 +201,11 @@ node ace serve --watch
 
 ## Contributing
 
-This is currently a private project. Contribution guidelines will be published when the project reaches beta.
+Contributions are welcome! Please feel free to submit a Pull Request. For major changes, please open an issue first to discuss what you would like to change.
 
 ## License
 
-Proprietary - All rights reserved
+Licensed under the Apache License, Version 2.0. See the [LICENSE](LICENSE) file for details.
 
 ---
 
