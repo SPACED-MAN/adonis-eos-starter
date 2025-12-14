@@ -2,7 +2,7 @@
 
 A high-performance, SEO-first CMS built with AdonisJS 6, Inertia, React, Tailwind, and PostgreSQL. Content is composed of reusable modules that can be reordered, shared globally, or grouped into module groups for rapid creation.
 
-## 🚀 Tech Stack
+## Tech Stack
 
 - **Server:** AdonisJS 6 (Lucid ORM, Bouncer RBAC, SSR with Redis caching)
 - **Client:** Inertia + React (Admin Panel + Public Site)
@@ -62,7 +62,7 @@ Visit `http://localhost:3333/admin` and log in with `admin@example.com` / `passw
 - [Internationalization](/docs/for-developers/internationalization) - i18n implementation
 - [Deployment Guide](/docs/for-developers/deployment) - Production setup and best practices
 
-## 📁 Project Structure
+## Project Structure
 
 ```
 inertia/
@@ -85,44 +85,44 @@ database/
 └── seeders/          # Seed data
 ```
 
-## ✨ Core Features
+## Core Features
 
-### 📝 Modular Content System
+### Modular Content System
 Build pages with drag-and-drop modules. Each module is self-contained, reusable, and configurable with schema-driven field types.
 
-### 👥 Role-Based Access Control
+### Role-Based Access Control
 Four default roles with granular permissions:
 - **Administrator** - Full system access
 - **Editor Admin** - Content management + publishing
 - **Editor** - Content creation (review before publish)
 - **Translator** - Translation-focused access
 
-### 🌍 Multi-Language Support
+### Multi-Language Support
 Full internationalization with locale-specific content, URLs, and menus. Translation workflow with review system.
 
-### 🖼️ Advanced Media Management
+### Advanced Media Management
 Upload images with automatic variant generation, dark mode support, and optimization.
 
-### 🤖 AI Agent System
+### AI Agent System
 Extensible agent framework for content enhancement, SEO optimization, automated workflows, and n8n integration.
 
-### 📋 Review Workflow
+### Review Workflow
 Three-tier system: **Source** → **AI Review** → **Review** → **Source**
 - Collaborative editing
 - AI-suggested improvements
 - Manual review and approval
 - Full revision history
 
-### 🔗 Webhooks & Integrations
+### Webhooks & Integrations
 Event-driven webhooks for post lifecycle events, media uploads, form submissions, and user actions.
 
-### 📊 Forms & Submissions
+### Forms & Submissions
 Code-first form definitions with frontend rendering, validation, submission storage, and webhook integration.
 
-### 🎨 Theming System
+### Theming System
 Centralized theme configuration with separate admin and site themes, automatic dark/light mode, and Tailwind integration.
 
-## 🔐 Security & Performance
+## Security & Performance
 
 - **Rate Limiting:** Redis-based with sliding window (configurable per endpoint)
 - **CSRF Protection:** Automatic token validation
@@ -133,7 +133,7 @@ Centralized theme configuration with separate admin and site themes, automatic d
 - **Database Connection Pooling:** Optimized connections
 - **Strategic Indexes:** 15+ optimized queries for performance
 
-## 🛠️ Development
+## Development
 
 For detailed development workflows, testing strategies, and advanced topics, see the **[Developer Documentation](/docs/for-developers)**.
 
@@ -144,7 +144,7 @@ node ace make:module hero  # Create custom module
 node ace make:agent seo    # Create AI agent
 ```
 
-## 📦 Deployment
+## Deployment
 
 For production deployment guides, environment configuration, and hosting recommendations, see the **[Deployment Guide](/docs/for-developers/deployment)**.
 
@@ -155,17 +155,17 @@ npm run build
 node ace serve --watch
 ```
 
-## 🤝 Contributing
+## Contributing
 
 This is currently a private project. Contribution guidelines will be published when the project reaches beta.
 
-## 📄 License
+## License
 
 Proprietary - All rights reserved
 
 ---
 
-## 🏆 Version History
+## Version History
 
 ### Version 1.0.0 (Pre-Beta) - December 2025
 
@@ -197,7 +197,5 @@ Proprietary - All rights reserved
 - Multi-tenant support planned for enterprise version
 
 ---
-
-**Built with ❤️ using AdonisJS**
 
 **Documentation:** [/docs](/docs) | **Admin Panel:** [/admin](/admin)
