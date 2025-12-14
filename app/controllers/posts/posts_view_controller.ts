@@ -327,9 +327,16 @@ export default class PostsViewController extends BasePostsController {
         }
       }
 
+      // Draft posts are not visible to unauthenticated users
+      // Check if user is authenticated using the web guard
+      const isAuthenticated = await auth.use('web').check()
+      if (post.status === 'draft' && !isAuthenticated) {
+        return inertia.render('site/errors/not_found')
+      }
+
       // Handle protected/private statuses
       if (post.status === 'private') {
-        if (!auth?.isAuthenticated) {
+        if (!isAuthenticated) {
           return response.redirect('/admin/login', true)
         }
       } else if (post.status === 'protected') {
