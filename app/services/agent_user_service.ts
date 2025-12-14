@@ -106,15 +106,26 @@ class AgentUserService {
         const stableUsername = cfg.username ? (await findUniqueUsername(cfg.username)) : buildDefaultUsername(agent.id)
         const username = stableUsername || buildDefaultUsername(agent.id)
 
-        // Prefer finding by username (stable agentId -> user mapping).
-        let existing =
-          (await User.query().whereRaw('LOWER(username) = LOWER(?)', [username]).first()) || null
-
         // Determine email:
         // - If a custom email is provided, try to use it (unique).
         // - Otherwise, generate an internal email based on agent id, but de-conflict if necessary.
         const preferredEmail = cfg.email?.trim() ? cfg.email.trim() : buildDefaultEmail(agent.id)
-        const email = await findUniqueEmail(preferredEmail)
+        
+        // Prefer finding by username (stable agentId -> user mapping).
+        let existing =
+          (await User.query().whereRaw('LOWER(username) = LOWER(?)', [username]).first()) || null
+
+        // If not found by username, also check by preferred email to avoid duplicates
+        // (e.g., when users were imported from development-export.json)
+        if (!existing) {
+          const existingByEmail = await User.findBy('email', preferredEmail)
+          if (existingByEmail && existingByEmail.role === 'ai_agent') {
+            existing = existingByEmail
+          }
+        }
+
+        // Only generate a unique email if we're creating a new user
+        const email = existing ? existing.email : await findUniqueEmail(preferredEmail)
 
         if (existing) {
           // Update metadata (but do not rotate password). Avoid changing email unless:
