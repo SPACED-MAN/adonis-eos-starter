@@ -36,12 +36,11 @@ type PopoverState = {
 }
 
 export function InlineOverlay() {
-	const { enabled, canEdit, getValue, getModeValue, setValue, mode, isGlobalModule } = useInlineEditor()
+	const { enabled, canEdit, getValue, getModeValue, setValue, mode, isGlobalModule, showDiffs } = useInlineEditor()
 	const [mounted, setMounted] = useState(false)
 	useEffect(() => setMounted(true), [])
 	const [mediaTarget, setMediaTarget] = useState<{ moduleId: string; path: string } | null>(null)
 	const [dialogState, setDialogState] = useState<PopoverState | null>(null)
-	const [showDiffs, setShowDiffs] = useState(false)
 
 	function resolveModuleId(el: HTMLElement | null): string | undefined {
 		if (!el) return undefined
@@ -434,23 +433,6 @@ export function InlineOverlay() {
           outline-offset: 6px;
         }
       `}</style>
-			{enabled && (
-				<div className="fixed bottom-28 right-3 z-1000">
-					<div className="relative group">
-						<button
-							type="button"
-							className="inline-flex items-center justify-center rounded-full bg-backdrop-high border border-line-medium text-neutral-high p-2 shadow hover:bg-backdrop-medium"
-							onClick={() => setShowDiffs((v) => !v)}
-							aria-label="Toggle diff highlights"
-						>
-							<FontAwesomeIcon icon="highlighter" className="w-4 h-4" />
-						</button>
-						<div className="absolute bottom-full mb-2 right-0 hidden group-hover:block bg-backdrop-high text-neutral-high text-xs px-2 py-1 rounded border border-line-medium shadow">
-							Highlight changes ({mode === 'review' ? 'vs Source' : mode === 'ai-review' ? 'vs Review' : 'n/a'})
-						</div>
-					</div>
-				</div>
-			)}
 			{mediaTarget && (
 				<MediaPickerModal
 					open

@@ -4,6 +4,7 @@ import UpdatePost from '#actions/posts/update_post'
 import db from '@adonisjs/lucid/services/db'
 import authorizationService from '#services/authorization_service'
 import BasePostsController from './base_posts_controller.js'
+import { randomUUID } from 'node:crypto'
 
 /**
  * Posts Revisions Controller
@@ -89,14 +90,121 @@ export default class PostsRevisionsController extends BasePostsController {
     }
 
     const snapshot = rev.snapshot || {}
-    const mode: 'approved' | 'review' = rev.mode || 'approved'
+    const mode: 'approved' | 'review' | 'ai-review' = rev.mode || 'approved'
 
-    // Review revisions go to review_draft
-    if (mode === 'review') {
+    // New-style composite snapshots restore all active versions + staging.
+    if (snapshot?.kind === 'active-versions') {
+      const postSnap = snapshot?.post || {}
+      const postType = postSnap?.type || (await Post.find(id))?.type
+      if (
+        !authorizationService.canRevertRevision(role, postType) ||
+        !authorizationService.canUpdateStatus(role, postSnap?.status, postType)
+      ) {
+        return this.response.forbidden(response, 'Not allowed to revert to this revision')
+      }
+      const now = new Date()
+      // Restore Source fields
+      await UpdatePost.handle({
+        postId: id,
+        slug: postSnap?.slug,
+        title: postSnap?.title,
+        status: postSnap?.status,
+        excerpt: postSnap?.excerpt ?? null,
+        parentId: postSnap?.parentId ?? undefined,
+        orderIndex: typeof postSnap?.orderIndex === 'number' ? postSnap.orderIndex : undefined,
+        metaTitle: postSnap?.metaTitle ?? null,
+        metaDescription: postSnap?.metaDescription ?? null,
+        canonicalUrl: postSnap?.canonicalUrl ?? null,
+        robotsJson: postSnap?.robotsJson ?? null,
+        jsonldOverrides: postSnap?.jsonldOverrides ?? null,
+        featuredImageId: postSnap?.featuredImageId ?? undefined,
+      } as any)
+
+      // Restore draft payloads
       await Post.query()
         .where('id', id)
-        .update({ review_draft: snapshot } as any)
+        .update({
+          review_draft: snapshot?.drafts?.reviewDraft ?? null,
+          ai_review_draft: snapshot?.drafts?.aiReviewDraft ?? null,
+        } as any)
+
+      // Restore custom fields (Source)
+      if (Array.isArray(postSnap?.customFields)) {
+        await db.from('post_custom_field_values').where('post_id', id).delete()
+        const rows = (postSnap.customFields as any[]).map((r) => ({
+          id: randomUUID(),
+          post_id: id,
+          field_slug: String(r.fieldSlug),
+          value: r.value ?? null,
+          created_at: now,
+          updated_at: now,
+        }))
+        if (rows.length > 0) {
+          await db.table('post_custom_field_values').insert(rows)
+        }
+      }
+
+      // Restore taxonomy assignments (Source)
+      if (Array.isArray(postSnap?.taxonomyTermIds)) {
+        await db.from('post_taxonomy_terms').where('post_id', id).delete()
+        const rows = (postSnap.taxonomyTermIds as any[]).map((termId) => ({
+          id: randomUUID(),
+          post_id: id,
+          taxonomy_term_id: String(termId),
+          created_at: now,
+          updated_at: now,
+        }))
+        if (rows.length > 0) {
+          await db.table('post_taxonomy_terms').insert(rows)
+        }
+      }
+
+      // Restore module staging + flags (best-effort; does not recreate deleted modules)
+      if (Array.isArray(snapshot?.modules)) {
+        for (const m of snapshot.modules as any[]) {
+          if (m?.moduleInstanceId) {
+            await db
+              .from('module_instances')
+              .where('id', String(m.moduleInstanceId))
+              .update({
+                props: m.props ?? db.raw('props'),
+                review_props: m.reviewProps ?? null,
+                ai_review_props: m.aiReviewProps ?? null,
+                updated_at: now,
+              } as any)
+          }
+          if (m?.postModuleId) {
+            await db
+              .from('post_modules')
+              .where('id', String(m.postModuleId))
+              .update({
+                overrides: m.overrides ?? null,
+                review_overrides: m.reviewOverrides ?? null,
+                ai_review_overrides: m.aiReviewOverrides ?? null,
+                review_added: !!m?.flags?.reviewAdded,
+                review_deleted: !!m?.flags?.reviewDeleted,
+                ai_review_added: !!m?.flags?.aiReviewAdded,
+                ai_review_deleted: !!m?.flags?.aiReviewDeleted,
+                order_index: typeof m.orderIndex === 'number' ? m.orderIndex : undefined,
+                locked: !!m.locked,
+                updated_at: now,
+              } as any)
+          }
+        }
+      }
+
+      return response.ok({ message: 'Reverted to revision' })
+    }
+
+    // Legacy: Review revisions go to review_draft
+    if (mode === 'review') {
+      await Post.query().where('id', id).update({ review_draft: snapshot } as any)
       return response.ok({ message: 'Reverted review draft' })
+    }
+    // Legacy: AI Review revisions go to ai_review_draft
+    if (mode === 'ai-review') {
+      await Post.query().where('id', id).update({ ai_review_draft: snapshot } as any)
+      return response.ok({ message: 'Reverted AI review draft' })
     }
 
     const postType = snapshot?.type || (await Post.find(id))?.type

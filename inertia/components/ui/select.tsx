@@ -83,7 +83,8 @@ export const SelectItem = React.forwardRef<
 	<SelectPrimitive.Item
 		ref={ref}
 		className={cn(
-			'relative flex w-full cursor-default select-none items-center py-1.5 pl-8 pr-2 text-sm outline-none',
+			// Reduce left padding; the checkmark indicator is still reserved via `left-2` below.
+			'relative flex w-full cursor-default select-none items-center py-1.5 pl-6 pr-2 text-sm outline-none',
 			'focus:bg-backdrop-medium focus:text-neutral-high',
 			'data-[state=checked]:bg-backdrop-medium',
 			className

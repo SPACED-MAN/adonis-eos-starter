@@ -15,7 +15,7 @@ const editorRole: RoleDefinition = {
     'posts.revisions.manage',
     'posts.export',
     'posts.review.save',
-    'posts.ai-review.save',
+    // Note: AI Review saves are agent-only (see ai_agent role)
     // Media
     'media.view',
     'media.upload',

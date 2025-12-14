@@ -22,7 +22,6 @@ const adminRole: RoleDefinition = {
     'posts.export',
     'posts.review.save',
     'posts.review.approve',
-    'posts.ai-review.save',
     'posts.ai-review.approve',
     // Media
     'media.view',

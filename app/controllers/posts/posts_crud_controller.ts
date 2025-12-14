@@ -116,7 +116,12 @@ export default class PostsCrudController extends BasePostsController {
       // This avoids 422s caused by empty-string fields (canonicalUrl/featuredImageId) when the
       // user is only trying to approve a draft.
       const requestedMode = String(request.input('mode') || '').toLowerCase()
-      if (requestedMode === 'approve' || requestedMode === 'approve-ai-review') {
+      if (
+        requestedMode === 'approve' ||
+        requestedMode === 'approve-ai-review' ||
+        requestedMode === 'reject-review' ||
+        requestedMode === 'reject-ai-review'
+      ) {
         const currentPost = await Post.findOrFail(id)
         const postType = currentPost.type
         if (requestedMode === 'approve') {
@@ -128,8 +133,23 @@ export default class PostsCrudController extends BasePostsController {
         if (!roleRegistry.hasPermission(role, 'posts.ai-review.approve', postType)) {
           return this.response.forbidden(response, 'Not allowed to approve AI review')
         }
-        return this.approveAiReviewDraft(id, auth, response)
+        if (requestedMode === 'approve-ai-review') {
+          return this.approveAiReviewDraft(id, auth, response)
+        }
+        if (requestedMode === 'reject-ai-review') {
+          return this.rejectAiReviewDraft(id, auth, response)
+        }
+        // reject-review
+        return this.rejectReviewDraft(id, auth, response)
       }
+
+      // Debug: log raw input before validation
+      console.log('[PostsCrudController] Raw update input:', {
+        canonicalUrl: request.input('canonicalUrl'),
+        canonicalUrlType: typeof request.input('canonicalUrl'),
+        featuredImageId: request.input('featuredImageId'),
+        parentId: request.input('parentId'),
+      })
 
       const payload = await request.validateUsing(updatePostValidator)
       const saveMode = String(payload.mode || 'publish').toLowerCase()
@@ -166,6 +186,20 @@ export default class PostsCrudController extends BasePostsController {
           return this.response.forbidden(response, 'Not allowed to approve AI review')
         }
         return this.approveAiReviewDraft(id, auth, response)
+      }
+      // Handle reject review mode
+      if (saveMode === 'reject-review') {
+        if (!roleRegistry.hasPermission(role, 'posts.review.approve', postType)) {
+          return this.response.forbidden(response, 'Not allowed to reject review')
+        }
+        return this.rejectReviewDraft(id, auth, response)
+      }
+      // Handle reject AI review mode
+      if (saveMode === 'reject-ai-review') {
+        if (!roleRegistry.hasPermission(role, 'posts.ai-review.approve', postType)) {
+          return this.response.forbidden(response, 'Not allowed to reject AI review')
+        }
+        return this.rejectAiReviewDraft(id, auth, response)
       }
 
       // Authorization check for status changes
@@ -231,22 +265,11 @@ export default class PostsCrudController extends BasePostsController {
         await this.upsertCustomFields(id, payload.customFields)
       }
 
-      // Record revision
-      await RevisionService.record({
+      // Record revision (captures all active versions + module staging)
+      await RevisionService.recordActiveVersionsSnapshot({
         postId: id,
-        mode: 'approved',
-        snapshot: {
-          slug: payload.slug,
-          title: payload.title,
-          status: payload.status,
-          excerpt: payload.excerpt,
-          metaTitle: payload.metaTitle,
-          metaDescription: payload.metaDescription,
-          canonicalUrl: payload.canonicalUrl,
-          robotsJson,
-          jsonldOverrides,
-          customFields: payload.customFields,
-        },
+        mode: 'source',
+        action: 'save-source',
         userId: auth.user?.id,
       })
 
@@ -539,10 +562,10 @@ export default class PostsCrudController extends BasePostsController {
       .where('id', id)
       .update({ review_draft: draftPayload } as any)
 
-    await RevisionService.record({
+    await RevisionService.recordActiveVersionsSnapshot({
       postId: id,
       mode: 'review',
-      snapshot: draftPayload,
+      action: 'save-review',
       userId: (auth.use('web').user as any)?.id,
     })
 
@@ -603,14 +626,14 @@ export default class PostsCrudController extends BasePostsController {
       .where('id', id)
       .update({ review_draft: null } as any)
 
-    await RevisionService.record({
+    await RevisionService.recordActiveVersionsSnapshot({
       postId: id,
-      mode: 'approved',
-      snapshot: rd,
+      mode: 'source',
+      action: 'approve-review-to-source',
       userId: (auth.use('web').user as any)?.id,
     })
 
-    return response.ok({ message: 'Review approved' })
+    return response.ok({ message: 'Review promoted to Source' })
   }
 
   private async saveAiReviewDraft(
@@ -644,14 +667,14 @@ export default class PostsCrudController extends BasePostsController {
       .where('id', id)
       .update({ ai_review_draft: draftPayload } as any)
 
-    await RevisionService.record({
+    await RevisionService.recordActiveVersionsSnapshot({
       postId: id,
-      mode: 'ai-review' as any,
-      snapshot: draftPayload,
+      mode: 'ai-review',
+      action: 'save-ai-review',
       userId: (auth.use('web').user as any)?.id,
     })
 
-    return response.ok({ message: 'Saved for AI review' })
+    return response.ok({ message: 'Saved to AI Review' })
   }
 
   private async approveAiReviewDraft(
@@ -666,7 +689,7 @@ export default class PostsCrudController extends BasePostsController {
       return this.response.badRequest(response, 'No AI review draft to approve')
     }
 
-    // Instead of promoting to approved, promote to review_draft
+    // Instead of promoting to Source, promote to review_draft
     const reviewPayload: Record<string, any> = {
       slug: ard.slug ?? current.slug,
       title: ard.title ?? current.title,
@@ -701,14 +724,83 @@ export default class PostsCrudController extends BasePostsController {
         ai_review_draft: null,
       } as any)
 
-    await RevisionService.record({
+    await RevisionService.recordActiveVersionsSnapshot({
       postId: id,
       mode: 'review',
-      snapshot: reviewPayload,
+      action: 'promote-ai-review-to-review',
       userId: (auth.use('web').user as any)?.id,
     })
 
-    return response.ok({ message: 'AI review approved and moved to Review' })
+    return response.ok({ message: 'AI Review promoted to Review' })
+  }
+
+  private async rejectReviewDraft(
+    postId: string,
+    auth: HttpContext['auth'],
+    response: HttpContext['response']
+  ) {
+    const userId = (auth.use('web').user as any)?.id ?? null
+    // Capture current full Active Versions state before discarding
+    await RevisionService.recordActiveVersionsSnapshot({
+      postId,
+      mode: 'review',
+      action: 'reject-review',
+      userId,
+    })
+
+    const now = new Date()
+    // Clear review draft
+    await Post.query().where('id', postId).update({ review_draft: null } as any)
+    // Clear staged module state for Review
+    await db
+      .from('module_instances')
+      .where('scope', 'post')
+      .andWhereIn('id', db.from('post_modules').where('post_id', postId).select('module_id'))
+      .update({ review_props: null, updated_at: now } as any)
+    await db
+      .from('post_modules')
+      .where('post_id', postId)
+      .update({
+        review_overrides: null,
+        review_added: false,
+        review_deleted: false,
+        updated_at: now,
+      } as any)
+
+    return response.ok({ message: 'Review discarded' })
+  }
+
+  private async rejectAiReviewDraft(
+    postId: string,
+    auth: HttpContext['auth'],
+    response: HttpContext['response']
+  ) {
+    const userId = (auth.use('web').user as any)?.id ?? null
+    await RevisionService.recordActiveVersionsSnapshot({
+      postId,
+      mode: 'ai-review',
+      action: 'reject-ai-review',
+      userId,
+    })
+
+    const now = new Date()
+    await Post.query().where('id', postId).update({ ai_review_draft: null } as any)
+    await db
+      .from('module_instances')
+      .where('scope', 'post')
+      .andWhereIn('id', db.from('post_modules').where('post_id', postId).select('module_id'))
+      .update({ ai_review_props: null, updated_at: now } as any)
+    await db
+      .from('post_modules')
+      .where('post_id', postId)
+      .update({
+        ai_review_overrides: null,
+        ai_review_added: false,
+        ai_review_deleted: false,
+        updated_at: now,
+      } as any)
+
+    return response.ok({ message: 'AI Review discarded' })
   }
 
   private async promoteAiReviewModulesToReview(postId: string) {

@@ -18,7 +18,6 @@ const editorAdminRole: RoleDefinition = {
     'posts.export',
     'posts.review.save',
     'posts.review.approve', // Can approve reviews (unlike regular editor)
-    'posts.ai-review.save',
     'posts.ai-review.approve', // Can approve AI reviews (unlike regular editor)
     // Media - Full permissions
     'media.view',

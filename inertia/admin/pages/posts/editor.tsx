@@ -22,6 +22,7 @@ import {
   AlertDialogTitle,
 } from '~/components/ui/alert-dialog'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '~/components/ui/select'
+import { RadioGroup, RadioGroupItem } from '~/components/ui/radio-group'
 import { ModulePicker } from '../../components/modules/ModulePicker'
 import { FormEvent, useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { toast } from 'sonner'
@@ -355,19 +356,38 @@ export default function Editor({
   const csrfFromProps: string | undefined = (page.props as any)?.csrf
   // Always read latest token to avoid stale value after a request rotates it
   const xsrfHeader = () => {
+    const headers: Record<string, string> = {}
+    /**
+     * Shield CSRF supports:
+     * - `x-csrf-token` header (plain token)
+     * - `x-xsrf-token` header (encrypted cookie value from `XSRF-TOKEN`)
+     *
+     * Our previous implementation incorrectly fell back to sending the plain token
+     * as `x-xsrf-token`, which Shield will try to decrypt and fail, resulting in a
+     * redirect back (appears as opaqueredirect in fetch).
+     */
     try {
-      const live = getXsrf()
-      const token = live ?? csrfFromProps
-      return token ? { 'X-XSRF-TOKEN': token } as Record<string, string> : {}
+      const encryptedCookieVal = getXsrf()
+      // Prefer the XSRF cookie value when available, since it rotates per-request and
+      // Shield will decrypt+verify it. If we send a stale X-CSRF-TOKEN alongside it,
+      // Shield will read x-csrf-token first and reject before checking x-xsrf-token.
+      if (encryptedCookieVal) {
+        headers['X-XSRF-TOKEN'] = encryptedCookieVal
+        return headers
+      }
     } catch {
-      return csrfFromProps ? { 'X-XSRF-TOKEN': csrfFromProps } : {}
+      // ignore
     }
+    // Fallback for cases where the cookie isn't present (first load / blocked cookies)
+    if (csrfFromProps) headers['X-CSRF-TOKEN'] = csrfFromProps
+    return headers
   }
   const role: string | undefined =
     (page.props as any)?.currentUser?.role ?? (page.props as any)?.auth?.user?.role
   const isAdmin = role === 'admin'
   const canSaveForReview = useHasPermission('posts.review.save')
-  const canSaveForAiReview = useHasPermission('posts.ai-review.save')
+  const canApproveReview = useHasPermission('posts.review.approve')
+  const canApproveAiReview = useHasPermission('posts.ai-review.approve')
   const canPublish = useHasPermission('posts.publish')
   const [isImportModeOpen, setIsImportModeOpen] = useState(false)
   const [pendingImportJson, setPendingImportJson] = useState<any | null>(null)
@@ -398,8 +418,29 @@ export default function Editor({
     return (modules || []).some((m) => !m.reviewAdded && !(m as any).aiReviewAdded)
   }, [modules])
 
-  const hasReviewBaseline = useMemo(() => Boolean(reviewDraft), [reviewDraft])
-  const hasAiReviewBaseline = useMemo(() => Boolean(aiReviewDraft), [aiReviewDraft])
+  const hasReviewBaseline = useMemo(() => {
+    // Check post-level review draft
+    if (reviewDraft) return true
+    // Also check if any modules have review-related data
+    return (modules || []).some(
+      (m) =>
+        (m.reviewProps && Object.keys(m.reviewProps).length > 0) ||
+        (m.reviewOverrides && Object.keys(m.reviewOverrides).length > 0) ||
+        m.reviewAdded === true
+    )
+  }, [reviewDraft, modules])
+
+  const hasAiReviewBaseline = useMemo(() => {
+    // Check post-level AI review draft
+    if (aiReviewDraft) return true
+    // Also check if any modules have AI review-related data
+    return (modules || []).some(
+      (m) =>
+        ((m as any).aiReviewProps && Object.keys((m as any).aiReviewProps).length > 0) ||
+        ((m as any).aiReviewOverrides && Object.keys((m as any).aiReviewOverrides).length > 0) ||
+        (m as any).aiReviewAdded === true
+    )
+  }, [aiReviewDraft, modules])
 
   const initialViewMode: 'source' | 'review' | 'ai-review' = useMemo(() => {
     if (hasReviewBaseline) return 'review'
@@ -408,6 +449,181 @@ export default function Editor({
   }, [hasReviewBaseline, hasSourceBaseline, hasAiReviewBaseline])
 
   const [viewMode, setViewMode] = useState<'source' | 'review' | 'ai-review'>(initialViewMode)
+  const [saveTarget, setSaveTarget] = useState<'source' | 'review'>(() =>
+    initialViewMode === 'review' ? 'review' : 'source'
+  )
+  const [decision, setDecision] = useState<
+    '' | 'approve-review-to-source' | 'approve-ai-review-to-review' | 'reject-review' | 'reject-ai-review'
+  >('')
+  const [saveConfirmOpen, setSaveConfirmOpen] = useState(false)
+  const [pendingSaveTarget, setPendingSaveTarget] = useState<null | 'source' | 'review'>(null)
+  const [approveConfirmOpen, setApproveConfirmOpen] = useState(false)
+  const [rejectConfirmOpen, setRejectConfirmOpen] = useState(false)
+
+  useEffect(() => {
+    // keep default save target intuitive as the user switches Active Versions
+    if (viewMode === 'review') setSaveTarget('review')
+    if (viewMode === 'source') setSaveTarget('source')
+  }, [viewMode])
+
+  // Default decision selection (Approve/Reject combined)
+  useEffect(() => {
+    const opts: Array<
+      'approve-review-to-source' | 'approve-ai-review-to-review' | 'reject-review' | 'reject-ai-review'
+    > = []
+
+    // Approve options
+    if (hasReviewBaseline && canApproveReview) opts.push('approve-review-to-source')
+    if (hasAiReviewBaseline && canApproveAiReview) opts.push('approve-ai-review-to-review')
+
+    // Reject options
+    if (hasReviewBaseline && canApproveReview) opts.push('reject-review')
+    if (hasAiReviewBaseline && canApproveAiReview) opts.push('reject-ai-review')
+
+    const preferred =
+      viewMode === 'ai-review' && opts.includes('approve-ai-review-to-review')
+        ? 'approve-ai-review-to-review'
+        : viewMode === 'review' && opts.includes('approve-review-to-source')
+          ? 'approve-review-to-source'
+          : opts.includes('approve-review-to-source')
+            ? 'approve-review-to-source'
+            : opts[0] || ''
+
+    if (!decision || !opts.includes(decision as any)) {
+      setDecision(preferred as any)
+    }
+    if (opts.length === 0 && decision) {
+      setDecision('')
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [viewMode, hasReviewBaseline, hasAiReviewBaseline, canApproveReview, canApproveAiReview])
+
+  async function executeSave(target: 'source' | 'review') {
+    if (target === 'review') {
+      await createPendingNewModules('review')
+      await commitPendingModules('review')
+      await saveForReview()
+      return
+    }
+
+    // Save to Source (existing flow)
+    try {
+      await createPendingNewModules('publish')
+      await commitPendingModules('publish')
+      if (hasStructuralChanges) {
+        const persistedModules = modules.filter((m) => !m.id.startsWith('temp-'))
+        await persistOrder(persistedModules)
+      }
+      // Clean nullable fields before sending - convert empty strings to null
+      const canonicalRaw = data.canonicalUrl?.trim() || null
+      const canonicalUrl =
+        canonicalRaw && canonicalRaw.startsWith('/') && typeof window !== 'undefined'
+          ? `${window.location.origin}${canonicalRaw}`
+          : canonicalRaw
+
+      const cleanedData = {
+        title: data.title,
+        slug: data.slug,
+        excerpt: data.excerpt?.trim() || null,
+        status: data.status,
+        parentId: data.parentId?.trim() || null,
+        orderIndex: data.orderIndex,
+        metaTitle: data.metaTitle?.trim() || null,
+        metaDescription: data.metaDescription?.trim() || null,
+        canonicalUrl,
+        robotsJson: data.robotsJson?.trim() || null,
+        jsonldOverrides: data.jsonldOverrides?.trim() || null,
+        featuredImageId: data.featuredImageId?.trim() || null,
+        customFields: data.customFields,
+        taxonomyTermIds: data.taxonomyTermIds,
+      }
+      
+      console.log('[Editor] Sending cleaned data:', {
+        canonicalUrl: cleanedData.canonicalUrl,
+        canonicalUrlType: typeof cleanedData.canonicalUrl,
+      })
+      
+      // Use fetch directly to have full control over the request.
+      // NOTE: We force an absolute URL + manual redirect handling because a redirect (often due to CSRF/auth)
+      // can cause the browser to follow to `/admin/posts/:id/edit` and then "PUT" that URL (404).
+      const apiUrl =
+        typeof window !== 'undefined'
+          ? new URL(`/api/posts/${post.id}`, window.location.origin).toString()
+          : `/api/posts/${post.id}`
+
+      console.log('[Editor] Saving to', apiUrl)
+
+      const res = await fetch(apiUrl, {
+        method: 'PUT',
+        redirect: 'manual',
+        headers: {
+          'Accept': 'application/json',
+          'Content-Type': 'application/json',
+          'X-Requested-With': 'XMLHttpRequest',
+          ...xsrfHeader(),
+        },
+        credentials: 'same-origin',
+        body: JSON.stringify(cleanedData),
+      })
+      
+      if (res.ok) {
+        toast.success('Saved to Source')
+        initialDataRef.current = pickForm(data)
+        setHasStructuralChanges(false)
+        // Reload to get fresh data from server
+        window.location.reload()
+      } else {
+        // If the response is a redirect, fetch will return an opaqueredirect when redirect='manual'.
+        // This often indicates an auth/CSRF issue.
+        if ((res as any).type === 'opaqueredirect' || (res.status >= 300 && res.status < 400)) {
+          console.error('Save got redirected', { status: res.status, type: (res as any).type })
+          toast.error('Failed to save (redirect). Check CSRF/auth.')
+          return
+        }
+
+        const contentType = res.headers.get('content-type') || ''
+        const bodyText = await res.text().catch(() => '')
+        const errorJson =
+          contentType.includes('application/json') ? (() => { try { return JSON.parse(bodyText) } catch { return null } })() : null
+
+        console.error('Save failed:', {
+          status: res.status,
+          contentType,
+          body: errorJson ?? bodyText,
+        })
+
+        const msg =
+          (errorJson as any)?.message ||
+          ((errorJson as any)?.errors?.[0]?.message as string | undefined) ||
+          'Failed to save'
+        toast.error(msg)
+      }
+    } catch (error) {
+      console.error('Save error:', error)
+      toast.error('Failed to save')
+    }
+  }
+
+  async function executeApprove(mode: 'approve' | 'approve-ai-review') {
+    const res = await fetch(`/api/posts/${post.id}`, {
+      method: 'PUT',
+      headers: {
+        'Accept': 'application/json',
+        'Content-Type': 'application/json',
+        ...xsrfHeader(),
+      },
+      credentials: 'same-origin',
+      body: JSON.stringify({ mode }),
+    })
+    if (res.ok) {
+      toast.success(mode === 'approve-ai-review' ? 'AI Review promoted to Review' : 'Review promoted to Source')
+      window.location.reload()
+      return
+    }
+    const err = await res.json().catch(() => null)
+    console.error('Approve failed:', res.status, err)
+    toast.error(err?.errors ? 'Failed (validation)' : 'Failed')
+  }
   const isDirty = useMemo(() => {
     try {
       const baseline =
@@ -618,7 +834,14 @@ export default function Editor({
   // Overrides panel state
   const [editing, setEditing] = useState<ModuleListItem | null>(null)
   // Removed explicit savingOverrides state; handled via pendingModules flow
-  const [revisions, setRevisions] = useState<Array<{ id: string; mode: 'approved' | 'review'; createdAt: string; user?: { id?: number; email?: string } }>>([])
+  const [revisions, setRevisions] = useState<
+    Array<{
+      id: string
+      mode: 'approved' | 'review' | 'ai-review'
+      createdAt: string
+      user?: { id?: number; email?: string }
+    }>
+  >([])
   const [loadingRevisions, setLoadingRevisions] = useState(false)
   // Agents
   const [agents, setAgents] = useState<
@@ -925,9 +1148,11 @@ export default function Editor({
   async function commitPendingModules(mode: 'review' | 'publish' | 'ai-review') {
     if (!modulesEnabled) return
     const entries = Object.entries(pendingModules)
+    // Filter out temporary module IDs - those are handled by createPendingNewModules
+    const persistedEntries = entries.filter(([id]) => !id.startsWith('temp-'))
     // 1) Apply updates
-    if (entries.length > 0) {
-      const updates = entries.map(([id, payload]) => {
+    if (persistedEntries.length > 0) {
+      const updates = persistedEntries.map(([id, payload]) => {
         const url = `/api/post-modules/${encodeURIComponent(id)}`
         return fetch(url, {
           method: 'PUT',
@@ -946,6 +1171,11 @@ export default function Editor({
         toast.error('Failed to save module changes')
         throw new Error('Failed to save module changes')
       }
+      // Only clear persisted entries from pendingModules, keep temp ones for next save cycle
+      const remaining = Object.fromEntries(entries.filter(([id]) => id.startsWith('temp-')))
+      setPendingModules(remaining)
+    } else {
+      // If no persisted entries, still clear temp entries since they'll be created fresh
       setPendingModules({})
     }
     // 2) Apply removals
@@ -989,9 +1219,26 @@ export default function Editor({
           <div className="lg:col-span-2 space-y-6">
             {/* Content Card */}
             <div className="bg-backdrop-low rounded-lg p-6 border border-line-low">
-              <h2 className="text-lg font-semibold text-neutral-high mb-4">
-                Content
-              </h2>
+              <div className="flex items-start justify-between gap-3 mb-4">
+                <h2 className="text-lg font-semibold text-neutral-high">
+                  Content
+                </h2>
+                {uiConfig?.hasPermalinks !== false && (
+                  <button
+                    className="px-2 py-1 text-xs border border-border rounded hover:bg-backdrop-medium text-neutral-medium"
+                    onClick={() => {
+                      const base = (post as any).publicPath || `/posts/${post.slug}`
+                      const target =
+                        viewMode === 'review' ? `${base}${base.includes('?') ? '&' : '?'}view=review` : base
+                      window.open(target, '_blank')
+                    }}
+                    type="button"
+                    title="Open the current view in a new tab"
+                  >
+                    View on Site
+                  </button>
+                )}
+              </div>
 
               <form className="space-y-4" onSubmit={handleSubmit}>
                 {/* Title */}
@@ -1639,37 +1886,102 @@ export default function Editor({
                 Actions
               </h3>
               <div className="space-y-6">
-                {/* View toggle */}
+                {/* Active Version toggle */}
                 <div className="flex items-center gap-2">
                   <div className="inline-flex rounded border border-border overflow-hidden">
                     {hasSourceBaseline && (
                       <button
                         type="button"
                         onClick={() => setViewMode('source')}
-                        className={`px-2 py-1 text-xs ${viewMode === 'source' ? 'bg-backdrop-medium text-neutral-high' : 'text-neutral-medium hover:bg-backdrop-medium'}`}
+                        className={`px-2 py-1 text-xs ${viewMode === 'source' ? 'bg-standout text-on-standout' : 'text-neutral-medium hover:bg-backdrop-medium'}`}
                       >
                         Source
                       </button>
                     )}
-                    {hasReviewBaseline && canSaveForReview && (
+                    {hasReviewBaseline && (canSaveForReview || canApproveReview) && (
                       <button
                         type="button"
                         onClick={() => setViewMode('review')}
-                        className={`px-2 py-1 text-xs ${viewMode === 'review' ? 'bg-backdrop-medium text-neutral-high' : 'text-neutral-medium hover:bg-backdrop-medium'}`}
+                        className={`px-2 py-1 text-xs ${viewMode === 'review' ? 'bg-standout text-on-standout' : 'text-neutral-medium hover:bg-backdrop-medium'}`}
                       >
                         Review
                       </button>
                     )}
-                    {hasAiReviewBaseline && canSaveForAiReview && (
+                    {hasAiReviewBaseline && canApproveAiReview && (
                       <button
                         type="button"
                         onClick={() => setViewMode('ai-review')}
-                        className={`px-2 py-1 text-xs ${viewMode === 'ai-review' ? 'bg-backdrop-medium text-neutral-high' : 'text-neutral-medium hover:bg-backdrop-medium'}`}
+                        className={`px-2 py-1 text-xs ${viewMode === 'ai-review' ? 'bg-standout text-on-standout' : 'text-neutral-medium hover:bg-backdrop-medium'}`}
                       >
                         AI Review
                       </button>
                     )}
                   </div>
+                </div>
+
+                {/* Locale Switcher */}
+                <div>
+                  <label className="block text-xs font-medium text-neutral-medium mb-1">
+                    Locale
+                  </label>
+                  <div className="flex items-center gap-2">
+                    <Select
+                      defaultValue={selectedLocale}
+                      onValueChange={(nextLocale) => {
+                        setSelectedLocale(nextLocale)
+                        if (nextLocale === post.locale) return
+                        const target = translations?.find((t) => t.locale === nextLocale)
+                        if (target) {
+                          window.location.href = `/admin/posts/${target.id}/edit`
+                        }
+                      }}
+                    >
+                      <SelectTrigger className="w-[160px] h-8 text-xs">
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent className="text-xs">
+                        {availableLocales.map((loc) => {
+                          const exists = translationsSet.has(loc)
+                          const label = exists ? `${loc.toUpperCase()}` : `${loc.toUpperCase()} (missing)`
+                          return (
+                            <SelectItem key={loc} value={loc} className="text-xs">
+                              {label}
+                            </SelectItem>
+                          )
+                        })}
+                      </SelectContent>
+                    </Select>
+                  </div>
+                  {selectedLocale !== post.locale && !translationsSet.has(selectedLocale) && (
+                    <button
+                      type="button"
+                      className="mt-2 text-xs px-2 py-1 rounded border border-border bg-backdrop-low text-neutral-high hover:bg-backdrop-medium"
+                      onClick={async () => {
+                        const toCreate = selectedLocale
+                        const res = await fetch(`/api/posts/${post.id}/translations`, {
+                          method: 'POST',
+                          headers: {
+                            Accept: 'application/json',
+                            'Content-Type': 'application/json',
+                            ...xsrfHeader(),
+                          },
+                          credentials: 'same-origin',
+                          body: JSON.stringify({ locale: toCreate }),
+                        })
+                        if (res.redirected) {
+                          window.location.href = res.url
+                          return
+                        }
+                        if (res.ok) {
+                          window.location.reload()
+                        } else {
+                          toast.error('Failed to create translation')
+                        }
+                      }}
+                    >
+                      Create Translation
+                    </button>
+                  )}
                 </div>
                 {/* Agent Runner */}
                 <div>
@@ -1679,15 +1991,19 @@ export default function Editor({
                       value={selectedAgent}
                       onValueChange={(val) => setSelectedAgent(val)}
                     >
-                      <SelectTrigger className="w-full">
+                      <SelectTrigger className="w-full h-8 text-xs">
                         <SelectValue placeholder="Select an agent" />
                       </SelectTrigger>
-                      <SelectContent>
+                      <SelectContent className="text-xs">
                         {agents.length === 0 ? (
-                          <SelectItem value="__none__" disabled>No agents configured</SelectItem>
+                          <SelectItem value="__none__" disabled className="text-xs">
+                            No agents configured
+                          </SelectItem>
                         ) : (
                           agents.map((a) => (
-                            <SelectItem key={a.id} value={a.id}>{a.name}</SelectItem>
+                            <SelectItem key={a.id} value={a.id} className="text-xs">
+                              {a.name}
+                            </SelectItem>
                           ))
                         )}
                       </SelectContent>
@@ -1792,7 +2108,7 @@ export default function Editor({
                         </AlertDialog>
 
                         <button
-                          className="mt-2 w-full px-4 py-2 text-sm rounded-lg bg-standout text-on-standout font-medium disabled:opacity-50"
+                          className="mt-2 w-full h-8 px-3 text-xs rounded-lg bg-standout text-on-standout font-medium disabled:opacity-50"
                           disabled={runningAgent}
                           onClick={() => {
                             const a = agents.find((x) => x.id === selectedAgent)
@@ -1905,302 +2221,229 @@ export default function Editor({
                     )}
                   </div>
                 )}
-                {/* Locale Switcher */}
-                <div>
-                  <label className="block text-xs font-medium text-neutral-medium mb-1">
-                    Locale
-                  </label>
-                  <div className="flex items-center gap-2">
-                    <Select
-                      defaultValue={selectedLocale}
-                      onValueChange={(nextLocale) => {
-                        setSelectedLocale(nextLocale)
-                        if (nextLocale === post.locale) return
-                        const target = translations?.find((t) => t.locale === nextLocale)
-                        if (target) {
-                          window.location.href = `/admin/posts/${target.id}/edit`
+                {/* Save edits (humans can save to Source or Review; AI Review is agent-only) */}
+                {viewMode !== 'ai-review' && (
+                  <div className="space-y-2">
+                    <label className="block text-xs font-medium text-neutral-medium">
+                      Save edits to
+                    </label>
+                    <div className="flex items-center gap-2">
+                      <Select
+                        value={saveTarget}
+                        onValueChange={(val) => setSaveTarget(val as any)}
+                      >
+                        <SelectTrigger className="flex-1 h-8 text-xs">
+                          <SelectValue />
+                        </SelectTrigger>
+                        <SelectContent className="text-xs">
+                          <SelectItem value="source" className="text-xs">Source</SelectItem>
+                          {canSaveForReview && <SelectItem value="review" className="text-xs">Review</SelectItem>}
+                        </SelectContent>
+                      </Select>
+                      <button
+                        type="button"
+                        className={`h-8 px-3 text-xs rounded-lg disabled:opacity-50 ${(!isDirty || processing) ? 'border border-border text-neutral-medium' : 'bg-standout text-on-standout font-medium'}`}
+                        disabled={
+                          !isDirty ||
+                          processing ||
+                          (saveTarget === 'review' && !canSaveForReview)
                         }
-                      }}
-                    >
-                      <SelectTrigger className="w-[160px]">
-                        <SelectValue />
-                      </SelectTrigger>
-                      <SelectContent>
-                        {availableLocales.map((loc) => {
-                          const exists = translationsSet.has(loc)
-                          const label = exists ? `${loc.toUpperCase()}` : `${loc.toUpperCase()} (missing)`
-                          return (
-                            <SelectItem key={loc} value={loc}>
-                              {label}
-                            </SelectItem>
-                          )
-                        })}
-                      </SelectContent>
-                    </Select>
-                    {/* Removed helper text */}
-                  </div>
-                  {selectedLocale !== post.locale && !translationsSet.has(selectedLocale) && (
-                    <button
-                      type="button"
-                      className="mt-2 text-xs px-2 py-1 rounded border border-border bg-backdrop-low text-neutral-high hover:bg-backdrop-medium"
-                      onClick={async () => {
-                        const toCreate = selectedLocale
-                        const res = await fetch(`/api/posts/${post.id}/translations`, {
-                          method: 'POST',
-                          headers: {
-                            Accept: 'application/json',
-                            'Content-Type': 'application/json',
-                            ...xsrfHeader(),
-                          },
-                          credentials: 'same-origin',
-                          body: JSON.stringify({ locale: toCreate }),
-                        })
-                        if (res.redirected) {
-                          window.location.href = res.url
-                          return
-                        }
-                        if (res.ok) {
-                          window.location.reload()
-                        } else {
-                          toast.error('Failed to create translation')
-                        }
-                      }}
-                    >
-                      Create Translation
-                    </button>
-                  )}
-                </div>
-                {uiConfig?.hasPermalinks !== false && (
-                  <button
-                    className="w-full px-4 py-2 text-sm border border-border rounded-lg hover:bg-backdrop-medium text-neutral-medium"
-                    onClick={() => {
-                      const base = (post as any).publicPath || `/posts/${post.slug}`
-                      const target = viewMode === 'review' ? `${base}${base.includes('?') ? '&' : '?'}view=review` : base
-                      window.open(target, '_blank')
-                    }}
-                    type="button"
-                  >
-                    View on Site
-                  </button>
-                )}
-
-                {/* Draft Actions - Compact section for Save for Review/AI Review */}
-                {viewMode === 'source' && (canSaveForReview || canSaveForAiReview) && (
-                  <div className="space-y-1">
-                    <div className="text-xs font-medium text-neutral-low px-1">Save as Draft</div>
-                    <div className="grid grid-cols-2 gap-2">
-                      {canSaveForReview && (
-                        <button
-                          className="px-3 py-1.5 text-xs border border-border rounded hover:bg-backdrop-medium text-neutral-medium disabled:opacity-50"
-                          disabled={!isDirty || processing}
-                          onClick={async () => {
-                            await commitPendingModules('review')
-                            await saveForReview()
-                          }}
-                          type="button"
-                          title="Save changes to Review draft without publishing"
-                        >
-                          Review
-                        </button>
-                      )}
-                      {canSaveForAiReview && (
-                        <button
-                          className="px-3 py-1.5 text-xs border border-border rounded hover:bg-backdrop-medium text-neutral-medium disabled:opacity-50"
-                          disabled={!isDirty || processing}
-                          onClick={async () => {
-                            await commitPendingModules('ai-review')
-                            const res = await fetch(`/api/posts/${post.id}`, {
-                              method: 'PUT',
-                              headers: {
-                                'Accept': 'application/json',
-                                'Content-Type': 'application/json',
-                                ...xsrfHeader(),
-                              },
-                              credentials: 'same-origin',
-                              body: JSON.stringify({ ...pickForm(data), mode: 'ai-review' }),
-                            })
-                            if (res.ok) {
-                              toast.success('Saved for AI review')
-                            } else {
-                              toast.error('Failed to save for AI review')
-                            }
-                          }}
-                          type="button"
-                          title="Save changes to AI Review draft without publishing"
-                        >
-                          AI Review
-                        </button>
-                      )}
-                    </div>
-                  </div>
-                )}
-
-                {/* Main save button - conditionally shown based on mode and permissions */}
-                {((viewMode === 'review' && canSaveForReview) || (viewMode === 'ai-review' && canSaveForAiReview) || viewMode === 'source') && (
-                  <button
-                    className={`w-full px-4 py-2.5 text-sm rounded-lg disabled:opacity-50 ${(!isDirty || processing) ? 'border border-border text-neutral-medium' : 'bg-standout text-on-standout font-medium'}`}
-                    disabled={!isDirty || processing}
-                    onClick={async () => {
-                      if (viewMode === 'review') {
-                        await createPendingNewModules('review')
-                        await commitPendingModules('review')
-                        await saveForReview()
-                      } else if (viewMode === 'ai-review') {
-                        await createPendingNewModules('ai-review')
-                        await commitPendingModules('ai-review')
-                        const res = await fetch(`/api/posts/${post.id}`, {
-                          method: 'PUT',
-                          headers: {
-                            'Accept': 'application/json',
-                            'Content-Type': 'application/json',
-                            ...xsrfHeader(),
-                          },
-                          credentials: 'same-origin',
-                          body: JSON.stringify({ ...pickForm(data), mode: 'ai-review' }),
-                        })
-                        if (res.ok) {
-                          toast.success('AI review updated')
-                        } else {
-                          toast.error('Failed to update AI review')
-                        }
-                      } else {
-                        try {
-                          // Create any new modules first
-                          await createPendingNewModules('publish')
-                          // Then commit edits to existing modules
-                          await commitPendingModules('publish')
-                          // Save module order if it changed (filter out temp modules)
-                          if (hasStructuralChanges) {
-                            const persistedModules = modules.filter(m => !m.id.startsWith('temp-'))
-                            await persistOrder(persistedModules)
+                        onClick={async () => {
+                          // Destructive confirmation when saving to a different Active Version that already exists.
+                          const targetExists =
+                            saveTarget === 'source'
+                              ? true
+                              : Boolean(hasReviewBaseline)
+                          const isCrossVersion = saveTarget !== viewMode
+                          if (isCrossVersion && targetExists) {
+                            setPendingSaveTarget(saveTarget)
+                            setSaveConfirmOpen(true)
+                            return
                           }
-                          // Finally save post fields (this triggers page refresh)
-                          put(`/api/posts/${post.id}`, {
-                            headers: xsrfHeader(),
-                            preserveScroll: true,
-                            onSuccess: () => {
-                              toast.success('Changes saved')
-                              initialDataRef.current = pickForm(data)
-                              // Clear structural changes flag after successful publish
-                              setHasStructuralChanges(false)
-                            },
-                            onError: () => toast.error('Failed to save changes'),
-                          })
-                        } catch (error) {
-                          console.error('Save error:', error)
-                          toast.error('Failed to save changes')
-                        }
-                      }
-                    }}
-                    type="button"
-                  >
-                    {viewMode === 'ai-review' ? 'Save for AI Review' : (viewMode === 'review' ? 'Save for Review' : (data.status === 'published' ? 'Publish Changes' : 'Save Changes'))}
-                  </button>
+                          await executeSave(saveTarget)
+                        }}
+                      >
+                        {saveTarget === 'source'
+                          ? (data.status === 'published' ? 'Publish' : 'Save')
+                          : 'Save'}
+                      </button>
+                    </div>
+                    {saveTarget === 'review' && !canSaveForReview && (
+                      <p className="text-xs text-neutral-low">
+                        You don’t have permission to save to Review.
+                      </p>
+                    )}
+                  </div>
                 )}
-                {aiReviewDraft && (
-                  <button
-                    className="w-full px-4 py-2 text-sm border border-border rounded-lg hover:bg-backdrop-medium text-neutral-medium"
-                    onClick={async () => {
-                      const res = await fetch(`/api/posts/${post.id}`, {
-                        method: 'PUT',
-                        headers: {
-                          'Accept': 'application/json',
-                          'Content-Type': 'application/json',
-                          ...xsrfHeader(),
-                        },
-                        credentials: 'same-origin',
-                        body: JSON.stringify({ mode: 'approve-ai-review' }),
-                      })
-                      if (res.ok) {
-                        toast.success('AI review approved and moved to Review')
-                        setViewMode('review')
-                        window.location.reload()
-                      } else {
-                        const err = await res.json().catch(() => null)
-                        console.error('Approve AI Review failed:', res.status, err)
-                        toast.error(err?.errors ? 'Failed to approve AI review (validation)' : 'Failed to approve AI review')
-                      }
-                    }}
-                    type="button"
-                  >
-                    Approve AI Review
-                  </button>
+
+                {viewMode === 'ai-review' && (
+                  <p className="text-xs text-neutral-low">
+                    AI Review is agent-only. Humans can promote it to Review or reject it.
+                  </p>
                 )}
-                {reviewInitialRef.current && (
-                  <button
-                    className="w-full px-4 py-2 text-sm border border-border rounded-lg hover:bg-backdrop-medium text-neutral-medium"
-                    onClick={async () => {
-                      const res = await fetch(`/api/posts/${post.id}`, {
-                        method: 'PUT',
-                        headers: {
-                          'Accept': 'application/json',
-                          'Content-Type': 'application/json',
-                          ...xsrfHeader(),
-                        },
-                        credentials: 'same-origin',
-                        body: JSON.stringify({ mode: 'approve' }),
-                      })
-                      if (res.ok) {
-                        toast.success('Review approved')
-                        // Adopt the review values as the new source baseline
-                        const adopted = reviewInitialRef.current ? reviewInitialRef.current : pickForm(data)
-                        initialDataRef.current = adopted as any
-                        reviewInitialRef.current = null
-                        setViewMode('source')
-                      } else {
-                        const err = await res.json().catch(() => null)
-                        console.error('Approve Review failed:', res.status, err)
-                        toast.error(err?.errors ? 'Failed to approve review (validation)' : 'Failed to approve review')
-                      }
-                    }}
-                    type="button"
-                  >
-                    Approve Review
-                  </button>
+
+                {/* Approve/Reject decision (RadioGroup) */}
+                {viewMode !== 'source' && ((
+                  (hasAiReviewBaseline && canApproveAiReview) ||
+                  (hasReviewBaseline && canApproveReview)
+                )) && (
+                  <div className="space-y-2">
+                    <label className="block text-xs font-medium text-neutral-medium">
+                      Decision
+                    </label>
+                    <RadioGroup
+                      value={decision}
+                      onValueChange={(val) => setDecision(val as any)}
+                      className="space-y-2"
+                    >
+                      {hasReviewBaseline && canApproveReview && (
+                        <label className="flex items-center gap-2 text-xs text-neutral-high">
+                          <RadioGroupItem value="approve-review-to-source" />
+                          <span>Promote to Source</span>
+                        </label>
+                      )}
+                      {hasAiReviewBaseline && canApproveAiReview && viewMode === 'ai-review' && (
+                        <label className="flex items-center gap-2 text-xs text-neutral-high">
+                          <RadioGroupItem value="approve-ai-review-to-review" />
+                          <span>Promote to Review</span>
+                        </label>
+                      )}
+                      {hasReviewBaseline && canApproveReview && viewMode === 'review' && (
+                        <label className="flex items-center gap-2 text-xs text-neutral-high">
+                          <RadioGroupItem value="reject-review" />
+                          <span>Reject this version</span>
+                        </label>
+                      )}
+                      {hasAiReviewBaseline && canApproveAiReview && viewMode === 'ai-review' && (
+                        <label className="flex items-center gap-2 text-xs text-neutral-high">
+                          <RadioGroupItem value="reject-ai-review" />
+                          <span>Reject this version</span>
+                        </label>
+                      )}
+                    </RadioGroup>
+
+                    <div className="mt-2 flex items-center gap-2">
+                      <button
+                        type="button"
+                        className="h-8 px-3 text-xs border border-border rounded-lg hover:bg-backdrop-medium text-neutral-medium disabled:opacity-50"
+                        disabled={!decision || processing}
+                        onClick={async () => {
+                          if (!decision) return
+                          if (decision.startsWith('reject-')) {
+                            setRejectConfirmOpen(true)
+                            return
+                          }
+                          setApproveConfirmOpen(true)
+                        }}
+                      >
+                        {decision.startsWith('reject-') ? 'Reject' : 'Approve'}
+                      </button>
+                    </div>
+
+                    <AlertDialog open={approveConfirmOpen} onOpenChange={setApproveConfirmOpen}>
+                      <AlertDialogContent>
+                        <AlertDialogHeader>
+                          <AlertDialogTitle>Approve changes?</AlertDialogTitle>
+                          <AlertDialogDescription>
+                            {decision === 'approve-ai-review-to-review'
+                              ? 'This will promote AI Review into Review (and clear AI Review staging).'
+                              : 'This will promote Review into Source (and clear the Review draft).'}
+                          </AlertDialogDescription>
+                        </AlertDialogHeader>
+                        <AlertDialogFooter>
+                          <AlertDialogCancel>Cancel</AlertDialogCancel>
+                          <AlertDialogAction
+                            onClick={async () => {
+                              setApproveConfirmOpen(false)
+                              const mode =
+                                decision === 'approve-ai-review-to-review' ? 'approve-ai-review' : 'approve'
+                              await executeApprove(mode)
+                            }}
+                          >
+                            Approve
+                          </AlertDialogAction>
+                        </AlertDialogFooter>
+                      </AlertDialogContent>
+                    </AlertDialog>
+
+                    <AlertDialog open={rejectConfirmOpen} onOpenChange={setRejectConfirmOpen}>
+                      <AlertDialogContent>
+                        <AlertDialogHeader>
+                          <AlertDialogTitle>Reject this version?</AlertDialogTitle>
+                          <AlertDialogDescription>
+                            This will remove the selected draft/staging version. A revision will be recorded so you can revert.
+                          </AlertDialogDescription>
+                        </AlertDialogHeader>
+                        <AlertDialogFooter>
+                          <AlertDialogCancel>Cancel</AlertDialogCancel>
+                          <AlertDialogAction
+                            onClick={async () => {
+                              if (!decision || !decision.startsWith('reject-')) return
+                              const mode = decision === 'reject-ai-review' ? 'reject-ai-review' : 'reject-review'
+                              const res = await fetch(`/api/posts/${post.id}`, {
+                                method: 'PUT',
+                                headers: {
+                                  'Accept': 'application/json',
+                                  'Content-Type': 'application/json',
+                                  ...xsrfHeader(),
+                                },
+                                credentials: 'same-origin',
+                                body: JSON.stringify({ mode }),
+                              })
+                              if (res.ok) {
+                                toast.success(mode === 'reject-ai-review' ? 'AI Review discarded' : 'Review discarded')
+                                setRejectConfirmOpen(false)
+                                window.location.reload()
+                              } else {
+                                const err = await res.json().catch(() => null)
+                                console.error('Reject failed:', res.status, err)
+                                toast.error(err?.errors ? 'Failed (validation)' : 'Failed')
+                              }
+                            }}
+                          >
+                            Reject
+                          </AlertDialogAction>
+                        </AlertDialogFooter>
+                      </AlertDialogContent>
+                    </AlertDialog>
+                  </div>
                 )}
+
+                <AlertDialog open={saveConfirmOpen} onOpenChange={setSaveConfirmOpen}>
+                  <AlertDialogContent>
+                    <AlertDialogHeader>
+                      <AlertDialogTitle>Overwrite existing version?</AlertDialogTitle>
+                      <AlertDialogDescription>
+                        {pendingSaveTarget === 'review'
+                          ? 'A Review draft already exists. Saving from a different Active Version will overwrite it.'
+                          : 'You are saving from a different Active Version. This will overwrite Source content.'}
+                      </AlertDialogDescription>
+                    </AlertDialogHeader>
+                    <AlertDialogFooter>
+                      <AlertDialogCancel
+                        onClick={() => {
+                          setSaveConfirmOpen(false)
+                          setPendingSaveTarget(null)
+                        }}
+                      >
+                        Cancel
+                      </AlertDialogCancel>
+                      <AlertDialogAction
+                        onClick={async () => {
+                          const target = pendingSaveTarget
+                          setSaveConfirmOpen(false)
+                          setPendingSaveTarget(null)
+                          if (!target) return
+                          await executeSave(target)
+                        }}
+                      >
+                        Continue
+                      </AlertDialogAction>
+                    </AlertDialogFooter>
+                  </AlertDialogContent>
+                </AlertDialog>
                 {/* Unpublish action handled by changing status to draft and saving */}
               </div>
-            </div>
-
-            {/* Post Details */}
-            <div className="bg-backdrop-low rounded-lg shadow p-6 border border-border">
-              <h3 className="text-sm font-semibold text-neutral-high mb-4">
-                Post Details
-              </h3>
-              <dl className="space-y-3 text-sm">
-                <div>
-                  <dt className="text-neutral-low">Status</dt>
-                  <dd className="font-medium text-neutral-high capitalize">
-                    {data.status}
-                  </dd>
-                </div>
-                <div>
-                  <dt className="text-neutral-low">Type</dt>
-                  <dd className="font-medium text-neutral-high">{post.type}</dd>
-                </div>
-                <div>
-                  <dt className="text-neutral-low">Locale</dt>
-                  <dd className="font-medium text-neutral-high">{post.locale}</dd>
-                </div>
-                <div>
-                  <dt className="text-neutral-low">ID</dt>
-                  <dd className="font-mono text-xs text-neutral-medium break-all">
-                    {post.id}
-                  </dd>
-                </div>
-                <div>
-                  <dt className="text-neutral-low">Created</dt>
-                  <dd className="font-medium text-neutral-high">
-                    {new Date(post.createdAt).toLocaleString()}
-                  </dd>
-                </div>
-                <div>
-                  <dt className="text-neutral-low">Updated</dt>
-                  <dd className="font-medium text-neutral-high">
-                    {new Date(post.updatedAt).toLocaleString()}
-                  </dd>
-                </div>
-              </dl>
             </div>
 
             {/* Author (Admin) */}
@@ -2308,8 +2551,11 @@ export default function Editor({
                       <div className="flex flex-col">
                         <span className="text-neutral-high">
                           {new Date(r.createdAt).toLocaleString()}
-                          <Badge className="ml-2" variant={r.mode === 'review' ? 'secondary' : 'default'}>
-                            {r.mode === 'review' ? 'Review' : 'Source'}
+                          <Badge
+                            className="ml-2"
+                            variant={r.mode === 'review' ? 'secondary' : r.mode === 'ai-review' ? 'outline' : 'default'}
+                          >
+                            {r.mode === 'review' ? 'Review' : r.mode === 'ai-review' ? 'AI Review' : 'Source'}
                           </Badge>
                         </span>
                         {r.user?.email ? <span className="text-xs text-neutral-low">{r.user.email}</span> : null}
@@ -2411,6 +2657,47 @@ export default function Editor({
                 </div>
               </div>
             )}
+
+            {/* Post Details */}
+            <div className="bg-backdrop-low rounded-lg shadow p-6 border border-border">
+              <h3 className="text-sm font-semibold text-neutral-high mb-4">
+                Post Details
+              </h3>
+              <dl className="space-y-3 text-sm">
+                <div>
+                  <dt className="text-neutral-low">Status</dt>
+                  <dd className="font-medium text-neutral-high capitalize">
+                    {data.status}
+                  </dd>
+                </div>
+                <div>
+                  <dt className="text-neutral-low">Type</dt>
+                  <dd className="font-medium text-neutral-high">{post.type}</dd>
+                </div>
+                <div>
+                  <dt className="text-neutral-low">Locale</dt>
+                  <dd className="font-medium text-neutral-high">{post.locale}</dd>
+                </div>
+                <div>
+                  <dt className="text-neutral-low">ID</dt>
+                  <dd className="font-mono text-xs text-neutral-medium break-all">
+                    {post.id}
+                  </dd>
+                </div>
+                <div>
+                  <dt className="text-neutral-low">Created</dt>
+                  <dd className="font-medium text-neutral-high">
+                    {new Date(post.createdAt).toLocaleString()}
+                  </dd>
+                </div>
+                <div>
+                  <dt className="text-neutral-low">Updated</dt>
+                  <dd className="font-medium text-neutral-high">
+                    {new Date(post.updatedAt).toLocaleString()}
+                  </dd>
+                </div>
+              </dl>
+            </div>
           </div>
         </div>
       </main>
