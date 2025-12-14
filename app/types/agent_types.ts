@@ -35,6 +35,11 @@ export type AgentScope =
 export type AIProvider = 'openai' | 'anthropic' | 'google' | 'nanobanana'
 
 /**
+ * AI Provider type
+ */
+export type AIProvider = 'openai' | 'anthropic' | 'google'
+
+/**
  * Configuration for internal (AI service-based) agents
  */
 export interface InternalAgentConfig {
@@ -85,7 +90,11 @@ export interface InternalAgentConfig {
      */
     stop?: string[]
 
+<<<<<<< HEAD
     /**
+  =======
+      /**
+  >>>>>>> 53203a7 (Add internal AI Agent integration)
        * Additional provider-specific options
        */
     [key: string]: any
@@ -259,6 +268,7 @@ export interface AgentDefinition {
    * Optional reactions to execute after agent execution
    */
   reactions?: AgentReaction[]
+<<<<<<< HEAD
 
   /**
    * Optional style guide for media generation
@@ -311,6 +321,8 @@ export interface AgentDefinition {
      */
     notes?: string
   }
+=======
+>>>>>>> 53203a7 (Add internal AI Agent integration)
 }
 
 /**

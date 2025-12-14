@@ -1,6 +1,7 @@
 import { Client } from '@modelcontextprotocol/sdk/client/index.js'
 import { StdioClientTransport } from '@modelcontextprotocol/sdk/client/stdio.js'
 import env from '#start/env'
+<<<<<<< HEAD
 import CreatePost from '#actions/posts/create_post'
 import { getUserIdForAgent } from '#services/agent_user_service'
 import { markdownToLexical } from '#helpers/markdown_to_lexical'
@@ -12,6 +13,8 @@ import fs from 'node:fs/promises'
 import crypto from 'node:crypto'
 import storageService from '#services/storage_service'
 import mediaService from '#services/media_service'
+=======
+>>>>>>> 53203a7 (Add internal AI Agent integration)
 
 /**
  * MCP Client Service
@@ -60,6 +63,7 @@ class MCPClientService {
       { name: 'update_post_module_ai_review', description: 'Update a post module' },
       { name: 'remove_post_module_ai_review', description: 'Remove a post module' },
       { name: 'suggest_modules_for_layout', description: 'Suggest modules for a page layout' },
+<<<<<<< HEAD
       {
         name: 'search_media',
         description:
@@ -70,11 +74,14 @@ class MCPClientService {
         description:
           'Generate an image using DALL-E (OpenAI) and add it to the media library. Returns media ID and URL. Requires AI_PROVIDER_OPENAI_API_KEY. Only use this if the user explicitly asks to generate/create a new image, or if no suitable existing image is found via search_media.',
       },
+=======
+>>>>>>> 53203a7 (Add internal AI Agent integration)
     ]
   }
 
   /**
    * Call an MCP tool
+<<<<<<< HEAD
    * For internal agents, this directly calls the underlying actions/tools
    */
   async callTool(toolName: string, params: Record<string, any>, agentId?: string): Promise<any> {
@@ -687,6 +694,27 @@ class MCPClientService {
       .replace(/`(.+?)`/g, '$1')
       .replace(/\[(.+?)\]\(.+?\)/g, '$1')
       .trim()
+=======
+   * For internal agents, this can directly call the MCP server functions
+   */
+  async callTool(toolName: string, params: Record<string, any>): Promise<any> {
+    // For internal agents, we can directly import and call the MCP tool handlers
+    // This avoids the overhead of HTTP/SSE communication
+
+    // Import the MCP serve command to access tool implementations
+    // Note: This is a simplified approach. In production, you might want to
+    // extract tool handlers into a shared module.
+
+    // For now, return a placeholder
+    // In a full implementation, this would:
+    // 1. Look up the tool handler
+    // 2. Execute it with the provided params
+    // 3. Return the result
+
+    throw new Error(
+      `MCP tool execution not yet fully implemented. Tool: ${toolName}, Params: ${JSON.stringify(params)}`
+    )
+>>>>>>> 53203a7 (Add internal AI Agent integration)
   }
 
   /**

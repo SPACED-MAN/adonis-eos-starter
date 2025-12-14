@@ -16,7 +16,13 @@ Agents are file-based definitions that can:
 
 ### Internal Agents (AI-Powered)
 
+<<<<<<< HEAD
 In-process AI agents that use AI providers directly (OpenAI, Anthropic, Google, Nano Banana) without external webhooks. These agents:
+=======
+### Internal Agents
+
+In-process AI agents that use AI providers directly (OpenAI, Anthropic, Google) without external webhooks. These agents:
+>>>>>>> 53203a7 (Add internal AI Agent integration)
 
 - **Run directly in your application** - No external service required
 - **Model-agnostic** - Switch between OpenAI, Anthropic, and Google easily
@@ -104,11 +110,16 @@ AI_PROVIDER_OPENAI_API_KEY=sk-...
 # Anthropic
 AI_PROVIDER_ANTHROPIC_API_KEY=sk-ant-...
 
+<<<<<<< HEAD
 # Google (Gemini)
 AI_PROVIDER_GOOGLE_API_KEY=...
 
 # Nano Banana (Gemini Pro API via Nano Banana service)
 AI_PROVIDER_NANOBANANA_API_KEY=your-nanobanana-api-key
+=======
+# Google
+AI_PROVIDER_GOOGLE_API_KEY=...
+>>>>>>> 53203a7 (Add internal AI Agent integration)
 ```
 
 ### Supported Providers and Models
@@ -125,11 +136,14 @@ AI_PROVIDER_NANOBANANA_API_KEY=your-nanobanana-api-key
 - Models: `gemini-pro`, `gemini-pro-vision`
 - API Key: `AI_PROVIDER_GOOGLE_API_KEY`
 
+<<<<<<< HEAD
 #### Nano Banana (Gemini Pro)
 - Models: `gemini-pro`
 - API Key: `AI_PROVIDER_NANOBANANA_API_KEY`
 - Description: Provides access to Gemini Pro API via Nano Banana service
 
+=======
+>>>>>>> 53203a7 (Add internal AI Agent integration)
 ### MCP Integration
 
 Internal agents can use MCP tools to interact with the CMS:
@@ -151,6 +165,7 @@ When `useMCP: true`, the agent can:
 - Add/update modules
 - Use layout planning tools
 
+<<<<<<< HEAD
 #### MCP Tool RBAC (Role-Based Access Control)
 
 **Security Feature**: Agents can be restricted to specific MCP tools using the `allowedMCPTools` configuration. This ensures agents only have access to the tools they need for their specific purpose.
@@ -271,6 +286,8 @@ internal: {
 - Unauthorized tool calls return an error in the tool results
 - The AI is only informed about tools it has access to, reducing the chance of attempting unauthorized calls
 
+=======
+>>>>>>> 53203a7 (Add internal AI Agent integration)
 ### Reactions
 
 Reactions execute after agent completion. Supported types:
@@ -366,7 +383,11 @@ This creates `app/agents/seo_optimizer.ts`.
 
 ### 2. Define Agent Configuration
 
+<<<<<<< HEAD
 Agents are now internal-only (AI-powered). For webhook-based automation, see the [Workflows documentation](/docs/developers/workflows).
+=======
+#### External Agent
+>>>>>>> 53203a7 (Add internal AI Agent integration)
 
 ```typescript
 import type { AgentDefinition } from '#types/agent_types'
@@ -405,7 +426,39 @@ const SeoOptimizerAgent: AgentDefinition = {
 export default SeoOptimizerAgent
 ```
 
+#### Internal Agent
+
+```typescript
+import type { AgentDefinition } from '#types/agent_types'
+
+const SeoOptimizerAgent: AgentDefinition = {
+  id: 'seo-optimizer',
+  name: 'SEO Optimizer',
+  description: 'Automatically generates and optimizes SEO metadata',
+  type: 'internal',
+  enabled: true,
+
+  internal: {
+    provider: 'openai',
+    model: 'gpt-4',
+    systemPrompt: 'You are an SEO expert. Optimize metadata for better search rankings.',
+    options: {
+      temperature: 0.7,
+      maxTokens: 1000,
+    },
+  },
+
+  scopes: [
+    { scope: 'dropdown', order: 20, enabled: true },
+  ],
+}
+
+export default SeoOptimizerAgent
+```
+
 ### 3. Configure Environment
+
+#### External Agent Environment
 
 ```env
 # .env
@@ -417,6 +470,21 @@ AI_PROVIDER_ANTHROPIC_API_KEY=sk-ant-...
 AI_PROVIDER_GOOGLE_API_KEY=...
 # OR
 AI_PROVIDER_NANOBANANA_API_KEY=your-nanobanana-api-key
+
+# Optional: Slack webhook for reactions
+SLACK_WEBHOOK_URL=https://hooks.slack.com/services/...
+```
+
+#### Internal Agent Environment
+
+```env
+# .env
+# Set API key for your chosen provider
+AI_PROVIDER_OPENAI_API_KEY=sk-...
+# OR
+AI_PROVIDER_ANTHROPIC_API_KEY=sk-ant-...
+# OR
+AI_PROVIDER_GOOGLE_API_KEY=...
 
 # Optional: Slack webhook for reactions
 SLACK_WEBHOOK_URL=https://hooks.slack.com/services/...
@@ -871,6 +939,14 @@ export default SeoAgent
 5. **Order execution**: Use `order` field for dependent agents
 6. **Scope appropriately**: Don't auto-run destructive agents
 
+<<<<<<< HEAD
+=======
+### External Agents
+1. **Test in development**: Use `devUrl` for local testing
+2. **Secure webhooks**: Always verify signatures
+3. **Handle network errors**: Implement retry logic for transient failures
+
+>>>>>>> 53203a7 (Add internal AI Agent integration)
 ### Internal Agents
 1. **Choose the right provider**: OpenAI for general tasks, Anthropic for complex reasoning, Google for multimodal
 2. **Optimize prompts**: Clear system prompts improve results

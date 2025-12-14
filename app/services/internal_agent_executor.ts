@@ -30,7 +30,11 @@ class InternalAgentExecutor {
 
     try {
       // 1. Build messages from context and payload
+<<<<<<< HEAD
       const messages = await this.buildMessages(agent, context, payload)
+=======
+      const messages = this.buildMessages(agent, context, payload)
+>>>>>>> 53203a7 (Add internal AI Agent integration)
 
       // 2. Get AI provider configuration
       const aiConfig = this.getAIConfig(agent.internal)
@@ -113,6 +117,7 @@ class InternalAgentExecutor {
         }
       }
 
+<<<<<<< HEAD
       // Extract summary if present (for natural language display) - do this BEFORE logging
       // so we can see if summary was found
       let summary = parsedResult.summary || null
@@ -121,6 +126,8 @@ class InternalAgentExecutor {
         delete parsedResult.summary
       }
 
+=======
+>>>>>>> 53203a7 (Add internal AI Agent integration)
       // Log parsed result for debugging
       console.log('AI Parsed Result:', {
         agentId: agent.id,
@@ -129,10 +136,22 @@ class InternalAgentExecutor {
         postKeys: parsedResult.post ? Object.keys(parsedResult.post) : [],
         hasModules: !!parsedResult.modules,
         modulesCount: parsedResult.modules?.length || 0,
+<<<<<<< HEAD
         hasSummary: !!summary,
         summary: summary?.substring(0, 100),
       })
 
+=======
+      })
+
+      // Extract summary if present (for natural language display)
+      const summary = parsedResult.summary || null
+      if (summary) {
+        // Remove summary from parsedResult so it doesn't interfere with data processing
+        delete parsedResult.summary
+      }
+
+>>>>>>> 53203a7 (Add internal AI Agent integration)
       // 7. Execute reactions
       const result = {
         success: true,
@@ -174,22 +193,35 @@ class InternalAgentExecutor {
   /**
    * Build messages for AI completion
    */
+<<<<<<< HEAD
   private async buildMessages(
     agent: AgentDefinition,
     context: AgentExecutionContext,
     payload: any
   ): Promise<AIMessage[]> {
+=======
+  private buildMessages(
+    agent: AgentDefinition,
+    context: AgentExecutionContext,
+    payload: any
+  ): AIMessage[] {
+>>>>>>> 53203a7 (Add internal AI Agent integration)
     const messages: AIMessage[] = []
 
     // System prompt
     if (agent.internal?.systemPrompt) {
+<<<<<<< HEAD
       let systemPrompt = this.interpolateTemplate(agent.internal.systemPrompt, {
+=======
+      const systemPrompt = this.interpolateTemplate(agent.internal.systemPrompt, {
+>>>>>>> 53203a7 (Add internal AI Agent integration)
         agent: agent.name,
         scope: context.scope,
         ...context.data,
         ...payload,
       })
 
+<<<<<<< HEAD
       // Add style guide for media generation if configured
       if (agent.styleGuide) {
         const styleGuideText = [
@@ -222,6 +254,8 @@ class InternalAgentExecutor {
         systemPrompt += `\n\n${writingStyleText}\n\nWhen writing or editing text content, follow the writing style preferences above.`
       }
 
+=======
+>>>>>>> 53203a7 (Add internal AI Agent integration)
       // Add format instructions to ensure proper JSON response
       const formatInstructions = `
 
@@ -278,7 +312,11 @@ Only include fields that you are actually changing.`,
     }
 
     // User message with context
+<<<<<<< HEAD
     const userMessage = await this.buildUserMessage(agent, context, payload)
+=======
+    const userMessage = this.buildUserMessage(agent, context, payload)
+>>>>>>> 53203a7 (Add internal AI Agent integration)
     messages.push({
       role: 'user',
       content: userMessage,
@@ -290,11 +328,19 @@ Only include fields that you are actually changing.`,
   /**
    * Build user message from context
    */
+<<<<<<< HEAD
   private async buildUserMessage(
     agent: AgentDefinition,
     context: AgentExecutionContext,
     payload: any
   ): Promise<string> {
+=======
+  private buildUserMessage(
+    agent: AgentDefinition,
+    context: AgentExecutionContext,
+    payload: any
+  ): string {
+>>>>>>> 53203a7 (Add internal AI Agent integration)
     const parts: string[] = []
 
     // Add scope-specific context
@@ -302,10 +348,13 @@ Only include fields that you are actually changing.`,
       case 'dropdown':
         parts.push('Manual execution requested by user.')
         break
+<<<<<<< HEAD
       case 'global':
         parts.push('Global execution - you can create new posts or work with general content.')
         parts.push('If the user asks you to create a post, use the create_post_ai_review tool.')
         break
+=======
+>>>>>>> 53203a7 (Add internal AI Agent integration)
       case 'post.publish':
         parts.push('Post has been published.')
         break
@@ -360,6 +409,7 @@ Only include fields that you are actually changing.`,
 
     // Add MCP tools info if enabled
     if (agent.internal?.useMCP) {
+<<<<<<< HEAD
       const availableTools = await mcpClientService.listTools()
       const allowedTools = agent.internal?.allowedMCPTools && agent.internal.allowedMCPTools.length > 0
         ? availableTools.filter((t) => agent.internal?.allowedMCPTools?.includes(t.name))
@@ -371,6 +421,10 @@ Only include fields that you are actually changing.`,
       }
       parts.push(
         '\nTo use a tool, include a "tool_calls" array in your JSON response with tool name and params.'
+=======
+      parts.push(
+        '\n\nYou have access to MCP tools. You can use them by responding with JSON containing tool calls.'
+>>>>>>> 53203a7 (Add internal AI Agent integration)
       )
     }
 
@@ -420,7 +474,11 @@ Only include fields that you are actually changing.`,
 
   /**
    * Execute agent with MCP tool support
+<<<<<<< HEAD
    * Parses tool calls from AI response, executes them, and returns the final result
+=======
+   * This is a simplified version - in a full implementation, you'd parse tool calls from AI response
+>>>>>>> 53203a7 (Add internal AI Agent integration)
    */
   private async executeWithMCP(
     agent: AgentDefinition,
@@ -429,6 +487,7 @@ Only include fields that you are actually changing.`,
     context: AgentExecutionContext,
     payload: any
   ): Promise<string> {
+<<<<<<< HEAD
     try {
       // Try to parse the AI response as JSON to look for tool calls
       let parsed: any
@@ -633,6 +692,29 @@ Only include fields that you are actually changing.`,
       // On error, return the original response
       return aiResponse
     }
+=======
+    // For now, return the AI response as-is
+    // In a full implementation, you would:
+    // 1. Parse AI response for tool calls (JSON format)
+    // 2. Execute MCP tools
+    // 3. Feed results back to AI for final response
+    // 4. Return combined result
+
+    // Check if response contains tool call indicators
+    // This is a placeholder - you'd implement proper tool call parsing
+    if (agent.internal?.allowedMCPTools && agent.internal.allowedMCPTools.length > 0) {
+      // Filter available tools
+      const availableTools = await mcpClientService.listTools()
+      const allowedTools = availableTools.filter((t) =>
+        agent.internal?.allowedMCPTools?.includes(t.name)
+      )
+
+      // Add tool descriptions to context for AI
+      // In a full implementation, you'd add this to the system prompt
+    }
+
+    return aiResponse
+>>>>>>> 53203a7 (Add internal AI Agent integration)
   }
 
   /**

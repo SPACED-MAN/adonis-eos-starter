@@ -630,10 +630,12 @@ async function executeSave(target: 'source' | 'review' | 'ai-review') {
         taxonomyTermIds: data.taxonomyTermIds,
       }
 
+
       console.log('[Editor] Sending cleaned data:', {
         canonicalUrl: cleanedData.canonicalUrl,
         canonicalUrlType: typeof cleanedData.canonicalUrl,
       })
+
 
       // Use fetch directly to have full control over the request.
       // NOTE: We force an absolute URL + manual redirect handling because a redirect (often due to CSRF/auth)
@@ -657,6 +659,7 @@ async function executeSave(target: 'source' | 'review' | 'ai-review') {
         credentials: 'same-origin',
         body: JSON.stringify(cleanedData),
       })
+
 
       if (res.ok) {
         toast.success('Saved to Source')
@@ -862,6 +865,7 @@ async function executeSave(target: 'source' | 'review' | 'ai-review') {
   }, [])
 
   // Switch between Published view, Review view, and AI Review view
+<<<<<<< HEAD
   // Update aiReviewInitialRef when aiReviewDraft changes (e.g., after agent run)
   useEffect(() => {
     if (aiReviewDraft) {
@@ -889,6 +893,8 @@ async function executeSave(target: 'source' | 'review' | 'ai-review') {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [aiReviewDraft])
 
+=======
+>>>>>>> 53203a7 (Add internal AI Agent integration)
   useEffect(() => {
     if (viewMode === 'review' && reviewInitialRef.current) {
       // Load review draft into form
@@ -906,1493 +912,1516 @@ async function executeSave(target: 'source' | 'review' | 'ai-review') {
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [viewMode, aiReviewDraft])
+}, [viewMode, aiReviewDraft])
 
-  async function saveForReview() {
-    const payload = {
-      ...pickForm(data),
-      mode: 'review',
-      customFields: Array.isArray((data as any).customFields) ? (data as any).customFields : [],
-      reviewModuleRemovals: Array.from(pendingReviewRemoved),
+async function saveForReview() {
+  const payload = {
+    ...pickForm(data),
+    mode: 'review',
+    customFields: Array.isArray((data as any).customFields) ? (data as any).customFields : [],
+    reviewModuleRemovals: Array.from(pendingReviewRemoved),
+  }
+  const res = await fetch(`/api/posts/${post.id}`, {
+    method: 'PUT',
+    headers: {
+      'Accept': 'application/json',
+      'Content-Type': 'application/json',
+      ...xsrfHeader(),
+    },
+    credentials: 'same-origin',
+    body: JSON.stringify(payload),
+  })
+  if (res.ok) {
+    toast.success('Saved for review')
+    reviewInitialRef.current = pickForm(data)
+    setPendingReviewRemoved(new Set())
+    router.reload({ only: ['reviewDraft', 'post', 'modules'] })
+    router.reload({ only: ['reviewDraft', 'post', 'modules'] })
+  } else {
+    toast.error('Failed to save for review')
+  }
+}
+
+async function saveForAiReview() {
+  const payload = {
+    ...pickForm(data),
+    mode: 'ai-review',
+    customFields: Array.isArray((data as any).customFields) ? (data as any).customFields : [],
+    aiReviewModuleRemovals: Array.from(pendingAiReviewRemoved),
+  }
+  const res = await fetch(`/api/posts/${post.id}`, {
+    method: 'PUT',
+    headers: {
+      'Accept': 'application/json',
+      'Content-Type': 'application/json',
+      ...xsrfHeader(),
+    },
+    credentials: 'same-origin',
+    body: JSON.stringify(payload),
+  })
+  if (res.ok) {
+    toast.success('Saved for AI review')
+    aiReviewInitialRef.current = pickForm(data)
+    setPendingAiReviewRemoved(new Set())
+    // Update URL to preserve view mode on reload
+    const url = new URL(window.location.href)
+    url.searchParams.set('view', 'ai-review')
+    window.history.replaceState({}, '', url.toString())
+    router.reload({ only: ['aiReviewDraft', 'post', 'modules'] })
+  } else {
+    toast.error('Failed to save for AI review')
+  }
+}
+
+function buildPreviewPath(currentSlug: string): string | null {
+  if (!pathPattern) return null
+
+  // For hierarchical patterns with {path}, use the publicPath from backend
+  // because we need parent slugs which we don't have in the frontend
+  if (pathPattern.includes('{path}')) {
+    // If slug hasn't changed, use the publicPath directly
+    if (currentSlug === post.slug) {
+      return post.publicPath
     }
-    const res = await fetch(`/api/posts/${post.id}`, {
-      method: 'PUT',
-      headers: {
-        'Accept': 'application/json',
-        'Content-Type': 'application/json',
-        ...xsrfHeader(),
-      },
-      credentials: 'same-origin',
-      body: JSON.stringify(payload),
-    })
-    if (res.ok) {
-      toast.success('Saved for review')
-      reviewInitialRef.current = pickForm(data)
-      setPendingReviewRemoved(new Set())
-      router.reload({ only: ['reviewDraft', 'post', 'modules'] })
-      router.reload({ only: ['reviewDraft', 'post', 'modules'] })
-    } else {
-      toast.error('Failed to save for review')
-    }
+    // If slug changed, show the pattern with {path} token
+    // (actual path will be calculated on save)
+    return pathPattern.replace(/\{locale\}/g, post.locale)
   }
 
-  async function saveForAiReview() {
-    const payload = {
-      ...pickForm(data),
-      mode: 'ai-review',
-      customFields: Array.isArray((data as any).customFields) ? (data as any).customFields : [],
-      aiReviewModuleRemovals: Array.from(pendingAiReviewRemoved),
-    }
-    const res = await fetch(`/api/posts/${post.id}`, {
-      method: 'PUT',
-      headers: {
-        'Accept': 'application/json',
-        'Content-Type': 'application/json',
-        ...xsrfHeader(),
-      },
-      credentials: 'same-origin',
-      body: JSON.stringify(payload),
-    })
-    if (res.ok) {
-      toast.success('Saved for AI review')
-      aiReviewInitialRef.current = pickForm(data)
-      setPendingAiReviewRemoved(new Set())
-      // Update URL to preserve view mode on reload
-      const url = new URL(window.location.href)
-      url.searchParams.set('view', 'ai-review')
-      window.history.replaceState({}, '', url.toString())
-      router.reload({ only: ['aiReviewDraft', 'post', 'modules'] })
-    } else {
-      toast.error('Failed to save for AI review')
+  // For simple patterns with {slug}, build the preview
+  const d = new Date(post.createdAt)
+  const yyyy = String(d.getUTCFullYear())
+  const mm = String(d.getUTCMonth() + 1).padStart(2, '0')
+  const dd = String(d.getUTCDate()).padStart(2, '0')
+  let out = pathPattern
+  const encSlug = encodeURIComponent(currentSlug || '')
+  out = out.replace(/\{slug\}/g, encSlug).replace(/:slug\b/g, encSlug)
+  out = out.replace(/\{locale\}/g, post.locale).replace(/:locale\b/g, post.locale)
+  out = out.replace(/\{yyyy\}/g, yyyy).replace(/\{mm\}/g, mm).replace(/\{dd\}/g, dd)
+  if (!out.startsWith('/')) out = '/' + out
+  return out
+}
+
+// Overrides panel state
+const [editing, setEditing] = useState<ModuleListItem | null>(null)
+// Removed explicit savingOverrides state; handled via pendingModules flow
+const [revisions, setRevisions] = useState<
+  Array<{
+    id: string
+    mode: 'approved' | 'review' | 'ai-review'
+    createdAt: string
+    user?: { id?: number; email?: string }
+  }>
+>([])
+const [loadingRevisions, setLoadingRevisions] = useState(false)
+// Agents
+const [agents, setAgents] = useState<
+  Array<{
+    id: string
+    name: string
+    description?: string
+    openEndedContext?: { enabled: boolean; label?: string; placeholder?: string; maxChars?: number }
+  }>
+>([])
+const [selectedAgent, setSelectedAgent] = useState<string>('')
+const [runningAgent, setRunningAgent] = useState<boolean>(false)
+const [agentPromptOpen, setAgentPromptOpen] = useState(false)
+const [agentOpenEndedContext, setAgentOpenEndedContext] = useState('')
+const [agentResponse, setAgentResponse] = useState<{
+  rawResponse?: string
+  summary?: string | null
+  applied?: string[]
+  message?: string
+} | null>(null)
+<<<<<<< HEAD
+const [agentHistory, setAgentHistory] = useState<
+  Array<{
+    id: string
+    request: string | null
+    response: {
+      rawResponse?: string
+      summary?: string
+      applied?: string[]
+      [key: string]: any
+    } | null
+    createdAt: string
+    user: { id: number; email: string; fullName: string | null } | null
+  }>
+>([])
+const [loadingAgentHistory, setLoadingAgentHistory] = useState(false)
+const agentModalContentRef = useRef<HTMLDivElement | null>(null)
+=======
+>>>>>>> 53203a7 (Add internal AI Agent integration)
+// Author management (admin)
+const [users, setUsers] = useState<Array<{ id: number; email: string; fullName: string | null }>>([])
+const [selectedAuthorId, setSelectedAuthorId] = useState<number | null>(post.author?.id ?? null)
+// Media picker for custom fields
+const [openMediaForField, setOpenMediaForField] = useState<string | null>(null)
+// Field-scoped agents for Featured Image
+const [featuredImageFieldAgents, setFeaturedImageFieldAgents] = useState<Agent[]>([])
+const [featuredImageAgentModalOpen, setFeaturedImageAgentModalOpen] = useState(false)
+const [selectedFeaturedImageAgent, setSelectedFeaturedImageAgent] = useState<Agent | null>(null)
+// Debug removed
+
+useEffect(() => {
+  let alive = true
+  async function loadRevisions() {
+    try {
+      setLoadingRevisions(true)
+      const res = await fetch(`/api/posts/${post.id}/revisions?limit=10`, {
+        headers: { Accept: 'application/json' },
+        credentials: 'same-origin',
+      })
+      if (!res.ok) return
+      const json = await res.json().catch(() => null)
+      if (!json?.data) return
+      if (alive) setRevisions(json.data)
+    } finally {
+      if (alive) setLoadingRevisions(false)
     }
   }
+  loadRevisions()
+  return () => { alive = false }
+}, [post.id])
 
-  function buildPreviewPath(currentSlug: string): string | null {
-    if (!pathPattern) return null
-
-    // For hierarchical patterns with {path}, use the publicPath from backend
-    // because we need parent slugs which we don't have in the frontend
-    if (pathPattern.includes('{path}')) {
-      // If slug hasn't changed, use the publicPath directly
-      if (currentSlug === post.slug) {
-        return post.publicPath
-      }
-      // If slug changed, show the pattern with {path} token
-      // (actual path will be calculated on save)
-      return pathPattern.replace(/\{locale\}/g, post.locale)
-    }
-
-    // For simple patterns with {slug}, build the preview
-    const d = new Date(post.createdAt)
-    const yyyy = String(d.getUTCFullYear())
-    const mm = String(d.getUTCMonth() + 1).padStart(2, '0')
-    const dd = String(d.getUTCDate()).padStart(2, '0')
-    let out = pathPattern
-    const encSlug = encodeURIComponent(currentSlug || '')
-    out = out.replace(/\{slug\}/g, encSlug).replace(/:slug\b/g, encSlug)
-    out = out.replace(/\{locale\}/g, post.locale).replace(/:locale\b/g, post.locale)
-    out = out.replace(/\{yyyy\}/g, yyyy).replace(/\{mm\}/g, mm).replace(/\{dd\}/g, dd)
-    if (!out.startsWith('/')) out = '/' + out
-    return out
-  }
-
-  // Overrides panel state
-  const [editing, setEditing] = useState<ModuleListItem | null>(null)
-  // Removed explicit savingOverrides state; handled via pendingModules flow
-  const [revisions, setRevisions] = useState<
-    Array<{
-      id: string
-      mode: 'approved' | 'review' | 'ai-review'
-      createdAt: string
-      user?: { id?: number; email?: string }
-    }>
-  >([])
-  const [loadingRevisions, setLoadingRevisions] = useState(false)
-  // Agents
-  const [agents, setAgents] = useState<
-    Array<{
-      id: string
-      name: string
-      description?: string
-      openEndedContext?: { enabled: boolean; label?: string; placeholder?: string; maxChars?: number }
-    }>
-  >([])
-  const [selectedAgent, setSelectedAgent] = useState<string>('')
-  const [runningAgent, setRunningAgent] = useState<boolean>(false)
-  const [agentPromptOpen, setAgentPromptOpen] = useState(false)
-  const [agentOpenEndedContext, setAgentOpenEndedContext] = useState('')
-  const [agentResponse, setAgentResponse] = useState<{
-    rawResponse?: string
-    summary?: string | null
-    applied?: string[]
-    message?: string
-  } | null>(null)
-  const [agentHistory, setAgentHistory] = useState<
-    Array<{
-      id: string
-      request: string | null
-      response: {
-        rawResponse?: string
-        summary?: string
-        applied?: string[]
-        [key: string]: any
-      } | null
-      createdAt: string
-      user: { id: number; email: string; fullName: string | null } | null
-    }>
-  >([])
-  const [loadingAgentHistory, setLoadingAgentHistory] = useState(false)
-  const agentModalContentRef = useRef<HTMLDivElement | null>(null)
-  // Author management (admin)
-  const [users, setUsers] = useState<Array<{ id: number; email: string; fullName: string | null }>>([])
-  const [selectedAuthorId, setSelectedAuthorId] = useState<number | null>(post.author?.id ?? null)
-  // Media picker for custom fields
-  const [openMediaForField, setOpenMediaForField] = useState<string | null>(null)
-  // Field-scoped agents for Featured Image
-  const [featuredImageFieldAgents, setFeaturedImageFieldAgents] = useState<Agent[]>([])
-  const [featuredImageAgentModalOpen, setFeaturedImageAgentModalOpen] = useState(false)
-  const [selectedFeaturedImageAgent, setSelectedFeaturedImageAgent] = useState<Agent | null>(null)
-  // Debug removed
-
-  useEffect(() => {
-    let alive = true
-    async function loadRevisions() {
+// Load agents
+useEffect(() => {
+  let alive = true
+    ; (async () => {
       try {
-        setLoadingRevisions(true)
-        const res = await fetch(`/api/posts/${post.id}/revisions?limit=10`, {
-          headers: { Accept: 'application/json' },
-          credentials: 'same-origin',
-        })
-        if (!res.ok) return
-        const json = await res.json().catch(() => null)
-        if (!json?.data) return
-        if (alive) setRevisions(json.data)
-      } finally {
-        if (alive) setLoadingRevisions(false)
-      }
-    }
-    loadRevisions()
-    return () => { alive = false }
-  }, [post.id])
-
-  // Load agents
-  useEffect(() => {
-    let alive = true
-      ; (async () => {
-        try {
-          const res = await fetch('/api/agents', { credentials: 'same-origin' })
-          const json = await res.json().catch(() => ({}))
-          const list: Array<{
-            id: string
-            name: string
-            description?: string
-            openEndedContext?: { enabled: boolean; label?: string; placeholder?: string; maxChars?: number }
-          }> = Array.isArray(json?.data) ? json.data : []
-          if (alive) setAgents(list)
-        } catch {
-          if (alive) setAgents([])
-        }
-      })()
-    return () => { alive = false }
-  }, [])
-
-  // Load field-scoped agents for Featured Image (media field type)
-  useEffect(() => {
-    let alive = true
-      ; (async () => {
-        try {
-          const res = await fetch(
-            `/api/agents?scope=field&fieldType=media&fieldKey=post.featuredImageId`,
-            { credentials: 'same-origin' }
-          )
-          const json = await res.json().catch(() => ({}))
-          const agents: Agent[] = Array.isArray(json?.data) ? json.data : []
-          if (alive) setFeaturedImageFieldAgents(agents)
-        } catch {
-          if (alive) setFeaturedImageFieldAgents([])
-        }
-      })()
-    return () => { alive = false }
-  }, [])
-
-  // Load agent history when dialog opens and agent is selected
-  useEffect(() => {
-    if (!agentPromptOpen || !selectedAgent) {
-      setAgentHistory([])
-      return
-    }
-    let alive = true
-    async function loadHistory() {
-      try {
-        setLoadingAgentHistory(true)
-        const res = await fetch(`/api/posts/${post.id}/agents/${selectedAgent}/history`, {
-          headers: { Accept: 'application/json' },
-          credentials: 'same-origin',
-        })
-        if (!res.ok) return
-        const json = await res.json().catch(() => null)
-        if (!json?.data) return
-        if (alive) setAgentHistory(Array.isArray(json.data) ? json.data : [])
+        const res = await fetch('/api/agents', { credentials: 'same-origin' })
+        const json = await res.json().catch(() => ({}))
+        const list: Array<{
+          id: string
+          name: string
+          description?: string
+          openEndedContext?: { enabled: boolean; label?: string; placeholder?: string; maxChars?: number }
+        }> = Array.isArray(json?.data) ? json.data : []
+        if (alive) setAgents(list)
       } catch {
-        // Ignore errors
-      } finally {
-        if (alive) setLoadingAgentHistory(false)
+        if (alive) setAgents([])
       }
-    }
-    loadHistory()
-    return () => { alive = false }
-  }, [agentPromptOpen, selectedAgent, post.id])
+    })()
+  return () => { alive = false }
+}, [])
 
-  // Scroll modal to bottom when it opens or history loads
-  useEffect(() => {
-    if (agentPromptOpen && agentModalContentRef.current) {
-      // Small delay to ensure DOM is fully rendered
-      setTimeout(() => {
-        if (agentModalContentRef.current) {
-          agentModalContentRef.current.scrollTop = agentModalContentRef.current.scrollHeight
-        }
-      }, 150)
-    }
-  }, [agentPromptOpen, loadingAgentHistory, agentHistory])
+// Load field-scoped agents for Featured Image (media field type)
+useEffect(() => {
+  let alive = true
+    ; (async () => {
+      try {
+        const res = await fetch(
+          `/api/agents?scope=field&fieldType=media&fieldKey=post.featuredImageId`,
+          { credentials: 'same-origin' }
+        )
+        const json = await res.json().catch(() => ({}))
+        const agents: Agent[] = Array.isArray(json?.data) ? json.data : []
+        if (alive) setFeaturedImageFieldAgents(agents)
+      } catch {
+        if (alive) setFeaturedImageFieldAgents([])
+      }
+    })()
+  return () => { alive = false }
+}, [])
 
-  // DnD sensors (pointer only to avoid key conflicts)
-  const sensors = useSensors(useSensor(PointerSensor))
-
-  function SortableItem({ id, disabled, children }: { id: string; disabled?: boolean; children: React.ReactNode | ((listeners: any, attributes: any) => React.ReactNode) }) {
-    const { attributes, listeners, setNodeRef, transform, transition } = useSortable({ id, disabled: !!disabled })
-    const style = {
-      transform: CSS.Transform.toString(transform),
-      transition,
-    }
-    return (
-      <div ref={setNodeRef} style={style} {...(disabled ? {} : attributes)}>
-        {typeof children === 'function' ? (children(disabled ? {} : listeners, disabled ? {} : attributes)) : children}
-      </div>
-    )
+// Load agent history when dialog opens and agent is selected
+useEffect(() => {
+  if (!agentPromptOpen || !selectedAgent) {
+    setAgentHistory([])
+    return
   }
+  let alive = true
+  async function loadHistory() {
+    try {
+      setLoadingAgentHistory(true)
+      const res = await fetch(`/api/posts/${post.id}/agents/${selectedAgent}/history`, {
+        headers: { Accept: 'application/json' },
+        credentials: 'same-origin',
+      })
+      if (!res.ok) return
+      const json = await res.json().catch(() => null)
+      if (!json?.data) return
+      if (alive) setAgentHistory(Array.isArray(json.data) ? json.data : [])
+    } catch {
+      // Ignore errors
+    } finally {
+      if (alive) setLoadingAgentHistory(false)
+    }
+  }
+  loadHistory()
+  return () => { alive = false }
+}, [agentPromptOpen, selectedAgent, post.id])
 
-  const orderedIds = useMemo(
-    () => modules.slice().sort((a, b) => a.orderIndex - b.orderIndex).map((m) => m.id),
-    [modules]
+// Scroll modal to bottom when it opens or history loads
+useEffect(() => {
+  if (agentPromptOpen && agentModalContentRef.current) {
+    // Small delay to ensure DOM is fully rendered
+    setTimeout(() => {
+      if (agentModalContentRef.current) {
+        agentModalContentRef.current.scrollTop = agentModalContentRef.current.scrollHeight
+      }
+    }, 150)
+  }
+}, [agentPromptOpen, loadingAgentHistory, agentHistory])
+
+// DnD sensors (pointer only to avoid key conflicts)
+const sensors = useSensors(useSensor(PointerSensor))
+
+function SortableItem({ id, disabled, children }: { id: string; disabled?: boolean; children: React.ReactNode | ((listeners: any, attributes: any) => React.ReactNode) }) {
+  const { attributes, listeners, setNodeRef, transform, transition } = useSortable({ id, disabled: !!disabled })
+  const style = {
+    transform: CSS.Transform.toString(transform),
+    transition,
+  }
+  return (
+    <div ref={setNodeRef} style={style} {...(disabled ? {} : attributes)}>
+      {typeof children === 'function' ? (children(disabled ? {} : listeners, disabled ? {} : attributes)) : children}
+    </div>
   )
+}
 
-  async function persistOrder(next: EditorProps['modules']) {
-    if (!modulesEnabled) return
-    // Always update all modules' order indices to ensure they're saved correctly
-    // Don't skip based on current orderIndex since it may have been updated in local state
-    // Filter out temporary modules (pending creation)
-    const updates = next
-      .filter((m) => !m.id.startsWith('temp-'))
-      .map((m, index) =>
-        fetch(`/api/post-modules/${encodeURIComponent(m.id)}`, {
-          method: 'PUT',
-          headers: {
-            Accept: 'application/json',
-            'Content-Type': 'application/json',
-            ...xsrfHeader(),
-          },
-          credentials: 'same-origin',
-          body: JSON.stringify({ orderIndex: index, mode: viewMode === 'review' ? 'review' : 'publish' }),
-        })
-      )
-    await Promise.allSettled(updates)
-  }
+const orderedIds = useMemo(
+  () => modules.slice().sort((a, b) => a.orderIndex - b.orderIndex).map((m) => m.id),
+  [modules]
+)
 
-  // Create pending new modules via API
-  async function createPendingNewModules(mode: 'publish' | 'review' | 'ai-review' = 'publish') {
-    if (!modulesEnabled) return
-    if (pendingNewModules.length === 0) return
-
-    const creates = pendingNewModules.map(async (pm) => {
-      const res = await fetch(`/api/posts/${post.id}/modules`, {
-        method: 'POST',
+async function persistOrder(next: EditorProps['modules']) {
+  if (!modulesEnabled) return
+  // Always update all modules' order indices to ensure they're saved correctly
+  // Don't skip based on current orderIndex since it may have been updated in local state
+  // Filter out temporary modules (pending creation)
+  const updates = next
+    .filter((m) => !m.id.startsWith('temp-'))
+    .map((m, index) =>
+      fetch(`/api/post-modules/${encodeURIComponent(m.id)}`, {
+        method: 'PUT',
         headers: {
           Accept: 'application/json',
           'Content-Type': 'application/json',
           ...xsrfHeader(),
         },
         credentials: 'same-origin',
-        body: JSON.stringify({
-          moduleType: pm.type,
-          scope: pm.scope,
-          globalSlug: pm.globalSlug,
-          orderIndex: pm.orderIndex,
-          locked: false,
-          mode,
-        }),
+        body: JSON.stringify({ orderIndex: index, mode: viewMode === 'review' ? 'review' : 'publish' }),
       })
+    )
+  await Promise.allSettled(updates)
+}
 
-      if (!res.ok) {
-        throw new Error(`Failed to create module: ${pm.type}`)
-      }
+// Create pending new modules via API
+async function createPendingNewModules(mode: 'publish' | 'review' | 'ai-review' = 'publish') {
+  if (!modulesEnabled) return
+  if (pendingNewModules.length === 0) return
 
-      return res.json()
+  const creates = pendingNewModules.map(async (pm) => {
+    const res = await fetch(`/api/posts/${post.id}/modules`, {
+      method: 'POST',
+      headers: {
+        Accept: 'application/json',
+        'Content-Type': 'application/json',
+        ...xsrfHeader(),
+      },
+      credentials: 'same-origin',
+      body: JSON.stringify({
+        moduleType: pm.type,
+        scope: pm.scope,
+        globalSlug: pm.globalSlug,
+        orderIndex: pm.orderIndex,
+        locked: false,
+        mode,
+      }),
     })
 
-    try {
-      await Promise.all(creates)
-      setPendingNewModules([])
-    } catch (error) {
-      toast.error('Failed to save some new modules')
-      throw error
+    if (!res.ok) {
+      throw new Error(`Failed to create module: ${pm.type}`)
     }
+
+    return res.json()
+  })
+
+  try {
+    await Promise.all(creates)
+    setPendingNewModules([])
+  } catch (error) {
+    toast.error('Failed to save some new modules')
+    throw error
   }
+}
 
-  // Handle adding new modules locally (without API call)
-  async function handleAddModule(payload: { type: string; scope: 'post' | 'global'; globalSlug?: string | null }) {
-    if (!modulesEnabled) return
-    const tempId = `temp-${Date.now()}-${Math.random().toString(36).substring(2, 9)}`
-    const nextOrderIndex = Math.max(-1, ...modules.map(m => m.orderIndex)) + 1
+// Handle adding new modules locally (without API call)
+async function handleAddModule(payload: { type: string; scope: 'post' | 'global'; globalSlug?: string | null }) {
+  if (!modulesEnabled) return
+  const tempId = `temp-${Date.now()}-${Math.random().toString(36).substring(2, 9)}`
+  const nextOrderIndex = Math.max(-1, ...modules.map(m => m.orderIndex)) + 1
 
-    // Add to pending new modules
-    setPendingNewModules(prev => [
-      ...prev,
-      {
-        tempId,
-        type: payload.type,
-        scope: payload.scope === 'post' ? 'local' : 'global',
-        globalSlug: payload.globalSlug || null,
-        orderIndex: nextOrderIndex,
-      }
-    ])
-
-    // Add to modules display list with temporary data
-    const newModule: EditorProps['modules'][0] = {
-      id: tempId,
+  // Add to pending new modules
+  setPendingNewModules(prev => [
+    ...prev,
+    {
+      tempId,
       type: payload.type,
       scope: payload.scope === 'post' ? 'local' : 'global',
-      props: {},
-      overrides: null,
-      locked: false,
+      globalSlug: payload.globalSlug || null,
       orderIndex: nextOrderIndex,
     }
+  ])
 
-    setModules(prev => [...prev, newModule])
-    setHasStructuralChanges(true)
+  // Add to modules display list with temporary data
+  const newModule: EditorProps['modules'][0] = {
+    id: tempId,
+    type: payload.type,
+    scope: payload.scope === 'post' ? 'local' : 'global',
+    props: {},
+    overrides: null,
+    locked: false,
+    orderIndex: nextOrderIndex,
   }
 
-  function onDragEnd(event: DragEndEvent) {
-    const { active, over } = event
-    if (!over || active.id === over.id) return
-    const current = modules.slice().sort((a, b) => a.orderIndex - b.orderIndex)
-    const dragged = current.find((m) => m.id === active.id)
-    const overItem = current.find((m) => m.id === over.id)
-    // Prevent any interaction involving locked modules
-    if (dragged?.locked || overItem?.locked) return
+  setModules(prev => [...prev, newModule])
+  setHasStructuralChanges(true)
+}
 
-    // Reorder only within unlocked modules while keeping locked modules fixed
-    const lockedPositions = current
-      .map((m, idx) => ({ m, idx }))
-      .filter(({ m }) => m.locked)
-    const unlocked = current.filter((m) => !m.locked)
-    const unlockedOld = unlocked.findIndex((m) => m.id === active.id)
-    const unlockedNew = unlocked.findIndex((m) => m.id === over.id)
-    if (unlockedOld === -1 || unlockedNew === -1) return
-    const unlockedReordered = unlocked.slice()
-    const [moved] = unlockedReordered.splice(unlockedOld, 1)
-    unlockedReordered.splice(unlockedNew, 0, moved)
+function onDragEnd(event: DragEndEvent) {
+  const { active, over } = event
+  if (!over || active.id === over.id) return
+  const current = modules.slice().sort((a, b) => a.orderIndex - b.orderIndex)
+  const dragged = current.find((m) => m.id === active.id)
+  const overItem = current.find((m) => m.id === over.id)
+  // Prevent any interaction involving locked modules
+  if (dragged?.locked || overItem?.locked) return
 
-    // Rebuild list with locked items frozen in place
-    const rebuilt: typeof modules = []
-    let uPtr = 0
-    for (let i = 0; i < current.length; i++) {
-      const lockedAt = lockedPositions.find((p) => p.idx === i)
-      if (lockedAt) {
-        rebuilt.push(lockedAt.m)
-      } else {
-        rebuilt.push(unlockedReordered[uPtr]!)
-        uPtr++
-      }
-    }
-    const next = rebuilt.map((m, idx) => ({ ...m, orderIndex: idx }))
-    setModules(next)
-    setHasStructuralChanges(true)
-  }
+  // Reorder only within unlocked modules while keeping locked modules fixed
+  const lockedPositions = current
+    .map((m, idx) => ({ m, idx }))
+    .filter(({ m }) => m.locked)
+  const unlocked = current.filter((m) => !m.locked)
+  const unlockedOld = unlocked.findIndex((m) => m.id === active.id)
+  const unlockedNew = unlocked.findIndex((m) => m.id === over.id)
+  if (unlockedOld === -1 || unlockedNew === -1) return
+  const unlockedReordered = unlocked.slice()
+  const [moved] = unlockedReordered.splice(unlockedOld, 1)
+  unlockedReordered.splice(unlockedNew, 0, moved)
 
-  const adjustModuleForView = useCallback(
-    (m: EditorProps['modules'][number]) => {
-      if (viewMode === 'review') {
-        if (m.scope === 'post') {
-          return {
-            ...m,
-            props: m.reviewProps ?? m.props ?? {},
-            overrides: m.overrides,
-          }
-        }
-        return {
-          ...m,
-          overrides: (m as any).reviewOverrides ?? m.overrides ?? null,
-        }
-      }
-      if (viewMode === 'ai-review') {
-        if (m.scope === 'post') {
-          return {
-            ...m,
-            props: (m as any).aiReviewProps ?? m.props ?? {},
-            overrides: m.overrides,
-          }
-        }
-        return {
-          ...m,
-          overrides: (m as any).aiReviewOverrides ?? m.overrides ?? null,
-        }
-      }
-      return m
-    },
-    [viewMode]
-  )
-
-  // If a post has no source baseline and only AI Review exists, keep the UI on AI Review.
-  useEffect(() => {
-    if (!hasSourceBaseline && hasAiReviewBaseline && viewMode === 'source') {
-      setViewMode('ai-review')
-    }
-    if (!hasReviewBaseline && viewMode === 'review') {
-      // Review draft removed/absent; fall back safely.
-      setViewMode(hasAiReviewBaseline ? 'ai-review' : (hasSourceBaseline ? 'source' : 'ai-review'))
-    }
-  }, [hasSourceBaseline, hasAiReviewBaseline, hasReviewBaseline, viewMode])
-
-  const sortedModules = useMemo(() => {
-    const baseAll = modules.slice().sort((a, b) => a.orderIndex - b.orderIndex)
-
-    if (viewMode === 'review') {
-      const base = baseAll
-        .filter((m) => !pendingReviewRemoved.has(m.id))
-        .filter((m) => !m.reviewDeleted)
-      return base.map(adjustModuleForView)
-    }
-
-    if (viewMode === 'ai-review') {
-      // hide review-added modules in source view but show them in ai-review?
-      const base = baseAll.filter((m) => !m.reviewDeleted)
-      return base.map(adjustModuleForView)
-    }
-
-    // Source view: hide review-added and ai-review-added modules
-    const base = baseAll.filter((m) => !m.reviewAdded && !(m as any).aiReviewAdded)
-    return base.map(adjustModuleForView)
-  }, [modules, viewMode, pendingReviewRemoved, adjustModuleForView])
-
-  // Keep editing module in sync when view mode changes
-  useEffect(() => {
-    if (!editing) return
-    const match = modules.find((m) => m.id === editing.id)
-    if (!match) return
-    const adjusted = adjustModuleForView(match)
-    const sameProps = adjusted.props === editing.props
-    const sameOverrides = adjusted.overrides === editing.overrides
-    if (sameProps && sameOverrides) return
-    setEditing(adjusted)
-  }, [viewMode, modules, editing?.id, adjustModuleForView])
-
-  const translationsSet = useMemo(() => new Set((translations || []).map((t) => t.locale)), [translations])
-  const availableLocales = useMemo(() => {
-    const base = new Set<string>(supportedLocales.length ? supportedLocales : ['en'])
-    translations?.forEach((t) => base.add(t.locale))
-    return Array.from(base)
-  }, [translations, supportedLocales])
-
-  // saveOverrides removed; overrides are handled via ModuleEditorPanel onSave and pendingModules batching.
-
-  async function commitPendingModules(mode: 'review' | 'publish' | 'ai-review') {
-    if (!modulesEnabled) return
-    const entries = Object.entries(pendingModules)
-    // Filter out temporary module IDs - those are handled by createPendingNewModules
-    const persistedEntries = entries.filter(([id]) => !id.startsWith('temp-'))
-    // 1) Apply updates
-    if (persistedEntries.length > 0) {
-      const updates = persistedEntries.map(([id, payload]) => {
-        const url = `/api/post-modules/${encodeURIComponent(id)}`
-        // For local modules, send edited props as overrides (they get merged into ai_review_props/review_props)
-        // For global modules, send overrides (they get saved to ai_review_overrides/review_overrides)
-        const module = modules.find((m) => m.id === id)
-        const isLocal = module?.scope === 'post' || module?.scope === 'local'
-        const overridesToSend = isLocal ? payload.edited : payload.overrides
-        return fetch(url, {
-          method: 'PUT',
-          headers: {
-            'Accept': 'application/json',
-            'Content-Type': 'application/json',
-            ...xsrfHeader(),
-          },
-          credentials: 'same-origin',
-          body: JSON.stringify({ overrides: overridesToSend, mode }),
-        })
-      })
-      const results = await Promise.allSettled(updates)
-      const anyFailed = results.some((r) => r.status === 'rejected' || (r.status === 'fulfilled' && !(r.value as Response).ok))
-      if (anyFailed) {
-        toast.error('Failed to save module changes')
-        throw new Error('Failed to save module changes')
-      }
-      // Only clear persisted entries from pendingModules, keep temp ones for next save cycle
-      const remaining = Object.fromEntries(entries.filter(([id]) => id.startsWith('temp-')))
-      setPendingModules(remaining)
+  // Rebuild list with locked items frozen in place
+  const rebuilt: typeof modules = []
+  let uPtr = 0
+  for (let i = 0; i < current.length; i++) {
+    const lockedAt = lockedPositions.find((p) => p.idx === i)
+    if (lockedAt) {
+      rebuilt.push(lockedAt.m)
     } else {
-      // If no persisted entries, still clear temp entries since they'll be created fresh
-      setPendingModules({})
-    }
-    // 2) Apply removals
-    if (pendingRemoved.size > 0) {
-      const deletes = Array.from(pendingRemoved).map((id) =>
-        fetch(`/api/post-modules/${encodeURIComponent(id)}`, {
-          method: 'DELETE',
-          credentials: 'same-origin',
-          headers: {
-            ...xsrfHeader(),
-          },
-        })
-      )
-      await Promise.allSettled(deletes)
-      setPendingRemoved(new Set())
+      rebuilt.push(unlockedReordered[uPtr]!)
+      uPtr++
     }
   }
+  const next = rebuilt.map((m, idx) => ({ ...m, orderIndex: idx }))
+  setModules(next)
+  setHasStructuralChanges(true)
+}
 
-  const handleSubmit = (e: FormEvent) => {
-    e.preventDefault()
-    put(`/api/posts/${post.id}`, {
-      headers: xsrfHeader(),
-      onSuccess: () => {
-        toast.success('Post updated successfully')
-      },
-      onError: (errors) => {
-        const firstError = Object.values(errors)[0]
-        toast.error(firstError || 'Failed to update post')
-      },
+const adjustModuleForView = useCallback(
+  (m: EditorProps['modules'][number]) => {
+    if (viewMode === 'review') {
+      if (m.scope === 'post') {
+        return {
+          ...m,
+          props: m.reviewProps ?? m.props ?? {},
+          overrides: m.overrides,
+        }
+      }
+      return {
+        ...m,
+        overrides: (m as any).reviewOverrides ?? m.overrides ?? null,
+      }
+    }
+    if (viewMode === 'ai-review') {
+      if (m.scope === 'post') {
+        return {
+          ...m,
+          props: (m as any).aiReviewProps ?? m.props ?? {},
+          overrides: m.overrides,
+        }
+      }
+      return {
+        ...m,
+        overrides: (m as any).aiReviewOverrides ?? m.overrides ?? null,
+      }
+    }
+    return m
+  },
+  [viewMode]
+)
+
+// If a post has no source baseline and only AI Review exists, keep the UI on AI Review.
+useEffect(() => {
+  if (!hasSourceBaseline && hasAiReviewBaseline && viewMode === 'source') {
+    setViewMode('ai-review')
+  }
+  if (!hasReviewBaseline && viewMode === 'review') {
+    // Review draft removed/absent; fall back safely.
+    setViewMode(hasAiReviewBaseline ? 'ai-review' : (hasSourceBaseline ? 'source' : 'ai-review'))
+  }
+}, [hasSourceBaseline, hasAiReviewBaseline, hasReviewBaseline, viewMode])
+
+const sortedModules = useMemo(() => {
+  const baseAll = modules.slice().sort((a, b) => a.orderIndex - b.orderIndex)
+
+  if (viewMode === 'review') {
+    const base = baseAll
+      .filter((m) => !pendingReviewRemoved.has(m.id))
+      .filter((m) => !m.reviewDeleted)
+    return base.map(adjustModuleForView)
+  }
+
+  if (viewMode === 'ai-review') {
+    // hide review-added modules in source view but show them in ai-review?
+    const base = baseAll.filter((m) => !m.reviewDeleted)
+    return base.map(adjustModuleForView)
+  }
+
+  // Source view: hide review-added and ai-review-added modules
+  const base = baseAll.filter((m) => !m.reviewAdded && !(m as any).aiReviewAdded)
+  return base.map(adjustModuleForView)
+}, [modules, viewMode, pendingReviewRemoved, adjustModuleForView])
+
+// Keep editing module in sync when view mode changes
+useEffect(() => {
+  if (!editing) return
+  const match = modules.find((m) => m.id === editing.id)
+  if (!match) return
+  const adjusted = adjustModuleForView(match)
+  const sameProps = adjusted.props === editing.props
+  const sameOverrides = adjusted.overrides === editing.overrides
+  if (sameProps && sameOverrides) return
+  setEditing(adjusted)
+}, [viewMode, modules, editing?.id, adjustModuleForView])
+
+const translationsSet = useMemo(() => new Set((translations || []).map((t) => t.locale)), [translations])
+const availableLocales = useMemo(() => {
+  const base = new Set<string>(supportedLocales.length ? supportedLocales : ['en'])
+  translations?.forEach((t) => base.add(t.locale))
+  return Array.from(base)
+}, [translations, supportedLocales])
+
+// saveOverrides removed; overrides are handled via ModuleEditorPanel onSave and pendingModules batching.
+
+async function commitPendingModules(mode: 'review' | 'publish' | 'ai-review') {
+  if (!modulesEnabled) return
+  const entries = Object.entries(pendingModules)
+  // Filter out temporary module IDs - those are handled by createPendingNewModules
+  const persistedEntries = entries.filter(([id]) => !id.startsWith('temp-'))
+  // 1) Apply updates
+  if (persistedEntries.length > 0) {
+    const updates = persistedEntries.map(([id, payload]) => {
+      const url = `/api/post-modules/${encodeURIComponent(id)}`
+      // For local modules, send edited props as overrides (they get merged into ai_review_props/review_props)
+      // For global modules, send overrides (they get saved to ai_review_overrides/review_overrides)
+      const module = modules.find((m) => m.id === id)
+      const isLocal = module?.scope === 'post' || module?.scope === 'local'
+      const overridesToSend = isLocal ? payload.edited : payload.overrides
+      return fetch(url, {
+        method: 'PUT',
+        headers: {
+          'Accept': 'application/json',
+          'Content-Type': 'application/json',
+          ...xsrfHeader(),
+        },
+        credentials: 'same-origin',
+        body: JSON.stringify({ overrides: overridesToSend, mode }),
+      })
     })
+    const results = await Promise.allSettled(updates)
+    const anyFailed = results.some((r) => r.status === 'rejected' || (r.status === 'fulfilled' && !(r.value as Response).ok))
+    if (anyFailed) {
+      toast.error('Failed to save module changes')
+      throw new Error('Failed to save module changes')
+    }
+    // Only clear persisted entries from pendingModules, keep temp ones for next save cycle
+    const remaining = Object.fromEntries(entries.filter(([id]) => id.startsWith('temp-')))
+    setPendingModules(remaining)
+  } else {
+    // If no persisted entries, still clear temp entries since they'll be created fresh
+    setPendingModules({})
   }
+  // 2) Apply removals
+  if (pendingRemoved.size > 0) {
+    const deletes = Array.from(pendingRemoved).map((id) =>
+      fetch(`/api/post-modules/${encodeURIComponent(id)}`, {
+        method: 'DELETE',
+        credentials: 'same-origin',
+        headers: {
+          ...xsrfHeader(),
+        },
+      })
+    )
+    await Promise.allSettled(deletes)
+    setPendingRemoved(new Set())
+  }
+}
 
-  return (
-    <div className="min-h-screen bg-backdrop-medium">
-      <AdminHeader title={`Edit ${post.type ? humanizeSlug(post.type) : 'Post'}`} />
+const handleSubmit = (e: FormEvent) => {
+  e.preventDefault()
+  put(`/api/posts/${post.id}`, {
+    headers: xsrfHeader(),
+    onSuccess: () => {
+      toast.success('Post updated successfully')
+    },
+    onError: (errors) => {
+      const firstError = Object.values(errors)[0]
+      toast.error(firstError || 'Failed to update post')
+    },
+  })
+}
 
-      {/* Main Content */}
-      <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-          {/* Left Column - Post Content */}
-          <div className="lg:col-span-2 space-y-6">
-            {/* Content Card */}
-            <div className="bg-backdrop-low rounded-lg p-6 border border-line-low">
-              <div className="flex items-start justify-between gap-3 mb-4">
-                <h2 className="text-lg font-semibold text-neutral-high">
-                  Content
-                </h2>
-                {uiConfig?.hasPermalinks !== false && (
-                  <button
-                    className="px-2 py-1 text-xs border border-border rounded hover:bg-backdrop-medium text-neutral-medium"
-                    onClick={() => {
-                      const base = (post as any).publicPath || `/posts/${post.slug}`
-                      const target =
-                        viewMode === 'review' ? `${base}${base.includes('?') ? '&' : '?'}view=review` : base
-                      window.open(target, '_blank')
+return (
+  <div className="min-h-screen bg-backdrop-medium">
+    <AdminHeader title={`Edit ${post.type ? humanizeSlug(post.type) : 'Post'}`} />
+
+    {/* Main Content */}
+    <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
+        {/* Left Column - Post Content */}
+        <div className="lg:col-span-2 space-y-6">
+          {/* Content Card */}
+          <div className="bg-backdrop-low rounded-lg p-6 border border-line-low">
+            <div className="flex items-start justify-between gap-3 mb-4">
+              <h2 className="text-lg font-semibold text-neutral-high">
+                Content
+              </h2>
+              {uiConfig?.hasPermalinks !== false && (
+                <button
+                  className="px-2 py-1 text-xs border border-border rounded hover:bg-backdrop-medium text-neutral-medium"
+                  onClick={() => {
+                    const base = (post as any).publicPath || `/posts/${post.slug}`
+                    const target =
+                      viewMode === 'review' ? `${base}${base.includes('?') ? '&' : '?'}view=review` : base
+                    window.open(target, '_blank')
+                  }}
+                  type="button"
+                  title="Open the current view in a new tab"
+                >
+                  View on Site
+                </button>
+              )}
+            </div>
+
+            <form className="space-y-4" onSubmit={handleSubmit}>
+              {/* Title */}
+              {(uiConfig?.hideCoreFields || []).includes('title') ? null : (
+                <div>
+                  <label className="block text-sm font-medium text-neutral-medium mb-1">
+                    Title *
+                  </label>
+                  <Input
+                    type="text"
+                    value={data.title}
+                    onChange={(e) => {
+                      const val = e.target.value
+                      setData('title', val)
+                      // Auto-suggest slug while slug is marked auto-generated
+                      if (slugAuto) {
+                        setData('slug', slugify(val))
+                      }
                     }}
-                    type="button"
-                    title="Open the current view in a new tab"
-                  >
-                    View on Site
-                  </button>
+                    placeholder="Enter post title"
+                  />
+                  {errors.title && (
+                    <p className="text-sm text-[#dc2626] mt-1">{errors.title}</p>
+                  )}
+                </div>
+              )}
+
+              {/* Excerpt */}
+              <div>
+                <label className="block text-sm font-medium text-neutral-medium mb-1">
+                  Excerpt
+                </label>
+                <Textarea
+                  value={data.excerpt}
+                  onChange={(e) => setData('excerpt', e.target.value)}
+                  rows={3}
+                  placeholder="Brief description (optional)"
+                />
+                {errors.excerpt && (
+                  <p className="text-sm text-[#dc2626] mt-1">{errors.excerpt}</p>
                 )}
               </div>
 
-              <form className="space-y-4" onSubmit={handleSubmit}>
-                {/* Title */}
-                {(uiConfig?.hideCoreFields || []).includes('title') ? null : (
-                  <div>
-                    <label className="block text-sm font-medium text-neutral-medium mb-1">
-                      Title *
-                    </label>
-                    <Input
-                      type="text"
-                      value={data.title}
-                      onChange={(e) => {
-                        const val = e.target.value
-                        setData('title', val)
-                        // Auto-suggest slug while slug is marked auto-generated
-                        if (slugAuto) {
-                          setData('slug', slugify(val))
-                        }
-                      }}
-                      placeholder="Enter post title"
-                    />
-                    {errors.title && (
-                      <p className="text-sm text-[#dc2626] mt-1">{errors.title}</p>
-                    )}
-                  </div>
-                )}
-
-                {/* Excerpt */}
-                <div>
+              {/* Featured Image (core) */}
+              {(uiConfig?.featuredImage?.enabled) && (
+                <div className="group">
                   <label className="block text-sm font-medium text-neutral-medium mb-1">
-                    Excerpt
+                    <div className="flex items-center justify-between">
+                      <span className="inline-flex items-center gap-1">
+                        <Star className="w-3 h-3 text-amber-500" aria-hidden="true" />
+                        <span>{uiConfig.featuredImage.label || 'Featured Image'}</span>
+                      </span>
+                      {featuredImageFieldAgents.length > 0 && hasFieldPermission && (
+                        <button
+                          type="button"
+                          onClick={() => {
+                            if (featuredImageFieldAgents.length === 1) {
+                              setSelectedFeaturedImageAgent(featuredImageFieldAgents[0])
+                              setFeaturedImageAgentModalOpen(true)
+                            } else {
+                              // If multiple agents, could show a picker - for now just use first
+                              setSelectedFeaturedImageAgent(featuredImageFieldAgents[0])
+                              setFeaturedImageAgentModalOpen(true)
+                            }
+                          }}
+                          className="opacity-0 group-hover:opacity-100 transition-opacity p-1 hover:bg-backdrop-medium rounded"
+                          title={featuredImageFieldAgents.length === 1 ? featuredImageFieldAgents[0].name : 'AI Assistant'}
+                        >
+                          <FontAwesomeIcon icon={faWandMagicSparkles} className="text-xs text-primary" />
+                        </button>
+                      )}
+                    </div>
                   </label>
-                  <Textarea
-                    value={data.excerpt}
-                    onChange={(e) => setData('excerpt', e.target.value)}
-                    rows={3}
-                    placeholder="Brief description (optional)"
+                  <MediaThumb
+                    mediaId={(data as any).featuredImageId || null}
+                    onChange={() => setOpenMediaForField('featuredImage')}
+                    onClear={() => setData('featuredImageId', '')}
                   />
-                  {errors.excerpt && (
-                    <p className="text-sm text-[#dc2626] mt-1">{errors.excerpt}</p>
+                  <MediaPickerModal
+                    open={openMediaForField === 'featuredImage'}
+                    onOpenChange={(o) => setOpenMediaForField(o ? 'featuredImage' : null)}
+                    initialSelectedId={(data as any).featuredImageId || undefined}
+                    onSelect={(m) => {
+                      setData('featuredImageId', m.id)
+                      setOpenMediaForField(null)
+                    }}
+                  />
+                  {selectedFeaturedImageAgent && (
+                    <AgentModal
+                      open={featuredImageAgentModalOpen}
+                      onOpenChange={setFeaturedImageAgentModalOpen}
+                      agent={selectedFeaturedImageAgent}
+                      contextId={post.id}
+                      context={{
+                        scope: 'field',
+                        fieldKey: 'post.featuredImageId',
+                        fieldType: 'media',
+                      }}
+                      scope="field"
+                      fieldKey="post.featuredImageId"
+                      fieldType="media"
+                      viewMode={viewMode}
+                      onSuccess={() => {
+                        setFeaturedImageAgentModalOpen(false)
+                        setSelectedFeaturedImageAgent(null)
+                        // Reload the page to show updated featured image
+                        router.reload({ only: ['post'] })
+                      }}
+                    />
                   )}
                 </div>
+              )}
 
-                {/* Featured Image (core) */}
-                {(uiConfig?.featuredImage?.enabled) && (
-                  <div className="group">
-                    <label className="block text-sm font-medium text-neutral-medium mb-1">
-                      <div className="flex items-center justify-between">
-                        <span className="inline-flex items-center gap-1">
-                          <Star className="w-3 h-3 text-amber-500" aria-hidden="true" />
-                          <span>{uiConfig.featuredImage.label || 'Featured Image'}</span>
-                        </span>
-                        {featuredImageFieldAgents.length > 0 && hasFieldPermission && (
-                          <button
-                            type="button"
-                            onClick={() => {
-                              if (featuredImageFieldAgents.length === 1) {
-                                setSelectedFeaturedImageAgent(featuredImageFieldAgents[0])
-                                setFeaturedImageAgentModalOpen(true)
-                              } else {
-                                // If multiple agents, could show a picker - for now just use first
-                                setSelectedFeaturedImageAgent(featuredImageFieldAgents[0])
-                                setFeaturedImageAgentModalOpen(true)
-                              }
-                            }}
-                            className="opacity-0 group-hover:opacity-100 transition-opacity p-1 hover:bg-backdrop-medium rounded"
-                            title={featuredImageFieldAgents.length === 1 ? featuredImageFieldAgents[0].name : 'AI Assistant'}
-                          >
-                            <FontAwesomeIcon icon={faWandMagicSparkles} className="text-xs text-primary" />
-                          </button>
+              {/* Categories (Taxonomies) */}
+              {taxonomyOptions.length > 0 && (
+                <div className="space-y-4">
+                  <div className="text-sm font-semibold text-neutral-high">Categories</div>
+                  {taxonomyOptions.map((tax) => {
+                    const selectedCount = Array.from(selectedTaxonomyTerms).filter((id) =>
+                      tax.options.some((o) => o.id === id)
+                    ).length
+                    const limit = tax.maxSelections === null ? Infinity : tax.maxSelections
+                    return (
+                      <div key={tax.slug} className="space-y-2 rounded border border-border p-3 bg-backdrop-low">
+                        <div className="text-sm font-medium text-neutral-high">{tax.name}</div>
+                        {tax.options.length === 0 ? (
+                          <p className="text-xs text-neutral-low">No terms available for {tax.name}</p>
+                        ) : (
+                          <div className="space-y-2">
+                            {tax.options.map((opt, idx) => {
+                              const checked = selectedTaxonomyTerms.has(opt.id)
+                              const disableUnchecked = !checked && selectedCount >= limit
+                              return (
+                                <label
+                                  key={`${tax.slug}:${String(opt.id || idx)}`}
+                                  className="flex items-center gap-2 text-sm text-neutral-high"
+                                >
+                                  <Checkbox
+                                    checked={checked}
+                                    disabled={disableUnchecked}
+                                    onCheckedChange={(val) => toggleTaxonomyTerm(opt.id, !!val)}
+                                    aria-label={opt.label}
+                                  />
+                                  <span className={disableUnchecked ? 'text-neutral-low' : ''}>{opt.label}</span>
+                                </label>
+                              )
+                            })}
+                          </div>
+                        )}
+                        {tax.freeTagging && (
+                          <div className="flex items-center gap-2">
+                            <Input
+                              ref={(el) => {
+                                taxonomyInputRefs.current[tax.slug] = el
+                              }}
+                              value={newTermNames[tax.slug] || ''}
+                              onChange={(e) => setNewTermNames((m) => ({ ...m, [tax.slug]: e.target.value }))}
+                              onKeyDown={(e) => {
+                                if (e.key === 'Enter') {
+                                  e.preventDefault()
+                                  createInlineTerm(tax.slug, true)
+                                }
+                              }}
+                              placeholder={`Add ${tax.name}`}
+                              className="flex-1"
+                            />
+                            <button
+                              type="button"
+                              className="px-3 py-2 text-sm rounded bg-standout-medium text-on-standout disabled:opacity-50"
+                              onClick={() => createInlineTerm(tax.slug, true)}
+                              disabled={!newTermNames[tax.slug]?.trim()}
+                            >
+                              Add
+                            </button>
+                          </div>
                         )}
                       </div>
-                    </label>
-                    <MediaThumb
-                      mediaId={(data as any).featuredImageId || null}
-                      onChange={() => setOpenMediaForField('featuredImage')}
-                      onClear={() => setData('featuredImageId', '')}
-                    />
-                    <MediaPickerModal
-                      open={openMediaForField === 'featuredImage'}
-                      onOpenChange={(o) => setOpenMediaForField(o ? 'featuredImage' : null)}
-                      initialSelectedId={(data as any).featuredImageId || undefined}
-                      onSelect={(m) => {
-                        setData('featuredImageId', m.id)
-                        setOpenMediaForField(null)
-                      }}
-                    />
-                    {selectedFeaturedImageAgent && (
-                      <AgentModal
-                        open={featuredImageAgentModalOpen}
-                        onOpenChange={setFeaturedImageAgentModalOpen}
-                        agent={selectedFeaturedImageAgent}
-                        contextId={post.id}
-                        context={{
-                          scope: 'field',
-                          fieldKey: 'post.featuredImageId',
-                          fieldType: 'media',
-                        }}
-                        scope="field"
-                        fieldKey="post.featuredImageId"
-                        fieldType="media"
-                        viewMode={viewMode}
-                        onSuccess={() => {
-                          setFeaturedImageAgentModalOpen(false)
-                          setSelectedFeaturedImageAgent(null)
-                          // Reload the page to show updated featured image
-                          router.reload({ only: ['post'] })
-                        }}
-                      />
-                    )}
-                  </div>
-                )}
-
-                {/* Categories (Taxonomies) */}
-                {taxonomyOptions.length > 0 && (
-                  <div className="space-y-4">
-                    <div className="text-sm font-semibold text-neutral-high">Categories</div>
-                    {taxonomyOptions.map((tax) => {
-                      const selectedCount = Array.from(selectedTaxonomyTerms).filter((id) =>
-                        tax.options.some((o) => o.id === id)
-                      ).length
-                      const limit = tax.maxSelections === null ? Infinity : tax.maxSelections
-                      return (
-                        <div key={tax.slug} className="space-y-2 rounded border border-border p-3 bg-backdrop-low">
-                          <div className="text-sm font-medium text-neutral-high">{tax.name}</div>
-                          {tax.options.length === 0 ? (
-                            <p className="text-xs text-neutral-low">No terms available for {tax.name}</p>
-                          ) : (
-                            <div className="space-y-2">
-                              {tax.options.map((opt, idx) => {
-                                const checked = selectedTaxonomyTerms.has(opt.id)
-                                const disableUnchecked = !checked && selectedCount >= limit
-                                return (
-                                  <label
-                                    key={`${tax.slug}:${String(opt.id || idx)}`}
-                                    className="flex items-center gap-2 text-sm text-neutral-high"
-                                  >
-                                    <Checkbox
-                                      checked={checked}
-                                      disabled={disableUnchecked}
-                                      onCheckedChange={(val) => toggleTaxonomyTerm(opt.id, !!val)}
-                                      aria-label={opt.label}
-                                    />
-                                    <span className={disableUnchecked ? 'text-neutral-low' : ''}>{opt.label}</span>
-                                  </label>
-                                )
-                              })}
-                            </div>
-                          )}
-                          {tax.freeTagging && (
-                            <div className="flex items-center gap-2">
-                              <Input
-                                ref={(el) => {
-                                  taxonomyInputRefs.current[tax.slug] = el
-                                }}
-                                value={newTermNames[tax.slug] || ''}
-                                onChange={(e) => setNewTermNames((m) => ({ ...m, [tax.slug]: e.target.value }))}
-                                onKeyDown={(e) => {
-                                  if (e.key === 'Enter') {
-                                    e.preventDefault()
-                                    createInlineTerm(tax.slug, true)
-                                  }
-                                }}
-                                placeholder={`Add ${tax.name}`}
-                                className="flex-1"
-                              />
-                              <button
-                                type="button"
-                                className="px-3 py-2 text-sm rounded bg-standout-medium text-on-standout disabled:opacity-50"
-                                onClick={() => createInlineTerm(tax.slug, true)}
-                                disabled={!newTermNames[tax.slug]?.trim()}
-                              >
-                                Add
-                              </button>
-                            </div>
-                          )}
-                        </div>
-                      )
-                    })}
-                  </div>
-                )}
-
-                {/* Parent (optional hierarchy) */}
-                {(uiConfig?.hierarchyEnabled ?? true) && (
-                  <ParentSelect
-                    postId={post.id}
-                    postType={post.type}
-                    locale={post.locale}
-                    value={data.parentId || ''}
-                    onChange={(val) => setData('parentId', val)}
-                  />
-                )}
-                {/* Order Index */}
-                <div>
-                  <label className="block text-sm font-medium text-neutral-medium mb-1">Order</label>
-                  <Input
-                    type="number"
-                    value={typeof data.orderIndex === 'number' ? data.orderIndex : Number(data.orderIndex || 0)}
-                    onChange={(e) => setData('orderIndex', Number(e.target.value) || 0)}
-                    min={0}
-                    className="w-32"
-                  />
+                    )
+                  })}
                 </div>
+              )}
 
-                {/* Save button moved to Actions */}
-              </form>
-              {/* Custom Fields (e.g., Profile fields) - inside Content, above Modules */}
-              {Array.isArray(initialCustomFields) && initialCustomFields.length > 0 && (
-                <div className="mt-6">
-                  <div className="space-y-4">
-                    {initialCustomFields.map((f) => {
-                      const entry = (data as any).customFields?.find((e: any) => e.fieldId === f.id) || { value: null }
-                      const setValue = (val: any) => {
-                        const prev: any[] = Array.isArray((data as any).customFields) ? (data as any).customFields : []
-                        const list = prev.slice()
-                        const idx = list.findIndex((e) => e.fieldId === f.id)
-                        const next = { fieldId: f.id, slug: f.slug, value: val }
-                        if (idx >= 0) list[idx] = next
-                        else list.push(next)
-                        setData('customFields', list as any)
-                      }
-                      const rendererKey = (f as any).fieldType || (f as any).type
-                      const compName =
-                        fieldRenderers.get(rendererKey) ||
-                        rendererKey?.split('/').pop()?.replace(/\.\w+$/, '') ||
-                        `${pascalFromType(rendererKey)}Field`
-                      const Renderer = compName ? (fieldComponents as Record<string, any>)[compName] : undefined
-                      if (Renderer) {
-                        const cfg = (f as any).config || {}
-                        const isSelect = compName === 'SelectField'
-                        return (
-                          <div key={f.id}>
-                            <label className="block text-sm font-medium text-neutral-medium mb-1">
-                              {f.label}
-                            </label>
-                            {isSelect ? (
-                              <Renderer
-                                value={entry.value ?? null}
-                                onChange={setValue}
-                                options={Array.isArray(cfg.options) ? cfg.options : []}
-                                multiple={!!cfg.multiple}
-                              />
-                            ) : (
-                              <Renderer
-                                value={entry.value ?? null}
-                                onChange={setValue}
-                                placeholder={cfg.placeholder}
-                                maxLength={cfg.maxLength}
-                              />
-                            )}
-                          </div>
-                        )
-                      }
-                      if (f.fieldType === 'textarea') {
-                        return (
-                          <div key={f.id}>
-                            <label className="block text-sm font-medium text-neutral-medium mb-1">
-                              {f.label}
-                            </label>
-                            <Textarea
-                              value={entry.value ?? ''}
-                              onChange={(e) => setValue(e.target.value)}
-                              rows={4}
-                              placeholder={f.label}
-                            />
-                          </div>
-                        )
-                      }
-                      if (f.fieldType === 'media') {
-                        const currentId: string | null =
-                          typeof entry.value === 'string'
-                            ? (entry.value || null)
-                            : (entry.value?.id ? String(entry.value.id) : null)
-                        return (
-                          <div key={f.id}>
-                            <label className="block text-sm font-medium text-neutral-medium mb-1">
-                              {f.label}
-                            </label>
-                            <MediaThumb
-                              mediaId={currentId}
-                              onChange={() => setOpenMediaForField(f.id)}
-                              onClear={() => setValue(null)}
-                            />
-                            <MediaPickerModal
-                              open={openMediaForField === f.id}
-                              onOpenChange={(o) => setOpenMediaForField(o ? f.id : null)}
-                              initialSelectedId={currentId || undefined}
-                              onSelect={(m) => {
-                                setValue({ id: m.id, url: m.url })
-                                setOpenMediaForField(null)
-                              }}
-                            />
-                          </div>
-                        )
-                      }
-                      if (f.fieldType === 'post-reference') {
-                        return (
-                          <div key={f.id}>
-                            <PostCustomPostReferenceField
-                              label={f.label}
-                              value={entry.value}
-                              onChange={setValue}
-                              config={f.config}
-                            />
-                          </div>
-                        )
-                      }
-                      if (f.fieldType === 'link') {
-                        return (
-                          <div key={f.id}>
-                            <LinkField
-                              label={f.label}
-                              value={entry.value}
-                              onChange={(val: LinkFieldValue) => setValue(val)}
-                              currentLocale={post.locale}
-                              helperText="Use an existing post when possible so links stay valid if URLs change."
-                            />
-                          </div>
-                        )
-                      }
-                      if (f.fieldType === 'file') {
-                        const current = entry.value || null
-                        const currentLabel: string | null =
-                          typeof current === 'object' && current !== null
-                            ? (current.originalFilename || current.filename || current.name || null)
-                            : (typeof current === 'string' ? current : null)
-                        const handleFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
-                          const file = e.target.files?.[0]
-                          if (!file) return
-                          try {
-                            const form = new FormData()
-                            form.append('file', file)
-                            form.append('naming', 'original')
-                            form.append('appendIdIfExists', 'true')
-                            form.append('altText', f.label || file.name)
-                            const res = await fetch('/api/media', {
-                              method: 'POST',
-                              headers: {
-                                ...xsrfHeader(),
-                              },
-                              credentials: 'same-origin',
-                              body: form,
-                            })
-                            if (!res.ok) {
-                              const j = await res.json().catch(() => ({}))
-                              toast.error(j?.error || 'File upload failed')
-                              return
-                            }
-                            const j = await res.json().catch(() => ({}))
-                            const id = j?.data?.id
-                            const url = j?.data?.url
-                            if (!id || !url) {
-                              toast.error('File upload response was invalid')
-                              return
-                            }
-                            setValue({ id, url, originalFilename: file.name })
-                            toast.success('File uploaded')
-                          } catch {
-                            toast.error('File upload failed')
-                          } finally {
-                            e.target.value = ''
-                          }
-                        }
-                        return (
-                          <div key={f.id}>
-                            <label className="block text-sm font-medium text-neutral-medium mb-1">
-                              {f.label}
-                            </label>
-                            <div className="space-y-2">
-                              <Input
-                                type="file"
-                                onChange={handleFileChange}
-                                className="h-9 text-sm"
-                              />
-                              {currentLabel && (
-                                <div className="flex items-center justify-between text-[11px] text-neutral-low">
-                                  <span className="truncate max-w-[220px]" title={currentLabel}>
-                                    Attached: {currentLabel}
-                                  </span>
-                                  <button
-                                    type="button"
-                                    className="text-xs text-danger hover:underline"
-                                    onClick={() => setValue(null)}
-                                  >
-                                    Clear
-                                  </button>
-                                </div>
-                              )}
-                            </div>
-                          </div>
-                        )
-                      }
-                      if (f.fieldType === 'icon') {
-                        const current: string = typeof entry.value === 'string' ? entry.value : ''
-                        return (
-                          <div key={f.id}>
-                            <label className="block text-sm font-medium text-neutral-medium mb-1">
-                              {f.label}
-                            </label>
-                            <div className="space-y-1">
-                              <Input
-                                type="text"
-                                value={current}
-                                onChange={(e) => setValue(e.target.value)}
-                                placeholder="fa-solid fa-briefcase"
-                              />
-                              <p className="text-[11px] text-neutral-low">
-                                Enter a Font Awesome class string (for example{' '}
-                                <code className="font-mono text-[11px]">fa-solid fa-briefcase</code>). This will be
-                                rendered wherever the field is used.
-                              </p>
-                              {current && (
-                                <div className="flex items-center gap-2 text-[11px] text-neutral-medium">
-                                  <span className="inline-flex h-7 w-7 items-center justify-center rounded-full bg-backdrop-medium">
-                                    <i className={current} aria-hidden="true" />
-                                  </span>
-                                  <span className="truncate max-w-[220px]" title={current}>
-                                    {current}
-                                  </span>
-                                </div>
-                              )}
-                            </div>
-                          </div>
-                        )
-                      }
-                      // Fallback simple input
+              {/* Parent (optional hierarchy) */}
+              {(uiConfig?.hierarchyEnabled ?? true) && (
+                <ParentSelect
+                  postId={post.id}
+                  postType={post.type}
+                  locale={post.locale}
+                  value={data.parentId || ''}
+                  onChange={(val) => setData('parentId', val)}
+                />
+              )}
+              {/* Order Index */}
+              <div>
+                <label className="block text-sm font-medium text-neutral-medium mb-1">Order</label>
+                <Input
+                  type="number"
+                  value={typeof data.orderIndex === 'number' ? data.orderIndex : Number(data.orderIndex || 0)}
+                  onChange={(e) => setData('orderIndex', Number(e.target.value) || 0)}
+                  min={0}
+                  className="w-32"
+                />
+              </div>
+
+              {/* Save button moved to Actions */}
+            </form>
+            {/* Custom Fields (e.g., Profile fields) - inside Content, above Modules */}
+            {Array.isArray(initialCustomFields) && initialCustomFields.length > 0 && (
+              <div className="mt-6">
+                <div className="space-y-4">
+                  {initialCustomFields.map((f) => {
+                    const entry = (data as any).customFields?.find((e: any) => e.fieldId === f.id) || { value: null }
+                    const setValue = (val: any) => {
+                      const prev: any[] = Array.isArray((data as any).customFields) ? (data as any).customFields : []
+                      const list = prev.slice()
+                      const idx = list.findIndex((e) => e.fieldId === f.id)
+                      const next = { fieldId: f.id, slug: f.slug, value: val }
+                      if (idx >= 0) list[idx] = next
+                      else list.push(next)
+                      setData('customFields', list as any)
+                    }
+                    const rendererKey = (f as any).fieldType || (f as any).type
+                    const compName =
+                      fieldRenderers.get(rendererKey) ||
+                      rendererKey?.split('/').pop()?.replace(/\.\w+$/, '') ||
+                      `${pascalFromType(rendererKey)}Field`
+                    const Renderer = compName ? (fieldComponents as Record<string, any>)[compName] : undefined
+                    if (Renderer) {
+                      const cfg = (f as any).config || {}
+                      const isSelect = compName === 'SelectField'
                       return (
                         <div key={f.id}>
                           <label className="block text-sm font-medium text-neutral-medium mb-1">
                             {f.label}
                           </label>
-                          <Input
+                          {isSelect ? (
+                            <Renderer
+                              value={entry.value ?? null}
+                              onChange={setValue}
+                              options={Array.isArray(cfg.options) ? cfg.options : []}
+                              multiple={!!cfg.multiple}
+                            />
+                          ) : (
+                            <Renderer
+                              value={entry.value ?? null}
+                              onChange={setValue}
+                              placeholder={cfg.placeholder}
+                              maxLength={cfg.maxLength}
+                            />
+                          )}
+                        </div>
+                      )
+                    }
+                    if (f.fieldType === 'textarea') {
+                      return (
+                        <div key={f.id}>
+                          <label className="block text-sm font-medium text-neutral-medium mb-1">
+                            {f.label}
+                          </label>
+                          <Textarea
                             value={entry.value ?? ''}
                             onChange={(e) => setValue(e.target.value)}
+                            rows={4}
                             placeholder={f.label}
                           />
                         </div>
                       )
-                    })}
-                  </div>
-                </div>
-              )}
-
-              {/* Modules integrated into Content (hidden when modules are disabled) */}
-              {modulesEnabled && (
-                <div className="mt-6">
-                  <div className="flex items-center justify-between mb-4">
-                    <h3 className="text-base font-semibold text-neutral-high">Modules</h3>
-                    <ModulePicker
-                      postId={post.id}
-                      postType={post.type}
-                      mode={viewMode === 'review' ? 'review' : 'publish'}
-                      onAdd={handleAddModule}
-                    />
-                  </div>
-                  {modules.length === 0 ? (
-                    <div className="text-center py-12 text-neutral-low">
-                      <p>No modules yet. Use “Add Module” to insert one.</p>
-                    </div>
-                  ) : (
-                    <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={onDragEnd}>
-                      <SortableContext items={orderedIds} strategy={verticalListSortingStrategy}>
-                        <ul className="space-y-3">
-                          {sortedModules.map((m) => (
-                            <SortableItem key={m.id} id={m.id} disabled={m.locked}>
-                              {(listeners: any) => (
-                                <li className="bg-backdrop-low border border-line-low rounded-lg px-4 py-3 flex items-center justify-between">
-                                  <div className="flex items-center gap-3">
-                                    <button
-                                      type="button"
-                                      aria-label="Drag"
-                                      className={`text-neutral-low hover:text-neutral-high ${m.locked ? 'opacity-40 cursor-not-allowed' : 'cursor-grab'}`}
-                                      {...(m.locked ? {} : listeners)}
-                                    >
-                                      <GripVertical size={16} />
-                                    </button>
-                                    <div>
-                                      <div className="text-sm font-medium text-neutral-high">
-                                        {m.scope === 'global'
-                                          ? (globalSlugToLabel.get(String((m as any).globalSlug || '')) || (m as any).globalLabel || (m as any).globalSlug || (moduleRegistry[m.type]?.name || m.type))
-                                          : (moduleRegistry[m.type]?.name || m.type)}
-                                      </div>
-                                      <div className="text-xs text-neutral-low">Order: {m.orderIndex}</div>
-                                    </div>
-                                  </div>
-                                  <div className="flex items-center gap-2">
-                                    {moduleRegistry[m.type]?.renderingMode === 'react' && (
-                                      <span
-                                        className="inline-flex items-center rounded border border-line-medium bg-backdrop-low px-2 py-1 text-xs text-neutral-high"
-                                        title="React module (client-side interactivity)"
-                                        aria-label="React module"
-                                      >
-                                        <FontAwesomeIcon icon={faReact} className="mr-1 text-sky-400" />
-                                        React
-                                      </span>
-                                    )}
-                                    {m.scope === 'global'
-                                      ? (
-                                        <span
-                                          className="inline-flex items-center rounded border border-line-medium bg-backdrop-low px-2 py-1 text-xs text-neutral-high"
-                                          title="Global module"
-                                          aria-label="Global module"
-                                        >
-                                          <FontAwesomeIcon icon={faGlobe} className="w-3.5 h-3.5" />
-                                        </span>
-                                      )
-                                      : (
-                                        <button
-                                          className="text-xs px-2 py-1 rounded border border-line-low bg-backdrop-input text-neutral-high hover:bg-backdrop-medium"
-                                          onClick={() => setEditing(adjustModuleForView(m))}
-                                          type="button"
-                                        >
-                                          Edit
-                                        </button>
-                                      )}
-                                    <button
-                                      className="text-xs px-2 py-1 rounded border border-[#ef4444] text-[#ef4444] hover:bg-[rgba(239,68,68,0.1)] disabled:opacity-50"
-                                      disabled={m.locked}
-                                      onClick={async () => {
-                                        if (m.locked) {
-                                          toast.error('Locked modules cannot be removed')
-                                          return
-                                        }
-                                        // Mark for removal in appropriate mode; actual apply on save
-                                        if (viewMode === 'review') {
-                                          setPendingReviewRemoved((prev) => {
-                                            const next = new Set(prev)
-                                            next.add(m.id)
-                                            return next
-                                          })
-                                        } else {
-                                          setPendingRemoved((prev) => {
-                                            const next = new Set(prev)
-                                            next.add(m.id)
-                                            return next
-                                          })
-                                          // For source mode, optimistically remove from UI
-                                          setModules((prev) => prev.filter((pm) => pm.id !== m.id))
-                                        }
-                                        toast.success('Module marked for removal (apply by saving)')
-                                      }}
-                                      type="button"
-                                    >
-                                      Remove
-                                    </button>
-                                  </div>
-                                </li>
-                              )}
-                            </SortableItem>
-                          ))}
-                        </ul>
-                      </SortableContext>
-                    </DndContext>
-                  )}
-                </div>
-              )}
-            </div>
-
-            {/* SEO Card */}
-            <div className="bg-backdrop-low rounded-lg p-6 border border-line-low">
-              <h2 className="text-lg font-semibold text-neutral-high mb-4">
-                SEO
-              </h2>
-
-              <div className="space-y-4">
-                {/* Slug */}
-                <div>
-                  <label className="block text-sm font-medium text-neutral-medium mb-1">
-                    Slug *
-                  </label>
-                  <Input
-                    type="text"
-                    value={data.slug}
-                    onChange={(e) => {
-                      const v = String(e.target.value || '')
-                        .toLowerCase()
-                        .replace(/[^a-z0-9-]+/g, '-')
-                      setData('slug', v)
-                      // If user clears slug, re-enable auto; otherwise consider it manually controlled
-                      setSlugAuto(v === '')
-                    }}
-                    onBlur={() => {
-                      // Normalize fully on blur
-                      const v = slugify(String((data as any).slug || ''))
-                      setData('slug', v)
-                    }}
-                    className="font-mono text-sm"
-                    placeholder="post-slug"
-                  />
-                  {errors.slug && (
-                    <p className="text-sm text-[#dc2626] mt-1">{errors.slug}</p>
-                  )}
-                  {pathPattern && (
-                    <p className="mt-1 text-xs text-neutral-low font-mono">
-                      Preview: {buildPreviewPath(data.slug)}
-                    </p>
-                  )}
-                </div>
-                {/* Meta Title */}
-                <div>
-                  <label className="block text-sm font-medium text-neutral-medium mb-1">
-                    Meta Title
-                  </label>
-                  <Input
-                    type="text"
-                    value={data.metaTitle}
-                    onChange={(e) => setData('metaTitle', e.target.value)}
-                    placeholder="Custom meta title (optional)"
-                  />
-                  <p className="text-xs text-neutral-low mt-1">
-                    Leave blank to use post title
-                  </p>
-                </div>
-
-                {/* Meta Description */}
-                <div>
-                  <label className="block text-sm font-medium text-neutral-medium mb-1">
-                    Meta Description
-                  </label>
-                  <Textarea
-                    value={data.metaDescription}
-                    onChange={(e) => setData('metaDescription', e.target.value)}
-                    rows={3}
-                    placeholder="Custom meta description (optional)"
-                  />
-                  <p className="text-xs text-neutral-low mt-1">
-                    Recommended: 150-160 characters
-                  </p>
-                </div>
-
-                {/* Canonical URL */}
-                <div>
-                  <label className="block text-sm font-medium text-neutral-medium mb-1">
-                    Canonical URL
-                  </label>
-                  <Input
-                    type="url"
-                    value={data.canonicalUrl}
-                    onChange={(e) => setData('canonicalUrl', e.target.value)}
-                    placeholder="https://example.com/my-post"
-                  />
-                </div>
-
-                {/* Robots JSON */}
-                <div>
-                  <label className="block text-sm font-medium text-neutral-medium mb-1">
-                    Robots (JSON)
-                  </label>
-                  <Textarea
-                    value={data.robotsJson}
-                    onChange={(e) => setData('robotsJson', e.target.value)}
-                    rows={4}
-                    className="font-mono text-xs"
-                    placeholder={JSON.stringify({ index: true, follow: true }, null, 2)}
-                  />
-                  <p className="text-xs text-neutral-low mt-1">
-                    Leave empty for defaults. Must be valid JSON.
-                  </p>
-                </div>
-
-                {/* JSON-LD Overrides */}
-                <div>
-                  <label className="block text-sm font-medium text-neutral-medium mb-1">
-                    JSON-LD Overrides (JSON)
-                  </label>
-                  <Textarea
-                    value={data.jsonldOverrides}
-                    onChange={(e) => setData('jsonldOverrides', e.target.value)}
-                    rows={6}
-                    className="font-mono text-xs"
-                    placeholder={JSON.stringify({ '@type': 'BlogPosting' }, null, 2)}
-                  />
-                  <p className="text-xs text-neutral-low mt-1">
-                    Leave empty to auto-generate structured data.
-                  </p>
+                    }
+                    if (f.fieldType === 'media') {
+                      const currentId: string | null =
+                        typeof entry.value === 'string'
+                          ? (entry.value || null)
+                          : (entry.value?.id ? String(entry.value.id) : null)
+                      return (
+                        <div key={f.id}>
+                          <label className="block text-sm font-medium text-neutral-medium mb-1">
+                            {f.label}
+                          </label>
+                          <MediaThumb
+                            mediaId={currentId}
+                            onChange={() => setOpenMediaForField(f.id)}
+                            onClear={() => setValue(null)}
+                          />
+                          <MediaPickerModal
+                            open={openMediaForField === f.id}
+                            onOpenChange={(o) => setOpenMediaForField(o ? f.id : null)}
+                            initialSelectedId={currentId || undefined}
+                            onSelect={(m) => {
+                              setValue({ id: m.id, url: m.url })
+                              setOpenMediaForField(null)
+                            }}
+                          />
+                        </div>
+                      )
+                    }
+                    if (f.fieldType === 'post-reference') {
+                      return (
+                        <div key={f.id}>
+                          <PostCustomPostReferenceField
+                            label={f.label}
+                            value={entry.value}
+                            onChange={setValue}
+                            config={f.config}
+                          />
+                        </div>
+                      )
+                    }
+                    if (f.fieldType === 'link') {
+                      return (
+                        <div key={f.id}>
+                          <LinkField
+                            label={f.label}
+                            value={entry.value}
+                            onChange={(val: LinkFieldValue) => setValue(val)}
+                            currentLocale={post.locale}
+                            helperText="Use an existing post when possible so links stay valid if URLs change."
+                          />
+                        </div>
+                      )
+                    }
+                    if (f.fieldType === 'file') {
+                      const current = entry.value || null
+                      const currentLabel: string | null =
+                        typeof current === 'object' && current !== null
+                          ? (current.originalFilename || current.filename || current.name || null)
+                          : (typeof current === 'string' ? current : null)
+                      const handleFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
+                        const file = e.target.files?.[0]
+                        if (!file) return
+                        try {
+                          const form = new FormData()
+                          form.append('file', file)
+                          form.append('naming', 'original')
+                          form.append('appendIdIfExists', 'true')
+                          form.append('altText', f.label || file.name)
+                          const res = await fetch('/api/media', {
+                            method: 'POST',
+                            headers: {
+                              ...xsrfHeader(),
+                            },
+                            credentials: 'same-origin',
+                            body: form,
+                          })
+                          if (!res.ok) {
+                            const j = await res.json().catch(() => ({}))
+                            toast.error(j?.error || 'File upload failed')
+                            return
+                          }
+                          const j = await res.json().catch(() => ({}))
+                          const id = j?.data?.id
+                          const url = j?.data?.url
+                          if (!id || !url) {
+                            toast.error('File upload response was invalid')
+                            return
+                          }
+                          setValue({ id, url, originalFilename: file.name })
+                          toast.success('File uploaded')
+                        } catch {
+                          toast.error('File upload failed')
+                        } finally {
+                          e.target.value = ''
+                        }
+                      }
+                      return (
+                        <div key={f.id}>
+                          <label className="block text-sm font-medium text-neutral-medium mb-1">
+                            {f.label}
+                          </label>
+                          <div className="space-y-2">
+                            <Input
+                              type="file"
+                              onChange={handleFileChange}
+                              className="h-9 text-sm"
+                            />
+                            {currentLabel && (
+                              <div className="flex items-center justify-between text-[11px] text-neutral-low">
+                                <span className="truncate max-w-[220px]" title={currentLabel}>
+                                  Attached: {currentLabel}
+                                </span>
+                                <button
+                                  type="button"
+                                  className="text-xs text-danger hover:underline"
+                                  onClick={() => setValue(null)}
+                                >
+                                  Clear
+                                </button>
+                              </div>
+                            )}
+                          </div>
+                        </div>
+                      )
+                    }
+                    if (f.fieldType === 'icon') {
+                      const current: string = typeof entry.value === 'string' ? entry.value : ''
+                      return (
+                        <div key={f.id}>
+                          <label className="block text-sm font-medium text-neutral-medium mb-1">
+                            {f.label}
+                          </label>
+                          <div className="space-y-1">
+                            <Input
+                              type="text"
+                              value={current}
+                              onChange={(e) => setValue(e.target.value)}
+                              placeholder="fa-solid fa-briefcase"
+                            />
+                            <p className="text-[11px] text-neutral-low">
+                              Enter a Font Awesome class string (for example{' '}
+                              <code className="font-mono text-[11px]">fa-solid fa-briefcase</code>). This will be
+                              rendered wherever the field is used.
+                            </p>
+                            {current && (
+                              <div className="flex items-center gap-2 text-[11px] text-neutral-medium">
+                                <span className="inline-flex h-7 w-7 items-center justify-center rounded-full bg-backdrop-medium">
+                                  <i className={current} aria-hidden="true" />
+                                </span>
+                                <span className="truncate max-w-[220px]" title={current}>
+                                  {current}
+                                </span>
+                              </div>
+                            )}
+                          </div>
+                        </div>
+                      )
+                    }
+                    // Fallback simple input
+                    return (
+                      <div key={f.id}>
+                        <label className="block text-sm font-medium text-neutral-medium mb-1">
+                          {f.label}
+                        </label>
+                        <Input
+                          value={entry.value ?? ''}
+                          onChange={(e) => setValue(e.target.value)}
+                          placeholder={f.label}
+                        />
+                      </div>
+                    )
+                  })}
                 </div>
               </div>
-            </div>
+            )}
 
-            {/* end left column */}
+            {/* Modules integrated into Content (hidden when modules are disabled) */}
+            {modulesEnabled && (
+              <div className="mt-6">
+                <div className="flex items-center justify-between mb-4">
+                  <h3 className="text-base font-semibold text-neutral-high">Modules</h3>
+                  <ModulePicker
+                    postId={post.id}
+                    postType={post.type}
+                    mode={viewMode === 'review' ? 'review' : 'publish'}
+                    onAdd={handleAddModule}
+                  />
+                </div>
+                {modules.length === 0 ? (
+                  <div className="text-center py-12 text-neutral-low">
+                    <p>No modules yet. Use “Add Module” to insert one.</p>
+                  </div>
+                ) : (
+                  <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={onDragEnd}>
+                    <SortableContext items={orderedIds} strategy={verticalListSortingStrategy}>
+                      <ul className="space-y-3">
+                        {sortedModules.map((m) => (
+                          <SortableItem key={m.id} id={m.id} disabled={m.locked}>
+                            {(listeners: any) => (
+                              <li className="bg-backdrop-low border border-line-low rounded-lg px-4 py-3 flex items-center justify-between">
+                                <div className="flex items-center gap-3">
+                                  <button
+                                    type="button"
+                                    aria-label="Drag"
+                                    className={`text-neutral-low hover:text-neutral-high ${m.locked ? 'opacity-40 cursor-not-allowed' : 'cursor-grab'}`}
+                                    {...(m.locked ? {} : listeners)}
+                                  >
+                                    <GripVertical size={16} />
+                                  </button>
+                                  <div>
+                                    <div className="text-sm font-medium text-neutral-high">
+                                      {m.scope === 'global'
+                                        ? (globalSlugToLabel.get(String((m as any).globalSlug || '')) || (m as any).globalLabel || (m as any).globalSlug || (moduleRegistry[m.type]?.name || m.type))
+                                        : (moduleRegistry[m.type]?.name || m.type)}
+                                    </div>
+                                    <div className="text-xs text-neutral-low">Order: {m.orderIndex}</div>
+                                  </div>
+                                </div>
+                                <div className="flex items-center gap-2">
+                                  {moduleRegistry[m.type]?.renderingMode === 'react' && (
+                                    <span
+                                      className="inline-flex items-center rounded border border-line-medium bg-backdrop-low px-2 py-1 text-xs text-neutral-high"
+                                      title="React module (client-side interactivity)"
+                                      aria-label="React module"
+                                    >
+                                      <FontAwesomeIcon icon={faReact} className="mr-1 text-sky-400" />
+                                      React
+                                    </span>
+                                  )}
+                                  {m.scope === 'global'
+                                    ? (
+                                      <span
+                                        className="inline-flex items-center rounded border border-line-medium bg-backdrop-low px-2 py-1 text-xs text-neutral-high"
+                                        title="Global module"
+                                        aria-label="Global module"
+                                      >
+                                        <FontAwesomeIcon icon={faGlobe} className="w-3.5 h-3.5" />
+                                      </span>
+                                    )
+                                    : (
+                                      <button
+                                        className="text-xs px-2 py-1 rounded border border-line-low bg-backdrop-input text-neutral-high hover:bg-backdrop-medium"
+                                        onClick={() => setEditing(adjustModuleForView(m))}
+                                        type="button"
+                                      >
+                                        Edit
+                                      </button>
+                                    )}
+                                  <button
+                                    className="text-xs px-2 py-1 rounded border border-[#ef4444] text-[#ef4444] hover:bg-[rgba(239,68,68,0.1)] disabled:opacity-50"
+                                    disabled={m.locked}
+                                    onClick={async () => {
+                                      if (m.locked) {
+                                        toast.error('Locked modules cannot be removed')
+                                        return
+                                      }
+                                      // Mark for removal in appropriate mode; actual apply on save
+                                      if (viewMode === 'review') {
+                                        setPendingReviewRemoved((prev) => {
+                                          const next = new Set(prev)
+                                          next.add(m.id)
+                                          return next
+                                        })
+                                      } else {
+                                        setPendingRemoved((prev) => {
+                                          const next = new Set(prev)
+                                          next.add(m.id)
+                                          return next
+                                        })
+                                        // For source mode, optimistically remove from UI
+                                        setModules((prev) => prev.filter((pm) => pm.id !== m.id))
+                                      }
+                                      toast.success('Module marked for removal (apply by saving)')
+                                    }}
+                                    type="button"
+                                  >
+                                    Remove
+                                  </button>
+                                </div>
+                              </li>
+                            )}
+                          </SortableItem>
+                        ))}
+                      </ul>
+                    </SortableContext>
+                  </DndContext>
+                )}
+              </div>
+            )}
           </div>
 
+          {/* SEO Card */}
+          <div className="bg-backdrop-low rounded-lg p-6 border border-line-low">
+            <h2 className="text-lg font-semibold text-neutral-high mb-4">
+              SEO
+            </h2>
 
-          {/* Right Column - Sidebar */}
-          <div className="space-y-6">
-            {/* Actions */}
-            <div className="bg-backdrop-low rounded-lg shadow p-6 border border-border">
-              <h3 className="text-sm font-semibold text-neutral-high mb-4">
-                Actions
-              </h3>
-              <div className="space-y-6">
-                {/* Active Version toggle */}
-                <div className="flex items-center gap-2">
-                  <div className="inline-flex rounded border border-border overflow-hidden">
-                    {hasSourceBaseline && (
-                      <button
-                        type="button"
-                        onClick={() => {
-                          setViewMode('source')
-                          // Update URL to preserve view mode on reload
-                          const url = new URL(window.location.href)
-                          url.searchParams.set('view', 'source')
-                          window.history.replaceState({}, '', url.toString())
-                        }}
-                        onClick={() => {
-                          setViewMode('source')
-                          // Update URL to preserve view mode on reload
-                          const url = new URL(window.location.href)
-                          url.searchParams.set('view', 'source')
-                          window.history.replaceState({}, '', url.toString())
-                        }}
-                        className={`px-2 py-1 text-xs ${viewMode === 'source' ? 'bg-standout-medium text-on-standout' : 'text-neutral-medium hover:bg-backdrop-medium'}`}
-                      >
-                        Source
-                      </button>
-                    )}
-                    {hasReviewBaseline && (canSaveForReview || canApproveReview) && (
-                      <button
-                        type="button"
-                        onClick={() => {
-                          setViewMode('review')
-                          // Update URL to preserve view mode on reload
-                          const url = new URL(window.location.href)
-                          url.searchParams.set('view', 'review')
-                          window.history.replaceState({}, '', url.toString())
-                        }}
-                        onClick={() => {
-                          setViewMode('review')
-                          // Update URL to preserve view mode on reload
-                          const url = new URL(window.location.href)
-                          url.searchParams.set('view', 'review')
-                          window.history.replaceState({}, '', url.toString())
-                        }}
-                        className={`px-2 py-1 text-xs ${viewMode === 'review' ? 'bg-standout-medium text-on-standout' : 'text-neutral-medium hover:bg-backdrop-medium'}`}
-                      >
-                        Review
-                      </button>
-                    )}
-                    {hasAiReviewBaseline && canApproveAiReview && (
-                      <button
-                        type="button"
-                        onClick={() => {
-                          setViewMode('ai-review')
-                          // Update URL to preserve view mode on reload
-                          const url = new URL(window.location.href)
-                          url.searchParams.set('view', 'ai-review')
-                          window.history.replaceState({}, '', url.toString())
-                        }}
-                        onClick={() => {
-                          setViewMode('ai-review')
-                          // Update URL to preserve view mode on reload
-                          const url = new URL(window.location.href)
-                          url.searchParams.set('view', 'ai-review')
-                          window.history.replaceState({}, '', url.toString())
-                        }}
-                        className={`px-2 py-1 text-xs ${viewMode === 'ai-review' ? 'bg-standout-medium text-on-standout' : 'text-neutral-medium hover:bg-backdrop-medium'}`}
-                      >
-                        AI Review
-                      </button>
-                    )}
-                  </div>
-                </div>
+            <div className="space-y-4">
+              {/* Slug */}
+              <div>
+                <label className="block text-sm font-medium text-neutral-medium mb-1">
+                  Slug *
+                </label>
+                <Input
+                  type="text"
+                  value={data.slug}
+                  onChange={(e) => {
+                    const v = String(e.target.value || '')
+                      .toLowerCase()
+                      .replace(/[^a-z0-9-]+/g, '-')
+                    setData('slug', v)
+                    // If user clears slug, re-enable auto; otherwise consider it manually controlled
+                    setSlugAuto(v === '')
+                  }}
+                  onBlur={() => {
+                    // Normalize fully on blur
+                    const v = slugify(String((data as any).slug || ''))
+                    setData('slug', v)
+                  }}
+                  className="font-mono text-sm"
+                  placeholder="post-slug"
+                />
+                {errors.slug && (
+                  <p className="text-sm text-[#dc2626] mt-1">{errors.slug}</p>
+                )}
+                {pathPattern && (
+                  <p className="mt-1 text-xs text-neutral-low font-mono">
+                    Preview: {buildPreviewPath(data.slug)}
+                  </p>
+                )}
+              </div>
+              {/* Meta Title */}
+              <div>
+                <label className="block text-sm font-medium text-neutral-medium mb-1">
+                  Meta Title
+                </label>
+                <Input
+                  type="text"
+                  value={data.metaTitle}
+                  onChange={(e) => setData('metaTitle', e.target.value)}
+                  placeholder="Custom meta title (optional)"
+                />
+                <p className="text-xs text-neutral-low mt-1">
+                  Leave blank to use post title
+                </p>
+              </div>
 
-                {/* Locale Switcher */}
-                <div>
-                  <label className="block text-xs font-medium text-neutral-medium mb-1">
-                    Locale
-                  </label>
-                  <div className="flex items-center gap-2">
-                    <Select
-                      defaultValue={selectedLocale}
-                      onValueChange={(nextLocale) => {
-                        setSelectedLocale(nextLocale)
-                        if (nextLocale === post.locale) return
-                        const target = translations?.find((t) => t.locale === nextLocale)
-                        if (target) {
-                          window.location.href = `/admin/posts/${target.id}/edit`
-                        }
-                      }}
-                    >
-                      <SelectTrigger className="w-[160px] h-8 text-xs">
-                        <SelectValue />
-                      </SelectTrigger>
-                      <SelectContent className="text-xs">
-                        {availableLocales.map((loc) => {
-                          const exists = translationsSet.has(loc)
-                          const label = exists ? `${loc.toUpperCase()}` : `${loc.toUpperCase()} (missing)`
-                          return (
-                            <SelectItem key={loc} value={loc} className="text-xs">
-                              {label}
-                            </SelectItem>
-                          )
-                        })}
-                      </SelectContent>
-                    </Select>
-                  </div>
-                  {selectedLocale !== post.locale && !translationsSet.has(selectedLocale) && (
+              {/* Meta Description */}
+              <div>
+                <label className="block text-sm font-medium text-neutral-medium mb-1">
+                  Meta Description
+                </label>
+                <Textarea
+                  value={data.metaDescription}
+                  onChange={(e) => setData('metaDescription', e.target.value)}
+                  rows={3}
+                  placeholder="Custom meta description (optional)"
+                />
+                <p className="text-xs text-neutral-low mt-1">
+                  Recommended: 150-160 characters
+                </p>
+              </div>
+
+              {/* Canonical URL */}
+              <div>
+                <label className="block text-sm font-medium text-neutral-medium mb-1">
+                  Canonical URL
+                </label>
+                <Input
+                  type="url"
+                  value={data.canonicalUrl}
+                  onChange={(e) => setData('canonicalUrl', e.target.value)}
+                  placeholder="https://example.com/my-post"
+                />
+              </div>
+
+              {/* Robots JSON */}
+              <div>
+                <label className="block text-sm font-medium text-neutral-medium mb-1">
+                  Robots (JSON)
+                </label>
+                <Textarea
+                  value={data.robotsJson}
+                  onChange={(e) => setData('robotsJson', e.target.value)}
+                  rows={4}
+                  className="font-mono text-xs"
+                  placeholder={JSON.stringify({ index: true, follow: true }, null, 2)}
+                />
+                <p className="text-xs text-neutral-low mt-1">
+                  Leave empty for defaults. Must be valid JSON.
+                </p>
+              </div>
+
+              {/* JSON-LD Overrides */}
+              <div>
+                <label className="block text-sm font-medium text-neutral-medium mb-1">
+                  JSON-LD Overrides (JSON)
+                </label>
+                <Textarea
+                  value={data.jsonldOverrides}
+                  onChange={(e) => setData('jsonldOverrides', e.target.value)}
+                  rows={6}
+                  className="font-mono text-xs"
+                  placeholder={JSON.stringify({ '@type': 'BlogPosting' }, null, 2)}
+                />
+                <p className="text-xs text-neutral-low mt-1">
+                  Leave empty to auto-generate structured data.
+                </p>
+              </div>
+            </div>
+          </div>
+
+          {/* end left column */}
+        </div>
+
+
+        {/* Right Column - Sidebar */}
+        <div className="space-y-6">
+          {/* Actions */}
+          <div className="bg-backdrop-low rounded-lg shadow p-6 border border-border">
+            <h3 className="text-sm font-semibold text-neutral-high mb-4">
+              Actions
+            </h3>
+            <div className="space-y-6">
+              {/* Active Version toggle */}
+              <div className="flex items-center gap-2">
+                <div className="inline-flex rounded border border-border overflow-hidden">
+                  {hasSourceBaseline && (
                     <button
                       type="button"
-                      className="mt-2 text-xs px-2 py-1 rounded border border-border bg-backdrop-low text-neutral-high hover:bg-backdrop-medium"
-                      onClick={async () => {
-                        const toCreate = selectedLocale
-                        const res = await fetch(`/api/posts/${post.id}/translations`, {
-                          method: 'POST',
-                          headers: {
-                            Accept: 'application/json',
-                            'Content-Type': 'application/json',
-                            ...xsrfHeader(),
-                          },
-                          credentials: 'same-origin',
-                          body: JSON.stringify({ locale: toCreate }),
-                        })
-                        if (res.redirected) {
-                          window.location.href = res.url
-                          return
-                        }
-                        if (res.ok) {
-                          window.location.reload()
-                        } else {
-                          toast.error('Failed to create translation')
-                        }
+                      onClick={() => {
+                        setViewMode('source')
+                        // Update URL to preserve view mode on reload
+                        const url = new URL(window.location.href)
+                        url.searchParams.set('view', 'source')
+                        window.history.replaceState({}, '', url.toString())
                       }}
+                      onClick={() => {
+                        setViewMode('source')
+                        // Update URL to preserve view mode on reload
+                        const url = new URL(window.location.href)
+                        url.searchParams.set('view', 'source')
+                        window.history.replaceState({}, '', url.toString())
+                      }}
+                      className={`px-2 py-1 text-xs ${viewMode === 'source' ? 'bg-standout-medium text-on-standout' : 'text-neutral-medium hover:bg-backdrop-medium'}`}
                     >
-                      Create Translation
+                      Source
+                    </button>
+                  )}
+                  {hasReviewBaseline && (canSaveForReview || canApproveReview) && (
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setViewMode('review')
+                        // Update URL to preserve view mode on reload
+                        const url = new URL(window.location.href)
+                        url.searchParams.set('view', 'review')
+                        window.history.replaceState({}, '', url.toString())
+                      }}
+                      onClick={() => {
+                        setViewMode('review')
+                        // Update URL to preserve view mode on reload
+                        const url = new URL(window.location.href)
+                        url.searchParams.set('view', 'review')
+                        window.history.replaceState({}, '', url.toString())
+                      }}
+                      className={`px-2 py-1 text-xs ${viewMode === 'review' ? 'bg-standout-medium text-on-standout' : 'text-neutral-medium hover:bg-backdrop-medium'}`}
+                    >
+                      Review
+                    </button>
+                  )}
+                  {hasAiReviewBaseline && canApproveAiReview && (
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setViewMode('ai-review')
+                        // Update URL to preserve view mode on reload
+                        const url = new URL(window.location.href)
+                        url.searchParams.set('view', 'ai-review')
+                        window.history.replaceState({}, '', url.toString())
+                      }}
+                      onClick={() => {
+                        setViewMode('ai-review')
+                        // Update URL to preserve view mode on reload
+                        const url = new URL(window.location.href)
+                        url.searchParams.set('view', 'ai-review')
+                        window.history.replaceState({}, '', url.toString())
+                      }}
+                      className={`px-2 py-1 text-xs ${viewMode === 'ai-review' ? 'bg-standout-medium text-on-standout' : 'text-neutral-medium hover:bg-backdrop-medium'}`}
+                    >
+                      AI Review
                     </button>
                   )}
                 </div>
-                {/* Agent Runner */}
-                <div>
-                  <label className="block text-xs font-medium text-neutral-medium mb-1">
-                    <div className="flex items-center gap-2">
-                      <span>Agent</span>
-                      <FontAwesomeIcon icon={faWandMagicSparkles} className="text-xs text-primary" />
-                    </div>
-                  </label>
-                  <div>
-                    <Select
-                      value={selectedAgent}
-                      onValueChange={(val) => setSelectedAgent(val)}
-                    >
-                      <SelectTrigger className="w-full h-8 text-xs">
-                        <SelectValue placeholder="Select an agent" />
-                      </SelectTrigger>
-                      <SelectContent className="text-xs">
-                        {agents.length === 0 ? (
-                          <SelectItem value="__none__" disabled className="text-xs">
-                            No agents configured
-                          </SelectItem>
-                        ) : (
-                          agents.map((a) => (
-                            <SelectItem key={a.id} value={a.id} className="text-xs">
-                              {a.name}
-                            </SelectItem>
-                          ))
-                        )}
-                      </SelectContent>
-                    </Select>
-                    {selectedAgent && (
-                      <>
-                        <AlertDialog
-                          open={agentPromptOpen}
-                          onOpenChange={(open) => {
-                            // Always allow opening (even if running - shouldn't happen but be safe)
-                            if (open && !agentPromptOpen) {
-                              setAgentPromptOpen(true)
-                              return
-                            }
-                            // Don't allow closing if agent is running or has a response
-                            if ((runningAgent || agentResponse) && !open) {
-                              // Force dialog to stay open - prevent closing
-                              return
-                            }
-                            // Only allow closing when not running and no response
-                            if (!runningAgent && !agentResponse) {
-                              setAgentPromptOpen(open)
-                              if (!open) {
-                                // Reset response when closing
-                                setAgentResponse(null)
-                                setAgentOpenEndedContext('')
-                              }
-                            }
-                          }}
-                        >
-                          <AlertDialogContent
-                            ref={agentModalContentRef}
-                            className="max-w-2xl max-h-[80vh] overflow-y-auto"
-                          >
-                            <AlertDialogHeader>
-                              <AlertDialogTitle>
-                                {agentResponse ? 'Agent Response' : 'Instructions'}
-                              </AlertDialogTitle>
-                              {agentResponse && (
-                                <AlertDialogDescription>
-                                  Review the AI response and changes that were applied:
-                                </AlertDialogDescription>
-                              )}
-                            </AlertDialogHeader>
+              </div>
 
-                            {runningAgent ? (
-                              <div className="mt-3 space-y-4">
+              {/* Locale Switcher */}
+              <div>
+                <label className="block text-xs font-medium text-neutral-medium mb-1">
+                  Locale
+                </label>
+                <div className="flex items-center gap-2">
+                  <Select
+                    defaultValue={selectedLocale}
+                    onValueChange={(nextLocale) => {
+                      setSelectedLocale(nextLocale)
+                      if (nextLocale === post.locale) return
+                      const target = translations?.find((t) => t.locale === nextLocale)
+                      if (target) {
+                        window.location.href = `/admin/posts/${target.id}/edit`
+                      }
+                    }}
+                  >
+                    <SelectTrigger className="w-[160px] h-8 text-xs">
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent className="text-xs">
+                      {availableLocales.map((loc) => {
+                        const exists = translationsSet.has(loc)
+                        const label = exists ? `${loc.toUpperCase()}` : `${loc.toUpperCase()} (missing)`
+                        return (
+                          <SelectItem key={loc} value={loc} className="text-xs">
+                            {label}
+                          </SelectItem>
+                        )
+                      })}
+                    </SelectContent>
+                  </Select>
+                </div>
+                {selectedLocale !== post.locale && !translationsSet.has(selectedLocale) && (
+                  <button
+                    type="button"
+                    className="mt-2 text-xs px-2 py-1 rounded border border-border bg-backdrop-low text-neutral-high hover:bg-backdrop-medium"
+                    onClick={async () => {
+                      const toCreate = selectedLocale
+                      const res = await fetch(`/api/posts/${post.id}/translations`, {
+                        method: 'POST',
+                        headers: {
+                          Accept: 'application/json',
+                          'Content-Type': 'application/json',
+                          ...xsrfHeader(),
+                        },
+                        credentials: 'same-origin',
+                        body: JSON.stringify({ locale: toCreate }),
+                      })
+                      if (res.redirected) {
+                        window.location.href = res.url
+                        return
+                      }
+                      if (res.ok) {
+                        window.location.reload()
+                      } else {
+                        toast.error('Failed to create translation')
+                      }
+                    }}
+                  >
+                    Create Translation
+                  </button>
+                )}
+              </div>
+              {/* Agent Runner */}
+              <div>
+                <label className="block text-xs font-medium text-neutral-medium mb-1">
+                  <div className="flex items-center gap-2">
+                    <span>Agent</span>
+                    <FontAwesomeIcon icon={faWandMagicSparkles} className="text-xs text-primary" />
+                  </div>
+                </label>
+                <div>
+                  <Select
+                    value={selectedAgent}
+                    onValueChange={(val) => setSelectedAgent(val)}
+                  >
+                    <SelectTrigger className="w-full h-8 text-xs">
+                      <SelectValue placeholder="Select an agent" />
+                    </SelectTrigger>
+                    <SelectContent className="text-xs">
+                      {agents.length === 0 ? (
+                        <SelectItem value="__none__" disabled className="text-xs">
+                          No agents configured
+                        </SelectItem>
+                      ) : (
+                        agents.map((a) => (
+                          <SelectItem key={a.id} value={a.id} className="text-xs">
+                            {a.name}
+                          </SelectItem>
+                        ))
+                      )}
+                    </SelectContent>
+                  </Select>
+                  {selectedAgent && (
+                    <>
+                      <AlertDialog
+                        open={agentPromptOpen}
+                        onOpenChange={(open) => {
+                          // Always allow opening (even if running - shouldn't happen but be safe)
+                          if (open && !agentPromptOpen) {
+                            setAgentPromptOpen(true)
+                            return
+                          }
+                          // Don't allow closing if agent is running or has a response
+                          if ((runningAgent || agentResponse) && !open) {
+                            // Force dialog to stay open - prevent closing
+                            return
+                          }
+                          // Only allow closing when not running and no response
+                          if (!runningAgent && !agentResponse) {
+                            setAgentPromptOpen(open)
+                            if (!open) {
+                              // Reset response when closing
+                              setAgentResponse(null)
+                              setAgentOpenEndedContext('')
+                            }
+                          }
+                        }}
+                      >
+<<<<<<< HEAD
+<AlertDialogContent
+  ref={agentModalContentRef}
+  className="max-w-2xl max-h-[80vh] overflow-y-auto"
+>
+  <AlertDialogHeader>
+    <AlertDialogTitle>
+      {agentResponse ? 'Agent Response' : 'Instructions'}
+=======
+                          <AlertDialogContent className="max-w-2xl max-h-[80vh] overflow-y-auto">
+        <AlertDialogHeader>
+          <AlertDialogTitle>
+            {agentResponse
+              ? 'Agent Response'
+              : (() => {
+                const a = agents.find((x) => x.id === selectedAgent)
+                return a?.openEndedContext?.label || 'Instructions'
+              })()}
+>>>>>>> 53203a7 (Add internal AI Agent integration)
+          </AlertDialogTitle>
+          {agentResponse && (
+            <AlertDialogDescription>
+<<<<<<< HEAD
+                                  Review the AI response and changes that were applied:
+=======
+                                {agentResponse
+                                  ? 'Review the AI response and changes that were applied:'
+                                  : 'Provide any extra context or requirements for this agent run.'}
+>>>>>>> 53203a7 (Add internal AI Agent integration)
+                              </AlertDialogDescription >
+                              )}
+                            </AlertDialogHeader >
+
+{
+  runningAgent?(
+                              <div className = "mt-3 space-y-4" >
                                 <div className="flex items-center gap-3">
                                   <Spinner className="size-5 text-primary" />
                                   <div className="text-sm font-medium">Running agent...</div>
@@ -2402,133 +2431,314 @@ async function executeSave(target: 'source' | 'review' | 'ai-review') {
                                 </div>
                               </div>
                             ) : !agentResponse ? (
-                              <div className="mt-3 space-y-4">
-                                {/* Agent History */}
-                                {loadingAgentHistory ? (
-                                  <div className="flex items-center gap-2 text-xs text-neutral-medium">
-                                    <Spinner className="size-4" />
-                                    <span>Loading history...</span>
-                                  </div>
-                                ) : agentHistory.length > 0 ? (
-                                  <div className="space-y-3">
-                                    {[...agentHistory].reverse().map((item) => (
-                                      <div key={item.id} className="space-y-2">
-                                        {/* User Request */}
-                                        {item.request && (
-                                          <div className="flex justify-end">
-                                            <div className="max-w-[80%] space-y-1">
-                                              {item.user && (
-                                                <div className="text-xs text-neutral-medium text-right mb-1">
-                                                  {item.user.fullName || item.user.email}
-                                                </div>
-                                              )}
-                                              <div className="bg-primary text-on-primary p-3 rounded-lg rounded-tr-sm text-sm">
-                                                {item.request}
-                                              </div>
-                                              <div className="text-xs text-neutral-low text-right">
-                                                {new Date(item.createdAt).toLocaleString()}
-                                              </div>
-                                            </div>
-                                          </div>
-                                        )}
-                                        {/* AI Response */}
-                                        {item.response && (
-                                          <div className="flex justify-start">
-                                            <div className="max-w-[80%] space-y-1">
-                                              <div className="bg-backdrop-medium p-3 rounded-lg rounded-tl-sm border border-line-medium text-sm">
-                                                {item.response.summary || (
-                                                  item.response.rawResponse
-                                                    ? (() => {
-                                                      try {
-                                                        const jsonMatch = item.response.rawResponse?.match(/```(?:json)?\s*(\{[\s\S]*\})\s*```/)
-                                                        const jsonStr = jsonMatch ? jsonMatch[1] : item.response.rawResponse
-                                                        const parsed = JSON.parse(jsonStr)
-                                                        return parsed.summary || 'Changes applied.'
-                                                      } catch {
-                                                        return item.response.rawResponse || 'Changes applied.'
-                                                      }
-                                                    })()
-                                                    : 'Changes applied.'
-                                                )}
-                                              </div>
-                                              {item.response.applied && item.response.applied.length > 0 && (
-                                                <div className="text-xs text-neutral-medium">
-                                                  Applied: {item.response.applied.join(', ')}
-                                                </div>
-                                              )}
-                                            </div>
-                                          </div>
-                                        )}
-                                      </div>
-                                    ))}
-                                  </div>
-                                ) : null}
+<<<<<<< HEAD
+  <div className="mt-3 space-y-4">
+    {/* Agent History */}
+    {loadingAgentHistory ? (
+      <div className="flex items-center gap-2 text-xs text-neutral-medium">
+        <Spinner className="size-4" />
+        <span>Loading history...</span>
+      </div>
+    ) : agentHistory.length > 0 ? (
+      <div className="space-y-3">
+        {[...agentHistory].reverse().map((item) => (
+          <div key={item.id} className="space-y-2">
+            {/* User Request */}
+            {item.request && (
+              <div className="flex justify-end">
+                <div className="max-w-[80%] space-y-1">
+                  {item.user && (
+                    <div className="text-xs text-neutral-medium text-right mb-1">
+                      {item.user.fullName || item.user.email}
+                    </div>
+                  )}
+                  <div className="bg-primary text-on-primary p-3 rounded-lg rounded-tr-sm text-sm">
+                    {item.request}
+                  </div>
+                  <div className="text-xs text-neutral-low text-right">
+                    {new Date(item.createdAt).toLocaleString()}
+                  </div>
+                </div>
+              </div>
+            )}
+            {/* AI Response */}
+            {item.response && (
+              <div className="flex justify-start">
+                <div className="max-w-[80%] space-y-1">
+                  <div className="bg-backdrop-medium p-3 rounded-lg rounded-tl-sm border border-line-medium text-sm">
+                    {item.response.summary || (
+                      item.response.rawResponse
+                        ? (() => {
+                          try {
+                            const jsonMatch = item.response.rawResponse?.match(/```(?:json)?\s*(\{[\s\S]*\})\s*```/)
+                            const jsonStr = jsonMatch ? jsonMatch[1] : item.response.rawResponse
+                            const parsed = JSON.parse(jsonStr)
+                            return parsed.summary || 'Changes applied.'
+                          } catch {
+                            return item.response.rawResponse || 'Changes applied.'
+                          }
+                        })()
+                        : 'Changes applied.'
+                    )}
+                  </div>
+                  {item.response.applied && item.response.applied.length > 0 && (
+                    <div className="text-xs text-neutral-medium">
+                      Applied: {item.response.applied.join(', ')}
+                    </div>
+                  )}
+                </div>
+              </div>
+            )}
+          </div>
+        ))}
+      </div>
+    ) : null}
 
-                                {/* Label and Description - only show when no response and history is loaded or empty */}
-                                {!agentResponse && !loadingAgentHistory && (
-                                  <div className="space-y-2 pt-4">
-                                    {/* Label (e.g., "What would you like the AI to help with?") */}
-                                    {(() => {
-                                      const a = agents.find((x) => x.id === selectedAgent)
-                                      const label = a?.openEndedContext?.label
-                                      if (label) {
-                                        return (
-                                          <div className="text-md font-medium text-neutral-high">
-                                            {label}
-                                          </div>
-                                        )
-                                      }
-                                      return null
-                                    })()}
-                                    {/* Description */}
-                                    <div className="text-sm text-neutral-medium whitespace-pre-wrap">
-                                      {(() => {
-                                        const a = agents.find((x) => x.id === selectedAgent)
-                                        if (a?.description) {
-                                          return a.description
-                                        }
-                                        return 'Provide any extra context or requirements for this agent run.'
-                                      })()}
-                                    </div>
-                                  </div>
-                                )}
+    {/* Label and Description - only show when no response and history is loaded or empty */}
+    {!agentResponse && !loadingAgentHistory && (
+      <div className="space-y-2 pt-4">
+        {/* Label (e.g., "What would you like the AI to help with?") */}
+        {(() => {
+          const a = agents.find((x) => x.id === selectedAgent)
+          const label = a?.openEndedContext?.label
+          if (label) {
+            return (
+              <div className="text-md font-medium text-neutral-high">
+                {label}
+              </div>
+            )
+          }
+          return null
+        })()}
+        {/* Description */}
+        <div className="text-sm text-neutral-medium whitespace-pre-wrap">
+          {(() => {
+            const a = agents.find((x) => x.id === selectedAgent)
+            if (a?.description) {
+              return a.description
+            }
+            return 'Provide any extra context or requirements for this agent run.'
+          })()}
+        </div>
+      </div>
+    )}
 
-                                {/* Current Input */}
-                                <div className="space-y-2">
-                                  <Textarea
-                                    value={agentOpenEndedContext}
-                                    onChange={(e) => setAgentOpenEndedContext(e.target.value)}
-                                    placeholder={(() => {
-                                      const a = agents.find((x) => x.id === selectedAgent)
-                                      return (
-                                        a?.openEndedContext?.placeholder ||
-                                        'Example: "Rewrite this page for a more confident tone. Keep it under 500 words. Preserve the CTA."'
-                                      )
-                                    })()}
-                                    className="min-h-[120px]"
-                                  />
-                                  {(() => {
+    {/* Current Input */}
+    <div className="space-y-2">
+      <Textarea
+        value={agentOpenEndedContext}
+        onChange={(e) => setAgentOpenEndedContext(e.target.value)}
+        placeholder={(() => {
+=======
+                              <div className="mt-3 space-y-2">
+                                <Textarea
+                                  value={agentOpenEndedContext}
+                                  onChange={(e) => setAgentOpenEndedContext(e.target.value)}
+                                  placeholder={(() => {
                                     const a = agents.find((x) => x.id === selectedAgent)
-                                    const max = a?.openEndedContext?.maxChars
-                                    if (!max) return null
                                     return (
-                                      <div className="text-xs text-neutral-medium">
-                                        {agentOpenEndedContext.length}/{max}
-                                      </div>
+                                      a?.openEndedContext?.placeholder ||
+                                      'Example: "Rewrite this page for a more confident tone. Keep it under 500 words. Preserve the CTA."'
                                     )
                                   })()}
-                                </div>
-                              </div>
-                            ) : (
-                              <div className="mt-3 space-y-4">
-                                {/* Show user's request */}
-                                {agentOpenEndedContext && (
-                                  <div className="space-y-1">
-                                    <div className="text-xs text-neutral-medium">Your request:</div>
-                                    <div className="bg-backdrop-medium p-3 rounded border border-neutral-border text-sm">
-                                      {agentOpenEndedContext}
+                                  className="min-h-[120px]"
+                                />
+                                {(() => {
+>>>>>>> 53203a7 (Add internal AI Agent integration)
+          const a = agents.find((x) => x.id === selectedAgent)
+          const max = a?.openEndedContext?.maxChars
+          if (!max) return null
+          return (
+<<<<<<< HEAD
+            a?.openEndedContext?.placeholder ||
+            'Example: "Rewrite this page for a more confident tone. Keep it under 500 words. Preserve the CTA."'
+=======
+                                    <div className="text-xs text-neutral-medium">
+                                      {agentOpenEndedContext.length}/{max}
                                     </div>
-                                  </div>
+>>>>>>> 53203a7 (Add internal AI Agent integration)
+          )
+        })()}
+                              </div>
+    ) : (
+    <div className="mt-3 space-y-4">
+      {/* Show user's request */}
+      {agentOpenEndedContext && (
+        <div className="space-y-1">
+          <div className="text-xs text-neutral-medium">Your request:</div>
+          <div className="bg-backdrop-medium p-3 rounded border border-neutral-border text-sm">
+            {agentOpenEndedContext}
+          </div>
+        </div>
+<<<<<<< HEAD
+      )
+      })()}
+    </div>
+  </div>
+) : (
+  <div className="mt-3 space-y-4">
+    {/* Show user's request */}
+    {agentOpenEndedContext && (
+      <div className="space-y-1">
+        <div className="text-xs text-neutral-medium">Your request:</div>
+        <div className="bg-backdrop-medium p-3 rounded border border-neutral-border text-sm">
+          {agentOpenEndedContext}
+        </div>
+      </div>
+    )}
+
+    {/* Show AI's natural response */}
+    {agentResponse.summary && (
+      <div className="space-y-1">
+        <div className="text-xs text-neutral-medium">AI Response:</div>
+        <div className="bg-standout-light p-4 rounded-lg border border-standout-medium text-sm whitespace-pre-wrap break-words">
+          {agentResponse.summary}
+        </div>
+      </div>
+    )}
+    {/* Fallback: Try to extract summary from raw response if not provided */}
+    {!agentResponse.summary && agentResponse.rawResponse && (
+      <div className="space-y-1">
+        <div className="text-xs text-neutral-medium">AI Response:</div>
+        <div className="bg-standout-light p-4 rounded-lg border border-standout-medium text-sm whitespace-pre-wrap break-words">
+          {(() => {
+            const raw = agentResponse.rawResponse
+            // Try to parse as JSON and extract summary
+            try {
+              // First try to extract JSON from markdown code blocks
+              const jsonMatch = raw.match(/```(?:json)?\s*(\{[\s\S]*\})\s*```/)
+              const jsonStr = jsonMatch ? jsonMatch[1] : raw
+              const parsed = JSON.parse(jsonStr)
+              // If there's a summary field, use it
+              if (parsed.summary && typeof parsed.summary === 'string') {
+                return parsed.summary
+              }
+              // If no summary, return a message indicating we couldn't extract it
+              return 'Summary not available. Changes have been applied.'
+            } catch {
+              // If parsing fails, return raw (shouldn't happen normally)
+              return raw
+            }
+          })()}
+        </div>
+      </div>
+    )}
+
+    {agentResponse.applied && agentResponse.applied.length > 0 && (
+      <div className="space-y-1">
+        <div className="text-xs text-neutral-medium">Changes applied:</div>
+        <div className="bg-success-light p-3 rounded border border-success-medium">
+          <ul className="list-disc list-inside space-y-1 text-sm">
+            {agentResponse.applied.map((field, i) => (
+              <li key={i}>{field}</li>
+            ))}
+          </ul>
+        </div>
+      </div>
+    )}
+
+    {agentResponse.message && (
+      <div className="text-sm text-success-medium font-medium">
+        {agentResponse.message}
+      </div>
+    )}
+  </div>
+)}
+
+<AlertDialogFooter>
+  {agentResponse ? (
+    <>
+      <AlertDialogCancel
+        type="button"
+        onClick={() => {
+          setAgentPromptOpen(false)
+          setAgentResponse(null)
+          setAgentOpenEndedContext('')
+        }}
+      >
+        Close
+      </AlertDialogCancel>
+      <AlertDialogAction
+        type="button"
+        onClick={() => {
+          setAgentPromptOpen(false)
+          setAgentResponse(null)
+          setAgentOpenEndedContext('')
+          // Switch to AI Review view to see the changes
+          const agent = agents.find((x) => x.id === selectedAgent)
+          const targetMode = (agent as any)?.type === 'internal' ? 'ai-review' : 'review'
+          // Update URL to preserve view mode on reload
+          const url = new URL(window.location.href)
+          url.searchParams.set('view', targetMode)
+          window.history.replaceState({}, '', url.toString())
+          // Reload data to get the latest changes from the agent
+          router.reload({
+            only: targetMode === 'ai-review' ? ['aiReviewDraft', 'post', 'modules'] : ['reviewDraft', 'post', 'modules'],
+            onSuccess: () => {
+              // After reload, switch to the target mode
+              setViewMode(targetMode)
+            },
+          })
+        }}
+      >
+        View Changes
+      </AlertDialogAction>
+    </>
+  ) : (
+    <>
+      <AlertDialogCancel
+        type="button"
+        onClick={() => {
+          setAgentPromptOpen(false)
+          setAgentResponse(null)
+        }}
+      >
+        Cancel
+      </AlertDialogCancel>
+      <AlertDialogAction
+        type="button"
+        disabled={runningAgent}
+        onClick={async (e) => {
+          // Prevent default form submission behavior and stop propagation
+          e.preventDefault()
+          e.stopPropagation()
+          if (!selectedAgent) return
+          // CRITICAL: Set running state BEFORE any async operations
+          // This prevents the dialog from closing via onOpenChange
+          setRunningAgent(true)
+          setAgentResponse(null)
+          // Force dialog to stay open
+          setAgentPromptOpen(true)
+          try {
+            const csrf = (() => {
+              if (typeof document === 'undefined') return undefined
+              const m = document.cookie.match(/(?:^|; )XSRF-TOKEN=([^;]+)/)
+              return m ? decodeURIComponent(m[1]) : undefined
+            })()
+
+            const openEnded = agentOpenEndedContext.trim()
+            const res = await fetch(
+              `/api/posts/${post.id}/agents/${encodeURIComponent(selectedAgent)}/run`,
+              {
+                method: 'POST',
+                headers: {
+                  Accept: 'application/json',
+                  'Content-Type': 'application/json',
+                  ...(csrf ? { 'X-XSRF-TOKEN': csrf } : {}),
+                },
+                credentials: 'same-origin',
+                body: JSON.stringify({
+                  context: {
+                    locale: selectedLocale,
+                    viewMode: viewMode, // Pass current view mode to agent
+                  },
+                  openEndedContext: openEnded || undefined,
+                }),
+              }
+            )
+            const j = await res.json().catch(() => ({}))
+            if (res.ok) {
+=======
                                 )}
 
                                 {/* Show AI's natural response */}
@@ -2540,29 +2750,37 @@ async function executeSave(target: 'source' | 'review' | 'ai-review') {
                                     </div>
                                   </div>
                                 )}
-                                {/* Fallback: Try to extract summary from raw response if not provided */}
+                                {/* Fallback: Show raw response if no summary */}
                                 {!agentResponse.summary && agentResponse.rawResponse && (
                                   <div className="space-y-1">
-                                    <div className="text-xs text-neutral-medium">AI Response:</div>
-                                    <div className="bg-standout-light p-4 rounded-lg border border-standout-medium text-sm whitespace-pre-wrap break-words">
+                                    <div className="text-xs text-neutral-medium">AI Response (raw):</div>
+                                    <div className="bg-standout-light p-4 rounded-lg border border-standout-medium text-sm whitespace-pre-wrap break-words max-h-96 overflow-y-auto">
+                                      {/* Try to extract natural text from JSON response */}
                                       {(() => {
                                         const raw = agentResponse.rawResponse
-                                        // Try to parse as JSON and extract summary
-                                        try {
-                                          // First try to extract JSON from markdown code blocks
-                                          const jsonMatch = raw.match(/```(?:json)?\s*(\{[\s\S]*\})\s*```/)
-                                          const jsonStr = jsonMatch ? jsonMatch[1] : raw
-                                          const parsed = JSON.parse(jsonStr)
-                                          // If there's a summary field, use it
-                                          if (parsed.summary && typeof parsed.summary === 'string') {
-                                            return parsed.summary
+                                        // If it's JSON in markdown, try to extract just the content
+                                        const jsonMatch = raw.match(/```(?:json)?\s*(\{[\s\S]*\})\s*```/)
+                                        if (jsonMatch) {
+                                          try {
+                                            const parsed = JSON.parse(jsonMatch[1])
+                                            // Return a more natural summary
+                                            const parts: string[] = []
+                                            if (parsed.post) {
+                                              parts.push('I\'ve updated the post with the following changes:')
+                                              if (parsed.post.title) parts.push(`- Title: "${parsed.post.title}"`)
+                                              if (parsed.post.excerpt) parts.push(`- Excerpt: "${parsed.post.excerpt.substring(0, 100)}..."`)
+                                            }
+                                            if (parsed.modules && Array.isArray(parsed.modules)) {
+                                              parsed.modules.forEach((m: any) => {
+                                                if (m.props?.title) parts.push(`- ${m.type} module title: "${m.props.title}"`)
+                                              })
+                                            }
+                                            return parts.length > 0 ? parts.join('\n') : raw
+                                          } catch {
+                                            return raw
                                           }
-                                          // If no summary, return a message indicating we couldn't extract it
-                                          return 'Summary not available. Changes have been applied.'
-                                        } catch {
-                                          // If parsing fails, return raw (shouldn't happen normally)
-                                          return raw
                                         }
+                                        return raw
                                       })()}
                                     </div>
                                   </div>
@@ -2610,19 +2828,11 @@ async function executeSave(target: 'source' | 'review' | 'ai-review') {
                                       setAgentOpenEndedContext('')
                                       // Switch to AI Review view to see the changes
                                       const agent = agents.find((x) => x.id === selectedAgent)
-                                      const targetMode = (agent as any)?.type === 'internal' ? 'ai-review' : 'review'
-                                      // Update URL to preserve view mode on reload
-                                      const url = new URL(window.location.href)
-                                      url.searchParams.set('view', targetMode)
-                                      window.history.replaceState({}, '', url.toString())
-                                      // Reload data to get the latest changes from the agent
-                                      router.reload({
-                                        only: targetMode === 'ai-review' ? ['aiReviewDraft', 'post', 'modules'] : ['reviewDraft', 'post', 'modules'],
-                                        onSuccess: () => {
-                                          // After reload, switch to the target mode
-                                          setViewMode(targetMode)
-                                        },
-                                      })
+                                      if ((agent as any)?.type === 'internal') {
+                                        setViewMode('ai-review')
+                                      } else {
+                                        setViewMode('review')
+                                      }
                                     }}
                                   >
                                     View Changes
@@ -2672,355 +2882,383 @@ async function executeSave(target: 'source' | 'review' | 'ai-review') {
                                             },
                                             credentials: 'same-origin',
                                             body: JSON.stringify({
-                                              context: {
-                                                locale: selectedLocale,
-                                                viewMode: viewMode, // Pass current view mode to agent
-                                              },
+                                              context: { locale: selectedLocale },
                                               openEndedContext: openEnded || undefined,
                                             }),
                                           }
                                         )
                                         const j = await res.json().catch(() => ({}))
                                         if (res.ok) {
-                                          // Keep dialog open and show response
-                                          setAgentResponse({
-                                            rawResponse: j.rawResponse,
-                                            summary: j.summary || null,
-                                            applied: j.applied || [],
-                                            message: j.message,
-                                          })
-                                          toast.success('Agent completed successfully')
+>>>>>>> 53203a7 (Add internal AI Agent integration)
+              // Keep dialog open and show response
+              setAgentResponse({
+                rawResponse: j.rawResponse,
+                summary: j.summary || null,
+                applied: j.applied || [],
+                message: j.message,
+              })
+              toast.success('Agent completed successfully')
 
-                                          // Refresh agent history to show the new execution
-                                          try {
-                                            const historyRes = await fetch(
-                                              `/api/posts/${post.id}/agents/${encodeURIComponent(selectedAgent)}/history`,
-                                              {
-                                                headers: { Accept: 'application/json' },
-                                                credentials: 'same-origin',
-                                              }
-                                            )
-                                            if (historyRes.ok) {
-                                              const historyJson = await historyRes.json().catch(() => null)
-                                              if (historyJson?.data) {
-                                                setAgentHistory(Array.isArray(historyJson.data) ? historyJson.data : [])
-                                              }
-                                            }
-                                          } catch {
-                                            // Ignore history refresh errors
-                                          }
+<<<<<<< HEAD
+              // Refresh agent history to show the new execution
+              try {
+                const historyRes = await fetch(
+                  `/api/posts/${post.id}/agents/${encodeURIComponent(selectedAgent)}/history`,
+                  {
+                    headers: { Accept: 'application/json' },
+                    credentials: 'same-origin',
+                  }
+                )
+                if (historyRes.ok) {
+                  const historyJson = await historyRes.json().catch(() => null)
+                  if (historyJson?.data) {
+                    setAgentHistory(Array.isArray(historyJson.data) ? historyJson.data : [])
+                  }
+                }
+              } catch {
+                // Ignore history refresh errors
+              }
 
-                                          // Refresh page data to load updated aiReviewDraft and modules
-                                          // Delay reload slightly to ensure dialog state is set first
-                                          // Wrap in try-catch to prevent reload errors from affecting the UI
-                                          setTimeout(() => {
-                                            try {
-                                              router.reload({ only: ['aiReviewDraft', 'post', 'modules'] })
-                                            } catch (reloadError) {
-                                              console.warn('Page reload failed (non-critical):', reloadError)
-                                              // Reload failed but agent succeeded - user can manually refresh
-                                            }
-                                          }, 100)
+=======
+>>>>>>> 53203a7 (Add internal AI Agent integration)
+              // Refresh page data to load updated aiReviewDraft and modules
+              // Delay reload slightly to ensure dialog state is set first
+              // Wrap in try-catch to prevent reload errors from affecting the UI
+              setTimeout(() => {
+                try {
+                  router.reload({ only: ['aiReviewDraft', 'post', 'modules'] })
+                } catch (reloadError) {
+                  console.warn('Page reload failed (non-critical):', reloadError)
+                  // Reload failed but agent succeeded - user can manually refresh
+                }
+              }, 100)
+<<<<<<< HEAD
+            } else {
+              toast.error(j?.error || 'Agent run failed')
+              setAgentResponse({
+                message: `Error: ${j?.error || 'Agent run failed'}`,
+              })
+            }
+          } catch (error: any) {
+            console.error('Agent execution error:', error)
+            toast.error('Agent run failed')
+            setAgentResponse({
+              message: `Error: ${error?.message || 'Agent run failed'}`,
+            })
+          } finally {
+            setRunningAgent(false)
+          }
+        }}
+      >
+        {runningAgent ? 'Running…' : 'Run Agent'}
+      </AlertDialogAction>
+=======
                                         } else {
-                                          toast.error(j?.error || 'Agent run failed')
+        toast.error(j?.error || 'Agent run failed')
                                           setAgentResponse({
-                                            message: `Error: ${j?.error || 'Agent run failed'}`,
+        message: `Error: ${j?.error || 'Agent run failed'}`,
                                           })
                                         }
                                       } catch (error: any) {
-                                        console.error('Agent execution error:', error)
+        console.error('Agent execution error:', error)
                                         toast.error('Agent run failed')
-                                        setAgentResponse({
-                                          message: `Error: ${error?.message || 'Agent run failed'}`,
+      setAgentResponse({
+        message: `Error: ${error?.message || 'Agent run failed'}`,
                                         })
                                       } finally {
-                                        setRunningAgent(false)
-                                      }
+        setRunningAgent(false)
+      }
                                     }}
                                   >
-                                    {runningAgent ? 'Running…' : 'Run Agent'}
-                                  </AlertDialogAction>
-                                </>
+      {runningAgent ? 'Running…' : 'Run Agent'}
+    </AlertDialogAction>
+>>>>>>> 53203a7 (Add internal AI Agent integration)
+</>
                               )}
-                            </AlertDialogFooter>
-                          </AlertDialogContent>
-                        </AlertDialog>
+                            </AlertDialogFooter >
+                          </AlertDialogContent >
+                        </AlertDialog >
 
-                        <button
-                          className="mt-2 w-full h-8 px-3 text-xs rounded-lg bg-standout-medium text-on-standout font-medium disabled:opacity-50"
-                          disabled={runningAgent}
-                          onClick={() => {
-                            const a = agents.find((x) => x.id === selectedAgent)
-                            const enabled = a?.openEndedContext?.enabled === true
-                            if (enabled) {
-                              setAgentPromptOpen(true)
-                              return
-                            }
-                            // No prompt required: run immediately, but still show response in dialog
-                            ; (async () => {
-                              // Open dialog FIRST to ensure it's open before setting running state
-                              setAgentPromptOpen(true)
-                              // Use requestAnimationFrame to ensure dialog state is set before preventing close
-                              await new Promise(resolve => requestAnimationFrame(resolve))
-                                // No prompt required: run immediately, but still show response in dialog
-                                ; (async () => {
-                                  // Open dialog FIRST to ensure it's open before setting running state
-                                  setAgentPromptOpen(true)
-                                  // Use requestAnimationFrame to ensure dialog state is set before preventing close
-                                  await new Promise(resolve => requestAnimationFrame(resolve))
-                                  setRunningAgent(true)
-                                  setAgentResponse(null)
-                                  setAgentResponse(null)
-                                  try {
-                                    const csrf = (() => {
-                                      if (typeof document === 'undefined') return undefined
-                                      const m = document.cookie.match(/(?:^|; )XSRF-TOKEN=([^;]+)/)
-                                      return m ? decodeURIComponent(m[1]) : undefined
-                                    })()
-                                    const res = await fetch(
-                                      `/api/posts/${post.id}/agents/${encodeURIComponent(selectedAgent)}/run`,
-                                      {
-                                        method: 'POST',
-                                        headers: {
-                                          Accept: 'application/json',
-                                          'Content-Type': 'application/json',
-                                          ...(csrf ? { 'X-XSRF-TOKEN': csrf } : {}),
-                                        },
-                                        credentials: 'same-origin',
-                                        body: JSON.stringify({ context: { locale: selectedLocale } }),
-                                      }
-                                    )
-                                    const j = await res.json().catch(() => ({}))
-                                    if (res.ok) {
-                                      // Show response in dialog
-                                      setAgentResponse({
-                                        rawResponse: j.rawResponse,
-                                        applied: j.applied || [],
-                                        message: j.message,
-                                      })
-                                      toast.success('Agent completed successfully')
+  <button
+    className="mt-2 w-full h-8 px-3 text-xs rounded-lg bg-standout-medium text-on-standout font-medium disabled:opacity-50"
+    disabled={runningAgent}
+    onClick={() => {
+      const a = agents.find((x) => x.id === selectedAgent)
+      const enabled = a?.openEndedContext?.enabled === true
+      if (enabled) {
+        setAgentPromptOpen(true)
+        return
+      }
+      // No prompt required: run immediately, but still show response in dialog
+      ; (async () => {
+        // Open dialog FIRST to ensure it's open before setting running state
+        setAgentPromptOpen(true)
+        // Use requestAnimationFrame to ensure dialog state is set before preventing close
+        await new Promise(resolve => requestAnimationFrame(resolve))
+          // No prompt required: run immediately, but still show response in dialog
+          ; (async () => {
+            // Open dialog FIRST to ensure it's open before setting running state
+            setAgentPromptOpen(true)
+            // Use requestAnimationFrame to ensure dialog state is set before preventing close
+            await new Promise(resolve => requestAnimationFrame(resolve))
+            setRunningAgent(true)
+            setAgentResponse(null)
+            setAgentResponse(null)
+            try {
+              const csrf = (() => {
+                if (typeof document === 'undefined') return undefined
+                const m = document.cookie.match(/(?:^|; )XSRF-TOKEN=([^;]+)/)
+                return m ? decodeURIComponent(m[1]) : undefined
+              })()
+              const res = await fetch(
+                `/api/posts/${post.id}/agents/${encodeURIComponent(selectedAgent)}/run`,
+                {
+                  method: 'POST',
+                  headers: {
+                    Accept: 'application/json',
+                    'Content-Type': 'application/json',
+                    ...(csrf ? { 'X-XSRF-TOKEN': csrf } : {}),
+                  },
+                  credentials: 'same-origin',
+                  body: JSON.stringify({ context: { locale: selectedLocale } }),
+                }
+              )
+              const j = await res.json().catch(() => ({}))
+              if (res.ok) {
+                // Show response in dialog
+                setAgentResponse({
+                  rawResponse: j.rawResponse,
+                  applied: j.applied || [],
+                  message: j.message,
+                })
+                toast.success('Agent completed successfully')
 
-                                      // Refresh agent history to show the new execution
-                                      try {
-                                        const historyRes = await fetch(
-                                          `/api/posts/${post.id}/agents/${encodeURIComponent(selectedAgent)}/history`,
-                                          {
-                                            headers: { Accept: 'application/json' },
-                                            credentials: 'same-origin',
-                                          }
-                                        )
-                                        if (historyRes.ok) {
-                                          const historyJson = await historyRes.json().catch(() => null)
-                                          if (historyJson?.data) {
-                                            setAgentHistory(Array.isArray(historyJson.data) ? historyJson.data : [])
-                                          }
-                                        }
-                                      } catch {
-                                        // Ignore history refresh errors
-                                      }
+<<<<<<< HEAD
+                // Refresh agent history to show the new execution
+                try {
+                  const historyRes = await fetch(
+                    `/api/posts/${post.id}/agents/${encodeURIComponent(selectedAgent)}/history`,
+                    {
+                      headers: { Accept: 'application/json' },
+                      credentials: 'same-origin',
+                    }
+                  )
+                  if (historyRes.ok) {
+                    const historyJson = await historyRes.json().catch(() => null)
+                    if (historyJson?.data) {
+                      setAgentHistory(Array.isArray(historyJson.data) ? historyJson.data : [])
+                    }
+                  }
+                } catch {
+                  // Ignore history refresh errors
+                }
 
-                                      // Refresh page data to load updated aiReviewDraft
-                                      setTimeout(() => {
-                                        try {
-                                          router.reload({ only: ['aiReviewDraft', 'post'] })
-                                        } catch (reloadError) {
-                                          console.warn('Page reload failed (non-critical):', reloadError)
-                                        }
-                                      }, 100)
-                                    } else {
-                                      toast.error(j?.error || 'Agent run failed')
-                                      setAgentResponse({
-                                        message: `Error: ${j?.error || 'Agent run failed'}`,
-                                      })
-                                      setAgentResponse({
-                                        message: `Error: ${j?.error || 'Agent run failed'}`,
-                                      })
-                                    }
-                                  } catch (error: any) {
-                                    console.error('Agent execution error:', error)
-                                  } catch (error: any) {
-                                    console.error('Agent execution error:', error)
-                                    toast.error('Agent run failed')
-                                    setAgentResponse({
-                                      message: `Error: ${error?.message || 'Agent run failed'}`,
-                                    })
-                                    setAgentResponse({
-                                      message: `Error: ${error?.message || 'Agent run failed'}`,
-                                    })
-                                  } finally {
-                                    setRunningAgent(false)
-                                  }
-                                })()
-                            }}
+=======
+>>>>>>> 53203a7 (Add internal AI Agent integration)
+                // Refresh page data to load updated aiReviewDraft
+                setTimeout(() => {
+                  try {
+                    router.reload({ only: ['aiReviewDraft', 'post'] })
+                  } catch (reloadError) {
+                    console.warn('Page reload failed (non-critical):', reloadError)
+                  }
+                }, 100)
+              } else {
+                toast.error(j?.error || 'Agent run failed')
+                setAgentResponse({
+                  message: `Error: ${j?.error || 'Agent run failed'}`,
+                })
+              }
+            } catch (error: any) {
+              console.error('Agent execution error:', error)
+              toast.error('Agent run failed')
+              setAgentResponse({
+                message: `Error: ${error?.message || 'Agent run failed'}`,
+              })
+            } finally {
+              setRunningAgent(false)
+            }
+          })()
+      }}
                           type="button"
-                        >
-                          {runningAgent ? 'Running…' : 'Run Agent'}
-                        </button>
+  >
+    {runningAgent ? 'Running…' : 'Run Agent'}
+  </button>
                       </>
                     )}
-                  </div>
-                </div>
-                {/* Status (Source only) */}
-                {viewMode === 'source' && (
-                  <div>
-                    <label className="block text-xs font-medium text-neutral-medium mb-1">
-                      Status
-                    </label>
-                    <div className="flex items-center gap-2">
-                      <Select defaultValue={data.status} onValueChange={(val) => setData('status', val)}>
-                        <SelectTrigger className="w-[180px]">
-                          <SelectValue />
-                        </SelectTrigger>
-                        <SelectContent>
-                          <SelectItem value="draft">Draft</SelectItem>
-                          <SelectItem value="scheduled">Scheduled</SelectItem>
-                          {canPublish && <SelectItem value="published">Published</SelectItem>}
-                          <SelectItem value="private">Private</SelectItem>
-                          <SelectItem value="protected">Protected</SelectItem>
-                          {canPublish && <SelectItem value="archived">Archived</SelectItem>}
-                        </SelectContent>
-                      </Select>
-                    </div>
-                    {errors.status && (
-                      <p className="text-xs text-red-600 dark:text-red-400 mt-1">{errors.status}</p>
-                    )}
-                    {data.status === 'scheduled' && (
-                      <div className="mt-3 space-y-2">
-                        <label className="block text-xs font-medium text-neutral-medium">
-                          Scheduled Date
-                        </label>
-                        <Popover>
-                          <PopoverTrigger asChild>
-                            <button
-                              type="button"
-                              className="px-3 py-2 text-sm border border-line-low rounded hover:bg-backdrop-medium text-neutral-high"
-                            >
-                              {(data as any).scheduledAt
-                                ? new Date((data as any).scheduledAt).toLocaleDateString()
-                                : 'Pick a date'}
-                            </button>
-                          </PopoverTrigger>
-                          <PopoverContent className="p-0">
-                            <Calendar
-                              mode="single"
-                              selected={(data as any).scheduledAt ? new Date((data as any).scheduledAt) : undefined}
-                              onSelect={(d: Date | undefined) => {
-                                if (!d) {
-                                  setData('scheduledAt' as any, '')
-                                  return
-                                }
-                                const local = new Date(d.getFullYear(), d.getMonth(), d.getDate(), 0, 0, 0)
-                                setData('scheduledAt' as any, local.toISOString())
-                              }}
-                            />
-                          </PopoverContent>
-                        </Popover>
-                        <p className="text-xs text-neutral-low">Scheduler will publish on the selected day.</p>
-                      </div>
-                    )}
-                  </div>
-                )}
-                {/* Save edits (Source can save to Source or Review) */}
-                {viewMode === 'source' && (
-                  {/* Save edits (Source can save to Source or Review) */ }
-                {viewMode === 'source' && (
-                  <div className="space-y-2">
-                    <label className="block text-xs font-medium text-neutral-medium">
-                      Save edits to
-                    </label>
-                    <div className="flex items-center gap-2">
-                      <Select
-                        value={saveTarget}
-                        onValueChange={(val) => setSaveTarget(val as any)}
+                  </div >
+                </div >
+  {/* Status (Source only) */ }
+{
+  viewMode === 'source' && (
+    <div>
+      <label className="block text-xs font-medium text-neutral-medium mb-1">
+        Status
+      </label>
+      <div className="flex items-center gap-2">
+        <Select defaultValue={data.status} onValueChange={(val) => setData('status', val)}>
+          <SelectTrigger className="w-[180px]">
+            <SelectValue />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="draft">Draft</SelectItem>
+            <SelectItem value="scheduled">Scheduled</SelectItem>
+            {canPublish && <SelectItem value="published">Published</SelectItem>}
+            <SelectItem value="private">Private</SelectItem>
+            <SelectItem value="protected">Protected</SelectItem>
+            {canPublish && <SelectItem value="archived">Archived</SelectItem>}
+          </SelectContent>
+        </Select>
+      </div>
+      {errors.status && (
+        <p className="text-xs text-red-600 dark:text-red-400 mt-1">{errors.status}</p>
+      )}
+      {data.status === 'scheduled' && (
+        <div className="mt-3 space-y-2">
+          <label className="block text-xs font-medium text-neutral-medium">
+            Scheduled Date
+          </label>
+          <Popover>
+            <PopoverTrigger asChild>
+              <button
+                type="button"
+                className="px-3 py-2 text-sm border border-line-low rounded hover:bg-backdrop-medium text-neutral-high"
+              >
+                {(data as any).scheduledAt
+                  ? new Date((data as any).scheduledAt).toLocaleDateString()
+                  : 'Pick a date'}
+              </button>
+            </PopoverTrigger>
+            <PopoverContent className="p-0">
+              <Calendar
+                mode="single"
+                selected={(data as any).scheduledAt ? new Date((data as any).scheduledAt) : undefined}
+                onSelect={(d: Date | undefined) => {
+                  if (!d) {
+                    setData('scheduledAt' as any, '')
+                    return
+                  }
+                  const local = new Date(d.getFullYear(), d.getMonth(), d.getDate(), 0, 0, 0)
+                  setData('scheduledAt' as any, local.toISOString())
+                }}
+              />
+            </PopoverContent>
+          </Popover>
+          <p className="text-xs text-neutral-low">Scheduler will publish on the selected day.</p>
+        </div>
+      )}
+    </div>
+  )
+}
+{/* Save edits (Source can save to Source or Review) */ }
+{
+  viewMode === 'source' && (
+    {/* Save edits (Source can save to Source or Review) */ }
+                {
+    viewMode === 'source' && (
+      <div className="space-y-2">
+        <label className="block text-xs font-medium text-neutral-medium">
+          Save edits to
+        </label>
+        <div className="flex items-center gap-2">
+          <Select
+            value={saveTarget}
+            onValueChange={(val) => setSaveTarget(val as any)}
+          >
+            <SelectTrigger className="flex-1 h-8 text-xs">
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent className="text-xs">
+              <SelectItem value="source" className="text-xs">Source</SelectItem>
+              {canSaveForReview && <SelectItem value="review" className="text-xs">Review</SelectItem>}
+            </SelectContent>
+          </Select>
+          <button
+            type="button"
+            className={`h-8 px-3 text-xs rounded-lg disabled:opacity-50 ${(!isDirty || processing) ? 'border border-border text-neutral-medium' : 'bg-standout-medium text-on-standout font-medium'}`}
+            disabled={
+              !isDirty ||
+              processing ||
+              (saveTarget === 'review' && !canSaveForReview)
+            }
+            onClick={async () => {
+              // Destructive confirmation when saving to Review that already exists.
+              if (saveTarget === 'review' && hasReviewBaseline) {
+                // Destructive confirmation when saving to Review that already exists.
+                if (saveTarget === 'review' && hasReviewBaseline) {
+                  setPendingSaveTarget(saveTarget)
+                  setSaveConfirmOpen(true)
+                  return
+                }
+                await executeSave(saveTarget)
+              }
+            }
                       >
-                        <SelectTrigger className="flex-1 h-8 text-xs">
-                          <SelectValue />
-                        </SelectTrigger>
-                        <SelectContent className="text-xs">
-                          <SelectItem value="source" className="text-xs">Source</SelectItem>
-                          {canSaveForReview && <SelectItem value="review" className="text-xs">Review</SelectItem>}
-                        </SelectContent>
-                      </Select>
-                      <button
-                        type="button"
-                        className={`h-8 px-3 text-xs rounded-lg disabled:opacity-50 ${(!isDirty || processing) ? 'border border-border text-neutral-medium' : 'bg-standout-medium text-on-standout font-medium'}`}
-                        disabled={
-                          !isDirty ||
-                          processing ||
-                          (saveTarget === 'review' && !canSaveForReview)
-                        }
-                        onClick={async () => {
-                          // Destructive confirmation when saving to Review that already exists.
-                          if (saveTarget === 'review' && hasReviewBaseline) {
-                            // Destructive confirmation when saving to Review that already exists.
-                            if (saveTarget === 'review' && hasReviewBaseline) {
-                              setPendingSaveTarget(saveTarget)
-                              setSaveConfirmOpen(true)
-                              return
-                            }
-                            await executeSave(saveTarget)
-                          }
-                        }
-                      >
-                        {saveTarget === 'source'
-                          ? (data.status === 'published' ? 'Publish' : 'Save')
-                          : 'Save'}
-                      </button>
-                    </div>
-                    {saveTarget === 'review' && !canSaveForReview && (
-                      <p className="text-xs text-neutral-low">
-                        You don't have permission to save to Review.
-                        You don't have permission to save to Review.
-                      </p>
-                    )}
-                  </div>
-                )}
+            {saveTarget === 'source'
+              ? (data.status === 'published' ? 'Publish' : 'Save')
+              : 'Save'}
+          </button>
+        </div>
+        {saveTarget === 'review' && !canSaveForReview && (
+          <p className="text-xs text-neutral-low">
+            You don't have permission to save to Review.
+            You don't have permission to save to Review.
+          </p>
+        )}
+      </div>
+    )
+  }
 
-                {/* Save button for Review view mode */}
-                {viewMode === 'review' && (
-                  <div className="space-y-2">
-                    <button
-                      type="button"
-                      className={`h-8 px-3 text-xs rounded-lg disabled:opacity-50 ${(!isDirty || processing) ? 'border border-border text-neutral-medium' : 'bg-standout-medium text-on-standout font-medium'}`}
-                      disabled={!isDirty || processing || !canSaveForReview}
-                      onClick={async () => {
-                        await executeSave('review')
-                      }}
-                    >
-                      Save
-                    </button>
-                    {!canSaveForReview && (
-                      <p className="text-xs text-neutral-low">
-                        You don't have permission to save to Review.
-                      </p>
-                    )}
-                  </div>
-                )}
+  {/* Save button for Review view mode */ }
+  {
+    viewMode === 'review' && (
+      <div className="space-y-2">
+        <button
+          type="button"
+          className={`h-8 px-3 text-xs rounded-lg disabled:opacity-50 ${(!isDirty || processing) ? 'border border-border text-neutral-medium' : 'bg-standout-medium text-on-standout font-medium'}`}
+          disabled={!isDirty || processing || !canSaveForReview}
+          onClick={async () => {
+            await executeSave('review')
+          }}
+        >
+          Save
+        </button>
+        {!canSaveForReview && (
+          <p className="text-xs text-neutral-low">
+            You don't have permission to save to Review.
+          </p>
+        )}
+      </div>
+    )
+  }
 
-                {/* Save button for AI Review view mode */}
-                {/* Save button for Review view mode */}
-                {viewMode === 'review' && (
-                  <div className="space-y-2">
-                    <button
-                      type="button"
-                      className={`h-8 px-3 text-xs rounded-lg disabled:opacity-50 ${(!isDirty || processing) ? 'border border-border text-neutral-medium' : 'bg-standout-medium text-on-standout font-medium'}`}
-                      disabled={!isDirty || processing || !canSaveForReview}
-                      onClick={async () => {
-                        await executeSave('review')
-                      }}
-                    >
-                      Save
-                    </button>
-                    {!canSaveForReview && (
-                      <p className="text-xs text-neutral-low">
-                        You don't have permission to save to Review.
-                      </p>
-                    )}
-                  </div>
-                )}
+  {/* Save button for AI Review view mode */ }
+  {/* Save button for Review view mode */ }
+  {
+    viewMode === 'review' && (
+      <div className="space-y-2">
+        <button
+          type="button"
+          className={`h-8 px-3 text-xs rounded-lg disabled:opacity-50 ${(!isDirty || processing) ? 'border border-border text-neutral-medium' : 'bg-standout-medium text-on-standout font-medium'}`}
+          disabled={!isDirty || processing || !canSaveForReview}
+          onClick={async () => {
+            await executeSave('review')
+          }}
+        >
+          Save
+        </button>
+        {!canSaveForReview && (
+          <p className="text-xs text-neutral-low">
+            You don't have permission to save to Review.
+          </p>
+        )}
+      </div>
+    )
+  }
 
-                {/* Save button for AI Review view mode */}
-                {viewMode === 'ai-review' && (
+  {/* Save button for AI Review view mode */ }
+  {
+    viewMode === 'ai-review' && (
                   <div className="space-y-2">
                     <p className="text-xs text-neutral-low">
                       AI Review is AI-generated.
@@ -3051,553 +3289,680 @@ async function executeSave(target: 'source' | 'review' | 'ai-review') {
                       Save
                     </button>
                   </div>
-                )}
+    )
+  }
 
 
 
-                {/* Approve/Reject decision (RadioGroup) */}
-                {viewMode !== 'source' && ((
-                  (hasAiReviewBaseline && canApproveAiReview) ||
-                  (hasReviewBaseline && canApproveReview)
-                )) && (
-                    <div className="space-y-2">
-                      <label className="block text-xs font-medium text-neutral-medium">
-                        Decision
-                      </label>
-                      <RadioGroup
-                        value={decision}
-                        onValueChange={(val) => setDecision(val as any)}
-                        className="space-y-2"
-                      >
-                        {hasReviewBaseline && canApproveReview && (
-                          <label className="flex items-center gap-2 text-xs text-neutral-high">
-                            <RadioGroupItem value="approve-review-to-source" />
-                            <span>Promote to Source</span>
-                          </label>
-                        )}
-                        {hasAiReviewBaseline && canApproveAiReview && viewMode === 'ai-review' && (
-                          <label className="flex items-center gap-2 text-xs text-neutral-high">
-                            <RadioGroupItem value="approve-ai-review-to-review" />
-                            <span>Promote to Review</span>
-                          </label>
-                        )}
-                        {hasReviewBaseline && canApproveReview && viewMode === 'review' && (
-                          <label className="flex items-center gap-2 text-xs text-neutral-high">
-                            <RadioGroupItem value="reject-review" />
-                            <span>Reject this version</span>
-                          </label>
-                        )}
-                        {hasAiReviewBaseline && canApproveAiReview && viewMode === 'ai-review' && (
-                          <label className="flex items-center gap-2 text-xs text-neutral-high">
-                            <RadioGroupItem value="reject-ai-review" />
-                            <span>Reject this version</span>
-                          </label>
-                        )}
-                      </RadioGroup>
-
-                      <div className="mt-2 flex items-center gap-2">
-                        <button
-                          type="button"
-                          className="h-8 px-3 text-xs border border-border rounded-lg hover:bg-backdrop-medium text-neutral-medium disabled:opacity-50"
-                          disabled={!decision || processing}
-                          onClick={async () => {
-                            if (!decision) return
-                            if (decision.startsWith('reject-')) {
-                              setRejectConfirmOpen(true)
-                              return
-                            }
-                            setApproveConfirmOpen(true)
-                          }}
-                        >
-                          {decision.startsWith('reject-') ? 'Reject' : 'Approve'}
-                        </button>
-                      </div>
-
-                      <AlertDialog open={approveConfirmOpen} onOpenChange={setApproveConfirmOpen}>
-                        <AlertDialogContent>
-                          <AlertDialogHeader>
-                            <AlertDialogTitle>Approve changes?</AlertDialogTitle>
-                            <AlertDialogDescription>
-                              {decision === 'approve-ai-review-to-review'
-                                ? 'This will promote AI Review into Review (and clear AI Review staging).'
-                                : 'This will promote Review into Source (and clear the Review draft).'}
-                            </AlertDialogDescription>
-                          </AlertDialogHeader>
-                          <AlertDialogFooter>
-                            <AlertDialogCancel>Cancel</AlertDialogCancel>
-                            <AlertDialogAction
-                              onClick={async () => {
-                                setApproveConfirmOpen(false)
-                                const mode =
-                                  decision === 'approve-ai-review-to-review' ? 'approve-ai-review' : 'approve'
-                                await executeApprove(mode)
-                              }}
-                            >
-                              Approve
-                            </AlertDialogAction>
-                          </AlertDialogFooter>
-                        </AlertDialogContent>
-                      </AlertDialog>
-
-                      <AlertDialog open={rejectConfirmOpen} onOpenChange={setRejectConfirmOpen}>
-                        <AlertDialogContent>
-                          <AlertDialogHeader>
-                            <AlertDialogTitle>Reject this version?</AlertDialogTitle>
-                            <AlertDialogDescription>
-                              This will remove the selected draft/staging version. A revision will be recorded so you can revert.
-                            </AlertDialogDescription>
-                          </AlertDialogHeader>
-                          <AlertDialogFooter>
-                            <AlertDialogCancel>Cancel</AlertDialogCancel>
-                            <AlertDialogAction
-                              onClick={async () => {
-                                if (!decision || !decision.startsWith('reject-')) return
-                                const mode = decision === 'reject-ai-review' ? 'reject-ai-review' : 'reject-review'
-                                const res = await fetch(`/api/posts/${post.id}`, {
-                                  method: 'PUT',
-                                  headers: {
-                                    'Accept': 'application/json',
-                                    'Content-Type': 'application/json',
-                                    ...xsrfHeader(),
-                                  },
-                                  credentials: 'same-origin',
-                                  body: JSON.stringify({ mode }),
-                                })
-                                if (res.ok) {
-                                  toast.success(mode === 'reject-ai-review' ? 'AI Review discarded' : 'Review discarded')
-                                  setRejectConfirmOpen(false)
-                                  window.location.reload()
-                                } else {
-                                  const err = await res.json().catch(() => null)
-                                  console.error('Reject failed:', res.status, err)
-                                  toast.error(err?.errors ? 'Failed (validation)' : 'Failed')
-                                }
-                              }}
-                            >
-                              Reject
-                            </AlertDialogAction>
-                          </AlertDialogFooter>
-                        </AlertDialogContent>
-                      </AlertDialog>
-                    </div>
-                  )}
-
-                {/* Save confirmation dialog for overwriting Review draft */}
-                <AlertDialog open={saveConfirmOpen} onOpenChange={setSaveConfirmOpen}>
-                  <AlertDialogContent>
-                    <AlertDialogHeader>
-                      <AlertDialogTitle>Overwrite Review draft?</AlertDialogTitle>
-                      <AlertDialogDescription>
-                        A Review draft already exists. Saving to Review will overwrite it.
-                      </AlertDialogDescription>
-                    </AlertDialogHeader>
-                    <AlertDialogFooter>
-                      <AlertDialogCancel
-                        onClick={() => {
-                          setSaveConfirmOpen(false)
-                          setPendingSaveTarget(null)
-                        }}
-                      >
-                        Cancel
-                      </AlertDialogCancel>
-                      <AlertDialogAction
-                        onClick={async () => {
-                          const target = pendingSaveTarget
-                          setSaveConfirmOpen(false)
-                          setPendingSaveTarget(null)
-                          if (!target) return
-                          await executeSave(target)
-                        }}
-                      >
-                        Continue
-                      </AlertDialogAction>
-                    </AlertDialogFooter>
-                  </AlertDialogContent>
-                </AlertDialog>
-
-                {/* Unpublish action handled by changing status to draft and saving */}
-              </div>
-            </div>
-
-            {/* Author (Admin) */}
-            {isAdmin && (
-              <div className="bg-backdrop-low rounded-lg shadow p-6 border border-border">
-                <h3 className="text-sm font-semibold text-neutral-high mb-4">Author</h3>
-                <div className="space-y-3 text-sm">
-                  <div>
-                    <div className="text-neutral-low">Current</div>
-                    <div className="font-medium text-neutral-high">
-                      {post.author?.fullName || post.author?.email || '—'}
-                    </div>
-                  </div>
-                  <div>
-                    <label className="block text-xs font-medium text-neutral-medium mb-1">Reassign to</label>
-                    <select
-                      className="w-full border border-line-low bg-backdrop-input text-neutral-high rounded px-2 py-1"
-                      value={selectedAuthorId ?? ''}
-                      onChange={(e) => setSelectedAuthorId(e.target.value ? Number(e.target.value) : null)}
-                      onFocus={async () => {
-                        if (users.length > 0) return
-                        try {
-                          const res = await fetch('/api/users', { credentials: 'same-origin' })
-                          const j = await res.json().catch(() => ({}))
-                          const list: Array<{ id: number; email: string; fullName?: string | null }> = Array.isArray(j?.data) ? j.data : []
-                          setUsers(list.map((u) => ({ id: u.id, email: u.email, fullName: (u as any).fullName ?? null })))
-                        } catch { /* ignore */ }
-                      }}
-                    >
-                      <option value="">Select a user…</option>
-                      {users.map((u) => (
-                        <option key={u.id} value={u.id}>
-                          {(u.fullName || u.email)} ({u.email})
-                        </option>
-                      ))}
-                    </select>
-                  </div>
-                  <div>
-                    <button
-                      type="button"
-                      className="w-full px-3 py-2 text-sm border border-border rounded hover:bg-backdrop-medium text-neutral-high disabled:opacity-50"
-                      disabled={!selectedAuthorId || selectedAuthorId === (post.author?.id ?? null)}
-                      onClick={async () => {
-                        if (!selectedAuthorId) return
-                        try {
-                          const res = await fetch(`/api/posts/${post.id}/author`, {
-                            method: 'PATCH',
-                            headers: {
-                              Accept: 'application/json',
-                              'Content-Type': 'application/json',
-                              ...xsrfHeader(),
-                            },
-                            credentials: 'same-origin',
-                            body: JSON.stringify({ authorId: selectedAuthorId }),
-                          })
-                          const j = await res.json().catch(() => ({}))
-                          if (!res.ok) {
-                            toast.error(j?.error || 'Failed to update author')
-                            return
-                          }
-                          toast.success('Author updated')
-                          window.location.reload()
-                        } catch {
-                          toast.error('Failed to update author')
-                        }
-                      }}
-                    >
-                      Update Author
-                    </button>
-                  </div>
-                </div>
-              </div>
+  {/* Approve/Reject decision (RadioGroup) */ }
+  {
+    viewMode !== 'source' && ((
+      (hasAiReviewBaseline && canApproveAiReview) ||
+      (hasReviewBaseline && canApproveReview)
+    )) && (
+      <div className="space-y-2">
+        <label className="block text-xs font-medium text-neutral-medium">
+          Decision
+        </label>
+        <RadioGroup
+          value={decision}
+          onValueChange={(val) => setDecision(val as any)}
+          className="space-y-2"
+        >
+          {hasReviewBaseline && canApproveReview && (
+            <label className="flex items-center gap-2 text-xs text-neutral-high">
+              <RadioGroupItem value="approve-review-to-source" />
+              <span>Promote to Source</span>
+            </label>
+          )}
+          {hasAiReviewBaseline && canApproveAiReview && viewMode === 'ai-review' && (
+            <label className="flex items-center gap-2 text-xs text-neutral-high">
+              <RadioGroupItem value="approve-ai-review-to-review" />
+              <span>Promote to Review</span>
+            </label>
+          )}
+          {hasReviewBaseline && canApproveReview && viewMode === 'review' && (
+            <label className="flex items-center gap-2 text-xs text-neutral-high">
+              <RadioGroupItem value="reject-review" />
+              <span>Reject this version</span>
+            </label>
+          )}
+          {hasAiReviewBaseline && canApproveAiReview && viewMode === 'ai-review' && (
+            <label className="flex items-center gap-2 text-xs text-neutral-high">
+              <RadioGroupItem value="reject-ai-review" />
+              <span>Reject this version</span>
+            </label>
+          )}
+        </RadioGroup>
+        <div className="space-y-2">
+          <label className="block text-xs font-medium text-neutral-medium">
+            Decision
+          </label>
+          <RadioGroup
+            value={decision}
+            onValueChange={(val) => setDecision(val as any)}
+            className="space-y-2"
+          >
+            {hasReviewBaseline && canApproveReview && (
+              <label className="flex items-center gap-2 text-xs text-neutral-high">
+                <RadioGroupItem value="approve-review-to-source" />
+                <span>Promote to Source</span>
+              </label>
             )}
+            {hasAiReviewBaseline && canApproveAiReview && viewMode === 'ai-review' && (
+              <label className="flex items-center gap-2 text-xs text-neutral-high">
+                <RadioGroupItem value="approve-ai-review-to-review" />
+                <span>Promote to Review</span>
+              </label>
+            )}
+            {hasReviewBaseline && canApproveReview && viewMode === 'review' && (
+              <label className="flex items-center gap-2 text-xs text-neutral-high">
+                <RadioGroupItem value="reject-review" />
+                <span>Reject this version</span>
+              </label>
+            )}
+            {hasAiReviewBaseline && canApproveAiReview && viewMode === 'ai-review' && (
+              <label className="flex items-center gap-2 text-xs text-neutral-high">
+                <RadioGroupItem value="reject-ai-review" />
+                <span>Reject this version</span>
+              </label>
+            )}
+          </RadioGroup>
 
-            {/* Revisions */}
-            <div className="bg-backdrop-low rounded-lg shadow p-6 border border-border">
-              <div className="flex items-center justify-between mb-3">
-                <h3 className="text-sm font-semibold text-neutral-high">Revisions</h3>
-                <button
-                  type="button"
-                  className="text-xs px-2 py-1 border border-border rounded hover:bg-backdrop-medium text-neutral-medium"
+          <div className="mt-2 flex items-center gap-2">
+            <button
+              type="button"
+              className="h-8 px-3 text-xs border border-border rounded-lg hover:bg-backdrop-medium text-neutral-medium disabled:opacity-50"
+              disabled={!decision || processing}
+              onClick={async () => {
+                if (!decision) return
+                if (decision.startsWith('reject-')) {
+                  setRejectConfirmOpen(true)
+                  return
+                }
+                setApproveConfirmOpen(true)
+              }}
+            >
+              {decision.startsWith('reject-') ? 'Reject' : 'Approve'}
+            </button>
+          </div>
+          <div className="mt-2 flex items-center gap-2">
+            <button
+              type="button"
+              className="h-8 px-3 text-xs border border-border rounded-lg hover:bg-backdrop-medium text-neutral-medium disabled:opacity-50"
+              disabled={!decision || processing}
+              onClick={async () => {
+                if (!decision) return
+                if (decision.startsWith('reject-')) {
+                  setRejectConfirmOpen(true)
+                  return
+                }
+                setApproveConfirmOpen(true)
+              }}
+            >
+              {decision.startsWith('reject-') ? 'Reject' : 'Approve'}
+            </button>
+          </div>
+
+          <AlertDialog open={approveConfirmOpen} onOpenChange={setApproveConfirmOpen}>
+            <AlertDialogContent>
+              <AlertDialogHeader>
+                <AlertDialogTitle>Approve changes?</AlertDialogTitle>
+                <AlertDialogDescription>
+                  {decision === 'approve-ai-review-to-review'
+                    ? 'This will promote AI Review into Review (and clear AI Review staging).'
+                    : 'This will promote Review into Source (and clear the Review draft).'}
+                </AlertDialogDescription>
+              </AlertDialogHeader>
+              <AlertDialogFooter>
+                <AlertDialogCancel>Cancel</AlertDialogCancel>
+                <AlertDialogAction
                   onClick={async () => {
-                    // reload revisions
-                    const res = await fetch(`/api/posts/${post.id}/revisions?limit=10`, {
-                      headers: { Accept: 'application/json' },
+                    setApproveConfirmOpen(false)
+                    const mode =
+                      decision === 'approve-ai-review-to-review' ? 'approve-ai-review' : 'approve'
+                    await executeApprove(mode)
+                  }}
+                >
+                  Approve
+                </AlertDialogAction>
+              </AlertDialogFooter>
+            </AlertDialogContent>
+          </AlertDialog>
+          <AlertDialog open={approveConfirmOpen} onOpenChange={setApproveConfirmOpen}>
+            <AlertDialogContent>
+              <AlertDialogHeader>
+                <AlertDialogTitle>Approve changes?</AlertDialogTitle>
+                <AlertDialogDescription>
+                  {decision === 'approve-ai-review-to-review'
+                    ? 'This will promote AI Review into Review (and clear AI Review staging).'
+                    : 'This will promote Review into Source (and clear the Review draft).'}
+                </AlertDialogDescription>
+              </AlertDialogHeader>
+              <AlertDialogFooter>
+                <AlertDialogCancel>Cancel</AlertDialogCancel>
+                <AlertDialogAction
+                  onClick={async () => {
+                    setApproveConfirmOpen(false)
+                    const mode =
+                      decision === 'approve-ai-review-to-review' ? 'approve-ai-review' : 'approve'
+                    await executeApprove(mode)
+                  }}
+                >
+                  Approve
+                </AlertDialogAction>
+              </AlertDialogFooter>
+            </AlertDialogContent>
+          </AlertDialog>
+
+          <AlertDialog open={rejectConfirmOpen} onOpenChange={setRejectConfirmOpen}>
+            <AlertDialogContent>
+              <AlertDialogHeader>
+                <AlertDialogTitle>Reject this version?</AlertDialogTitle>
+                <AlertDialogDescription>
+                  This will remove the selected draft/staging version. A revision will be recorded so you can revert.
+                </AlertDialogDescription>
+              </AlertDialogHeader>
+              <AlertDialogFooter>
+                <AlertDialogCancel>Cancel</AlertDialogCancel>
+                <AlertDialogAction
+                  onClick={async () => {
+                    if (!decision || !decision.startsWith('reject-')) return
+                    const mode = decision === 'reject-ai-review' ? 'reject-ai-review' : 'reject-review'
+                    const res = await fetch(`/api/posts/${post.id}`, {
+                      method: 'PUT',
+                      headers: {
+                        'Accept': 'application/json',
+                        'Content-Type': 'application/json',
+                        ...xsrfHeader(),
+                      },
                       credentials: 'same-origin',
+                      body: JSON.stringify({ mode }),
                     })
                     if (res.ok) {
-                      const json = await res.json().catch(() => null)
-                      if (json?.data) setRevisions(json.data)
+                      toast.success(mode === 'reject-ai-review' ? 'AI Review discarded' : 'Review discarded')
+                      setRejectConfirmOpen(false)
+                      window.location.reload()
+                    } else {
+                      const err = await res.json().catch(() => null)
+                      console.error('Reject failed:', res.status, err)
+                      toast.error(err?.errors ? 'Failed (validation)' : 'Failed')
                     }
                   }}
                 >
-                  Refresh
-                </button>
-              </div>
-              {loadingRevisions ? (
-                <p className="text-sm text-neutral-low">Loading…</p>
-              ) : revisions.length === 0 ? (
-                <p className="text-sm text-neutral-low">No revisions yet.</p>
-              ) : (
-                <ul className="space-y-2">
-                  {revisions.map((r) => (
-                    <li key={r.id} className="flex items-center justify-between text-sm">
-                      <div className="flex flex-col">
-                        <span className="text-neutral-high">
-                          {new Date(r.createdAt).toLocaleString()}
-                          <Badge
-                            className="ml-2"
-                            variant={r.mode === 'review' ? 'secondary' : r.mode === 'ai-review' ? 'outline' : 'default'}
-                          >
-                            {r.mode === 'review' ? 'Review' : r.mode === 'ai-review' ? 'AI Review' : 'Source'}
-                          </Badge>
-                        </span>
-                        {r.user?.email ? <span className="text-xs text-neutral-low">{r.user.email}</span> : null}
-                      </div>
-                      <AlertDialog>
-                        <AlertDialogTrigger asChild>
-                          <button
-                            className="px-2 py-1 text-xs border border-border rounded hover:bg-backdrop-medium text-neutral-medium"
-                            type="button"
-                          >
-                            Revert
-                          </button>
-                        </AlertDialogTrigger>
-                        <AlertDialogContent>
-                          <AlertDialogHeader>
-                            <AlertDialogTitle>Revert to this revision?</AlertDialogTitle>
-                            <AlertDialogDescription>
-                              This will replace current content with the selected revision.
-                            </AlertDialogDescription>
-                          </AlertDialogHeader>
-                          <AlertDialogFooter>
-                            <AlertDialogCancel>Cancel</AlertDialogCancel>
-                            <AlertDialogAction
-                              onClick={async () => {
-                                const res = await fetch(`/api/posts/${post.id}/revisions/${encodeURIComponent(r.id)}/revert`, {
-                                  method: 'POST',
-                                  headers: {
-                                    Accept: 'application/json',
-                                    'Content-Type': 'application/json',
-                                    ...xsrfHeader(),
-                                  },
-                                  credentials: 'same-origin',
-                                })
-                                if (res.ok) {
-                                  toast.success('Reverted to selected revision')
-                                  // Reload all post data including modules and drafts
-                                  router.reload({ only: ['post', 'modules', 'reviewDraft', 'aiReviewDraft'] })
-                                } else {
-                                  const j = await res.json().catch(() => null)
-                                  toast.error(j?.error || 'Failed to revert')
-                                }
-                              }}
-                            >
-                              Confirm
-                            </AlertDialogAction>
-                          </AlertDialogFooter>
-                        </AlertDialogContent>
-                      </AlertDialog>
-                    </li>
-                  ))}
-                </ul>
-              )}
-            </div>
+                  Reject
+                </AlertDialogAction>
+              </AlertDialogFooter>
+            </AlertDialogContent>
+          </AlertDialog>
+        </div>
+                  )}
+        <AlertDialog open={rejectConfirmOpen} onOpenChange={setRejectConfirmOpen}>
+          <AlertDialogContent>
+            <AlertDialogHeader>
+              <AlertDialogTitle>Reject this version?</AlertDialogTitle>
+              <AlertDialogDescription>
+                This will remove the selected draft/staging version. A revision will be recorded so you can revert.
+              </AlertDialogDescription>
+            </AlertDialogHeader>
+            <AlertDialogFooter>
+              <AlertDialogCancel>Cancel</AlertDialogCancel>
+              <AlertDialogAction
+                onClick={async () => {
+                  if (!decision || !decision.startsWith('reject-')) return
+                  const mode = decision === 'reject-ai-review' ? 'reject-ai-review' : 'reject-review'
+                  const res = await fetch(`/api/posts/${post.id}`, {
+                    method: 'PUT',
+                    headers: {
+                      'Accept': 'application/json',
+                      'Content-Type': 'application/json',
+                      ...xsrfHeader(),
+                    },
+                    credentials: 'same-origin',
+                    body: JSON.stringify({ mode }),
+                  })
+                  if (res.ok) {
+                    toast.success(mode === 'reject-ai-review' ? 'AI Review discarded' : 'Review discarded')
+                    setRejectConfirmOpen(false)
+                    window.location.reload()
+                  } else {
+                    const err = await res.json().catch(() => null)
+                    console.error('Reject failed:', res.status, err)
+                    toast.error(err?.errors ? 'Failed (validation)' : 'Failed')
+                  }
+                }}
+              >
+                Reject
+              </AlertDialogAction>
+            </AlertDialogFooter>
+          </AlertDialogContent>
+        </AlertDialog>
+      </div>
+    )
+  }
 
-            {/* Import / Export (Admin only) */}
-            {isAdmin && (
-              <div className="bg-backdrop-low rounded-lg shadow p-6 border border-border">
-                <h3 className="text-sm font-semibold text-neutral-high mb-3">Import / Export</h3>
-                <div className="flex flex-col gap-2">
-                  <button
-                    type="button"
-                    className="px-3 py-2 text-sm border border-border rounded hover:bg-backdrop-medium text-neutral-high"
-                    onClick={() => {
-                      const url = `/api/posts/${post.id}/export?download=1`
-                      window.open(url, '_blank')
+  {/* Save confirmation dialog for overwriting Review draft */ }
+  <AlertDialog open={saveConfirmOpen} onOpenChange={setSaveConfirmOpen}>
+    <AlertDialogContent>
+      <AlertDialogHeader>
+        <AlertDialogTitle>Overwrite Review draft?</AlertDialogTitle>
+        <AlertDialogDescription>
+          A Review draft already exists. Saving to Review will overwrite it.
+        </AlertDialogDescription>
+      </AlertDialogHeader>
+      <AlertDialogFooter>
+        <AlertDialogCancel
+          onClick={() => {
+            setSaveConfirmOpen(false)
+            setPendingSaveTarget(null)
+          }}
+        >
+          Cancel
+        </AlertDialogCancel>
+        <AlertDialogAction
+          onClick={async () => {
+            const target = pendingSaveTarget
+            setSaveConfirmOpen(false)
+            setPendingSaveTarget(null)
+            if (!target) return
+            await executeSave(target)
+          }}
+        >
+          Continue
+        </AlertDialogAction>
+      </AlertDialogFooter>
+    </AlertDialogContent>
+  </AlertDialog>
+
+  {/* Unpublish action handled by changing status to draft and saving */ }
+              </div >
+            </div >
+
+    {/* Author (Admin) */ }
+  {
+    isAdmin && (
+      <div className="bg-backdrop-low rounded-lg shadow p-6 border border-border">
+        <h3 className="text-sm font-semibold text-neutral-high mb-4">Author</h3>
+        <div className="space-y-3 text-sm">
+          <div>
+            <div className="text-neutral-low">Current</div>
+            <div className="font-medium text-neutral-high">
+              {post.author?.fullName || post.author?.email || '—'}
+            </div>
+          </div>
+          <div>
+            <label className="block text-xs font-medium text-neutral-medium mb-1">Reassign to</label>
+            <select
+              className="w-full border border-line-low bg-backdrop-input text-neutral-high rounded px-2 py-1"
+              value={selectedAuthorId ?? ''}
+              onChange={(e) => setSelectedAuthorId(e.target.value ? Number(e.target.value) : null)}
+              onFocus={async () => {
+                if (users.length > 0) return
+                try {
+                  const res = await fetch('/api/users', { credentials: 'same-origin' })
+                  const j = await res.json().catch(() => ({}))
+                  const list: Array<{ id: number; email: string; fullName?: string | null }> = Array.isArray(j?.data) ? j.data : []
+                  setUsers(list.map((u) => ({ id: u.id, email: u.email, fullName: (u as any).fullName ?? null })))
+                } catch { /* ignore */ }
+              }}
+            >
+              <option value="">Select a user…</option>
+              {users.map((u) => (
+                <option key={u.id} value={u.id}>
+                  {(u.fullName || u.email)} ({u.email})
+                </option>
+              ))}
+            </select>
+          </div>
+          <div>
+            <button
+              type="button"
+              className="w-full px-3 py-2 text-sm border border-border rounded hover:bg-backdrop-medium text-neutral-high disabled:opacity-50"
+              disabled={!selectedAuthorId || selectedAuthorId === (post.author?.id ?? null)}
+              onClick={async () => {
+                if (!selectedAuthorId) return
+                try {
+                  const res = await fetch(`/api/posts/${post.id}/author`, {
+                    method: 'PATCH',
+                    headers: {
+                      Accept: 'application/json',
+                      'Content-Type': 'application/json',
+                      ...xsrfHeader(),
+                    },
+                    credentials: 'same-origin',
+                    body: JSON.stringify({ authorId: selectedAuthorId }),
+                  })
+                  const j = await res.json().catch(() => ({}))
+                  if (!res.ok) {
+                    toast.error(j?.error || 'Failed to update author')
+                    return
+                  }
+                  toast.success('Author updated')
+                  window.location.reload()
+                } catch {
+                  toast.error('Failed to update author')
+                }
+              }}
+            >
+              Update Author
+            </button>
+          </div>
+        </div>
+      </div>
+    )
+  }
+
+  {/* Revisions */ }
+  <div className="bg-backdrop-low rounded-lg shadow p-6 border border-border">
+    <div className="flex items-center justify-between mb-3">
+      <h3 className="text-sm font-semibold text-neutral-high">Revisions</h3>
+      <button
+        type="button"
+        className="text-xs px-2 py-1 border border-border rounded hover:bg-backdrop-medium text-neutral-medium"
+        onClick={async () => {
+          // reload revisions
+          const res = await fetch(`/api/posts/${post.id}/revisions?limit=10`, {
+            headers: { Accept: 'application/json' },
+            credentials: 'same-origin',
+          })
+          if (res.ok) {
+            const json = await res.json().catch(() => null)
+            if (json?.data) setRevisions(json.data)
+          }
+        }}
+      >
+        Refresh
+      </button>
+    </div>
+    {loadingRevisions ? (
+      <p className="text-sm text-neutral-low">Loading…</p>
+    ) : revisions.length === 0 ? (
+      <p className="text-sm text-neutral-low">No revisions yet.</p>
+    ) : (
+      <ul className="space-y-2">
+        {revisions.map((r) => (
+          <li key={r.id} className="flex items-center justify-between text-sm">
+            <div className="flex flex-col">
+              <span className="text-neutral-high">
+                {new Date(r.createdAt).toLocaleString()}
+                <Badge
+                  className="ml-2"
+                  variant={r.mode === 'review' ? 'secondary' : r.mode === 'ai-review' ? 'outline' : 'default'}
+                >
+                  {r.mode === 'review' ? 'Review' : r.mode === 'ai-review' ? 'AI Review' : 'Source'}
+                </Badge>
+              </span>
+              {r.user?.email ? <span className="text-xs text-neutral-low">{r.user.email}</span> : null}
+            </div>
+            <AlertDialog>
+              <AlertDialogTrigger asChild>
+                <button
+                  className="px-2 py-1 text-xs border border-border rounded hover:bg-backdrop-medium text-neutral-medium"
+                  type="button"
+                >
+                  Revert
+                </button>
+              </AlertDialogTrigger>
+              <AlertDialogContent>
+                <AlertDialogHeader>
+                  <AlertDialogTitle>Revert to this revision?</AlertDialogTitle>
+                  <AlertDialogDescription>
+                    This will replace current content with the selected revision.
+                  </AlertDialogDescription>
+                </AlertDialogHeader>
+                <AlertDialogFooter>
+                  <AlertDialogCancel>Cancel</AlertDialogCancel>
+                  <AlertDialogAction
+                    onClick={async () => {
+                      const res = await fetch(`/api/posts/${post.id}/revisions/${encodeURIComponent(r.id)}/revert`, {
+                        method: 'POST',
+                        headers: {
+                          Accept: 'application/json',
+                          'Content-Type': 'application/json',
+                          ...xsrfHeader(),
+                        },
+                        credentials: 'same-origin',
+                      })
+                      if (res.ok) {
+                        toast.success('Reverted to selected revision')
+                        // Reload all post data including modules and drafts
+                        router.reload({ only: ['post', 'modules', 'reviewDraft', 'aiReviewDraft'] })
+                      } else {
+                        const j = await res.json().catch(() => null)
+                        toast.error(j?.error || 'Failed to revert')
+                      }
                     }}
                   >
-                    Export JSON
-                  </button>
-                  <div className="flex items-center gap-2">
-                    <input
-                      ref={importFileRef}
-                      type="file"
-                      accept="application/json"
-                      className="hidden"
-                      onChange={async (e) => {
-                        const file = e.target.files?.[0]
-                        if (!file) return
-                        try {
-                          const text = await file.text()
-                          const data = JSON.parse(text)
-                          setPendingImportJson(data)
-                          setIsImportModeOpen(true)
-                        } catch {
-                          toast.error('Invalid JSON file')
-                        } finally {
-                          if (importFileRef.current) importFileRef.current.value = ''
-                        }
-                      }}
-                    />
-                    <button
-                      type="button"
-                      className="px-3 py-2 text-sm border border-border rounded hover:bg-backdrop-medium text-neutral-high"
-                      onClick={() => importFileRef.current?.click()}
-                    >
-                      Import JSON
-                    </button>
-                  </div>
-                  <p className="text-xs text-neutral-low">Select a JSON file, then choose how to import.</p>
-                </div>
-              </div>
-            )}
+                    Confirm
+                  </AlertDialogAction>
+                </AlertDialogFooter>
+              </AlertDialogContent>
+            </AlertDialog>
+          </li>
+        ))}
+      </ul>
+    )}
+  </div>
 
-            {/* Post Details */}
-            <div className="bg-backdrop-low rounded-lg shadow p-6 border border-border">
-              <h3 className="text-sm font-semibold text-neutral-high mb-4">
-                Post Details
-              </h3>
-              <dl className="space-y-3 text-sm">
-                <div>
-                  <dt className="text-neutral-low">Status</dt>
-                  <dd className="font-medium text-neutral-high capitalize">
-                    {data.status}
-                  </dd>
-                </div>
-                <div>
-                  <dt className="text-neutral-low">Type</dt>
-                  <dd className="font-medium text-neutral-high">{post.type}</dd>
-                </div>
-                <div>
-                  <dt className="text-neutral-low">Locale</dt>
-                  <dd className="font-medium text-neutral-high">{post.locale}</dd>
-                </div>
-                <div>
-                  <dt className="text-neutral-low">ID</dt>
-                  <dd className="font-mono text-xs text-neutral-medium break-all">
-                    {post.id}
-                  </dd>
-                </div>
-                <div>
-                  <dt className="text-neutral-low">Created</dt>
-                  <dd className="font-medium text-neutral-high">
-                    {new Date(post.createdAt).toLocaleString()}
-                  </dd>
-                </div>
-                <div>
-                  <dt className="text-neutral-low">Updated</dt>
-                  <dd className="font-medium text-neutral-high">
-                    {new Date(post.updatedAt).toLocaleString()}
-                  </dd>
-                </div>
-              </dl>
-            </div>
+  {/* Import / Export (Admin only) */ }
+  {
+    isAdmin && (
+      <div className="bg-backdrop-low rounded-lg shadow p-6 border border-border">
+        <h3 className="text-sm font-semibold text-neutral-high mb-3">Import / Export</h3>
+        <div className="flex flex-col gap-2">
+          <button
+            type="button"
+            className="px-3 py-2 text-sm border border-border rounded hover:bg-backdrop-medium text-neutral-high"
+            onClick={() => {
+              const url = `/api/posts/${post.id}/export?download=1`
+              window.open(url, '_blank')
+            }}
+          >
+            Export JSON
+          </button>
+          <div className="flex items-center gap-2">
+            <input
+              ref={importFileRef}
+              type="file"
+              accept="application/json"
+              className="hidden"
+              onChange={async (e) => {
+                const file = e.target.files?.[0]
+                if (!file) return
+                try {
+                  const text = await file.text()
+                  const data = JSON.parse(text)
+                  setPendingImportJson(data)
+                  setIsImportModeOpen(true)
+                } catch {
+                  toast.error('Invalid JSON file')
+                } finally {
+                  if (importFileRef.current) importFileRef.current.value = ''
+                }
+              }}
+            />
+            <button
+              type="button"
+              className="px-3 py-2 text-sm border border-border rounded hover:bg-backdrop-medium text-neutral-high"
+              onClick={() => importFileRef.current?.click()}
+            >
+              Import JSON
+            </button>
           </div>
+          <p className="text-xs text-neutral-low">Select a JSON file, then choose how to import.</p>
         </div>
-      </main>
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-        <AdminFooter />
       </div>
-      {/* Import Mode Modal (Admin) */}
-      {isAdmin && isImportModeOpen && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center">
-          <div className="absolute inset-0 bg-black/50" onClick={() => { setIsImportModeOpen(false); setPendingImportJson(null) }} />
-          <div className="relative z-10 w-full max-w-md rounded-lg border border-line-low bg-backdrop-input p-6 shadow-xl">
-            <div className="flex items-center justify-between mb-4">
-              <h3 className="text-base font-semibold text-neutral-high">Import JSON</h3>
-              <button
-                className="text-neutral-medium hover:text-neutral-high"
-                onClick={() => { setIsImportModeOpen(false); setPendingImportJson(null) }}
-                aria-label="Close"
-              >
-                ✕
-              </button>
-            </div>
-            <p className="text-sm text-neutral-medium mb-4">
-              How would you like to import this JSON into the current post?
-            </p>
-            <div className="flex flex-col gap-2">
-              <button
-                type="button"
-                className="w-full px-3 py-2 text-sm rounded border border-line-low bg-backdrop-input hover:bg-backdrop-medium text-neutral-high"
-                onClick={async () => {
-                  if (!pendingImportJson) return
-                  const res = await fetch(`/api/posts/${post.id}/import`, {
-                    method: 'POST',
-                    headers: {
-                      Accept: 'application/json',
-                      'Content-Type': 'application/json',
-                      ...xsrfHeader(),
-                    },
-                    credentials: 'same-origin',
-                    body: JSON.stringify({ data: pendingImportJson, mode: 'review' }),
-                  })
-                  if (res.ok) {
-                    toast.success('Imported into review draft')
-                    setIsImportModeOpen(false)
-                    setPendingImportJson(null)
-                    window.location.reload()
-                  } else {
-                    const j = await res.json().catch(() => null)
-                    toast.error(j?.error || 'Import failed')
-                  }
-                }}
-              >
-                Import into Review (non-destructive)
-              </button>
-              <button
-                type="button"
-                className="w-full px-3 py-2 text-sm rounded bg-standout-medium text-on-standout hover:opacity-90"
-                onClick={async () => {
-                  if (!pendingImportJson) return
-                  const res = await fetch(`/api/posts/${post.id}/import`, {
-                    method: 'POST',
-                    headers: {
-                      Accept: 'application/json',
-                      'Content-Type': 'application/json',
-                      ...xsrfHeader(),
-                    },
-                    credentials: 'same-origin',
-                    body: JSON.stringify({ data: pendingImportJson, mode: 'replace' }),
-                  })
-                  if (res.ok) {
-                    toast.success('Imported and replaced live content')
-                    setIsImportModeOpen(false)
-                    setPendingImportJson(null)
-                    window.location.reload()
-                  } else {
-                    const j = await res.json().catch(() => null)
-                    toast.error(j?.error || 'Import failed')
-                  }
-                }}
-              >
-                Replace Live Content (destructive)
-              </button>
-            </div>
+    )
+  }
+
+  {/* Post Details */ }
+  <div className="bg-backdrop-low rounded-lg shadow p-6 border border-border">
+    <h3 className="text-sm font-semibold text-neutral-high mb-4">
+      Post Details
+    </h3>
+    <dl className="space-y-3 text-sm">
+      <div>
+        <dt className="text-neutral-low">Status</dt>
+        <dd className="font-medium text-neutral-high capitalize">
+          {data.status}
+        </dd>
+      </div>
+      <div>
+        <dt className="text-neutral-low">Type</dt>
+        <dd className="font-medium text-neutral-high">{post.type}</dd>
+      </div>
+      <div>
+        <dt className="text-neutral-low">Locale</dt>
+        <dd className="font-medium text-neutral-high">{post.locale}</dd>
+      </div>
+      <div>
+        <dt className="text-neutral-low">ID</dt>
+        <dd className="font-mono text-xs text-neutral-medium break-all">
+          {post.id}
+        </dd>
+      </div>
+      <div>
+        <dt className="text-neutral-low">Created</dt>
+        <dd className="font-medium text-neutral-high">
+          {new Date(post.createdAt).toLocaleString()}
+        </dd>
+      </div>
+      <div>
+        <dt className="text-neutral-low">Updated</dt>
+        <dd className="font-medium text-neutral-high">
+          {new Date(post.updatedAt).toLocaleString()}
+        </dd>
+      </div>
+    </dl>
+  </div>
+          </div >
+        </div >
+      </main >
+    <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+      <AdminFooter />
+    </div>
+  {/* Import Mode Modal (Admin) */ }
+  {
+    isAdmin && isImportModeOpen && (
+      <div className="fixed inset-0 z-50 flex items-center justify-center">
+        <div className="absolute inset-0 bg-black/50" onClick={() => { setIsImportModeOpen(false); setPendingImportJson(null) }} />
+        <div className="relative z-10 w-full max-w-md rounded-lg border border-line-low bg-backdrop-input p-6 shadow-xl">
+          <div className="flex items-center justify-between mb-4">
+            <h3 className="text-base font-semibold text-neutral-high">Import JSON</h3>
+            <button
+              className="text-neutral-medium hover:text-neutral-high"
+              onClick={() => { setIsImportModeOpen(false); setPendingImportJson(null) }}
+              aria-label="Close"
+            >
+              ✕
+            </button>
+          </div>
+          <p className="text-sm text-neutral-medium mb-4">
+            How would you like to import this JSON into the current post?
+          </p>
+          <div className="flex flex-col gap-2">
+            <button
+              type="button"
+              className="w-full px-3 py-2 text-sm rounded border border-line-low bg-backdrop-input hover:bg-backdrop-medium text-neutral-high"
+              onClick={async () => {
+                if (!pendingImportJson) return
+                const res = await fetch(`/api/posts/${post.id}/import`, {
+                  method: 'POST',
+                  headers: {
+                    Accept: 'application/json',
+                    'Content-Type': 'application/json',
+                    ...xsrfHeader(),
+                  },
+                  credentials: 'same-origin',
+                  body: JSON.stringify({ data: pendingImportJson, mode: 'review' }),
+                })
+                if (res.ok) {
+                  toast.success('Imported into review draft')
+                  setIsImportModeOpen(false)
+                  setPendingImportJson(null)
+                  window.location.reload()
+                } else {
+                  const j = await res.json().catch(() => null)
+                  toast.error(j?.error || 'Import failed')
+                }
+              }}
+            >
+              Import into Review (non-destructive)
+            </button>
+            <button
+              type="button"
+              className="w-full px-3 py-2 text-sm rounded bg-standout-medium text-on-standout hover:opacity-90"
+              onClick={async () => {
+                if (!pendingImportJson) return
+                const res = await fetch(`/api/posts/${post.id}/import`, {
+                  method: 'POST',
+                  headers: {
+                    Accept: 'application/json',
+                    'Content-Type': 'application/json',
+                    ...xsrfHeader(),
+                  },
+                  credentials: 'same-origin',
+                  body: JSON.stringify({ data: pendingImportJson, mode: 'replace' }),
+                })
+                if (res.ok) {
+                  toast.success('Imported and replaced live content')
+                  setIsImportModeOpen(false)
+                  setPendingImportJson(null)
+                  window.location.reload()
+                } else {
+                  const j = await res.json().catch(() => null)
+                  toast.error(j?.error || 'Import failed')
+                }
+              }}
+            >
+              Replace Live Content (destructive)
+            </button>
           </div>
         </div>
-      )}
-      <ModuleEditorPanel
-        key={`${editing ? editing.id : 'none'}-${viewMode}`}
-        open={!!editing}
-        moduleItem={editing}
-        onClose={() => setEditing(null)}
-        postId={post.id}
-        moduleInstanceId={editing?.id}
-        viewMode={viewMode}
-        onSave={(overrides, edited) => {
-          if (!editing) return Promise.resolve()
-          // stage changes locally and mark as pending; do NOT persist now
-          setPendingModules((prev) => ({ ...prev, [editing.id]: { overrides, edited } }))
-          setModules((prev) =>
-            prev.map((m) => {
-              if (m.id !== editing.id) return m
-              if (viewMode === 'review') {
-                if (m.scope === 'post') {
-                  return { ...m, reviewProps: edited, overrides: null }
-                } else {
-                  return { ...m, reviewOverrides: overrides }
-                }
-              } else if (viewMode === 'ai-review') {
-                if (m.scope === 'post') {
-                  return { ...m, aiReviewProps: edited, overrides: null }
-                } else {
-                  return { ...m, aiReviewOverrides: overrides }
-                }
-              } else {
-                if (m.scope === 'post') {
-                  return { ...m, props: edited, overrides: null }
-                } else {
-                  return { ...m, overrides }
-                }
-              }
-            })
-          )
-          return Promise.resolve()
-        }}
-        processing={false}
-      />
-    </div>
+      </div>
+    )
+  }
+  <ModuleEditorPanel
+    key={`${editing ? editing.id : 'none'}-${viewMode}`}
+    open={!!editing}
+    moduleItem={editing}
+    onClose={() => setEditing(null)}
+    postId={post.id}
+    moduleInstanceId={editing?.id}
+    viewMode={viewMode}
+    onSave={(overrides, edited) => {
+      if (!editing) return Promise.resolve()
+      // stage changes locally and mark as pending; do NOT persist now
+      setPendingModules((prev) => ({ ...prev, [editing.id]: { overrides, edited } }))
+      setModules((prev) =>
+        prev.map((m) => {
+          if (m.id !== editing.id) return m
+          if (viewMode === 'review') {
+            if (m.scope === 'post') {
+              return { ...m, reviewProps: edited, overrides: null }
+            } else {
+              return { ...m, reviewOverrides: overrides }
+            }
+          } else if (viewMode === 'ai-review') {
+            if (m.scope === 'post') {
+              return { ...m, aiReviewProps: edited, overrides: null }
+            } else {
+              return { ...m, aiReviewOverrides: overrides }
+            }
+          } else {
+            if (m.scope === 'post') {
+              return { ...m, props: edited, overrides: null }
+            } else {
+              return { ...m, overrides }
+            }
+          }
+        })
+      )
+      return Promise.resolve()
+    }}
+    processing={false}
+  />
+    </div >
   )
 }
 
