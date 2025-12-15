@@ -2750,37 +2750,29 @@ return (
                                     </div>
                                   </div>
                                 )}
-                                {/* Fallback: Show raw response if no summary */}
+                                {/* Fallback: Try to extract summary from raw response if not provided */}
                                 {!agentResponse.summary && agentResponse.rawResponse && (
                                   <div className="space-y-1">
-                                    <div className="text-xs text-neutral-medium">AI Response (raw):</div>
-                                    <div className="bg-standout-light p-4 rounded-lg border border-standout-medium text-sm whitespace-pre-wrap break-words max-h-96 overflow-y-auto">
-                                      {/* Try to extract natural text from JSON response */}
+                                    <div className="text-xs text-neutral-medium">AI Response:</div>
+                                    <div className="bg-standout-light p-4 rounded-lg border border-standout-medium text-sm whitespace-pre-wrap break-words">
                                       {(() => {
                                         const raw = agentResponse.rawResponse
-                                        // If it's JSON in markdown, try to extract just the content
-                                        const jsonMatch = raw.match(/```(?:json)?\s*(\{[\s\S]*\})\s*```/)
-                                        if (jsonMatch) {
-                                          try {
-                                            const parsed = JSON.parse(jsonMatch[1])
-                                            // Return a more natural summary
-                                            const parts: string[] = []
-                                            if (parsed.post) {
-                                              parts.push('I\'ve updated the post with the following changes:')
-                                              if (parsed.post.title) parts.push(`- Title: "${parsed.post.title}"`)
-                                              if (parsed.post.excerpt) parts.push(`- Excerpt: "${parsed.post.excerpt.substring(0, 100)}..."`)
-                                            }
-                                            if (parsed.modules && Array.isArray(parsed.modules)) {
-                                              parsed.modules.forEach((m: any) => {
-                                                if (m.props?.title) parts.push(`- ${m.type} module title: "${m.props.title}"`)
-                                              })
-                                            }
-                                            return parts.length > 0 ? parts.join('\n') : raw
-                                          } catch {
-                                            return raw
+                                        // Try to parse as JSON and extract summary
+                                        try {
+                                          // First try to extract JSON from markdown code blocks
+                                          const jsonMatch = raw.match(/```(?:json)?\s*(\{[\s\S]*\})\s*```/)
+                                          const jsonStr = jsonMatch ? jsonMatch[1] : raw
+                                          const parsed = JSON.parse(jsonStr)
+                                          // If there's a summary field, use it
+                                          if (parsed.summary && typeof parsed.summary === 'string') {
+                                            return parsed.summary
                                           }
+                                          // If no summary, return a message indicating we couldn't extract it
+                                          return 'Summary not available. Changes have been applied.'
+                                        } catch {
+                                          // If parsing fails, return raw (shouldn't happen normally)
+                                          return raw
                                         }
-                                        return raw
                                       })()}
                                     </div>
                                   </div>
@@ -2882,7 +2874,10 @@ return (
                                             },
                                             credentials: 'same-origin',
                                             body: JSON.stringify({
-                                              context: { locale: selectedLocale },
+                                              context: {
+                                                locale: selectedLocale,
+                                                viewMode: viewMode, // Pass current view mode to agent
+                                              },
                                               openEndedContext: openEnded || undefined,
                                             }),
                                           }
