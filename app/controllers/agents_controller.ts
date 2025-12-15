@@ -59,8 +59,10 @@ export default class AgentsController {
 
     try {
       await Post.findOrFail(id)
-      const canonical = await PostSerializerService.serialize(id)
+      // Get view mode from context (defaults to 'source' for backward compatibility)
       const ctx = (request.input('context') as Record<string, unknown> | undefined) || {}
+      const viewMode = (ctx.viewMode as 'source' | 'review' | 'ai-review') || 'source'
+      const canonical = await PostSerializerService.serialize(id, viewMode)
       const openEnded = request.input('openEndedContext')
       const openEndedContext =
         typeof openEnded === 'string' && openEnded.trim() ? openEnded.trim() : undefined

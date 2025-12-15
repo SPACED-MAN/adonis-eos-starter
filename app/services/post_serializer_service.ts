@@ -5,6 +5,7 @@ import Post from '#models/post'
 import PostModule from '#models/post_module'
 import ModuleInstance from '#models/module_instance'
 import PostCustomFieldValue from '#models/post_custom_field_value'
+import db from '@adonisjs/lucid/services/db'
 
 type CanonicalModule = {
   type: string
@@ -38,17 +39,34 @@ export type CanonicalPost = {
 
 export default class PostSerializerService {
   /**
-   * Serialize a post (approved/live fields) and its modules into a canonical JSON object.
+   * Serialize a post based on view mode (source/review/ai-review) and its modules into a canonical JSON object.
+   * @param postId - Post ID
+   * @param mode - View mode: 'source' (approved), 'review' (review_draft), or 'ai-review' (ai_review_draft)
    */
-  static async serialize(postId: string): Promise<CanonicalPost> {
+  static async serialize(postId: string, mode: 'source' | 'review' | 'ai-review' = 'source'): Promise<CanonicalPost> {
     const post = await Post.query().where('id', postId).first()
     if (!post) {
       throw new Error('Post not found')
     }
-    const modules = await PostModule.query()
-      .where('postId', postId)
-      .orderBy('orderIndex', 'asc')
-      .preload('moduleInstance')
+    // Load modules with their instances, including review/ai-review props
+    const moduleRows = await db
+      .from('post_modules')
+      .join('module_instances', 'post_modules.module_id', 'module_instances.id')
+      .where('post_modules.post_id', postId)
+      .select(
+        'post_modules.id as postModuleId',
+        'post_modules.order_index as orderIndex',
+        'post_modules.overrides',
+        'post_modules.locked',
+        'module_instances.id as moduleInstanceId',
+        'module_instances.type',
+        'module_instances.scope',
+        'module_instances.props',
+        'module_instances.review_props',
+        'module_instances.ai_review_props',
+        'module_instances.global_slug as globalSlug'
+      )
+      .orderBy('post_modules.order_index', 'asc')
 
     // Family translations list
     const baseId = (post as any).translationOfId || post.id
@@ -78,16 +96,39 @@ export default class PostSerializerService {
         jsonldOverrides: (post as any).jsonldOverrides ?? (post as any).jsonld_overrides ?? null,
         customFields: (cfVals || []).map((r: any) => ({ slug: r.slug, value: r.value })),
       },
-      modules: modules.map((pm: any) => {
-        const mi = pm.moduleInstance as any as ModuleInstance
+      modules: moduleRows.map((row: any) => {
+        // Get base props (handle both JSON string and object)
+        let baseProps = row.props
+        if (typeof baseProps === 'string') {
+          try {
+            baseProps = JSON.parse(baseProps)
+          } catch {
+            baseProps = {}
+          }
+        }
+        let effectiveProps = baseProps || {}
+
+        // Merge with review or ai-review props based on mode
+        if (mode === 'review' && row.review_props) {
+          const reviewProps = typeof row.review_props === 'string'
+            ? JSON.parse(row.review_props)
+            : row.review_props
+          effectiveProps = { ...effectiveProps, ...reviewProps }
+        } else if (mode === 'ai-review' && row.ai_review_props) {
+          const aiReviewProps = typeof row.ai_review_props === 'string'
+            ? JSON.parse(row.ai_review_props)
+            : row.ai_review_props
+          effectiveProps = { ...effectiveProps, ...aiReviewProps }
+        }
+
         return {
-          type: mi?.type,
-          scope: mi?.scope === 'post' ? 'local' : 'global',
-          orderIndex: pm.orderIndex,
-          locked: pm.locked,
-          props: mi?.props ?? null,
-          overrides: pm.overrides ?? null,
-          globalSlug: mi?.globalSlug ?? null,
+          type: row.type,
+          scope: row.scope === 'post' ? 'local' : 'global',
+          orderIndex: row.orderIndex,
+          locked: row.locked,
+          props: effectiveProps,
+          overrides: row.overrides ?? null,
+          globalSlug: row.globalSlug ?? null,
         }
       }),
       translations: family.map((f: any) => ({ id: f.id, locale: f.locale })),

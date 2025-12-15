@@ -113,6 +113,14 @@ class InternalAgentExecutor {
         }
       }
 
+      // Extract summary if present (for natural language display) - do this BEFORE logging
+      // so we can see if summary was found
+      let summary = parsedResult.summary || null
+      if (summary) {
+        // Remove summary from parsedResult so it doesn't interfere with data processing
+        delete parsedResult.summary
+      }
+
       // Log parsed result for debugging
       console.log('AI Parsed Result:', {
         agentId: agent.id,
@@ -121,14 +129,9 @@ class InternalAgentExecutor {
         postKeys: parsedResult.post ? Object.keys(parsedResult.post) : [],
         hasModules: !!parsedResult.modules,
         modulesCount: parsedResult.modules?.length || 0,
+        hasSummary: !!summary,
+        summary: summary?.substring(0, 100),
       })
-
-      // Extract summary if present (for natural language display)
-      const summary = parsedResult.summary || null
-      if (summary) {
-        // Remove summary from parsedResult so it doesn't interfere with data processing
-        delete parsedResult.summary
-      }
 
       // 7. Execute reactions
       const result = {
