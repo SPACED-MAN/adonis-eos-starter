@@ -31,11 +31,10 @@ export default class InlineEditorController {
 		const value = request.input('value')
 		const scopeRaw = String(request.input('scope', '')).trim()
 		const modeRaw = String(request.input('mode', 'source')).trim().toLowerCase()
-		// Back-compat: accept legacy 'approved' and 'ai'
 		const mode: 'source' | 'review' | 'ai-review' =
 			modeRaw === 'review'
 				? 'review'
-				: modeRaw === 'ai' || modeRaw === 'ai-review' || modeRaw === 'ai_review'
+				: modeRaw === 'ai-review' || modeRaw === 'ai_review'
 					? 'ai-review'
 					: 'source'
 

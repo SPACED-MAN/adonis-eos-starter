@@ -219,7 +219,6 @@ export default class PostsRevisionsController extends BasePostsController {
       return response.ok({ message: 'Reverted to revision' })
     }
 
-    // Legacy: Review revisions go to review_draft
     if (mode === 'review') {
       await Post.query().where('id', id).update({ review_draft: snapshot } as any)
 
@@ -252,7 +251,6 @@ export default class PostsRevisionsController extends BasePostsController {
 
       return response.ok({ message: 'Reverted review draft' })
     }
-    // Legacy: AI Review revisions go to ai_review_draft
     if (mode === 'ai-review') {
       await Post.query().where('id', id).update({ ai_review_draft: snapshot } as any)
 

@@ -274,7 +274,7 @@ class DatabaseImportService {
             }
           }
 
-        // Import rows
+          // Import rows
           let importedCount = 0
           let skippedCount = 0
           let errorCount = 0
@@ -305,7 +305,6 @@ class DatabaseImportService {
           // For post_modules: ensure post-scoped module instances are not reused; clone when duplicated
           const postModuleUsedBy = new Map<string, string>() // module_id -> post_id
 
-          let loggedTemplateIdStrip = false
 
           for (const row of sortedRows) {
             try {
@@ -348,32 +347,6 @@ class DatabaseImportService {
                 }
               }
 
-              // Strip legacy template_id if present (no backward compatibility)
-              if ('template_id' in processedRow) {
-                delete (processedRow as any).template_id
-                if (!loggedTemplateIdStrip) {
-                  console.log('   🔧 Removed legacy "template_id" column from import rows')
-                  loggedTemplateIdStrip = true
-                }
-              }
-
-              // Normalize site_settings legacy logo columns to new single logo_media_id
-              if (tableName === 'site_settings') {
-                const logo =
-                  (processedRow as any).logo_media_id ??
-                  (processedRow as any).logoMediaId ??
-                  (processedRow as any).logo_light_media_id ??
-                  (processedRow as any).logoLightMediaId ??
-                  (processedRow as any).logo_dark_media_id ??
-                  (processedRow as any).logoDarkMediaId ??
-                  null
-                delete (processedRow as any).logo_light_media_id
-                delete (processedRow as any).logoLightMediaId
-                delete (processedRow as any).logo_dark_media_id
-                delete (processedRow as any).logoDarkMediaId
-                delete (processedRow as any).logoMediaId
-                  ; (processedRow as any).logo_media_id = logo
-              }
 
               // Normalize JSONB fields for PostgreSQL - ensure they're proper JSON objects/arrays
               processedRow = this.normalizeJsonbFields(tableName, processedRow)

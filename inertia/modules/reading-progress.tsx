@@ -1,13 +1,11 @@
 import { useEffect, useState } from 'react'
 
 interface ReadingProgressProps {
-	position?: 'top' | 'bottom'
 	height?: number
 	zIndex?: number
 }
 
 export default function ReadingProgress({
-	position = 'top',
 	height = 4,
 	zIndex = 50,
 }: ReadingProgressProps) {
@@ -48,16 +46,10 @@ export default function ReadingProgress({
 		}
 	}, [])
 
-	const positionStyles =
-		position === 'top'
-			? { top: 0 }
-			: { bottom: 0 }
-
 	return (
 		<div
-			className="fixed left-0 right-0 bg-backdrop-medium"
+			className="fixed top-0 left-0 right-0 bg-backdrop-medium"
 			style={{
-				...positionStyles,
 				height: `${height}px`,
 				zIndex,
 			}}

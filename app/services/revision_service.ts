@@ -14,7 +14,7 @@ type RecordRevisionParams = {
 type RecordActiveVersionsSnapshotParams = {
   postId: string
   /**
-   * Used only for the revision "mode" column. DB stores legacy enum values.
+   * Used only for the revision "mode" column.
    * - source maps to approved
    */
   mode: RevisionMode | ActiveVersion
@@ -96,27 +96,27 @@ export default class RevisionService {
       capturedAt: new Date().toISOString(),
       post: post
         ? {
-            id: post.id,
-            type: post.type,
-            locale: post.locale,
-            slug: post.slug,
-            title: post.title,
-            status: post.status,
-            excerpt: post.excerpt ?? null,
-            parentId: post.parentId ?? null,
-            orderIndex: post.orderIndex ?? 0,
-            metaTitle: post.metaTitle ?? null,
-            metaDescription: post.metaDescription ?? null,
-            canonicalUrl: post.canonicalUrl ?? null,
-            robotsJson: post.robotsJson ?? null,
-            jsonldOverrides: post.jsonldOverrides ?? null,
-            featuredImageId: post.featuredImageId ?? null,
-            customFields: (customFields || []).map((r: any) => ({
-              fieldSlug: String(r.fieldSlug),
-              value: r.value ?? null,
-            })),
-            taxonomyTermIds,
-          }
+          id: post.id,
+          type: post.type,
+          locale: post.locale,
+          slug: post.slug,
+          title: post.title,
+          status: post.status,
+          excerpt: post.excerpt ?? null,
+          parentId: post.parentId ?? null,
+          orderIndex: post.orderIndex ?? 0,
+          metaTitle: post.metaTitle ?? null,
+          metaDescription: post.metaDescription ?? null,
+          canonicalUrl: post.canonicalUrl ?? null,
+          robotsJson: post.robotsJson ?? null,
+          jsonldOverrides: post.jsonldOverrides ?? null,
+          featuredImageId: post.featuredImageId ?? null,
+          customFields: (customFields || []).map((r: any) => ({
+            fieldSlug: String(r.fieldSlug),
+            value: r.value ?? null,
+          })),
+          taxonomyTermIds,
+        }
         : null,
       drafts: {
         reviewDraft: post?.reviewDraft ?? null,
@@ -166,7 +166,7 @@ export default class RevisionService {
    * Record a revision snapshot and prune older ones based on CMS_REVISIONS_LIMIT.
    */
   static async record({ postId, mode, snapshot, userId }: RecordRevisionParams): Promise<void> {
-    // DB uses legacy enum values; map Source -> approved for storage.
+    // Map Source -> approved for storage.
     const dbMode: RevisionMode = mode === 'source' ? 'approved' : (mode as RevisionMode)
     const now = new Date()
     await db.table('post_revisions').insert({

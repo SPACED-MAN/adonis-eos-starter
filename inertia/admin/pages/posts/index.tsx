@@ -1,5 +1,5 @@
-// Posts admin index page (renamed from legacy dashboard.tsx)
-// This file now owns the full implementation for the Posts list/admin UI.
+// Posts admin index page
+// This file owns the full implementation for the Posts list/admin UI.
 import { Head, Link, usePage } from '@inertiajs/react'
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome'
 import { faTurnUp } from '@fortawesome/free-solid-svg-icons'
@@ -34,11 +34,10 @@ import {
 import { SortableContext, useSortable, verticalListSortingStrategy } from '@dnd-kit/sortable'
 import { CSS } from '@dnd-kit/utilities'
 
-interface PostsIndexProps {}
+interface PostsIndexProps { }
 
-export default function PostsIndexPage({}: PostsIndexProps) {
+export default function PostsIndexPage({ }: PostsIndexProps) {
   // Entire implementation moved here from the former dashboard.tsx
-  // (content identical to LegacyDashboard).
   const inertiaPage = usePage()
   const role: string | undefined =
     (inertiaPage.props as any)?.currentUser?.role ??
@@ -138,22 +137,22 @@ export default function PostsIndexPage({}: PostsIndexProps) {
   useEffect(() => {
     if (locale) return
     let cancelled = false
-    ;(async () => {
-      try {
-        const res = await fetch('/api/locales', { credentials: 'same-origin' })
-        const json = await res.json().catch(() => null)
-        const fromMeta: string | undefined = json?.meta?.defaultLocale
-        const fromData: string | undefined = Array.isArray(json?.data)
-          ? (json.data.find((l: any) => l.isDefault)?.code as string | undefined)
-          : undefined
-        const effective = fromMeta || fromData
-        if (!cancelled && effective) {
-          setLocale(effective)
+      ; (async () => {
+        try {
+          const res = await fetch('/api/locales', { credentials: 'same-origin' })
+          const json = await res.json().catch(() => null)
+          const fromMeta: string | undefined = json?.meta?.defaultLocale
+          const fromData: string | undefined = Array.isArray(json?.data)
+            ? (json.data.find((l: any) => l.isDefault)?.code as string | undefined)
+            : undefined
+          const effective = fromMeta || fromData
+          if (!cancelled && effective) {
+            setLocale(effective)
+          }
+        } catch {
+          // leave as all locales
         }
-      } catch {
-        // leave as all locales
-      }
-    })()
+      })()
     return () => {
       cancelled = true
     }
@@ -165,7 +164,7 @@ export default function PostsIndexPage({}: PostsIndexProps) {
   }, [q, status, locale, postType, taxonomy, termId, sortBy, sortOrder, page, limit, hierarchical])
 
   useEffect(() => {
-    ;(async () => {
+    ; (async () => {
       const res = await fetch('/api/post-types', { credentials: 'same-origin' })
       const json = await res.json().catch(() => ({}))
       const list: string[] = Array.isArray(json?.data) ? json.data : []
@@ -175,7 +174,7 @@ export default function PostsIndexPage({}: PostsIndexProps) {
 
   // Load taxonomies for filter
   useEffect(() => {
-    ;(async () => {
+    ; (async () => {
       try {
         const res = await fetch('/api/taxonomies', { credentials: 'same-origin' })
         const json = await res.json().catch(() => ({}))
@@ -189,7 +188,7 @@ export default function PostsIndexPage({}: PostsIndexProps) {
 
   // Load terms for selected taxonomy
   useEffect(() => {
-    ;(async () => {
+    ; (async () => {
       setTerms([])
       setTermId('')
       if (!taxonomy) return
@@ -222,7 +221,7 @@ export default function PostsIndexPage({}: PostsIndexProps) {
   // Supported locales for translation progress
   const [supportedLocales, setSupportedLocales] = useState<string[]>([])
   useEffect(() => {
-    ;(async () => {
+    ; (async () => {
       try {
         const res = await fetch('/api/locales', { credentials: 'same-origin' })
         const json = await res.json().catch(() => ({}))
@@ -888,18 +887,15 @@ export default function PostsIndexPage({}: PostsIndexProps) {
                     {pendingBulkAction === 'publish' &&
                       `This will publish ${selected.size} post${selected.size === 1 ? '' : 's'}.`}
                     {pendingBulkAction === 'draft' &&
-                      `This will move ${selected.size} post${
-                        selected.size === 1 ? '' : 's'
+                      `This will move ${selected.size} post${selected.size === 1 ? '' : 's'
                       } to draft status.`}
                     {pendingBulkAction === 'archive' &&
                       `This will archive ${selected.size} post${selected.size === 1 ? '' : 's'}.`}
                     {pendingBulkAction === 'duplicate' &&
-                      `This will create ${selected.size} duplicate post${
-                        selected.size === 1 ? '' : 's'
+                      `This will create ${selected.size} duplicate post${selected.size === 1 ? '' : 's'
                       }.`}
                     {pendingBulkAction === 'regeneratePermalinks' &&
-                      `This will regenerate permalinks for ${selected.size} post${
-                        selected.size === 1 ? '' : 's'
+                      `This will regenerate permalinks for ${selected.size} post${selected.size === 1 ? '' : 's'
                       } based on the current URL pattern. If "Auto-redirect on slug change" is enabled, redirects will be created from old URLs to new URLs.`}
                   </AlertDialogDescription>
                 </AlertDialogHeader>

@@ -155,15 +155,6 @@ async function resolveSystemUserId(): Promise<number | null> {
       _cachedSystemUserId = Number(byEmail.id)
       return _cachedSystemUserId
     }
-    const legacy = await db
-      .from('users')
-      .select('id')
-      .where('email', 'ai-agent@system.local')
-      .first()
-    if (legacy?.id) {
-      _cachedSystemUserId = Number(legacy.id)
-      return _cachedSystemUserId
-    }
     const byRole = await db
       .from('users')
       .select('id')

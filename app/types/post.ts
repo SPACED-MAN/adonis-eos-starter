@@ -11,21 +11,10 @@ export type PostStatus = (typeof POST_STATUSES)[number]
 export const ACTIVE_VERSIONS = ['source', 'review', 'ai-review'] as const
 export type ActiveVersion = (typeof ACTIVE_VERSIONS)[number]
 
-/**
- * Legacy naming used in some DB enums / older clients.
- * Prefer `ACTIVE_VERSIONS` / `ActiveVersion` in new code.
- */
-export const VIEW_MODES = ['approved', 'review', 'ai-review'] as const
-export type ViewMode = (typeof VIEW_MODES)[number]
-
 export function normalizeActiveVersion(input: unknown): ActiveVersion {
   const v = String(input || '').trim().toLowerCase()
   if (v === 'approved') return 'source'
   if (v === 'review') return 'review'
   if (v === 'ai-review' || v === 'ai_review') return 'ai-review'
   return 'source'
-}
-
-export function toLegacyViewMode(version: ActiveVersion): ViewMode {
-  return version === 'source' ? 'approved' : version
 }

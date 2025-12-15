@@ -202,7 +202,7 @@ class PostRenderingService {
         let mergedProps: Record<string, unknown>
 
         // Always start from module defaults to prevent SSR crashes when props are partial/malformed.
-        // This is especially important for AI-generated drafts or legacy data.
+        // This is especially important for AI-generated drafts.
         const module = moduleRegistry.get(pm.type)
         const defaultProps = (module.getConfig?.().defaultProps || {}) as Record<string, unknown>
 
