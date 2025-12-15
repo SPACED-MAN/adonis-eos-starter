@@ -716,6 +716,63 @@ export default class PostsController {
         // For XHR/API clients, return JSON; avoid redirect which can confuse fetch()
         return response.ok({ message: 'Saved for review' })
       }
+      if (saveMode === 'ai-review') {
+        const aiReviewModuleRemovalsRaw = request.input('aiReviewModuleRemovals', [])
+        const aiReviewModuleRemovals = Array.isArray(aiReviewModuleRemovalsRaw)
+          ? this.filterValidUuids(aiReviewModuleRemovalsRaw)
+          : []
+        const aiReviewCustomFields = request.input('customFields', undefined)
+        const draftPayload: Record<string, any> = {
+          slug,
+          title,
+          status,
+          excerpt,
+          parentId,
+          orderIndex,
+          metaTitle,
+          metaDescription,
+          canonicalUrl,
+          robotsJson,
+          jsonldOverrides,
+          featuredImageId,
+          customFields: Array.isArray(aiReviewCustomFields) ? aiReviewCustomFields : undefined,
+          removedModuleIds: aiReviewModuleRemovals,
+          savedAt: new Date().toISOString(),
+          savedBy: (auth.use('web').user as any)?.email || null,
+        }
+        // Use snake_case column name created by migration
+        await Post.query()
+          .where('id', id)
+          .update({ ai_review_draft: draftPayload } as any)
+        // Mark AI review deletions in post_modules so they persist across reloads
+        if (aiReviewModuleRemovals.length > 0) {
+          await db
+            .from('post_modules')
+            .whereIn('id', aiReviewModuleRemovals)
+            .update({ ai_review_deleted: true, updated_at: new Date() } as any)
+        }
+        // Record an ai-review-draft revision
+        await RevisionService.record({
+          postId: id,
+          mode: 'ai-review',
+          snapshot: draftPayload,
+          userId: (auth.use('web').user as any)?.id,
+        })
+        // Activity log
+        try {
+          await (
+            await import('#services/activity_log_service')
+          ).default.log({
+            action: 'post.ai-review.save',
+            userId: (auth.use('web').user as any)?.id ?? null,
+            entityType: 'post',
+            entityId: id,
+            metadata: { fields: Object.keys(draftPayload || {}) },
+          })
+        } catch { }
+        // For XHR/API clients, return JSON; avoid redirect which can confuse fetch()
+        return response.ok({ message: 'Saved for AI review' })
+      }
       if (saveMode === 'approve') {
         // Load current post to get persisted review_draft and status
         try {

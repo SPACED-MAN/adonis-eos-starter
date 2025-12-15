@@ -217,6 +217,7 @@ export default function Editor({
   const [pendingModules, setPendingModules] = useState<Record<string, { overrides: Record<string, any> | null; edited: Record<string, any> }>>({})
   const [pendingRemoved, setPendingRemoved] = useState<Set<string>>(new Set())
   const [pendingReviewRemoved, setPendingReviewRemoved] = useState<Set<string>>(new Set())
+  const [pendingAiReviewRemoved, setPendingAiReviewRemoved] = useState<Set<string>>(new Set())
   // Track new modules that haven't been persisted yet (temporary client-side IDs)
   const [pendingNewModules, setPendingNewModules] = useState<Array<{
     tempId: string
@@ -466,6 +467,15 @@ export default function Editor({
   }, [aiReviewDraft, modules])
 
   const initialViewMode: 'source' | 'review' | 'ai-review' = useMemo(() => {
+    // Check URL parameter first to preserve view mode across reloads
+    if (typeof window !== 'undefined') {
+      const urlParams = new URLSearchParams(window.location.search)
+      const viewParam = urlParams.get('view')
+      if (viewParam === 'source' || viewParam === 'review' || viewParam === 'ai-review') {
+        return viewParam as 'source' | 'review' | 'ai-review'
+      }
+    }
+    // Fallback to baseline-based logic
     if (hasReviewBaseline) return 'review'
     if (!hasSourceBaseline && hasAiReviewBaseline) return 'ai-review'
     return 'source'
@@ -484,9 +494,10 @@ export default function Editor({
   const [rejectConfirmOpen, setRejectConfirmOpen] = useState(false)
 
   useEffect(() => {
-    // keep default save target intuitive as the user switches Active Versions
-    if (viewMode === 'review') setSaveTarget('review')
-    if (viewMode === 'source') setSaveTarget('source')
+    // Keep default save target intuitive as the user switches Active Versions
+    if (viewMode === 'source') {
+      setSaveTarget('source')
+    }
   }, [viewMode])
 
   // Default decision selection (Approve/Reject combined)
@@ -521,11 +532,18 @@ export default function Editor({
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [viewMode, hasReviewBaseline, hasAiReviewBaseline, canApproveReview, canApproveAiReview])
 
-  async function executeSave(target: 'source' | 'review') {
+  async function executeSave(target: 'source' | 'review' | 'ai-review') {
     if (target === 'review') {
       await createPendingNewModules('review')
       await commitPendingModules('review')
       await saveForReview()
+      return
+    }
+
+    if (target === 'ai-review') {
+      await createPendingNewModules('ai-review')
+      await commitPendingModules('ai-review')
+      await saveForAiReview()
       return
     }
 
@@ -593,8 +611,10 @@ export default function Editor({
         toast.success('Saved to Source')
         initialDataRef.current = pickForm(data)
         setHasStructuralChanges(false)
-        // Reload to get fresh data from server
-        window.location.reload()
+        // Reload to get fresh data from server, preserving the current view mode
+        const currentUrl = new URL(window.location.href)
+        currentUrl.searchParams.set('view', 'source')
+        window.location.href = currentUrl.toString()
       } else {
         // If the response is a redirect, fetch will return an opaqueredirect when redirect='manual'.
         // This often indicates an auth/CSRF issue.
@@ -822,8 +842,36 @@ export default function Editor({
       toast.success('Saved for review')
       reviewInitialRef.current = pickForm(data)
       setPendingReviewRemoved(new Set())
+      router.reload({ only: ['reviewDraft', 'post', 'modules'] })
     } else {
       toast.error('Failed to save for review')
+    }
+  }
+
+  async function saveForAiReview() {
+    const payload = {
+      ...pickForm(data),
+      mode: 'ai-review',
+      customFields: Array.isArray((data as any).customFields) ? (data as any).customFields : [],
+      aiReviewModuleRemovals: Array.from(pendingAiReviewRemoved),
+    }
+    const res = await fetch(`/api/posts/${post.id}`, {
+      method: 'PUT',
+      headers: {
+        'Accept': 'application/json',
+        'Content-Type': 'application/json',
+        ...xsrfHeader(),
+      },
+      credentials: 'same-origin',
+      body: JSON.stringify(payload),
+    })
+    if (res.ok) {
+      toast.success('Saved for AI review')
+      aiReviewInitialRef.current = pickForm(data)
+      setPendingAiReviewRemoved(new Set())
+      router.reload({ only: ['aiReviewDraft', 'post', 'modules'] })
+    } else {
+      toast.error('Failed to save for AI review')
     }
   }
 
@@ -1923,7 +1971,13 @@ export default function Editor({
                     {hasSourceBaseline && (
                       <button
                         type="button"
-                        onClick={() => setViewMode('source')}
+                        onClick={() => {
+                          setViewMode('source')
+                          // Update URL to preserve view mode on reload
+                          const url = new URL(window.location.href)
+                          url.searchParams.set('view', 'source')
+                          window.history.replaceState({}, '', url.toString())
+                        }}
                         className={`px-2 py-1 text-xs ${viewMode === 'source' ? 'bg-standout-medium text-on-standout' : 'text-neutral-medium hover:bg-backdrop-medium'}`}
                       >
                         Source
@@ -1932,7 +1986,13 @@ export default function Editor({
                     {hasReviewBaseline && (canSaveForReview || canApproveReview) && (
                       <button
                         type="button"
-                        onClick={() => setViewMode('review')}
+                        onClick={() => {
+                          setViewMode('review')
+                          // Update URL to preserve view mode on reload
+                          const url = new URL(window.location.href)
+                          url.searchParams.set('view', 'review')
+                          window.history.replaceState({}, '', url.toString())
+                        }}
                         className={`px-2 py-1 text-xs ${viewMode === 'review' ? 'bg-standout-medium text-on-standout' : 'text-neutral-medium hover:bg-backdrop-medium'}`}
                       >
                         Review
@@ -1941,7 +2001,13 @@ export default function Editor({
                     {hasAiReviewBaseline && canApproveAiReview && (
                       <button
                         type="button"
-                        onClick={() => setViewMode('ai-review')}
+                        onClick={() => {
+                          setViewMode('ai-review')
+                          // Update URL to preserve view mode on reload
+                          const url = new URL(window.location.href)
+                          url.searchParams.set('view', 'ai-review')
+                          window.history.replaceState({}, '', url.toString())
+                        }}
                         className={`px-2 py-1 text-xs ${viewMode === 'ai-review' ? 'bg-standout-medium text-on-standout' : 'text-neutral-medium hover:bg-backdrop-medium'}`}
                       >
                         AI Review
@@ -2457,8 +2523,8 @@ export default function Editor({
                     )}
                   </div>
                 )}
-                {/* Save edits (humans can save to Source or Review; AI Review is agent-only) */}
-                {viewMode !== 'ai-review' && (
+                {/* Save edits (Source can save to Source or Review) */}
+                {viewMode === 'source' && (
                   <div className="space-y-2">
                     <label className="block text-xs font-medium text-neutral-medium">
                       Save edits to
@@ -2485,13 +2551,8 @@ export default function Editor({
                           (saveTarget === 'review' && !canSaveForReview)
                         }
                         onClick={async () => {
-                          // Destructive confirmation when saving to a different Active Version that already exists.
-                          const targetExists =
-                            saveTarget === 'source'
-                              ? true
-                              : Boolean(hasReviewBaseline)
-                          const isCrossVersion = saveTarget !== viewMode
-                          if (isCrossVersion && targetExists) {
+                          // Destructive confirmation when saving to Review that already exists.
+                          if (saveTarget === 'review' && hasReviewBaseline) {
                             setPendingSaveTarget(saveTarget)
                             setSaveConfirmOpen(true)
                             return
@@ -2506,17 +2567,52 @@ export default function Editor({
                     </div>
                     {saveTarget === 'review' && !canSaveForReview && (
                       <p className="text-xs text-neutral-low">
-                        You don’t have permission to save to Review.
+                        You don't have permission to save to Review.
                       </p>
                     )}
                   </div>
                 )}
 
-                {viewMode === 'ai-review' && (
-                  <p className="text-xs text-neutral-low">
-                    AI Review is agent-only. Humans can promote it to Review or reject it.
-                  </p>
+                {/* Save button for Review view mode */}
+                {viewMode === 'review' && (
+                  <div className="space-y-2">
+                    <button
+                      type="button"
+                      className={`h-8 px-3 text-xs rounded-lg disabled:opacity-50 ${(!isDirty || processing) ? 'border border-border text-neutral-medium' : 'bg-standout-medium text-on-standout font-medium'}`}
+                      disabled={!isDirty || processing || !canSaveForReview}
+                      onClick={async () => {
+                        await executeSave('review')
+                      }}
+                    >
+                      Save
+                    </button>
+                    {!canSaveForReview && (
+                      <p className="text-xs text-neutral-low">
+                        You don't have permission to save to Review.
+                      </p>
+                    )}
+                  </div>
                 )}
+
+                {/* Save button for AI Review view mode */}
+                {viewMode === 'ai-review' && (
+                  <div className="space-y-2">
+                    <p className="text-xs text-neutral-low">
+                      AI Review is AI-generated.
+                    </p>
+                    <button
+                      type="button"
+                      className={`h-8 px-3 text-xs rounded-lg disabled:opacity-50 ${(!isDirty || processing) ? 'border border-border text-neutral-medium' : 'bg-standout-medium text-on-standout font-medium'}`}
+                      disabled={!isDirty || processing}
+                      onClick={async () => {
+                        await executeSave('ai-review')
+                      }}
+                    >
+                      Save
+                    </button>
+                  </div>
+                )}
+
 
                 {/* Approve/Reject decision (RadioGroup) */}
                 {viewMode !== 'source' && ((
@@ -2645,14 +2741,13 @@ export default function Editor({
                     </div>
                   )}
 
+                {/* Save confirmation dialog for overwriting Review draft */}
                 <AlertDialog open={saveConfirmOpen} onOpenChange={setSaveConfirmOpen}>
                   <AlertDialogContent>
                     <AlertDialogHeader>
-                      <AlertDialogTitle>Overwrite existing version?</AlertDialogTitle>
+                      <AlertDialogTitle>Overwrite Review draft?</AlertDialogTitle>
                       <AlertDialogDescription>
-                        {pendingSaveTarget === 'review'
-                          ? 'A Review draft already exists. Saving from a different Active Version will overwrite it.'
-                          : 'You are saving from a different Active Version. This will overwrite Source content.'}
+                        A Review draft already exists. Saving to Review will overwrite it.
                       </AlertDialogDescription>
                     </AlertDialogHeader>
                     <AlertDialogFooter>
@@ -2678,6 +2773,7 @@ export default function Editor({
                     </AlertDialogFooter>
                   </AlertDialogContent>
                 </AlertDialog>
+
                 {/* Unpublish action handled by changing status to draft and saving */}
               </div>
             </div>

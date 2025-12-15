@@ -173,15 +173,28 @@ export default class PostsRevisionsController extends BasePostsController {
                 .first()
               propsToSet = (current?.props as Record<string, any>) || {}
             }
-            await db
-              .from('module_instances')
-              .where('id', String(m.moduleInstanceId))
-              .update({
-                props: propsToSet,
-                review_props: m.reviewProps ?? null,
-                ai_review_props: m.aiReviewProps ?? null,
-                updated_at: now,
-              } as any)
+            // Update module instance props - only update what's provided in snapshot
+            const updateData: any = {
+              updated_at: now,
+            }
+            // Only update props if explicitly provided (preserve current if not)
+            if (m.props !== undefined && m.props !== null) {
+              updateData.props = propsToSet
+            }
+            // Always update review/ai-review props if they exist in snapshot (even if null)
+            if (m.reviewProps !== undefined) {
+              updateData.review_props = m.reviewProps ?? null
+            }
+            if (m.aiReviewProps !== undefined) {
+              updateData.ai_review_props = m.aiReviewProps ?? null
+            }
+            // Only update if we have something to update
+            if (Object.keys(updateData).length > 1) {
+              await db
+                .from('module_instances')
+                .where('id', String(m.moduleInstanceId))
+                .update(updateData)
+            }
           }
           if (m?.postModuleId) {
             await db
@@ -209,11 +222,67 @@ export default class PostsRevisionsController extends BasePostsController {
     // Legacy: Review revisions go to review_draft
     if (mode === 'review') {
       await Post.query().where('id', id).update({ review_draft: snapshot } as any)
+
+      // If snapshot has modules data, restore module review_props
+      if (Array.isArray(snapshot?.modules)) {
+        const now = new Date()
+        for (const m of snapshot.modules as any[]) {
+          if (m?.moduleInstanceId && m?.reviewProps !== undefined) {
+            await db
+              .from('module_instances')
+              .where('id', String(m.moduleInstanceId))
+              .update({
+                review_props: m.reviewProps ?? null,
+                updated_at: now,
+              } as any)
+          }
+          if (m?.postModuleId) {
+            await db
+              .from('post_modules')
+              .where('id', String(m.postModuleId))
+              .update({
+                review_overrides: m.reviewOverrides ?? null,
+                review_added: !!m?.flags?.reviewAdded,
+                review_deleted: !!m?.flags?.reviewDeleted,
+                updated_at: now,
+              } as any)
+          }
+        }
+      }
+
       return response.ok({ message: 'Reverted review draft' })
     }
     // Legacy: AI Review revisions go to ai_review_draft
     if (mode === 'ai-review') {
       await Post.query().where('id', id).update({ ai_review_draft: snapshot } as any)
+
+      // If snapshot has modules data, restore module ai_review_props
+      if (Array.isArray(snapshot?.modules)) {
+        const now = new Date()
+        for (const m of snapshot.modules as any[]) {
+          if (m?.moduleInstanceId && m?.aiReviewProps !== undefined) {
+            await db
+              .from('module_instances')
+              .where('id', String(m.moduleInstanceId))
+              .update({
+                ai_review_props: m.aiReviewProps ?? null,
+                updated_at: now,
+              } as any)
+          }
+          if (m?.postModuleId) {
+            await db
+              .from('post_modules')
+              .where('id', String(m.postModuleId))
+              .update({
+                ai_review_overrides: m.aiReviewOverrides ?? null,
+                ai_review_added: !!m?.flags?.aiReviewAdded,
+                ai_review_deleted: !!m?.flags?.aiReviewDeleted,
+                updated_at: now,
+              } as any)
+          }
+        }
+      }
+
       return response.ok({ message: 'Reverted AI review draft' })
     }
 
