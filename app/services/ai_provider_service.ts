@@ -6,11 +6,7 @@ import env from '#start/env'
 /**
  * Supported AI providers
  */
-<<<<<<< HEAD
 export type AIProvider = 'openai' | 'anthropic' | 'google' | 'nanobanana'
-=======
-export type AIProvider = 'openai' | 'anthropic' | 'google'
->>>>>>> 53203a7 (Add internal AI Agent integration)
 
 /**
  * AI Provider Configuration
@@ -127,11 +123,8 @@ class AIProviderService {
         return this.completeAnthropic(messages, options, config)
       case 'google':
         return this.completeGoogle(messages, options, config)
-<<<<<<< HEAD
       case 'nanobanana':
         return this.completeNanoBanana(messages, options, config)
-=======
->>>>>>> 53203a7 (Add internal AI Agent integration)
       default:
         throw new Error(`Unsupported AI provider: ${config.provider}`)
     }
@@ -290,7 +283,6 @@ class AIProviderService {
     const client = new GoogleGenerativeAI(config.apiKey)
 
     // Get the model
-<<<<<<< HEAD
     // Filter out maxTokens from config.options since we use maxOutputTokens for Gemini
     const { maxTokens: _, temperature: configTemp, topP: configTopP, stop: configStop, ...otherConfigOptions } = config.options || {}
 
@@ -313,17 +305,6 @@ class AIProviderService {
     const model = client.getGenerativeModel({
       model: config.model,
       generationConfig,
-=======
-    const model = client.getGenerativeModel({
-      model: config.model,
-      generationConfig: {
-        temperature: options.temperature ?? 0.7,
-        topP: options.topP,
-        maxOutputTokens: options.maxTokens,
-        stopSequences: options.stop,
-        ...config.options,
-      },
->>>>>>> 53203a7 (Add internal AI Agent integration)
     })
 
     // Separate system message
@@ -364,7 +345,6 @@ class AIProviderService {
   }
 
   /**
-<<<<<<< HEAD
    * List available Gemini models for the given API key
    * Useful for debugging model availability issues
    * Tries both v1beta and v1 API endpoints
@@ -515,8 +495,6 @@ class AIProviderService {
   }
 
   /**
-=======
->>>>>>> 53203a7 (Add internal AI Agent integration)
    * Validate provider configuration
    */
   validateConfig(config: AIProviderConfig): void {
@@ -532,11 +510,7 @@ class AIProviderService {
       throw new Error(`Model is required for provider: ${config.provider}`)
     }
 
-<<<<<<< HEAD
     const validProviders: AIProvider[] = ['openai', 'anthropic', 'google', 'nanobanana']
-=======
-    const validProviders: AIProvider[] = ['openai', 'anthropic', 'google']
->>>>>>> 53203a7 (Add internal AI Agent integration)
     if (!validProviders.includes(config.provider)) {
       throw new Error(`Invalid provider: ${config.provider}. Must be one of: ${validProviders.join(', ')}`)
     }

@@ -100,7 +100,6 @@ export default class PostSerializerService {
       .select('id', 'locale')
 
     // Custom fields (slug:value) by slug from values table
-<<<<<<< HEAD
     // Note: Custom fields in drafts are stored in the draft JSON, not in the separate table
     let customFields: Array<{ slug: string; value: any }> = []
     if (mode === 'review') {
@@ -223,11 +222,6 @@ export default class PostSerializerService {
         }
       }
     }
-=======
-    const cfVals = await PostCustomFieldValue.query()
-      .where('postId', postId)
-      .select('field_slug as slug', 'value')
->>>>>>> 53203a7 (Add internal AI Agent integration)
 
     const canonical: CanonicalPost = {
       version: 1 as const,
