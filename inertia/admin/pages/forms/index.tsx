@@ -26,6 +26,10 @@ interface FormSubmissionSummary {
 type FormFieldType = 'text' | 'email' | 'textarea' | 'checkbox'
 
 interface FormField {
+  /**
+   * UI-only stable identifier used for React keys. Never persisted.
+   */
+  uiId?: string
   slug: string
   label: string
   type: FormFieldType
@@ -65,10 +69,54 @@ function getXsrf(): string | undefined {
   return m ? decodeURIComponent(m[1]) : undefined
 }
 
+function makeUiId(): string {
+  // Prefer crypto UUID when available, fallback to a reasonably-unique string.
+  const c: any = typeof globalThis !== 'undefined' ? (globalThis as any).crypto : undefined
+  const uuid = c?.randomUUID ? c.randomUUID() : null
+  return uuid || `ui_${Date.now().toString(36)}_${Math.random().toString(36).slice(2, 10)}`
+}
+
+function ensureFormUiIds(form: FormDefinition): FormDefinition {
+  const rawFields: any[] = Array.isArray((form as any).fields)
+    ? ((form as any).fields as any[])
+    : typeof (form as any).fields === 'string'
+      ? (() => {
+        try {
+          const parsed = JSON.parse((form as any).fields)
+          return Array.isArray(parsed) ? parsed : []
+        } catch {
+          return []
+        }
+      })()
+      : []
+
+  const nextFields = rawFields.map((raw: any) => {
+    const f = raw && typeof raw === 'object' ? (raw as FormField) : ({} as FormField)
+    return {
+      uiId: f.uiId || makeUiId(),
+      slug: String((f as any).slug || ''),
+      label: String((f as any).label || ''),
+      type:
+        (f as any).type === 'text' ||
+          (f as any).type === 'email' ||
+          (f as any).type === 'textarea' ||
+          (f as any).type === 'checkbox'
+          ? ((f as any).type as FormFieldType)
+          : 'text',
+      required: !!(f as any).required,
+    } satisfies FormField
+  })
+  return { ...form, fields: nextFields }
+}
+
 export default function FormsIndex({ forms: initialForms, submissions }: FormsIndexProps) {
-  const [forms, setForms] = useState<FormDefinition[]>(initialForms || [])
+  const [forms, setForms] = useState<FormDefinition[]>(() =>
+    (initialForms || []).map((f) => ensureFormUiIds(f))
+  )
   const [selectedFormId, setSelectedFormId] = useState<string | null>(initialForms[0]?.id ?? null)
-  const [editing, setEditing] = useState<FormDefinition | null>(initialForms[0] ?? null)
+  const [editing, setEditing] = useState<FormDefinition | null>(() =>
+    initialForms[0] ? ensureFormUiIds(initialForms[0]) : null
+  )
   const [saving, setSaving] = useState(false)
   const [creating, setCreating] = useState(false)
   const [slugAuto, setSlugAuto] = useState<boolean>(true)
@@ -80,23 +128,27 @@ export default function FormsIndex({ forms: initialForms, submissions }: FormsIn
 
   useEffect(() => {
     let alive = true
-    ;(async () => {
-      try {
-        const res = await fetch('/api/webhooks', { credentials: 'same-origin' })
-        const j = await res.json().catch(() => ({}))
-        if (!alive) return
-        const list: Array<any> = Array.isArray(j?.data) ? j.data : []
-        setAvailableWebhooks(
-          list.map((w) => ({
-            id: String(w.id),
-            name: String(w.name || w.url || w.id),
-            events: Array.isArray(w.events) ? w.events : [],
-          }))
-        )
-      } catch {
-        if (!alive) setAvailableWebhooks([])
-      }
-    })()
+      ; (async () => {
+        try {
+          const res = await fetch('/api/webhooks', { credentials: 'same-origin' })
+          if (!res.ok) {
+            if (alive) setAvailableWebhooks([])
+            return
+          }
+          const j = await res.json().catch(() => ({}))
+          if (!alive) return
+          const list: Array<any> = Array.isArray(j?.data) ? j.data : []
+          setAvailableWebhooks(
+            list.map((w) => ({
+              id: String(w.id),
+              name: String(w.name || w.url || w.id),
+              events: Array.isArray(w.events) ? w.events : [],
+            }))
+          )
+        } catch {
+          if (alive) setAvailableWebhooks([])
+        }
+      })()
     return () => {
       alive = false
     }
@@ -112,9 +164,15 @@ export default function FormsIndex({ forms: initialForms, submissions }: FormsIn
       title: '',
       description: '',
       fields: [
-        { slug: 'name', label: 'Your Name', type: 'text', required: true },
-        { slug: 'email', label: 'Your Email', type: 'email', required: true },
-        { slug: 'message', label: 'Your Message', type: 'textarea', required: true },
+        { uiId: makeUiId(), slug: 'name', label: 'Your Name', type: 'text', required: true },
+        { uiId: makeUiId(), slug: 'email', label: 'Your Email', type: 'email', required: true },
+        {
+          uiId: makeUiId(),
+          slug: 'message',
+          label: 'Your Message',
+          type: 'textarea',
+          required: true,
+        },
       ],
       subscriptions: [],
       successMessage: 'Thanks! Your message has been sent.',
@@ -162,6 +220,7 @@ export default function FormsIndex({ forms: initialForms, submissions }: FormsIn
   function addField() {
     if (!editing) return
     const next: FormField = {
+      uiId: makeUiId(),
       slug: `field_${editing.fields.length + 1}`,
       label: 'New field',
       type: 'text',
@@ -209,6 +268,28 @@ export default function FormsIndex({ forms: initialForms, submissions }: FormsIn
     const method = isNew ? 'POST' : 'PUT'
     try {
       setSaving(true)
+      const payloadBody = {
+        slug: editing.slug,
+        title: editing.title,
+        description: editing.description,
+        // Never persist UI-only keys
+        fields: editing.fields.map((f) => ({
+          slug: f.slug,
+          label: f.label,
+          type: f.type,
+          required: !!f.required,
+        })),
+        subscriptions: editing.subscriptions,
+        successMessage: editing.successMessage,
+        thankYouPostId: editing.thankYouPostId || null,
+      }
+
+      if (import.meta.env.DEV) {
+        // Helpful when debugging "fields wiped" reports
+        // eslint-disable-next-line no-console
+        console.debug('[Forms] save payload', { url, method, fieldsCount: payloadBody.fields.length })
+      }
+
       const res = await fetch(url, {
         method,
         headers: {
@@ -217,15 +298,7 @@ export default function FormsIndex({ forms: initialForms, submissions }: FormsIn
           ...(getXsrf() ? { 'X-XSRF-TOKEN': getXsrf()! } : {}),
         },
         credentials: 'same-origin',
-        body: JSON.stringify({
-          slug: editing.slug,
-          title: editing.title,
-          description: editing.description,
-          fields: editing.fields,
-          subscriptions: editing.subscriptions,
-          successMessage: editing.successMessage,
-          thankYouPostId: editing.thankYouPostId || null,
-        }),
+        body: JSON.stringify(payloadBody),
       })
       const j = await res.json().catch(() => ({}))
       if (!res.ok) {
@@ -233,23 +306,40 @@ export default function FormsIndex({ forms: initialForms, submissions }: FormsIn
         return
       }
       const saved: FormDefinition | null = j?.data
-        ? {
-            id: String(j.data.id),
-            slug: String(j.data.slug),
-            title: String(j.data.title),
-            description: j.data.description || '',
-            fields: Array.isArray(j.data.fields) ? j.data.fields : [],
-            subscriptions: Array.isArray(j.data.subscriptions) ? j.data.subscriptions : [],
-            successMessage: j.data.successMessage || '',
-            thankYouPostId: j.data.thankYouPostId || '',
-            createdAt: j.data.createdAt || null,
-            updatedAt: j.data.updatedAt || null,
-          }
+        ? ensureFormUiIds({
+          id: String(j.data.id),
+          slug: String(j.data.slug),
+          title: String(j.data.title),
+          description: j.data.description || '',
+          // Do not pre-coerce here. Some environments may return JSON as a string.
+          // `ensureFormUiIds` will normalize to an array.
+          fields: (j.data.fields as any) ?? [],
+          subscriptions: (j.data.subscriptions as any) ?? [],
+          successMessage: j.data.successMessage || '',
+          thankYouPostId: j.data.thankYouPostId || '',
+          createdAt: j.data.createdAt || null,
+          updatedAt: j.data.updatedAt || null,
+        } as any)
         : null
       if (!saved) {
         toast.error('Unexpected response while saving form')
         return
       }
+
+      if (import.meta.env.DEV) {
+        // eslint-disable-next-line no-console
+        console.debug('[Forms] save response', {
+          id: saved.id,
+          fieldsType: typeof (j as any)?.data?.fields,
+          fieldsIsArray: Array.isArray((j as any)?.data?.fields),
+          fieldsValuePreview: Array.isArray((j as any)?.data?.fields)
+            ? (j as any).data.fields.slice(0, 3)
+            : (j as any)?.data?.fields,
+          fieldsCount: Array.isArray(saved.fields) ? saved.fields.length : 0,
+          meta: (j as any)?.meta,
+        })
+      }
+
       if (isNew) {
         setForms((prev) => [saved, ...prev])
         setCreating(false)
@@ -258,6 +348,34 @@ export default function FormsIndex({ forms: initialForms, submissions }: FormsIn
         setForms((prev) => prev.map((f) => (f.id === saved.id ? saved : f)))
       }
       setEditing(saved)
+
+      // After saving, re-fetch from list endpoint to reflect the canonical DB state.
+      // This protects against any driver/serialization quirks where the immediate response
+      // does not include JSONB arrays in the expected shape.
+      try {
+        const freshRes = await fetch('/api/forms-definitions', { credentials: 'same-origin' })
+        const freshJson = await freshRes.json().catch(() => ({}))
+        const list: any[] = Array.isArray(freshJson?.data) ? freshJson.data : []
+        const found = list.find((f: any) => String(f?.id) === String(saved.id))
+        if (found) {
+          if (import.meta.env.DEV) {
+            // eslint-disable-next-line no-console
+            console.debug('[Forms] fresh list item', {
+              id: String(found?.id),
+              fieldsIsArray: Array.isArray(found?.fields),
+              fieldsType: typeof found?.fields,
+              fieldsCount: Array.isArray(found?.fields) ? found.fields.length : 0,
+              fieldsValuePreview: Array.isArray(found?.fields) ? found.fields.slice(0, 3) : found?.fields,
+            })
+          }
+          const normalized = ensureFormUiIds(found as any)
+          setForms((prev) => prev.map((f) => (f.id === normalized.id ? normalized : f)))
+          setEditing(normalized)
+        }
+      } catch {
+        // ignore; keep optimistic saved state
+      }
+
       toast.success('Form saved')
     } finally {
       setSaving(false)
@@ -311,22 +429,20 @@ export default function FormsIndex({ forms: initialForms, submissions }: FormsIn
         <div className="mb-6 border-b border-line-low flex items-center gap-2 text-sm md:text-base">
           <button
             type="button"
-            className={`px-4 py-2 font-medium rounded-t-md border-b-2 transition-colors ${
-              activeTab === 'submissions'
-                ? 'border-standout-medium text-neutral-high bg-backdrop-medium'
-                : 'border-transparent text-neutral-medium hover:text-neutral-high hover:bg-backdrop-medium/60'
-            }`}
+            className={`px-4 py-2 font-medium rounded-t-md border-b-2 transition-colors ${activeTab === 'submissions'
+              ? 'border-standout-medium text-neutral-high bg-backdrop-medium'
+              : 'border-transparent text-neutral-medium hover:text-neutral-high hover:bg-backdrop-medium/60'
+              }`}
             onClick={() => setActiveTab('submissions')}
           >
             Submissions
           </button>
           <button
             type="button"
-            className={`px-4 py-2 font-medium rounded-t-md border-b-2 transition-colors ${
-              activeTab === 'builder'
-                ? 'border-standout-medium text-neutral-high bg-backdrop-medium'
-                : 'border-transparent text-neutral-medium hover:text-neutral-high hover:bg-backdrop-medium/60'
-            }`}
+            className={`px-4 py-2 font-medium rounded-t-md border-b-2 transition-colors ${activeTab === 'builder'
+              ? 'border-standout-medium text-neutral-high bg-backdrop-medium'
+              : 'border-transparent text-neutral-medium hover:text-neutral-high hover:bg-backdrop-medium/60'
+              }`}
             onClick={() => setActiveTab('builder')}
           >
             Forms
@@ -409,7 +525,7 @@ export default function FormsIndex({ forms: initialForms, submissions }: FormsIn
                               } else {
                                 setCreating(false)
                                 setSelectedFormId(f.id)
-                                setEditing(f)
+                                setEditing(ensureFormUiIds(f))
                                 setSlugAuto(() => {
                                   const s = String(f.slug || '').trim()
                                   const t = String(f.title || '').trim()
@@ -590,10 +706,10 @@ function EditorInner({
               setEditing((current) =>
                 current
                   ? {
-                      ...current,
-                      title: val,
-                      slug: slugAuto ? slugify(val) : current.slug,
-                    }
+                    ...current,
+                    title: val,
+                    slug: slugAuto ? slugify(val) : current.slug,
+                  }
                   : current
               )
             }}
@@ -681,7 +797,7 @@ function EditorInner({
           <div className="space-y-3">
             {editing.fields.map((field, idx) => (
               <div
-                key={`${field.slug}-${idx}`}
+                key={field.uiId || `${idx}`}
                 className="grid grid-cols-1 md:grid-cols-[1.2fr,1.2fr,0.9fr,auto] gap-2 items-start"
               >
                 <div>

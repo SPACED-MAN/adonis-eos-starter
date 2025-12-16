@@ -44,7 +44,7 @@ import { FontAwesomeIcon } from '@fortawesome/react-fontawesome'
 import { faTurnUp } from '@fortawesome/free-solid-svg-icons'
 import { SortableContext, useSortable, verticalListSortingStrategy } from '@dnd-kit/sortable'
 import { CSS } from '@dnd-kit/utilities'
-import { Pencil } from 'lucide-react'
+import { Pencil, Trash2 } from 'lucide-react'
 
 type Menu = {
   id: string
@@ -165,6 +165,10 @@ export default function MenusIndex() {
   const [editDynamicParentId, setEditDynamicParentId] = useState<string>('')
   const [editDynamicDepthLimit, setEditDynamicDepthLimit] = useState<number>(1)
   const [savingEdit, setSavingEdit] = useState<boolean>(false)
+  // Delete dialog state
+  const [deleteOpen, setDeleteOpen] = useState<boolean>(false)
+  const [deletingItem, setDeletingItem] = useState<MenuItem | null>(null)
+  const [deleting, setDeleting] = useState<boolean>(false)
 
   async function loadMenus() {
     setLoadingMenus(true)
@@ -213,7 +217,7 @@ export default function MenusIndex() {
     if (selectedMenuId) loadMenu(selectedMenuId)
   }, [selectedMenuId])
   useEffect(() => {
-    ;(async () => {
+    ; (async () => {
       try {
         const res = await fetch('/api/menu-templates', { credentials: 'same-origin' })
         const j = await res.json().catch(() => ({}))
@@ -648,49 +652,49 @@ export default function MenusIndex() {
                     </div>
                     {((menuLocale || 'en') === editingLocale ||
                       (!menuLocale && editingLocale === 'en')) && (
-                      <div className="flex items-center gap-2">
-                        <button
-                          className="px-2 py-1 text-xs border border-line-medium rounded"
-                          onClick={async () => {
-                            if (!selectedMenuId) return
-                            const targets = ['en', 'es', 'fr', 'pt'].filter(
-                              (l) => l !== editingLocale
-                            )
-                            await toast.promise(
-                              fetch(
-                                `/api/menus/${encodeURIComponent(selectedMenuId)}/generate-variations`,
+                        <div className="flex items-center gap-2">
+                          <button
+                            className="px-2 py-1 text-xs border border-line-medium rounded"
+                            onClick={async () => {
+                              if (!selectedMenuId) return
+                              const targets = ['en', 'es', 'fr', 'pt'].filter(
+                                (l) => l !== editingLocale
+                              )
+                              await toast.promise(
+                                fetch(
+                                  `/api/menus/${encodeURIComponent(selectedMenuId)}/generate-variations`,
+                                  {
+                                    method: 'POST',
+                                    headers: {
+                                      'Accept': 'application/json',
+                                      'Content-Type': 'application/json',
+                                      ...(xsrfFromCookie ? { 'X-XSRF-TOKEN': xsrfFromCookie } : {}),
+                                    },
+                                    credentials: 'same-origin',
+                                    body: JSON.stringify({
+                                      fromLocale: editingLocale,
+                                      toLocales: targets,
+                                      mode: 'replace',
+                                    }),
+                                  }
+                                ).then(async (r) => {
+                                  if (!r.ok) {
+                                    const j = await r.json().catch(() => ({}))
+                                    throw new Error(j?.error || 'Build failed')
+                                  }
+                                }),
                                 {
-                                  method: 'POST',
-                                  headers: {
-                                    'Accept': 'application/json',
-                                    'Content-Type': 'application/json',
-                                    ...(xsrfFromCookie ? { 'X-XSRF-TOKEN': xsrfFromCookie } : {}),
-                                  },
-                                  credentials: 'same-origin',
-                                  body: JSON.stringify({
-                                    fromLocale: editingLocale,
-                                    toLocales: targets,
-                                    mode: 'replace',
-                                  }),
+                                  loading: 'Building locale menus…',
+                                  success: 'Locale menus built',
+                                  error: (e) => String(e.message || e),
                                 }
-                              ).then(async (r) => {
-                                if (!r.ok) {
-                                  const j = await r.json().catch(() => ({}))
-                                  throw new Error(j?.error || 'Build failed')
-                                }
-                              }),
-                              {
-                                loading: 'Building locale menus…',
-                                success: 'Locale menus built',
-                                error: (e) => String(e.message || e),
-                              }
-                            )
-                          }}
-                        >
-                          Build Locale Menus
-                        </button>
-                      </div>
-                    )}
+                              )
+                            }}
+                          >
+                            Build Locale Menus
+                          </button>
+                        </div>
+                      )}
                   </div>
                   {(() => {
                     const want = (menuTemplate || selectedMenuSlug || '').toLowerCase()
@@ -1057,8 +1061,8 @@ export default function MenusIndex() {
                                       style={{ paddingLeft: level * 12 }}
                                     >
                                       {level > 0 ||
-                                      (dragActiveId === item.id && willNest) ||
-                                      nestFlashId === item.id ? (
+                                        (dragActiveId === item.id && willNest) ||
+                                        nestFlashId === item.id ? (
                                         <span
                                           className="mr-2 text-neutral-medium"
                                           aria-hidden="true"
@@ -1095,42 +1099,55 @@ export default function MenusIndex() {
                                     </span>
                                   </TableCell>
                                   <TableCell className="text-right">
-                                    <button
-                                      className="inline-flex items-center gap-1 px-2 py-1 text-xs border border-line-medium rounded hover:bg-backdrop-medium"
-                                      onClick={() => {
-                                        setEditingItem(item)
-                                        setEditLabel(item.label)
-                                        const k = (item as any).kind as
-                                          | 'item'
-                                          | 'section'
-                                          | undefined
-                                        setEditType(k === 'section' ? 'section' : item.type)
-                                        setEditCustomUrl(item.customUrl || '')
-                                        setEditSelectedPostId(item.postId || '')
-                                        setEditSelectedPostTitle('') // can be filled after search
-                                        setEditExtra(item.anchor || '')
-                                        setEditTarget(item.target || 'default')
-                                        setEditDynamicPostType(item.dynamicPostType || '')
-                                        setEditDynamicParentId(item.dynamicParentId || '')
-                                        setEditDynamicDepthLimit(item.dynamicDepthLimit || 1)
-                                        const relSet = new Set(
-                                          String(item.rel || '')
-                                            .split(/\s+/)
-                                            .filter(Boolean)
-                                        )
-                                        setEditRelOptions({
-                                          nofollow: relSet.has('nofollow'),
-                                          noopener: relSet.has('noopener'),
-                                          noreferrer: relSet.has('noreferrer'),
-                                          external: relSet.has('external'),
-                                        })
-                                        setEditOpen(true)
-                                      }}
-                                      title="Edit"
-                                    >
-                                      <Pencil size={14} />
-                                      Edit
-                                    </button>
+                                    <div className="inline-flex items-center gap-2">
+                                      <button
+                                        className="inline-flex items-center gap-1 px-2 py-1 text-xs border border-line-medium rounded hover:bg-backdrop-medium"
+                                        onClick={() => {
+                                          setEditingItem(item)
+                                          setEditLabel(item.label)
+                                          const k = (item as any).kind as
+                                            | 'item'
+                                            | 'section'
+                                            | undefined
+                                          setEditType(k === 'section' ? 'section' : item.type)
+                                          setEditCustomUrl(item.customUrl || '')
+                                          setEditSelectedPostId(item.postId || '')
+                                          setEditSelectedPostTitle('') // can be filled after search
+                                          setEditExtra(item.anchor || '')
+                                          setEditTarget(item.target || 'default')
+                                          setEditDynamicPostType(item.dynamicPostType || '')
+                                          setEditDynamicParentId(item.dynamicParentId || '')
+                                          setEditDynamicDepthLimit(item.dynamicDepthLimit || 1)
+                                          const relSet = new Set(
+                                            String(item.rel || '')
+                                              .split(/\s+/)
+                                              .filter(Boolean)
+                                          )
+                                          setEditRelOptions({
+                                            nofollow: relSet.has('nofollow'),
+                                            noopener: relSet.has('noopener'),
+                                            noreferrer: relSet.has('noreferrer'),
+                                            external: relSet.has('external'),
+                                          })
+                                          setEditOpen(true)
+                                        }}
+                                        title="Edit"
+                                      >
+                                        <Pencil size={14} />
+                                        Edit
+                                      </button>
+                                      <button
+                                        className="inline-flex items-center gap-1 px-2 py-1 text-xs border border-line-medium rounded hover:bg-backdrop-medium text-red-600"
+                                        onClick={() => {
+                                          setDeletingItem(item)
+                                          setDeleteOpen(true)
+                                        }}
+                                        title="Remove"
+                                      >
+                                        <Trash2 size={14} />
+                                        Remove
+                                      </button>
+                                    </div>
                                   </TableCell>
                                 </SortableRow>
                               )
@@ -1408,6 +1425,64 @@ export default function MenusIndex() {
               }}
             >
               {savingEdit ? 'Saving…' : 'Save'}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+      {/* Remove Menu Item Dialog */}
+      <AlertDialog
+        open={deleteOpen}
+        onOpenChange={(open) => {
+          setDeleteOpen(open)
+          if (!open) setDeletingItem(null)
+        }}
+      >
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Remove menu item</AlertDialogTitle>
+            <AlertDialogDescription>
+              This will permanently remove{' '}
+              <span className="font-medium text-neutral-high">{deletingItem?.label || 'this item'}</span>
+              {deletingItem ? ' and any nested children under it.' : '.'}
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel disabled={deleting} onClick={() => setDeleteOpen(false)}>
+              Cancel
+            </AlertDialogCancel>
+            <AlertDialogAction
+              disabled={deleting || !deletingItem}
+              onClick={async () => {
+                if (!deletingItem) {
+                  setDeleteOpen(false)
+                  return
+                }
+                setDeleting(true)
+                try {
+                  const res = await fetch(`/api/menu-items/${encodeURIComponent(deletingItem.id)}`, {
+                    method: 'DELETE',
+                    headers: {
+                      'Accept': 'application/json',
+                      ...(xsrfFromCookie ? { 'X-XSRF-TOKEN': xsrfFromCookie } : {}),
+                    },
+                    credentials: 'same-origin',
+                  })
+                  if (!res.ok && res.status !== 204) {
+                    const j = await res.json().catch(() => ({}))
+                    throw new Error(j?.error || 'Delete failed')
+                  }
+                  setDeleteOpen(false)
+                  setDeletingItem(null)
+                  await loadMenu(selectedMenuId!, editingLocale)
+                  toast.success('Menu item removed')
+                } catch (e: any) {
+                  toast.error(String(e.message || e))
+                } finally {
+                  setDeleting(false)
+                }
+              }}
+            >
+              {deleting ? 'Removing…' : 'Remove'}
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>

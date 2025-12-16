@@ -24,16 +24,19 @@ interface ProseProps {
   fontSize?: string // Tailwind class (e.g., 'text-base')
   backgroundColor?: string // Tailwind class
   textColor?: string // Tailwind class
+  textAlign?: 'left' | 'center' | 'right' | 'justify' // Alignment inside prose
   padding?: string // Tailwind class
   __moduleId?: string
 }
 
 export default function Prose({
   content: initialContent,
-  maxWidth: initialMaxWidth = 'max-w-4xl',
+  // Default to full width so prose fills whatever container it's placed in.
+  maxWidth: initialMaxWidth = 'max-w-none',
   fontSize: initialFontSize = 'text-base',
   backgroundColor: initialBackground = 'bg-transparent',
   textColor: initialTextColor = 'text-neutral-high',
+  textAlign: initialTextAlign = 'left',
   padding: initialPadding = 'py-12',
   __moduleId,
 }: ProseProps) {
@@ -42,6 +45,7 @@ export default function Prose({
   const fontSize = useInlineValue(__moduleId, 'fontSize', initialFontSize)
   const backgroundColor = useInlineValue(__moduleId, 'backgroundColor', initialBackground)
   const textColor = useInlineValue(__moduleId, 'textColor', initialTextColor)
+  const textAlign = useInlineValue(__moduleId, 'textAlign', initialTextAlign)
   const padding = useInlineValue(__moduleId, 'padding', initialPadding)
 
   // Normalize content so that saved JSON strings from the editor still render
@@ -70,9 +74,16 @@ export default function Prose({
   return (
     <section className={`${backgroundColor} ${padding}`} data-module="prose">
       <div className="container mx-auto px-4 sm:px-6 lg:px-8">
-        <div className={`${maxWidth} mx-auto`}>
+        <div className={`w-full ${maxWidth}`}>
           <div
-            className={`prose ${fontSize} ${textColor}`}
+            className={`prose max-w-none ${fontSize} ${textColor} ${textAlign === 'center'
+              ? 'text-center'
+              : textAlign === 'right'
+                ? 'text-right'
+                : textAlign === 'justify'
+                  ? 'text-justify'
+                  : 'text-left'
+              }`}
             suppressHydrationWarning
             data-inline-type="richtext"
             data-inline-path="content"

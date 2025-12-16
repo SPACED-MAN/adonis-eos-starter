@@ -23,10 +23,10 @@ export default class ProseWithMediaModule extends BaseModule {
           translatable: true,
         },
         body: {
-          type: 'textarea',
+          type: 'richtext',
           label: 'Body',
           required: false,
-          description: 'Supporting prose-style paragraph below the title',
+          description: 'Supporting rich text content below the title (Lexical JSON)',
           translatable: true,
         },
         image: {
@@ -67,7 +67,22 @@ export default class ProseWithMediaModule extends BaseModule {
       },
       defaultProps: {
         title: "Let's create more tools and ideas that bring us together.",
-        body: 'This layout pairs narrative content with a focused visual, ideal for feature callouts, product explainers, and lightweight storytelling.',
+        body: {
+          root: {
+            type: 'root',
+            children: [
+              {
+                type: 'paragraph',
+                children: [
+                  {
+                    type: 'text',
+                    text: 'This layout pairs narrative content with a focused visual, ideal for feature callouts, product explainers, and lightweight storytelling.',
+                  },
+                ],
+              },
+            ],
+          },
+        },
         image: null,
         imagePosition: 'left',
         primaryCta: {

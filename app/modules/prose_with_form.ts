@@ -46,19 +46,12 @@ export default class ProseWithFormModule extends BaseModule {
           ],
           default: 'form-right',
         },
-        backgroundColor: {
-          type: 'string',
-          label: 'Background CSS class',
-          required: false,
-          description: 'Tailwind utility for background (e.g., bg-backdrop-low)',
-        },
       },
       defaultProps: {
         title: "Let's talk about your next project.",
         body: 'Use this section to tell a short story about how your team partners with customers, and include a simple form for follow-up.',
         formSlug: 'contact',
         layout: 'form-right',
-        backgroundColor: 'bg-backdrop-low',
       },
       allowedPostTypes: ['page', 'blog'],
     }

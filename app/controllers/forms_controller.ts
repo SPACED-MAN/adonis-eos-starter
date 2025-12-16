@@ -3,10 +3,11 @@ import db from '@adonisjs/lucid/services/db'
 import crypto from 'node:crypto'
 import webhookService from '#services/webhook_service'
 import type { FormConfig } from '#types/form_types'
+import { coerceJsonArray } from '#helpers/jsonb'
 
 export default class FormsController {
   private mapRowToFormConfig(row: any): FormConfig {
-    const fieldsRaw = Array.isArray(row.fields_json) ? row.fields_json : []
+    const fieldsRaw = coerceJsonArray(row.fields_json)
     const fields = fieldsRaw.map((f: any) => ({
       slug: String(f.slug || ''),
       label: String(f.label || f.slug || ''),
@@ -120,9 +121,7 @@ export default class FormsController {
 
     // Fire any per-form subscriptions (webhook IDs stored on the form)
     try {
-      const subsRaw = Array.isArray((row as any).subscriptions_json)
-        ? (row as any).subscriptions_json
-        : []
+      const subsRaw = coerceJsonArray((row as any).subscriptions_json)
       const webhookIds: string[] = subsRaw
         .map((s: any) => {
           if (typeof s === 'string') return s

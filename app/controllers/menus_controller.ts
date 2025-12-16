@@ -496,13 +496,41 @@ export default class MenusController {
       | 'editor'
       | 'translator'
       | undefined
-    if (!roleRegistry.hasPermission(role, 'menus.delete')) {
+    // Deleting menu items is part of editing menus
+    if (!roleRegistry.hasPermission(role, 'menus.edit')) {
       return response.forbidden({ error: 'Not allowed to delete items' })
     }
     const { id } = params
     const row = await db.from('menu_items').where('id', id).first()
     if (!row) return response.notFound({ error: 'Menu item not found' })
-    await db.from('menu_items').where('id', id).delete()
+    // Delete the item and any descendants to avoid orphaned children
+    const hasLocale = await this.menuItemLocaleColumnExists()
+    const menuId = String((row as any).menu_id)
+    const locale = hasLocale ? String((row as any).locale || '') : ''
+    const allQ = db.from('menu_items').where('menu_id', menuId).select('id', 'parent_id')
+    if (hasLocale && locale) allQ.andWhere('locale', locale)
+    const all = await allQ
+    const parentToChildren = new Map<string, string[]>()
+    for (const it of all) {
+      const pid = (it as any).parent_id ? String((it as any).parent_id) : null
+      if (!pid) continue
+      if (!parentToChildren.has(pid)) parentToChildren.set(pid, [])
+      parentToChildren.get(pid)!.push(String((it as any).id))
+    }
+    const idsToDelete: string[] = []
+    const queue: string[] = [String(id)]
+    const seen = new Set<string>()
+    while (queue.length) {
+      const cur = queue.shift()!
+      if (seen.has(cur)) continue
+      seen.add(cur)
+      idsToDelete.push(cur)
+      const kids = parentToChildren.get(cur) || []
+      for (const k of kids) queue.push(k)
+    }
+    await db.transaction(async (trx) => {
+      await trx.from('menu_items').whereIn('id', idsToDelete).delete()
+    })
     return response.noContent()
   }
 

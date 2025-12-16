@@ -615,23 +615,23 @@ export default function Editor({
 
   async function executeSave(target: 'source' | 'review' | 'ai-review') {
     if (target === 'review') {
-      await createPendingNewModules('review')
-      await commitPendingModules('review')
+      const created = await createPendingNewModules('review')
+      await commitPendingModules('review', created)
       await saveForReview()
       return
     }
 
     if (target === 'ai-review') {
-      await createPendingNewModules('ai-review')
-      await commitPendingModules('ai-review')
+      const created = await createPendingNewModules('ai-review')
+      await commitPendingModules('ai-review', created)
       await saveForAiReview()
       return
     }
 
     // Save to Source (existing flow)
     try {
-      await createPendingNewModules('publish')
-      await commitPendingModules('publish')
+      const created = await createPendingNewModules('publish')
+      await commitPendingModules('publish', created)
       if (hasStructuralChanges) {
         const persistedModules = modules.filter((m) => !m.id.startsWith('temp-'))
         await persistOrder(persistedModules)
@@ -1306,9 +1306,13 @@ export default function Editor({
   }
 
   // Create pending new modules via API
-  async function createPendingNewModules(mode: 'publish' | 'review' | 'ai-review' = 'publish') {
-    if (!modulesEnabled) return
-    if (pendingNewModules.length === 0) return
+  // IMPORTANT: if the user edited a temp module before saving/publishing, we must
+  // remap those pending edits from tempId -> real postModuleId so they get persisted.
+  async function createPendingNewModules(
+    mode: 'publish' | 'review' | 'ai-review' = 'publish'
+  ): Promise<Array<{ tempId: string; postModuleId: string; moduleInstanceId: string | null }>> {
+    if (!modulesEnabled) return []
+    if (pendingNewModules.length === 0) return []
 
     const creates = pendingNewModules.map(async (pm) => {
       const res = await fetch(`/api/posts/${post.id}/modules`, {
@@ -1333,12 +1337,58 @@ export default function Editor({
         throw new Error(`Failed to create module: ${pm.type}`)
       }
 
-      return res.json()
+      const json = await res.json().catch(() => ({} as any))
+      const data = (json as any)?.data ?? json
+      const postModuleId = String(data?.postModuleId || data?.id || '')
+      const moduleInstanceId = data?.moduleInstanceId ? String(data.moduleInstanceId) : null
+      if (!postModuleId) {
+        throw new Error(`Failed to create module (missing id): ${pm.type}`)
+      }
+      return { tempId: pm.tempId, postModuleId, moduleInstanceId }
     })
 
     try {
-      await Promise.all(creates)
+      const created = await Promise.all(creates)
+
+      // Replace temp IDs in the visible module list
+      setModules((prev) =>
+        prev.map((m) => {
+          const match = created.find((c) => c.tempId === m.id)
+          if (!match) return m
+          return {
+            ...m,
+            id: match.postModuleId,
+            // Keep for debugging / future use; harmless extra prop.
+            ...(match.moduleInstanceId ? { moduleInstanceId: match.moduleInstanceId } : {}),
+          } as any
+        })
+      )
+
+      // Remap pending edits to the real IDs so commitPendingModules will persist them
+      setPendingModules((prev) => {
+        const next = { ...prev }
+        for (const c of created) {
+          if (next[c.tempId]) {
+            next[c.postModuleId] = next[c.tempId]
+            delete next[c.tempId]
+          }
+        }
+        return next
+      })
+
+      // Remap any queued removals as well
+      setPendingRemoved((prev) => {
+        if (prev.size === 0) return prev
+        const next = new Set<string>()
+        for (const id of prev) {
+          const match = created.find((c) => c.tempId === id)
+          next.add(match ? match.postModuleId : id)
+        }
+        return next
+      })
+
       setPendingNewModules([])
+      return created
     } catch (error) {
       toast.error('Failed to save some new modules')
       throw error
@@ -1507,18 +1557,45 @@ export default function Editor({
 
   // saveOverrides removed; overrides are handled via ModuleEditorPanel onSave and pendingModules batching.
 
-  async function commitPendingModules(mode: 'review' | 'publish' | 'ai-review') {
+  async function commitPendingModules(
+    mode: 'review' | 'publish' | 'ai-review',
+    created?: Array<{ tempId: string; postModuleId: string }>
+  ) {
     if (!modulesEnabled) return
     const entries = Object.entries(pendingModules)
-    // Filter out temporary module IDs - those are handled by createPendingNewModules
-    const persistedEntries = entries.filter(([id]) => !id.startsWith('temp-'))
+    const idMap = new Map<string, string>(
+      (created || []).map((c) => [String(c.tempId), String(c.postModuleId)])
+    )
+    const resolveId = (id: string) => (id.startsWith('temp-') ? idMap.get(id) || null : id)
+
+    // Include temp IDs IF we have a mapping (in this same save call). This avoids a React
+    // state timing issue where setPendingModules() hasn't applied before we issue the PUTs.
+    const persistedEntries = entries
+      .map(([id, payload]) => {
+        const resolved = resolveId(id)
+        return resolved ? ([resolved, payload] as const) : null
+      })
+      .filter(Boolean) as Array<
+      readonly [string, { overrides: Record<string, any> | null; edited: Record<string, any> }]
+    >
+
+    const findModule = (id: string) => {
+      const direct = modules.find((m) => m.id === id)
+      if (direct) return direct
+      const tempMatch = Array.from(idMap.entries()).find(([, real]) => real === id)
+      if (tempMatch) {
+        const [tempId] = tempMatch
+        return modules.find((m) => m.id === tempId)
+      }
+      return undefined
+    }
     // 1) Apply updates
     if (persistedEntries.length > 0) {
       const updates = persistedEntries.map(([id, payload]) => {
         const url = `/api/post-modules/${encodeURIComponent(id)}`
         // For local modules, send edited props as overrides (they get merged into ai_review_props/review_props)
         // For global modules, send overrides (they get saved to ai_review_overrides/review_overrides)
-        const module = modules.find((m) => m.id === id)
+        const module = findModule(id)
         const isLocal = module?.scope === 'post' || module?.scope === 'local'
         const overridesToSend = isLocal ? payload.edited : payload.overrides
         return fetch(url, {
@@ -1540,9 +1617,17 @@ export default function Editor({
         toast.error('Failed to save module changes')
         throw new Error('Failed to save module changes')
       }
-      // Only clear persisted entries from pendingModules, keep temp ones for next save cycle
-      const remaining = Object.fromEntries(entries.filter(([id]) => id.startsWith('temp-')))
-      setPendingModules(remaining)
+      // Clear any entries we successfully persisted (including temp keys that mapped to them)
+      setPendingModules((prev) => {
+        const next = { ...prev }
+        for (const [origId] of entries) {
+          const resolved = resolveId(origId)
+          if (!resolved) continue
+          delete next[origId]
+          delete next[resolved]
+        }
+        return next
+      })
     } else {
       // If no persisted entries, still clear temp entries since they'll be created fresh
       setPendingModules({})
@@ -2092,7 +2177,7 @@ export default function Editor({
                     <ModulePicker
                       postId={post.id}
                       postType={post.type}
-                      mode={viewMode === 'review' ? 'review' : 'publish'}
+                      mode={viewMode === 'review' ? 'review' : viewMode === 'ai-review' ? 'ai-review' : 'publish'}
                       onAdd={handleAddModule}
                     />
                   </div>

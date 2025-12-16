@@ -1,5 +1,6 @@
 import { defineConfig } from '@adonisjs/inertia'
 import type { InferSharedProps } from '@adonisjs/inertia/types'
+import siteSettingsService from '#services/site_settings_service'
 
 const inertiaConfig = defineConfig({
   /**
@@ -25,6 +26,15 @@ const inertiaConfig = defineConfig({
     error: (ctx) => ctx.session?.flashMessages?.get('error') ?? null,
     success: (ctx) => ctx.session?.flashMessages?.get('success') ?? null,
     locale: (ctx) => ctx.locale || 'en',
+    siteTitle: (ctx) =>
+      ctx.inertia.always(async () => {
+        try {
+          const site = await siteSettingsService.get()
+          return String(site.siteTitle || 'EOS')
+        } catch {
+          return 'EOS'
+        }
+      }),
   },
 
   /**

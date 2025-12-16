@@ -47,8 +47,20 @@ export default class ProseModule extends BaseModule {
           description: 'Rich text content (Lexical JSON)',
           translatable: true,
         },
-        // Note: Visual classes (max width, font size, colors, padding) are fixed in code;
-        // editors do not control Tailwind utilities for this module.
+        textAlign: {
+          type: 'select',
+          label: 'Text Alignment',
+          required: false,
+          description: 'Align text within the prose content',
+          options: [
+            { label: 'Left', value: 'left' },
+            { label: 'Center', value: 'center' },
+            { label: 'Right', value: 'right' },
+            { label: 'Justify', value: 'justify' },
+          ],
+          default: 'left',
+        },
+        // Note: Other visual classes (font size, colors, padding) remain fixed in code for consistency.
       },
       defaultProps: {
         content: {
@@ -67,6 +79,7 @@ export default class ProseModule extends BaseModule {
             ],
           },
         },
+        textAlign: 'left',
       },
       allowedPostTypes: [], // Available for all post types
     }

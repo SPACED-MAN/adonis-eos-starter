@@ -6,12 +6,12 @@
     <meta name="viewport" content="width=device-width, initial-scale=1" />
 
     <title inertia>
-      AdonisJS x Inertia x React
+      {{ page.props.siteTitle || 'EOS' }}
     </title>
 
     <link rel="preconnect" href="https://fonts.bunny.net" />
     <link
-      href="https://fonts.bunny.net/css?family=instrument-sans:400,400i,500,500i,600,600i,700,700i&display=swap"
+      href="https://fonts.bunny.net/css?family=poppins:300,300i,400,400i,500,500i,600,600i,700,700i&display=swap"
       rel="stylesheet"
     />
 
@@ -56,7 +56,8 @@
         min-height: 100vh;
         width: 100%;
         overflow-x: hidden;
-        font-family: 'Instrument Sans', sans-serif;
+        font-family: 'Poppins', system-ui, -apple-system, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, 'Noto Sans',
+          'Apple Color Emoji', 'Segoe UI Emoji', sans-serif;
       }
       
       /* Prevent flash of unstyled content during navigation */

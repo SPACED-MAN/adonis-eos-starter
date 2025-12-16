@@ -7,7 +7,7 @@ import { createInertiaApp } from '@inertiajs/react'
 import { resolvePageComponent } from '@adonisjs/inertia/helpers'
 import { SiteAdminBar } from './components/SiteAdminBar'
 
-const appName = import.meta.env.VITE_APP_NAME || 'EOS'
+let appName = import.meta.env.VITE_APP_NAME || 'EOS'
 
 createInertiaApp({
   progress: {
@@ -16,7 +16,7 @@ createInertiaApp({
     delay: 250,
   },
 
-  title: (title) => `${title} - ${appName}`,
+  title: (title) => (title ? `${title} - ${appName}` : appName),
 
   resolve: (name) => {
     // Strip "site/" prefix if present
@@ -25,6 +25,11 @@ createInertiaApp({
   },
 
   setup({ el, App, props }) {
+    // Prefer the DB-backed site title when available (shared via Inertia props)
+    const initialSiteTitle = (props.initialPage?.props as any)?.siteTitle
+    if (initialSiteTitle) {
+      appName = String(initialSiteTitle)
+    }
     hydrateRoot(
       el,
       <>

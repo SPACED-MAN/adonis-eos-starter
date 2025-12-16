@@ -5,7 +5,6 @@ interface ProseWithFormProps {
   body?: string | null
   formSlug: string
   layout?: 'form-right' | 'form-left'
-  backgroundColor?: string
 }
 
 export default function ProseWithForm({
