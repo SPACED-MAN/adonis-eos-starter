@@ -91,9 +91,16 @@ Extensible agent system for content enhancement, SEO optimization, and automated
 ## Quick Start
 
 ```bash
-# Install and setup
-npm install
+# If you haven't created a project yet (recommended):
+npm init adonisjs@latest my-cms-project -- --kit=spaced-man/adonis-eos-starter
+cd my-cms-project
+
+# If you're already inside a project, ensure deps are installed:
+# npm install
+
+# Configure environment
 cp .env.example .env
+node ace generate:key
 node ace migration:run
 node ace db:seed
 
@@ -101,7 +108,7 @@ node ace db:seed
 npm run dev
 ```
 
-Visit `/admin` and log in with `admin@example.com` / `password`
+Visit `/admin` and log in with `admin@example.com` / `supersecret`
 
 ## Support & Resources
 

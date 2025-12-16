@@ -50,22 +50,25 @@ Adonis EOS is built on **AdonisJS 6**. We recommend reviewing the following topi
 
 ## System Requirements
 
-- Node.js 20.x or higher
+- Node.js 18+ (recommended: latest LTS)
 - PostgreSQL 14+ (or MySQL 8+)
 - npm or yarn package manager
 
 ## Installation
 
 ```bash
-# Clone the repository
-git clone <your-repo-url>
-cd adonis-eos
+# Recommended: create a new project from the Adonis EOS starter kit
+npm init adonisjs@latest my-cms-project -- --kit=spaced-man/adonis-eos-starter
+cd my-cms-project
 
-# Install dependencies
-npm install
+# If you cloned instead of using the starter kit, install deps:
+# npm install
 
 # Configure environment
 cp .env.example .env
+
+# Generate APP_KEY (required)
+node ace generate:key
 
 # Run migrations
 node ace migration:run
@@ -81,10 +84,10 @@ npm run dev
 
 After seeding, you'll have these accounts:
 
-- **Admin**: `admin@example.com` / `password`
-- **Editor Admin**: `editoradmin@example.com` / `password`
-- **Editor**: `editor@example.com` / `password`
-- **Translator**: `translator@example.com` / `password`
+- **Admin**: `admin@example.com` / `supersecret`
+- **Editor Admin**: `editoradmin@example.com` / `supersecret`
+- **Editor**: `editor@example.com` / `supersecret`
+- **Translator**: `translator@example.com` / `supersecret`
 
 ## Project Structure
 
