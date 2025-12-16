@@ -21,9 +21,9 @@ export default class extends BaseSeeder {
   ): Promise<any> {
     // Store context for link transformation
     if (context) {
-      ; (this as any).currentFile = context.currentFile
-        ; (this as any).allFiles = context.allFiles
-        ; (this as any).postIdsBySlug = context.postIdsBySlug
+      ;(this as any).currentFile = context.currentFile
+      ;(this as any).allFiles = context.allFiles
+      ;(this as any).postIdsBySlug = context.postIdsBySlug
     }
 
     // Parse markdown tokens
@@ -321,11 +321,11 @@ export default class extends BaseSeeder {
           const originalHref = token.href
           const transformedHref = (this as any).transformLinkUrl
             ? (this as any).transformLinkUrl(
-              originalHref,
-              (this as any).currentFile,
-              (this as any).allFiles,
-              (this as any).postIdsBySlug
-            )
+                originalHref,
+                (this as any).currentFile,
+                (this as any).allFiles,
+                (this as any).postIdsBySlug
+              )
             : originalHref
 
           children.push({
@@ -374,7 +374,8 @@ export default class extends BaseSeeder {
     lexicalContent: any,
     slugToPath: Record<string, string>,
     allFiles: Array<{ file: string; path: string; dir: string }>,
-    postIdsBySlug: Record<string, string>
+    postIdsBySlug: Record<string, string>,
+    baseSlugToDir?: Record<string, string>
   ): any {
     if (!lexicalContent || !lexicalContent.root) return lexicalContent
 
@@ -387,7 +388,8 @@ export default class extends BaseSeeder {
           node.url,
           slugToPath,
           allFiles,
-          postIdsBySlug
+          postIdsBySlug,
+          baseSlugToDir
         )
         return {
           ...node,
@@ -424,7 +426,8 @@ export default class extends BaseSeeder {
     href: string,
     slugToPath: Record<string, string>,
     allFiles: Array<{ file: string; path: string; dir: string }>,
-    postIdsBySlug: Record<string, string>
+    postIdsBySlug: Record<string, string>,
+    baseSlugToDir?: Record<string, string>
   ): string {
     // Skip external links, anchors, and mailto: links
     if (
@@ -467,12 +470,46 @@ export default class extends BaseSeeder {
         // If it's a single slug (e.g., /docs/theming or /docs/developers)
         if (pathParts.length === 1) {
           const slug = pathParts[0]
+          
+          // Skip if it's a top-level parent slug (developers/editors/overview)
+          if (slug === 'developers' || slug === 'editors' || slug === 'overview') {
+            return href
+          }
+          
           // Look up the hierarchical path for this slug
           if (slugToPath[slug]) {
             return slugToPath[slug]
           }
-          // If not found, it might be a parent slug (developers/editors)
-          // Return as-is since it's already a valid top-level path
+          
+          // If not found, try to resolve using baseSlugToDir mapping
+          // This helps when links use base slugs (e.g., /docs/theming) but
+          // the actual slug might have a suffix due to collision (e.g., theming-developers)
+          if (baseSlugToDir && baseSlugToDir[slug]) {
+            const dir = baseSlugToDir[slug]
+            // Try the slug with directory suffix first (most likely collision pattern)
+            if (dir !== 'root') {
+              const dirSuffix = dir === 'developers' ? 'developers' : 'editors'
+              const candidateSlug = `${slug}-${dirSuffix}`
+              if (slugToPath[candidateSlug]) {
+                return slugToPath[candidateSlug]
+              }
+              // If not found with suffix, construct the hierarchical path directly
+              // This ensures links like /docs/theming resolve to /docs/developers/theming
+              return `/docs/${dir}/${slug}`
+            }
+          } else {
+            // Try common suffixes (in case of slug collisions)
+            // e.g., if slug is "theming" but stored as "theming-developers"
+            const suffixes = ['developers', 'editors']
+            for (const suffix of suffixes) {
+              const candidateSlug = `${slug}-${suffix}`
+              if (slugToPath[candidateSlug]) {
+                return slugToPath[candidateSlug]
+              }
+            }
+          }
+          
+          // If still not found, return as-is (might be invalid or handled elsewhere)
           return href
         }
 
@@ -696,6 +733,7 @@ export default class extends BaseSeeder {
         'internationalization',
         'taxonomies',
         'ai-agents',
+        'workflows',
         'mcp',
         'export-import',
         'review-workflow-developers',
@@ -712,6 +750,10 @@ export default class extends BaseSeeder {
 
     // First pass: create all posts and store IDs by slug
     const postIdsBySlug: Record<string, string> = {}
+    // Track which directory each slug came from (base slug -> directory)
+    const baseSlugToDir: Record<string, string> = {}
+    // Track final slug -> base slug mapping (for collision resolution)
+    const finalSlugToBaseSlug: Record<string, string> = {}
 
     // Create the "Documentation" overview post from docs/00-index.md FIRST
     console.log('✨ Creating Documentation overview from docs/00-index.md')
@@ -774,20 +816,29 @@ export default class extends BaseSeeder {
       const title = titleMatch ? titleMatch[1] : file.replace('.md', '')
 
       // Generate slug from filename (remove both numeric prefix and letter suffix)
-      let slug = file
+      let baseSlug = file
         .replace(/^\d+[a-z]?-/, '') // Remove number prefix (with optional letter like 03a-)
         .replace('.md', '')
 
       // Remap key landing pages to friendly slugs for top-level docs navigation
-      if (slug === 'quick-start') {
-        slug = 'editors'
-      } else if (slug === 'getting-started') {
-        slug = 'developers'
+      if (baseSlug === 'quick-start') {
+        baseSlug = 'editors'
+      } else if (baseSlug === 'getting-started') {
+        baseSlug = 'developers'
       }
 
+      // Store base slug to directory mapping (before collision handling)
+      baseSlugToDir[baseSlug] = dir
+
       // Skip reference-only pages (handled elsewhere or consolidated)
-      if (slug === 'index' || slug === 'overview' || slug === 'sitemap') {
-        console.log(`   ⏭️  Skipping ${slug} page (handled separately)\n`)
+      if (baseSlug === 'index' || baseSlug === 'overview' || baseSlug === 'sitemap') {
+        console.log(`   ⏭️  Skipping ${baseSlug} page (handled separately)\n`)
+        continue
+      }
+
+      // Skip duplicate MCP file (11-mcp.md is a duplicate of 10-mcp.md)
+      if (file === '11-mcp.md') {
+        console.log(`   ⏭️  Skipping duplicate ${file} (using 10-mcp.md instead)\n`)
         continue
       }
 
@@ -803,8 +854,7 @@ export default class extends BaseSeeder {
        * - If it collides, suffix with "-developers" or "-editors" based on the source dir.
        */
       const dirSuffix = dir === 'developers' ? 'developers' : dir === 'editors' ? 'editors' : 'root'
-      const baseSlug = slug
-      let candidate = slug
+      let candidate = baseSlug
       if (postIdsBySlug[candidate]) {
         candidate = `${baseSlug}-${dirSuffix}`
       }
@@ -814,7 +864,10 @@ export default class extends BaseSeeder {
         while (postIdsBySlug[`${candidate}-${n}`]) n++
         candidate = `${candidate}-${n}`
       }
-      slug = candidate
+      const slug = candidate
+
+      // Store final slug -> base slug mapping (for link resolution)
+      finalSlugToBaseSlug[slug] = baseSlug
 
       // Extract subtitle from first paragraph after H1
       const subtitleMatch = content.match(/^#\s+.+\n\n(.+)$/m)
@@ -953,7 +1006,8 @@ export default class extends BaseSeeder {
               props.content,
               slugToPath,
               allFiles,
-              postIdsBySlug
+              postIdsBySlug,
+              baseSlugToDir
             )
 
             // Update the module props
@@ -984,7 +1038,8 @@ export default class extends BaseSeeder {
             props.content,
             slugToPath,
             allFiles,
-            postIdsBySlug
+            postIdsBySlug,
+            baseSlugToDir
           )
 
           await db

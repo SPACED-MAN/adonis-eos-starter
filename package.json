@@ -31,7 +31,9 @@
     "test": "node ace test",
     "lint": "eslint .",
     "format": "prettier --write .",
-    "typecheck": "tsc --noEmit"
+    "typecheck": "tsc --noEmit",
+    "sync:starter": "tsx scripts/sync-from-starter.ts",
+    "sync:starter:commit": "tsx scripts/sync-from-starter.ts"
   },
   "imports": {
     "#actions/*": "./app/actions/*.js",
@@ -84,6 +86,7 @@
     "shadcn-ui": "^0.9.5",
     "tailwindcss": "^4.1.17",
     "ts-node-maintained": "^10.9.5",
+    "tsx": "^4.19.2",
     "typescript": "~5.8.3",
     "vite": "^6.3.5"
   },
