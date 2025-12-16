@@ -13,7 +13,6 @@ export default {
     { slug: 'author_name', label: 'Author name', type: 'text' },
     { slug: 'author_title', label: 'Author title', type: 'text' },
     { slug: 'quote', label: 'Quote', type: 'textarea' },
-    { slug: 'photo', label: 'Photo', type: 'media', config: { preferredVariant: 'square' } },
   ],
 
   // Template metadata (not used for public pages here, but kept for consistency)
@@ -21,4 +20,10 @@ export default {
 
   // No URL patterns since permalinks are disabled
   urlPatterns: [],
+
+  // Enable featured image for testimonials (used for author photo)
+  featuredImage: {
+    enabled: true,
+    label: 'Author Photo',
+  },
 } as const

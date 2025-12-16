@@ -53,17 +53,17 @@ export default class TestimonialsController {
       return response.ok({ data: [] })
     }
 
-    // Load testimonial custom fields (author_name, author_title, quote, photo)
+    // Load testimonial custom fields (author_name, author_title, quote)
     const testimonialIds = rows.map((p) => p.id as string)
 
     const cfRows = await PostCustomFieldValue.query()
       .whereIn('postId', testimonialIds)
-      .whereIn('fieldSlug', ['author_name', 'author_title', 'quote', 'photo'])
+      .whereIn('fieldSlug', ['author_name', 'author_title', 'quote'])
       .select('postId', 'fieldSlug', 'value')
 
     const byPostId = new Map<
       string,
-      { author_name?: string; author_title?: string; quote?: string; photo_id?: string }
+      { author_name?: string; author_title?: string; quote?: string }
     >()
 
     for (const r of cfRows as any[]) {
@@ -77,9 +77,7 @@ export default class TestimonialsController {
       const slug = String((r as any).fieldSlug || (r as any).field_slug)
       let rawVal: any = (r as any).value
 
-      // Values are stored as JSON. For media fields this can be:
-      // - a plain string media ID: `"uuid"`
-      // - an object: `{ id: 'uuid', url: '/uploads/...' }`
+      // Values are stored as JSON
       if (typeof rawVal === 'string') {
         try {
           rawVal = JSON.parse(rawVal)
@@ -97,27 +95,17 @@ export default class TestimonialsController {
       if (slug === 'quote') {
         entry.quote = String(rawVal ?? '')
       }
-      if (slug === 'photo') {
-        let mediaId: string | null = null
-
-        if (typeof rawVal === 'string') {
-          mediaId = rawVal || null
-        } else if (rawVal && typeof rawVal === 'object' && (rawVal as any).id) {
-          mediaId = String((rawVal as any).id)
-        }
-
-        entry.photo_id = mediaId || ''
-      }
     }
 
     const items = rows.map((p) => {
       const pid = String(p.id)
       const extras = byPostId.get(pid)
+      const featuredImageId = (p as any).featuredImageId || (p as any).featured_image_id || null
 
       const authorName = extras?.author_name || p.title || 'Testimonial'
       const authorTitle = extras?.author_title || null
       const quote = extras?.quote || null
-      const imageId = extras?.photo_id || null
+      const imageId = featuredImageId ? String(featuredImageId) : null
 
       return {
         id: pid,

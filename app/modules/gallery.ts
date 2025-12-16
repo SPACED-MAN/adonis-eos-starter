@@ -49,6 +49,34 @@ export default class GalleryModule extends BaseModule {
           type: 'array',
           required: true,
           description: 'Array of images with url, alt, and optional caption',
+          item: {
+            type: 'object',
+            fields: [
+              {
+                name: 'url',
+                type: 'media',
+                required: true,
+                label: 'Image',
+                accept: 'image/*',
+                storeAs: 'id',
+                description: 'Select an image from the media library',
+              },
+              {
+                name: 'alt',
+                type: 'text',
+                required: true,
+                label: 'Alt Text',
+                description: 'Alternative text for accessibility',
+              },
+              {
+                name: 'caption',
+                type: 'textarea',
+                required: false,
+                label: 'Caption',
+                description: 'Optional caption for the image',
+              },
+            ],
+          },
         },
         layout: {
           type: 'string',
