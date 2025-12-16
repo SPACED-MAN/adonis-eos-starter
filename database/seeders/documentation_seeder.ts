@@ -10,9 +10,45 @@ import { marked } from 'marked'
 export default class extends BaseSeeder {
 	/**
 	 * Convert markdown to Lexical JSON using marked.js lexer
+	 * Optionally transforms links if context is provided
 	 */
-	private async markdownToLexical(markdown: string): Promise<any> {
-		return markdownToLexical(markdown, { skipFirstH1: true })
+	private async markdownToLexical(
+		markdown: string,
+		context?: {
+			currentFile?: { file: string; path: string; dir: string }
+			allFiles?: Array<{ file: string; path: string; dir: string }>
+			postIdsBySlug?: Record<string, string>
+		}
+	): Promise<any> {
+		// Store context for link transformation
+		if (context) {
+			;(this as any).currentFile = context.currentFile
+			;(this as any).allFiles = context.allFiles
+			;(this as any).postIdsBySlug = context.postIdsBySlug
+		}
+
+		// Parse markdown tokens
+		const tokens = marked.lexer(markdown)
+		
+		// Skip first H1 if present
+		let startIndex = 0
+		if (tokens.length > 0 && tokens[0].type === 'heading' && tokens[0].depth === 1) {
+			startIndex = 1
+		}
+
+		// Convert tokens to Lexical nodes
+		const children = tokens.slice(startIndex).map((token) => this.tokenToLexicalNode(token)).filter(Boolean)
+
+		return {
+			root: {
+				children,
+				direction: 'ltr',
+				format: '',
+				indent: 0,
+				type: 'root',
+				version: 1,
+			},
+		}
 	}
 
 	/**
@@ -279,9 +315,15 @@ export default class extends BaseSeeder {
 					break
 
 				case 'link':
+					// Transform link URL if transformLinkUrl is available (passed via context)
+					const originalHref = token.href
+					const transformedHref = (this as any).transformLinkUrl
+						? (this as any).transformLinkUrl(originalHref, (this as any).currentFile, (this as any).allFiles, (this as any).postIdsBySlug)
+						: originalHref
+					
 					children.push({
 						type: 'link',
-						url: token.href,
+						url: transformedHref,
 						direction: 'ltr',
 						format: '',
 						indent: 0,
@@ -316,6 +358,198 @@ export default class extends BaseSeeder {
 		}
 
 		return children
+	}
+
+	/**
+	 * Update links in Lexical content to use hierarchical paths
+	 */
+	private updateLinksInLexical(
+		lexicalContent: any,
+		slugToPath: Record<string, string>,
+		allFiles: Array<{ file: string; path: string; dir: string }>,
+		postIdsBySlug: Record<string, string>
+	): any {
+		if (!lexicalContent || !lexicalContent.root) return lexicalContent
+
+		const updateNode = (node: any): any => {
+			if (!node) return node
+
+			// Update link URLs
+			if (node.type === 'link' && node.url) {
+				const updatedUrl = this.transformLinkUrlToHierarchical(
+					node.url,
+					slugToPath,
+					allFiles,
+					postIdsBySlug
+				)
+				return {
+					...node,
+					url: updatedUrl,
+					children: node.children ? node.children.map(updateNode) : [],
+				}
+			}
+
+			// Recursively update children
+			if (node.children && Array.isArray(node.children)) {
+				return {
+					...node,
+					children: node.children.map(updateNode),
+				}
+			}
+
+			return node
+		}
+
+		return {
+			...lexicalContent,
+			root: {
+				...lexicalContent.root,
+				children: lexicalContent.root.children
+					? lexicalContent.root.children.map(updateNode)
+					: [],
+			},
+		}
+	}
+
+	/**
+	 * Transform link URL to hierarchical CMS path
+	 * This is called after hierarchy is established and canonical paths are generated
+	 */
+	private transformLinkUrlToHierarchical(
+		href: string,
+		slugToPath: Record<string, string>,
+		allFiles: Array<{ file: string; path: string; dir: string }>,
+		postIdsBySlug: Record<string, string>
+	): string {
+		// Skip external links, anchors, and mailto: links
+		if (href.startsWith('http://') || href.startsWith('https://') || href.startsWith('mailto:') || href.startsWith('#')) {
+			return href
+		}
+
+		// If already a hierarchical path, return as-is
+		if (href.startsWith('/docs/')) {
+			return href
+		}
+
+		// Try to resolve from slug-to-path mapping
+		// Extract slug from simple /docs/{slug} format
+		const slugMatch = href.match(/^\/docs\/([^/]+)$/)
+		if (slugMatch) {
+			const slug = slugMatch[1]
+			if (slugToPath[slug]) {
+				return slugToPath[slug]
+			}
+		}
+
+		// Handle relative markdown paths (should have been transformed already, but handle just in case)
+		if (href.endsWith('.md')) {
+			const currentFile = (this as any).currentFile
+			if (currentFile) {
+				const transformed = this.transformLinkUrl(href, currentFile, allFiles, postIdsBySlug)
+				// If transformation resulted in /docs/{slug}, look up hierarchical path
+				const slugMatch2 = transformed.match(/^\/docs\/([^/]+)$/)
+				if (slugMatch2 && slugToPath[slugMatch2[1]]) {
+					return slugToPath[slugMatch2[1]]
+				}
+				return transformed
+			}
+		}
+
+		// Return as-is if we can't resolve it
+		return href
+	}
+
+	/**
+	 * Transform markdown link URLs to CMS URLs
+	 * Handles both relative markdown paths (for GitHub) and absolute paths (for CMS)
+	 * This is called during initial markdown parsing (before hierarchy is established)
+	 */
+	private transformLinkUrl(
+		href: string,
+		currentFile: { file: string; path: string; dir: string },
+		allFiles: Array<{ file: string; path: string; dir: string }>,
+		postIdsBySlug: Record<string, string>
+	): string {
+		// Skip external links, anchors, and mailto: links
+		if (href.startsWith('http://') || href.startsWith('https://') || href.startsWith('mailto:') || href.startsWith('#')) {
+			return href
+		}
+
+		// Handle absolute paths that already point to docs (e.g., /docs/for-developers/ai-agents)
+		if (href.startsWith('/docs/')) {
+			return href
+		}
+
+		// Handle relative markdown paths (e.g., ../developers/09-ai-agents.md or developers/09-ai-agents.md)
+		if (href.endsWith('.md')) {
+			// Resolve relative path
+			const currentDir = currentFile.dir === 'developers' ? 'developers' : currentFile.dir === 'editors' ? 'editors' : 'root'
+			const currentDirPath = currentFile.dir === 'root' ? '' : currentFile.dir
+			
+			let targetPath: string
+			if (href.startsWith('../')) {
+				// Parent directory (e.g., ../developers/09-ai-agents.md from editors/)
+				const parts = href.replace('../', '').split('/')
+				targetPath = join(process.cwd(), 'docs', ...parts)
+			} else if (href.startsWith('./')) {
+				// Same directory (e.g., ./09-ai-agents.md)
+				targetPath = join(process.cwd(), 'docs', currentDirPath, href.replace('./', ''))
+			} else {
+				// Relative to docs root or same directory
+				if (href.includes('/')) {
+					// Has directory (e.g., developers/09-ai-agents.md)
+					targetPath = join(process.cwd(), 'docs', href)
+				} else {
+					// Same directory (e.g., 09-ai-agents.md)
+					targetPath = join(process.cwd(), 'docs', currentDirPath, href)
+				}
+			}
+
+			// Find the target file in allFiles
+			const targetFile = allFiles.find((f) => {
+				const normalized = f.path.replace(/\\/g, '/')
+				const normalizedTarget = targetPath.replace(/\\/g, '/')
+				return normalized === normalizedTarget
+			})
+
+			if (targetFile) {
+				// Generate slug from target file (same logic as in run())
+				let targetSlug = targetFile.file
+					.replace(/^\d+[a-z]?-/, '')
+					.replace('.md', '')
+
+				// Apply same remapping as in run()
+				if (targetSlug === 'quick-start') {
+					targetSlug = 'for-editors'
+				} else if (targetSlug === 'getting-started') {
+					targetSlug = 'for-developers'
+				}
+
+				// Check for slug collision and apply same logic
+				const dirSuffix = targetFile.dir === 'developers' ? 'developers' : targetFile.dir === 'editors' ? 'editors' : 'root'
+				let candidate = targetSlug
+				if (postIdsBySlug[candidate] && candidate !== 'for-editors' && candidate !== 'for-developers' && candidate !== 'overview') {
+					candidate = `${targetSlug}-${dirSuffix}`
+				}
+				if (postIdsBySlug[candidate] && candidate !== 'for-editors' && candidate !== 'for-developers' && candidate !== 'overview') {
+					let n = 2
+					while (postIdsBySlug[`${candidate}-${n}`]) n++
+					candidate = `${candidate}-${n}`
+				}
+
+				// Build CMS URL using hierarchical path
+				// For now, use simple slug-based URL - will be updated after hierarchy is set
+				return `/docs/${candidate}`
+			}
+		}
+
+		// Handle paths that look like CMS paths but without /docs prefix
+		if (href.startsWith('/for-')) {
+			return `/docs${href}`
+		}
+
+		// Return as-is if we can't resolve it
+		return href
 	}
 
 	async run() {
@@ -437,7 +671,12 @@ export default class extends BaseSeeder {
 		console.log(`   ✓ Post created with ID: ${overviewPost.id}`)
 
 		// Add Prose module with docs index content (after template modules: reading-progress=0, breadcrumb=1)
-		const indexLexicalContent = await this.markdownToLexical(indexContent)
+		// Note: Index file links will be transformed in second pass after all posts are created
+		const indexLexicalContent = await this.markdownToLexical(indexContent, {
+			currentFile: { file: '00-index.md', path: docsIndexPath, dir: 'root' },
+			allFiles: [],
+			postIdsBySlug: {},
+		})
 		await AddModuleToPost.handle({
 			postId: overviewPost.id,
 			moduleType: 'prose',
@@ -550,7 +789,12 @@ export default class extends BaseSeeder {
 			// Add Prose module using AddModuleToPost action (same as API endpoint)
 			// Note: Documentation pages don't use Hero module - title comes from the post itself
 			// Template modules: reading-progress=0, breadcrumb=1, so prose starts at 2
-			const lexicalContent = await this.markdownToLexical(content)
+			// Transform links to CMS URLs during conversion
+			const lexicalContent = await this.markdownToLexical(content, {
+				currentFile: fileInfo,
+				allFiles,
+				postIdsBySlug,
+			})
 			await AddModuleToPost.handle({
 				postId: post.id,
 				moduleType: 'prose',
@@ -600,18 +844,88 @@ export default class extends BaseSeeder {
 		const locales = await localeService.getSupportedLocales()
 		await urlPatternService.ensureDefaultsForPostType('documentation', locales)
 
+		// Build slug-to-canonical-path mapping for link transformation
+		const slugToPath: Record<string, string> = {}
+
 		const allPostIds = Object.values(postIdsBySlug)
 
-		for (const postId of allPostIds) {
+		for (const [slug, postId] of Object.entries(postIdsBySlug)) {
 			try {
 				const canonicalPath = await urlPatternService.buildPostPathForPost(postId)
 				await db.from('posts').where('id', postId).update({ canonical_url: canonicalPath })
+				slugToPath[slug] = canonicalPath
 			} catch (error) {
 				console.log(`   ⚠️  Failed to generate canonical URL for post ${postId}`)
 			}
 		}
 
 		console.log(`   ✓ Regenerated ${allPostIds.length} canonical URLs`)
+
+		// Fourth pass: update links in all posts to use hierarchical paths
+		console.log(`\n🔗 Updating links to use hierarchical paths...`)
+		for (const [slug, postId] of Object.entries(postIdsBySlug)) {
+			try {
+				// Get the post's prose module
+				const postModules = await db
+					.from('post_modules')
+					.where('post_id', postId)
+					.where('type', 'prose')
+					.select('id', 'props')
+					.first()
+
+				if (postModules && postModules.props) {
+					const props = postModules.props as any
+					if (props.content && props.content.root) {
+						// Recursively update links in Lexical content
+						const updatedContent = this.updateLinksInLexical(
+							props.content,
+							slugToPath,
+							allFiles,
+							postIdsBySlug
+						)
+
+						// Update the module props
+						await db
+							.from('post_modules')
+							.where('id', postModules.id)
+							.update({ props: { ...props, content: updatedContent } })
+					}
+				}
+			} catch (error) {
+				console.log(`   ⚠️  Failed to update links for post ${slug}: ${error}`)
+			}
+		}
+
+		// Also update the overview post (index file)
+		try {
+			const overviewModules = await db
+				.from('post_modules')
+				.where('post_id', overviewPost.id)
+				.where('type', 'prose')
+				.select('id', 'props')
+				.first()
+
+			if (overviewModules && overviewModules.props) {
+				const props = overviewModules.props as any
+				if (props.content && props.content.root) {
+					const updatedContent = this.updateLinksInLexical(
+						props.content,
+						slugToPath,
+						allFiles,
+						postIdsBySlug
+					)
+
+					await db
+						.from('post_modules')
+						.where('id', overviewModules.id)
+						.update({ props: { ...props, content: updatedContent } })
+				}
+			}
+		} catch (error) {
+			console.log(`   ⚠️  Failed to update links for overview post: ${error}`)
+		}
+
+		console.log(`   ✓ Updated links in all posts`)
 
 		console.log(`\n✅ Documentation setup complete!`)
 	}
