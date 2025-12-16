@@ -169,6 +169,7 @@ router
  */
 const ModuleGroupsController = () => import('#controllers/module_groups_controller')
 const AgentsController = () => import('#controllers/agents_controller')
+const WorkflowsController = () => import('#controllers/workflows_controller')
 const GlobalModulesController = () => import('#controllers/global_modules_controller')
 const ProfilesController = () => import('#controllers/profiles_controller')
 const BlogsController = () => import('#controllers/blogs_controller')
@@ -254,6 +255,21 @@ router
     router.get('/agents', [AgentsController, 'index']).use(middleware.admin())
     router
       .post('/posts/:id/agents/:agentId/run', [AgentsController, 'runForPost'])
+      .use(middleware.admin())
+    router
+      .post('/agents/:agentId/run', [AgentsController, 'runGlobal'])
+      .use(middleware.admin())
+    router
+      .get('/agents/:agentId/history', [AgentsController, 'getGlobalHistory'])
+      .use(middleware.admin())
+    router
+      .get('/posts/:id/agents/:agentId/history', [AgentsController, 'getHistory'])
+      .use(middleware.admin())
+    // Workflows
+    router.get('/workflows', [WorkflowsController, 'index']).use(middleware.admin())
+    router.get('/workflows/:id', [WorkflowsController, 'show']).use(middleware.admin())
+    router
+      .post('/workflows/:id/trigger', [WorkflowsController, 'trigger'])
       .use(middleware.admin())
     // Users (admin)
     router.post('/users', [UsersController, 'store']).use(middleware.admin())

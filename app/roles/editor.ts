@@ -34,6 +34,7 @@ const editorRole: RoleDefinition = {
     'globals.edit',
     // Agents
     'agents.view',
+    'agents.dropdown',
     // Profiles
     'profiles.view',
     'profiles.edit',

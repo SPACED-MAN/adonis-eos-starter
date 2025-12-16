@@ -42,6 +42,11 @@ const editorAdminRole: RoleDefinition = {
     // Agents - Full permissions
     'agents.view',
     'agents.edit',
+    'agents.dropdown',
+    'agents.global',
+    'agents.field',
+    // Workflows
+    'workflows.view',
     // Profiles
     'profiles.view',
     'profiles.edit',

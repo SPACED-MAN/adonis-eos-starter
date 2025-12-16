@@ -26,7 +26,7 @@ Code-first makers to scaffold common CMS artifacts.
 
 ## MCP (Model Context Protocol)
 - Command: `node ace mcp:serve`
-- Purpose: Serve CMS context (post types, module schemas, global modules) to external AI agents via MCP.
+- Purpose: Serve CMS context (post types, module schemas, global modules) to external AI tools and services via MCP.
 - See: `/docs/for-developers/mcp`
 
 ## MCP context dump

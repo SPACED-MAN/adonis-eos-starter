@@ -735,6 +735,18 @@ export default class PostsCrudController extends BasePostsController {
       userId: (auth.use('web').user as any)?.id,
     })
 
+    // Preserve agent execution history when promoting AI Review to Review
+    try {
+      const agentExecutionService = await import('#services/agent_execution_service')
+      await agentExecutionService.default.promoteAiReviewToReview(id)
+    } catch (historyError: any) {
+      // Don't fail the request if history promotion fails, but log it
+      console.error('Failed to promote agent execution history:', {
+        postId: id,
+        error: historyError?.message,
+      })
+    }
+
     return response.ok({ message: 'AI Review promoted to Review' })
   }
 

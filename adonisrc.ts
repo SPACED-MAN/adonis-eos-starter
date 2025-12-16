@@ -77,6 +77,7 @@ export default defineConfig({
     () => import('#start/menus'),
     () => import('#start/roles'),
     () => import('#start/agents'),
+    () => import('#start/workflows'),
   ],
 
   /*

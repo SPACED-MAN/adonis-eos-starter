@@ -53,6 +53,12 @@ export type PermissionKey =
   // Agents / AI helpers
   | 'agents.view'
   | 'agents.edit'
+  | 'agents.dropdown' // Use agents in dropdown scope
+  | 'agents.global' // Use global floating agent button
+  | 'agents.field' // Use per-field agent buttons
+  // Workflows / Automation
+  | 'workflows.view' // View workflow definitions
+  | 'workflows.trigger' // Manually trigger workflows (for testing)
   // Profiles
   | 'profiles.view'
   | 'profiles.edit'

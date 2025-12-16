@@ -5,6 +5,7 @@
  */
 
 import { useForm, usePage, router } from '@inertiajs/react'
+import { useForm, usePage, router } from '@inertiajs/react'
 import { AdminHeader } from '../../components/AdminHeader'
 import { AdminFooter } from '../../components/AdminFooter'
 import { Input } from '~/components/ui/input'
@@ -34,17 +35,19 @@ import { Popover, PopoverTrigger, PopoverContent } from '~/components/ui/popover
 import { Calendar } from '~/components/ui/calendar'
 import { Checkbox } from '~/components/ui/checkbox'
 import { Spinner } from '~/components/ui/spinner'
+import { Spinner } from '~/components/ui/spinner'
 import { DndContext, closestCenter, PointerSensor, useSensor, useSensors, DragEndEvent } from '@dnd-kit/core'
 import { SortableContext, useSortable, verticalListSortingStrategy } from '@dnd-kit/sortable'
 import { CSS } from '@dnd-kit/utilities'
 import { GripVertical, Star } from 'lucide-react'
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome'
 import { faReact } from '@fortawesome/free-brands-svg-icons'
-import { faGlobe } from '@fortawesome/free-solid-svg-icons'
+import { faGlobe, faWandMagicSparkles } from '@fortawesome/free-solid-svg-icons'
 import { getXsrf } from '~/utils/xsrf'
 import { LinkField, type LinkFieldValue } from '~/components/forms/LinkField'
 import { useHasPermission } from '~/utils/permissions'
 import { pickMediaVariantUrl, type MediaVariant } from '../../../lib/media'
+import { AgentModal, type Agent } from '../../components/agents/AgentModal'
 // Field components are auto-discovered via Vite glob below
 
 const flattenTerms = (
@@ -146,6 +149,7 @@ export default function Editor({
   selectedTaxonomyTermIds = [],
   fieldTypes = [],
 }: EditorProps) {
+  const hasFieldPermission = useHasPermission('agents.field')
   const { data, setData, put, processing, errors } = useForm({
     title: post.title,
     slug: post.slug,
@@ -214,9 +218,26 @@ export default function Editor({
     customFields: Array.isArray(aiReviewDraft.customFields) ? aiReviewDraft.customFields : ((Array.isArray(initialCustomFields) ? initialCustomFields.map(f => ({ fieldId: f.id, slug: f.slug, value: f.value ?? null })) : [])),
     taxonomyTermIds: selectedTaxonomyTermIds,
   } : null)
+  const aiReviewInitialRef = useRef<null | typeof initialDataRef.current>(aiReviewDraft ? {
+    title: String(aiReviewDraft.title ?? post.title),
+    slug: String(aiReviewDraft.slug ?? post.slug),
+    excerpt: String(aiReviewDraft.excerpt ?? (post.excerpt || '')),
+    status: String(aiReviewDraft.status ?? post.status),
+    parentId: String((aiReviewDraft.parentId ?? (post as any).parentId ?? '') || ''),
+    orderIndex: Number(aiReviewDraft.orderIndex ?? ((post as any).orderIndex ?? 0)),
+    metaTitle: String(aiReviewDraft.metaTitle ?? (post.metaTitle || '')),
+    metaDescription: String(aiReviewDraft.metaDescription ?? (post.metaDescription || '')),
+    canonicalUrl: String(aiReviewDraft.canonicalUrl ?? (post.canonicalUrl || '')),
+    robotsJson: typeof aiReviewDraft.robotsJson === 'string' ? aiReviewDraft.robotsJson : (aiReviewDraft.robotsJson ? JSON.stringify(aiReviewDraft.robotsJson, null, 2) : ''),
+    jsonldOverrides: typeof aiReviewDraft.jsonldOverrides === 'string' ? aiReviewDraft.jsonldOverrides : (aiReviewDraft.jsonldOverrides ? JSON.stringify(aiReviewDraft.jsonldOverrides, null, 2) : ''),
+    featuredImageId: String(aiReviewDraft.featuredImageId ?? (post.featuredImageId || '')),
+    customFields: Array.isArray(aiReviewDraft.customFields) ? aiReviewDraft.customFields : ((Array.isArray(initialCustomFields) ? initialCustomFields.map(f => ({ fieldId: f.id, slug: f.slug, value: f.value ?? null })) : [])),
+    taxonomyTermIds: selectedTaxonomyTermIds,
+  } : null)
   const [pendingModules, setPendingModules] = useState<Record<string, { overrides: Record<string, any> | null; edited: Record<string, any> }>>({})
   const [pendingRemoved, setPendingRemoved] = useState<Set<string>>(new Set())
   const [pendingReviewRemoved, setPendingReviewRemoved] = useState<Set<string>>(new Set())
+  const [pendingAiReviewRemoved, setPendingAiReviewRemoved] = useState<Set<string>>(new Set())
   const [pendingAiReviewRemoved, setPendingAiReviewRemoved] = useState<Set<string>>(new Set())
   // Track new modules that haven't been persisted yet (temporary client-side IDs)
   const [pendingNewModules, setPendingNewModules] = useState<Array<{
@@ -441,102 +462,132 @@ export default function Editor({
     const hasSourcePost = !!post?.id
     return hasSourceModules || hasSourcePost
   }, [modules, post])
+  // "Source" exists if:
+  // 1. There is at least one module not introduced via Review/AI Review, OR
+  // 2. The post has approved content (post itself exists with approved fields)
+  // This ensures Source tab shows even when all modules have aiReviewProps but post has source content
+  const hasSourceModules = (modules || []).some((m) => !m.reviewAdded && !(m as any).aiReviewAdded)
+  // Post has source content if it exists (has id, title, etc.) - this is always true for existing posts
+  const hasSourcePost = !!post?.id
+  return hasSourceModules || hasSourcePost
+}, [modules, post])
 
-  const hasReviewBaseline = useMemo(() => {
-    // Check post-level review draft
-    if (reviewDraft) return true
-    // Also check if any modules have review-related data
-    return (modules || []).some(
-      (m) =>
-        (m.reviewProps && Object.keys(m.reviewProps).length > 0) ||
-        (m.reviewOverrides && Object.keys(m.reviewOverrides).length > 0) ||
-        m.reviewAdded === true
-    )
-  }, [reviewDraft, modules])
-
-  const hasAiReviewBaseline = useMemo(() => {
-    // Check post-level AI review draft
-    if (aiReviewDraft) return true
-    // Also check if any modules have AI review-related data
-    return (modules || []).some(
-      (m) =>
-        ((m as any).aiReviewProps && Object.keys((m as any).aiReviewProps).length > 0) ||
-        ((m as any).aiReviewOverrides && Object.keys((m as any).aiReviewOverrides).length > 0) ||
-        (m as any).aiReviewAdded === true
-    )
-  }, [aiReviewDraft, modules])
-
-  const initialViewMode: 'source' | 'review' | 'ai-review' = useMemo(() => {
-    // Check URL parameter first to preserve view mode across reloads
-    if (typeof window !== 'undefined') {
-      const urlParams = new URLSearchParams(window.location.search)
-      const viewParam = urlParams.get('view')
-      if (viewParam === 'source' || viewParam === 'review' || viewParam === 'ai-review') {
-        return viewParam as 'source' | 'review' | 'ai-review'
-      }
-    }
-    // Fallback to baseline-based logic
-    if (hasReviewBaseline) return 'review'
-    if (!hasSourceBaseline && hasAiReviewBaseline) return 'ai-review'
-    return 'source'
-  }, [hasReviewBaseline, hasSourceBaseline, hasAiReviewBaseline])
-
-  const [viewMode, setViewMode] = useState<'source' | 'review' | 'ai-review'>(initialViewMode)
-  const [saveTarget, setSaveTarget] = useState<'source' | 'review'>(() =>
-    initialViewMode === 'review' ? 'review' : 'source'
+const hasReviewBaseline = useMemo(() => {
+  // Check post-level review draft
+  if (reviewDraft) return true
+  // Also check if any modules have review-related data
+  return (modules || []).some(
+    (m) =>
+      (m.reviewProps && Object.keys(m.reviewProps).length > 0) ||
+      (m.reviewOverrides && Object.keys(m.reviewOverrides).length > 0) ||
+      m.reviewAdded === true
   )
-  const [decision, setDecision] = useState<
-    '' | 'approve-review-to-source' | 'approve-ai-review-to-review' | 'reject-review' | 'reject-ai-review'
-  >('')
-  const [saveConfirmOpen, setSaveConfirmOpen] = useState(false)
-  const [pendingSaveTarget, setPendingSaveTarget] = useState<null | 'source' | 'review'>(null)
-  const [approveConfirmOpen, setApproveConfirmOpen] = useState(false)
-  const [rejectConfirmOpen, setRejectConfirmOpen] = useState(false)
+}, [reviewDraft, modules])
 
-  useEffect(() => {
-    // Keep default save target intuitive as the user switches Active Versions
-    if (viewMode === 'source') {
-      setSaveTarget('source')
+const hasAiReviewBaseline = useMemo(() => {
+  // Check post-level AI review draft
+  if (aiReviewDraft) return true
+  // Also check if any modules have AI review-related data
+  return (modules || []).some(
+    (m) =>
+      ((m as any).aiReviewProps && Object.keys((m as any).aiReviewProps).length > 0) ||
+      ((m as any).aiReviewOverrides && Object.keys((m as any).aiReviewOverrides).length > 0) ||
+      (m as any).aiReviewAdded === true
+  )
+}, [aiReviewDraft, modules])
+
+const initialViewMode: 'source' | 'review' | 'ai-review' = useMemo(() => {
+  // Check URL parameter first to preserve view mode across reloads
+  if (typeof window !== 'undefined') {
+    const urlParams = new URLSearchParams(window.location.search)
+    const viewParam = urlParams.get('view')
+    if (viewParam === 'source' || viewParam === 'review' || viewParam === 'ai-review') {
+      return viewParam as 'source' | 'review' | 'ai-review'
     }
-  }, [viewMode])
+  }
+  // Fallback to baseline-based logic
+  // Check URL parameter first to preserve view mode across reloads
+  if (typeof window !== 'undefined') {
+    const urlParams = new URLSearchParams(window.location.search)
+    const viewParam = urlParams.get('view')
+    if (viewParam === 'source' || viewParam === 'review' || viewParam === 'ai-review') {
+      return viewParam as 'source' | 'review' | 'ai-review'
+    }
+  }
+  // Fallback to baseline-based logic
+  if (hasReviewBaseline) return 'review'
+  if (!hasSourceBaseline && hasAiReviewBaseline) return 'ai-review'
+  return 'source'
+}, [hasReviewBaseline, hasSourceBaseline, hasAiReviewBaseline])
 
-  // Default decision selection (Approve/Reject combined)
-  useEffect(() => {
-    const opts: Array<
-      'approve-review-to-source' | 'approve-ai-review-to-review' | 'reject-review' | 'reject-ai-review'
-    > = []
+const [viewMode, setViewMode] = useState<'source' | 'review' | 'ai-review'>(initialViewMode)
+const [saveTarget, setSaveTarget] = useState<'source' | 'review'>(() =>
+  initialViewMode === 'review' ? 'review' : 'source'
+)
+const [decision, setDecision] = useState<
+  '' | 'approve-review-to-source' | 'approve-ai-review-to-review' | 'reject-review' | 'reject-ai-review'
+>('')
+const [saveConfirmOpen, setSaveConfirmOpen] = useState(false)
+const [pendingSaveTarget, setPendingSaveTarget] = useState<null | 'source' | 'review'>(null)
+const [approveConfirmOpen, setApproveConfirmOpen] = useState(false)
+const [rejectConfirmOpen, setRejectConfirmOpen] = useState(false)
 
-    // Approve options
-    if (hasReviewBaseline && canApproveReview) opts.push('approve-review-to-source')
-    if (hasAiReviewBaseline && canApproveAiReview) opts.push('approve-ai-review-to-review')
+useEffect(() => {
+  // Keep default save target intuitive as the user switches Active Versions
+  if (viewMode === 'source') {
+    setSaveTarget('source')
+  }
+  // Keep default save target intuitive as the user switches Active Versions
+  if (viewMode === 'source') {
+    setSaveTarget('source')
+  }
+}, [viewMode])
 
-    // Reject options
-    if (hasReviewBaseline && canApproveReview) opts.push('reject-review')
-    if (hasAiReviewBaseline && canApproveAiReview) opts.push('reject-ai-review')
+// Default decision selection (Approve/Reject combined)
+useEffect(() => {
+  const opts: Array<
+    'approve-review-to-source' | 'approve-ai-review-to-review' | 'reject-review' | 'reject-ai-review'
+  > = []
 
-    const preferred =
-      viewMode === 'ai-review' && opts.includes('approve-ai-review-to-review')
-        ? 'approve-ai-review-to-review'
-        : viewMode === 'review' && opts.includes('approve-review-to-source')
+  // Approve options
+  if (hasReviewBaseline && canApproveReview) opts.push('approve-review-to-source')
+  if (hasAiReviewBaseline && canApproveAiReview) opts.push('approve-ai-review-to-review')
+
+  // Reject options
+  if (hasReviewBaseline && canApproveReview) opts.push('reject-review')
+  if (hasAiReviewBaseline && canApproveAiReview) opts.push('reject-ai-review')
+
+  const preferred =
+    viewMode === 'ai-review' && opts.includes('approve-ai-review-to-review')
+      ? 'approve-ai-review-to-review'
+      : viewMode === 'review' && opts.includes('approve-review-to-source')
+        ? 'approve-review-to-source'
+        : opts.includes('approve-review-to-source')
           ? 'approve-review-to-source'
-          : opts.includes('approve-review-to-source')
-            ? 'approve-review-to-source'
-            : opts[0] || ''
+          : opts[0] || ''
 
-    if (!decision || !opts.includes(decision as any)) {
-      setDecision(preferred as any)
-    }
-    if (opts.length === 0 && decision) {
-      setDecision('')
-    }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [viewMode, hasReviewBaseline, hasAiReviewBaseline, canApproveReview, canApproveAiReview])
+  if (!decision || !opts.includes(decision as any)) {
+    setDecision(preferred as any)
+  }
+  if (opts.length === 0 && decision) {
+    setDecision('')
+  }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+}, [viewMode, hasReviewBaseline, hasAiReviewBaseline, canApproveReview, canApproveAiReview])
 
+async function executeSave(target: 'source' | 'review' | 'ai-review') {
   async function executeSave(target: 'source' | 'review' | 'ai-review') {
     if (target === 'review') {
       await createPendingNewModules('review')
       await commitPendingModules('review')
       await saveForReview()
+      return
+    }
+
+    if (target === 'ai-review') {
+      await createPendingNewModules('ai-review')
+      await commitPendingModules('ai-review')
+      await saveForAiReview()
       return
     }
 
@@ -611,6 +662,10 @@ export default function Editor({
         toast.success('Saved to Source')
         initialDataRef.current = pickForm(data)
         setHasStructuralChanges(false)
+        // Reload to get fresh data from server, preserving the current view mode
+        const currentUrl = new URL(window.location.href)
+        currentUrl.searchParams.set('view', 'source')
+        window.location.href = currentUrl.toString()
         // Reload to get fresh data from server, preserving the current view mode
         const currentUrl = new URL(window.location.href)
         currentUrl.searchParams.set('view', 'source')
@@ -807,10 +862,41 @@ export default function Editor({
   }, [])
 
   // Switch between Published view, Review view, and AI Review view
+  // Update aiReviewInitialRef when aiReviewDraft changes (e.g., after agent run)
+  useEffect(() => {
+    if (aiReviewDraft) {
+      aiReviewInitialRef.current = {
+        title: String(aiReviewDraft.title ?? post.title),
+        slug: String(aiReviewDraft.slug ?? post.slug),
+        excerpt: String(aiReviewDraft.excerpt ?? (post.excerpt || '')),
+        status: String(aiReviewDraft.status ?? post.status),
+        parentId: String((aiReviewDraft.parentId ?? (post as any).parentId ?? '') || ''),
+        orderIndex: Number(aiReviewDraft.orderIndex ?? ((post as any).orderIndex ?? 0)),
+        metaTitle: String(aiReviewDraft.metaTitle ?? (post.metaTitle || '')),
+        metaDescription: String(aiReviewDraft.metaDescription ?? (post.metaDescription || '')),
+        canonicalUrl: String(aiReviewDraft.canonicalUrl ?? (post.canonicalUrl || '')),
+        robotsJson: typeof aiReviewDraft.robotsJson === 'string' ? aiReviewDraft.robotsJson : (aiReviewDraft.robotsJson ? JSON.stringify(aiReviewDraft.robotsJson, null, 2) : ''),
+        jsonldOverrides: typeof aiReviewDraft.jsonldOverrides === 'string' ? aiReviewDraft.jsonldOverrides : (aiReviewDraft.jsonldOverrides ? JSON.stringify(aiReviewDraft.jsonldOverrides, null, 2) : ''),
+        featuredImageId: String(aiReviewDraft.featuredImageId ?? (post.featuredImageId || '')),
+        customFields: Array.isArray(aiReviewDraft.customFields) ? aiReviewDraft.customFields : ((Array.isArray(initialCustomFields) ? initialCustomFields.map(f => ({ fieldId: f.id, slug: f.slug, value: f.value ?? null })) : [])),
+        taxonomyTermIds: selectedTaxonomyTermIds,
+      }
+      // If we're currently in AI Review mode, update the form data immediately
+      if (viewMode === 'ai-review') {
+        setData({ ...data, ...aiReviewInitialRef.current })
+      }
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [aiReviewDraft])
+
   useEffect(() => {
     if (viewMode === 'review' && reviewInitialRef.current) {
       // Load review draft into form
       setData({ ...data, ...reviewInitialRef.current })
+    } else if (viewMode === 'ai-review' && aiReviewInitialRef.current) {
+      // Load AI review draft into form
+      setData({ ...data, ...aiReviewInitialRef.current })
+    } else if (viewMode === 'source') {
     } else if (viewMode === 'ai-review' && aiReviewInitialRef.current) {
       // Load AI review draft into form
       setData({ ...data, ...aiReviewInitialRef.current })
@@ -843,6 +929,7 @@ export default function Editor({
       reviewInitialRef.current = pickForm(data)
       setPendingReviewRemoved(new Set())
       router.reload({ only: ['reviewDraft', 'post', 'modules'] })
+      router.reload({ only: ['reviewDraft', 'post', 'modules'] })
     } else {
       toast.error('Failed to save for review')
     }
@@ -869,6 +956,10 @@ export default function Editor({
       toast.success('Saved for AI review')
       aiReviewInitialRef.current = pickForm(data)
       setPendingAiReviewRemoved(new Set())
+      // Update URL to preserve view mode on reload
+      const url = new URL(window.location.href)
+      url.searchParams.set('view', 'ai-review')
+      window.history.replaceState({}, '', url.toString())
       router.reload({ only: ['aiReviewDraft', 'post', 'modules'] })
     } else {
       toast.error('Failed to save for AI review')
@@ -935,11 +1026,31 @@ export default function Editor({
     applied?: string[]
     message?: string
   } | null>(null)
+  const [agentHistory, setAgentHistory] = useState<
+    Array<{
+      id: string
+      request: string | null
+      response: {
+        rawResponse?: string
+        summary?: string
+        applied?: string[]
+        [key: string]: any
+      } | null
+      createdAt: string
+      user: { id: number; email: string; fullName: string | null } | null
+    }>
+  >([])
+  const [loadingAgentHistory, setLoadingAgentHistory] = useState(false)
+  const agentModalContentRef = useRef<HTMLDivElement | null>(null)
   // Author management (admin)
   const [users, setUsers] = useState<Array<{ id: number; email: string; fullName: string | null }>>([])
   const [selectedAuthorId, setSelectedAuthorId] = useState<number | null>(post.author?.id ?? null)
   // Media picker for custom fields
   const [openMediaForField, setOpenMediaForField] = useState<string | null>(null)
+  // Field-scoped agents for Featured Image
+  const [featuredImageFieldAgents, setFeaturedImageFieldAgents] = useState<Agent[]>([])
+  const [featuredImageAgentModalOpen, setFeaturedImageAgentModalOpen] = useState(false)
+  const [selectedFeaturedImageAgent, setSelectedFeaturedImageAgent] = useState<Agent | null>(null)
   // Debug removed
 
   useEffect(() => {
@@ -983,6 +1094,65 @@ export default function Editor({
       })()
     return () => { alive = false }
   }, [])
+
+  // Load field-scoped agents for Featured Image (media field type)
+  useEffect(() => {
+    let alive = true
+      ; (async () => {
+        try {
+          const res = await fetch(
+            `/api/agents?scope=field&fieldType=media&fieldKey=post.featuredImageId`,
+            { credentials: 'same-origin' }
+          )
+          const json = await res.json().catch(() => ({}))
+          const agents: Agent[] = Array.isArray(json?.data) ? json.data : []
+          if (alive) setFeaturedImageFieldAgents(agents)
+        } catch {
+          if (alive) setFeaturedImageFieldAgents([])
+        }
+      })()
+    return () => { alive = false }
+  }, [])
+
+  // Load agent history when dialog opens and agent is selected
+  useEffect(() => {
+    if (!agentPromptOpen || !selectedAgent) {
+      setAgentHistory([])
+      return
+    }
+    let alive = true
+    async function loadHistory() {
+      try {
+        setLoadingAgentHistory(true)
+        const res = await fetch(`/api/posts/${post.id}/agents/${selectedAgent}/history`, {
+          headers: { Accept: 'application/json' },
+          credentials: 'same-origin',
+        })
+        if (!res.ok) return
+        const json = await res.json().catch(() => null)
+        if (!json?.data) return
+        if (alive) setAgentHistory(Array.isArray(json.data) ? json.data : [])
+      } catch {
+        // Ignore errors
+      } finally {
+        if (alive) setLoadingAgentHistory(false)
+      }
+    }
+    loadHistory()
+    return () => { alive = false }
+  }, [agentPromptOpen, selectedAgent, post.id])
+
+  // Scroll modal to bottom when it opens or history loads
+  useEffect(() => {
+    if (agentPromptOpen && agentModalContentRef.current) {
+      // Small delay to ensure DOM is fully rendered
+      setTimeout(() => {
+        if (agentModalContentRef.current) {
+          agentModalContentRef.current.scrollTop = agentModalContentRef.current.scrollHeight
+        }
+      }, 150)
+    }
+  }, [agentPromptOpen, loadingAgentHistory, agentHistory])
 
   // DnD sensors (pointer only to avoid key conflicts)
   const sensors = useSensors(useSensor(PointerSensor))
@@ -1233,6 +1403,11 @@ export default function Editor({
     if (persistedEntries.length > 0) {
       const updates = persistedEntries.map(([id, payload]) => {
         const url = `/api/post-modules/${encodeURIComponent(id)}`
+        // For local modules, send edited props as overrides (they get merged into ai_review_props/review_props)
+        // For global modules, send overrides (they get saved to ai_review_overrides/review_overrides)
+        const module = modules.find((m) => m.id === id)
+        const isLocal = module?.scope === 'post' || module?.scope === 'local'
+        const overridesToSend = isLocal ? payload.edited : payload.overrides
         return fetch(url, {
           method: 'PUT',
           headers: {
@@ -1241,7 +1416,7 @@ export default function Editor({
             ...xsrfHeader(),
           },
           credentials: 'same-origin',
-          body: JSON.stringify({ overrides: payload.overrides, mode }),
+          body: JSON.stringify({ overrides: overridesToSend, mode }),
         })
       })
       const results = await Promise.allSettled(updates)
@@ -1363,12 +1538,33 @@ export default function Editor({
 
                 {/* Featured Image (core) */}
                 {(uiConfig?.featuredImage?.enabled) && (
-                  <div>
+                  <div className="group">
                     <label className="block text-sm font-medium text-neutral-medium mb-1">
-                      <span className="inline-flex items-center gap-1">
-                        <Star className="w-3 h-3 text-amber-500" aria-hidden="true" />
-                        <span>{uiConfig.featuredImage.label || 'Featured Image'}</span>
-                      </span>
+                      <div className="flex items-center justify-between">
+                        <span className="inline-flex items-center gap-1">
+                          <Star className="w-3 h-3 text-amber-500" aria-hidden="true" />
+                          <span>{uiConfig.featuredImage.label || 'Featured Image'}</span>
+                        </span>
+                        {featuredImageFieldAgents.length > 0 && hasFieldPermission && (
+                          <button
+                            type="button"
+                            onClick={() => {
+                              if (featuredImageFieldAgents.length === 1) {
+                                setSelectedFeaturedImageAgent(featuredImageFieldAgents[0])
+                                setFeaturedImageAgentModalOpen(true)
+                              } else {
+                                // If multiple agents, could show a picker - for now just use first
+                                setSelectedFeaturedImageAgent(featuredImageFieldAgents[0])
+                                setFeaturedImageAgentModalOpen(true)
+                              }
+                            }}
+                            className="opacity-0 group-hover:opacity-100 transition-opacity p-1 hover:bg-backdrop-medium rounded"
+                            title={featuredImageFieldAgents.length === 1 ? featuredImageFieldAgents[0].name : 'AI Assistant'}
+                          >
+                            <FontAwesomeIcon icon={faWandMagicSparkles} className="text-xs text-primary" />
+                          </button>
+                        )}
+                      </div>
                     </label>
                     <MediaThumb
                       mediaId={(data as any).featuredImageId || null}
@@ -1384,6 +1580,29 @@ export default function Editor({
                         setOpenMediaForField(null)
                       }}
                     />
+                    {selectedFeaturedImageAgent && (
+                      <AgentModal
+                        open={featuredImageAgentModalOpen}
+                        onOpenChange={setFeaturedImageAgentModalOpen}
+                        agent={selectedFeaturedImageAgent}
+                        contextId={post.id}
+                        context={{
+                          scope: 'field',
+                          fieldKey: 'post.featuredImageId',
+                          fieldType: 'media',
+                        }}
+                        scope="field"
+                        fieldKey="post.featuredImageId"
+                        fieldType="media"
+                        viewMode={viewMode}
+                        onSuccess={() => {
+                          setFeaturedImageAgentModalOpen(false)
+                          setSelectedFeaturedImageAgent(null)
+                          // Reload the page to show updated featured image
+                          router.reload({ only: ['post'] })
+                        }}
+                      />
+                    )}
                   </div>
                 )}
 
@@ -1978,6 +2197,13 @@ export default function Editor({
                           url.searchParams.set('view', 'source')
                           window.history.replaceState({}, '', url.toString())
                         }}
+                        onClick={() => {
+                          setViewMode('source')
+                          // Update URL to preserve view mode on reload
+                          const url = new URL(window.location.href)
+                          url.searchParams.set('view', 'source')
+                          window.history.replaceState({}, '', url.toString())
+                        }}
                         className={`px-2 py-1 text-xs ${viewMode === 'source' ? 'bg-standout-medium text-on-standout' : 'text-neutral-medium hover:bg-backdrop-medium'}`}
                       >
                         Source
@@ -1993,6 +2219,13 @@ export default function Editor({
                           url.searchParams.set('view', 'review')
                           window.history.replaceState({}, '', url.toString())
                         }}
+                        onClick={() => {
+                          setViewMode('review')
+                          // Update URL to preserve view mode on reload
+                          const url = new URL(window.location.href)
+                          url.searchParams.set('view', 'review')
+                          window.history.replaceState({}, '', url.toString())
+                        }}
                         className={`px-2 py-1 text-xs ${viewMode === 'review' ? 'bg-standout-medium text-on-standout' : 'text-neutral-medium hover:bg-backdrop-medium'}`}
                       >
                         Review
@@ -2001,6 +2234,13 @@ export default function Editor({
                     {hasAiReviewBaseline && canApproveAiReview && (
                       <button
                         type="button"
+                        onClick={() => {
+                          setViewMode('ai-review')
+                          // Update URL to preserve view mode on reload
+                          const url = new URL(window.location.href)
+                          url.searchParams.set('view', 'ai-review')
+                          window.history.replaceState({}, '', url.toString())
+                        }}
                         onClick={() => {
                           setViewMode('ai-review')
                           // Update URL to preserve view mode on reload
@@ -2082,7 +2322,12 @@ export default function Editor({
                 </div>
                 {/* Agent Runner */}
                 <div>
-                  <label className="block text-xs font-medium text-neutral-medium mb-1">Agent</label>
+                  <label className="block text-xs font-medium text-neutral-medium mb-1">
+                    <div className="flex items-center gap-2">
+                      <span>Agent</span>
+                      <FontAwesomeIcon icon={faWandMagicSparkles} className="text-xs text-primary" />
+                    </div>
+                  </label>
                   <div>
                     <Select
                       value={selectedAgent}
@@ -2131,21 +2376,19 @@ export default function Editor({
                             }
                           }}
                         >
-                          <AlertDialogContent className="max-w-2xl max-h-[80vh] overflow-y-auto">
+                          <AlertDialogContent
+                            ref={agentModalContentRef}
+                            className="max-w-2xl max-h-[80vh] overflow-y-auto"
+                          >
                             <AlertDialogHeader>
                               <AlertDialogTitle>
-                                {agentResponse
-                                  ? 'Agent Response'
-                                  : (() => {
-                                    const a = agents.find((x) => x.id === selectedAgent)
-                                    return a?.openEndedContext?.label || 'Instructions'
-                                  })()}
+                                {agentResponse ? 'Agent Response' : 'Instructions'}
                               </AlertDialogTitle>
-                              <AlertDialogDescription>
-                                {agentResponse
-                                  ? 'Review the AI response and changes that were applied:'
-                                  : 'Provide any extra context or requirements for this agent run.'}
-                              </AlertDialogDescription>
+                              {agentResponse && (
+                                <AlertDialogDescription>
+                                  Review the AI response and changes that were applied:
+                                </AlertDialogDescription>
+                              )}
                             </AlertDialogHeader>
 
                             {runningAgent ? (
@@ -2159,29 +2402,122 @@ export default function Editor({
                                 </div>
                               </div>
                             ) : !agentResponse ? (
-                              <div className="mt-3 space-y-2">
-                                <Textarea
-                                  value={agentOpenEndedContext}
-                                  onChange={(e) => setAgentOpenEndedContext(e.target.value)}
-                                  placeholder={(() => {
+                              <div className="mt-3 space-y-4">
+                                {/* Agent History */}
+                                {loadingAgentHistory ? (
+                                  <div className="flex items-center gap-2 text-xs text-neutral-medium">
+                                    <Spinner className="size-4" />
+                                    <span>Loading history...</span>
+                                  </div>
+                                ) : agentHistory.length > 0 ? (
+                                  <div className="space-y-3">
+                                    {[...agentHistory].reverse().map((item) => (
+                                      <div key={item.id} className="space-y-2">
+                                        {/* User Request */}
+                                        {item.request && (
+                                          <div className="flex justify-end">
+                                            <div className="max-w-[80%] space-y-1">
+                                              {item.user && (
+                                                <div className="text-xs text-neutral-medium text-right mb-1">
+                                                  {item.user.fullName || item.user.email}
+                                                </div>
+                                              )}
+                                              <div className="bg-primary text-on-primary p-3 rounded-lg rounded-tr-sm text-sm">
+                                                {item.request}
+                                              </div>
+                                              <div className="text-xs text-neutral-low text-right">
+                                                {new Date(item.createdAt).toLocaleString()}
+                                              </div>
+                                            </div>
+                                          </div>
+                                        )}
+                                        {/* AI Response */}
+                                        {item.response && (
+                                          <div className="flex justify-start">
+                                            <div className="max-w-[80%] space-y-1">
+                                              <div className="bg-backdrop-medium p-3 rounded-lg rounded-tl-sm border border-line-medium text-sm">
+                                                {item.response.summary || (
+                                                  item.response.rawResponse
+                                                    ? (() => {
+                                                      try {
+                                                        const jsonMatch = item.response.rawResponse?.match(/```(?:json)?\s*(\{[\s\S]*\})\s*```/)
+                                                        const jsonStr = jsonMatch ? jsonMatch[1] : item.response.rawResponse
+                                                        const parsed = JSON.parse(jsonStr)
+                                                        return parsed.summary || 'Changes applied.'
+                                                      } catch {
+                                                        return item.response.rawResponse || 'Changes applied.'
+                                                      }
+                                                    })()
+                                                    : 'Changes applied.'
+                                                )}
+                                              </div>
+                                              {item.response.applied && item.response.applied.length > 0 && (
+                                                <div className="text-xs text-neutral-medium">
+                                                  Applied: {item.response.applied.join(', ')}
+                                                </div>
+                                              )}
+                                            </div>
+                                          </div>
+                                        )}
+                                      </div>
+                                    ))}
+                                  </div>
+                                ) : null}
+
+                                {/* Label and Description - only show when no response and history is loaded or empty */}
+                                {!agentResponse && !loadingAgentHistory && (
+                                  <div className="space-y-2 pt-4">
+                                    {/* Label (e.g., "What would you like the AI to help with?") */}
+                                    {(() => {
+                                      const a = agents.find((x) => x.id === selectedAgent)
+                                      const label = a?.openEndedContext?.label
+                                      if (label) {
+                                        return (
+                                          <div className="text-md font-medium text-neutral-high">
+                                            {label}
+                                          </div>
+                                        )
+                                      }
+                                      return null
+                                    })()}
+                                    {/* Description */}
+                                    <div className="text-sm text-neutral-medium whitespace-pre-wrap">
+                                      {(() => {
+                                        const a = agents.find((x) => x.id === selectedAgent)
+                                        if (a?.description) {
+                                          return a.description
+                                        }
+                                        return 'Provide any extra context or requirements for this agent run.'
+                                      })()}
+                                    </div>
+                                  </div>
+                                )}
+
+                                {/* Current Input */}
+                                <div className="space-y-2">
+                                  <Textarea
+                                    value={agentOpenEndedContext}
+                                    onChange={(e) => setAgentOpenEndedContext(e.target.value)}
+                                    placeholder={(() => {
+                                      const a = agents.find((x) => x.id === selectedAgent)
+                                      return (
+                                        a?.openEndedContext?.placeholder ||
+                                        'Example: "Rewrite this page for a more confident tone. Keep it under 500 words. Preserve the CTA."'
+                                      )
+                                    })()}
+                                    className="min-h-[120px]"
+                                  />
+                                  {(() => {
                                     const a = agents.find((x) => x.id === selectedAgent)
+                                    const max = a?.openEndedContext?.maxChars
+                                    if (!max) return null
                                     return (
-                                      a?.openEndedContext?.placeholder ||
-                                      'Example: "Rewrite this page for a more confident tone. Keep it under 500 words. Preserve the CTA."'
+                                      <div className="text-xs text-neutral-medium">
+                                        {agentOpenEndedContext.length}/{max}
+                                      </div>
                                     )
                                   })()}
-                                  className="min-h-[120px]"
-                                />
-                                {(() => {
-                                  const a = agents.find((x) => x.id === selectedAgent)
-                                  const max = a?.openEndedContext?.maxChars
-                                  if (!max) return null
-                                  return (
-                                    <div className="text-xs text-neutral-medium">
-                                      {agentOpenEndedContext.length}/{max}
-                                    </div>
-                                  )
-                                })()}
+                                </div>
                               </div>
                             ) : (
                               <div className="mt-3 space-y-4">
@@ -2274,11 +2610,19 @@ export default function Editor({
                                       setAgentOpenEndedContext('')
                                       // Switch to AI Review view to see the changes
                                       const agent = agents.find((x) => x.id === selectedAgent)
-                                      if ((agent as any)?.type === 'internal') {
-                                        setViewMode('ai-review')
-                                      } else {
-                                        setViewMode('review')
-                                      }
+                                      const targetMode = (agent as any)?.type === 'internal' ? 'ai-review' : 'review'
+                                      // Update URL to preserve view mode on reload
+                                      const url = new URL(window.location.href)
+                                      url.searchParams.set('view', targetMode)
+                                      window.history.replaceState({}, '', url.toString())
+                                      // Reload data to get the latest changes from the agent
+                                      router.reload({
+                                        only: targetMode === 'ai-review' ? ['aiReviewDraft', 'post', 'modules'] : ['reviewDraft', 'post', 'modules'],
+                                        onSuccess: () => {
+                                          // After reload, switch to the target mode
+                                          setViewMode(targetMode)
+                                        },
+                                      })
                                     }}
                                   >
                                     View Changes
@@ -2347,6 +2691,25 @@ export default function Editor({
                                           })
                                           toast.success('Agent completed successfully')
 
+                                          // Refresh agent history to show the new execution
+                                          try {
+                                            const historyRes = await fetch(
+                                              `/api/posts/${post.id}/agents/${encodeURIComponent(selectedAgent)}/history`,
+                                              {
+                                                headers: { Accept: 'application/json' },
+                                                credentials: 'same-origin',
+                                              }
+                                            )
+                                            if (historyRes.ok) {
+                                              const historyJson = await historyRes.json().catch(() => null)
+                                              if (historyJson?.data) {
+                                                setAgentHistory(Array.isArray(historyJson.data) ? historyJson.data : [])
+                                              }
+                                            }
+                                          } catch {
+                                            // Ignore history refresh errors
+                                          }
+
                                           // Refresh page data to load updated aiReviewDraft and modules
                                           // Delay reload slightly to ensure dialog state is set first
                                           // Wrap in try-catch to prevent reload errors from affecting the UI
@@ -2399,62 +2762,96 @@ export default function Editor({
                               setAgentPromptOpen(true)
                               // Use requestAnimationFrame to ensure dialog state is set before preventing close
                               await new Promise(resolve => requestAnimationFrame(resolve))
-                              setRunningAgent(true)
-                              setAgentResponse(null)
-                              try {
-                                const csrf = (() => {
-                                  if (typeof document === 'undefined') return undefined
-                                  const m = document.cookie.match(/(?:^|; )XSRF-TOKEN=([^;]+)/)
-                                  return m ? decodeURIComponent(m[1]) : undefined
-                                })()
-                                const res = await fetch(
-                                  `/api/posts/${post.id}/agents/${encodeURIComponent(selectedAgent)}/run`,
-                                  {
-                                    method: 'POST',
-                                    headers: {
-                                      Accept: 'application/json',
-                                      'Content-Type': 'application/json',
-                                      ...(csrf ? { 'X-XSRF-TOKEN': csrf } : {}),
-                                    },
-                                    credentials: 'same-origin',
-                                    body: JSON.stringify({ context: { locale: selectedLocale } }),
-                                  }
-                                )
-                                const j = await res.json().catch(() => ({}))
-                                if (res.ok) {
-                                  // Show response in dialog
-                                  setAgentResponse({
-                                    rawResponse: j.rawResponse,
-                                    applied: j.applied || [],
-                                    message: j.message,
-                                  })
-                                  toast.success('Agent completed successfully')
+                                // No prompt required: run immediately, but still show response in dialog
+                                ; (async () => {
+                                  // Open dialog FIRST to ensure it's open before setting running state
+                                  setAgentPromptOpen(true)
+                                  // Use requestAnimationFrame to ensure dialog state is set before preventing close
+                                  await new Promise(resolve => requestAnimationFrame(resolve))
+                                  setRunningAgent(true)
+                                  setAgentResponse(null)
+                                  setAgentResponse(null)
+                                  try {
+                                    const csrf = (() => {
+                                      if (typeof document === 'undefined') return undefined
+                                      const m = document.cookie.match(/(?:^|; )XSRF-TOKEN=([^;]+)/)
+                                      return m ? decodeURIComponent(m[1]) : undefined
+                                    })()
+                                    const res = await fetch(
+                                      `/api/posts/${post.id}/agents/${encodeURIComponent(selectedAgent)}/run`,
+                                      {
+                                        method: 'POST',
+                                        headers: {
+                                          Accept: 'application/json',
+                                          'Content-Type': 'application/json',
+                                          ...(csrf ? { 'X-XSRF-TOKEN': csrf } : {}),
+                                        },
+                                        credentials: 'same-origin',
+                                        body: JSON.stringify({ context: { locale: selectedLocale } }),
+                                      }
+                                    )
+                                    const j = await res.json().catch(() => ({}))
+                                    if (res.ok) {
+                                      // Show response in dialog
+                                      setAgentResponse({
+                                        rawResponse: j.rawResponse,
+                                        applied: j.applied || [],
+                                        message: j.message,
+                                      })
+                                      toast.success('Agent completed successfully')
 
-                                  // Refresh page data to load updated aiReviewDraft
-                                  setTimeout(() => {
-                                    try {
-                                      router.reload({ only: ['aiReviewDraft', 'post'] })
-                                    } catch (reloadError) {
-                                      console.warn('Page reload failed (non-critical):', reloadError)
+                                      // Refresh agent history to show the new execution
+                                      try {
+                                        const historyRes = await fetch(
+                                          `/api/posts/${post.id}/agents/${encodeURIComponent(selectedAgent)}/history`,
+                                          {
+                                            headers: { Accept: 'application/json' },
+                                            credentials: 'same-origin',
+                                          }
+                                        )
+                                        if (historyRes.ok) {
+                                          const historyJson = await historyRes.json().catch(() => null)
+                                          if (historyJson?.data) {
+                                            setAgentHistory(Array.isArray(historyJson.data) ? historyJson.data : [])
+                                          }
+                                        }
+                                      } catch {
+                                        // Ignore history refresh errors
+                                      }
+
+                                      // Refresh page data to load updated aiReviewDraft
+                                      setTimeout(() => {
+                                        try {
+                                          router.reload({ only: ['aiReviewDraft', 'post'] })
+                                        } catch (reloadError) {
+                                          console.warn('Page reload failed (non-critical):', reloadError)
+                                        }
+                                      }, 100)
+                                    } else {
+                                      toast.error(j?.error || 'Agent run failed')
+                                      setAgentResponse({
+                                        message: `Error: ${j?.error || 'Agent run failed'}`,
+                                      })
+                                      setAgentResponse({
+                                        message: `Error: ${j?.error || 'Agent run failed'}`,
+                                      })
                                     }
-                                  }, 100)
-                                } else {
-                                  toast.error(j?.error || 'Agent run failed')
-                                  setAgentResponse({
-                                    message: `Error: ${j?.error || 'Agent run failed'}`,
-                                  })
-                                }
-                              } catch (error: any) {
-                                console.error('Agent execution error:', error)
-                                toast.error('Agent run failed')
-                                setAgentResponse({
-                                  message: `Error: ${error?.message || 'Agent run failed'}`,
-                                })
-                              } finally {
-                                setRunningAgent(false)
-                              }
-                            })()
-                          }}
+                                  } catch (error: any) {
+                                    console.error('Agent execution error:', error)
+                                  } catch (error: any) {
+                                    console.error('Agent execution error:', error)
+                                    toast.error('Agent run failed')
+                                    setAgentResponse({
+                                      message: `Error: ${error?.message || 'Agent run failed'}`,
+                                    })
+                                    setAgentResponse({
+                                      message: `Error: ${error?.message || 'Agent run failed'}`,
+                                    })
+                                  } finally {
+                                    setRunningAgent(false)
+                                  }
+                                })()
+                            }}
                           type="button"
                         >
                           {runningAgent ? 'Running…' : 'Run Agent'}
@@ -2525,6 +2922,8 @@ export default function Editor({
                 )}
                 {/* Save edits (Source can save to Source or Review) */}
                 {viewMode === 'source' && (
+                  {/* Save edits (Source can save to Source or Review) */ }
+                {viewMode === 'source' && (
                   <div className="space-y-2">
                     <label className="block text-xs font-medium text-neutral-medium">
                       Save edits to
@@ -2553,12 +2952,15 @@ export default function Editor({
                         onClick={async () => {
                           // Destructive confirmation when saving to Review that already exists.
                           if (saveTarget === 'review' && hasReviewBaseline) {
-                            setPendingSaveTarget(saveTarget)
-                            setSaveConfirmOpen(true)
-                            return
+                            // Destructive confirmation when saving to Review that already exists.
+                            if (saveTarget === 'review' && hasReviewBaseline) {
+                              setPendingSaveTarget(saveTarget)
+                              setSaveConfirmOpen(true)
+                              return
+                            }
+                            await executeSave(saveTarget)
                           }
-                          await executeSave(saveTarget)
-                        }}
+                        }
                       >
                         {saveTarget === 'source'
                           ? (data.status === 'published' ? 'Publish' : 'Save')
@@ -2568,11 +2970,34 @@ export default function Editor({
                     {saveTarget === 'review' && !canSaveForReview && (
                       <p className="text-xs text-neutral-low">
                         You don't have permission to save to Review.
+                        You don't have permission to save to Review.
                       </p>
                     )}
                   </div>
                 )}
 
+                {/* Save button for Review view mode */}
+                {viewMode === 'review' && (
+                  <div className="space-y-2">
+                    <button
+                      type="button"
+                      className={`h-8 px-3 text-xs rounded-lg disabled:opacity-50 ${(!isDirty || processing) ? 'border border-border text-neutral-medium' : 'bg-standout-medium text-on-standout font-medium'}`}
+                      disabled={!isDirty || processing || !canSaveForReview}
+                      onClick={async () => {
+                        await executeSave('review')
+                      }}
+                    >
+                      Save
+                    </button>
+                    {!canSaveForReview && (
+                      <p className="text-xs text-neutral-low">
+                        You don't have permission to save to Review.
+                      </p>
+                    )}
+                  </div>
+                )}
+
+                {/* Save button for AI Review view mode */}
                 {/* Save button for Review view mode */}
                 {viewMode === 'review' && (
                   <div className="space-y-2">
@@ -2611,7 +3036,23 @@ export default function Editor({
                       Save
                     </button>
                   </div>
+                  <div className="space-y-2">
+                  <p className="text-xs text-neutral-low">
+                      AI Review is AI-generated.
+                    </p>
+                    <button
+                      type="button"
+                      className={`h-8 px-3 text-xs rounded-lg disabled:opacity-50 ${(!isDirty || processing) ? 'border border-border text-neutral-medium' : 'bg-standout-medium text-on-standout font-medium'}`}
+                      disabled={!isDirty || processing}
+                      onClick={async () => {
+                        await executeSave('ai-review')
+                      }}
+                    >
+                      Save
+                    </button>
+                  </div>
                 )}
+
 
 
                 {/* Approve/Reject decision (RadioGroup) */}
@@ -3121,6 +3562,9 @@ export default function Editor({
         open={!!editing}
         moduleItem={editing}
         onClose={() => setEditing(null)}
+        postId={post.id}
+        moduleInstanceId={editing?.id}
+        viewMode={viewMode}
         onSave={(overrides, edited) => {
           if (!editing) return Promise.resolve()
           // stage changes locally and mark as pending; do NOT persist now
@@ -3133,6 +3577,12 @@ export default function Editor({
                   return { ...m, reviewProps: edited, overrides: null }
                 } else {
                   return { ...m, reviewOverrides: overrides }
+                }
+              } else if (viewMode === 'ai-review') {
+                if (m.scope === 'post') {
+                  return { ...m, aiReviewProps: edited, overrides: null }
+                } else {
+                  return { ...m, aiReviewOverrides: overrides }
                 }
               } else {
                 if (m.scope === 'post') {

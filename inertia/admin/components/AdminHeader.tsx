@@ -1,6 +1,7 @@
 import { Link, usePage } from '@inertiajs/react'
 import { SidebarProvider, SidebarTrigger } from '~/components/ui/sidebar'
 import { AdminSidebar } from './AdminSidebar'
+import { GlobalAgentButton } from './agents/GlobalAgentButton'
 
 export function AdminHeader({ title = 'Admin' }: { title?: string }) {
 	const page = usePage()
@@ -43,6 +44,7 @@ export function AdminHeader({ title = 'Admin' }: { title?: string }) {
 					</div>
 				</div>
 			</header>
+			<GlobalAgentButton />
 		</SidebarProvider>
 	)
 }

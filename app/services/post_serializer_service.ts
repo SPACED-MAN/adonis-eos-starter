@@ -6,6 +6,7 @@ import PostModule from '#models/post_module'
 import ModuleInstance from '#models/module_instance'
 import PostCustomFieldValue from '#models/post_custom_field_value'
 import db from '@adonisjs/lucid/services/db'
+import db from '@adonisjs/lucid/services/db'
 
 type CanonicalModule = {
   type: string
@@ -42,12 +43,35 @@ export default class PostSerializerService {
    * Serialize a post based on view mode (source/review/ai-review) and its modules into a canonical JSON object.
    * @param postId - Post ID
    * @param mode - View mode: 'source' (approved), 'review' (review_draft), or 'ai-review' (ai_review_draft)
+   * Serialize a post based on view mode (source/review/ai-review) and its modules into a canonical JSON object.
+   * @param postId - Post ID
+   * @param mode - View mode: 'source' (approved), 'review' (review_draft), or 'ai-review' (ai_review_draft)
    */
+  static async serialize(postId: string, mode: 'source' | 'review' | 'ai-review' = 'source'): Promise<CanonicalPost> {
   static async serialize(postId: string, mode: 'source' | 'review' | 'ai-review' = 'source'): Promise<CanonicalPost> {
     const post = await Post.query().where('id', postId).first()
     if (!post) {
       throw new Error('Post not found')
     }
+    // Load modules with their instances, including review/ai-review props
+    const moduleRows = await db
+      .from('post_modules')
+      .join('module_instances', 'post_modules.module_id', 'module_instances.id')
+      .where('post_modules.post_id', postId)
+      .select(
+        'post_modules.id as postModuleId',
+        'post_modules.order_index as orderIndex',
+        'post_modules.overrides',
+        'post_modules.locked',
+        'module_instances.id as moduleInstanceId',
+        'module_instances.type',
+        'module_instances.scope',
+        'module_instances.props',
+        'module_instances.review_props',
+        'module_instances.ai_review_props',
+        'module_instances.global_slug as globalSlug'
+      )
+      .orderBy('post_modules.order_index', 'asc')
     // Load modules with their instances, including review/ai-review props
     const moduleRows = await db
       .from('post_modules')
@@ -76,25 +100,144 @@ export default class PostSerializerService {
       .select('id', 'locale')
 
     // Custom fields (slug:value) by slug from values table
-    const cfVals = await PostCustomFieldValue.query()
-      .where('postId', postId)
-      .select('field_slug as slug', 'value')
+    // Note: Custom fields in drafts are stored in the draft JSON, not in the separate table
+    let customFields: Array<{ slug: string; value: any }> = []
+    if (mode === 'review') {
+      const reviewDraft = (post as any).reviewDraft || (post as any).review_draft
+      if (reviewDraft && typeof reviewDraft === 'object' && Array.isArray(reviewDraft.customFields)) {
+        customFields = reviewDraft.customFields.map((cf: any) => ({ slug: cf.slug, value: cf.value }))
+      } else {
+        // Fall back to database values
+        const cfVals = await PostCustomFieldValue.query()
+          .where('postId', postId)
+          .select('field_slug as slug', 'value')
+        customFields = (cfVals || []).map((r: any) => ({ slug: r.slug, value: r.value }))
+      }
+    } else if (mode === 'ai-review') {
+      const aiReviewDraft = (post as any).aiReviewDraft || (post as any).ai_review_draft
+      if (aiReviewDraft && typeof aiReviewDraft === 'object' && Array.isArray(aiReviewDraft.customFields)) {
+        customFields = aiReviewDraft.customFields.map((cf: any) => ({ slug: cf.slug, value: cf.value }))
+      } else {
+        // Fall back to review draft or database values
+        const reviewDraft = (post as any).reviewDraft || (post as any).review_draft
+        if (reviewDraft && typeof reviewDraft === 'object' && Array.isArray(reviewDraft.customFields)) {
+          customFields = reviewDraft.customFields.map((cf: any) => ({ slug: cf.slug, value: cf.value }))
+        } else {
+          const cfVals = await PostCustomFieldValue.query()
+            .where('postId', postId)
+            .select('field_slug as slug', 'value')
+          customFields = (cfVals || []).map((r: any) => ({ slug: r.slug, value: r.value }))
+        }
+      }
+    } else {
+      // Source mode: use database values
+      const cfVals = await PostCustomFieldValue.query()
+        .where('postId', postId)
+        .select('field_slug as slug', 'value')
+      customFields = (cfVals || []).map((r: any) => ({ slug: r.slug, value: r.value }))
+    }
+
+    // Get post fields based on mode
+    // For 'source': use approved fields
+    // For 'review': use review_draft if exists, otherwise approved
+    // For 'ai-review': use ai_review_draft if exists, otherwise review_draft, otherwise approved
+    let postFields: Record<string, any> = {
+      slug: post.slug,
+      title: post.title,
+      status: (post as any).status,
+      excerpt: (post as any).excerpt ?? null,
+      metaTitle: (post as any).metaTitle ?? (post as any).meta_title ?? null,
+      metaDescription: (post as any).metaDescription ?? (post as any).meta_description ?? null,
+      canonicalUrl: (post as any).canonicalUrl ?? (post as any).canonical_url ?? null,
+      robotsJson: (post as any).robotsJson ?? (post as any).robots_json ?? null,
+      jsonldOverrides: (post as any).jsonldOverrides ?? (post as any).jsonld_overrides ?? null,
+    }
+
+    if (mode === 'review') {
+      const reviewDraft = (post as any).reviewDraft || (post as any).review_draft
+      if (reviewDraft && typeof reviewDraft === 'object') {
+        // Merge review_draft over approved fields
+        postFields = {
+          ...postFields,
+          ...(reviewDraft.slug !== undefined ? { slug: reviewDraft.slug } : {}),
+          ...(reviewDraft.title !== undefined ? { title: reviewDraft.title } : {}),
+          ...(reviewDraft.status !== undefined ? { status: reviewDraft.status } : {}),
+          ...(reviewDraft.excerpt !== undefined ? { excerpt: reviewDraft.excerpt ?? null } : {}),
+          ...(reviewDraft.metaTitle !== undefined ? { metaTitle: reviewDraft.metaTitle ?? null } : {}),
+          ...(reviewDraft.metaDescription !== undefined ? { metaDescription: reviewDraft.metaDescription ?? null } : {}),
+          ...(reviewDraft.canonicalUrl !== undefined ? { canonicalUrl: reviewDraft.canonicalUrl ?? null } : {}),
+          ...(reviewDraft.robotsJson !== undefined ? { robotsJson: reviewDraft.robotsJson ?? null } : {}),
+          ...(reviewDraft.jsonldOverrides !== undefined ? { jsonldOverrides: reviewDraft.jsonldOverrides ?? null } : {}),
+        }
+      }
+    } else if (mode === 'ai-review') {
+      // First check ai_review_draft
+      const aiReviewDraft = (post as any).aiReviewDraft || (post as any).ai_review_draft
+      if (aiReviewDraft && typeof aiReviewDraft === 'object') {
+        // Start with approved fields, then merge review_draft if exists, then merge ai_review_draft
+        const reviewDraft = (post as any).reviewDraft || (post as any).review_draft
+        if (reviewDraft && typeof reviewDraft === 'object') {
+          postFields = {
+            ...postFields,
+            ...(reviewDraft.slug !== undefined ? { slug: reviewDraft.slug } : {}),
+            ...(reviewDraft.title !== undefined ? { title: reviewDraft.title } : {}),
+            ...(reviewDraft.status !== undefined ? { status: reviewDraft.status } : {}),
+            ...(reviewDraft.excerpt !== undefined ? { excerpt: reviewDraft.excerpt ?? null } : {}),
+            ...(reviewDraft.metaTitle !== undefined ? { metaTitle: reviewDraft.metaTitle ?? null } : {}),
+            ...(reviewDraft.metaDescription !== undefined ? { metaDescription: reviewDraft.metaDescription ?? null } : {}),
+            ...(reviewDraft.canonicalUrl !== undefined ? { canonicalUrl: reviewDraft.canonicalUrl ?? null } : {}),
+            ...(reviewDraft.robotsJson !== undefined ? { robotsJson: reviewDraft.robotsJson ?? null } : {}),
+            ...(reviewDraft.jsonldOverrides !== undefined ? { jsonldOverrides: reviewDraft.jsonldOverrides ?? null } : {}),
+          }
+        }
+        // Then merge ai_review_draft on top
+        postFields = {
+          ...postFields,
+          ...(aiReviewDraft.slug !== undefined ? { slug: aiReviewDraft.slug } : {}),
+          ...(aiReviewDraft.title !== undefined ? { title: aiReviewDraft.title } : {}),
+          ...(aiReviewDraft.status !== undefined ? { status: aiReviewDraft.status } : {}),
+          ...(aiReviewDraft.excerpt !== undefined ? { excerpt: aiReviewDraft.excerpt ?? null } : {}),
+          ...(aiReviewDraft.metaTitle !== undefined ? { metaTitle: aiReviewDraft.metaTitle ?? null } : {}),
+          ...(aiReviewDraft.metaDescription !== undefined ? { metaDescription: aiReviewDraft.metaDescription ?? null } : {}),
+          ...(aiReviewDraft.canonicalUrl !== undefined ? { canonicalUrl: aiReviewDraft.canonicalUrl ?? null } : {}),
+          ...(aiReviewDraft.robotsJson !== undefined ? { robotsJson: aiReviewDraft.robotsJson ?? null } : {}),
+          ...(aiReviewDraft.jsonldOverrides !== undefined ? { jsonldOverrides: aiReviewDraft.jsonldOverrides ?? null } : {}),
+        }
+      } else {
+        // No ai_review_draft, fall back to review_draft if exists
+        const reviewDraft = (post as any).reviewDraft || (post as any).review_draft
+        if (reviewDraft && typeof reviewDraft === 'object') {
+          postFields = {
+            ...postFields,
+            ...(reviewDraft.slug !== undefined ? { slug: reviewDraft.slug } : {}),
+            ...(reviewDraft.title !== undefined ? { title: reviewDraft.title } : {}),
+            ...(reviewDraft.status !== undefined ? { status: reviewDraft.status } : {}),
+            ...(reviewDraft.excerpt !== undefined ? { excerpt: reviewDraft.excerpt ?? null } : {}),
+            ...(reviewDraft.metaTitle !== undefined ? { metaTitle: reviewDraft.metaTitle ?? null } : {}),
+            ...(reviewDraft.metaDescription !== undefined ? { metaDescription: reviewDraft.metaDescription ?? null } : {}),
+            ...(reviewDraft.canonicalUrl !== undefined ? { canonicalUrl: reviewDraft.canonicalUrl ?? null } : {}),
+            ...(reviewDraft.robotsJson !== undefined ? { robotsJson: reviewDraft.robotsJson ?? null } : {}),
+            ...(reviewDraft.jsonldOverrides !== undefined ? { jsonldOverrides: reviewDraft.jsonldOverrides ?? null } : {}),
+          }
+        }
+      }
+    }
 
     const canonical: CanonicalPost = {
       version: 1 as const,
       post: {
         type: post.type,
         locale: post.locale,
-        slug: post.slug,
-        title: post.title,
-        status: (post as any).status,
-        excerpt: (post as any).excerpt ?? null,
-        metaTitle: (post as any).metaTitle ?? (post as any).meta_title ?? null,
-        metaDescription: (post as any).metaDescription ?? (post as any).meta_description ?? null,
-        canonicalUrl: (post as any).canonicalUrl ?? (post as any).canonical_url ?? null,
-        robotsJson: (post as any).robotsJson ?? (post as any).robots_json ?? null,
-        jsonldOverrides: (post as any).jsonldOverrides ?? (post as any).jsonld_overrides ?? null,
-        customFields: (cfVals || []).map((r: any) => ({ slug: r.slug, value: r.value })),
+        slug: postFields.slug,
+        title: postFields.title,
+        status: postFields.status,
+        excerpt: postFields.excerpt ?? null,
+        metaTitle: postFields.metaTitle ?? null,
+        metaDescription: postFields.metaDescription ?? null,
+        canonicalUrl: postFields.canonicalUrl ?? null,
+        robotsJson: postFields.robotsJson ?? null,
+        jsonldOverrides: postFields.jsonldOverrides ?? null,
+        customFields,
       },
       modules: moduleRows.map((row: any) => {
         // Get base props (handle both JSON string and object)
@@ -122,6 +265,13 @@ export default class PostSerializerService {
         }
 
         return {
+          type: row.type,
+          scope: row.scope === 'post' ? 'local' : 'global',
+          orderIndex: row.orderIndex,
+          locked: row.locked,
+          props: effectiveProps,
+          overrides: row.overrides ?? null,
+          globalSlug: row.globalSlug ?? null,
           type: row.type,
           scope: row.scope === 'post' ? 'local' : 'global',
           orderIndex: row.orderIndex,

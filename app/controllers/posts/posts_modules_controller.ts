@@ -33,7 +33,7 @@ export default class PostsModulesController extends BasePostsController {
         globalSlug: payload.globalSlug ?? null,
         orderIndex: payload.orderIndex,
         locked: payload.locked || false,
-        mode: payload.mode === 'review' ? 'review' : 'publish',
+        mode: payload.mode === 'review' ? 'review' : payload.mode === 'ai-review' ? 'ai-review' : 'publish',
       })
 
       // For Inertia requests, redirect back
@@ -80,15 +80,16 @@ export default class PostsModulesController extends BasePostsController {
         orderIndex: payload.orderIndex,
         overrides: payload.overrides,
         locked: payload.locked,
-        mode: payload.mode === 'review' ? 'review' : 'publish',
+        mode: payload.mode === 'review' ? 'review' : payload.mode === 'ai-review' ? 'ai-review' : 'publish',
       })
 
       return response.ok({
         data: {
           id: updated.id,
           orderIndex: updated.order_index,
-          overrides: payload.mode === 'review' ? updated.review_overrides : updated.overrides,
+          overrides: payload.mode === 'review' ? updated.review_overrides : payload.mode === 'ai-review' ? updated.ai_review_overrides : updated.overrides,
           reviewOverrides: updated.review_overrides ?? null,
+          aiReviewOverrides: updated.ai_review_overrides ?? null,
           locked: updated.locked,
           updatedAt: updated.updated_at,
         },
