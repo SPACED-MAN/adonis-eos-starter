@@ -1,6 +1,7 @@
 import { FontAwesomeIcon } from '../site/lib/icons'
 import { useInlineValue } from '../components/inline-edit/InlineEditorContext'
 import type { Button, LinkValue } from './types'
+import { resolveLink } from '../utils/resolve_link'
 
 interface ExpandedFeatureItem {
   icon?: string | null
@@ -21,31 +22,7 @@ function resolveHrefAndTarget(
   url: string | LinkValue,
   explicitTarget?: '_self' | '_blank'
 ): { href?: string; target: '_self' | '_blank' } {
-  let href: string | undefined
-  let target: '_self' | '_blank' = '_self'
-
-  if (!url) {
-    return { href: undefined, target }
-  }
-
-  if (typeof url === 'string') {
-    href = url
-    target = explicitTarget || '_self'
-    return { href, target }
-  }
-
-  if (url.kind === 'url') {
-    href = url.url
-  } else if (url.slug && url.locale) {
-    href = `/${encodeURIComponent(url.locale)}/${encodeURIComponent(url.slug)}`
-  } else if (url.slug) {
-    href = `/${encodeURIComponent(url.slug)}`
-  }
-
-  const linkTarget = url.target === '_blank' ? '_blank' : '_self'
-  target = explicitTarget || linkTarget
-
-  return { href, target }
+  return resolveLink(url, explicitTarget)
 }
 
 export default function FeaturesListExpanded({

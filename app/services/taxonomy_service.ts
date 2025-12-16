@@ -28,7 +28,16 @@ class TaxonomyService {
   }
 
   async listTaxonomies(): Promise<Taxonomy[]> {
-    const rows = await TaxonomyModel.query().orderBy('name', 'asc')
+    // Only return taxonomies that are registered in the registry (i.e., have config files)
+    const registeredSlugs = taxonomyRegistry.list().map((cfg) => cfg.slug)
+    if (registeredSlugs.length === 0) {
+      return []
+    }
+    
+    const rows = await TaxonomyModel.query()
+      .whereIn('slug', registeredSlugs)
+      .orderBy('name', 'asc')
+    
     return rows.map((r) => {
       const cfg = taxonomyRegistry.get(r.slug)
       return {

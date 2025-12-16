@@ -33,10 +33,10 @@ export default class AgentsController {
         createdAt: e.createdAt,
         user: e.user
           ? {
-              id: e.user.id,
-              email: e.user.email,
-              fullName: e.user.fullName,
-            }
+            id: e.user.id,
+            email: e.user.email,
+            fullName: e.user.fullName,
+          }
           : null,
       })),
     })
@@ -65,10 +65,10 @@ export default class AgentsController {
         createdAt: e.createdAt,
         user: e.user
           ? {
-              id: e.user.id,
-              email: e.user.email,
-              fullName: e.user.fullName,
-            }
+            id: e.user.id,
+            email: e.user.email,
+            fullName: e.user.fullName,
+          }
           : null,
       })),
     })
@@ -92,11 +92,11 @@ export default class AgentsController {
       type: a.type || 'internal',
       openEndedContext: a.openEndedContext?.enabled
         ? {
-            enabled: true,
-            label: a.openEndedContext.label,
-            placeholder: a.openEndedContext.placeholder,
-            maxChars: a.openEndedContext.maxChars,
-          }
+          enabled: true,
+          label: a.openEndedContext.label,
+          placeholder: a.openEndedContext.placeholder,
+          maxChars: a.openEndedContext.maxChars,
+        }
         : { enabled: false },
       // Include scope configuration for frontend filtering
       scopes: a.scopes

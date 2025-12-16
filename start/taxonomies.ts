@@ -51,6 +51,9 @@ async function ensureDatabaseRows() {
   if (!hasTable) return
 
   const configs = taxonomyRegistry.list()
+  const registeredSlugs = new Set(configs.map((c) => c.slug))
+  
+  // Ensure database rows exist for registered taxonomies
   for (const cfg of configs) {
     const existing = await db.from('taxonomies').where('slug', cfg.slug).first()
     const now = new Date()
@@ -64,6 +67,15 @@ async function ensureDatabaseRows() {
         .where('slug', cfg.slug)
         .update({ name: cfg.name, updated_at: now })
     }
+  }
+  
+  // Optionally: Remove orphaned taxonomies from database (those without config files)
+  // This keeps the database in sync with the filesystem
+  if (registeredSlugs.size > 0) {
+    await db.from('taxonomies').whereNotIn('slug', Array.from(registeredSlugs)).delete()
+  } else {
+    // If no taxonomies are registered, remove all (clean slate)
+    await db.from('taxonomies').delete()
   }
 }
 

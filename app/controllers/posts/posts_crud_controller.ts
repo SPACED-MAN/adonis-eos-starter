@@ -143,10 +143,6 @@ export default class PostsCrudController extends BasePostsController {
         return this.rejectReviewDraft(id, auth, response)
       }
 
-        featuredImageId: request.input('featuredImageId'),
-        parentId: request.input('parentId'),
-      })
-
       const payload = await request.validateUsing(updatePostValidator)
       const saveMode = String(payload.mode || 'publish').toLowerCase()
       const currentPost = await Post.findOrFail(id)

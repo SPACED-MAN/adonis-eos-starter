@@ -3,6 +3,7 @@ import { pickMediaVariantUrl } from '../lib/media'
 import { FontAwesomeIcon } from '../site/lib/icons'
 import type { Button, LinkValue } from './types'
 import { useInlineValue } from '../components/inline-edit/InlineEditorContext'
+import { resolveLink } from '../utils/resolve_link'
 
 interface ProseWithMediaProps {
   title: string
@@ -69,16 +70,7 @@ export default function ProseWithMedia({
   }, [imageId])
 
   function resolveButtonHref(url: string | LinkValue): string | undefined {
-    if (!url) return undefined
-    if (typeof url === 'string') return url
-    if (url.kind === 'url') return url.url
-    if (url.slug && url.locale) {
-      return `/${encodeURIComponent(url.locale)}/${encodeURIComponent(url.slug)}`
-    }
-    if (url.slug) {
-      return `/${encodeURIComponent(url.slug)}`
-    }
-    return undefined
+    return resolveLink(url).href
   }
 
   const hasCta = Boolean(primaryCta && primaryCta.label && primaryCta.url)

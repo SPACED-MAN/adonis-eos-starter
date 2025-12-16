@@ -21,9 +21,9 @@ export default class extends BaseSeeder {
   ): Promise<any> {
     // Store context for link transformation
     if (context) {
-      ;(this as any).currentFile = context.currentFile
-      ;(this as any).allFiles = context.allFiles
-      ;(this as any).postIdsBySlug = context.postIdsBySlug
+      ; (this as any).currentFile = context.currentFile
+        ; (this as any).allFiles = context.allFiles
+        ; (this as any).postIdsBySlug = context.postIdsBySlug
     }
 
     // Parse markdown tokens
@@ -321,11 +321,11 @@ export default class extends BaseSeeder {
           const originalHref = token.href
           const transformedHref = (this as any).transformLinkUrl
             ? (this as any).transformLinkUrl(
-                originalHref,
-                (this as any).currentFile,
-                (this as any).allFiles,
-                (this as any).postIdsBySlug
-              )
+              originalHref,
+              (this as any).currentFile,
+              (this as any).allFiles,
+              (this as any).postIdsBySlug
+            )
             : originalHref
 
           children.push({
@@ -470,17 +470,17 @@ export default class extends BaseSeeder {
         // If it's a single slug (e.g., /docs/theming or /docs/developers)
         if (pathParts.length === 1) {
           const slug = pathParts[0]
-          
+
           // Skip if it's a top-level parent slug (developers/editors/overview)
           if (slug === 'developers' || slug === 'editors' || slug === 'overview') {
             return href
           }
-          
+
           // Look up the hierarchical path for this slug
           if (slugToPath[slug]) {
             return slugToPath[slug]
           }
-          
+
           // If not found, try to resolve using baseSlugToDir mapping
           // This helps when links use base slugs (e.g., /docs/theming) but
           // the actual slug might have a suffix due to collision (e.g., theming-developers)
@@ -508,7 +508,7 @@ export default class extends BaseSeeder {
               }
             }
           }
-          
+
           // If still not found, return as-is (might be invalid or handled elsewhere)
           return href
         }
@@ -990,12 +990,17 @@ export default class extends BaseSeeder {
     console.log(`\n🔗 Updating links to use hierarchical paths...`)
     for (const [slug, postId] of Object.entries(postIdsBySlug)) {
       try {
-        // Get the post's prose module
+        // Get the post's prose module (join with module_instances to get props)
         const postModules = await db
           .from('post_modules')
-          .where('post_id', postId)
-          .where('type', 'prose')
-          .select('id', 'props')
+          .join('module_instances', 'post_modules.module_id', 'module_instances.id')
+          .where('post_modules.post_id', postId)
+          .where('module_instances.type', 'prose')
+          .select(
+            'post_modules.id as postModuleId',
+            'module_instances.id as moduleInstanceId',
+            'module_instances.props'
+          )
           .first()
 
         if (postModules && postModules.props) {
@@ -1010,10 +1015,10 @@ export default class extends BaseSeeder {
               baseSlugToDir
             )
 
-            // Update the module props
+            // Update the module instance props (props are stored in module_instances, not post_modules)
             await db
-              .from('post_modules')
-              .where('id', postModules.id)
+              .from('module_instances')
+              .where('id', postModules.moduleInstanceId)
               .update({ props: { ...props, content: updatedContent } })
           }
         }
@@ -1026,9 +1031,14 @@ export default class extends BaseSeeder {
     try {
       const overviewModules = await db
         .from('post_modules')
-        .where('post_id', overviewPost.id)
-        .where('type', 'prose')
-        .select('id', 'props')
+        .join('module_instances', 'post_modules.module_id', 'module_instances.id')
+        .where('post_modules.post_id', overviewPost.id)
+        .where('module_instances.type', 'prose')
+        .select(
+          'post_modules.id as postModuleId',
+          'module_instances.id as moduleInstanceId',
+          'module_instances.props'
+        )
         .first()
 
       if (overviewModules && overviewModules.props) {
@@ -1042,9 +1052,10 @@ export default class extends BaseSeeder {
             baseSlugToDir
           )
 
+          // Update the module instance props (props are stored in module_instances, not post_modules)
           await db
-            .from('post_modules')
-            .where('id', (overviewModules as any).id)
+            .from('module_instances')
+            .where('id', overviewModules.moduleInstanceId)
             .update({ props: { ...props, content: updatedContent } })
         }
       }

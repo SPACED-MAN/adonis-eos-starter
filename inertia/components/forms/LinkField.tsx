@@ -7,13 +7,14 @@ export type LinkKind = 'post' | 'url'
 
 export type LinkFieldValue =
   | {
-      kind: 'post'
-      postId: string
-      postType?: string
-      slug?: string
-      locale?: string
-      target?: '_self' | '_blank'
-    }
+    kind: 'post'
+    postId: string
+    postType?: string
+    slug?: string
+    locale?: string
+    url?: string // Resolved URL path (from server)
+    target?: '_self' | '_blank'
+  }
   | { kind: 'url'; url: string; target?: '_self' | '_blank' }
   | null
 
@@ -24,12 +25,25 @@ type PostOption = {
   type: string
   locale: string
   status: string
+  url?: string // Resolved URL from server
 }
 
 function normalizeLinkValue(raw: any): LinkFieldValue {
   if (!raw) return null
   if (typeof raw === 'string') {
-    const url = raw.trim()
+    const trimmed = raw.trim()
+    // Check if it's a stringified JSON object (malformed case)
+    if (trimmed.startsWith('{') && trimmed.includes('"kind"')) {
+      try {
+        const parsed = JSON.parse(trimmed)
+        // Recursively normalize the parsed object
+        return normalizeLinkValue(parsed)
+      } catch {
+        // If parsing fails, treat as regular URL string
+      }
+    }
+    // Regular string URL
+    const url = trimmed
     return url ? { kind: 'url', url } : null
   }
   if (typeof raw === 'object') {
@@ -41,6 +55,7 @@ function normalizeLinkValue(raw: any): LinkFieldValue {
         postType: anyVal.postType ? String(anyVal.postType) : undefined,
         slug: anyVal.slug ? String(anyVal.slug) : undefined,
         locale: anyVal.locale ? String(anyVal.locale) : undefined,
+        url: anyVal.url ? String(anyVal.url) : undefined,
         target: anyVal.target === '_blank' ? '_blank' : '_self',
       }
     }
@@ -68,6 +83,7 @@ function normalizeLinkValue(raw: any): LinkFieldValue {
         postType: anyVal.postType ? String(anyVal.postType) : undefined,
         slug: anyVal.slug ? String(anyVal.slug) : undefined,
         locale: anyVal.locale ? String(anyVal.locale) : undefined,
+        url: anyVal.url ? String(anyVal.url) : undefined,
         target: anyVal.target === '_blank' ? '_blank' : '_self',
       }
     }
@@ -100,8 +116,53 @@ export const LinkField: React.FC<LinkFieldProps> = ({
   const [error, setError] = React.useState<string | null>(null)
   const [urlError, setUrlError] = React.useState<string | null>(null)
 
+  // Track previous normalized value to avoid unnecessary updates
+  const prevNormalizedValue = React.useRef<string | null>(null)
+
+  // Update link and mode when value prop changes (only if different)
   React.useEffect(() => {
-    onChange(link)
+    const normalized = normalizeLinkValue(value)
+    const normalizedStr = JSON.stringify(normalized)
+
+    // Only update if the normalized value is actually different
+    if (prevNormalizedValue.current !== normalizedStr) {
+      prevNormalizedValue.current = normalizedStr
+
+      if (normalized) {
+        setLink(normalized)
+        // Update mode based on normalized value
+        if (normalized.kind === 'url') {
+          setMode('url')
+        } else if (normalized.kind === 'post') {
+          setMode('post')
+        }
+      } else {
+        setLink(null)
+        // If value is cleared, default to post mode
+        setMode('post')
+      }
+    }
+  }, [value])
+
+  // Only call onChange when link changes from user interaction (not from prop sync)
+  // We use a ref to track if this is the initial mount
+  const isInitialMount = React.useRef(true)
+  React.useEffect(() => {
+    // Skip onChange on initial mount (value is already set)
+    if (isInitialMount.current) {
+      isInitialMount.current = false
+      return
+    }
+
+    // Compare current link with normalized value to see if this is a user change
+    const normalized = normalizeLinkValue(value)
+    const linkStr = JSON.stringify(link)
+    const normalizedStr = JSON.stringify(normalized)
+
+    // Only call onChange if link differs from the normalized value (user changed it)
+    if (linkStr !== normalizedStr) {
+      onChange(link)
+    }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [link])
 
@@ -110,42 +171,72 @@ export const LinkField: React.FC<LinkFieldProps> = ({
     let cancelled = false
     setLoading(true)
     setError(null)
-    ;(async () => {
-      try {
-        const params = new URLSearchParams()
-        params.set('status', 'published')
-        if (currentLocale) params.set('locale', currentLocale)
-        params.set('limit', '200')
-        const res = await fetch(`/api/posts?${params.toString()}`, {
-          credentials: 'same-origin',
-          headers: { Accept: 'application/json' },
-        })
-        if (!res.ok) {
-          throw new Error('Failed to load posts')
+      ; (async () => {
+        try {
+          // If we have a selected post, fetch it first to ensure it's in the list
+          const selectedPostId = link && link.kind === 'post' && link.postId ? String(link.postId) : ''
+
+          // Fetch posts list
+          const params = new URLSearchParams()
+          params.set('status', 'published')
+          if (currentLocale) params.set('locale', currentLocale)
+          params.set('limit', '200')
+
+          // If we have a selected post, also fetch it specifically (in case it's not published)
+          const fetchPromises = [
+            fetch(`/api/posts?${params.toString()}`, {
+              credentials: 'same-origin',
+              headers: { Accept: 'application/json' },
+            }),
+          ]
+
+          if (selectedPostId) {
+            fetchPromises.push(
+              fetch(`/api/posts?ids=${encodeURIComponent(selectedPostId)}`, {
+                credentials: 'same-origin',
+                headers: { Accept: 'application/json' },
+              })
+            )
+          }
+
+          const responses = await Promise.all(fetchPromises)
+          const results = await Promise.all(
+            responses.map((res) => {
+              if (!res.ok) return []
+              return res.json().catch(() => ({ data: [] }))
+            })
+          )
+
+          if (cancelled) return
+
+          // Combine all posts and deduplicate by id
+          const allPosts = results.flatMap((j: any) => Array.isArray(j?.data) ? j.data : [])
+          const uniquePosts = new Map<string, any>()
+          for (const p of allPosts) {
+            uniquePosts.set(String(p.id), p)
+          }
+
+          setPosts(
+            Array.from(uniquePosts.values()).map((p: any) => ({
+              id: String(p.id),
+              title: p.title || '(untitled)',
+              slug: p.slug,
+              type: p.type,
+              locale: p.locale,
+              status: p.status,
+              url: p.url, // Include resolved URL if available
+            }))
+          )
+        } catch (e) {
+          if (!cancelled) setError('Failed to load posts')
+        } finally {
+          if (!cancelled) setLoading(false)
         }
-        const j = await res.json().catch(() => null)
-        const list: any[] = Array.isArray(j?.data) ? j.data : []
-        if (cancelled) return
-        setPosts(
-          list.map((p: any) => ({
-            id: String(p.id),
-            title: p.title || '(untitled)',
-            slug: p.slug,
-            type: p.type,
-            locale: p.locale,
-            status: p.status,
-          }))
-        )
-      } catch (e) {
-        if (!cancelled) setError('Failed to load posts')
-      } finally {
-        if (!cancelled) setLoading(false)
-      }
-    })()
+      })()
     return () => {
       cancelled = true
     }
-  }, [mode, currentLocale])
+  }, [mode, currentLocale, link])
 
   const selectedPostId: string | '' =
     link && link.kind === 'post' && link.postId ? String(link.postId) : ''
@@ -181,14 +272,14 @@ export const LinkField: React.FC<LinkFieldProps> = ({
     query.trim().length === 0
       ? posts
       : posts.filter((p) => {
-          const needle = query.toLowerCase()
-          return (
-            (p.title || '').toLowerCase().includes(needle) ||
-            (p.slug || '').toLowerCase().includes(needle) ||
-            (p.type || '').toLowerCase().includes(needle) ||
-            (p.locale || '').toLowerCase().includes(needle)
-          )
-        })
+        const needle = query.toLowerCase()
+        return (
+          (p.title || '').toLowerCase().includes(needle) ||
+          (p.slug || '').toLowerCase().includes(needle) ||
+          (p.type || '').toLowerCase().includes(needle) ||
+          (p.locale || '').toLowerCase().includes(needle)
+        )
+      })
 
   return (
     <FormField>
@@ -262,9 +353,9 @@ export const LinkField: React.FC<LinkFieldProps> = ({
                     ? 'Loading…'
                     : selectedPostId
                       ? (() => {
-                          const p = posts.find((x) => x.id === selectedPostId)
-                          return p ? `${p.title} (${p.type}, ${p.locale})` : 'Select a post…'
-                        })()
+                        const p = posts.find((x) => x.id === selectedPostId)
+                        return p ? `${p.title} (${p.type}, ${p.locale})` : 'Select a post…'
+                      })()
                       : 'Select a post…'}
                 </button>
               </PopoverTrigger>
@@ -289,11 +380,10 @@ export const LinkField: React.FC<LinkFieldProps> = ({
                           <button
                             key={p.id}
                             type="button"
-                            className={`w-full text-left px-3 py-2 rounded border ${
-                              isSelected
+                            className={`w-full text-left px-3 py-2 rounded border ${isSelected
                                 ? 'border-standout-medium bg-standout-medium/5'
                                 : 'border-border'
-                            } hover:bg-backdrop-low`}
+                              } hover:bg-backdrop-low`}
                             onClick={() => {
                               setLink({
                                 kind: 'post',
@@ -301,6 +391,7 @@ export const LinkField: React.FC<LinkFieldProps> = ({
                                 postType: p.type,
                                 slug: p.slug,
                                 locale: p.locale,
+                                url: p.url, // Store the resolved URL if available
                               })
                             }}
                           >

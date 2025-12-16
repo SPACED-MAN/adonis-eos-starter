@@ -11,6 +11,7 @@ export type LinkValue =
       postType?: string
       slug?: string
       locale?: string
+      url?: string // Resolved URL path (from server)
       target?: '_self' | '_blank'
     }
   | { kind: 'url'; url: string; target?: '_self' | '_blank' }

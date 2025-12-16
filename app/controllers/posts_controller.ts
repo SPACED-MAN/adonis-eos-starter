@@ -277,12 +277,23 @@ export default class PostsController {
       })
     }
 
-    return response.ok({
-      data: rows.map((p: any) => {
+    // Resolve URLs for all posts in parallel
+    const postsWithUrls = await Promise.all(
+      rows.map(async (p: any) => {
         const baseId = p.translationOfId || p.id
         const familyLocales = withTranslations
           ? Array.from(baseIdToLocales?.get(baseId) || new Set<string>([p.locale]))
           : undefined
+        
+        // Resolve the post URL using the URL pattern service
+        let url: string | undefined
+        try {
+          url = await urlPatternService.buildPostPathForPost(p.id)
+        } catch {
+          // If URL resolution fails, leave it undefined
+          url = undefined
+        }
+        
         return {
           id: p.id,
           type: p.type,
@@ -297,8 +308,13 @@ export default class PostsController {
           translationOfId: p.translationOfId || null,
           familyLocales,
           hasReviewDraft: Boolean((p as any).reviewDraft || (p as any).review_draft),
+          url, // Include resolved URL path
         }
-      }),
+      })
+    )
+
+    return response.ok({
+      data: postsWithUrls,
       meta: {
         total,
         page,
