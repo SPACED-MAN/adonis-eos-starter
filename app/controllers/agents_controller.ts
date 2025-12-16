@@ -679,11 +679,6 @@ export default class AgentsController {
                   suggestedModule.props || {}
                 )
 
-                // Update module props based on view mode
-                    modulePropsColumn,
-                  }
-                )
-
                 // Update module instance props based on view mode
                 if (targetViewMode === 'source') {
                   // Source mode: update base props directly
