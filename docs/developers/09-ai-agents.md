@@ -11,7 +11,7 @@ Agents are file-based definitions that can:
 - Process and enhance content automatically using AI
 - Use MCP tools to interact with the CMS
 
-**Note**: Agents are now **internal-only** (AI-powered). For webhook-based automation (n8n, Slack notifications, etc.), use the [Workflows system](/docs/developers/workflows).
+**Note**: Agents are now **internal-only** (AI-powered). For webhook-based automation (n8n, Slack notifications, etc.), use the [Workflows system](10-workflows.md).
 
 ## Agent Types
 
@@ -378,7 +378,7 @@ This creates `app/agents/seo_optimizer.ts`.
 
 ### 2. Define Agent Configuration
 
-Agents are now internal-only (AI-powered). For webhook-based automation, see the [Workflows documentation](/docs/developers/workflows).
+Agents are now internal-only (AI-powered). For webhook-based automation, see the [Workflows documentation](10-workflows.md).
 
 ```typescript
 import type { AgentDefinition } from '#types/agent_types'
@@ -860,7 +860,7 @@ export default SeoAgent
 4. Review AI suggestions in Review mode
 5. Approve or edit before publishing
 
-**Note**: For n8n-based SEO optimization workflows, use the [Workflows system](/docs/developers/workflows) instead.
+**Note**: For n8n-based SEO optimization workflows, use the [Workflows system](10-workflows.md) instead.
 
 ## Best Practices
 
@@ -903,4 +903,4 @@ export default SeoAgent
 
 ---
 
-**Related**: [Workflows](/docs/developers/workflows) | [MCP (Model Context Protocol)](/docs/developers/mcp) | [API Reference](/docs/developers/api-reference)
+**Related**: [Workflows](10-workflows.md) | [MCP (Model Context Protocol)](10-mcp.md) | [API Reference](04-api-reference.md)

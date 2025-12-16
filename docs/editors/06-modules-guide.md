@@ -254,4 +254,4 @@ A: They're the same thing! "Module" and "block" are often used interchangeably.
 
 ---
 
-**Related**: [Content Management](/docs/for-editors/content-management) | [For Editors](/docs/for-editors)
+**Related**: [Content Management](01-content-management.md) | [For Editors](00-quick-start.md)

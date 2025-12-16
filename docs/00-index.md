@@ -6,13 +6,13 @@ Complete guide to using and developing with Adonis EOS — a modern, headless CM
 
 Perfect for non-technical users who create and manage content:
 
-- [For Editors](/docs/for-editors) - Get started with the CMS
-- [Creating & Managing Content](/docs/for-editors/content-management) - Posts, pages, and publishing
-- [Working with Modules](/docs/for-editors/modules-guide) - Building pages with content blocks
-- [Understanding Roles & Permissions](/docs/for-editors/roles-permissions) - Your access level
-- [Using the Review System](/docs/for-editors/review-workflow) - Collaboration and approval
-- [Managing Media](/docs/for-editors/media) - Uploading and organizing images
-- [Translations](/docs/for-editors/translations) - Multi-language content
+- [For Editors](editors/00-quick-start.md) - Get started with the CMS
+- [Creating & Managing Content](editors/01-content-management.md) - Posts, pages, and publishing
+- [Working with Modules](editors/06-modules-guide.md) - Building pages with content blocks
+- [Understanding Roles & Permissions](editors/02-roles-permissions.md) - Your access level
+- [Using the Review System](editors/03-review-workflow.md) - Collaboration and approval
+- [Managing Media](editors/04-media.md) - Uploading and organizing images
+- [Translations](editors/05-translations.md) - Multi-language content
 
 ## For Developers
 
@@ -20,26 +20,26 @@ Technical documentation for developers and system administrators:
 
 ### Getting Started
 
-- [Installation & Setup](/docs/for-developers) - Initial configuration
-- [Content Management Overview](/docs/for-developers/content-management-overview) - Understanding the content model
+- [Installation & Setup](developers/00-getting-started.md) - Initial configuration
+- [Content Management Overview](developers/01-content-management-overview.md) - Understanding the content model
 
 ### Core Concepts
 
-- [Theming System](/docs/for-developers/theming) - Customizing colors and design
-- [Building Modules](/docs/for-developers/building-modules) - Creating content components
-- [SEO & Routing](/docs/for-developers/seo-and-routing) - URL patterns, redirects, sitemap, and SEO
-- [Internationalization (i18n)](/docs/for-developers/internationalization) - Multi-language content
+- [Theming System](developers/02-theming.md) - Customizing colors and design
+- [Building Modules](developers/03-building-modules.md) - Creating content components
+- [SEO & Routing](developers/06-seo-and-routing.md) - URL patterns, redirects, sitemap, and SEO
+- [Internationalization (i18n)](developers/07-internationalization.md) - Multi-language content
 
 ### Advanced Features
 
-- [API Reference](/docs/for-developers/api-reference) - RESTful endpoints
-- [AI Agents](/docs/for-developers/ai-agents) - AI-powered content enhancement
-- [Workflows](/docs/for-developers/workflows) - Event-driven automation and webhook integrations
-- [MCP (Model Context Protocol)](/docs/for-developers/mcp) - Connect external AI tools (Cursor, n8n) to CMS context + safe write tools
-- [Deployment Guide](/docs/for-developers/deployment) - Production deployment strategies
-- [Update Philosophy](/docs/for-developers/update-philosophy) - How to approach upgrades and maintenance
-- [Export/Import](/docs/for-developers/export-import) - Database export/import pipeline (dev seeding + production promotion)
-- [CLI Commands](/docs/for-developers/cli-commands) - Code-first makers (post types, modules, roles, menus, taxonomies)
+- [API Reference](developers/04-api-reference.md) - RESTful endpoints
+- [AI Agents](developers/09-ai-agents.md) - AI-powered content enhancement
+- [Workflows](developers/10-workflows.md) - Event-driven automation and webhook integrations
+- [MCP (Model Context Protocol)](developers/10-mcp.md) - Connect external AI tools (Cursor, n8n) to CMS context + safe write tools
+- [Deployment Guide](developers/19-deployment.md) - Production deployment strategies
+- [Update Philosophy](developers/20-update-philosophy.md) - How to approach upgrades and maintenance
+- [Export/Import](developers/12-export-import.md) - Database export/import pipeline (dev seeding + production promotion)
+- [CLI Commands](developers/21-cli-commands.md) - Code-first makers (post types, modules, roles, menus, taxonomies)
 
 <!-- Coming Soon:
 - Post Types - Defining custom content types

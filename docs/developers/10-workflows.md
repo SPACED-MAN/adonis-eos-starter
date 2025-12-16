@@ -11,7 +11,7 @@ Workflows are file-based definitions that can:
 - Execute complex automation chains
 - Send notifications and alerts
 
-**Note**: Workflows are separate from [AI Agents](/docs/developers/ai-agents). Use workflows for webhook-based automation, and agents for AI-powered content enhancement.
+**Note**: Workflows are separate from [AI Agents](09-ai-agents.md). Use workflows for webhook-based automation, and agents for AI-powered content enhancement.
 
 ## When to Use Workflows vs Agents
 
@@ -615,4 +615,4 @@ The secret is sent as:
 
 ---
 
-**Related**: [AI Agents](/docs/developers/ai-agents) | [API Reference](/docs/developers/api-reference) | [Webhooks](/docs/developers/webhooks)
+**Related**: [AI Agents](09-ai-agents.md) | [API Reference](04-api-reference.md) | [Webhooks](05-webhooks.md)

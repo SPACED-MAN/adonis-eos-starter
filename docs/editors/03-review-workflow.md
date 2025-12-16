@@ -98,4 +98,4 @@ A: The dashboard shows review status for each post. Look for the "Review" badge.
 
 ---
 
-**Related**: [Content Management](/docs/for-editors/content-management) | [Roles & Permissions](/docs/for-editors/roles-permissions)
+**Related**: [Content Management](01-content-management.md) | [Roles & Permissions](02-roles-permissions.md)

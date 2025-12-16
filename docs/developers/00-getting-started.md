@@ -124,10 +124,10 @@ adonis-eos/
 
 ## Next Steps
 
-- [Content Management Overview](/docs/for-developers/content-management-overview) - Understanding the content model
-- [Theming](/docs/for-developers/theming) - Customize the design system
-- [Building Modules](/docs/for-developers/building-modules) - Create custom content modules
-- [API Reference](/docs/for-developers/api-reference) - Learn about available endpoints
-- [MCP (Model Context Protocol)](/docs/for-developers/mcp) - Connect external AI tools (Cursor, n8n) to CMS context + safe write tools
-- [Content Management](/docs/for-editors/content-management) - Managing posts and pages
-- [CLI Commands](/docs/for-developers/cli-commands) - Scaffold post types, modules, roles, menus, taxonomies
+- [Content Management Overview](01-content-management-overview.md) - Understanding the content model
+- [Theming](02-theming.md) - Customize the design system
+- [Building Modules](03-building-modules.md) - Create custom content modules
+- [API Reference](04-api-reference.md) - Learn about available endpoints
+- [MCP (Model Context Protocol)](10-mcp.md) - Connect external AI tools (Cursor, n8n) to CMS context + safe write tools
+- [Content Management](../editors/01-content-management.md) - Managing posts and pages
+- [CLI Commands](21-cli-commands.md) - Scaffold post types, modules, roles, menus, taxonomies

@@ -252,11 +252,11 @@ Always fill in:
 
 ### Managing Translations
 
-See [Internationalization guide](/docs/for-developers/internationalization) for full details.
+See [Internationalization guide](../developers/07-internationalization.md) for full details.
 
 ## Getting Help
 
-- Check [API Reference](/docs/for-developers/api-reference) for technical details
-- Review [Building Modules](/docs/for-developers/building-modules) for custom modules
+- Check [API Reference](../developers/04-api-reference.md) for technical details
+- Review [Building Modules](../developers/03-building-modules.md) for custom modules
 - Contact your administrator for permission issues
-- Refer to [Roles & Permissions](/docs/for-editors/roles-permissions) for access questions
+- Refer to [Roles & Permissions](02-roles-permissions.md) for access questions

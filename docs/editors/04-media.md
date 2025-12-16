@@ -164,4 +164,4 @@ A: This varies by configuration. Typically 10MB for images. Large files may be r
 
 ---
 
-**Related**: [Content Management](/docs/for-editors/content-management) | [Working with Modules](/docs/for-editors/modules-guide)
+**Related**: [Content Management](01-content-management.md) | [Working with Modules](06-modules-guide.md)

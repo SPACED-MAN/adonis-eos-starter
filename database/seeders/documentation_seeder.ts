@@ -21,9 +21,9 @@ export default class extends BaseSeeder {
   ): Promise<any> {
     // Store context for link transformation
     if (context) {
-      ;(this as any).currentFile = context.currentFile
-      ;(this as any).allFiles = context.allFiles
-      ;(this as any).postIdsBySlug = context.postIdsBySlug
+      ; (this as any).currentFile = context.currentFile
+        ; (this as any).allFiles = context.allFiles
+        ; (this as any).postIdsBySlug = context.postIdsBySlug
     }
 
     // Parse markdown tokens
@@ -321,11 +321,11 @@ export default class extends BaseSeeder {
           const originalHref = token.href
           const transformedHref = (this as any).transformLinkUrl
             ? (this as any).transformLinkUrl(
-                originalHref,
-                (this as any).currentFile,
-                (this as any).allFiles,
-                (this as any).postIdsBySlug
-              )
+              originalHref,
+              (this as any).currentFile,
+              (this as any).allFiles,
+              (this as any).postIdsBySlug
+            )
             : originalHref
 
           children.push({
@@ -440,48 +440,53 @@ export default class extends BaseSeeder {
     if (href.startsWith('/docs/for-developers')) {
       href = href.replace('/docs/for-developers', '/docs/developers')
     }
+    if (href.startsWith('/docs/for-editors')) {
+      href = href.replace('/docs/for-editors', '/docs/editors')
+    }
 
-    // Handle hierarchical paths like /docs/developers/theming
+    // Handle paths starting with /docs/
     if (href.startsWith('/docs/')) {
       // Extract the path parts
       const pathMatch = href.match(/^\/docs\/(.+)$/)
       if (pathMatch) {
-        const pathParts = pathMatch[1].split('/')
-        
-        // If it's a nested path (e.g., developers/theming), try to resolve the child slug
+        const pathParts = pathMatch[1].split('/').filter(Boolean)
+
+        // If it's a nested path (e.g., developers/theming)
         if (pathParts.length === 2) {
           const [parentSlug, childSlug] = pathParts
-          // Check if we have a hierarchical path for this child
+          // First, try to resolve the child slug directly (most accurate)
           if (slugToPath[childSlug]) {
             return slugToPath[childSlug]
           }
-          // Fallback: construct the path manually
+          // Fallback: construct the path manually if parent is valid
           if (parentSlug === 'developers' || parentSlug === 'editors') {
             return `/docs/${parentSlug}/${childSlug}`
           }
         }
-        
-        // If it's a single slug (e.g., /docs/developers), look it up
+
+        // If it's a single slug (e.g., /docs/theming or /docs/developers)
         if (pathParts.length === 1) {
           const slug = pathParts[0]
+          // Look up the hierarchical path for this slug
           if (slugToPath[slug]) {
             return slugToPath[slug]
           }
+          // If not found, it might be a parent slug (developers/editors)
+          // Return as-is since it's already a valid top-level path
+          return href
+        }
+
+        // If it's more than 2 parts, try to resolve the last part as a slug
+        if (pathParts.length > 2) {
+          const lastSlug = pathParts[pathParts.length - 1]
+          if (slugToPath[lastSlug]) {
+            return slugToPath[lastSlug]
+          }
         }
       }
-      
-      // If we can't resolve it hierarchically, return as-is (might be a valid path)
-      return href
-    }
 
-    // Try to resolve from slug-to-path mapping
-    // Extract slug from simple /docs/{slug} format
-    const slugMatch = href.match(/^\/docs\/([^/]+)$/)
-    if (slugMatch) {
-      const slug = slugMatch[1]
-      if (slugToPath[slug]) {
-        return slugToPath[slug]
-      }
+      // If we can't resolve it, return as-is (might be a valid path we don't know about)
+      return href
     }
 
     // Handle relative markdown paths (should have been transformed already, but handle just in case)
@@ -646,7 +651,7 @@ export default class extends BaseSeeder {
       for (const file of editorFiles.filter((f) => f.endsWith('.md'))) {
         allFiles.push({ file, path: join(editorsPath, file), dir: 'editors' })
       }
-    } catch {}
+    } catch { }
 
     // Read from docs/developers/
     try {
@@ -655,7 +660,7 @@ export default class extends BaseSeeder {
       for (const file of developerFiles.filter((f) => f.endsWith('.md'))) {
         allFiles.push({ file, path: join(developersPath, file), dir: 'developers' })
       }
-    } catch {}
+    } catch { }
 
     // Sort by directory (root first) then by filename
     allFiles.sort((a, b) => {

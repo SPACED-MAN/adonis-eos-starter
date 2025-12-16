@@ -17,13 +17,13 @@ There are three complementary AI/automation integration mechanisms in Adonis EOS
   - Agents are **internal-only** (AI-powered) and run directly in your application.
   - They use MCP tools internally to interact with the CMS.
   - Their output is applied into **AI Review** (or similar staging mode) for human approval.
-  - See [AI Agents documentation](/docs/developers/ai-agents) for details.
+  - See [AI Agents documentation](09-ai-agents.md) for details.
 
 - **`app/workflows/*` (Workflows)**:
   - Event-driven automation system for webhook-based integrations.
   - Used for n8n workflows, Slack notifications, and other external service triggers.
   - Triggered automatically on events (post.published, form.submit, etc.).
-  - See [Workflows documentation](/docs/developers/workflows) for details.
+  - See [Workflows documentation](10-workflows.md) for details.
 
 - **MCP Server (this document)**:
   - Used by external LLM runtimes (Cursor, n8n AI Agent, custom services) to **read context** and perform **safe writes**.
@@ -125,7 +125,7 @@ This is the best fit for “open-ended request → draft content → stage chang
 
 This is the best fit for "event occurs → workflow executes → automation/notification happens".
 
-**Note**: For AI-powered content enhancement that needs to return suggestions, use [AI Agents](/docs/developers/ai-agents) instead. Workflows are for automation and integrations.
+**Note**: For AI-powered content enhancement that needs to return suggestions, use [AI Agents](09-ai-agents.md) instead. Workflows are for automation and integrations.
 
 ### Custom services (Node/Python/etc.)
 

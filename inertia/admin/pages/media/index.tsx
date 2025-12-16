@@ -539,7 +539,7 @@ export default function MediaIndex() {
             const arr = Array.isArray(j?.data) ? j.data : []
             if (arr.length > 0) duplicateId = arr[0].id
           }
-        } catch {}
+        } catch { }
 
         if (duplicateId) {
           // ShadCN dialog prompt

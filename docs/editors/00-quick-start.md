@@ -77,10 +77,10 @@ Depending on your role, you'll have different publishing options:
 
 ## Need Help?
 
-- Check the [Content Management Guide](/docs/for-editors/content-management) for detailed instructions
-- Learn about [Roles & Permissions](/docs/for-editors/roles-permissions) to understand your access level
-- Explore [Working with Modules](/docs/for-editors/modules-guide) for tips on each content type
+- Check the [Content Management Guide](01-content-management.md) for detailed instructions
+- Learn about [Roles & Permissions](02-roles-permissions.md) to understand your access level
+- Explore [Working with Modules](06-modules-guide.md) for tips on each content type
 
 ---
 
-**Next Steps**: [Content Management Guide](/docs/for-editors/content-management)
+**Next Steps**: [Content Management Guide](01-content-management.md)
