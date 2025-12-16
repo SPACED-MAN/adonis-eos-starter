@@ -122,4 +122,48 @@ export default await Env.create(new URL('../', import.meta.url), {
   */
   CMS_SCHEDULER_DEV_INTERVAL: Env.schema.number.optional(),
   CMS_SCHEDULER_PROD_INTERVAL: Env.schema.number.optional(),
+
+  /*
+  |----------------------------------------------------------
+  | Storage (Cloudflare R2 or Local)
+  |----------------------------------------------------------
+  */
+  STORAGE_DRIVER: Env.schema.string.optional(),
+  R2_ACCOUNT_ID: Env.schema.string.optional(),
+  R2_ENDPOINT: Env.schema.string.optional(),
+  R2_BUCKET: Env.schema.string.optional(),
+  R2_ACCESS_KEY_ID: Env.schema.string.optional(),
+  R2_SECRET_ACCESS_KEY: Env.schema.string.optional(),
+  R2_PUBLIC_BASE_URL: Env.schema.string.optional(),
+
+  /*
+  |----------------------------------------------------------
+  | AI Provider API Keys
+  |----------------------------------------------------------
+  */
+  AI_PROVIDER_OPENAI_API_KEY: Env.schema.string.optional(),
+  AI_PROVIDER_ANTHROPIC_API_KEY: Env.schema.string.optional(),
+  AI_PROVIDER_GOOGLE_API_KEY: Env.schema.string.optional(),
+  AI_PROVIDER_NANOBANANA_API_KEY: Env.schema.string.optional(),
+
+  /*
+  |----------------------------------------------------------
+  | MCP System User
+  |----------------------------------------------------------
+  */
+  MCP_SYSTEM_USER_ID: Env.schema.number.optional(),
+
+  /*
+  |----------------------------------------------------------
+  | CORS Configuration
+  |----------------------------------------------------------
+  */
+  CORS_ORIGINS: Env.schema.string.optional(),
+
+  /*
+  |----------------------------------------------------------
+  | CSP Configuration
+  |----------------------------------------------------------
+  */
+  CSP_CDN_DOMAINS: Env.schema.string.optional(),
 })

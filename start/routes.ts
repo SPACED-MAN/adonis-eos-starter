@@ -38,8 +38,14 @@ router.get('/public/media/:id', [MediaController, 'showPublic'])
  * Auth routes (admin)
  */
 const AuthController = () => import('#controllers/auth_controller')
-router.get('/admin/login', [AuthController, 'showLogin']).use(middleware.guest())
-router.post('/admin/login', [AuthController, 'login']).use(middleware.guest())
+router
+  .get('/admin/login', [AuthController, 'showLogin'])
+  .use(middleware.guest())
+  .use(middleware.rateLimitAuth())
+router
+  .post('/admin/login', [AuthController, 'login'])
+  .use(middleware.guest())
+  .use(middleware.rateLimitAuth())
 router.post('/admin/logout', [AuthController, 'logout']).use(middleware.auth())
 
 /**
@@ -551,7 +557,9 @@ router
  * Protected content access
  */
 router.get('/protected', [ProtectedAccessController, 'showForm'])
-router.post('/protected/login', [ProtectedAccessController, 'login'])
+router
+  .post('/protected/login', [ProtectedAccessController, 'login'])
+  .use(middleware.rateLimitAuth())
 
 // Graceful forbidden page for non-admins
 router
@@ -559,6 +567,17 @@ router
     return inertia.render('admin/errors/forbidden')
   })
   .use(middleware.auth())
+
+/**
+ * Health check endpoint (for load balancers and monitoring)
+ */
+router.get('/health', async ({ response }) => {
+  return response.ok({
+    status: 'ok',
+    timestamp: new Date().toISOString(),
+    uptime: process.uptime(),
+  })
+})
 
 /**
  * robots.txt

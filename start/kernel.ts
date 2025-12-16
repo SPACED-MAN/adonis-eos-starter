@@ -59,4 +59,12 @@ export const middleware = router.named({
   auth: () => import('#middleware/auth_middleware'),
   admin: () => import('#middleware/admin_middleware'),
   rateLimit: () => import('#middleware/rate_limit_middleware'),
+  rateLimitAuth: async () => {
+    const { rateLimitAuth } = await import('#middleware/rate_limit_middleware')
+    return rateLimitAuth()
+  },
+  rateLimitApi: async () => {
+    const { rateLimitApi } = await import('#middleware/rate_limit_middleware')
+    return rateLimitApi()
+  },
 })
