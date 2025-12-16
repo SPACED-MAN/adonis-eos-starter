@@ -25,11 +25,11 @@ const shieldConfig = defineConfig({
         // Add CDN domains if using external script CDN
         ...(env.get('CSP_CDN_DOMAINS', '')
           ? env
-              .get('CSP_CDN_DOMAINS', '')
-              .split(',')
-              .map((d) => d.trim())
-              .filter(Boolean)
-              .map((d) => (d.startsWith('http') ? d : `https://${d}`))
+            .get('CSP_CDN_DOMAINS', '')
+            .split(',')
+            .map((d) => d.trim())
+            .filter(Boolean)
+            .map((d) => (d.startsWith('http') ? d : `https://${d}`))
           : []),
       ],
       styleSrc: [
@@ -38,11 +38,11 @@ const shieldConfig = defineConfig({
         'https://fonts.bunny.net', // Web fonts
         ...(env.get('CSP_CDN_DOMAINS', '')
           ? env
-              .get('CSP_CDN_DOMAINS', '')
-              .split(',')
-              .map((d) => d.trim())
-              .filter(Boolean)
-              .map((d) => (d.startsWith('http') ? d : `https://${d}`))
+            .get('CSP_CDN_DOMAINS', '')
+            .split(',')
+            .map((d) => d.trim())
+            .filter(Boolean)
+            .map((d) => (d.startsWith('http') ? d : `https://${d}`))
           : []),
       ],
       fontSrc: [
@@ -59,11 +59,11 @@ const shieldConfig = defineConfig({
           : []),
         ...(env.get('CSP_CDN_DOMAINS', '')
           ? env
-              .get('CSP_CDN_DOMAINS', '')
-              .split(',')
-              .map((d) => d.trim())
-              .filter(Boolean)
-              .map((d) => (d.startsWith('http') ? d : `https://${d}`))
+            .get('CSP_CDN_DOMAINS', '')
+            .split(',')
+            .map((d) => d.trim())
+            .filter(Boolean)
+            .map((d) => (d.startsWith('http') ? d : `https://${d}`))
           : []),
       ],
       connectSrc: [
