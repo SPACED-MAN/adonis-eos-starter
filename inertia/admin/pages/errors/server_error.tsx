@@ -17,21 +17,15 @@ export default function ServerError({ error }: ServerErrorProps) {
       <div className="max-w-2xl w-full">
         <div className="bg-backdrop-low rounded-lg p-8 border border-line-low">
           <div className="mb-6">
-            <h1 className="text-4xl font-bold text-error mb-2">
-              Server Error
-            </h1>
-            <h2 className="text-xl text-neutral-medium mb-4">
-              Something went wrong on our end
-            </h2>
+            <h1 className="text-4xl font-bold text-error mb-2">Server Error</h1>
+            <h2 className="text-xl text-neutral-medium mb-4">Something went wrong on our end</h2>
             <p className="text-neutral-low mb-4">
               We're sorry, but the server encountered an error while processing your request.
             </p>
           </div>
 
           <div className="bg-[color:#fef2f2] border border-error rounded-lg p-4 mb-6">
-            <p className="text-sm font-mono text-error break-words">
-              {error.message}
-            </p>
+            <p className="text-sm font-mono text-error break-words">{error.message}</p>
           </div>
 
           {isDevelopment && error.stack && (
@@ -64,4 +58,3 @@ export default function ServerError({ error }: ServerErrorProps) {
     </div>
   )
 }
-

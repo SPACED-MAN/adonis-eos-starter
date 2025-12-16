@@ -6,4 +6,3 @@ declare module 'zod' {
   const _default: any
   export default _default
 }
-

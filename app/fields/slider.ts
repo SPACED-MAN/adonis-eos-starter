@@ -21,5 +21,3 @@ const sliderField: FieldTypeConfig = {
 fieldTypeRegistry.register(sliderField)
 
 export default sliderField
-
-

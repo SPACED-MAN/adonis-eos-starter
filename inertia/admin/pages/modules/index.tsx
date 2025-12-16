@@ -5,11 +5,33 @@ import { toast } from 'sonner'
 import { usePage } from '@inertiajs/react'
 import { FormField, FormLabel } from '../../../components/forms/field'
 import { Input } from '../../../components/ui/input'
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '../../../components/ui/select'
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '../../../components/ui/select'
 import { ModuleEditorPanel, type ModuleListItem } from '../../components/modules/ModuleEditorPanel'
-import { AlertDialog, AlertDialogContent, AlertDialogHeader, AlertDialogTitle, AlertDialogFooter, AlertDialogCancel, AlertDialogAction, AlertDialogDescription } from '../../../components/ui/alert-dialog'
+import {
+  AlertDialog,
+  AlertDialogContent,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  AlertDialogFooter,
+  AlertDialogCancel,
+  AlertDialogAction,
+  AlertDialogDescription,
+} from '../../../components/ui/alert-dialog'
 import { ModulePicker } from '../../components/modules/ModulePicker'
-import { DndContext, closestCenter, PointerSensor, useSensor, useSensors, DragEndEvent } from '@dnd-kit/core'
+import {
+  DndContext,
+  closestCenter,
+  PointerSensor,
+  useSensor,
+  useSensors,
+  DragEndEvent,
+} from '@dnd-kit/core'
 import { SortableContext, useSortable, verticalListSortingStrategy } from '@dnd-kit/sortable'
 import { CSS } from '@dnd-kit/utilities'
 import { Globe } from 'lucide-react'
@@ -26,7 +48,14 @@ type GlobalModuleItem = {
   usageCount: number
 }
 
-type ModuleGroup = { id: string; name: string; post_type: string; description?: string | null; locked?: boolean; updated_at?: string }
+type ModuleGroup = {
+  id: string
+  name: string
+  post_type: string
+  description?: string | null
+  locked?: boolean
+  updated_at?: string
+}
 type ModuleGroupModule = {
   id: string
   type: string
@@ -66,7 +95,10 @@ export default function GlobalModulesIndex() {
   const [groups, setGroups] = useState<ModuleGroup[]>([])
   const [groupsQuery, setGroupsQuery] = useState('')
   const [groupTypeFilter, setGroupTypeFilter] = useState('')
-  const [groupCreateForm, setGroupCreateForm] = useState<{ name: string; postType: string }>({ name: '', postType: '' })
+  const [groupCreateForm, setGroupCreateForm] = useState<{ name: string; postType: string }>({
+    name: '',
+    postType: '',
+  })
   const [groupCreating, setGroupCreating] = useState(false)
   const [groupLoading, setGroupLoading] = useState(false)
   const [postTypes, setPostTypes] = useState<string[]>([])
@@ -76,7 +108,9 @@ export default function GlobalModulesIndex() {
   const [groupDirty, setGroupDirty] = useState(false)
   const [groupEditorLoading, setGroupEditorLoading] = useState(false)
   const [groupSaving, setGroupSaving] = useState(false)
-  const [groupRegistry, setGroupRegistry] = useState<Array<{ type: string; name: string; renderingMode?: 'static' | 'react' }>>([])
+  const [groupRegistry, setGroupRegistry] = useState<
+    Array<{ type: string; name: string; renderingMode?: 'static' | 'react' }>
+  >([])
   const [pendingEditSlug, setPendingEditSlug] = useState<string | null>(null)
   const sensors = useSensors(useSensor(PointerSensor))
 
@@ -124,13 +158,17 @@ export default function GlobalModulesIndex() {
       const gJ = await gRes.json().catch(() => ({}))
       const regJ = await regRes.json().catch(() => ({}))
       setGlobals(Array.isArray(gJ?.data) ? gJ.data : [])
-      const types = Array.isArray(regJ?.data) ? (regJ.data as any[]).map((m) => m.type).filter(Boolean) : []
+      const types = Array.isArray(regJ?.data)
+        ? (regJ.data as any[]).map((m) => m.type).filter(Boolean)
+        : []
       setRegistryTypes(Array.from(new Set(types)).sort((a, b) => a.localeCompare(b)))
     } finally {
       setLoading(false)
     }
   }
-  useEffect(() => { load() }, [q, typeFilter])
+  useEffect(() => {
+    load()
+  }, [q, typeFilter])
   useEffect(() => {
     if (typeof window === 'undefined') return
     const params = new URLSearchParams(window.location.search)
@@ -160,7 +198,8 @@ export default function GlobalModulesIndex() {
   const groupFiltered = useMemo(() => {
     const query = groupsQuery.trim().toLowerCase()
     return groups.filter((g) => {
-      const matchesQ = !query || g.name.toLowerCase().includes(query) || g.post_type.toLowerCase().includes(query)
+      const matchesQ =
+        !query || g.name.toLowerCase().includes(query) || g.post_type.toLowerCase().includes(query)
       const matchesType = !groupTypeFilter || g.post_type === groupTypeFilter
       return matchesQ && matchesType
     })
@@ -175,7 +214,11 @@ export default function GlobalModulesIndex() {
     try {
       const res = await fetch('/api/modules/global', {
         method: 'POST',
-        headers: { 'Accept': 'application/json', 'Content-Type': 'application/json', ...(xsrfToken ? { 'X-XSRF-TOKEN': xsrfToken } : {}) },
+        headers: {
+          'Accept': 'application/json',
+          'Content-Type': 'application/json',
+          ...(xsrfToken ? { 'X-XSRF-TOKEN': xsrfToken } : {}),
+        },
         credentials: 'same-origin',
         body: JSON.stringify({ type: newType, globalSlug: newSlug, label: newLabel || undefined }),
       })
@@ -222,7 +265,7 @@ export default function GlobalModulesIndex() {
       const res = await fetch('/api/module-groups', {
         method: 'POST',
         headers: {
-          Accept: 'application/json',
+          'Accept': 'application/json',
           'Content-Type': 'application/json',
           ...(xsrfToken ? { 'X-XSRF-TOKEN': xsrfToken } : {}),
         },
@@ -279,8 +322,12 @@ export default function GlobalModulesIndex() {
     setGroupEditorLoading(true)
     try {
       const [modsRes, regRes, globalsRes] = await Promise.all([
-        fetch(`/api/module-groups/${encodeURIComponent(group.id)}/modules`, { credentials: 'same-origin' }),
-        fetch(`/api/modules/registry?post_type=${encodeURIComponent(group.post_type)}`, { credentials: 'same-origin' }),
+        fetch(`/api/module-groups/${encodeURIComponent(group.id)}/modules`, {
+          credentials: 'same-origin',
+        }),
+        fetch(`/api/modules/registry?post_type=${encodeURIComponent(group.post_type)}`, {
+          credentials: 'same-origin',
+        }),
         fetch('/api/modules/global', { credentials: 'same-origin' }),
       ])
       const modsJson = await modsRes.json().catch(() => ({}))
@@ -291,7 +338,11 @@ export default function GlobalModulesIndex() {
       setGroupDraft(loaded)
       setGroupDirty(false)
       const regList = Array.isArray(regJson?.data)
-        ? regJson.data.map((m: any) => ({ type: m.type, name: m.name || m.type, renderingMode: m.renderingMode }))
+        ? regJson.data.map((m: any) => ({
+            type: m.type,
+            name: m.name || m.type,
+            renderingMode: m.renderingMode,
+          }))
         : []
       setGroupRegistry(regList)
       // keep existing globals list for labels; reuse loaded globals
@@ -312,7 +363,10 @@ export default function GlobalModulesIndex() {
     disabled?: boolean
     children: (listeners: any, attributes: any) => React.ReactNode
   }) {
-    const { attributes, listeners, setNodeRef, transform, transition } = useSortable({ id, disabled: !!disabled })
+    const { attributes, listeners, setNodeRef, transform, transition } = useSortable({
+      id,
+      disabled: !!disabled,
+    })
     const style = { transform: CSS.Transform.toString(transform), transition }
     const attrs = disabled ? {} : attributes
     const ls = disabled ? {} : listeners
@@ -375,7 +429,7 @@ export default function GlobalModulesIndex() {
       order_index: groupDraft.length,
       locked: false,
       scope,
-      global_slug: scope === 'global' ? (globalSlug || null) : null,
+      global_slug: scope === 'global' ? globalSlug || null : null,
     }
     setGroupDraft((prev) => [...prev, next])
     setGroupDirty(true)
@@ -416,7 +470,7 @@ export default function GlobalModulesIndex() {
           fetch(`/api/module-groups/${encodeURIComponent(selectedGroup.id)}/modules`, {
             method: 'POST',
             headers: {
-              Accept: 'application/json',
+              'Accept': 'application/json',
               'Content-Type': 'application/json',
               ...(xsrfToken ? { 'X-XSRF-TOKEN': xsrfToken } : {}),
             },
@@ -426,7 +480,7 @@ export default function GlobalModulesIndex() {
               defaultProps: m.default_props || {},
               locked: !!m.locked,
               scope: m.scope || 'post',
-              globalSlug: m.scope === 'global' ? (m.global_slug || null) : null,
+              globalSlug: m.scope === 'global' ? m.global_slug || null : null,
             }),
           })
         )
@@ -437,7 +491,7 @@ export default function GlobalModulesIndex() {
           fetch(`/api/module-groups/modules/${encodeURIComponent(m.id)}`, {
             method: 'PUT',
             headers: {
-              Accept: 'application/json',
+              'Accept': 'application/json',
               'Content-Type': 'application/json',
               ...(xsrfToken ? { 'X-XSRF-TOKEN': xsrfToken } : {}),
             },
@@ -491,15 +545,28 @@ export default function GlobalModulesIndex() {
               <div className="flex items-end gap-3">
                 <FormField className="flex-1">
                   <FormLabel>Search (slug)</FormLabel>
-                  <Input value={q} onChange={(e) => setQ(e.target.value)} placeholder="Search by slug..." />
+                  <Input
+                    value={q}
+                    onChange={(e) => setQ(e.target.value)}
+                    placeholder="Search by slug..."
+                  />
                 </FormField>
                 <FormField>
                   <FormLabel>Type</FormLabel>
-                  <Select value={typeFilter || undefined} onValueChange={(v) => setTypeFilter(v === '__all__' ? '' : v)}>
-                    <SelectTrigger className="w-48"><SelectValue placeholder="All types" /></SelectTrigger>
+                  <Select
+                    value={typeFilter || undefined}
+                    onValueChange={(v) => setTypeFilter(v === '__all__' ? '' : v)}
+                  >
+                    <SelectTrigger className="w-48">
+                      <SelectValue placeholder="All types" />
+                    </SelectTrigger>
                     <SelectContent>
                       <SelectItem value="__all__">All</SelectItem>
-                      {availableTypes.map((t) => <SelectItem key={t} value={t}>{t}</SelectItem>)}
+                      {availableTypes.map((t) => (
+                        <SelectItem key={t} value={t}>
+                          {t}
+                        </SelectItem>
+                      ))}
                     </SelectContent>
                   </Select>
                 </FormField>
@@ -532,27 +599,42 @@ export default function GlobalModulesIndex() {
                     </thead>
                     <tbody>
                       {globals.length === 0 ? (
-                        <tr><td className="px-3 py-3 text-xs text-neutral-low" colSpan={6}>{loading ? 'Loading…' : 'No global modules.'}</td></tr>
-                      ) : globals.map((m) => (
-                        <tr key={m.id} className="border-b border-line-low">
-                          <td className="px-3 py-2">{(m as any).label || '-'}</td>
-                          <td className="px-3 py-2">{m.globalSlug || '-'}</td>
-                          <td className="px-3 py-2">{m.type}</td>
-                          <td className="px-3 py-2">{new Date(m.updatedAt).toLocaleString()}</td>
-                          <td className="px-3 py-2">{m.usageCount}</td>
-                          <td className="px-3 py-2">
-                            <div className="flex items-center justify-end gap-2">
-                              <button className="px-2 py-1 text-xs border border-line-medium rounded hover:bg-backdrop-medium" onClick={() => setEditing(m)}>Edit</button>
-                              <button className="px-2 py-1 text-xs border border-line-medium rounded hover:bg-backdrop-medium disabled:opacity-50"
-                                disabled={m.usageCount > 0}
-                                onClick={() => deleteGlobal(m.id)}
-                                title={m.usageCount > 0 ? 'Cannot delete while referenced' : 'Delete'}>
-                                Delete
-                              </button>
-                            </div>
+                        <tr>
+                          <td className="px-3 py-3 text-xs text-neutral-low" colSpan={6}>
+                            {loading ? 'Loading…' : 'No global modules.'}
                           </td>
                         </tr>
-                      ))}
+                      ) : (
+                        globals.map((m) => (
+                          <tr key={m.id} className="border-b border-line-low">
+                            <td className="px-3 py-2">{(m as any).label || '-'}</td>
+                            <td className="px-3 py-2">{m.globalSlug || '-'}</td>
+                            <td className="px-3 py-2">{m.type}</td>
+                            <td className="px-3 py-2">{new Date(m.updatedAt).toLocaleString()}</td>
+                            <td className="px-3 py-2">{m.usageCount}</td>
+                            <td className="px-3 py-2">
+                              <div className="flex items-center justify-end gap-2">
+                                <button
+                                  className="px-2 py-1 text-xs border border-line-medium rounded hover:bg-backdrop-medium"
+                                  onClick={() => setEditing(m)}
+                                >
+                                  Edit
+                                </button>
+                                <button
+                                  className="px-2 py-1 text-xs border border-line-medium rounded hover:bg-backdrop-medium disabled:opacity-50"
+                                  disabled={m.usageCount > 0}
+                                  onClick={() => deleteGlobal(m.id)}
+                                  title={
+                                    m.usageCount > 0 ? 'Cannot delete while referenced' : 'Delete'
+                                  }
+                                >
+                                  Delete
+                                </button>
+                              </div>
+                            </td>
+                          </tr>
+                        ))
+                      )}
                     </tbody>
                   </table>
                 </div>
@@ -564,7 +646,10 @@ export default function GlobalModulesIndex() {
                     <AlertDialogContent className="w-full max-w-lg">
                       <AlertDialogHeader>
                         <AlertDialogTitle>Create Global Module</AlertDialogTitle>
-                        <AlertDialogDescription>Pick a base module type and a unique slug to create a reusable Global module.</AlertDialogDescription>
+                        <AlertDialogDescription>
+                          Pick a base module type and a unique slug to create a reusable Global
+                          module.
+                        </AlertDialogDescription>
                       </AlertDialogHeader>
                       <div className="space-y-4 mt-3">
                         <div>
@@ -589,19 +674,32 @@ export default function GlobalModulesIndex() {
                           />
                         </div>
                         <div>
-                          <label className="block text-xs text-neutral-medium mb-1">Base type</label>
+                          <label className="block text-xs text-neutral-medium mb-1">
+                            Base type
+                          </label>
                           <Select value={newType} onValueChange={setNewType}>
-                            <SelectTrigger className="w-full"><SelectValue placeholder="Choose base type" /></SelectTrigger>
+                            <SelectTrigger className="w-full">
+                              <SelectValue placeholder="Choose base type" />
+                            </SelectTrigger>
                             <SelectContent>
-                              {availableTypes.map((t) => <SelectItem key={t} value={t}>{t}</SelectItem>)}
+                              {availableTypes.map((t) => (
+                                <SelectItem key={t} value={t}>
+                                  {t}
+                                </SelectItem>
+                              ))}
                             </SelectContent>
                           </Select>
                         </div>
                         <div>
-                          <label className="block text-xs text-neutral-medium mb-1">Global slug</label>
+                          <label className="block text-xs text-neutral-medium mb-1">
+                            Global slug
+                          </label>
                           <Input
                             value={newSlug}
-                            onChange={(e) => { setNewSlug(e.target.value); setSlugTouched(true) }}
+                            onChange={(e) => {
+                              setNewSlug(e.target.value)
+                              setSlugTouched(true)
+                            }}
                             placeholder="unique-slug"
                           />
                         </div>
@@ -649,7 +747,9 @@ export default function GlobalModulesIndex() {
                       <SelectContent>
                         <SelectItem value="__all__">All</SelectItem>
                         {postTypes.map((t) => (
-                          <SelectItem key={t} value={t}>{labelize(t)}</SelectItem>
+                          <SelectItem key={t} value={t}>
+                            {labelize(t)}
+                          </SelectItem>
                         ))}
                       </SelectContent>
                     </Select>
@@ -672,7 +772,9 @@ export default function GlobalModulesIndex() {
                       </SelectTrigger>
                       <SelectContent>
                         {postTypes.map((t) => (
-                          <SelectItem key={t} value={t}>{labelize(t)}</SelectItem>
+                          <SelectItem key={t} value={t}>
+                            {labelize(t)}
+                          </SelectItem>
                         ))}
                       </SelectContent>
                     </Select>
@@ -680,7 +782,11 @@ export default function GlobalModulesIndex() {
                   {isAdmin && (
                     <button
                       onClick={createGroup}
-                      disabled={groupCreating || !groupCreateForm.name.trim() || !groupCreateForm.postType.trim()}
+                      disabled={
+                        groupCreating ||
+                        !groupCreateForm.name.trim() ||
+                        !groupCreateForm.postType.trim()
+                      }
                       className="px-3 py-2 text-sm rounded bg-standout-medium text-on-standout disabled:opacity-50"
                     >
                       {groupCreating ? 'Creating…' : 'Create Group'}
@@ -734,7 +840,9 @@ export default function GlobalModulesIndex() {
                       <h3 className="text-lg font-semibold text-neutral-high">
                         {selectedGroup.name}
                       </h3>
-                      <p className="text-xs text-neutral-low">{labelize(selectedGroup.post_type)}</p>
+                      <p className="text-xs text-neutral-low">
+                        {labelize(selectedGroup.post_type)}
+                      </p>
                     </div>
                     <div className="flex items-center gap-2">
                       <button
@@ -759,7 +867,11 @@ export default function GlobalModulesIndex() {
                         postType={selectedGroup.post_type}
                         buttonLabel="Add module"
                         onAdd={async ({ type, scope, globalSlug }) => {
-                          await addGroupModule(type, scope === 'global' ? 'global' : 'post', globalSlug || null)
+                          await addGroupModule(
+                            type,
+                            scope === 'global' ? 'global' : 'post',
+                            globalSlug || null
+                          )
                         }}
                       />
                     </div>
@@ -768,10 +880,19 @@ export default function GlobalModulesIndex() {
                   {groupEditorLoading ? (
                     <div className="text-sm text-neutral-low">Loading group modules…</div>
                   ) : groupOrdered.length === 0 ? (
-                    <div className="text-sm text-neutral-low">No modules yet. Click “Add module”.</div>
+                    <div className="text-sm text-neutral-low">
+                      No modules yet. Click “Add module”.
+                    </div>
                   ) : (
-                    <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={onGroupDragEnd}>
-                      <SortableContext items={groupOrderedIds} strategy={verticalListSortingStrategy}>
+                    <DndContext
+                      sensors={sensors}
+                      collisionDetection={closestCenter}
+                      onDragEnd={onGroupDragEnd}
+                    >
+                      <SortableContext
+                        items={groupOrderedIds}
+                        strategy={verticalListSortingStrategy}
+                      >
                         <ul className="space-y-3">
                           {groupOrdered.map((m) => (
                             <SortableItem key={m.id} id={m.id} disabled={m.locked}>
@@ -789,25 +910,33 @@ export default function GlobalModulesIndex() {
                                     <div>
                                       <div className="text-sm font-medium text-neutral-high flex items-center gap-1">
                                         {m.scope === 'global'
-                                          ? (slugToLabel.get(String(m.global_slug || '')) || String(m.global_slug || ''))
-                                          : (groupRegistry.find((r) => r.type === m.type)?.name || m.type)}
+                                          ? slugToLabel.get(String(m.global_slug || '')) ||
+                                            String(m.global_slug || '')
+                                          : groupRegistry.find((r) => r.type === m.type)?.name ||
+                                            m.type}
                                       </div>
                                       <div className="text-xs text-neutral-low">
-                                        {m.scope === 'global'
-                                          ? <>Global · {String(m.global_slug || '')}</>
-                                          : m.type}{' '}
+                                        {m.scope === 'global' ? (
+                                          <>Global · {String(m.global_slug || '')}</>
+                                        ) : (
+                                          m.type
+                                        )}{' '}
                                         · Order: {m.order_index} {m.locked ? '• Locked' : ''}
                                       </div>
                                     </div>
                                   </div>
                                   <div className="flex items-center gap-2">
-                                    {groupRegistry.find((r) => r.type === m.type)?.renderingMode === 'react' && (
+                                    {groupRegistry.find((r) => r.type === m.type)?.renderingMode ===
+                                      'react' && (
                                       <span
                                         className="inline-flex items-center rounded border border-line-medium bg-backdrop-low px-2 py-1 text-xs text-neutral-high"
                                         title="React module (client-side interactivity)"
                                         aria-label="React module"
                                       >
-                                        <FontAwesomeIcon icon={faReact} className="mr-1 text-sky-400" />
+                                        <FontAwesomeIcon
+                                          icon={faReact}
+                                          className="mr-1 text-sky-400"
+                                        />
                                         React
                                       </span>
                                     )}
@@ -859,22 +988,28 @@ export default function GlobalModulesIndex() {
       {editing && (
         <ModuleEditorPanel
           open={true}
-          moduleItem={{
-            id: editing.id,
-            type: editing.type,
-            scope: 'global',
-            props: editing.props || {},
-            overrides: null,
-            locked: false,
-            orderIndex: 0,
-          } as ModuleListItem}
+          moduleItem={
+            {
+              id: editing.id,
+              type: editing.type,
+              scope: 'global',
+              props: editing.props || {},
+              overrides: null,
+              locked: false,
+              orderIndex: 0,
+            } as ModuleListItem
+          }
           processing={false}
           onClose={() => setEditing(null)}
           onSave={async (_overrides, edited) => {
             try {
               const res = await fetch(`/api/modules/global/${encodeURIComponent(editing.id)}`, {
                 method: 'PUT',
-                headers: { 'Accept': 'application/json', 'Content-Type': 'application/json', ...(xsrfToken ? { 'X-XSRF-TOKEN': xsrfToken } : {}) },
+                headers: {
+                  'Accept': 'application/json',
+                  'Content-Type': 'application/json',
+                  ...(xsrfToken ? { 'X-XSRF-TOKEN': xsrfToken } : {}),
+                },
                 credentials: 'same-origin',
                 body: JSON.stringify({ props: edited }),
               })
@@ -895,5 +1030,3 @@ export default function GlobalModulesIndex() {
     </div>
   )
 }
-
-

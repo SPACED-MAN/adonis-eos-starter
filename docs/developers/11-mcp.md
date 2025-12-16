@@ -31,7 +31,8 @@ There are three complementary AI/automation integration mechanisms in Adonis EOS
   - Internal AI agents also use MCP tools to interact with the CMS.
 
 In practice:
-- n8n can be both a **workflow target** (webhook endpoint) *and* an **MCP client** (calling back into Adonis EOS).
+
+- n8n can be both a **workflow target** (webhook endpoint) _and_ an **MCP client** (calling back into Adonis EOS).
 - Internal AI agents use MCP tools to create posts, update modules, generate images, etc.
 
 ## Running the MCP server
@@ -129,6 +130,7 @@ This is the best fit for "event occurs → workflow executes → automation/noti
 ### Custom services (Node/Python/etc.)
 
 If you build your own service (instead of n8n), treat MCP as your “CMS tool API”:
+
 - Connect to the MCP server (SSE).
 - Call context tools to discover schemas and constraints.
 - Use AI-review-safe tools to stage writes.
@@ -186,7 +188,7 @@ MCP supports editor-parity behavior here:
 - If you want a specific template, pass **either**:
   - `moduleGroupName` (recommended), or
   - `moduleGroupId`
-  to `create_post_ai_review`.
+    to `create_post_ai_review`.
 
 ### Populating seeded template modules (recommended)
 
@@ -245,6 +247,7 @@ Creating posts requires a real `users.id` to satisfy `posts.user_id`:
 The MCP server requires a system user account to attribute AI-generated content operations. We recommend using the dedicated **AI Agent** user created by the seeder:
 
 1. **Run the database seeder** (if not already done):
+
    ```bash
    node ace db:seed
    ```
@@ -254,6 +257,7 @@ The MCP server requires a system user account to attribute AI-generated content 
    - On existing databases, the ID may differ (because IDs are already taken).
 
 3. **Set the environment variable** in your `.env` (recommended for clarity):
+
    ```
    MCP_SYSTEM_USER_ID=<users.id for ai@example.com>
    ```
@@ -272,12 +276,14 @@ The MCP server requires a system user account to attribute AI-generated content 
 If you pass `agentId` to MCP tools (for example `create_post_ai_review`), Adonis EOS will attempt to map that `agentId` to a **dedicated agent user account** (created at boot via `app/agents/*` + `start/agents.ts`).
 
 This gives you accurate authorship such as:
+
 - `Content Enhancer` authored posts it created
 - `Translator` authored translation posts it created
 
 If no agent user is found, MCP falls back to the system AI user (`MCP_SYSTEM_USER_ID` / `ai@example.com`).
 
 If you're using an existing database or need to find the user ID, you can list users with:
+
 ```bash
 node ace tinker
 # Then in the REPL:
@@ -369,6 +375,7 @@ Some AI agents can accept a freeform user prompt. This is an explicit, opt-in ca
 - MCP `run_field_agent` accepts `openEndedContext` and forwards it to the agent
 
 Server-side enforcement:
+
 - `openEndedContext` is rejected unless `agent.openEndedContext.enabled === true`
 - `maxChars` is enforced when set
 
@@ -381,5 +388,3 @@ To export code-derived MCP context for auditing/diffing:
 ```bash
 node ace mcp:dump-context --out /tmp/mcp-context.json
 ```
-
-

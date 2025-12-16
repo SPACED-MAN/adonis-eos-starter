@@ -112,7 +112,10 @@ const moduleEditSchema = z.object({
   /**
    * Convenience targeting when creating a post: match the seeded template module.
    */
-  type: z.string().optional().describe('Module type selector (used when postModuleId is not provided).'),
+  type: z
+    .string()
+    .optional()
+    .describe('Module type selector (used when postModuleId is not provided).'),
   orderIndex: z
     .number()
     .int()
@@ -241,16 +244,16 @@ function createServerInstance() {
         // Enrich with module group context from DB (editor parity)
         const moduleGroups = cfg.moduleGroupsEnabled
           ? await db
-            .from('module_groups')
-            .where('post_type', postType)
-            .orderBy('updated_at', 'desc')
-            .select('id', 'name', 'description', 'locked', 'post_type')
+              .from('module_groups')
+              .where('post_type', postType)
+              .orderBy('updated_at', 'desc')
+              .select('id', 'name', 'description', 'locked', 'post_type')
           : []
 
         const defaultName = cfg.moduleGroup?.name
         const defaultModuleGroup = cfg.moduleGroupsEnabled
           ? moduleGroups.find((g: any) => defaultName && String(g.name) === String(defaultName)) ||
-          (moduleGroups.length === 1 ? moduleGroups[0] : null)
+            (moduleGroups.length === 1 ? moduleGroups[0] : null)
           : null
 
         return jsonResult({
@@ -625,7 +628,9 @@ function createServerInstance() {
       moduleGroupId: z
         .string()
         .optional()
-        .describe('Optional module group id to seed modules from (overrides default post type module group).'),
+        .describe(
+          'Optional module group id to seed modules from (overrides default post type module group).'
+        ),
       moduleGroupName: z
         .string()
         .optional()
@@ -659,8 +664,7 @@ function createServerInstance() {
         return errorResult(
           'Missing MCP_SYSTEM_USER_ID (and no AI system user found). Seed users or set MCP_SYSTEM_USER_ID to a valid users.id.',
           {
-            hint:
-              "Run `node ace db:seed --files database/seeders/user_seeder.ts` (creates ai@example.com) then set MCP_SYSTEM_USER_ID=<that id>.",
+            hint: 'Run `node ace db:seed --files database/seeders/user_seeder.ts` (creates ai@example.com) then set MCP_SYSTEM_USER_ID=<that id>.',
           }
         )
       }
@@ -741,7 +745,8 @@ function createServerInstance() {
         if (mdTop) {
           const hasProseContentEdit = (() => {
             for (const edit of editsToApply) {
-              const hasContentMarkdown = String((edit as any)?.contentMarkdown || '').trim().length > 0
+              const hasContentMarkdown =
+                String((edit as any)?.contentMarkdown || '').trim().length > 0
               const hasContentOverride =
                 !!(edit as any)?.overrides &&
                 typeof (edit as any).overrides === 'object' &&
@@ -751,7 +756,9 @@ function createServerInstance() {
 
               const explicitId = String((edit as any)?.postModuleId || '').trim()
               if (explicitId) {
-                const m = (seededModules as any[]).find((x: any) => String(x.postModuleId) === explicitId)
+                const m = (seededModules as any[]).find(
+                  (x: any) => String(x.postModuleId) === explicitId
+                )
                 if (String(m?.type || '') === 'prose') return true
                 continue
               }
@@ -773,7 +780,8 @@ function createServerInstance() {
             } else {
               appliedEdits.push({
                 ok: false,
-                error: 'contentMarkdown was provided but no seeded prose module exists to populate.',
+                error:
+                  'contentMarkdown was provided but no seeded prose module exists to populate.',
               })
             }
           }
@@ -809,7 +817,10 @@ function createServerInstance() {
           const firstProseWithMedia = (seededModules as any[]).find(
             (m: any) => String(m.type) === 'prose-with-media'
           )
-          if (firstProseWithMedia && !alreadyEditsModule(String(firstProseWithMedia.postModuleId))) {
+          if (
+            firstProseWithMedia &&
+            !alreadyEditsModule(String(firstProseWithMedia.postModuleId))
+          ) {
             const pwmTitle = (mdH2s[0] || '').trim()
             const pwmBody = (mdParas[0] || '').trim()
             if (pwmTitle || pwmBody) {
@@ -849,11 +860,15 @@ function createServerInstance() {
                 targetId = String(candidates[0].postModuleId)
               }
 
-              const targetMeta = (seededModules as any[]).find((m: any) => String(m.postModuleId) === targetId)
+              const targetMeta = (seededModules as any[]).find(
+                (m: any) => String(m.postModuleId) === targetId
+              )
               const isProse = String(targetMeta?.type || (edit as any)?.type || '') === 'prose'
 
               let overrides =
-                (edit as any)?.overrides === undefined ? undefined : ((edit as any)?.overrides as any)
+                (edit as any)?.overrides === undefined
+                  ? undefined
+                  : ((edit as any)?.overrides as any)
 
               const md = String((edit as any)?.contentMarkdown || '').trim()
               if (md) {
@@ -1623,11 +1638,11 @@ function createServerInstance() {
             type: a.type,
             openEndedContext: a.openEndedContext?.enabled
               ? {
-                enabled: true,
-                label: a.openEndedContext.label,
-                placeholder: a.openEndedContext.placeholder,
-                maxChars: a.openEndedContext.maxChars,
-              }
+                  enabled: true,
+                  label: a.openEndedContext.label,
+                  placeholder: a.openEndedContext.placeholder,
+                  maxChars: a.openEndedContext.maxChars,
+                }
               : { enabled: false },
             scopes: (a.scopes || []).map((s: any) => ({
               scope: s.scope,
@@ -1838,19 +1853,19 @@ function createServerInstance() {
             draftBase: baseDraft, // review draft (preferred) or approved snapshot
             module: moduleRow
               ? {
-                postModuleId: moduleRow.postModuleId,
-                moduleInstanceId: moduleRow.moduleInstanceId,
-                type: moduleRow.type,
-                scope: moduleRow.scope === 'post' ? 'local' : 'global',
-                globalSlug: moduleRow.globalSlug || null,
-                props: moduleRow.props || {},
-                reviewProps: moduleRow.reviewProps || null,
-                aiReviewProps: moduleRow.aiReviewProps || null,
-                overrides: moduleRow.overrides || null,
-                reviewOverrides: moduleRow.reviewOverrides || null,
-                aiReviewOverrides: moduleRow.aiReviewOverrides || null,
-                schema: moduleSchema,
-              }
+                  postModuleId: moduleRow.postModuleId,
+                  moduleInstanceId: moduleRow.moduleInstanceId,
+                  type: moduleRow.type,
+                  scope: moduleRow.scope === 'post' ? 'local' : 'global',
+                  globalSlug: moduleRow.globalSlug || null,
+                  props: moduleRow.props || {},
+                  reviewProps: moduleRow.reviewProps || null,
+                  aiReviewProps: moduleRow.aiReviewProps || null,
+                  overrides: moduleRow.overrides || null,
+                  reviewOverrides: moduleRow.reviewOverrides || null,
+                  aiReviewOverrides: moduleRow.aiReviewOverrides || null,
+                  schema: moduleSchema,
+                }
               : null,
             context: {
               ...(context || {}),
@@ -2564,7 +2579,7 @@ export default class McpServe extends BaseCommand {
     httpServer.listen(port, host, () => {
       const authMode =
         process.env.MCP_AUTH_TOKEN ||
-          (process.env.MCP_AUTH_HEADER_NAME && process.env.MCP_AUTH_HEADER_VALUE)
+        (process.env.MCP_AUTH_HEADER_NAME && process.env.MCP_AUTH_HEADER_VALUE)
           ? 'enabled'
           : 'disabled'
       this.logger.info(`MCP SSE server listening on http://${host}:${port}`)

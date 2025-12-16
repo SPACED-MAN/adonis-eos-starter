@@ -85,7 +85,7 @@ export interface InternalAgentConfig {
      */
     stop?: string[]
 
-  /**
+    /**
      * Additional provider-specific options
      */
     [key: string]: any

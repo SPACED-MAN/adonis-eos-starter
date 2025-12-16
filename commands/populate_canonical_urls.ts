@@ -9,7 +9,7 @@ import urlPatternService from '#services/url_pattern_service'
  */
 export default class PopulateCanonicalUrls extends BaseCommand {
   static commandName = 'populate:canonical-urls'
-  static description = 'Populate canonical URLs for all posts that don\'t have one set'
+  static description = "Populate canonical URLs for all posts that don't have one set"
 
   static options: CommandOptions = {
     startApp: true,

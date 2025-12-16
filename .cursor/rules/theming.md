@@ -5,6 +5,7 @@
 The project uses a centralized theming system with CSS custom properties and Tailwind. This allows minimal configuration to change the entire color palette for both admin and site contexts.
 
 **Key Features:**
+
 - ✅ Separate themes for Admin Panel and Public Site
 - ✅ Automatic dark/light mode support
 - ✅ All colors configurable via Tailwind color names
@@ -21,18 +22,18 @@ The project uses a centralized theming system with CSS custom properties and Tai
 export const themeConfig = {
   admin: {
     primary: {
-      light: 'indigo',  // Change this!
+      light: 'indigo', // Change this!
       dark: 'indigo',
     },
     background: {
-      light: 'slate',   // Change this!
+      light: 'slate', // Change this!
       dark: 'slate',
     },
     // ...
   },
   site: {
     primary: {
-      light: 'violet',  // Change this!
+      light: 'violet', // Change this!
       dark: 'violet',
     },
     // ...
@@ -41,6 +42,7 @@ export const themeConfig = {
 ```
 
 **Available Colors:**
+
 - `slate`, `gray`, `zinc`, `neutral`, `stone`
 - `red`, `orange`, `amber`, `yellow`
 - `lime`, `green`, `emerald`, `teal`, `cyan`
@@ -92,11 +94,13 @@ After changing colors, update the CSS variables in `inertia/css/app.css` to matc
 ## Theme Token Reference
 
 ### Background Tokens
+
 - `bg-50`, `bg-100`, `bg-200` - Light backgrounds (cards, panels)
 - `bg-800`, `bg-900`, `bg-950` - Dark backgrounds
 - Use with `dark:` modifier for dark mode
 
 ### Neutral Tokens (Text & Borders)
+
 - `neutral-50` to `neutral-950` - Full scale
 - Common patterns:
   - Body text: `text-neutral-900 dark:text-neutral-50`
@@ -104,11 +108,13 @@ After changing colors, update the CSS variables in `inertia/css/app.css` to matc
   - Borders: `border-neutral-200 dark:border-neutral-700`
 
 ### Primary Tokens (Brand Colors)
+
 - `primary-50` to `primary-950` - Full scale
 - Use for CTAs, links, active states
 - Example: `bg-primary-600 hover:bg-primary-700`
 
 ### Semantic Tokens
+
 - `success` - Green (emerald-500)
 - `error` - Red (red-500)
 - `warning` - Amber (amber-500)
@@ -117,16 +123,17 @@ After changing colors, update the CSS variables in `inertia/css/app.css` to matc
 ## How It Works
 
 ### 1. CSS Variables
+
 Theme colors are defined in `inertia/css/app.css`:
 
 ```css
-[data-theme="admin"] {
+[data-theme='admin'] {
   --color-primary-600: var(--color-indigo-600);
   --color-neutral-900: var(--color-slate-900);
   /* ... */
 }
 
-[data-theme="site"] {
+[data-theme='site'] {
   --color-primary-600: var(--color-violet-600);
   --color-neutral-900: var(--color-stone-900);
   /* ... */
@@ -134,14 +141,18 @@ Theme colors are defined in `inertia/css/app.css`:
 ```
 
 ### 2. Automatic Theme Detection
+
 The `data-theme` attribute is automatically applied based on URL:
+
 - `/admin/*` → `data-theme="admin"`
 - Everything else → `data-theme="site"`
 
 This happens in `resources/views/inertia_layout.edge` before page render.
 
 ### 3. Dark Mode
+
 Dark mode is controlled by:
+
 1. User preference (stored in `localStorage.theme-mode`)
 2. System preference (if no user preference set)
 
@@ -167,12 +178,8 @@ The `.dark` class is added to `<html>` element automatically.
 
 ```tsx
 <div className="bg-white dark:bg-bg-800 border border-neutral-200 dark:border-neutral-700 rounded-lg p-6">
-  <h3 className="text-neutral-900 dark:text-neutral-50 font-semibold">
-    Card Title
-  </h3>
-  <p className="text-neutral-600 dark:text-neutral-400 mt-2">
-    Card description
-  </p>
+  <h3 className="text-neutral-900 dark:text-neutral-50 font-semibold">Card Title</h3>
+  <p className="text-neutral-600 dark:text-neutral-400 mt-2">Card description</p>
 </div>
 ```
 
@@ -206,14 +213,14 @@ If you have existing components using hardcoded colors:
 
 ### Common Patterns
 
-| Old Pattern | New Pattern |
-|------------|-------------|
-| `bg-slate-50` | `bg-bg-50 dark:bg-bg-900` |
-| `bg-slate-900` | `bg-bg-900 dark:bg-bg-50` |
-| `text-slate-900` | `text-neutral-900 dark:text-neutral-50` |
-| `text-slate-600` | `text-neutral-600 dark:text-neutral-400` |
+| Old Pattern        | New Pattern                                  |
+| ------------------ | -------------------------------------------- |
+| `bg-slate-50`      | `bg-bg-50 dark:bg-bg-900`                    |
+| `bg-slate-900`     | `bg-bg-900 dark:bg-bg-50`                    |
+| `text-slate-900`   | `text-neutral-900 dark:text-neutral-50`      |
+| `text-slate-600`   | `text-neutral-600 dark:text-neutral-400`     |
 | `border-slate-200` | `border-neutral-200 dark:border-neutral-700` |
-| `bg-indigo-600` | `bg-primary-600` |
+| `bg-indigo-600`    | `bg-primary-600`                             |
 
 ## Testing Themes
 
@@ -260,6 +267,3 @@ You should see different colors automatically applied!
 - `inertia/css/app.css` - CSS variable definitions (regenerate after config changes)
 - `resources/views/inertia_layout.edge` - Theme detection script
 - `.cursor/rules/ui-components.md` - UI component guidelines
-
-
-

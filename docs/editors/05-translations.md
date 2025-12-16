@@ -5,6 +5,7 @@ Learn how to create and manage multi-language content.
 ## Understanding Locales
 
 Your CMS supports multiple languages (locales). Common examples:
+
 - `en` - English
 - `es` - Spanish
 - `fr` - French
@@ -15,6 +16,7 @@ Each post can have translations in multiple locales.
 ## Creating a Translation
 
 ### Option 1: From the Post Editor
+
 1. Open the post you want to translate
 2. Look for the language switcher in the header
 3. Click **"Add Translation"**
@@ -25,6 +27,7 @@ Each post can have translations in multiple locales.
    - Empty fields ready for translation
 
 ### Option 2: From the Dashboard
+
 1. In the post list, find the post you want to translate
 2. Click the **"Translate"** action
 3. Select the target language
@@ -33,6 +36,7 @@ Each post can have translations in multiple locales.
 ## Translation Best Practices
 
 ### What to Translate
+
 - **Title**: Adapt for the target language and culture
 - **Excerpt**: Summarize in the target language
 - **Content**: Translate all prose, headings, and text
@@ -41,11 +45,13 @@ Each post can have translations in multiple locales.
 - **Button Labels**: CTAs and UI text
 
 ### What NOT to Translate
+
 - **Slug**: Usually leave as-is for consistency, or adapt minimally
 - **Technical IDs**: Never translate internal references
 - **URLs**: External links typically stay the same
 
 ### Keep Structure Consistent
+
 - Use the same modules in the same order
 - Match the layout and design of the original
 - Ensure images and media are appropriate for all locales
@@ -53,20 +59,26 @@ Each post can have translations in multiple locales.
 ## Managing Translations
 
 ### Viewing Translation Status
+
 The dashboard shows translation indicators:
+
 - **Filled badge**: Translation exists for this locale
 - **Empty badge**: Translation missing
 - **Count**: Number of translations available
 
 ### Linking Translations
+
 Translations are automatically linked when you create them through the editor. The system tracks:
+
 - **Original Post**: The first version created
 - **Translation Family**: All related translations
 
 Users can switch between languages on the public site, and the system shows the corresponding translation.
 
 ### Updating Translations
+
 When the original post changes:
+
 1. Navigate to each translation
 2. Update the content to match
 3. Save changes
@@ -76,6 +88,7 @@ When the original post changes:
 ## Translator Role
 
 If you're a **Translator**, you have specialized permissions:
+
 - ✅ Can view and edit existing posts
 - ✅ Can create and edit translations
 - ✅ Can save for review
@@ -86,7 +99,9 @@ If you're a **Translator**, you have specialized permissions:
 ## Locale-Specific Content
 
 ### URLs
+
 Each translation gets its own URL:
+
 - English: `/about-us`
 - Spanish: `/es/about-us` or `/acerca-de`
 - French: `/fr/about-us` or `/a-propos`
@@ -94,13 +109,17 @@ Each translation gets its own URL:
 The URL pattern depends on your system configuration.
 
 ### Menus
+
 Menus can be locale-specific:
+
 - Create separate menu structures for each language
 - Link to the appropriate translations
 - Use locale-specific labels
 
 ### SEO
+
 Search engines index each translation separately:
+
 - Use `hreflang` tags (added automatically)
 - Optimize meta titles/descriptions per locale
 - Translate slugs when appropriate for SEO
@@ -108,6 +127,7 @@ Search engines index each translation separately:
 ## Common Scenarios
 
 ### Launching a New Language
+
 1. Identify key content to translate first:
    - Homepage
    - Main navigation pages
@@ -118,12 +138,15 @@ Search engines index each translation separately:
 4. Announce the new language to your audience
 
 ### Maintaining Translations
+
 - Review translations periodically
 - Keep them in sync with the original
 - Archive outdated translations
 
 ### Handling Region Differences
+
 For regional variants (e.g., `en-US` vs `en-GB`):
+
 - Decide if you need separate translations
 - Most systems treat these as separate locales
 - Consider creating one and adapting as needed
@@ -131,13 +154,17 @@ For regional variants (e.g., `en-US` vs `en-GB`):
 ## Translation Tools
 
 ### Translation Memory (if available)
+
 Some systems remember previously translated phrases:
+
 - Suggests translations as you type
 - Ensures consistency across content
 - Speeds up the translation process
 
 ### Machine Translation (if enabled)
+
 Some configurations integrate with translation APIs:
+
 - Provides initial draft translations
 - **Always review and edit** machine translations
 - Best used as a starting point, not final content
@@ -159,4 +186,3 @@ A: Check the dashboard for translation status indicators or ask your administrat
 ---
 
 **Related**: [Content Management](/docs/for-editors/content-management) | [Roles & Permissions](/docs/for-editors/roles-permissions)
-

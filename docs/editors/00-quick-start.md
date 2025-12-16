@@ -58,16 +58,19 @@ Each module has different fields depending on its type. The editor will show you
 Depending on your role, you'll have different publishing options:
 
 ### If you're an Editor
+
 1. Create and edit your content
 2. Click **"Save for Review"** when ready
 3. An Editor Admin will review and approve your changes
 
 ### If you're an Editor Admin
+
 1. Create, edit, and publish content directly
 2. Click **"Save Changes"** or **"Publish Changes"**
 3. Review and approve content from other editors
 
 ### If you're a Translator
+
 1. Switch to your target language in the editor
 2. Translate content and save changes
 3. Submit for review when complete
@@ -81,4 +84,3 @@ Depending on your role, you'll have different publishing options:
 ---
 
 **Next Steps**: [Content Management Guide](/docs/for-editors/content-management)
-

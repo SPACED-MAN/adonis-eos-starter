@@ -35,4 +35,3 @@ const postReferenceField: FieldTypeConfig = {
 fieldTypeRegistry.register(postReferenceField)
 
 export default postReferenceField
-

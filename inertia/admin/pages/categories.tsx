@@ -3,10 +3,30 @@ import { Head } from '@inertiajs/react'
 import { AdminHeader } from '../components/AdminHeader'
 import { AdminFooter } from '../components/AdminFooter'
 import { Input } from '../../components/ui/input'
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '../../components/ui/select'
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '../../components/ui/table'
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '../../components/ui/select'
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from '../../components/ui/table'
 import { toast } from 'sonner'
-import { DndContext, closestCenter, PointerSensor, useSensor, useSensors, DragEndEvent } from '@dnd-kit/core'
+import {
+  DndContext,
+  closestCenter,
+  PointerSensor,
+  useSensor,
+  useSensors,
+  DragEndEvent,
+} from '@dnd-kit/core'
 import { SortableContext, useSortable, verticalListSortingStrategy } from '@dnd-kit/sortable'
 import { CSS } from '@dnd-kit/utilities'
 
@@ -33,14 +53,24 @@ export default function CategoriesPage() {
   const [selectedTaxonomy, setSelectedTaxonomy] = useState<string>('') // slug
   const [terms, setTerms] = useState<TermNode[]>([])
   const [selectedTermId, setSelectedTermId] = useState<string>('')
-  const [posts, setPosts] = useState<Array<{ id: string; title: string; slug: string; locale: string; type: string; status: string; updatedAt: string }>>([])
+  const [posts, setPosts] = useState<
+    Array<{
+      id: string
+      title: string
+      slug: string
+      locale: string
+      type: string
+      status: string
+      updatedAt: string
+    }>
+  >([])
   const [newTermName, setNewTermName] = useState<string>('')
   const [viewMode, setViewMode] = useState<'terms' | 'termPosts'>('terms')
   const [editingTerm, setEditingTerm] = useState<TermNode | null>(null)
   const sensors = useSensors(useSensor(PointerSensor, { activationConstraint: { distance: 4 } }))
 
   useEffect(() => {
-    ; (async () => {
+    ;(async () => {
       try {
         const res = await fetch('/api/taxonomies', { credentials: 'same-origin' })
         const json = await res.json().catch(() => ({}))
@@ -56,8 +86,13 @@ export default function CategoriesPage() {
   }, [])
 
   async function loadTerms(slug: string) {
-    if (!slug) { setTerms([]); return }
-    const res = await fetch(`/api/taxonomies/${encodeURIComponent(slug)}/terms`, { credentials: 'same-origin' })
+    if (!slug) {
+      setTerms([])
+      return
+    }
+    const res = await fetch(`/api/taxonomies/${encodeURIComponent(slug)}/terms`, {
+      credentials: 'same-origin',
+    })
     const json = await res.json().catch(() => ({}))
     const tree: TermNode[] = Array.isArray(json?.data) ? json.data : []
     setTerms(tree)
@@ -72,8 +107,14 @@ export default function CategoriesPage() {
   }, [selectedTaxonomy])
 
   async function loadPostsForTerm(id: string) {
-    if (!id) { setPosts([]); return }
-    const res = await fetch(`/api/taxonomy-terms/${encodeURIComponent(id)}/posts?includeDescendants=1`, { credentials: 'same-origin' })
+    if (!id) {
+      setPosts([])
+      return
+    }
+    const res = await fetch(
+      `/api/taxonomy-terms/${encodeURIComponent(id)}/posts?includeDescendants=1`,
+      { credentials: 'same-origin' }
+    )
     const json = await res.json().catch(() => ({}))
     const list: any[] = Array.isArray(json?.data) ? json.data : []
     setPosts(list as any)
@@ -93,20 +134,17 @@ export default function CategoriesPage() {
 
   const allTerms = useMemo(() => flattenTerms(terms), [terms])
 
-  const flatRows = useMemo(
-    () => {
-      const out: Array<{ term: TermNode; level: number }> = []
-      const walk = (nodes: TermNode[], level: number) => {
-        for (const n of nodes) {
-          out.push({ term: n, level })
-          if (n.children?.length) walk(n.children, level + 1)
-        }
+  const flatRows = useMemo(() => {
+    const out: Array<{ term: TermNode; level: number }> = []
+    const walk = (nodes: TermNode[], level: number) => {
+      for (const n of nodes) {
+        out.push({ term: n, level })
+        if (n.children?.length) walk(n.children, level + 1)
       }
-      walk(terms, 0)
-      return out
-    },
-    [terms]
-  )
+    }
+    walk(terms, 0)
+    return out
+  }, [terms])
 
   async function createTerm(parentId: string | null) {
     if (!selectedTaxonomy) return
@@ -190,7 +228,7 @@ export default function CategoriesPage() {
     if (activeParent !== overParent) return
     const siblings = allTerms
       .filter((t) => (t.parentId ?? null) === (activeParent ?? null))
-      .sort((a, b) => (a.orderIndex - b.orderIndex))
+      .sort((a, b) => a.orderIndex - b.orderIndex)
       .map((t) => t.id)
     const fromIndex = siblings.indexOf(activeId)
     const toIndex = siblings.indexOf(overId)
@@ -233,13 +271,19 @@ export default function CategoriesPage() {
                 </SelectTrigger>
                 <SelectContent>
                   {taxonomies.map((t) => (
-                    <SelectItem key={t.slug} value={t.slug}>{t.name}</SelectItem>
+                    <SelectItem key={t.slug} value={t.slug}>
+                      {t.name}
+                    </SelectItem>
                   ))}
                 </SelectContent>
               </Select>
             </div>
             <div className="flex items-center gap-2">
-              <Input value={newTermName} onChange={(e) => setNewTermName(e.target.value)} placeholder="New term name" />
+              <Input
+                value={newTermName}
+                onChange={(e) => setNewTermName(e.target.value)}
+                placeholder="New term name"
+              />
               <button
                 className="px-3 py-1.5 text-sm border border-line-low rounded bg-standout-medium text-on-standout whitespace-nowrap"
                 onClick={() => createTerm(null)}
@@ -254,8 +298,15 @@ export default function CategoriesPage() {
               {terms.length === 0 ? (
                 <div className="text-sm text-neutral-low">No terms yet.</div>
               ) : (
-                <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={handleDragEnd}>
-                  <SortableContext items={flatRows.map((r) => r.term.id)} strategy={verticalListSortingStrategy}>
+                <DndContext
+                  sensors={sensors}
+                  collisionDetection={closestCenter}
+                  onDragEnd={handleDragEnd}
+                >
+                  <SortableContext
+                    items={flatRows.map((r) => r.term.id)}
+                    strategy={verticalListSortingStrategy}
+                  >
                     <div className="space-y-1">
                       {flatRows.map(({ term, level }) => (
                         <SortableTermRow
@@ -275,7 +326,8 @@ export default function CategoriesPage() {
                           }}
                           onMove={async (targetId) => {
                             if (targetId === '__root__') await moveTerm(term.id, null)
-                            else if (targetId && targetId !== '__stay__') await moveTerm(term.id, targetId)
+                            else if (targetId && targetId !== '__stay__')
+                              await moveTerm(term.id, targetId)
                           }}
                           onAddChild={() => createTerm(term.id)}
                           onDelete={() => deleteTerm(term.id)}
@@ -290,9 +342,7 @@ export default function CategoriesPage() {
           {viewMode === 'termPosts' && editingTerm && (
             <div className="mt-8">
               <div className="flex items-center justify-between mb-3">
-                <h3 className="font-semibold">
-                  Posts in “{editingTerm.name}”
-                </h3>
+                <h3 className="font-semibold">Posts in “{editingTerm.name}”</h3>
                 <button
                   type="button"
                   className="px-3 py-1.5 text-xs border border-line-low rounded text-neutral-medium hover:bg-backdrop-medium"
@@ -322,7 +372,12 @@ export default function CategoriesPage() {
                     {posts.map((p) => (
                       <TableRow key={p.id}>
                         <TableCell>
-                          <a className="text-link hover:underline" href={`/admin/posts/${p.id}/edit`}>{p.title}</a>
+                          <a
+                            className="text-link hover:underline"
+                            href={`/admin/posts/${p.id}/edit`}
+                          >
+                            {p.title}
+                          </a>
                         </TableCell>
                         <TableCell>{p.type}</TableCell>
                         <TableCell>{p.locale}</TableCell>
@@ -370,11 +425,7 @@ function SortableTermRow({
     transition,
   }
   return (
-    <div
-      ref={setNodeRef}
-      style={style}
-      className="flex items-center justify-between gap-2"
-    >
+    <div ref={setNodeRef} style={style} className="flex items-center justify-between gap-2">
       <div
         className={`flex-1 cursor-pointer ${isSelected ? 'font-semibold' : ''}`}
         style={{ paddingLeft: level * 12 }}
@@ -415,7 +466,9 @@ function SortableTermRow({
             {allTerms
               .filter((t) => t.id !== term.id)
               .map((t) => (
-                <SelectItem key={t.id} value={t.id}>{t.name}</SelectItem>
+                <SelectItem key={t.id} value={t.id}>
+                  {t.name}
+                </SelectItem>
               ))}
           </SelectContent>
         </Select>

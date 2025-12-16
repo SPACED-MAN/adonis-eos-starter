@@ -204,7 +204,11 @@ function ButtonComponent({
   inlineObjectLabel,
 }: ButtonComponentProps) {
   // Use inline values so edits reflect immediately
-  const obj = useInlineValue(moduleId, inlineObjectPath || '', { label: initialLabel, url: initialUrl, style: initialStyle })
+  const obj = useInlineValue(moduleId, inlineObjectPath || '', {
+    label: initialLabel,
+    url: initialUrl,
+    style: initialStyle,
+  })
   const label = obj?.label ?? initialLabel
   const url = obj?.url ?? initialUrl
   const style: 'primary' | 'secondary' | 'outline' = obj?.style ?? initialStyle
@@ -234,5 +238,3 @@ function ButtonComponent({
     </a>
   )
 }
-
-

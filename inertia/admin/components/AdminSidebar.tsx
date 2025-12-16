@@ -1,192 +1,216 @@
 import { usePage, Link } from '@inertiajs/react'
 import {
-	Sidebar,
-	SidebarContent,
-	SidebarHeader,
-	SidebarGroup,
-	SidebarMenuItem,
+  Sidebar,
+  SidebarContent,
+  SidebarHeader,
+  SidebarGroup,
+  SidebarMenuItem,
 } from '~/components/ui/sidebar'
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome'
 import { useEffect, useState } from 'react'
 import { useHasPermission } from '~/utils/permissions'
 import {
-	faImage,
-	faFileLines,
-	faCubes,
-	faLayerGroup,
-	faBars,
-	faGear,
-	faRoute,
-	faRightLeft,
-	faLanguage,
-	faTags,
-	faUsers,
-	faListUl,
-	faEnvelope,
-	faDatabase,
-	faMagnifyingGlass,
+  faImage,
+  faFileLines,
+  faCubes,
+  faLayerGroup,
+  faBars,
+  faGear,
+  faRoute,
+  faRightLeft,
+  faLanguage,
+  faTags,
+  faUsers,
+  faListUl,
+  faEnvelope,
+  faDatabase,
+  faMagnifyingGlass,
 } from '@fortawesome/free-solid-svg-icons'
 import { faGauge } from '@fortawesome/free-solid-svg-icons'
 
 export function AdminSidebar() {
-	const page = usePage()
-	const pathname = (page?.url || '').split('?')[0]
-	const isActive = (href: string) => pathname === href
-	const role: string | undefined =
-		((page.props as any)?.auth?.user?.role as string | undefined) ??
-		((page.props as any)?.currentUser?.role as string | undefined)
-	const isAdmin = role === 'admin'
-	const canAccessUsers = useHasPermission('admin.users.manage')
-	const canAccessSettings = useHasPermission('admin.settings.view')
-	const canAccessDatabase = useHasPermission('admin.database.export')
-	const canAccessForms = useHasPermission('forms.view')
-	const canAccessMenus = useHasPermission('menus.view')
-	const canAccessAgents = useHasPermission('agents.view')
-	const userEmail =
-		((page.props as any)?.auth?.user?.email as string | undefined) ||
-		((page.props as any)?.currentUser?.email as string | undefined) ||
-		'User'
-	const userId: number | null =
-		((page.props as any)?.auth?.user?.id as number | undefined) ??
-		((page.props as any)?.currentUser?.id as number | undefined) ??
-		null
-	const [avatarUrl, setAvatarUrl] = useState<string | null>(null)
-	useEffect(() => {
-		let alive = true
-			; (async () => {
-				try {
-					const res = await fetch('/api/profile/status', { credentials: 'same-origin' })
-					const j = await res.json().catch(() => ({}))
-					const u = j?.data?.profileThumbUrl
-					if (alive && typeof u === 'string' && u) setAvatarUrl(u)
-				} catch { /* ignore */ }
-			})()
-		return () => { alive = false }
-	}, [])
-	return (
-		<Sidebar>
-			<SidebarContent>
-				<SidebarHeader>
-					<div className="flex items-center gap-2">
-						{avatarUrl ? (
-							<img src={avatarUrl} alt="Profile" className="w-8 h-8 rounded-full border border-line-low object-cover" />
-						) : (
-							<div className="w-8 h-8 rounded-full bg-backdrop-medium border border-line-medium" />
-						)}
-						<div className="text-sm">
-							<div className="font-semibold text-neutral-high">{userEmail}</div>
-							<div className="text-neutral-low text-xs">
-								<Link href={userId ? `/admin/users/${userId}/edit` : '/admin/profile'} className="hover:underline">
-									Manage Account
-								</Link>
-							</div>
-						</div>
-					</div>
-				</SidebarHeader>
-				<SidebarGroup title="Content">
-					<SidebarMenuItem href="/admin" active={isActive('/admin')}>
-						<span className="inline-flex items-center gap-2">
-							<FontAwesomeIcon icon={faGauge} className="w-4 h-4" /> <span>Dashboard</span>
-						</span>
-					</SidebarMenuItem>
-					{canAccessForms && (
-						<SidebarMenuItem href="/admin/media" active={isActive('/admin/media')}>
-							<span className="inline-flex items-center gap-2">
-								<FontAwesomeIcon icon={faImage} className="w-4 h-4" /> <span>Media</span>
-							</span>
-						</SidebarMenuItem>
-					)}
-					{canAccessMenus && (
-						<SidebarMenuItem href="/admin/posts" active={isActive('/admin/posts')}>
-							<span className="inline-flex items-center gap-2">
-								<FontAwesomeIcon icon={faFileLines} className="w-4 h-4" /> <span>Posts</span>
-							</span>
-						</SidebarMenuItem>
-					)}
-					{canAccessSettings && (
-						<SidebarMenuItem href="/admin/modules" active={isActive('/admin/modules')}>
-							<span className="inline-flex items-center gap-2">
-								<FontAwesomeIcon icon={faCubes} className="w-4 h-4" /> <span>Modules</span>
-							</span>
-						</SidebarMenuItem>
-					)}
-					{canAccessForms && (
-						<SidebarMenuItem href="/admin/forms" active={isActive('/admin/forms')}>
-							<span className="inline-flex items-center gap-2">
-								<FontAwesomeIcon icon={faEnvelope} className="w-4 h-4" /> <span>Forms</span>
-							</span>
-						</SidebarMenuItem>
-					)}
-					{canAccessForms && (
-						<SidebarMenuItem href="/admin/menus" active={isActive('/admin/menus')}>
-							<span className="inline-flex items-center gap-2">
-								<FontAwesomeIcon icon={faBars} className="w-4 h-4" /> <span>Menus</span>
-							</span>
-						</SidebarMenuItem>
-					)}
-					{canAccessMenus && (
-						<SidebarMenuItem href="/admin/categories" active={isActive('/admin/categories')}>
-							<span className="inline-flex items-center gap-2">
-								<FontAwesomeIcon icon={faTags} className="w-4 h-4" /> <span>Categories</span>
-							</span>
-						</SidebarMenuItem>
-					)}
-				</SidebarGroup>
-				{isAdmin && (
-					<SidebarGroup title="Settings">
-						<SidebarMenuItem href="/admin/settings/general" active={isActive('/admin/settings/general')}>
-							<span className="inline-flex items-center gap-2">
-								<FontAwesomeIcon icon={faGear} className="w-4 h-4" /> <span>Site Settings</span>
-							</span>
-						</SidebarMenuItem>
-						<SidebarMenuItem href="/admin/settings/url-patterns" active={isActive('/admin/settings/url-patterns')}>
-							<span className="inline-flex items-center gap-2">
-								<FontAwesomeIcon icon={faRoute} className="w-4 h-4" /> <span>URL Patterns</span>
-							</span>
-						</SidebarMenuItem>
-						<SidebarMenuItem href="/admin/settings/redirects" active={isActive('/admin/settings/redirects')}>
-							<span className="inline-flex items-center gap-2">
-								<FontAwesomeIcon icon={faRightLeft} className="w-4 h-4" /> <span>Redirects</span>
-							</span>
-						</SidebarMenuItem>
-						<SidebarMenuItem href="/admin/settings/seo" active={isActive('/admin/settings/seo')}>
-							<span className="inline-flex items-center gap-2">
-								<FontAwesomeIcon icon={faMagnifyingGlass} className="w-4 h-4" /> <span>SEO</span>
-							</span>
-						</SidebarMenuItem>
-						<SidebarMenuItem href="/admin/settings/locales" active={isActive('/admin/settings/locales')}>
-							<span className="inline-flex items-center gap-2">
-								<FontAwesomeIcon icon={faLanguage} className="w-4 h-4" /> <span>Locales</span>
-							</span>
-						</SidebarMenuItem>
-					</SidebarGroup>
-				)}
-				{isAdmin && (
-					<SidebarGroup title="Users">
-						<SidebarMenuItem href="/admin/users" active={isActive('/admin/users')}>
-							<span className="inline-flex items-center gap-2">
-								<FontAwesomeIcon icon={faUsers} className="w-4 h-4" /> <span>User Management</span>
-							</span>
-						</SidebarMenuItem>
-						<SidebarMenuItem href="/admin/users/activity" active={isActive('/admin/users/activity')}>
-							<span className="inline-flex items-center gap-2">
-								<FontAwesomeIcon icon={faListUl} className="w-4 h-4" /> <span>Activity Log</span>
-							</span>
-						</SidebarMenuItem>
-					</SidebarGroup>
-				)}
-				{isAdmin && (
-					<SidebarGroup title="System">
-						<SidebarMenuItem href="/admin/database" active={isActive('/admin/database')}>
-							<span className="inline-flex items-center gap-2">
-								<FontAwesomeIcon icon={faDatabase} className="w-4 h-4" /> <span>Database</span>
-							</span>
-						</SidebarMenuItem>
-					</SidebarGroup>
-				)}
-			</SidebarContent>
-		</Sidebar>
-	)
+  const page = usePage()
+  const pathname = (page?.url || '').split('?')[0]
+  const isActive = (href: string) => pathname === href
+  const role: string | undefined =
+    ((page.props as any)?.auth?.user?.role as string | undefined) ??
+    ((page.props as any)?.currentUser?.role as string | undefined)
+  const isAdmin = role === 'admin'
+  const canAccessUsers = useHasPermission('admin.users.manage')
+  const canAccessSettings = useHasPermission('admin.settings.view')
+  const canAccessDatabase = useHasPermission('admin.database.export')
+  const canAccessForms = useHasPermission('forms.view')
+  const canAccessMenus = useHasPermission('menus.view')
+  const canAccessAgents = useHasPermission('agents.view')
+  const userEmail =
+    ((page.props as any)?.auth?.user?.email as string | undefined) ||
+    ((page.props as any)?.currentUser?.email as string | undefined) ||
+    'User'
+  const userId: number | null =
+    ((page.props as any)?.auth?.user?.id as number | undefined) ??
+    ((page.props as any)?.currentUser?.id as number | undefined) ??
+    null
+  const [avatarUrl, setAvatarUrl] = useState<string | null>(null)
+  useEffect(() => {
+    let alive = true
+    ;(async () => {
+      try {
+        const res = await fetch('/api/profile/status', { credentials: 'same-origin' })
+        const j = await res.json().catch(() => ({}))
+        const u = j?.data?.profileThumbUrl
+        if (alive && typeof u === 'string' && u) setAvatarUrl(u)
+      } catch {
+        /* ignore */
+      }
+    })()
+    return () => {
+      alive = false
+    }
+  }, [])
+  return (
+    <Sidebar>
+      <SidebarContent>
+        <SidebarHeader>
+          <div className="flex items-center gap-2">
+            {avatarUrl ? (
+              <img
+                src={avatarUrl}
+                alt="Profile"
+                className="w-8 h-8 rounded-full border border-line-low object-cover"
+              />
+            ) : (
+              <div className="w-8 h-8 rounded-full bg-backdrop-medium border border-line-medium" />
+            )}
+            <div className="text-sm">
+              <div className="font-semibold text-neutral-high">{userEmail}</div>
+              <div className="text-neutral-low text-xs">
+                <Link
+                  href={userId ? `/admin/users/${userId}/edit` : '/admin/profile'}
+                  className="hover:underline"
+                >
+                  Manage Account
+                </Link>
+              </div>
+            </div>
+          </div>
+        </SidebarHeader>
+        <SidebarGroup title="Content">
+          <SidebarMenuItem href="/admin" active={isActive('/admin')}>
+            <span className="inline-flex items-center gap-2">
+              <FontAwesomeIcon icon={faGauge} className="w-4 h-4" /> <span>Dashboard</span>
+            </span>
+          </SidebarMenuItem>
+          {canAccessForms && (
+            <SidebarMenuItem href="/admin/media" active={isActive('/admin/media')}>
+              <span className="inline-flex items-center gap-2">
+                <FontAwesomeIcon icon={faImage} className="w-4 h-4" /> <span>Media</span>
+              </span>
+            </SidebarMenuItem>
+          )}
+          {canAccessMenus && (
+            <SidebarMenuItem href="/admin/posts" active={isActive('/admin/posts')}>
+              <span className="inline-flex items-center gap-2">
+                <FontAwesomeIcon icon={faFileLines} className="w-4 h-4" /> <span>Posts</span>
+              </span>
+            </SidebarMenuItem>
+          )}
+          {canAccessSettings && (
+            <SidebarMenuItem href="/admin/modules" active={isActive('/admin/modules')}>
+              <span className="inline-flex items-center gap-2">
+                <FontAwesomeIcon icon={faCubes} className="w-4 h-4" /> <span>Modules</span>
+              </span>
+            </SidebarMenuItem>
+          )}
+          {canAccessForms && (
+            <SidebarMenuItem href="/admin/forms" active={isActive('/admin/forms')}>
+              <span className="inline-flex items-center gap-2">
+                <FontAwesomeIcon icon={faEnvelope} className="w-4 h-4" /> <span>Forms</span>
+              </span>
+            </SidebarMenuItem>
+          )}
+          {canAccessForms && (
+            <SidebarMenuItem href="/admin/menus" active={isActive('/admin/menus')}>
+              <span className="inline-flex items-center gap-2">
+                <FontAwesomeIcon icon={faBars} className="w-4 h-4" /> <span>Menus</span>
+              </span>
+            </SidebarMenuItem>
+          )}
+          {canAccessMenus && (
+            <SidebarMenuItem href="/admin/categories" active={isActive('/admin/categories')}>
+              <span className="inline-flex items-center gap-2">
+                <FontAwesomeIcon icon={faTags} className="w-4 h-4" /> <span>Categories</span>
+              </span>
+            </SidebarMenuItem>
+          )}
+        </SidebarGroup>
+        {isAdmin && (
+          <SidebarGroup title="Settings">
+            <SidebarMenuItem
+              href="/admin/settings/general"
+              active={isActive('/admin/settings/general')}
+            >
+              <span className="inline-flex items-center gap-2">
+                <FontAwesomeIcon icon={faGear} className="w-4 h-4" /> <span>Site Settings</span>
+              </span>
+            </SidebarMenuItem>
+            <SidebarMenuItem
+              href="/admin/settings/url-patterns"
+              active={isActive('/admin/settings/url-patterns')}
+            >
+              <span className="inline-flex items-center gap-2">
+                <FontAwesomeIcon icon={faRoute} className="w-4 h-4" /> <span>URL Patterns</span>
+              </span>
+            </SidebarMenuItem>
+            <SidebarMenuItem
+              href="/admin/settings/redirects"
+              active={isActive('/admin/settings/redirects')}
+            >
+              <span className="inline-flex items-center gap-2">
+                <FontAwesomeIcon icon={faRightLeft} className="w-4 h-4" /> <span>Redirects</span>
+              </span>
+            </SidebarMenuItem>
+            <SidebarMenuItem href="/admin/settings/seo" active={isActive('/admin/settings/seo')}>
+              <span className="inline-flex items-center gap-2">
+                <FontAwesomeIcon icon={faMagnifyingGlass} className="w-4 h-4" /> <span>SEO</span>
+              </span>
+            </SidebarMenuItem>
+            <SidebarMenuItem
+              href="/admin/settings/locales"
+              active={isActive('/admin/settings/locales')}
+            >
+              <span className="inline-flex items-center gap-2">
+                <FontAwesomeIcon icon={faLanguage} className="w-4 h-4" /> <span>Locales</span>
+              </span>
+            </SidebarMenuItem>
+          </SidebarGroup>
+        )}
+        {isAdmin && (
+          <SidebarGroup title="Users">
+            <SidebarMenuItem href="/admin/users" active={isActive('/admin/users')}>
+              <span className="inline-flex items-center gap-2">
+                <FontAwesomeIcon icon={faUsers} className="w-4 h-4" /> <span>User Management</span>
+              </span>
+            </SidebarMenuItem>
+            <SidebarMenuItem
+              href="/admin/users/activity"
+              active={isActive('/admin/users/activity')}
+            >
+              <span className="inline-flex items-center gap-2">
+                <FontAwesomeIcon icon={faListUl} className="w-4 h-4" /> <span>Activity Log</span>
+              </span>
+            </SidebarMenuItem>
+          </SidebarGroup>
+        )}
+        {isAdmin && (
+          <SidebarGroup title="System">
+            <SidebarMenuItem href="/admin/database" active={isActive('/admin/database')}>
+              <span className="inline-flex items-center gap-2">
+                <FontAwesomeIcon icon={faDatabase} className="w-4 h-4" /> <span>Database</span>
+              </span>
+            </SidebarMenuItem>
+          </SidebarGroup>
+        )}
+      </SidebarContent>
+    </Sidebar>
+  )
 }
-
-

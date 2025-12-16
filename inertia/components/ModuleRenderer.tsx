@@ -98,7 +98,7 @@ function getModuleComponent(componentName: string): ComponentType<any> | null {
   // 'hero-with-media' → 'HeroWithMedia'
   const pascalName = componentName
     .split('-')
-    .map(part => part.charAt(0).toUpperCase() + part.slice(1))
+    .map((part) => part.charAt(0).toUpperCase() + part.slice(1))
     .join('')
 
   // Access the component from the Modules namespace
@@ -135,4 +135,3 @@ export function ModuleList({ modules }: { modules: ModuleData[] }) {
     </>
   )
 }
-

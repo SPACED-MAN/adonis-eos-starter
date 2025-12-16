@@ -9,13 +9,23 @@ export default function Forbidden({ message = 'Access denied.' }: { message?: st
       <AdminHeader title="Forbidden" />
       <main className="max-w-3xl mx-auto px-4 sm:px-6 lg:px-8 py-16">
         <div className="border border-line-low rounded-lg bg-backdrop-low p-8">
-          <h2 className="text-2xl font-semibold text-neutral-high mb-2">You don’t have permission</h2>
+          <h2 className="text-2xl font-semibold text-neutral-high mb-2">
+            You don’t have permission
+          </h2>
           <p className="text-neutral-medium mb-6">{message}</p>
           <div className="flex items-center gap-3">
-            <Link href="/admin" className="px-3 py-2 text-sm border border-line-low rounded hover:bg-backdrop-medium text-neutral-medium">
+            <Link
+              href="/admin"
+              className="px-3 py-2 text-sm border border-line-low rounded hover:bg-backdrop-medium text-neutral-medium"
+            >
               Back to Dashboard
             </Link>
-            <Link href="/admin/logout" method="post" as="button" className="px-3 py-2 text-sm rounded bg-standout-medium text-on-standout">
+            <Link
+              href="/admin/logout"
+              method="post"
+              as="button"
+              className="px-3 py-2 text-sm rounded bg-standout-medium text-on-standout"
+            >
               Switch Account
             </Link>
           </div>
@@ -27,5 +37,3 @@ export default function Forbidden({ message = 'Access denied.' }: { message?: st
     </div>
   )
 }
-
-

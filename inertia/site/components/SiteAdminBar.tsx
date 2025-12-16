@@ -21,14 +21,14 @@ export function SiteAdminBar() {
     enabled: false,
     canEdit: false,
     mode: 'source',
-    toggle: () => { },
-    setMode: () => { },
+    toggle: () => {},
+    setMode: () => {},
     dirty: false,
-    saveAll: async () => { },
-    saveForReview: async () => { },
+    saveAll: async () => {},
+    saveForReview: async () => {},
     availableModes: { hasSource: true, hasReview: false, hasAiReview: false },
     showDiffs: false,
-    toggleShowDiffs: () => { },
+    toggleShowDiffs: () => {},
   })
   const [mounted, setMounted] = useState(false)
   useEffect(() => {
@@ -49,7 +49,10 @@ export function SiteAdminBar() {
     if (typeof window === 'undefined') return {}
     // Inertia injects page props here
     const fromInertia =
-      ((window as any).Inertia && (window as any).Inertia.page && (window as any).Inertia.page.props) || null
+      ((window as any).Inertia &&
+        (window as any).Inertia.page &&
+        (window as any).Inertia.page.props) ||
+      null
     if (fromInertia) return fromInertia
     const fromHistory = (window.history && (window.history.state as any)?.page?.props) || null
     return fromHistory || {}
@@ -212,5 +215,3 @@ export function SiteAdminBar() {
     </>
   )
 }
-
-

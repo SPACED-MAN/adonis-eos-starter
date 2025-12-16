@@ -6,10 +6,10 @@ type MediaValue =
   | string
   | null
   | {
-    id?: string
-    url?: string
-    [key: string]: any
-  }
+      id?: string
+      url?: string
+      [key: string]: any
+    }
 
 type Props = {
   value: MediaValue
@@ -27,11 +27,7 @@ export default function MediaField({ value, onChange }: Props) {
 
   return (
     <div>
-      <MediaThumb
-        mediaId={mediaId}
-        onChange={() => setOpen(true)}
-        onClear={() => onChange(null)}
-      />
+      <MediaThumb mediaId={mediaId} onChange={() => setOpen(true)} onClear={() => onChange(null)} />
       <MediaPickerModal
         open={open}
         onOpenChange={setOpen}
@@ -44,4 +40,3 @@ export default function MediaField({ value, onChange }: Props) {
     </div>
   )
 }
-

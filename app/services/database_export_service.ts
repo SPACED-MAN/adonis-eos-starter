@@ -37,10 +37,7 @@ const CONTENT_TYPE_TABLES: Record<ContentType, string[]> = {
     'post_type_custom_fields',
     'post_custom_field_values',
   ],
-  modules: [
-    'module_instances',
-    'module_scopes',
-  ],
+  modules: ['module_instances', 'module_scopes'],
   forms: ['forms', 'form_submissions'],
   menus: ['menus', 'menu_items'],
   categories: ['taxonomies', 'taxonomy_terms', 'post_taxonomy_terms'],
@@ -279,7 +276,9 @@ class DatabaseExportService {
   /**
    * Get available content types and their table counts
    */
-  async getContentTypeStats(): Promise<Record<ContentType, { tables: string[]; rowCount: number }>> {
+  async getContentTypeStats(): Promise<
+    Record<ContentType, { tables: string[]; rowCount: number }>
+  > {
     const result: Record<ContentType, { tables: string[]; rowCount: number }> = {} as any
 
     for (const [contentType, tables] of Object.entries(CONTENT_TYPE_TABLES)) {

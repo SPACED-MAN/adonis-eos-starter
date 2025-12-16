@@ -41,4 +41,3 @@ const aiAgentRole: RoleDefinition = {
 }
 
 export default aiAgentRole
-

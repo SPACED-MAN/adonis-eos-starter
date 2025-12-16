@@ -10,23 +10,23 @@ This document clarifies terminology to avoid confusion between CMS industry term
 
 ### Use These Terms ✅
 
-| Term | Meaning | Location | Technology |
-|------|---------|----------|------------|
+| Term                         | Meaning                                         | Location          | Technology     |
+| ---------------------------- | ----------------------------------------------- | ----------------- | -------------- |
 | **Admin** or **Admin Panel** | Content management interface where editors work | `inertia/admin/*` | React + ShadCN |
-| **Public Site** | What visitors see | `inertia/site/*` | React |
-| **Server** or **API** | Node.js/AdonisJS backend services | `app/*` | TypeScript |
-| **Module Renderers** | SSR system for rendering content | `app/modules/*` | TypeScript |
-| **Client-side** | Code that runs in the browser | `inertia/*` | React/JSX |
-| **Server-side** | Code that runs on Node.js | `app/*` | TypeScript |
+| **Public Site**              | What visitors see                               | `inertia/site/*`  | React          |
+| **Server** or **API**        | Node.js/AdonisJS backend services               | `app/*`           | TypeScript     |
+| **Module Renderers**         | SSR system for rendering content                | `app/modules/*`   | TypeScript     |
+| **Client-side**              | Code that runs in the browser                   | `inertia/*`       | React/JSX      |
+| **Server-side**              | Code that runs on Node.js                       | `app/*`           | TypeScript     |
 
 ### Avoid Ambiguous Terms ⚠️
 
-| Ambiguous Term | Why It's Confusing | Use Instead |
-|----------------|-------------------|-------------|
-| "Backend" | Could mean admin panel OR server code | "Admin" or "Server" |
-| "Frontend" | Could mean public site OR client code | "Public Site" or "Client-side" |
-| "Backend UI" | Unclear if admin panel or server rendering | "Admin Panel" or "Admin UI" |
-| "Frontend rendering" | Could mean client OR server rendering | "Client-side rendering" or "SSR" |
+| Ambiguous Term       | Why It's Confusing                         | Use Instead                      |
+| -------------------- | ------------------------------------------ | -------------------------------- |
+| "Backend"            | Could mean admin panel OR server code      | "Admin" or "Server"              |
+| "Frontend"           | Could mean public site OR client code      | "Public Site" or "Client-side"   |
+| "Backend UI"         | Unclear if admin panel or server rendering | "Admin Panel" or "Admin UI"      |
+| "Frontend rendering" | Could mean client OR server rendering      | "Client-side rendering" or "SSR" |
 
 ---
 
@@ -35,6 +35,7 @@ This document clarifies terminology to avoid confusion between CMS industry term
 **There are TWO types of SSR in this project:**
 
 ### 1. React SSR (Inertia) - `inertia/site/*`
+
 - **First render:** Server-side (React → HTML)
 - **After hydration:** Client-side (React)
 - **Runs on:** Both server AND browser (isomorphic)
@@ -51,6 +52,7 @@ export default function Home() {
 ```
 
 ### 2. Pure SSR (Modules) - `app/modules/*`
+
 - **Render:** Server-side only (String generation)
 - **Technology:** Pure TypeScript (not React)
 - **Runs on:** Server only (never in browser)
@@ -66,6 +68,7 @@ protected renderHtml(): string {
 ```
 
 ### 3. Client-Only (Admin) - `inertia/admin/*`
+
 - **Render:** Client-side only (no SSR)
 - **Technology:** React
 - **Runs on:** Browser only
@@ -82,11 +85,11 @@ export default function Dashboard() {
 
 ### Summary Table
 
-| Directory | Rendering | First Load | Runs Where | SEO |
-|-----------|-----------|------------|------------|-----|
-| `inertia/site/*` | **React SSR** ✅ | Server → Browser | Both | ✅ |
-| `inertia/admin/*` | **CSR only** ❌ | Browser only | Browser | ❌ |
-| `app/modules/*` | **Pure SSR** ✅ | Server only | Server | N/A |
+| Directory         | Rendering        | First Load       | Runs Where | SEO |
+| ----------------- | ---------------- | ---------------- | ---------- | --- |
+| `inertia/site/*`  | **React SSR** ✅ | Server → Browser | Both       | ✅  |
+| `inertia/admin/*` | **CSR only** ❌  | Browser only     | Browser    | ❌  |
+| `app/modules/*`   | **Pure SSR** ✅  | Server only      | Server     | N/A |
 
 ---
 
@@ -130,6 +133,7 @@ project/
 ### ✅ Correct Usage
 
 **In code comments:**
+
 ```typescript
 // Admin panel component for editing hero modules
 // inertia/admin/components/modules/forms/HeroModuleForm.tsx
@@ -145,12 +149,14 @@ project/
 ```
 
 **In documentation:**
+
 - "The admin panel is built with React and ShadCN"
 - "The public site uses SSR for performance"
 - "Server-side validation happens in actions"
 - "Client-side forms use React Hook Form"
 
 **In discussions:**
+
 - "Let's add a new form to the admin panel"
 - "The public site needs better SEO"
 - "We need to optimize the server API"
@@ -159,6 +165,7 @@ project/
 ### ❌ Incorrect Usage (Ambiguous)
 
 **Avoid these:**
+
 - "The backend needs styling" (Admin panel? Server code?)
 - "Frontend performance is slow" (Public site? Client code?)
 - "Backend rendering is broken" (Admin UI? Server rendering?)
@@ -179,6 +186,7 @@ project/
 **User:** Content editors, administrators
 
 **Features:**
+
 - Post editor
 - Module configuration
 - User management
@@ -186,6 +194,7 @@ project/
 - Media library
 
 **Example:**
+
 ```tsx
 // inertia/admin/pages/posts/edit.tsx
 export default function EditPost({ post }) {
@@ -210,6 +219,7 @@ export default function EditPost({ post }) {
 **User:** Public visitors
 
 **Features:**
+
 - Home page
 - Blog posts
 - Pages
@@ -217,6 +227,7 @@ export default function EditPost({ post }) {
 - Forms (contact, newsletter, etc.)
 
 **Example:**
+
 ```tsx
 // inertia/site/pages/home.tsx
 export default function Home() {
@@ -241,6 +252,7 @@ export default function Home() {
 **User:** N/A (internal system)
 
 **Features:**
+
 - REST API endpoints
 - Database models
 - Module renderers (SSR)
@@ -248,6 +260,7 @@ export default function Home() {
 - Validation
 
 **Example:**
+
 ```typescript
 // app/modules/hero_module.ts
 // Server-side renderer for public site content
@@ -271,6 +284,7 @@ class HeroModule extends BaseModule {
 **Technology:** React + ShadCN
 
 **Example:**
+
 ```tsx
 // inertia/admin/pages/settings.tsx
 // Admin panel settings page
@@ -288,6 +302,7 @@ export default function Settings() {
 **Technology:** React (client) + TypeScript (SSR)
 
 **Example:**
+
 ```typescript
 // app/modules/hero_module.ts
 // Optimize SSR for public site
@@ -305,6 +320,7 @@ protected renderHtml(props, context): string {
 **Technology:** TypeScript/AdonisJS
 
 **Example:**
+
 ```typescript
 // app/controllers/posts_controller.ts
 // Server API endpoint
@@ -320,10 +336,12 @@ export default class PostsController {
 **Context matters!**
 
 **For admin panel:**
+
 - "Add a UI component to the admin panel"
 - Location: `inertia/admin/components/`
 
 **For public site:**
+
 - "Add a UI component to the public site"
 - Location: `inertia/site/components/`
 
@@ -363,20 +381,20 @@ Use these terms when discussing user-facing features:
 
 ## Glossary
 
-| Term | Definition | Example |
-|------|------------|---------|
-| **Admin Panel** | Content management interface | Post editor, dashboard |
-| **Public Site** | What visitors see | Home page, blog posts |
-| **Client-side** | Runs in browser | React components, ShadCN |
-| **Server-side** | Runs on Node.js | Controllers, models, SSR |
-| **SSR** | Server-Side Rendering | Module HTML generation |
-| **CSR** | Client-Side Rendering | React hydration |
-| **Module Renderer** | Generates HTML for content | `app/modules/hero_module.ts` |
-| **Module Editor** | Admin UI for configuring modules | `inertia/admin/components/modules/` |
-| **API** | Server endpoints | Controllers, routes |
-| **Model** | Database representation | `app/models/post.ts` |
-| **Action** | Business logic class | `app/actions/posts/create_post.ts` |
-| **Service** | Reusable server logic | `app/services/module_renderer.ts` |
+| Term                | Definition                       | Example                             |
+| ------------------- | -------------------------------- | ----------------------------------- |
+| **Admin Panel**     | Content management interface     | Post editor, dashboard              |
+| **Public Site**     | What visitors see                | Home page, blog posts               |
+| **Client-side**     | Runs in browser                  | React components, ShadCN            |
+| **Server-side**     | Runs on Node.js                  | Controllers, models, SSR            |
+| **SSR**             | Server-Side Rendering            | Module HTML generation              |
+| **CSR**             | Client-Side Rendering            | React hydration                     |
+| **Module Renderer** | Generates HTML for content       | `app/modules/hero_module.ts`        |
+| **Module Editor**   | Admin UI for configuring modules | `inertia/admin/components/modules/` |
+| **API**             | Server endpoints                 | Controllers, routes                 |
+| **Model**           | Database representation          | `app/models/post.ts`                |
+| **Action**          | Business logic class             | `app/actions/posts/create_post.ts`  |
+| **Service**         | Reusable server logic            | `app/services/module_renderer.ts`   |
 
 ---
 
@@ -414,13 +432,14 @@ Is it for content editors?
 ## Summary
 
 **Always be specific:**
+
 - ✅ "Admin panel", "Public site", "Server", "Client-side"
 - ❌ "Backend", "Frontend" (too ambiguous)
 
 **When in doubt:**
+
 - Specify the directory: `inertia/admin/*` vs `app/*`
 - Specify the technology: React vs TypeScript
 - Specify the user: Content editor vs Public visitor
 
 This keeps communication clear and avoids confusion between CMS industry terms and technical architecture terms.
-

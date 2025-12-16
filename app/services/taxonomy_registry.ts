@@ -36,4 +36,3 @@ class TaxonomyRegistry {
 
 const taxonomyRegistry = new TaxonomyRegistry()
 export default taxonomyRegistry
-

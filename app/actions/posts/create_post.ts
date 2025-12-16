@@ -113,13 +113,13 @@ export default class CreatePost {
     const uiConfig = postTypeConfigService.getUiConfig(type)
     const hasPermalinks = uiConfig.permalinksEnabled !== false && uiConfig.urlPatterns.length > 0
     const modulesEnabled = uiConfig.modulesEnabled !== false && uiConfig.urlPatterns.length > 0
-    const moduleGroupsEnabled = uiConfig.moduleGroupsEnabled !== false && uiConfig.urlPatterns.length > 0
+    const moduleGroupsEnabled =
+      uiConfig.moduleGroupsEnabled !== false && uiConfig.urlPatterns.length > 0
 
     // Resolve default module group when none provided
     let effectiveModuleGroupId: string | null = moduleGroupId
     if (moduleGroupsEnabled && !effectiveModuleGroupId) {
-      const defaultName =
-        uiConfig.moduleGroup?.name || `${type}-default`
+      const defaultName = uiConfig.moduleGroup?.name || `${type}-default`
       const defaultGroup = await db
         .from('module_groups')
         .where({ post_type: type, name: defaultName })
@@ -138,7 +138,9 @@ export default class CreatePost {
 
         if (Array.isArray(candidates) && candidates.length >= 1) {
           effectiveModuleGroupId =
-            candidates.length === 1 ? ((candidates[0] as any).id as string) : ((candidates[0] as any).id as string)
+            candidates.length === 1
+              ? ((candidates[0] as any).id as string)
+              : ((candidates[0] as any).id as string)
         }
       }
     }
@@ -178,7 +180,7 @@ export default class CreatePost {
       try {
         const locales = await LocaleService.getSupportedLocales()
         await urlPatternService.ensureDefaultsForPostType(type, locales)
-      } catch { }
+      } catch {}
     }
 
     // Set canonical URL for the post

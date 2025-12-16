@@ -51,6 +51,7 @@ If you're new to using the CMS, start here:
 👉 **[For Editors](/docs/for-editors)** - Learn how to create and manage content
 
 **Editor Documentation:**
+
 - [Content Management](/docs/for-editors/content-management) - Creating and editing posts
 - [Working with Modules](/docs/for-editors/modules-guide) - Understanding content blocks
 - [Review Workflow](/docs/for-editors/review-workflow) - Collaboration and approval
@@ -85,6 +86,7 @@ npm run dev
 ```
 
 Visit `http://localhost:3333/admin` and log in with:
+
 - **Admin:** `admin@example.com` / `supersecret`
 - **Editor Admin:** `editoradmin@example.com` / `supersecret`
 - **Editor:** `editor@example.com` / `supersecret`
@@ -95,6 +97,7 @@ Visit `http://localhost:3333/admin` and log in with:
 👉 **[For Developers](/docs/for-developers)** - Complete setup and configuration
 
 **Developer Documentation:**
+
 - [API Reference](/docs/for-developers/api-reference) - RESTful endpoints
 - [Building Modules](/docs/for-developers/building-modules) - Creating custom content components
 - [Content Management Overview](/docs/for-developers/content-management-overview) - Understanding the content model
@@ -130,38 +133,49 @@ database/
 ## Core Features
 
 ### Modular Content System
+
 Build pages with drag-and-drop modules. Each module is self-contained, reusable, and configurable with schema-driven field types.
 
 ### Role-Based Access Control
+
 Four default roles with granular permissions:
+
 - **Administrator** - Full system access
 - **Editor Admin** - Content management + publishing
 - **Editor** - Content creation (review before publish)
 - **Translator** - Translation-focused access
 
 ### Multi-Language Support
+
 Full internationalization with locale-specific content, URLs, and menus. Translation workflow with review system.
 
 ### Advanced Media Management
+
 Upload images with automatic variant generation, dark mode support, and optimization.
 
 ### AI Agent System
+
 Extensible agent framework for content enhancement, SEO optimization, automated workflows, and n8n integration.
 
 ### Review Workflow
+
 Three-tier system: **Source** → **AI Review** → **Review** → **Source**
+
 - Collaborative editing
 - AI-suggested improvements
 - Manual review and approval
 - Full revision history
 
 ### Webhooks & Integrations
+
 Event-driven webhooks for post lifecycle events, media uploads, form submissions, and user actions.
 
 ### Forms & Submissions
+
 Code-first form definitions with frontend rendering, validation, submission storage, and webhook integration.
 
 ### Theming System
+
 Centralized theme configuration with separate admin and site themes, automatic dark/light mode, and Tailwind integration.
 
 ## Security & Performance
@@ -180,6 +194,7 @@ Centralized theme configuration with separate admin and site themes, automatic d
 For detailed development workflows, testing strategies, and advanced topics, see the **[Developer Documentation](/docs/for-developers)**.
 
 **Quick Commands:**
+
 ```bash
 node ace test              # Run all tests
 node ace make:module hero  # Create custom module
@@ -191,6 +206,7 @@ node ace make:agent seo    # Create AI agent
 For production deployment guides, environment configuration, and hosting recommendations, see the **[Deployment Guide](/docs/for-developers/deployment)**.
 
 **Quick Deploy:**
+
 ```bash
 node ace migration:run --force
 npm run build
@@ -214,6 +230,7 @@ Licensed under the Apache License, Version 2.0. See the [LICENSE](LICENSE) file 
 **Current Status:** Feature-complete for 1.0, undergoing final testing and documentation before beta release. This is the initial public release - functional but not yet production-ready.
 
 **Major Features Completed:**
+
 - ✅ Complete modular content system with 19+ built-in modules
 - ✅ RBAC with 4 default roles and 60+ granular permissions
 - ✅ Three-tier review workflow (Source, AI Review, Review)
@@ -234,6 +251,7 @@ Licensed under the Apache License, Version 2.0. See the [LICENSE](LICENSE) file 
 - ✅ Comprehensive test infrastructure
 
 **Known Limitations:**
+
 - Internal AI agents not yet implemented (external webhooks only)
 - Advanced analytics dashboard planned for future release
 - Multi-tenant support planned for enterprise version

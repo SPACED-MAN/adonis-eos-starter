@@ -11,5 +11,3 @@ import '#fields/link'
 import '#fields/file'
 import '#fields/taxonomy_reference'
 import '#fields/slider'
-
-

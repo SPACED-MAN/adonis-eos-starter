@@ -5,6 +5,7 @@ AI-powered content enhancement system for automated content workflows, SEO optim
 ## Overview
 
 Agents are file-based definitions that can:
+
 - Run manually from the post editor dropdown
 - Trigger automatically on specific events (publish, review, etc.)
 - Process and enhance content automatically using AI
@@ -25,6 +26,7 @@ In-process AI agents that use AI providers directly (OpenAI, Anthropic, Google, 
 - **Faster execution** - No network latency to external services
 
 Internal agents are ideal for:
+
 - Quick content improvements
 - SEO optimization
 - Content enhancement
@@ -49,30 +51,28 @@ const InternalAiAssistantAgent: AgentDefinition = {
   internal: {
     // Provider: 'openai' | 'anthropic' | 'google'
     provider: 'openai',
-    
+
     // Model identifier (provider-specific)
     model: 'gpt-4',
-    
+
     // API key (optional - uses AI_PROVIDER_OPENAI_API_KEY env var if not set)
     // apiKey: process.env.AI_PROVIDER_OPENAI_API_KEY,
-    
+
     // System prompt template
     systemPrompt: `You are a helpful content assistant.
 Help improve content while maintaining the original intent.`,
-    
+
     // Model options
     options: {
       temperature: 0.7,
       maxTokens: 2000,
     },
-    
+
     // Enable MCP tool usage
     useMCP: false,
   },
 
-  scopes: [
-    { scope: 'dropdown', order: 5, enabled: true },
-  ],
+  scopes: [{ scope: 'dropdown', order: 5, enabled: true }],
 
   // Optional: Reactions (execute after completion)
   reactions: [
@@ -114,18 +114,22 @@ AI_PROVIDER_NANOBANANA_API_KEY=your-nanobanana-api-key
 ### Supported Providers and Models
 
 #### OpenAI
+
 - Models: `gpt-4`, `gpt-4-turbo`, `gpt-3.5-turbo`
 - API Key: `AI_PROVIDER_OPENAI_API_KEY`
 
 #### Anthropic (Claude)
+
 - Models: `claude-3-opus-20240229`, `claude-3-sonnet-20240229`, `claude-3-haiku-20240307`
 - API Key: `AI_PROVIDER_ANTHROPIC_API_KEY`
 
 #### Google (Gemini)
+
 - Models: `gemini-pro`, `gemini-pro-vision`
 - API Key: `AI_PROVIDER_GOOGLE_API_KEY`
 
 #### Nano Banana (Gemini Pro)
+
 - Models: `gemini-pro`
 - API Key: `AI_PROVIDER_NANOBANANA_API_KEY`
 - Description: Provides access to Gemini Pro API via Nano Banana service
@@ -145,6 +149,7 @@ internal: {
 ```
 
 When `useMCP: true`, the agent can:
+
 - List and query posts
 - Get post context
 - Create and edit posts
@@ -171,10 +176,10 @@ const YourAgent: AgentDefinition = {
     model: 'gpt-4',
     systemPrompt: '...',
     options: { ... },
-    
+
     // Enable MCP tool usage
     useMCP: true,
-    
+
     // Configure tool access here:
     // Empty array [] = all tools available
     // Specify array = only these tools allowed
@@ -182,7 +187,7 @@ const YourAgent: AgentDefinition = {
     // OR
     // allowedMCPTools: [], // Full access to all tools
   },
-  
+
   // ... rest of agent config
 }
 ```
@@ -190,6 +195,7 @@ const YourAgent: AgentDefinition = {
 **Real Examples from Codebase:**
 
 1. **Graphic Designer** (`app/agents/graphic_designer.ts`) - Restricted to media tools only:
+
    ```typescript
    internal: {
      useMCP: true,
@@ -206,6 +212,7 @@ const YourAgent: AgentDefinition = {
    ```
 
 **How It Works:**
+
 - **If `allowedMCPTools` is empty or undefined**: Agent has access to ALL MCP tools (default behavior)
 - **If `allowedMCPTools` is specified**: Agent can ONLY use the tools listed in the array
 - **Enforcement**: The system enforces these restrictions at two levels:
@@ -227,11 +234,13 @@ internal: {
 ```
 
 This agent can:
+
 - ✅ List media items
 - ✅ Get media details
 - ✅ Generate images via DALL-E
 
 This agent cannot:
+
 - ❌ Create new posts (`create_post_ai_review`)
 - ❌ Modify existing posts (`save_post_ai_review`, `update_post_module_ai_review`)
 - ❌ Access post data (`list_posts`, `get_post_context`)
@@ -261,12 +270,14 @@ internal: {
 - **Layout Planning**: `suggest_modules_for_layout`
 
 **Best Practices:**
+
 1. **Principle of Least Privilege**: Only grant agents the minimum tools they need
 2. **Document Restrictions**: Comment why certain tools are restricted
 3. **Test Restrictions**: Verify agents cannot access unauthorized tools
 4. **Review Regularly**: As new tools are added, review agent permissions
 
 **Security Notes:**
+
 - Tool restrictions are enforced server-side and cannot be bypassed
 - Unauthorized tool calls return an error in the tool results
 - The AI is only informed about tools it has access to, reducing the chance of attempting unauthorized calls
@@ -351,6 +362,7 @@ User context: {{context}}`
 ```
 
 Available variables:
+
 - `{{agent}}` - Agent name
 - `{{scope}}` - Execution scope
 - `{{postType}}` - Post type (if available)
@@ -386,10 +398,10 @@ const SeoOptimizerAgent: AgentDefinition = {
       temperature: 0.7,
       maxTokens: 1000,
     },
-    
+
     // Enable MCP tool usage (allows agent to use CMS tools)
     useMCP: true,
-    
+
     // MCP Tool Access Control (RBAC)
     // - If empty array []: Agent has access to ALL MCP tools (default)
     // - If specified: Agent can ONLY use the tools listed in the array
@@ -397,9 +409,7 @@ const SeoOptimizerAgent: AgentDefinition = {
     allowedMCPTools: ['get_post_context', 'save_post_ai_review'],
   },
 
-  scopes: [
-    { scope: 'dropdown', order: 20, enabled: true },
-  ],
+  scopes: [{ scope: 'dropdown', order: 20, enabled: true }],
 }
 
 export default SeoOptimizerAgent
@@ -435,6 +445,7 @@ Adonis EOS can automatically create **dedicated user accounts per agent** at boo
 In this project, `users.email` is **required and unique** in the database schema.
 
 So “optional email” means:
+
 - you typically **don’t provide a real email**, and
 - the system generates an internal-only email like `agent+translator@agents.local`.
 
@@ -483,15 +494,15 @@ Agents can be triggered in different contexts:
 ### Global Scope
 
 Global agents are accessible via a floating brain icon button in the lower right of the viewport. They don't require a post context and can be used for:
+
 - Creating new posts
 - General content assistance
 - System-wide operations
 
 Example:
+
 ```typescript
-scopes: [
-  { scope: 'global', order: 5, enabled: true },
-]
+scopes: [{ scope: 'global', order: 5, enabled: true }]
 ```
 
 ### Field Scope with Field Types
@@ -529,6 +540,7 @@ We provide:
 - MCP helpers: `create_translation_ai_review` and `create_translations_ai_review_bulk`
 
 Recommended flow:
+
 1. Call `create_translations_ai_review_bulk` to create translation posts (one per locale) and clone module structure into AI Review.
 2. Use `run_field_agent` (with the Translator agent) to translate individual fields/modules and stage results.
 3. Call `submit_ai_review_to_review` so a human can approve.
@@ -543,12 +555,7 @@ scopes: [
     scope: 'field',
     enabled: true,
     order: 10,
-    fieldKeys: [
-      'post.title',
-      'post.metaTitle',
-      'module.hero.title',
-      'module.prose.content',
-    ],
+    fieldKeys: ['post.title', 'post.metaTitle', 'module.hero.title', 'module.prose.content'],
   },
 ]
 ```
@@ -638,7 +645,7 @@ For the best UX, have the agent respond using one of these patterns:
 
 If `applyToAiReview=true` was passed to `run_field_agent`, MCP will **best-effort** stage these responses into AI Review.
 
-###  Example with Form Filtering
+### Example with Form Filtering
 
 ```typescript
 scopes: [
@@ -646,8 +653,8 @@ scopes: [
     scope: 'form.submit',
     order: 10,
     enabled: true,
-    formSlugs: ['contact-form', 'inquiry-form'] // Only these forms
-  }
+    formSlugs: ['contact-form', 'inquiry-form'], // Only these forms
+  },
 ]
 ```
 
@@ -677,7 +684,9 @@ Agents receive the canonical post JSON format:
       "orderIndex": 0,
       "locked": false,
       "props": {
-        "content": { /* Lexical JSON */ }
+        "content": {
+          /* Lexical JSON */
+        }
       },
       "overrides": null,
       "globalSlug": null
@@ -726,9 +735,7 @@ Agents return suggested changes:
 Agents configured with event scopes run automatically:
 
 ```typescript
-scopes: [
-  { scope: 'post.publish', order: 10, enabled: true }
-]
+scopes: [{ scope: 'post.publish', order: 10, enabled: true }]
 ```
 
 When a post is published, this agent runs automatically.
@@ -782,10 +789,8 @@ Verify in your webhook handler:
 ```typescript
 const signature = request.headers['x-hub-signature-256']
 const payload = JSON.stringify(request.body)
-const expected = 'sha256=' + crypto
-  .createHmac('sha256', process.env.AGENT_SECRET)
-  .update(payload)
-  .digest('hex')
+const expected =
+  'sha256=' + crypto.createHmac('sha256', process.env.AGENT_SECRET).update(payload).digest('hex')
 
 if (signature !== expected) {
   throw new Error('Invalid signature')
@@ -828,7 +833,7 @@ const SeoAgent: AgentDefinition = {
   description: 'Optimizes SEO metadata using AI',
   type: 'internal',
   enabled: true,
-  
+
   internal: {
     provider: 'openai',
     model: 'gpt-4',
@@ -840,10 +845,8 @@ const SeoAgent: AgentDefinition = {
     useMCP: true,
     allowedMCPTools: ['get_post_context', 'save_post_ai_review'],
   },
-  
-  scopes: [
-    { scope: 'dropdown', order: 10, enabled: true },
-  ],
+
+  scopes: [{ scope: 'dropdown', order: 10, enabled: true }],
 }
 
 export default SeoAgent
@@ -862,6 +865,7 @@ export default SeoAgent
 ## Best Practices
 
 ### General
+
 1. **Always use Review mode**: Never modify live content directly
 2. **Add timeouts**: Prevent hanging on slow webhooks (external) or long AI completions (internal)
 3. **Handle errors gracefully**: Return helpful error messages
@@ -870,6 +874,7 @@ export default SeoAgent
 6. **Scope appropriately**: Don't auto-run destructive agents
 
 ### Internal Agents
+
 1. **Choose the right provider**: OpenAI for general tasks, Anthropic for complex reasoning, Google for multimodal
 2. **Optimize prompts**: Clear system prompts improve results
 3. **Set appropriate limits**: Use `maxTokens` to control costs
@@ -880,15 +885,18 @@ export default SeoAgent
 ## Troubleshooting
 
 **Agent not appearing in dropdown?**
+
 - Check `enabled: true` and `scopes` includes `dropdown`
 - Verify user has `agents.edit` permission
 
 **Agent execution failing?**
+
 - Check API keys are set correctly in `.env`
 - Verify the AI provider is accessible
 - Check model name is correct for the provider
 
 **Changes not applying?**
+
 - Agents update `review_draft`, not live content
 - Switch to Review tab to see changes
 - Check agent response format matches expected schema
@@ -896,4 +904,3 @@ export default SeoAgent
 ---
 
 **Related**: [Workflows](/docs/developers/workflows) | [MCP (Model Context Protocol)](/docs/developers/mcp) | [API Reference](/docs/developers/api-reference)
-

@@ -18,4 +18,3 @@ const booleanField: FieldTypeConfig = {
 fieldTypeRegistry.register(booleanField)
 
 export default booleanField
-

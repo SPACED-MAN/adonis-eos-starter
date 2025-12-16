@@ -227,4 +227,3 @@ export interface WorkflowExecutionContext {
    */
   payload: Record<string, any>
 }
-

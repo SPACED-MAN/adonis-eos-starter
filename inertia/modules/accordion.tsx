@@ -1,9 +1,9 @@
 /**
  * Accordion Module - React Variant
- * 
+ *
  * Interactive React component (SSR + hydration)
  * Use for FAQ sections, collapsible content, etc.
- * 
+ *
  * Located in inertia/modules/ (shared between admin preview and public site)
  * No -static suffix = React component with full interactivity
  */
@@ -53,29 +53,33 @@ export default function Accordion({
   }
 
   return (
-    <div className="accordion-module max-w-3xl mx-auto px-4 sm:px-6 lg:px-8 py-8" data-module="accordion">
+    <div
+      className="accordion-module max-w-3xl mx-auto px-4 sm:px-6 lg:px-8 py-8"
+      data-module="accordion"
+    >
       <div className="space-y-2">
         {items.map((item, index) => {
           const isOpen = openIndices.has(index)
 
           return (
-            <div
-              key={index}
-              className="border border-border rounded-lg overflow-hidden"
-            >
+            <div key={index} className="border border-border rounded-lg overflow-hidden">
               {/* Header */}
               <button
                 onClick={() => toggleItem(index)}
                 className="w-full flex items-center justify-between p-4 text-left bg-backdrop-low hover:bg-backdrop-medium transition-colors"
                 aria-expanded={isOpen}
               >
-                <span className="font-semibold text-neutral-high" data-inline-path={`items.${index}.title`}>
+                <span
+                  className="font-semibold text-neutral-high"
+                  data-inline-path={`items.${index}.title`}
+                >
                   {item.title}
                 </span>
                 <FontAwesomeIcon
                   icon="chevron-down"
-                  className={`w-5 h-5 text-neutral-low transition-transform ${isOpen ? 'rotate-180' : ''
-                    }`}
+                  className={`w-5 h-5 text-neutral-low transition-transform ${
+                    isOpen ? 'rotate-180' : ''
+                  }`}
                 />
               </button>
 
@@ -97,4 +101,3 @@ export default function Accordion({
     </div>
   )
 }
-

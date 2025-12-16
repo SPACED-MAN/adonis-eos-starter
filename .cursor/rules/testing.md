@@ -1,9 +1,11 @@
 # Testing Guidelines
 
 ## Core Principle
+
 **Write tests using AdonisJS + Japa conventions. Tests are mandatory for new features.**
 
 ## Testing Framework
+
 - **Test Runner:** Japa (built into AdonisJS)
 - **Official Docs:** https://docs.adonisjs.com/guides/testing/introduction
 - **Japa Docs:** https://japa.dev/docs
@@ -11,6 +13,7 @@
 ## Test Organization
 
 ### Test Location
+
 ```
 tests/
 ├── unit/           # Unit tests (models, services, helpers)
@@ -19,12 +22,12 @@ tests/
 ```
 
 ### Test Suites
+
 - **Unit Tests** - Test individual components in isolation
   - Models (methods, relationships, scopes)
   - Services (business logic)
   - Helpers (utility functions)
   - Validators
-  
 - **Functional Tests** - Test HTTP endpoints end-to-end
   - API routes
   - Authentication flows
@@ -35,6 +38,7 @@ tests/
 ### ✅ DO: Follow AdonisJS Conventions
 
 **Unit Test Example:**
+
 ```typescript
 import { test } from '@japa/runner'
 import Post from '#models/post'
@@ -63,6 +67,7 @@ test.group('Post Model', (group) => {
 ```
 
 **Functional Test Example:**
+
 ```typescript
 import { test } from '@japa/runner'
 import testUtils from '@adonisjs/core/services/test_utils'
@@ -74,7 +79,7 @@ test.group('API - Posts', (group) => {
 
   test('GET /api/posts should return posts', async ({ client, assert }) => {
     const response = await client.get('/api/posts')
-    
+
     response.assertStatus(200)
     assert.isArray(response.body().data)
   })
@@ -84,6 +89,7 @@ test.group('API - Posts', (group) => {
 ### ❌ DON'T: Create Custom Test Commands
 
 **Bad:**
+
 ```typescript
 // DON'T create custom ace commands for testing
 node ace test:feature
@@ -91,6 +97,7 @@ node ace test:api
 ```
 
 **Good:**
+
 ```bash
 # Use standard Japa test commands
 node ace test
@@ -101,7 +108,9 @@ node ace test functional
 ## Test Creation Process
 
 ### 1. Create Test Files
+
 Use `make:test` command:
+
 ```bash
 # Create unit test
 node ace make:test user --suite=unit
@@ -111,11 +120,13 @@ node ace make:test posts/list --suite=functional
 ```
 
 ### 2. Write Tests Following TDD
+
 1. **Write test first** (Red)
 2. **Implement feature** (Green)
 3. **Refactor** (Refactor)
 
 ### 3. Use Test Groups
+
 ```typescript
 test.group('Feature Name', (group) => {
   // Setup before each test
@@ -135,6 +146,7 @@ test.group('Feature Name', (group) => {
 ```
 
 ### 4. Use Lifecycle Hooks
+
 - `group.setup()` - Run once before all tests in group
 - `group.teardown()` - Run once after all tests in group
 - `group.each.setup()` - Run before each test
@@ -143,6 +155,7 @@ test.group('Feature Name', (group) => {
 ## Database Testing
 
 ### Use Transactions for Unit Tests
+
 ```typescript
 group.each.setup(async () => {
   await db.beginGlobalTransaction()
@@ -154,6 +167,7 @@ group.each.teardown(async () => {
 ```
 
 ### Use Truncate for Functional Tests
+
 ```typescript
 group.each.setup(async () => {
   await testUtils.db().truncate()
@@ -163,6 +177,7 @@ group.each.setup(async () => {
 ## Running Tests
 
 ### Standard Commands
+
 ```bash
 # Run all tests
 node ace test
@@ -185,6 +200,7 @@ node ace test --tags="@slow,@integration"
 ```
 
 ### Test Environment
+
 - Use `.env.test` for test-specific configuration
 - Set `SESSION_DRIVER=memory` for faster tests
 - Use in-memory or separate test database
@@ -192,6 +208,7 @@ node ace test --tags="@slow,@integration"
 ## Assertions
 
 ### Available Assertions
+
 ```typescript
 // Basic assertions
 assert.equal(actual, expected)
@@ -220,6 +237,7 @@ await assert.rejects(async () => {
 ```
 
 ### HTTP Assertions
+
 ```typescript
 response.assertStatus(200)
 response.assertBody({ data: [] })
@@ -232,15 +250,14 @@ response.assertRedirectsTo('/login')
 ## Authentication in Tests
 
 ### Using loginAs()
+
 ```typescript
 const user = await User.create({
   email: 'test@example.com',
   password: 'secret',
 })
 
-const response = await client
-  .get('/api/protected')
-  .loginAs(user)
+const response = await client.get('/api/protected').loginAs(user)
 
 response.assertStatus(200)
 ```
@@ -248,13 +265,16 @@ response.assertStatus(200)
 ## Coverage & Quality
 
 ### Test Coverage Goals
+
 - **Models:** 100% of public methods
 - **Services:** 100% of business logic
 - **Controllers:** All API endpoints
 - **Helpers:** All utility functions
 
 ### What to Test
+
 ✅ **DO Test:**
+
 - Model methods and relationships
 - Service business logic
 - API endpoints (success and error cases)
@@ -264,6 +284,7 @@ response.assertStatus(200)
 - Query scopes
 
 ❌ **DON'T Test:**
+
 - Framework internals
 - Third-party libraries
 - Simple getters/setters
@@ -272,13 +293,16 @@ response.assertStatus(200)
 ## Test Data
 
 ### Use Factories (When Available)
+
 ```typescript
 // Future: Use factories for test data
 const post = await PostFactory.create()
 ```
 
 ### Unique Test Data
+
 For tests that run in parallel, use unique data:
+
 ```typescript
 // Good: Unique slugs
 const post = await Post.create({
@@ -296,6 +320,7 @@ const user = await User.create({
 ## When Adding New Features
 
 ### Checklist
+
 - [ ] Write unit tests for models/services
 - [ ] Write functional tests for API endpoints
 - [ ] Test both success and error cases
@@ -305,6 +330,7 @@ const user = await User.create({
 - [ ] Run `node ace test` to ensure all tests pass
 
 ### Test Coverage Requirements
+
 - **Unit tests:** Required for all models, services, helpers
 - **Functional tests:** Required for all public API endpoints
 - **Integration tests:** Required for complex features
@@ -312,6 +338,7 @@ const user = await User.create({
 ## Common Patterns
 
 ### Testing Model Relationships
+
 ```typescript
 test('should have translations relationship', async ({ assert }) => {
   const post = await Post.create({
@@ -335,23 +362,25 @@ test('should have translations relationship', async ({ assert }) => {
 ```
 
 ### Testing Query Scopes
+
 ```typescript
 test('should filter by locale using scope', async ({ assert }) => {
   await Post.create({ slug: 'post-1', locale: 'en', title: 'Post 1' })
   await Post.create({ slug: 'post-2', locale: 'es', title: 'Post 2' })
 
   const enPosts = await Post.query().apply((scopes) => scopes.byLocale('en'))
-  
+
   assert.lengthOf(enPosts, 1)
   assert.equal(enPosts[0].locale, 'en')
 })
 ```
 
 ### Testing API Error Cases
+
 ```typescript
 test('should return 404 for non-existent resource', async ({ client }) => {
   const response = await client.get('/api/posts/invalid-id')
-  
+
   response.assertStatus(404)
   response.assertBodyContains({
     error: 'Post not found',
@@ -360,32 +389,28 @@ test('should return 404 for non-existent resource', async ({ client }) => {
 
 test('should return 401 for unauthenticated request', async ({ client }) => {
   const response = await client.get('/api/admin/posts')
-  
+
   // Should redirect or return 401/403
-  assert.isTrue(
-    response.status() === 302 || 
-    response.status() === 401 || 
-    response.status() === 403
-  )
+  assert.isTrue(response.status() === 302 || response.status() === 401 || response.status() === 403)
 })
 ```
 
 ## Documentation
 
 ### Document Test Purpose
+
 ```typescript
 // Good: Clear test purpose
 test('should prevent deleting original post via translations endpoint', async ({ client }) => {
   // Original posts should only be deleted directly, not via translation API
-  const response = await client
-    .delete(`/api/posts/${post.id}/translations/en`)
-    .loginAs(user)
+  const response = await client.delete(`/api/posts/${post.id}/translations/en`).loginAs(user)
 
   response.assertStatus(400)
 })
 ```
 
 ### Group Related Tests
+
 ```typescript
 test.group('i18n - Post Model Translations', (group) => {
   // All translation-related tests grouped together
@@ -415,4 +440,3 @@ test.group('i18n - Post Model Translations', (group) => {
 ---
 
 **When in doubt, check the official AdonisJS testing documentation!**
-

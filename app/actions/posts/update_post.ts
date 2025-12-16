@@ -160,7 +160,9 @@ export default class UpdatePost {
 
     if (taxonomyTermIds) {
       const cfg = postTypeConfigService.getUiConfig(post.type)
-      const allowedTaxonomies = Array.isArray((cfg as any).taxonomies) ? (cfg as any).taxonomies : []
+      const allowedTaxonomies = Array.isArray((cfg as any).taxonomies)
+        ? (cfg as any).taxonomies
+        : []
       if (allowedTaxonomies.length > 0) {
         const allowedTerms = await db
           .from('taxonomy_terms as tt')
@@ -171,7 +173,10 @@ export default class UpdatePost {
         const allowedTermIds = Array.from(new Set(allowedTerms.map((r: any) => String(r.id))))
 
         // Remove existing assignments for the allowed taxonomies, then reinsert the provided ones
-        const allowedTaxonomyIds = await db.from('taxonomies').whereIn('slug', allowedTaxonomies).select('id')
+        const allowedTaxonomyIds = await db
+          .from('taxonomies')
+          .whereIn('slug', allowedTaxonomies)
+          .select('id')
         const allowedIds = allowedTaxonomyIds.map((r: any) => String(r.id))
         if (allowedIds.length > 0) {
           await db

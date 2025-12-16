@@ -3,40 +3,49 @@
 Code-first makers to scaffold common CMS artifacts.
 
 ## Post Types
+
 - Command: `node ace make:post-type "Blog"` (alias: `make:post_type`)
 - Flags:
   - `--pattern` (default `/{locale}/{post_type}/{slug}`) – URL pattern template.
 - Output: `app/post_types/blog.ts` with starter config (fields, module group/template defaults, URL patterns).
 
 ## Modules
+
 - Command: `node ace make:module "Hero With Media"`
 - Output: Backend module boilerplate and frontend stub for a new module component.
 
 ## Roles
+
 - Command: `node ace make:role "Publisher"`
 - Output: Role definition scaffold in `app/roles/`.
 
 ## Agents
+
 - Command: `node ace make:agent "Seo Optimizer"`
 - Output: AI agent scaffold in `app/agents/`.
 
 ## Menus
+
 - Command: `node ace make:menu "Footer"`
 - Output: Menu scaffold registration file.
 
 ## MCP (Model Context Protocol)
+
 - Command: `node ace mcp:serve`
 - Purpose: Serve CMS context (post types, module schemas, global modules) to external AI tools and services via MCP.
 - See: `/docs/for-developers/mcp`
 
 ## MCP context dump
+
 - Command: `node ace mcp:dump-context --out /tmp/mcp-context.json`
 - Purpose: Export code-derived MCP context (post types, module schemas, taxonomies) for auditing/diffing.
 
 ## Database export/import (admin UI + services)
+
 - See: `/docs/for-developers/export-import`
 
 ## Maintenance utilities
+
 - `node ace audit:internal-links` – scan for hardcoded internal URLs in content and suggest post references.
 - `node ace populate:canonical-urls` – backfill canonical URLs after URL pattern changes.
 
@@ -50,9 +59,11 @@ Code-first makers to scaffold common CMS artifacts.
   - See: `/docs/for-developers/webhooks`
 
 ## Post Types (duplicate detection)
+
 - If a file exists, the command is skipped gracefully (no overwrite).
 
 ## Taxonomies (Categories/Tags)
+
 - Command:
   ```bash
   node ace make:taxonomy "Blog Categories" \
@@ -65,4 +76,3 @@ Code-first makers to scaffold common CMS artifacts.
   - `--free-tagging` (boolean) – allow inline term creation in the post editor.
   - `--maxSelections` (number or `unlimited`) – cap terms per post.
 - Output: `app/taxonomies/<slug>.ts` config; boot (`start/taxonomies.ts`) syncs DB rows on startup.
-

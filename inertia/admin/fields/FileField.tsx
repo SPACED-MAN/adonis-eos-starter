@@ -43,4 +43,3 @@ export default function FileField({ value, onChange, accept }: Props) {
     </div>
   )
 }
-

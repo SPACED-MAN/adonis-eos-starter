@@ -7,11 +7,11 @@ type LinkValue =
   | undefined
   | string
   | {
-    kind?: 'url' | 'post'
-    url?: string
-    postId?: string | number | null
-    target?: '_self' | '_blank'
-  }
+      kind?: 'url' | 'post'
+      url?: string
+      postId?: string | number | null
+      target?: '_self' | '_blank'
+    }
 
 interface PricingPlan {
   name: string
@@ -31,7 +31,12 @@ interface PricingProps {
   __moduleId?: string
 }
 
-export default function Pricing({ title: initialTitle, subtitle: initialSubtitle, plans: initialPlans, __moduleId }: PricingProps) {
+export default function Pricing({
+  title: initialTitle,
+  subtitle: initialSubtitle,
+  plans: initialPlans,
+  __moduleId,
+}: PricingProps) {
   const title = useInlineValue(__moduleId, 'title', initialTitle)
   const subtitle = useInlineValue(__moduleId, 'subtitle', initialSubtitle)
   const plans = useInlineValue(__moduleId, 'plans', initialPlans)
@@ -65,8 +70,9 @@ export default function Pricing({ title: initialTitle, subtitle: initialSubtitle
             return (
               <div
                 key={idx}
-                className={`flex flex-col p-6 mx-auto max-w-lg text-center bg-backdrop-low rounded-lg border border-line-low shadow-sm xl:p-8 ${isPrimary ? 'ring-2 ring-standout-medium shadow-md' : ''
-                  }`}
+                className={`flex flex-col p-6 mx-auto max-w-lg text-center bg-backdrop-low rounded-lg border border-line-low shadow-sm xl:p-8 ${
+                  isPrimary ? 'ring-2 ring-standout-medium shadow-md' : ''
+                }`}
                 data-inline-type="object"
                 data-inline-path={`plans.${idx}`}
                 data-inline-label={`Plan ${idx + 1}`}
@@ -134,5 +140,3 @@ export default function Pricing({ title: initialTitle, subtitle: initialSubtitle
     </section>
   )
 }
-
-

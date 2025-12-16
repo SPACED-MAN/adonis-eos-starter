@@ -12,21 +12,21 @@ Edit `config/theme.ts`:
 export const themeConfig = {
   admin: {
     primary: {
-      light: 'indigo',   // Change to 'blue', 'violet', 'emerald', etc.
+      light: 'indigo', // Change to 'blue', 'violet', 'emerald', etc.
       dark: 'indigo',
     },
     background: {
-      light: 'slate',    // Change to 'gray', 'zinc', 'stone', etc.
+      light: 'slate', // Change to 'gray', 'zinc', 'stone', etc.
       dark: 'slate',
     },
     neutral: {
-      light: 'slate',    // For text/borders
+      light: 'slate', // For text/borders
       dark: 'slate',
     },
   },
   site: {
     primary: {
-      light: 'violet',   // Different from admin!
+      light: 'violet', // Different from admin!
       dark: 'violet',
     },
     background: {
@@ -60,6 +60,7 @@ export const themeConfig = {
 ### 1. Theme Detection
 
 URL-based automatic detection:
+
 - `/admin/*` → Admin theme (indigo + slate by default)
 - Everything else → Site theme (violet + stone by default)
 
@@ -68,13 +69,13 @@ URL-based automatic detection:
 Themes defined in `inertia/css/app.css`:
 
 ```css
-[data-theme="admin"] {
+[data-theme='admin'] {
   --color-standout: var(--color-indigo-600);
   --color-neutral-high: var(--color-slate-900);
   --color-backdrop-low: var(--color-slate-50);
 }
 
-[data-theme="site"] {
+[data-theme='site'] {
   --color-standout: var(--color-violet-600);
   --color-neutral-high: var(--color-stone-900);
   --color-backdrop-low: var(--color-stone-50);
@@ -84,6 +85,7 @@ Themes defined in `inertia/css/app.css`:
 ### 3. Tailwind Integration
 
 Use the named color tokens:
+
 - `bg-standout`, `text-on-standout`
 - `text-neutral-{low|medium|high}`
 - `bg-backdrop-{low|medium|high}`
@@ -124,9 +126,7 @@ These tokens are available as Tailwind classes:
 <div className="bg-backdrop-low border-line">
   <h1 className="text-neutral-high">Heading</h1>
   <p className="text-neutral-medium">Body text</p>
-  <button className="bg-standout text-on-standout">
-    Action
-  </button>
+  <button className="bg-standout text-on-standout">Action</button>
 </div>
 ```
 
@@ -209,7 +209,7 @@ Edit `inertia/css/app.css`:
 
 ```css
 :root {
-  --standout: 220 90% 56%;  /* HSL values */
+  --standout: 220 90% 56%; /* HSL values */
   --on-standout: 0 0% 100%;
 }
 
@@ -251,6 +251,7 @@ Modules support background customization:
 ```
 
 Available options:
+
 - `bg-backdrop-low` (default)
 - `bg-backdrop-medium`
 - `bg-backdrop-high`
@@ -297,7 +298,7 @@ Logos are automatically swapped based on theme.
 # 1. View admin theme
 http://localhost:3333/admin
 
-# 2. View site theme  
+# 2. View site theme
 http://localhost:3333/
 
 # 3. Toggle dark mode (browser console)
@@ -320,6 +321,3 @@ Both support automatic light/dark mode and can be changed instantly by editing o
 - [Tailwind CSS Documentation](https://tailwindcss.com/docs)
 - [CSS Custom Properties (MDN)](https://developer.mozilla.org/en-US/docs/Web/CSS/--*)
 - Advanced theming rules: `.cursor/rules/theming.md`
-
-
-

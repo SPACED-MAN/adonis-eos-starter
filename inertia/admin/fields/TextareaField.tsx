@@ -18,4 +18,3 @@ export default function TextareaField({ value, onChange, placeholder, maxLength 
     />
   )
 }
-

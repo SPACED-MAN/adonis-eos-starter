@@ -37,30 +37,29 @@ export default function FormModule({ title, subtitle, formSlug }: FormModuleProp
     setLoading(true)
     setSubmitted(false)
     setErrors({})
-
-      ; (async () => {
-        try {
-          const res = await fetch(`/api/forms/${encodeURIComponent(formSlug)}`, {
-            credentials: 'same-origin',
-            headers: { Accept: 'application/json' },
-          })
-          if (!res.ok) {
-            throw new Error('Failed to load form')
-          }
-          const j = await res.json().catch(() => null)
-          if (!cancelled) {
-            const def: FormDefinition | null = j?.data ?? null
-            setDefinition(def)
-            setValues({})
-          }
-        } catch {
-          if (!cancelled) {
-            setDefinition(null)
-          }
-        } finally {
-          if (!cancelled) setLoading(false)
+    ;(async () => {
+      try {
+        const res = await fetch(`/api/forms/${encodeURIComponent(formSlug)}`, {
+          credentials: 'same-origin',
+          headers: { Accept: 'application/json' },
+        })
+        if (!res.ok) {
+          throw new Error('Failed to load form')
         }
-      })()
+        const j = await res.json().catch(() => null)
+        if (!cancelled) {
+          const def: FormDefinition | null = j?.data ?? null
+          setDefinition(def)
+          setValues({})
+        }
+      } catch {
+        if (!cancelled) {
+          setDefinition(null)
+        }
+      } finally {
+        if (!cancelled) setLoading(false)
+      }
+    })()
 
     return () => {
       cancelled = true
@@ -97,7 +96,7 @@ export default function FormModule({ title, subtitle, formSlug }: FormModuleProp
         method: 'POST',
         credentials: 'same-origin',
         headers: {
-          Accept: 'application/json',
+          'Accept': 'application/json',
           'Content-Type': 'application/json',
         },
         body: JSON.stringify(values),
@@ -146,11 +145,7 @@ export default function FormModule({ title, subtitle, formSlug }: FormModuleProp
                 {visibleTitle}
               </h2>
             )}
-            {subtitle && (
-              <p className="text-sm sm:text-base text-neutral-medium">
-                {subtitle}
-              </p>
-            )}
+            {subtitle && <p className="text-sm sm:text-base text-neutral-medium">{subtitle}</p>}
           </div>
         )}
 
@@ -213,11 +208,7 @@ export default function FormModule({ title, subtitle, formSlug }: FormModuleProp
                     required={field.required}
                   />
                 )}
-                {fieldError && (
-                  <p className="text-xs text-danger mt-1">
-                    {fieldError}
-                  </p>
-                )}
+                {fieldError && <p className="text-xs text-danger mt-1">{fieldError}</p>}
               </div>
             )
           })}
@@ -236,6 +227,3 @@ export default function FormModule({ title, subtitle, formSlug }: FormModuleProp
     </section>
   )
 }
-
-
-

@@ -22,4 +22,3 @@ Sitemap: ${baseUrl}/sitemap.xml
       .send(robotsContent)
   }
 }
-

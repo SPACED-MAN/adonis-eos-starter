@@ -2,7 +2,13 @@ import { useEffect, useState } from 'react'
 import { AdminHeader } from '../../components/AdminHeader'
 import { AdminFooter } from '../../components/AdminFooter'
 import { Input } from '../../../components/ui/input'
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '~/components/ui/select'
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '~/components/ui/select'
 import { formatDateTime } from '~/utils/format'
 
 type LogRow = {
@@ -30,7 +36,9 @@ export default function ActivityLogPage() {
       const params = new URLSearchParams()
       if (userFilter) params.set('userId', userFilter)
       if (actionFilter) params.set('action', actionFilter)
-      const res = await fetch(`/api/activity-logs?${params.toString()}`, { credentials: 'same-origin' })
+      const res = await fetch(`/api/activity-logs?${params.toString()}`, {
+        credentials: 'same-origin',
+      })
       const j = await res.json().catch(() => ({}))
       const list: LogRow[] = Array.isArray(j?.data) ? j.data : []
       setRows(list)
@@ -39,7 +47,9 @@ export default function ActivityLogPage() {
     }
   }
 
-  useEffect(() => { load() }, [])
+  useEffect(() => {
+    load()
+  }, [])
 
   return (
     <div className="min-h-screen bg-backdrop-medium">
@@ -47,8 +57,18 @@ export default function ActivityLogPage() {
       <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
         <div className="bg-backdrop-low rounded border border-line-low p-6">
           <div className="flex items-center gap-3 mb-4">
-            <Input placeholder="Filter by user ID" value={userFilter} onChange={(e) => setUserFilter(e.target.value)} className="w-48" />
-            <Input placeholder="Filter by action" value={actionFilter} onChange={(e) => setActionFilter(e.target.value)} className="w-48" />
+            <Input
+              placeholder="Filter by user ID"
+              value={userFilter}
+              onChange={(e) => setUserFilter(e.target.value)}
+              className="w-48"
+            />
+            <Input
+              placeholder="Filter by action"
+              value={actionFilter}
+              onChange={(e) => setActionFilter(e.target.value)}
+              className="w-48"
+            />
             <button
               className="px-3 py-2 text-sm border border-line-low rounded hover:bg-backdrop-medium text-neutral-high"
               onClick={load}
@@ -73,18 +93,28 @@ export default function ActivityLogPage() {
                 {rows.map((r) => (
                   <tr key={r.id} className="border-t border-line-low">
                     <td className="py-2 pr-2 whitespace-nowrap">{formatDateTime(r.createdAt)}</td>
-                    <td className="py-2 pr-2">{r.userEmail || (r.userId ? `User ${r.userId}` : '—')}</td>
-                    <td className="py-2 pr-2 font-mono">{r.action}</td>
-                    <td className="py-2 pr-2">{r.entityType ? `${r.entityType}#${r.entityId || ''}` : '—'}</td>
                     <td className="py-2 pr-2">
-                      {r.metadata ? <code className="text-xs">{JSON.stringify(r.metadata)}</code> : '—'}
+                      {r.userEmail || (r.userId ? `User ${r.userId}` : '—')}
+                    </td>
+                    <td className="py-2 pr-2 font-mono">{r.action}</td>
+                    <td className="py-2 pr-2">
+                      {r.entityType ? `${r.entityType}#${r.entityId || ''}` : '—'}
+                    </td>
+                    <td className="py-2 pr-2">
+                      {r.metadata ? (
+                        <code className="text-xs">{JSON.stringify(r.metadata)}</code>
+                      ) : (
+                        '—'
+                      )}
                     </td>
                     <td className="py-2 pr-2">{r.ip || '—'}</td>
                   </tr>
                 ))}
                 {rows.length === 0 && !loading && (
                   <tr>
-                    <td colSpan={6} className="py-8 text-center text-neutral-low">No activity yet.</td>
+                    <td colSpan={6} className="py-8 text-center text-neutral-low">
+                      No activity yet.
+                    </td>
                   </tr>
                 )}
               </tbody>
@@ -98,6 +128,3 @@ export default function ActivityLogPage() {
     </div>
   )
 }
-
-
-

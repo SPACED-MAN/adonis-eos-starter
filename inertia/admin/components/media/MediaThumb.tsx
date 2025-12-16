@@ -140,5 +140,3 @@ export function MediaThumb({ mediaId, onChange, onClear }: Props) {
     </div>
   )
 }
-
-

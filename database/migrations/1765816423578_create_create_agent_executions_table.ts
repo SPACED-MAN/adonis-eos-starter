@@ -37,8 +37,12 @@ export default class extends BaseSchema {
     })
 
     // GIN index for JSONB queries
-    this.schema.raw('CREATE INDEX agent_executions_response_gin ON agent_executions USING GIN (response)')
-    this.schema.raw('CREATE INDEX agent_executions_context_gin ON agent_executions USING GIN (context)')
+    this.schema.raw(
+      'CREATE INDEX agent_executions_response_gin ON agent_executions USING GIN (response)'
+    )
+    this.schema.raw(
+      'CREATE INDEX agent_executions_context_gin ON agent_executions USING GIN (context)'
+    )
   }
 
   async down() {

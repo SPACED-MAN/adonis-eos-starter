@@ -19,22 +19,25 @@ Perfect for non-technical users who create and manage content:
 Technical documentation for developers and system administrators:
 
 ### Getting Started
+
 - [Installation & Setup](/docs/for-developers) - Initial configuration
 - [Content Management Overview](/docs/for-developers/content-management-overview) - Understanding the content model
 
 ### Core Concepts
+
 - [Theming System](/docs/for-developers/theming) - Customizing colors and design
 - [Building Modules](/docs/for-developers/building-modules) - Creating content components
 - [SEO & Routing](/docs/for-developers/seo-and-routing) - URL patterns, redirects, sitemap, and SEO
 - [Internationalization (i18n)](/docs/for-developers/internationalization) - Multi-language content
 
 ### Advanced Features
+
 - [API Reference](/docs/for-developers/api-reference) - RESTful endpoints
 - [AI Agents](/docs/for-developers/ai-agents) - AI-powered content enhancement
 - [Workflows](/docs/for-developers/workflows) - Event-driven automation and webhook integrations
 - [MCP (Model Context Protocol)](/docs/for-developers/mcp) - Connect external AI tools (Cursor, n8n) to CMS context + safe write tools
 - [Deployment Guide](/docs/for-developers/deployment) - Production deployment strategies
- - [Update Philosophy](/docs/for-developers/update-philosophy) - How to approach upgrades and maintenance
+- [Update Philosophy](/docs/for-developers/update-philosophy) - How to approach upgrades and maintenance
 - [Export/Import](/docs/for-developers/export-import) - Database export/import pipeline (dev seeding + production promotion)
 - [CLI Commands](/docs/for-developers/cli-commands) - Code-first makers (post types, modules, roles, menus, taxonomies)
 
@@ -52,6 +55,7 @@ Technical documentation for developers and system administrators:
 ## What is Adonis EOS?
 
 Adonis EOS is a modern, headless CMS that combines:
+
 - **AdonisJS** - Robust Node.js backend framework
 - **React + Inertia.js** - Modern frontend with SSR
 - **PostgreSQL** - Reliable, powerful database
@@ -60,22 +64,28 @@ Adonis EOS is a modern, headless CMS that combines:
 ## Core Features
 
 ### Modular Content System
+
 Build pages with reusable components. Each module is self-contained and configurable.
 
 ### Role-Based Access Control
+
 Four default roles with granular permissions:
+
 - **Administrator** - Full system access
 - **Editor Admin** - Content management + publishing
 - **Editor** - Content creation (review before publish)
 - **Translator** - Translation-focused access
 
 ### Multi-Language Support
+
 Create content in multiple languages with locale-specific URLs, menus, and translations.
 
 ### Advanced Media Management
+
 Upload images with automatic variant generation, dark mode support, and optimization.
 
 ### AI Integration
+
 Extensible agent system for content enhancement, SEO optimization, and automated workflows.
 
 ## Quick Start

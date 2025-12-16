@@ -10,5 +10,3 @@
   - Do not use `window.confirm`.
 - Use Sonner toasts for action results and status (“Deleted”, “Saved”, errors), not for confirmations.
 - Keep copy concise; provide enough detail in the dialog for the user to decide confidently.
-
-

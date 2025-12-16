@@ -103,9 +103,7 @@ export default class TaxonomiesController {
     } else {
       query.whereNull('parent_id')
     }
-    const row = await query
-      .max('order_index as max')
-      .first()
+    const row = await query.max('order_index as max').first()
     orderIndex = (Number((row as any)?.max) || 0) + 1
     const now = new Date()
     const [created] = await db

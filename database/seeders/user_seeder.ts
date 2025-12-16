@@ -10,7 +10,7 @@ export default class extends BaseSeeder {
       // Update existing user
       existingUser.password = 'supersecret'
       existingUser.fullName = 'Admin User'
-        ; (existingUser as any).role = 'admin'
+      ;(existingUser as any).role = 'admin'
       await existingUser.save()
       console.log('Updated existing admin user')
     } else {
@@ -19,7 +19,7 @@ export default class extends BaseSeeder {
       user.email = 'admin@example.com'
       user.password = 'supersecret'
       user.fullName = 'Admin User'
-        ; (user as any).role = 'admin'
+      ;(user as any).role = 'admin'
       await user.save()
       console.log('Created new admin user')
     }
@@ -29,7 +29,7 @@ export default class extends BaseSeeder {
     if (existingEditorAdmin) {
       existingEditorAdmin.password = 'supersecret'
       existingEditorAdmin.fullName = 'Editor Admin User'
-        ; (existingEditorAdmin as any).role = 'editor_admin'
+      ;(existingEditorAdmin as any).role = 'editor_admin'
       await existingEditorAdmin.save()
       console.log('Updated existing editor admin user')
     } else {
@@ -37,7 +37,7 @@ export default class extends BaseSeeder {
       editorAdmin.email = 'editoradmin@example.com'
       editorAdmin.password = 'supersecret'
       editorAdmin.fullName = 'Editor Admin User'
-        ; (editorAdmin as any).role = 'editor_admin'
+      ;(editorAdmin as any).role = 'editor_admin'
       await editorAdmin.save()
       console.log('Created editor admin user')
     }
@@ -47,7 +47,7 @@ export default class extends BaseSeeder {
     if (existingEditor) {
       existingEditor.password = 'supersecret'
       existingEditor.fullName = 'Editor User'
-        ; (existingEditor as any).role = 'editor'
+      ;(existingEditor as any).role = 'editor'
       await existingEditor.save()
       console.log('Updated existing editor user')
     } else {
@@ -55,7 +55,7 @@ export default class extends BaseSeeder {
       editor.email = 'editor@example.com'
       editor.password = 'supersecret'
       editor.fullName = 'Editor User'
-        ; (editor as any).role = 'editor'
+      ;(editor as any).role = 'editor'
       await editor.save()
       console.log('Created editor user')
     }
@@ -65,7 +65,7 @@ export default class extends BaseSeeder {
     if (existingTranslator) {
       existingTranslator.password = 'supersecret'
       existingTranslator.fullName = 'Translator User'
-        ; (existingTranslator as any).role = 'translator'
+      ;(existingTranslator as any).role = 'translator'
       await existingTranslator.save()
       console.log('Updated existing translator user')
     } else {
@@ -73,7 +73,7 @@ export default class extends BaseSeeder {
       translator.email = 'translator@example.com'
       translator.password = 'supersecret'
       translator.fullName = 'Translator User'
-        ; (translator as any).role = 'translator'
+      ;(translator as any).role = 'translator'
       await translator.save()
       console.log('Created translator user')
     }
@@ -87,7 +87,7 @@ export default class extends BaseSeeder {
     if (aiUser) {
       aiUser.password = 'supersecret'
       aiUser.fullName = 'AI Agent'
-        ; (aiUser as any).role = 'ai_agent'
+      ;(aiUser as any).role = 'ai_agent'
       await aiUser.save()
       console.log(`Updated existing AI agent user (ID: ${aiUser.id})`)
       console.log(`→ Set MCP_SYSTEM_USER_ID=${aiUser.id} in your .env file (recommended)`)
@@ -97,12 +97,12 @@ export default class extends BaseSeeder {
       const newAi = new User()
       const id5Exists = await User.find(5)
       if (!id5Exists) {
-        ; (newAi as any).id = 5
+        ;(newAi as any).id = 5
       }
       newAi.email = aiEmail
       newAi.password = 'supersecret'
       newAi.fullName = 'AI Agent'
-        ; (newAi as any).role = 'ai_agent'
+      ;(newAi as any).role = 'ai_agent'
       await newAi.save()
       console.log(`Created AI agent user (ID: ${newAi.id})`)
       console.log(`→ Set MCP_SYSTEM_USER_ID=${newAi.id} in your .env file (recommended)`)

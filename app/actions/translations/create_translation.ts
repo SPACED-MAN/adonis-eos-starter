@@ -107,7 +107,6 @@ export default class CreateTranslation {
     }
   }
 
-
   /**
    * Check if a translation already exists for the given locale
    *

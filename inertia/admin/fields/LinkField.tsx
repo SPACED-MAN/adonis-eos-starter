@@ -8,4 +8,3 @@ type Props = {
 export default function LinkField({ value, onChange }: Props) {
   return <InternalLinkField value={(value as any) ?? null} onChange={onChange} />
 }
-

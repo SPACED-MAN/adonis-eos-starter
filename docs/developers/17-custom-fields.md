@@ -41,6 +41,7 @@ A post type can declare a `fields` array in its UI config (via `app/post_types/*
 Values are stored per post in `post_custom_field_values` keyed by `post_id` + `field_slug`.
 
 Where they appear:
+
 - Admin post editor loads these fields and their values based on post type config.
 - You can include these values in rendering/serialization where needed.
 
@@ -49,6 +50,7 @@ Where they appear:
 Site fields are code-first and defined in `app/site/fields.ts`.
 
 They are useful for:
+
 - footer content
 - announcement banners
 - shared contact info / links
@@ -61,6 +63,7 @@ Values are stored in `site_custom_field_values`.
 Site settings are global key/value configuration used for rendering and admin defaults.
 
 Typical examples:
+
 - brand name
 - default SEO values
 - social links
@@ -71,5 +74,3 @@ Typical examples:
 - Use **post custom fields** when the data is “post metadata” that shouldn’t live in a content block.
 - Use **site custom fields** for global reusable values used across the site.
 - Use **site settings** for system-wide config and defaults.
-
-

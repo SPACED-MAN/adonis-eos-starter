@@ -75,8 +75,7 @@ class PostTypeConfigService {
     const permalinksEnabled =
       cfg.permalinksEnabled !== undefined ? !!cfg.permalinksEnabled : base.permalinksEnabled
     const hasPermalinks = permalinksEnabled && urlPatterns.length > 0
-    const modulesEnabled =
-      cfg.modulesEnabled !== undefined ? !!cfg.modulesEnabled : hasPermalinks
+    const modulesEnabled = cfg.modulesEnabled !== undefined ? !!cfg.modulesEnabled : hasPermalinks
     const moduleGroupsEnabled =
       cfg.moduleGroupsEnabled !== undefined ? !!cfg.moduleGroupsEnabled : hasPermalinks
 

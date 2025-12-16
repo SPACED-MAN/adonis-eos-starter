@@ -179,18 +179,18 @@ class UrlPatternService {
     const hierarchical = postTypeConfig.hierarchyEnabled
     const seg = hierarchical ? '{path}' : '{slug}'
     const defaultLocale = localeService.getDefaultLocale()
-    
+
     const rows = missing.map((locale) => {
       // Try to find pattern for this locale in post type definition
       const definedPattern = definedPatterns.find((p) => p.locale === locale)
-      
+
       // If found in definition, use it; otherwise fall back to generic pattern
-      const pat = definedPattern 
-        ? definedPattern.pattern 
+      const pat = definedPattern
+        ? definedPattern.pattern
         : locale === defaultLocale
           ? `/${postType}/${seg}`
           : `/{locale}/${postType}/${seg}`
-      
+
       return {
         postType,
         locale,
@@ -382,9 +382,9 @@ class UrlPatternService {
   ): Promise<UrlPatternData> {
     const rec = await UrlPattern.findOrFail(id)
     rec.merge({
-        pattern: data.pattern,
+      pattern: data.pattern,
       isDefault: data.isDefault ?? true,
-      })
+    })
     await rec.save()
     return {
       id: rec.id,
@@ -405,10 +405,10 @@ class UrlPatternService {
   ): Promise<UrlPatternData> {
     const rec = await UrlPattern.create({
       postType,
-        locale,
-        pattern,
+      locale,
+      pattern,
       isDefault,
-      })
+    })
     return {
       id: rec.id,
       postType: rec.postType,

@@ -11,7 +11,14 @@ type Props = {
   unit?: string
 }
 
-export default function SliderField({ value, onChange, min = 0, max = 100, step = 1, unit }: Props) {
+export default function SliderField({
+  value,
+  onChange,
+  min = 0,
+  max = 100,
+  step = 1,
+  unit,
+}: Props) {
   const [internal, setInternal] = useState<number>(typeof value === 'number' ? value : min)
 
   useEffect(() => {
@@ -50,5 +57,3 @@ export default function SliderField({ value, onChange, min = 0, max = 100, step 
     </div>
   )
 }
-
-

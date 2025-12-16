@@ -7,9 +7,22 @@ import { useEffect, useMemo, useState } from 'react'
 import { AdminHeader } from '../../components/AdminHeader'
 import { AdminFooter } from '../../components/AdminFooter'
 import { useHasPermission } from '~/utils/permissions'
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '~/components/ui/table'
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from '~/components/ui/table'
 import { Checkbox } from '~/components/ui/checkbox'
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '~/components/ui/select'
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '~/components/ui/select'
 import { Badge } from '~/components/ui/badge'
 import {
   AlertDialog,
@@ -34,18 +47,31 @@ import {
 import { SortableContext, useSortable, verticalListSortingStrategy } from '@dnd-kit/sortable'
 import { CSS } from '@dnd-kit/utilities'
 
-interface PostsIndexProps { }
+interface PostsIndexProps {}
 
-export default function PostsIndexPage({ }: PostsIndexProps) {
+export default function PostsIndexPage({}: PostsIndexProps) {
   // Entire implementation moved here from the former dashboard.tsx
   const inertiaPage = usePage()
   const role: string | undefined =
-    (inertiaPage.props as any)?.currentUser?.role ??
-    (inertiaPage.props as any)?.auth?.user?.role
+    (inertiaPage.props as any)?.currentUser?.role ?? (inertiaPage.props as any)?.auth?.user?.role
   const canCreatePost = useHasPermission('posts.create')
   const canPublish = useHasPermission('posts.publish')
   const canDelete = useHasPermission('posts.delete')
-  const [posts, setPosts] = useState<Array<{ id: string; type: string; title: string; slug: string; status: string; locale: string; updatedAt: string; parentId?: string | null; translationOfId?: string | null; familyLocales?: string[]; hasReviewDraft?: boolean }>>([])
+  const [posts, setPosts] = useState<
+    Array<{
+      id: string
+      type: string
+      title: string
+      slug: string
+      status: string
+      locale: string
+      updatedAt: string
+      parentId?: string | null
+      translationOfId?: string | null
+      familyLocales?: string[]
+      hasReviewDraft?: boolean
+    }>
+  >([])
   const [selected, setSelected] = useState<Set<string>>(new Set())
   const [selectAll, setSelectAll] = useState(false)
   const [q, setQ] = useState('')
@@ -61,7 +87,9 @@ export default function PostsIndexPage({ }: PostsIndexProps) {
   const [terms, setTerms] = useState<TermNode[]>([])
   const [termId, setTermId] = useState<string>('')
   const [isCreateOpen, setIsCreateOpen] = useState(false)
-  const [sortBy, setSortBy] = useState<'title' | 'status' | 'locale' | 'updated_at' | 'created_at' | 'order_index'>('updated_at')
+  const [sortBy, setSortBy] = useState<
+    'title' | 'status' | 'locale' | 'updated_at' | 'created_at' | 'order_index'
+  >('updated_at')
   const [sortOrder, setSortOrder] = useState<'asc' | 'desc'>('desc')
   const [loading, setLoading] = useState(false)
   const [page, setPage] = useState(1)
@@ -70,7 +98,9 @@ export default function PostsIndexPage({ }: PostsIndexProps) {
   const [bulkKey, setBulkKey] = useState(0)
   const [confirmBulkDelete, setConfirmBulkDelete] = useState(false)
   const [confirmBulkAction, setConfirmBulkAction] = useState(false)
-  const [pendingBulkAction, setPendingBulkAction] = useState<'publish' | 'draft' | 'archive' | 'delete' | 'duplicate' | 'regeneratePermalinks' | null>(null)
+  const [pendingBulkAction, setPendingBulkAction] = useState<
+    'publish' | 'draft' | 'archive' | 'delete' | 'duplicate' | 'regeneratePermalinks' | null
+  >(null)
   const [hierarchical, setHierarchical] = useState(false)
   const [dndMode, setDndMode] = useState(false)
   const [reorderParentId, setReorderParentId] = useState<string | null>(null)
@@ -120,8 +150,19 @@ export default function PostsIndexPage({ }: PostsIndexProps) {
       params.set('withTranslations', '1')
       const res = await fetch(`/api/posts?${params.toString()}`, { credentials: 'same-origin' })
       const json = await res.json().catch(() => ({}))
-      const list: Array<{ id: string; type: string; title: string; slug: string; status: string; locale: string; updatedAt: string; parentId?: string | null; translationOfId?: string | null; familyLocales?: string[]; hasReviewDraft?: boolean }> =
-        Array.isArray(json?.data) ? json.data : []
+      const list: Array<{
+        id: string
+        type: string
+        title: string
+        slug: string
+        status: string
+        locale: string
+        updatedAt: string
+        parentId?: string | null
+        translationOfId?: string | null
+        familyLocales?: string[]
+        hasReviewDraft?: boolean
+      }> = Array.isArray(json?.data) ? json.data : []
       setPosts(list)
       const metaTotal = (json as any)?.meta?.total
       setTotal(typeof metaTotal === 'number' ? metaTotal : Number(metaTotal || 0))
@@ -137,22 +178,22 @@ export default function PostsIndexPage({ }: PostsIndexProps) {
   useEffect(() => {
     if (locale) return
     let cancelled = false
-      ; (async () => {
-        try {
-          const res = await fetch('/api/locales', { credentials: 'same-origin' })
-          const json = await res.json().catch(() => null)
-          const fromMeta: string | undefined = json?.meta?.defaultLocale
-          const fromData: string | undefined = Array.isArray(json?.data)
-            ? (json.data.find((l: any) => l.isDefault)?.code as string | undefined)
-            : undefined
-          const effective = fromMeta || fromData
-          if (!cancelled && effective) {
-            setLocale(effective)
-          }
-        } catch {
-          // leave as all locales
+    ;(async () => {
+      try {
+        const res = await fetch('/api/locales', { credentials: 'same-origin' })
+        const json = await res.json().catch(() => null)
+        const fromMeta: string | undefined = json?.meta?.defaultLocale
+        const fromData: string | undefined = Array.isArray(json?.data)
+          ? (json.data.find((l: any) => l.isDefault)?.code as string | undefined)
+          : undefined
+        const effective = fromMeta || fromData
+        if (!cancelled && effective) {
+          setLocale(effective)
         }
-      })()
+      } catch {
+        // leave as all locales
+      }
+    })()
     return () => {
       cancelled = true
     }
@@ -164,7 +205,7 @@ export default function PostsIndexPage({ }: PostsIndexProps) {
   }, [q, status, locale, postType, taxonomy, termId, sortBy, sortOrder, page, limit, hierarchical])
 
   useEffect(() => {
-    ; (async () => {
+    ;(async () => {
       const res = await fetch('/api/post-types', { credentials: 'same-origin' })
       const json = await res.json().catch(() => ({}))
       const list: string[] = Array.isArray(json?.data) ? json.data : []
@@ -174,7 +215,7 @@ export default function PostsIndexPage({ }: PostsIndexProps) {
 
   // Load taxonomies for filter
   useEffect(() => {
-    ; (async () => {
+    ;(async () => {
       try {
         const res = await fetch('/api/taxonomies', { credentials: 'same-origin' })
         const json = await res.json().catch(() => ({}))
@@ -188,7 +229,7 @@ export default function PostsIndexPage({ }: PostsIndexProps) {
 
   // Load terms for selected taxonomy
   useEffect(() => {
-    ; (async () => {
+    ;(async () => {
       setTerms([])
       setTermId('')
       if (!taxonomy) return
@@ -221,15 +262,12 @@ export default function PostsIndexPage({ }: PostsIndexProps) {
   // Supported locales for translation progress
   const [supportedLocales, setSupportedLocales] = useState<string[]>([])
   useEffect(() => {
-    ; (async () => {
+    ;(async () => {
       try {
         const res = await fetch('/api/locales', { credentials: 'same-origin' })
         const json = await res.json().catch(() => ({}))
-        const list: Array<{ code: string; isEnabled?: boolean; is_enabled?: boolean }> = Array.isArray(
-          json?.data
-        )
-          ? json.data
-          : []
+        const list: Array<{ code: string; isEnabled?: boolean; is_enabled?: boolean }> =
+          Array.isArray(json?.data) ? json.data : []
         const enabled = list
           .filter(
             (l) =>
@@ -247,9 +285,7 @@ export default function PostsIndexPage({ }: PostsIndexProps) {
 
   function labelize(type: string): string {
     if (!type) return ''
-    const withSpaces = type
-      .replace(/([a-z])([A-Z])/g, '$1 $2')
-      .replace(/[-_]+/g, ' ')
+    const withSpaces = type.replace(/([a-z])([A-Z])/g, '$1 $2').replace(/[-_]+/g, ' ')
     return withSpaces
       .split(' ')
       .filter(Boolean)
@@ -268,7 +304,7 @@ export default function PostsIndexPage({ }: PostsIndexProps) {
     const res = await fetch('/api/posts', {
       method: 'POST',
       headers: {
-        Accept: 'application/json',
+        'Accept': 'application/json',
         'Content-Type': 'application/json',
         ...(xsrfFromCookie ? { 'X-XSRF-TOKEN': xsrfFromCookie } : {}),
       },
@@ -319,7 +355,7 @@ export default function PostsIndexPage({ }: PostsIndexProps) {
     const res = await fetch('/api/posts/bulk', {
       method: 'POST',
       headers: {
-        Accept: 'application/json',
+        'Accept': 'application/json',
         'Content-Type': 'application/json',
         ...(xsrfFromCookie ? { 'X-XSRF-TOKEN': xsrfFromCookie } : {}),
       },
@@ -571,10 +607,7 @@ export default function PostsIndexPage({ }: PostsIndexProps) {
       }
     })
     // De-duplicate by last write wins
-    const dedupMap = new Map<
-      string,
-      { id: string; orderIndex: number; parentId?: string | null }
-    >()
+    const dedupMap = new Map<string, { id: string; orderIndex: number; parentId?: string | null }>()
     for (const it of items) dedupMap.set(String(it.id), it)
     const deduped = Array.from(dedupMap.values())
     // Optimistic UI
@@ -603,7 +636,7 @@ export default function PostsIndexPage({ }: PostsIndexProps) {
         await fetch('/api/posts/reorder', {
           method: 'POST',
           headers: {
-            Accept: 'application/json',
+            'Accept': 'application/json',
             'Content-Type': 'application/json',
             ...(xsrfFromCookie ? { 'X-XSRF-TOKEN': xsrfFromCookie } : {}),
           },
@@ -624,7 +657,7 @@ export default function PostsIndexPage({ }: PostsIndexProps) {
       await fetch('/api/posts/reorder', {
         method: 'POST',
         headers: {
-          Accept: 'application/json',
+          'Accept': 'application/json',
           'Content-Type': 'application/json',
           ...(xsrfFromCookie ? { 'X-XSRF-TOKEN': xsrfFromCookie } : {}),
         },
@@ -773,7 +806,10 @@ export default function PostsIndexPage({ }: PostsIndexProps) {
                   </Select>
                 )}
                 <label className="flex items-center gap-2 text-sm text-neutral-high">
-                  <Checkbox checked={hierarchical} onCheckedChange={(c) => onToggleHierarchy(!!c)} />
+                  <Checkbox
+                    checked={hierarchical}
+                    onCheckedChange={(c) => onToggleHierarchy(!!c)}
+                  />
                   View hierarchy
                 </label>
                 <label className="flex items-center gap-2 text-sm text-neutral-high">
@@ -887,15 +923,18 @@ export default function PostsIndexPage({ }: PostsIndexProps) {
                     {pendingBulkAction === 'publish' &&
                       `This will publish ${selected.size} post${selected.size === 1 ? '' : 's'}.`}
                     {pendingBulkAction === 'draft' &&
-                      `This will move ${selected.size} post${selected.size === 1 ? '' : 's'
+                      `This will move ${selected.size} post${
+                        selected.size === 1 ? '' : 's'
                       } to draft status.`}
                     {pendingBulkAction === 'archive' &&
                       `This will archive ${selected.size} post${selected.size === 1 ? '' : 's'}.`}
                     {pendingBulkAction === 'duplicate' &&
-                      `This will create ${selected.size} duplicate post${selected.size === 1 ? '' : 's'
+                      `This will create ${selected.size} duplicate post${
+                        selected.size === 1 ? '' : 's'
                       }.`}
                     {pendingBulkAction === 'regeneratePermalinks' &&
-                      `This will regenerate permalinks for ${selected.size} post${selected.size === 1 ? '' : 's'
+                      `This will regenerate permalinks for ${selected.size} post${
+                        selected.size === 1 ? '' : 's'
                       } based on the current URL pattern. If "Auto-redirect on slug change" is enabled, redirects will be created from old URLs to new URLs.`}
                   </AlertDialogDescription>
                 </AlertDialogHeader>
@@ -1097,24 +1136,25 @@ export default function PostsIndexPage({ }: PostsIndexProps) {
                             )}
                             <TableCell>
                               <div className="flex flex-wrap gap-1">
-                                {(supportedLocales.length > 1 ? supportedLocales : [post.locale]).map(
-                                  (loc) => {
-                                    const exists = (post.familyLocales || [post.locale]).includes(loc)
-                                    return (
-                                      <Badge
-                                        key={`${post.id}-${loc}`}
-                                        variant={exists ? 'default' : 'outline'}
-                                        title={
-                                          exists
-                                            ? `Has ${loc.toUpperCase()}`
-                                            : `Missing ${loc.toUpperCase()}`
-                                        }
-                                      >
-                                        {loc.toUpperCase()}
-                                      </Badge>
-                                    )
-                                  }
-                                )}
+                                {(supportedLocales.length > 1
+                                  ? supportedLocales
+                                  : [post.locale]
+                                ).map((loc) => {
+                                  const exists = (post.familyLocales || [post.locale]).includes(loc)
+                                  return (
+                                    <Badge
+                                      key={`${post.id}-${loc}`}
+                                      variant={exists ? 'default' : 'outline'}
+                                      title={
+                                        exists
+                                          ? `Has ${loc.toUpperCase()}`
+                                          : `Missing ${loc.toUpperCase()}`
+                                      }
+                                    >
+                                      {loc.toUpperCase()}
+                                    </Badge>
+                                  )
+                                })}
                               </div>
                             </TableCell>
                             <TableCell>
@@ -1200,9 +1240,7 @@ export default function PostsIndexPage({ }: PostsIndexProps) {
                           </div>
                         </TableCell>
                         <TableCell>
-                          <span className="text-sm text-neutral-medium">
-                            {labelize(post.type)}
-                          </span>
+                          <span className="text-sm text-neutral-medium">{labelize(post.type)}</span>
                         </TableCell>
                         {dndMode && (
                           <TableCell>
@@ -1346,4 +1384,3 @@ export default function PostsIndexPage({ }: PostsIndexProps) {
     </div>
   )
 }
-

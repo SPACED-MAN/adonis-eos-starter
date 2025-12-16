@@ -220,7 +220,9 @@ export default class PostsRevisionsController extends BasePostsController {
     }
 
     if (mode === 'review') {
-      await Post.query().where('id', id).update({ review_draft: snapshot } as any)
+      await Post.query()
+        .where('id', id)
+        .update({ review_draft: snapshot } as any)
 
       // If snapshot has modules data, restore module review_props
       if (Array.isArray(snapshot?.modules)) {
@@ -252,7 +254,9 @@ export default class PostsRevisionsController extends BasePostsController {
       return response.ok({ message: 'Reverted review draft' })
     }
     if (mode === 'ai-review') {
-      await Post.query().where('id', id).update({ ai_review_draft: snapshot } as any)
+      await Post.query()
+        .where('id', id)
+        .update({ ai_review_draft: snapshot } as any)
 
       // If snapshot has modules data, restore module ai_review_props
       if (Array.isArray(snapshot?.modules)) {

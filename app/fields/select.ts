@@ -26,5 +26,3 @@ const selectField: FieldTypeConfig = {
 fieldTypeRegistry.register(selectField)
 
 export default selectField
-
-

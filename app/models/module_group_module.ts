@@ -42,4 +42,3 @@ export default class ModuleGroupModule extends BaseModel {
   @belongsTo(() => ModuleGroup, { foreignKey: 'moduleGroupId' })
   declare moduleGroup: BelongsTo<typeof ModuleGroup>
 }
-

@@ -16,4 +16,3 @@ export default function BooleanField({ value, onChange, labelOn, labelOff }: Pro
     </label>
   )
 }
-

@@ -13,12 +13,14 @@ This project follows [Semantic Versioning](https://semver.org/) (SemVer).
 ## Version Progression Plan
 
 ### 0.x.x Series (Pre-1.0.0)
+
 - **0.1.0** (Current) - Initial public release, pre-beta
 - **0.2.0** - Beta release with community feedback incorporated
 - **0.3.0** - Additional features and improvements
 - **0.9.0** - Final pre-1.0.0 release, production-ready candidate
 
 ### 1.0.0 Series (Stable)
+
 - **1.0.0** - First stable release, production-ready
 - **1.1.0** - New features (backwards compatible)
 - **1.0.1** - Bug fixes and patches
@@ -34,12 +36,14 @@ For releases that are not production-ready, use pre-release labels:
 ## When to Bump Versions
 
 ### Patch (0.1.0 → 0.1.1)
+
 - Bug fixes
 - Security patches
 - Documentation updates
 - Performance improvements (no API changes)
 
 ### Minor (0.1.0 → 0.2.0)
+
 - New features (backwards compatible)
 - New modules
 - New post types
@@ -47,6 +51,7 @@ For releases that are not production-ready, use pre-release labels:
 - Deprecations (with migration path)
 
 ### Major (0.x.x → 1.0.0)
+
 - Breaking API changes
 - Breaking database schema changes
 - Breaking configuration changes
@@ -68,6 +73,7 @@ Before releasing a new version:
 ## Current Status
 
 **Version 0.1.0** is marked as **Pre-Beta** because:
+
 - ✅ All core features are implemented
 - ✅ Code is functional and tested
 - ⚠️ Undergoing final testing and documentation
@@ -80,4 +86,3 @@ Before releasing a new version:
 2. **0.2.0** → Beta release after community feedback
 3. **0.3.0+** → Iterative improvements
 4. **1.0.0** → Stable, production-ready release
-

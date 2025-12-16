@@ -5,10 +5,12 @@ Adonis EOS uses a file-based Role-Based Access Control (RBAC) system for granula
 ## Default Roles
 
 ### Administrator
+
 **Role:** `admin`
 **Access:** Full system access
 
 Administrators can:
+
 - ✅ Access all admin sections
 - ✅ Manage users and roles
 - ✅ Configure system settings
@@ -17,10 +19,12 @@ Administrators can:
 - ✅ Override all restrictions
 
 ### Editor Admin
+
 **Role:** `editor_admin`
 **Access:** Content management + publishing
 
 Editor Admins can:
+
 - ✅ Create, edit, publish content
 - ✅ Approve reviews and AI reviews
 - ✅ Manage media, menus, forms
@@ -32,10 +36,12 @@ Editor Admins can:
 Perfect for content managers who need publishing power.
 
 ### Editor
+
 **Role:** `editor`
 **Access:** Content creation and editing
 
 Editors can:
+
 - ✅ Create and edit content
 - ✅ Save drafts for review
 - ✅ Save for AI review
@@ -48,10 +54,12 @@ Editors can:
 Ideal for content creators who need review before publishing.
 
 ### Translator
+
 **Role:** `translator`
 **Access:** Translation-focused, read-mostly
 
 Translators can:
+
 - ✅ View all content
 - ✅ Edit translatable fields
 - ✅ Save drafts for review
@@ -85,6 +93,7 @@ Examples:
 ### Granular Permissions
 
 #### Content Permissions
+
 - `posts.create` - Create new posts
 - `posts.edit` - Edit existing posts
 - `posts.view` - View posts (own or all)
@@ -96,6 +105,7 @@ Examples:
 - `posts.ai-review.approve` - Approve AI review changes
 
 #### Media Permissions
+
 - `media.upload` - Upload new media
 - `media.view` - View media library
 - `media.edit` - Edit media metadata
@@ -103,6 +113,7 @@ Examples:
 - `media.delete` - Delete media
 
 #### Admin Permissions
+
 - `admin.access` - Access admin panel
 - `admin.users.manage` - User management
 - `admin.settings.view` - View settings
@@ -129,7 +140,7 @@ const contentManagerRole: RoleDefinition = {
   name: 'content_manager',
   label: 'Content Manager',
   description: 'Manages content with publishing rights',
-  
+
   permissions: [
     // Content
     'posts.create',
@@ -138,19 +149,19 @@ const contentManagerRole: RoleDefinition = {
     'posts.publish',
     'posts.delete',
     'posts.review.approve',
-    
+
     // Media
     'media.upload',
     'media.view',
     'media.edit',
     'media.delete',
-    
+
     // Menus & Forms
     'menus.view',
     'menus.edit',
     'forms.view',
     'forms.edit',
-    
+
     // Admin access
     'admin.access',
   ],
@@ -166,6 +177,7 @@ The role is automatically registered on server startup from `start/roles.ts`.
 ### 4. Assign to Users
 
 In the admin panel:
+
 1. Go to `/admin/users`
 2. Edit a user
 3. Select the new role from dropdown
@@ -198,7 +210,7 @@ import { useHasPermission } from '~/utils/permissions'
 function PostEditor() {
   const canPublish = useHasPermission('posts.publish')
   const canDelete = useHasPermission('posts.delete')
-  
+
   return (
     <>
       {canPublish && <button>Publish</button>}
@@ -253,15 +265,19 @@ function PostEditor() {
 ## Troubleshooting
 
 **Issue**: User can't access admin
+
 - **Solution**: Ensure role has `admin.access` permission
 
 **Issue**: Editor can publish (shouldn't)
+
 - **Solution**: Remove `posts.publish` from editor role definition
 
 **Issue**: Custom role not appearing
+
 - **Solution**: Restart server to register new role files
 
 **Issue**: Permission check failing unexpectedly
+
 - **Solution**: Check exact permission key spelling and role name
 
 ## Activity Logging
@@ -271,10 +287,8 @@ All actions are logged with user and role information:
 View logs at `/admin/activity` (admin only)
 
 Logged events:
+
 - Content created, updated, published, deleted
 - Media uploaded, replaced, deleted
 - Settings changed
 - Users added, removed, role changed
-
-
-

@@ -23,6 +23,7 @@ Adonis EOS supports staged editing with three active versions:
 ### Viewing Your Review Status
 
 Look at the tabs at the top of the editor:
+
 - **Source**: Current canonical content
 - **Review**: Your pending changes (if any)
 
@@ -31,6 +32,7 @@ Switch between tabs to compare what's live vs. what you've submitted for review.
 ### After Approval
 
 Once an Editor Admin approves your review:
+
 - Your changes go live automatically
 - The Review draft is cleared
 - You can start working on new changes
@@ -48,6 +50,7 @@ Once an Editor Admin approves your review:
 ### AI Review (Advanced)
 
 If AI agents are configured, you may see an **"AI Review"** tab:
+
 - This contains AI-generated suggestions
 - Review the AI changes carefully
 - Click **"Approve AI Review"** to move them to the Review tab
@@ -57,12 +60,14 @@ If AI agents are configured, you may see an **"AI Review"** tab:
 ## Best Practices
 
 ### For Editors:
+
 - **Save frequently**: Save drafts as you work
 - **Use descriptive titles**: Help reviewers understand your changes
 - **Add comments**: If your CMS has a comments feature, explain significant changes
 - **Check before submitting**: Review your own work before sending for approval
 
 ### For Editor Admins:
+
 - **Review promptly**: Keep the content pipeline moving
 - **Provide feedback**: Help editors improve
 - **Check SEO fields**: Ensure meta titles and descriptions are optimized
@@ -71,6 +76,7 @@ If AI agents are configured, you may see an **"AI Review"** tab:
 ## Revision History
 
 Every save creates a revision:
+
 - View past versions in the "Revisions" panel
 - See who made changes and when
 - Revert to a previous version if needed
@@ -93,4 +99,3 @@ A: The dashboard shows review status for each post. Look for the "Review" badge.
 ---
 
 **Related**: [Content Management](/docs/for-editors/content-management) | [Roles & Permissions](/docs/for-editors/roles-permissions)
-

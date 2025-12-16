@@ -14,7 +14,11 @@ type Settings = {
   defaultOgMediaId: string | null
   logoMediaId: string | null
   profileRolesEnabled: string[]
-  customFieldDefs?: Array<{ slug: string; label: string; type: 'text' | 'url' | 'textarea' | 'boolean' | 'media' | 'form-reference' }>
+  customFieldDefs?: Array<{
+    slug: string
+    label: string
+    type: 'text' | 'url' | 'textarea' | 'boolean' | 'media' | 'form-reference'
+  }>
   customFields?: Record<string, any>
 }
 
@@ -45,7 +49,10 @@ export default function GeneralSettings() {
     >
     const map: Record<string, any> = {}
     Object.entries(modules).forEach(([path, mod]) => {
-      const name = path.split('/').pop()?.replace(/\.\w+$/, '')
+      const name = path
+        .split('/')
+        .pop()
+        ?.replace(/\.\w+$/, '')
       if (name && mod?.default) {
         map[name] = mod.default
       }
@@ -61,28 +68,35 @@ export default function GeneralSettings() {
 
   useEffect(() => {
     let alive = true
-      ; (async () => {
-        try {
-          setLoading(true)
-          const res = await fetch('/api/site-settings', { credentials: 'same-origin' })
-          const j = await res.json().catch(() => ({}))
-          if (!alive) return
-          const s: Settings = {
-            siteTitle: j?.data?.siteTitle || '',
-            defaultMetaDescription: j?.data?.defaultMetaDescription || '',
-            faviconMediaId: j?.data?.faviconMediaId || '',
-            defaultOgMediaId: j?.data?.defaultOgMediaId || '',
-            logoMediaId: j?.data?.logoMediaId || '',
-            profileRolesEnabled: Array.isArray(j?.data?.profileRolesEnabled) ? j.data.profileRolesEnabled : [],
-            customFieldDefs: Array.isArray(j?.data?.customFieldDefs) ? j.data.customFieldDefs : [],
-            customFields: (j?.data?.customFields && typeof j.data.customFields === 'object') ? j.data.customFields : {},
-          }
-          setForm(s)
-        } finally {
-          if (alive) setLoading(false)
+    ;(async () => {
+      try {
+        setLoading(true)
+        const res = await fetch('/api/site-settings', { credentials: 'same-origin' })
+        const j = await res.json().catch(() => ({}))
+        if (!alive) return
+        const s: Settings = {
+          siteTitle: j?.data?.siteTitle || '',
+          defaultMetaDescription: j?.data?.defaultMetaDescription || '',
+          faviconMediaId: j?.data?.faviconMediaId || '',
+          defaultOgMediaId: j?.data?.defaultOgMediaId || '',
+          logoMediaId: j?.data?.logoMediaId || '',
+          profileRolesEnabled: Array.isArray(j?.data?.profileRolesEnabled)
+            ? j.data.profileRolesEnabled
+            : [],
+          customFieldDefs: Array.isArray(j?.data?.customFieldDefs) ? j.data.customFieldDefs : [],
+          customFields:
+            j?.data?.customFields && typeof j.data.customFields === 'object'
+              ? j.data.customFields
+              : {},
         }
-      })()
-    return () => { alive = false }
+        setForm(s)
+      } finally {
+        if (alive) setLoading(false)
+      }
+    })()
+    return () => {
+      alive = false
+    }
   }, [])
 
   async function save() {
@@ -91,7 +105,7 @@ export default function GeneralSettings() {
       const res = await fetch('/api/site-settings', {
         method: 'PATCH',
         headers: {
-          Accept: 'application/json',
+          'Accept': 'application/json',
           'Content-Type': 'application/json',
           ...(getXsrf() ? { 'X-XSRF-TOKEN': getXsrf()! } : {}),
         },
@@ -161,40 +175,43 @@ export default function GeneralSettings() {
     // Fetch media data when id changes
     useEffect(() => {
       let alive = true
-        ; (async () => {
-          try {
-            if (!id) {
-              if (alive) {
-                setMediaData(null)
-                setPreviewUrl(null)
-                setPreviewAlt('')
-              }
-              return
-            }
-            const res = await fetch(`/api/media/${encodeURIComponent(id)}`, { credentials: 'same-origin' })
-            const j = await res.json().catch(() => ({}))
-            const baseUrl = j?.data?.url || null
-            const alt = j?.data?.alt || j?.data?.originalFilename || ''
-            const meta = j?.data?.metadata || {}
-            const variants: MediaVariant[] = Array.isArray(meta?.variants) ? meta.variants : []
-            const darkSourceUrl = typeof meta.darkSourceUrl === 'string' ? meta.darkSourceUrl : undefined
-            if (alive) {
-              if (baseUrl) {
-                setMediaData({ baseUrl, variants, darkSourceUrl })
-              } else {
-                setMediaData(null)
-                setPreviewUrl(null)
-              }
-              setPreviewAlt(alt)
-            }
-          } catch {
+      ;(async () => {
+        try {
+          if (!id) {
             if (alive) {
               setMediaData(null)
               setPreviewUrl(null)
               setPreviewAlt('')
             }
+            return
           }
-        })()
+          const res = await fetch(`/api/media/${encodeURIComponent(id)}`, {
+            credentials: 'same-origin',
+          })
+          const j = await res.json().catch(() => ({}))
+          const baseUrl = j?.data?.url || null
+          const alt = j?.data?.alt || j?.data?.originalFilename || ''
+          const meta = j?.data?.metadata || {}
+          const variants: MediaVariant[] = Array.isArray(meta?.variants) ? meta.variants : []
+          const darkSourceUrl =
+            typeof meta.darkSourceUrl === 'string' ? meta.darkSourceUrl : undefined
+          if (alive) {
+            if (baseUrl) {
+              setMediaData({ baseUrl, variants, darkSourceUrl })
+            } else {
+              setMediaData(null)
+              setPreviewUrl(null)
+            }
+            setPreviewAlt(alt)
+          }
+        } catch {
+          if (alive) {
+            setMediaData(null)
+            setPreviewUrl(null)
+            setPreviewAlt('')
+          }
+        }
+      })()
       return () => {
         alive = false
       }
@@ -219,7 +236,12 @@ export default function GeneralSettings() {
           <div className="min-w-[72px]">
             {previewUrl ? (
               <div className="w-[72px] h-[72px] border border-line-medium rounded overflow-hidden bg-backdrop-medium">
-                <img src={previewUrl} alt={previewAlt} className="w-full h-full object-cover" key={`${previewUrl}-${isDark}`} />
+                <img
+                  src={previewUrl}
+                  alt={previewAlt}
+                  className="w-full h-full object-cover"
+                  key={`${previewUrl}-${isDark}`}
+                />
               </div>
             ) : (
               <div className="w-[72px] h-[72px] border border-dashed border-line-high rounded flex items-center justify-center text-[10px] text-neutral-medium">
@@ -245,7 +267,11 @@ export default function GeneralSettings() {
                   Clear
                 </button>
               )}
-              {previewAlt && <div className="text-[11px] text-neutral-low truncate max-w-[240px]">{previewAlt}</div>}
+              {previewAlt && (
+                <div className="text-[11px] text-neutral-low truncate max-w-[240px]">
+                  {previewAlt}
+                </div>
+              )}
             </div>
           </div>
         </div>
@@ -266,11 +292,22 @@ export default function GeneralSettings() {
         <div className="bg-backdrop-low rounded-lg border border-line-low p-6 space-y-6">
           <div>
             <label className="block text-sm font-medium text-neutral-medium mb-1">Site Title</label>
-            <Input value={form.siteTitle} onChange={(e) => setForm({ ...form, siteTitle: e.target.value })} placeholder="Site Title" />
+            <Input
+              value={form.siteTitle}
+              onChange={(e) => setForm({ ...form, siteTitle: e.target.value })}
+              placeholder="Site Title"
+            />
           </div>
           <div>
-            <label className="block text-sm font-medium text-neutral-medium mb-1">Default Meta Description</label>
-            <Textarea value={form.defaultMetaDescription || ''} onChange={(e) => setForm({ ...form, defaultMetaDescription: e.target.value })} rows={3} placeholder="Default meta description" />
+            <label className="block text-sm font-medium text-neutral-medium mb-1">
+              Default Meta Description
+            </label>
+            <Textarea
+              value={form.defaultMetaDescription || ''}
+              onChange={(e) => setForm({ ...form, defaultMetaDescription: e.target.value })}
+              rows={3}
+              placeholder="Default meta description"
+            />
           </div>
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
             <div>
@@ -279,7 +316,9 @@ export default function GeneralSettings() {
                 value={form.faviconMediaId}
                 onChange={(id) => setForm({ ...form, faviconMediaId: id })}
               />
-              <p className="text-xs text-neutral-low mt-1">Derivatives should include 16x16, 32x32, and 180x180.</p>
+              <p className="text-xs text-neutral-low mt-1">
+                Derivatives should include 16x16, 32x32, and 180x180.
+              </p>
             </div>
             <div>
               <MediaIdPicker
@@ -297,7 +336,8 @@ export default function GeneralSettings() {
                 onChange={(id) => setForm({ ...form, logoMediaId: id })}
               />
               <p className="text-xs text-neutral-low mt-1">
-                Recommended SVG/PNG sized for your header. Theme-specific variants can be managed on the media item.
+                Recommended SVG/PNG sized for your header. Theme-specific variants can be managed on
+                the media item.
               </p>
             </div>
           </div>
@@ -313,7 +353,9 @@ export default function GeneralSettings() {
                   if (Renderer) {
                     return (
                       <div key={f.slug}>
-                        <label className="block text-sm font-medium text-neutral-medium mb-1">{f.label}</label>
+                        <label className="block text-sm font-medium text-neutral-medium mb-1">
+                          {f.label}
+                        </label>
                         <Renderer
                           value={val ?? null}
                           onChange={(next: any) =>
@@ -330,13 +372,18 @@ export default function GeneralSettings() {
                   // fallback
                   return (
                     <div key={f.slug}>
-                      <label className="block text-sm font-medium text-neutral-medium mb-1">{f.label}</label>
+                      <label className="block text-sm font-medium text-neutral-medium mb-1">
+                        {f.label}
+                      </label>
                       <Input
                         value={typeof val === 'string' ? val : ''}
                         onChange={(e) =>
                           setForm((prev) => ({
                             ...prev,
-                            customFields: { ...(prev.customFields || {}), [f.slug]: e.target.value },
+                            customFields: {
+                              ...(prev.customFields || {}),
+                              [f.slug]: e.target.value,
+                            },
                           }))
                         }
                         placeholder={f.type === 'url' ? 'https://' : ''}
@@ -349,12 +396,17 @@ export default function GeneralSettings() {
           )}
           {/* Profiles enablement */}
           <div>
-            <label className="block text-sm font-medium text-neutral-medium mb-2">Enable Profiles for Roles</label>
+            <label className="block text-sm font-medium text-neutral-medium mb-2">
+              Enable Profiles for Roles
+            </label>
             <div className="flex flex-wrap gap-3">
               {['admin', 'editor', 'translator'].map((r) => {
                 const checked = form.profileRolesEnabled.includes(r)
                 return (
-                  <label key={r} className="inline-flex items-center gap-2 text-sm text-neutral-high">
+                  <label
+                    key={r}
+                    className="inline-flex items-center gap-2 text-sm text-neutral-high"
+                  >
                     <input
                       type="checkbox"
                       checked={checked}
@@ -375,7 +427,12 @@ export default function GeneralSettings() {
             </p>
           </div>
           <div className="flex items-center gap-2">
-            <button type="button" className={`px-3 py-2 text-sm rounded ${saving ? 'opacity-60' : 'bg-standout-medium text-on-standout'}`} disabled={saving} onClick={save}>
+            <button
+              type="button"
+              className={`px-3 py-2 text-sm rounded ${saving ? 'opacity-60' : 'bg-standout-medium text-on-standout'}`}
+              disabled={saving}
+              onClick={save}
+            >
               {saving ? 'Saving…' : 'Save Settings'}
             </button>
             {loading && <span className="text-xs text-neutral-low">Loading…</span>}
@@ -388,5 +445,3 @@ export default function GeneralSettings() {
     </div>
   )
 }
-
-

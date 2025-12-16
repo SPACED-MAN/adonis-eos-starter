@@ -85,7 +85,12 @@ class DatabaseImportService {
         }
         // If it's already an object/array, leave it as-is - Knex will serialize it properly
         // But ensure it's a plain object/array (not a class instance)
-        if (typeof normalized[col] === 'object' && normalized[col] !== null && normalized[col].constructor !== Object && !Array.isArray(normalized[col])) {
+        if (
+          typeof normalized[col] === 'object' &&
+          normalized[col] !== null &&
+          normalized[col].constructor !== Object &&
+          !Array.isArray(normalized[col])
+        ) {
           normalized[col] = JSON.parse(JSON.stringify(normalized[col]))
         }
       }
@@ -135,7 +140,6 @@ class DatabaseImportService {
     return processedRow
   }
 
-
   /**
    * Validate export data structure
    */
@@ -168,8 +172,12 @@ class DatabaseImportService {
    * Import database from JSON export
    */
   async importDatabase(exportData: any, options: ImportOptions = {}): Promise<ImportResult> {
-    const { strategy = 'merge', tables: tablesToImport, disableForeignKeyChecks = true, preserveIds = true } =
-      options
+    const {
+      strategy = 'merge',
+      tables: tablesToImport,
+      disableForeignKeyChecks = true,
+      preserveIds = true,
+    } = options
     // If we are NOT preserving IDs, "overwrite" doesn't make sense (we can't match by ID),
     // so downgrade overwrite → merge semantics.
     const effectiveStrategy: ImportStrategy =
@@ -281,7 +289,10 @@ class DatabaseImportService {
 
           // For posts table, track detailed statistics
           const isPostsTable = tableName === 'posts'
-          const postTypeStats: Record<string, { total: number; imported: number; skipped: number }> = {}
+          const postTypeStats: Record<
+            string,
+            { total: number; imported: number; skipped: number }
+          > = {}
 
           // Analyze posts in export
           if (isPostsTable) {
@@ -297,14 +308,18 @@ class DatabaseImportService {
 
           // For posts table with overwrite/replace/merge strategy, sort by dependencies (parent + translation) first
           let sortedRows = rows
-          if (isPostsTable && (effectiveStrategy === 'overwrite' || effectiveStrategy === 'replace' || effectiveStrategy === 'merge')) {
+          if (
+            isPostsTable &&
+            (effectiveStrategy === 'overwrite' ||
+              effectiveStrategy === 'replace' ||
+              effectiveStrategy === 'merge')
+          ) {
             console.log('   🔀 Sorting posts by dependencies (parent/translation first)...')
             sortedRows = this.sortPostsByDependencies(rows)
           }
 
           // For post_modules: ensure post-scoped module instances are not reused; clone when duplicated
           const postModuleUsedBy = new Map<string, string>() // module_id -> post_id
-
 
           for (const row of sortedRows) {
             try {
@@ -337,7 +352,9 @@ class DatabaseImportService {
                       created_at: now,
                       updated_at: now,
                     }
-                    await trx.table('module_instances').insert(this.prepareRowForPostgres(trx, 'module_instances', cloneRow))
+                    await trx
+                      .table('module_instances')
+                      .insert(this.prepareRowForPostgres(trx, 'module_instances', cloneRow))
                     moduleInstanceRows.set(newId, cloneRow)
                     processedRow = { ...processedRow, module_id: newId }
                     postModuleUsedBy.set(String(newId), String(postId))
@@ -347,12 +364,11 @@ class DatabaseImportService {
                 }
               }
 
-
               // Normalize JSONB fields for PostgreSQL - ensure they're proper JSON objects/arrays
               processedRow = this.normalizeJsonbFields(tableName, processedRow)
 
               // Track post types
-              const postType = isPostsTable ? (processedRow.type || 'unknown') : null
+              const postType = isPostsTable ? processedRow.type || 'unknown' : null
 
               if (effectiveStrategy === 'merge') {
                 // Use insert ignore or on conflict do nothing
@@ -363,7 +379,12 @@ class DatabaseImportService {
                     postTypeStats[postType].imported++
                   }
                   // Log first few successful inserts for debugging
-                  if (tableName === 'posts' && importedCount <= 5 && postType && postType !== 'documentation') {
+                  if (
+                    tableName === 'posts' &&
+                    importedCount <= 5 &&
+                    postType &&
+                    postType !== 'documentation'
+                  ) {
                     console.log(`   ✅ Inserted ${postType} post ${processedRow.id}`)
                   }
                 } else {
@@ -372,10 +393,17 @@ class DatabaseImportService {
                     postTypeStats[postType].skipped++
                   }
                   // Log first few skipped rows to understand why
-                  if (tableName === 'posts' && skippedCount <= 5 && postType && postType !== 'documentation') {
+                  if (
+                    tableName === 'posts' &&
+                    skippedCount <= 5 &&
+                    postType &&
+                    postType !== 'documentation'
+                  ) {
                     // Check if it exists
                     const exists = await trx.from(tableName).where('id', processedRow.id).first()
-                    console.log(`   ⏭️  Skipped ${postType} post ${processedRow.id} - exists: ${exists ? 'yes' : 'no'}`)
+                    console.log(
+                      `   ⏭️  Skipped ${postType} post ${processedRow.id} - exists: ${exists ? 'yes' : 'no'}`
+                    )
                   }
                 }
               } else if (effectiveStrategy === 'overwrite') {
@@ -389,7 +417,9 @@ class DatabaseImportService {
 
                     if (affectedRows === 0) {
                       // Upsert reported no rows affected - this shouldn't happen but log it
-                      console.log(`   ⚠️  WARNING: Upsert returned 0 affected rows for ${tableName} (id: ${processedRow.id}, type: ${postType || 'N/A'})`)
+                      console.log(
+                        `   ⚠️  WARNING: Upsert returned 0 affected rows for ${tableName} (id: ${processedRow.id}, type: ${postType || 'N/A'})`
+                      )
                       skippedCount++
                       if (postType && postTypeStats[postType]) {
                         postTypeStats[postType].skipped++
@@ -399,9 +429,14 @@ class DatabaseImportService {
 
                     // Verify the row was actually inserted/updated (for posts table only, to debug)
                     if (isPostsTable) {
-                      const verifyRow = await trx.from(tableName).where('id', processedRow.id).first()
+                      const verifyRow = await trx
+                        .from(tableName)
+                        .where('id', processedRow.id)
+                        .first()
                       if (!verifyRow) {
-                        console.log(`   ⚠️  WARNING: Row ${processedRow.id} (type: ${postType || 'N/A'}) was not found after upsert!`)
+                        console.log(
+                          `   ⚠️  WARNING: Row ${processedRow.id} (type: ${postType || 'N/A'}) was not found after upsert!`
+                        )
                         skippedCount++
                         if (postType && postTypeStats[postType]) {
                           postTypeStats[postType].skipped++
@@ -410,7 +445,9 @@ class DatabaseImportService {
                       }
                       // Log first few successful inserts for debugging
                       if (importedCount < 5 && postType && postType !== 'documentation') {
-                        console.log(`   ✅ Verified insert: ${postType} post ${processedRow.id} (title: ${processedRow.title?.substring(0, 30) || 'N/A'})`)
+                        console.log(
+                          `   ✅ Verified insert: ${postType} post ${processedRow.id} (title: ${processedRow.title?.substring(0, 30) || 'N/A'})`
+                        )
                       }
                     }
 
@@ -422,7 +459,9 @@ class DatabaseImportService {
                     // Log upsert errors for debugging
                     const errorMsg = upsertError?.message || String(upsertError)
                     if (errorCount <= 10) {
-                      console.log(`   ⚠️  Upsert error for ${tableName} (id: ${processedRow.id}, type: ${postType || 'N/A'}): ${errorMsg}`)
+                      console.log(
+                        `   ⚠️  Upsert error for ${tableName} (id: ${processedRow.id}, type: ${postType || 'N/A'}): ${errorMsg}`
+                      )
                     }
                     errorCount++
                     skippedCount++
@@ -450,7 +489,7 @@ class DatabaseImportService {
                 // Ensure JSONB fields are properly handled by Knex (pre-cast for Postgres)
                 const rowForInsert =
                   dbConfig.connections[dbConfig.connection].client === 'pg' ||
-                    dbConfig.connections[dbConfig.connection].client === 'postgres'
+                  dbConfig.connections[dbConfig.connection].client === 'postgres'
                     ? this.prepareRowForPostgres(trx, tableName, processedRow)
                     : processedRow
                 try {
@@ -462,7 +501,10 @@ class DatabaseImportService {
                 } catch (insertError: any) {
                   // If it's a JSONB error, try with explicit casting (fallback)
                   const errorMsg = insertError?.message || String(insertError)
-                  if (errorMsg.includes('invalid input syntax for type json') || errorMsg.includes('jsonb')) {
+                  if (
+                    errorMsg.includes('invalid input syntax for type json') ||
+                    errorMsg.includes('jsonb')
+                  ) {
                     const fixedRow = this.prepareRowForPostgres(trx, tableName, processedRow)
                     await trx.table(tableName).insert(fixedRow)
                     importedCount++
@@ -516,10 +558,11 @@ class DatabaseImportService {
           if (isPostsTable && Object.keys(postTypeStats).length > 0) {
             console.log('   📊 Posts breakdown by type:')
             for (const [type, stats] of Object.entries(postTypeStats)) {
-              console.log(`      ${type}: ${stats.imported} imported, ${stats.skipped} skipped (of ${stats.total} total)`)
+              console.log(
+                `      ${type}: ${stats.imported} imported, ${stats.skipped} skipped (of ${stats.total} total)`
+              )
             }
           }
-
         } catch (error) {
           const errorMsg = (error as Error).message
           console.error(`   ❌ Failed to import table: ${errorMsg}`)
@@ -542,7 +585,9 @@ class DatabaseImportService {
 
       await trx.commit()
       console.log('\n✅ Import transaction committed successfully')
-      console.log(`📊 Final stats: ${result.tablesImported} tables, ${result.rowsImported} rows imported`)
+      console.log(
+        `📊 Final stats: ${result.tablesImported} tables, ${result.rowsImported} rows imported`
+      )
 
       // DEBUG: Check what's actually in the database after import
       try {
@@ -554,7 +599,12 @@ class DatabaseImportService {
         }
 
         // Posts by type
-        const allTypes = await db.from('posts').select('type').count('* as count').groupBy('type').orderBy('type')
+        const allTypes = await db
+          .from('posts')
+          .select('type')
+          .count('* as count')
+          .groupBy('type')
+          .orderBy('type')
         const postTypeCounts: Record<string, number> = {}
         allTypes.forEach((row: any) => {
           postTypeCounts[row.type] = Number(row.count || 0)
@@ -569,7 +619,9 @@ class DatabaseImportService {
 
         console.log('════════ Import Summary ════════')
         console.log(`Status: ${result.success ? 'SUCCESS' : 'FAILED'}`)
-        console.log(`Tables imported: ${result.tablesImported}, Rows imported: ${result.rowsImported}`)
+        console.log(
+          `Tables imported: ${result.tablesImported}, Rows imported: ${result.rowsImported}`
+        )
         console.log('Content counts:')
         console.log(`  Posts: ${summaryCounts.posts} (by type: ${JSON.stringify(postTypeCounts)})`)
         console.log(
@@ -582,7 +634,9 @@ class DatabaseImportService {
           if (result.errors.length > 5) console.log(`  ...and ${result.errors.length - 5} more`)
         }
         if (result.skippedTables.length > 0) {
-          console.log(`Skipped tables (${result.skippedTables.length}): ${result.skippedTables.join(', ')}`)
+          console.log(
+            `Skipped tables (${result.skippedTables.length}): ${result.skippedTables.join(', ')}`
+          )
         }
         console.log('════════ End Summary ═══════════')
       } catch (err) {
@@ -614,21 +668,20 @@ class DatabaseImportService {
           }
         }
       } catch (fallbackError) {
-        console.error(
-          '⚠️  Fallback documentation import failed:',
-          (fallbackError as Error).message
-        )
+        console.error('⚠️  Fallback documentation import failed:', (fallbackError as Error).message)
       }
 
       if (result.skippedTables.length > 0) {
-        console.log(`⏭️  Skipped tables (${result.skippedTables.length}):`, result.skippedTables.join(', '))
+        console.log(
+          `⏭️  Skipped tables (${result.skippedTables.length}):`,
+          result.skippedTables.join(', ')
+        )
       }
 
       if (result.errors.length > 0) {
         console.log(`⚠️  Errors (${result.errors.length}):`)
-        result.errors.forEach(err => console.log(`   - ${err.table}: ${err.error}`))
+        result.errors.forEach((err) => console.log(`   - ${err.table}: ${err.error}`))
       }
-
     } catch (error) {
       await trx.rollback()
       result.success = false
@@ -675,7 +728,10 @@ class DatabaseImportService {
     // First pass: add posts with no parent and no translation_of_id
     for (let i = remaining.length - 1; i >= 0; i--) {
       const post = remaining[i]
-      if ((!post.parent_id || post.parent_id === null) && (!post.translation_of_id || post.translation_of_id === null)) {
+      if (
+        (!post.parent_id || post.parent_id === null) &&
+        (!post.translation_of_id || post.translation_of_id === null)
+      ) {
         sorted.push(post)
         processedIds.add(post.id)
         remaining.splice(i, 1)
@@ -761,7 +817,7 @@ class DatabaseImportService {
 
   /**
    * Check if a table exists
-   * 
+   *
    * Note: table name comes from export file (trusted source), so direct interpolation is safe
    */
   private async tableExists(trx: any, tableName: string): Promise<boolean> {
@@ -796,13 +852,19 @@ class DatabaseImportService {
   /**
    * Insert row or ignore conflicts, returning whether it was inserted
    */
-  private async insertOrIgnoreWithResult(trx: any, tableName: string, row: any): Promise<{ inserted: boolean }> {
+  private async insertOrIgnoreWithResult(
+    trx: any,
+    tableName: string,
+    row: any
+  ): Promise<{ inserted: boolean }> {
     const dialectName = dbConfig.connections[dbConfig.connection].client
 
     // Create a savepoint for Postgres to prevent transaction abortion on failure
     const useSavepoint = dialectName === 'postgres' || dialectName === 'pg'
     // Generate safe savepoint name
-    const rowId = row.id ? row.id.toString().replace(/-/g, '') : Math.random().toString(36).substring(2, 15)
+    const rowId = row.id
+      ? row.id.toString().replace(/-/g, '')
+      : Math.random().toString(36).substring(2, 15)
     const savepointName = `sp_ins_${tableName.substring(0, 10)}_${rowId}`
 
     if (useSavepoint) {
@@ -816,16 +878,29 @@ class DatabaseImportService {
       if (dialectName === 'postgres' || dialectName === 'pg') {
         // Proactive conflict resolution for known unique constraints (merge mode should be non-fatal)
         if (tableName === 'module_groups' && row.name) {
-          const conflicting = await trx.from(tableName).where('name', row.name).where('id', '!=', row.id).first()
+          const conflicting = await trx
+            .from(tableName)
+            .where('name', row.name)
+            .where('id', '!=', row.id)
+            .first()
           if (conflicting) {
             await trx.from(tableName).where('id', conflicting.id).delete()
           }
         } else if (tableName === 'forms' && row.slug) {
-          const conflicting = await trx.from(tableName).where('slug', row.slug).where('id', '!=', row.id).first()
+          const conflicting = await trx
+            .from(tableName)
+            .where('slug', row.slug)
+            .where('id', '!=', row.id)
+            .first()
           if (conflicting) {
             await trx.from(tableName).where('id', conflicting.id).delete()
           }
-        } else if (tableName === 'url_patterns' && row.post_type && row.locale && row.is_default !== undefined) {
+        } else if (
+          tableName === 'url_patterns' &&
+          row.post_type &&
+          row.locale &&
+          row.is_default !== undefined
+        ) {
           const conflicting = await trx
             .from(tableName)
             .where('post_type', row.post_type)
@@ -837,17 +912,29 @@ class DatabaseImportService {
             await trx.from(tableName).where('id', conflicting.id).delete()
           }
         } else if (tableName === 'custom_fields' && row.slug) {
-          const conflicting = await trx.from(tableName).where('slug', row.slug).where('id', '!=', row.id).first()
+          const conflicting = await trx
+            .from(tableName)
+            .where('slug', row.slug)
+            .where('id', '!=', row.id)
+            .first()
           if (conflicting) {
             await trx.from(tableName).where('id', conflicting.id).delete()
           }
         } else if (tableName === 'menus' && row.slug) {
-          const conflicting = await trx.from(tableName).where('slug', row.slug).where('id', '!=', row.id).first()
+          const conflicting = await trx
+            .from(tableName)
+            .where('slug', row.slug)
+            .where('id', '!=', row.id)
+            .first()
           if (conflicting) {
             await trx.from(tableName).where('id', conflicting.id).delete()
           }
         } else if (tableName === 'users' && row.email) {
-          const conflicting = await trx.from(tableName).where('email', row.email).where('id', '!=', row.id).first()
+          const conflicting = await trx
+            .from(tableName)
+            .where('email', row.email)
+            .where('id', '!=', row.id)
+            .first()
           if (conflicting) {
             await trx.from(tableName).where('id', conflicting.id).delete()
           }
@@ -886,7 +973,9 @@ class DatabaseImportService {
             // Log for debugging (log first few, then sample)
             const shouldLog = tableName === 'posts' || Math.random() < 0.05
             if (shouldLog) {
-              console.log(`   🔍 DEBUG: Unique constraint violation for ${tableName} ${row.id}: ${errorMsg}`)
+              console.log(
+                `   🔍 DEBUG: Unique constraint violation for ${tableName} ${row.id}: ${errorMsg}`
+              )
               console.log(`   🔍 Constraint: ${insertError?.constraint}`)
             }
             return { inserted: false }
@@ -925,7 +1014,7 @@ class DatabaseImportService {
         }
       }
     } catch (error) {
-      if (useSavepoint && !((error as any).message?.includes('ROLLBACK TO SAVEPOINT'))) {
+      if (useSavepoint && !(error as any).message?.includes('ROLLBACK TO SAVEPOINT')) {
         // Should have been handled above, but just in case
       }
       // Constraint violations mean row was not inserted
@@ -982,18 +1071,35 @@ class DatabaseImportService {
           // Row doesn't exist by ID. Check for unique constraint conflicts and resolve them proactively.
           // Overwrite strategy: the incoming row wins; delete conflicting rows with same unique keys.
           if (tableName === 'module_groups' && row.name) {
-            const conflicting = await trx.from(tableName).where('name', row.name).where('id', '!=', row.id).first()
+            const conflicting = await trx
+              .from(tableName)
+              .where('name', row.name)
+              .where('id', '!=', row.id)
+              .first()
             if (conflicting) {
-              console.log(`   ⚠️  Resolving conflict for module_groups: deleting ${conflicting.id} (name: ${row.name})`)
+              console.log(
+                `   ⚠️  Resolving conflict for module_groups: deleting ${conflicting.id} (name: ${row.name})`
+              )
               await trx.from(tableName).where('id', conflicting.id).delete()
             }
           } else if (tableName === 'forms' && row.slug) {
-            const conflicting = await trx.from(tableName).where('slug', row.slug).where('id', '!=', row.id).first()
+            const conflicting = await trx
+              .from(tableName)
+              .where('slug', row.slug)
+              .where('id', '!=', row.id)
+              .first()
             if (conflicting) {
-              console.log(`   ⚠️  Resolving conflict for forms: deleting ${conflicting.id} (slug: ${row.slug})`)
+              console.log(
+                `   ⚠️  Resolving conflict for forms: deleting ${conflicting.id} (slug: ${row.slug})`
+              )
               await trx.from(tableName).where('id', conflicting.id).delete()
             }
-          } else if (tableName === 'url_patterns' && row.post_type && row.locale && row.is_default !== undefined) {
+          } else if (
+            tableName === 'url_patterns' &&
+            row.post_type &&
+            row.locale &&
+            row.is_default !== undefined
+          ) {
             // Only one default per post_type+locale
             const conflicting = await trx
               .from(tableName)
@@ -1003,25 +1109,45 @@ class DatabaseImportService {
               .where('id', '!=', row.id)
               .first()
             if (conflicting && row.is_default === true) {
-              console.log(`   ⚠️  Resolving conflict for url_patterns: deleting ${conflicting.id} (default ${row.post_type}/${row.locale})`)
+              console.log(
+                `   ⚠️  Resolving conflict for url_patterns: deleting ${conflicting.id} (default ${row.post_type}/${row.locale})`
+              )
               await trx.from(tableName).where('id', conflicting.id).delete()
             }
           } else if (tableName === 'custom_fields' && row.slug) {
-            const conflicting = await trx.from(tableName).where('slug', row.slug).where('id', '!=', row.id).first()
+            const conflicting = await trx
+              .from(tableName)
+              .where('slug', row.slug)
+              .where('id', '!=', row.id)
+              .first()
             if (conflicting) {
-              console.log(`   ⚠️  Resolving conflict for custom_fields: deleting ${conflicting.id} (slug: ${row.slug})`)
+              console.log(
+                `   ⚠️  Resolving conflict for custom_fields: deleting ${conflicting.id} (slug: ${row.slug})`
+              )
               await trx.from(tableName).where('id', conflicting.id).delete()
             }
           } else if (tableName === 'menus' && row.slug) {
-            const conflicting = await trx.from(tableName).where('slug', row.slug).where('id', '!=', row.id).first()
+            const conflicting = await trx
+              .from(tableName)
+              .where('slug', row.slug)
+              .where('id', '!=', row.id)
+              .first()
             if (conflicting) {
-              console.log(`   ⚠️  Resolving conflict for menus: deleting ${conflicting.id} (slug: ${row.slug})`)
+              console.log(
+                `   ⚠️  Resolving conflict for menus: deleting ${conflicting.id} (slug: ${row.slug})`
+              )
               await trx.from(tableName).where('id', conflicting.id).delete()
             }
           } else if (tableName === 'users' && row.email) {
-            const conflicting = await trx.from(tableName).where('email', row.email).where('id', '!=', row.id).first()
+            const conflicting = await trx
+              .from(tableName)
+              .where('email', row.email)
+              .where('id', '!=', row.id)
+              .first()
             if (conflicting) {
-              console.log(`   ⚠️  Resolving conflict for users: deleting ${conflicting.id} (email: ${row.email})`)
+              console.log(
+                `   ⚠️  Resolving conflict for users: deleting ${conflicting.id} (email: ${row.email})`
+              )
               await trx.from(tableName).where('id', conflicting.id).delete()
             }
           }
@@ -1037,18 +1163,12 @@ class DatabaseImportService {
       } else if (dialectName === 'mysql' || dialectName === 'mysql2') {
         // MySQL: Use Knex's onConflict().merge() (works as ON DUPLICATE KEY UPDATE)
         const { id, ...updateData } = row
-        const result = await trx(tableName)
-          .insert(row)
-          .onConflict('id')
-          .merge(updateData)
+        const result = await trx(tableName).insert(row).onConflict('id').merge(updateData)
         return result[0]?.affectedRows || 0
       } else {
         // SQLite: Use Knex's onConflict().merge()
         const { id, ...updateData } = row
-        await trx(tableName)
-          .insert(row)
-          .onConflict('id')
-          .merge(updateData)
+        await trx(tableName).insert(row).onConflict('id').merge(updateData)
         return 1 // Assume success
       }
     } catch (error: any) {

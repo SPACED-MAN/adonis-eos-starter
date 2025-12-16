@@ -57,8 +57,7 @@ class GenerateMediaVariantsAction {
     const mime: string = String((row as any).mime_type || '')
     const baseUrlRaw: string = String((row as any).url || '')
     const isSvg =
-      mime.toLowerCase() === 'image/svg+xml' ||
-      baseUrlRaw.toLowerCase().endsWith('.svg')
+      mime.toLowerCase() === 'image/svg+xml' || baseUrlRaw.toLowerCase().endsWith('.svg')
 
     // SVG media never receives rasterized variants; always serve the original SVG.
     if (isSvg) {

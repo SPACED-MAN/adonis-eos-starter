@@ -4,9 +4,22 @@ import { AdminHeader } from '../../components/AdminHeader'
 import { AdminFooter } from '../../components/AdminFooter'
 import { toast } from 'sonner'
 import { Checkbox } from '../../../components/ui/checkbox'
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '../../../components/ui/select'
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '../../../components/ui/select'
 import { Popover, PopoverContent, PopoverTrigger } from '../../../components/ui/popover'
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '../../../components/ui/table'
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from '../../../components/ui/table'
 import {
   AlertDialog,
   AlertDialogAction,
@@ -17,14 +30,30 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from '../../../components/ui/alert-dialog'
-import { DndContext, PointerSensor, closestCenter, useSensor, useSensors, DragEndEvent, DragStartEvent, DragMoveEvent } from '@dnd-kit/core'
+import {
+  DndContext,
+  PointerSensor,
+  closestCenter,
+  useSensor,
+  useSensors,
+  DragEndEvent,
+  DragStartEvent,
+  DragMoveEvent,
+} from '@dnd-kit/core'
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome'
 import { faTurnUp } from '@fortawesome/free-solid-svg-icons'
 import { SortableContext, useSortable, verticalListSortingStrategy } from '@dnd-kit/sortable'
 import { CSS } from '@dnd-kit/utilities'
 import { Pencil } from 'lucide-react'
 
-type Menu = { id: string; name: string; slug: string; locale?: string | null; createdAt: string; updatedAt: string }
+type Menu = {
+  id: string
+  name: string
+  slug: string
+  locale?: string | null
+  createdAt: string
+  updatedAt: string
+}
 type MenuItem = {
   id: string
   parentId: string | null
@@ -52,7 +81,19 @@ export default function MenusIndex() {
   const [selectedMenuSlug, setSelectedMenuSlug] = useState<string>('')
   const [menuTemplate, setMenuTemplate] = useState<string | null>(null)
   const [menuMeta, setMenuMeta] = useState<Record<string, any>>({})
-  const [templates, setTemplates] = useState<Array<{ slug: string; name: string; description?: string; fields?: Array<{ key: string; label: string; type: 'text' | 'url' | 'boolean'; multiline?: boolean }> }>>([])
+  const [templates, setTemplates] = useState<
+    Array<{
+      slug: string
+      name: string
+      description?: string
+      fields?: Array<{
+        key: string
+        label: string
+        type: 'text' | 'url' | 'boolean'
+        multiline?: boolean
+      }>
+    }>
+  >([])
   const [savingMenuMeta, setSavingMenuMeta] = useState<boolean>(false)
   const xsrfFromCookie: string | undefined = (() => {
     if (typeof document === 'undefined') return undefined
@@ -68,17 +109,24 @@ export default function MenusIndex() {
   const [overrideLabel, setOverrideLabel] = useState<boolean>(false)
   const [addParentId, setAddParentId] = useState<string>('__ROOT__')
   const [postQuery, setPostQuery] = useState('')
-  const [postResults, setPostResults] = useState<Array<{ id: string; title: string; slug: string; locale: string }>>([])
+  const [postResults, setPostResults] = useState<
+    Array<{ id: string; title: string; slug: string; locale: string }>
+  >([])
   const [selectedPostId, setSelectedPostId] = useState<string>('')
   const [selectedPostLabel, setSelectedPostLabel] = useState<string>('') // for display (e.g., "Title (en)")
-  const [selectedPostTitle, setSelectedPostTitle] = useState<string>('')  // plain title for auto-label
+  const [selectedPostTitle, setSelectedPostTitle] = useState<string>('') // plain title for auto-label
   const [postPickerOpen, setPostPickerOpen] = useState<boolean>(false)
   const [postLoading, setPostLoading] = useState<boolean>(false)
   const searchTimerRef = useRef<number | null>(null)
   const [customUrl, setCustomUrl] = useState<string>('')
   const [extra, setExtra] = useState<string>('') // additional field (anchor, tokens, etc.)
   const [target, setTarget] = useState<string>('default') // dropdown: 'default', _self, _blank, _parent, _top
-  const [relOptions, setRelOptions] = useState<{ [key: string]: boolean }>({ nofollow: false, noopener: false, noreferrer: false, external: false })
+  const [relOptions, setRelOptions] = useState<{ [key: string]: boolean }>({
+    nofollow: false,
+    noopener: false,
+    noreferrer: false,
+    external: false,
+  })
   const [advancedOpen, setAdvancedOpen] = useState<boolean>(false)
   const [dynamicPostType, setDynamicPostType] = useState<string>('')
   const [dynamicParentId, setDynamicParentId] = useState<string>('')
@@ -100,12 +148,19 @@ export default function MenusIndex() {
   const [editCustomUrl, setEditCustomUrl] = useState<string>('')
   const [editPostPickerOpen, setEditPostPickerOpen] = useState<boolean>(false)
   const [editPostQuery, setEditPostQuery] = useState<string>('')
-  const [editPostResults, setEditPostResults] = useState<Array<{ id: string; title: string; slug: string; locale: string }>>([])
+  const [editPostResults, setEditPostResults] = useState<
+    Array<{ id: string; title: string; slug: string; locale: string }>
+  >([])
   const [editSelectedPostId, setEditSelectedPostId] = useState<string>('')
   const [editSelectedPostTitle, setEditSelectedPostTitle] = useState<string>('')
   const [editExtra, setEditExtra] = useState<string>('')
   const [editTarget, setEditTarget] = useState<string>('default')
-  const [editRelOptions, setEditRelOptions] = useState<{ [key: string]: boolean }>({ nofollow: false, noopener: false, noreferrer: false, external: false })
+  const [editRelOptions, setEditRelOptions] = useState<{ [key: string]: boolean }>({
+    nofollow: false,
+    noopener: false,
+    noreferrer: false,
+    external: false,
+  })
   const [editDynamicPostType, setEditDynamicPostType] = useState<string>('')
   const [editDynamicParentId, setEditDynamicParentId] = useState<string>('')
   const [editDynamicDepthLimit, setEditDynamicDepthLimit] = useState<number>(1)
@@ -130,7 +185,9 @@ export default function MenusIndex() {
   async function loadMenu(id: string, locale?: string) {
     const params = new URLSearchParams()
     if (locale) params.set('locale', locale)
-    const res = await fetch(`/api/menus/${encodeURIComponent(id)}?${params.toString()}`, { credentials: 'same-origin' })
+    const res = await fetch(`/api/menus/${encodeURIComponent(id)}?${params.toString()}`, {
+      credentials: 'same-origin',
+    })
     const j = await res.json().catch(() => ({}))
     const items: MenuItem[] = Array.isArray(j?.data?.items) ? j.data.items : []
     setMenuItems(items)
@@ -149,20 +206,26 @@ export default function MenusIndex() {
     setMenuMeta((j?.data?.meta as Record<string, any>) ?? {})
   }
 
-  useEffect(() => { loadMenus() }, [])
-  useEffect(() => { if (selectedMenuId) loadMenu(selectedMenuId) }, [selectedMenuId])
   useEffect(() => {
-    ; (async () => {
+    loadMenus()
+  }, [])
+  useEffect(() => {
+    if (selectedMenuId) loadMenu(selectedMenuId)
+  }, [selectedMenuId])
+  useEffect(() => {
+    ;(async () => {
       try {
         const res = await fetch('/api/menu-templates', { credentials: 'same-origin' })
         const j = await res.json().catch(() => ({}))
         const list: Array<any> = Array.isArray(j?.data) ? j.data : []
-        setTemplates(list.map((t) => ({
-          slug: String(t.slug),
-          name: String(t.name || t.slug),
-          description: t.description ? String(t.description) : undefined,
-          fields: Array.isArray(t.fields) ? t.fields : [],
-        })))
+        setTemplates(
+          list.map((t) => ({
+            slug: String(t.slug),
+            name: String(t.name || t.slug),
+            description: t.description ? String(t.description) : undefined,
+            fields: Array.isArray(t.fields) ? t.fields : [],
+          }))
+        )
       } catch {
         setTemplates([])
       }
@@ -185,7 +248,12 @@ export default function MenusIndex() {
       const res = await fetch(`/api/posts?${params.toString()}`, { credentials: 'same-origin' })
       const j = await res.json().catch(() => ({}))
       const list = Array.isArray(j?.data) ? j.data : []
-      let mapped = list.map((p: any) => ({ id: p.id, title: p.title, slug: p.slug, locale: p.locale }))
+      let mapped = list.map((p: any) => ({
+        id: p.id,
+        title: p.title,
+        slug: p.slug,
+        locale: p.locale,
+      }))
       if (mapped.length === 0 && !searchAllLocales && menuLocale) {
         const params2 = new URLSearchParams()
         if (query) params2.set('q', query)
@@ -196,7 +264,12 @@ export default function MenusIndex() {
         const res2 = await fetch(`/api/posts?${params2.toString()}`, { credentials: 'same-origin' })
         const j2 = await res2.json().catch(() => ({}))
         const list2 = Array.isArray(j2?.data) ? j2.data : []
-        mapped = list2.map((p: any) => ({ id: p.id, title: p.title, slug: p.slug, locale: p.locale }))
+        mapped = list2.map((p: any) => ({
+          id: p.id,
+          title: p.title,
+          slug: p.slug,
+          locale: p.locale,
+        }))
       }
       setPostResults(mapped)
     } finally {
@@ -224,13 +297,21 @@ export default function MenusIndex() {
     // Label resolution with override support
     let finalLabel = ''
     if (addType === 'post') {
-      finalLabel = overrideLabel ? (addLabel.trim() || selectedPostTitle || '') : (selectedPostTitle || '')
+      finalLabel = overrideLabel
+        ? addLabel.trim() || selectedPostTitle || ''
+        : selectedPostTitle || ''
     } else {
       finalLabel = addLabel.trim()
     }
-    if (!finalLabel) { toast.error('Label is required'); return }
+    if (!finalLabel) {
+      toast.error('Label is required')
+      return
+    }
     const parentId = addParentId === '__ROOT__' ? null : addParentId
-    const relString = Object.keys(relOptions).filter((k) => relOptions[k]).join(' ') || null
+    const relString =
+      Object.keys(relOptions)
+        .filter((k) => relOptions[k])
+        .join(' ') || null
     const payload: any = {
       type: addType,
       label: finalLabel,
@@ -241,13 +322,22 @@ export default function MenusIndex() {
       rel: relString,
     }
     if (addType === 'post') {
-      if (!selectedPostId) { toast.error('Select a post'); return }
+      if (!selectedPostId) {
+        toast.error('Select a post')
+        return
+      }
       payload.postId = selectedPostId
     } else if (addType === 'custom') {
-      if (!customUrl.trim()) { toast.error('Enter a URL'); return }
+      if (!customUrl.trim()) {
+        toast.error('Enter a URL')
+        return
+      }
       payload.customUrl = customUrl.trim()
     } else if (addType === 'dynamic') {
-      if (!dynamicPostType) { toast.error('Select a post type'); return }
+      if (!dynamicPostType) {
+        toast.error('Select a post type')
+        return
+      }
       payload.dynamicPostType = dynamicPostType
       payload.dynamicParentId = dynamicParentId || null
       payload.dynamicDepthLimit = dynamicDepthLimit
@@ -269,7 +359,15 @@ export default function MenusIndex() {
       toast.error(j?.error || 'Add failed')
       return
     }
-    setAddLabel(''); setSelectedPostId(''); setCustomUrl(''); setExtra(''); setTarget('default'); setRelOptions({ nofollow: false, noopener: false, noreferrer: false, external: false }); setDynamicPostType(''); setDynamicParentId(''); setDynamicDepthLimit(1)
+    setAddLabel('')
+    setSelectedPostId('')
+    setCustomUrl('')
+    setExtra('')
+    setTarget('default')
+    setRelOptions({ nofollow: false, noopener: false, noreferrer: false, external: false })
+    setDynamicPostType('')
+    setDynamicParentId('')
+    setDynamicDepthLimit(1)
     await loadMenu(selectedMenuId, editingLocale)
     toast.success('Item added')
   }
@@ -288,7 +386,7 @@ export default function MenusIndex() {
       }
     })
     const out: Array<{ item: MenuItem; level: number }> = []
-    const sortKids = (arr: MenuItem[]) => arr.slice().sort((a, b) => (a.orderIndex - b.orderIndex))
+    const sortKids = (arr: MenuItem[]) => arr.slice().sort((a, b) => a.orderIndex - b.orderIndex)
     const dfs = (node: MenuItem, level: number) => {
       out.push({ item: node, level })
       const kids = sortKids(idToChildren.get(node.id) || [])
@@ -336,10 +434,18 @@ export default function MenusIndex() {
   async function handleDragEnd(ev: DragEndEvent) {
     const activeId = String(ev.active.id)
     const overId = ev.over ? String(ev.over.id) : null
-    if (!overId || activeId === overId) { setDragActiveId(null); setDragProjectedLevel(null); return }
+    if (!overId || activeId === overId) {
+      setDragActiveId(null)
+      setDragProjectedLevel(null)
+      return
+    }
     const activeIdx = flatRows.findIndex((r) => r.item.id === activeId)
     const overIdx = flatRows.findIndex((r) => r.item.id === overId)
-    if (activeIdx < 0 || overIdx < 0) { setDragActiveId(null); setDragProjectedLevel(null); return }
+    if (activeIdx < 0 || overIdx < 0) {
+      setDragActiveId(null)
+      setDragProjectedLevel(null)
+      return
+    }
     const activeRow = flatRows[activeIdx]
     const activeParent = activeRow.item.parentId ?? null
     const baseLevel = typeof dragProjectedLevel === 'number' ? dragProjectedLevel : activeRow.level
@@ -368,20 +474,33 @@ export default function MenusIndex() {
       // 2) Indent-based inference when dragged deeper
       for (let i = targetIndex - 1; i >= 0; i--) {
         const row = listWithoutActive[i]
-        if (row && row.level === baseLevel - 1) { newParentId = row.item.id; break }
+        if (row && row.level === baseLevel - 1) {
+          newParentId = row.item.id
+          break
+        }
       }
     } else {
       // 3) Pure reorder at same depth
       newParentId = activeParent
     }
-    if (newParentId && String(newParentId) === String(activeId)) { setDragActiveId(null); setDragProjectedLevel(null); return }
+    if (newParentId && String(newParentId) === String(activeId)) {
+      setDragActiveId(null)
+      setDragProjectedLevel(null)
+      return
+    }
     const all = menuItems
     const oldSiblings = all
-      .filter((it) => ((it.parentId ?? null) === (activeParent ?? null)) && String(it.id) !== String(activeId))
+      .filter(
+        (it) =>
+          (it.parentId ?? null) === (activeParent ?? null) && String(it.id) !== String(activeId)
+      )
       .sort((a, b) => a.orderIndex - b.orderIndex)
       .map((it) => it.id)
     const newSiblingsExisting = all
-      .filter((it) => ((it.parentId ?? null) === (newParentId ?? null)) && String(it.id) !== String(activeId))
+      .filter(
+        (it) =>
+          (it.parentId ?? null) === (newParentId ?? null) && String(it.id) !== String(activeId)
+      )
       .sort((a, b) => a.orderIndex - b.orderIndex)
       .map((it) => it.id)
     let insertionIndex: number
@@ -393,7 +512,7 @@ export default function MenusIndex() {
       const sliceEnd = movingDown ? targetIndex + 1 : targetIndex
       const siblingsBefore = listWithoutActive
         .slice(0, sliceEnd)
-        .filter((r) => ((r.item.parentId ?? null) === (newParentId ?? null)))
+        .filter((r) => (r.item.parentId ?? null) === (newParentId ?? null))
         .map((r) => r.item.id)
       insertionIndex = Math.min(newSiblingsExisting.length, Math.max(0, siblingsBefore.length))
     }
@@ -422,21 +541,36 @@ export default function MenusIndex() {
         oldSiblings.forEach((id, idx) => oldItems.push({ id, orderIndex: idx }))
         await fetch(`/api/menus/${encodeURIComponent(selectedMenuId || '')}/reorder`, {
           method: 'POST',
-          headers: { 'Accept': 'application/json', 'Content-Type': 'application/json', ...(xsrfFromCookie ? { 'X-XSRF-TOKEN': xsrfFromCookie } : {}) },
+          headers: {
+            'Accept': 'application/json',
+            'Content-Type': 'application/json',
+            ...(xsrfFromCookie ? { 'X-XSRF-TOKEN': xsrfFromCookie } : {}),
+          },
           credentials: 'same-origin',
-          body: JSON.stringify({ scope: { menuId: selectedMenuId, parentId: activeParent, locale: editingLocale }, items: oldItems }),
+          body: JSON.stringify({
+            scope: { menuId: selectedMenuId, parentId: activeParent, locale: editingLocale },
+            items: oldItems,
+          }),
         })
       }
       const newItems: Array<{ id: string; orderIndex: number; parentId?: string | null }> = []
       newSiblings.forEach((id, idx) => {
-        if (String(id) === String(activeId)) newItems.push({ id, orderIndex: idx, parentId: newParentId })
+        if (String(id) === String(activeId))
+          newItems.push({ id, orderIndex: idx, parentId: newParentId })
         else newItems.push({ id, orderIndex: idx })
       })
       await fetch(`/api/menus/${encodeURIComponent(selectedMenuId || '')}/reorder`, {
         method: 'POST',
-        headers: { 'Accept': 'application/json', 'Content-Type': 'application/json', ...(xsrfFromCookie ? { 'X-XSRF-TOKEN': xsrfFromCookie } : {}) },
+        headers: {
+          'Accept': 'application/json',
+          'Content-Type': 'application/json',
+          ...(xsrfFromCookie ? { 'X-XSRF-TOKEN': xsrfFromCookie } : {}),
+        },
         credentials: 'same-origin',
-        body: JSON.stringify({ scope: { menuId: selectedMenuId, parentId: newParentId, locale: editingLocale }, items: newItems }),
+        body: JSON.stringify({
+          scope: { menuId: selectedMenuId, parentId: newParentId, locale: editingLocale },
+          items: newItems,
+        }),
       })
       // Brief confirmation flash on the moved item when nesting occurred
       if (willNest && String(newParentId || '') === String(overId || '')) {
@@ -445,15 +579,17 @@ export default function MenusIndex() {
       }
       await loadMenu(selectedMenuId!, editingLocale)
     } finally {
-      setDragActiveId(null); setDragProjectedLevel(null); setWillNest(false)
+      setDragActiveId(null)
+      setDragProjectedLevel(null)
+      setWillNest(false)
     }
   }
 
   return (
     <div className="min-h-screen bg-backdrop-medium">
-				<Head title="Menus" />
-				<AdminHeader title="Menus" />
-				<main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+      <Head title="Menus" />
+      <AdminHeader title="Menus" />
+      <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
         <div className="bg-backdrop-low rounded-lg p-4 border border-line-low">
           <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
             {/* Left: Menus list and create */}
@@ -467,10 +603,16 @@ export default function MenusIndex() {
                     <button
                       key={m.id}
                       className={`w-full text-left px-3 py-2 border border-line-low rounded ${selectedMenuId === m.id ? 'bg-backdrop-medium' : 'hover:bg-backdrop-medium'}`}
-                      onClick={() => { setSelectedMenuId(m.id); setSelectedMenuSlug(m.slug || '') }}
+                      onClick={() => {
+                        setSelectedMenuId(m.id)
+                        setSelectedMenuSlug(m.slug || '')
+                      }}
                     >
                       <div className="text-sm text-neutral-high">{m.name}</div>
-                      <div className="text-[11px] text-neutral-low">{m.slug}{m.locale ? ` • ${m.locale}` : ''}</div>
+                      <div className="text-[11px] text-neutral-low">
+                        {m.slug}
+                        {m.locale ? ` • ${m.locale}` : ''}
+                      </div>
                     </button>
                   ))}
                 </div>
@@ -486,7 +628,13 @@ export default function MenusIndex() {
                   <div className="flex items-center gap-3 mb-3">
                     <div className="flex items-center gap-2">
                       <span className="text-sm text-neutral-medium">Editing locale:</span>
-                      <Select value={editingLocale} onValueChange={(v: any) => { setEditingLocale(v); if (selectedMenuId) loadMenu(selectedMenuId, v) }}>
+                      <Select
+                        value={editingLocale}
+                        onValueChange={(v: any) => {
+                          setEditingLocale(v)
+                          if (selectedMenuId) loadMenu(selectedMenuId, v)
+                        }}
+                      >
                         <SelectTrigger className="w-[120px]">
                           <SelectValue placeholder="Locale" />
                         </SelectTrigger>
@@ -498,30 +646,44 @@ export default function MenusIndex() {
                         </SelectContent>
                       </Select>
                     </div>
-                    {(((menuLocale || 'en') === editingLocale) || (!menuLocale && editingLocale === 'en')) && (
+                    {((menuLocale || 'en') === editingLocale ||
+                      (!menuLocale && editingLocale === 'en')) && (
                       <div className="flex items-center gap-2">
                         <button
                           className="px-2 py-1 text-xs border border-line-medium rounded"
                           onClick={async () => {
                             if (!selectedMenuId) return
-                            const targets = ['en', 'es', 'fr', 'pt'].filter((l) => l !== editingLocale)
+                            const targets = ['en', 'es', 'fr', 'pt'].filter(
+                              (l) => l !== editingLocale
+                            )
                             await toast.promise(
-                              fetch(`/api/menus/${encodeURIComponent(selectedMenuId)}/generate-variations`, {
-                                method: 'POST',
-                                headers: {
-                                  'Accept': 'application/json',
-                                  'Content-Type': 'application/json',
-                                  ...(xsrfFromCookie ? { 'X-XSRF-TOKEN': xsrfFromCookie } : {}),
-                                },
-                                credentials: 'same-origin',
-                                body: JSON.stringify({ fromLocale: editingLocale, toLocales: targets, mode: 'replace' }),
-                              }).then(async (r) => {
+                              fetch(
+                                `/api/menus/${encodeURIComponent(selectedMenuId)}/generate-variations`,
+                                {
+                                  method: 'POST',
+                                  headers: {
+                                    'Accept': 'application/json',
+                                    'Content-Type': 'application/json',
+                                    ...(xsrfFromCookie ? { 'X-XSRF-TOKEN': xsrfFromCookie } : {}),
+                                  },
+                                  credentials: 'same-origin',
+                                  body: JSON.stringify({
+                                    fromLocale: editingLocale,
+                                    toLocales: targets,
+                                    mode: 'replace',
+                                  }),
+                                }
+                              ).then(async (r) => {
                                 if (!r.ok) {
                                   const j = await r.json().catch(() => ({}))
                                   throw new Error(j?.error || 'Build failed')
                                 }
                               }),
-                              { loading: 'Building locale menus…', success: 'Locale menus built', error: (e) => String(e.message || e) }
+                              {
+                                loading: 'Building locale menus…',
+                                success: 'Locale menus built',
+                                error: (e) => String(e.message || e),
+                              }
                             )
                           }}
                         >
@@ -545,16 +707,22 @@ export default function MenusIndex() {
                               if (!selectedMenuId) return
                               setSavingMenuMeta(true)
                               try {
-                                const res = await fetch(`/api/menus/${encodeURIComponent(selectedMenuId)}`, {
-                                  method: 'PUT',
-                                  headers: {
-                                    'Accept': 'application/json',
-                                    'Content-Type': 'application/json',
-                                    ...(xsrfFromCookie ? { 'X-XSRF-TOKEN': xsrfFromCookie } : {}),
-                                  },
-                                  credentials: 'same-origin',
-                                  body: JSON.stringify({ template: activeTemplateSlug, meta: menuMeta }),
-                                })
+                                const res = await fetch(
+                                  `/api/menus/${encodeURIComponent(selectedMenuId)}`,
+                                  {
+                                    method: 'PUT',
+                                    headers: {
+                                      'Accept': 'application/json',
+                                      'Content-Type': 'application/json',
+                                      ...(xsrfFromCookie ? { 'X-XSRF-TOKEN': xsrfFromCookie } : {}),
+                                    },
+                                    credentials: 'same-origin',
+                                    body: JSON.stringify({
+                                      template: activeTemplateSlug,
+                                      meta: menuMeta,
+                                    }),
+                                  }
+                                )
                                 if (!res.ok) {
                                   const j = await res.json().catch(() => ({}))
                                   throw new Error(j?.error || 'Save failed')
@@ -580,7 +748,9 @@ export default function MenusIndex() {
                                 <label className="inline-flex items-center gap-2 text-sm text-neutral-high">
                                   <Checkbox
                                     checked={!!menuMeta[f.key]}
-                                    onCheckedChange={(c) => setMenuMeta((prev) => ({ ...prev, [f.key]: !!c }))}
+                                    onCheckedChange={(c) =>
+                                      setMenuMeta((prev) => ({ ...prev, [f.key]: !!c }))
+                                    }
                                   />
                                   {f.label}
                                 </label>
@@ -590,13 +760,17 @@ export default function MenusIndex() {
                                     className="px-2 py-1 text-sm border border-line-low bg-backdrop-input text-neutral-high"
                                     rows={3}
                                     value={String(menuMeta[f.key] ?? '')}
-                                    onChange={(e) => setMenuMeta((prev) => ({ ...prev, [f.key]: e.target.value }))}
+                                    onChange={(e) =>
+                                      setMenuMeta((prev) => ({ ...prev, [f.key]: e.target.value }))
+                                    }
                                   />
                                 ) : (
                                   <input
                                     className="px-2 py-1 text-sm border border-line-low bg-backdrop-input text-neutral-high"
                                     value={String(menuMeta[f.key] ?? '')}
-                                    onChange={(e) => setMenuMeta((prev) => ({ ...prev, [f.key]: e.target.value }))}
+                                    onChange={(e) =>
+                                      setMenuMeta((prev) => ({ ...prev, [f.key]: e.target.value }))
+                                    }
                                   />
                                 )
                               ) : (
@@ -604,7 +778,9 @@ export default function MenusIndex() {
                                   className="px-2 py-1 text-sm border border-line-low bg-backdrop-input text-neutral-high"
                                   type="url"
                                   value={String(menuMeta[f.key] ?? '')}
-                                  onChange={(e) => setMenuMeta((prev) => ({ ...prev, [f.key]: e.target.value }))}
+                                  onChange={(e) =>
+                                    setMenuMeta((prev) => ({ ...prev, [f.key]: e.target.value }))
+                                  }
                                   placeholder="https://"
                                 />
                               )}
@@ -634,7 +810,9 @@ export default function MenusIndex() {
                       <SelectContent>
                         <SelectItem value="__ROOT__">Roots (no parent)</SelectItem>
                         {menuItems.map((i) => (
-                          <SelectItem key={i.id} value={i.id}>{i.label}</SelectItem>
+                          <SelectItem key={i.id} value={i.id}>
+                            {i.label}
+                          </SelectItem>
                         ))}
                       </SelectContent>
                     </Select>
@@ -645,13 +823,18 @@ export default function MenusIndex() {
                       <input
                         className="px-2 py-1 text-sm border border-line-low bg-backdrop-input text-neutral-high"
                         placeholder="Label"
-                        value={addType === 'post' && !overrideLabel ? (selectedPostLabel || '') : addLabel}
+                        value={
+                          addType === 'post' && !overrideLabel ? selectedPostLabel || '' : addLabel
+                        }
                         onChange={(e) => setAddLabel(e.target.value)}
                         disabled={addType === 'post' && !overrideLabel}
                       />
                       {addType === 'post' && (
                         <label className="inline-flex items-center gap-2 text-xs text-neutral-medium mt-1">
-                          <Checkbox checked={overrideLabel} onCheckedChange={(c) => setOverrideLabel(!!c)} />
+                          <Checkbox
+                            checked={overrideLabel}
+                            onCheckedChange={(c) => setOverrideLabel(!!c)}
+                          />
                           Override label
                         </label>
                       )}
@@ -678,14 +861,22 @@ export default function MenusIndex() {
                                 }}
                               />
                               <label className="inline-flex items-center gap-2 text-xs text-neutral-medium">
-                                <Checkbox checked={searchAllLocales} onCheckedChange={(c) => { setSearchAllLocales(!!c); debouncedSearchPosts(postQuery) }} />
+                                <Checkbox
+                                  checked={searchAllLocales}
+                                  onCheckedChange={(c) => {
+                                    setSearchAllLocales(!!c)
+                                    debouncedSearchPosts(postQuery)
+                                  }}
+                                />
                                 Search all locales
                               </label>
                               <div className="max-h-[260px] overflow-auto border border-line-low rounded">
                                 {postLoading ? (
                                   <div className="p-2 text-xs text-neutral-medium">Loading…</div>
                                 ) : postResults.length === 0 ? (
-                                  <div className="p-2 text-xs text-neutral-low">No matches. Type to search.</div>
+                                  <div className="p-2 text-xs text-neutral-low">
+                                    No matches. Type to search.
+                                  </div>
                                 ) : (
                                   postResults.map((p) => (
                                     <button
@@ -702,7 +893,9 @@ export default function MenusIndex() {
                                       }}
                                     >
                                       <div className="text-neutral-high">{p.title}</div>
-                                      <div className="text-[11px] text-neutral-medium">{p.slug} • {p.locale.toUpperCase()}</div>
+                                      <div className="text-[11px] text-neutral-medium">
+                                        {p.slug} • {p.locale.toUpperCase()}
+                                      </div>
                                     </button>
                                   ))
                                 )}
@@ -714,7 +907,12 @@ export default function MenusIndex() {
                     ) : addType === 'custom' ? (
                       <div className="flex flex-col gap-1">
                         <label className="text-xs text-neutral-medium">URL</label>
-                        <input className="px-2 py-1 text-sm border border-line-input bg-backdrop-input text-neutral-high" placeholder="https:// or /path" value={customUrl} onChange={(e) => setCustomUrl(e.target.value)} />
+                        <input
+                          className="px-2 py-1 text-sm border border-line-input bg-backdrop-input text-neutral-high"
+                          placeholder="https:// or /path"
+                          value={customUrl}
+                          onChange={(e) => setCustomUrl(e.target.value)}
+                        />
                       </div>
                     ) : addType === 'dynamic' ? (
                       <div className="flex flex-col gap-2">
@@ -736,7 +934,10 @@ export default function MenusIndex() {
                         </div>
                         <div className="flex flex-col gap-1">
                           <label className="text-xs text-neutral-medium">Depth Limit</label>
-                          <Select value={String(dynamicDepthLimit)} onValueChange={(v) => setDynamicDepthLimit(Number(v))}>
+                          <Select
+                            value={String(dynamicDepthLimit)}
+                            onValueChange={(v) => setDynamicDepthLimit(Number(v))}
+                          >
                             <SelectTrigger className="w-full">
                               <SelectValue />
                             </SelectTrigger>
@@ -767,13 +968,25 @@ export default function MenusIndex() {
                     >
                       {advancedOpen ? 'Hide Advanced' : 'Show Advanced'}
                     </button>
-                    <button className="px-3 py-1.5 text-sm rounded bg-standout-medium text-on-standout" onClick={addItem}>Add Item</button>
+                    <button
+                      className="px-3 py-1.5 text-sm rounded bg-standout-medium text-on-standout"
+                      onClick={addItem}
+                    >
+                      Add Item
+                    </button>
                   </div>
                   {advancedOpen && (
                     <div className="mt-3 p-2 border border-line-low rounded space-y-2">
                       <div className="flex flex-col gap-1">
-                        <label className="text-xs text-neutral-medium">Additional (anchor or tokens)</label>
-                        <input className="px-2 py-1 text-sm border border-line-input bg-backdrop-input text-neutral-high" placeholder="#anchor or {token}" value={extra} onChange={(e) => setExtra(e.target.value)} />
+                        <label className="text-xs text-neutral-medium">
+                          Additional (anchor or tokens)
+                        </label>
+                        <input
+                          className="px-2 py-1 text-sm border border-line-input bg-backdrop-input text-neutral-high"
+                          placeholder="#anchor or {token}"
+                          value={extra}
+                          onChange={(e) => setExtra(e.target.value)}
+                        />
                       </div>
                       <div className="flex items-center gap-2">
                         <label className="text-xs text-neutral-medium min-w-[80px]">Target</label>
@@ -794,8 +1007,16 @@ export default function MenusIndex() {
                         <div className="text-xs text-neutral-medium mb-1">rel</div>
                         <div className="flex items-center gap-3">
                           {Object.keys(relOptions).map((k) => (
-                            <label key={k} className="inline-flex items-center gap-1 text-xs text-neutral-high">
-                              <Checkbox checked={relOptions[k]} onCheckedChange={(c) => setRelOptions((prev) => ({ ...prev, [k]: !!c }))} />
+                            <label
+                              key={k}
+                              className="inline-flex items-center gap-1 text-xs text-neutral-high"
+                            >
+                              <Checkbox
+                                checked={relOptions[k]}
+                                onCheckedChange={(c) =>
+                                  setRelOptions((prev) => ({ ...prev, [k]: !!c }))
+                                }
+                              />
                               {k}
                             </label>
                           ))}
@@ -804,7 +1025,13 @@ export default function MenusIndex() {
                     </div>
                   )}
                   <div className="mt-4">
-                    <DndContext sensors={sensors} collisionDetection={closestCenter} onDragStart={handleDragStart} onDragMove={handleDragMove} onDragEnd={handleDragEnd}>
+                    <DndContext
+                      sensors={sensors}
+                      collisionDetection={closestCenter}
+                      onDragStart={handleDragStart}
+                      onDragMove={handleDragMove}
+                      onDragEnd={handleDragEnd}
+                    >
                       <Table>
                         <TableHeader>
                           <TableRow>
@@ -816,29 +1043,54 @@ export default function MenusIndex() {
                           </TableRow>
                         </TableHeader>
                         <TableBody>
-                          <SortableContext items={flatRows.map((r) => r.item.id)} strategy={verticalListSortingStrategy}>
+                          <SortableContext
+                            items={flatRows.map((r) => r.item.id)}
+                            strategy={verticalListSortingStrategy}
+                          >
                             {flatRows.map(({ item, level }) => {
                               return (
                                 <SortableRow key={item.id} id={item.id}>
                                   <TableCell></TableCell>
                                   <TableCell>
-                                    <div className="flex items-center" style={{ paddingLeft: level * 12 }}>
-                                      {(level > 0) || (dragActiveId === item.id && willNest) || nestFlashId === item.id ? (
-                                        <span className="mr-2 text-neutral-medium" aria-hidden="true" title="Will nest on drop">
-                                          <FontAwesomeIcon icon={faTurnUp} rotation={90} className="inline-block" size="sm" />
+                                    <div
+                                      className="flex items-center"
+                                      style={{ paddingLeft: level * 12 }}
+                                    >
+                                      {level > 0 ||
+                                      (dragActiveId === item.id && willNest) ||
+                                      nestFlashId === item.id ? (
+                                        <span
+                                          className="mr-2 text-neutral-medium"
+                                          aria-hidden="true"
+                                          title="Will nest on drop"
+                                        >
+                                          <FontAwesomeIcon
+                                            icon={faTurnUp}
+                                            rotation={90}
+                                            className="inline-block"
+                                            size="sm"
+                                          />
                                         </span>
                                       ) : null}
-                                      <span className="text-sm text-neutral-high">{item.label}</span>
+                                      <span className="text-sm text-neutral-high">
+                                        {item.label}
+                                      </span>
                                     </div>
                                   </TableCell>
                                   <TableCell>
                                     <span className="text-xs text-neutral-medium">
-                                      {(item as any).kind === 'section' ? 'Section' : (item.type === 'post' ? 'Post' : item.type === 'dynamic' ? 'Dynamic' : 'Custom')}
+                                      {(item as any).kind === 'section'
+                                        ? 'Section'
+                                        : item.type === 'post'
+                                          ? 'Post'
+                                          : item.type === 'dynamic'
+                                            ? 'Dynamic'
+                                            : 'Custom'}
                                     </span>
                                   </TableCell>
                                   <TableCell>
                                     <span className="text-xs text-neutral-medium">
-                                      {item.type === 'custom' ? (item.customUrl || '') : 'Post'}
+                                      {item.type === 'custom' ? item.customUrl || '' : 'Post'}
                                       {item.anchor ? ` ${item.anchor}` : ''}
                                     </span>
                                   </TableCell>
@@ -848,7 +1100,10 @@ export default function MenusIndex() {
                                       onClick={() => {
                                         setEditingItem(item)
                                         setEditLabel(item.label)
-                                        const k = (item as any).kind as 'item' | 'section' | undefined
+                                        const k = (item as any).kind as
+                                          | 'item'
+                                          | 'section'
+                                          | undefined
                                         setEditType(k === 'section' ? 'section' : item.type)
                                         setEditCustomUrl(item.customUrl || '')
                                         setEditSelectedPostId(item.postId || '')
@@ -858,7 +1113,11 @@ export default function MenusIndex() {
                                         setEditDynamicPostType(item.dynamicPostType || '')
                                         setEditDynamicParentId(item.dynamicParentId || '')
                                         setEditDynamicDepthLimit(item.dynamicDepthLimit || 1)
-                                        const relSet = new Set(String(item.rel || '').split(/\s+/).filter(Boolean))
+                                        const relSet = new Set(
+                                          String(item.rel || '')
+                                            .split(/\s+/)
+                                            .filter(Boolean)
+                                        )
                                         setEditRelOptions({
                                           nofollow: relSet.has('nofollow'),
                                           noopener: relSet.has('noopener'),
@@ -902,12 +1161,22 @@ export default function MenusIndex() {
             <div className="grid grid-cols-1 md:grid-cols-2 gap-2">
               <div className="flex flex-col gap-1">
                 <label className="text-xs text-neutral-medium">Label</label>
-                <input className="px-2 py-1 text-sm border border-line-input bg-backdrop-input text-neutral-high" value={editLabel} onChange={(e) => setEditLabel(e.target.value)} />
+                <input
+                  className="px-2 py-1 text-sm border border-line-input bg-backdrop-input text-neutral-high"
+                  value={editLabel}
+                  onChange={(e) => setEditLabel(e.target.value)}
+                />
               </div>
               <div className="flex flex-col gap-1">
                 <label className="text-xs text-neutral-medium">Type</label>
                 <div className="px-2 py-1 text-sm border border-line-low bg-backdrop-medium text-neutral-medium rounded">
-                  {editType === 'post' ? 'Post' : editType === 'custom' ? 'Custom URL' : editType === 'dynamic' ? 'Dynamic' : 'Section'}
+                  {editType === 'post'
+                    ? 'Post'
+                    : editType === 'custom'
+                      ? 'Custom URL'
+                      : editType === 'dynamic'
+                        ? 'Dynamic'
+                        : 'Section'}
                   <span className="ml-2 text-xs">(cannot be changed)</span>
                 </div>
               </div>
@@ -918,7 +1187,10 @@ export default function MenusIndex() {
                 <Popover open={editPostPickerOpen} onOpenChange={setEditPostPickerOpen}>
                   <PopoverTrigger asChild>
                     <button className="px-2 py-1 text-sm border border-line-medium rounded bg-backdrop-low text-neutral-high text-left">
-                      {editSelectedPostTitle || (editSelectedPostId ? `Selected: ${editSelectedPostId.slice(0, 6)}…` : 'Select a post')}
+                      {editSelectedPostTitle ||
+                        (editSelectedPostId
+                          ? `Selected: ${editSelectedPostId.slice(0, 6)}…`
+                          : 'Select a post')}
                     </button>
                   </PopoverTrigger>
                   <PopoverContent className="w-[340px]">
@@ -937,15 +1209,26 @@ export default function MenusIndex() {
                           params.set('sortBy', 'updated_at')
                           params.set('sortOrder', 'desc')
                           if (menuLocale) params.set('locale', menuLocale)
-                          const res = await fetch(`/api/posts?${params.toString()}`, { credentials: 'same-origin' })
+                          const res = await fetch(`/api/posts?${params.toString()}`, {
+                            credentials: 'same-origin',
+                          })
                           const j = await res.json().catch(() => ({}))
                           const list = Array.isArray(j?.data) ? j.data : []
-                          setEditPostResults(list.map((p: any) => ({ id: p.id, title: p.title, slug: p.slug, locale: p.locale })))
+                          setEditPostResults(
+                            list.map((p: any) => ({
+                              id: p.id,
+                              title: p.title,
+                              slug: p.slug,
+                              locale: p.locale,
+                            }))
+                          )
                         }}
                       />
                       <div className="max-h-[260px] overflow-auto border border-line-low rounded">
                         {editPostResults.length === 0 ? (
-                          <div className="p-2 text-xs text-neutral-low">No matches. Type to search.</div>
+                          <div className="p-2 text-xs text-neutral-low">
+                            No matches. Type to search.
+                          </div>
                         ) : (
                           editPostResults.map((p) => (
                             <button
@@ -958,7 +1241,9 @@ export default function MenusIndex() {
                               }}
                             >
                               <div className="text-neutral-high">{p.title}</div>
-                              <div className="text-[11px] text-neutral-medium">{p.slug} • {p.locale.toUpperCase()}</div>
+                              <div className="text-[11px] text-neutral-medium">
+                                {p.slug} • {p.locale.toUpperCase()}
+                              </div>
                             </button>
                           ))
                         )}
@@ -970,7 +1255,12 @@ export default function MenusIndex() {
             ) : editType === 'custom' ? (
               <div className="flex flex-col gap-1">
                 <label className="text-xs text-neutral-medium">URL</label>
-                <input className="px-2 py-1 text-sm border border-line-input bg-backdrop-input text-neutral-high" placeholder="https:// or /path" value={editCustomUrl} onChange={(e) => setEditCustomUrl(e.target.value)} />
+                <input
+                  className="px-2 py-1 text-sm border border-line-input bg-backdrop-input text-neutral-high"
+                  placeholder="https:// or /path"
+                  value={editCustomUrl}
+                  onChange={(e) => setEditCustomUrl(e.target.value)}
+                />
               </div>
             ) : editType === 'dynamic' ? (
               <div className="flex flex-col gap-2">
@@ -992,7 +1282,10 @@ export default function MenusIndex() {
                 </div>
                 <div className="flex flex-col gap-1">
                   <label className="text-xs text-neutral-medium">Depth Limit</label>
-                  <Select value={String(editDynamicDepthLimit)} onValueChange={(v) => setEditDynamicDepthLimit(Number(v))}>
+                  <Select
+                    value={String(editDynamicDepthLimit)}
+                    onValueChange={(v) => setEditDynamicDepthLimit(Number(v))}
+                  >
                     <SelectTrigger className="w-full">
                       <SelectValue />
                     </SelectTrigger>
@@ -1012,7 +1305,12 @@ export default function MenusIndex() {
             <div className="grid grid-cols-1 md:grid-cols-2 gap-2">
               <div className="flex flex-col gap-1">
                 <label className="text-xs text-neutral-medium">Additional (anchor or tokens)</label>
-                <input className="px-2 py-1 text-sm border border-line-input bg-backdrop-input text-neutral-high" placeholder="#anchor or {token}" value={editExtra} onChange={(e) => setEditExtra(e.target.value)} />
+                <input
+                  className="px-2 py-1 text-sm border border-line-input bg-backdrop-input text-neutral-high"
+                  placeholder="#anchor or {token}"
+                  value={editExtra}
+                  onChange={(e) => setEditExtra(e.target.value)}
+                />
               </div>
               <div className="flex items-center gap-2">
                 <label className="text-xs text-neutral-medium min-w-[60px]">Target</label>
@@ -1034,8 +1332,14 @@ export default function MenusIndex() {
               <div className="text-xs text-neutral-medium mb-1">rel</div>
               <div className="flex items-center gap-3">
                 {Object.keys(editRelOptions).map((k) => (
-                  <label key={k} className="inline-flex items-center gap-1 text-xs text-neutral-high">
-                    <Checkbox checked={editRelOptions[k]} onCheckedChange={(c) => setEditRelOptions((prev) => ({ ...prev, [k]: !!c }))} />
+                  <label
+                    key={k}
+                    className="inline-flex items-center gap-1 text-xs text-neutral-high"
+                  >
+                    <Checkbox
+                      checked={editRelOptions[k]}
+                      onCheckedChange={(c) => setEditRelOptions((prev) => ({ ...prev, [k]: !!c }))}
+                    />
                     {k}
                   </label>
                 ))}
@@ -1046,10 +1350,16 @@ export default function MenusIndex() {
             <AlertDialogCancel onClick={() => setEditOpen(false)}>Cancel</AlertDialogCancel>
             <AlertDialogAction
               onClick={async () => {
-                if (!editingItem) { setEditOpen(false); return }
+                if (!editingItem) {
+                  setEditOpen(false)
+                  return
+                }
                 setSavingEdit(true)
                 try {
-                  const relString = Object.keys(editRelOptions).filter((k) => editRelOptions[k]).join(' ') || null
+                  const relString =
+                    Object.keys(editRelOptions)
+                      .filter((k) => editRelOptions[k])
+                      .join(' ') || null
                   const payload: any = {
                     label: editLabel.trim(),
                     anchor: editExtra || null,
@@ -1102,8 +1412,6 @@ export default function MenusIndex() {
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
-    </div >
+    </div>
   )
 }
-
-

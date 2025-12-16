@@ -7,11 +7,11 @@ type LinkValue =
   | undefined
   | string
   | {
-    kind?: 'url' | 'post'
-    url?: string
-    postId?: string | number | null
-    target?: '_self' | '_blank'
-  }
+      kind?: 'url' | 'post'
+      url?: string
+      postId?: string | number | null
+      target?: '_self' | '_blank'
+    }
 
 interface FaqItem {
   question: string
@@ -27,7 +27,12 @@ interface FaqProps {
   __moduleId?: string
 }
 
-export default function Faq({ title: initialTitle, subtitle: initialSubtitle, items: initialItems, __moduleId }: FaqProps) {
+export default function Faq({
+  title: initialTitle,
+  subtitle: initialSubtitle,
+  items: initialItems,
+  __moduleId,
+}: FaqProps) {
   const title = useInlineValue(__moduleId, 'title', initialTitle)
   const subtitle = useInlineValue(__moduleId, 'subtitle', initialSubtitle)
   const items = useInlineValue(__moduleId, 'items', initialItems)
@@ -41,7 +46,9 @@ export default function Faq({ title: initialTitle, subtitle: initialSubtitle, it
 
   const renderItem = (item: FaqItem, idx: number) => {
     const hasLink = !!item.linkLabel && !!item.linkUrl
-    const link = hasLink ? resolveHrefAndTarget(item.linkUrl!) : { href: undefined, target: '_self' as const }
+    const link = hasLink
+      ? resolveHrefAndTarget(item.linkUrl!)
+      : { href: undefined, target: '_self' as const }
 
     return (
       <div key={idx} className="mb-8 last:mb-0">
@@ -106,16 +113,10 @@ export default function Faq({ title: initialTitle, subtitle: initialSubtitle, it
           )}
         </div>
         <div className="grid gap-10 border-t border-line-low pt-8 md:grid-cols-2 md:gap-12">
-          <div>
-            {left.map((item, idx) => renderItem(item, idx))}
-          </div>
-          <div>
-            {right.map((item, idx) => renderItem(item, midpoint + idx))}
-          </div>
+          <div>{left.map((item, idx) => renderItem(item, idx))}</div>
+          <div>{right.map((item, idx) => renderItem(item, midpoint + idx))}</div>
         </div>
       </div>
     </section>
   )
 }
-
-

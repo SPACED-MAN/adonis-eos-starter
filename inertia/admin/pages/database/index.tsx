@@ -83,8 +83,8 @@ function PieSummary({ data }: { data: { imported: number; skipped: number; error
                 {arc.label === 'Imported'
                   ? data.imported.toLocaleString()
                   : arc.label === 'Skipped'
-                  ? data.skipped.toLocaleString()
-                  : data.errors.toLocaleString()}
+                    ? data.skipped.toLocaleString()
+                    : data.errors.toLocaleString()}
               </div>
             </div>
           </div>
@@ -123,17 +123,19 @@ const CONTENT_TYPE_LABELS: Record<ContentType, string> = {
 
 export default function DatabaseIndex() {
   const [activeTab, setActiveTab] = useState<'export' | 'optimize'>('export')
-  
+
   // Export/Import state
   const [exportStats, setExportStats] = useState<ExportStats | null>(null)
   const [loadingStats, setLoadingStats] = useState(false)
   const [exporting, setExporting] = useState(false)
   const [importing, setImporting] = useState(false)
   const [validating, setValidating] = useState(false)
-  const [importStrategy, setImportStrategy] = useState<'replace' | 'merge' | 'skip' | 'overwrite'>('merge')
+  const [importStrategy, setImportStrategy] = useState<'replace' | 'merge' | 'skip' | 'overwrite'>(
+    'merge'
+  )
   const [importResult, setImportResult] = useState<ImportResult | null>(null)
   const [validationResult, setValidationResult] = useState<any>(null)
-  
+
   // Optimize state
   const [optimizeStats, setOptimizeStats] = useState<{
     orphanedModuleInstances: number
@@ -156,7 +158,7 @@ export default function DatabaseIndex() {
     cleanInvalidRefs: true,
     clearRenderCache: false,
   })
-  
+
   // Export options
   const [selectedContentTypes, setSelectedContentTypes] = useState<ContentType[]>([
     'media',
@@ -168,31 +170,33 @@ export default function DatabaseIndex() {
     'module_groups',
   ])
   const [preserveIds, setPreserveIds] = useState(true)
-  
+
   // Import options
   const [importPreserveIds, setImportPreserveIds] = useState(true)
   const [confirmImportOpen, setConfirmImportOpen] = useState(false)
-    const [pendingImportFile, setPendingImportFile] = useState<File | null>(null)
-    const [resultFilter, setResultFilter] = useState('')
+  const [pendingImportFile, setPendingImportFile] = useState<File | null>(null)
+  const [resultFilter, setResultFilter] = useState('')
 
-    // Build rows for the status table (skipped + errors), with filter
-    const getStatusRows = (result: ImportResult, filter: string): StatusRow[] => {
-      const rows: StatusRow[] = []
-      result.skippedTables.forEach((table) => rows.push({ table, status: 'skipped' }))
-      result.errors.forEach((err) => rows.push({ table: err.table, status: 'error', message: err.error }))
-      const f = filter.trim().toLowerCase()
-      return f ? rows.filter((r) => r.table.toLowerCase().includes(f)) : rows
+  // Build rows for the status table (skipped + errors), with filter
+  const getStatusRows = (result: ImportResult, filter: string): StatusRow[] => {
+    const rows: StatusRow[] = []
+    result.skippedTables.forEach((table) => rows.push({ table, status: 'skipped' }))
+    result.errors.forEach((err) =>
+      rows.push({ table: err.table, status: 'error', message: err.error })
+    )
+    const f = filter.trim().toLowerCase()
+    return f ? rows.filter((r) => r.table.toLowerCase().includes(f)) : rows
+  }
+
+  // Pie data
+  const pieData = useMemo(() => {
+    if (!importResult) return { imported: 0, skipped: 0, errors: 0 }
+    return {
+      imported: importResult.rowsImported,
+      skipped: importResult.skippedTables.length,
+      errors: importResult.errors.length,
     }
-
-    // Pie data
-    const pieData = useMemo(() => {
-      if (!importResult) return { imported: 0, skipped: 0, errors: 0 }
-      return {
-        imported: importResult.rowsImported,
-        skipped: importResult.skippedTables.length,
-        errors: importResult.errors.length,
-      }
-    }, [importResult])
+  }, [importResult])
 
   // Load export stats on mount
   useEffect(() => {
@@ -242,7 +246,7 @@ export default function DatabaseIndex() {
         credentials: 'same-origin',
         headers: {
           'Content-Type': 'application/json',
-          Accept: 'application/json',
+          'Accept': 'application/json',
           ...(csrf ? { 'X-XSRF-TOKEN': csrf } : {}),
         },
         body: JSON.stringify(optimizeOptions),
@@ -264,7 +268,10 @@ export default function DatabaseIndex() {
     }
   }
 
-  const canOptimize = optimizeOptions.cleanOrphanedModules || optimizeOptions.cleanInvalidRefs || optimizeOptions.clearRenderCache
+  const canOptimize =
+    optimizeOptions.cleanOrphanedModules ||
+    optimizeOptions.cleanInvalidRefs ||
+    optimizeOptions.clearRenderCache
 
   // Load export stats
   const loadExportStats = async () => {
@@ -482,409 +489,465 @@ export default function DatabaseIndex() {
                 </p>
               </div>
 
-          {/* Export Section */}
-          <div className="bg-backdrop-medium border border-line-low rounded-lg p-6 mb-6">
-            <div className="flex items-center gap-2 mb-4">
-              <FontAwesomeIcon icon={faDownload} className="text-standout-medium" />
-              <h2 className="text-xl font-semibold text-neutral-dark">Export Database</h2>
-            </div>
-
-            <p className="text-neutral-medium mb-4">
-              Download a backup of your database as a JSON file. Select which content types to include.
-            </p>
-
-            {/* Content Type Selection */}
-            <div className="mb-4 p-4 bg-backdrop-high rounded border border-line-medium">
-              <div className="flex items-center justify-between mb-3">
-                <h3 className="font-semibold text-neutral-dark">Content Types to Export</h3>
-                <button
-                  type="button"
-                  onClick={toggleAll}
-                  className="text-xs text-standout-high hover:underline"
-                >
-                  {selectedContentTypes.length === 7 ? 'Deselect All' : 'Select All'}
-                </button>
-              </div>
-              <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
-                {(Object.keys(CONTENT_TYPE_LABELS) as ContentType[]).map((type) => {
-                  const stats = exportStats?.contentTypes?.[type]
-                  const isSelected = selectedContentTypes.includes(type)
-                  return (
-                    <label
-                      key={type}
-                      className={`flex items-center gap-2 p-3 rounded border cursor-pointer transition ${
-                        isSelected
-                          ? 'border-standout-medium bg-standout-medium/10'
-                          : 'border-line-medium hover:border-line-high'
-                      }`}
-                    >
-                      <input
-                        type="checkbox"
-                        checked={isSelected}
-                        onChange={() => toggleContentType(type)}
-                        className="rounded"
-                      />
-                      <div className="flex-1">
-                        <div className="text-sm font-medium text-neutral-dark">
-                          {CONTENT_TYPE_LABELS[type]}
-                        </div>
-                        {stats && (
-                          <div className="text-xs text-neutral-medium">
-                            {stats.rowCount.toLocaleString()} rows
-                          </div>
-                        )}
-                      </div>
-                    </label>
-                  )
-                })}
-              </div>
-            </div>
-
-            {/* Export Options */}
-            <div className="mb-4 p-4 bg-backdrop-high rounded border border-line-medium">
-              <h3 className="font-semibold text-neutral-dark mb-3">Export Options</h3>
-              <label className="flex items-center gap-2">
-                <input
-                  type="checkbox"
-                  checked={preserveIds}
-                  onChange={(e) => setPreserveIds(e.target.checked)}
-                  className="rounded"
-                />
-                <div>
-                  <span className="text-sm font-medium text-neutral-dark">Preserve Original IDs</span>
-                  <p className="text-xs text-neutral-medium">
-                    Keep the original database IDs. Recommended for migrations and backups.
-                  </p>
+              {/* Export Section */}
+              <div className="bg-backdrop-medium border border-line-low rounded-lg p-6 mb-6">
+                <div className="flex items-center gap-2 mb-4">
+                  <FontAwesomeIcon icon={faDownload} className="text-standout-medium" />
+                  <h2 className="text-xl font-semibold text-neutral-dark">Export Database</h2>
                 </div>
-              </label>
-            </div>
 
-            <div className="flex gap-3">
-              <button
-                onClick={loadExportStats}
-                disabled={loadingStats}
-                className="px-4 py-2 bg-backdrop-high text-neutral-dark rounded-lg hover:bg-backdrop-medium transition disabled:opacity-50"
-              >
-                {loadingStats ? (
-                  <>
-                    <FontAwesomeIcon icon={faSpinner} spin className="mr-2" />
-                    Loading...
-                  </>
-                ) : (
-                  <>
-                    <FontAwesomeIcon icon={faDatabase} className="mr-2" />
-                    Refresh Stats
-                  </>
-                )}
-              </button>
+                <p className="text-neutral-medium mb-4">
+                  Download a backup of your database as a JSON file. Select which content types to
+                  include.
+                </p>
 
-              <button
-                onClick={handleExport}
-                disabled={exporting || selectedContentTypes.length === 0}
-                className="px-4 py-2 bg-standout-medium text-on-standout rounded-lg hover:opacity-90 transition disabled:opacity-50 font-medium"
-              >
-                {exporting ? (
-                  <>
-                    <FontAwesomeIcon icon={faSpinner} spin className="mr-2" />
-                    Exporting...
-                  </>
-                ) : (
-                  <>
-                    <FontAwesomeIcon icon={faDownload} className="mr-2" />
-                    Export Database
-                  </>
-                )}
-              </button>
-            </div>
-
-            {exportStats && (
-              <div className="mt-4 p-4 bg-backdrop-high rounded border border-line-medium">
-                <h3 className="font-semibold text-neutral-dark mb-2">Export Statistics</h3>
-                <div className="grid grid-cols-3 gap-4 mb-3">
-                  <div>
-                    <div className="text-sm text-neutral-medium">Tables</div>
-                    <div className="text-lg font-semibold">{exportStats.tables.length}</div>
-                  </div>
-                  <div>
-                    <div className="text-sm text-neutral-medium">Total Rows</div>
-                    <div className="text-lg font-semibold">{exportStats.totalRows.toLocaleString()}</div>
-                  </div>
-                  <div>
-                    <div className="text-sm text-neutral-medium">Estimated Size</div>
-                    <div className="text-lg font-semibold">{exportStats.estimatedSize}</div>
-                  </div>
-                </div>
-                <details className="text-sm">
-                  <summary className="cursor-pointer text-neutral-medium hover:text-neutral-dark">
-                    View table breakdown
-                  </summary>
-                  <div className="mt-2 space-y-1 max-h-60 overflow-y-auto">
-                    {exportStats.tables.map((table) => (
-                      <div key={table.name} className="flex justify-between py-1">
-                        <span className="font-mono text-xs">
-                          {table.name}
-                          {table.contentType && (
-                            <span className="ml-2 text-neutral-low">({table.contentType})</span>
-                          )}
-                        </span>
-                        <span className="text-neutral-medium">{table.rowCount.toLocaleString()} rows</span>
-                      </div>
-                    ))}
-                  </div>
-                </details>
-              </div>
-            )}
-          </div>
-
-          {/* Import Section */}
-          <div className="bg-backdrop-medium border border-line-low rounded-lg p-6">
-            <div className="flex items-center gap-2 mb-4">
-              <FontAwesomeIcon icon={faUpload} className="text-standout-medium" />
-              <h2 className="text-xl font-semibold text-neutral-dark">Import Database</h2>
-            </div>
-
-            <div className="mb-4 p-4 bg-yellow-50 border border-yellow-200 rounded-lg">
-              <div className="flex items-start gap-2">
-                <FontAwesomeIcon icon={faExclamationTriangle} className="text-yellow-600 mt-1" />
-                <div className="text-sm">
-                  <p className="font-semibold text-yellow-800 mb-1">Warning: This is a destructive operation</p>
-                  <p className="text-yellow-700">
-                    Importing a database will modify your existing data. Always create a backup before importing.
-                  </p>
-                </div>
-              </div>
-            </div>
-
-            <div className="mb-4">
-              <label className="block text-sm font-medium text-neutral-dark mb-2">Import Strategy</label>
-              <select
-                value={importStrategy}
-                onChange={(e) => setImportStrategy(e.target.value as any)}
-                className="w-full px-3 py-2 border border-line-medium rounded-lg bg-backdrop-low"
-              >
-                <option value="merge">Merge - Add new records, skip conflicts (safest)</option>
-                <option value="overwrite">Overwrite - Update existing records with matching IDs, insert new</option>
-                <option value="skip">Skip - Only import to empty tables</option>
-                <option value="replace">Replace - Clear and replace all data (destructive)</option>
-              </select>
-              <p className="text-xs text-neutral-medium mt-1">
-                {importStrategy === 'merge' && 'Recommended: Adds new records without removing existing data'}
-                {importStrategy === 'overwrite' && 'Updates existing records if IDs match, inserts new ones otherwise'}
-                {importStrategy === 'skip' && 'Only imports data into tables that are currently empty'}
-                {importStrategy === 'replace' && 'WARNING: Deletes all existing data before importing'}
-              </p>
-            </div>
-
-            <div className="mb-4 p-4 bg-backdrop-high rounded border border-line-medium">
-              <label className="flex items-center gap-2">
-                <input
-                  type="checkbox"
-                  checked={importPreserveIds}
-                  onChange={(e) => setImportPreserveIds(e.target.checked)}
-                  className="rounded"
-                />
-                <div>
-                  <span className="text-sm font-medium text-neutral-dark">Preserve IDs from Export</span>
-                  <p className="text-xs text-neutral-medium">
-                    Use the original IDs from the export file. Disable to generate new IDs on import.
-                  </p>
-                </div>
-              </label>
-            </div>
-
-            <div className="mb-4">
-              <label className="block text-sm font-medium text-neutral-dark mb-2">Select Import File</label>
-              <input
-                type="file"
-                accept=".json"
-                onChange={(e) => {
-                  const file = e.target.files?.[0]
-                  if (file) {
-                    handleValidateFile(file)
-                  }
-                }}
-                className="w-full px-3 py-2 border border-line-medium rounded-lg bg-backdrop-low file:mr-4 file:py-2 file:px-4 file:rounded file:border-0 file:text-sm file:font-semibold file:bg-standout-medium file:text-on-standout hover:file:opacity-90"
-              />
-            </div>
-
-            {validating && (
-              <div className="p-4 bg-backdrop-high rounded border border-line-low mb-4">
-                <FontAwesomeIcon icon={faSpinner} spin className="mr-2" />
-                Validating file...
-              </div>
-            )}
-
-            {validationResult && (
-              <div className={`p-4 rounded border mb-4 ${validationResult.valid ? 'bg-green-50 border-green-200' : 'bg-red-50 border-red-200'}`}>
-                {validationResult.valid ? (
-                  <>
-                    <div className="flex items-center gap-2 mb-2">
-                      <FontAwesomeIcon icon={faCheckCircle} className="text-green-600" />
-                      <span className="font-semibold text-green-800">File is valid</span>
-                    </div>
-                    <div className="text-sm text-green-700 space-y-1">
-                      <p>Version: {validationResult.metadata?.version}</p>
-                      <p>Tables: {validationResult.stats?.tables}</p>
-                      <p>Total rows: {validationResult.stats?.totalRows.toLocaleString()}</p>
-                      {validationResult.metadata?.contentTypes && (
-                        <p>Content types: {validationResult.metadata.contentTypes.join(', ')}</p>
-                      )}
-                      {validationResult.metadata?.preserveIds !== undefined && (
-                        <p>Preserves IDs: {validationResult.metadata.preserveIds ? 'Yes' : 'No'}</p>
-                      )}
-                    </div>
-
+                {/* Content Type Selection */}
+                <div className="mb-4 p-4 bg-backdrop-high rounded border border-line-medium">
+                  <div className="flex items-center justify-between mb-3">
+                    <h3 className="font-semibold text-neutral-dark">Content Types to Export</h3>
                     <button
-                      onClick={() => {
-                        const fileInput = document.querySelector('input[type="file"]') as HTMLInputElement
-                        const file = fileInput?.files?.[0]
-                        if (file) handleImport(file)
-                      }}
-                      disabled={importing}
-                      className="mt-3 px-4 py-2 bg-standout-medium text-on-standout rounded-lg hover:opacity-90 transition disabled:opacity-50 font-medium"
+                      type="button"
+                      onClick={toggleAll}
+                      className="text-xs text-standout-high hover:underline"
                     >
-                      {importing ? (
-                        <>
-                          <FontAwesomeIcon icon={faSpinner} spin className="mr-2" />
-                          Importing...
-                        </>
-                      ) : (
-                        <>
-                          <FontAwesomeIcon icon={faUpload} className="mr-2" />
-                          Import Database
-                        </>
-                      )}
+                      {selectedContentTypes.length === 7 ? 'Deselect All' : 'Select All'}
                     </button>
-                  </>
-                ) : (
-                  <>
-                    <div className="flex items-center gap-2 mb-2">
-                      <FontAwesomeIcon icon={faExclamationTriangle} className="text-red-600" />
-                      <span className="font-semibold text-red-800">Invalid file</span>
+                  </div>
+                  <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
+                    {(Object.keys(CONTENT_TYPE_LABELS) as ContentType[]).map((type) => {
+                      const stats = exportStats?.contentTypes?.[type]
+                      const isSelected = selectedContentTypes.includes(type)
+                      return (
+                        <label
+                          key={type}
+                          className={`flex items-center gap-2 p-3 rounded border cursor-pointer transition ${
+                            isSelected
+                              ? 'border-standout-medium bg-standout-medium/10'
+                              : 'border-line-medium hover:border-line-high'
+                          }`}
+                        >
+                          <input
+                            type="checkbox"
+                            checked={isSelected}
+                            onChange={() => toggleContentType(type)}
+                            className="rounded"
+                          />
+                          <div className="flex-1">
+                            <div className="text-sm font-medium text-neutral-dark">
+                              {CONTENT_TYPE_LABELS[type]}
+                            </div>
+                            {stats && (
+                              <div className="text-xs text-neutral-medium">
+                                {stats.rowCount.toLocaleString()} rows
+                              </div>
+                            )}
+                          </div>
+                        </label>
+                      )
+                    })}
+                  </div>
+                </div>
+
+                {/* Export Options */}
+                <div className="mb-4 p-4 bg-backdrop-high rounded border border-line-medium">
+                  <h3 className="font-semibold text-neutral-dark mb-3">Export Options</h3>
+                  <label className="flex items-center gap-2">
+                    <input
+                      type="checkbox"
+                      checked={preserveIds}
+                      onChange={(e) => setPreserveIds(e.target.checked)}
+                      className="rounded"
+                    />
+                    <div>
+                      <span className="text-sm font-medium text-neutral-dark">
+                        Preserve Original IDs
+                      </span>
+                      <p className="text-xs text-neutral-medium">
+                        Keep the original database IDs. Recommended for migrations and backups.
+                      </p>
                     </div>
-                    <p className="text-sm text-red-700">{validationResult.error}</p>
-                  </>
+                  </label>
+                </div>
+
+                <div className="flex gap-3">
+                  <button
+                    onClick={loadExportStats}
+                    disabled={loadingStats}
+                    className="px-4 py-2 bg-backdrop-high text-neutral-dark rounded-lg hover:bg-backdrop-medium transition disabled:opacity-50"
+                  >
+                    {loadingStats ? (
+                      <>
+                        <FontAwesomeIcon icon={faSpinner} spin className="mr-2" />
+                        Loading...
+                      </>
+                    ) : (
+                      <>
+                        <FontAwesomeIcon icon={faDatabase} className="mr-2" />
+                        Refresh Stats
+                      </>
+                    )}
+                  </button>
+
+                  <button
+                    onClick={handleExport}
+                    disabled={exporting || selectedContentTypes.length === 0}
+                    className="px-4 py-2 bg-standout-medium text-on-standout rounded-lg hover:opacity-90 transition disabled:opacity-50 font-medium"
+                  >
+                    {exporting ? (
+                      <>
+                        <FontAwesomeIcon icon={faSpinner} spin className="mr-2" />
+                        Exporting...
+                      </>
+                    ) : (
+                      <>
+                        <FontAwesomeIcon icon={faDownload} className="mr-2" />
+                        Export Database
+                      </>
+                    )}
+                  </button>
+                </div>
+
+                {exportStats && (
+                  <div className="mt-4 p-4 bg-backdrop-high rounded border border-line-medium">
+                    <h3 className="font-semibold text-neutral-dark mb-2">Export Statistics</h3>
+                    <div className="grid grid-cols-3 gap-4 mb-3">
+                      <div>
+                        <div className="text-sm text-neutral-medium">Tables</div>
+                        <div className="text-lg font-semibold">{exportStats.tables.length}</div>
+                      </div>
+                      <div>
+                        <div className="text-sm text-neutral-medium">Total Rows</div>
+                        <div className="text-lg font-semibold">
+                          {exportStats.totalRows.toLocaleString()}
+                        </div>
+                      </div>
+                      <div>
+                        <div className="text-sm text-neutral-medium">Estimated Size</div>
+                        <div className="text-lg font-semibold">{exportStats.estimatedSize}</div>
+                      </div>
+                    </div>
+                    <details className="text-sm">
+                      <summary className="cursor-pointer text-neutral-medium hover:text-neutral-dark">
+                        View table breakdown
+                      </summary>
+                      <div className="mt-2 space-y-1 max-h-60 overflow-y-auto">
+                        {exportStats.tables.map((table) => (
+                          <div key={table.name} className="flex justify-between py-1">
+                            <span className="font-mono text-xs">
+                              {table.name}
+                              {table.contentType && (
+                                <span className="ml-2 text-neutral-low">({table.contentType})</span>
+                              )}
+                            </span>
+                            <span className="text-neutral-medium">
+                              {table.rowCount.toLocaleString()} rows
+                            </span>
+                          </div>
+                        ))}
+                      </div>
+                    </details>
+                  </div>
                 )}
               </div>
-            )}
 
-            {importResult && (
-              <div className="p-4 bg-backdrop-high rounded border border-line-medium space-y-5">
-                <div className="flex items-center justify-between">
-                  <h3 className="font-semibold text-neutral-dark">Import Results</h3>
-                  <span
-                    className={`px-2 py-1 text-xs font-semibold rounded ${
-                      importResult.errors.length === 0
-                        ? 'bg-emerald-100 text-emerald-700'
-                        : 'bg-amber-100 text-amber-700'
-                    }`}
-                  >
-                    {importResult.errors.length === 0 ? 'Success' : 'Completed with warnings'}
-                  </span>
+              {/* Import Section */}
+              <div className="bg-backdrop-medium border border-line-low rounded-lg p-6">
+                <div className="flex items-center gap-2 mb-4">
+                  <FontAwesomeIcon icon={faUpload} className="text-standout-medium" />
+                  <h2 className="text-xl font-semibold text-neutral-dark">Import Database</h2>
                 </div>
 
-                {/* Pie chart summary */}
-                <PieSummary data={pieData} />
-
-                <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
-                  <div className="p-3 rounded bg-backdrop-medium border border-line-low">
-                    <div className="text-xs text-neutral-medium">Tables Imported</div>
-                    <div className="text-lg font-semibold text-neutral-dark">{importResult.tablesImported}</div>
-                  </div>
-                  <div className="p-3 rounded bg-backdrop-medium border border-line-low">
-                    <div className="text-xs text-neutral-medium">Rows Imported</div>
-                    <div className="text-lg font-semibold text-neutral-dark">
-                      {importResult.rowsImported.toLocaleString()}
+                <div className="mb-4 p-4 bg-yellow-50 border border-yellow-200 rounded-lg">
+                  <div className="flex items-start gap-2">
+                    <FontAwesomeIcon
+                      icon={faExclamationTriangle}
+                      className="text-yellow-600 mt-1"
+                    />
+                    <div className="text-sm">
+                      <p className="font-semibold text-yellow-800 mb-1">
+                        Warning: This is a destructive operation
+                      </p>
+                      <p className="text-yellow-700">
+                        Importing a database will modify your existing data. Always create a backup
+                        before importing.
+                      </p>
                     </div>
                   </div>
-                  <div className="p-3 rounded bg-backdrop-medium border border-line-low">
-                    <div className="text-xs text-neutral-medium">Tables Skipped</div>
-                    <div className="text-lg font-semibold text-neutral-dark">{importResult.skippedTables.length}</div>
-                  </div>
-                  <div className="p-3 rounded bg-backdrop-medium border border-line-low">
-                    <div className="text-xs text-neutral-medium">Errors</div>
-                    <div className="text-lg font-semibold text-neutral-dark">{importResult.errors.length}</div>
-                  </div>
                 </div>
 
-                {/* Filters */}
-                <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
-                  <div>
-                    <div className="text-sm font-semibold text-neutral-dark">Details</div>
-                    <p className="text-xs text-neutral-medium">Filter by table name for skipped or errors</p>
-                  </div>
+                <div className="mb-4">
+                  <label className="block text-sm font-medium text-neutral-dark mb-2">
+                    Import Strategy
+                  </label>
+                  <select
+                    value={importStrategy}
+                    onChange={(e) => setImportStrategy(e.target.value as any)}
+                    className="w-full px-3 py-2 border border-line-medium rounded-lg bg-backdrop-low"
+                  >
+                    <option value="merge">Merge - Add new records, skip conflicts (safest)</option>
+                    <option value="overwrite">
+                      Overwrite - Update existing records with matching IDs, insert new
+                    </option>
+                    <option value="skip">Skip - Only import to empty tables</option>
+                    <option value="replace">
+                      Replace - Clear and replace all data (destructive)
+                    </option>
+                  </select>
+                  <p className="text-xs text-neutral-medium mt-1">
+                    {importStrategy === 'merge' &&
+                      'Recommended: Adds new records without removing existing data'}
+                    {importStrategy === 'overwrite' &&
+                      'Updates existing records if IDs match, inserts new ones otherwise'}
+                    {importStrategy === 'skip' &&
+                      'Only imports data into tables that are currently empty'}
+                    {importStrategy === 'replace' &&
+                      'WARNING: Deletes all existing data before importing'}
+                  </p>
+                </div>
+
+                <div className="mb-4 p-4 bg-backdrop-high rounded border border-line-medium">
+                  <label className="flex items-center gap-2">
+                    <input
+                      type="checkbox"
+                      checked={importPreserveIds}
+                      onChange={(e) => setImportPreserveIds(e.target.checked)}
+                      className="rounded"
+                    />
+                    <div>
+                      <span className="text-sm font-medium text-neutral-dark">
+                        Preserve IDs from Export
+                      </span>
+                      <p className="text-xs text-neutral-medium">
+                        Use the original IDs from the export file. Disable to generate new IDs on
+                        import.
+                      </p>
+                    </div>
+                  </label>
+                </div>
+
+                <div className="mb-4">
+                  <label className="block text-sm font-medium text-neutral-dark mb-2">
+                    Select Import File
+                  </label>
                   <input
-                    type="text"
-                    value={resultFilter}
-                    onChange={(e) => setResultFilter(e.target.value)}
-                    placeholder="Filter tables..."
-                    className="w-full sm:w-64 px-3 py-2 border border-line-medium rounded bg-backdrop-low text-sm"
+                    type="file"
+                    accept=".json"
+                    onChange={(e) => {
+                      const file = e.target.files?.[0]
+                      if (file) {
+                        handleValidateFile(file)
+                      }
+                    }}
+                    className="w-full px-3 py-2 border border-line-medium rounded-lg bg-backdrop-low file:mr-4 file:py-2 file:px-4 file:rounded file:border-0 file:text-sm file:font-semibold file:bg-standout-medium file:text-on-standout hover:file:opacity-90"
                   />
                 </div>
 
-                {/* Skipped and Errors table */}
-                <div className="overflow-auto border border-line-low rounded bg-backdrop-medium">
-                  <table className="min-w-full text-sm">
-                    <thead className="bg-backdrop-high border-b border-line-low">
-                      <tr>
-                        <th className="px-3 py-2 text-left font-semibold text-neutral-dark">Table</th>
-                        <th className="px-3 py-2 text-left font-semibold text-neutral-dark">Status</th>
-                        <th className="px-3 py-2 text-left font-semibold text-neutral-dark">Message</th>
-                      </tr>
-                    </thead>
-                    <tbody>
-                      {getStatusRows(importResult, resultFilter).map((row, i) => (
-                        <tr key={i} className="border-b border-line-low last:border-0">
-                          <td className="px-3 py-2 font-mono text-xs text-neutral-dark">{row.table}</td>
-                          <td className="px-3 py-2">
-                            <span
-                              className={`px-2 py-1 text-xs font-semibold rounded ${
-                                row.status === 'skipped'
-                                  ? 'bg-amber-100 text-amber-800'
-                                  : 'bg-rose-100 text-rose-800'
-                              }`}
-                            >
-                              {row.status === 'skipped' ? 'Skipped' : 'Error'}
-                            </span>
-                          </td>
-                          <td className="px-3 py-2 text-neutral-medium">
-                            {row.message ? row.message : '—'}
-                          </td>
-                        </tr>
-                      ))}
-                      {getStatusRows(importResult, resultFilter).length === 0 && (
-                        <tr>
-                          <td colSpan={3} className="px-3 py-3 text-neutral-medium text-center">
-                            No rows match your filter.
-                          </td>
-                        </tr>
-                      )}
-                    </tbody>
-                  </table>
+                {validating && (
+                  <div className="p-4 bg-backdrop-high rounded border border-line-low mb-4">
+                    <FontAwesomeIcon icon={faSpinner} spin className="mr-2" />
+                    Validating file...
+                  </div>
+                )}
+
+                {validationResult && (
+                  <div
+                    className={`p-4 rounded border mb-4 ${validationResult.valid ? 'bg-green-50 border-green-200' : 'bg-red-50 border-red-200'}`}
+                  >
+                    {validationResult.valid ? (
+                      <>
+                        <div className="flex items-center gap-2 mb-2">
+                          <FontAwesomeIcon icon={faCheckCircle} className="text-green-600" />
+                          <span className="font-semibold text-green-800">File is valid</span>
+                        </div>
+                        <div className="text-sm text-green-700 space-y-1">
+                          <p>Version: {validationResult.metadata?.version}</p>
+                          <p>Tables: {validationResult.stats?.tables}</p>
+                          <p>Total rows: {validationResult.stats?.totalRows.toLocaleString()}</p>
+                          {validationResult.metadata?.contentTypes && (
+                            <p>
+                              Content types: {validationResult.metadata.contentTypes.join(', ')}
+                            </p>
+                          )}
+                          {validationResult.metadata?.preserveIds !== undefined && (
+                            <p>
+                              Preserves IDs: {validationResult.metadata.preserveIds ? 'Yes' : 'No'}
+                            </p>
+                          )}
+                        </div>
+
+                        <button
+                          onClick={() => {
+                            const fileInput = document.querySelector(
+                              'input[type="file"]'
+                            ) as HTMLInputElement
+                            const file = fileInput?.files?.[0]
+                            if (file) handleImport(file)
+                          }}
+                          disabled={importing}
+                          className="mt-3 px-4 py-2 bg-standout-medium text-on-standout rounded-lg hover:opacity-90 transition disabled:opacity-50 font-medium"
+                        >
+                          {importing ? (
+                            <>
+                              <FontAwesomeIcon icon={faSpinner} spin className="mr-2" />
+                              Importing...
+                            </>
+                          ) : (
+                            <>
+                              <FontAwesomeIcon icon={faUpload} className="mr-2" />
+                              Import Database
+                            </>
+                          )}
+                        </button>
+                      </>
+                    ) : (
+                      <>
+                        <div className="flex items-center gap-2 mb-2">
+                          <FontAwesomeIcon icon={faExclamationTriangle} className="text-red-600" />
+                          <span className="font-semibold text-red-800">Invalid file</span>
+                        </div>
+                        <p className="text-sm text-red-700">{validationResult.error}</p>
+                      </>
+                    )}
+                  </div>
+                )}
+
+                {importResult && (
+                  <div className="p-4 bg-backdrop-high rounded border border-line-medium space-y-5">
+                    <div className="flex items-center justify-between">
+                      <h3 className="font-semibold text-neutral-dark">Import Results</h3>
+                      <span
+                        className={`px-2 py-1 text-xs font-semibold rounded ${
+                          importResult.errors.length === 0
+                            ? 'bg-emerald-100 text-emerald-700'
+                            : 'bg-amber-100 text-amber-700'
+                        }`}
+                      >
+                        {importResult.errors.length === 0 ? 'Success' : 'Completed with warnings'}
+                      </span>
                     </div>
 
-                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
-                    {[
-                      { label: 'Posts', href: '/admin/posts' },
-                      { label: 'Media', href: '/admin/media' },
-                      { label: 'Modules', href: '/admin/modules' },
-                      { label: 'Menus', href: '/admin/menus' },
-                    ].map((item) => (
-                    <a
-                      key={item.label}
-                      href={item.href}
-                      className="block p-3 rounded border border-line-low bg-backdrop-medium hover:border-standout-medium hover:bg-standout-medium/5 transition"
-                      target="_blank"
-                      rel="noreferrer"
-                    >
-                      <div className="text-sm font-semibold text-neutral-dark">{item.label}</div>
-                      <div className="text-xs text-neutral-medium">Open to spot-check imported records</div>
-                    </a>
-                  ))}
+                    {/* Pie chart summary */}
+                    <PieSummary data={pieData} />
+
+                    <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
+                      <div className="p-3 rounded bg-backdrop-medium border border-line-low">
+                        <div className="text-xs text-neutral-medium">Tables Imported</div>
+                        <div className="text-lg font-semibold text-neutral-dark">
+                          {importResult.tablesImported}
+                        </div>
+                      </div>
+                      <div className="p-3 rounded bg-backdrop-medium border border-line-low">
+                        <div className="text-xs text-neutral-medium">Rows Imported</div>
+                        <div className="text-lg font-semibold text-neutral-dark">
+                          {importResult.rowsImported.toLocaleString()}
+                        </div>
+                      </div>
+                      <div className="p-3 rounded bg-backdrop-medium border border-line-low">
+                        <div className="text-xs text-neutral-medium">Tables Skipped</div>
+                        <div className="text-lg font-semibold text-neutral-dark">
+                          {importResult.skippedTables.length}
+                        </div>
+                      </div>
+                      <div className="p-3 rounded bg-backdrop-medium border border-line-low">
+                        <div className="text-xs text-neutral-medium">Errors</div>
+                        <div className="text-lg font-semibold text-neutral-dark">
+                          {importResult.errors.length}
+                        </div>
+                      </div>
+                    </div>
+
+                    {/* Filters */}
+                    <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
+                      <div>
+                        <div className="text-sm font-semibold text-neutral-dark">Details</div>
+                        <p className="text-xs text-neutral-medium">
+                          Filter by table name for skipped or errors
+                        </p>
+                      </div>
+                      <input
+                        type="text"
+                        value={resultFilter}
+                        onChange={(e) => setResultFilter(e.target.value)}
+                        placeholder="Filter tables..."
+                        className="w-full sm:w-64 px-3 py-2 border border-line-medium rounded bg-backdrop-low text-sm"
+                      />
+                    </div>
+
+                    {/* Skipped and Errors table */}
+                    <div className="overflow-auto border border-line-low rounded bg-backdrop-medium">
+                      <table className="min-w-full text-sm">
+                        <thead className="bg-backdrop-high border-b border-line-low">
+                          <tr>
+                            <th className="px-3 py-2 text-left font-semibold text-neutral-dark">
+                              Table
+                            </th>
+                            <th className="px-3 py-2 text-left font-semibold text-neutral-dark">
+                              Status
+                            </th>
+                            <th className="px-3 py-2 text-left font-semibold text-neutral-dark">
+                              Message
+                            </th>
+                          </tr>
+                        </thead>
+                        <tbody>
+                          {getStatusRows(importResult, resultFilter).map((row, i) => (
+                            <tr key={i} className="border-b border-line-low last:border-0">
+                              <td className="px-3 py-2 font-mono text-xs text-neutral-dark">
+                                {row.table}
+                              </td>
+                              <td className="px-3 py-2">
+                                <span
+                                  className={`px-2 py-1 text-xs font-semibold rounded ${
+                                    row.status === 'skipped'
+                                      ? 'bg-amber-100 text-amber-800'
+                                      : 'bg-rose-100 text-rose-800'
+                                  }`}
+                                >
+                                  {row.status === 'skipped' ? 'Skipped' : 'Error'}
+                                </span>
+                              </td>
+                              <td className="px-3 py-2 text-neutral-medium">
+                                {row.message ? row.message : '—'}
+                              </td>
+                            </tr>
+                          ))}
+                          {getStatusRows(importResult, resultFilter).length === 0 && (
+                            <tr>
+                              <td colSpan={3} className="px-3 py-3 text-neutral-medium text-center">
+                                No rows match your filter.
+                              </td>
+                            </tr>
+                          )}
+                        </tbody>
+                      </table>
+                    </div>
+
+                    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
+                      {[
+                        { label: 'Posts', href: '/admin/posts' },
+                        { label: 'Media', href: '/admin/media' },
+                        { label: 'Modules', href: '/admin/modules' },
+                        { label: 'Menus', href: '/admin/menus' },
+                      ].map((item) => (
+                        <a
+                          key={item.label}
+                          href={item.href}
+                          className="block p-3 rounded border border-line-low bg-backdrop-medium hover:border-standout-medium hover:bg-standout-medium/5 transition"
+                          target="_blank"
+                          rel="noreferrer"
+                        >
+                          <div className="text-sm font-semibold text-neutral-dark">
+                            {item.label}
+                          </div>
+                          <div className="text-xs text-neutral-medium">
+                            Open to spot-check imported records
+                          </div>
+                        </a>
+                      ))}
+                    </div>
                   </div>
+                )}
               </div>
-            )}
-          </div>
             </>
           )}
 
@@ -892,8 +955,9 @@ export default function DatabaseIndex() {
             <>
               <div className="mb-6">
                 <p className="text-neutral-medium">
-                  Clean up orphaned data and optimize your database. This tool identifies and removes unused module instances,
-                  invalid references, and optionally clears stale render cache.
+                  Clean up orphaned data and optimize your database. This tool identifies and
+                  removes unused module instances, invalid references, and optionally clears stale
+                  render cache.
                 </p>
               </div>
 
@@ -925,7 +989,11 @@ export default function DatabaseIndex() {
 
                 {loadingOptimizeStats ? (
                   <div className="text-center py-8">
-                    <FontAwesomeIcon icon={faSpinner} spin className="text-2xl text-neutral-medium" />
+                    <FontAwesomeIcon
+                      icon={faSpinner}
+                      spin
+                      className="text-2xl text-neutral-medium"
+                    />
                     <p className="mt-2 text-neutral-medium">Loading statistics...</p>
                   </div>
                 ) : optimizeStats ? (
@@ -933,11 +1001,15 @@ export default function DatabaseIndex() {
                     {optimizeStats.totalIssues > 0 ? (
                       <div className="p-4 bg-yellow-50 border border-yellow-200 rounded-lg mb-4">
                         <div className="flex items-start gap-2">
-                          <FontAwesomeIcon icon={faExclamationTriangle} className="text-yellow-600 mt-1" />
+                          <FontAwesomeIcon
+                            icon={faExclamationTriangle}
+                            className="text-yellow-600 mt-1"
+                          />
                           <div>
                             <p className="font-semibold text-yellow-800 mb-1">Issues Found</p>
                             <p className="text-sm text-yellow-700">
-                              Your database has {optimizeStats.totalIssues} issue{optimizeStats.totalIssues !== 1 ? 's' : ''} that can be cleaned up.
+                              Your database has {optimizeStats.totalIssues} issue
+                              {optimizeStats.totalIssues !== 1 ? 's' : ''} that can be cleaned up.
                             </p>
                           </div>
                         </div>
@@ -948,7 +1020,9 @@ export default function DatabaseIndex() {
                           <FontAwesomeIcon icon={faCheckCircle} className="text-green-600 mt-1" />
                           <div>
                             <p className="font-semibold text-green-800 mb-1">Database is Clean</p>
-                            <p className="text-sm text-green-700">No orphaned data or invalid references found.</p>
+                            <p className="text-sm text-green-700">
+                              No orphaned data or invalid references found.
+                            </p>
                           </div>
                         </div>
                       </div>
@@ -1013,19 +1087,25 @@ export default function DatabaseIndex() {
                       type="checkbox"
                       checked={optimizeOptions.cleanOrphanedModules}
                       onChange={(e) =>
-                        setOptimizeOptions({ ...optimizeOptions, cleanOrphanedModules: e.target.checked })
+                        setOptimizeOptions({
+                          ...optimizeOptions,
+                          cleanOrphanedModules: e.target.checked,
+                        })
                       }
                       className="mt-1 rounded"
                     />
                     <div className="flex-1">
-                      <div className="font-semibold text-neutral-dark mb-1">Clean Orphaned Module Instances</div>
+                      <div className="font-semibold text-neutral-dark mb-1">
+                        Clean Orphaned Module Instances
+                      </div>
                       <p className="text-sm text-neutral-medium">
-                        Remove module instances with scope='post' that are not referenced by any post_modules entries.
-                        These are safe to delete as they're not being used.
+                        Remove module instances with scope='post' that are not referenced by any
+                        post_modules entries. These are safe to delete as they're not being used.
                       </p>
                       {optimizeStats && optimizeStats.orphanedModuleInstances > 0 && (
                         <p className="text-xs text-standout-medium mt-1">
-                          {optimizeStats.orphanedModuleInstances} orphaned module{optimizeStats.orphanedModuleInstances !== 1 ? 's' : ''} will be deleted
+                          {optimizeStats.orphanedModuleInstances} orphaned module
+                          {optimizeStats.orphanedModuleInstances !== 1 ? 's' : ''} will be deleted
                         </p>
                       )}
                     </div>
@@ -1036,21 +1116,35 @@ export default function DatabaseIndex() {
                       type="checkbox"
                       checked={optimizeOptions.cleanInvalidRefs}
                       onChange={(e) =>
-                        setOptimizeOptions({ ...optimizeOptions, cleanInvalidRefs: e.target.checked })
+                        setOptimizeOptions({
+                          ...optimizeOptions,
+                          cleanInvalidRefs: e.target.checked,
+                        })
                       }
                       className="mt-1 rounded"
                     />
                     <div className="flex-1">
-                      <div className="font-semibold text-neutral-dark mb-1">Clean Invalid References</div>
+                      <div className="font-semibold text-neutral-dark mb-1">
+                        Clean Invalid References
+                      </div>
                       <p className="text-sm text-neutral-medium">
-                        Remove module instances referencing non-existent posts, and post_modules entries referencing
-                        non-existent module instances. These can cause errors and should be cleaned up.
+                        Remove module instances referencing non-existent posts, and post_modules
+                        entries referencing non-existent module instances. These can cause errors
+                        and should be cleaned up.
                       </p>
                       {optimizeStats &&
-                        (optimizeStats.invalidPostReferences > 0 || optimizeStats.invalidModuleReferences > 0) && (
+                        (optimizeStats.invalidPostReferences > 0 ||
+                          optimizeStats.invalidModuleReferences > 0) && (
                           <p className="text-xs text-standout-medium mt-1">
-                            {optimizeStats.invalidPostReferences + optimizeStats.invalidModuleReferences} invalid reference
-                            {optimizeStats.invalidPostReferences + optimizeStats.invalidModuleReferences !== 1 ? 's' : ''} will be deleted
+                            {optimizeStats.invalidPostReferences +
+                              optimizeStats.invalidModuleReferences}{' '}
+                            invalid reference
+                            {optimizeStats.invalidPostReferences +
+                              optimizeStats.invalidModuleReferences !==
+                            1
+                              ? 's'
+                              : ''}{' '}
+                            will be deleted
                           </p>
                         )}
                     </div>
@@ -1061,19 +1155,24 @@ export default function DatabaseIndex() {
                       type="checkbox"
                       checked={optimizeOptions.clearRenderCache}
                       onChange={(e) =>
-                        setOptimizeOptions({ ...optimizeOptions, clearRenderCache: e.target.checked })
+                        setOptimizeOptions({
+                          ...optimizeOptions,
+                          clearRenderCache: e.target.checked,
+                        })
                       }
                       className="mt-1 rounded"
                     />
                     <div className="flex-1">
                       <div className="font-semibold text-neutral-dark mb-1">Clear Render Cache</div>
                       <p className="text-sm text-neutral-medium">
-                        Clear all cached render HTML from module instances. This can free up space, but cached HTML will
-                        be regenerated on next render (may slightly slow down initial page loads temporarily).
+                        Clear all cached render HTML from module instances. This can free up space,
+                        but cached HTML will be regenerated on next render (may slightly slow down
+                        initial page loads temporarily).
                       </p>
                       {optimizeStats && optimizeStats.staleRenderCache > 0 && (
                         <p className="text-xs text-standout-medium mt-1">
-                          Render cache for {optimizeStats.staleRenderCache} module{optimizeStats.staleRenderCache !== 1 ? 's' : ''} will be cleared
+                          Render cache for {optimizeStats.staleRenderCache} module
+                          {optimizeStats.staleRenderCache !== 1 ? 's' : ''} will be cleared
                         </p>
                       )}
                     </div>
@@ -1082,12 +1181,15 @@ export default function DatabaseIndex() {
 
                 <div className="mt-6 p-4 bg-yellow-50 border border-yellow-200 rounded-lg">
                   <div className="flex items-start gap-2">
-                    <FontAwesomeIcon icon={faExclamationTriangle} className="text-yellow-600 mt-1" />
+                    <FontAwesomeIcon
+                      icon={faExclamationTriangle}
+                      className="text-yellow-600 mt-1"
+                    />
                     <div className="text-sm">
                       <p className="font-semibold text-yellow-800 mb-1">Warning</p>
                       <p className="text-yellow-700">
-                        Database optimization is a destructive operation. Make sure you have a backup before proceeding.
-                        The changes cannot be undone.
+                        Database optimization is a destructive operation. Make sure you have a
+                        backup before proceeding. The changes cannot be undone.
                       </p>
                     </div>
                   </div>
@@ -1096,7 +1198,12 @@ export default function DatabaseIndex() {
                 <div className="mt-6 flex gap-3">
                   <button
                     onClick={() => setConfirmOptimizeOpen(true)}
-                    disabled={!canOptimize || optimizing || !optimizeStats || optimizeStats.totalIssues === 0}
+                    disabled={
+                      !canOptimize ||
+                      optimizing ||
+                      !optimizeStats ||
+                      optimizeStats.totalIssues === 0
+                    }
                     className="px-4 py-2 bg-standout-medium text-on-standout rounded-lg hover:opacity-90 transition disabled:opacity-50 disabled:cursor-not-allowed font-medium"
                   >
                     {optimizing ? (
@@ -1119,19 +1226,24 @@ export default function DatabaseIndex() {
                 <div className="bg-backdrop-medium border border-line-low rounded-lg p-6">
                   <div className="flex items-center gap-2 mb-4">
                     <FontAwesomeIcon icon={faCheckCircle} className="text-green-600" />
-                    <h2 className="text-xl font-semibold text-neutral-dark">Optimization Results</h2>
+                    <h2 className="text-xl font-semibold text-neutral-dark">
+                      Optimization Results
+                    </h2>
                   </div>
 
                   <div className="p-4 bg-green-50 border border-green-200 rounded-lg mb-4">
                     <p className="text-sm text-green-800">
-                      Database optimization completed successfully. The following items were cleaned:
+                      Database optimization completed successfully. The following items were
+                      cleaned:
                     </p>
                   </div>
 
                   <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
                     {optimizeResults.orphanedModulesDeleted > 0 && (
                       <div className="p-4 rounded bg-backdrop-high border border-line-medium">
-                        <div className="text-sm text-neutral-medium mb-1">Orphaned Modules Deleted</div>
+                        <div className="text-sm text-neutral-medium mb-1">
+                          Orphaned Modules Deleted
+                        </div>
                         <div className="text-2xl font-semibold text-neutral-dark">
                           {optimizeResults.orphanedModulesDeleted.toLocaleString()}
                         </div>
@@ -1139,7 +1251,9 @@ export default function DatabaseIndex() {
                     )}
                     {optimizeResults.invalidPostRefsDeleted > 0 && (
                       <div className="p-4 rounded bg-backdrop-high border border-line-medium">
-                        <div className="text-sm text-neutral-medium mb-1">Invalid Post Refs Deleted</div>
+                        <div className="text-sm text-neutral-medium mb-1">
+                          Invalid Post Refs Deleted
+                        </div>
                         <div className="text-2xl font-semibold text-neutral-dark">
                           {optimizeResults.invalidPostRefsDeleted.toLocaleString()}
                         </div>
@@ -1147,7 +1261,9 @@ export default function DatabaseIndex() {
                     )}
                     {optimizeResults.invalidModuleRefsDeleted > 0 && (
                       <div className="p-4 rounded bg-backdrop-high border border-line-medium">
-                        <div className="text-sm text-neutral-medium mb-1">Invalid Module Refs Deleted</div>
+                        <div className="text-sm text-neutral-medium mb-1">
+                          Invalid Module Refs Deleted
+                        </div>
                         <div className="text-2xl font-semibold text-neutral-dark">
                           {optimizeResults.invalidModuleRefsDeleted.toLocaleString()}
                         </div>
@@ -1220,18 +1336,25 @@ export default function DatabaseIndex() {
           <AlertDialogHeader>
             <AlertDialogTitle>Optimize database?</AlertDialogTitle>
             <AlertDialogDescription>
-              This will permanently delete orphaned data and invalid references. Make sure you have a backup.
+              This will permanently delete orphaned data and invalid references. Make sure you have
+              a backup.
             </AlertDialogDescription>
           </AlertDialogHeader>
           <div className="text-sm text-neutral-medium space-y-2">
             <p>Selected optimizations:</p>
             <ul className="list-disc list-inside space-y-1">
               {optimizeOptions.cleanOrphanedModules && (
-                <li>Clean orphaned module instances ({optimizeStats?.orphanedModuleInstances || 0})</li>
+                <li>
+                  Clean orphaned module instances ({optimizeStats?.orphanedModuleInstances || 0})
+                </li>
               )}
               {optimizeOptions.cleanInvalidRefs && (
                 <li>
-                  Clean invalid references ({optimizeStats ? optimizeStats.invalidPostReferences + optimizeStats.invalidModuleReferences : 0})
+                  Clean invalid references (
+                  {optimizeStats
+                    ? optimizeStats.invalidPostReferences + optimizeStats.invalidModuleReferences
+                    : 0}
+                  )
                 </li>
               )}
               {optimizeOptions.clearRenderCache && (

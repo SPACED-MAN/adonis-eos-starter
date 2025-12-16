@@ -2,7 +2,13 @@ import type { TreeNode } from './types'
 import { MenuItemLink } from './MenuItemLink'
 import { MegaMenuPanel } from './MegaMenuPanel'
 
-export function NavItem({ node, menuMeta }: { node: TreeNode; menuMeta?: Record<string, any> | null }) {
+export function NavItem({
+  node,
+  menuMeta,
+}: {
+  node: TreeNode
+  menuMeta?: Record<string, any> | null
+}) {
   const hasSection = node.children.some((c) => c.kind === 'section')
   return (
     <div className="group relative">
@@ -25,5 +31,3 @@ export function NavItem({ node, menuMeta }: { node: TreeNode; menuMeta?: Record<
     </div>
   )
 }
-
-

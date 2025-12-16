@@ -20,5 +20,3 @@ export default function BlogNote({ note: initialNote = '', className, __moduleId
     </section>
   )
 }
-
-

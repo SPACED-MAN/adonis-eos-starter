@@ -8,6 +8,3 @@
 - When adding a new field type, update the central definitions first.
 - Co-locate validation schemas with type definitions when feasible.
 - Avoid duplicating business rules; move them into services and reuse.
-
-
-

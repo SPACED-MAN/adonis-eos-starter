@@ -29,10 +29,7 @@ function parseInlineTokens(text: string): any[] {
  * This is used for seeding docs and for MCP helpers so agents can provide markdown
  * instead of hand-authoring Lexical JSON.
  */
-export function markdownToLexical(
-  markdown: string,
-  opts: { skipFirstH1?: boolean } = {}
-): any {
+export function markdownToLexical(markdown: string, opts: { skipFirstH1?: boolean } = {}): any {
   const skipFirstH1 = opts.skipFirstH1 !== false
 
   marked.setOptions({
@@ -143,7 +140,18 @@ function tokenToLexicalNode(token: any): any {
         format: '',
         indent: 0,
         version: 1,
-        children: quoteChildren.length ? quoteChildren : [{ type: 'paragraph', children: [], direction: 'ltr', format: '', indent: 0, version: 1 }],
+        children: quoteChildren.length
+          ? quoteChildren
+          : [
+              {
+                type: 'paragraph',
+                children: [],
+                direction: 'ltr',
+                format: '',
+                indent: 0,
+                version: 1,
+              },
+            ],
       }
     }
 
@@ -310,11 +318,3 @@ function inlineTokensToLexical(tokens: any[]): any[] {
 
   return out
 }
-
-
-
-
-
-
-
-

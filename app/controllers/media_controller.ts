@@ -420,9 +420,7 @@ export default class MediaController {
 
     const mime = String((row as any).mime_type || '')
     const url: string = String((row as any).url || '')
-    const isSvg =
-      mime.toLowerCase() === 'image/svg+xml' ||
-      url.toLowerCase().endsWith('.svg')
+    const isSvg = mime.toLowerCase() === 'image/svg+xml' || url.toLowerCase().endsWith('.svg')
 
     // SVGs do not support generated size variants or cropping/focal operations.
     // Editors should use the original SVG and, if needed, upload a separate dark-mode SVG.
@@ -881,8 +879,7 @@ export default class MediaController {
 
     let metadata = (row.metadata || {}) as any
     const isSvg =
-      mime.toLowerCase() === 'image/svg+xml' ||
-      targetPublicUrl.toLowerCase().endsWith('.svg')
+      mime.toLowerCase() === 'image/svg+xml' || targetPublicUrl.toLowerCase().endsWith('.svg')
 
     if (mime.startsWith('image/')) {
       if (isSvg) {
@@ -1142,8 +1139,7 @@ export default class MediaController {
         const mime = String((row as any).mime_type || '')
         const publicUrl: string = String((row as any).url)
         const isSvg =
-          mime.toLowerCase() === 'image/svg+xml' ||
-          publicUrl.toLowerCase().endsWith('.svg')
+          mime.toLowerCase() === 'image/svg+xml' || publicUrl.toLowerCase().endsWith('.svg')
         if (!mime.startsWith('image/') || isSvg) continue
 
         const absPath = path.join(process.cwd(), 'public', publicUrl.replace(/^\//, ''))

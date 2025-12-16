@@ -1,6 +1,6 @@
 /**
  * Global Agent Button
- * 
+ *
  * Floating brain icon button in the lower right of the viewport
  * Opens agent modal for global-scoped agents
  */
@@ -22,17 +22,19 @@ export function GlobalAgentButton() {
   useEffect(() => {
     if (!hasGlobalPermission) return
     let alive = true
-      ; (async () => {
-        try {
-          const res = await fetch('/api/agents?scope=global', { credentials: 'same-origin' })
-          const json = await res.json().catch(() => ({}))
-          const list: Agent[] = Array.isArray(json?.data) ? json.data : []
-          if (alive) setAgents(list)
-        } catch {
-          if (alive) setAgents([])
-        }
-      })()
-    return () => { alive = false }
+    ;(async () => {
+      try {
+        const res = await fetch('/api/agents?scope=global', { credentials: 'same-origin' })
+        const json = await res.json().catch(() => ({}))
+        const list: Agent[] = Array.isArray(json?.data) ? json.data : []
+        if (alive) setAgents(list)
+      } catch {
+        if (alive) setAgents([])
+      }
+    })()
+    return () => {
+      alive = false
+    }
   }, [hasGlobalPermission])
 
   // Don't render if no permission or no agents
@@ -89,4 +91,3 @@ export function GlobalAgentButton() {
     </>
   )
 }
-

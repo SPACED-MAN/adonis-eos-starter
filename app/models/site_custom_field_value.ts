@@ -22,4 +22,3 @@ export default class SiteCustomFieldValue extends BaseModel {
   @column.dateTime({ autoCreate: true, autoUpdate: true, columnName: 'updated_at' })
   declare updatedAt: DateTime
 }
-

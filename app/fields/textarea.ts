@@ -19,4 +19,3 @@ const textareaField: FieldTypeConfig = {
 fieldTypeRegistry.register(textareaField)
 
 export default textareaField
-

@@ -21,7 +21,9 @@ export default class UsersController {
       'fullName',
     ])
 
-    const emailStr = String(email || '').trim().toLowerCase()
+    const emailStr = String(email || '')
+      .trim()
+      .toLowerCase()
     if (!emailStr || !emailStr.includes('@')) {
       return response.badRequest({ error: 'Valid email is required' })
     }
@@ -265,7 +267,7 @@ export default class UsersController {
         ip,
         userAgent: typeof ua === 'string' ? ua : null,
       })
-    } catch { }
+    } catch {}
     return response.ok({ message: 'Password updated' })
   }
 
@@ -289,7 +291,7 @@ export default class UsersController {
         entityType: 'user',
         entityId: id,
       })
-    } catch { }
+    } catch {}
     return response.noContent()
   }
 
@@ -379,7 +381,7 @@ export default class UsersController {
           entityType: 'post',
           entityId: post.id,
         })
-      } catch { }
+      } catch {}
       return response.created({ id: post.id })
     } catch (e: any) {
       const status = e?.statusCode || 400

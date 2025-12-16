@@ -1,6 +1,6 @@
 /**
  * Admin Post Editor
- * 
+ *
  * Main editing interface for posts with modules, translations, and metadata.
  */
 
@@ -21,7 +21,13 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from '~/components/ui/alert-dialog'
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '~/components/ui/select'
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '~/components/ui/select'
 import { RadioGroup, RadioGroupItem } from '~/components/ui/radio-group'
 import { ModulePicker } from '../../components/modules/ModulePicker'
 import { FormEvent, useCallback, useEffect, useMemo, useRef, useState } from 'react'
@@ -34,7 +40,14 @@ import { Popover, PopoverTrigger, PopoverContent } from '~/components/ui/popover
 import { Calendar } from '~/components/ui/calendar'
 import { Checkbox } from '~/components/ui/checkbox'
 import { Spinner } from '~/components/ui/spinner'
-import { DndContext, closestCenter, PointerSensor, useSensor, useSensors, DragEndEvent } from '@dnd-kit/core'
+import {
+  DndContext,
+  closestCenter,
+  PointerSensor,
+  useSensor,
+  useSensors,
+  DragEndEvent,
+} from '@dnd-kit/core'
 import { SortableContext, useSortable, verticalListSortingStrategy } from '@dnd-kit/sortable'
 import { CSS } from '@dnd-kit/utilities'
 import { GripVertical, Star } from 'lucide-react'
@@ -184,50 +197,98 @@ export default function Editor({
       : [],
     taxonomyTermIds: selectedTaxonomyTermIds,
   })
-  const reviewInitialRef = useRef<null | typeof initialDataRef.current>(reviewDraft ? {
-    title: String(reviewDraft.title ?? post.title),
-    slug: String(reviewDraft.slug ?? post.slug),
-    excerpt: String(reviewDraft.excerpt ?? (post.excerpt || '')),
-    status: String(reviewDraft.status ?? post.status),
-    parentId: String((reviewDraft.parentId ?? (post as any).parentId ?? '') || ''),
-    orderIndex: Number(reviewDraft.orderIndex ?? ((post as any).orderIndex ?? 0)),
-    metaTitle: String(reviewDraft.metaTitle ?? (post.metaTitle || '')),
-    metaDescription: String(reviewDraft.metaDescription ?? (post.metaDescription || '')),
-    canonicalUrl: String(reviewDraft.canonicalUrl ?? (post.canonicalUrl || '')),
-    robotsJson: typeof reviewDraft.robotsJson === 'string' ? reviewDraft.robotsJson : (reviewDraft.robotsJson ? JSON.stringify(reviewDraft.robotsJson, null, 2) : ''),
-    jsonldOverrides: typeof reviewDraft.jsonldOverrides === 'string' ? reviewDraft.jsonldOverrides : (reviewDraft.jsonldOverrides ? JSON.stringify(reviewDraft.jsonldOverrides, null, 2) : ''),
-    featuredImageId: String(reviewDraft.featuredImageId ?? (post.featuredImageId || '')),
-    customFields: Array.isArray(reviewDraft.customFields) ? reviewDraft.customFields : ((Array.isArray(initialCustomFields) ? initialCustomFields.map(f => ({ fieldId: f.id, slug: f.slug, value: f.value ?? null })) : [])),
-    taxonomyTermIds: selectedTaxonomyTermIds,
-  } : null)
-  const aiReviewInitialRef = useRef<null | typeof initialDataRef.current>(aiReviewDraft ? {
-    title: String(aiReviewDraft.title ?? post.title),
-    slug: String(aiReviewDraft.slug ?? post.slug),
-    excerpt: String(aiReviewDraft.excerpt ?? (post.excerpt || '')),
-    status: String(aiReviewDraft.status ?? post.status),
-    parentId: String((aiReviewDraft.parentId ?? (post as any).parentId ?? '') || ''),
-    orderIndex: Number(aiReviewDraft.orderIndex ?? ((post as any).orderIndex ?? 0)),
-    metaTitle: String(aiReviewDraft.metaTitle ?? (post.metaTitle || '')),
-    metaDescription: String(aiReviewDraft.metaDescription ?? (post.metaDescription || '')),
-    canonicalUrl: String(aiReviewDraft.canonicalUrl ?? (post.canonicalUrl || '')),
-    robotsJson: typeof aiReviewDraft.robotsJson === 'string' ? aiReviewDraft.robotsJson : (aiReviewDraft.robotsJson ? JSON.stringify(aiReviewDraft.robotsJson, null, 2) : ''),
-    jsonldOverrides: typeof aiReviewDraft.jsonldOverrides === 'string' ? aiReviewDraft.jsonldOverrides : (aiReviewDraft.jsonldOverrides ? JSON.stringify(aiReviewDraft.jsonldOverrides, null, 2) : ''),
-    featuredImageId: String(aiReviewDraft.featuredImageId ?? (post.featuredImageId || '')),
-    customFields: Array.isArray(aiReviewDraft.customFields) ? aiReviewDraft.customFields : ((Array.isArray(initialCustomFields) ? initialCustomFields.map(f => ({ fieldId: f.id, slug: f.slug, value: f.value ?? null })) : [])),
-    taxonomyTermIds: selectedTaxonomyTermIds,
-  } : null)
-  const [pendingModules, setPendingModules] = useState<Record<string, { overrides: Record<string, any> | null; edited: Record<string, any> }>>({})
+  const reviewInitialRef = useRef<null | typeof initialDataRef.current>(
+    reviewDraft
+      ? {
+          title: String(reviewDraft.title ?? post.title),
+          slug: String(reviewDraft.slug ?? post.slug),
+          excerpt: String(reviewDraft.excerpt ?? (post.excerpt || '')),
+          status: String(reviewDraft.status ?? post.status),
+          parentId: String((reviewDraft.parentId ?? (post as any).parentId ?? '') || ''),
+          orderIndex: Number(reviewDraft.orderIndex ?? (post as any).orderIndex ?? 0),
+          metaTitle: String(reviewDraft.metaTitle ?? (post.metaTitle || '')),
+          metaDescription: String(reviewDraft.metaDescription ?? (post.metaDescription || '')),
+          canonicalUrl: String(reviewDraft.canonicalUrl ?? (post.canonicalUrl || '')),
+          robotsJson:
+            typeof reviewDraft.robotsJson === 'string'
+              ? reviewDraft.robotsJson
+              : reviewDraft.robotsJson
+                ? JSON.stringify(reviewDraft.robotsJson, null, 2)
+                : '',
+          jsonldOverrides:
+            typeof reviewDraft.jsonldOverrides === 'string'
+              ? reviewDraft.jsonldOverrides
+              : reviewDraft.jsonldOverrides
+                ? JSON.stringify(reviewDraft.jsonldOverrides, null, 2)
+                : '',
+          featuredImageId: String(reviewDraft.featuredImageId ?? (post.featuredImageId || '')),
+          customFields: Array.isArray(reviewDraft.customFields)
+            ? reviewDraft.customFields
+            : Array.isArray(initialCustomFields)
+              ? initialCustomFields.map((f) => ({
+                  fieldId: f.id,
+                  slug: f.slug,
+                  value: f.value ?? null,
+                }))
+              : [],
+          taxonomyTermIds: selectedTaxonomyTermIds,
+        }
+      : null
+  )
+  const aiReviewInitialRef = useRef<null | typeof initialDataRef.current>(
+    aiReviewDraft
+      ? {
+          title: String(aiReviewDraft.title ?? post.title),
+          slug: String(aiReviewDraft.slug ?? post.slug),
+          excerpt: String(aiReviewDraft.excerpt ?? (post.excerpt || '')),
+          status: String(aiReviewDraft.status ?? post.status),
+          parentId: String((aiReviewDraft.parentId ?? (post as any).parentId ?? '') || ''),
+          orderIndex: Number(aiReviewDraft.orderIndex ?? (post as any).orderIndex ?? 0),
+          metaTitle: String(aiReviewDraft.metaTitle ?? (post.metaTitle || '')),
+          metaDescription: String(aiReviewDraft.metaDescription ?? (post.metaDescription || '')),
+          canonicalUrl: String(aiReviewDraft.canonicalUrl ?? (post.canonicalUrl || '')),
+          robotsJson:
+            typeof aiReviewDraft.robotsJson === 'string'
+              ? aiReviewDraft.robotsJson
+              : aiReviewDraft.robotsJson
+                ? JSON.stringify(aiReviewDraft.robotsJson, null, 2)
+                : '',
+          jsonldOverrides:
+            typeof aiReviewDraft.jsonldOverrides === 'string'
+              ? aiReviewDraft.jsonldOverrides
+              : aiReviewDraft.jsonldOverrides
+                ? JSON.stringify(aiReviewDraft.jsonldOverrides, null, 2)
+                : '',
+          featuredImageId: String(aiReviewDraft.featuredImageId ?? (post.featuredImageId || '')),
+          customFields: Array.isArray(aiReviewDraft.customFields)
+            ? aiReviewDraft.customFields
+            : Array.isArray(initialCustomFields)
+              ? initialCustomFields.map((f) => ({
+                  fieldId: f.id,
+                  slug: f.slug,
+                  value: f.value ?? null,
+                }))
+              : [],
+          taxonomyTermIds: selectedTaxonomyTermIds,
+        }
+      : null
+  )
+  const [pendingModules, setPendingModules] = useState<
+    Record<string, { overrides: Record<string, any> | null; edited: Record<string, any> }>
+  >({})
   const [pendingRemoved, setPendingRemoved] = useState<Set<string>>(new Set())
   const [pendingReviewRemoved, setPendingReviewRemoved] = useState<Set<string>>(new Set())
   const [pendingAiReviewRemoved, setPendingAiReviewRemoved] = useState<Set<string>>(new Set())
   // Track new modules that haven't been persisted yet (temporary client-side IDs)
-  const [pendingNewModules, setPendingNewModules] = useState<Array<{
-    tempId: string
-    type: string
-    scope: 'local' | 'global'
-    globalSlug?: string | null
-    orderIndex: number
-  }>>([])
+  const [pendingNewModules, setPendingNewModules] = useState<
+    Array<{
+      tempId: string
+      type: string
+      scope: 'local' | 'global'
+      globalSlug?: string | null
+      orderIndex: number
+    }>
+  >([])
   // Track structural changes that need to be published
   const [hasStructuralChanges, setHasStructuralChanges] = useState(false)
   const [taxonomyTrees, setTaxonomyTrees] = useState(taxonomies)
@@ -243,7 +304,10 @@ export default function Editor({
     >
     const map: Record<string, any> = {}
     Object.entries(modules).forEach(([path, mod]) => {
-      const name = path.split('/').pop()?.replace(/\.\w+$/, '')
+      const name = path
+        .split('/')
+        .pop()
+        ?.replace(/\.\w+$/, '')
       if (name && mod?.default) {
         map[name] = mod.default
       }
@@ -254,7 +318,10 @@ export default function Editor({
   const fieldRenderers = useMemo(() => {
     const byType = new Map<string, string>()
     fieldTypes.forEach((f) => {
-      const compName = f.adminComponent?.split('/').pop()?.replace(/\.\w+$/, '')
+      const compName = f.adminComponent
+        ?.split('/')
+        .pop()
+        ?.replace(/\.\w+$/, '')
       if (f.type && compName) byType.set(f.type, compName)
     })
     return byType
@@ -276,16 +343,16 @@ export default function Editor({
     () =>
       Array.isArray(taxonomyTrees)
         ? taxonomyTrees.map((t) => ({
-          slug: t.slug,
-          name: t.name,
-          hierarchical: !!(t as any).hierarchical,
-          freeTagging: !!(t as any).freeTagging,
-          maxSelections:
-            (t as any).maxSelections === null || (t as any).maxSelections === undefined
-              ? null
-              : Number((t as any).maxSelections),
-          options: flattenTerms(t.terms || []),
-        }))
+            slug: t.slug,
+            name: t.name,
+            hierarchical: !!(t as any).hierarchical,
+            freeTagging: !!(t as any).freeTagging,
+            maxSelections:
+              (t as any).maxSelections === null || (t as any).maxSelections === undefined
+                ? null
+                : Number((t as any).maxSelections),
+            options: flattenTerms(t.terms || []),
+          }))
         : [],
     [taxonomyTrees]
   )
@@ -308,12 +375,12 @@ export default function Editor({
 
   async function refreshTaxonomy(slug: string) {
     try {
-      const res = await fetch(`/api/taxonomies/${encodeURIComponent(slug)}/terms`, { credentials: 'same-origin' })
+      const res = await fetch(`/api/taxonomies/${encodeURIComponent(slug)}/terms`, {
+        credentials: 'same-origin',
+      })
       const json = await res.json().catch(() => ({}))
       const terms = Array.isArray(json?.data) ? json.data : []
-      setTaxonomyTrees((prev) =>
-        prev.map((t) => (t.slug === slug ? { ...t, terms } : t))
-      )
+      setTaxonomyTrees((prev) => prev.map((t) => (t.slug === slug ? { ...t, terms } : t)))
     } catch {
       /* ignore */
     }
@@ -364,12 +431,15 @@ export default function Editor({
     jsonldOverrides: d.jsonldOverrides,
     featuredImageId: String((d as any).featuredImageId || '').trim() || null,
     customFields: Array.isArray((d as any).customFields)
-      ? (d as any).customFields.map((e: any) => ({ fieldId: e.fieldId, slug: e.slug, value: e.value }))
+      ? (d as any).customFields.map((e: any) => ({
+          fieldId: e.fieldId,
+          slug: e.slug,
+          value: e.value,
+        }))
       : [],
     taxonomyTermIds: Array.isArray((d as any).taxonomyTermIds) ? (d as any).taxonomyTermIds : [],
   })
   const modulesEnabled = uiConfig?.modulesEnabled !== false
-
 
   // CSRF/XSRF token for fetch requests
   const page = usePage()
@@ -438,7 +508,9 @@ export default function Editor({
     // 1. There is at least one module not introduced via Review/AI Review, OR
     // 2. The post has approved content (post itself exists with approved fields)
     // This ensures Source tab shows even when all modules have aiReviewProps but post has source content
-    const hasSourceModules = (modules || []).some((m) => !m.reviewAdded && !(m as any).aiReviewAdded)
+    const hasSourceModules = (modules || []).some(
+      (m) => !m.reviewAdded && !(m as any).aiReviewAdded
+    )
     // Post has source content if it exists (has id, title, etc.) - this is always true for existing posts
     const hasSourcePost = !!post?.id
     return hasSourceModules || hasSourcePost
@@ -488,7 +560,11 @@ export default function Editor({
     initialViewMode === 'review' ? 'review' : 'source'
   )
   const [decision, setDecision] = useState<
-    '' | 'approve-review-to-source' | 'approve-ai-review-to-review' | 'reject-review' | 'reject-ai-review'
+    | ''
+    | 'approve-review-to-source'
+    | 'approve-ai-review-to-review'
+    | 'reject-review'
+    | 'reject-ai-review'
   >('')
   const [saveConfirmOpen, setSaveConfirmOpen] = useState(false)
   const [pendingSaveTarget, setPendingSaveTarget] = useState<null | 'source' | 'review'>(null)
@@ -505,7 +581,10 @@ export default function Editor({
   // Default decision selection (Approve/Reject combined)
   useEffect(() => {
     const opts: Array<
-      'approve-review-to-source' | 'approve-ai-review-to-review' | 'reject-review' | 'reject-ai-review'
+      | 'approve-review-to-source'
+      | 'approve-ai-review-to-review'
+      | 'reject-review'
+      | 'reject-ai-review'
     > = []
 
     // Approve options
@@ -580,12 +659,12 @@ export default function Editor({
         customFields: data.customFields,
         taxonomyTermIds: data.taxonomyTermIds,
       }
-      
+
       console.log('[Editor] Sending cleaned data:', {
         canonicalUrl: cleanedData.canonicalUrl,
         canonicalUrlType: typeof cleanedData.canonicalUrl,
       })
-      
+
       // Use fetch directly to have full control over the request.
       // NOTE: We force an absolute URL + manual redirect handling because a redirect (often due to CSRF/auth)
       // can cause the browser to follow to `/admin/posts/:id/edit` and then "PUT" that URL (404).
@@ -608,7 +687,7 @@ export default function Editor({
         credentials: 'same-origin',
         body: JSON.stringify(cleanedData),
       })
-      
+
       if (res.ok) {
         toast.success('Saved to Source')
         initialDataRef.current = pickForm(data)
@@ -628,8 +707,15 @@ export default function Editor({
 
         const contentType = res.headers.get('content-type') || ''
         const bodyText = await res.text().catch(() => '')
-        const errorJson =
-          contentType.includes('application/json') ? (() => { try { return JSON.parse(bodyText) } catch { return null } })() : null
+        const errorJson = contentType.includes('application/json')
+          ? (() => {
+              try {
+                return JSON.parse(bodyText)
+              } catch {
+                return null
+              }
+            })()
+          : null
 
         console.error('Save failed:', {
           status: res.status,
@@ -661,7 +747,9 @@ export default function Editor({
       body: JSON.stringify({ mode }),
     })
     if (res.ok) {
-      toast.success(mode === 'approve-ai-review' ? 'AI Review promoted to Review' : 'Review promoted to Source')
+      toast.success(
+        mode === 'approve-ai-review' ? 'AI Review promoted to Review' : 'Review promoted to Source'
+      )
       window.location.reload()
       return
     }
@@ -672,7 +760,9 @@ export default function Editor({
   const isDirty = useMemo(() => {
     try {
       const baseline =
-        viewMode === 'review' && reviewInitialRef.current ? reviewInitialRef.current : initialDataRef.current
+        viewMode === 'review' && reviewInitialRef.current
+          ? reviewInitialRef.current
+          : initialDataRef.current
       const fieldsChanged = JSON.stringify(pickForm(data)) !== JSON.stringify(baseline)
       const modulesPending = modulesEnabled ? Object.keys(pendingModules).length > 0 : false
       const removalsPendingSource = modulesEnabled ? pendingRemoved.size > 0 : false
@@ -718,41 +808,57 @@ export default function Editor({
   useEffect(() => {
     if (!modulesEnabled) return
     let cancelled = false
-      ; (async () => {
-        try {
-          const res = await fetch(`/api/modules/registry?post_type=${encodeURIComponent(post.type)}`, {
+    ;(async () => {
+      try {
+        const res = await fetch(
+          `/api/modules/registry?post_type=${encodeURIComponent(post.type)}`,
+          {
             headers: { Accept: 'application/json' },
             credentials: 'same-origin',
-          })
-          const json = await res.json().catch(() => null)
-          const list: Array<{ type: string; name?: string; description?: string; renderingMode?: 'static' | 'react' }> =
-            Array.isArray(json?.data) ? json.data : []
-          if (!cancelled) {
-            const map: Record<string, { name: string; description?: string; renderingMode?: 'static' | 'react' }> = {}
-            list.forEach((m) => {
-              map[m.type] = {
-                name: m.name || m.type,
-                description: m.description,
-                renderingMode: m.renderingMode,
-              }
-            })
-            setModuleRegistry(map)
           }
-          // Load globals for slug->label mapping
-          try {
-            const gRes = await fetch('/api/modules/global', { credentials: 'same-origin' })
-            const gJson = await gRes.json().catch(() => ({}))
-            const gList: Array<{ globalSlug: string; label?: string | null }> = Array.isArray(gJson?.data) ? gJson.data : []
-            const gMap = new Map<string, string>()
-            gList.forEach((g) => {
-              if (g.globalSlug) gMap.set(g.globalSlug, (g as any).label || g.globalSlug)
-            })
-            if (!cancelled) setGlobalSlugToLabel(gMap)
-          } catch { /* ignore */ }
-        } catch {
-          if (!cancelled) setModuleRegistry({})
+        )
+        const json = await res.json().catch(() => null)
+        const list: Array<{
+          type: string
+          name?: string
+          description?: string
+          renderingMode?: 'static' | 'react'
+        }> = Array.isArray(json?.data) ? json.data : []
+        if (!cancelled) {
+          const map: Record<
+            string,
+            { name: string; description?: string; renderingMode?: 'static' | 'react' }
+          > = {}
+          list.forEach((m) => {
+            map[m.type] = {
+              name: m.name || m.type,
+              description: m.description,
+              renderingMode: m.renderingMode,
+            }
+          })
+          setModuleRegistry(map)
         }
-      })()
+        // Load globals for slug->label mapping
+        try {
+          const gRes = await fetch('/api/modules/global', { credentials: 'same-origin' })
+          const gJson = await gRes.json().catch(() => ({}))
+          const gList: Array<{ globalSlug: string; label?: string | null }> = Array.isArray(
+            gJson?.data
+          )
+            ? gJson.data
+            : []
+          const gMap = new Map<string, string>()
+          gList.forEach((g) => {
+            if (g.globalSlug) gMap.set(g.globalSlug, (g as any).label || g.globalSlug)
+          })
+          if (!cancelled) setGlobalSlugToLabel(gMap)
+        } catch {
+          /* ignore */
+        }
+      } catch {
+        if (!cancelled) setModuleRegistry({})
+      }
+    })()
     return () => {
       cancelled = true
     }
@@ -765,23 +871,27 @@ export default function Editor({
       return
     }
     let mounted = true
-      ; (async () => {
-        try {
-          const res = await fetch('/api/url-patterns', { credentials: 'same-origin' })
-          const json = await res.json().catch(() => ({}))
-          const list: Array<{ postType: string; locale: string; pattern: string; isDefault: boolean }> =
-            Array.isArray(json?.data) ? json.data : []
-          const rec =
-            list.find((p) => p.postType === post.type && p.locale === post.locale && p.isDefault) ||
-            list.find((p) => p.postType === post.type && p.locale === post.locale) ||
-            null
-          if (!mounted) return
-          setPathPattern(rec?.pattern || '/{locale}/posts/{slug}')
-        } catch {
-          if (!mounted) return
-          setPathPattern('/{locale}/posts/{slug}')
-        }
-      })()
+    ;(async () => {
+      try {
+        const res = await fetch('/api/url-patterns', { credentials: 'same-origin' })
+        const json = await res.json().catch(() => ({}))
+        const list: Array<{
+          postType: string
+          locale: string
+          pattern: string
+          isDefault: boolean
+        }> = Array.isArray(json?.data) ? json.data : []
+        const rec =
+          list.find((p) => p.postType === post.type && p.locale === post.locale && p.isDefault) ||
+          list.find((p) => p.postType === post.type && p.locale === post.locale) ||
+          null
+        if (!mounted) return
+        setPathPattern(rec?.pattern || '/{locale}/posts/{slug}')
+      } catch {
+        if (!mounted) return
+        setPathPattern('/{locale}/posts/{slug}')
+      }
+    })()
     return () => {
       mounted = false
     }
@@ -790,19 +900,21 @@ export default function Editor({
   // Load supported locales from API (enabled locales)
   useEffect(() => {
     let mounted = true
-      ; (async () => {
-        try {
-          const res = await fetch('/api/locales', { credentials: 'same-origin' })
-          const json = await res.json().catch(() => ({}))
-          const list: Array<{ code: string; isEnabled: boolean }> = Array.isArray(json?.data) ? json.data : []
-          const enabled = list.filter((l) => l.isEnabled).map((l) => l.code)
-          if (!mounted) return
-          setSupportedLocales(enabled.length ? enabled : ['en'])
-        } catch {
-          if (!mounted) return
-          setSupportedLocales(['en'])
-        }
-      })()
+    ;(async () => {
+      try {
+        const res = await fetch('/api/locales', { credentials: 'same-origin' })
+        const json = await res.json().catch(() => ({}))
+        const list: Array<{ code: string; isEnabled: boolean }> = Array.isArray(json?.data)
+          ? json.data
+          : []
+        const enabled = list.filter((l) => l.isEnabled).map((l) => l.code)
+        if (!mounted) return
+        setSupportedLocales(enabled.length ? enabled : ['en'])
+      } catch {
+        if (!mounted) return
+        setSupportedLocales(['en'])
+      }
+    })()
     return () => {
       mounted = false
     }
@@ -818,14 +930,32 @@ export default function Editor({
         excerpt: String(aiReviewDraft.excerpt ?? (post.excerpt || '')),
         status: String(aiReviewDraft.status ?? post.status),
         parentId: String((aiReviewDraft.parentId ?? (post as any).parentId ?? '') || ''),
-        orderIndex: Number(aiReviewDraft.orderIndex ?? ((post as any).orderIndex ?? 0)),
+        orderIndex: Number(aiReviewDraft.orderIndex ?? (post as any).orderIndex ?? 0),
         metaTitle: String(aiReviewDraft.metaTitle ?? (post.metaTitle || '')),
         metaDescription: String(aiReviewDraft.metaDescription ?? (post.metaDescription || '')),
         canonicalUrl: String(aiReviewDraft.canonicalUrl ?? (post.canonicalUrl || '')),
-        robotsJson: typeof aiReviewDraft.robotsJson === 'string' ? aiReviewDraft.robotsJson : (aiReviewDraft.robotsJson ? JSON.stringify(aiReviewDraft.robotsJson, null, 2) : ''),
-        jsonldOverrides: typeof aiReviewDraft.jsonldOverrides === 'string' ? aiReviewDraft.jsonldOverrides : (aiReviewDraft.jsonldOverrides ? JSON.stringify(aiReviewDraft.jsonldOverrides, null, 2) : ''),
+        robotsJson:
+          typeof aiReviewDraft.robotsJson === 'string'
+            ? aiReviewDraft.robotsJson
+            : aiReviewDraft.robotsJson
+              ? JSON.stringify(aiReviewDraft.robotsJson, null, 2)
+              : '',
+        jsonldOverrides:
+          typeof aiReviewDraft.jsonldOverrides === 'string'
+            ? aiReviewDraft.jsonldOverrides
+            : aiReviewDraft.jsonldOverrides
+              ? JSON.stringify(aiReviewDraft.jsonldOverrides, null, 2)
+              : '',
         featuredImageId: String(aiReviewDraft.featuredImageId ?? (post.featuredImageId || '')),
-        customFields: Array.isArray(aiReviewDraft.customFields) ? aiReviewDraft.customFields : ((Array.isArray(initialCustomFields) ? initialCustomFields.map(f => ({ fieldId: f.id, slug: f.slug, value: f.value ?? null })) : [])),
+        customFields: Array.isArray(aiReviewDraft.customFields)
+          ? aiReviewDraft.customFields
+          : Array.isArray(initialCustomFields)
+            ? initialCustomFields.map((f) => ({
+                fieldId: f.id,
+                slug: f.slug,
+                value: f.value ?? null,
+              }))
+            : [],
         taxonomyTermIds: selectedTaxonomyTermIds,
       }
       // If we're currently in AI Review mode, update the form data immediately
@@ -932,7 +1062,10 @@ export default function Editor({
     const encSlug = encodeURIComponent(currentSlug || '')
     out = out.replace(/\{slug\}/g, encSlug).replace(/:slug\b/g, encSlug)
     out = out.replace(/\{locale\}/g, post.locale).replace(/:locale\b/g, post.locale)
-    out = out.replace(/\{yyyy\}/g, yyyy).replace(/\{mm\}/g, mm).replace(/\{dd\}/g, dd)
+    out = out
+      .replace(/\{yyyy\}/g, yyyy)
+      .replace(/\{mm\}/g, mm)
+      .replace(/\{dd\}/g, dd)
     if (!out.startsWith('/')) out = '/' + out
     return out
   }
@@ -955,7 +1088,12 @@ export default function Editor({
       id: string
       name: string
       description?: string
-      openEndedContext?: { enabled: boolean; label?: string; placeholder?: string; maxChars?: number }
+      openEndedContext?: {
+        enabled: boolean
+        label?: string
+        placeholder?: string
+        maxChars?: number
+      }
     }>
   >([])
   const [selectedAgent, setSelectedAgent] = useState<string>('')
@@ -985,7 +1123,9 @@ export default function Editor({
   const [loadingAgentHistory, setLoadingAgentHistory] = useState(false)
   const agentModalContentRef = useRef<HTMLDivElement | null>(null)
   // Author management (admin)
-  const [users, setUsers] = useState<Array<{ id: number; email: string; fullName: string | null }>>([])
+  const [users, setUsers] = useState<Array<{ id: number; email: string; fullName: string | null }>>(
+    []
+  )
   const [selectedAuthorId, setSelectedAuthorId] = useState<number | null>(post.author?.id ?? null)
   // Media picker for custom fields
   const [openMediaForField, setOpenMediaForField] = useState<string | null>(null)
@@ -1013,28 +1153,37 @@ export default function Editor({
       }
     }
     loadRevisions()
-    return () => { alive = false }
+    return () => {
+      alive = false
+    }
   }, [post.id])
 
   // Load agents
   useEffect(() => {
     let alive = true
-      ; (async () => {
-        try {
-          const res = await fetch('/api/agents', { credentials: 'same-origin' })
-          const json = await res.json().catch(() => ({}))
-          const list: Array<{
-            id: string
-            name: string
-            description?: string
-            openEndedContext?: { enabled: boolean; label?: string; placeholder?: string; maxChars?: number }
-          }> = Array.isArray(json?.data) ? json.data : []
-          if (alive) setAgents(list)
-        } catch {
-          if (alive) setAgents([])
-        }
-      })()
-    return () => { alive = false }
+    ;(async () => {
+      try {
+        const res = await fetch('/api/agents', { credentials: 'same-origin' })
+        const json = await res.json().catch(() => ({}))
+        const list: Array<{
+          id: string
+          name: string
+          description?: string
+          openEndedContext?: {
+            enabled: boolean
+            label?: string
+            placeholder?: string
+            maxChars?: number
+          }
+        }> = Array.isArray(json?.data) ? json.data : []
+        if (alive) setAgents(list)
+      } catch {
+        if (alive) setAgents([])
+      }
+    })()
+    return () => {
+      alive = false
+    }
   }, [])
 
   // Load field-scoped agents for Featured Image (media field type)
@@ -1053,7 +1202,9 @@ export default function Editor({
         if (alive) setFeaturedImageFieldAgents([])
       }
     })()
-    return () => { alive = false }
+    return () => {
+      alive = false
+    }
   }, [])
 
   // Load agent history when dialog opens and agent is selected
@@ -1081,7 +1232,9 @@ export default function Editor({
       }
     }
     loadHistory()
-    return () => { alive = false }
+    return () => {
+      alive = false
+    }
   }, [agentPromptOpen, selectedAgent, post.id])
 
   // Scroll modal to bottom when it opens or history loads
@@ -1099,21 +1252,38 @@ export default function Editor({
   // DnD sensors (pointer only to avoid key conflicts)
   const sensors = useSensors(useSensor(PointerSensor))
 
-  function SortableItem({ id, disabled, children }: { id: string; disabled?: boolean; children: React.ReactNode | ((listeners: any, attributes: any) => React.ReactNode) }) {
-    const { attributes, listeners, setNodeRef, transform, transition } = useSortable({ id, disabled: !!disabled })
+  function SortableItem({
+    id,
+    disabled,
+    children,
+  }: {
+    id: string
+    disabled?: boolean
+    children: React.ReactNode | ((listeners: any, attributes: any) => React.ReactNode)
+  }) {
+    const { attributes, listeners, setNodeRef, transform, transition } = useSortable({
+      id,
+      disabled: !!disabled,
+    })
     const style = {
       transform: CSS.Transform.toString(transform),
       transition,
     }
     return (
       <div ref={setNodeRef} style={style} {...(disabled ? {} : attributes)}>
-        {typeof children === 'function' ? (children(disabled ? {} : listeners, disabled ? {} : attributes)) : children}
+        {typeof children === 'function'
+          ? children(disabled ? {} : listeners, disabled ? {} : attributes)
+          : children}
       </div>
     )
   }
 
   const orderedIds = useMemo(
-    () => modules.slice().sort((a, b) => a.orderIndex - b.orderIndex).map((m) => m.id),
+    () =>
+      modules
+        .slice()
+        .sort((a, b) => a.orderIndex - b.orderIndex)
+        .map((m) => m.id),
     [modules]
   )
 
@@ -1128,12 +1298,15 @@ export default function Editor({
         fetch(`/api/post-modules/${encodeURIComponent(m.id)}`, {
           method: 'PUT',
           headers: {
-            Accept: 'application/json',
+            'Accept': 'application/json',
             'Content-Type': 'application/json',
             ...xsrfHeader(),
           },
           credentials: 'same-origin',
-          body: JSON.stringify({ orderIndex: index, mode: viewMode === 'review' ? 'review' : 'publish' }),
+          body: JSON.stringify({
+            orderIndex: index,
+            mode: viewMode === 'review' ? 'review' : 'publish',
+          }),
         })
       )
     await Promise.allSettled(updates)
@@ -1148,7 +1321,7 @@ export default function Editor({
       const res = await fetch(`/api/posts/${post.id}/modules`, {
         method: 'POST',
         headers: {
-          Accept: 'application/json',
+          'Accept': 'application/json',
           'Content-Type': 'application/json',
           ...xsrfHeader(),
         },
@@ -1180,13 +1353,17 @@ export default function Editor({
   }
 
   // Handle adding new modules locally (without API call)
-  async function handleAddModule(payload: { type: string; scope: 'post' | 'global'; globalSlug?: string | null }) {
+  async function handleAddModule(payload: {
+    type: string
+    scope: 'post' | 'global'
+    globalSlug?: string | null
+  }) {
     if (!modulesEnabled) return
     const tempId = `temp-${Date.now()}-${Math.random().toString(36).substring(2, 9)}`
-    const nextOrderIndex = Math.max(-1, ...modules.map(m => m.orderIndex)) + 1
+    const nextOrderIndex = Math.max(-1, ...modules.map((m) => m.orderIndex)) + 1
 
     // Add to pending new modules
-    setPendingNewModules(prev => [
+    setPendingNewModules((prev) => [
       ...prev,
       {
         tempId,
@@ -1194,7 +1371,7 @@ export default function Editor({
         scope: payload.scope === 'post' ? 'local' : 'global',
         globalSlug: payload.globalSlug || null,
         orderIndex: nextOrderIndex,
-      }
+      },
     ])
 
     // Add to modules display list with temporary data
@@ -1208,7 +1385,7 @@ export default function Editor({
       orderIndex: nextOrderIndex,
     }
 
-    setModules(prev => [...prev, newModule])
+    setModules((prev) => [...prev, newModule])
     setHasStructuralChanges(true)
   }
 
@@ -1222,9 +1399,7 @@ export default function Editor({
     if (dragged?.locked || overItem?.locked) return
 
     // Reorder only within unlocked modules while keeping locked modules fixed
-    const lockedPositions = current
-      .map((m, idx) => ({ m, idx }))
-      .filter(({ m }) => m.locked)
+    const lockedPositions = current.map((m, idx) => ({ m, idx })).filter(({ m }) => m.locked)
     const unlocked = current.filter((m) => !m.locked)
     const unlockedOld = unlocked.findIndex((m) => m.id === active.id)
     const unlockedNew = unlocked.findIndex((m) => m.id === over.id)
@@ -1290,7 +1465,7 @@ export default function Editor({
     }
     if (!hasReviewBaseline && viewMode === 'review') {
       // Review draft removed/absent; fall back safely.
-      setViewMode(hasAiReviewBaseline ? 'ai-review' : (hasSourceBaseline ? 'source' : 'ai-review'))
+      setViewMode(hasAiReviewBaseline ? 'ai-review' : hasSourceBaseline ? 'source' : 'ai-review')
     }
   }, [hasSourceBaseline, hasAiReviewBaseline, hasReviewBaseline, viewMode])
 
@@ -1327,7 +1502,10 @@ export default function Editor({
     setEditing(adjusted)
   }, [viewMode, modules, editing?.id, adjustModuleForView])
 
-  const translationsSet = useMemo(() => new Set((translations || []).map((t) => t.locale)), [translations])
+  const translationsSet = useMemo(
+    () => new Set((translations || []).map((t) => t.locale)),
+    [translations]
+  )
   const availableLocales = useMemo(() => {
     const base = new Set<string>(supportedLocales.length ? supportedLocales : ['en'])
     translations?.forEach((t) => base.add(t.locale))
@@ -1362,7 +1540,9 @@ export default function Editor({
         })
       })
       const results = await Promise.allSettled(updates)
-      const anyFailed = results.some((r) => r.status === 'rejected' || (r.status === 'fulfilled' && !(r.value as Response).ok))
+      const anyFailed = results.some(
+        (r) => r.status === 'rejected' || (r.status === 'fulfilled' && !(r.value as Response).ok)
+      )
       if (anyFailed) {
         toast.error('Failed to save module changes')
         throw new Error('Failed to save module changes')
@@ -1416,16 +1596,16 @@ export default function Editor({
             {/* Content Card */}
             <div className="bg-backdrop-low rounded-lg p-6 border border-line-low">
               <div className="flex items-start justify-between gap-3 mb-4">
-                <h2 className="text-lg font-semibold text-neutral-high">
-                  Content
-                </h2>
+                <h2 className="text-lg font-semibold text-neutral-high">Content</h2>
                 {uiConfig?.hasPermalinks !== false && (
                   <button
                     className="px-2 py-1 text-xs border border-border rounded hover:bg-backdrop-medium text-neutral-medium"
                     onClick={() => {
                       const base = (post as any).publicPath || `/posts/${post.slug}`
                       const target =
-                        viewMode === 'review' ? `${base}${base.includes('?') ? '&' : '?'}view=review` : base
+                        viewMode === 'review'
+                          ? `${base}${base.includes('?') ? '&' : '?'}view=review`
+                          : base
                       window.open(target, '_blank')
                     }}
                     type="button"
@@ -1456,9 +1636,7 @@ export default function Editor({
                       }}
                       placeholder="Enter post title"
                     />
-                    {errors.title && (
-                      <p className="text-sm text-[#dc2626] mt-1">{errors.title}</p>
-                    )}
+                    {errors.title && <p className="text-sm text-[#dc2626] mt-1">{errors.title}</p>}
                   </div>
                 )}
 
@@ -1479,14 +1657,14 @@ export default function Editor({
                 </div>
 
                 {/* Featured Image (core) */}
-                {(uiConfig?.featuredImage?.enabled) && (
+                {uiConfig?.featuredImage?.enabled && (
                   <div className="group">
                     <label className="block text-sm font-medium text-neutral-medium mb-1">
                       <div className="flex items-center justify-between">
-                      <span className="inline-flex items-center gap-1">
-                        <Star className="w-3 h-3 text-amber-500" aria-hidden="true" />
-                        <span>{uiConfig.featuredImage.label || 'Featured Image'}</span>
-                      </span>
+                        <span className="inline-flex items-center gap-1">
+                          <Star className="w-3 h-3 text-amber-500" aria-hidden="true" />
+                          <span>{uiConfig.featuredImage.label || 'Featured Image'}</span>
+                        </span>
                         {featuredImageFieldAgents.length > 0 && hasFieldPermission && (
                           <button
                             type="button"
@@ -1501,9 +1679,16 @@ export default function Editor({
                               }
                             }}
                             className="opacity-0 group-hover:opacity-100 transition-opacity p-1 hover:bg-backdrop-medium rounded"
-                            title={featuredImageFieldAgents.length === 1 ? featuredImageFieldAgents[0].name : 'AI Assistant'}
+                            title={
+                              featuredImageFieldAgents.length === 1
+                                ? featuredImageFieldAgents[0].name
+                                : 'AI Assistant'
+                            }
                           >
-                            <FontAwesomeIcon icon={faWandMagicSparkles} className="text-xs text-primary" />
+                            <FontAwesomeIcon
+                              icon={faWandMagicSparkles}
+                              className="text-xs text-primary"
+                            />
                           </button>
                         )}
                       </div>
@@ -1558,10 +1743,15 @@ export default function Editor({
                       ).length
                       const limit = tax.maxSelections === null ? Infinity : tax.maxSelections
                       return (
-                        <div key={tax.slug} className="space-y-2 rounded border border-border p-3 bg-backdrop-low">
+                        <div
+                          key={tax.slug}
+                          className="space-y-2 rounded border border-border p-3 bg-backdrop-low"
+                        >
                           <div className="text-sm font-medium text-neutral-high">{tax.name}</div>
                           {tax.options.length === 0 ? (
-                            <p className="text-xs text-neutral-low">No terms available for {tax.name}</p>
+                            <p className="text-xs text-neutral-low">
+                              No terms available for {tax.name}
+                            </p>
                           ) : (
                             <div className="space-y-2">
                               {tax.options.map((opt, idx) => {
@@ -1578,7 +1768,9 @@ export default function Editor({
                                       onCheckedChange={(val) => toggleTaxonomyTerm(opt.id, !!val)}
                                       aria-label={opt.label}
                                     />
-                                    <span className={disableUnchecked ? 'text-neutral-low' : ''}>{opt.label}</span>
+                                    <span className={disableUnchecked ? 'text-neutral-low' : ''}>
+                                      {opt.label}
+                                    </span>
                                   </label>
                                 )
                               })}
@@ -1591,7 +1783,9 @@ export default function Editor({
                                   taxonomyInputRefs.current[tax.slug] = el
                                 }}
                                 value={newTermNames[tax.slug] || ''}
-                                onChange={(e) => setNewTermNames((m) => ({ ...m, [tax.slug]: e.target.value }))}
+                                onChange={(e) =>
+                                  setNewTermNames((m) => ({ ...m, [tax.slug]: e.target.value }))
+                                }
                                 onKeyDown={(e) => {
                                   if (e.key === 'Enter') {
                                     e.preventDefault()
@@ -1629,10 +1823,16 @@ export default function Editor({
                 )}
                 {/* Order Index */}
                 <div>
-                  <label className="block text-sm font-medium text-neutral-medium mb-1">Order</label>
+                  <label className="block text-sm font-medium text-neutral-medium mb-1">
+                    Order
+                  </label>
                   <Input
                     type="number"
-                    value={typeof data.orderIndex === 'number' ? data.orderIndex : Number(data.orderIndex || 0)}
+                    value={
+                      typeof data.orderIndex === 'number'
+                        ? data.orderIndex
+                        : Number(data.orderIndex || 0)
+                    }
                     onChange={(e) => setData('orderIndex', Number(e.target.value) || 0)}
                     min={0}
                     className="w-32"
@@ -1646,9 +1846,13 @@ export default function Editor({
                 <div className="mt-6">
                   <div className="space-y-4">
                     {initialCustomFields.map((f) => {
-                      const entry = (data as any).customFields?.find((e: any) => e.fieldId === f.id) || { value: null }
+                      const entry = (data as any).customFields?.find(
+                        (e: any) => e.fieldId === f.id
+                      ) || { value: null }
                       const setValue = (val: any) => {
-                        const prev: any[] = Array.isArray((data as any).customFields) ? (data as any).customFields : []
+                        const prev: any[] = Array.isArray((data as any).customFields)
+                          ? (data as any).customFields
+                          : []
                         const list = prev.slice()
                         const idx = list.findIndex((e) => e.fieldId === f.id)
                         const next = { fieldId: f.id, slug: f.slug, value: val }
@@ -1659,9 +1863,14 @@ export default function Editor({
                       const rendererKey = (f as any).fieldType || (f as any).type
                       const compName =
                         fieldRenderers.get(rendererKey) ||
-                        rendererKey?.split('/').pop()?.replace(/\.\w+$/, '') ||
+                        rendererKey
+                          ?.split('/')
+                          .pop()
+                          ?.replace(/\.\w+$/, '') ||
                         `${pascalFromType(rendererKey)}Field`
-                      const Renderer = compName ? (fieldComponents as Record<string, any>)[compName] : undefined
+                      const Renderer = compName
+                        ? (fieldComponents as Record<string, any>)[compName]
+                        : undefined
                       if (Renderer) {
                         const cfg = (f as any).config || {}
                         const isSelect = compName === 'SelectField'
@@ -1706,8 +1915,10 @@ export default function Editor({
                       if (f.fieldType === 'media') {
                         const currentId: string | null =
                           typeof entry.value === 'string'
-                            ? (entry.value || null)
-                            : (entry.value?.id ? String(entry.value.id) : null)
+                            ? entry.value || null
+                            : entry.value?.id
+                              ? String(entry.value.id)
+                              : null
                         return (
                           <div key={f.id}>
                             <label className="block text-sm font-medium text-neutral-medium mb-1">
@@ -1759,8 +1970,10 @@ export default function Editor({
                         const current = entry.value || null
                         const currentLabel: string | null =
                           typeof current === 'object' && current !== null
-                            ? (current.originalFilename || current.filename || current.name || null)
-                            : (typeof current === 'string' ? current : null)
+                            ? current.originalFilename || current.filename || current.name || null
+                            : typeof current === 'string'
+                              ? current
+                              : null
                         const handleFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
                           const file = e.target.files?.[0]
                           if (!file) return
@@ -1843,8 +2056,8 @@ export default function Editor({
                               />
                               <p className="text-[11px] text-neutral-low">
                                 Enter a Font Awesome class string (for example{' '}
-                                <code className="font-mono text-[11px]">fa-solid fa-briefcase</code>). This will be
-                                rendered wherever the field is used.
+                                <code className="font-mono text-[11px]">fa-solid fa-briefcase</code>
+                                ). This will be rendered wherever the field is used.
                               </p>
                               {current && (
                                 <div className="flex items-center gap-2 text-[11px] text-neutral-medium">
@@ -1895,7 +2108,11 @@ export default function Editor({
                       <p>No modules yet. Use “Add Module” to insert one.</p>
                     </div>
                   ) : (
-                    <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={onDragEnd}>
+                    <DndContext
+                      sensors={sensors}
+                      collisionDetection={closestCenter}
+                      onDragEnd={onDragEnd}
+                    >
                       <SortableContext items={orderedIds} strategy={verticalListSortingStrategy}>
                         <ul className="space-y-3">
                           {sortedModules.map((m) => (
@@ -1914,10 +2131,18 @@ export default function Editor({
                                     <div>
                                       <div className="text-sm font-medium text-neutral-high">
                                         {m.scope === 'global'
-                                          ? (globalSlugToLabel.get(String((m as any).globalSlug || '')) || (m as any).globalLabel || (m as any).globalSlug || (moduleRegistry[m.type]?.name || m.type))
-                                          : (moduleRegistry[m.type]?.name || m.type)}
+                                          ? globalSlugToLabel.get(
+                                              String((m as any).globalSlug || '')
+                                            ) ||
+                                            (m as any).globalLabel ||
+                                            (m as any).globalSlug ||
+                                            moduleRegistry[m.type]?.name ||
+                                            m.type
+                                          : moduleRegistry[m.type]?.name || m.type}
                                       </div>
-                                      <div className="text-xs text-neutral-low">Order: {m.orderIndex}</div>
+                                      <div className="text-xs text-neutral-low">
+                                        Order: {m.orderIndex}
+                                      </div>
                                     </div>
                                   </div>
                                   <div className="flex items-center gap-2">
@@ -1927,29 +2152,30 @@ export default function Editor({
                                         title="React module (client-side interactivity)"
                                         aria-label="React module"
                                       >
-                                        <FontAwesomeIcon icon={faReact} className="mr-1 text-sky-400" />
+                                        <FontAwesomeIcon
+                                          icon={faReact}
+                                          className="mr-1 text-sky-400"
+                                        />
                                         React
                                       </span>
                                     )}
-                                    {m.scope === 'global'
-                                      ? (
-                                        <span
-                                          className="inline-flex items-center rounded border border-line-medium bg-backdrop-low px-2 py-1 text-xs text-neutral-high"
-                                          title="Global module"
-                                          aria-label="Global module"
-                                        >
-                                          <FontAwesomeIcon icon={faGlobe} className="w-3.5 h-3.5" />
-                                        </span>
-                                      )
-                                      : (
-                                        <button
-                                          className="text-xs px-2 py-1 rounded border border-line-low bg-backdrop-input text-neutral-high hover:bg-backdrop-medium"
-                                          onClick={() => setEditing(adjustModuleForView(m))}
-                                          type="button"
-                                        >
-                                          Edit
-                                        </button>
-                                      )}
+                                    {m.scope === 'global' ? (
+                                      <span
+                                        className="inline-flex items-center rounded border border-line-medium bg-backdrop-low px-2 py-1 text-xs text-neutral-high"
+                                        title="Global module"
+                                        aria-label="Global module"
+                                      >
+                                        <FontAwesomeIcon icon={faGlobe} className="w-3.5 h-3.5" />
+                                      </span>
+                                    ) : (
+                                      <button
+                                        className="text-xs px-2 py-1 rounded border border-line-low bg-backdrop-input text-neutral-high hover:bg-backdrop-medium"
+                                        onClick={() => setEditing(adjustModuleForView(m))}
+                                        type="button"
+                                      >
+                                        Edit
+                                      </button>
+                                    )}
                                     <button
                                       className="text-xs px-2 py-1 rounded border border-[#ef4444] text-[#ef4444] hover:bg-[rgba(239,68,68,0.1)] disabled:opacity-50"
                                       disabled={m.locked}
@@ -1995,9 +2221,7 @@ export default function Editor({
 
             {/* SEO Card */}
             <div className="bg-backdrop-low rounded-lg p-6 border border-line-low">
-              <h2 className="text-lg font-semibold text-neutral-high mb-4">
-                SEO
-              </h2>
+              <h2 className="text-lg font-semibold text-neutral-high mb-4">SEO</h2>
 
               <div className="space-y-4">
                 {/* Slug */}
@@ -2024,9 +2248,7 @@ export default function Editor({
                     className="font-mono text-sm"
                     placeholder="post-slug"
                   />
-                  {errors.slug && (
-                    <p className="text-sm text-[#dc2626] mt-1">{errors.slug}</p>
-                  )}
+                  {errors.slug && <p className="text-sm text-[#dc2626] mt-1">{errors.slug}</p>}
                   {pathPattern && (
                     <p className="mt-1 text-xs text-neutral-low font-mono">
                       Preview: {buildPreviewPath(data.slug)}
@@ -2044,9 +2266,7 @@ export default function Editor({
                     onChange={(e) => setData('metaTitle', e.target.value)}
                     placeholder="Custom meta title (optional)"
                   />
-                  <p className="text-xs text-neutral-low mt-1">
-                    Leave blank to use post title
-                  </p>
+                  <p className="text-xs text-neutral-low mt-1">Leave blank to use post title</p>
                 </div>
 
                 {/* Meta Description */}
@@ -2060,9 +2280,7 @@ export default function Editor({
                     rows={3}
                     placeholder="Custom meta description (optional)"
                   />
-                  <p className="text-xs text-neutral-low mt-1">
-                    Recommended: 150-160 characters
-                  </p>
+                  <p className="text-xs text-neutral-low mt-1">Recommended: 150-160 characters</p>
                 </div>
 
                 {/* Canonical URL */}
@@ -2117,14 +2335,11 @@ export default function Editor({
             {/* end left column */}
           </div>
 
-
           {/* Right Column - Sidebar */}
           <div className="space-y-6">
             {/* Actions */}
             <div className="bg-backdrop-low rounded-lg shadow p-6 border border-border">
-              <h3 className="text-sm font-semibold text-neutral-high mb-4">
-                Actions
-              </h3>
+              <h3 className="text-sm font-semibold text-neutral-high mb-4">Actions</h3>
               <div className="space-y-6">
                 {/* Active Version toggle */}
                 <div className="flex items-center gap-2">
@@ -2200,7 +2415,9 @@ export default function Editor({
                       <SelectContent className="text-xs">
                         {availableLocales.map((loc) => {
                           const exists = translationsSet.has(loc)
-                          const label = exists ? `${loc.toUpperCase()}` : `${loc.toUpperCase()} (missing)`
+                          const label = exists
+                            ? `${loc.toUpperCase()}`
+                            : `${loc.toUpperCase()} (missing)`
                           return (
                             <SelectItem key={loc} value={loc} className="text-xs">
                               {label}
@@ -2219,7 +2436,7 @@ export default function Editor({
                         const res = await fetch(`/api/posts/${post.id}/translations`, {
                           method: 'POST',
                           headers: {
-                            Accept: 'application/json',
+                            'Accept': 'application/json',
                             'Content-Type': 'application/json',
                             ...xsrfHeader(),
                           },
@@ -2246,14 +2463,14 @@ export default function Editor({
                   <label className="block text-xs font-medium text-neutral-medium mb-1">
                     <div className="flex items-center gap-2">
                       <span>Agent</span>
-                      <FontAwesomeIcon icon={faWandMagicSparkles} className="text-xs text-primary" />
+                      <FontAwesomeIcon
+                        icon={faWandMagicSparkles}
+                        className="text-xs text-primary"
+                      />
                     </div>
                   </label>
                   <div>
-                    <Select
-                      value={selectedAgent}
-                      onValueChange={(val) => setSelectedAgent(val)}
-                    >
+                    <Select value={selectedAgent} onValueChange={(val) => setSelectedAgent(val)}>
                       <SelectTrigger className="w-full h-8 text-xs">
                         <SelectValue placeholder="Select an agent" />
                       </SelectTrigger>
@@ -2306,9 +2523,9 @@ export default function Editor({
                                 {agentResponse ? 'Agent Response' : 'Instructions'}
                               </AlertDialogTitle>
                               {agentResponse && (
-                              <AlertDialogDescription>
+                                <AlertDialogDescription>
                                   Review the AI response and changes that were applied:
-                              </AlertDialogDescription>
+                                </AlertDialogDescription>
                               )}
                             </AlertDialogHeader>
 
@@ -2357,26 +2574,36 @@ export default function Editor({
                                           <div className="flex justify-start">
                                             <div className="max-w-[80%] space-y-1">
                                               <div className="bg-backdrop-medium p-3 rounded-lg rounded-tl-sm border border-line-medium text-sm">
-                                                {item.response.summary || (
-                                                  item.response.rawResponse
+                                                {item.response.summary ||
+                                                  (item.response.rawResponse
                                                     ? (() => {
-                                                      try {
-                                                        const jsonMatch = item.response.rawResponse?.match(/```(?:json)?\s*(\{[\s\S]*\})\s*```/)
-                                                        const jsonStr = jsonMatch ? jsonMatch[1] : item.response.rawResponse
-                                                        const parsed = JSON.parse(jsonStr)
-                                                        return parsed.summary || 'Changes applied.'
-                                                      } catch {
-                                                        return item.response.rawResponse || 'Changes applied.'
-                                                      }
-                                                    })()
-                                                    : 'Changes applied.'
-                                                )}
+                                                        try {
+                                                          const jsonMatch =
+                                                            item.response.rawResponse?.match(
+                                                              /```(?:json)?\s*(\{[\s\S]*\})\s*```/
+                                                            )
+                                                          const jsonStr = jsonMatch
+                                                            ? jsonMatch[1]
+                                                            : item.response.rawResponse
+                                                          const parsed = JSON.parse(jsonStr)
+                                                          return (
+                                                            parsed.summary || 'Changes applied.'
+                                                          )
+                                                        } catch {
+                                                          return (
+                                                            item.response.rawResponse ||
+                                                            'Changes applied.'
+                                                          )
+                                                        }
+                                                      })()
+                                                    : 'Changes applied.')}
                                               </div>
-                                              {item.response.applied && item.response.applied.length > 0 && (
-                                                <div className="text-xs text-neutral-medium">
-                                                  Applied: {item.response.applied.join(', ')}
-                                                </div>
-                                              )}
+                                              {item.response.applied &&
+                                                item.response.applied.length > 0 && (
+                                                  <div className="text-xs text-neutral-medium">
+                                                    Applied: {item.response.applied.join(', ')}
+                                                  </div>
+                                                )}
                                             </div>
                                           </div>
                                         )}
@@ -2416,29 +2643,29 @@ export default function Editor({
 
                                 {/* Current Input */}
                                 <div className="space-y-2">
-                              <Textarea
-                                value={agentOpenEndedContext}
-                                onChange={(e) => setAgentOpenEndedContext(e.target.value)}
-                                placeholder={(() => {
-                                  const a = agents.find((x) => x.id === selectedAgent)
-                                  return (
-                                    a?.openEndedContext?.placeholder ||
+                                  <Textarea
+                                    value={agentOpenEndedContext}
+                                    onChange={(e) => setAgentOpenEndedContext(e.target.value)}
+                                    placeholder={(() => {
+                                      const a = agents.find((x) => x.id === selectedAgent)
+                                      return (
+                                        a?.openEndedContext?.placeholder ||
                                         'Example: "Rewrite this page for a more confident tone. Keep it under 500 words. Preserve the CTA."'
-                                  )
-                                })()}
-                                className="min-h-[120px]"
-                              />
-                              {(() => {
-                                const a = agents.find((x) => x.id === selectedAgent)
-                                const max = a?.openEndedContext?.maxChars
-                                if (!max) return null
-                                return (
-                                  <div className="text-xs text-neutral-medium">
-                                    {agentOpenEndedContext.length}/{max}
-                                  </div>
-                                )
-                              })()}
-                            </div>
+                                      )
+                                    })()}
+                                    className="min-h-[120px]"
+                                  />
+                                  {(() => {
+                                    const a = agents.find((x) => x.id === selectedAgent)
+                                    const max = a?.openEndedContext?.maxChars
+                                    if (!max) return null
+                                    return (
+                                      <div className="text-xs text-neutral-medium">
+                                        {agentOpenEndedContext.length}/{max}
+                                      </div>
+                                    )
+                                  })()}
+                                </div>
                               </div>
                             ) : (
                               <div className="mt-3 space-y-4">
@@ -2471,11 +2698,16 @@ export default function Editor({
                                         // Try to parse as JSON and extract summary
                                         try {
                                           // First try to extract JSON from markdown code blocks
-                                          const jsonMatch = raw.match(/```(?:json)?\s*(\{[\s\S]*\})\s*```/)
+                                          const jsonMatch = raw.match(
+                                            /```(?:json)?\s*(\{[\s\S]*\})\s*```/
+                                          )
                                           const jsonStr = jsonMatch ? jsonMatch[1] : raw
                                           const parsed = JSON.parse(jsonStr)
                                           // If there's a summary field, use it
-                                          if (parsed.summary && typeof parsed.summary === 'string') {
+                                          if (
+                                            parsed.summary &&
+                                            typeof parsed.summary === 'string'
+                                          ) {
                                             return parsed.summary
                                           }
                                           // If no summary, return a message indicating we couldn't extract it
@@ -2491,7 +2723,9 @@ export default function Editor({
 
                                 {agentResponse.applied && agentResponse.applied.length > 0 && (
                                   <div className="space-y-1">
-                                    <div className="text-xs text-neutral-medium">Changes applied:</div>
+                                    <div className="text-xs text-neutral-medium">
+                                      Changes applied:
+                                    </div>
                                     <div className="bg-success-light p-3 rounded border border-success-medium">
                                       <ul className="list-disc list-inside space-y-1 text-sm">
                                         {agentResponse.applied.map((field, i) => (
@@ -2513,10 +2747,10 @@ export default function Editor({
                             <AlertDialogFooter>
                               {agentResponse ? (
                                 <>
-                              <AlertDialogCancel
-                                type="button"
-                                onClick={() => {
-                                  setAgentPromptOpen(false)
+                                  <AlertDialogCancel
+                                    type="button"
+                                    onClick={() => {
+                                      setAgentPromptOpen(false)
                                       setAgentResponse(null)
                                       setAgentOpenEndedContext('')
                                     }}
@@ -2531,14 +2765,18 @@ export default function Editor({
                                       setAgentOpenEndedContext('')
                                       // Switch to AI Review view to see the changes
                                       const agent = agents.find((x) => x.id === selectedAgent)
-                                      const targetMode = (agent as any)?.type === 'internal' ? 'ai-review' : 'review'
+                                      const targetMode =
+                                        (agent as any)?.type === 'internal' ? 'ai-review' : 'review'
                                       // Update URL to preserve view mode on reload
                                       const url = new URL(window.location.href)
                                       url.searchParams.set('view', targetMode)
                                       window.history.replaceState({}, '', url.toString())
                                       // Reload data to get the latest changes from the agent
                                       router.reload({
-                                        only: targetMode === 'ai-review' ? ['aiReviewDraft', 'post', 'modules'] : ['reviewDraft', 'post', 'modules'],
+                                        only:
+                                          targetMode === 'ai-review'
+                                            ? ['aiReviewDraft', 'post', 'modules']
+                                            : ['reviewDraft', 'post', 'modules'],
                                         onSuccess: () => {
                                           // After reload, switch to the target mode
                                           setViewMode(targetMode)
@@ -2556,53 +2794,55 @@ export default function Editor({
                                     onClick={() => {
                                       setAgentPromptOpen(false)
                                       setAgentResponse(null)
-                                }}
-                              >
-                                Cancel
-                              </AlertDialogCancel>
-                              <AlertDialogAction
-                                type="button"
+                                    }}
+                                  >
+                                    Cancel
+                                  </AlertDialogCancel>
+                                  <AlertDialogAction
+                                    type="button"
                                     disabled={runningAgent}
                                     onClick={async (e) => {
                                       // Prevent default form submission behavior and stop propagation
                                       e.preventDefault()
                                       e.stopPropagation()
-                                  if (!selectedAgent) return
+                                      if (!selectedAgent) return
                                       // CRITICAL: Set running state BEFORE any async operations
                                       // This prevents the dialog from closing via onOpenChange
-                                  setRunningAgent(true)
+                                      setRunningAgent(true)
                                       setAgentResponse(null)
                                       // Force dialog to stay open
                                       setAgentPromptOpen(true)
-                                  try {
-                                    const csrf = (() => {
-                                      if (typeof document === 'undefined') return undefined
-                                      const m = document.cookie.match(/(?:^|; )XSRF-TOKEN=([^;]+)/)
-                                      return m ? decodeURIComponent(m[1]) : undefined
-                                    })()
+                                      try {
+                                        const csrf = (() => {
+                                          if (typeof document === 'undefined') return undefined
+                                          const m = document.cookie.match(
+                                            /(?:^|; )XSRF-TOKEN=([^;]+)/
+                                          )
+                                          return m ? decodeURIComponent(m[1]) : undefined
+                                        })()
 
-                                    const openEnded = agentOpenEndedContext.trim()
-                                    const res = await fetch(
-                                      `/api/posts/${post.id}/agents/${encodeURIComponent(selectedAgent)}/run`,
-                                      {
-                                        method: 'POST',
-                                        headers: {
-                                          Accept: 'application/json',
-                                          'Content-Type': 'application/json',
-                                          ...(csrf ? { 'X-XSRF-TOKEN': csrf } : {}),
-                                        },
-                                        credentials: 'same-origin',
-                                        body: JSON.stringify({
+                                        const openEnded = agentOpenEndedContext.trim()
+                                        const res = await fetch(
+                                          `/api/posts/${post.id}/agents/${encodeURIComponent(selectedAgent)}/run`,
+                                          {
+                                            method: 'POST',
+                                            headers: {
+                                              'Accept': 'application/json',
+                                              'Content-Type': 'application/json',
+                                              ...(csrf ? { 'X-XSRF-TOKEN': csrf } : {}),
+                                            },
+                                            credentials: 'same-origin',
+                                            body: JSON.stringify({
                                               context: {
                                                 locale: selectedLocale,
                                                 viewMode: viewMode, // Pass current view mode to agent
                                               },
-                                          openEndedContext: openEnded || undefined,
-                                        }),
-                                      }
-                                    )
-                                    const j = await res.json().catch(() => ({}))
-                                    if (res.ok) {
+                                              openEndedContext: openEnded || undefined,
+                                            }),
+                                          }
+                                        )
+                                        const j = await res.json().catch(() => ({}))
+                                        if (res.ok) {
                                           // Keep dialog open and show response
                                           setAgentResponse({
                                             rawResponse: j.rawResponse,
@@ -2622,9 +2862,15 @@ export default function Editor({
                                               }
                                             )
                                             if (historyRes.ok) {
-                                              const historyJson = await historyRes.json().catch(() => null)
+                                              const historyJson = await historyRes
+                                                .json()
+                                                .catch(() => null)
                                               if (historyJson?.data) {
-                                                setAgentHistory(Array.isArray(historyJson.data) ? historyJson.data : [])
+                                                setAgentHistory(
+                                                  Array.isArray(historyJson.data)
+                                                    ? historyJson.data
+                                                    : []
+                                                )
                                               }
                                             }
                                           } catch {
@@ -2636,31 +2882,36 @@ export default function Editor({
                                           // Wrap in try-catch to prevent reload errors from affecting the UI
                                           setTimeout(() => {
                                             try {
-                                              router.reload({ only: ['aiReviewDraft', 'post', 'modules'] })
+                                              router.reload({
+                                                only: ['aiReviewDraft', 'post', 'modules'],
+                                              })
                                             } catch (reloadError) {
-                                              console.warn('Page reload failed (non-critical):', reloadError)
+                                              console.warn(
+                                                'Page reload failed (non-critical):',
+                                                reloadError
+                                              )
                                               // Reload failed but agent succeeded - user can manually refresh
                                             }
                                           }, 100)
-                                    } else {
-                                      toast.error(j?.error || 'Agent run failed')
+                                        } else {
+                                          toast.error(j?.error || 'Agent run failed')
                                           setAgentResponse({
                                             message: `Error: ${j?.error || 'Agent run failed'}`,
                                           })
-                                    }
+                                        }
                                       } catch (error: any) {
                                         console.error('Agent execution error:', error)
-                                    toast.error('Agent run failed')
+                                        toast.error('Agent run failed')
                                         setAgentResponse({
                                           message: `Error: ${error?.message || 'Agent run failed'}`,
                                         })
-                                  } finally {
-                                    setRunningAgent(false)
-                                  }
-                                }}
-                              >
+                                      } finally {
+                                        setRunningAgent(false)
+                                      }
+                                    }}
+                                  >
                                     {runningAgent ? 'Running…' : 'Run Agent'}
-                              </AlertDialogAction>
+                                  </AlertDialogAction>
                                 </>
                               )}
                             </AlertDialogFooter>
@@ -2678,11 +2929,11 @@ export default function Editor({
                               return
                             }
                             // No prompt required: run immediately, but still show response in dialog
-                            ; (async () => {
+                            ;(async () => {
                               // Open dialog FIRST to ensure it's open before setting running state
                               setAgentPromptOpen(true)
                               // Use requestAnimationFrame to ensure dialog state is set before preventing close
-                              await new Promise(resolve => requestAnimationFrame(resolve))
+                              await new Promise((resolve) => requestAnimationFrame(resolve))
                               setRunningAgent(true)
                               setAgentResponse(null)
                               try {
@@ -2696,7 +2947,7 @@ export default function Editor({
                                   {
                                     method: 'POST',
                                     headers: {
-                                      Accept: 'application/json',
+                                      'Accept': 'application/json',
                                       'Content-Type': 'application/json',
                                       ...(csrf ? { 'X-XSRF-TOKEN': csrf } : {}),
                                     },
@@ -2726,7 +2977,9 @@ export default function Editor({
                                     if (historyRes.ok) {
                                       const historyJson = await historyRes.json().catch(() => null)
                                       if (historyJson?.data) {
-                                        setAgentHistory(Array.isArray(historyJson.data) ? historyJson.data : [])
+                                        setAgentHistory(
+                                          Array.isArray(historyJson.data) ? historyJson.data : []
+                                        )
                                       }
                                     }
                                   } catch {
@@ -2738,7 +2991,10 @@ export default function Editor({
                                     try {
                                       router.reload({ only: ['aiReviewDraft', 'post'] })
                                     } catch (reloadError) {
-                                      console.warn('Page reload failed (non-critical):', reloadError)
+                                      console.warn(
+                                        'Page reload failed (non-critical):',
+                                        reloadError
+                                      )
                                     }
                                   }, 100)
                                 } else {
@@ -2773,7 +3029,10 @@ export default function Editor({
                       Status
                     </label>
                     <div className="flex items-center gap-2">
-                      <Select defaultValue={data.status} onValueChange={(val) => setData('status', val)}>
+                      <Select
+                        defaultValue={data.status}
+                        onValueChange={(val) => setData('status', val)}
+                      >
                         <SelectTrigger className="w-[180px]">
                           <SelectValue />
                         </SelectTrigger>
@@ -2809,19 +3068,32 @@ export default function Editor({
                           <PopoverContent className="p-0">
                             <Calendar
                               mode="single"
-                              selected={(data as any).scheduledAt ? new Date((data as any).scheduledAt) : undefined}
+                              selected={
+                                (data as any).scheduledAt
+                                  ? new Date((data as any).scheduledAt)
+                                  : undefined
+                              }
                               onSelect={(d: Date | undefined) => {
                                 if (!d) {
                                   setData('scheduledAt' as any, '')
                                   return
                                 }
-                                const local = new Date(d.getFullYear(), d.getMonth(), d.getDate(), 0, 0, 0)
+                                const local = new Date(
+                                  d.getFullYear(),
+                                  d.getMonth(),
+                                  d.getDate(),
+                                  0,
+                                  0,
+                                  0
+                                )
                                 setData('scheduledAt' as any, local.toISOString())
                               }}
                             />
                           </PopoverContent>
                         </Popover>
-                        <p className="text-xs text-neutral-low">Scheduler will publish on the selected day.</p>
+                        <p className="text-xs text-neutral-low">
+                          Scheduler will publish on the selected day.
+                        </p>
                       </div>
                     )}
                   </div>
@@ -2833,25 +3105,26 @@ export default function Editor({
                       Save edits to
                     </label>
                     <div className="flex items-center gap-2">
-                      <Select
-                        value={saveTarget}
-                        onValueChange={(val) => setSaveTarget(val as any)}
-                      >
+                      <Select value={saveTarget} onValueChange={(val) => setSaveTarget(val as any)}>
                         <SelectTrigger className="flex-1 h-8 text-xs">
                           <SelectValue />
                         </SelectTrigger>
                         <SelectContent className="text-xs">
-                          <SelectItem value="source" className="text-xs">Source</SelectItem>
-                          {canSaveForReview && <SelectItem value="review" className="text-xs">Review</SelectItem>}
+                          <SelectItem value="source" className="text-xs">
+                            Source
+                          </SelectItem>
+                          {canSaveForReview && (
+                            <SelectItem value="review" className="text-xs">
+                              Review
+                            </SelectItem>
+                          )}
                         </SelectContent>
                       </Select>
                       <button
                         type="button"
-                        className={`h-8 px-3 text-xs rounded-lg disabled:opacity-50 ${(!isDirty || processing) ? 'border border-border text-neutral-medium' : 'bg-standout-medium text-on-standout font-medium'}`}
+                        className={`h-8 px-3 text-xs rounded-lg disabled:opacity-50 ${!isDirty || processing ? 'border border-border text-neutral-medium' : 'bg-standout-medium text-on-standout font-medium'}`}
                         disabled={
-                          !isDirty ||
-                          processing ||
-                          (saveTarget === 'review' && !canSaveForReview)
+                          !isDirty || processing || (saveTarget === 'review' && !canSaveForReview)
                         }
                         onClick={async () => {
                           // Destructive confirmation when saving to Review that already exists.
@@ -2864,7 +3137,9 @@ export default function Editor({
                         }}
                       >
                         {saveTarget === 'source'
-                          ? (data.status === 'published' ? 'Publish' : 'Save')
+                          ? data.status === 'published'
+                            ? 'Publish'
+                            : 'Save'
                           : 'Save'}
                       </button>
                     </div>
@@ -2881,7 +3156,7 @@ export default function Editor({
                   <div className="space-y-2">
                     <button
                       type="button"
-                      className={`h-8 px-3 text-xs rounded-lg disabled:opacity-50 ${(!isDirty || processing) ? 'border border-border text-neutral-medium' : 'bg-standout-medium text-on-standout font-medium'}`}
+                      className={`h-8 px-3 text-xs rounded-lg disabled:opacity-50 ${!isDirty || processing ? 'border border-border text-neutral-medium' : 'bg-standout-medium text-on-standout font-medium'}`}
                       disabled={!isDirty || processing || !canSaveForReview}
                       onClick={async () => {
                         await executeSave('review')
@@ -2900,12 +3175,10 @@ export default function Editor({
                 {/* Save button for AI Review view mode */}
                 {viewMode === 'ai-review' && (
                   <div className="space-y-2">
-                  <p className="text-xs text-neutral-low">
-                      AI Review is AI-generated.
-                    </p>
+                    <p className="text-xs text-neutral-low">AI Review is AI-generated.</p>
                     <button
                       type="button"
-                      className={`h-8 px-3 text-xs rounded-lg disabled:opacity-50 ${(!isDirty || processing) ? 'border border-border text-neutral-medium' : 'bg-standout-medium text-on-standout font-medium'}`}
+                      className={`h-8 px-3 text-xs rounded-lg disabled:opacity-50 ${!isDirty || processing ? 'border border-border text-neutral-medium' : 'bg-standout-medium text-on-standout font-medium'}`}
                       disabled={!isDirty || processing}
                       onClick={async () => {
                         await executeSave('ai-review')
@@ -2916,133 +3189,141 @@ export default function Editor({
                   </div>
                 )}
 
-
                 {/* Approve/Reject decision (RadioGroup) */}
-                {viewMode !== 'source' && ((
-                  (hasAiReviewBaseline && canApproveAiReview) ||
-                  (hasReviewBaseline && canApproveReview)
-                )) && (
-                  <div className="space-y-2">
-                    <label className="block text-xs font-medium text-neutral-medium">
-                      Decision
-                    </label>
-                    <RadioGroup
-                      value={decision}
-                      onValueChange={(val) => setDecision(val as any)}
-                      className="space-y-2"
-                    >
-                      {hasReviewBaseline && canApproveReview && (
-                        <label className="flex items-center gap-2 text-xs text-neutral-high">
-                          <RadioGroupItem value="approve-review-to-source" />
-                          <span>Promote to Source</span>
-                        </label>
-                      )}
-                      {hasAiReviewBaseline && canApproveAiReview && viewMode === 'ai-review' && (
-                        <label className="flex items-center gap-2 text-xs text-neutral-high">
-                          <RadioGroupItem value="approve-ai-review-to-review" />
-                          <span>Promote to Review</span>
-                        </label>
-                      )}
-                      {hasReviewBaseline && canApproveReview && viewMode === 'review' && (
-                        <label className="flex items-center gap-2 text-xs text-neutral-high">
-                          <RadioGroupItem value="reject-review" />
-                          <span>Reject this version</span>
-                        </label>
-                      )}
-                      {hasAiReviewBaseline && canApproveAiReview && viewMode === 'ai-review' && (
-                        <label className="flex items-center gap-2 text-xs text-neutral-high">
-                          <RadioGroupItem value="reject-ai-review" />
-                          <span>Reject this version</span>
-                        </label>
-                      )}
-                    </RadioGroup>
-
-                    <div className="mt-2 flex items-center gap-2">
-                      <button
-                        type="button"
-                        className="h-8 px-3 text-xs border border-border rounded-lg hover:bg-backdrop-medium text-neutral-medium disabled:opacity-50"
-                        disabled={!decision || processing}
-                        onClick={async () => {
-                          if (!decision) return
-                          if (decision.startsWith('reject-')) {
-                            setRejectConfirmOpen(true)
-                            return
-                          }
-                          setApproveConfirmOpen(true)
-                        }}
+                {viewMode !== 'source' &&
+                  ((hasAiReviewBaseline && canApproveAiReview) ||
+                    (hasReviewBaseline && canApproveReview)) && (
+                    <div className="space-y-2">
+                      <label className="block text-xs font-medium text-neutral-medium">
+                        Decision
+                      </label>
+                      <RadioGroup
+                        value={decision}
+                        onValueChange={(val) => setDecision(val as any)}
+                        className="space-y-2"
                       >
-                        {decision.startsWith('reject-') ? 'Reject' : 'Approve'}
-                      </button>
+                        {hasReviewBaseline && canApproveReview && (
+                          <label className="flex items-center gap-2 text-xs text-neutral-high">
+                            <RadioGroupItem value="approve-review-to-source" />
+                            <span>Promote to Source</span>
+                          </label>
+                        )}
+                        {hasAiReviewBaseline && canApproveAiReview && viewMode === 'ai-review' && (
+                          <label className="flex items-center gap-2 text-xs text-neutral-high">
+                            <RadioGroupItem value="approve-ai-review-to-review" />
+                            <span>Promote to Review</span>
+                          </label>
+                        )}
+                        {hasReviewBaseline && canApproveReview && viewMode === 'review' && (
+                          <label className="flex items-center gap-2 text-xs text-neutral-high">
+                            <RadioGroupItem value="reject-review" />
+                            <span>Reject this version</span>
+                          </label>
+                        )}
+                        {hasAiReviewBaseline && canApproveAiReview && viewMode === 'ai-review' && (
+                          <label className="flex items-center gap-2 text-xs text-neutral-high">
+                            <RadioGroupItem value="reject-ai-review" />
+                            <span>Reject this version</span>
+                          </label>
+                        )}
+                      </RadioGroup>
+
+                      <div className="mt-2 flex items-center gap-2">
+                        <button
+                          type="button"
+                          className="h-8 px-3 text-xs border border-border rounded-lg hover:bg-backdrop-medium text-neutral-medium disabled:opacity-50"
+                          disabled={!decision || processing}
+                          onClick={async () => {
+                            if (!decision) return
+                            if (decision.startsWith('reject-')) {
+                              setRejectConfirmOpen(true)
+                              return
+                            }
+                            setApproveConfirmOpen(true)
+                          }}
+                        >
+                          {decision.startsWith('reject-') ? 'Reject' : 'Approve'}
+                        </button>
+                      </div>
+
+                      <AlertDialog open={approveConfirmOpen} onOpenChange={setApproveConfirmOpen}>
+                        <AlertDialogContent>
+                          <AlertDialogHeader>
+                            <AlertDialogTitle>Approve changes?</AlertDialogTitle>
+                            <AlertDialogDescription>
+                              {decision === 'approve-ai-review-to-review'
+                                ? 'This will promote AI Review into Review (and clear AI Review staging).'
+                                : 'This will promote Review into Source (and clear the Review draft).'}
+                            </AlertDialogDescription>
+                          </AlertDialogHeader>
+                          <AlertDialogFooter>
+                            <AlertDialogCancel>Cancel</AlertDialogCancel>
+                            <AlertDialogAction
+                              onClick={async () => {
+                                setApproveConfirmOpen(false)
+                                const mode =
+                                  decision === 'approve-ai-review-to-review'
+                                    ? 'approve-ai-review'
+                                    : 'approve'
+                                await executeApprove(mode)
+                              }}
+                            >
+                              Approve
+                            </AlertDialogAction>
+                          </AlertDialogFooter>
+                        </AlertDialogContent>
+                      </AlertDialog>
+
+                      <AlertDialog open={rejectConfirmOpen} onOpenChange={setRejectConfirmOpen}>
+                        <AlertDialogContent>
+                          <AlertDialogHeader>
+                            <AlertDialogTitle>Reject this version?</AlertDialogTitle>
+                            <AlertDialogDescription>
+                              This will remove the selected draft/staging version. A revision will
+                              be recorded so you can revert.
+                            </AlertDialogDescription>
+                          </AlertDialogHeader>
+                          <AlertDialogFooter>
+                            <AlertDialogCancel>Cancel</AlertDialogCancel>
+                            <AlertDialogAction
+                              onClick={async () => {
+                                if (!decision || !decision.startsWith('reject-')) return
+                                const mode =
+                                  decision === 'reject-ai-review'
+                                    ? 'reject-ai-review'
+                                    : 'reject-review'
+                                const res = await fetch(`/api/posts/${post.id}`, {
+                                  method: 'PUT',
+                                  headers: {
+                                    'Accept': 'application/json',
+                                    'Content-Type': 'application/json',
+                                    ...xsrfHeader(),
+                                  },
+                                  credentials: 'same-origin',
+                                  body: JSON.stringify({ mode }),
+                                })
+                                if (res.ok) {
+                                  toast.success(
+                                    mode === 'reject-ai-review'
+                                      ? 'AI Review discarded'
+                                      : 'Review discarded'
+                                  )
+                                  setRejectConfirmOpen(false)
+                                  window.location.reload()
+                                } else {
+                                  const err = await res.json().catch(() => null)
+                                  console.error('Reject failed:', res.status, err)
+                                  toast.error(err?.errors ? 'Failed (validation)' : 'Failed')
+                                }
+                              }}
+                            >
+                              Reject
+                            </AlertDialogAction>
+                          </AlertDialogFooter>
+                        </AlertDialogContent>
+                      </AlertDialog>
                     </div>
-
-                    <AlertDialog open={approveConfirmOpen} onOpenChange={setApproveConfirmOpen}>
-                      <AlertDialogContent>
-                        <AlertDialogHeader>
-                          <AlertDialogTitle>Approve changes?</AlertDialogTitle>
-                          <AlertDialogDescription>
-                            {decision === 'approve-ai-review-to-review'
-                              ? 'This will promote AI Review into Review (and clear AI Review staging).'
-                              : 'This will promote Review into Source (and clear the Review draft).'}
-                          </AlertDialogDescription>
-                        </AlertDialogHeader>
-                        <AlertDialogFooter>
-                          <AlertDialogCancel>Cancel</AlertDialogCancel>
-                          <AlertDialogAction
-                            onClick={async () => {
-                              setApproveConfirmOpen(false)
-                              const mode =
-                                decision === 'approve-ai-review-to-review' ? 'approve-ai-review' : 'approve'
-                              await executeApprove(mode)
-                            }}
-                          >
-                            Approve
-                          </AlertDialogAction>
-                        </AlertDialogFooter>
-                      </AlertDialogContent>
-                    </AlertDialog>
-
-                    <AlertDialog open={rejectConfirmOpen} onOpenChange={setRejectConfirmOpen}>
-                      <AlertDialogContent>
-                        <AlertDialogHeader>
-                          <AlertDialogTitle>Reject this version?</AlertDialogTitle>
-                          <AlertDialogDescription>
-                            This will remove the selected draft/staging version. A revision will be recorded so you can revert.
-                          </AlertDialogDescription>
-                        </AlertDialogHeader>
-                        <AlertDialogFooter>
-                          <AlertDialogCancel>Cancel</AlertDialogCancel>
-                          <AlertDialogAction
-                            onClick={async () => {
-                              if (!decision || !decision.startsWith('reject-')) return
-                              const mode = decision === 'reject-ai-review' ? 'reject-ai-review' : 'reject-review'
-                              const res = await fetch(`/api/posts/${post.id}`, {
-                                method: 'PUT',
-                                headers: {
-                                  'Accept': 'application/json',
-                                  'Content-Type': 'application/json',
-                                  ...xsrfHeader(),
-                                },
-                                credentials: 'same-origin',
-                                body: JSON.stringify({ mode }),
-                              })
-                              if (res.ok) {
-                                toast.success(mode === 'reject-ai-review' ? 'AI Review discarded' : 'Review discarded')
-                                setRejectConfirmOpen(false)
-                                window.location.reload()
-                              } else {
-                                const err = await res.json().catch(() => null)
-                                console.error('Reject failed:', res.status, err)
-                                toast.error(err?.errors ? 'Failed (validation)' : 'Failed')
-                              }
-                            }}
-                          >
-                            Reject
-                          </AlertDialogAction>
-                        </AlertDialogFooter>
-                      </AlertDialogContent>
-                    </AlertDialog>
-                  </div>
-                )}
+                  )}
 
                 {/* Save confirmation dialog for overwriting Review draft */}
                 <AlertDialog open={saveConfirmOpen} onOpenChange={setSaveConfirmOpen}>
@@ -3093,25 +3374,41 @@ export default function Editor({
                     </div>
                   </div>
                   <div>
-                    <label className="block text-xs font-medium text-neutral-medium mb-1">Reassign to</label>
+                    <label className="block text-xs font-medium text-neutral-medium mb-1">
+                      Reassign to
+                    </label>
                     <select
                       className="w-full border border-line-low bg-backdrop-input text-neutral-high rounded px-2 py-1"
                       value={selectedAuthorId ?? ''}
-                      onChange={(e) => setSelectedAuthorId(e.target.value ? Number(e.target.value) : null)}
+                      onChange={(e) =>
+                        setSelectedAuthorId(e.target.value ? Number(e.target.value) : null)
+                      }
                       onFocus={async () => {
                         if (users.length > 0) return
                         try {
                           const res = await fetch('/api/users', { credentials: 'same-origin' })
                           const j = await res.json().catch(() => ({}))
-                          const list: Array<{ id: number; email: string; fullName?: string | null }> = Array.isArray(j?.data) ? j.data : []
-                          setUsers(list.map((u) => ({ id: u.id, email: u.email, fullName: (u as any).fullName ?? null })))
-                        } catch { /* ignore */ }
+                          const list: Array<{
+                            id: number
+                            email: string
+                            fullName?: string | null
+                          }> = Array.isArray(j?.data) ? j.data : []
+                          setUsers(
+                            list.map((u) => ({
+                              id: u.id,
+                              email: u.email,
+                              fullName: (u as any).fullName ?? null,
+                            }))
+                          )
+                        } catch {
+                          /* ignore */
+                        }
                       }}
                     >
                       <option value="">Select a user…</option>
                       {users.map((u) => (
                         <option key={u.id} value={u.id}>
-                          {(u.fullName || u.email)} ({u.email})
+                          {u.fullName || u.email} ({u.email})
                         </option>
                       ))}
                     </select>
@@ -3127,7 +3424,7 @@ export default function Editor({
                           const res = await fetch(`/api/posts/${post.id}/author`, {
                             method: 'PATCH',
                             headers: {
-                              Accept: 'application/json',
+                              'Accept': 'application/json',
                               'Content-Type': 'application/json',
                               ...xsrfHeader(),
                             },
@@ -3188,12 +3485,24 @@ export default function Editor({
                           {new Date(r.createdAt).toLocaleString()}
                           <Badge
                             className="ml-2"
-                            variant={r.mode === 'review' ? 'secondary' : r.mode === 'ai-review' ? 'outline' : 'default'}
+                            variant={
+                              r.mode === 'review'
+                                ? 'secondary'
+                                : r.mode === 'ai-review'
+                                  ? 'outline'
+                                  : 'default'
+                            }
                           >
-                            {r.mode === 'review' ? 'Review' : r.mode === 'ai-review' ? 'AI Review' : 'Source'}
+                            {r.mode === 'review'
+                              ? 'Review'
+                              : r.mode === 'ai-review'
+                                ? 'AI Review'
+                                : 'Source'}
                           </Badge>
                         </span>
-                        {r.user?.email ? <span className="text-xs text-neutral-low">{r.user.email}</span> : null}
+                        {r.user?.email ? (
+                          <span className="text-xs text-neutral-low">{r.user.email}</span>
+                        ) : null}
                       </div>
                       <AlertDialog>
                         <AlertDialogTrigger asChild>
@@ -3215,19 +3524,24 @@ export default function Editor({
                             <AlertDialogCancel>Cancel</AlertDialogCancel>
                             <AlertDialogAction
                               onClick={async () => {
-                                const res = await fetch(`/api/posts/${post.id}/revisions/${encodeURIComponent(r.id)}/revert`, {
-                                  method: 'POST',
-                                  headers: {
-                                    Accept: 'application/json',
-                                    'Content-Type': 'application/json',
-                                    ...xsrfHeader(),
-                                  },
-                                  credentials: 'same-origin',
-                                })
+                                const res = await fetch(
+                                  `/api/posts/${post.id}/revisions/${encodeURIComponent(r.id)}/revert`,
+                                  {
+                                    method: 'POST',
+                                    headers: {
+                                      'Accept': 'application/json',
+                                      'Content-Type': 'application/json',
+                                      ...xsrfHeader(),
+                                    },
+                                    credentials: 'same-origin',
+                                  }
+                                )
                                 if (res.ok) {
                                   toast.success('Reverted to selected revision')
                                   // Reload all post data including modules and drafts
-                                  router.reload({ only: ['post', 'modules', 'reviewDraft', 'aiReviewDraft'] })
+                                  router.reload({
+                                    only: ['post', 'modules', 'reviewDraft', 'aiReviewDraft'],
+                                  })
                                 } else {
                                   const j = await res.json().catch(() => null)
                                   toast.error(j?.error || 'Failed to revert')
@@ -3289,22 +3603,20 @@ export default function Editor({
                       Import JSON
                     </button>
                   </div>
-                  <p className="text-xs text-neutral-low">Select a JSON file, then choose how to import.</p>
+                  <p className="text-xs text-neutral-low">
+                    Select a JSON file, then choose how to import.
+                  </p>
                 </div>
               </div>
             )}
 
             {/* Post Details */}
             <div className="bg-backdrop-low rounded-lg shadow p-6 border border-border">
-              <h3 className="text-sm font-semibold text-neutral-high mb-4">
-                Post Details
-              </h3>
+              <h3 className="text-sm font-semibold text-neutral-high mb-4">Post Details</h3>
               <dl className="space-y-3 text-sm">
                 <div>
                   <dt className="text-neutral-low">Status</dt>
-                  <dd className="font-medium text-neutral-high capitalize">
-                    {data.status}
-                  </dd>
+                  <dd className="font-medium text-neutral-high capitalize">{data.status}</dd>
                 </div>
                 <div>
                   <dt className="text-neutral-low">Type</dt>
@@ -3316,9 +3628,7 @@ export default function Editor({
                 </div>
                 <div>
                   <dt className="text-neutral-low">ID</dt>
-                  <dd className="font-mono text-xs text-neutral-medium break-all">
-                    {post.id}
-                  </dd>
+                  <dd className="font-mono text-xs text-neutral-medium break-all">{post.id}</dd>
                 </div>
                 <div>
                   <dt className="text-neutral-low">Created</dt>
@@ -3343,13 +3653,22 @@ export default function Editor({
       {/* Import Mode Modal (Admin) */}
       {isAdmin && isImportModeOpen && (
         <div className="fixed inset-0 z-50 flex items-center justify-center">
-          <div className="absolute inset-0 bg-black/50" onClick={() => { setIsImportModeOpen(false); setPendingImportJson(null) }} />
+          <div
+            className="absolute inset-0 bg-black/50"
+            onClick={() => {
+              setIsImportModeOpen(false)
+              setPendingImportJson(null)
+            }}
+          />
           <div className="relative z-10 w-full max-w-md rounded-lg border border-line-low bg-backdrop-input p-6 shadow-xl">
             <div className="flex items-center justify-between mb-4">
               <h3 className="text-base font-semibold text-neutral-high">Import JSON</h3>
               <button
                 className="text-neutral-medium hover:text-neutral-high"
-                onClick={() => { setIsImportModeOpen(false); setPendingImportJson(null) }}
+                onClick={() => {
+                  setIsImportModeOpen(false)
+                  setPendingImportJson(null)
+                }}
                 aria-label="Close"
               >
                 ✕
@@ -3367,7 +3686,7 @@ export default function Editor({
                   const res = await fetch(`/api/posts/${post.id}/import`, {
                     method: 'POST',
                     headers: {
-                      Accept: 'application/json',
+                      'Accept': 'application/json',
                       'Content-Type': 'application/json',
                       ...xsrfHeader(),
                     },
@@ -3395,7 +3714,7 @@ export default function Editor({
                   const res = await fetch(`/api/posts/${post.id}/import`, {
                     method: 'POST',
                     headers: {
-                      Accept: 'application/json',
+                      'Accept': 'application/json',
                       'Content-Type': 'application/json',
                       ...xsrfHeader(),
                     },
@@ -3474,9 +3793,15 @@ function PostCustomPostReferenceField({
   onChange: (val: any) => void
   config?: Record<string, any>
 }) {
-  const allowedTypes: string[] = Array.isArray((config as any)?.postTypes) ? (config as any).postTypes : []
+  const allowedTypes: string[] = Array.isArray((config as any)?.postTypes)
+    ? (config as any).postTypes
+    : []
   const allowMultiple = (config as any)?.allowMultiple !== false
-  const initialVals: string[] = Array.isArray(value) ? value.map((v: any) => String(v)) : value ? [String(value)] : []
+  const initialVals: string[] = Array.isArray(value)
+    ? value.map((v: any) => String(v))
+    : value
+      ? [String(value)]
+      : []
   const [vals, setVals] = useState<string[]>(initialVals)
   const [options, setOptions] = useState<Array<{ label: string; value: string }>>([])
   const [query, setQuery] = useState('')
@@ -3488,26 +3813,30 @@ function PostCustomPostReferenceField({
 
   useEffect(() => {
     let alive = true
-      ; (async () => {
-        try {
-          const params = new URLSearchParams()
-          params.set('status', 'published')
-          params.set('limit', '100')
-          params.set('sortBy', 'published_at')
-          params.set('sortOrder', 'desc')
-          if (allowedTypes.length > 0) {
-            params.set('types', allowedTypes.join(','))
-          }
-          const res = await fetch(`/api/posts?${params.toString()}`, { credentials: 'same-origin' })
-          const j = await res.json().catch(() => ({}))
-          const list: Array<{ id: string; title: string; slug?: string }> = Array.isArray(j?.data) ? j.data : []
-          if (!alive) return
-          setOptions(list.map((p) => ({ label: p.title || p.slug || String(p.id), value: String(p.id) })))
-        } catch {
-          if (!alive) return
-          setOptions([])
+    ;(async () => {
+      try {
+        const params = new URLSearchParams()
+        params.set('status', 'published')
+        params.set('limit', '100')
+        params.set('sortBy', 'published_at')
+        params.set('sortOrder', 'desc')
+        if (allowedTypes.length > 0) {
+          params.set('types', allowedTypes.join(','))
         }
-      })()
+        const res = await fetch(`/api/posts?${params.toString()}`, { credentials: 'same-origin' })
+        const j = await res.json().catch(() => ({}))
+        const list: Array<{ id: string; title: string; slug?: string }> = Array.isArray(j?.data)
+          ? j.data
+          : []
+        if (!alive) return
+        setOptions(
+          list.map((p) => ({ label: p.title || p.slug || String(p.id), value: String(p.id) }))
+        )
+      } catch {
+        if (!alive) return
+        setOptions([])
+      }
+    })()
     return () => {
       alive = false
     }
@@ -3521,9 +3850,7 @@ function PostCustomPostReferenceField({
 
   return (
     <div>
-      <label className="block text-sm font-medium text-neutral-medium mb-1">
-        {label}
-      </label>
+      <label className="block text-sm font-medium text-neutral-medium mb-1">{label}</label>
       <Popover>
         <PopoverTrigger asChild>
           <button
@@ -3665,7 +3992,9 @@ function MediaThumb({
       }
     }
     load()
-    return () => { alive = false }
+    return () => {
+      alive = false
+    }
   }, [mediaId])
 
   // Resolve URL when media data or theme changes
@@ -3733,23 +4062,25 @@ function ParentSelect({
   const [loading, setLoading] = useState<boolean>(false)
   useEffect(() => {
     let alive = true
-      ; (async () => {
-        try {
-          setLoading(true)
-          const params = new URLSearchParams()
-          params.set('types', postType)
-          params.set('locale', locale)
-          params.set('status', 'published')
-          params.set('limit', '100')
-          const res = await fetch(`/api/posts?${params.toString()}`, { credentials: 'same-origin' })
-          const json = await res.json().catch(() => ({}))
-          const list: Array<{ id: string; title: string }> = Array.isArray(json?.data) ? json.data : []
-          if (!alive) return
-          setOptions(list.filter((p) => p.id !== postId))
-        } finally {
-          if (alive) setLoading(false)
-        }
-      })()
+    ;(async () => {
+      try {
+        setLoading(true)
+        const params = new URLSearchParams()
+        params.set('types', postType)
+        params.set('locale', locale)
+        params.set('status', 'published')
+        params.set('limit', '100')
+        const res = await fetch(`/api/posts?${params.toString()}`, { credentials: 'same-origin' })
+        const json = await res.json().catch(() => ({}))
+        const list: Array<{ id: string; title: string }> = Array.isArray(json?.data)
+          ? json.data
+          : []
+        if (!alive) return
+        setOptions(list.filter((p) => p.id !== postId))
+      } finally {
+        if (alive) setLoading(false)
+      }
+    })()
     return () => {
       alive = false
     }
@@ -3778,4 +4109,3 @@ function ParentSelect({
     </div>
   )
 }
-

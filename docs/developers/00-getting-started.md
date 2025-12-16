@@ -24,13 +24,17 @@ Adonis EOS is a full-featured content management system designed for developers 
 Before working with Adonis EOS, you should have a solid understanding of:
 
 ### MVC Architecture
+
 Adonis EOS follows the Model-View-Controller (MVC) pattern. Familiarity with MVC concepts will help you understand how the application is structured:
+
 - **Models**: Represent your database tables and handle data logic
 - **Views**: Handle the presentation layer (React components via Inertia.js)
 - **Controllers**: Process requests and coordinate between models and views
 
 ### AdonisJS Fundamentals
+
 Adonis EOS is built on **AdonisJS 6**. We recommend reviewing the following topics in the [AdonisJS documentation](https://docs.adonisjs.com):
+
 - Routing and Controllers
 - Lucid ORM (database queries and models)
 - Validation
@@ -38,6 +42,7 @@ Adonis EOS is built on **AdonisJS 6**. We recommend reviewing the following topi
 - Inertia.js integration
 
 ### Frontend Technologies
+
 - **React**: For building UI components
 - **Inertia.js**: For bridging the backend and frontend
 - **TypeScript**: For type safety
@@ -126,6 +131,3 @@ adonis-eos/
 - [MCP (Model Context Protocol)](/docs/for-developers/mcp) - Connect external AI tools (Cursor, n8n) to CMS context + safe write tools
 - [Content Management](/docs/for-editors/content-management) - Managing posts and pages
 - [CLI Commands](/docs/for-developers/cli-commands) - Scaffold post types, modules, roles, menus, taxonomies
-
-
-

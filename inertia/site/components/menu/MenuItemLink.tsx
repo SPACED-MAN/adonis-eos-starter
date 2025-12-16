@@ -1,7 +1,8 @@
 import type { MenuItem } from './types'
 
 export function MenuItemLink({ item, className }: { item: MenuItem; className?: string }) {
-  const href = item.type === 'custom' ? (item.customUrl || '#') : (item.postId ? `/posts/${item.postId}` : '#')
+  const href =
+    item.type === 'custom' ? item.customUrl || '#' : item.postId ? `/posts/${item.postId}` : '#'
   return (
     <a
       href={href}
@@ -13,5 +14,3 @@ export function MenuItemLink({ item, className }: { item: MenuItem; className?: 
     </a>
   )
 }
-
-

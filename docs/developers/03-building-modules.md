@@ -5,6 +5,7 @@ Modules are the building blocks of content in Adonis EOS. Each module is a reusa
 ## Module Architecture
 
 A module consists of:
+
 1. **Backend Definition** (`app/modules/*.ts`) – schema, configuration, and rendering mode
 2. **Frontend Component** (`inertia/modules/*.tsx`) – the UI component (static or React)
 3. **Registration** (`start/modules.ts`) – register with the module registry
@@ -18,6 +19,7 @@ node ace make:module hero-banner
 ```
 
 This creates:
+
 - `app/modules/hero_banner.ts`
 - `inertia/modules/hero-banner.tsx`
 
@@ -120,31 +122,22 @@ export default function HeroBanner({
   backgroundColor = 'bg-backdrop-low',
 }: HeroBannerProps) {
   return (
-    <section 
-      className={`relative ${backgroundColor} py-24`}
-      data-module="hero-banner"
-    >
+    <section className={`relative ${backgroundColor} py-24`} data-module="hero-banner">
       {backgroundImage && (
-        <img 
+        <img
           src={backgroundImage.url}
           alt=""
           className="absolute inset-0 w-full h-full object-cover opacity-20"
         />
       )}
-      
+
       <div className="relative max-w-7xl mx-auto px-4 text-center">
-        <h1 className="text-5xl font-bold text-neutral-high mb-4">
-          {title}
-        </h1>
-        
-        {subtitle && (
-          <p className="text-xl text-neutral-medium mb-8">
-            {subtitle}
-          </p>
-        )}
-        
+        <h1 className="text-5xl font-bold text-neutral-high mb-4">{title}</h1>
+
+        {subtitle && <p className="text-xl text-neutral-medium mb-8">{subtitle}</p>}
+
         {ctaButton && (
-          <a 
+          <a
             href={ctaButton.url}
             className="inline-block px-6 py-3 bg-standout text-on-standout rounded-lg hover:bg-standout/90"
           >
@@ -238,7 +231,9 @@ Module Groups are reusable “page templates” that help editors start from a c
 Access in component:
 
 ```tsx
-{image && <img src={image.url} alt={image.alt_text} />}
+{
+  image && <img src={image.url} alt={image.alt_text} />
+}
 ```
 
 ### Link Type
@@ -253,6 +248,7 @@ Access in component:
 ```
 
 Links can point to:
+
 - External URLs
 - Internal posts (by slug)
 - Anchors (#section)
@@ -266,7 +262,7 @@ Links can point to:
     properties: {
       label: { type: 'string', translatable: true },
       url: { type: 'link' },
-      style: { 
+      style: {
         type: 'select',
         options: ['primary', 'secondary', 'outline']
       },
@@ -296,12 +292,14 @@ Links can point to:
 Access in component:
 
 ```tsx
-{features?.map((feature, i) => (
-  <div key={i}>
-    <h3>{feature.title}</h3>
-    <p>{feature.description}</p>
-  </div>
-))}
+{
+  features?.map((feature, i) => (
+    <div key={i}>
+      <h3>{feature.title}</h3>
+      <p>{feature.description}</p>
+    </div>
+  ))
+}
 ```
 
 ## Module Scopes
@@ -367,6 +365,3 @@ Test your module in the admin:
 ## Examples
 
 See existing modules in `app/modules/` and `inertia/modules/` for reference implementations.
-
-
-

@@ -107,7 +107,10 @@ class MCPClientService {
         let resolvedModuleGroupId: string | null = null
         if (moduleGroupName) {
           const db = (await import('@adonisjs/lucid/services/db')).default
-          const row = await db.from('module_groups').where({ post_type: type, name: moduleGroupName }).first()
+          const row = await db
+            .from('module_groups')
+            .where({ post_type: type, name: moduleGroupName })
+            .first()
           if (row) resolvedModuleGroupId = String((row as any).id)
         } else if (moduleGroupId) {
           resolvedModuleGroupId = String(moduleGroupId)
@@ -184,7 +187,8 @@ class MCPClientService {
           // Check if there's already a prose content edit
           const hasProseContentEdit = (() => {
             for (const edit of editsToApply) {
-              const hasContentMarkdown = String((edit as any)?.contentMarkdown || '').trim().length > 0
+              const hasContentMarkdown =
+                String((edit as any)?.contentMarkdown || '').trim().length > 0
               const hasContentOverride =
                 !!(edit as any)?.overrides &&
                 typeof (edit as any).overrides === 'object' &&
@@ -194,7 +198,9 @@ class MCPClientService {
 
               const explicitId = String((edit as any)?.postModuleId || '').trim()
               if (explicitId) {
-                const m = (seededModules as any[]).find((x: any) => String(x.postModuleId) === explicitId)
+                const m = (seededModules as any[]).find(
+                  (x: any) => String(x.postModuleId) === explicitId
+                )
                 if (String(m?.type || '') === 'prose') return true
                 continue
               }
@@ -216,7 +222,8 @@ class MCPClientService {
             } else {
               appliedEdits.push({
                 ok: false,
-                error: 'contentMarkdown was provided but no seeded prose module exists to populate.',
+                error:
+                  'contentMarkdown was provided but no seeded prose module exists to populate.',
               })
             }
           }
@@ -233,7 +240,8 @@ class MCPClientService {
           const firstHero = (seededModules as any[]).find((m: any) => String(m.type) === 'hero')
           if (firstHero && !alreadyEditsModule(String(firstHero.postModuleId))) {
             const heroTitle = String(title || '').trim() || mdH1 || ''
-            const heroSubtitle = String(excerpt || '').trim() || (mdParas.length > 0 ? mdParas[0] : '')
+            const heroSubtitle =
+              String(excerpt || '').trim() || (mdParas.length > 0 ? mdParas[0] : '')
             if (heroTitle || heroSubtitle) {
               editsToApply.push({
                 postModuleId: String(firstHero.postModuleId),
@@ -249,7 +257,10 @@ class MCPClientService {
           const firstProseWithMedia = (seededModules as any[]).find(
             (m: any) => String(m.type) === 'prose-with-media'
           )
-          if (firstProseWithMedia && !alreadyEditsModule(String(firstProseWithMedia.postModuleId))) {
+          if (
+            firstProseWithMedia &&
+            !alreadyEditsModule(String(firstProseWithMedia.postModuleId))
+          ) {
             const pwmTitle = (mdH2s[0] || '').trim()
             const pwmBody = (mdParas[0] || '').trim()
             if (pwmTitle || pwmBody) {
@@ -289,11 +300,15 @@ class MCPClientService {
                 targetId = String(candidates[0].postModuleId)
               }
 
-              const targetMeta = (seededModules as any[]).find((m: any) => String(m.postModuleId) === targetId)
+              const targetMeta = (seededModules as any[]).find(
+                (m: any) => String(m.postModuleId) === targetId
+              )
               const isProse = String(targetMeta?.type || (edit as any)?.type || '') === 'prose'
 
               let overrides =
-                (edit as any)?.overrides === undefined ? undefined : ((edit as any)?.overrides as any)
+                (edit as any)?.overrides === undefined
+                  ? undefined
+                  : ((edit as any)?.overrides as any)
 
               // Handle contentMarkdown for prose modules
               const md = String((edit as any)?.contentMarkdown || '').trim()
@@ -376,7 +391,15 @@ class MCPClientService {
         const results = await query
           .orderBy('created_at', 'desc')
           .limit(resultLimit)
-          .select('id', 'url', 'original_filename', 'alt_text', 'description', 'categories', 'mime_type')
+          .select(
+            'id',
+            'url',
+            'original_filename',
+            'alt_text',
+            'description',
+            'categories',
+            'mime_type'
+          )
 
         const mediaItems = results.map((r: any) => ({
           id: r.id,
@@ -413,7 +436,10 @@ class MCPClientService {
           )
         }
 
-        console.log('[generate_image] OpenAI API key found', { hasKey: !!apiKey, keyLength: apiKey?.length })
+        console.log('[generate_image] OpenAI API key found', {
+          hasKey: !!apiKey,
+          keyLength: apiKey?.length,
+        })
 
         // DALL-E model options: dall-e-2 or dall-e-3 (default to dall-e-3)
         const dalleModel = model || 'dall-e-3'
@@ -438,7 +464,7 @@ class MCPClientService {
             method: 'POST',
             headers: {
               'Content-Type': 'application/json',
-              Authorization: `Bearer ${apiKey}`,
+              'Authorization': `Bearer ${apiKey}`,
             },
             body: JSON.stringify({
               model: dalleModel,
@@ -712,4 +738,3 @@ class MCPClientService {
 
 const mcpClientService = new MCPClientService()
 export default mcpClientService
-

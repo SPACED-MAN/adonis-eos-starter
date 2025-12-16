@@ -16,9 +16,23 @@ import { HorizontalRuleNode } from '@lexical/react/LexicalHorizontalRuleNode'
 import { FORMAT_TEXT_COMMAND, $getSelection, $isRangeSelection } from 'lexical'
 import { $setBlocksType } from '@lexical/selection'
 import { $createHeadingNode } from '@lexical/rich-text'
-import { INSERT_UNORDERED_LIST_COMMAND, INSERT_ORDERED_LIST_COMMAND, REMOVE_LIST_COMMAND } from '@lexical/list'
+import {
+  INSERT_UNORDERED_LIST_COMMAND,
+  INSERT_ORDERED_LIST_COMMAND,
+  REMOVE_LIST_COMMAND,
+} from '@lexical/list'
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome'
-import { faBold, faItalic, faUnderline, faListUl, faListOl, faParagraph, faHeading, faCode, faMinus } from '@fortawesome/free-solid-svg-icons'
+import {
+  faBold,
+  faItalic,
+  faUnderline,
+  faListUl,
+  faListOl,
+  faParagraph,
+  faHeading,
+  faCode,
+  faMinus,
+} from '@fortawesome/free-solid-svg-icons'
 import { $createCodeNode } from '@lexical/code'
 import { $insertNodes } from 'lexical'
 
@@ -148,7 +162,16 @@ export function LexicalEditor({
       namespace: `prose-editor${editorKey ? `-${editorKey}` : ''}`,
       theme,
       onError,
-      nodes: [HeadingNode, QuoteNode, ListNode, ListItemNode, LinkNode, AutoLinkNode, CodeNode, HorizontalRuleNode],
+      nodes: [
+        HeadingNode,
+        QuoteNode,
+        ListNode,
+        ListItemNode,
+        LinkNode,
+        AutoLinkNode,
+        CodeNode,
+        HorizontalRuleNode,
+      ],
     }),
     [theme, editorKey]
   )
@@ -294,5 +317,3 @@ function Toolbar() {
     </div>
   )
 }
-
-

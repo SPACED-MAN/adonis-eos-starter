@@ -19,5 +19,3 @@ const textField: FieldTypeConfig = {
 fieldTypeRegistry.register(textField)
 
 export default textField
-
-

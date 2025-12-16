@@ -43,7 +43,10 @@ export default class PostSerializerService {
    * @param postId - Post ID
    * @param mode - View mode: 'source' (approved), 'review' (review_draft), or 'ai-review' (ai_review_draft)
    */
-  static async serialize(postId: string, mode: 'source' | 'review' | 'ai-review' = 'source'): Promise<CanonicalPost> {
+  static async serialize(
+    postId: string,
+    mode: 'source' | 'review' | 'ai-review' = 'source'
+  ): Promise<CanonicalPost> {
     const post = await Post.query().where('id', postId).first()
     if (!post) {
       throw new Error('Post not found')
@@ -80,8 +83,15 @@ export default class PostSerializerService {
     let customFields: Array<{ slug: string; value: any }> = []
     if (mode === 'review') {
       const reviewDraft = (post as any).reviewDraft || (post as any).review_draft
-      if (reviewDraft && typeof reviewDraft === 'object' && Array.isArray(reviewDraft.customFields)) {
-        customFields = reviewDraft.customFields.map((cf: any) => ({ slug: cf.slug, value: cf.value }))
+      if (
+        reviewDraft &&
+        typeof reviewDraft === 'object' &&
+        Array.isArray(reviewDraft.customFields)
+      ) {
+        customFields = reviewDraft.customFields.map((cf: any) => ({
+          slug: cf.slug,
+          value: cf.value,
+        }))
       } else {
         // Fall back to database values
         const cfVals = await PostCustomFieldValue.query()
@@ -91,13 +101,27 @@ export default class PostSerializerService {
       }
     } else if (mode === 'ai-review') {
       const aiReviewDraft = (post as any).aiReviewDraft || (post as any).ai_review_draft
-      if (aiReviewDraft && typeof aiReviewDraft === 'object' && Array.isArray(aiReviewDraft.customFields)) {
-        customFields = aiReviewDraft.customFields.map((cf: any) => ({ slug: cf.slug, value: cf.value }))
+      if (
+        aiReviewDraft &&
+        typeof aiReviewDraft === 'object' &&
+        Array.isArray(aiReviewDraft.customFields)
+      ) {
+        customFields = aiReviewDraft.customFields.map((cf: any) => ({
+          slug: cf.slug,
+          value: cf.value,
+        }))
       } else {
         // Fall back to review draft or database values
         const reviewDraft = (post as any).reviewDraft || (post as any).review_draft
-        if (reviewDraft && typeof reviewDraft === 'object' && Array.isArray(reviewDraft.customFields)) {
-          customFields = reviewDraft.customFields.map((cf: any) => ({ slug: cf.slug, value: cf.value }))
+        if (
+          reviewDraft &&
+          typeof reviewDraft === 'object' &&
+          Array.isArray(reviewDraft.customFields)
+        ) {
+          customFields = reviewDraft.customFields.map((cf: any) => ({
+            slug: cf.slug,
+            value: cf.value,
+          }))
         } else {
           const cfVals = await PostCustomFieldValue.query()
             .where('postId', postId)
@@ -139,11 +163,21 @@ export default class PostSerializerService {
           ...(reviewDraft.title !== undefined ? { title: reviewDraft.title } : {}),
           ...(reviewDraft.status !== undefined ? { status: reviewDraft.status } : {}),
           ...(reviewDraft.excerpt !== undefined ? { excerpt: reviewDraft.excerpt ?? null } : {}),
-          ...(reviewDraft.metaTitle !== undefined ? { metaTitle: reviewDraft.metaTitle ?? null } : {}),
-          ...(reviewDraft.metaDescription !== undefined ? { metaDescription: reviewDraft.metaDescription ?? null } : {}),
-          ...(reviewDraft.canonicalUrl !== undefined ? { canonicalUrl: reviewDraft.canonicalUrl ?? null } : {}),
-          ...(reviewDraft.robotsJson !== undefined ? { robotsJson: reviewDraft.robotsJson ?? null } : {}),
-          ...(reviewDraft.jsonldOverrides !== undefined ? { jsonldOverrides: reviewDraft.jsonldOverrides ?? null } : {}),
+          ...(reviewDraft.metaTitle !== undefined
+            ? { metaTitle: reviewDraft.metaTitle ?? null }
+            : {}),
+          ...(reviewDraft.metaDescription !== undefined
+            ? { metaDescription: reviewDraft.metaDescription ?? null }
+            : {}),
+          ...(reviewDraft.canonicalUrl !== undefined
+            ? { canonicalUrl: reviewDraft.canonicalUrl ?? null }
+            : {}),
+          ...(reviewDraft.robotsJson !== undefined
+            ? { robotsJson: reviewDraft.robotsJson ?? null }
+            : {}),
+          ...(reviewDraft.jsonldOverrides !== undefined
+            ? { jsonldOverrides: reviewDraft.jsonldOverrides ?? null }
+            : {}),
         }
       }
     } else if (mode === 'ai-review') {
@@ -159,11 +193,21 @@ export default class PostSerializerService {
             ...(reviewDraft.title !== undefined ? { title: reviewDraft.title } : {}),
             ...(reviewDraft.status !== undefined ? { status: reviewDraft.status } : {}),
             ...(reviewDraft.excerpt !== undefined ? { excerpt: reviewDraft.excerpt ?? null } : {}),
-            ...(reviewDraft.metaTitle !== undefined ? { metaTitle: reviewDraft.metaTitle ?? null } : {}),
-            ...(reviewDraft.metaDescription !== undefined ? { metaDescription: reviewDraft.metaDescription ?? null } : {}),
-            ...(reviewDraft.canonicalUrl !== undefined ? { canonicalUrl: reviewDraft.canonicalUrl ?? null } : {}),
-            ...(reviewDraft.robotsJson !== undefined ? { robotsJson: reviewDraft.robotsJson ?? null } : {}),
-            ...(reviewDraft.jsonldOverrides !== undefined ? { jsonldOverrides: reviewDraft.jsonldOverrides ?? null } : {}),
+            ...(reviewDraft.metaTitle !== undefined
+              ? { metaTitle: reviewDraft.metaTitle ?? null }
+              : {}),
+            ...(reviewDraft.metaDescription !== undefined
+              ? { metaDescription: reviewDraft.metaDescription ?? null }
+              : {}),
+            ...(reviewDraft.canonicalUrl !== undefined
+              ? { canonicalUrl: reviewDraft.canonicalUrl ?? null }
+              : {}),
+            ...(reviewDraft.robotsJson !== undefined
+              ? { robotsJson: reviewDraft.robotsJson ?? null }
+              : {}),
+            ...(reviewDraft.jsonldOverrides !== undefined
+              ? { jsonldOverrides: reviewDraft.jsonldOverrides ?? null }
+              : {}),
           }
         }
         // Then merge ai_review_draft on top
@@ -172,12 +216,24 @@ export default class PostSerializerService {
           ...(aiReviewDraft.slug !== undefined ? { slug: aiReviewDraft.slug } : {}),
           ...(aiReviewDraft.title !== undefined ? { title: aiReviewDraft.title } : {}),
           ...(aiReviewDraft.status !== undefined ? { status: aiReviewDraft.status } : {}),
-          ...(aiReviewDraft.excerpt !== undefined ? { excerpt: aiReviewDraft.excerpt ?? null } : {}),
-          ...(aiReviewDraft.metaTitle !== undefined ? { metaTitle: aiReviewDraft.metaTitle ?? null } : {}),
-          ...(aiReviewDraft.metaDescription !== undefined ? { metaDescription: aiReviewDraft.metaDescription ?? null } : {}),
-          ...(aiReviewDraft.canonicalUrl !== undefined ? { canonicalUrl: aiReviewDraft.canonicalUrl ?? null } : {}),
-          ...(aiReviewDraft.robotsJson !== undefined ? { robotsJson: aiReviewDraft.robotsJson ?? null } : {}),
-          ...(aiReviewDraft.jsonldOverrides !== undefined ? { jsonldOverrides: aiReviewDraft.jsonldOverrides ?? null } : {}),
+          ...(aiReviewDraft.excerpt !== undefined
+            ? { excerpt: aiReviewDraft.excerpt ?? null }
+            : {}),
+          ...(aiReviewDraft.metaTitle !== undefined
+            ? { metaTitle: aiReviewDraft.metaTitle ?? null }
+            : {}),
+          ...(aiReviewDraft.metaDescription !== undefined
+            ? { metaDescription: aiReviewDraft.metaDescription ?? null }
+            : {}),
+          ...(aiReviewDraft.canonicalUrl !== undefined
+            ? { canonicalUrl: aiReviewDraft.canonicalUrl ?? null }
+            : {}),
+          ...(aiReviewDraft.robotsJson !== undefined
+            ? { robotsJson: aiReviewDraft.robotsJson ?? null }
+            : {}),
+          ...(aiReviewDraft.jsonldOverrides !== undefined
+            ? { jsonldOverrides: aiReviewDraft.jsonldOverrides ?? null }
+            : {}),
         }
       } else {
         // No ai_review_draft, fall back to review_draft if exists
@@ -189,11 +245,21 @@ export default class PostSerializerService {
             ...(reviewDraft.title !== undefined ? { title: reviewDraft.title } : {}),
             ...(reviewDraft.status !== undefined ? { status: reviewDraft.status } : {}),
             ...(reviewDraft.excerpt !== undefined ? { excerpt: reviewDraft.excerpt ?? null } : {}),
-            ...(reviewDraft.metaTitle !== undefined ? { metaTitle: reviewDraft.metaTitle ?? null } : {}),
-            ...(reviewDraft.metaDescription !== undefined ? { metaDescription: reviewDraft.metaDescription ?? null } : {}),
-            ...(reviewDraft.canonicalUrl !== undefined ? { canonicalUrl: reviewDraft.canonicalUrl ?? null } : {}),
-            ...(reviewDraft.robotsJson !== undefined ? { robotsJson: reviewDraft.robotsJson ?? null } : {}),
-            ...(reviewDraft.jsonldOverrides !== undefined ? { jsonldOverrides: reviewDraft.jsonldOverrides ?? null } : {}),
+            ...(reviewDraft.metaTitle !== undefined
+              ? { metaTitle: reviewDraft.metaTitle ?? null }
+              : {}),
+            ...(reviewDraft.metaDescription !== undefined
+              ? { metaDescription: reviewDraft.metaDescription ?? null }
+              : {}),
+            ...(reviewDraft.canonicalUrl !== undefined
+              ? { canonicalUrl: reviewDraft.canonicalUrl ?? null }
+              : {}),
+            ...(reviewDraft.robotsJson !== undefined
+              ? { robotsJson: reviewDraft.robotsJson ?? null }
+              : {}),
+            ...(reviewDraft.jsonldOverrides !== undefined
+              ? { jsonldOverrides: reviewDraft.jsonldOverrides ?? null }
+              : {}),
           }
         }
       }
@@ -229,14 +295,14 @@ export default class PostSerializerService {
 
         // Merge with review or ai-review props based on mode
         if (mode === 'review' && row.review_props) {
-          const reviewProps = typeof row.review_props === 'string'
-            ? JSON.parse(row.review_props)
-            : row.review_props
+          const reviewProps =
+            typeof row.review_props === 'string' ? JSON.parse(row.review_props) : row.review_props
           effectiveProps = { ...effectiveProps, ...reviewProps }
         } else if (mode === 'ai-review' && row.ai_review_props) {
-          const aiReviewProps = typeof row.ai_review_props === 'string'
-            ? JSON.parse(row.ai_review_props)
-            : row.ai_review_props
+          const aiReviewProps =
+            typeof row.ai_review_props === 'string'
+              ? JSON.parse(row.ai_review_props)
+              : row.ai_review_props
           effectiveProps = { ...effectiveProps, ...aiReviewProps }
         }
 
@@ -325,9 +391,7 @@ export default class PostSerializerService {
       jsonldOverrides: p.jsonldOverrides ?? null,
     })
     // Remove existing modules and recreate
-    const existing = await PostModule.query()
-      .where('postId', postId)
-      .preload('moduleInstance')
+    const existing = await PostModule.query().where('postId', postId).preload('moduleInstance')
     if (existing.length) {
       const pmIds = existing.map((r: any) => r.id)
       await PostModule.query().whereIn('id', pmIds).delete()
@@ -336,7 +400,9 @@ export default class PostSerializerService {
         .map((r: any) => (r as any).moduleInstance?.id)
         .filter(Boolean)
       if (deletable.length) {
-        await ModuleInstance.query().whereIn('id', deletable as string[]).delete()
+        await ModuleInstance.query()
+          .whereIn('id', deletable as string[])
+          .delete()
       }
     }
     for (const m of data.modules || []) {

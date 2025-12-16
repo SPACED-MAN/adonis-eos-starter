@@ -55,4 +55,3 @@ export default class ModuleInstance extends BaseModel {
   @hasMany(() => PostModule, { foreignKey: 'moduleId' })
   declare postModules: HasMany<typeof PostModule>
 }
-

@@ -26,4 +26,3 @@ export default class SeoController {
     return response.ok({ message: 'Sitemap rebuilt' })
   }
 }
-

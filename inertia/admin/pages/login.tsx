@@ -23,7 +23,10 @@ export default function Login() {
   return (
     <div className="min-h-screen w-full flex items-center justify-center bg-backdrop-medium">
       <Head title="Admin Login" />
-      <form onSubmit={submit} className="w-full max-w-sm p-6 rounded-xl border border-border bg-backdrop-low shadow-sm space-y-4">
+      <form
+        onSubmit={submit}
+        className="w-full max-w-sm p-6 rounded-xl border border-border bg-backdrop-low shadow-sm space-y-4"
+      >
         <h1 className="text-xl font-semibold text-neutral-high">Admin Login</h1>
 
         {/* General error message */}
@@ -72,11 +75,11 @@ export default function Login() {
         </button>
 
         <div className="text-sm text-neutral-medium">
-          <a href="/" className="underline hover:no-underline">Back to site</a>
+          <a href="/" className="underline hover:no-underline">
+            Back to site
+          </a>
         </div>
       </form>
     </div>
   )
 }
-
-

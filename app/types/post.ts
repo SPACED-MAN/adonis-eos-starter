@@ -12,7 +12,9 @@ export const ACTIVE_VERSIONS = ['source', 'review', 'ai-review'] as const
 export type ActiveVersion = (typeof ACTIVE_VERSIONS)[number]
 
 export function normalizeActiveVersion(input: unknown): ActiveVersion {
-  const v = String(input || '').trim().toLowerCase()
+  const v = String(input || '')
+    .trim()
+    .toLowerCase()
   if (v === 'approved') return 'source'
   if (v === 'review') return 'review'
   if (v === 'ai-review' || v === 'ai_review') return 'ai-review'

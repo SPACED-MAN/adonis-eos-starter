@@ -128,9 +128,7 @@ export default class AuditInternalLinks extends BaseCommand {
 
     for (const [, postIssues] of byPost.entries()) {
       const first = postIssues[0]
-      this.logger.info(
-        `📄 ${first.postTitle} (${first.postType}) - ID: ${first.postId}`
-      )
+      this.logger.info(`📄 ${first.postTitle} (${first.postType}) - ID: ${first.postId}`)
 
       for (const issue of postIssues) {
         this.logger.info(`   ${issue.location}`)
@@ -141,9 +139,7 @@ export default class AuditInternalLinks extends BaseCommand {
       }
     }
 
-    this.logger.warning(
-      `\n⚠️  Total: ${issues.length} issue(s) across ${byPost.size} post(s)`
-    )
+    this.logger.warning(`\n⚠️  Total: ${issues.length} issue(s) across ${byPost.size} post(s)`)
     this.logger.info(
       '\n💡 To fix these, edit the posts in the admin and switch to "Existing post" mode for internal links.\n'
     )
@@ -197,4 +193,3 @@ export default class AuditInternalLinks extends BaseCommand {
     return findings
   }
 }
-

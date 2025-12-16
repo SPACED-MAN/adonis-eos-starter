@@ -11,5 +11,3 @@ export interface FieldTypeConfig {
   valueSchema: ZodTypeAny
   adminComponent: string // Inertia component name
 }
-
-

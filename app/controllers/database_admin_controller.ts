@@ -41,13 +41,15 @@ export default class DatabaseAdminController {
 
     try {
       const contentTypesParam = request.input('contentTypes')
-      const contentTypes: ContentType[] | undefined = contentTypesParam 
-        ? (Array.isArray(contentTypesParam) ? contentTypesParam : contentTypesParam.split(','))
+      const contentTypes: ContentType[] | undefined = contentTypesParam
+        ? Array.isArray(contentTypesParam)
+          ? contentTypesParam
+          : contentTypesParam.split(',')
         : undefined
 
       const stats = await databaseExportService.getExportStats(contentTypes)
       const contentTypeStats = await databaseExportService.getContentTypeStats()
-      
+
       return response.ok({
         ...stats,
         contentTypes: contentTypeStats,
@@ -76,9 +78,11 @@ export default class DatabaseAdminController {
     try {
       const contentTypesParam = request.input('contentTypes')
       const preserveIds = request.input('preserveIds', 'true') === 'true'
-      
-      const contentTypes: ContentType[] | undefined = contentTypesParam 
-        ? (Array.isArray(contentTypesParam) ? contentTypesParam : contentTypesParam.split(','))
+
+      const contentTypes: ContentType[] | undefined = contentTypesParam
+        ? Array.isArray(contentTypesParam)
+          ? contentTypesParam
+          : contentTypesParam.split(',')
         : undefined
 
       const buffer = await databaseExportService.exportToBuffer({
@@ -134,7 +138,9 @@ export default class DatabaseAdminController {
 
       // Validate strategy
       if (!['replace', 'merge', 'skip', 'overwrite'].includes(strategy)) {
-        return response.badRequest({ error: 'Invalid strategy. Must be: replace, merge, skip, or overwrite' })
+        return response.badRequest({
+          error: 'Invalid strategy. Must be: replace, merge, skip, or overwrite',
+        })
       }
 
       // Read file content from temporary path

@@ -6,7 +6,14 @@ import { FormField, FormLabel, FormHelper } from './field'
 export type LinkKind = 'post' | 'url'
 
 export type LinkFieldValue =
-  | { kind: 'post'; postId: string; postType?: string; slug?: string; locale?: string; target?: '_self' | '_blank' }
+  | {
+      kind: 'post'
+      postId: string
+      postType?: string
+      slug?: string
+      locale?: string
+      target?: '_self' | '_blank'
+    }
   | { kind: 'url'; url: string; target?: '_self' | '_blank' }
   | null
 
@@ -103,38 +110,38 @@ export const LinkField: React.FC<LinkFieldProps> = ({
     let cancelled = false
     setLoading(true)
     setError(null)
-      ; (async () => {
-        try {
-          const params = new URLSearchParams()
-          params.set('status', 'published')
-          if (currentLocale) params.set('locale', currentLocale)
-          params.set('limit', '200')
-          const res = await fetch(`/api/posts?${params.toString()}`, {
-            credentials: 'same-origin',
-            headers: { Accept: 'application/json' },
-          })
-          if (!res.ok) {
-            throw new Error('Failed to load posts')
-          }
-          const j = await res.json().catch(() => null)
-          const list: any[] = Array.isArray(j?.data) ? j.data : []
-          if (cancelled) return
-          setPosts(
-            list.map((p: any) => ({
-              id: String(p.id),
-              title: p.title || '(untitled)',
-              slug: p.slug,
-              type: p.type,
-              locale: p.locale,
-              status: p.status,
-            }))
-          )
-        } catch (e) {
-          if (!cancelled) setError('Failed to load posts')
-        } finally {
-          if (!cancelled) setLoading(false)
+    ;(async () => {
+      try {
+        const params = new URLSearchParams()
+        params.set('status', 'published')
+        if (currentLocale) params.set('locale', currentLocale)
+        params.set('limit', '200')
+        const res = await fetch(`/api/posts?${params.toString()}`, {
+          credentials: 'same-origin',
+          headers: { Accept: 'application/json' },
+        })
+        if (!res.ok) {
+          throw new Error('Failed to load posts')
         }
-      })()
+        const j = await res.json().catch(() => null)
+        const list: any[] = Array.isArray(j?.data) ? j.data : []
+        if (cancelled) return
+        setPosts(
+          list.map((p: any) => ({
+            id: String(p.id),
+            title: p.title || '(untitled)',
+            slug: p.slug,
+            type: p.type,
+            locale: p.locale,
+            status: p.status,
+          }))
+        )
+      } catch (e) {
+        if (!cancelled) setError('Failed to load posts')
+      } finally {
+        if (!cancelled) setLoading(false)
+      }
+    })()
     return () => {
       cancelled = true
     }
@@ -195,8 +202,7 @@ export const LinkField: React.FC<LinkFieldProps> = ({
             onChange={(e) => {
               const nextMode = e.target.value === 'post' ? 'post' : 'url'
               setMode(nextMode)
-              const prevTarget =
-                link && (link as any).target === '_blank' ? '_blank' : '_self'
+              const prevTarget = link && (link as any).target === '_blank' ? '_blank' : '_self'
               if (nextMode === 'url') {
                 const currentUrl = link && link.kind === 'url' ? link.url : ''
                 setLink(currentUrl ? { kind: 'url', url: currentUrl, target: prevTarget } : null)
@@ -227,8 +233,7 @@ export const LinkField: React.FC<LinkFieldProps> = ({
                 setUrlError(validationError)
 
                 setLink((prev) => {
-                  const baseTarget =
-                    prev && (prev as any).target === '_blank' ? '_blank' : '_self'
+                  const baseTarget = prev && (prev as any).target === '_blank' ? '_blank' : '_self'
                   const trimmed = val.trim()
                   // Only set the link if validation passes
                   if (validationError) return prev
@@ -240,7 +245,8 @@ export const LinkField: React.FC<LinkFieldProps> = ({
               <FormHelper className="text-danger">{urlError}</FormHelper>
             ) : (
               <FormHelper>
-                Enter a full URL. Use this for external destinations only. For internal links, use &quot;Post&quot;.
+                Enter a full URL. Use this for external destinations only. For internal links, use
+                &quot;Post&quot;.
               </FormHelper>
             )}
           </div>
@@ -257,9 +263,7 @@ export const LinkField: React.FC<LinkFieldProps> = ({
                     : selectedPostId
                       ? (() => {
                           const p = posts.find((x) => x.id === selectedPostId)
-                          return p
-                            ? `${p.title} (${p.type}, ${p.locale})`
-                            : 'Select a post…'
+                          return p ? `${p.title} (${p.type}, ${p.locale})` : 'Select a post…'
                         })()
                       : 'Select a post…'}
                 </button>
@@ -286,7 +290,9 @@ export const LinkField: React.FC<LinkFieldProps> = ({
                             key={p.id}
                             type="button"
                             className={`w-full text-left px-3 py-2 rounded border ${
-                              isSelected ? 'border-standout-medium bg-standout-medium/5' : 'border-border'
+                              isSelected
+                                ? 'border-standout-medium bg-standout-medium/5'
+                                : 'border-border'
                             } hover:bg-backdrop-low`}
                             onClick={() => {
                               setLink({
@@ -314,7 +320,8 @@ export const LinkField: React.FC<LinkFieldProps> = ({
               <FormHelper className="text-danger">{error}</FormHelper>
             ) : (
               <FormHelper>
-                Choose an existing post. The actual URL will be generated from the post&apos;s permalink pattern.
+                Choose an existing post. The actual URL will be generated from the post&apos;s
+                permalink pattern.
               </FormHelper>
             )}
           </div>
@@ -341,7 +348,8 @@ export const LinkField: React.FC<LinkFieldProps> = ({
             </select>
           </div>
           <FormHelper>
-            Use a new tab for outbound links or flows that temporarily take visitors away from the site.
+            Use a new tab for outbound links or flows that temporarily take visitors away from the
+            site.
           </FormHelper>
         </div>
 
@@ -350,5 +358,3 @@ export const LinkField: React.FC<LinkFieldProps> = ({
     </FormField>
   )
 }
-
-

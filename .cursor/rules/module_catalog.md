@@ -35,5 +35,3 @@ When AI assistance or automation tools create a new module (backend + frontend):
 - If adding a whole family of modules, it is acceptable to:
   - Seed only **one canonical example** from that family, or
   - Group them together with brief, self-explanatory titles.
-
-

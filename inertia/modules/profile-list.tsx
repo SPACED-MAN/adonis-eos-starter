@@ -22,7 +22,12 @@ type ProfileSummary = {
   imageUrl?: string | null
 }
 
-export default function ProfileList({ title: initialTitle, subtitle: initialSubtitle, profiles: initialProfiles, __moduleId }: ProfileListProps) {
+export default function ProfileList({
+  title: initialTitle,
+  subtitle: initialSubtitle,
+  profiles: initialProfiles,
+  __moduleId,
+}: ProfileListProps) {
   const [items, setItems] = useState<ProfileSummary[]>([])
   const [loading, setLoading] = useState(true)
   const { enabled } = useInlineEditor()
@@ -32,69 +37,69 @@ export default function ProfileList({ title: initialTitle, subtitle: initialSubt
 
   useEffect(() => {
     let cancelled = false
-      ; (async () => {
-        try {
-          const params = new URLSearchParams()
-          params.set('status', 'published')
-          params.set('limit', '50')
-          const ids = Array.isArray(profiles) ? profiles.filter(Boolean) : []
-          if (ids.length > 0) {
-            params.set('ids', ids.join(','))
-          }
-          const res = await fetch(`/api/profiles?${params.toString()}`, {
-            credentials: 'same-origin',
-            headers: { Accept: 'application/json' },
-          })
-          if (!res.ok) {
-            throw new Error('Failed to load profiles')
-          }
-          const j = await res.json().catch(() => null)
-          const list: any[] = Array.isArray(j?.data) ? j.data : []
-          if (cancelled) return
-          const mapped: ProfileSummary[] = list.map((p: any) => ({
-            id: String(p.id),
-            name: String(p.name || 'Profile'),
-            role: (p as any).role ?? null,
-            bio: (p as any).bio ?? null,
-            slug: String(p.slug),
-            imageId: (p as any).imageId ?? null,
-            imageUrl: null,
-          }))
-          // Resolve avatar media variants in parallel for all profiles
-          const uniqueIds = Array.from(
-            new Set(mapped.map((m) => m.imageId).filter(Boolean) as string[]),
-          )
-          const urlById = new Map<string, string>()
-          await Promise.all(
-            uniqueIds.map(async (id) => {
-              try {
-                const resMedia = await fetch(`/public/media/${encodeURIComponent(id)}`)
-                if (!resMedia.ok) return
-                const jm = await resMedia.json().catch(() => null)
-                const data = jm?.data
-                if (!data) return
-                const meta = (data as any).metadata || {}
-                const variants = Array.isArray(meta?.variants) ? (meta.variants as any[]) : []
-                const darkSourceUrl =
-                  typeof meta.darkSourceUrl === 'string' ? (meta.darkSourceUrl as string) : undefined
-                const url = pickMediaVariantUrl(data.url, variants, 'thumb', { darkSourceUrl })
-                urlById.set(id, url)
-              } catch {
-                // ignore
-              }
-            }),
-          )
-          const withImages = mapped.map((m) => ({
-            ...m,
-            imageUrl: m.imageId ? urlById.get(m.imageId) || null : null,
-          }))
-          setItems(withImages)
-        } catch {
-          if (!cancelled) setItems([])
-        } finally {
-          if (!cancelled) setLoading(false)
+    ;(async () => {
+      try {
+        const params = new URLSearchParams()
+        params.set('status', 'published')
+        params.set('limit', '50')
+        const ids = Array.isArray(profiles) ? profiles.filter(Boolean) : []
+        if (ids.length > 0) {
+          params.set('ids', ids.join(','))
         }
-      })()
+        const res = await fetch(`/api/profiles?${params.toString()}`, {
+          credentials: 'same-origin',
+          headers: { Accept: 'application/json' },
+        })
+        if (!res.ok) {
+          throw new Error('Failed to load profiles')
+        }
+        const j = await res.json().catch(() => null)
+        const list: any[] = Array.isArray(j?.data) ? j.data : []
+        if (cancelled) return
+        const mapped: ProfileSummary[] = list.map((p: any) => ({
+          id: String(p.id),
+          name: String(p.name || 'Profile'),
+          role: (p as any).role ?? null,
+          bio: (p as any).bio ?? null,
+          slug: String(p.slug),
+          imageId: (p as any).imageId ?? null,
+          imageUrl: null,
+        }))
+        // Resolve avatar media variants in parallel for all profiles
+        const uniqueIds = Array.from(
+          new Set(mapped.map((m) => m.imageId).filter(Boolean) as string[])
+        )
+        const urlById = new Map<string, string>()
+        await Promise.all(
+          uniqueIds.map(async (id) => {
+            try {
+              const resMedia = await fetch(`/public/media/${encodeURIComponent(id)}`)
+              if (!resMedia.ok) return
+              const jm = await resMedia.json().catch(() => null)
+              const data = jm?.data
+              if (!data) return
+              const meta = (data as any).metadata || {}
+              const variants = Array.isArray(meta?.variants) ? (meta.variants as any[]) : []
+              const darkSourceUrl =
+                typeof meta.darkSourceUrl === 'string' ? (meta.darkSourceUrl as string) : undefined
+              const url = pickMediaVariantUrl(data.url, variants, 'thumb', { darkSourceUrl })
+              urlById.set(id, url)
+            } catch {
+              // ignore
+            }
+          })
+        )
+        const withImages = mapped.map((m) => ({
+          ...m,
+          imageUrl: m.imageId ? urlById.get(m.imageId) || null : null,
+        }))
+        setItems(withImages)
+      } catch {
+        if (!cancelled) setItems([])
+      } finally {
+        if (!cancelled) setLoading(false)
+      }
+    })()
     return () => {
       cancelled = true
     }
@@ -105,12 +110,10 @@ export default function ProfileList({ title: initialTitle, subtitle: initialSubt
       <section className="bg-backdrop-low py-12 lg:py-16" data-module="profile-list">
         <div className="container mx-auto px-4 sm:px-6 lg:px-8">
           <div className="max-w-screen-sm mx-auto text-center mb-8">
-            <h2 className="mb-2 text-3xl font-extrabold tracking-tight text-neutral-high">{title}</h2>
-            {subtitle && (
-              <p className="text-sm text-neutral-medium">
-                {subtitle}
-              </p>
-            )}
+            <h2 className="mb-2 text-3xl font-extrabold tracking-tight text-neutral-high">
+              {title}
+            </h2>
+            {subtitle && <p className="text-sm text-neutral-medium">{subtitle}</p>}
             <p className="mt-4 text-xs text-neutral-low">Loading profiles…</p>
           </div>
         </div>
@@ -174,5 +177,3 @@ export default function ProfileList({ title: initialTitle, subtitle: initialSubt
     </section>
   )
 }
-
-

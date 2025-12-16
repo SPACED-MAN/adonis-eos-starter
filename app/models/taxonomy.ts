@@ -30,4 +30,3 @@ export default class Taxonomy extends BaseModel {
   @hasMany(() => TaxonomyTerm, { foreignKey: 'taxonomyId' })
   declare terms: HasMany<typeof TaxonomyTerm>
 }
-

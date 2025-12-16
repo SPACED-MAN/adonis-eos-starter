@@ -6,10 +6,8 @@
 - After public release, begin treating migrations as append-only and immutable.
 
 Baseline includes:
+
 - users (with username LOWER() unique index)
 - posts (with author_id and unique profile-per-user partial index)
 - post_custom_field_values (stores by field_slug jsonb)
 - site_settings (with profile_roles_enabled jsonb)
-
-
-

@@ -766,7 +766,9 @@ export default class PostsCrudController extends BasePostsController {
 
     const now = new Date()
     // Clear review draft
-    await Post.query().where('id', postId).update({ review_draft: null } as any)
+    await Post.query()
+      .where('id', postId)
+      .update({ review_draft: null } as any)
     // Clear staged module state for Review
     await db
       .from('module_instances')
@@ -800,7 +802,9 @@ export default class PostsCrudController extends BasePostsController {
     })
 
     const now = new Date()
-    await Post.query().where('id', postId).update({ ai_review_draft: null } as any)
+    await Post.query()
+      .where('id', postId)
+      .update({ ai_review_draft: null } as any)
     await db
       .from('module_instances')
       .where('scope', 'post')
@@ -994,7 +998,9 @@ export default class PostsCrudController extends BasePostsController {
     requestedTermIds: string[]
   ): Promise<{ ok: true } | { ok: false; error: string }> {
     const uiCfg = postTypeConfigService.getUiConfig(postType)
-    const allowedTaxonomySlugs = Array.isArray((uiCfg as any).taxonomies) ? (uiCfg as any).taxonomies : []
+    const allowedTaxonomySlugs = Array.isArray((uiCfg as any).taxonomies)
+      ? (uiCfg as any).taxonomies
+      : []
     if (allowedTaxonomySlugs.length === 0) {
       return { ok: true }
     }
@@ -1005,11 +1011,11 @@ export default class PostsCrudController extends BasePostsController {
     // Resolve requested terms -> taxonomy slug and filter to allowed taxonomies
     const rows = termIds.length
       ? await db
-        .from('taxonomy_terms as tt')
-        .join('taxonomies as t', 'tt.taxonomy_id', 't.id')
-        .whereIn('tt.id', termIds)
-        .whereIn('t.slug', allowedTaxonomySlugs)
-        .select('tt.id as termId', 't.slug as taxonomySlug')
+          .from('taxonomy_terms as tt')
+          .join('taxonomies as t', 'tt.taxonomy_id', 't.id')
+          .whereIn('tt.id', termIds)
+          .whereIn('t.slug', allowedTaxonomySlugs)
+          .select('tt.id as termId', 't.slug as taxonomySlug')
       : []
 
     const byTaxonomy = new Map<string, string[]>()

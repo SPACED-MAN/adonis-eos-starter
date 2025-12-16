@@ -47,7 +47,8 @@ export default class AddModuleToPost {
 
     // Respect post type configuration: disable modules when permalinks or URL patterns are absent
     const postTypeConfig = postTypeConfigService.getUiConfig(post.type)
-    const modulesEnabled = postTypeConfig.modulesEnabled !== false && postTypeConfig.urlPatterns.length > 0
+    const modulesEnabled =
+      postTypeConfig.modulesEnabled !== false && postTypeConfig.urlPatterns.length > 0
     if (!modulesEnabled) {
       throw new AddModuleToPostException('Modules are disabled for this post type', 400, {
         postType: post.type,

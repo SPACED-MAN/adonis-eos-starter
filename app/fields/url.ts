@@ -18,4 +18,3 @@ const urlField: FieldTypeConfig = {
 fieldTypeRegistry.register(urlField)
 
 export default urlField
-

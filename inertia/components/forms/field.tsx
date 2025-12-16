@@ -3,24 +3,32 @@ import { cn } from '~/components/ui/utils'
 
 export interface FormFieldProps extends React.HTMLAttributes<HTMLDivElement> {}
 export const FormField = ({ className, ...props }: FormFieldProps) => {
-	return <div className={cn('space-y-1', className)} {...props} />
+  return <div className={cn('space-y-1', className)} {...props} />
 }
 
 export interface FormLabelProps extends React.LabelHTMLAttributes<HTMLLabelElement> {}
-export const FormLabel = React.forwardRef<HTMLLabelElement, FormLabelProps>(({ className, ...props }, ref) => {
-	return <label ref={ref} className={cn('block text-sm font-medium text-neutral-medium mb-1', className)} {...props} />
-})
+export const FormLabel = React.forwardRef<HTMLLabelElement, FormLabelProps>(
+  ({ className, ...props }, ref) => {
+    return (
+      <label
+        ref={ref}
+        className={cn('block text-sm font-medium text-neutral-medium mb-1', className)}
+        {...props}
+      />
+    )
+  }
+)
 FormLabel.displayName = 'FormLabel'
 
 export interface FormControlProps extends React.HTMLAttributes<HTMLDivElement> {}
 export const FormControl = ({ className, ...props }: FormControlProps) => {
-	return <div className={cn('', className)} {...props} />
+  return <div className={cn('', className)} {...props} />
 }
 
 export interface FormHelperProps extends React.HTMLAttributes<HTMLParagraphElement> {}
-export const FormHelper = React.forwardRef<HTMLParagraphElement, FormHelperProps>(({ className, ...props }, ref) => {
-	return <p ref={ref} className={cn('text-xs text-neutral-low', className)} {...props} />
-})
+export const FormHelper = React.forwardRef<HTMLParagraphElement, FormHelperProps>(
+  ({ className, ...props }, ref) => {
+    return <p ref={ref} className={cn('text-xs text-neutral-low', className)} {...props} />
+  }
+)
 FormHelper.displayName = 'FormHelper'
-
-

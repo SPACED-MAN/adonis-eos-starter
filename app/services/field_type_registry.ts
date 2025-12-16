@@ -31,5 +31,3 @@ class FieldTypeRegistry {
 
 const fieldTypeRegistry = new FieldTypeRegistry()
 export default fieldTypeRegistry
-
-

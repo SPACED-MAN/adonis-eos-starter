@@ -143,4 +143,3 @@ class WorkflowUserService {
 }
 
 export default new WorkflowUserService()
-

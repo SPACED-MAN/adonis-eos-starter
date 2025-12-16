@@ -35,7 +35,9 @@ export function SiteHeader() {
     ;(async () => {
       try {
         // Primary menu
-        const res = await fetch('/api/menus/by-slug/primary?locale=en', { credentials: 'same-origin' })
+        const res = await fetch('/api/menus/by-slug/primary?locale=en', {
+          credentials: 'same-origin',
+        })
         const j = await res.json().catch(() => ({}))
         const items: MenuItem[] = Array.isArray(j?.data?.items) ? j.data.items : []
         setPrimaryNodes(buildTree(items))
@@ -103,5 +105,3 @@ export function SiteHeader() {
     />
   )
 }
-
-

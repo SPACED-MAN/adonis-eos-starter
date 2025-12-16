@@ -5,12 +5,12 @@ import type { AgentDefinition } from '#types/agent_types'
  *
  * @deprecated External agents have been moved to the Workflows system.
  * This agent is disabled and needs to be migrated to an internal agent.
- * 
+ *
  * Recommended workflow:
  * - Use MCP `create_translation_ai_review` (or `create_translations_ai_review_bulk`) to create the translation post(s)
  * - Then use MCP `run_field_agent` on specific fields/modules to translate content and stage into AI Review
  * - Submit AI Review to Review for human approval
- * 
+ *
  * To re-enable, convert this to an internal agent with proper AI provider configuration.
  */
 const TranslatorAgent: AgentDefinition = {
@@ -23,7 +23,8 @@ const TranslatorAgent: AgentDefinition = {
   internal: {
     provider: 'openai',
     model: 'gpt-4',
-    systemPrompt: 'You are a professional translator. Translate content accurately while preserving tone and meaning.',
+    systemPrompt:
+      'You are a professional translator. Translate content accurately while preserving tone and meaning.',
     options: {
       temperature: 0.7,
       maxTokens: 2000,
@@ -51,5 +52,3 @@ const TranslatorAgent: AgentDefinition = {
 }
 
 export default TranslatorAgent
-
-

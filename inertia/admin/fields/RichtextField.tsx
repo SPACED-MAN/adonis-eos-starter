@@ -9,5 +9,3 @@ type Props = {
 export default function RichtextField({ value, onChange, editorKey }: Props) {
   return <LexicalEditor editorKey={editorKey} value={value} onChange={onChange} />
 }
-
-

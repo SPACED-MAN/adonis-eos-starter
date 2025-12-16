@@ -4,7 +4,13 @@ import { AdminHeader } from '../../components/AdminHeader'
 import { AdminFooter } from '../../components/AdminFooter'
 import { Input } from '../../../components/ui/input'
 import { Textarea } from '../../../components/ui/textarea'
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '../../../components/ui/select'
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '../../../components/ui/select'
 import { Checkbox } from '../../../components/ui/checkbox'
 import { toast } from 'sonner'
 import { ThankYouPagePicker } from './ThankYouPagePicker'
@@ -68,27 +74,29 @@ export default function FormsIndex({ forms: initialForms, submissions }: FormsIn
   const [slugAuto, setSlugAuto] = useState<boolean>(true)
   const [activeTab, setActiveTab] = useState<'builder' | 'submissions'>('submissions')
 
-  const [availableWebhooks, setAvailableWebhooks] = useState<Array<{ id: string; name: string; events: string[] }>>([])
+  const [availableWebhooks, setAvailableWebhooks] = useState<
+    Array<{ id: string; name: string; events: string[] }>
+  >([])
 
   useEffect(() => {
     let alive = true
-      ; (async () => {
-        try {
-          const res = await fetch('/api/webhooks', { credentials: 'same-origin' })
-          const j = await res.json().catch(() => ({}))
-          if (!alive) return
-          const list: Array<any> = Array.isArray(j?.data) ? j.data : []
-          setAvailableWebhooks(
-            list.map((w) => ({
-              id: String(w.id),
-              name: String(w.name || w.url || w.id),
-              events: Array.isArray(w.events) ? w.events : [],
-            }))
-          )
-        } catch {
-          if (!alive) setAvailableWebhooks([])
-        }
-      })()
+    ;(async () => {
+      try {
+        const res = await fetch('/api/webhooks', { credentials: 'same-origin' })
+        const j = await res.json().catch(() => ({}))
+        if (!alive) return
+        const list: Array<any> = Array.isArray(j?.data) ? j.data : []
+        setAvailableWebhooks(
+          list.map((w) => ({
+            id: String(w.id),
+            name: String(w.name || w.url || w.id),
+            events: Array.isArray(w.events) ? w.events : [],
+          }))
+        )
+      } catch {
+        if (!alive) setAvailableWebhooks([])
+      }
+    })()
     return () => {
       alive = false
     }
@@ -195,14 +203,16 @@ export default function FormsIndex({ forms: initialForms, submissions }: FormsIn
   async function saveForm() {
     if (!editing) return
     const isNew = creating || editing.id === '__NEW__'
-    const url = isNew ? '/api/forms-definitions' : `/api/forms-definitions/${encodeURIComponent(editing.id)}`
+    const url = isNew
+      ? '/api/forms-definitions'
+      : `/api/forms-definitions/${encodeURIComponent(editing.id)}`
     const method = isNew ? 'POST' : 'PUT'
     try {
       setSaving(true)
       const res = await fetch(url, {
         method,
         headers: {
-          Accept: 'application/json',
+          'Accept': 'application/json',
           'Content-Type': 'application/json',
           ...(getXsrf() ? { 'X-XSRF-TOKEN': getXsrf()! } : {}),
         },
@@ -224,17 +234,17 @@ export default function FormsIndex({ forms: initialForms, submissions }: FormsIn
       }
       const saved: FormDefinition | null = j?.data
         ? {
-          id: String(j.data.id),
-          slug: String(j.data.slug),
-          title: String(j.data.title),
-          description: j.data.description || '',
-          fields: Array.isArray(j.data.fields) ? j.data.fields : [],
-          subscriptions: Array.isArray(j.data.subscriptions) ? j.data.subscriptions : [],
-          successMessage: j.data.successMessage || '',
-          thankYouPostId: j.data.thankYouPostId || '',
-          createdAt: j.data.createdAt || null,
-          updatedAt: j.data.updatedAt || null,
-        }
+            id: String(j.data.id),
+            slug: String(j.data.slug),
+            title: String(j.data.title),
+            description: j.data.description || '',
+            fields: Array.isArray(j.data.fields) ? j.data.fields : [],
+            subscriptions: Array.isArray(j.data.subscriptions) ? j.data.subscriptions : [],
+            successMessage: j.data.successMessage || '',
+            thankYouPostId: j.data.thankYouPostId || '',
+            createdAt: j.data.createdAt || null,
+            updatedAt: j.data.updatedAt || null,
+          }
         : null
       if (!saved) {
         toast.error('Unexpected response while saving form')
@@ -294,28 +304,29 @@ export default function FormsIndex({ forms: initialForms, submissions }: FormsIn
 
   return (
     <div className="min-h-screen bg-backdrop-medium">
-				<Head title="Forms" />
-				<AdminHeader title="Forms" />
-				<main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-
+      <Head title="Forms" />
+      <AdminHeader title="Forms" />
+      <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
         {/* Tabs */}
         <div className="mb-6 border-b border-line-low flex items-center gap-2 text-sm md:text-base">
           <button
             type="button"
-            className={`px-4 py-2 font-medium rounded-t-md border-b-2 transition-colors ${activeTab === 'submissions'
-              ? 'border-standout-medium text-neutral-high bg-backdrop-medium'
-              : 'border-transparent text-neutral-medium hover:text-neutral-high hover:bg-backdrop-medium/60'
-              }`}
+            className={`px-4 py-2 font-medium rounded-t-md border-b-2 transition-colors ${
+              activeTab === 'submissions'
+                ? 'border-standout-medium text-neutral-high bg-backdrop-medium'
+                : 'border-transparent text-neutral-medium hover:text-neutral-high hover:bg-backdrop-medium/60'
+            }`}
             onClick={() => setActiveTab('submissions')}
           >
             Submissions
           </button>
           <button
             type="button"
-            className={`px-4 py-2 font-medium rounded-t-md border-b-2 transition-colors ${activeTab === 'builder'
-              ? 'border-standout-medium text-neutral-high bg-backdrop-medium'
-              : 'border-transparent text-neutral-medium hover:text-neutral-high hover:bg-backdrop-medium/60'
-              }`}
+            className={`px-4 py-2 font-medium rounded-t-md border-b-2 transition-colors ${
+              activeTab === 'builder'
+                ? 'border-standout-medium text-neutral-high bg-backdrop-medium'
+                : 'border-transparent text-neutral-medium hover:text-neutral-high hover:bg-backdrop-medium/60'
+            }`}
             onClick={() => setActiveTab('builder')}
           >
             Forms
@@ -329,7 +340,8 @@ export default function FormsIndex({ forms: initialForms, submissions }: FormsIn
               <div>
                 <h2 className="text-lg font-semibold text-neutral-high">Form Definitions</h2>
                 <p className="text-xs text-neutral-low">
-                  Create and manage forms that can be embedded via the <code>Form</code> and <code>Prose with Form</code> modules.
+                  Create and manage forms that can be embedded via the <code>Form</code> and{' '}
+                  <code>Prose with Form</code> modules.
                 </p>
               </div>
               <button
@@ -473,7 +485,9 @@ export default function FormsIndex({ forms: initialForms, submissions }: FormsIn
                         <th className="px-4 py-2 text-left font-medium text-neutral-high">Form</th>
                         <th className="px-4 py-2 text-left font-medium text-neutral-high">Name</th>
                         <th className="px-4 py-2 text-left font-medium text-neutral-high">Email</th>
-                        <th className="px-4 py-2 text-left font-medium text-neutral-high">Submitted</th>
+                        <th className="px-4 py-2 text-left font-medium text-neutral-high">
+                          Submitted
+                        </th>
                       </tr>
                     </thead>
                     <tbody className="divide-y divide-line">
@@ -491,9 +505,11 @@ export default function FormsIndex({ forms: initialForms, submissions }: FormsIn
                             {s.email || <span className="text-neutral-low">—</span>}
                           </td>
                           <td className="px-4 py-2 text-neutral-medium">
-                            {s.createdAt
-                              ? new Date(s.createdAt).toLocaleString()
-                              : <span className="text-neutral-low">—</span>}
+                            {s.createdAt ? (
+                              new Date(s.createdAt).toLocaleString()
+                            ) : (
+                              <span className="text-neutral-low">—</span>
+                            )}
                           </td>
                         </tr>
                       ))}
@@ -574,10 +590,10 @@ function EditorInner({
               setEditing((current) =>
                 current
                   ? {
-                    ...current,
-                    title: val,
-                    slug: slugAuto ? slugify(val) : current.slug,
-                  }
+                      ...current,
+                      title: val,
+                      slug: slugAuto ? slugify(val) : current.slug,
+                    }
                   : current
               )
             }}
@@ -623,7 +639,9 @@ function EditorInner({
       {/* Success message and thank-you page */}
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
         <div>
-          <label className="block text-sm font-medium text-neutral-medium mb-1">Success Message</label>
+          <label className="block text-sm font-medium text-neutral-medium mb-1">
+            Success Message
+          </label>
           <Textarea
             value={editing.successMessage || ''}
             onChange={(e) =>
@@ -639,9 +657,7 @@ function EditorInner({
           <ThankYouPagePicker
             value={editing.thankYouPostId || ''}
             onChange={(id: string) =>
-              setEditing((current) =>
-                current ? { ...current, thankYouPostId: id } : current
-              )
+              setEditing((current) => (current ? { ...current, thankYouPostId: id } : current))
             }
           />
         </div>
@@ -669,7 +685,9 @@ function EditorInner({
                 className="grid grid-cols-1 md:grid-cols-[1.2fr,1.2fr,0.9fr,auto] gap-2 items-start"
               >
                 <div>
-                  <label className="block text-[11px] font-medium text-neutral-medium mb-1">Slug</label>
+                  <label className="block text-[11px] font-medium text-neutral-medium mb-1">
+                    Slug
+                  </label>
                   <Input
                     value={field.slug}
                     onChange={(e) => updateField(idx, { slug: e.target.value })}
@@ -677,7 +695,9 @@ function EditorInner({
                   />
                 </div>
                 <div>
-                  <label className="block text-[11px] font-medium text-neutral-medium mb-1">Label</label>
+                  <label className="block text-[11px] font-medium text-neutral-medium mb-1">
+                    Label
+                  </label>
                   <Input
                     value={field.label}
                     onChange={(e) => updateField(idx, { label: e.target.value })}
@@ -685,7 +705,9 @@ function EditorInner({
                   />
                 </div>
                 <div>
-                  <label className="block text-[11px] font-medium text-neutral-medium mb-1">Type</label>
+                  <label className="block text-[11px] font-medium text-neutral-medium mb-1">
+                    Type
+                  </label>
                   <Select
                     value={field.type}
                     onValueChange={(val) => updateField(idx, { type: val as FormFieldType })}
@@ -745,15 +767,13 @@ function EditorInner({
           <div className="space-y-2">
             {(!editing.subscriptions || editing.subscriptions.length === 0) && (
               <p className="text-xs text-neutral-low">
-                No subscriptions configured. Click “Add Webhook” to subscribe this form to one or more webhooks.
+                No subscriptions configured. Click “Add Webhook” to subscribe this form to one or
+                more webhooks.
               </p>
             )}
             {editing.subscriptions?.map((subId, idx) => {
               return (
-                <div
-                  key={`${subId || 'new'}-${idx}`}
-                  className="flex items-center gap-2"
-                >
+                <div key={`${subId || 'new'}-${idx}`} className="flex items-center gap-2">
                   <Select
                     value={subId || ''}
                     onValueChange={(val) => updateSubscriptionRow(idx, val)}
@@ -788,8 +808,8 @@ function EditorInner({
         )}
         {availableWebhooks.length > 0 && (
           <p className="text-[11px] text-neutral-low">
-            Only webhooks subscribed to the <code>form.submitted</code> event will receive payloads when this form is
-            submitted.
+            Only webhooks subscribed to the <code>form.submitted</code> event will receive payloads
+            when this form is submitted.
           </p>
         )}
       </div>
@@ -824,4 +844,3 @@ function EditorInner({
     </div>
   )
 }
-

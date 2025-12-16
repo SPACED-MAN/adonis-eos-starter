@@ -60,4 +60,3 @@ try {
     console.error('❌ Failed to bootstrap workflow registry:', error)
   }
 }
-

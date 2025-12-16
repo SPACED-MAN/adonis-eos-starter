@@ -103,14 +103,16 @@ class AgentUserService {
 
         // Use stable "default" identifiers to allow MCP to map agentId -> user reliably.
         // Only use custom email/username if explicitly provided.
-        const stableUsername = cfg.username ? (await findUniqueUsername(cfg.username)) : buildDefaultUsername(agent.id)
+        const stableUsername = cfg.username
+          ? await findUniqueUsername(cfg.username)
+          : buildDefaultUsername(agent.id)
         const username = stableUsername || buildDefaultUsername(agent.id)
 
         // Determine email:
         // - If a custom email is provided, try to use it (unique).
         // - Otherwise, generate an internal email based on agent id, but de-conflict if necessary.
         const preferredEmail = cfg.email?.trim() ? cfg.email.trim() : buildDefaultEmail(agent.id)
-        
+
         // Prefer finding by username (stable agentId -> user mapping).
         let existing =
           (await User.query().whereRaw('LOWER(username) = LOWER(?)', [username]).first()) || null
@@ -166,5 +168,3 @@ class AgentUserService {
 }
 
 export default new AgentUserService()
-
-

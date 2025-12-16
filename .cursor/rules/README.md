@@ -61,14 +61,16 @@ This directory contains coding guidelines and conventions for the Adonis EOS pro
    - Preventing hardcoded patterns
 
 10. **[seeding.md](./seeding.md)** - **⭐ DATA INTEGRITY** - Database seeding best practices
-   - Use actions/APIs, not direct inserts
-   - Respect module schemas
-   - Template-based seeding
-   - AI agent compatibility
+
+- Use actions/APIs, not direct inserts
+- Respect module schemas
+- Template-based seeding
+- AI agent compatibility
 
 ## Actions Quick Start
 
 **For complex operations, use action classes with static methods:**
+
 ```bash
 # 1. Create action using Ace command
 node ace make:action posts/CreatePost
@@ -96,6 +98,7 @@ export default class PostsController {
 ```
 
 **When to use actions:**
+
 - ✅ Complex business logic (>30 lines)
 - ✅ Multi-step operations
 - ✅ Reusable logic
@@ -104,6 +107,7 @@ export default class PostsController {
 ## Module Quick Start
 
 **Creating a content module:**
+
 ```bash
 # 1. Generate module files (backend + frontend)
 node ace make:module VideoEmbed --mode=react  # Interactive (default)
@@ -153,6 +157,7 @@ node ace test tests/unit/modules/video_embed.spec.ts
 ```
 
 **Module philosophy:**
+
 - Backend defines structure (config, schema, validation)
 - Frontend handles rendering (React components)
 - Data lives in `post_modules.props` (JSONB)
@@ -163,6 +168,7 @@ node ace test tests/unit/modules/video_embed.spec.ts
 ## Testing Quick Start
 
 **For every new feature:**
+
 ```bash
 # 1. Create test file
 node ace make:test feature_name --suite=unit
@@ -181,6 +187,7 @@ node ace test unit
 ```
 
 **Required test coverage:**
+
 - ✅ Unit tests for all models, services, helpers, actions
 - ✅ Functional tests for all API endpoints
 - ✅ Both success and error cases
@@ -212,4 +219,3 @@ node ace test unit
 ---
 
 **These rules help maintain code quality and consistency across the project.**
-

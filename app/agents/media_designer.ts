@@ -5,13 +5,14 @@ import type { AgentDefinition } from '#types/agent_types'
  *
  * @deprecated This agent has been replaced by the Graphic Designer agent (app/agents/graphic_designer.ts).
  * The Graphic Designer is an internal AI agent that can generate images and search media.
- * 
+ *
  * This file is disabled. You can delete it or keep it as a reference.
  */
 const MediaDesignerAgent: AgentDefinition = {
   id: 'media-designer',
   name: 'Media Designer',
-  description: 'Generates image concepts/prompts and suggests media selections for specific fields/modules',
+  description:
+    'Generates image concepts/prompts and suggests media selections for specific fields/modules',
   type: 'internal', // Changed from 'external' - needs proper internal config
   enabled: false, // Disabled - use graphic_designer.ts instead
 
@@ -58,5 +59,3 @@ const MediaDesignerAgent: AgentDefinition = {
 }
 
 export default MediaDesignerAgent
-
-

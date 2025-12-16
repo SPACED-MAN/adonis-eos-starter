@@ -3,6 +3,7 @@
 ## Notifications
 
 ### Always Use Sonner for Toasts
+
 **Official Docs:** https://sonner.emilkowal.ski/
 
 - ✅ Use `toast.success()` for successful operations
@@ -15,6 +16,7 @@
 - ❌ Don't create custom toast components
 
 **Examples:**
+
 ```tsx
 import { toast } from 'sonner'
 
@@ -41,14 +43,11 @@ toast('Post deleted', {
 })
 
 // Promise-based (auto loading/success/error)
-toast.promise(
-  updatePost(id, data),
-  {
-    loading: 'Saving...',
-    success: 'Post saved!',
-    error: 'Failed to save post',
-  }
-)
+toast.promise(updatePost(id, data), {
+  loading: 'Saving...',
+  success: 'Post saved!',
+  error: 'Failed to save post',
+})
 
 // With Inertia forms
 put('/api/posts/1', {
@@ -58,6 +57,7 @@ put('/api/posts/1', {
 ```
 
 **Features Enabled:**
+
 - ✅ Rich colors (colored backgrounds for success/error/etc.)
 - ✅ Close button (manual dismissal)
 - ✅ Auto-dismiss after ~4 seconds
@@ -70,6 +70,7 @@ put('/api/posts/1', {
 ## Styling
 
 ### Always Use Tailwind CSS
+
 - ✅ Use Tailwind utility classes for all styling
 - ✅ Leverage Tailwind's responsive modifiers (sm:, md:, lg:, etc.)
 - ✅ Use Tailwind's color palette and spacing system
@@ -79,6 +80,7 @@ put('/api/posts/1', {
 - ❌ Don't use inline styles or styled-components
 
 **Example:**
+
 ```tsx
 // ✅ Good: Tailwind classes
 <div className="bg-white rounded-lg shadow-md p-6 hover:shadow-lg transition-shadow">

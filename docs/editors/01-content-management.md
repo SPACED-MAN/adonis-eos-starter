@@ -67,6 +67,7 @@ Modules are content blocks that make up your page.
 #### Managing Variants
 
 Images have multiple sizes automatically generated:
+
 - **Small**: 400px wide
 - **Medium**: 800px wide
 - **Large**: 1200px wide
@@ -97,9 +98,11 @@ You can publish content:
 ### Managing Different Content Types
 
 #### Pages
+
 General website pages (About, Contact, Services, etc.)
 
 #### Blog Posts
+
 Articles with publication dates, categories, and taxonomies
 
 1. Create new blog post
@@ -110,12 +113,15 @@ Articles with publication dates, categories, and taxonomies
 6. Publish or schedule
 
 #### Profiles
+
 Team member or author profiles
 
 #### Companies
+
 Business or client listings
 
 #### Testimonials
+
 Customer reviews and quotes
 
 ### Menus
@@ -182,8 +188,9 @@ Save commonly used module configurations by duplicating posts.
 ### 3. Media Organization
 
 Use categories to organize images:
+
 - `hero` - Hero section images
-- `featured` - Featured post images  
+- `featured` - Featured post images
 - `content` - Content body images
 - `logos` - Brand and partner logos
 
@@ -198,12 +205,14 @@ Use the preview feature to see how content looks before going live.
 ### 6. Consistent Slugs
 
 Use clear, descriptive slugs:
+
 - ✅ `about-our-company`
 - ❌ `page-123`
 
 ### 7. SEO Metadata
 
 Always fill in:
+
 - Meta description
 - Featured image
 - Proper heading hierarchy
@@ -251,6 +260,3 @@ See [Internationalization guide](/docs/for-developers/internationalization) for 
 - Review [Building Modules](/docs/for-developers/building-modules) for custom modules
 - Contact your administrator for permission issues
 - Refer to [Roles & Permissions](/docs/for-editors/roles-permissions) for access questions
-
-
-

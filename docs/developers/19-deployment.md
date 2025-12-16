@@ -21,16 +21,19 @@ Before deploying to production:
 ### Environment File Convention
 
 **Development:**
+
 - Use `.env` file in the project root
 - This file is git-ignored and contains your local development settings
 - Never commit `.env` to version control
 
 **Production:**
+
 - Set environment variables through your hosting platform's configuration (e.g., DigitalOcean App Platform, Heroku config vars, AWS Parameter Store)
 - Or use a `.env` file on the server (ensure it's not in the repository and has proper file permissions)
 - Platform-specific: Many platforms (Heroku, Railway, etc.) prefer environment variables set through their UI/CLI
 
 **Best Practice:**
+
 - Keep a `.env.example` file (committed to git) as a template with all available variables and documentation
 - Each developer clones the repo, copies `.env.example` to `.env`, and fills in their local values
 - Production environments should set variables through their platform's secure configuration system
@@ -167,17 +170,20 @@ openssl rand -hex 32
 The `.env` file should be placed in the **project root directory** (same level as `package.json`, `adonisrc.ts`, etc.).
 
 **Development:**
+
 ```bash
 # In your project root
 /path/to/adonis-eos/.env
 ```
 
 **Production:**
+
 - Platform-managed: Set variables through your hosting platform's environment variable configuration (recommended)
 - Server-based: Place `.env` in the project root on your server
 - Ensure the file has restrictive permissions: `chmod 600 .env`
 
 **Important Security Notes:**
+
 - Never commit `.env` to version control (it's in `.gitignore`)
 - Use `.env.example` as a template for documentation
 - In production, prefer platform environment variables over `.env` files when possible
@@ -206,6 +212,7 @@ node ace db:seed --force
 Production seeding uses the same JSON import pipeline as the admin UI.
 
 ### Before you launch
+
 - **Export curated content**: create `database/seed_data/production-export.json` from your staging or prep environment (Admin → Database Export, include IDs).
 - **Safety**: the production import seeder should only run on a **fresh/empty** database to avoid clobbering live data.
 - **Run migrations**: `node ace migration:run --force` on the target environment.
@@ -214,21 +221,23 @@ Production seeding uses the same JSON import pipeline as the admin UI.
 
 Use the production import seeder (see `database/seeders/production_import_seeder.ts`):
 
-1) Copy your curated export to `database/seed_data/production-export.json` in your deploy artifact.
-2) Ensure the DB is empty and migrations are applied.
-3) Run:
+1. Copy your curated export to `database/seed_data/production-export.json` in your deploy artifact.
+2. Ensure the DB is empty and migrations are applied.
+3. Run:
 
 ```bash
 NODE_ENV=production node ace db:seed --files database/seeders/production_import_seeder --force
 ```
 
-4) Verify admin access and content in the UI.
+4. Verify admin access and content in the UI.
 
 ### Updating launch content close to go-live
+
 - Re-export from staging, replace `production-export.json`, and re-run the seeder on a fresh database.
 - If the database is not empty, the seeder will stop; drop/recreate (or truncate) before re-running.
 
 ### Development parity
+
 - Development imports `database/seed_data/development-export.json` when `NODE_ENV=development` / `APP_ENV=development`.
 
 ## Build for Production
@@ -246,6 +255,7 @@ npm run build
 ```
 
 This compiles:
+
 - React components (admin + site)
 - Tailwind CSS
 - TypeScript
@@ -275,19 +285,21 @@ Create `ecosystem.config.cjs`:
 
 ```javascript
 module.exports = {
-  apps: [{
-    name: 'adonis-eos',
-    script: './build/bin/server.js',
-    instances: 'max',
-    exec_mode: 'cluster',
-    autorestart: true,
-    watch: false,
-    max_memory_restart: '1G',
-    env: {
-      NODE_ENV: 'production',
-      PORT: 3333,
+  apps: [
+    {
+      name: 'adonis-eos',
+      script: './build/bin/server.js',
+      instances: 'max',
+      exec_mode: 'cluster',
+      autorestart: true,
+      watch: false,
+      max_memory_restart: '1G',
+      env: {
+        NODE_ENV: 'production',
+        PORT: 3333,
+      },
     },
-  }],
+  ],
 }
 ```
 
@@ -555,6 +567,7 @@ curl https://yourdomain.com/health
 ### Monitoring Tools
 
 Recommended monitoring solutions:
+
 - **PM2 Plus** - Application monitoring
 - **Sentry** - Error tracking
 - **New Relic** - Performance monitoring
@@ -644,6 +657,7 @@ pm2 restart adonis-eos --max-memory-restart 1G
 ### CDN for Assets
 
 Configure CDN for `/assets` and `/uploads`:
+
 - CloudFlare
 - AWS CloudFront
 - DigitalOcean Spaces CDN
@@ -666,4 +680,3 @@ After deployment:
 ---
 
 **Related:** [Getting Started](/docs/for-developers) | [Configuration](/docs/for-developers/configuration)
-

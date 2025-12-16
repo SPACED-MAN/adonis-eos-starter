@@ -21,6 +21,7 @@ export default lipsum
 ```
 
 Fields:
+
 - `slug`: Unique key.
 - `name`: Display name.
 - `hierarchical`: If true, terms can nest and be reordered.
@@ -41,6 +42,7 @@ node ace make:taxonomy "Blog Categories" \
 ```
 
 Flags:
+
 - `--hierarchical` (boolean): enable nesting + reorder.
 - `--free-tagging` (boolean): allow inline term creation in the post editor.
 - `--maxSelections` (number or `unlimited`): cap terms per post.
@@ -62,4 +64,3 @@ Flags:
 
 - Terms live in `taxonomy_terms`; assignments live in `post_taxonomy_terms`.
 - Post updates accept `taxonomyTermIds`; only terms belonging to allowed taxonomies are persisted.
-

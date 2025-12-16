@@ -1,11 +1,13 @@
 # Code Conventions & Standards
 
 ## Core Principle
+
 **Follow official framework documentation and established conventions.**
 
 ## Framework Documentation Priority
 
 ### AdonisJS
+
 - ✅ Always reference official AdonisJS v6 documentation
 - ✅ Follow AdonisJS project structure conventions
 - ✅ Use AdonisJS built-in features (auth, sessions, migrations, etc.)
@@ -26,6 +28,7 @@
 ## Before Making Changes
 
 Ask yourself:
+
 1. "Does this follow the official documentation?"
 2. "Am I breaking any established conventions?"
 3. "Is there a built-in way to do this?"
@@ -40,4 +43,3 @@ Ask yourself:
 - **Testing:** See `.cursor/rules/testing.md` for comprehensive testing guidelines
 - **Documentation:** See `.cursor/rules/documentation.md` for documentation standards
 - **UI Components:** See `.cursor/rules/ui-components.md` for component patterns
-

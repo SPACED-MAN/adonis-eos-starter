@@ -37,20 +37,25 @@ class SiteSettingsService {
     const currentRow = await SiteSetting.query().first()
     const current: SiteSettings = currentRow
       ? {
-        siteTitle: currentRow.siteTitle,
-        defaultMetaDescription: currentRow.defaultMetaDescription,
-        faviconMediaId: currentRow.faviconMediaId,
-        defaultOgMediaId: currentRow.defaultOgMediaId,
-        logoMediaId: currentRow.logoMediaId,
-        profileRolesEnabled: currentRow.profileRolesEnabled || [],
-      }
+          siteTitle: currentRow.siteTitle,
+          defaultMetaDescription: currentRow.defaultMetaDescription,
+          faviconMediaId: currentRow.faviconMediaId,
+          defaultOgMediaId: currentRow.defaultOgMediaId,
+          logoMediaId: currentRow.logoMediaId,
+          profileRolesEnabled: currentRow.profileRolesEnabled || [],
+        }
       : await this.get()
 
     const next: SiteSettings = {
       siteTitle: payload.siteTitle ?? current.siteTitle,
-      defaultMetaDescription: 'defaultMetaDescription' in payload ? payload.defaultMetaDescription! : current.defaultMetaDescription,
-      faviconMediaId: 'faviconMediaId' in payload ? payload.faviconMediaId! : current.faviconMediaId,
-      defaultOgMediaId: 'defaultOgMediaId' in payload ? payload.defaultOgMediaId! : current.defaultOgMediaId,
+      defaultMetaDescription:
+        'defaultMetaDescription' in payload
+          ? payload.defaultMetaDescription!
+          : current.defaultMetaDescription,
+      faviconMediaId:
+        'faviconMediaId' in payload ? payload.faviconMediaId! : current.faviconMediaId,
+      defaultOgMediaId:
+        'defaultOgMediaId' in payload ? payload.defaultOgMediaId! : current.defaultOgMediaId,
       logoMediaId: 'logoMediaId' in payload ? payload.logoMediaId! : current.logoMediaId,
       profileRolesEnabled: payload.profileRolesEnabled ?? current.profileRolesEnabled ?? [],
     }

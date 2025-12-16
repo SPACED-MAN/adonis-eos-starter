@@ -42,7 +42,7 @@ Webhook requests are `POST` with JSON body:
 {
   "event": "post.updated",
   "timestamp": "2025-12-12T00:00:00.000Z",
-  "data": { "..." : "..." }
+  "data": { "...": "..." }
 }
 ```
 
@@ -86,5 +86,3 @@ Admin endpoints (see `app/controllers/webhooks_controller.ts`):
 - **Return 2xx quickly**; do heavy work async in your receiver.
 - **Idempotency**: treat retries as normal; dedupe by `(event, timestamp)` or by a delivery id if you add one on your side.
 - **Timeouts**: keep receiver fast; Adonis will abort after `timeoutMs`.
-
-

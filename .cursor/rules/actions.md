@@ -3,9 +3,11 @@
 This document outlines the conventions for implementing the Actions pattern in Adonis EOS using the `@adocasts.com/actions` package.
 
 ## Core Principle
+
 **Use single-responsibility action classes with static methods to avoid fat controllers. Actions keep your code organized, testable, and reusable.**
 
 ## Package Information
+
 - **Package:** `@adocasts.com/actions` v1.0.5
 - **Repository:** https://github.com/adocasts/package-actions
 - **Docs:** https://adocasts.com/lessons/creating-our-own-actions-package
@@ -13,6 +15,7 @@ This document outlines the conventions for implementing the Actions pattern in A
 ## What are Actions?
 
 Actions are plain TypeScript classes with a static `handle` method that encapsulate a single business operation. They provide:
+
 - **Single Responsibility** - Each action does one thing
 - **Reusability** - Use in controllers, CLI, jobs, etc.
 - **Testability** - Easy to test in isolation
@@ -21,6 +24,7 @@ Actions are plain TypeScript classes with a static `handle` method that encapsul
 ## Key Conventions
 
 ### 1. Static Methods
+
 Actions use **static** methods, not instance methods:
 
 ```typescript
@@ -35,7 +39,7 @@ export default class CreatePostAction {
 @inject()
 export default class CreatePostAction {
   constructor(private service: SomeService) {}
-  
+
   async handle(params: CreatePostParams): Promise<Post> {
     // Don't do this
   }
@@ -43,6 +47,7 @@ export default class CreatePostAction {
 ```
 
 ### 2. Type Definitions
+
 Use `type` for parameters, not interfaces:
 
 ```typescript
@@ -61,6 +66,7 @@ interface CreatePostParams {
 ```
 
 ### 3. Direct Imports
+
 Import services and models directly, no constructor injection:
 
 ```typescript
@@ -110,7 +116,7 @@ type CreatePostParams = {
 export default class CreatePost {
   /**
    * Create a new blog post
-   * 
+   *
    * @param params - Post creation parameters
    * @returns The newly created post
    */
@@ -128,13 +134,13 @@ export default class CreateTranslation {
   static async handle({ postId, locale, title, slug }: CreateTranslationParams): Promise<Post> {
     // Step 1: Find and validate base post
     const basePost = await this.getBasePost(postId)
-    
+
     // Step 2: Validate locale
     this.validateLocale(locale)
-    
+
     // Step 3: Check for duplicates
     await this.checkDuplicateTranslation(basePost, locale)
-    
+
     // Step 4: Create translation
     return this.createTranslation(basePost, { locale, title, slug })
   }
@@ -180,6 +186,7 @@ export default class CreateTranslation {
 ## When to Use Actions
 
 ### ✅ USE Actions When:
+
 - **Complex business logic** - Operation involves multiple steps (>30 lines)
 - **Reusability needed** - Logic used in controllers, CLI, jobs, etc.
 - **Transaction management** - Operation requires database transaction
@@ -188,6 +195,7 @@ export default class CreateTranslation {
 - **Testing important** - Need isolated unit tests for business logic
 
 ### ❌ AVOID Actions When:
+
 - **Simple CRUD** - Basic `Post.find(id)` or `Post.all()`
 - **Purely HTTP concerns** - Request parsing, response formatting
 - **View rendering** - Simple Inertia renders
@@ -212,11 +220,7 @@ export class CreateTranslationException extends Error {
 
 // In action:
 if (!localeService.isLocaleSupported(locale)) {
-  throw new CreateTranslationException(
-    `Unsupported locale: ${locale}`,
-    400,
-    { locale }
-  )
+  throw new CreateTranslationException(`Unsupported locale: ${locale}`, 400, { locale })
 }
 
 // In controller:
@@ -349,16 +353,19 @@ app/actions/
 ## Naming Conventions
 
 ### Action Classes
+
 - Use verb-noun pattern: `CreatePost`, `UpdateUser`, `DeleteComment`
 - No `Action` suffix needed (Ace command handles this)
 - Use PascalCase
 
 ### Files
+
 - Use snake_case for files: `create_post.ts`, `delete_comment.ts`
 - Generated automatically by `node ace make:action` command
 - Group related actions in directories (e.g., `app/actions/posts/`)
 
 ### Methods
+
 - Main method: `static async handle(params: TypeName): Promise<ReturnType>`
 - Private helpers: `private static async helperName()`
 - All methods should be async if they do I/O
@@ -366,6 +373,7 @@ app/actions/
 ## Best Practices
 
 ### 1. Keep Actions Focused
+
 ```typescript
 // ✅ GOOD: Single responsibility
 class CreatePostAction {
@@ -383,6 +391,7 @@ class PostAction {
 ```
 
 ### 2. Use Descriptive Types
+
 ```typescript
 // ✅ GOOD: Clear parameter types
 type CreateTranslationParams = {
@@ -402,6 +411,7 @@ type Params = {
 ```
 
 ### 3. Document Public Methods
+
 ```typescript
 /**
  * Create a new translation for a post
@@ -416,6 +426,7 @@ static async handle(params: CreateTranslationParams): Promise<Post> {
 ```
 
 ### 4. Extract Complex Logic to Private Methods
+
 ```typescript
 static async handle(params: CreateTranslationParams): Promise<Post> {
   const basePost = await this.getBasePost(params.postId)
@@ -448,6 +459,7 @@ node ace make:action posts/UpdatePost
 ```
 
 ### Workflow
+
 1. **Generate action:** `node ace make:action feature/ActionName`
 2. **Define parameter type:** `type ActionNameParams = { ... }`
 3. **Define custom exception (if needed):** `export class ActionNameException extends Error { ... }`
@@ -476,7 +488,10 @@ type CreatePostParams = {
 }
 
 export class CreatePostException extends Error {
-  constructor(message: string, public statusCode: number = 400) {
+  constructor(
+    message: string,
+    public statusCode: number = 400
+  ) {
     super(message)
     this.name = 'CreatePostException'
   }
@@ -512,17 +527,20 @@ export default class PostsController {
 ## Migration Strategy
 
 ### Current Status
+
 - ✅ Actions package installed
 - ✅ Import path configured (`#actions/*`)
 - ✅ Documentation complete
 - ✅ 2 refactorings complete (Translations controller)
 
 ### For New Features (Milestone 4+)
+
 - Start with actions for complex operations
 - Keep simple CRUD in controllers
 - Use actions for multi-step workflows
 
 ### For Existing Code
+
 - Refactor as needed when adding features
 - No rush to refactor working code
 - Focus on pain points (fat controllers, hard to test)
@@ -532,16 +550,20 @@ export default class PostsController {
 ### Completed Refactorings
 
 #### 1. CreateTranslation
+
 **File:** `app/actions/translations/create_translation.ts`
 **Class:** `CreateTranslation`
+
 - Creates post translations
 - Validates locale support
 - Checks for duplicates
 - Handles nested translations
 
 #### 2. DeleteTranslation
+
 **File:** `app/actions/translations/delete_translation.ts`
 **Class:** `DeleteTranslation`
+
 - Deletes translations
 - Protects original posts
 - Proper error handling
@@ -549,6 +571,7 @@ export default class PostsController {
 ## Common Patterns
 
 ### Pattern 1: Multi-Step Operation
+
 ```typescript
 static async handle(params: Params): Promise<Result> {
   const step1 = await this.doStep1(params)
@@ -559,6 +582,7 @@ static async handle(params: Params): Promise<Result> {
 ```
 
 ### Pattern 2: Validation Before Action
+
 ```typescript
 static async handle(params: Params): Promise<Result> {
   this.validateInput(params)
@@ -568,6 +592,7 @@ static async handle(params: Params): Promise<Result> {
 ```
 
 ### Pattern 3: Transaction Wrapper
+
 ```typescript
 static async handle(params: Params): Promise<Result> {
   const trx = await db.transaction()

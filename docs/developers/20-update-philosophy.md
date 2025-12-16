@@ -50,5 +50,3 @@ Your team is responsible for the lifecycle of this application:
 6. Have a clear rollback strategy (revert commit, rollback DB if needed).
 
 Treat this repository like any other **core service** in your stack: changes should be deliberate, reviewed, and deployed through your normal engineering processes rather than via in-app buttons.
-
-

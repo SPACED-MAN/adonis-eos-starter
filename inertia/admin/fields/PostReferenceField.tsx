@@ -16,4 +16,3 @@ export default function PostReferenceField({ value, onChange, config }: Props) {
     />
   )
 }
-

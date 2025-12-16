@@ -1,7 +1,7 @@
 ---
 description: Database Seeding Best Practices
 globs:
-  - "database/seeders/**/*.ts"
+  - 'database/seeders/**/*.ts'
 alwaysApply: false
 ---
 
@@ -14,6 +14,7 @@ alwaysApply: false
 ## Why This Matters
 
 Direct database inserts bypass:
+
 - ✅ Schema validation (modules, custom fields)
 - ✅ Business logic (profile uniqueness, role checks)
 - ✅ Relationships and constraints
@@ -51,6 +52,7 @@ await db.table('module_instances').insert({
 ```
 
 **Problems:**
+
 - Bypasses module schema validation
 - Props don't match module expectations
 - No validation of required fields
@@ -64,7 +66,7 @@ import CreatePost from '#actions/posts/create_post'
 export default class extends BaseSeeder {
   async run() {
     const admin = await db.from('users').where('email', 'admin@example.com').first()
-    
+
     // Create post using the action (same as UI/API)
     const post = await CreatePost.handle({
       type: 'page',
@@ -84,6 +86,7 @@ export default class extends BaseSeeder {
 ```
 
 **Benefits:**
+
 - ✅ Uses same validation as production
 - ✅ Respects business rules
 - ✅ Generates proper URLs
@@ -104,7 +107,7 @@ await AddModuleToPost.handle({
   moduleType: 'hero',
   scope: 'local', // 'local', 'global', or 'static'
   props: {
-    title: 'Welcome',        // ✅ Matches schema
+    title: 'Welcome', // ✅ Matches schema
     subtitle: 'To our site', // ✅ Matches schema
     // Module props are validated against schema automatically
   },
@@ -113,6 +116,7 @@ await AddModuleToPost.handle({
 ```
 
 **Benefits:**
+
 - ✅ Module type validation (must be registered)
 - ✅ Schema validation (props must match module schema)
 - ✅ Post type validation (module must be allowed for post type)
@@ -126,11 +130,14 @@ await AddModuleToPost.handle({
 
 ```typescript
 // 1. Create template (one time, maybe in migration)
-const template = await db.table('templates').insert({
-  name: 'homepage-default',
-  post_type: 'page',
-  // ...
-}).returning('*')
+const template = await db
+  .table('templates')
+  .insert({
+    name: 'homepage-default',
+    post_type: 'page',
+    // ...
+  })
+  .returning('*')
 
 // 2. Add modules to template
 await db.table('module_group_modules').insert([
@@ -154,6 +161,7 @@ const post = await CreatePost.handle({
 ```
 
 **Benefits:**
+
 - Templates are reusable
 - Schema validation happens once
 - Easy to update all posts using a template
@@ -182,11 +190,12 @@ Seeders should use the same endpoints/actions that AI agents use:
 // AI agents call: POST /api/posts
 // Seeders should call: CreatePost.handle()
 
-// AI agents call: PATCH /api/posts/:id/modules  
+// AI agents call: PATCH /api/posts/:id/modules
 // Seeders should call: UpdateModules.handle()
 ```
 
 **This ensures:**
+
 - AI agents and seeders create identical data
 - No "seeder-only" bugs
 - Validation is consistent
@@ -194,18 +203,21 @@ Seeders should use the same endpoints/actions that AI agents use:
 ## Current Implementation ✅
 
 ### Posts: `CreatePost` Action
+
 - All post creation uses `CreatePost.handle()`
 - API endpoint: `POST /api/posts`
 - Validates business rules, generates proper URLs
 - Same code path as UI/API/AI agents
 
 ### Modules: `AddModuleToPost` Action
+
 - All module creation uses `AddModuleToPost.handle()`
 - API endpoint: `POST /api/posts/:id/modules`
 - Validates module type, schema, post type compatibility
 - Same code path as UI/API/AI agents
 
 ### Future Enhancements
+
 - Template-based seeding (define templates, create posts from them)
 - JSON import/export for complex content structures
 - Bulk operations for large-scale seeding
@@ -221,6 +233,7 @@ Seeders should use the same endpoints/actions that AI agents use:
 - [ ] Test that seeded data works identical to UI-created data
 
 **Actions Available:**
+
 - `CreatePost.handle()` - POST /api/posts
 - `AddModuleToPost.handle()` - POST /api/posts/:id/modules
 - More in `app/actions/posts/*`
@@ -234,4 +247,3 @@ Seeders should use the same endpoints/actions that AI agents use:
 ---
 
 **Remember:** If the UI can't create it, the seeder shouldn't either.
-

@@ -113,7 +113,10 @@ class ModuleRenderer {
 
     // Merge defaults + base props + overrides
     const defaultProps = (module.getConfig?.().defaultProps || {}) as Record<string, any>
-    const mergedProps = module.mergeProps({ ...defaultProps, ...(postModule.props || {}) }, postModule.overrides)
+    const mergedProps = module.mergeProps(
+      { ...defaultProps, ...(postModule.props || {}) },
+      postModule.overrides
+    )
 
     // Prepare merged data
     const mergedData = {

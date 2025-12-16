@@ -22,7 +22,9 @@ export default class McpDumpContext extends BaseCommand {
 
   async run() {
     const postTypes = postTypeRegistry.list()
-    const postTypeConfigs = Object.fromEntries(postTypes.map((t) => [t, postTypeConfigService.getUiConfig(t)]))
+    const postTypeConfigs = Object.fromEntries(
+      postTypes.map((t) => [t, postTypeConfigService.getUiConfig(t)])
+    )
 
     const modules = moduleRegistry.getAllSchemas()
     const taxonomies = await taxonomyService.listTaxonomies()
@@ -48,5 +50,3 @@ export default class McpDumpContext extends BaseCommand {
     console.log(json)
   }
 }
-
-

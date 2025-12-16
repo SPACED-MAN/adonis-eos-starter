@@ -78,6 +78,7 @@ node ace db:seed
 ```
 
 This creates:
+
 - 4 default user accounts (admin, editor_admin, editor, translator)
 - 1 AI agent user (for MCP operations)
 - Example post types, modules, and content
@@ -89,6 +90,7 @@ npm run dev
 ```
 
 Visit `http://localhost:3333/admin` and log in with:
+
 - **Email:** `admin@example.com`
 - **Password:** `supersecret`
 
@@ -98,13 +100,13 @@ Visit `http://localhost:3333/admin` and log in with:
 
 After seeding, you'll have these accounts:
 
-| Role | Email | Password | Access Level |
-|------|-------|----------|--------------|
-| Administrator | `admin@example.com` | `supersecret` | Full system access |
-| Editor Admin | `editoradmin@example.com` | `supersecret` | Content management + publishing |
-| Editor | `editor@example.com` | `supersecret` | Content creation (requires review) |
-| Translator | `translator@example.com` | `supersecret` | Translation-focused access |
-| AI Agent | `ai@example.com` | `supersecret` | System operations (MCP) |
+| Role          | Email                     | Password      | Access Level                       |
+| ------------- | ------------------------- | ------------- | ---------------------------------- |
+| Administrator | `admin@example.com`       | `supersecret` | Full system access                 |
+| Editor Admin  | `editoradmin@example.com` | `supersecret` | Content management + publishing    |
+| Editor        | `editor@example.com`      | `supersecret` | Content creation (requires review) |
+| Translator    | `translator@example.com`  | `supersecret` | Translation-focused access         |
+| AI Agent      | `ai@example.com`          | `supersecret` | System operations (MCP)            |
 
 ## Project Structure
 
@@ -139,6 +141,7 @@ node ace make:module my-module
 ```
 
 This creates:
+
 - Module definition in `app/modules/my_module.ts`
 - Admin editor in `inertia/modules/my-module/Editor.tsx`
 - Site renderer in `inertia/modules/my-module/Renderer.tsx`
@@ -162,6 +165,7 @@ This creates an agent definition in `app/agents/my_agent.ts`.
 ### Customizing Themes
 
 Edit `config/cms.ts` to customize:
+
 - Admin theme colors
 - Site theme colors
 - Dark/light mode settings
@@ -169,6 +173,7 @@ Edit `config/cms.ts` to customize:
 ### Adding Custom Fields
 
 Custom fields are defined in `app/fields/`. See existing field types for examples:
+
 - `app/fields/text.ts`
 - `app/fields/media.ts`
 - `app/fields/richtext.ts`
@@ -191,6 +196,7 @@ REDIS_PORT=6379
 ### Optional CMS Configuration
 
 See `.env.example` for all available options, including:
+
 - Revision history limits
 - Media upload settings
 - Cache TTLs
@@ -213,6 +219,7 @@ See `.env.example` for all available options, including:
 ### Setting Up Multi-Language Content
 
 1. Configure locales in `.env`:
+
    ```env
    DEFAULT_LOCALE=en
    SUPPORTED_LOCALES=en,es,fr
@@ -232,6 +239,7 @@ See `.env.example` for all available options, including:
 ### Setting Up Webhooks
 
 1. Enable webhooks in `.env`:
+
    ```env
    CMS_WEBHOOKS_ENABLED=true
    CMS_WEBHOOK_SECRET=your-secret-key
@@ -327,4 +335,3 @@ redis-cli ping
 ## License
 
 Licensed under the Apache License, Version 2.0. See [LICENSE](LICENSE) for details.
-

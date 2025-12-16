@@ -27,6 +27,7 @@ Each post has a locale:
 ```
 
 Create translations by creating new posts with:
+
 - Same slug
 - Different locale
 - Linked via slug matching
@@ -76,6 +77,7 @@ GET /api/menus/primary?locale=es  → Spanish menu
 ```
 
 Each menu can have locale-specific:
+
 - Item labels
 - URLs
 - Structure
@@ -89,6 +91,7 @@ Create the original content in the default locale (usually `en`).
 ### 2. Duplicate for Translation
 
 In the admin:
+
 1. Open the source post
 2. Click "Duplicate"
 3. Change locale to target language
@@ -98,6 +101,7 @@ In the admin:
 ### 3. Translate Content
 
 Editors with appropriate permissions can:
+
 - Edit translatable module props
 - Update title, slug, and metadata
 - Keep non-translatable settings unchanged
@@ -121,7 +125,7 @@ const switchLocale = (newLocale: string) => {
 }
 
 // Language switcher component
-<select value={locale} onChange={(e) => switchLocale(e.target.value)}>
+;<select value={locale} onChange={(e) => switchLocale(e.target.value)}>
   <option value="en">English</option>
   <option value="es">Español</option>
   <option value="fr">Français</option>
@@ -158,6 +162,7 @@ Returns all locale versions of posts with that slug.
 ## Role-Based Translation
 
 The **Translator** role has permissions to:
+
 - View all content
 - Edit translatable fields
 - Save drafts for review
@@ -190,8 +195,9 @@ Create separate form definitions per locale.
 const posts = await fetch(`/api/posts?locale=${currentLocale}`)
 
 // Get post with fallback
-const post = await fetch(`/api/posts/${slug}?locale=${locale}`)
-  .catch(() => fetch(`/api/posts/${slug}?locale=en`))
+const post = await fetch(`/api/posts/${slug}?locale=${locale}`).catch(() =>
+  fetch(`/api/posts/${slug}?locale=en`)
+)
 ```
 
 ### Locale Detection
@@ -213,13 +219,13 @@ const locale = urlLocale || savedLocale || browserLocale || 'en'
 ## Troubleshooting
 
 **Issue**: Content not showing in new locale
+
 - **Solution**: Ensure post exists with correct locale value
 
 **Issue**: Menu showing wrong language
+
 - **Solution**: Create locale-specific menu or verify API call includes `?locale=`
 
 **Issue**: Editor can't edit translations
+
 - **Solution**: Check role has appropriate permissions in role configuration
-
-
-

@@ -33,7 +33,12 @@ export default class PostsModulesController extends BasePostsController {
         globalSlug: payload.globalSlug ?? null,
         orderIndex: payload.orderIndex,
         locked: payload.locked || false,
-        mode: payload.mode === 'review' ? 'review' : payload.mode === 'ai-review' ? 'ai-review' : 'publish',
+        mode:
+          payload.mode === 'review'
+            ? 'review'
+            : payload.mode === 'ai-review'
+              ? 'ai-review'
+              : 'publish',
       })
 
       // For Inertia requests, redirect back
@@ -80,14 +85,24 @@ export default class PostsModulesController extends BasePostsController {
         orderIndex: payload.orderIndex,
         overrides: payload.overrides,
         locked: payload.locked,
-        mode: payload.mode === 'review' ? 'review' : payload.mode === 'ai-review' ? 'ai-review' : 'publish',
+        mode:
+          payload.mode === 'review'
+            ? 'review'
+            : payload.mode === 'ai-review'
+              ? 'ai-review'
+              : 'publish',
       })
 
       return response.ok({
         data: {
           id: updated.id,
           orderIndex: updated.order_index,
-          overrides: payload.mode === 'review' ? updated.review_overrides : payload.mode === 'ai-review' ? updated.ai_review_overrides : updated.overrides,
+          overrides:
+            payload.mode === 'review'
+              ? updated.review_overrides
+              : payload.mode === 'ai-review'
+                ? updated.ai_review_overrides
+                : updated.overrides,
           reviewOverrides: updated.review_overrides ?? null,
           aiReviewOverrides: updated.ai_review_overrides ?? null,
           locked: updated.locked,
@@ -121,7 +136,10 @@ export default class PostsModulesController extends BasePostsController {
 
     // Disallow module operations when modules are disabled for the post type
     try {
-      const postRow = await db.from('posts').where('id', (row as any).post_id).first()
+      const postRow = await db
+        .from('posts')
+        .where('id', (row as any).post_id)
+        .first()
       if (postRow) {
         const cfg = postTypeConfigService.getUiConfig((postRow as any).type)
         const modulesEnabled = cfg.modulesEnabled !== false && cfg.urlPatterns.length > 0

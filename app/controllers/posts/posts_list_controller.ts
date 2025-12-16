@@ -32,7 +32,7 @@ export default class PostsListController extends BasePostsController {
       Math.max(
         1,
         Number(request.input('limit', cmsConfig.pagination.defaultLimit)) ||
-        cmsConfig.pagination.defaultLimit
+          cmsConfig.pagination.defaultLimit
       )
     )
 

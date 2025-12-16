@@ -153,35 +153,35 @@ class AIProviderService {
       // Filter out camelCase options that might conflict (like maxTokens -> max_tokens)
       // Extract known options to prevent them from being spread with wrong names
       const { maxTokens, topP, temperature: temp, stop, ...otherOptions } = config.options || {}
-      
+
       // Build request params, only including defined values
       const requestParams: any = {
         model: config.model,
         messages: openAIMessages as any,
         temperature: options.temperature ?? temp ?? 0.7,
       }
-      
+
       // Only add max_tokens if provided (OpenAI doesn't like undefined)
       const maxTokensValue = options.maxTokens ?? maxTokens
       if (maxTokensValue !== undefined) {
         requestParams.max_tokens = maxTokensValue
       }
-      
+
       // Only add top_p if provided
       const topPValue = options.topP ?? topP
       if (topPValue !== undefined) {
         requestParams.top_p = topPValue
       }
-      
+
       // Only add stop if provided
       const stopValue = options.stop ?? stop
       if (stopValue !== undefined) {
         requestParams.stop = stopValue
       }
-      
+
       // Spread other options (excluding the ones we handled above)
       Object.assign(requestParams, otherOptions)
-      
+
       const response = await client.chat.completions.create(requestParams)
 
       const choice = response.choices[0]
@@ -207,7 +207,9 @@ class AIProviderService {
         throw new Error('OpenAI API key is invalid or expired')
       }
       if (error?.status === 404) {
-        throw new Error(`OpenAI model '${config.model}' not found. Check if the model name is correct.`)
+        throw new Error(
+          `OpenAI model '${config.model}' not found. Check if the model name is correct.`
+        )
       }
       if (error?.status === 429) {
         throw new Error('OpenAI API rate limit exceeded. Please try again later.')
@@ -284,8 +286,14 @@ class AIProviderService {
 
     // Get the model
     // Filter out maxTokens from config.options since we use maxOutputTokens for Gemini
-    const { maxTokens: _, temperature: configTemp, topP: configTopP, stop: configStop, ...otherConfigOptions } = config.options || {}
-    
+    const {
+      maxTokens: _,
+      temperature: configTemp,
+      topP: configTopP,
+      stop: configStop,
+      ...otherConfigOptions
+    } = config.options || {}
+
     // Build generationConfig, ensuring maxTokens is never included
     const generationConfig: any = {
       temperature: options.temperature ?? configTemp ?? 0.7,
@@ -293,7 +301,7 @@ class AIProviderService {
       maxOutputTokens: options.maxTokens,
       stopSequences: options.stop ?? configStop,
     }
-    
+
     // Only spread other options that are valid for Gemini generationConfig
     // Filter out any remaining maxTokens references
     Object.keys(otherConfigOptions).forEach((key) => {
@@ -301,7 +309,7 @@ class AIProviderService {
         generationConfig[key] = otherConfigOptions[key]
       }
     })
-    
+
     const model = client.getGenerativeModel({
       model: config.model,
       generationConfig,
@@ -351,7 +359,7 @@ class AIProviderService {
    */
   async listAvailableModels(apiKey: string): Promise<string[]> {
     const models: string[] = []
-    
+
     // Try v1beta endpoint first
     try {
       const response = await fetch(
@@ -367,7 +375,7 @@ class AIProviderService {
     } catch (error) {
       // Ignore v1beta errors
     }
-    
+
     // Try v1 endpoint as fallback
     try {
       const response = await fetch(
@@ -383,7 +391,7 @@ class AIProviderService {
     } catch (error) {
       // Ignore v1 errors
     }
-    
+
     // Return unique models
     return [...new Set(models)]
   }
@@ -400,7 +408,7 @@ class AIProviderService {
     // Nano Banana uses Google's Gemini API, so we can reuse the Google implementation
     // but with a custom base URL if provided
     const baseUrl = config.baseUrl || 'https://api.nanobanana.ai/v1'
-    
+
     // Use GoogleGenerativeAI client but with custom base URL if needed
     // For now, we'll use the standard Google client but this can be extended
     // if Nano Banana has a different API structure
@@ -409,8 +417,14 @@ class AIProviderService {
     // Get the model
     // Filter out maxTokens and other non-Gemini config options from config.options
     // since we use maxOutputTokens for Gemini (not maxTokens)
-    const { maxTokens: _, temperature: configTemp, topP: configTopP, stop: configStop, ...otherConfigOptions } = config.options || {}
-    
+    const {
+      maxTokens: _,
+      temperature: configTemp,
+      topP: configTopP,
+      stop: configStop,
+      ...otherConfigOptions
+    } = config.options || {}
+
     // Build generationConfig, ensuring maxTokens is never included
     const generationConfig: any = {
       temperature: options.temperature ?? configTemp ?? 0.7,
@@ -418,7 +432,7 @@ class AIProviderService {
       maxOutputTokens: options.maxTokens,
       stopSequences: options.stop ?? configStop,
     }
-    
+
     // Only spread other options that are valid for Gemini generationConfig
     // Filter out any remaining maxTokens references
     Object.keys(otherConfigOptions).forEach((key) => {
@@ -426,7 +440,7 @@ class AIProviderService {
         generationConfig[key] = otherConfigOptions[key]
       }
     })
-    
+
     const model = client.getGenerativeModel({
       model: config.model || 'gemini-2.5-flash',
       generationConfig,
@@ -479,7 +493,7 @@ class AIProviderService {
         } catch {
           // Ignore errors when listing models
         }
-        
+
         let errorMsg = `Gemini model '${modelName}' is not available. `
         if (availableModels.length > 0) {
           errorMsg += `Available models: ${availableModels.join(', ')}. `
@@ -512,11 +526,12 @@ class AIProviderService {
 
     const validProviders: AIProvider[] = ['openai', 'anthropic', 'google', 'nanobanana']
     if (!validProviders.includes(config.provider)) {
-      throw new Error(`Invalid provider: ${config.provider}. Must be one of: ${validProviders.join(', ')}`)
+      throw new Error(
+        `Invalid provider: ${config.provider}. Must be one of: ${validProviders.join(', ')}`
+      )
     }
   }
 }
 
 const aiProviderService = new AIProviderService()
 export default aiProviderService
-

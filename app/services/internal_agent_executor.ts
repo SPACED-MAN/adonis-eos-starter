@@ -71,10 +71,10 @@ class InternalAgentExecutor {
         if (!parsedResult.post && Object.keys(parsedResult).length > 0) {
           // If we have other keys but no post, try to extract post-like fields
           const postFields = ['title', 'slug', 'excerpt', 'metaTitle', 'metaDescription', 'status']
-          const hasPostFields = postFields.some(field => parsedResult[field] !== undefined)
+          const hasPostFields = postFields.some((field) => parsedResult[field] !== undefined)
           if (hasPostFields) {
             const post: any = {}
-            postFields.forEach(field => {
+            postFields.forEach((field) => {
               if (parsedResult[field] !== undefined) {
                 post[field] = parsedResult[field]
                 delete parsedResult[field]
@@ -85,7 +85,8 @@ class InternalAgentExecutor {
         }
       } catch {
         // If JSON parsing fails, try to extract JSON from markdown code blocks
-        const jsonMatch = finalResult.match(/```(?:json)?\s*(\{[\s\S]*\})\s*```/) ||
+        const jsonMatch =
+          finalResult.match(/```(?:json)?\s*(\{[\s\S]*\})\s*```/) ||
           finalResult.match(/(\{[\s\S]*\})/)
         if (jsonMatch) {
           try {
@@ -195,7 +196,9 @@ class InternalAgentExecutor {
         const styleGuideText = [
           'STYLE GUIDE FOR MEDIA GENERATION:',
           agent.styleGuide.designStyle ? `- Design Style: ${agent.styleGuide.designStyle}` : null,
-          agent.styleGuide.colorPalette ? `- Color Palette: ${agent.styleGuide.colorPalette}` : null,
+          agent.styleGuide.colorPalette
+            ? `- Color Palette: ${agent.styleGuide.colorPalette}`
+            : null,
           agent.styleGuide.designTreatments && agent.styleGuide.designTreatments.length > 0
             ? `- Design Treatments: ${agent.styleGuide.designTreatments.join(', ')}`
             : null,
@@ -336,11 +339,15 @@ Only include fields that you are actually changing.`,
           parts.push(`\n${idx + 1}. ${m.type} (orderIndex: ${moduleInfo.orderIndex}):`)
           parts.push(JSON.stringify(moduleInfo.props, null, 2))
         })
-        parts.push(`\n\nIMPORTANT: If asked to update "all modules" or "all copy", you MUST include ALL ${payload.modules.length} modules in your response array, not just the first one!`)
+        parts.push(
+          `\n\nIMPORTANT: If asked to update "all modules" or "all copy", you MUST include ALL ${payload.modules.length} modules in your response array, not just the first one!`
+        )
       }
       if (payload.openEndedContext) {
         parts.push(`\n\nUser instructions: ${payload.openEndedContext}`)
-        parts.push(`\n\nPlease make the requested changes and return ONLY a JSON object with the format:`)
+        parts.push(
+          `\n\nPlease make the requested changes and return ONLY a JSON object with the format:`
+        )
         parts.push(`{`)
         parts.push(`  "post": { "fieldName": "newValue" },`)
         parts.push(`  "modules": [`)
@@ -349,8 +356,12 @@ Only include fields that you are actually changing.`,
         parts.push(`    // Include ALL modules you want to update - one entry per module type`)
         parts.push(`  ]`)
         parts.push(`}`)
-        parts.push(`\n\nCRITICAL: If the user asks to update "all modules" or "all copy", you MUST include entries for ALL module types shown above.`)
-        parts.push(`Do NOT include "orderIndex" unless you want to update only a specific instance of that type.`)
+        parts.push(
+          `\n\nCRITICAL: If the user asks to update "all modules" or "all copy", you MUST include entries for ALL module types shown above.`
+        )
+        parts.push(
+          `Do NOT include "orderIndex" unless you want to update only a specific instance of that type.`
+        )
         parts.push(`Without "orderIndex", your changes will apply to ALL modules of that type.`)
       }
       if (payload.context) {
@@ -361,9 +372,10 @@ Only include fields that you are actually changing.`,
     // Add MCP tools info if enabled
     if (agent.internal?.useMCP) {
       const availableTools = await mcpClientService.listTools()
-      const allowedTools = agent.internal?.allowedMCPTools && agent.internal.allowedMCPTools.length > 0
-        ? availableTools.filter((t) => agent.internal?.allowedMCPTools?.includes(t.name))
-        : availableTools
+      const allowedTools =
+        agent.internal?.allowedMCPTools && agent.internal.allowedMCPTools.length > 0
+          ? availableTools.filter((t) => agent.internal?.allowedMCPTools?.includes(t.name))
+          : availableTools
 
       parts.push('\n\nYou have access to the following MCP tools:')
       for (const tool of allowedTools) {
@@ -436,10 +448,11 @@ Only include fields that you are actually changing.`,
         // Extract JSON from markdown code blocks if present
         // Try multiple patterns to extract JSON (greedy match to get the full object)
         let jsonStr = aiResponse
-        const jsonMatch = aiResponse.match(/```(?:json)?\s*(\{[\s\S]*\})\s*```/) ||
+        const jsonMatch =
+          aiResponse.match(/```(?:json)?\s*(\{[\s\S]*\})\s*```/) ||
           aiResponse.match(/```(?:json)?\s*(\{[\s\S]*)/) || // Match even if incomplete (no closing ```)
           aiResponse.match(/(\{[\s\S]*\})/) // Fallback to any JSON object
-        
+
         if (jsonMatch) {
           jsonStr = jsonMatch[1]
           // Try to complete incomplete JSON if it ends with an incomplete string
@@ -454,7 +467,7 @@ Only include fields that you are actually changing.`,
               let closeBraces = (jsonStr.match(/\}/g) || []).length
               let openBrackets = (jsonStr.match(/\[/g) || []).length
               let closeBrackets = (jsonStr.match(/\]/g) || []).length
-              
+
               // Close any open brackets first
               while (closeBrackets < openBrackets) {
                 jsonStr += ']'
@@ -468,7 +481,7 @@ Only include fields that you are actually changing.`,
             }
           }
         }
-        
+
         console.log('[MCP] Attempting to parse JSON for tool calls:', {
           hasJsonMatch: !!jsonMatch,
           jsonStrLength: jsonStr.length,
@@ -687,4 +700,3 @@ Only include fields that you are actually changing.`,
 
 const internalAgentExecutor = new InternalAgentExecutor()
 export default internalAgentExecutor
-

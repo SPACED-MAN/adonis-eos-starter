@@ -28,6 +28,7 @@ thumb:200x200_crop,small:400x,medium:800x,large:1600x
 ```
 
 Notes:
+
 - `_crop` uses `fit: cover` (square crops, etc.)
 - non-crop uses `fit: inside`
 
@@ -58,5 +59,3 @@ This means editors store a **media asset id** in props; renderers resolve it thr
 
 - If you add new derivative specs, consider a backfill job to regenerate variants for existing assets.
 - If you change storage backends, ensure existing URLs remain valid or provide redirect/migration logic.
-
-

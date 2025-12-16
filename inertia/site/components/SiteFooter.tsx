@@ -8,9 +8,11 @@ export function SiteFooter() {
   const [siteTitle, setSiteTitle] = useState<string>('Site')
 
   useEffect(() => {
-    ; (async () => {
+    ;(async () => {
       try {
-        const res = await fetch('/api/menus/by-slug/footer?locale=en', { credentials: 'same-origin' })
+        const res = await fetch('/api/menus/by-slug/footer?locale=en', {
+          credentials: 'same-origin',
+        })
         if (!res.ok) return
         const j = await res.json().catch(() => ({}))
         const rawItems: MenuItem[] = Array.isArray(j?.data?.items) ? j.data.items : []
@@ -24,7 +26,7 @@ export function SiteFooter() {
   }, [])
 
   useEffect(() => {
-    ; (async () => {
+    ;(async () => {
       try {
         const res = await fetch('/api/site-settings', { credentials: 'same-origin' })
         const j = await res.json().catch(() => ({}))
@@ -54,8 +56,8 @@ export function SiteFooter() {
           </a>
         </div>
         <p className="my-4 text-sm text-neutral-medium max-w-xl mx-auto">
-          Build and manage rich marketing pages with reusable content blocks, media, and navigation—powered
-          by the Adonis EOS starter.
+          Build and manage rich marketing pages with reusable content blocks, media, and
+          navigation—powered by the Adonis EOS starter.
         </p>
         {items.length > 0 && (
           <ul className="flex flex-wrap justify-center items-center mb-4 text-sm text-neutral-high gap-x-4 gap-y-2">
@@ -81,4 +83,3 @@ export function SiteFooter() {
     </footer>
   )
 }
-

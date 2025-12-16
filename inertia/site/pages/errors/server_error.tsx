@@ -14,9 +14,7 @@ export default function ServerError({ error }: ServerErrorProps) {
       <div className="max-w-md w-full text-center">
         <div className="mb-8">
           <h1 className="text-6xl font-bold text-error mb-2">500</h1>
-          <h2 className="text-2xl font-semibold text-neutral-medium mb-4">
-            Server Error
-          </h2>
+          <h2 className="text-2xl font-semibold text-neutral-medium mb-4">Server Error</h2>
           <p className="text-neutral-low mb-6">
             We're sorry, but something went wrong on our end. Please try again later.
           </p>
@@ -43,4 +41,3 @@ export default function ServerError({ error }: ServerErrorProps) {
     </div>
   )
 }
-

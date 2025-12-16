@@ -66,19 +66,27 @@ export default function SeoSettingsPage() {
         <section className="rounded-lg border border-line-low bg-backdrop-low">
           <div className="px-4 py-3 border-b border-line-low">
             <div className="text-sm font-semibold text-neutral-high">XML Sitemap</div>
-            <div className="text-xs text-neutral-medium">Public sitemap endpoint for search engines.</div>
+            <div className="text-xs text-neutral-medium">
+              Public sitemap endpoint for search engines.
+            </div>
           </div>
           <div className="p-4 space-y-4">
             <div className="flex items-center justify-between gap-3">
               <div className="space-y-1">
                 <div className="text-sm text-neutral-high">Sitemap URL</div>
                 <div className="text-sm text-neutral-medium break-all">
-                  {status?.sitemapUrl || (typeof window !== 'undefined' ? `${window.location.origin}/sitemap.xml` : '—')}
+                  {status?.sitemapUrl ||
+                    (typeof window !== 'undefined' ? `${window.location.origin}/sitemap.xml` : '—')}
                 </div>
               </div>
               <a
                 className="inline-flex h-9 items-center rounded-md border border-line-medium bg-backdrop-low px-3 text-sm text-neutral-high hover:bg-backdrop-medium"
-                href={status?.sitemapUrl || (typeof window !== 'undefined' ? `${window.location.origin}/sitemap.xml` : '/sitemap.xml')}
+                href={
+                  status?.sitemapUrl ||
+                  (typeof window !== 'undefined'
+                    ? `${window.location.origin}/sitemap.xml`
+                    : '/sitemap.xml')
+                }
                 target="_blank"
                 rel="noreferrer"
               >
@@ -90,7 +98,9 @@ export default function SeoSettingsPage() {
               <div className="space-y-1">
                 <div className="text-sm text-neutral-high">Last generated</div>
                 <div className="text-sm text-neutral-medium">
-                  {status?.lastBuiltAt ? new Date(status.lastBuiltAt).toLocaleString() : 'Not yet generated'}
+                  {status?.lastBuiltAt
+                    ? new Date(status.lastBuiltAt).toLocaleString()
+                    : 'Not yet generated'}
                 </div>
                 <div className="text-xs text-neutral-low">
                   Cache TTL: {status?.cacheTtlSeconds ?? 300}s
@@ -112,4 +122,3 @@ export default function SeoSettingsPage() {
     </>
   )
 }
-

@@ -48,8 +48,8 @@ export default class UrlRedirectsController {
       fromPath,
       toPath,
       httpStatus,
-        locale: locale || null,
-      })
+      locale: locale || null,
+    })
     return response.created({ data: created, message: 'Redirect created' })
   }
 
@@ -90,10 +90,7 @@ export default class UrlRedirectsController {
    */
   async getSettings({ params, response }: HttpContext) {
     const { postType } = params
-    const settings = await db
-      .from('post_type_settings')
-      .where('post_type', postType)
-      .first()
+    const settings = await db.from('post_type_settings').where('post_type', postType).first()
 
     if (!settings) {
       // Return default settings if none exist
@@ -123,10 +120,7 @@ export default class UrlRedirectsController {
     const { autoRedirectOnSlugChange } = request.only(['autoRedirectOnSlugChange'])
 
     // Check if settings exist for this post type
-    const existing = await db
-      .from('post_type_settings')
-      .where('post_type', postType)
-      .first()
+    const existing = await db.from('post_type_settings').where('post_type', postType).first()
 
     const now = new Date()
 

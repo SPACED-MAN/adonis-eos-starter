@@ -33,11 +33,12 @@ async function loadFromFs() {
 
 async function tableExists(name: string): Promise<boolean> {
   try {
-    const result = await db.rawQuery<{ exists: string | null }>(
-      'SELECT to_regclass(?) as exists',
-      [`public.${name}`]
-    )
-    const exists = (result as any)?.rows?.[0]?.exists !== null && (result as any)?.rows?.[0]?.exists !== undefined
+    const result = await db.rawQuery<{ exists: string | null }>('SELECT to_regclass(?) as exists', [
+      `public.${name}`,
+    ])
+    const exists =
+      (result as any)?.rows?.[0]?.exists !== null &&
+      (result as any)?.rows?.[0]?.exists !== undefined
     return exists
   } catch {
     return false
@@ -58,7 +59,10 @@ async function ensureDatabaseRows() {
         .table('taxonomies')
         .insert({ slug: cfg.slug, name: cfg.name, created_at: now, updated_at: now })
     } else if ((existing as any).name !== cfg.name) {
-      await db.from('taxonomies').where('slug', cfg.slug).update({ name: cfg.name, updated_at: now })
+      await db
+        .from('taxonomies')
+        .where('slug', cfg.slug)
+        .update({ name: cfg.name, updated_at: now })
     }
   }
 }
@@ -69,4 +73,3 @@ async function bootstrap() {
 }
 
 await bootstrap()
-

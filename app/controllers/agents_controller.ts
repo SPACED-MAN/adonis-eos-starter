@@ -33,10 +33,10 @@ export default class AgentsController {
         createdAt: e.createdAt,
         user: e.user
           ? {
-            id: e.user.id,
-            email: e.user.email,
-            fullName: e.user.fullName,
-          }
+              id: e.user.id,
+              email: e.user.email,
+              fullName: e.user.fullName,
+            }
           : null,
       })),
     })
@@ -65,10 +65,10 @@ export default class AgentsController {
         createdAt: e.createdAt,
         user: e.user
           ? {
-            id: e.user.id,
-            email: e.user.email,
-            fullName: e.user.fullName,
-          }
+              id: e.user.id,
+              email: e.user.email,
+              fullName: e.user.fullName,
+            }
           : null,
       })),
     })
@@ -80,36 +80,35 @@ export default class AgentsController {
    * Query params: ?scope=dropdown|global|field
    */
   async index({ request, response }: HttpContext) {
-    const scope = (request.input('scope') as 'dropdown' | 'global' | 'field' | undefined) || 'dropdown'
+    const scope =
+      (request.input('scope') as 'dropdown' | 'global' | 'field' | undefined) || 'dropdown'
     const fieldType = request.input('fieldType') as string | undefined
     const fieldKey = request.input('fieldKey') as string | undefined
 
-    const agents = agentRegistry
-      .listByScope(scope, undefined, fieldKey, fieldType)
-      .map((a) => ({
-        id: a.id,
-        name: a.name,
-        description: a.description,
-        type: a.type || 'internal',
-        openEndedContext: a.openEndedContext?.enabled
-          ? {
+    const agents = agentRegistry.listByScope(scope, undefined, fieldKey, fieldType).map((a) => ({
+      id: a.id,
+      name: a.name,
+      description: a.description,
+      type: a.type || 'internal',
+      openEndedContext: a.openEndedContext?.enabled
+        ? {
             enabled: true,
             label: a.openEndedContext.label,
             placeholder: a.openEndedContext.placeholder,
             maxChars: a.openEndedContext.maxChars,
           }
-          : { enabled: false },
-        // Include scope configuration for frontend filtering
-        scopes: a.scopes
-          .filter((s) => s.scope === scope && s.enabled !== false)
-          .map((s) => ({
-            scope: s.scope,
-            order: s.order,
-            enabled: s.enabled,
-            fieldTypes: (s as any).fieldTypes,
-            fieldKeys: (s as any).fieldKeys,
-          })),
-      }))
+        : { enabled: false },
+      // Include scope configuration for frontend filtering
+      scopes: a.scopes
+        .filter((s) => s.scope === scope && s.enabled !== false)
+        .map((s) => ({
+          scope: s.scope,
+          order: s.order,
+          enabled: s.enabled,
+          fieldTypes: (s as any).fieldTypes,
+          fieldKeys: (s as any).fieldKeys,
+        })),
+    }))
     return response.ok({ data: agents })
   }
 
@@ -134,7 +133,8 @@ export default class AgentsController {
 
     // Extract scope from request context
     const requestContext = request.input('context') || {}
-    const scope = (requestContext.scope as 'dropdown' | 'global' | 'field' | undefined) || 'dropdown'
+    const scope =
+      (requestContext.scope as 'dropdown' | 'global' | 'field' | undefined) || 'dropdown'
     const fieldKey = requestContext.fieldKey as string | undefined
     const fieldType = requestContext.fieldType as string | undefined
 
@@ -161,7 +161,12 @@ export default class AgentsController {
           return response.badRequest({ error: 'This agent does not accept open-ended context' })
         }
         const max = agent.openEndedContext?.maxChars
-        if (typeof max === 'number' && Number.isFinite(max) && max > 0 && openEndedContext.length > max) {
+        if (
+          typeof max === 'number' &&
+          Number.isFinite(max) &&
+          max > 0 &&
+          openEndedContext.length > max
+        ) {
           return response.badRequest({
             error: `Open-ended context exceeds maxChars (${max})`,
           })
@@ -179,7 +184,8 @@ export default class AgentsController {
       // For webhook-based automation, use Workflows
       if (agent.type !== 'internal') {
         return response.badRequest({
-          error: 'Only internal (AI-powered) agents are supported. For webhook-based automation, use Workflows.',
+          error:
+            'Only internal (AI-powered) agents are supported. For webhook-based automation, use Workflows.',
         })
       }
 
@@ -228,7 +234,7 @@ export default class AgentsController {
         let imageGenerationFailed = false
         if (suggestions.toolResults && Array.isArray(suggestions.toolResults)) {
           const generateImageResult = suggestions.toolResults.find(
-            (r: any) => (r.tool === 'generate_image' || r.tool_name === 'generate_image')
+            (r: any) => r.tool === 'generate_image' || r.tool_name === 'generate_image'
           )
           if (generateImageResult) {
             if (generateImageResult.success && generateImageResult.result?.mediaId) {
@@ -257,14 +263,19 @@ export default class AgentsController {
         // Get current post and extract suggested post
         const current = await Post.findOrFail(id)
         const suggestedPost: any = (suggestions && suggestions.post) || {}
-        const suggestedModules: any[] = Array.isArray(suggestions?.modules) ? suggestions.modules : []
+        const suggestedModules: any[] = Array.isArray(suggestions?.modules)
+          ? suggestions.modules
+          : []
 
         // For field-scoped agents, automatically place generated media in the target field
         if (scope === 'field' && fieldKey && generatedMediaId) {
           // Handle post-level fields (e.g., post.featuredImageId)
           if (fieldKey === 'post.featuredImageId') {
             suggestedPost.featuredImageId = generatedMediaId
-            console.log('[Auto-place] Placed generated media in post.featuredImageId:', generatedMediaId)
+            console.log(
+              '[Auto-place] Placed generated media in post.featuredImageId:',
+              generatedMediaId
+            )
           }
           // Handle module-level fields (e.g., module.hero-with-media.image)
           else if (fieldKey.startsWith('module.')) {
@@ -279,7 +290,8 @@ export default class AgentsController {
               // Find or create module update entry
               let moduleUpdate = suggestedModules.find((m: any) => {
                 if (m.type !== moduleType) return false
-                if (contextModuleInstanceId && m.moduleInstanceId !== contextModuleInstanceId) return false
+                if (contextModuleInstanceId && m.moduleInstanceId !== contextModuleInstanceId)
+                  return false
                 return true
               })
 
@@ -308,7 +320,8 @@ export default class AgentsController {
 
               // Also set alt text and description if available from tool result
               const generateImageResult = suggestions.toolResults?.find(
-                (r: any) => (r.tool === 'generate_image' || r.tool_name === 'generate_image') && r.success
+                (r: any) =>
+                  (r.tool === 'generate_image' || r.tool_name === 'generate_image') && r.success
               )
               if (generateImageResult?.result?.altText) {
                 const altField = fieldName.replace(/\.id$/, '.alt').replace(/\.id$/, '')
@@ -333,7 +346,8 @@ export default class AgentsController {
                   }
                   descCurrent = descCurrent[descParts[i]]
                 }
-                descCurrent[descParts[descParts.length - 1]] = generateImageResult.result.description
+                descCurrent[descParts[descParts.length - 1]] =
+                  generateImageResult.result.description
               }
 
               console.log('[Auto-place] Placed generated media in module field:', {
@@ -348,7 +362,12 @@ export default class AgentsController {
 
         // Replace any placeholder strings with actual mediaId if we have one, or remove them if generation failed
         if (generatedMediaId || imageGenerationFailed) {
-          console.log('[Placeholder Replacement] generatedMediaId:', generatedMediaId, 'imageGenerationFailed:', imageGenerationFailed)
+          console.log(
+            '[Placeholder Replacement] generatedMediaId:',
+            generatedMediaId,
+            'imageGenerationFailed:',
+            imageGenerationFailed
+          )
           const replacePlaceholders = (obj: any): any => {
             if (typeof obj === 'string') {
               // Replace common placeholder patterns (case-insensitive, flexible matching)
@@ -365,20 +384,39 @@ export default class AgentsController {
                 '<mediaId from generate_image result>',
               ]
               for (const pattern of placeholderPatterns) {
-                if (typeof pattern === 'string' && obj.toLowerCase().includes(pattern.toLowerCase())) {
+                if (
+                  typeof pattern === 'string' &&
+                  obj.toLowerCase().includes(pattern.toLowerCase())
+                ) {
                   if (imageGenerationFailed) {
-                    console.log('[Placeholder Replacement] Removing placeholder (generation failed):', pattern)
+                    console.log(
+                      '[Placeholder Replacement] Removing placeholder (generation failed):',
+                      pattern
+                    )
                     return null // Remove the field if generation failed
                   } else {
-                    console.log('[Placeholder Replacement] Replaced string placeholder:', pattern, '→', generatedMediaId)
+                    console.log(
+                      '[Placeholder Replacement] Replaced string placeholder:',
+                      pattern,
+                      '→',
+                      generatedMediaId
+                    )
                     return generatedMediaId
                   }
                 } else if (pattern instanceof RegExp && pattern.test(obj)) {
                   if (imageGenerationFailed) {
-                    console.log('[Placeholder Replacement] Removing placeholder (generation failed):', pattern)
+                    console.log(
+                      '[Placeholder Replacement] Removing placeholder (generation failed):',
+                      pattern
+                    )
                     return null // Remove the field if generation failed
                   } else {
-                    console.log('[Placeholder Replacement] Replaced regex placeholder:', pattern, '→', generatedMediaId)
+                    console.log(
+                      '[Placeholder Replacement] Replaced regex placeholder:',
+                      pattern,
+                      '→',
+                      generatedMediaId
+                    )
                     return generatedMediaId
                   }
                 }
@@ -413,7 +451,10 @@ export default class AgentsController {
           })
           const afterPost = JSON.stringify(suggestedPost)
           if (beforePost !== afterPost) {
-            console.log('[Placeholder Replacement] Updated suggestedPost:', { before: beforePost, after: afterPost })
+            console.log('[Placeholder Replacement] Updated suggestedPost:', {
+              before: beforePost,
+              after: afterPost,
+            })
           }
 
           suggestedModules.forEach((module, index) => {
@@ -425,7 +466,9 @@ export default class AgentsController {
             }
           })
         } else {
-          console.log('[Placeholder Replacement] No generatedMediaId found and no failure detected, skipping replacement')
+          console.log(
+            '[Placeholder Replacement] No generatedMediaId found and no failure detected, skipping replacement'
+          )
         }
 
         // Log what we're applying
@@ -542,11 +585,12 @@ export default class AgentsController {
           // Apply module changes based on target view mode
           if (suggestedModules.length > 0) {
             // Determine which props column to update based on view mode
-            const modulePropsColumn = targetViewMode === 'source'
-              ? 'props' // Source mode: update approved props directly
-              : targetViewMode === 'review'
-                ? 'review_props' // Review mode: update review_props
-                : 'ai_review_props' // AI Review mode: update ai_review_props
+            const modulePropsColumn =
+              targetViewMode === 'source'
+                ? 'props' // Source mode: update approved props directly
+                : targetViewMode === 'review'
+                  ? 'review_props' // Review mode: update review_props
+                  : 'ai_review_props' // AI Review mode: update ai_review_props
 
             // Get all post modules for this post with props based on view mode
             const postModules = await db
@@ -602,7 +646,10 @@ export default class AgentsController {
             }
 
             // Deep merge helper function
-            const deepMerge = (baseObj: Record<string, any>, overrideObj: Record<string, any>): Record<string, any> => {
+            const deepMerge = (
+              baseObj: Record<string, any>,
+              overrideObj: Record<string, any>
+            ): Record<string, any> => {
               const mergedResult = { ...baseObj }
               for (const key in overrideObj) {
                 const overrideVal = overrideObj[key]
@@ -637,7 +684,9 @@ export default class AgentsController {
               })
 
               if (matchingModules.length === 0) {
-                console.warn(`Module not found: type=${suggestedModule.type}, orderIndex=${suggestedModule.orderIndex}`)
+                console.warn(
+                  `Module not found: type=${suggestedModule.type}, orderIndex=${suggestedModule.orderIndex}`
+                )
                 continue
               }
 
@@ -698,16 +747,22 @@ export default class AgentsController {
 
                 // Merge current effective props with new suggested props
                 // This ensures we preserve all existing props and only update what's changed
-                const mergedDraftProps = deepMerge(currentEffectiveProps, suggestedModule.props || {})
+                const mergedDraftProps = deepMerge(
+                  currentEffectiveProps,
+                  suggestedModule.props || {}
+                )
 
-                console.log(`Updating module ${targetModule.postModuleId} (${suggestedModule.type}, orderIndex: ${targetModule.orderIndex}, viewMode: ${targetViewMode}):`, {
-                  basePropsKeys: Object.keys(baseProps),
-                  existingDraftPropsKeys: Object.keys(existingDraftProps),
-                  currentEffectivePropsKeys: Object.keys(currentEffectiveProps),
-                  newProps: Object.keys(suggestedModule.props || {}),
-                  mergedDraftPropsKeys: Object.keys(mergedDraftProps),
-                  modulePropsColumn,
-                })
+                console.log(
+                  `Updating module ${targetModule.postModuleId} (${suggestedModule.type}, orderIndex: ${targetModule.orderIndex}, viewMode: ${targetViewMode}):`,
+                  {
+                    basePropsKeys: Object.keys(baseProps),
+                    existingDraftPropsKeys: Object.keys(existingDraftProps),
+                    currentEffectivePropsKeys: Object.keys(currentEffectiveProps),
+                    newProps: Object.keys(suggestedModule.props || {}),
+                    mergedDraftPropsKeys: Object.keys(mergedDraftProps),
+                    modulePropsColumn,
+                  }
+                )
 
                 // Update module instance props based on view mode
                 if (targetViewMode === 'source') {
@@ -721,7 +776,10 @@ export default class AgentsController {
                   await db
                     .from('module_instances')
                     .where('id', targetModule.moduleInstanceId)
-                    .update({ [modulePropsColumn]: mergedDraftProps, updated_at: new Date() } as any)
+                    .update({
+                      [modulePropsColumn]: mergedDraftProps,
+                      updated_at: new Date(),
+                    } as any)
                 }
               }
             }
@@ -748,23 +806,25 @@ export default class AgentsController {
         // Build applied changes list
         const applied: string[] = []
         if (suggestedPost && Object.keys(suggestedPost).length > 0) {
-          applied.push(...Object.keys(suggestedPost).map(key => `post.${key}`))
+          applied.push(...Object.keys(suggestedPost).map((key) => `post.${key}`))
         }
         if (suggestedModules.length > 0) {
-          applied.push(...suggestedModules.map((m: any) => {
-            // Get module label from registry
-            let moduleLabel = m.type
-            try {
-              if (moduleRegistry.has(m.type)) {
-                const schema = moduleRegistry.getSchema(m.type)
-                moduleLabel = schema.name
+          applied.push(
+            ...suggestedModules.map((m: any) => {
+              // Get module label from registry
+              let moduleLabel = m.type
+              try {
+                if (moduleRegistry.has(m.type)) {
+                  const schema = moduleRegistry.getSchema(m.type)
+                  moduleLabel = schema.name
+                }
+              } catch {
+                // Fallback to type if registry lookup fails
               }
-            } catch {
-              // Fallback to type if registry lookup fails
-            }
-            const suffix = m.orderIndex !== undefined ? ` [${m.orderIndex}]` : ''
-            return `${moduleLabel}${suffix}`
-          }))
+              const suffix = m.orderIndex !== undefined ? ` [${m.orderIndex}]` : ''
+              return `${moduleLabel}${suffix}`
+            })
+          )
         }
 
         // For internal agents, include the raw AI response for preview
@@ -875,7 +935,12 @@ export default class AgentsController {
           return response.badRequest({ error: 'This agent does not accept open-ended context' })
         }
         const max = agent.openEndedContext?.maxChars
-        if (typeof max === 'number' && Number.isFinite(max) && max > 0 && openEndedContext.length > max) {
+        if (
+          typeof max === 'number' &&
+          Number.isFinite(max) &&
+          max > 0 &&
+          openEndedContext.length > max
+        ) {
           return response.badRequest({
             error: `Open-ended context exceeds maxChars (${max})`,
           })
@@ -970,7 +1035,8 @@ export default class AgentsController {
       } else {
         // Only internal agents are supported
         return response.badRequest({
-          error: 'Only internal (AI-powered) agents are supported. For webhook-based automation, use Workflows.',
+          error:
+            'Only internal (AI-powered) agents are supported. For webhook-based automation, use Workflows.',
         })
       }
     } catch (e: any) {

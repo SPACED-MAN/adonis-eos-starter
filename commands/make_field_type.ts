@@ -75,7 +75,11 @@ export default function ${className}Field({ value, onChange }: Props) {
     await mkdir(join(appRoot, 'inertia', 'admin', 'fields'), { recursive: true })
 
     await writeFile(fieldPath, this.getFieldTemplate(fieldType, `${className}FieldConfig`), 'utf-8')
-    await writeFile(adminComponentPath, this.getAdminComponentTemplate(className, fieldType), 'utf-8')
+    await writeFile(
+      adminComponentPath,
+      this.getAdminComponentTemplate(className, fieldType),
+      'utf-8'
+    )
 
     // Ensure start/fields.ts imports the new field
     try {
@@ -94,11 +98,12 @@ export default function ${className}Field({ value, onChange }: Props) {
 
     this.logger.success(`Created field type '${fieldType}'`)
     this.logger.info(this.colors.dim(`  Backend: app/fields/${fieldType}.ts`))
-    this.logger.info(this.colors.dim(`  Admin component: inertia/admin/fields/${className}Field.tsx`))
+    this.logger.info(
+      this.colors.dim(`  Admin component: inertia/admin/fields/${className}Field.tsx`)
+    )
     this.logger.info('Next steps:')
     this.logger.info('  - Update configSchema/valueSchema to match your field requirements')
     this.logger.info('  - Implement the admin component UI')
     this.logger.info('  - Import start/fields.ts to register new field types (autoload on boot)')
   }
 }
-

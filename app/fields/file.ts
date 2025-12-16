@@ -29,4 +29,3 @@ const fileField: FieldTypeConfig = {
 fieldTypeRegistry.register(fileField)
 
 export default fileField
-

@@ -16,14 +16,14 @@ export default class extends BaseSchema {
         .notNullable()
         .defaultTo('custom')
         .after('label')
-      
+
       // Add dynamic menu fields
       table
         .string('dynamic_post_type', 50)
         .nullable()
         .comment('Post type to dynamically fetch (for type=dynamic)')
         .after('type')
-      
+
       table
         .uuid('dynamic_parent_id')
         .nullable()
@@ -32,12 +32,14 @@ export default class extends BaseSchema {
         .onDelete('SET NULL')
         .comment('Parent post ID to filter children (for hierarchical post types)')
         .after('dynamic_post_type')
-      
+
       table
         .integer('dynamic_depth_limit')
         .nullable()
         .defaultTo(1)
-        .comment('Depth limit for hierarchical expansion (1=direct children, 2=grandchildren, etc.)')
+        .comment(
+          'Depth limit for hierarchical expansion (1=direct children, 2=grandchildren, etc.)'
+        )
         .after('dynamic_parent_id')
     })
 

@@ -51,4 +51,3 @@ const N8nWebhookWorkflow: WorkflowDefinition = {
 }
 
 export default N8nWebhookWorkflow
-

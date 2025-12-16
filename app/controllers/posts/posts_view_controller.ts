@@ -35,10 +35,10 @@ export default class PostsViewController extends BasePostsController {
       // Load post modules for editor
       const postModules = modulesEnabled
         ? await PostModule.query()
-          .where('postId', post.id)
-          .orderBy('orderIndex', 'asc')
-          .orderBy('createdAt', 'asc')
-          .preload('moduleInstance')
+            .where('postId', post.id)
+            .orderBy('orderIndex', 'asc')
+            .orderBy('createdAt', 'asc')
+            .preload('moduleInstance')
         : []
 
       // If the post has a module group template, but the post modules all share the same orderIndex
@@ -183,29 +183,30 @@ export default class PostsViewController extends BasePostsController {
         aiReviewDraft: post.aiReviewDraft || null,
         modules: modulesEnabled
           ? postModules.map((pm) => {
-            const mi = pm.moduleInstance as any as ModuleInstance
-            return {
-              id: pm.id,
-              type: mi?.type,
-              scope: mi?.scope,
-              props: mi?.props || {},
-              reviewProps: (mi as any)?.reviewProps || (mi as any)?.review_props || null,
-              aiReviewProps: (mi as any)?.aiReviewProps || (mi as any)?.ai_review_props || null,
-              overrides: pm.overrides || null,
-              reviewOverrides:
-                (pm as any).reviewOverrides || (pm as any).review_overrides || null,
-              aiReviewOverrides:
-                (pm as any).aiReviewOverrides || (pm as any).ai_review_overrides || null,
-              reviewAdded: (pm as any).reviewAdded || false,
-              reviewDeleted: (pm as any).reviewDeleted || false,
-              aiReviewAdded: (pm as any).aiReviewAdded || (pm as any).ai_review_added || false,
-              aiReviewDeleted: (pm as any).aiReviewDeleted || (pm as any).ai_review_deleted || false,
-              locked: pm.locked,
-              orderIndex: pm.orderIndex,
-              globalSlug: mi?.globalSlug || null,
-              globalLabel: mi?.globalLabel || null,
-            }
-          })
+              const mi = pm.moduleInstance as any as ModuleInstance
+              return {
+                id: pm.id,
+                type: mi?.type,
+                scope: mi?.scope,
+                props: mi?.props || {},
+                reviewProps: (mi as any)?.reviewProps || (mi as any)?.review_props || null,
+                aiReviewProps: (mi as any)?.aiReviewProps || (mi as any)?.ai_review_props || null,
+                overrides: pm.overrides || null,
+                reviewOverrides:
+                  (pm as any).reviewOverrides || (pm as any).review_overrides || null,
+                aiReviewOverrides:
+                  (pm as any).aiReviewOverrides || (pm as any).ai_review_overrides || null,
+                reviewAdded: (pm as any).reviewAdded || false,
+                reviewDeleted: (pm as any).reviewDeleted || false,
+                aiReviewAdded: (pm as any).aiReviewAdded || (pm as any).ai_review_added || false,
+                aiReviewDeleted:
+                  (pm as any).aiReviewDeleted || (pm as any).ai_review_deleted || false,
+                locked: pm.locked,
+                orderIndex: pm.orderIndex,
+                globalSlug: mi?.globalSlug || null,
+                globalLabel: mi?.globalLabel || null,
+              }
+            })
           : [],
         translations,
         customFields,
@@ -329,7 +330,7 @@ export default class PostsViewController extends BasePostsController {
 
       // Check if user is authenticated using the web guard
       const isAuthenticated = await auth.use('web').check()
-      
+
       // Draft and archived posts are not visible to unauthenticated users
       if ((post.status === 'draft' || post.status === 'archived') && !isAuthenticated) {
         return inertia.render('site/errors/not_found')

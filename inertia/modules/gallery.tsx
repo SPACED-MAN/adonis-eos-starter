@@ -1,9 +1,9 @@
 /**
  * Gallery Module - React Variant
- * 
+ *
  * Interactive React component (SSR + hydration)
  * Use for image galleries with lightbox, navigation, etc.
- * 
+ *
  * Located in inertia/modules/ (shared between admin preview and public site)
  * No -static suffix = React component with full interactivity
  */
@@ -17,11 +17,7 @@ interface GalleryProps {
   columns?: number
 }
 
-export default function Gallery({
-  images,
-  layout = 'grid',
-  columns = 3,
-}: GalleryProps) {
+export default function Gallery({ images, layout = 'grid', columns = 3 }: GalleryProps) {
   const [lightboxOpen, setLightboxOpen] = useState(false)
   const [currentIndex, setCurrentIndex] = useState(0)
 
@@ -73,7 +69,7 @@ export default function Gallery({
           const altText = altMatchesCaption
             ? `Image ${idx + 1}${hasCaption ? `: ${hasCaption.substring(0, 50)}` : ''}`
             : image.alt || (hasCaption ? `Image ${idx + 1}` : `Gallery image ${idx + 1}`)
-          
+
           return (
             <figure
               key={idx}
@@ -88,9 +84,7 @@ export default function Gallery({
                 decoding="async"
               />
               {hasCaption && (
-                <figcaption className="p-2 text-sm text-neutral-low">
-                  {image.caption}
-                </figcaption>
+                <figcaption className="p-2 text-sm text-neutral-low">{image.caption}</figcaption>
               )}
             </figure>
           )
@@ -138,8 +132,9 @@ export default function Gallery({
               const altMatchesCaption = hasCaption && currentImage.alt?.trim() === hasCaption
               const altText = altMatchesCaption
                 ? `Image ${currentIndex + 1}${hasCaption ? `: ${hasCaption.substring(0, 50)}` : ''}`
-                : currentImage.alt || (hasCaption ? `Image ${currentIndex + 1}` : `Gallery image ${currentIndex + 1}`)
-              
+                : currentImage.alt ||
+                  (hasCaption ? `Image ${currentIndex + 1}` : `Gallery image ${currentIndex + 1}`)
+
               return (
                 <>
                   <img
@@ -179,4 +174,3 @@ export default function Gallery({
     </div>
   )
 }
-

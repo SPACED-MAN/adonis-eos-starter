@@ -16,7 +16,6 @@ export function NavBar({
   logoDarkUrl?: string
   currentUser?: any
 }) {
-
   return (
     <header className="border-b border-line-low bg-backdrop-input/80 backdrop-blur">
       <div className="container mx-auto px-4 sm:px-6 lg:px-8 py-3 flex items-center justify-between gap-4">
@@ -36,9 +35,7 @@ export function NavBar({
               {menuName && <span className="sr-only">{menuName}</span>}
             </span>
           ) : (
-            <span className="text-base sm:text-lg whitespace-nowrap">
-              {menuName || ''}
-            </span>
+            <span className="text-base sm:text-lg whitespace-nowrap">{menuName || ''}</span>
           )}
         </a>
         <div className="flex-1 flex items-center justify-end gap-6">
@@ -71,4 +68,3 @@ export function NavBar({
     </header>
   )
 }
-

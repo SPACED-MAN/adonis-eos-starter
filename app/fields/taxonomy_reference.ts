@@ -19,4 +19,3 @@ const taxonomyReferenceField: FieldTypeConfig = {
 fieldTypeRegistry.register(taxonomyReferenceField)
 
 export default taxonomyReferenceField
-

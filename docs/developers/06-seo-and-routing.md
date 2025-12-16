@@ -24,20 +24,23 @@ Define custom URL structures for different post types:
 ```
 
 Patterns support variables:
+
 - `{slug}` - Post slug
 - `{locale}` - Language code
 - `{yyyy}` - Year
-- `{mm}` - Month  
+- `{mm}` - Month
 - `{dd}` - Day
 - `{path}` - Full hierarchical path
 
 ## Redirects
 
 Automatically created when:
+
 - Post slugs change
 - URL patterns are updated
 
 Manually created for:
+
 - Retired pages
 - External redirects
 - Campaign URLs
@@ -54,6 +57,7 @@ Manually created for:
 ## Configuration
 
 SEO settings can be configured at:
+
 - **Global Level**: Site-wide defaults in Site Settings
 - **Post Type Level**: Post type-specific URL patterns
 - **Post Level**: Per-post SEO overrides
@@ -61,6 +65,7 @@ SEO settings can be configured at:
 ## Admin Tools
 
 Access SEO tools from the Admin panel:
+
 - `/admin/settings/url-patterns` - Configure URL patterns
 - `/admin/settings/redirects` - Manage redirects
 - Post Editor → SEO Settings - Per-post SEO
@@ -68,6 +73,7 @@ Access SEO tools from the Admin panel:
 ## XML Sitemap
 
 ### Overview
+
 - Public endpoint: `GET /sitemap.xml` (cached ~5 minutes, Cache-Control public).
 - Source: published posts only; `robotsJson.index === false` entries are excluded.
 - URL building: uses default URL pattern per post type/locale (with `{path}` for hierarchy) via `url_pattern_service`.
@@ -76,6 +82,7 @@ Access SEO tools from the Admin panel:
 - Lastmod: uses `updated_at` or `published_at` (fallback to `created_at`).
 
 ### Admin controls
+
 - Page: `Admin → Settings → SEO`
   - shows sitemap URL and last generated time
   - “Rebuild sitemap” clears cache and regenerates
@@ -84,6 +91,7 @@ Access SEO tools from the Admin panel:
   - `POST /api/seo/sitemap/rebuild`
 
 ### Service notes
+
 - File: `app/services/sitemap_service.ts`.
 - Cache TTL: ~5 minutes per host/protocol; `clearCache()` to invalidate.
 - Uses `post_type_config_service` to decide hierarchy (`hierarchyEnabled`) and patterns; falls back to `/{type}/{slug}` (or `{path}`) when none found.
@@ -92,5 +100,3 @@ Access SEO tools from the Admin panel:
 ## Next Steps
 
 Learn more about internationalization and how to manage multi-language content with proper hreflang implementation.
-
-

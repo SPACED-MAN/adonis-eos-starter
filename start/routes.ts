@@ -256,9 +256,7 @@ router
     router
       .post('/posts/:id/agents/:agentId/run', [AgentsController, 'runForPost'])
       .use(middleware.admin())
-    router
-      .post('/agents/:agentId/run', [AgentsController, 'runGlobal'])
-      .use(middleware.admin())
+    router.post('/agents/:agentId/run', [AgentsController, 'runGlobal']).use(middleware.admin())
     router
       .get('/agents/:agentId/history', [AgentsController, 'getGlobalHistory'])
       .use(middleware.admin())
@@ -268,9 +266,7 @@ router
     // Workflows
     router.get('/workflows', [WorkflowsController, 'index']).use(middleware.admin())
     router.get('/workflows/:id', [WorkflowsController, 'show']).use(middleware.admin())
-    router
-      .post('/workflows/:id/trigger', [WorkflowsController, 'trigger'])
-      .use(middleware.admin())
+    router.post('/workflows/:id/trigger', [WorkflowsController, 'trigger']).use(middleware.admin())
     // Users (admin)
     router.post('/users', [UsersController, 'store']).use(middleware.admin())
     router.get('/users', [UsersController, 'index']).use(middleware.admin())

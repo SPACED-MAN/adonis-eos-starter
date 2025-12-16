@@ -2,12 +2,12 @@ import type { AgentDefinition } from '#types/agent_types'
 
 /**
  * SEO Optimizer Agent
- * 
+ *
  * @deprecated External agents have been moved to the Workflows system.
  * This agent is disabled and needs to be migrated:
  * - If you need AI-powered SEO optimization: Convert to an internal agent (type: 'internal')
  * - If you need webhook-based automation: Create a workflow in app/workflows/
- * 
+ *
  * To re-enable, convert this to an internal agent or delete and create a workflow.
  */
 const SeoOptimizerAgent: AgentDefinition = {

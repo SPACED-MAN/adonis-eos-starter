@@ -3,18 +3,26 @@ import { Head, usePage } from '@inertiajs/react'
 import { AdminHeader } from '../../components/AdminHeader'
 import { AdminFooter } from '../../components/AdminFooter'
 import { Input } from '../../../components/ui/input'
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '~/components/ui/select'
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '~/components/ui/select'
 import { toast } from 'sonner'
 import { getXsrf } from '~/utils/xsrf'
 import { ROLES, type Role } from '~/types/roles'
 
 export default function UserEdit() {
   const page = usePage()
-  const idParam = (page as any)?.props?.id || (() => {
-    // Fallback parse from URL
-    const parts = (typeof window !== 'undefined' ? window.location.pathname : '').split('/')
-    return parts[parts.length - 2] === 'users' ? parts[parts.length - 1] : ''
-  })()
+  const idParam =
+    (page as any)?.props?.id ||
+    (() => {
+      // Fallback parse from URL
+      const parts = (typeof window !== 'undefined' ? window.location.pathname : '').split('/')
+      return parts[parts.length - 2] === 'users' ? parts[parts.length - 1] : ''
+    })()
   const userId = String(idParam || '').trim()
   const [loading, setLoading] = useState(false)
   const [saving, setSaving] = useState(false)
@@ -25,37 +33,47 @@ export default function UserEdit() {
   const [siteSettings, setSiteSettings] = useState<{ profileRolesEnabled?: string[] } | null>(null)
   const [profileLoading, setProfileLoading] = useState(false)
   const [profileId, setProfileId] = useState<string | null>(null)
-  const [profileData, setProfileData] = useState<{ slug: string; customFields?: Array<{ slug: string; value: any }> } | null>(null)
+  const [profileData, setProfileData] = useState<{
+    slug: string
+    customFields?: Array<{ slug: string; value: any }>
+  } | null>(null)
 
   useEffect(() => {
     let alive = true
-      ; (async () => {
-        try {
-          setLoading(true)
-          const res = await fetch('/api/users', { credentials: 'same-origin' })
-          const j = await res.json().catch(() => ({}))
-          const list: Array<{ id: number; email: string; username?: string | null; role: Role }> = Array.isArray(j?.data) ? j.data : []
-          const found = list.find((u) => String((u as any).id) === String(userId))
-          if (alive && found) {
-            setEmail((found as any).email || '')
-            setUsername(((found as any).username || '') as string)
-            setRole(((found as any).role || 'editor') as Role)
-          }
-          // Load site settings for profile enablement
-          try {
-            const sres = await fetch('/api/site-settings', { credentials: 'same-origin' })
-            const sj = await sres.json().catch(() => ({}))
-            if (alive) setSiteSettings((sj?.data || null) as any)
-          } catch { /* ignore */ }
-        } finally {
-          if (alive) setLoading(false)
+    ;(async () => {
+      try {
+        setLoading(true)
+        const res = await fetch('/api/users', { credentials: 'same-origin' })
+        const j = await res.json().catch(() => ({}))
+        const list: Array<{ id: number; email: string; username?: string | null; role: Role }> =
+          Array.isArray(j?.data) ? j.data : []
+        const found = list.find((u) => String((u as any).id) === String(userId))
+        if (alive && found) {
+          setEmail((found as any).email || '')
+          setUsername(((found as any).username || '') as string)
+          setRole(((found as any).role || 'editor') as Role)
         }
-      })()
-    return () => { alive = false }
+        // Load site settings for profile enablement
+        try {
+          const sres = await fetch('/api/site-settings', { credentials: 'same-origin' })
+          const sj = await sres.json().catch(() => ({}))
+          if (alive) setSiteSettings((sj?.data || null) as any)
+        } catch {
+          /* ignore */
+        }
+      } finally {
+        if (alive) setLoading(false)
+      }
+    })()
+    return () => {
+      alive = false
+    }
   }, [userId])
 
   const profileEnabledForRole = (() => {
-    const enabledList = Array.isArray(siteSettings?.profileRolesEnabled) ? siteSettings!.profileRolesEnabled! : []
+    const enabledList = Array.isArray(siteSettings?.profileRolesEnabled)
+      ? siteSettings!.profileRolesEnabled!
+      : []
     return enabledList.length === 0 || enabledList.includes(role)
   })()
 
@@ -63,17 +81,24 @@ export default function UserEdit() {
     setProfileLoading(true)
     try {
       // lookup by user id
-      const res = await fetch(`/api/users/${encodeURIComponent(userId)}/profile`, { credentials: 'same-origin' })
+      const res = await fetch(`/api/users/${encodeURIComponent(userId)}/profile`, {
+        credentials: 'same-origin',
+      })
       const j = await res.json().catch(() => ({}))
       const pid: string | null = j?.id || null
       setProfileId(pid)
       if (pid) {
         // load export for custom fields/slug
-        const es = await fetch(`/api/posts/${encodeURIComponent(pid)}/export`, { credentials: 'same-origin' })
+        const es = await fetch(`/api/posts/${encodeURIComponent(pid)}/export`, {
+          credentials: 'same-origin',
+        })
         const ej = await es.json().catch(() => ({}))
         const post = ej?.post
         if (post) {
-          setProfileData({ slug: post.slug, customFields: Array.isArray(post.customFields) ? post.customFields : [] })
+          setProfileData({
+            slug: post.slug,
+            customFields: Array.isArray(post.customFields) ? post.customFields : [],
+          })
         } else {
           setProfileData(null)
         }
@@ -98,7 +123,7 @@ export default function UserEdit() {
       const res = await fetch(`/api/users/${encodeURIComponent(userId)}`, {
         method: 'PATCH',
         headers: {
-          Accept: 'application/json',
+          'Accept': 'application/json',
           'Content-Type': 'application/json',
           ...(getXsrf() ? { 'X-XSRF-TOKEN': getXsrf()! } : {}),
         },
@@ -126,7 +151,7 @@ export default function UserEdit() {
       const res = await fetch(`/api/users/${encodeURIComponent(userId)}/password`, {
         method: 'PATCH',
         headers: {
-          Accept: 'application/json',
+          'Accept': 'application/json',
           'Content-Type': 'application/json',
           ...(getXsrf() ? { 'X-XSRF-TOKEN': getXsrf()! } : {}),
         },
@@ -157,12 +182,24 @@ export default function UserEdit() {
             <>
               <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                 <div>
-                  <label className="block text-sm font-medium text-neutral-medium mb-1">Email</label>
-                  <Input value={email} onChange={(e) => setEmail(e.target.value)} placeholder="email@example.com" />
+                  <label className="block text-sm font-medium text-neutral-medium mb-1">
+                    Email
+                  </label>
+                  <Input
+                    value={email}
+                    onChange={(e) => setEmail(e.target.value)}
+                    placeholder="email@example.com"
+                  />
                 </div>
                 <div>
-                  <label className="block text-sm font-medium text-neutral-medium mb-1">Username</label>
-                  <Input value={username} onChange={(e) => setUsername(e.target.value)} placeholder="Username" />
+                  <label className="block text-sm font-medium text-neutral-medium mb-1">
+                    Username
+                  </label>
+                  <Input
+                    value={username}
+                    onChange={(e) => setUsername(e.target.value)}
+                    placeholder="Username"
+                  />
                 </div>
                 <div>
                   <label className="block text-sm font-medium text-neutral-medium mb-1">Role</label>
@@ -220,7 +257,8 @@ export default function UserEdit() {
                     <>
                       {profileId ? (
                         <>
-                          {Array.isArray(profileData?.customFields) && profileData!.customFields!.length > 0 ? (
+                          {Array.isArray(profileData?.customFields) &&
+                          profileData!.customFields!.length > 0 ? (
                             <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-3">
                               {profileData!.customFields!.map((f, idx) => {
                                 const v = (f as any).value
@@ -232,9 +270,23 @@ export default function UserEdit() {
                                       <div className="text-neutral-medium mb-1">{f.slug}</div>
                                       <div className="border border-line-low rounded p-2 bg-backdrop-low inline-flex items-center gap-3">
                                         <div className="w-12 h-12 bg-backdrop-medium rounded overflow-hidden flex items-center justify-center">
-                                          {url ? <img src={url} alt="" className="w-full h-full object-cover" /> : <span className="text-xs text-neutral-medium">{v.id}</span>}
+                                          {url ? (
+                                            <img
+                                              src={url}
+                                              alt=""
+                                              className="w-full h-full object-cover"
+                                            />
+                                          ) : (
+                                            <span className="text-xs text-neutral-medium">
+                                              {v.id}
+                                            </span>
+                                          )}
                                         </div>
-                                        {!url && typeof v.id === 'string' && <span className="text-xs text-neutral-medium">{v.id}</span>}
+                                        {!url && typeof v.id === 'string' && (
+                                          <span className="text-xs text-neutral-medium">
+                                            {v.id}
+                                          </span>
+                                        )}
                                       </div>
                                     </div>
                                   )
@@ -243,7 +295,11 @@ export default function UserEdit() {
                                 return (
                                   <div key={`${f.slug}-${idx}`} className="text-sm">
                                     <div className="text-neutral-medium mb-1">{f.slug}</div>
-                                    <div className="border border-line-low rounded p-2 bg-backdrop-low">{String(v ?? '') || <span className="text-neutral-low">—</span>}</div>
+                                    <div className="border border-line-low rounded p-2 bg-backdrop-low">
+                                      {String(v ?? '') || (
+                                        <span className="text-neutral-low">—</span>
+                                      )}
+                                    </div>
                                   </div>
                                 )
                               })}
@@ -277,11 +333,18 @@ export default function UserEdit() {
                           onClick={async () => {
                             try {
                               const csrf = getXsrf()
-                              const res = await fetch(`/api/users/${encodeURIComponent(userId)}/profile`, {
-                                method: 'POST',
-                                headers: { Accept: 'application/json', 'Content-Type': 'application/json', ...(csrf ? { 'X-XSRF-TOKEN': csrf } : {}) },
-                                credentials: 'same-origin',
-                              })
+                              const res = await fetch(
+                                `/api/users/${encodeURIComponent(userId)}/profile`,
+                                {
+                                  method: 'POST',
+                                  headers: {
+                                    'Accept': 'application/json',
+                                    'Content-Type': 'application/json',
+                                    ...(csrf ? { 'X-XSRF-TOKEN': csrf } : {}),
+                                  },
+                                  credentials: 'same-origin',
+                                }
+                              )
                               const j = await res.json().catch(() => ({}))
                               if (!res.ok || !j?.id) {
                                 toast.error(j?.error || 'Failed to create profile')
@@ -311,7 +374,3 @@ export default function UserEdit() {
     </div>
   )
 }
-
-
-
-

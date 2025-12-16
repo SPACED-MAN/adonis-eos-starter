@@ -25,4 +25,3 @@ const linkField: FieldTypeConfig = {
 fieldTypeRegistry.register(linkField)
 
 export default linkField
-

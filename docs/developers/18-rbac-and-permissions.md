@@ -27,5 +27,3 @@ Examples you’ll see in code:
 
 1. Add it to the role definitions that should allow it (`app/roles/*`).
 2. Use `roleRegistry.hasPermission(role, '<permission>', optionalPostType)` in controllers/services.
-
-

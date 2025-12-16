@@ -1,106 +1,112 @@
 <!DOCTYPE html>
 <html lang="{{ locale || 'en' }}">
 
-<head>
-  <meta charset="utf-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
 
-  <title inertia>AdonisJS x Inertia x React</title>
+    <title inertia>
+      AdonisJS x Inertia x React
+    </title>
 
-  <link rel="preconnect" href="https://fonts.bunny.net">
-  <link href="https://fonts.bunny.net/css?family=instrument-sans:400,400i,500,500i,600,600i,700,700i&display=swap" rel="stylesheet" />
+    <link rel="preconnect" href="https://fonts.bunny.net" />
+    <link
+      href="https://fonts.bunny.net/css?family=instrument-sans:400,400i,500,500i,600,600i,700,700i&display=swap"
+      rel="stylesheet"
+    />
 
+    {{-- Theme Detection Script (runs before page render to prevent flicker) --}}
+    <script>
+      (function() {
+        // Detect theme context (admin vs site) from URL
+        const isAdmin = window.location.pathname.startsWith("/admin");
+        const theme = isAdmin ? "admin" : "site";
+        // Detect dark mode preference
+        const isDark = localStorage.getItem("theme-mode") === "dark" || !localStorage.getItem("theme-mode") && window.matchMedia("(prefers-color-scheme: dark)").matches;
+        // Apply theme to html element before page renders (class strategy)
+        const root = document.documentElement;
+        root.setAttribute("data-theme", theme);
+        if (isDark) {
+          root.classList.add("dark");
+        } else {
+          root.classList.remove("dark");
+        }
+      })();
+    </script>
 
-  {{-- Theme Detection Script (runs before page render to prevent flicker) --}}
-  <script>
-    (function() {
-      // Detect theme context (admin vs site) from URL
-      const isAdmin = window.location.pathname.startsWith('/admin')
-      const theme = isAdmin ? 'admin' : 'site'
+    <style>
+      :root {
+        --sand-1: #fdfdfc;
+        --sand-2: #f9f9f8;
+        --sand-3: #f1f0ef;
+        --sand-4: #e9e8e6;
+        --sand-5: #e2e1de;
+        --sand-6: #dad9d6;
+        --sand-7: #cfceca;
+        --sand-8: #bcbbb5;
+        --sand-9: #8d8d86;
+        --sand-10: #82827c;
+        --sand-11: #63635e;
+        --sand-12: #21201c;
+      }
       
-      // Detect dark mode preference
-      const isDark = localStorage.getItem('theme-mode') === 'dark' ||
-        (!localStorage.getItem('theme-mode') && window.matchMedia('(prefers-color-scheme: dark)').matches)
+      /* Ensure body styling is always present to prevent flicker */
       
-      // Apply theme to html element before page renders (class strategy)
-      const root = document.documentElement
-      root.setAttribute('data-theme', theme)
-      if (isDark) {
-        root.classList.add('dark')
-      } else {
-        root.classList.remove('dark')
+      body {
+        min-height: 100vh;
+        width: 100%;
+        overflow-x: hidden;
+        font-family: 'Instrument Sans', sans-serif;
       }
-    })()
-  </script>
-
-  <style>
-    :root {
-      --sand-1: #fdfdfc;
-      --sand-2: #f9f9f8;
-      --sand-3: #f1f0ef;
-      --sand-4: #e9e8e6;
-      --sand-5: #e2e1de;
-      --sand-6: #dad9d6;
-      --sand-7: #cfceca;
-      --sand-8: #bcbbb5;
-      --sand-9: #8d8d86;
-      --sand-10: #82827c;
-      --sand-11: #63635e;
-      --sand-12: #21201c;
-    }
-
-    /* Ensure body styling is always present to prevent flicker */
-    body {
-      min-height: 100vh;
-      width: 100%;
-      overflow-x: hidden;
-      font-family: 'Instrument Sans', sans-serif;
-    }
-
-    /* Prevent flash of unstyled content during navigation */
-    #app {
-      min-height: 100vh;
-    }
-
-    /* Ensure smooth page transitions */
-    #app > div {
-      animation: fadeIn 0.15s ease-in;
-    }
-
-    @keyframes fadeIn {
-      from {
-        opacity: 0.98;
+      
+      /* Prevent flash of unstyled content during navigation */
+      
+      #app {
+        min-height: 100vh;
       }
-      to {
-        opacity: 1;
-      }
-    }
-
-    /* Respect user's motion preferences for accessibility */
-    @media (prefers-reduced-motion: reduce) {
+      
+      /* Ensure smooth page transitions */
+      
       #app > div {
-        animation: none;
+        animation: fadeIn 0.15s ease-in;
       }
-    }
-  </style>
+      
+      @keyframes fadeIn {
+        from {
+          opacity: 0.98;
+        }
+      
+        to {
+          opacity: 1;
+        }
+      }
+      
+      /* Respect user's motion preferences for accessibility */
+      
+      @media (prefers-reduced-motion: reduce) {
+        #app > div {
+          animation: none;
+        }
+      }
+    </style>
 
-  {{-- Tailwind compiled via Vite (class strategy) --}}
+    {{-- Tailwind compiled via Vite (class strategy) --}}
 
-  {{-- Tailwind theme is configured via tailwind.config.js and compiled by Vite --}}
+    {{-- Tailwind theme is configured via tailwind.config.js and compiled by Vite --}}
 
-  @stack('dumper')
-  @viteReactRefresh()
-  @inertiaHead()
-  {{-- Load the correct entrypoint based on the page namespace --}}
-  @if(page.component && page.component.startsWith('admin/'))
-    @vite(['inertia/admin/app.tsx'])
-  @else
-    @vite(['inertia/site/app.tsx'])
-  @endif
-</head>
+    @stack('dumper')
+    @viteReactRefresh()
+    @inertiaHead()
+    {{-- Load the correct entrypoint based on the page namespace --}}
+    @if(page.component && page.component.startsWith('admin/'))
+      @vite(['inertia/admin/app.tsx'])
+    @else
+      @vite(['inertia/site/app.tsx'])
+    @endif
+  </head>
 
-<body>
-  @inertia()
-</body>
+  <body>
+    @inertia()
+  </body>
 
 </html>

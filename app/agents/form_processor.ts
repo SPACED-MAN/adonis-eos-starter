@@ -2,14 +2,14 @@ import type { AgentDefinition } from '#types/agent_types'
 
 /**
  * Form Processor Agent
- * 
+ *
  * @deprecated External agents have been moved to the Workflows system.
  * This should be converted to a workflow since it's event-driven (form.submit).
- * 
+ *
  * To migrate: Create app/workflows/form_processor.ts with:
  * - trigger: 'form.submit'
  * - webhook: { url: process.env.FORM_PROCESSOR_WEBHOOK_URL }
- * 
+ *
  * This agent is disabled. Delete this file after creating the workflow.
  */
 const FormProcessorAgent: AgentDefinition = {

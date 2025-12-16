@@ -1,4 +1,4 @@
-@import "tailwindcss";
+@import 'tailwindcss';
 
 @plugin "tailwindcss-animate";
 @plugin "@tailwindcss/typography";
@@ -33,7 +33,7 @@
   --color-disabled: var(--color-zinc-300);
 }
 
-[data-theme="admin"].dark {
+[data-theme='admin'].dark {
   --color-standout-low: var(--color-violet-800);
   --color-standout-medium: var(--color-violet-600);
   --color-standout-high: var(--color-violet-400);
@@ -57,7 +57,7 @@
   --color-disabled: var(--color-zinc-600);
 }
 
-[data-theme="site"] {
+[data-theme='site'] {
   --color-standout-low: var(--color-violet-400);
   --color-standout-medium: var(--color-violet-600);
   --color-standout-high: var(--color-violet-800);
@@ -81,7 +81,7 @@
   --color-disabled: var(--color-zinc-300);
 }
 
-[data-theme="site"].dark {
+[data-theme='site'].dark {
   --color-standout-low: var(--color-violet-800);
   --color-standout-medium: var(--color-violet-600);
   --color-standout-high: var(--color-violet-400);

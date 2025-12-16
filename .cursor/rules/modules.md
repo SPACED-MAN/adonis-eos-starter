@@ -7,6 +7,7 @@
 A **module** is a self-contained, reusable content component that can be added to posts. Think of them as "content blocks" or "page builders blocks" that editors can compose together to create rich pages.
 
 **Examples:**
+
 - Hero sections with CTAs
 - Text/prose content (Lexical rich text)
 - Image galleries
@@ -19,15 +20,15 @@ A **module** is a self-contained, reusable content component that can be added t
 
 **Modules are behavior classes, not data models.**
 
-| Aspect | Models | Modules |
-|--------|--------|---------|
-| Purpose | Data persistence & relationships | Rendering logic & validation |
-| Storage | Direct database tables | No direct table (data in `post_modules.props` JSONB) |
-| Pattern | Active Record | Strategy Pattern / Registry Pattern |
-| Changes | Require migrations | Just update code |
-| Testing | Database queries | Pure logic tests |
+| Aspect  | Models                           | Modules                                              |
+| ------- | -------------------------------- | ---------------------------------------------------- |
+| Purpose | Data persistence & relationships | Rendering logic & validation                         |
+| Storage | Direct database tables           | No direct table (data in `post_modules.props` JSONB) |
+| Pattern | Active Record                    | Strategy Pattern / Registry Pattern                  |
+| Changes | Require migrations               | Just update code                                     |
+| Testing | Database queries                 | Pure logic tests                                     |
 
-**Key Insight:** Modules define *how to render and validate content*, while `post_modules` stores *what content to render*.
+**Key Insight:** Modules define _how to render and validate content_, while `post_modules` stores _what content to render_.
 
 ### Architecture Diagram
 
@@ -61,21 +62,25 @@ A **module** is a self-contained, reusable content component that can be added t
 ### Why This Design?
 
 **1. Flexibility**
+
 - Add new modules without DB migrations
 - Module logic versioning is independent of data
 - Easy to A/B test different rendering strategies
 
 **2. Separation of Concerns**
+
 - Data (props) stored in database
 - Behavior (rendering) in code
 - Configuration (schema) in module class
 
 **3. Extensibility**
+
 - Third-party packages can provide modules
 - Modules can be swapped/replaced
 - Easy to test in isolation
 
 **4. Performance**
+
 - Module code is cached in memory
 - Props stored efficiently in JSONB
 - SSR rendering is fast
@@ -113,6 +118,7 @@ node ace make:module VideoEmbed
 ```
 
 This generates `app/modules/video_embed_module.ts` with:
+
 - Complete class structure
 - TypeScript interfaces
 - Method stubs with documentation
@@ -123,11 +129,13 @@ This generates `app/modules/video_embed_module.ts` with:
 **Location:** `app/modules/`
 
 **Naming Convention:**
+
 - File: `{name}_module.ts` (snake_case)
 - Class: `{Name}Module` (PascalCase)
 - Type: `{name}` (kebab-case for API)
 
 **Examples:**
+
 - `hero_module.ts` → `HeroModule` → type: `"hero"`
 - `video_embed_module.ts` → `VideoEmbedModule` → type: `"video-embed"`
 - `testimonial_carousel_module.ts` → `TestimonialCarouselModule` → type: `"testimonial-carousel"`
@@ -153,11 +161,12 @@ After generating a module, implement:
 Define the shape of data your module accepts.
 
 **Support i18n:**
+
 ```typescript
 interface HeroProps extends ModuleProps {
-  title: string | Record<string, string>  // "Hello" or { en: "Hello", es: "Hola" }
+  title: string | Record<string, string> // "Hello" or { en: "Hello", es: "Hola" }
   subtitle?: string | Record<string, string>
-  image?: string  // Non-localized
+  image?: string // Non-localized
   ctaButtons?: Array<{
     label: string | Record<string, string>
     url: string
@@ -167,6 +176,7 @@ interface HeroProps extends ModuleProps {
 ```
 
 **BaseModule handles:**
+
 - Localization (extracts current locale value automatically)
 - Prop merging (global + local overrides)
 - Validation against schema
@@ -188,6 +198,7 @@ get config(): ModuleConfig {
 ```
 
 **Categories:**
+
 - `content` - Text, headings, prose
 - `media` - Images, videos, audio
 - `layout` - Grids, columns, spacers
@@ -233,11 +244,11 @@ Implement `renderHtml()` to generate HTML:
 protected renderHtml(props: VideoEmbedProps, context: ModuleContext): string {
   const { videoUrl, title, aspectRatio = '16:9' } = props
   const embedUrl = this.getEmbedUrl(videoUrl)
-  
+
   return `
     <div class="video-embed aspect-${aspectRatio}">
       ${title ? `<h3>${title}</h3>` : ''}
-      <iframe 
+      <iframe
         src="${embedUrl}"
         frameborder="0"
         allowfullscreen
@@ -254,11 +265,13 @@ private getEmbedUrl(url: string): string {
 ```
 
 **Context provides:**
+
 - `context.locale` - Current locale
 - `context.post` - Parent post model
 - `context.environment` - 'production' | 'development'
 
 **Best Practices:**
+
 - Sanitize user input (title, captions, etc.)
 - Use semantic HTML
 - Add accessibility attributes
@@ -275,7 +288,7 @@ protected generateJsonLd(
   context: ModuleContext
 ): Record<string, any> | null {
   if (!props.videoUrl) return null
-  
+
   return {
     '@type': 'VideoObject',
     name: props.title || 'Video',
@@ -313,6 +326,7 @@ ModuleRegistry.register(VideoEmbedModule)
 ### Verification
 
 Check registration:
+
 ```bash
 curl http://localhost:3333/api/modules/registry
 ```
@@ -374,6 +388,7 @@ test.group('Video Embed Module', () => {
 ```
 
 **Run tests:**
+
 ```bash
 node ace test tests/unit/modules/video_embed_module.spec.ts
 ```
@@ -387,11 +402,11 @@ node ace test tests/unit/modules/video_embed_module.spec.ts
 ```typescript
 protected renderHtml(props: CtaProps, context: ModuleContext): string {
   const { title, buttons = [] } = props
-  
+
   if (buttons.length === 0) {
     return `<div class="cta-empty">No buttons configured</div>`
   }
-  
+
   return `
     <div class="cta">
       ${title ? `<h2>${title}</h2>` : ''}
@@ -419,7 +434,7 @@ protected renderHtml(props: TestimonialProps, context: ModuleContext): string {
   const quote = this.localizeValue(props.quote, context.locale)
   const author = this.localizeValue(props.author, context.locale)
   const company = this.localizeValue(props.company, context.locale)
-  
+
   return `
     <blockquote class="testimonial">
       <p>"${quote}"</p>
@@ -459,7 +474,7 @@ private renderItem(
   const title = this.localizeValue(item.title, context.locale)
   const content = this.localizeValue(item.content, context.locale)
   const isExpanded = item.expanded ?? false
-  
+
   return `
     <details ${isExpanded ? 'open' : ''}>
       <summary>${title}</summary>
@@ -480,6 +495,7 @@ GET /api/modules/registry
 ```
 
 **Response:**
+
 ```json
 [
   {
@@ -502,6 +518,7 @@ GET /api/modules/hero/schema
 ```
 
 **Response:**
+
 ```json
 {
   "type": "hero",
@@ -536,6 +553,7 @@ Content-Type: application/json
 ### Module Not Appearing in Registry
 
 **Check:**
+
 1. Module is imported in `start/modules.ts`
 2. `ModuleRegistry.register()` is called
 3. No errors in terminal on app start
@@ -544,15 +562,17 @@ Content-Type: application/json
 ### Validation Failing
 
 **Debug:**
+
 ```typescript
 const module = new HeroModule()
-console.log(module.schema)  // Check schema definition
-console.log(module.validate(props))  // See validation result
+console.log(module.schema) // Check schema definition
+console.log(module.validate(props)) // See validation result
 ```
 
 ### Props Not Localizing
 
 **Ensure:**
+
 1. Props use `string | Record<string, string>` type
 2. You're calling `this.localizeValue()` or using `this.applyLocale()`
 3. Locale is valid (check `config/i18n.ts`)
@@ -560,6 +580,7 @@ console.log(module.validate(props))  // See validation result
 ### SSR Output Not Showing
 
 **Check:**
+
 1. `renderHtml()` returns valid HTML string
 2. No exceptions thrown during rendering
 3. Module is attached to post via `post_modules` table
@@ -602,6 +623,7 @@ console.log(module.validate(props))  // See validation result
 ## Quick Reference
 
 **Commands:**
+
 ```bash
 node ace make:module ModuleName         # Create module
 node ace test tests/unit/modules/       # Run module tests
@@ -609,6 +631,7 @@ node ace list                           # See all commands
 ```
 
 **Key Files:**
+
 - `app/modules/` - Module definitions
 - `app/types/module_types.ts` - Type definitions
 - `app/services/module_registry.ts` - Registry service
@@ -616,9 +639,9 @@ node ace list                           # See all commands
 - `start/modules.ts` - Module registration
 
 **Key Concepts:**
+
 - **Module** = Rendering logic + validation
 - **Props** = Data stored in `post_modules.props` (JSONB)
 - **Registry** = Central module discovery
 - **SSR** = Server-side HTML generation
 - **i18n** = Automatic locale-aware rendering
-

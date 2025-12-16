@@ -17,14 +17,16 @@ Adonis EOS uses a flexible content management system built around:
 ### Post Types
 
 Post types define different kinds of content with specific configurations:
+
 - Blog posts
-- Pages  
+- Pages
 - Support documentation
 - Profiles
 - Testimonials
 - Companies
 
 Each post type can have:
+
 - Custom URL patterns
 - Allowed modules
 - Custom fields
@@ -33,6 +35,7 @@ Each post type can have:
 ### Module System
 
 Modules are the building blocks of content. They can be:
+
 - **Local**: Specific to one post
 - **Global**: Reusable across multiple posts
 - **Locked**: Editable but cannot be removed (when seeded from module groups)
@@ -62,5 +65,3 @@ Modules are the building blocks of content. They can be:
 ## Next Steps
 
 Explore the detailed Content Management guide to learn about creating posts, managing modules, and using module groups effectively.
-
-

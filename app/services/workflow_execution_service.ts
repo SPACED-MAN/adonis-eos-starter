@@ -119,9 +119,7 @@ class WorkflowExecutionService {
     const timeout = workflowRegistry.getTimeout(workflow.id)
 
     // Execute webhook with retry logic
-    const maxAttempts = workflow.webhook.retryOnFailure
-      ? (workflow.webhook.retryAttempts || 3)
-      : 1
+    const maxAttempts = workflow.webhook.retryOnFailure ? workflow.webhook.retryAttempts || 3 : 1
 
     let lastError: Error | null = null
 
@@ -215,4 +213,3 @@ class WorkflowExecutionService {
 // Export singleton instance
 const workflowExecutionService = new WorkflowExecutionService()
 export default workflowExecutionService
-

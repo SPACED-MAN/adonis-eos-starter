@@ -54,9 +54,7 @@ library.add(
   faWrench,
   faPencil,
   faGlobe,
-  faHighlighter,
+  faHighlighter
 )
 
 export { FontAwesomeIcon }
-
-

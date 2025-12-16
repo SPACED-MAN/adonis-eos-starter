@@ -17,5 +17,3 @@ const richtextField: FieldTypeConfig = {
 fieldTypeRegistry.register(richtextField)
 
 export default richtextField
-
-

@@ -15,6 +15,7 @@ GET /api/posts?type=page&status=published&locale=en
 ```
 
 **Query Parameters:**
+
 - `type` - Post type (page, blog, profile, company, testimonial)
 - `status` - Filter by status (published, draft, archived)
 - `locale` - Language code (en, es, fr, etc.)
@@ -22,6 +23,7 @@ GET /api/posts?type=page&status=published&locale=en
 - `search` - Search in title and content
 
 **Response:**
+
 ```json
 {
   "data": [
@@ -101,6 +103,7 @@ categories: ["hero", "featured"]
 ```
 
 **Response:**
+
 ```json
 {
   "id": "uuid",
@@ -219,6 +222,7 @@ GET /api/menus/:slug?locale=en
 Returns menu structure with items.
 
 **Response:**
+
 ```json
 {
   "id": "uuid",
@@ -251,6 +255,7 @@ Configure webhooks in `/admin/settings`.
 ## Rate Limiting
 
 API endpoints are rate-limited to prevent abuse:
+
 - **Authenticated**: 1000 requests/hour
 - **Anonymous**: 100 requests/hour
 - **Form submissions**: 10 requests/hour per IP
@@ -267,6 +272,7 @@ API endpoints are rate-limited to prevent abuse:
 ```
 
 Common HTTP status codes:
+
 - `200` - Success
 - `201` - Created
 - `400` - Bad Request
@@ -276,6 +282,3 @@ Common HTTP status codes:
 - `422` - Validation Error
 - `429` - Too Many Requests
 - `500` - Server Error
-
-
-

@@ -42,7 +42,11 @@ class LocalDriver {
     return `/${rel}`
   }
 
-  async publishFile(absPath: string, publicUrlPath: string, _contentType?: string): Promise<string> {
+  async publishFile(
+    absPath: string,
+    publicUrlPath: string,
+    _contentType?: string
+  ): Promise<string> {
     // Already in public, nothing to do; ensure directory exists in case of move
     const rel = publicUrlPath.replace(/^\/+/, '')
     const dest = path.join(process.cwd(), 'public', rel)

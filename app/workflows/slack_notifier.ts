@@ -60,4 +60,3 @@ const SlackNotifierWorkflow: WorkflowDefinition = {
 }
 
 export default SlackNotifierWorkflow
-

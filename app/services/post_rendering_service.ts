@@ -149,9 +149,15 @@ class PostRenderingService {
     // If not in review mode, check if we need to fall back to AI Review content
     if (!wantReview) {
       const hasApprovedModules = modules.some(
-        (pm) => pm.reviewAdded !== true && (pm as any).aiReviewAdded !== true && !pm.reviewDeleted && !(pm as any).aiReviewDeleted
+        (pm) =>
+          pm.reviewAdded !== true &&
+          (pm as any).aiReviewAdded !== true &&
+          !pm.reviewDeleted &&
+          !(pm as any).aiReviewDeleted
       )
-      const hasAiReviewContent = modules.some((pm) => (pm as any).aiReviewProps || (pm as any).aiReviewOverrides)
+      const hasAiReviewContent = modules.some(
+        (pm) => (pm as any).aiReviewProps || (pm as any).aiReviewOverrides
+      )
 
       // If no approved modules but AI Review content exists, use AI Review as fallback
       if (!hasApprovedModules && hasAiReviewContent) {

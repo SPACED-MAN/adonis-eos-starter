@@ -43,8 +43,10 @@ export default function TaxonomyField({ value, onChange, taxonomySlug, multiple 
   if (!taxonomySlug || terms.length === 0) {
     return (
       <Input
-        value={Array.isArray(value) ? value.join(', ') : value ?? ''}
-        onChange={(e) => onChange(e.target.value ? e.target.value.split(',').map((s) => s.trim()) : null)}
+        value={Array.isArray(value) ? value.join(', ') : (value ?? '')}
+        onChange={(e) =>
+          onChange(e.target.value ? e.target.value.split(',').map((s) => s.trim()) : null)
+        }
         placeholder="Enter term IDs"
       />
     )
@@ -77,4 +79,3 @@ export default function TaxonomyField({ value, onChange, taxonomySlug, multiple 
     </div>
   )
 }
-

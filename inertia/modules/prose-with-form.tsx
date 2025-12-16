@@ -22,11 +22,7 @@ export default function ProseWithForm({
       <h2 className="text-3xl sm:text-4xl font-extrabold tracking-tight text-neutral-high">
         {title}
       </h2>
-      {body && (
-        <p className="text-base md:text-lg font-normal text-neutral-medium">
-          {body}
-        </p>
-      )}
+      {body && <p className="text-base md:text-lg font-normal text-neutral-medium">{body}</p>}
     </div>
   )
 
@@ -56,6 +52,3 @@ export default function ProseWithForm({
     </section>
   )
 }
-
-
-

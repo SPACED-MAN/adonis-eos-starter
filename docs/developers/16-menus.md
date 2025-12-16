@@ -17,7 +17,7 @@ Adonis EOS supports navigation menus with:
 
 ### Menu templates (code-first)
 
-Templates define the *shape* and defaults for menus. They are registered on boot and used by the admin UI for creation/validation.
+Templates define the _shape_ and defaults for menus. They are registered on boot and used by the admin UI for creation/validation.
 
 ### Menu instances (DB)
 
@@ -33,5 +33,3 @@ Menus and items live in the database:
   - update `app/menus/<slug>.ts` as needed
 - Seed or create the menu in admin UI.
 - Render on the public site via menu components.
-
-

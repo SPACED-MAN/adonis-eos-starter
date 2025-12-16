@@ -1,70 +1,64 @@
 import { useEffect, useState } from 'react'
 
 interface ReadingProgressProps {
-	height?: number
-	zIndex?: number
+  height?: number
+  zIndex?: number
 }
 
-export default function ReadingProgress({
-	height = 4,
-	zIndex = 50,
-}: ReadingProgressProps) {
-	const [progress, setProgress] = useState(0)
+export default function ReadingProgress({ height = 4, zIndex = 50 }: ReadingProgressProps) {
+  const [progress, setProgress] = useState(0)
 
-	useEffect(() => {
-		const updateProgress = () => {
-			// Get the document height minus the viewport height
-			const windowHeight = window.innerHeight
-			const documentHeight = document.documentElement.scrollHeight
-			const scrollableHeight = documentHeight - windowHeight
+  useEffect(() => {
+    const updateProgress = () => {
+      // Get the document height minus the viewport height
+      const windowHeight = window.innerHeight
+      const documentHeight = document.documentElement.scrollHeight
+      const scrollableHeight = documentHeight - windowHeight
 
-			// If there's nothing to scroll, show 100%
-			if (scrollableHeight <= 0) {
-				setProgress(100)
-				return
-			}
+      // If there's nothing to scroll, show 100%
+      if (scrollableHeight <= 0) {
+        setProgress(100)
+        return
+      }
 
-			// Calculate current scroll position as a percentage
-			const scrolled = window.scrollY
-			const progressPercentage = (scrolled / scrollableHeight) * 100
+      // Calculate current scroll position as a percentage
+      const scrolled = window.scrollY
+      const progressPercentage = (scrolled / scrollableHeight) * 100
 
-			// Clamp between 0 and 100
-			setProgress(Math.min(100, Math.max(0, progressPercentage)))
-		}
+      // Clamp between 0 and 100
+      setProgress(Math.min(100, Math.max(0, progressPercentage)))
+    }
 
-		// Update on mount
-		updateProgress()
+    // Update on mount
+    updateProgress()
 
-		// Update on scroll
-		window.addEventListener('scroll', updateProgress, { passive: true })
-		// Update on resize (in case content changes)
-		window.addEventListener('resize', updateProgress, { passive: true })
+    // Update on scroll
+    window.addEventListener('scroll', updateProgress, { passive: true })
+    // Update on resize (in case content changes)
+    window.addEventListener('resize', updateProgress, { passive: true })
 
-		return () => {
-			window.removeEventListener('scroll', updateProgress)
-			window.removeEventListener('resize', updateProgress)
-		}
-	}, [])
+    return () => {
+      window.removeEventListener('scroll', updateProgress)
+      window.removeEventListener('resize', updateProgress)
+    }
+  }, [])
 
-	return (
-		<div
-			className="fixed top-0 left-0 right-0 bg-backdrop-medium"
-			style={{
-				height: `${height}px`,
-				zIndex,
-			}}
-			aria-hidden="true"
-			data-module="reading-progress"
-		>
-			<div
-				className="h-full bg-standout-medium transition-all duration-150 ease-out"
-				style={{
-					width: `${progress}%`,
-				}}
-			/>
-		</div>
-	)
+  return (
+    <div
+      className="fixed top-0 left-0 right-0 bg-backdrop-medium"
+      style={{
+        height: `${height}px`,
+        zIndex,
+      }}
+      aria-hidden="true"
+      data-module="reading-progress"
+    >
+      <div
+        className="h-full bg-standout-medium transition-all duration-150 ease-out"
+        style={{
+          width: `${progress}%`,
+        }}
+      />
+    </div>
+  )
 }
-
-
-

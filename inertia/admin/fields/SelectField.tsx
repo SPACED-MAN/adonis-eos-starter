@@ -22,9 +22,7 @@ export default function SelectField({ value, onChange, options, multiple }: Prop
                 key={val}
                 type="button"
                 className="inline-flex items-center gap-1 rounded-full bg-backdrop-low border border-border px-3 py-1 text-sm text-neutral-high hover:bg-backdrop-medium"
-                onClick={() =>
-                  onChange(selected.filter((v) => v !== val))
-                }
+                onClick={() => onChange(selected.filter((v) => v !== val))}
               >
                 <span>{text}</span>
                 <span className="text-neutral-low">✕</span>
@@ -37,7 +35,7 @@ export default function SelectField({ value, onChange, options, multiple }: Prop
       <select
         multiple={!!multiple}
         className="block w-full border border-line-low rounded bg-backdrop-low px-3 py-2 text-sm text-neutral-high"
-        value={multiple ? selected : (value || '')}
+        value={multiple ? selected : value || ''}
         onChange={(e) => {
           if (multiple) {
             const vals = Array.from(e.target.selectedOptions).map((o) => o.value)

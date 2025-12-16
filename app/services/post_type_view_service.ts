@@ -4,7 +4,7 @@ import type Post from '#models/post'
 
 /**
  * Post Type View Service
- * 
+ *
  * Handles post-type-specific view logic (additional props for rendering).
  * This keeps the main controller generic and delegates type-specific concerns.
  */
@@ -32,40 +32,40 @@ class PostTypeViewService {
    */
   private async getDocumentationProps(post: Post): Promise<Record<string, any>> {
     const db = (await import('@adonisjs/lucid/services/db')).default
-    
+
     try {
       // Fetch the Documentation menu
       const documentationMenu = await db.from('menus').where('slug', 'documentation').first()
-      
-      if (!documentationMenu) {
-      // Fallback: use direct hierarchical query if menu doesn't exist
-      const documentationPosts = await hierarchyService.getPostsHierarchical({
-        type: 'documentation',
-        locale: post.locale,
-        status: 'published',
-        fields: ['id', 'title', 'slug', 'parent_id', 'order_index', 'created_at'],
-      })
 
-      const flatItems = await Promise.all(
-        documentationPosts.map(async (p: any) => {
-          const url = await urlPatternService.buildPostPathForPost(p.id)
-          
-          return {
-            id: p.id,
-            label: p.title,
-            parentId: p.parent_id,
-            url,
-            type: 'post',
-            postId: p.id,
-            customUrl: url,
-          }
+      if (!documentationMenu) {
+        // Fallback: use direct hierarchical query if menu doesn't exist
+        const documentationPosts = await hierarchyService.getPostsHierarchical({
+          type: 'documentation',
+          locale: post.locale,
+          status: 'published',
+          fields: ['id', 'title', 'slug', 'parent_id', 'order_index', 'created_at'],
         })
-      )
+
+        const flatItems = await Promise.all(
+          documentationPosts.map(async (p: any) => {
+            const url = await urlPatternService.buildPostPathForPost(p.id)
+
+            return {
+              id: p.id,
+              label: p.title,
+              parentId: p.parent_id,
+              url,
+              type: 'post',
+              postId: p.id,
+              customUrl: url,
+            }
+          })
+        )
 
         const documentationNav = this.buildMenuTree(flatItems)
         return { documentationNav }
       }
-      
+
       // Fetch menu items from the Documentation menu
       const menuItems = await db
         .from('menu_items')
@@ -84,10 +84,10 @@ class PostTypeViewService {
           'dynamic_parent_id as dynamicParentId',
           'dynamic_depth_limit as dynamicDepthLimit'
         )
-      
+
       // Expand dynamic menu items using the same logic as menus controller
       const flatItems = await this.expandDynamicMenuItems(menuItems, post.locale)
-      
+
       // Build tree structure
       const documentationNav = this.buildMenuTree(flatItems)
 
@@ -104,17 +104,17 @@ class PostTypeViewService {
   private async expandDynamicMenuItems(items: any[], locale: string): Promise<any[]> {
     // const db = (await import('@adonisjs/lucid/services/db')).default // Unused for now
     const expanded: any[] = []
-    
+
     for (const item of items) {
       // If not dynamic, keep as-is
       if (item.type !== 'dynamic') {
         expanded.push(item)
         continue
       }
-      
+
       const dynamicPostType = item.dynamicPostType
       if (!dynamicPostType) continue
-      
+
       // Fetch hierarchical posts
       const posts = await hierarchyService.getPostsHierarchical({
         type: dynamicPostType,
@@ -122,11 +122,11 @@ class PostTypeViewService {
         status: 'published',
         fields: ['id', 'title', 'slug', 'parent_id', 'order_index', 'created_at'],
       })
-      
+
       // Convert posts to menu items
       for (const p of posts) {
         const url = await urlPatternService.buildPostPathForPost(p.id)
-        
+
         expanded.push({
           id: p.id,
           parentId: p.parent_id,
@@ -138,7 +138,7 @@ class PostTypeViewService {
         })
       }
     }
-    
+
     return expanded
   }
 
@@ -148,12 +148,12 @@ class PostTypeViewService {
   private buildMenuTree(items: any[]): any[] {
     const idToNode = new Map<string, any>()
     const roots: any[] = []
-    
+
     // Initialize nodes
     for (const item of items) {
       idToNode.set(item.id, { ...item, children: [] })
     }
-    
+
     // Build parent-child relationships
     for (const item of items) {
       const node = idToNode.get(item.id)
@@ -163,11 +163,10 @@ class PostTypeViewService {
         roots.push(node)
       }
     }
-    
+
     return roots
   }
 }
 
 const postTypeViewService = new PostTypeViewService()
 export default postTypeViewService
-

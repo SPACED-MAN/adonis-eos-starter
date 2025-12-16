@@ -7,7 +7,11 @@ import { toast } from 'sonner'
 
 export default function ProfileIndex() {
   const [loading, setLoading] = useState(false)
-  const [status, setStatus] = useState<{ enabledForRole: boolean; hasProfile: boolean; profilePostId?: string | null } | null>(null)
+  const [status, setStatus] = useState<{
+    enabledForRole: boolean
+    hasProfile: boolean
+    profilePostId?: string | null
+  } | null>(null)
 
   useEffect(() => {
     ;(async () => {
@@ -46,7 +50,7 @@ export default function ProfileIndex() {
                   const res = await fetch('/api/users/me/profile', {
                     method: 'POST',
                     headers: {
-                      Accept: 'application/json',
+                      'Accept': 'application/json',
                       'Content-Type': 'application/json',
                       ...(getXsrf() ? { 'X-XSRF-TOKEN': getXsrf()! } : {}),
                     },
@@ -78,7 +82,3 @@ export default function ProfileIndex() {
     </div>
   )
 }
-
-
-
-

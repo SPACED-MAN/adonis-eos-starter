@@ -37,7 +37,7 @@ Module data is stored separately:
 
 ### Source → Review
 
-Editors save partial changes into `review_draft` (and module review_* fields).
+Editors save partial changes into `review_draft` (and module review\_\* fields).
 
 ### AI Review (agents)
 
@@ -74,5 +74,3 @@ They are used for:
 
 - Keep “approval” logic in one place (promotion functions), so MCP + UI stay consistent.
 - Prefer deterministic merges (patches) over freeform replaces.
-
-

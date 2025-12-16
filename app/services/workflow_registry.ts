@@ -1,4 +1,8 @@
-import type { WorkflowDefinition, WorkflowTrigger, WorkflowTriggerConfig } from '#types/workflow_types'
+import type {
+  WorkflowDefinition,
+  WorkflowTrigger,
+  WorkflowTriggerConfig,
+} from '#types/workflow_types'
 import env from '#start/env'
 
 /**
@@ -82,48 +86,50 @@ class WorkflowRegistry {
         )
         return triggerConfig ? { workflow, triggerConfig } : null
       })
-      .filter((item): item is { workflow: WorkflowDefinition; triggerConfig: WorkflowTriggerConfig } => {
-        if (!item) return false
+      .filter(
+        (item): item is { workflow: WorkflowDefinition; triggerConfig: WorkflowTriggerConfig } => {
+          if (!item) return false
 
-        // For form.submit trigger, check if this workflow should run for the specific form
-        if (trigger === 'form.submit' && context?.formSlug) {
-          const { formSlugs } = item.triggerConfig
-          // If no formSlugs specified, workflow runs for all forms
-          if (!formSlugs || formSlugs.length === 0) return true
-          // Otherwise, check if the form slug is in the list
-          return formSlugs.includes(context.formSlug)
+          // For form.submit trigger, check if this workflow should run for the specific form
+          if (trigger === 'form.submit' && context?.formSlug) {
+            const { formSlugs } = item.triggerConfig
+            // If no formSlugs specified, workflow runs for all forms
+            if (!formSlugs || formSlugs.length === 0) return true
+            // Otherwise, check if the form slug is in the list
+            return formSlugs.includes(context.formSlug)
+          }
+
+          // For post triggers, check if this workflow should run for the specific post type
+          if (
+            trigger.startsWith('post.') &&
+            context?.postType &&
+            item.triggerConfig.postTypes &&
+            item.triggerConfig.postTypes.length > 0
+          ) {
+            return item.triggerConfig.postTypes.includes(context.postType)
+          }
+
+          // For agent.completed trigger, check if this workflow should run for the specific agent
+          if (trigger === 'agent.completed' && context?.agentId) {
+            const { agentIds } = item.triggerConfig
+            // If no agentIds specified, workflow runs for all agents
+            if (!agentIds || agentIds.length === 0) return true
+            // Otherwise, check if the agent ID is in the list
+            return agentIds.includes(context.agentId)
+          }
+
+          // For workflow.completed trigger, check if this workflow should run for the specific workflow
+          if (trigger === 'workflow.completed' && context?.workflowId) {
+            const { workflowIds } = item.triggerConfig
+            // If no workflowIds specified, workflow runs for all workflows
+            if (!workflowIds || workflowIds.length === 0) return true
+            // Otherwise, check if the workflow ID is in the list
+            return workflowIds.includes(context.workflowId)
+          }
+
+          return true
         }
-
-        // For post triggers, check if this workflow should run for the specific post type
-        if (
-          trigger.startsWith('post.') &&
-          context?.postType &&
-          item.triggerConfig.postTypes &&
-          item.triggerConfig.postTypes.length > 0
-        ) {
-          return item.triggerConfig.postTypes.includes(context.postType)
-        }
-
-        // For agent.completed trigger, check if this workflow should run for the specific agent
-        if (trigger === 'agent.completed' && context?.agentId) {
-          const { agentIds } = item.triggerConfig
-          // If no agentIds specified, workflow runs for all agents
-          if (!agentIds || agentIds.length === 0) return true
-          // Otherwise, check if the agent ID is in the list
-          return agentIds.includes(context.agentId)
-        }
-
-        // For workflow.completed trigger, check if this workflow should run for the specific workflow
-        if (trigger === 'workflow.completed' && context?.workflowId) {
-          const { workflowIds } = item.triggerConfig
-          // If no workflowIds specified, workflow runs for all workflows
-          if (!workflowIds || workflowIds.length === 0) return true
-          // Otherwise, check if the workflow ID is in the list
-          return workflowIds.includes(context.workflowId)
-        }
-
-        return true
-      })
+      )
       .sort((a, b) => (a.triggerConfig.order ?? 100) - (b.triggerConfig.order ?? 100))
       .map((item) => item.workflow)
   }
@@ -161,4 +167,3 @@ class WorkflowRegistry {
 // Export singleton instance
 const workflowRegistry = new WorkflowRegistry()
 export default workflowRegistry
-

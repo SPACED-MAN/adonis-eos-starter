@@ -56,4 +56,3 @@ export default class PostModule extends BaseModel {
   @belongsTo(() => ModuleInstance, { foreignKey: 'moduleId' })
   declare moduleInstance: BelongsTo<typeof ModuleInstance>
 }
-

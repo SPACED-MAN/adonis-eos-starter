@@ -98,7 +98,7 @@ export default class extends BaseSeeder {
     const templatePath = join(menusDir, `${slug}.ts`)
     await writeFile(templatePath, this.buildTemplateContents(slug, displayName, pascalId), {
       flag: 'wx',
-    }).catch(() => { })
+    }).catch(() => {})
 
     // Optional seeder
     if (this.withSeed) {
@@ -107,7 +107,7 @@ export default class extends BaseSeeder {
       const seederPath = join(seedersDir, `menu_${slug}_seeder.ts`)
       await writeFile(seederPath, this.buildSeederContents(slug, displayName), {
         flag: 'wx',
-      }).catch(() => { })
+      }).catch(() => {})
     }
 
     this.logger.success(`Created code-first menu "${displayName}" (${slug})`)
@@ -121,7 +121,9 @@ export default class extends BaseSeeder {
     this.logger.info('Next steps:')
     this.logger.info('  1) Restart the dev server:')
     this.logger.info(this.colors.dim('     npm run dev'))
-    this.logger.info(this.colors.dim('     (Template will be automatically discovered and registered)'))
+    this.logger.info(
+      this.colors.dim('     (Template will be automatically discovered and registered)')
+    )
     this.logger.info('  2) Open Admin → Menus; fields should appear under "Menu Fields".')
     if (this.withSeed) {
       this.logger.info('  3) Optionally run the seeder: node ace db:seed')

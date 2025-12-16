@@ -97,12 +97,16 @@ export default function MediaIndex() {
   // Duplicate prompt state (Override / Save as new / Cancel)
   const [dupOpen, setDupOpen] = useState(false)
   const [dupFileName, setDupFileName] = useState<string>('')
-  const [dupResolve, setDupResolve] = useState<((choice: 'override' | 'save' | 'cancel') => void) | null>(null)
+  const [dupResolve, setDupResolve] = useState<
+    ((choice: 'override' | 'save' | 'cancel') => void) | null
+  >(null)
   const [dupExistingId, setDupExistingId] = useState<string>('')
 
   const imgRef = useRef<HTMLImageElement | null>(null)
   const [cropping, setCropping] = useState<boolean>(false)
-  const [cropSel, setCropSel] = useState<{ x: number; y: number; w: number; h: number } | null>(null) // in display px
+  const [cropSel, setCropSel] = useState<{ x: number; y: number; w: number; h: number } | null>(
+    null
+  ) // in display px
   const [dragging, setDragging] = useState<boolean>(false)
   const [dragOrigin, setDragOrigin] = useState<{ x: number; y: number } | null>(null)
   const [focalMode, setFocalMode] = useState<boolean>(false)
@@ -116,12 +120,14 @@ export default function MediaIndex() {
 
   const page = usePage<PageProps>()
   const isAdmin = !!page.props?.isAdmin
-  const preferredThumb = (page.props?.mediaAdmin?.thumbnailVariant as string | undefined)
-    || (import.meta as any).env?.MEDIA_ADMIN_THUMBNAIL_VARIANT
-    || (import.meta as any).env?.VITE_MEDIA_THUMBNAIL_VARIANT
-  const preferredModal = (page.props?.mediaAdmin?.modalVariant as string | undefined)
-    || (import.meta as any).env?.MEDIA_ADMIN_MODAL_VARIANT
-    || (import.meta as any).env?.VITE_MEDIA_MODAL_VARIANT
+  const preferredThumb =
+    (page.props?.mediaAdmin?.thumbnailVariant as string | undefined) ||
+    (import.meta as any).env?.MEDIA_ADMIN_THUMBNAIL_VARIANT ||
+    (import.meta as any).env?.VITE_MEDIA_THUMBNAIL_VARIANT
+  const preferredModal =
+    (page.props?.mediaAdmin?.modalVariant as string | undefined) ||
+    (import.meta as any).env?.MEDIA_ADMIN_MODAL_VARIANT ||
+    (import.meta as any).env?.VITE_MEDIA_MODAL_VARIANT
 
   const [selectedCategory, setSelectedCategory] = useState<string>('')
   const [allCategories, setAllCategories] = useState<string[]>([])
@@ -135,10 +141,13 @@ export default function MediaIndex() {
       setAllCategories([])
     }
   }
-  useEffect(() => { loadCategories() }, [])
+  useEffect(() => {
+    loadCategories()
+  }, [])
 
   useEffect(() => {
-    if (typeof localStorage !== 'undefined') localStorage.setItem('mediaUseOriginalName', String(useOriginalName))
+    if (typeof localStorage !== 'undefined')
+      localStorage.setItem('mediaUseOriginalName', String(useOriginalName))
   }, [useOriginalName])
 
   useEffect(() => {
@@ -175,12 +184,16 @@ export default function MediaIndex() {
       setLoading(false)
     }
   }
-  useEffect(() => { load() }, [sortBy, sortOrder, selectedCategory])
+  useEffect(() => {
+    load()
+  }, [sortBy, sortOrder, selectedCategory])
 
   // Refresh a single media item from the API (used after per-item operations)
   async function refreshMediaItem(id: string) {
     try {
-      const res = await fetch(`/api/media/${encodeURIComponent(id)}`, { credentials: 'same-origin' })
+      const res = await fetch(`/api/media/${encodeURIComponent(id)}`, {
+        credentials: 'same-origin',
+      })
       if (!res.ok) return null
       const j = await res.json().catch(() => ({}))
       const data = (j as any)?.data
@@ -222,7 +235,11 @@ export default function MediaIndex() {
     await toast.promise(
       fetch('/api/media/optimize-bulk', {
         method: 'POST',
-        headers: { 'Accept': 'application/json', 'Content-Type': 'application/json', ...(xsrfFromCookie ? { 'X-XSRF-TOKEN': xsrfFromCookie } : {}) },
+        headers: {
+          'Accept': 'application/json',
+          'Content-Type': 'application/json',
+          ...(xsrfFromCookie ? { 'X-XSRF-TOKEN': xsrfFromCookie } : {}),
+        },
         credentials: 'same-origin',
         body: JSON.stringify({ ids }),
       }).then(async (r) => {
@@ -231,7 +248,11 @@ export default function MediaIndex() {
           throw new Error(j?.error || 'Bulk optimize failed')
         }
       }),
-      { loading: 'Optimizing selected…', success: 'Bulk optimize complete', error: (e) => String(e.message || e) }
+      {
+        loading: 'Optimizing selected…',
+        success: 'Bulk optimize complete',
+        error: (e) => String(e.message || e),
+      }
     )
     setSelectedIds(new Set())
     setSelectAll(false)
@@ -253,8 +274,7 @@ export default function MediaIndex() {
 
       // SVG media does not support generated variants – always use originals.
       const mime = (item.mimeType || '').toLowerCase()
-      const isSvg =
-        mime === 'image/svg+xml' || (item.url || '').toLowerCase().endsWith('.svg')
+      const isSvg = mime === 'image/svg+xml' || (item.url || '').toLowerCase().endsWith('.svg')
       if (isSvg) continue
 
       const status = getVariantStatus(item)
@@ -313,8 +333,7 @@ export default function MediaIndex() {
         if (!item) continue
 
         const mime = (item.mimeType || '').toLowerCase()
-        const isSvg =
-          mime === 'image/svg+xml' || (item.url || '').toLowerCase().endsWith('.svg')
+        const isSvg = mime === 'image/svg+xml' || (item.url || '').toLowerCase().endsWith('.svg')
         if (isSvg) continue
 
         // Regenerate light
@@ -360,7 +379,11 @@ export default function MediaIndex() {
     await toast.promise(
       fetch('/api/media/delete-bulk', {
         method: 'POST',
-        headers: { 'Accept': 'application/json', 'Content-Type': 'application/json', ...(xsrfFromCookie ? { 'X-XSRF-TOKEN': xsrfFromCookie } : {}) },
+        headers: {
+          'Accept': 'application/json',
+          'Content-Type': 'application/json',
+          ...(xsrfFromCookie ? { 'X-XSRF-TOKEN': xsrfFromCookie } : {}),
+        },
         credentials: 'same-origin',
         body: JSON.stringify({ ids }),
       }).then(async (r) => {
@@ -378,12 +401,12 @@ export default function MediaIndex() {
 
   function openBulkCategories() {
     if (selectedIds.size === 0) return
-    const selected = items.filter(i => selectedIds.has(i.id))
-    const allCats = selected.map(i => Array.isArray(i.categories) ? i.categories : [])
+    const selected = items.filter((i) => selectedIds.has(i.id))
+    const allCats = selected.map((i) => (Array.isArray(i.categories) ? i.categories : []))
     let shared = allCats.length ? [...allCats[0]] : []
     for (const cats of allCats.slice(1)) {
       const set = new Set(cats)
-      shared = shared.filter(c => set.has(c))
+      shared = shared.filter((c) => set.has(c))
     }
     setBulkCats(shared)
     setBulkCatsInitial(shared)
@@ -393,7 +416,7 @@ export default function MediaIndex() {
 
   async function saveBulkCategories() {
     const initial = new Set(bulkCatsInitial)
-    const finalSet = new Set(bulkCats.map(c => c.trim()).filter(Boolean))
+    const finalSet = new Set(bulkCats.map((c) => c.trim()).filter(Boolean))
     const add: string[] = []
     const remove: string[] = []
     // additions: in final but not in initial
@@ -412,7 +435,11 @@ export default function MediaIndex() {
     await toast.promise(
       fetch('/api/media/categories-bulk', {
         method: 'POST',
-        headers: { 'Accept': 'application/json', 'Content-Type': 'application/json', ...(xsrfFromCookie ? { 'X-XSRF-TOKEN': xsrfFromCookie } : {}) },
+        headers: {
+          'Accept': 'application/json',
+          'Content-Type': 'application/json',
+          ...(xsrfFromCookie ? { 'X-XSRF-TOKEN': xsrfFromCookie } : {}),
+        },
         credentials: 'same-origin',
         body: JSON.stringify({ ids, add, remove }),
       }).then(async (r) => {
@@ -421,7 +448,11 @@ export default function MediaIndex() {
           throw new Error(j?.error || 'Bulk category update failed')
         }
       }),
-      { loading: 'Saving categories…', success: 'Categories updated', error: (e) => String(e.message || e) }
+      {
+        loading: 'Saving categories…',
+        success: 'Categories updated',
+        error: (e) => String(e.message || e),
+      }
     )
     setBulkCategoriesOpen(false)
     await load()
@@ -478,7 +509,10 @@ export default function MediaIndex() {
   function defaultAltFromFilename(name: string): string {
     const dot = name.lastIndexOf('.')
     const base = dot >= 0 ? name.slice(0, dot) : name
-    return base.replace(/[-_]+/g, ' ').trim().replace(/\s{2,}/g, ' ')
+    return base
+      .replace(/[-_]+/g, ' ')
+      .trim()
+      .replace(/\s{2,}/g, ' ')
   }
 
   async function uploadFiles(files: File[]) {
@@ -501,11 +535,11 @@ export default function MediaIndex() {
             body: JSON.stringify({ originalFilename: file.name }),
           })
           if (chk.ok) {
-            const j = await chk.json().catch(() => ({} as any))
+            const j = await chk.json().catch(() => ({}) as any)
             const arr = Array.isArray(j?.data) ? j.data : []
             if (arr.length > 0) duplicateId = arr[0].id
           }
-        } catch { }
+        } catch {}
 
         if (duplicateId) {
           // ShadCN dialog prompt
@@ -584,7 +618,9 @@ export default function MediaIndex() {
   }
 
   async function fetchWhereUsed(id: string) {
-    const res = await fetch(`/api/media/${encodeURIComponent(id)}/where-used`, { credentials: 'same-origin' })
+    const res = await fetch(`/api/media/${encodeURIComponent(id)}/where-used`, {
+      credentials: 'same-origin',
+    })
     const j = await res.json().catch(() => ({}))
     setWhereUsed((j?.data as any) || { inModules: [], inOverrides: [] })
   }
@@ -654,11 +690,14 @@ export default function MediaIndex() {
   }
 
   // Helper: check if media item has all expected variants (light + dark)
-  function getVariantStatus(m: MediaItem | null): { hasAllLight: boolean; hasAllDark: boolean; hasDarkBase: boolean } {
+  function getVariantStatus(m: MediaItem | null): {
+    hasAllLight: boolean
+    hasAllDark: boolean
+    hasDarkBase: boolean
+  } {
     if (!m) return { hasAllLight: false, hasAllDark: false, hasDarkBase: false }
     const mime = (m.mimeType || '').toLowerCase()
-    const isSvg =
-      mime === 'image/svg+xml' || (m.url || '').toLowerCase().endsWith('.svg')
+    const isSvg = mime === 'image/svg+xml' || (m.url || '').toLowerCase().endsWith('.svg')
     // SVGs never have generated size variants; only track presence of a dark base.
     if (isSvg) {
       const meta = (m as any)?.metadata || {}
@@ -675,8 +714,12 @@ export default function MediaIndex() {
     const lightVariants = variants.filter((v) => !String(v?.name || '').endsWith('-dark'))
     const darkVariants = variants.filter((v) => String(v?.name || '').endsWith('-dark'))
 
-    const hasAllLight = expectedBaseNames.every((name) => lightVariants.some((v) => v.name === name))
-    const hasAllDark = expectedBaseNames.every((name) => darkVariants.some((v) => v.name === `${name}-dark`))
+    const hasAllLight = expectedBaseNames.every((name) =>
+      lightVariants.some((v) => v.name === name)
+    )
+    const hasAllDark = expectedBaseNames.every((name) =>
+      darkVariants.some((v) => v.name === `${name}-dark`)
+    )
     const hasDarkBase = !!darkSourceUrl
 
     return { hasAllLight, hasAllDark, hasDarkBase }
@@ -685,7 +728,6 @@ export default function MediaIndex() {
   function getEditDisplayUrl(m: any, theme: 'light' | 'dark'): string {
     // During cropping, always show the light original so cropRect maps to original pixels
     if (cropping) return m.url
-
 
     if (selectedVariantName === 'original') {
       if (theme === 'dark') {
@@ -701,7 +743,7 @@ export default function MediaIndex() {
           const darkVariants = variants.filter((v) => String(v?.name || '').endsWith('-dark'))
           if (darkVariants.length > 0) {
             const sortedDesc = [...darkVariants].sort(
-              (a, b) => ((b.width || b.height || 0) - (a.width || a.height || 0))
+              (a, b) => (b.width || b.height || 0) - (a.width || a.height || 0)
             )
             const best = sortedDesc[0]
             urlToUse = best?.url || null
@@ -728,8 +770,14 @@ export default function MediaIndex() {
   async function applyCrop() {
     const target = imageEditingFor || viewing
     if (!target || !imgRef.current) return
-    if (selectedVariantName !== 'original') { toast.error('Crop is only available for the Original image'); return }
-    if (!cropSel) { toast.error('Select a crop region'); return }
+    if (selectedVariantName !== 'original') {
+      toast.error('Crop is only available for the Original image')
+      return
+    }
+    if (!cropSel) {
+      toast.error('Select a crop region')
+      return
+    }
     const img = imgRef.current
     const naturalW = img.naturalWidth || img.width
     const naturalH = img.naturalHeight || img.height
@@ -740,11 +788,18 @@ export default function MediaIndex() {
     const y = Math.round(cropSel.y * scaleY)
     const w = Math.round(cropSel.w * scaleX)
     const h = Math.round(cropSel.h * scaleY)
-    if (w <= 0 || h <= 0) { toast.error('Select a crop region'); return }
+    if (w <= 0 || h <= 0) {
+      toast.error('Select a crop region')
+      return
+    }
     const payload = { target: 'original-cropped', cropRect: { x, y, width: w, height: h } }
     const res = await fetch(`/api/media/${encodeURIComponent(target.id)}/variants`, {
       method: 'POST',
-      headers: { 'Accept': 'application/json', 'Content-Type': 'application/json', ...(xsrfFromCookie ? { 'X-XSRF-TOKEN': xsrfFromCookie } : {}) },
+      headers: {
+        'Accept': 'application/json',
+        'Content-Type': 'application/json',
+        ...(xsrfFromCookie ? { 'X-XSRF-TOKEN': xsrfFromCookie } : {}),
+      },
       credentials: 'same-origin',
       body: JSON.stringify(payload),
     })
@@ -762,14 +817,21 @@ export default function MediaIndex() {
   async function applyFocal() {
     const target = imageEditingFor || viewing
     if (!target || !imgRef.current || !focalDot) return
-    if (selectedVariantName !== 'original') { toast.error('Focal point is only available for the Original image'); return }
+    if (selectedVariantName !== 'original') {
+      toast.error('Focal point is only available for the Original image')
+      return
+    }
     const img = imgRef.current
     const displayRect = img.getBoundingClientRect()
     const fx = Math.max(0, Math.min(1, focalDot.x / displayRect.width))
     const fy = Math.max(0, Math.min(1, focalDot.y / displayRect.height))
     const res = await fetch(`/api/media/${encodeURIComponent(target.id)}/variants`, {
       method: 'POST',
-      headers: { 'Accept': 'application/json', 'Content-Type': 'application/json', ...(xsrfFromCookie ? { 'X-XSRF-TOKEN': xsrfFromCookie } : {}) },
+      headers: {
+        'Accept': 'application/json',
+        'Content-Type': 'application/json',
+        ...(xsrfFromCookie ? { 'X-XSRF-TOKEN': xsrfFromCookie } : {}),
+      },
       credentials: 'same-origin',
       body: JSON.stringify({ focalPoint: { x: fx, y: fy } }),
     })
@@ -790,7 +852,10 @@ export default function MediaIndex() {
         <div className="bg-backdrop-low rounded-lg shadow border border-line-low p-6">
           <div
             className={`mb-4 p-6 border-2 border-dashed rounded transition-colors ${isDragOver ? 'border-standout-medium bg-backdrop-medium' : 'border-line-high bg-backdrop-input'}`}
-            onDragOver={(e) => { e.preventDefault(); setIsDragOver(true) }}
+            onDragOver={(e) => {
+              e.preventDefault()
+              setIsDragOver(true)
+            }}
             onDragLeave={() => setIsDragOver(false)}
             onDrop={onDrop}
           >
@@ -800,15 +865,27 @@ export default function MediaIndex() {
               </div>
               <div className="flex items-center gap-4">
                 <label className="inline-flex items-center gap-2 text-xs text-neutral-high">
-                  <input type="checkbox" checked={useOriginalName} onChange={(e) => setUseOriginalName(e.target.checked)} />
+                  <input
+                    type="checkbox"
+                    checked={useOriginalName}
+                    onChange={(e) => setUseOriginalName(e.target.checked)}
+                  />
                   <span>Use original filename for storage</span>
                 </label>
                 <label className="inline-flex items-center gap-2 text-sm">
-                  <input type="file" onChange={onUpload} disabled={uploading} className="hidden" id="mediaUploadInput" />
+                  <input
+                    type="file"
+                    onChange={onUpload}
+                    disabled={uploading}
+                    className="hidden"
+                    id="mediaUploadInput"
+                  />
                   <button
                     className="px-3 py-1.5 text-xs rounded bg-standout-medium text-on-standout disabled:opacity-50 cursor-pointer disabled:cursor-not-allowed"
                     disabled={uploading}
-                    onClick={() => (document.getElementById('mediaUploadInput') as HTMLInputElement)?.click()}
+                    onClick={() =>
+                      (document.getElementById('mediaUploadInput') as HTMLInputElement)?.click()
+                    }
                   >
                     {uploading ? 'Uploading…' : 'Upload'}
                   </button>
@@ -845,7 +922,9 @@ export default function MediaIndex() {
               >
                 <option value="">All</option>
                 {allCategories.map((c) => (
-                  <option key={c} value={c}>{c}</option>
+                  <option key={c} value={c}>
+                    {c}
+                  </option>
                 ))}
               </select>
             </div>
@@ -906,44 +985,73 @@ export default function MediaIndex() {
             {loading ? (
               <div className="text-sm text-neutral-medium">Loading…</div>
             ) : items.length === 0 ? (
-              <div className="text-sm text-neutral-low">No media yet. Upload a file to get started.</div>
+              <div className="text-sm text-neutral-low">
+                No media yet. Upload a file to get started.
+              </div>
             ) : (
               <>
                 {viewMode === 'gallery' ? (
                   <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
                     {items.map((m) => {
                       const preview = getPreviewUrl(m)
-                      const isImage = (m.mimeType && m.mimeType.startsWith('image/')) || /\.(png|jpe?g|gif|webp|svg|avif)$/i.test(m.url || '')
+                      const isImage =
+                        (m.mimeType && m.mimeType.startsWith('image/')) ||
+                        /\.(png|jpe?g|gif|webp|svg|avif)$/i.test(m.url || '')
                       const checked = selectedIds.has(m.id)
                       return (
-                        <div key={m.id} className="border border-line-low rounded p-2 bg-backdrop-low">
+                        <div
+                          key={m.id}
+                          className="border border-line-low rounded p-2 bg-backdrop-low"
+                        >
                           <div className="flex items-center justify-between mb-1">
                             <label className="inline-flex items-center gap-2 text-xs text-neutral-medium">
-                              <Checkbox checked={checked} onCheckedChange={() => toggleSelect(m.id)} />
+                              <Checkbox
+                                checked={checked}
+                                onCheckedChange={() => toggleSelect(m.id)}
+                              />
                               Select
                             </label>
                           </div>
                           <div className="aspect-video bg-backdrop-medium border border-line-low overflow-hidden rounded">
                             {isImage ? (
-                              <img src={preview || m.url} alt={m.altText || m.originalFilename} className="w-full h-full object-cover" />
+                              <img
+                                src={preview || m.url}
+                                alt={m.altText || m.originalFilename}
+                                className="w-full h-full object-cover"
+                              />
                             ) : (
-                              <div className="w-full h-full flex items-center justify-center text-xs text-neutral-low">No preview</div>
+                              <div className="w-full h-full flex items-center justify-center text-xs text-neutral-low">
+                                No preview
+                              </div>
                             )}
                           </div>
                           <div className="mt-2">
-                            <div className="text-xs text-neutral-high break-all">{m.altText || m.originalFilename}</div>
+                            <div className="text-xs text-neutral-high break-all">
+                              {m.altText || m.originalFilename}
+                            </div>
                             <div className="text-[10px] text-neutral-low">
                               {m.mimeType} • {(m.size / 1024).toFixed(1)} KB
                               {typeof m.optimizedSize === 'number' && m.optimizedSize > 0 && (
                                 <> → {(m.optimizedSize / 1024).toFixed(1)} KB (WebP)</>
                               )}
                             </div>
-                            <div className="text-[10px] text-neutral-low">Date Added: {new Date(m.createdAt).toLocaleString()}</div>
+                            <div className="text-[10px] text-neutral-low">
+                              Date Added: {new Date(m.createdAt).toLocaleString()}
+                            </div>
                           </div>
                           <div className="mt-2 flex items-center gap-2 flex-wrap">
                             <button
                               className="px-3 py-1.5 text-sm border border-line-low rounded hover:bg-backdrop-medium inline-flex items-center gap-1"
-                              onClick={() => { setViewing(m); setSelectedVariantName('original'); setEditTheme('light'); setCropping(false); setFocalMode(false); setCropSel(null); setFocalDot(null); setReplaceFile(null) }}
+                              onClick={() => {
+                                setViewing(m)
+                                setSelectedVariantName('original')
+                                setEditTheme('light')
+                                setCropping(false)
+                                setFocalMode(false)
+                                setCropSel(null)
+                                setFocalDot(null)
+                                setReplaceFile(null)
+                              }}
                               aria-label="Edit"
                               title="Edit"
                             >
@@ -956,7 +1064,13 @@ export default function MediaIndex() {
                                   await toast.promise(
                                     fetch(`/api/media/${encodeURIComponent(m.id)}/optimize`, {
                                       method: 'POST',
-                                      headers: { 'Accept': 'application/json', 'Content-Type': 'application/json', ...(xsrfFromCookie ? { 'X-XSRF-TOKEN': xsrfFromCookie } : {}) },
+                                      headers: {
+                                        'Accept': 'application/json',
+                                        'Content-Type': 'application/json',
+                                        ...(xsrfFromCookie
+                                          ? { 'X-XSRF-TOKEN': xsrfFromCookie }
+                                          : {}),
+                                      },
                                       credentials: 'same-origin',
                                     }).then(async (r) => {
                                       if (!r.ok) {
@@ -964,7 +1078,11 @@ export default function MediaIndex() {
                                         throw new Error(j?.error || 'Optimize failed')
                                       }
                                     }),
-                                    { loading: 'Optimizing…', success: 'Optimized', error: (e) => String(e.message || e) }
+                                    {
+                                      loading: 'Optimizing…',
+                                      success: 'Optimized',
+                                      error: (e) => String(e.message || e),
+                                    }
                                   )
                                   await load()
                                 }}
@@ -976,7 +1094,10 @@ export default function MediaIndex() {
                             )}
                             <button
                               className="px-3 py-1.5 text-sm border border-line-low rounded hover:bg-backdrop-medium inline-flex items-center gap-1"
-                              onClick={() => { setUsageFor(m); fetchWhereUsed(m.id) }}
+                              onClick={() => {
+                                setUsageFor(m)
+                                fetchWhereUsed(m.id)
+                              }}
                               aria-label="Usage"
                               title="Usage"
                             >
@@ -986,7 +1107,11 @@ export default function MediaIndex() {
                             {isAdmin && (
                               <AlertDialog>
                                 <AlertDialogTrigger asChild>
-                                  <button className="px-3 py-1.5 text-sm border border-line-low rounded hover:bg-backdrop-medium text-danger inline-flex items-center gap-1" aria-label="Delete" title="Delete">
+                                  <button
+                                    className="px-3 py-1.5 text-sm border border-line-low rounded hover:bg-backdrop-medium text-danger inline-flex items-center gap-1"
+                                    aria-label="Delete"
+                                    title="Delete"
+                                  >
                                     <Trash2 className="w-4 h-4" />
                                   </button>
                                 </AlertDialogTrigger>
@@ -994,21 +1119,36 @@ export default function MediaIndex() {
                                   <AlertDialogHeader>
                                     <AlertDialogTitle>Delete this media?</AlertDialogTitle>
                                     <AlertDialogDescription>
-                                      This will delete the original file and all generated variants. This action cannot be undone.
+                                      This will delete the original file and all generated variants.
+                                      This action cannot be undone.
                                     </AlertDialogDescription>
                                   </AlertDialogHeader>
                                   <AlertDialogFooter>
                                     <AlertDialogCancel>Cancel</AlertDialogCancel>
                                     <AlertDialogAction
                                       onClick={async () => {
-                                        const res = await fetch(`/api/media/${encodeURIComponent(m.id)}`, {
-                                          method: 'DELETE',
-                                          headers: { ...(xsrfFromCookie ? { 'X-XSRF-TOKEN': xsrfFromCookie } : {}) },
-                                          credentials: 'same-origin',
-                                        })
-                                        if (res.ok) { toast.success('Deleted'); await load() } else { toast.error('Delete failed') }
+                                        const res = await fetch(
+                                          `/api/media/${encodeURIComponent(m.id)}`,
+                                          {
+                                            method: 'DELETE',
+                                            headers: {
+                                              ...(xsrfFromCookie
+                                                ? { 'X-XSRF-TOKEN': xsrfFromCookie }
+                                                : {}),
+                                            },
+                                            credentials: 'same-origin',
+                                          }
+                                        )
+                                        if (res.ok) {
+                                          toast.success('Deleted')
+                                          await load()
+                                        } else {
+                                          toast.error('Delete failed')
+                                        }
                                       }}
-                                    >Delete</AlertDialogAction>
+                                    >
+                                      Delete
+                                    </AlertDialogAction>
                                   </AlertDialogFooter>
                                 </AlertDialogContent>
                               </AlertDialog>
@@ -1024,7 +1164,11 @@ export default function MediaIndex() {
                       <TableHeader>
                         <TableRow>
                           <TableHead className="w-[44px]">
-                            <Checkbox checked={selectAll} onCheckedChange={() => toggleSelectAll()} aria-label="Select all" />
+                            <Checkbox
+                              checked={selectAll}
+                              onCheckedChange={() => toggleSelectAll()}
+                              aria-label="Select all"
+                            />
                           </TableHead>
                           <TableHead>Preview</TableHead>
                           <TableHead>Filename</TableHead>
@@ -1037,29 +1181,60 @@ export default function MediaIndex() {
                       </TableHeader>
                       <TableBody>
                         {items.map((m) => {
-                          const isImage = (m.mimeType && m.mimeType.startsWith('image/')) || /\.(png|jpe?g|gif|webp|svg|avif)$/i.test(m.url || '')
+                          const isImage =
+                            (m.mimeType && m.mimeType.startsWith('image/')) ||
+                            /\.(png|jpe?g|gif|webp|svg|avif)$/i.test(m.url || '')
                           const preview = getPreviewUrl(m)
                           const checked = selectedIds.has(m.id)
                           return (
                             <TableRow key={m.id}>
                               <TableCell>
-                                <Checkbox checked={checked} onCheckedChange={() => toggleSelect(m.id)} aria-label="Select row" />
+                                <Checkbox
+                                  checked={checked}
+                                  onCheckedChange={() => toggleSelect(m.id)}
+                                  aria-label="Select row"
+                                />
                               </TableCell>
                               <TableCell>
                                 <div className="w-16 h-10 border border-line-low overflow-hidden rounded bg-backdrop-medium">
-                                  {isImage ? <img src={preview || m.url} alt="" className="w-full h-full object-cover" /> : <div className="w-full h-full flex items-center justify-center text-[10px] text-neutral-low">N/A</div>}
+                                  {isImage ? (
+                                    <img
+                                      src={preview || m.url}
+                                      alt=""
+                                      className="w-full h-full object-cover"
+                                    />
+                                  ) : (
+                                    <div className="w-full h-full flex items-center justify-center text-[10px] text-neutral-low">
+                                      N/A
+                                    </div>
+                                  )}
                                 </div>
                               </TableCell>
-                              <TableCell className="max-w-[240px] truncate">{m.originalFilename}</TableCell>
+                              <TableCell className="max-w-[240px] truncate">
+                                {m.originalFilename}
+                              </TableCell>
                               <TableCell>{m.mimeType}</TableCell>
                               <TableCell>{(m.size / 1024).toFixed(1)} KB</TableCell>
-                              <TableCell>{typeof m.optimizedSize === 'number' ? `${(m.optimizedSize / 1024).toFixed(1)} KB` : '-'}</TableCell>
+                              <TableCell>
+                                {typeof m.optimizedSize === 'number'
+                                  ? `${(m.optimizedSize / 1024).toFixed(1)} KB`
+                                  : '-'}
+                              </TableCell>
                               <TableCell>{new Date(m.createdAt).toLocaleString()}</TableCell>
                               <TableCell className="text-right">
                                 <div className="inline-flex items-center gap-2">
                                   <button
                                     className="px-2 py-1 text-xs border border-line-medium rounded hover:bg-backdrop-medium inline-flex items-center gap-1"
-                                    onClick={() => { setViewing(m); setSelectedVariantName('original'); setEditTheme('light'); setCropping(false); setFocalMode(false); setCropSel(null); setFocalDot(null); setReplaceFile(null) }}
+                                    onClick={() => {
+                                      setViewing(m)
+                                      setSelectedVariantName('original')
+                                      setEditTheme('light')
+                                      setCropping(false)
+                                      setFocalMode(false)
+                                      setCropSel(null)
+                                      setFocalDot(null)
+                                      setReplaceFile(null)
+                                    }}
                                     aria-label="Edit"
                                     title="Edit"
                                   >
@@ -1072,7 +1247,13 @@ export default function MediaIndex() {
                                         await toast.promise(
                                           fetch(`/api/media/${encodeURIComponent(m.id)}/optimize`, {
                                             method: 'POST',
-                                            headers: { 'Accept': 'application/json', 'Content-Type': 'application/json', ...(xsrfFromCookie ? { 'X-XSRF-TOKEN': xsrfFromCookie } : {}) },
+                                            headers: {
+                                              'Accept': 'application/json',
+                                              'Content-Type': 'application/json',
+                                              ...(xsrfFromCookie
+                                                ? { 'X-XSRF-TOKEN': xsrfFromCookie }
+                                                : {}),
+                                            },
                                             credentials: 'same-origin',
                                           }).then(async (r) => {
                                             if (!r.ok) {
@@ -1080,7 +1261,11 @@ export default function MediaIndex() {
                                               throw new Error(j?.error || 'Optimize failed')
                                             }
                                           }),
-                                          { loading: 'Optimizing…', success: 'Optimized', error: (e) => String(e.message || e) }
+                                          {
+                                            loading: 'Optimizing…',
+                                            success: 'Optimized',
+                                            error: (e) => String(e.message || e),
+                                          }
                                         )
                                         await load()
                                       }}
@@ -1092,7 +1277,10 @@ export default function MediaIndex() {
                                   )}
                                   <button
                                     className="px-2 py-1 text-xs border border-line-medium rounded hover:bg-backdrop-medium inline-flex items-center gap-1"
-                                    onClick={() => { setUsageFor(m); fetchWhereUsed(m.id) }}
+                                    onClick={() => {
+                                      setUsageFor(m)
+                                      fetchWhereUsed(m.id)
+                                    }}
                                     aria-label="Usage"
                                     title="Usage"
                                   >
@@ -1102,7 +1290,11 @@ export default function MediaIndex() {
                                   {isAdmin && (
                                     <AlertDialog>
                                       <AlertDialogTrigger asChild>
-                                        <button className="px-2 py-1 text-xs border border-line-medium rounded hover:bg-backdrop-medium text-danger inline-flex items-center gap-1" aria-label="Delete" title="Delete">
+                                        <button
+                                          className="px-2 py-1 text-xs border border-line-medium rounded hover:bg-backdrop-medium text-danger inline-flex items-center gap-1"
+                                          aria-label="Delete"
+                                          title="Delete"
+                                        >
                                           <Trash2 className="w-4 h-4" />
                                         </button>
                                       </AlertDialogTrigger>
@@ -1110,21 +1302,36 @@ export default function MediaIndex() {
                                         <AlertDialogHeader>
                                           <AlertDialogTitle>Delete this media?</AlertDialogTitle>
                                           <AlertDialogDescription>
-                                            This will delete the original file and all generated variants. This action cannot be undone.
+                                            This will delete the original file and all generated
+                                            variants. This action cannot be undone.
                                           </AlertDialogDescription>
                                         </AlertDialogHeader>
                                         <AlertDialogFooter>
                                           <AlertDialogCancel>Cancel</AlertDialogCancel>
                                           <AlertDialogAction
                                             onClick={async () => {
-                                              const res = await fetch(`/api/media/${encodeURIComponent(m.id)}`, {
-                                                method: 'DELETE',
-                                                headers: { ...(xsrfFromCookie ? { 'X-XSRF-TOKEN': xsrfFromCookie } : {}) },
-                                                credentials: 'same-origin',
-                                              })
-                                              if (res.ok) { toast.success('Deleted'); await load() } else { toast.error('Delete failed') }
+                                              const res = await fetch(
+                                                `/api/media/${encodeURIComponent(m.id)}`,
+                                                {
+                                                  method: 'DELETE',
+                                                  headers: {
+                                                    ...(xsrfFromCookie
+                                                      ? { 'X-XSRF-TOKEN': xsrfFromCookie }
+                                                      : {}),
+                                                  },
+                                                  credentials: 'same-origin',
+                                                }
+                                              )
+                                              if (res.ok) {
+                                                toast.success('Deleted')
+                                                await load()
+                                              } else {
+                                                toast.error('Delete failed')
+                                              }
                                             }}
-                                          >Delete</AlertDialogAction>
+                                          >
+                                            Delete
+                                          </AlertDialogAction>
                                         </AlertDialogFooter>
                                       </AlertDialogContent>
                                     </AlertDialog>
@@ -1143,7 +1350,6 @@ export default function MediaIndex() {
           </div>
         </div>
 
-
         {/* Meta Editor modal (opens via pencil) */}
         {/* Bulk Delete confirm */}
         <AlertDialog open={confirmBulkDelete} onOpenChange={setConfirmBulkDelete}>
@@ -1151,11 +1357,14 @@ export default function MediaIndex() {
             <AlertDialogHeader>
               <AlertDialogTitle>Delete selected media?</AlertDialogTitle>
               <AlertDialogDescription>
-                This will permanently delete the originals and all variants. This action cannot be undone.
+                This will permanently delete the originals and all variants. This action cannot be
+                undone.
               </AlertDialogDescription>
             </AlertDialogHeader>
             <AlertDialogFooter>
-              <AlertDialogCancel onClick={() => setConfirmBulkDelete(false)}>Cancel</AlertDialogCancel>
+              <AlertDialogCancel onClick={() => setConfirmBulkDelete(false)}>
+                Cancel
+              </AlertDialogCancel>
               <AlertDialogAction
                 onClick={async () => {
                   setConfirmBulkDelete(false)
@@ -1171,21 +1380,38 @@ export default function MediaIndex() {
         {/* Bulk Categories modal */}
         {bulkCategoriesOpen && (
           <div className="fixed inset-0 z-50 flex items-center justify-center">
-            <div className="absolute inset-0 bg-black/70" onClick={() => setBulkCategoriesOpen(false)} />
+            <div
+              className="absolute inset-0 bg-black/70"
+              onClick={() => setBulkCategoriesOpen(false)}
+            />
             <div className="relative z-10 w-full max-w-xl rounded-lg border border-line-low bg-backdrop-input p-3 shadow-xl">
               <div className="flex items-center justify-between mb-2">
                 <div className="text-sm text-neutral-high">Categories (free tags)</div>
-                <button className="text-neutral-medium hover:text-neutral-high" onClick={() => setBulkCategoriesOpen(false)}>✕</button>
+                <button
+                  className="text-neutral-medium hover:text-neutral-high"
+                  onClick={() => setBulkCategoriesOpen(false)}
+                >
+                  ✕
+                </button>
               </div>
               <div className="space-y-3 text-sm">
                 <div className="text-xs text-neutral-medium">
-                  Editing shared categories for {selectedIds.size} selected item(s). Add tags to apply to all; remove to clear from all.
+                  Editing shared categories for {selectedIds.size} selected item(s). Add tags to
+                  apply to all; remove to clear from all.
                 </div>
                 <div className="flex flex-wrap gap-2">
                   {bulkCats.map((c, idx) => (
-                    <span key={`${c}-${idx}`} className="inline-flex items-center gap-1 px-2 py-1 border border-line-low rounded">
+                    <span
+                      key={`${c}-${idx}`}
+                      className="inline-flex items-center gap-1 px-2 py-1 border border-line-low rounded"
+                    >
                       {c}
-                      <button className="text-neutral-low hover:text-neutral-high" onClick={() => setBulkCats(bulkCats.filter((x, i) => !(i === idx)))}>×</button>
+                      <button
+                        className="text-neutral-low hover:text-neutral-high"
+                        onClick={() => setBulkCats(bulkCats.filter((x, i) => !(i === idx)))}
+                      >
+                        ×
+                      </button>
                     </span>
                   ))}
                 </div>
@@ -1216,8 +1442,18 @@ export default function MediaIndex() {
                   </button>
                 </div>
                 <div className="flex items-center justify-end gap-2">
-                  <button className="px-3 py-1.5 text-xs border border-line-low rounded" onClick={() => setBulkCategoriesOpen(false)}>Cancel</button>
-                  <button className="px-3 py-1.5 text-xs rounded bg-standout-medium text-on-standout" onClick={saveBulkCategories}>Save</button>
+                  <button
+                    className="px-3 py-1.5 text-xs border border-line-low rounded"
+                    onClick={() => setBulkCategoriesOpen(false)}
+                  >
+                    Cancel
+                  </button>
+                  <button
+                    className="px-3 py-1.5 text-xs rounded bg-standout-medium text-on-standout"
+                    onClick={saveBulkCategories}
+                  >
+                    Save
+                  </button>
                 </div>
               </div>
             </div>
@@ -1229,9 +1465,25 @@ export default function MediaIndex() {
           <div className="fixed inset-0 z-50 flex items-center justify-center">
             <div className="relative z-10 w-full max-w-5xl rounded-lg border border-line-low bg-backdrop-input p-3 shadow-xl">
               <div className="flex items-center justify-between mb-2">
-                <div className="text-sm text-neutral-high break-all">{viewing.altText || viewing.originalFilename}</div>
+                <div className="text-sm text-neutral-high break-all">
+                  {viewing.altText || viewing.originalFilename}
+                </div>
                 <div className="flex items-center gap-2">
-                  <button className="text-neutral-medium hover:text-neutral-high" onClick={() => { setViewing(null); setCropping(false); setCropSel(null); setFocalMode(false); setFocalDot(null); setSelectedVariantName('original'); setEditTheme('light'); setReplaceFile(null) }}>✕</button>
+                  <button
+                    className="text-neutral-medium hover:text-neutral-high"
+                    onClick={() => {
+                      setViewing(null)
+                      setCropping(false)
+                      setCropSel(null)
+                      setFocalMode(false)
+                      setFocalDot(null)
+                      setSelectedVariantName('original')
+                      setEditTheme('light')
+                      setReplaceFile(null)
+                    }}
+                  >
+                    ✕
+                  </button>
                 </div>
               </div>
               <div className="flex gap-4 max-h-[70vh] overflow-auto text-sm">
@@ -1253,10 +1505,14 @@ export default function MediaIndex() {
                         onClick={() => {
                           setEditTheme('dark')
                           // When switching to dark, prefer the first dark variant if available
-                          const variants: any[] = Array.isArray((viewing as any)?.metadata?.variants)
+                          const variants: any[] = Array.isArray(
+                            (viewing as any)?.metadata?.variants
+                          )
                             ? (viewing as any).metadata.variants
                             : []
-                          const firstDark = variants.find((v) => String(v.name || '').endsWith('-dark'))
+                          const firstDark = variants.find((v) =>
+                            String(v.name || '').endsWith('-dark')
+                          )
                           setSelectedVariantName(firstDark?.name || 'original')
                         }}
                       >
@@ -1265,153 +1521,236 @@ export default function MediaIndex() {
                     </div>
                   </div>
                   <div className="max-h-[55vh] overflow-auto">
-                    <div className="relative inline-block" onMouseDown={onCropMouseDown} onMouseMove={onCropMouseMove} onMouseUp={onCropMouseUp} onClick={onFocalClick}>
-                      <img ref={imgRef} src={getEditDisplayUrl(viewing, editTheme)} alt={viewing.altText || viewing.originalFilename} className="w-full h-auto max-h-[55vh]" />
+                    <div
+                      className="relative inline-block"
+                      onMouseDown={onCropMouseDown}
+                      onMouseMove={onCropMouseMove}
+                      onMouseUp={onCropMouseUp}
+                      onClick={onFocalClick}
+                    >
+                      <img
+                        ref={imgRef}
+                        src={getEditDisplayUrl(viewing, editTheme)}
+                        alt={viewing.altText || viewing.originalFilename}
+                        className="w-full h-auto max-h-[55vh]"
+                      />
                       {cropping && cropSel && (
-                        <div className="absolute border-2 border-standout-medium bg-standout-medium/10" style={{ left: `${cropSel.x}px`, top: `${cropSel.y}px`, width: `${cropSel.w}px`, height: `${cropSel.h}px` }} />
+                        <div
+                          className="absolute border-2 border-standout-medium bg-standout-medium/10"
+                          style={{
+                            left: `${cropSel.x}px`,
+                            top: `${cropSel.y}px`,
+                            width: `${cropSel.w}px`,
+                            height: `${cropSel.h}px`,
+                          }}
+                        />
                       )}
                       {focalMode && focalDot && (
-                        <div className="absolute -translate-x-1/2 -translate-y-1/2" style={{ left: `${focalDot.x}px`, top: `${focalDot.y}px` }}>
+                        <div
+                          className="absolute -translate-x-1/2 -translate-y-1/2"
+                          style={{ left: `${focalDot.x}px`, top: `${focalDot.y}px` }}
+                        >
                           <div className="w-4 h-4 rounded-full bg-standout-medium border-2 border-white shadow" />
                         </div>
                       )}
                     </div>
                   </div>
                   <div className="mt-2 flex flex-wrap items-center gap-2">
-                    <select className="text-xs border border-line-low bg-backdrop-input text-neutral-high px-2 py-1" value={selectedVariantName} onChange={(e) => setSelectedVariantName(e.target.value)}>
+                    <select
+                      className="text-xs border border-line-low bg-backdrop-input text-neutral-high px-2 py-1"
+                      value={selectedVariantName}
+                      onChange={(e) => setSelectedVariantName(e.target.value)}
+                    >
                       <option value="original">
                         {editTheme === 'dark' ? 'Original image (dark)' : 'Original image (light)'}
                       </option>
                       {(viewing as any).metadata?.variants
                         ?.filter((v: any) =>
-                          editTheme === 'dark' ? String(v.name || '').endsWith('-dark') : !String(v.name || '').endsWith('-dark')
+                          editTheme === 'dark'
+                            ? String(v.name || '').endsWith('-dark')
+                            : !String(v.name || '').endsWith('-dark')
                         )
                         .map((v: any) => (
-                          <option key={v.name} value={v.name}>{getVariantLabel(v)}</option>
+                          <option key={v.name} value={v.name}>
+                            {getVariantLabel(v)}
+                          </option>
                         ))}
                     </select>
-                    {!focalMode && !cropping && selectedVariantName === 'original' && (() => {
-                      const mime = (viewing?.mimeType || '').toLowerCase()
-                      const isSvg =
-                        mime === 'image/svg+xml' || (viewing?.url || '').toLowerCase().endsWith('.svg')
-                      if (isSvg) return null
-                      return (
-                      <button
-                        className="px-2 py-1 text-xs border border-line-medium rounded hover:bg-backdrop-medium"
-                        onClick={() => setCropping(true)}
-                      >
-                        Crop
-                      </button>
-                      )
-                    })()}
-                    {cropping && (
-                      <>
-                        <button className="px-2 py-1 text-xs border border-line-medium rounded hover:bg-backdrop-medium" onClick={() => { setCropping(false); setCropSel(null) }}>Cancel</button>
-                        <button className="px-2 py-1 text-xs rounded bg-standout-medium text-on-standout" onClick={applyCrop}>Apply crop</button>
-                      </>
-                    )}
-                    {!cropping && !focalMode && selectedVariantName === 'original' && (() => {
-                      const mime = (viewing?.mimeType || '').toLowerCase()
-                      const isSvg =
-                        mime === 'image/svg+xml' || (viewing?.url || '').toLowerCase().endsWith('.svg')
-                      if (isSvg) {
-                        return null
-                      }
-                      return (
-                        <>
+                    {!focalMode &&
+                      !cropping &&
+                      selectedVariantName === 'original' &&
+                      (() => {
+                        const mime = (viewing?.mimeType || '').toLowerCase()
+                        const isSvg =
+                          mime === 'image/svg+xml' ||
+                          (viewing?.url || '').toLowerCase().endsWith('.svg')
+                        if (isSvg) return null
+                        return (
                           <button
                             className="px-2 py-1 text-xs border border-line-medium rounded hover:bg-backdrop-medium"
-                            onClick={() => setFocalMode(true)}
+                            onClick={() => setCropping(true)}
                           >
-                            Focal point
+                            Crop
                           </button>
-                          {(() => {
-                          const status = getVariantStatus(viewing)
-                          const allVariantsExist = status.hasAllLight && status.hasAllDark && status.hasDarkBase
-                          const buttonLabel = allVariantsExist ? 'Regenerate variations' : 'Generate missing variations'
-                          const isRegenerateMode = allVariantsExist
-
-                          return (
+                        )
+                      })()}
+                    {cropping && (
+                      <>
+                        <button
+                          className="px-2 py-1 text-xs border border-line-medium rounded hover:bg-backdrop-medium"
+                          onClick={() => {
+                            setCropping(false)
+                            setCropSel(null)
+                          }}
+                        >
+                          Cancel
+                        </button>
+                        <button
+                          className="px-2 py-1 text-xs rounded bg-standout-medium text-on-standout"
+                          onClick={applyCrop}
+                        >
+                          Apply crop
+                        </button>
+                      </>
+                    )}
+                    {!cropping &&
+                      !focalMode &&
+                      selectedVariantName === 'original' &&
+                      (() => {
+                        const mime = (viewing?.mimeType || '').toLowerCase()
+                        const isSvg =
+                          mime === 'image/svg+xml' ||
+                          (viewing?.url || '').toLowerCase().endsWith('.svg')
+                        if (isSvg) {
+                          return null
+                        }
+                        return (
+                          <>
                             <button
                               className="px-2 py-1 text-xs border border-line-medium rounded hover:bg-backdrop-medium"
-                              onClick={async () => {
-                                if (!viewing) return
-                                const targetId = viewing.id
-
-                                try {
-                                  // Generate light variants (if missing or if regenerating)
-                                  if (!status.hasAllLight || isRegenerateMode) {
-                                    await toast.promise(
-                                      fetch(`/api/media/${encodeURIComponent(targetId)}/variants`, {
-                                        method: 'POST',
-                                        headers: {
-                                          'Accept': 'application/json',
-                                          'Content-Type': 'application/json',
-                                          ...(xsrfFromCookie ? { 'X-XSRF-TOKEN': xsrfFromCookie } : {}),
-                                        },
-                                        credentials: 'same-origin',
-                                        body: JSON.stringify({ theme: 'light' }),
-                                      }).then((r) => {
-                                        if (!r.ok) throw new Error('Light variants generation failed')
-                                        return r
-                                      }),
-                                      {
-                                        loading: 'Generating light variants…',
-                                        success: 'Light variants generated',
-                                        error: (e) => String((e as any).message || e),
-                                      }
-                                    )
-                                  }
-
-                                  // Generate dark variants (if missing or if regenerating)
-                                  if (!status.hasAllDark || !status.hasDarkBase || isRegenerateMode) {
-                                    await toast.promise(
-                                      fetch(`/api/media/${encodeURIComponent(targetId)}/variants`, {
-                                        method: 'POST',
-                                        headers: {
-                                          'Accept': 'application/json',
-                                          'Content-Type': 'application/json',
-                                          ...(xsrfFromCookie ? { 'X-XSRF-TOKEN': xsrfFromCookie } : {}),
-                                        },
-                                        credentials: 'same-origin',
-                                        body: JSON.stringify({ theme: 'dark' }),
-                                      }).then((r) => {
-                                        if (!r.ok) throw new Error('Dark variants generation failed')
-                                        return r
-                                      }),
-                                      {
-                                        loading: 'Generating dark variants…',
-                                        success: 'Dark variants generated',
-                                        error: (e) => String((e as any).message || e),
-                                      }
-                                    )
-                                  }
-
-                                  // Refresh to show new variants
-                                  await refreshMediaItem(targetId)
-                                  setDarkPreviewVersion((v) => v + 1)
-
-                                  if (!isRegenerateMode) {
-                                    // Switch to Dark theme to show the newly generated dark variants
-                                    setEditTheme('dark')
-                                    setSelectedVariantName('original')
-                                  }
-                                } catch (err) {
-                                  toast.error(String((err as any).message || err))
-                                }
-                              }}
+                              onClick={() => setFocalMode(true)}
                             >
-                              {buttonLabel}
+                              Focal point
                             </button>
-                          )
-                        })()}
-                        </>
-                      )
-                    })()}
+                            {(() => {
+                              const status = getVariantStatus(viewing)
+                              const allVariantsExist =
+                                status.hasAllLight && status.hasAllDark && status.hasDarkBase
+                              const buttonLabel = allVariantsExist
+                                ? 'Regenerate variations'
+                                : 'Generate missing variations'
+                              const isRegenerateMode = allVariantsExist
+
+                              return (
+                                <button
+                                  className="px-2 py-1 text-xs border border-line-medium rounded hover:bg-backdrop-medium"
+                                  onClick={async () => {
+                                    if (!viewing) return
+                                    const targetId = viewing.id
+
+                                    try {
+                                      // Generate light variants (if missing or if regenerating)
+                                      if (!status.hasAllLight || isRegenerateMode) {
+                                        await toast.promise(
+                                          fetch(
+                                            `/api/media/${encodeURIComponent(targetId)}/variants`,
+                                            {
+                                              method: 'POST',
+                                              headers: {
+                                                'Accept': 'application/json',
+                                                'Content-Type': 'application/json',
+                                                ...(xsrfFromCookie
+                                                  ? { 'X-XSRF-TOKEN': xsrfFromCookie }
+                                                  : {}),
+                                              },
+                                              credentials: 'same-origin',
+                                              body: JSON.stringify({ theme: 'light' }),
+                                            }
+                                          ).then((r) => {
+                                            if (!r.ok)
+                                              throw new Error('Light variants generation failed')
+                                            return r
+                                          }),
+                                          {
+                                            loading: 'Generating light variants…',
+                                            success: 'Light variants generated',
+                                            error: (e) => String((e as any).message || e),
+                                          }
+                                        )
+                                      }
+
+                                      // Generate dark variants (if missing or if regenerating)
+                                      if (
+                                        !status.hasAllDark ||
+                                        !status.hasDarkBase ||
+                                        isRegenerateMode
+                                      ) {
+                                        await toast.promise(
+                                          fetch(
+                                            `/api/media/${encodeURIComponent(targetId)}/variants`,
+                                            {
+                                              method: 'POST',
+                                              headers: {
+                                                'Accept': 'application/json',
+                                                'Content-Type': 'application/json',
+                                                ...(xsrfFromCookie
+                                                  ? { 'X-XSRF-TOKEN': xsrfFromCookie }
+                                                  : {}),
+                                              },
+                                              credentials: 'same-origin',
+                                              body: JSON.stringify({ theme: 'dark' }),
+                                            }
+                                          ).then((r) => {
+                                            if (!r.ok)
+                                              throw new Error('Dark variants generation failed')
+                                            return r
+                                          }),
+                                          {
+                                            loading: 'Generating dark variants…',
+                                            success: 'Dark variants generated',
+                                            error: (e) => String((e as any).message || e),
+                                          }
+                                        )
+                                      }
+
+                                      // Refresh to show new variants
+                                      await refreshMediaItem(targetId)
+                                      setDarkPreviewVersion((v) => v + 1)
+
+                                      if (!isRegenerateMode) {
+                                        // Switch to Dark theme to show the newly generated dark variants
+                                        setEditTheme('dark')
+                                        setSelectedVariantName('original')
+                                      }
+                                    } catch (err) {
+                                      toast.error(String((err as any).message || err))
+                                    }
+                                  }}
+                                >
+                                  {buttonLabel}
+                                </button>
+                              )
+                            })()}
+                          </>
+                        )
+                      })()}
                     {focalMode && (
                       <>
-                        <button className="px-2 py-1 text-xs border border-line-medium rounded hover:bg-backdrop-medium" onClick={() => { setFocalMode(false); setFocalDot(null) }}>Cancel</button>
-                        <button className="px-2 py-1 text-xs rounded bg-standout-medium text-on-standout" onClick={applyFocal}>Apply focal</button>
+                        <button
+                          className="px-2 py-1 text-xs border border-line-medium rounded hover:bg-backdrop-medium"
+                          onClick={() => {
+                            setFocalMode(false)
+                            setFocalDot(null)
+                          }}
+                        >
+                          Cancel
+                        </button>
+                        <button
+                          className="px-2 py-1 text-xs rounded bg-standout-medium text-on-standout"
+                          onClick={applyFocal}
+                        >
+                          Apply focal
+                        </button>
                       </>
                     )}
                   </div>
@@ -1421,23 +1760,47 @@ export default function MediaIndex() {
                 <div className="w-full max-w-xs space-y-3">
                   <div>
                     <label className="block text-xs text-neutral-medium mb-1">Alt Text</label>
-                    <input className="w-full px-2 py-1 border border-line-input bg-backdrop-input text-neutral-high" value={editAlt} onChange={(e) => setEditAlt(e.target.value)} />
+                    <input
+                      className="w-full px-2 py-1 border border-line-input bg-backdrop-input text-neutral-high"
+                      value={editAlt}
+                      onChange={(e) => setEditAlt(e.target.value)}
+                    />
                   </div>
                   <div>
                     <label className="block text-xs text-neutral-medium mb-1">Title</label>
-                    <input className="w-full px-2 py-1 border border-line-input bg-backdrop-input text-neutral-high" value={editTitle} onChange={(e) => setEditTitle(e.target.value)} />
+                    <input
+                      className="w-full px-2 py-1 border border-line-input bg-backdrop-input text-neutral-high"
+                      value={editTitle}
+                      onChange={(e) => setEditTitle(e.target.value)}
+                    />
                   </div>
                   <div>
-                    <label className="block text-xs text-neutral-medium mb-1">Description (used as caption)</label>
-                    <textarea className="w-full px-2 py-1 border border-line-low bg-backdrop-input text-neutral-high min-h-[80px]" value={editDescription} onChange={(e) => setEditDescription(e.target.value)} />
+                    <label className="block text-xs text-neutral-medium mb-1">
+                      Description (used as caption)
+                    </label>
+                    <textarea
+                      className="w-full px-2 py-1 border border-line-low bg-backdrop-input text-neutral-high min-h-[80px]"
+                      value={editDescription}
+                      onChange={(e) => setEditDescription(e.target.value)}
+                    />
                   </div>
                   <div>
-                    <label className="block text-xs text-neutral-medium mb-1">Categories (free tags)</label>
+                    <label className="block text-xs text-neutral-medium mb-1">
+                      Categories (free tags)
+                    </label>
                     <div className="flex items-center gap-2 flex-wrap mb-2">
                       {editCategories.map((c) => (
-                        <span key={c} className="inline-flex items-center gap-1 px-2 py-0.5 text-xs rounded-full bg-backdrop-medium border border-line-medium">
+                        <span
+                          key={c}
+                          className="inline-flex items-center gap-1 px-2 py-0.5 text-xs rounded-full bg-backdrop-medium border border-line-medium"
+                        >
                           {c}
-                          <button className="ml-1 text-neutral-medium hover:text-neutral-high" onClick={() => setEditCategories((prev) => prev.filter((x) => x !== c))}>×</button>
+                          <button
+                            className="ml-1 text-neutral-medium hover:text-neutral-high"
+                            onClick={() => setEditCategories((prev) => prev.filter((x) => x !== c))}
+                          >
+                            ×
+                          </button>
                         </span>
                       ))}
                     </div>
@@ -1450,7 +1813,8 @@ export default function MediaIndex() {
                         if (e.key === 'Enter' || e.key === ',') {
                           e.preventDefault()
                           const v = newCategory.trim()
-                          if (v && !editCategories.includes(v)) setEditCategories([...editCategories, v])
+                          if (v && !editCategories.includes(v))
+                            setEditCategories([...editCategories, v])
                           setNewCategory('')
                         }
                       }}
@@ -1460,15 +1824,46 @@ export default function MediaIndex() {
                   <div className="p-2 border border-dashed border-line-high rounded">
                     <div className="text-xs font-medium mb-2">Rename file</div>
                     <div className="flex items-center gap-2">
-                      <input className="flex-1 px-2 py-1 border border-line-input bg-backdrop-input text-neutral-high" placeholder="new-filename (optional extension)" value={newFilename} onChange={(e) => setNewFilename(e.target.value)} />
-                      <button className="px-3 py-1.5 text-xs rounded bg-standout-medium text-on-standout disabled:opacity-50" disabled={renaming || !newFilename} onClick={async () => {
-                        if (!viewing || !newFilename) return
-                        setRenaming(true)
-                        try {
-                          const res = await fetch(`/api/media/${encodeURIComponent(viewing.id)}/rename`, { method: 'PATCH', headers: { 'Accept': 'application/json', 'Content-Type': 'application/json', ...(xsrfFromCookie ? { 'X-XSRF-TOKEN': xsrfFromCookie } : {}) }, credentials: 'same-origin', body: JSON.stringify({ filename: newFilename }) })
-                          if (res.ok) { toast.success('Renamed'); await load(); setNewFilename('') } else { toast.error('Rename failed') }
-                        } finally { setRenaming(false) }
-                      }}>Rename</button>
+                      <input
+                        className="flex-1 px-2 py-1 border border-line-input bg-backdrop-input text-neutral-high"
+                        placeholder="new-filename (optional extension)"
+                        value={newFilename}
+                        onChange={(e) => setNewFilename(e.target.value)}
+                      />
+                      <button
+                        className="px-3 py-1.5 text-xs rounded bg-standout-medium text-on-standout disabled:opacity-50"
+                        disabled={renaming || !newFilename}
+                        onClick={async () => {
+                          if (!viewing || !newFilename) return
+                          setRenaming(true)
+                          try {
+                            const res = await fetch(
+                              `/api/media/${encodeURIComponent(viewing.id)}/rename`,
+                              {
+                                method: 'PATCH',
+                                headers: {
+                                  'Accept': 'application/json',
+                                  'Content-Type': 'application/json',
+                                  ...(xsrfFromCookie ? { 'X-XSRF-TOKEN': xsrfFromCookie } : {}),
+                                },
+                                credentials: 'same-origin',
+                                body: JSON.stringify({ filename: newFilename }),
+                              }
+                            )
+                            if (res.ok) {
+                              toast.success('Renamed')
+                              await load()
+                              setNewFilename('')
+                            } else {
+                              toast.error('Rename failed')
+                            }
+                          } finally {
+                            setRenaming(false)
+                          }
+                        }}
+                      >
+                        Rename
+                      </button>
                     </div>
                   </div>
 
@@ -1478,7 +1873,10 @@ export default function MediaIndex() {
                         Replace {editTheme === 'dark' ? 'dark' : 'light'} image
                       </div>
                       {viewing?.originalFilename && (
-                        <div className="text-[10px] text-neutral-low truncate max-w-[140px]" title={viewing.originalFilename}>
+                        <div
+                          className="text-[10px] text-neutral-low truncate max-w-[140px]"
+                          title={viewing.originalFilename}
+                        >
                           Current: {viewing.originalFilename}
                         </div>
                       )}
@@ -1508,12 +1906,17 @@ export default function MediaIndex() {
                           const form = new FormData()
                           form.append('file', replaceFile)
                           form.append('theme', editTheme)
-                          const res = await fetch(`/api/media/${encodeURIComponent(viewing.id)}/override`, {
-                            method: 'POST',
-                            headers: { ...(xsrfFromCookie ? { 'X-XSRF-TOKEN': xsrfFromCookie } : {}) },
-                            credentials: 'same-origin',
-                            body: form,
-                          })
+                          const res = await fetch(
+                            `/api/media/${encodeURIComponent(viewing.id)}/override`,
+                            {
+                              method: 'POST',
+                              headers: {
+                                ...(xsrfFromCookie ? { 'X-XSRF-TOKEN': xsrfFromCookie } : {}),
+                              },
+                              credentials: 'same-origin',
+                              body: form,
+                            }
+                          )
                           if (res.ok) {
                             toast.success(`Replaced ${editTheme} image`)
                             await load()
@@ -1526,14 +1929,26 @@ export default function MediaIndex() {
                         }
                       }}
                     >
-                      {replaceUploading ? 'Replacing…' : `Replace ${editTheme === 'dark' ? 'dark' : 'light'} image`}
+                      {replaceUploading
+                        ? 'Replacing…'
+                        : `Replace ${editTheme === 'dark' ? 'dark' : 'light'} image`}
                     </button>
                   </div>
 
                   <div className="flex items-center justify-end gap-2 pt-1">
                     <button
                       className="px-3 py-1.5 text-xs border border-line-low rounded hover:bg-backdrop-medium"
-                      onClick={() => { setViewing(null); setWhereUsed(null); setCropping(false); setCropSel(null); setFocalMode(false); setFocalDot(null); setSelectedVariantName('original'); setEditTheme('light'); setReplaceFile(null) }}
+                      onClick={() => {
+                        setViewing(null)
+                        setWhereUsed(null)
+                        setCropping(false)
+                        setCropSel(null)
+                        setFocalMode(false)
+                        setFocalDot(null)
+                        setSelectedVariantName('original')
+                        setEditTheme('light')
+                        setReplaceFile(null)
+                      }}
                     >
                       Close
                     </button>
@@ -1552,7 +1967,12 @@ export default function MediaIndex() {
                               ...(xsrfFromCookie ? { 'X-XSRF-TOKEN': xsrfFromCookie } : {}),
                             },
                             credentials: 'same-origin',
-                            body: JSON.stringify({ altText: editAlt, title: editTitle, description: editDescription, categories: editCategories }),
+                            body: JSON.stringify({
+                              altText: editAlt,
+                              title: editTitle,
+                              description: editDescription,
+                              categories: editCategories,
+                            }),
                           })
                           if (res.ok) {
                             toast.success('Saved')
@@ -1578,11 +1998,25 @@ export default function MediaIndex() {
         {/* Usage modal */}
         {usageFor && (
           <div className="fixed inset-0 z-50 flex items-center justify-center">
-            <div className="absolute inset-0 bg-black/50" onClick={() => { setUsageFor(null); setWhereUsed(null) }} />
+            <div
+              className="absolute inset-0 bg-black/50"
+              onClick={() => {
+                setUsageFor(null)
+                setWhereUsed(null)
+              }}
+            />
             <div className="relative z-10 w-full max-w-lg rounded-lg border border-line-low bg-backdrop-input p-6 shadow-xl max-h-[90vh] overflow-auto">
               <div className="flex items-center justify-between mb-4">
                 <h3 className="text-base font-semibold text-neutral-high">Usage</h3>
-                <button className="text-neutral-medium hover:text-neutral-high" onClick={() => { setUsageFor(null); setWhereUsed(null) }}>✕</button>
+                <button
+                  className="text-neutral-medium hover:text-neutral-high"
+                  onClick={() => {
+                    setUsageFor(null)
+                    setWhereUsed(null)
+                  }}
+                >
+                  ✕
+                </button>
               </div>
               {whereUsed ? (
                 <div className="space-y-3 text-sm">
@@ -1593,7 +2027,9 @@ export default function MediaIndex() {
                     ) : (
                       <ul className="list-disc pl-5 text-neutral-medium">
                         {whereUsed.inModules.map((m: any) => (
-                          <li key={m.id} className="text-xs">Module {m.type} (id: {m.id}, scope: {m.scope})</li>
+                          <li key={m.id} className="text-xs">
+                            Module {m.type} (id: {m.id}, scope: {m.scope})
+                          </li>
                         ))}
                       </ul>
                     )}
@@ -1605,7 +2041,9 @@ export default function MediaIndex() {
                     ) : (
                       <ul className="list-disc pl-5 text-neutral-medium">
                         {whereUsed.inOverrides.map((o: any) => (
-                          <li key={o.id} className="text-xs">PostModule id: {o.id} (post: {o.postId})</li>
+                          <li key={o.id} className="text-xs">
+                            PostModule id: {o.id} (post: {o.postId})
+                          </li>
                         ))}
                       </ul>
                     )}
@@ -1624,7 +2062,16 @@ export default function MediaIndex() {
         <AdminFooter />
       </div>
       {/* Duplicate choice dialog */}
-      <AlertDialog open={dupOpen} onOpenChange={(open) => { setDupOpen(open); if (!open && dupResolve) { dupResolve('cancel'); setDupResolve(null) } }}>
+      <AlertDialog
+        open={dupOpen}
+        onOpenChange={(open) => {
+          setDupOpen(open)
+          if (!open && dupResolve) {
+            dupResolve('cancel')
+            setDupResolve(null)
+          }
+        }}
+      >
         <AlertDialogContent>
           <AlertDialogHeader>
             <AlertDialogTitle>Duplicate media detected</AlertDialogTitle>
@@ -1633,14 +2080,36 @@ export default function MediaIndex() {
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
-            <AlertDialogCancel onClick={() => { if (dupResolve) dupResolve('cancel'); setDupResolve(null); setDupOpen(false) }}>Cancel</AlertDialogCancel>
-            <AlertDialogAction onClick={() => { if (dupResolve) dupResolve('save'); setDupResolve(null); setDupOpen(false) }}>Save as new</AlertDialogAction>
-            <AlertDialogAction onClick={() => { if (dupResolve) dupResolve('override'); setDupResolve(null); setDupOpen(false) }}>Override</AlertDialogAction>
+            <AlertDialogCancel
+              onClick={() => {
+                if (dupResolve) dupResolve('cancel')
+                setDupResolve(null)
+                setDupOpen(false)
+              }}
+            >
+              Cancel
+            </AlertDialogCancel>
+            <AlertDialogAction
+              onClick={() => {
+                if (dupResolve) dupResolve('save')
+                setDupResolve(null)
+                setDupOpen(false)
+              }}
+            >
+              Save as new
+            </AlertDialogAction>
+            <AlertDialogAction
+              onClick={() => {
+                if (dupResolve) dupResolve('override')
+                setDupResolve(null)
+                setDupOpen(false)
+              }}
+            >
+              Override
+            </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
     </div>
   )
 }
-
-

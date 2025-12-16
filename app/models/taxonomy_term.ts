@@ -39,4 +39,3 @@ export default class TaxonomyTerm extends BaseModel {
   @belongsTo(() => Taxonomy, { foreignKey: 'taxonomyId' })
   declare taxonomy: BelongsTo<typeof Taxonomy>
 }
-

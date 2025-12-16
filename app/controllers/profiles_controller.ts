@@ -28,9 +28,9 @@ export default class ProfilesController {
     const idsParam = String(request.input('ids', '')).trim()
     const ids: string[] = idsParam
       ? idsParam
-        .split(',')
-        .map((v) => v.trim())
-        .filter(Boolean)
+          .split(',')
+          .map((v) => v.trim())
+          .filter(Boolean)
       : []
 
     const query = Post.query().where('type', 'profile')

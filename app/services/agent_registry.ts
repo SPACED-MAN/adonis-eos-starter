@@ -18,7 +18,9 @@ class AgentRegistry {
 
     // Validate definition
     if (definition.type !== 'internal') {
-      throw new Error(`Agent "${definition.id}" must be type 'internal'. For webhook-based automation, use Workflows.`)
+      throw new Error(
+        `Agent "${definition.id}" must be type 'internal'. For webhook-based automation, use Workflows.`
+      )
     }
 
     if (!definition.internal) {

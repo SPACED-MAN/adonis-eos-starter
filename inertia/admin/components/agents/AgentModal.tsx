@@ -1,6 +1,6 @@
 /**
  * Reusable Agent Modal Component
- * 
+ *
  * Provides a consistent agent interaction interface with:
  * - Chat history display
  * - Request/response handling
@@ -139,7 +139,9 @@ export function AgentModal({
       }
     }
     loadHistory()
-    return () => { alive = false }
+    return () => {
+      alive = false
+    }
   }, [open, agent?.id, contextId, scope])
 
   // Scroll modal to bottom when it opens or history loads
@@ -178,27 +180,25 @@ export function AgentModal({
       const url = contextId
         ? `/api/posts/${contextId}/agents/${encodeURIComponent(agent.id)}/run`
         : `/api/agents/${encodeURIComponent(agent.id)}/run`
-      const res = await fetch(url,
-        {
-          method: 'POST',
-          headers: {
-            Accept: 'application/json',
-            'Content-Type': 'application/json',
-            ...(csrf ? { 'X-XSRF-TOKEN': csrf } : {}),
+      const res = await fetch(url, {
+        method: 'POST',
+        headers: {
+          'Accept': 'application/json',
+          'Content-Type': 'application/json',
+          ...(csrf ? { 'X-XSRF-TOKEN': csrf } : {}),
+        },
+        credentials: 'same-origin',
+        body: JSON.stringify({
+          context: {
+            ...context,
+            scope,
+            fieldKey,
+            fieldType,
+            viewMode: viewMode || undefined,
           },
-          credentials: 'same-origin',
-          body: JSON.stringify({
-            context: {
-              ...context,
-              scope,
-              fieldKey,
-              fieldType,
-              viewMode: viewMode || undefined,
-            },
-            openEndedContext: openEnded || undefined,
-          }),
-        }
-      )
+          openEndedContext: openEnded || undefined,
+        }),
+      })
       const j = await res.json().catch(() => ({}))
       if (res.ok) {
         setAgentResponse({
@@ -352,20 +352,23 @@ export function AgentModal({
                       <div className="flex justify-start">
                         <div className="max-w-[80%] space-y-1">
                           <div className="bg-backdrop-medium p-3 rounded-lg rounded-tl-sm border border-line-medium text-sm">
-                            {item.response.summary || (
-                              item.response.rawResponse
+                            {item.response.summary ||
+                              (item.response.rawResponse
                                 ? (() => {
-                                  try {
-                                    const jsonMatch = item.response.rawResponse?.match(/```(?:json)?\s*(\{[\s\S]*\})\s*```/)
-                                    const jsonStr = jsonMatch ? jsonMatch[1] : item.response.rawResponse
-                                    const parsed = JSON.parse(jsonStr)
-                                    return parsed.summary || 'Changes applied.'
-                                  } catch {
-                                    return item.response.rawResponse || 'Changes applied.'
-                                  }
-                                })()
-                                : 'Changes applied.'
-                            )}
+                                    try {
+                                      const jsonMatch = item.response.rawResponse?.match(
+                                        /```(?:json)?\s*(\{[\s\S]*\})\s*```/
+                                      )
+                                      const jsonStr = jsonMatch
+                                        ? jsonMatch[1]
+                                        : item.response.rawResponse
+                                      const parsed = JSON.parse(jsonStr)
+                                      return parsed.summary || 'Changes applied.'
+                                    } catch {
+                                      return item.response.rawResponse || 'Changes applied.'
+                                    }
+                                  })()
+                                : 'Changes applied.')}
                           </div>
                           {item.response.applied && item.response.applied.length > 0 && (
                             <div className="text-xs text-neutral-medium">
@@ -466,9 +469,7 @@ export function AgentModal({
             )}
 
             {agentResponse.message && (
-              <div className="text-sm text-success-medium font-medium">
-                {agentResponse.message}
-              </div>
+              <div className="text-sm text-success-medium font-medium">{agentResponse.message}</div>
             )}
           </div>
         )}
@@ -553,4 +554,3 @@ export function AgentModal({
     </AlertDialog>
   )
 }
-

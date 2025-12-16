@@ -33,11 +33,7 @@ export default defineConfig({
       external: (id) => {
         // Exclude SSR-only Node.js dependencies from client bundle
         // These are only used in inertia/app/ssr.tsx and cannot run in browser
-        if (
-          id.includes('@adonisjs/redis') ||
-          id === 'node:crypto' ||
-          id === 'crypto'
-        ) {
+        if (id.includes('@adonisjs/redis') || id === 'node:crypto' || id === 'crypto') {
           return true
         }
         // Allow react-dom/server - it's used in client code (InlineOverlay)

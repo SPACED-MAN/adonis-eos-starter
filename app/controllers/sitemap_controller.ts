@@ -14,4 +14,3 @@ export default class SitemapController {
       .send(xml)
   }
 }
-

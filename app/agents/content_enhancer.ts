@@ -2,12 +2,12 @@ import type { AgentDefinition } from '#types/agent_types'
 
 /**
  * Content Enhancer Agent
- * 
+ *
  * @deprecated External agents have been moved to the Workflows system.
  * This agent is disabled and needs to be migrated:
  * - If you need AI-powered content enhancement: Convert to an internal agent (type: 'internal')
  * - If you need webhook-based automation: Create a workflow in app/workflows/
- * 
+ *
  * To re-enable, convert this to an internal agent or delete and create a workflow.
  */
 const ContentEnhancerAgent: AgentDefinition = {
@@ -29,7 +29,8 @@ const ContentEnhancerAgent: AgentDefinition = {
   internal: {
     provider: 'openai',
     model: 'gpt-4',
-    systemPrompt: 'You are a content enhancement assistant. Improve content while maintaining the original intent.',
+    systemPrompt:
+      'You are a content enhancement assistant. Improve content while maintaining the original intent.',
     options: {
       temperature: 0.7,
       maxTokens: 2000,

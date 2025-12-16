@@ -5,6 +5,7 @@ Event-driven automation system for webhook-based integrations, notifications, an
 ## Overview
 
 Workflows are file-based definitions that can:
+
 - Trigger automatically on specific events (post created, published, etc.)
 - Call external webhooks (n8n, Zapier, Slack, custom services)
 - Execute complex automation chains
@@ -14,13 +15,13 @@ Workflows are file-based definitions that can:
 
 ## When to Use Workflows vs Agents
 
-| Feature | Workflows | AI Agents |
-|---------|-----------|-----------|
-| **Purpose** | Automation & integrations | Content enhancement |
-| **Trigger** | Event-driven (post.published, form.submit, etc.) | Manual or event-driven |
-| **Execution** | Webhook calls to external services | In-process AI processing |
-| **Use Cases** | n8n workflows, Slack notifications, data sync | SEO optimization, content improvement, translations |
-| **Configuration** | Webhook URLs, secrets, retry logic | AI providers, models, prompts |
+| Feature           | Workflows                                        | AI Agents                                           |
+| ----------------- | ------------------------------------------------ | --------------------------------------------------- |
+| **Purpose**       | Automation & integrations                        | Content enhancement                                 |
+| **Trigger**       | Event-driven (post.published, form.submit, etc.) | Manual or event-driven                              |
+| **Execution**     | Webhook calls to external services               | In-process AI processing                            |
+| **Use Cases**     | n8n workflows, Slack notifications, data sync    | SEO optimization, content improvement, translations |
+| **Configuration** | Webhook URLs, secrets, retry logic               | AI providers, models, prompts                       |
 
 ## Workflow Types
 
@@ -491,7 +492,9 @@ Workflows receive event-specific payloads:
       "scope": "local",
       "orderIndex": 0,
       "props": {
-        "content": { /* Lexical JSON */ }
+        "content": {
+          /* Lexical JSON */
+        }
       }
     }
   ],
@@ -568,6 +571,7 @@ webhook: {
 ```
 
 The secret is sent as:
+
 - `Authorization: Bearer <secret>` (default)
 - Or custom header if `secretHeader` is specified
 
@@ -584,6 +588,7 @@ The secret is sent as:
 ## Troubleshooting
 
 **Workflow not executing?**
+
 - Check `enabled: true` in workflow definition
 - Verify trigger is enabled: `triggers[].enabled: true`
 - Check trigger filters (postTypes, formSlugs, etc.)
@@ -591,16 +596,19 @@ The secret is sent as:
 - Check execution logs in `workflow_executions` table
 
 **Webhook timing out?**
+
 - Increase `timeout` value
 - Check webhook URL is accessible
 - Test with curl/Postman first
 
 **Retries not working?**
+
 - Ensure `retryOnFailure: true`
 - Check `retryAttempts` is set appropriately
 - Verify webhook returns error status codes (4xx, 5xx) for retries to trigger
 
 **Condition not working?**
+
 - Ensure condition function returns a boolean or Promise<boolean>
 - Check condition logic matches payload structure
 - Add logging to debug condition evaluation
@@ -608,4 +616,3 @@ The secret is sent as:
 ---
 
 **Related**: [AI Agents](/docs/developers/ai-agents) | [API Reference](/docs/developers/api-reference) | [Webhooks](/docs/developers/webhooks)
-

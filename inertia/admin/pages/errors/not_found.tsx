@@ -8,9 +8,7 @@ export default function NotFound() {
       <div className="max-w-md w-full text-center">
         <div className="mb-8">
           <h1 className="text-6xl font-bold text-neutral-high mb-2">404</h1>
-          <h2 className="text-2xl font-semibold text-neutral-high mb-4">
-            Page Not Found
-          </h2>
+          <h2 className="text-2xl font-semibold text-neutral-high mb-4">Page Not Found</h2>
           <p className="text-neutral-medium">
             The admin page you're looking for doesn't exist or has been moved.
           </p>
@@ -34,4 +32,3 @@ export default function NotFound() {
     </div>
   )
 }
-

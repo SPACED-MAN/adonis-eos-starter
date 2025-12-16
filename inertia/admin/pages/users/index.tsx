@@ -3,7 +3,13 @@ import { usePage } from '@inertiajs/react'
 import { AdminHeader } from '../../components/AdminHeader'
 import { AdminFooter } from '../../components/AdminFooter'
 import { Input } from '../../../components/ui/input'
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '~/components/ui/select'
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '~/components/ui/select'
 import { toast } from 'sonner'
 import {
   AlertDialog,
@@ -68,11 +74,12 @@ export default function UsersIndex() {
   function filteredRows() {
     const q = filter.trim().toLowerCase()
     if (!q) return rows
-    return rows.filter((r) =>
-      r.email.toLowerCase().includes(q) ||
-      (r.username || '').toLowerCase().includes(q) ||
-      r.role.toLowerCase().includes(q) ||
-      getRoleLabel(r.role).toLowerCase().includes(q)
+    return rows.filter(
+      (r) =>
+        r.email.toLowerCase().includes(q) ||
+        (r.username || '').toLowerCase().includes(q) ||
+        r.role.toLowerCase().includes(q) ||
+        getRoleLabel(r.role).toLowerCase().includes(q)
     )
   }
 
@@ -82,7 +89,7 @@ export default function UsersIndex() {
       const res = await fetch(`/api/users/${encodeURIComponent(id)}`, {
         method: 'PATCH',
         headers: {
-          Accept: 'application/json',
+          'Accept': 'application/json',
           'Content-Type': 'application/json',
           ...(getXsrf() ? { 'X-XSRF-TOKEN': getXsrf()! } : {}),
         },
@@ -111,7 +118,7 @@ export default function UsersIndex() {
       const res = await fetch(`/api/users/${encodeURIComponent(id)}/password`, {
         method: 'PATCH',
         headers: {
-          Accept: 'application/json',
+          'Accept': 'application/json',
           'Content-Type': 'application/json',
           ...(getXsrf() ? { 'X-XSRF-TOKEN': getXsrf()! } : {}),
         },
@@ -150,7 +157,7 @@ export default function UsersIndex() {
       const res = await fetch('/api/users', {
         method: 'POST',
         headers: {
-          Accept: 'application/json',
+          'Accept': 'application/json',
           'Content-Type': 'application/json',
           ...(getXsrf() ? { 'X-XSRF-TOKEN': getXsrf()! } : {}),
         },
@@ -291,7 +298,10 @@ export default function UsersIndex() {
                       />
                     </td>
                     <td className="py-2 pr-2">
-                      <Select defaultValue={u.role} onValueChange={(val) => saveRow(u.id, { role: val as Role })}>
+                      <Select
+                        defaultValue={u.role}
+                        onValueChange={(val) => saveRow(u.id, { role: val as Role })}
+                      >
                         <SelectTrigger className="w-[160px]">
                           <SelectValue />
                         </SelectTrigger>
@@ -315,16 +325,26 @@ export default function UsersIndex() {
                         className="px-2 py-1 text-xs border border-line-medium rounded hover:bg-backdrop-medium text-neutral-high mr-2"
                         onClick={async () => {
                           try {
-                            const res = await fetch(`/api/users/${encodeURIComponent(u.id)}/profile`, { credentials: 'same-origin' })
+                            const res = await fetch(
+                              `/api/users/${encodeURIComponent(u.id)}/profile`,
+                              { credentials: 'same-origin' }
+                            )
                             const j = await res.json().catch(() => ({}))
                             let pid: string | null = j?.id || null
                             if (!pid) {
                               const csrf = getXsrf()
-                              const createRes = await fetch(`/api/users/${encodeURIComponent(u.id)}/profile`, {
-                                method: 'POST',
-                                headers: { Accept: 'application/json', 'Content-Type': 'application/json', ...(csrf ? { 'X-XSRF-TOKEN': csrf } : {}) },
-                                credentials: 'same-origin',
-                              })
+                              const createRes = await fetch(
+                                `/api/users/${encodeURIComponent(u.id)}/profile`,
+                                {
+                                  method: 'POST',
+                                  headers: {
+                                    'Accept': 'application/json',
+                                    'Content-Type': 'application/json',
+                                    ...(csrf ? { 'X-XSRF-TOKEN': csrf } : {}),
+                                  },
+                                  credentials: 'same-origin',
+                                }
+                              )
                               const cj = await createRes.json().catch(() => ({}))
                               if (!createRes.ok) {
                                 toast.error(cj?.error || 'Failed to create profile')
@@ -362,7 +382,10 @@ export default function UsersIndex() {
                           </button>
                           <button
                             className="px-2 py-1 text-xs border border-line-medium rounded hover:bg-backdrop-medium text-neutral-medium"
-                            onClick={() => { setPwdFor(null); setPwd('') }}
+                            onClick={() => {
+                              setPwdFor(null)
+                              setPwd('')
+                            }}
                           >
                             Cancel
                           </button>
@@ -385,7 +408,8 @@ export default function UsersIndex() {
                           <AlertDialogHeader>
                             <AlertDialogTitle>Delete user?</AlertDialogTitle>
                             <AlertDialogDescription>
-                              This action cannot be undone. The account for {u.email} will be permanently removed.
+                              This action cannot be undone. The account for {u.email} will be
+                              permanently removed.
                             </AlertDialogDescription>
                           </AlertDialogHeader>
                           <AlertDialogFooter>
@@ -394,11 +418,14 @@ export default function UsersIndex() {
                               onClick={async () => {
                                 try {
                                   const csrf = getXsrf()
-                                  const res = await fetch(`/api/users/${encodeURIComponent(u.id)}`, {
-                                    method: 'DELETE',
-                                    headers: { ...(csrf ? { 'X-XSRF-TOKEN': csrf } : {}) },
-                                    credentials: 'same-origin',
-                                  })
+                                  const res = await fetch(
+                                    `/api/users/${encodeURIComponent(u.id)}`,
+                                    {
+                                      method: 'DELETE',
+                                      headers: { ...(csrf ? { 'X-XSRF-TOKEN': csrf } : {}) },
+                                      credentials: 'same-origin',
+                                    }
+                                  )
                                   if (!res.ok) {
                                     const j = await res.json().catch(() => ({}))
                                     toast.error(j?.error || 'Failed to delete user')
@@ -437,4 +464,3 @@ export default function UsersIndex() {
     </div>
   )
 }
-

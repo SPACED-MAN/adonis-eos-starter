@@ -30,7 +30,9 @@ class SiteCustomFieldsService {
         const cfg = fieldTypeRegistry.get(type)
         const parsed = cfg.valueSchema.safeParse(value ?? null)
         if (!parsed.success) {
-          throw new Error(`Invalid value for field "${slug}": ${parsed.error.issues[0]?.message || 'invalid'}`)
+          throw new Error(
+            `Invalid value for field "${slug}": ${parsed.error.issues[0]?.message || 'invalid'}`
+          )
         }
       } catch (e) {
         // skip invalid entries

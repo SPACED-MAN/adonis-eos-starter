@@ -1,9 +1,11 @@
 # Custom CMS Plan (AdonisJS + Inertia + React)
 
 ## Vision
+
 A high-performance, SEO-first, **multilingual** CMS built with **AdonisJS 6 + Inertia + React**, styled with **TailwindCSS** and **ShadCN**. Content is composed of **modules** (hero, callouts, etc.) that can be reordered, reused globally, or grouped into **module groups** for fast post creation.
 
 Key priorities:
+
 - Performance & SEO (SSR, structured data, caching)
 - Internationalization (i18n) with locale-specific URLs
 - Editor ease-of-use (drag-and-drop, module groups)
@@ -12,6 +14,7 @@ Key priorities:
 ---
 
 ## Technical Stack
+
 - **Server:** AdonisJS 6 (Lucid ORM, Validator, Bouncer, SSR)
 - **Client:** Inertia + React
   - Admin Panel: `inertia/admin/*` (content management)
@@ -25,6 +28,7 @@ Key priorities:
 - **i18n:** Locale-based content and URL routing
 
 ### Project structure (Inertia, admin vs site)
+
 ```
 inertia/
   admin/               # Inertia admin app (bundled separately)
@@ -37,20 +41,23 @@ inertia/
     components/
     layouts/SiteLayout.tsx
 ```
- - **Vite entries:** two inputs (admin, site) for code splitting.
- - **Policies:** Admin-only pages guarded via authentication and Bouncer policies (RBAC to be added in a later milestone).
+
+- **Vite entries:** two inputs (admin, site) for code splitting.
+- **Policies:** Admin-only pages guarded via authentication and Bouncer policies (RBAC to be added in a later milestone).
 
 ---
 
 ## Core Concepts
 
 ### Posts
+
 - Posts represent content of different **types**: `page`, `blog`, `testimonial`, `product`, etc.
 - Posts are composed of **modules** ordered via `post_modules`.
 - SEO data (meta title, description, canonical, robots) is stored per post.
 - **Translatable:** Posts can have translations for different locales.
 
 ### Modules
+
 - Modules are reusable building blocks of content.
 - Each has:
   - `type` (e.g. `hero`, `text-callout`)
@@ -62,18 +69,21 @@ inertia/
 - **Translatable:** Module props can contain locale-specific content.
 
 ### Post Modules
+
 - The join table that defines:
   - Which modules a post uses
   - Their order (`order_index`)
   - Optional shallow `overrides` of props for global modules
 
 ### Templates
+
 - A **template** is a collection of modules (with default props) used to seed new posts.
 - Templates are tied to a **post type** (e.g., `blog`).
 - Each module in a template can be **locked**, preventing removal.
 - A **locked template** prevents any module additions/removals on posts using it.
 
 ### Internationalization (i18n)
+
 - **Locales:** Configured locales (e.g., `en`, `es`, `fr`) with default fallback.
 - **Content Translation:** Posts and modules have translations stored separately.
 - **URL Routing:** Locale-specific URL patterns (e.g., `/en/blog/...`, `/es/blog/...`).
@@ -85,6 +95,7 @@ inertia/
 ## Database Schema
 
 ### posts
+
 - id (uuid)
 - type (text)
 - slug (unique)
@@ -103,6 +114,7 @@ inertia/
 **Performance:** Indexed on (locale, status, type) for efficient filtering. Composite index on (translation_of_id, locale) for fast translation lookups.
 
 ### module_instances
+
 - id (uuid)
 - scope (`post`, `global`, `static`)
 - type (text)
@@ -117,6 +129,7 @@ inertia/
 **Performance:** GIN index on `props` for efficient JSONB queries. Index on (scope, type) for module filtering.
 
 ### post_modules
+
 - id (uuid)
 - post_id (fk → posts)
 - module_id (fk → module_instances)
@@ -129,6 +142,7 @@ inertia/
 **Performance:** Composite index on (post_id, order_index) for efficient ordered retrieval when rendering pages. This is critical for page load performance.
 
 ### module_groups
+
 - id (uuid)
 - name (unique slug)
 - post_type (text)
@@ -141,6 +155,7 @@ inertia/
 **Performance:** Index on (post_type) for module group filtering.
 
 ### module_group_modules
+
 - id (uuid)
 - module_group_id (fk → module_groups)
 - type (text)
@@ -153,6 +168,7 @@ inertia/
 **Performance:** Composite index on (module_group_id, order_index) for ordered retrieval.
 
 ### url_patterns
+
 - id (uuid)
 - post_type (text)
 - locale (text, default 'en')
@@ -165,6 +181,7 @@ inertia/
 **Performance:** Composite unique index on (post_type, locale, is_default) to enforce one default per type/locale.
 
 ### url_redirects
+
 - id (uuid)
 - from_path (unique)
 - to_path (text)
@@ -179,6 +196,7 @@ inertia/
 **Performance:** Index on (from_path, locale) for fast redirect lookups in middleware. This is critical as redirects are checked on every request.
 
 ### module_scopes
+
 - id (uuid)
 - module_type (text)
 - post_type (text)
@@ -189,6 +207,7 @@ inertia/
 **Performance:** Composite unique index on (module_type, post_type) prevents duplicate restrictions.
 
 ### custom_fields
+
 - id (uuid)
 - slug (text)
 - label (text)
@@ -201,6 +220,7 @@ inertia/
 **Performance:** Index on (slug) for quick lookups.
 
 ### post_type_custom_fields
+
 - id (uuid)
 - post_type (text)
 - field_id (fk → custom_fields)
@@ -211,6 +231,7 @@ inertia/
 **Performance:** Composite index on (post_type, field_id) for efficient lookups when loading post type schemas.
 
 ### post_custom_field_values
+
 - id (uuid)
 - post_id (fk → posts)
 - field_id (fk → custom_fields)
@@ -226,6 +247,7 @@ inertia/
 ## Performance Considerations
 
 ### Indexes Strategy
+
 1. **Primary Indexes:** UUID PKs on all tables (good for distributed systems, minimal overhead)
 2. **Foreign Key Indexes:** All FK columns are indexed for efficient joins
 3. **Composite Indexes:**
@@ -240,6 +262,7 @@ inertia/
 5. **Unique Constraints:** Enforce data integrity and also create indexes
 
 ### Page Load Query Path
+
 ```
 1. Lookup URL → resolve locale & post (indexed: url_redirects, posts.slug)
 2. Load post → JOIN post_modules (indexed: post_modules.post_id)
@@ -252,6 +275,7 @@ inertia/
 **Expected response time:** < 50ms with cache hits, < 200ms cold
 
 ### Caching Strategy
+
 - **Module-level cache:** Cached HTML per module + ETag
 - **Page-level cache:** CDN caching by full URL path
 - **JSONB advantage:** Props stored as JSONB allow efficient partial updates without full re-renders
@@ -261,22 +285,26 @@ inertia/
 ## Internationalization (i18n) Strategy
 
 ### Locale Management
+
 - **Supported Locales:** Configured via environment (e.g., `LOCALES=en,es,fr,de`)
 - **Default Locale:** One locale marked as default (fallback)
-- **Locale Detection:** 
+- **Locale Detection:**
   1. URL prefix (`/es/blog/...`)
   2. Domain (`es.example.com`)
   3. Accept-Language header
   4. User preference (stored in session)
 
 ### Content Translation
+
 - **Posts:** Each translation is a separate post record linked via `translation_of_id`
 - **Modules:** Translation props stored in JSONB: `{ "en": {...}, "es": {...} }`
 - **Custom Fields:** Translatable fields store values as: `{ "en": "value", "es": "valor" }`
 - **Fallback:** If translation missing, system uses default locale content
 
 ### URL Structure
+
 Options (configurable per deployment):
+
 1. **Prefix:** `/en/blog/post-slug`, `/es/blog/post-slug`
 2. **Domain:** `en.example.com/blog/post-slug`, `es.example.com/blog/post-slug`
 3. **Query:** `/blog/post-slug?lang=es` (least SEO-friendly)
@@ -284,6 +312,7 @@ Options (configurable per deployment):
 Recommendation: Use prefix approach with locale subdirectories.
 
 ### SEO for i18n
+
 - **hreflang tags:** Auto-generated for all translations
 - **Canonical URLs:** Locale-specific canonicals
 - **Sitemap:** Separate sitemaps per locale
@@ -292,6 +321,7 @@ Recommendation: Use prefix approach with locale subdirectories.
 ---
 
 ## Editor Experience
+
 - **Sortable module list** (local + global + static) with drag-and-drop
 - **Add module** picker:
   - Local (new instance)
@@ -314,6 +344,7 @@ Recommendation: Use prefix approach with locale subdirectories.
 ## API
 
 ### Core Content
+
 - `GET /api/modules/registry` – list module schemas + allowed post types
 - `POST /api/posts` – create post (optional template, optional locale)
 - `PUT /api/posts/:id` – update post
@@ -327,6 +358,7 @@ Recommendation: Use prefix approach with locale subdirectories.
 - `POST /api/posts/:id/publish`
 
 ### URL Management
+
 - `GET /api/url-patterns` – list URL patterns
 - `POST /api/url-patterns` – create URL pattern
 - `PUT /api/url-patterns/:id` – update URL pattern
@@ -335,12 +367,14 @@ Recommendation: Use prefix approach with locale subdirectories.
 - `DELETE /api/url-redirects/:id` – delete redirect
 
 ### i18n
+
 - `GET /api/locales` – list configured locales
 - `GET /api/locales/default` – get default locale
 
 ---
 
 ## Rendering Pipeline
+
 1. Detect locale from URL/domain/headers
 2. Fetch ordered `post_modules` joined with `module_instances`
 3. Enforce `module_scopes` by post type
@@ -356,6 +390,7 @@ Recommendation: Use prefix approach with locale subdirectories.
 ---
 
 ## SEO & Performance
+
 - SSR HTML (crawler-friendly)
 - JSON-LD per module (FAQ, HowTo, etc.)
 - Open Graph & Twitter metadata (locale-specific)
@@ -368,12 +403,14 @@ Recommendation: Use prefix approach with locale subdirectories.
 - GIN indexes on JSONB for efficient queries
 - Composite indexes on frequently joined columns
 
- ---
- 
- ## Out of Scope (Initial Release)
- - **Role-Based Access Control (RBAC):** User roles (e.g., Admin, Editor) and granular permissions are not included in the initial scope and will be implemented in a later milestone. Initial admin access will be protected via authentication without role differentiation.
- 
- ## Next Steps
+  ***
+
+## Out of Scope (Initial Release)
+
+- **Role-Based Access Control (RBAC):** User roles (e.g., Admin, Editor) and granular permissions are not included in the initial scope and will be implemented in a later milestone. Initial admin access will be protected via authentication without role differentiation.
+
+## Next Steps
+
 1. Implement migrations (renamed tables, i18n fields, performance indexes)
 2. Build ModuleModel base + `ModuleHero` + `ModuleProse` (Lexical)
 3. Implement locked template & module logic
@@ -381,4 +418,3 @@ Recommendation: Use prefix approach with locale subdirectories.
 5. Editor: DnD modules, locks UI, custom fields panel, sidebar, translation interface
 6. Admin: URL pattern manager, redirects manager
 7. Ship MVP with SSR, SEO, caching, module groups, routing, and i18n
-
