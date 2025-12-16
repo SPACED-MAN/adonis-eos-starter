@@ -30,8 +30,9 @@ Technical documentation for developers and system administrators:
 
 ### Advanced Features
 - [API Reference](/docs/for-developers/api-reference) - RESTful endpoints
-- [AI Agents](/docs/for-developers/ai-agents) - Automated content workflows
-- [MCP (Model Context Protocol)](/docs/for-developers/mcp) - Connect external AI agents (Cursor, n8n) to CMS context + safe write tools
+- [AI Agents](/docs/for-developers/ai-agents) - AI-powered content enhancement
+- [Workflows](/docs/for-developers/workflows) - Event-driven automation and webhook integrations
+- [MCP (Model Context Protocol)](/docs/for-developers/mcp) - Connect external AI tools (Cursor, n8n) to CMS context + safe write tools
 - [Deployment Guide](/docs/for-developers/deployment) - Production deployment strategies
  - [Update Philosophy](/docs/for-developers/update-philosophy) - How to approach upgrades and maintenance
 - [Export/Import](/docs/for-developers/export-import) - Database export/import pipeline (dev seeding + production promotion)

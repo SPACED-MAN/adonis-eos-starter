@@ -45,7 +45,13 @@ const adminRole: RoleDefinition = {
     'globals.delete',
     // Agents
     'agents.view',
+    'agents.dropdown',
+    'agents.global',
+    'agents.field',
     'agents.edit',
+    // Workflows
+    'workflows.view',
+    'workflows.trigger',
     // Profiles
     'profiles.view',
     'profiles.edit',

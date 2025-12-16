@@ -20,7 +20,10 @@ import { LinkField, type LinkFieldValue } from '~/components/forms/LinkField'
 import { MediaPickerModal } from '../media/MediaPickerModal'
 import { pickMediaVariantUrl, type MediaVariant } from '../../../lib/media'
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome'
+import { faWandMagicSparkles } from '@fortawesome/free-solid-svg-icons'
 import { iconOptions, iconMap } from '../ui/iconOptions'
+import { AgentModal, type Agent } from '../agents/AgentModal'
+import { useHasPermission } from '~/utils/permissions'
 
 export interface ModuleListItem {
 	id: string
@@ -74,6 +77,11 @@ type EditorFieldCtx = {
 	syncFormToDraft: () => Record<string, any>
 	getByPath: (obj: Record<string, any>, path: string) => any
 	formRef: React.RefObject<HTMLFormElement | null>
+	postId?: string
+	moduleInstanceId?: string
+	moduleType?: string
+	fieldAgents: Agent[]
+	viewMode?: 'source' | 'review' | 'ai-review'
 }
 
 function setByPath(obj: Record<string, any>, pathStr: string, value: any) {
@@ -210,12 +218,18 @@ export function ModuleEditorPanel({
 	onClose,
 	onSave,
 	processing = false,
+	postId,
+	moduleInstanceId,
+	viewMode,
 }: {
 	open: boolean
 	moduleItem: ModuleListItem | null
 	onClose: () => void
 	onSave: (overrides: Record<string, any> | null, edited: Record<string, any>) => Promise<void> | void
 	processing?: boolean
+	postId?: string
+	moduleInstanceId?: string
+	viewMode?: 'source' | 'review' | 'ai-review'
 }) {
 	const merged = useMemo(
 		() => (moduleItem ? mergeProps(moduleItem.props || {}, moduleItem.overrides || null) : {}),
@@ -225,6 +239,8 @@ export function ModuleEditorPanel({
 	const [schema, setSchema] = useState<FieldSchema[] | null>(null)
 	const [moduleLabel, setModuleLabel] = useState<string | null>(null)
 	const formRef = useRef<HTMLFormElement | null>(null)
+	const [fieldAgents, setFieldAgents] = useState<Agent[]>([])
+	const hasFieldPermission = useHasPermission('agents.field')
 
 	const fieldComponents = useMemo(() => {
 		const modules = import.meta.glob('../../fields/*.tsx', { eager: true }) as Record<
@@ -279,6 +295,29 @@ export function ModuleEditorPanel({
 	)
 
 	const isNoFieldModule = moduleItem?.type === 'reading-progress'
+
+	// Load field-scoped agents
+	useEffect(() => {
+		if (!open || !hasFieldPermission) {
+			setFieldAgents([])
+			return
+		}
+		let alive = true
+		;(async () => {
+			try {
+				const res = await fetch('/api/agents?scope=field', { credentials: 'same-origin' })
+				const json = await res.json().catch(() => ({}))
+				const list: Agent[] = Array.isArray(json?.data) ? json.data : []
+				if (alive) {
+					setFieldAgents(list)
+				}
+			} catch (error) {
+				console.error('Failed to load field-scoped agents:', error)
+				if (alive) setFieldAgents([])
+			}
+		})()
+		return () => { alive = false }
+	}, [open, hasFieldPermission])
 
 	const syncFormToDraft = useCallback((): Record<string, any> => {
 		const edited = JSON.parse(JSON.stringify(latestDraft.current))
@@ -375,8 +414,13 @@ export function ModuleEditorPanel({
 			syncFormToDraft,
 			getByPath,
 			formRef,
+			postId,
+			moduleInstanceId,
+			moduleType: moduleItem?.type,
+			fieldAgents,
+			viewMode,
 		}),
-		[setDraft, fieldComponents, supportedFieldTypes, pascalFromType, syncFormToDraft]
+		[setDraft, fieldComponents, supportedFieldTypes, pascalFromType, syncFormToDraft, postId, moduleInstanceId, moduleItem?.type, fieldAgents, viewMode]
 	)
 
 	const collectEdited = useCallback(() => {
@@ -426,6 +470,13 @@ export function ModuleEditorPanel({
 		onClose()
 	}, [collectEdited, onSave, onClose])
 
+	// Auto-save when clicking outside (backdrop) - preserve changes
+	const handleBackdropClick = useCallback(async () => {
+		const { overrides, edited } = collectEdited()
+		await onSave(overrides, edited)
+		onClose()
+	}, [collectEdited, onSave, onClose])
+
 	// Keep hooks order stable; render null late.
 	if (!open || !moduleItem) return null
 
@@ -437,7 +488,7 @@ export function ModuleEditorPanel({
 				e.stopPropagation()
 			}}
 		>
-			<div className="absolute inset-0 bg-black/40" onClick={onClose} />
+			<div className="absolute inset-0 bg-black/40" onClick={handleBackdropClick} />
 			<div
 				className="absolute right-0 top-0 h-full w-full max-w-2xl bg-backdrop-low border-l border-line-low shadow-xl flex flex-col"
 				role="dialog"
@@ -587,7 +638,7 @@ export function ModuleEditorPanel({
 							onClick={saveAndClose}
 							disabled={processing}
 						>
-							Save
+							Done
 						</button>
 					</div>
 				</form>
@@ -760,10 +811,29 @@ function FieldPrimitiveInternal({
 		type ModalMediaItem = { id: string; url: string; originalFilename?: string; alt?: string | null }
 		const storeAsId = (field as any).storeAs === 'id' || (field as any).store === 'id'
 		const [modalOpen, setModalOpen] = useState(false)
+		const [agentModalOpen, setAgentModalOpen] = useState(false)
+		const [selectedFieldAgent, setSelectedFieldAgent] = useState<Agent | null>(null)
+		const [preSelectedMediaId, setPreSelectedMediaId] = useState<string | null>(null)
 		const hiddenRef = useRef<HTMLInputElement | null>(null)
 		const displayRef = useRef<HTMLInputElement | null>(null)
 		const currentVal = typeof value === 'string' ? value : ''
 		const [preview, setPreview] = useState<ModalMediaItem | null>(null)
+		
+		// Find agents that match this field type
+		const matchingAgents = ctx.fieldAgents.filter((agent: any) => {
+			// Check if agent has field scope with fieldTypes that include 'media'
+			const hasMatchingScope = agent.scopes?.some((scope: any) => {
+				if (scope.scope !== 'field' || !scope.enabled) return false
+				// If fieldTypes is specified, check if it includes 'media'
+				if (Array.isArray(scope.fieldTypes) && scope.fieldTypes.length > 0) {
+					return scope.fieldTypes.includes('media')
+				}
+				// If no fieldTypes specified, agent is available for all field types
+				return true
+			})
+			return hasMatchingScope
+		})
+		
 		const [mediaData, setMediaData] = useState<{
 			baseUrl: string
 			variants: MediaVariant[]
@@ -888,9 +958,32 @@ function FieldPrimitiveInternal({
 			setPreview(null)
 			setMediaData(null)
 		}
+		const fieldKey = ctx.moduleType && ctx.postId ? `module.${ctx.moduleType}.${name}` : undefined
+		
 		return (
-			<FormField>
-				{!hideLabel && <FormLabel>{label}</FormLabel>}
+			<FormField className="group">
+				<div className="flex items-center justify-between">
+					{!hideLabel && <FormLabel>{label}</FormLabel>}
+					{matchingAgents.length > 0 ? (
+						<button
+							type="button"
+							onClick={() => {
+								if (matchingAgents.length === 1) {
+									setSelectedFieldAgent(matchingAgents[0])
+									setAgentModalOpen(true)
+								} else {
+									// TODO: Show agent selection menu
+									setSelectedFieldAgent(matchingAgents[0])
+									setAgentModalOpen(true)
+								}
+							}}
+							className="opacity-0 group-hover:opacity-100 transition-opacity p-1.5 rounded hover:bg-backdrop-medium text-primary"
+							title="AI Assistant"
+						>
+							<FontAwesomeIcon icon={faWandMagicSparkles} className="text-sm" />
+						</button>
+					) : null}
+				</div>
 				<div className="flex items-start gap-3">
 					<div className="min-w-[72px]">
 						{displayUrl ? (
@@ -938,12 +1031,49 @@ function FieldPrimitiveInternal({
 					</div>
 					<MediaPickerModal
 						open={modalOpen}
-						onOpenChange={setModalOpen}
-						initialSelectedId={storeAsId ? (currentVal || undefined) : undefined}
+						onOpenChange={(open) => {
+							setModalOpen(open)
+							if (!open) {
+								// Clear pre-selection when modal closes
+								setPreSelectedMediaId(null)
+							}
+						}}
+						initialSelectedId={storeAsId ? (preSelectedMediaId || currentVal || undefined) : undefined}
 						onSelect={(m) => {
 							applySelection(m as ModalMediaItem)
+							setPreSelectedMediaId(null) // Clear after selection
 						}}
 					/>
+					{selectedFieldAgent && (
+						<AgentModal
+							open={agentModalOpen}
+							onOpenChange={setAgentModalOpen}
+							agent={selectedFieldAgent}
+							contextId={ctx.postId}
+							context={{
+								scope: 'field',
+								fieldKey,
+								fieldType: 'media',
+								moduleInstanceId: ctx.moduleInstanceId,
+							}}
+							scope="field"
+							fieldKey={fieldKey}
+							fieldType="media"
+							viewMode={ctx.viewMode}
+							onSuccess={(response) => {
+								setAgentModalOpen(false)
+								setSelectedFieldAgent(null)
+								// If an image was generated, open the media picker with it pre-selected
+								if (response.generatedMediaId && storeAsId) {
+									// Small delay to ensure agent modal closes first
+									setTimeout(() => {
+										setPreSelectedMediaId(response.generatedMediaId!)
+										setModalOpen(true)
+									}, 100)
+								}
+							}}
+						/>
+					)}
 				</div>
 			</FormField>
 		)

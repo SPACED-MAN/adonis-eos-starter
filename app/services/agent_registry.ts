@@ -17,12 +17,12 @@ class AgentRegistry {
     }
 
     // Validate definition
-    if (definition.type === 'external' && !definition.external) {
-      throw new Error(`Agent "${definition.id}" is external but missing external config`)
+    if (definition.type !== 'internal') {
+      throw new Error(`Agent "${definition.id}" must be type 'internal'. For webhook-based automation, use Workflows.`)
     }
 
-    if (definition.type === 'internal' && !definition.internal) {
-      throw new Error(`Agent "${definition.id}" is internal but missing internal config`)
+    if (!definition.internal) {
+      throw new Error(`Agent "${definition.id}" is missing internal config`)
     }
 
     // Set defaults
@@ -61,7 +61,12 @@ class AgentRegistry {
    * List agents available in a specific scope
    * Results are sorted by order (ascending)
    */
-  listByScope(scope: AgentScope, formSlug?: string, fieldKey?: string): AgentDefinition[] {
+  listByScope(
+    scope: AgentScope,
+    formSlug?: string,
+    fieldKey?: string,
+    fieldType?: string
+  ): AgentDefinition[] {
     return this.listEnabled()
       .map((agent) => {
         const scopeConfig = agent.scopes.find((s) => s.scope === scope && s.enabled !== false)
@@ -79,11 +84,20 @@ class AgentRegistry {
           return formSlugs.includes(formSlug)
         }
 
-        // For field scope, check if the agent is allowed for the specific field key
-        if (scope === 'field' && fieldKey) {
+        // For field scope, check if the agent is allowed for the specific field key and type
+        if (scope === 'field') {
           const keys = (item.scopeConfig as any).fieldKeys as string[] | undefined
-          if (!keys || keys.length === 0) return true
-          return keys.includes(fieldKey)
+          const types = (item.scopeConfig as any).fieldTypes as string[] | undefined
+
+          // Check field key restriction
+          if (fieldKey && keys && keys.length > 0) {
+            if (!keys.includes(fieldKey)) return false
+          }
+
+          // Check field type restriction
+          if (fieldType && types && types.length > 0) {
+            if (!types.includes(fieldType)) return false
+          }
         }
 
         return true
@@ -93,24 +107,19 @@ class AgentRegistry {
   }
 
   /**
-   * Get the effective webhook URL for an external agent
-   * Returns development URL if in development mode, otherwise production URL
+   * @deprecated External agents have been moved to the Workflows system.
+   * Use workflowRegistry.getWebhookUrl() instead.
    */
   getWebhookUrl(agentId: string): string | null {
-    const agent = this.get(agentId)
-    if (!agent || agent.type !== 'external' || !agent.external) return null
-
-    const isDevelopment = env.get('NODE_ENV') === 'development'
-    return isDevelopment && agent.external.devUrl ? agent.external.devUrl : agent.external.url
+    return null
   }
 
   /**
-   * Get the timeout for an external agent
+   * @deprecated External agents have been moved to the Workflows system.
+   * Use workflowRegistry.getTimeout() instead.
    */
   getTimeout(agentId: string): number {
-    const agent = this.get(agentId)
-    if (!agent || agent.type !== 'external' || !agent.external) return 30000
-    return agent.external.timeout ?? 30000
+    return 30000
   }
 
   /**

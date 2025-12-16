@@ -6,7 +6,7 @@ import env from '#start/env'
 /**
  * Supported AI providers
  */
-export type AIProvider = 'openai' | 'anthropic' | 'google'
+export type AIProvider = 'openai' | 'anthropic' | 'google' | 'nanobanana'
 
 /**
  * AI Provider Configuration
@@ -123,6 +123,8 @@ class AIProviderService {
         return this.completeAnthropic(messages, options, config)
       case 'google':
         return this.completeGoogle(messages, options, config)
+      case 'nanobanana':
+        return this.completeNanoBanana(messages, options, config)
       default:
         throw new Error(`Unsupported AI provider: ${config.provider}`)
     }
@@ -281,15 +283,28 @@ class AIProviderService {
     const client = new GoogleGenerativeAI(config.apiKey)
 
     // Get the model
+    // Filter out maxTokens from config.options since we use maxOutputTokens for Gemini
+    const { maxTokens: _, temperature: configTemp, topP: configTopP, stop: configStop, ...otherConfigOptions } = config.options || {}
+    
+    // Build generationConfig, ensuring maxTokens is never included
+    const generationConfig: any = {
+      temperature: options.temperature ?? configTemp ?? 0.7,
+      topP: options.topP ?? configTopP,
+      maxOutputTokens: options.maxTokens,
+      stopSequences: options.stop ?? configStop,
+    }
+    
+    // Only spread other options that are valid for Gemini generationConfig
+    // Filter out any remaining maxTokens references
+    Object.keys(otherConfigOptions).forEach((key) => {
+      if (key !== 'maxTokens' && key !== 'maxOutputTokens') {
+        generationConfig[key] = otherConfigOptions[key]
+      }
+    })
+    
     const model = client.getGenerativeModel({
       model: config.model,
-      generationConfig: {
-        temperature: options.temperature ?? 0.7,
-        topP: options.topP,
-        maxOutputTokens: options.maxTokens,
-        stopSequences: options.stop,
-        ...config.options,
-      },
+      generationConfig,
     })
 
     // Separate system message
@@ -330,6 +345,156 @@ class AIProviderService {
   }
 
   /**
+   * List available Gemini models for the given API key
+   * Useful for debugging model availability issues
+   * Tries both v1beta and v1 API endpoints
+   */
+  async listAvailableModels(apiKey: string): Promise<string[]> {
+    const models: string[] = []
+    
+    // Try v1beta endpoint first
+    try {
+      const response = await fetch(
+        `https://generativelanguage.googleapis.com/v1beta/models?key=${apiKey}`
+      )
+      if (response.ok) {
+        const data = await response.json()
+        const v1betaModels = (data.models || [])
+          .map((m: any) => m.name?.replace('models/', '') || m.name)
+          .filter(Boolean)
+        models.push(...v1betaModels)
+      }
+    } catch (error) {
+      // Ignore v1beta errors
+    }
+    
+    // Try v1 endpoint as fallback
+    try {
+      const response = await fetch(
+        `https://generativelanguage.googleapis.com/v1/models?key=${apiKey}`
+      )
+      if (response.ok) {
+        const data = await response.json()
+        const v1Models = (data.models || [])
+          .map((m: any) => m.name?.replace('models/', '') || m.name)
+          .filter(Boolean)
+        models.push(...v1Models)
+      }
+    } catch (error) {
+      // Ignore v1 errors
+    }
+    
+    // Return unique models
+    return [...new Set(models)]
+  }
+
+  /**
+   * Complete using Nano Banana (Gemini Pro API via Nano Banana service)
+   * Nano Banana provides access to Gemini Pro API
+   */
+  private async completeNanoBanana(
+    messages: AIMessage[],
+    options: AICompletionOptions,
+    config: AIProviderConfig
+  ): Promise<AICompletionResult> {
+    // Nano Banana uses Google's Gemini API, so we can reuse the Google implementation
+    // but with a custom base URL if provided
+    const baseUrl = config.baseUrl || 'https://api.nanobanana.ai/v1'
+    
+    // Use GoogleGenerativeAI client but with custom base URL if needed
+    // For now, we'll use the standard Google client but this can be extended
+    // if Nano Banana has a different API structure
+    const client = new GoogleGenerativeAI(config.apiKey)
+
+    // Get the model
+    // Filter out maxTokens and other non-Gemini config options from config.options
+    // since we use maxOutputTokens for Gemini (not maxTokens)
+    const { maxTokens: _, temperature: configTemp, topP: configTopP, stop: configStop, ...otherConfigOptions } = config.options || {}
+    
+    // Build generationConfig, ensuring maxTokens is never included
+    const generationConfig: any = {
+      temperature: options.temperature ?? configTemp ?? 0.7,
+      topP: options.topP ?? configTopP,
+      maxOutputTokens: options.maxTokens,
+      stopSequences: options.stop ?? configStop,
+    }
+    
+    // Only spread other options that are valid for Gemini generationConfig
+    // Filter out any remaining maxTokens references
+    Object.keys(otherConfigOptions).forEach((key) => {
+      if (key !== 'maxTokens' && key !== 'maxOutputTokens') {
+        generationConfig[key] = otherConfigOptions[key]
+      }
+    })
+    
+    const model = client.getGenerativeModel({
+      model: config.model || 'gemini-2.5-flash',
+      generationConfig,
+    })
+
+    // Separate system message
+    const systemMessage = messages.find((m) => m.role === 'system')
+    const conversationMessages = messages.filter((m) => m.role !== 'system')
+
+    // Build prompt (Gemini doesn't support system messages in the same way)
+    let prompt = ''
+    if (systemMessage) {
+      prompt += `System: ${systemMessage.content}\n\n`
+    }
+
+    // Convert messages to prompt format
+    for (const msg of conversationMessages) {
+      if (msg.role === 'user') {
+        prompt += `User: ${msg.content}\n\n`
+      } else if (msg.role === 'assistant') {
+        prompt += `Assistant: ${msg.content}\n\n`
+      }
+    }
+    prompt += 'Assistant:'
+
+    try {
+      const result = await model.generateContent(prompt)
+      const response = result.response
+      const text = response.text()
+
+      return {
+        content: text,
+        usage: {
+          totalTokens: response.usageMetadata?.totalTokenCount,
+        },
+        metadata: {
+          finishReason: response.candidates?.[0]?.finishReason,
+          model: config.model || 'gemini-2.5-flash',
+          provider: 'nanobanana',
+        },
+      }
+    } catch (error: any) {
+      // Provide more helpful error messages for model not found errors
+      if (error?.message?.includes('404') || error?.message?.includes('not found')) {
+        const modelName = config.model || 'gemini-pro'
+        // Try to list available models to provide better error message
+        let availableModels: string[] = []
+        try {
+          availableModels = await this.listAvailableModels(config.apiKey)
+        } catch {
+          // Ignore errors when listing models
+        }
+        
+        let errorMsg = `Gemini model '${modelName}' is not available. `
+        if (availableModels.length > 0) {
+          errorMsg += `Available models: ${availableModels.join(', ')}. `
+        } else {
+          errorMsg += `The model may not be supported in the current API version. `
+          errorMsg += `Common model names to try: 'gemini-pro', 'gemini-1.0-pro', 'gemini-1.5-pro', 'gemini-1.5-flash'. `
+        }
+        errorMsg += `Original error: ${error.message}`
+        throw new Error(errorMsg)
+      }
+      throw error
+    }
+  }
+
+  /**
    * Validate provider configuration
    */
   validateConfig(config: AIProviderConfig): void {
@@ -345,7 +510,7 @@ class AIProviderService {
       throw new Error(`Model is required for provider: ${config.provider}`)
     }
 
-    const validProviders: AIProvider[] = ['openai', 'anthropic', 'google']
+    const validProviders: AIProvider[] = ['openai', 'anthropic', 'google', 'nanobanana']
     if (!validProviders.includes(config.provider)) {
       throw new Error(`Invalid provider: ${config.provider}. Must be one of: ${validProviders.join(', ')}`)
     }

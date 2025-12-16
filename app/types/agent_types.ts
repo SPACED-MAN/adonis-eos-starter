@@ -5,14 +5,16 @@
 
 /**
  * Type of agent service
+ * Agents are now internal-only (AI-powered). For webhook-based automation, use Workflows.
  */
-export type AgentServiceType = 'external' | 'internal'
+export type AgentServiceType = 'internal'
 
 /**
  * Where the agent can be triggered from
  */
 export type AgentScope =
   | 'dropdown' // Shows up in the agent dropdown menu
+  | 'global' // Floating brain icon button (lower right of viewport)
   | 'field' // Per-field AI buttons (e.g. suggest/translate/generate media for a specific field)
   | 'post.publish' // Triggers on post publish
   | 'post.approve' // Triggers when approving changes (Source mode)
@@ -23,40 +25,14 @@ export type AgentScope =
   | 'form.submit' // Triggers on form submission
 
 /**
- * Configuration for external (webhook-based) agents
+ * @deprecated External agents have been moved to the Workflows system.
+ * Use workflows for webhook-based automation instead.
  */
-export interface ExternalAgentConfig {
-  /**
-   * Production webhook URL
-   */
-  url: string
-
-  /**
-   * Development webhook URL (optional, falls back to url)
-   */
-  devUrl?: string
-
-  /**
-   * Authentication secret/token
-   */
-  secret?: string
-
-  /**
-   * Custom header name for the secret
-   * If omitted, uses Authorization: Bearer <secret>
-   */
-  secretHeader?: string
-
-  /**
-   * Request timeout in milliseconds (default: 30000)
-   */
-  timeout?: number
-}
 
 /**
  * AI Provider type
  */
-export type AIProvider = 'openai' | 'anthropic' | 'google'
+export type AIProvider = 'openai' | 'anthropic' | 'google' | 'nanobanana'
 
 /**
  * Configuration for internal (AI service-based) agents
@@ -109,7 +85,7 @@ export interface InternalAgentConfig {
      */
     stop?: string[]
 
-    /**
+  /**
      * Additional provider-specific options
      */
     [key: string]: any
@@ -165,6 +141,15 @@ export interface AgentScopeConfig {
   fieldKeys?: string[]
 
   /**
+   * For field scope: restrict this agent to specific field types.
+   *
+   * Examples: 'media', 'text', 'textarea', 'richtext', 'url', etc.
+   *
+   * If omitted or empty, the agent is available for all field types.
+   */
+  fieldTypes?: string[]
+
+  /**
    * Whether this agent is enabled for this scope
    * Default: true
    */
@@ -192,18 +177,14 @@ export interface AgentDefinition {
 
   /**
    * Agent service type
+   * Agents are now internal-only (AI-powered). For webhook-based automation, use Workflows.
    */
   type: AgentServiceType
 
   /**
-   * Configuration for external agents (required if type is 'external')
+   * Configuration for internal agents (required)
    */
-  external?: ExternalAgentConfig
-
-  /**
-   * Configuration for internal agents (required if type is 'internal')
-   */
-  internal?: InternalAgentConfig
+  internal: InternalAgentConfig
 
   /**
    * List of scopes where this agent is available
@@ -278,6 +259,58 @@ export interface AgentDefinition {
    * Optional reactions to execute after agent execution
    */
   reactions?: AgentReaction[]
+
+  /**
+   * Optional style guide for media generation
+   * Provides context about design preferences, color schemes, and visual style
+   */
+  styleGuide?: {
+    /**
+     * Design style preferences (e.g., "modern minimalist", "vintage", "corporate")
+     */
+    designStyle?: string
+
+    /**
+     * Preferred color palette or color scheme
+     */
+    colorPalette?: string
+
+    /**
+     * Design treatment preferences (e.g., "flat design", "gradients", "shadows")
+     */
+    designTreatments?: string[]
+
+    /**
+     * Additional style notes or guidelines
+     */
+    notes?: string
+  }
+
+  /**
+   * Optional writing style preferences for text generation
+   * Provides context about tone, voice, and writing conventions
+   */
+  writingStyle?: {
+    /**
+     * Writing tone (e.g., "professional", "casual", "friendly", "authoritative")
+     */
+    tone?: string
+
+    /**
+     * Voice characteristics (e.g., "conversational", "formal", "technical")
+     */
+    voice?: string
+
+    /**
+     * Writing conventions or preferences (e.g., "use active voice", "avoid jargon")
+     */
+    conventions?: string[]
+
+    /**
+     * Additional writing notes or guidelines
+     */
+    notes?: string
+  }
 }
 
 /**

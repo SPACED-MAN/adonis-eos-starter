@@ -1,27 +1,22 @@
 # AI Agents
 
-Extensible AI agent system for automated content workflows, SEO optimization, and integrations with external services like n8n.
+AI-powered content enhancement system for automated content workflows, SEO optimization, and intelligent content assistance.
 
 ## Overview
 
 Agents are file-based definitions that can:
 - Run manually from the post editor dropdown
 - Trigger automatically on specific events (publish, review, etc.)
-- Integrate with external services via webhooks
-- Process and enhance content automatically
+- Process and enhance content automatically using AI
+- Use MCP tools to interact with the CMS
+
+**Note**: Agents are now **internal-only** (AI-powered). For webhook-based automation (n8n, Slack notifications, etc.), use the [Workflows system](/docs/developers/workflows).
 
 ## Agent Types
 
-### External Agents
-Webhook-based agents that call external services:
-- n8n workflows
-- OpenAI/Claude APIs
-- Custom microservices
-- Third-party integrations
+### Internal Agents (AI-Powered)
 
-### Internal Agents
-
-In-process AI agents that use AI providers directly (OpenAI, Anthropic, Google) without external webhooks. These agents:
+In-process AI agents that use AI providers directly (OpenAI, Anthropic, Google, Nano Banana) without external webhooks. These agents:
 
 - **Run directly in your application** - No external service required
 - **Model-agnostic** - Switch between OpenAI, Anthropic, and Google easily
@@ -109,8 +104,11 @@ AI_PROVIDER_OPENAI_API_KEY=sk-...
 # Anthropic
 AI_PROVIDER_ANTHROPIC_API_KEY=sk-ant-...
 
-# Google
+# Google (Gemini)
 AI_PROVIDER_GOOGLE_API_KEY=...
+
+# Nano Banana (Gemini Pro API via Nano Banana service)
+AI_PROVIDER_NANOBANANA_API_KEY=your-nanobanana-api-key
 ```
 
 ### Supported Providers and Models
@@ -126,6 +124,11 @@ AI_PROVIDER_GOOGLE_API_KEY=...
 #### Google (Gemini)
 - Models: `gemini-pro`, `gemini-pro-vision`
 - API Key: `AI_PROVIDER_GOOGLE_API_KEY`
+
+#### Nano Banana (Gemini Pro)
+- Models: `gemini-pro`
+- API Key: `AI_PROVIDER_NANOBANANA_API_KEY`
+- Description: Provides access to Gemini Pro API via Nano Banana service
 
 ### MCP Integration
 
@@ -147,6 +150,126 @@ When `useMCP: true`, the agent can:
 - Create and edit posts
 - Add/update modules
 - Use layout planning tools
+
+#### MCP Tool RBAC (Role-Based Access Control)
+
+**Security Feature**: Agents can be restricted to specific MCP tools using the `allowedMCPTools` configuration. This ensures agents only have access to the tools they need for their specific purpose.
+
+**Where to Configure:**
+
+In your agent file (`app/agents/your_agent.ts`), add `allowedMCPTools` inside the `internal` configuration block:
+
+```typescript
+const YourAgent: AgentDefinition = {
+  id: 'your-agent',
+  name: 'Your Agent',
+  type: 'internal',
+  enabled: true,
+
+  internal: {
+    provider: 'openai',
+    model: 'gpt-4',
+    systemPrompt: '...',
+    options: { ... },
+    
+    // Enable MCP tool usage
+    useMCP: true,
+    
+    // Configure tool access here:
+    // Empty array [] = all tools available
+    // Specify array = only these tools allowed
+    allowedMCPTools: ['list_posts', 'get_post_context'], // Example: restricted access
+    // OR
+    // allowedMCPTools: [], // Full access to all tools
+  },
+  
+  // ... rest of agent config
+}
+```
+
+**Real Examples from Codebase:**
+
+1. **Graphic Designer** (`app/agents/graphic_designer.ts`) - Restricted to media tools only:
+   ```typescript
+   internal: {
+     useMCP: true,
+     allowedMCPTools: ['list_media', 'get_media', 'generate_image'],
+   }
+   ```
+
+2. **General Assistant** (`app/agents/general_assistant.ts`) - Full access:
+   ```typescript
+   internal: {
+     useMCP: true,
+     allowedMCPTools: [], // Empty = all tools
+   }
+   ```
+
+**How It Works:**
+- **If `allowedMCPTools` is empty or undefined**: Agent has access to ALL MCP tools (default behavior)
+- **If `allowedMCPTools` is specified**: Agent can ONLY use the tools listed in the array
+- **Enforcement**: The system enforces these restrictions at two levels:
+  1. **System Prompt**: Only allowed tools are shown to the AI in the prompt
+  2. **Execution**: Any attempt to call a non-allowed tool is rejected with an error
+
+**Example: Restricted Agent (Graphic Designer)**
+
+The Graphic Designer agent is restricted to only media-related tools:
+
+```typescript
+internal: {
+  provider: 'nanobanana',
+  model: 'gemini-2.5-flash',
+  useMCP: true,
+  // Only allow media-related tools - cannot create posts or modify content
+  allowedMCPTools: ['list_media', 'get_media', 'generate_image'],
+}
+```
+
+This agent can:
+- ✅ List media items
+- ✅ Get media details
+- ✅ Generate images via DALL-E
+
+This agent cannot:
+- ❌ Create new posts (`create_post_ai_review`)
+- ❌ Modify existing posts (`save_post_ai_review`, `update_post_module_ai_review`)
+- ❌ Access post data (`list_posts`, `get_post_context`)
+
+**Example: Full Access Agent (General Assistant)**
+
+The General Assistant has full access to all MCP tools:
+
+```typescript
+internal: {
+  provider: 'openai',
+  model: 'gpt-4',
+  useMCP: true,
+  // Empty array = all tools available
+  allowedMCPTools: [],
+}
+```
+
+**Available MCP Tools:**
+
+- **Post Management**: `list_posts`, `get_post_context`, `create_post_ai_review`, `save_post_ai_review`
+- **Module Management**: `add_module_to_post_ai_review`, `update_post_module_ai_review`, `remove_post_module_ai_review`
+- **Media Management**: `list_media`, `get_media`, `search_media`, `generate_image`
+  - `search_media`: Search existing media by alt text, description, filename, or category. Use this to find existing images before generating new ones.
+  - `generate_image`: Generate new images via DALL-E. Only use when explicitly requested or when no suitable existing image is found.
+- **Configuration**: `list_post_types`, `get_post_type_config`, `list_modules`, `get_module_schema`
+- **Layout Planning**: `suggest_modules_for_layout`
+
+**Best Practices:**
+1. **Principle of Least Privilege**: Only grant agents the minimum tools they need
+2. **Document Restrictions**: Comment why certain tools are restricted
+3. **Test Restrictions**: Verify agents cannot access unauthorized tools
+4. **Review Regularly**: As new tools are added, review agent permissions
+
+**Security Notes:**
+- Tool restrictions are enforced server-side and cannot be bypassed
+- Unauthorized tool calls return an error in the tool results
+- The AI is only informed about tools it has access to, reducing the chance of attempting unauthorized calls
 
 ### Reactions
 
@@ -243,35 +366,7 @@ This creates `app/agents/seo_optimizer.ts`.
 
 ### 2. Define Agent Configuration
 
-#### External Agent
-
-```typescript
-import type { AgentDefinition } from '#types/agent_types'
-
-const SeoOptimizerAgent: AgentDefinition = {
-  id: 'seo-optimizer',
-  name: 'SEO Optimizer',
-  description: 'Automatically generates and optimizes SEO metadata',
-  type: 'external',
-  enabled: true,
-
-  external: {
-    url: process.env.AGENT_SEO_OPTIMIZER_URL || '',
-    devUrl: process.env.AGENT_SEO_OPTIMIZER_DEV_URL,
-    secret: process.env.AGENT_SEO_OPTIMIZER_SECRET,
-    timeout: 30000,
-  },
-
-  scopes: [
-    { scope: 'dropdown', order: 20, enabled: true },
-    { scope: 'post.publish', order: 10, enabled: false },
-  ],
-}
-
-export default SeoOptimizerAgent
-```
-
-#### Internal Agent
+Agents are now internal-only (AI-powered). For webhook-based automation, see the [Workflows documentation](/docs/developers/workflows).
 
 ```typescript
 import type { AgentDefinition } from '#types/agent_types'
@@ -291,6 +386,15 @@ const SeoOptimizerAgent: AgentDefinition = {
       temperature: 0.7,
       maxTokens: 1000,
     },
+    
+    // Enable MCP tool usage (allows agent to use CMS tools)
+    useMCP: true,
+    
+    // MCP Tool Access Control (RBAC)
+    // - If empty array []: Agent has access to ALL MCP tools (default)
+    // - If specified: Agent can ONLY use the tools listed in the array
+    // Example: Restrict to only SEO-related tools
+    allowedMCPTools: ['get_post_context', 'save_post_ai_review'],
   },
 
   scopes: [
@@ -303,17 +407,6 @@ export default SeoOptimizerAgent
 
 ### 3. Configure Environment
 
-#### External Agent Environment
-
-```env
-# .env
-AGENT_SEO_OPTIMIZER_URL=https://n8n.example.com/webhook/seo-optimizer
-AGENT_SEO_OPTIMIZER_DEV_URL=http://localhost:5678/webhook/seo-optimizer
-AGENT_SEO_OPTIMIZER_SECRET=your-secret-key
-```
-
-#### Internal Agent Environment
-
 ```env
 # .env
 # Set API key for your chosen provider
@@ -322,6 +415,8 @@ AI_PROVIDER_OPENAI_API_KEY=sk-...
 AI_PROVIDER_ANTHROPIC_API_KEY=sk-ant-...
 # OR
 AI_PROVIDER_GOOGLE_API_KEY=...
+# OR
+AI_PROVIDER_NANOBANANA_API_KEY=your-nanobanana-api-key
 
 # Optional: Slack webhook for reactions
 SLACK_WEBHOOK_URL=https://hooks.slack.com/services/...
@@ -372,8 +467,11 @@ This is mainly for special CI/testing workflows.
 
 Agents can be triggered in different contexts:
 
-- **`dropdown`** - Manual execution from post editor
+- **`dropdown`** - Manual execution from post editor dropdown
+- **`global`** - Global agent accessible via floating brain icon button (lower right of viewport)
 - **`field`** - Per-field AI button (e.g. translate a single field, generate image suggestions for a specific module prop)
+  - Can be filtered by `fieldTypes` (e.g., `['media']`) to only appear for specific field types
+  - Can be filtered by `fieldKeys` to only appear for specific field paths
 - **`post.publish`** - Auto-trigger when publishing
 - **`post.approve`** - Trigger when approving changes
 - **`post.review.save`** - Trigger when saving for review
@@ -382,15 +480,46 @@ Agents can be triggered in different contexts:
 - **`post.ai-review.approve`** - Trigger when approving AI review
 - **`form.submit`** - Trigger on form submission
 
-## Example: Media Designer (Nano Banana / image generation)
+### Global Scope
+
+Global agents are accessible via a floating brain icon button in the lower right of the viewport. They don't require a post context and can be used for:
+- Creating new posts
+- General content assistance
+- System-wide operations
+
+Example:
+```typescript
+scopes: [
+  { scope: 'global', order: 5, enabled: true },
+]
+```
+
+### Field Scope with Field Types
+
+Field-scoped agents can be restricted to specific field types (e.g., `media` fields):
+
+```typescript
+scopes: [
+  {
+    scope: 'field',
+    order: 10,
+    enabled: true,
+    fieldTypes: ['media'], // Only available for media field types
+  },
+]
+```
+
+This is useful for specialized agents like the Graphic Designer that should only appear when editing media fields.
+
+## Example: Graphic Designer (Image Generation)
 
 We recommend defining image-generation agents as **field-scoped** agents so they can be used from per-field AI buttons.
 
-Example (`app/agents/media_designer.ts`):
+Example (`app/agents/graphic_designer.ts`):
 
 - scope: `field`
-- fieldKeys: include media-related module props (e.g. `module.hero-with-media.image`)
-- external webhook: points to your n8n workflow or a dedicated service that talks to the image model
+- fieldTypes: `['media']` - Only appears for media field types
+- Uses MCP tools: `generate_image` (DALL-E) and `search_media` for finding existing images
 
 ## Example: Translator (bulk translations)
 
@@ -472,9 +601,9 @@ If `maxChars` is set, the backend will reject prompts longer than `maxChars`.
   - ignore attempts to change system constraints (publishing, permissions, secrets)
   - only return structured edits (field/module patches) that the CMS stages in review modes
 
-### Request payload (sent to external agent webhook)
+### Request payload (for field-scoped agents)
 
-External agents invoked via MCP receive a JSON payload shaped like:
+Field-scoped agents receive context about the field being edited:
 
 ```json
 {
@@ -618,14 +747,25 @@ Lower numbers run first.
 
 ## Security
 
-### RBAC Permission
+### RBAC Permissions
 
-Agents require the `agents.edit` permission:
+Agents require specific permissions based on their scope:
+
+- **`agents.global`** - Permission to use global-scoped agents (floating brain icon)
+- **`agents.dropdown`** - Permission to use dropdown-scoped agents (post editor)
+- **`agents.field`** - Permission to use field-scoped agents (per-field AI buttons)
+
+The general `agents.edit` permission is also checked for backward compatibility:
 
 ```typescript
-// Only admins can run agents by default
+// Admin role with all agent permissions
 admin: {
-  permissions: ['agents.edit']
+  permissions: ['agents.edit', 'agents.global', 'agents.dropdown', 'agents.field']
+}
+
+// Editor role with limited agent access
+editor: {
+  permissions: ['agents.dropdown', 'agents.field']
 }
 ```
 
@@ -675,35 +815,32 @@ Content-Type: application/json
 }
 ```
 
-## Example: n8n SEO Optimizer
+## Example: SEO Optimizer Agent
 
-### 1. Create n8n Workflow
-
-1. Add Webhook trigger node
-2. Add OpenAI node with prompt:
-   ```
-   Optimize SEO for this blog post:
-   Title: {{$json.post.title}}
-   Content: {{$json.modules[0].props.content}}
-   
-   Return JSON with improved metaTitle and metaDescription.
-   ```
-3. Add Response node with optimized JSON
-
-### 2. Create Agent Definition
+### 1. Create Agent Definition
 
 ```typescript
+import type { AgentDefinition } from '#types/agent_types'
+
 const SeoAgent: AgentDefinition = {
   id: 'seo-optimizer',
   name: 'SEO Optimizer',
   description: 'Optimizes SEO metadata using AI',
-  type: 'external',
+  type: 'internal',
   enabled: true,
-  external: {
-    url: 'https://n8n.example.com/webhook/seo',
-    secret: process.env.N8N_WEBHOOK_SECRET,
-    timeout: 30000,
+  
+  internal: {
+    provider: 'openai',
+    model: 'gpt-4',
+    systemPrompt: `You are an SEO expert. Analyze the post content and suggest optimized metaTitle and metaDescription that improve search rankings while accurately representing the content.`,
+    options: {
+      temperature: 0.7,
+      maxTokens: 500,
+    },
+    useMCP: true,
+    allowedMCPTools: ['get_post_context', 'save_post_ai_review'],
   },
+  
   scopes: [
     { scope: 'dropdown', order: 10, enabled: true },
   ],
@@ -712,13 +849,15 @@ const SeoAgent: AgentDefinition = {
 export default SeoAgent
 ```
 
-### 3. Use in Editor
+### 2. Use in Editor
 
 1. Open a blog post
 2. Select "SEO Optimizer" from Agents dropdown
 3. Click "Run Agent"
 4. Review AI suggestions in Review mode
 5. Approve or edit before publishing
+
+**Note**: For n8n-based SEO optimization workflows, use the [Workflows system](/docs/developers/workflows) instead.
 
 ## Best Practices
 
@@ -729,11 +868,6 @@ export default SeoAgent
 4. **Log agent runs**: Track successes and failures
 5. **Order execution**: Use `order` field for dependent agents
 6. **Scope appropriately**: Don't auto-run destructive agents
-
-### External Agents
-1. **Test in development**: Use `devUrl` for local testing
-2. **Secure webhooks**: Always verify signatures
-3. **Handle network errors**: Implement retry logic for transient failures
 
 ### Internal Agents
 1. **Choose the right provider**: OpenAI for general tasks, Anthropic for complex reasoning, Google for multimodal
@@ -749,10 +883,10 @@ export default SeoAgent
 - Check `enabled: true` and `scopes` includes `dropdown`
 - Verify user has `agents.edit` permission
 
-**Webhook timing out?**
-- Increase `timeout` value
-- Check webhook URL is accessible
-- Test with curl/Postman first
+**Agent execution failing?**
+- Check API keys are set correctly in `.env`
+- Verify the AI provider is accessible
+- Check model name is correct for the provider
 
 **Changes not applying?**
 - Agents update `review_draft`, not live content
@@ -761,5 +895,5 @@ export default SeoAgent
 
 ---
 
-**Related**: [API Reference](/docs/for-developers/api-reference) | [Webhooks](/docs/for-developers/webhooks)
+**Related**: [Workflows](/docs/developers/workflows) | [MCP (Model Context Protocol)](/docs/developers/mcp) | [API Reference](/docs/developers/api-reference)
 

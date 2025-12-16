@@ -2,20 +2,31 @@ import type { AgentDefinition } from '#types/agent_types'
 
 /**
  * SEO Optimizer Agent
- * External webhook-based agent that optimizes SEO metadata
+ * 
+ * @deprecated External agents have been moved to the Workflows system.
+ * This agent is disabled and needs to be migrated:
+ * - If you need AI-powered SEO optimization: Convert to an internal agent (type: 'internal')
+ * - If you need webhook-based automation: Create a workflow in app/workflows/
+ * 
+ * To re-enable, convert this to an internal agent or delete and create a workflow.
  */
 const SeoOptimizerAgent: AgentDefinition = {
   id: 'seo-optimizer',
   name: 'SEO Optimizer',
   description: 'Automatically generates and optimizes SEO metadata',
-  type: 'external',
-  enabled: true,
+  type: 'internal', // Changed from 'external' - needs proper internal config
+  enabled: false, // Disabled until migrated
 
-  external: {
-    url: process.env.AGENT_SEO_OPTIMIZER_URL || '',
-    devUrl: process.env.AGENT_SEO_OPTIMIZER_DEV_URL,
-    secret: process.env.AGENT_SEO_OPTIMIZER_SECRET,
-    timeout: 30000,
+  internal: {
+    provider: 'openai',
+    model: 'gpt-4',
+    systemPrompt: 'You are an SEO expert. Optimize metadata for better search rankings.',
+    options: {
+      temperature: 0.7,
+      maxTokens: 500,
+    },
+    useMCP: true,
+    allowedMCPTools: ['get_post_context', 'save_post_ai_review'],
   },
 
   scopes: [

@@ -3,27 +3,28 @@ import type { AgentDefinition } from '#types/agent_types'
 /**
  * Media Designer Agent
  *
- * Field-scoped agent intended for per-field AI buttons that help:
- * - generate image ideas/prompts
- * - suggest alt text/captions
- * - propose image selections from the media library (by searching)
- *
- * NOTE: This agent does not upload media itself. Use MCP media discovery tools
- * (`list_media`, `get_media`) and stage module updates via AI Review tools.
+ * @deprecated This agent has been replaced by the Graphic Designer agent (app/agents/graphic_designer.ts).
+ * The Graphic Designer is an internal AI agent that can generate images and search media.
+ * 
+ * This file is disabled. You can delete it or keep it as a reference.
  */
 const MediaDesignerAgent: AgentDefinition = {
   id: 'media-designer',
   name: 'Media Designer',
   description: 'Generates image concepts/prompts and suggests media selections for specific fields/modules',
-  type: 'external',
-  enabled: true,
+  type: 'internal', // Changed from 'external' - needs proper internal config
+  enabled: false, // Disabled - use graphic_designer.ts instead
 
-  external: {
-    url: process.env.AGENT_MEDIA_DESIGNER_URL || '',
-    devUrl: process.env.AGENT_MEDIA_DESIGNER_DEV_URL,
-    secret: process.env.AGENT_MEDIA_DESIGNER_SECRET,
-    secretHeader: process.env.AGENT_MEDIA_DESIGNER_SECRET_HEADER || 'X-Agent-Secret',
-    timeout: 60000,
+  internal: {
+    provider: 'openai',
+    model: 'gpt-4',
+    systemPrompt: 'Help with media selection and generation.',
+    options: {
+      temperature: 0.7,
+      maxTokens: 1000,
+    },
+    useMCP: true,
+    allowedMCPTools: ['list_media', 'get_media', 'search_media', 'generate_image'],
   },
 
   scopes: [

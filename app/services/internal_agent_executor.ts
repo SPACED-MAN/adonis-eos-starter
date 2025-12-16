@@ -30,7 +30,7 @@ class InternalAgentExecutor {
 
     try {
       // 1. Build messages from context and payload
-      const messages = this.buildMessages(agent, context, payload)
+      const messages = await this.buildMessages(agent, context, payload)
 
       // 2. Get AI provider configuration
       const aiConfig = this.getAIConfig(agent.internal)
@@ -174,21 +174,53 @@ class InternalAgentExecutor {
   /**
    * Build messages for AI completion
    */
-  private buildMessages(
+  private async buildMessages(
     agent: AgentDefinition,
     context: AgentExecutionContext,
     payload: any
-  ): AIMessage[] {
+  ): Promise<AIMessage[]> {
     const messages: AIMessage[] = []
 
     // System prompt
     if (agent.internal?.systemPrompt) {
-      const systemPrompt = this.interpolateTemplate(agent.internal.systemPrompt, {
+      let systemPrompt = this.interpolateTemplate(agent.internal.systemPrompt, {
         agent: agent.name,
         scope: context.scope,
         ...context.data,
         ...payload,
       })
+
+      // Add style guide for media generation if configured
+      if (agent.styleGuide) {
+        const styleGuideText = [
+          'STYLE GUIDE FOR MEDIA GENERATION:',
+          agent.styleGuide.designStyle ? `- Design Style: ${agent.styleGuide.designStyle}` : null,
+          agent.styleGuide.colorPalette ? `- Color Palette: ${agent.styleGuide.colorPalette}` : null,
+          agent.styleGuide.designTreatments && agent.styleGuide.designTreatments.length > 0
+            ? `- Design Treatments: ${agent.styleGuide.designTreatments.join(', ')}`
+            : null,
+          agent.styleGuide.notes ? `- Additional Notes: ${agent.styleGuide.notes}` : null,
+        ]
+          .filter(Boolean)
+          .join('\n')
+        systemPrompt += `\n\n${styleGuideText}\n\nWhen generating images, follow the style guide above.`
+      }
+
+      // Add writing style preferences if configured
+      if (agent.writingStyle) {
+        const writingStyleText = [
+          'WRITING STYLE PREFERENCES:',
+          agent.writingStyle.tone ? `- Tone: ${agent.writingStyle.tone}` : null,
+          agent.writingStyle.voice ? `- Voice: ${agent.writingStyle.voice}` : null,
+          agent.writingStyle.conventions && agent.writingStyle.conventions.length > 0
+            ? `- Conventions: ${agent.writingStyle.conventions.join(', ')}`
+            : null,
+          agent.writingStyle.notes ? `- Additional Notes: ${agent.writingStyle.notes}` : null,
+        ]
+          .filter(Boolean)
+          .join('\n')
+        systemPrompt += `\n\n${writingStyleText}\n\nWhen writing or editing text content, follow the writing style preferences above.`
+      }
 
       // Add format instructions to ensure proper JSON response
       const formatInstructions = `
@@ -246,7 +278,7 @@ Only include fields that you are actually changing.`,
     }
 
     // User message with context
-    const userMessage = this.buildUserMessage(agent, context, payload)
+    const userMessage = await this.buildUserMessage(agent, context, payload)
     messages.push({
       role: 'user',
       content: userMessage,
@@ -258,17 +290,21 @@ Only include fields that you are actually changing.`,
   /**
    * Build user message from context
    */
-  private buildUserMessage(
+  private async buildUserMessage(
     agent: AgentDefinition,
     context: AgentExecutionContext,
     payload: any
-  ): string {
+  ): Promise<string> {
     const parts: string[] = []
 
     // Add scope-specific context
     switch (context.scope) {
       case 'dropdown':
         parts.push('Manual execution requested by user.')
+        break
+      case 'global':
+        parts.push('Global execution - you can create new posts or work with general content.')
+        parts.push('If the user asks you to create a post, use the create_post_ai_review tool.')
         break
       case 'post.publish':
         parts.push('Post has been published.')
@@ -324,8 +360,17 @@ Only include fields that you are actually changing.`,
 
     // Add MCP tools info if enabled
     if (agent.internal?.useMCP) {
+      const availableTools = await mcpClientService.listTools()
+      const allowedTools = agent.internal?.allowedMCPTools && agent.internal.allowedMCPTools.length > 0
+        ? availableTools.filter((t) => agent.internal?.allowedMCPTools?.includes(t.name))
+        : availableTools
+
+      parts.push('\n\nYou have access to the following MCP tools:')
+      for (const tool of allowedTools) {
+        parts.push(`- ${tool.name}: ${tool.description}`)
+      }
       parts.push(
-        '\n\nYou have access to MCP tools. You can use them by responding with JSON containing tool calls.'
+        '\nTo use a tool, include a "tool_calls" array in your JSON response with tool name and params.'
       )
     }
 
@@ -375,7 +420,7 @@ Only include fields that you are actually changing.`,
 
   /**
    * Execute agent with MCP tool support
-   * This is a simplified version - in a full implementation, you'd parse tool calls from AI response
+   * Parses tool calls from AI response, executes them, and returns the final result
    */
   private async executeWithMCP(
     agent: AgentDefinition,
@@ -384,27 +429,210 @@ Only include fields that you are actually changing.`,
     context: AgentExecutionContext,
     payload: any
   ): Promise<string> {
-    // For now, return the AI response as-is
-    // In a full implementation, you would:
-    // 1. Parse AI response for tool calls (JSON format)
-    // 2. Execute MCP tools
-    // 3. Feed results back to AI for final response
-    // 4. Return combined result
+    try {
+      // Try to parse the AI response as JSON to look for tool calls
+      let parsed: any
+      try {
+        // Extract JSON from markdown code blocks if present
+        // Try multiple patterns to extract JSON (greedy match to get the full object)
+        let jsonStr = aiResponse
+        const jsonMatch = aiResponse.match(/```(?:json)?\s*(\{[\s\S]*\})\s*```/) ||
+          aiResponse.match(/```(?:json)?\s*(\{[\s\S]*)/) || // Match even if incomplete (no closing ```)
+          aiResponse.match(/(\{[\s\S]*\})/) // Fallback to any JSON object
+        
+        if (jsonMatch) {
+          jsonStr = jsonMatch[1]
+          // Try to complete incomplete JSON if it ends with an incomplete string
+          if (!jsonStr.trim().endsWith('}')) {
+            // Try to find the last complete property and close the JSON
+            const lastCompleteProp = jsonStr.lastIndexOf('",')
+            if (lastCompleteProp > 0) {
+              jsonStr = jsonStr.substring(0, lastCompleteProp + 1) + '}'
+            } else {
+              // If we can't find a good place to close, try to close arrays/objects
+              let openBraces = (jsonStr.match(/\{/g) || []).length
+              let closeBraces = (jsonStr.match(/\}/g) || []).length
+              let openBrackets = (jsonStr.match(/\[/g) || []).length
+              let closeBrackets = (jsonStr.match(/\]/g) || []).length
+              
+              // Close any open brackets first
+              while (closeBrackets < openBrackets) {
+                jsonStr += ']'
+                closeBrackets++
+              }
+              // Close any open braces
+              while (closeBraces < openBraces) {
+                jsonStr += '}'
+                closeBraces++
+              }
+            }
+          }
+        }
+        
+        console.log('[MCP] Attempting to parse JSON for tool calls:', {
+          hasJsonMatch: !!jsonMatch,
+          jsonStrLength: jsonStr.length,
+          jsonStrPreview: jsonStr.substring(0, 300),
+          responseLength: aiResponse.length,
+        })
+        parsed = JSON.parse(jsonStr)
+        console.log('[MCP] Successfully parsed JSON:', {
+          hasToolCalls: !!parsed.tool_calls,
+          toolCallsCount: parsed.tool_calls?.length || 0,
+          hasPost: !!parsed.post,
+          hasModules: !!parsed.modules,
+          keys: Object.keys(parsed),
+        })
+      } catch (parseError: any) {
+        // If not JSON, return as-is (agent might be responding naturally)
+        console.log('[MCP] Failed to parse JSON, returning as-is:', {
+          error: parseError?.message,
+          responsePreview: aiResponse.substring(0, 300),
+          responseLength: aiResponse.length,
+        })
+        return aiResponse
+      }
 
-    // Check if response contains tool call indicators
-    // This is a placeholder - you'd implement proper tool call parsing
-    if (agent.internal?.allowedMCPTools && agent.internal.allowedMCPTools.length > 0) {
-      // Filter available tools
-      const availableTools = await mcpClientService.listTools()
-      const allowedTools = availableTools.filter((t) =>
-        agent.internal?.allowedMCPTools?.includes(t.name)
-      )
+      // Check if the response contains tool calls
+      if (parsed.tool_calls && Array.isArray(parsed.tool_calls)) {
+        const toolResults: any[] = []
 
-      // Add tool descriptions to context for AI
-      // In a full implementation, you'd add this to the system prompt
+        // Execute each tool call
+        for (const toolCall of parsed.tool_calls) {
+          // Support both 'tool' and 'tool_name' formats
+          const tool = toolCall.tool || toolCall.tool_name
+          const params = toolCall.params || toolCall.arguments
+          if (!tool || !params) continue
+
+          try {
+            // Check if tool is allowed
+            if (agent.internal?.allowedMCPTools && agent.internal.allowedMCPTools.length > 0) {
+              if (!agent.internal.allowedMCPTools.includes(tool)) {
+                toolResults.push({
+                  tool,
+                  error: `Tool '${tool}' is not in the allowed list`,
+                })
+                continue
+              }
+            }
+
+            // Execute the tool
+            const result = await mcpClientService.callTool(tool, params, agent.id)
+            toolResults.push({
+              tool,
+              success: true,
+              result,
+            })
+          } catch (error: any) {
+            toolResults.push({
+              tool,
+              success: false,
+              error: error?.message || 'Tool execution failed',
+            })
+          }
+        }
+
+        // If we have tool results, merge them into the response
+        // For generate_image, we can automatically update modules if the agent provided module updates
+        const response: any = {
+          summary: parsed.summary || `Executed ${toolResults.length} tool call(s)`,
+          toolResults,
+        }
+
+        // If the original response had other fields, include them
+        if (parsed.post) response.post = parsed.post
+        if (parsed.modules) response.modules = parsed.modules
+
+        // For generate_image tool, if we have a successful result and module updates,
+        // we can automatically inject the mediaId into the module props
+        const generateImageResult = toolResults.find(
+          (r: any) => (r.tool === 'generate_image' || r.tool_name === 'generate_image') && r.success
+        )
+
+        // Debug logging
+        if (toolResults.length > 0) {
+          console.log('[MCP Tool Results]', {
+            count: toolResults.length,
+            results: toolResults.map((r: any) => ({
+              tool: r.tool || r.tool_name,
+              success: r.success,
+              hasResult: !!r.result,
+              resultKeys: r.result ? Object.keys(r.result) : [],
+              error: r.error,
+            })),
+          })
+        }
+
+        if (generateImageResult && response.modules && Array.isArray(response.modules)) {
+          const result = generateImageResult.result
+          const mediaId = result?.mediaId
+          const mediaUrl = result?.url
+          const altText = result?.altText
+          const description = result?.description
+
+          console.log('[MCP Image Generation]', {
+            hasMediaId: !!mediaId,
+            mediaId,
+            mediaUrl,
+            altText,
+            description,
+            modulesCount: response.modules.length,
+          })
+
+          if (mediaId) {
+            // Find modules that need the image and inject the mediaId
+            for (const module of response.modules) {
+              if (module.props?.image && typeof module.props.image === 'object') {
+                // Check if ID is missing, is a placeholder, or needs to be replaced
+                const currentId = module.props.image.id
+                const isPlaceholder =
+                  !currentId ||
+                  (typeof currentId === 'string' &&
+                    (currentId.includes('<mediaId') ||
+                      currentId.includes('from generate_image') ||
+                      currentId.includes('mediaId') ||
+                      currentId === ''))
+
+                console.log('[MCP Module Update]', {
+                  moduleType: module.type,
+                  currentId,
+                  isPlaceholder,
+                  willReplace: isPlaceholder && mediaId,
+                })
+
+                if (isPlaceholder && mediaId) {
+                  // Inject the generated mediaId
+                  module.props.image.id = mediaId
+                  if (mediaUrl) {
+                    module.props.image.url = mediaUrl
+                  }
+                  // Use tool result alt/description if not already set or if they're placeholders
+                  if (altText && (!module.props.image.alt || module.props.image.alt === altText)) {
+                    module.props.image.alt = altText
+                  }
+                  if (
+                    description &&
+                    (!module.props.image.description ||
+                      module.props.image.description === description)
+                  ) {
+                    module.props.image.description = description
+                  }
+                }
+              }
+            }
+          }
+        }
+
+        return JSON.stringify(response)
+      }
+
+      // No tool calls, return the original response
+      return aiResponse
+    } catch (error: any) {
+      console.error('MCP execution error:', error)
+      // On error, return the original response
+      return aiResponse
     }
-
-    return aiResponse
   }
 
   /**

@@ -37,7 +37,7 @@ export default function SelectField({ value, onChange, options, multiple }: Prop
       <select
         multiple={!!multiple}
         className="block w-full border border-line-low rounded bg-backdrop-low px-3 py-2 text-sm text-neutral-high"
-        value={selected}
+        value={multiple ? selected : (value || '')}
         onChange={(e) => {
           if (multiple) {
             const vals = Array.from(e.target.selectedOptions).map((o) => o.value)

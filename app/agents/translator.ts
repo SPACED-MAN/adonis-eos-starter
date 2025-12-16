@@ -3,26 +3,33 @@ import type { AgentDefinition } from '#types/agent_types'
 /**
  * Translator Agent
  *
- * Intended for generating translation variations of an existing post.
- *
+ * @deprecated External agents have been moved to the Workflows system.
+ * This agent is disabled and needs to be migrated to an internal agent.
+ * 
  * Recommended workflow:
  * - Use MCP `create_translation_ai_review` (or `create_translations_ai_review_bulk`) to create the translation post(s)
  * - Then use MCP `run_field_agent` on specific fields/modules to translate content and stage into AI Review
  * - Submit AI Review to Review for human approval
+ * 
+ * To re-enable, convert this to an internal agent with proper AI provider configuration.
  */
 const TranslatorAgent: AgentDefinition = {
   id: 'translator',
   name: 'Translator',
   description: 'Generates translation variants of a post for a target locale',
-  type: 'external',
-  enabled: true,
+  type: 'internal', // Changed from 'external' - needs proper internal config
+  enabled: false, // Disabled until migrated
 
-  external: {
-    url: process.env.AGENT_TRANSLATOR_URL || '',
-    devUrl: process.env.AGENT_TRANSLATOR_DEV_URL,
-    secret: process.env.AGENT_TRANSLATOR_SECRET,
-    secretHeader: process.env.AGENT_TRANSLATOR_SECRET_HEADER || 'X-Agent-Secret',
-    timeout: 60000,
+  internal: {
+    provider: 'openai',
+    model: 'gpt-4',
+    systemPrompt: 'You are a professional translator. Translate content accurately while preserving tone and meaning.',
+    options: {
+      temperature: 0.7,
+      maxTokens: 2000,
+    },
+    useMCP: true,
+    allowedMCPTools: ['get_post_context', 'save_post_ai_review', 'update_post_module_ai_review'],
   },
 
   scopes: [
