@@ -242,23 +242,10 @@ export default class AgentsController {
             } else {
               // Image generation failed - mark it so we can clean up placeholders
               imageGenerationFailed = true
-              console.log('[Image Generation] Image generation failed:', generateImageResult.error)
             }
           }
         }
 
-        // Log what we're extracting for debugging
-        console.log('Internal agent result:', {
-          agentId,
-          hasData: !!result.data,
-          hasPost: !!(result.data && result.data.post),
-          hasModules: !!(result.data && Array.isArray(result.data.modules)),
-          modulesCount: result.data?.modules?.length || 0,
-          dataKeys: result.data ? Object.keys(result.data) : [],
-          postKeys: result.data?.post ? Object.keys(result.data.post) : [],
-          rawResponse: rawResponse?.substring(0, 200),
-          hasSummary: !!summary,
-        })
 
         // Get current post and extract suggested post
         const current = await Post.findOrFail(id)
@@ -272,10 +259,6 @@ export default class AgentsController {
           // Handle post-level fields (e.g., post.featuredImageId)
           if (fieldKey === 'post.featuredImageId') {
             suggestedPost.featuredImageId = generatedMediaId
-            console.log(
-              '[Auto-place] Placed generated media in post.featuredImageId:',
-              generatedMediaId
-            )
           }
           // Handle module-level fields (e.g., module.hero-with-media.image)
           else if (fieldKey.startsWith('module.')) {
@@ -350,24 +333,12 @@ export default class AgentsController {
                   generateImageResult.result.description
               }
 
-              console.log('[Auto-place] Placed generated media in module field:', {
-                fieldKey,
-                moduleType,
-                fieldName,
-                mediaId: generatedMediaId,
-              })
             }
           }
         }
 
         // Replace any placeholder strings with actual mediaId if we have one, or remove them if generation failed
         if (generatedMediaId || imageGenerationFailed) {
-          console.log(
-            '[Placeholder Replacement] generatedMediaId:',
-            generatedMediaId,
-            'imageGenerationFailed:',
-            imageGenerationFailed
-          )
           const replacePlaceholders = (obj: any): any => {
             if (typeof obj === 'string') {
               // Replace common placeholder patterns (case-insensitive, flexible matching)
@@ -389,34 +360,14 @@ export default class AgentsController {
                   obj.toLowerCase().includes(pattern.toLowerCase())
                 ) {
                   if (imageGenerationFailed) {
-                    console.log(
-                      '[Placeholder Replacement] Removing placeholder (generation failed):',
-                      pattern
-                    )
                     return null // Remove the field if generation failed
                   } else {
-                    console.log(
-                      '[Placeholder Replacement] Replaced string placeholder:',
-                      pattern,
-                      '→',
-                      generatedMediaId
-                    )
                     return generatedMediaId
                   }
                 } else if (pattern instanceof RegExp && pattern.test(obj)) {
                   if (imageGenerationFailed) {
-                    console.log(
-                      '[Placeholder Replacement] Removing placeholder (generation failed):',
-                      pattern
-                    )
                     return null // Remove the field if generation failed
                   } else {
-                    console.log(
-                      '[Placeholder Replacement] Replaced regex placeholder:',
-                      pattern,
-                      '→',
-                      generatedMediaId
-                    )
                     return generatedMediaId
                   }
                 }
@@ -451,10 +402,6 @@ export default class AgentsController {
           })
           const afterPost = JSON.stringify(suggestedPost)
           if (beforePost !== afterPost) {
-            console.log('[Placeholder Replacement] Updated suggestedPost:', {
-              before: beforePost,
-              after: afterPost,
-            })
           }
 
           suggestedModules.forEach((module, index) => {
@@ -462,22 +409,11 @@ export default class AgentsController {
             suggestedModules[index] = replacePlaceholders(module)
             const after = JSON.stringify(suggestedModules[index])
             if (before !== after) {
-              console.log('[Placeholder Replacement] Updated module:', index, { before, after })
             }
           })
         } else {
-          console.log(
-            '[Placeholder Replacement] No generatedMediaId found and no failure detected, skipping replacement'
-          )
         }
 
-        // Log what we're applying
-        console.log('Applying suggestions:', {
-          agentId,
-          suggestedPostKeys: Object.keys(suggestedPost),
-          suggestedPost,
-          suggestedModulesCount: suggestedModules.length,
-        })
 
         // For field-scoped agents, respect the active view mode
         // For other scopes, use the default AI Review workflow
@@ -546,15 +482,6 @@ export default class AgentsController {
         // Merge: base + existing draft + new suggestions
         const merged = { ...base, ...existingDraft, ...(suggestedPost || {}) }
 
-        console.log('Merged draft to save:', {
-          agentId,
-          scope,
-          isFieldScope,
-          targetViewMode,
-          updateColumn,
-          mergedKeys: Object.keys(merged),
-          merged,
-        })
 
         try {
           // Use Post.query() to match other code patterns
@@ -752,14 +679,7 @@ export default class AgentsController {
                   suggestedModule.props || {}
                 )
 
-                console.log(
-                  `Updating module ${targetModule.postModuleId} (${suggestedModule.type}, orderIndex: ${targetModule.orderIndex}, viewMode: ${targetViewMode}):`,
-                  {
-                    basePropsKeys: Object.keys(baseProps),
-                    existingDraftPropsKeys: Object.keys(existingDraftProps),
-                    currentEffectivePropsKeys: Object.keys(currentEffectiveProps),
-                    newProps: Object.keys(suggestedModule.props || {}),
-                    mergedDraftPropsKeys: Object.keys(mergedDraftProps),
+                // Update module props based on view mode
                     modulePropsColumn,
                   }
                 )

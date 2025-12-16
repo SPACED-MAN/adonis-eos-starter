@@ -354,7 +354,6 @@ class MCPClientService {
       }
 
       case 'search_media': {
-        console.log('[search_media] Searching media library', { params })
         const { q, alt_text, description, category, limit } = params
 
         // Build search query
@@ -411,7 +410,6 @@ class MCPClientService {
           mimeType: r.mime_type,
         }))
 
-        console.log('[search_media] Found media items', { count: mediaItems.length })
 
         return {
           success: true,
@@ -421,7 +419,6 @@ class MCPClientService {
       }
 
       case 'generate_image': {
-        console.log('[generate_image] Starting DALL-E image generation', { params })
         const { prompt, alt_text, description, model, size, quality } = params
 
         if (!prompt || typeof prompt !== 'string') {
@@ -436,10 +433,6 @@ class MCPClientService {
           )
         }
 
-        console.log('[generate_image] OpenAI API key found', {
-          hasKey: !!apiKey,
-          keyLength: apiKey?.length,
-        })
 
         // DALL-E model options: dall-e-2 or dall-e-3 (default to dall-e-3)
         const dalleModel = model || 'dall-e-3'
@@ -448,12 +441,6 @@ class MCPClientService {
         // Quality: standard or hd (dall-e-3 only)
         const imageQuality = quality || 'standard'
 
-        console.log('[generate_image] Generating with DALL-E', {
-          model: dalleModel,
-          size: imageSize,
-          quality: imageQuality,
-          promptLength: prompt.length,
-        })
 
         // Call DALL-E API
         let imageUrl: string | null = null
@@ -503,10 +490,6 @@ class MCPClientService {
             throw new Error('No image URL returned from DALL-E API')
           }
 
-          console.log('[generate_image] DALL-E image generated successfully', {
-            imageUrl: imageUrl.substring(0, 100),
-            hasRevisedPrompt: !!revisedPrompt,
-          })
         } catch (error: any) {
           console.error('[generate_image] DALL-E generation failed', { error: error.message })
           throw error
@@ -523,10 +506,6 @@ class MCPClientService {
           }
           imageBuffer = Buffer.from(await imageResponse.arrayBuffer())
           mimeType = imageResponse.headers.get('content-type') || 'image/png'
-          console.log('[generate_image] Downloaded image from DALL-E', {
-            mimeType,
-            size: imageBuffer.length,
-          })
         } catch (error: any) {
           console.error('[generate_image] Failed to download image', { error: error.message })
           throw new Error(`Failed to download generated image: ${error.message}`)
@@ -622,11 +601,6 @@ class MCPClientService {
           description: description || null,
         }
 
-        console.log('[generate_image] Image saved to media library', {
-          mediaId,
-          url,
-          hasAltText: !!result.altText,
-        })
 
         return result
       }

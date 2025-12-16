@@ -38,14 +38,6 @@ export default class InlineEditorController {
           ? 'ai-review'
           : 'source'
 
-    console.log('[InlineEditorController] updateModuleField', {
-      postId,
-      moduleId,
-      path,
-      modeRaw,
-      mode,
-      valueType: typeof value,
-    })
 
     if (!path) return response.badRequest({ error: 'path is required' })
 
@@ -101,11 +93,6 @@ export default class InlineEditorController {
       // If registry lookup fails, proceed without blocking
     }
 
-    console.log('[InlineEditorController] Updating', {
-      target,
-      mode,
-      moduleInstanceId: row.moduleInstanceId,
-    })
 
     // Update payload based on mode and target
     if (target === 'props') {
@@ -125,10 +112,6 @@ export default class InlineEditorController {
       } else {
         update.props = next
       }
-      console.log('[InlineEditorController] DB update (props)', {
-        mode,
-        updateKeys: Object.keys(update),
-      })
       await db
         .from('module_instances')
         .where('id', row.moduleInstanceId)
@@ -153,10 +136,6 @@ export default class InlineEditorController {
     } else {
       update.overrides = nextOverrides
     }
-    console.log('[InlineEditorController] DB update (overrides)', {
-      mode,
-      updateKeys: Object.keys(update),
-    })
     await db
       .from('post_modules')
       .where('id', moduleId)

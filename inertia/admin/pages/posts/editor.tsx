@@ -660,11 +660,6 @@ export default function Editor({
         taxonomyTermIds: data.taxonomyTermIds,
       }
 
-      console.log('[Editor] Sending cleaned data:', {
-        canonicalUrl: cleanedData.canonicalUrl,
-        canonicalUrlType: typeof cleanedData.canonicalUrl,
-      })
-
       // Use fetch directly to have full control over the request.
       // NOTE: We force an absolute URL + manual redirect handling because a redirect (often due to CSRF/auth)
       // can cause the browser to follow to `/admin/posts/:id/edit` and then "PUT" that URL (404).
@@ -672,8 +667,6 @@ export default function Editor({
         typeof window !== 'undefined'
           ? new URL(`/api/posts/${post.id}`, window.location.origin).toString()
           : `/api/posts/${post.id}`
-
-      console.log('[Editor] Saving to', apiUrl)
 
       const res = await fetch(apiUrl, {
         method: 'PUT',

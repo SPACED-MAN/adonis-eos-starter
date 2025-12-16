@@ -143,10 +143,6 @@ export default class PostsCrudController extends BasePostsController {
         return this.rejectReviewDraft(id, auth, response)
       }
 
-      // Debug: log raw input before validation
-      console.log('[PostsCrudController] Raw update input:', {
-        canonicalUrl: request.input('canonicalUrl'),
-        canonicalUrlType: typeof request.input('canonicalUrl'),
         featuredImageId: request.input('featuredImageId'),
         parentId: request.input('parentId'),
       })

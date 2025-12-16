@@ -46,18 +46,18 @@ type InlineEditorContextValue = {
 const InlineEditorContext = createContext<InlineEditorContextValue>({
   enabled: false,
   canEdit: false,
-  toggle: () => {},
+  toggle: () => { },
   postId: undefined,
   mode: 'source',
-  setMode: () => {},
+  setMode: () => { },
   getValue: (_m, _p, f) => f,
   getModeValue: (_m, _p, _mode, f) => f,
-  setValue: () => {},
+  setValue: () => { },
   isGlobalModule: () => false,
   dirtyModules: new Set(),
-  saveAll: async () => {},
+  saveAll: async () => { },
   showDiffs: false,
-  toggleShowDiffs: () => {},
+  toggleShowDiffs: () => { },
 })
 
 type ModuleSeed = {
@@ -532,9 +532,9 @@ export function InlineEditorProvider({
       const xsrf =
         typeof document !== 'undefined'
           ? (() => {
-              const m = document.cookie.match(/(?:^|; )XSRF-TOKEN=([^;]+)/)
-              return m ? decodeURIComponent(m[1]) : undefined
-            })()
+            const m = document.cookie.match(/(?:^|; )XSRF-TOKEN=([^;]+)/)
+            return m ? decodeURIComponent(m[1]) : undefined
+          })()
           : undefined
 
       for (const moduleId of Array.from(dirtyModules)) {
@@ -554,12 +554,6 @@ export function InlineEditorProvider({
 
           // Build body with extra safety - use safeJsonClone on entire payload
           const payload = { path, value: finalValue, mode: saveMode }
-          console.log('[InlineEditor] Saving field', {
-            moduleId,
-            path,
-            saveMode,
-            finalValueType: typeof finalValue,
-          })
           let bodyStr: string
           try {
             const safePayload = safeJsonClone(payload)
@@ -622,7 +616,7 @@ export function InlineEditorProvider({
               cur = cur[p]
             }
             cur[parts[parts.length - 1]!] = finalValue
-            ;(clone as any)[target] = nextObj
+              ; (clone as any)[target] = nextObj
             return { ...prev, [moduleId]: clone }
           })
         }
@@ -795,7 +789,7 @@ function publishInlineBridge(state: {
   toggleShowDiffs: () => void
 }) {
   if (typeof window === 'undefined') return
-  ;(window as any).__inlineBridge = state
+    ; (window as any).__inlineBridge = state
   const evt = new CustomEvent('inline:state', { detail: state })
   window.dispatchEvent(evt)
 }

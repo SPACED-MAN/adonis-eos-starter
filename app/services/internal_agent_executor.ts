@@ -44,13 +44,6 @@ class InternalAgentExecutor {
       // 4. Execute AI completion
       const aiResult = await aiProviderService.complete(messages, completionOptions, aiConfig)
 
-      // Log raw AI response for debugging
-      console.log('AI Raw Response:', {
-        agentId: agent.id,
-        content: aiResult.content,
-        length: aiResult.content.length,
-      })
-
       // 5. If MCP is enabled, allow agent to use tools
       let finalResult = aiResult.content
       if (agent.internal.useMCP) {
@@ -121,18 +114,6 @@ class InternalAgentExecutor {
         // Remove summary from parsedResult so it doesn't interfere with data processing
         delete parsedResult.summary
       }
-
-      // Log parsed result for debugging
-      console.log('AI Parsed Result:', {
-        agentId: agent.id,
-        parsedResult,
-        hasPost: !!parsedResult.post,
-        postKeys: parsedResult.post ? Object.keys(parsedResult.post) : [],
-        hasModules: !!parsedResult.modules,
-        modulesCount: parsedResult.modules?.length || 0,
-        hasSummary: !!summary,
-        summary: summary?.substring(0, 100),
-      })
 
       // 7. Execute reactions
       const result = {
@@ -482,27 +463,9 @@ Only include fields that you are actually changing.`,
           }
         }
 
-        console.log('[MCP] Attempting to parse JSON for tool calls:', {
-          hasJsonMatch: !!jsonMatch,
-          jsonStrLength: jsonStr.length,
-          jsonStrPreview: jsonStr.substring(0, 300),
-          responseLength: aiResponse.length,
-        })
         parsed = JSON.parse(jsonStr)
-        console.log('[MCP] Successfully parsed JSON:', {
-          hasToolCalls: !!parsed.tool_calls,
-          toolCallsCount: parsed.tool_calls?.length || 0,
-          hasPost: !!parsed.post,
-          hasModules: !!parsed.modules,
-          keys: Object.keys(parsed),
-        })
       } catch (parseError: any) {
         // If not JSON, return as-is (agent might be responding naturally)
-        console.log('[MCP] Failed to parse JSON, returning as-is:', {
-          error: parseError?.message,
-          responsePreview: aiResponse.substring(0, 300),
-          responseLength: aiResponse.length,
-        })
         return aiResponse
       }
 
@@ -562,19 +525,6 @@ Only include fields that you are actually changing.`,
           (r: any) => (r.tool === 'generate_image' || r.tool_name === 'generate_image') && r.success
         )
 
-        // Debug logging
-        if (toolResults.length > 0) {
-          console.log('[MCP Tool Results]', {
-            count: toolResults.length,
-            results: toolResults.map((r: any) => ({
-              tool: r.tool || r.tool_name,
-              success: r.success,
-              hasResult: !!r.result,
-              resultKeys: r.result ? Object.keys(r.result) : [],
-              error: r.error,
-            })),
-          })
-        }
 
         if (generateImageResult && response.modules && Array.isArray(response.modules)) {
           const result = generateImageResult.result
@@ -583,14 +533,6 @@ Only include fields that you are actually changing.`,
           const altText = result?.altText
           const description = result?.description
 
-          console.log('[MCP Image Generation]', {
-            hasMediaId: !!mediaId,
-            mediaId,
-            mediaUrl,
-            altText,
-            description,
-            modulesCount: response.modules.length,
-          })
 
           if (mediaId) {
             // Find modules that need the image and inject the mediaId
@@ -606,12 +548,6 @@ Only include fields that you are actually changing.`,
                       currentId.includes('mediaId') ||
                       currentId === ''))
 
-                console.log('[MCP Module Update]', {
-                  moduleType: module.type,
-                  currentId,
-                  isPlaceholder,
-                  willReplace: isPlaceholder && mediaId,
-                })
 
                 if (isPlaceholder && mediaId) {
                   // Inject the generated mediaId

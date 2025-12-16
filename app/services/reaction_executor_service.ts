@@ -247,11 +247,6 @@ class ReactionExecutorService {
     result: { success: boolean; data?: any; error?: Error }
   ): Promise<void> {
     // TODO: Implement email sending using AdonisJS mail
-    // For now, just log
-    console.log('Email reaction not yet implemented', {
-      to: reaction.config.to,
-      subject: reaction.config.subject,
-    })
   }
 
   /**
