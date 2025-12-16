@@ -59,13 +59,13 @@ export function ThemeToggle() {
     <button
       type="button"
       onClick={toggle}
-      className="inline-flex items-center justify-center rounded-full bg-backdrop-high dark:bg-neutral-low w-12 h-12 text-neutral-high dark:text-backdrop-low hover:bg-neutral-high hover:text-backdrop-low hover:dark:bg-neutral-high hover:dark:text-backdrop-low min-w-[48px] min-h-[48px]"
+      className="inline-flex items-center justify-center w-10 h-10 rounded-full bg-backdrop-high dark:bg-neutral-low text-neutral-high dark:text-backdrop-low hover:bg-neutral-high hover:text-backdrop-low hover:dark:bg-neutral-high hover:dark:text-backdrop-low"
       aria-label="Toggle dark mode"
     >
       {mode === 'dark' ? (
-        <FontAwesomeIcon icon={['fas', 'sun']} className="w-4 h-4" />
+        <FontAwesomeIcon icon={['fas', 'sun']} className="text-md" />
       ) : (
-        <FontAwesomeIcon icon={['fas', 'moon']} className="w-4 h-4" />
+        <FontAwesomeIcon icon={['fas', 'moon']} className="text-md" />
       )}
     </button>
   )

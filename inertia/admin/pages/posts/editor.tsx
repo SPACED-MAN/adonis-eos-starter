@@ -200,77 +200,77 @@ export default function Editor({
   const reviewInitialRef = useRef<null | typeof initialDataRef.current>(
     reviewDraft
       ? {
-          title: String(reviewDraft.title ?? post.title),
-          slug: String(reviewDraft.slug ?? post.slug),
-          excerpt: String(reviewDraft.excerpt ?? (post.excerpt || '')),
-          status: String(reviewDraft.status ?? post.status),
-          parentId: String((reviewDraft.parentId ?? (post as any).parentId ?? '') || ''),
-          orderIndex: Number(reviewDraft.orderIndex ?? (post as any).orderIndex ?? 0),
-          metaTitle: String(reviewDraft.metaTitle ?? (post.metaTitle || '')),
-          metaDescription: String(reviewDraft.metaDescription ?? (post.metaDescription || '')),
-          canonicalUrl: String(reviewDraft.canonicalUrl ?? (post.canonicalUrl || '')),
-          robotsJson:
-            typeof reviewDraft.robotsJson === 'string'
-              ? reviewDraft.robotsJson
-              : reviewDraft.robotsJson
-                ? JSON.stringify(reviewDraft.robotsJson, null, 2)
-                : '',
-          jsonldOverrides:
-            typeof reviewDraft.jsonldOverrides === 'string'
-              ? reviewDraft.jsonldOverrides
-              : reviewDraft.jsonldOverrides
-                ? JSON.stringify(reviewDraft.jsonldOverrides, null, 2)
-                : '',
-          featuredImageId: String(reviewDraft.featuredImageId ?? (post.featuredImageId || '')),
-          customFields: Array.isArray(reviewDraft.customFields)
-            ? reviewDraft.customFields
-            : Array.isArray(initialCustomFields)
-              ? initialCustomFields.map((f) => ({
-                  fieldId: f.id,
-                  slug: f.slug,
-                  value: f.value ?? null,
-                }))
-              : [],
-          taxonomyTermIds: selectedTaxonomyTermIds,
-        }
+        title: String(reviewDraft.title ?? post.title),
+        slug: String(reviewDraft.slug ?? post.slug),
+        excerpt: String(reviewDraft.excerpt ?? (post.excerpt || '')),
+        status: String(reviewDraft.status ?? post.status),
+        parentId: String((reviewDraft.parentId ?? (post as any).parentId ?? '') || ''),
+        orderIndex: Number(reviewDraft.orderIndex ?? (post as any).orderIndex ?? 0),
+        metaTitle: String(reviewDraft.metaTitle ?? (post.metaTitle || '')),
+        metaDescription: String(reviewDraft.metaDescription ?? (post.metaDescription || '')),
+        canonicalUrl: String(reviewDraft.canonicalUrl ?? (post.canonicalUrl || '')),
+        robotsJson:
+          typeof reviewDraft.robotsJson === 'string'
+            ? reviewDraft.robotsJson
+            : reviewDraft.robotsJson
+              ? JSON.stringify(reviewDraft.robotsJson, null, 2)
+              : '',
+        jsonldOverrides:
+          typeof reviewDraft.jsonldOverrides === 'string'
+            ? reviewDraft.jsonldOverrides
+            : reviewDraft.jsonldOverrides
+              ? JSON.stringify(reviewDraft.jsonldOverrides, null, 2)
+              : '',
+        featuredImageId: String(reviewDraft.featuredImageId ?? (post.featuredImageId || '')),
+        customFields: Array.isArray(reviewDraft.customFields)
+          ? reviewDraft.customFields
+          : Array.isArray(initialCustomFields)
+            ? initialCustomFields.map((f) => ({
+              fieldId: f.id,
+              slug: f.slug,
+              value: f.value ?? null,
+            }))
+            : [],
+        taxonomyTermIds: selectedTaxonomyTermIds,
+      }
       : null
   )
   const aiReviewInitialRef = useRef<null | typeof initialDataRef.current>(
     aiReviewDraft
       ? {
-          title: String(aiReviewDraft.title ?? post.title),
-          slug: String(aiReviewDraft.slug ?? post.slug),
-          excerpt: String(aiReviewDraft.excerpt ?? (post.excerpt || '')),
-          status: String(aiReviewDraft.status ?? post.status),
-          parentId: String((aiReviewDraft.parentId ?? (post as any).parentId ?? '') || ''),
-          orderIndex: Number(aiReviewDraft.orderIndex ?? (post as any).orderIndex ?? 0),
-          metaTitle: String(aiReviewDraft.metaTitle ?? (post.metaTitle || '')),
-          metaDescription: String(aiReviewDraft.metaDescription ?? (post.metaDescription || '')),
-          canonicalUrl: String(aiReviewDraft.canonicalUrl ?? (post.canonicalUrl || '')),
-          robotsJson:
-            typeof aiReviewDraft.robotsJson === 'string'
-              ? aiReviewDraft.robotsJson
-              : aiReviewDraft.robotsJson
-                ? JSON.stringify(aiReviewDraft.robotsJson, null, 2)
-                : '',
-          jsonldOverrides:
-            typeof aiReviewDraft.jsonldOverrides === 'string'
-              ? aiReviewDraft.jsonldOverrides
-              : aiReviewDraft.jsonldOverrides
-                ? JSON.stringify(aiReviewDraft.jsonldOverrides, null, 2)
-                : '',
-          featuredImageId: String(aiReviewDraft.featuredImageId ?? (post.featuredImageId || '')),
-          customFields: Array.isArray(aiReviewDraft.customFields)
-            ? aiReviewDraft.customFields
-            : Array.isArray(initialCustomFields)
-              ? initialCustomFields.map((f) => ({
-                  fieldId: f.id,
-                  slug: f.slug,
-                  value: f.value ?? null,
-                }))
-              : [],
-          taxonomyTermIds: selectedTaxonomyTermIds,
-        }
+        title: String(aiReviewDraft.title ?? post.title),
+        slug: String(aiReviewDraft.slug ?? post.slug),
+        excerpt: String(aiReviewDraft.excerpt ?? (post.excerpt || '')),
+        status: String(aiReviewDraft.status ?? post.status),
+        parentId: String((aiReviewDraft.parentId ?? (post as any).parentId ?? '') || ''),
+        orderIndex: Number(aiReviewDraft.orderIndex ?? (post as any).orderIndex ?? 0),
+        metaTitle: String(aiReviewDraft.metaTitle ?? (post.metaTitle || '')),
+        metaDescription: String(aiReviewDraft.metaDescription ?? (post.metaDescription || '')),
+        canonicalUrl: String(aiReviewDraft.canonicalUrl ?? (post.canonicalUrl || '')),
+        robotsJson:
+          typeof aiReviewDraft.robotsJson === 'string'
+            ? aiReviewDraft.robotsJson
+            : aiReviewDraft.robotsJson
+              ? JSON.stringify(aiReviewDraft.robotsJson, null, 2)
+              : '',
+        jsonldOverrides:
+          typeof aiReviewDraft.jsonldOverrides === 'string'
+            ? aiReviewDraft.jsonldOverrides
+            : aiReviewDraft.jsonldOverrides
+              ? JSON.stringify(aiReviewDraft.jsonldOverrides, null, 2)
+              : '',
+        featuredImageId: String(aiReviewDraft.featuredImageId ?? (post.featuredImageId || '')),
+        customFields: Array.isArray(aiReviewDraft.customFields)
+          ? aiReviewDraft.customFields
+          : Array.isArray(initialCustomFields)
+            ? initialCustomFields.map((f) => ({
+              fieldId: f.id,
+              slug: f.slug,
+              value: f.value ?? null,
+            }))
+            : [],
+        taxonomyTermIds: selectedTaxonomyTermIds,
+      }
       : null
   )
   const [pendingModules, setPendingModules] = useState<
@@ -343,16 +343,16 @@ export default function Editor({
     () =>
       Array.isArray(taxonomyTrees)
         ? taxonomyTrees.map((t) => ({
-            slug: t.slug,
-            name: t.name,
-            hierarchical: !!(t as any).hierarchical,
-            freeTagging: !!(t as any).freeTagging,
-            maxSelections:
-              (t as any).maxSelections === null || (t as any).maxSelections === undefined
-                ? null
-                : Number((t as any).maxSelections),
-            options: flattenTerms(t.terms || []),
-          }))
+          slug: t.slug,
+          name: t.name,
+          hierarchical: !!(t as any).hierarchical,
+          freeTagging: !!(t as any).freeTagging,
+          maxSelections:
+            (t as any).maxSelections === null || (t as any).maxSelections === undefined
+              ? null
+              : Number((t as any).maxSelections),
+          options: flattenTerms(t.terms || []),
+        }))
         : [],
     [taxonomyTrees]
   )
@@ -432,10 +432,10 @@ export default function Editor({
     featuredImageId: String((d as any).featuredImageId || '').trim() || null,
     customFields: Array.isArray((d as any).customFields)
       ? (d as any).customFields.map((e: any) => ({
-          fieldId: e.fieldId,
-          slug: e.slug,
-          value: e.value,
-        }))
+        fieldId: e.fieldId,
+        slug: e.slug,
+        value: e.value,
+      }))
       : [],
     taxonomyTermIds: Array.isArray((d as any).taxonomyTermIds) ? (d as any).taxonomyTermIds : [],
   })
@@ -709,12 +709,12 @@ export default function Editor({
         const bodyText = await res.text().catch(() => '')
         const errorJson = contentType.includes('application/json')
           ? (() => {
-              try {
-                return JSON.parse(bodyText)
-              } catch {
-                return null
-              }
-            })()
+            try {
+              return JSON.parse(bodyText)
+            } catch {
+              return null
+            }
+          })()
           : null
 
         console.error('Save failed:', {
@@ -808,57 +808,57 @@ export default function Editor({
   useEffect(() => {
     if (!modulesEnabled) return
     let cancelled = false
-    ;(async () => {
-      try {
-        const res = await fetch(
-          `/api/modules/registry?post_type=${encodeURIComponent(post.type)}`,
-          {
-            headers: { Accept: 'application/json' },
-            credentials: 'same-origin',
-          }
-        )
-        const json = await res.json().catch(() => null)
-        const list: Array<{
-          type: string
-          name?: string
-          description?: string
-          renderingMode?: 'static' | 'react'
-        }> = Array.isArray(json?.data) ? json.data : []
-        if (!cancelled) {
-          const map: Record<
-            string,
-            { name: string; description?: string; renderingMode?: 'static' | 'react' }
-          > = {}
-          list.forEach((m) => {
-            map[m.type] = {
-              name: m.name || m.type,
-              description: m.description,
-              renderingMode: m.renderingMode,
-            }
-          })
-          setModuleRegistry(map)
-        }
-        // Load globals for slug->label mapping
+      ; (async () => {
         try {
-          const gRes = await fetch('/api/modules/global', { credentials: 'same-origin' })
-          const gJson = await gRes.json().catch(() => ({}))
-          const gList: Array<{ globalSlug: string; label?: string | null }> = Array.isArray(
-            gJson?.data
+          const res = await fetch(
+            `/api/modules/registry?post_type=${encodeURIComponent(post.type)}`,
+            {
+              headers: { Accept: 'application/json' },
+              credentials: 'same-origin',
+            }
           )
-            ? gJson.data
-            : []
-          const gMap = new Map<string, string>()
-          gList.forEach((g) => {
-            if (g.globalSlug) gMap.set(g.globalSlug, (g as any).label || g.globalSlug)
-          })
-          if (!cancelled) setGlobalSlugToLabel(gMap)
+          const json = await res.json().catch(() => null)
+          const list: Array<{
+            type: string
+            name?: string
+            description?: string
+            renderingMode?: 'static' | 'react'
+          }> = Array.isArray(json?.data) ? json.data : []
+          if (!cancelled) {
+            const map: Record<
+              string,
+              { name: string; description?: string; renderingMode?: 'static' | 'react' }
+            > = {}
+            list.forEach((m) => {
+              map[m.type] = {
+                name: m.name || m.type,
+                description: m.description,
+                renderingMode: m.renderingMode,
+              }
+            })
+            setModuleRegistry(map)
+          }
+          // Load globals for slug->label mapping
+          try {
+            const gRes = await fetch('/api/modules/global', { credentials: 'same-origin' })
+            const gJson = await gRes.json().catch(() => ({}))
+            const gList: Array<{ globalSlug: string; label?: string | null }> = Array.isArray(
+              gJson?.data
+            )
+              ? gJson.data
+              : []
+            const gMap = new Map<string, string>()
+            gList.forEach((g) => {
+              if (g.globalSlug) gMap.set(g.globalSlug, (g as any).label || g.globalSlug)
+            })
+            if (!cancelled) setGlobalSlugToLabel(gMap)
+          } catch {
+            /* ignore */
+          }
         } catch {
-          /* ignore */
+          if (!cancelled) setModuleRegistry({})
         }
-      } catch {
-        if (!cancelled) setModuleRegistry({})
-      }
-    })()
+      })()
     return () => {
       cancelled = true
     }
@@ -871,27 +871,27 @@ export default function Editor({
       return
     }
     let mounted = true
-    ;(async () => {
-      try {
-        const res = await fetch('/api/url-patterns', { credentials: 'same-origin' })
-        const json = await res.json().catch(() => ({}))
-        const list: Array<{
-          postType: string
-          locale: string
-          pattern: string
-          isDefault: boolean
-        }> = Array.isArray(json?.data) ? json.data : []
-        const rec =
-          list.find((p) => p.postType === post.type && p.locale === post.locale && p.isDefault) ||
-          list.find((p) => p.postType === post.type && p.locale === post.locale) ||
-          null
-        if (!mounted) return
-        setPathPattern(rec?.pattern || '/{locale}/posts/{slug}')
-      } catch {
-        if (!mounted) return
-        setPathPattern('/{locale}/posts/{slug}')
-      }
-    })()
+      ; (async () => {
+        try {
+          const res = await fetch('/api/url-patterns', { credentials: 'same-origin' })
+          const json = await res.json().catch(() => ({}))
+          const list: Array<{
+            postType: string
+            locale: string
+            pattern: string
+            isDefault: boolean
+          }> = Array.isArray(json?.data) ? json.data : []
+          const rec =
+            list.find((p) => p.postType === post.type && p.locale === post.locale && p.isDefault) ||
+            list.find((p) => p.postType === post.type && p.locale === post.locale) ||
+            null
+          if (!mounted) return
+          setPathPattern(rec?.pattern || '/{locale}/posts/{slug}')
+        } catch {
+          if (!mounted) return
+          setPathPattern('/{locale}/posts/{slug}')
+        }
+      })()
     return () => {
       mounted = false
     }
@@ -900,21 +900,21 @@ export default function Editor({
   // Load supported locales from API (enabled locales)
   useEffect(() => {
     let mounted = true
-    ;(async () => {
-      try {
-        const res = await fetch('/api/locales', { credentials: 'same-origin' })
-        const json = await res.json().catch(() => ({}))
-        const list: Array<{ code: string; isEnabled: boolean }> = Array.isArray(json?.data)
-          ? json.data
-          : []
-        const enabled = list.filter((l) => l.isEnabled).map((l) => l.code)
-        if (!mounted) return
-        setSupportedLocales(enabled.length ? enabled : ['en'])
-      } catch {
-        if (!mounted) return
-        setSupportedLocales(['en'])
-      }
-    })()
+      ; (async () => {
+        try {
+          const res = await fetch('/api/locales', { credentials: 'same-origin' })
+          const json = await res.json().catch(() => ({}))
+          const list: Array<{ code: string; isEnabled: boolean }> = Array.isArray(json?.data)
+            ? json.data
+            : []
+          const enabled = list.filter((l) => l.isEnabled).map((l) => l.code)
+          if (!mounted) return
+          setSupportedLocales(enabled.length ? enabled : ['en'])
+        } catch {
+          if (!mounted) return
+          setSupportedLocales(['en'])
+        }
+      })()
     return () => {
       mounted = false
     }
@@ -951,10 +951,10 @@ export default function Editor({
           ? aiReviewDraft.customFields
           : Array.isArray(initialCustomFields)
             ? initialCustomFields.map((f) => ({
-                fieldId: f.id,
-                slug: f.slug,
-                value: f.value ?? null,
-              }))
+              fieldId: f.id,
+              slug: f.slug,
+              value: f.value ?? null,
+            }))
             : [],
         taxonomyTermIds: selectedTaxonomyTermIds,
       }
@@ -1161,26 +1161,26 @@ export default function Editor({
   // Load agents
   useEffect(() => {
     let alive = true
-    ;(async () => {
-      try {
-        const res = await fetch('/api/agents', { credentials: 'same-origin' })
-        const json = await res.json().catch(() => ({}))
-        const list: Array<{
-          id: string
-          name: string
-          description?: string
-          openEndedContext?: {
-            enabled: boolean
-            label?: string
-            placeholder?: string
-            maxChars?: number
-          }
-        }> = Array.isArray(json?.data) ? json.data : []
-        if (alive) setAgents(list)
-      } catch {
-        if (alive) setAgents([])
-      }
-    })()
+      ; (async () => {
+        try {
+          const res = await fetch('/api/agents', { credentials: 'same-origin' })
+          const json = await res.json().catch(() => ({}))
+          const list: Array<{
+            id: string
+            name: string
+            description?: string
+            openEndedContext?: {
+              enabled: boolean
+              label?: string
+              placeholder?: string
+              maxChars?: number
+            }
+          }> = Array.isArray(json?.data) ? json.data : []
+          if (alive) setAgents(list)
+        } catch {
+          if (alive) setAgents([])
+        }
+      })()
     return () => {
       alive = false
     }
@@ -1189,19 +1189,19 @@ export default function Editor({
   // Load field-scoped agents for Featured Image (media field type)
   useEffect(() => {
     let alive = true
-    ;(async () => {
-      try {
-        const res = await fetch(
-          `/api/agents?scope=field&fieldType=media&fieldKey=post.featuredImageId`,
-          { credentials: 'same-origin' }
-        )
-        const json = await res.json().catch(() => ({}))
-        const agents: Agent[] = Array.isArray(json?.data) ? json.data : []
-        if (alive) setFeaturedImageFieldAgents(agents)
-      } catch {
-        if (alive) setFeaturedImageFieldAgents([])
-      }
-    })()
+      ; (async () => {
+        try {
+          const res = await fetch(
+            `/api/agents?scope=field&fieldType=media&fieldKey=post.featuredImageId`,
+            { credentials: 'same-origin' }
+          )
+          const json = await res.json().catch(() => ({}))
+          const agents: Agent[] = Array.isArray(json?.data) ? json.data : []
+          if (alive) setFeaturedImageFieldAgents(agents)
+        } catch {
+          if (alive) setFeaturedImageFieldAgents([])
+        }
+      })()
     return () => {
       alive = false
     }
@@ -1687,7 +1687,7 @@ export default function Editor({
                           >
                             <FontAwesomeIcon
                               icon={faWandMagicSparkles}
-                              className="text-xs text-primary"
+                              className="text-md text-primary text-neutral-high dark:text-neutral-high"
                             />
                           </button>
                         )}
@@ -2132,12 +2132,12 @@ export default function Editor({
                                       <div className="text-sm font-medium text-neutral-high">
                                         {m.scope === 'global'
                                           ? globalSlugToLabel.get(
-                                              String((m as any).globalSlug || '')
-                                            ) ||
-                                            (m as any).globalLabel ||
-                                            (m as any).globalSlug ||
-                                            moduleRegistry[m.type]?.name ||
-                                            m.type
+                                            String((m as any).globalSlug || '')
+                                          ) ||
+                                          (m as any).globalLabel ||
+                                          (m as any).globalSlug ||
+                                          moduleRegistry[m.type]?.name ||
+                                          m.type
                                           : moduleRegistry[m.type]?.name || m.type}
                                       </div>
                                       <div className="text-xs text-neutral-low">
@@ -2465,7 +2465,7 @@ export default function Editor({
                       <span>Agent</span>
                       <FontAwesomeIcon
                         icon={faWandMagicSparkles}
-                        className="text-xs text-primary"
+                        className="text-md text-primary text-neutral-high dark:text-neutral-high"
                       />
                     </div>
                   </label>
@@ -2577,25 +2577,25 @@ export default function Editor({
                                                 {item.response.summary ||
                                                   (item.response.rawResponse
                                                     ? (() => {
-                                                        try {
-                                                          const jsonMatch =
-                                                            item.response.rawResponse?.match(
-                                                              /```(?:json)?\s*(\{[\s\S]*\})\s*```/
-                                                            )
-                                                          const jsonStr = jsonMatch
-                                                            ? jsonMatch[1]
-                                                            : item.response.rawResponse
-                                                          const parsed = JSON.parse(jsonStr)
-                                                          return (
-                                                            parsed.summary || 'Changes applied.'
+                                                      try {
+                                                        const jsonMatch =
+                                                          item.response.rawResponse?.match(
+                                                            /```(?:json)?\s*(\{[\s\S]*\})\s*```/
                                                           )
-                                                        } catch {
-                                                          return (
-                                                            item.response.rawResponse ||
-                                                            'Changes applied.'
-                                                          )
-                                                        }
-                                                      })()
+                                                        const jsonStr = jsonMatch
+                                                          ? jsonMatch[1]
+                                                          : item.response.rawResponse
+                                                        const parsed = JSON.parse(jsonStr)
+                                                        return (
+                                                          parsed.summary || 'Changes applied.'
+                                                        )
+                                                      } catch {
+                                                        return (
+                                                          item.response.rawResponse ||
+                                                          'Changes applied.'
+                                                        )
+                                                      }
+                                                    })()
                                                     : 'Changes applied.')}
                                               </div>
                                               {item.response.applied &&
@@ -2929,7 +2929,7 @@ export default function Editor({
                               return
                             }
                             // No prompt required: run immediately, but still show response in dialog
-                            ;(async () => {
+                            ; (async () => {
                               // Open dialog FIRST to ensure it's open before setting running state
                               setAgentPromptOpen(true)
                               // Use requestAnimationFrame to ensure dialog state is set before preventing close
@@ -3813,30 +3813,30 @@ function PostCustomPostReferenceField({
 
   useEffect(() => {
     let alive = true
-    ;(async () => {
-      try {
-        const params = new URLSearchParams()
-        params.set('status', 'published')
-        params.set('limit', '100')
-        params.set('sortBy', 'published_at')
-        params.set('sortOrder', 'desc')
-        if (allowedTypes.length > 0) {
-          params.set('types', allowedTypes.join(','))
+      ; (async () => {
+        try {
+          const params = new URLSearchParams()
+          params.set('status', 'published')
+          params.set('limit', '100')
+          params.set('sortBy', 'published_at')
+          params.set('sortOrder', 'desc')
+          if (allowedTypes.length > 0) {
+            params.set('types', allowedTypes.join(','))
+          }
+          const res = await fetch(`/api/posts?${params.toString()}`, { credentials: 'same-origin' })
+          const j = await res.json().catch(() => ({}))
+          const list: Array<{ id: string; title: string; slug?: string }> = Array.isArray(j?.data)
+            ? j.data
+            : []
+          if (!alive) return
+          setOptions(
+            list.map((p) => ({ label: p.title || p.slug || String(p.id), value: String(p.id) }))
+          )
+        } catch {
+          if (!alive) return
+          setOptions([])
         }
-        const res = await fetch(`/api/posts?${params.toString()}`, { credentials: 'same-origin' })
-        const j = await res.json().catch(() => ({}))
-        const list: Array<{ id: string; title: string; slug?: string }> = Array.isArray(j?.data)
-          ? j.data
-          : []
-        if (!alive) return
-        setOptions(
-          list.map((p) => ({ label: p.title || p.slug || String(p.id), value: String(p.id) }))
-        )
-      } catch {
-        if (!alive) return
-        setOptions([])
-      }
-    })()
+      })()
     return () => {
       alive = false
     }
@@ -4062,25 +4062,25 @@ function ParentSelect({
   const [loading, setLoading] = useState<boolean>(false)
   useEffect(() => {
     let alive = true
-    ;(async () => {
-      try {
-        setLoading(true)
-        const params = new URLSearchParams()
-        params.set('types', postType)
-        params.set('locale', locale)
-        params.set('status', 'published')
-        params.set('limit', '100')
-        const res = await fetch(`/api/posts?${params.toString()}`, { credentials: 'same-origin' })
-        const json = await res.json().catch(() => ({}))
-        const list: Array<{ id: string; title: string }> = Array.isArray(json?.data)
-          ? json.data
-          : []
-        if (!alive) return
-        setOptions(list.filter((p) => p.id !== postId))
-      } finally {
-        if (alive) setLoading(false)
-      }
-    })()
+      ; (async () => {
+        try {
+          setLoading(true)
+          const params = new URLSearchParams()
+          params.set('types', postType)
+          params.set('locale', locale)
+          params.set('status', 'published')
+          params.set('limit', '100')
+          const res = await fetch(`/api/posts?${params.toString()}`, { credentials: 'same-origin' })
+          const json = await res.json().catch(() => ({}))
+          const list: Array<{ id: string; title: string }> = Array.isArray(json?.data)
+            ? json.data
+            : []
+          if (!alive) return
+          setOptions(list.filter((p) => p.id !== postId))
+        } finally {
+          if (alive) setLoading(false)
+        }
+      })()
     return () => {
       alive = false
     }
