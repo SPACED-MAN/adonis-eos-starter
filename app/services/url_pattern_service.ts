@@ -1,4 +1,3 @@
-import db from '@adonisjs/lucid/services/db'
 import postTypeConfigService from '#services/post_type_config_service'
 import localeService from '#services/locale_service'
 import UrlPattern from '#models/url_pattern'
@@ -210,24 +209,24 @@ class UrlPatternService {
     // Load the post to get type/locale/parent_id
     const root = await Post.query()
       .where('id', postId)
-      .select('id', 'parentId', 'type', 'locale', 'slug')
+      .select('id', 'parent_id', 'type', 'locale', 'slug')
       .first()
     if (!root) return ''
     const type = String(root.type)
     const locale = String(root.locale)
-    let nextParent: string | null = (root as any).parentId ?? null
+    let nextParent: string | null = root.parentId ?? null
     const chain: string[] = []
     const guard = new Set<string>([String(root.id)])
     while (nextParent) {
       const row = await Post.query()
         .where('id', nextParent)
-        .select('id', 'parentId', 'slug', 'type', 'locale')
+        .select('id', 'parent_id', 'slug', 'type', 'locale')
         .first()
       if (!row) break
       if (String(row.type) !== type || String(row.locale) !== locale) break
-      const slug = String((row as any).slug || '')
+      const slug = String(row.slug || '')
       if (slug) chain.push(slug)
-      const candidate = (row as any).parentId ?? null
+      const candidate = row.parentId ?? null
       if (candidate && guard.has(String(row.id))) break
       if (candidate) guard.add(String(candidate))
       nextParent = candidate
@@ -242,7 +241,7 @@ class UrlPatternService {
   async buildPostPathForPost(postId: string): Promise<string> {
     const row = await Post.query()
       .where('id', postId)
-      .select('id', 'parentId', 'type', 'locale', 'slug', 'createdAt')
+      .select('id', 'parent_id', 'type', 'locale', 'slug', 'created_at')
       .first()
     if (!row) return '/'
     return this.buildPostPathForRow(row)
@@ -265,7 +264,20 @@ class UrlPatternService {
   private async buildPostPathForRow(row: any, slugOverride?: string): Promise<string> {
     const patternRec = await this.getDefaultPattern(String(row.type), String(row.locale))
     const pattern = patternRec?.pattern || '/{locale}/posts/{slug}'
-    const d = (row as any).createdAt ? new Date((row as any).createdAt) : new Date()
+
+    // Handle both Lucid model and raw object
+    const createdAtRaw = row.createdAt || row.created_at
+    let d: Date
+    if (createdAtRaw) {
+      if (typeof createdAtRaw.toJSDate === 'function') {
+        d = createdAtRaw.toJSDate()
+      } else {
+        d = new Date(createdAtRaw)
+      }
+    } else {
+      d = new Date()
+    }
+
     const yyyy = String(d.getUTCFullYear())
     const mm = String(d.getUTCMonth() + 1).padStart(2, '0')
     const dd = String(d.getUTCDate()).padStart(2, '0')
@@ -290,7 +302,7 @@ class UrlPatternService {
   async buildPostPathForPostWithSlug(postId: string, slug: string): Promise<string> {
     const row = await Post.query()
       .where('id', postId)
-      .select('id', 'parentId', 'type', 'locale', 'slug', 'createdAt')
+      .select('id', 'parent_id', 'type', 'locale', 'slug', 'created_at')
       .first()
     if (!row) return '/'
     return this.buildPostPathForRow(row, slug)
@@ -307,10 +319,9 @@ class UrlPatternService {
     const results = new Map<string, string>()
 
     // Fetch all post rows in one go
-    const rows = await db
-      .from('posts')
+    const rows = await Post.query()
       .whereIn('id', uniqueIds)
-      .select('id', 'parentId', 'type', 'locale', 'slug', 'createdAt')
+      .select('id', 'parent_id', 'type', 'locale', 'slug', 'created_at')
 
     // Prepare a map for quick lookup
     const rowMap = new Map<string, any>()
