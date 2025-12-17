@@ -166,4 +166,11 @@ export default await Env.create(new URL('../', import.meta.url), {
   |----------------------------------------------------------
   */
   CSP_CDN_DOMAINS: Env.schema.string.optional(),
+
+  /*
+  |----------------------------------------------------------
+  | Development Tools
+  |----------------------------------------------------------
+  */
+  ENABLE_DEV_TOOLS: Env.schema.boolean.optional(),
 })

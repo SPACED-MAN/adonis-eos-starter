@@ -97,7 +97,7 @@ export default function ActivityLogPage() {
               </TableRow>
             </TableHeader>
             <TableBody>
-              {rows.map((r) => (
+                {rows.map((r) => (
                 <TableRow key={r.id}>
                   <TableCell className="whitespace-nowrap">{formatDateTime(r.createdAt)}</TableCell>
                   <TableCell>{r.userEmail || (r.userId ? `User ${r.userId}` : '—')}</TableCell>
@@ -108,14 +108,14 @@ export default function ActivityLogPage() {
                   </TableCell>
                   <TableCell>{r.ip || '—'}</TableCell>
                 </TableRow>
-              ))}
-              {rows.length === 0 && !loading && (
+                ))}
+                {rows.length === 0 && !loading && (
                 <TableRow>
                   <TableCell colSpan={6} className="py-8 text-center text-neutral-low">
-                    No activity yet.
+                      No activity yet.
                   </TableCell>
                 </TableRow>
-              )}
+                )}
             </TableBody>
           </Table>
         </div>

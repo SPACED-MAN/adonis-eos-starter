@@ -891,34 +891,34 @@ export default function DatabaseIndex() {
                         </TableRow>
                       </TableHeader>
                       <TableBody>
-                        {getStatusRows(importResult, resultFilter).map((row, i) => (
+                          {getStatusRows(importResult, resultFilter).map((row, i) => (
                           <TableRow key={i}>
                             <TableCell className="font-mono text-xs text-neutral-dark">
-                              {row.table}
+                                {row.table}
                             </TableCell>
                             <TableCell>
-                              <span
-                                className={`px-2 py-1 text-xs font-semibold rounded ${
-                                  row.status === 'skipped'
-                                    ? 'bg-amber-100 text-amber-800'
-                                    : 'bg-rose-100 text-rose-800'
-                                }`}
-                              >
-                                {row.status === 'skipped' ? 'Skipped' : 'Error'}
-                              </span>
+                                <span
+                                  className={`px-2 py-1 text-xs font-semibold rounded ${
+                                    row.status === 'skipped'
+                                      ? 'bg-amber-100 text-amber-800'
+                                      : 'bg-rose-100 text-rose-800'
+                                  }`}
+                                >
+                                  {row.status === 'skipped' ? 'Skipped' : 'Error'}
+                                </span>
                             </TableCell>
                             <TableCell className="text-neutral-medium">
-                              {row.message ? row.message : '—'}
+                                {row.message ? row.message : '—'}
                             </TableCell>
                           </TableRow>
-                        ))}
-                        {getStatusRows(importResult, resultFilter).length === 0 && (
+                          ))}
+                          {getStatusRows(importResult, resultFilter).length === 0 && (
                           <TableRow>
                             <TableCell colSpan={3} className="text-neutral-medium text-center">
-                              No rows match your filter.
+                                No rows match your filter.
                             </TableCell>
                           </TableRow>
-                        )}
+                          )}
                       </TableBody>
                     </Table>
 

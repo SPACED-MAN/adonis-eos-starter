@@ -348,10 +348,10 @@ export default function GlobalModulesIndex() {
       setGroupDirty(false)
       const regList = Array.isArray(regJson?.data)
         ? regJson.data.map((m: any) => ({
-          type: m.type,
-          name: m.name || m.type,
-          renderingMode: m.renderingMode,
-        }))
+            type: m.type,
+            name: m.name || m.type,
+            renderingMode: m.renderingMode,
+          }))
         : []
       setGroupRegistry(regList)
       // keep existing globals list for labels; reuse loaded globals
@@ -606,14 +606,14 @@ export default function GlobalModulesIndex() {
                     </TableRow>
                   </TableHeader>
                   <TableBody>
-                    {globals.length === 0 ? (
+                      {globals.length === 0 ? (
                       <TableRow>
                         <TableCell colSpan={6} className="text-xs text-neutral-low">
-                          {loading ? 'Loading…' : 'No global modules.'}
+                            {loading ? 'Loading…' : 'No global modules.'}
                         </TableCell>
                       </TableRow>
-                    ) : (
-                      globals.map((m) => (
+                      ) : (
+                        globals.map((m) => (
                         <TableRow key={m.id}>
                           <TableCell>{(m as any).label || '-'}</TableCell>
                           <TableCell>{m.globalSlug || '-'}</TableCell>
@@ -621,26 +621,26 @@ export default function GlobalModulesIndex() {
                           <TableCell>{new Date(m.updatedAt).toLocaleString()}</TableCell>
                           <TableCell>{m.usageCount}</TableCell>
                           <TableCell>
-                            <div className="flex items-center justify-end gap-2">
-                              <button
-                                className="px-2 py-1 text-xs border border-line-medium rounded hover:bg-backdrop-medium"
-                                onClick={() => setEditing(m)}
-                              >
-                                Edit
-                              </button>
-                              <button
-                                className="px-2 py-1 text-xs border border-line-medium rounded hover:bg-backdrop-medium disabled:opacity-50"
-                                disabled={m.usageCount > 0}
-                                onClick={() => deleteGlobal(m.id)}
+                              <div className="flex items-center justify-end gap-2">
+                                <button
+                                  className="px-2 py-1 text-xs border border-line-medium rounded hover:bg-backdrop-medium"
+                                  onClick={() => setEditing(m)}
+                                >
+                                  Edit
+                                </button>
+                                <button
+                                  className="px-2 py-1 text-xs border border-line-medium rounded hover:bg-backdrop-medium disabled:opacity-50"
+                                  disabled={m.usageCount > 0}
+                                  onClick={() => deleteGlobal(m.id)}
                                 title={m.usageCount > 0 ? 'Cannot delete while referenced' : 'Delete'}
-                              >
-                                Delete
-                              </button>
-                            </div>
+                                >
+                                  Delete
+                                </button>
+                              </div>
                           </TableCell>
                         </TableRow>
-                      ))
-                    )}
+                        ))
+                      )}
                   </TableBody>
                 </Table>
               </section>
@@ -913,9 +913,9 @@ export default function GlobalModulesIndex() {
                                       <div className="text-sm font-medium text-neutral-high flex items-center gap-1">
                                         {m.scope === 'global'
                                           ? slugToLabel.get(String(m.global_slug || '')) ||
-                                          String(m.global_slug || '')
+                                            String(m.global_slug || '')
                                           : groupRegistry.find((r) => r.type === m.type)?.name ||
-                                          m.type}
+                                            m.type}
                                       </div>
                                       <div className="text-xs text-neutral-low">
                                         {m.scope === 'global' ? (
@@ -930,18 +930,18 @@ export default function GlobalModulesIndex() {
                                   <div className="flex items-center gap-2">
                                     {groupRegistry.find((r) => r.type === m.type)?.renderingMode ===
                                       'react' && (
-                                        <span
-                                          className="inline-flex items-center rounded border border-line-medium bg-backdrop-low px-2 py-1 text-xs text-neutral-high"
-                                          title="React module (client-side interactivity)"
-                                          aria-label="React module"
-                                        >
-                                          <FontAwesomeIcon
-                                            icon={faReact}
-                                            className="mr-1 text-sky-400"
-                                          />
-                                          React
-                                        </span>
-                                      )}
+                                      <span
+                                        className="inline-flex items-center rounded border border-line-medium bg-backdrop-low px-2 py-1 text-xs text-neutral-high"
+                                        title="React module (client-side interactivity)"
+                                        aria-label="React module"
+                                      >
+                                        <FontAwesomeIcon
+                                          icon={faReact}
+                                          className="mr-1 text-sky-400"
+                                        />
+                                        React
+                                      </span>
+                                    )}
                                     {m.scope === 'global' && (
                                       <span
                                         className="inline-flex items-center rounded border border-line-medium bg-backdrop-low px-2 py-1 text-xs text-neutral-high"

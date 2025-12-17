@@ -85,11 +85,11 @@ export default function PostTypeDefault({ post, modules, seo, siteSettings }: Po
               className="container mx-auto px-4 sm:px-6 lg:px-8 py-8"
               {...(isAuthenticated
                 ? {
-                  'data-inline-module': module.id,
-                  'data-inline-scope': module.scope || 'local',
-                  'data-inline-global-slug': module.globalSlug || undefined,
-                  'data-inline-global-label': module.globalLabel || undefined,
-                }
+                    'data-inline-module': module.id,
+                    'data-inline-scope': module.scope || 'local',
+                    'data-inline-global-slug': module.globalSlug || undefined,
+                    'data-inline-global-label': module.globalLabel || undefined,
+                  }
                 : {})}
             >
               <Component

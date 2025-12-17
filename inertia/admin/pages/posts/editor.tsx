@@ -1208,7 +1208,7 @@ export default function Editor({
           ? reviewInitialRef.current
           : viewMode === 'ai-review' && aiReviewInitialRef.current
             ? aiReviewInitialRef.current
-            : initialDataRef.current
+          : initialDataRef.current
       // Normalize BOTH sides via pickForm so '' vs null coercions don't create false "dirty" states.
       const fieldsChanged =
         JSON.stringify(pickForm(data)) !== JSON.stringify(pickForm(baseline as any))
@@ -2277,8 +2277,8 @@ export default function Editor({
         return resolved ? ([resolved, payload] as const) : null
       })
       .filter(Boolean) as Array<
-        readonly [string, { overrides: Record<string, any> | null; edited: Record<string, any> }]
-      >
+      readonly [string, { overrides: Record<string, any> | null; edited: Record<string, any> }]
+    >
 
     const findModule = (id: string) => {
       const direct = modules.find((m) => m.id === id)
@@ -2886,7 +2886,7 @@ export default function Editor({
                 <div className="mt-6">
                   <div className="flex items-center justify-between mb-4">
                     <div className="flex items-center gap-4">
-                      <h3 className="text-base font-semibold text-neutral-high">Modules</h3>
+                    <h3 className="text-base font-semibold text-neutral-high">Modules</h3>
                       {modules.length > 0 && (
                         <div className="flex items-center gap-2">
                           <button

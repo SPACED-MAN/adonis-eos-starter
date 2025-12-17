@@ -290,165 +290,165 @@ export default function UsersIndex() {
               </TableRow>
             </TableHeader>
             <TableBody>
-              {filteredRows().map((u) => (
+                {filteredRows().map((u) => (
                 <TableRow key={u.id}>
                   <TableCell>{u.email}</TableCell>
                   <TableCell>
-                    <Input
-                      defaultValue={u.username || ''}
-                      onBlur={(e) => {
-                        const val = e.target.value
-                        if (val !== (u.username || '')) saveRow(u.id, { username: val })
-                      }}
-                      placeholder="Username"
-                      className="max-w-xs"
-                    />
+                      <Input
+                        defaultValue={u.username || ''}
+                        onBlur={(e) => {
+                          const val = e.target.value
+                          if (val !== (u.username || '')) saveRow(u.id, { username: val })
+                        }}
+                        placeholder="Username"
+                        className="max-w-xs"
+                      />
                   </TableCell>
                   <TableCell>
                     <Select defaultValue={u.role} onValueChange={(val) => saveRow(u.id, { role: val as Role })}>
-                      <SelectTrigger className="w-[160px]">
-                        <SelectValue />
-                      </SelectTrigger>
-                      <SelectContent>
-                        {availableRoles.map((r: any) => (
-                          <SelectItem key={r.name} value={r.name}>
-                            {r.label}
-                          </SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
+                        <SelectTrigger className="w-[160px]">
+                          <SelectValue />
+                        </SelectTrigger>
+                        <SelectContent>
+                          {availableRoles.map((r: any) => (
+                            <SelectItem key={r.name} value={r.name}>
+                              {r.label}
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
                   </TableCell>
                   <TableCell className="text-right">
-                    <a
-                      href={`/admin/users/${u.id}/edit`}
-                      className="px-2 py-1 text-xs border border-line-medium rounded hover:bg-backdrop-medium text-neutral-medium mr-2"
-                    >
-                      Edit
-                    </a>
-                    <button
-                      className="px-2 py-1 text-xs border border-line-medium rounded hover:bg-backdrop-medium text-neutral-high mr-2"
-                      onClick={async () => {
-                        try {
+                      <a
+                        href={`/admin/users/${u.id}/edit`}
+                        className="px-2 py-1 text-xs border border-line-medium rounded hover:bg-backdrop-medium text-neutral-medium mr-2"
+                      >
+                        Edit
+                      </a>
+                      <button
+                        className="px-2 py-1 text-xs border border-line-medium rounded hover:bg-backdrop-medium text-neutral-high mr-2"
+                        onClick={async () => {
+                          try {
                           const res = await fetch(`/api/users/${encodeURIComponent(u.id)}/profile`, {
                             credentials: 'same-origin',
                           })
-                          const j = await res.json().catch(() => ({}))
-                          let pid: string | null = j?.id || null
-                          if (!pid) {
-                            const csrf = getXsrf()
+                            const j = await res.json().catch(() => ({}))
+                            let pid: string | null = j?.id || null
+                            if (!pid) {
+                              const csrf = getXsrf()
                             const createRes = await fetch(`/api/users/${encodeURIComponent(u.id)}/profile`, {
-                              method: 'POST',
-                              headers: {
-                                'Accept': 'application/json',
-                                'Content-Type': 'application/json',
-                                ...(csrf ? { 'X-XSRF-TOKEN': csrf } : {}),
-                              },
-                              credentials: 'same-origin',
-                            })
-                            const cj = await createRes.json().catch(() => ({}))
-                            if (!createRes.ok) {
-                              toast.error(cj?.error || 'Failed to create profile')
-                              return
-                            }
-                            pid = cj?.id || null
-                          }
-                          if (pid) window.location.href = `/admin/posts/${pid}/edit`
-                        } catch {
-                          toast.error('Failed to open profile')
-                        }
-                      }}
-                    >
-                      Edit Details
-                    </button>
-                    {pwdFor === u.id ? (
-                      <div className="inline-flex items-center gap-2">
-                        <Input
-                          type="password"
-                          value={pwd}
-                          onChange={(e) => setPwd(e.target.value)}
-                          placeholder="New password"
-                          className="w-[200px]"
-                        />
-                        <button
-                          className="px-2 py-1 text-xs border border-line-medium rounded hover:bg-backdrop-medium text-neutral-high"
-                          disabled={!!saving[u.id]}
-                          onClick={() => {
-                            resetPassword(u.id, pwd)
-                            setPwdFor(null)
-                            setPwd('')
-                          }}
-                        >
-                          Save
-                        </button>
-                        <button
-                          className="px-2 py-1 text-xs border border-line-medium rounded hover:bg-backdrop-medium text-neutral-medium"
-                          onClick={() => {
-                            setPwdFor(null)
-                            setPwd('')
-                          }}
-                        >
-                          Cancel
-                        </button>
-                      </div>
-                    ) : (
-                      <button
-                        className="px-2 py-1 text-xs border border-line-medium rounded hover:bg-backdrop-medium text-neutral-medium"
-                        onClick={() => setPwdFor(u.id)}
-                      >
-                        Reset Password
-                      </button>
-                    )}
-                    <AlertDialog>
-                      <AlertDialogTrigger asChild>
-                        <button className="ml-2 px-2 py-1 text-xs border border-[#ef4444] text-[#ef4444] rounded hover:bg-[rgba(239,68,68,0.1)]">
-                          Delete
-                        </button>
-                      </AlertDialogTrigger>
-                      <AlertDialogContent>
-                        <AlertDialogHeader>
-                          <AlertDialogTitle>Delete user?</AlertDialogTitle>
-                          <AlertDialogDescription>
-                            This action cannot be undone. The account for {u.email} will be permanently removed.
-                          </AlertDialogDescription>
-                        </AlertDialogHeader>
-                        <AlertDialogFooter>
-                          <AlertDialogCancel>Cancel</AlertDialogCancel>
-                          <AlertDialogAction
-                            onClick={async () => {
-                              try {
-                                const csrf = getXsrf()
-                                const res = await fetch(`/api/users/${encodeURIComponent(u.id)}`, {
-                                  method: 'DELETE',
-                                  headers: { ...(csrf ? { 'X-XSRF-TOKEN': csrf } : {}) },
+                                  method: 'POST',
+                                  headers: {
+                                    'Accept': 'application/json',
+                                    'Content-Type': 'application/json',
+                                    ...(csrf ? { 'X-XSRF-TOKEN': csrf } : {}),
+                                  },
                                   credentials: 'same-origin',
-                                })
-                                if (!res.ok) {
-                                  const j = await res.json().catch(() => ({}))
-                                  toast.error(j?.error || 'Failed to delete user')
-                                  return
-                                }
-                                toast.success('User deleted')
-                                await load()
-                              } catch {
-                                toast.error('Failed to delete user')
+                            })
+                              const cj = await createRes.json().catch(() => ({}))
+                              if (!createRes.ok) {
+                                toast.error(cj?.error || 'Failed to create profile')
+                                return
                               }
+                              pid = cj?.id || null
+                            }
+                            if (pid) window.location.href = `/admin/posts/${pid}/edit`
+                          } catch {
+                            toast.error('Failed to open profile')
+                          }
+                        }}
+                      >
+                        Edit Details
+                      </button>
+                      {pwdFor === u.id ? (
+                        <div className="inline-flex items-center gap-2">
+                          <Input
+                            type="password"
+                            value={pwd}
+                            onChange={(e) => setPwd(e.target.value)}
+                            placeholder="New password"
+                            className="w-[200px]"
+                          />
+                          <button
+                            className="px-2 py-1 text-xs border border-line-medium rounded hover:bg-backdrop-medium text-neutral-high"
+                            disabled={!!saving[u.id]}
+                            onClick={() => {
+                              resetPassword(u.id, pwd)
+                              setPwdFor(null)
+                              setPwd('')
                             }}
                           >
-                            Confirm
-                          </AlertDialogAction>
-                        </AlertDialogFooter>
-                      </AlertDialogContent>
-                    </AlertDialog>
+                            Save
+                          </button>
+                          <button
+                            className="px-2 py-1 text-xs border border-line-medium rounded hover:bg-backdrop-medium text-neutral-medium"
+                            onClick={() => {
+                              setPwdFor(null)
+                              setPwd('')
+                            }}
+                          >
+                            Cancel
+                          </button>
+                        </div>
+                      ) : (
+                        <button
+                          className="px-2 py-1 text-xs border border-line-medium rounded hover:bg-backdrop-medium text-neutral-medium"
+                          onClick={() => setPwdFor(u.id)}
+                        >
+                          Reset Password
+                        </button>
+                      )}
+                      <AlertDialog>
+                        <AlertDialogTrigger asChild>
+                          <button className="ml-2 px-2 py-1 text-xs border border-[#ef4444] text-[#ef4444] rounded hover:bg-[rgba(239,68,68,0.1)]">
+                            Delete
+                          </button>
+                        </AlertDialogTrigger>
+                        <AlertDialogContent>
+                          <AlertDialogHeader>
+                            <AlertDialogTitle>Delete user?</AlertDialogTitle>
+                            <AlertDialogDescription>
+                            This action cannot be undone. The account for {u.email} will be permanently removed.
+                            </AlertDialogDescription>
+                          </AlertDialogHeader>
+                          <AlertDialogFooter>
+                            <AlertDialogCancel>Cancel</AlertDialogCancel>
+                            <AlertDialogAction
+                              onClick={async () => {
+                                try {
+                                  const csrf = getXsrf()
+                                const res = await fetch(`/api/users/${encodeURIComponent(u.id)}`, {
+                                      method: 'DELETE',
+                                      headers: { ...(csrf ? { 'X-XSRF-TOKEN': csrf } : {}) },
+                                      credentials: 'same-origin',
+                                })
+                                  if (!res.ok) {
+                                    const j = await res.json().catch(() => ({}))
+                                    toast.error(j?.error || 'Failed to delete user')
+                                    return
+                                  }
+                                  toast.success('User deleted')
+                                  await load()
+                                } catch {
+                                  toast.error('Failed to delete user')
+                                }
+                              }}
+                            >
+                              Confirm
+                            </AlertDialogAction>
+                          </AlertDialogFooter>
+                        </AlertDialogContent>
+                      </AlertDialog>
                   </TableCell>
                 </TableRow>
-              ))}
-              {filteredRows().length === 0 && (
+                ))}
+                {filteredRows().length === 0 && (
                 <TableRow>
                   <TableCell colSpan={4} className="py-8 text-center text-neutral-low">
-                    No users found.
+                      No users found.
                   </TableCell>
                 </TableRow>
-              )}
+                )}
             </TableBody>
           </Table>
         </div>

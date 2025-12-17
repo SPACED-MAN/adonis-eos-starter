@@ -2,6 +2,7 @@ import { useEffect, useMemo, useState } from 'react'
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome'
 import { faWrench, faXmark, faHighlighter } from '@fortawesome/free-solid-svg-icons'
 import { router } from '@inertiajs/react'
+import { DevTools } from '../../admin/components/DevTools'
 type InlineBridge = {
   enabled: boolean
   canEdit: boolean
@@ -83,6 +84,9 @@ export function SiteAdminBar({ initialProps }: { initialProps?: any }) {
 
   const currentUser = (props as any)?.currentUser
   const post = (props as any)?.post
+  const devToolsData = (props as any)?.devTools
+  
+  const isAdmin = !!(currentUser && currentUser.role === 'admin')
   const isAuthenticated =
     !!currentUser && ['admin', 'editor', 'translator'].includes(String(currentUser.role || ''))
   const [open, setOpen] = useState(false)
@@ -97,6 +101,7 @@ export function SiteAdminBar({ initialProps }: { initialProps?: any }) {
         style={{ bottom: '16px', right: '16px' }}
       >
         <div className="inline-flex overflow-hidden rounded-md border border-line-medium bg-backdrop-high shadow">
+          {/* ... existing buttons ... */}
           {inline.availableModes.hasSource && (
             <button
               type="button"
@@ -162,7 +167,7 @@ export function SiteAdminBar({ initialProps }: { initialProps?: any }) {
             {inline.mode === 'source' && !inline.availableModes.hasReview && (
               <button
                 type="button"
-                className="px-3 py-2 text-xs font-medium rounded-md border border-line-medium bg-backdrop-high text-neutral-high hover:bg-backdrop-medium"
+                className={`px-3 py-2 text-xs font-medium rounded-md border border-line-medium bg-backdrop-high text-neutral-high hover:bg-backdrop-medium`}
                 onClick={() => inline.saveForReview()}
               >
                 Save for Review
@@ -180,39 +185,49 @@ export function SiteAdminBar({ initialProps }: { initialProps?: any }) {
             bottom: '72px',
             right: '16px',
             zIndex: 9999,
-            minWidth: '280px',
+            minWidth: isAdmin ? '600px' : '280px',
+            maxWidth: 'calc(100vw - 32px)',
           }}
-          className="rounded-lg border border-line-low bg-backdrop-input text-neutral-high shadow-lg"
+          className="rounded-lg border border-line-low bg-backdrop-input text-neutral-high shadow-lg overflow-hidden flex flex-col max-h-[80vh]"
         >
-          <div className="flex items-center justify-between px-3 py-2 border-b border-line-low">
+          <div className="flex items-center justify-between px-3 py-2 border-b border-line-low bg-backdrop-high">
             <div className="text-sm font-semibold">Admin</div>
             <button
               aria-label="Close"
-              className="text-neutral-medium hover:text-neutral-high"
+              className="text-neutral-medium hover:text-neutral-high p-1"
               onClick={() => setOpen(false)}
             >
               <FontAwesomeIcon icon={faXmark} />
             </button>
           </div>
-          <div className="p-3 space-y-3 text-sm">
-            <div className="flex items-center justify-between">
-              <span>Go to Dashboard</span>
-              <a
-                href="/admin"
-                className="inline-flex items-center px-4 py-3 rounded border border-line-low hover:bg-backdrop-medium text-neutral-medium min-h-[48px]"
-              >
-                Open
-              </a>
-            </div>
-            {post?.id && (
+          
+          <div className="flex-1 overflow-auto">
+            <div className="p-3 space-y-3 text-sm border-b border-line-low">
               <div className="flex items-center justify-between">
-                <span>Edit this page</span>
+                <span>Go to Dashboard</span>
                 <a
-                  href={`/admin/posts/${post.id}/edit`}
-                  className="inline-flex items-center px-4 py-3 rounded border border-line-low hover:bg-backdrop-medium text-neutral-medium min-h-[48px]"
+                  href="/admin"
+                  className="inline-flex items-center px-4 py-2 rounded border border-line-low hover:bg-backdrop-medium text-neutral-medium"
                 >
-                  Edit
+                  Open
                 </a>
+              </div>
+              {post?.id && (
+                <div className="flex items-center justify-between">
+                  <span>Edit this page</span>
+                  <a
+                    href={`/admin/posts/${post.id}/edit`}
+                    className="inline-flex items-center px-4 py-2 rounded border border-line-low hover:bg-backdrop-medium text-neutral-medium"
+                  >
+                    Edit
+                  </a>
+                </div>
+              )}
+            </div>
+
+            {isAdmin && devToolsData && (
+              <div className="bg-backdrop-high">
+                <DevTools data={devToolsData} />
               </div>
             )}
           </div>

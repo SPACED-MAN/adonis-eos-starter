@@ -162,7 +162,7 @@ export default function FormsIndex({ forms: initialForms, submissions }: FormsIn
                             No forms match your filter.
                           </TableCell>
                         </TableRow>
-                      )}
+                          )}
                     </TableBody>
                   </Table>
                 )}
@@ -197,28 +197,28 @@ export default function FormsIndex({ forms: initialForms, submissions }: FormsIn
                     </TableRow>
                   </TableHeader>
                   <TableBody>
-                    {submissions.map((s) => (
+                      {submissions.map((s) => (
                       <TableRow key={s.id}>
                         <TableCell className="text-neutral-high">
-                          <span className="inline-flex items-center rounded-full bg-backdrop-medium px-2 py-0.5 text-xs font-mono">
-                            {s.formSlug}
-                          </span>
+                            <span className="inline-flex items-center rounded-full bg-backdrop-medium px-2 py-0.5 text-xs font-mono">
+                              {s.formSlug}
+                            </span>
                         </TableCell>
                         <TableCell className="text-neutral-medium">
-                          {s.name || <span className="text-neutral-low">—</span>}
+                            {s.name || <span className="text-neutral-low">—</span>}
                         </TableCell>
                         <TableCell className="text-neutral-medium">
-                          {s.email || <span className="text-neutral-low">—</span>}
+                            {s.email || <span className="text-neutral-low">—</span>}
                         </TableCell>
                         <TableCell className="text-neutral-medium">
-                          {s.createdAt ? (
-                            new Date(s.createdAt).toLocaleString()
-                          ) : (
-                            <span className="text-neutral-low">—</span>
-                          )}
+                            {s.createdAt ? (
+                              new Date(s.createdAt).toLocaleString()
+                            ) : (
+                              <span className="text-neutral-low">—</span>
+                            )}
                         </TableCell>
                       </TableRow>
-                    ))}
+                      ))}
                   </TableBody>
                 </Table>
               )}
