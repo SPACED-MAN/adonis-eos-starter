@@ -18,6 +18,7 @@ import {
   TableHeader,
   TableRow,
 } from '../../components/ui/table'
+import { DragHandle } from '../components/ui/DragHandle'
 import { toast } from 'sonner'
 import {
   DndContext,
@@ -70,7 +71,7 @@ export default function CategoriesPage() {
   const sensors = useSensors(useSensor(PointerSensor, { activationConstraint: { distance: 4 } }))
 
   useEffect(() => {
-    ;(async () => {
+    ; (async () => {
       try {
         const res = await fetch('/api/taxonomies', { credentials: 'same-origin' })
         const json = await res.json().catch(() => ({}))
@@ -431,15 +432,12 @@ function SortableTermRow({
         style={{ paddingLeft: level * 12 }}
         onClick={onSelect}
       >
-        <button
-          type="button"
-          className="mr-2 inline-flex items-center justify-center w-5 h-5 rounded border border-line-low text-[10px] text-neutral-medium hover:bg-backdrop-medium cursor-grab align-middle"
+        <DragHandle
+          className="mr-2"
           {...listeners}
           {...attributes}
           aria-label="Drag to reorder"
-        >
-          ::
-        </button>
+        />
         <span>{term.name}</span>
       </div>
       <div className="flex items-center gap-2">

@@ -10,6 +10,14 @@ import {
   SelectValue,
 } from '~/components/ui/select'
 import { formatDateTime } from '~/utils/format'
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from '~/components/ui/table'
 
 type LogRow = {
   id: string
@@ -77,49 +85,39 @@ export default function ActivityLogPage() {
               {loading ? 'Loading…' : 'Apply'}
             </button>
           </div>
-          <div className="overflow-auto">
-            <table className="w-full text-sm">
-              <thead>
-                <tr className="text-neutral-medium">
-                  <th className="text-left py-2 pr-2">When</th>
-                  <th className="text-left py-2 pr-2">User</th>
-                  <th className="text-left py-2 pr-2">Action</th>
-                  <th className="text-left py-2 pr-2">Entity</th>
-                  <th className="text-left py-2 pr-2">Details</th>
-                  <th className="text-left py-2 pr-2">IP</th>
-                </tr>
-              </thead>
-              <tbody>
-                {rows.map((r) => (
-                  <tr key={r.id} className="border-t border-line-low">
-                    <td className="py-2 pr-2 whitespace-nowrap">{formatDateTime(r.createdAt)}</td>
-                    <td className="py-2 pr-2">
-                      {r.userEmail || (r.userId ? `User ${r.userId}` : '—')}
-                    </td>
-                    <td className="py-2 pr-2 font-mono">{r.action}</td>
-                    <td className="py-2 pr-2">
-                      {r.entityType ? `${r.entityType}#${r.entityId || ''}` : '—'}
-                    </td>
-                    <td className="py-2 pr-2">
-                      {r.metadata ? (
-                        <code className="text-xs">{JSON.stringify(r.metadata)}</code>
-                      ) : (
-                        '—'
-                      )}
-                    </td>
-                    <td className="py-2 pr-2">{r.ip || '—'}</td>
-                  </tr>
-                ))}
-                {rows.length === 0 && !loading && (
-                  <tr>
-                    <td colSpan={6} className="py-8 text-center text-neutral-low">
-                      No activity yet.
-                    </td>
-                  </tr>
-                )}
-              </tbody>
-            </table>
-          </div>
+          <Table>
+            <TableHeader>
+              <TableRow>
+                <TableHead>When</TableHead>
+                <TableHead>User</TableHead>
+                <TableHead>Action</TableHead>
+                <TableHead>Entity</TableHead>
+                <TableHead>Details</TableHead>
+                <TableHead>IP</TableHead>
+              </TableRow>
+            </TableHeader>
+            <TableBody>
+              {rows.map((r) => (
+                <TableRow key={r.id}>
+                  <TableCell className="whitespace-nowrap">{formatDateTime(r.createdAt)}</TableCell>
+                  <TableCell>{r.userEmail || (r.userId ? `User ${r.userId}` : '—')}</TableCell>
+                  <TableCell className="font-mono">{r.action}</TableCell>
+                  <TableCell>{r.entityType ? `${r.entityType}#${r.entityId || ''}` : '—'}</TableCell>
+                  <TableCell>
+                    {r.metadata ? <code className="text-xs">{JSON.stringify(r.metadata)}</code> : '—'}
+                  </TableCell>
+                  <TableCell>{r.ip || '—'}</TableCell>
+                </TableRow>
+              ))}
+              {rows.length === 0 && !loading && (
+                <TableRow>
+                  <TableCell colSpan={6} className="py-8 text-center text-neutral-low">
+                    No activity yet.
+                  </TableCell>
+                </TableRow>
+              )}
+            </TableBody>
+          </Table>
         </div>
       </main>
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">

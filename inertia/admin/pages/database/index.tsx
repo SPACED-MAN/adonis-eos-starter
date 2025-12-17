@@ -3,6 +3,14 @@ import { useState, useEffect, useMemo } from 'react'
 import { toast } from 'sonner'
 import { AdminHeader } from '../../components/AdminHeader'
 import { AdminFooter } from '../../components/AdminFooter'
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from '../../../components/ui/table'
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome'
 import {
   faDownload,
@@ -874,53 +882,45 @@ export default function DatabaseIndex() {
                     </div>
 
                     {/* Skipped and Errors table */}
-                    <div className="overflow-auto border border-line-low rounded bg-backdrop-medium">
-                      <table className="min-w-full text-sm">
-                        <thead className="bg-backdrop-high border-b border-line-low">
-                          <tr>
-                            <th className="px-3 py-2 text-left font-semibold text-neutral-dark">
-                              Table
-                            </th>
-                            <th className="px-3 py-2 text-left font-semibold text-neutral-dark">
-                              Status
-                            </th>
-                            <th className="px-3 py-2 text-left font-semibold text-neutral-dark">
-                              Message
-                            </th>
-                          </tr>
-                        </thead>
-                        <tbody>
-                          {getStatusRows(importResult, resultFilter).map((row, i) => (
-                            <tr key={i} className="border-b border-line-low last:border-0">
-                              <td className="px-3 py-2 font-mono text-xs text-neutral-dark">
-                                {row.table}
-                              </td>
-                              <td className="px-3 py-2">
-                                <span
-                                  className={`px-2 py-1 text-xs font-semibold rounded ${
-                                    row.status === 'skipped'
-                                      ? 'bg-amber-100 text-amber-800'
-                                      : 'bg-rose-100 text-rose-800'
-                                  }`}
-                                >
-                                  {row.status === 'skipped' ? 'Skipped' : 'Error'}
-                                </span>
-                              </td>
-                              <td className="px-3 py-2 text-neutral-medium">
-                                {row.message ? row.message : '—'}
-                              </td>
-                            </tr>
-                          ))}
-                          {getStatusRows(importResult, resultFilter).length === 0 && (
-                            <tr>
-                              <td colSpan={3} className="px-3 py-3 text-neutral-medium text-center">
-                                No rows match your filter.
-                              </td>
-                            </tr>
-                          )}
-                        </tbody>
-                      </table>
-                    </div>
+                    <Table>
+                      <TableHeader>
+                        <TableRow>
+                          <TableHead>Table</TableHead>
+                          <TableHead>Status</TableHead>
+                          <TableHead>Message</TableHead>
+                        </TableRow>
+                      </TableHeader>
+                      <TableBody>
+                        {getStatusRows(importResult, resultFilter).map((row, i) => (
+                          <TableRow key={i}>
+                            <TableCell className="font-mono text-xs text-neutral-dark">
+                              {row.table}
+                            </TableCell>
+                            <TableCell>
+                              <span
+                                className={`px-2 py-1 text-xs font-semibold rounded ${
+                                  row.status === 'skipped'
+                                    ? 'bg-amber-100 text-amber-800'
+                                    : 'bg-rose-100 text-rose-800'
+                                }`}
+                              >
+                                {row.status === 'skipped' ? 'Skipped' : 'Error'}
+                              </span>
+                            </TableCell>
+                            <TableCell className="text-neutral-medium">
+                              {row.message ? row.message : '—'}
+                            </TableCell>
+                          </TableRow>
+                        ))}
+                        {getStatusRows(importResult, resultFilter).length === 0 && (
+                          <TableRow>
+                            <TableCell colSpan={3} className="text-neutral-medium text-center">
+                              No rows match your filter.
+                            </TableCell>
+                          </TableRow>
+                        )}
+                      </TableBody>
+                    </Table>
 
                     <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
                       {[

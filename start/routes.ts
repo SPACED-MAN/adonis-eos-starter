@@ -464,6 +464,8 @@ router
 
 // Admin Forms (submissions) - editors allowed
 router.get('/admin/forms', [FormsAdminController, 'index']).use(middleware.auth())
+router.get('/admin/forms/new', [FormsAdminController, 'createPage']).use(middleware.auth())
+router.get('/admin/forms/:id/edit', [FormsAdminController, 'edit']).use(middleware.auth())
 
 // Admin Menus - editors allowed
 router

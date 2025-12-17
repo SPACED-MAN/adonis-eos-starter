@@ -2,6 +2,14 @@ import { useEffect, useState } from 'react'
 import { Head } from '@inertiajs/react'
 import { AdminHeader } from '../../components/AdminHeader'
 import { AdminFooter } from '../../components/AdminFooter'
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from '../../../components/ui/table'
 
 type LocaleRow = { code: string; isDefault: boolean; isEnabled: boolean }
 
@@ -106,20 +114,22 @@ export default function LocalesPage() {
             {rows.length === 0 ? (
               <p className="text-neutral-low">No locales configured.</p>
             ) : (
-              <table className="w-full text-sm">
-                <thead>
-                  <tr className="text-left text-neutral-low border-b border-line-low">
-                    <th className="py-2">Code</th>
-                    <th className="py-2">Default</th>
-                    <th className="py-2">Enabled</th>
-                    <th className="py-2 text-right">Actions</th>
-                  </tr>
-                </thead>
-                <tbody>
+              <Table>
+                <TableHeader>
+                  <TableRow>
+                    <TableHead>Code</TableHead>
+                    <TableHead>Default</TableHead>
+                    <TableHead>Enabled</TableHead>
+                    <TableHead className="text-right">Actions</TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
                   {rows.map((r) => (
-                    <tr key={r.code} className="border-b border-line-low">
-                      <td className="py-2 font-mono text-neutral-high">{r.code.toUpperCase()}</td>
-                      <td className="py-2">
+                    <TableRow key={r.code}>
+                      <TableCell className="font-mono text-neutral-high">
+                        {r.code.toUpperCase()}
+                      </TableCell>
+                      <TableCell>
                         {r.isDefault ? (
                           <span className="px-2 py-0.5 rounded bg-backdrop-medium text-neutral-high text-xs">
                             DEFAULT
@@ -133,8 +143,8 @@ export default function LocalesPage() {
                             Make default
                           </button>
                         )}
-                      </td>
-                      <td className="py-2">
+                      </TableCell>
+                      <TableCell>
                         <label className="inline-flex items-center gap-2 text-neutral-medium">
                           <input
                             type="checkbox"
@@ -144,8 +154,8 @@ export default function LocalesPage() {
                           />
                           <span>{r.isEnabled ? 'Enabled' : 'Disabled'}</span>
                         </label>
-                      </td>
-                      <td className="py-2 text-right">
+                      </TableCell>
+                      <TableCell className="text-right">
                         <button
                           className="px-2 py-1 text-xs border border-line-medium rounded hover:bg-backdrop-medium text-neutral-medium"
                           onClick={() => removeLocale(r.code)}
@@ -154,11 +164,11 @@ export default function LocalesPage() {
                         >
                           Delete
                         </button>
-                      </td>
-                    </tr>
+                      </TableCell>
+                    </TableRow>
                   ))}
-                </tbody>
-              </table>
+                </TableBody>
+              </Table>
             )}
             <p className="text-xs text-neutral-low">
               Locales are sourced from environment variables DEFAULT_LOCALE and SUPPORTED_LOCALES,

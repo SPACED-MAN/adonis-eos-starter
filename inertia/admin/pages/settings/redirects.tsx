@@ -20,6 +20,14 @@ import {
   SelectTrigger,
   SelectValue,
 } from '~/components/ui/select'
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from '~/components/ui/table'
 
 type Redirect = {
   id: string
@@ -321,47 +329,57 @@ export default function RedirectsPage() {
 
             <section>
               <h3 className="text-base font-semibold text-neutral-high mb-3">Existing Redirects</h3>
-              <div className="divide-y divide-line border border-line-low rounded">
-                {items.length === 0 ? (
-                  <p className="p-4 text-neutral-low">No redirects.</p>
-                ) : (
-                  items.map((r) => (
-                    <div key={r.id} className="p-4 flex items-center justify-between">
-                      <div className="text-sm text-neutral-high">
-                        <span className="font-mono">{r.from_path}</span>
-                        <span className="mx-2">→</span>
-                        <span className="font-mono">{r.to_path}</span>
-                        <span className="ml-3 text-neutral-low">[{r.http_status}]</span>
-                        {r.locale && <span className="ml-2 text-neutral-low">({r.locale})</span>}
-                      </div>
-                      <AlertDialog>
-                        <AlertDialogTrigger asChild>
-                          <button
-                            type="button"
-                            className="px-3 py-1.5 text-xs rounded border border-line-low hover:bg-backdrop-medium text-neutral-medium"
-                          >
-                            Delete
-                          </button>
-                        </AlertDialogTrigger>
-                        <AlertDialogContent>
-                          <AlertDialogHeader>
-                            <AlertDialogTitle>Delete redirect?</AlertDialogTitle>
-                            <AlertDialogDescription>
-                              This action cannot be undone.
-                            </AlertDialogDescription>
-                          </AlertDialogHeader>
-                          <AlertDialogFooter>
-                            <AlertDialogCancel>Cancel</AlertDialogCancel>
-                            <AlertDialogAction onClick={() => remove(r.id)}>
-                              Delete
-                            </AlertDialogAction>
-                          </AlertDialogFooter>
-                        </AlertDialogContent>
-                      </AlertDialog>
-                    </div>
-                  ))
-                )}
-              </div>
+              {items.length === 0 ? (
+                <div className="text-sm text-neutral-low">No redirects.</div>
+              ) : (
+                <Table>
+                  <TableHeader>
+                    <TableRow>
+                      <TableHead>From</TableHead>
+                      <TableHead>To</TableHead>
+                      <TableHead>Status</TableHead>
+                      <TableHead>Locale</TableHead>
+                      <TableHead className="text-right">Actions</TableHead>
+                    </TableRow>
+                  </TableHeader>
+                  <TableBody>
+                    {items.map((r) => (
+                      <TableRow key={r.id}>
+                        <TableCell className="font-mono">{r.from_path}</TableCell>
+                        <TableCell className="font-mono">{r.to_path}</TableCell>
+                        <TableCell className="text-neutral-medium">{r.http_status}</TableCell>
+                        <TableCell className="text-neutral-medium">{r.locale || '—'}</TableCell>
+                        <TableCell className="text-right">
+                          <AlertDialog>
+                            <AlertDialogTrigger asChild>
+                              <button
+                                type="button"
+                                className="px-3 py-1.5 text-xs rounded border border-line-low hover:bg-backdrop-medium text-neutral-medium"
+                              >
+                                Delete
+                              </button>
+                            </AlertDialogTrigger>
+                            <AlertDialogContent>
+                              <AlertDialogHeader>
+                                <AlertDialogTitle>Delete redirect?</AlertDialogTitle>
+                                <AlertDialogDescription>
+                                  This action cannot be undone.
+                                </AlertDialogDescription>
+                              </AlertDialogHeader>
+                              <AlertDialogFooter>
+                                <AlertDialogCancel>Cancel</AlertDialogCancel>
+                                <AlertDialogAction onClick={() => remove(r.id)}>
+                                  Delete
+                                </AlertDialogAction>
+                              </AlertDialogFooter>
+                            </AlertDialogContent>
+                          </AlertDialog>
+                        </TableCell>
+                      </TableRow>
+                    ))}
+                  </TableBody>
+                </Table>
+              )}
             </section>
           </div>
         </div>

@@ -50,7 +50,8 @@ import {
 } from '@dnd-kit/core'
 import { SortableContext, useSortable, verticalListSortingStrategy } from '@dnd-kit/sortable'
 import { CSS } from '@dnd-kit/utilities'
-import { GripVertical, Star } from 'lucide-react'
+import { Star } from 'lucide-react'
+import { DragHandle } from '../../components/ui/DragHandle'
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome'
 import { faReact } from '@fortawesome/free-brands-svg-icons'
 import { faGlobe, faWandMagicSparkles } from '@fortawesome/free-solid-svg-icons'
@@ -1765,7 +1766,7 @@ export default function Editor({
                           >
                             <FontAwesomeIcon
                               icon={faWandMagicSparkles}
-                              className="text-md text-primary text-neutral-high dark:text-neutral-high"
+                              className="text-md text-neutral-high dark:text-neutral-high"
                             />
                           </button>
                         )}
@@ -2198,14 +2199,11 @@ export default function Editor({
                               {(listeners: any) => (
                                 <li className="bg-backdrop-low border border-line-low rounded-lg px-4 py-3 flex items-center justify-between">
                                   <div className="flex items-center gap-3">
-                                    <button
-                                      type="button"
+                                    <DragHandle
                                       aria-label="Drag"
-                                      className={`text-neutral-low hover:text-neutral-high ${m.locked ? 'opacity-40 cursor-not-allowed' : 'cursor-grab'}`}
+                                      disabled={m.locked}
                                       {...(m.locked ? {} : listeners)}
-                                    >
-                                      <GripVertical size={16} />
-                                    </button>
+                                    />
                                     <div>
                                       <div className="text-sm font-medium text-neutral-high">
                                         {m.scope === 'global'
@@ -2543,7 +2541,7 @@ export default function Editor({
                       <span>Agent</span>
                       <FontAwesomeIcon
                         icon={faWandMagicSparkles}
-                        className="text-md text-primary text-neutral-high dark:text-neutral-high"
+                        className="text-md text-neutral-high dark:text-neutral-high"
                       />
                     </div>
                   </label>
@@ -2761,7 +2759,7 @@ export default function Editor({
                                 {agentResponse.summary && (
                                   <div className="space-y-1">
                                     <div className="text-xs text-neutral-medium">AI Response:</div>
-                                    <div className="bg-standout-light p-4 rounded-lg border border-standout-medium text-sm whitespace-pre-wrap break-words">
+                                    <div className="bg-standout-light p-4 rounded-lg border border-standout-medium text-sm whitespace-pre-wrap wrap-break-word">
                                       {agentResponse.summary}
                                     </div>
                                   </div>
@@ -2770,7 +2768,7 @@ export default function Editor({
                                 {!agentResponse.summary && agentResponse.rawResponse && (
                                   <div className="space-y-1">
                                     <div className="text-xs text-neutral-medium">AI Response:</div>
-                                    <div className="bg-standout-light p-4 rounded-lg border border-standout-medium text-sm whitespace-pre-wrap break-words">
+                                    <div className="bg-standout-light p-4 rounded-lg border border-standout-medium text-sm whitespace-pre-wrap wrap-break-word">
                                       {(() => {
                                         const raw = agentResponse.rawResponse
                                         // Try to parse as JSON and extract summary

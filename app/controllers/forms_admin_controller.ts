@@ -86,6 +86,80 @@ export default class FormsAdminController {
   }
 
   /**
+   * GET /admin/forms/new
+   * Admin view for creating a new form definition (dedicated editor page).
+   */
+  async createPage({ inertia, auth, request, response }: HttpContext) {
+    const role = (auth.use('web').user as any)?.role as
+      | 'admin'
+      | 'editor'
+      | 'translator'
+      | undefined
+    if (!roleRegistry.hasPermission(role, 'forms.edit')) {
+      const isInertia = !!request.header('x-inertia')
+      if (isInertia) {
+        return response.redirect('/admin/forbidden')
+      }
+      return response.forbidden({ error: 'Not allowed to create forms' })
+    }
+
+    return inertia.render('admin/forms/editor', { form: null })
+  }
+
+  /**
+   * GET /admin/forms/:id/edit
+   * Admin view for editing a form definition (dedicated editor page).
+   */
+  async edit({ inertia, auth, request, response, params }: HttpContext) {
+    const role = (auth.use('web').user as any)?.role as
+      | 'admin'
+      | 'editor'
+      | 'translator'
+      | undefined
+    if (!roleRegistry.hasPermission(role, 'forms.edit')) {
+      const isInertia = !!request.header('x-inertia')
+      if (isInertia) {
+        return response.redirect('/admin/forbidden')
+      }
+      return response.forbidden({ error: 'Not allowed to edit forms' })
+    }
+
+    const { id } = params
+    const row = await db
+      .from('forms')
+      .where('id', id)
+      .select(
+        '*',
+        db.raw('fields_json::text as fields_json_text'),
+        db.raw('subscriptions_json::text as subscriptions_json_text')
+      )
+      .first()
+
+    if (!row) {
+      const isInertia = !!request.header('x-inertia')
+      if (isInertia) return response.redirect('/admin/forms')
+      return response.notFound({ error: 'Form not found' })
+    }
+
+    const form = {
+      id: String((row as any).id),
+      slug: String((row as any).slug),
+      title: String((row as any).title),
+      description: (row as any).description ? String((row as any).description) : '',
+      fields: coerceJsonArray((row as any).fields_json_text ?? (row as any).fields_json),
+      successMessage: (row as any).success_message ? String((row as any).success_message) : '',
+      thankYouPostId: (row as any).thank_you_post_id ? String((row as any).thank_you_post_id) : '',
+      subscriptions: coerceJsonArray(
+        (row as any).subscriptions_json_text ?? (row as any).subscriptions_json
+      ),
+      createdAt: (row as any).created_at ? new Date((row as any).created_at).toISOString() : null,
+      updatedAt: (row as any).updated_at ? new Date((row as any).updated_at).toISOString() : null,
+    }
+
+    return inertia.render('admin/forms/editor', { form })
+  }
+
+  /**
    * GET /api/forms-definitions
    * List all form definitions (admin).
    */
