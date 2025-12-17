@@ -34,7 +34,7 @@ createInertiaApp({
       el,
       <>
         <App {...props} />
-        <SiteAdminBar />
+        <SiteAdminBar initialProps={props.initialPage.props} />
       </>
     )
   },

@@ -1,3 +1,4 @@
+import db from '@adonisjs/lucid/services/db'
 import postTypeConfigService from '#services/post_type_config_service'
 import localeService from '#services/locale_service'
 import UrlPattern from '#models/url_pattern'
@@ -248,6 +249,14 @@ class UrlPatternService {
   }
 
   /**
+   * Build full absolute URL for a post.
+   */
+  async buildPostUrlForPost(postId: string, protocol: string, host: string): Promise<string> {
+    const path = await this.buildPostPathForPost(postId)
+    return `${protocol}://${host}${path}`
+  }
+
+  /**
    * Internal helper: build path for a given post row, with optional slug override.
    *
    * This lets callers generate a new URL for a post BEFORE the slug is persisted
@@ -287,9 +296,40 @@ class UrlPatternService {
     return this.buildPostPathForRow(row, slug)
   }
 
-  async buildPostUrlForPost(postId: string, protocol: string, host: string): Promise<string> {
-    const path = await this.buildPostPathForPost(postId)
-    return `${protocol}://${host}${path}`
+  /**
+   * Build hierarchical paths for multiple posts in bulk.
+   * Highly recommended for list views or posts with many references.
+   */
+  async buildPostPaths(postIds: string[]): Promise<Map<string, string>> {
+    const uniqueIds = Array.from(new Set(postIds.filter(Boolean)))
+    if (uniqueIds.length === 0) return new Map()
+
+    const results = new Map<string, string>()
+
+    // Fetch all post rows in one go
+    const rows = await db
+      .from('posts')
+      .whereIn('id', uniqueIds)
+      .select('id', 'parentId', 'type', 'locale', 'slug', 'createdAt')
+
+    // Prepare a map for quick lookup
+    const rowMap = new Map<string, any>()
+    rows.forEach((r) => rowMap.set(String(r.id), r))
+
+    // For hierarchical paths, we still need parent slugs.
+    // To be truly efficient, we should fetch the entire hierarchy for all posts in one go,
+    // but for now, we'll use our optimized getParentPathForPost (which uses a recursive CTE).
+    // Even with CTE, doing it in a loop is still N queries.
+    // TODO: Optimize further by fetching all ancestors for all uniqueIds in a single query.
+
+    await Promise.all(
+      rows.map(async (row) => {
+        const path = await this.buildPostPathForRow(row)
+        results.set(String(row.id), path)
+      })
+    )
+
+    return results
   }
 
   /**

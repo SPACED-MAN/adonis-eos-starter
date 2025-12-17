@@ -4,6 +4,7 @@ import moduleScopeService from '#services/module_scope_service'
 import moduleRegistry from '#services/module_registry'
 import postTypeConfigService from '#services/post_type_config_service'
 import { randomUUID } from 'node:crypto'
+import { coerceJsonObject } from '../../helpers/jsonb.js'
 
 type AddModuleToPostParams = {
   postId: string
@@ -93,12 +94,13 @@ export default class AddModuleToPost {
         } else {
           // Create new global module
           const moduleConfig = moduleRegistry.get(moduleType).getConfig()
-          const initialProps =
+          const initialProps = coerceJsonObject(
             props === null ||
-            props === undefined ||
-            (typeof props === 'object' && Object.keys(props).length === 0)
+              props === undefined ||
+              (typeof props === 'object' && Object.keys(props).length === 0)
               ? moduleConfig.defaultProps
               : props
+          )
           const [newGlobal] = await trx
             .table('module_instances')
             .insert({
@@ -117,12 +119,13 @@ export default class AddModuleToPost {
       } else {
         // Create local or static module instance
         const moduleConfig = moduleRegistry.get(moduleType).getConfig()
-        const initialProps =
+        const initialProps = coerceJsonObject(
           props === null ||
-          props === undefined ||
-          (typeof props === 'object' && Object.keys(props).length === 0)
+            props === undefined ||
+            (typeof props === 'object' && Object.keys(props).length === 0)
             ? moduleConfig.defaultProps
             : props
+        )
         const [newInstance] = await trx
           .table('module_instances')
           .insert({
@@ -131,8 +134,9 @@ export default class AddModuleToPost {
             type: moduleType,
             global_slug: null,
             props: initialProps,
-            // For AI review, stage changes without affecting the "approved" props later.
-            // This also ensures the AI Review UI can show the staged content immediately.
+            // For Review/AI review, stage changes without affecting the "approved" props later.
+            // This also ensures the UI can show the staged content immediately.
+            review_props: mode === 'review' ? initialProps : null,
             ai_review_props: mode === 'ai-review' ? initialProps : null,
             created_at: new Date(),
             updated_at: new Date(),

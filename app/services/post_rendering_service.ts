@@ -53,6 +53,8 @@ export interface PostRenderData {
   metaDescription: string | null
   status: string
   author: AuthorData | null
+  reviewDraft?: Record<string, unknown> | null
+  aiReviewDraft?: Record<string, unknown> | null
 }
 
 /**
@@ -67,6 +69,17 @@ export interface PageRenderData {
     renderingMode: 'static' | 'react'
     props: Record<string, unknown>
     html?: string
+    sourceProps?: Record<string, unknown> | null
+    sourceOverrides?: Record<string, unknown> | null
+    reviewProps?: Record<string, unknown> | null
+    aiReviewProps?: Record<string, unknown> | null
+    overrides?: Record<string, unknown> | null
+    reviewOverrides?: Record<string, unknown> | null
+    aiReviewOverrides?: Record<string, unknown> | null
+    reviewAdded?: boolean
+    reviewDeleted?: boolean
+    aiReviewAdded?: boolean
+    aiReviewDeleted?: boolean
   }>
   seo: PostSeoData
   siteSettings: Record<string, unknown>
@@ -184,86 +197,122 @@ class PostRenderingService {
         return pm.reviewAdded !== true && (pm as any).aiReviewAdded !== true
       })
 
-    const prepared = await Promise.all(
-      filtered.map(async (pm) => {
-        const isLocal = pm.scope === 'post'
+    const moduleStates = filtered.map((pm) => {
+      const isLocal = pm.scope === 'post'
 
-        // Draft selection:
-        // - review: only use review_* fields (requires reviewDraft)
-        // - ai-review: only use ai_review_* fields (requires aiReviewDraft)
-        // - auto: prefer reviewDraft when present; otherwise fall back to ai-review fields
-        const useReviewDraft = (() => {
-          if (!wantReview) return false
-          if (draftMode === 'ai-review') return false
-          return Boolean(reviewDraft)
-        })()
+      const useReviewDraft = (() => {
+        if (!wantReview) return false
+        if (draftMode === 'ai-review') return false
+        return true
+      })()
 
-        const useAiReviewDraft = (() => {
-          if (!wantReview) return false
-          if (draftMode === 'review') return false
-          // auto: use ai-review when no reviewDraft
-          return !reviewDraft
-        })()
+      const useAiReviewDraft = (() => {
+        if (!wantReview) return false
+        if (draftMode === 'review') return false
+        return draftMode === 'ai-review' || (draftMode === 'auto' && !reviewDraft)
+      })()
 
-        let mergedProps: Record<string, unknown>
+      const module = moduleRegistry.get(pm.type)
+      const defaultProps = (module.getConfig?.().defaultProps || {}) as Record<string, unknown>
 
-        // Always start from module defaults to prevent SSR crashes when props are partial/malformed.
-        // This is especially important for AI-generated drafts.
-        const module = moduleRegistry.get(pm.type)
-        const defaultProps = (module.getConfig?.().defaultProps || {}) as Record<string, unknown>
+      const draftModulesArray = (reviewDraft as any)?.modules || []
+      const draftModuleState = Array.isArray(draftModulesArray)
+        ? draftModulesArray.find((dm: any) => dm.id === pm.id)
+        : null
 
-        if (useReviewDraft) {
-          if (isLocal) {
-            const baseProps = (pm as any).reviewProps || pm.props || {}
-            const overrides = (pm as any).overrides || {}
-            mergedProps = { ...defaultProps, ...(baseProps as any), ...(overrides as any) }
-          } else {
-            const baseProps = pm.props || {}
-            const overrides = (pm as any).reviewOverrides || (pm as any).overrides || {}
-            mergedProps = { ...defaultProps, ...(baseProps as any), ...(overrides as any) }
-          }
-        } else if (useAiReviewDraft) {
-          if (isLocal) {
-            const baseProps = (pm as any).aiReviewProps || pm.props || {}
-            const overrides = (pm as any).overrides || {}
-            mergedProps = { ...defaultProps, ...(baseProps as any), ...(overrides as any) }
-          } else {
-            const baseProps = pm.props || {}
-            const overrides = (pm as any).aiReviewOverrides || (pm as any).overrides || {}
-            mergedProps = { ...defaultProps, ...(baseProps as any), ...(overrides as any) }
-          }
-        } else {
-          const baseProps = pm.props || {}
+      let mergedProps: Record<string, unknown>
+
+      if (useReviewDraft) {
+        if (draftModuleState) {
+          const baseProps = draftModuleState.props || {}
+          const overrides = draftModuleState.overrides || {}
+          mergedProps = { ...defaultProps, ...(baseProps as any), ...(overrides as any) }
+        } else if (isLocal) {
+          const baseProps = (pm as any).reviewProps || pm.props || {}
           const overrides = (pm as any).overrides || {}
           mergedProps = { ...defaultProps, ...(baseProps as any), ...(overrides as any) }
+        } else {
+          const baseProps = pm.props || {}
+          const overrides = (pm as any).reviewOverrides || (pm as any).overrides || {}
+          mergedProps = { ...defaultProps, ...(baseProps as any), ...(overrides as any) }
         }
-
-        // Resolve post references to actual URLs
-        mergedProps = await resolvePostReferences(mergedProps)
-
-        // Determine rendering mode
-        const componentName = module.getComponentName()
-        const renderingMode = module.getRenderingMode()
-
-        return {
-          id: pm.id,
-          type: pm.type,
-          scope: pm.scope || 'post',
-          globalSlug: (pm as any)?.globalSlug || null,
-          globalLabel: (pm as any)?.globalLabel || null,
-          componentName,
-          renderingMode,
-          props: mergedProps,
-          reviewProps: (pm as any).reviewProps || null,
-          aiReviewProps: (pm as any).aiReviewProps || null,
-          overrides: (pm as any).overrides || null,
-          reviewOverrides: (pm as any).reviewOverrides || null,
-          aiReviewOverrides: (pm as any).aiReviewOverrides || null,
+      } else if (useAiReviewDraft) {
+        if (draftModuleState) {
+          const baseProps = draftModuleState.props || {}
+          const overrides = draftModuleState.overrides || {}
+          mergedProps = { ...defaultProps, ...(baseProps as any), ...(overrides as any) }
+        } else if (isLocal) {
+          const baseProps = (pm as any).aiReviewProps || pm.props || {}
+          const overrides = (pm as any).overrides || {}
+          mergedProps = { ...defaultProps, ...(baseProps as any), ...(overrides as any) }
+        } else {
+          const baseProps = pm.props || {}
+          const overrides = (pm as any).aiReviewOverrides || (pm as any).overrides || {}
+          mergedProps = { ...defaultProps, ...(baseProps as any), ...(overrides as any) }
         }
-      })
-    )
+      } else {
+        const baseProps = pm.props || {}
+        const overrides = (pm as any).overrides || {}
+        mergedProps = { ...defaultProps, ...(baseProps as any), ...(overrides as any) }
+      }
 
-    return prepared
+      return { pm, mergedProps, module }
+    })
+
+    // Batch resolve post references across all modules for performance
+    const allPostIds = new Set<string>()
+    const extractPostIds = (obj: any) => {
+      if (!obj || typeof obj !== 'object') return
+      if (obj.kind === 'post' && obj.postId) allPostIds.add(String(obj.postId))
+      if (Array.isArray(obj)) obj.forEach(extractPostIds)
+      else Object.values(obj).forEach(extractPostIds)
+    }
+    moduleStates.forEach((s) => extractPostIds(s.mergedProps))
+
+    const resolvedPaths = await urlPatternService.buildPostPaths(Array.from(allPostIds))
+
+    const injectResolved = (obj: any): any => {
+      if (!obj || typeof obj !== 'object') return obj
+      if (obj.kind === 'post' && obj.postId) {
+        const path = resolvedPaths.get(String(obj.postId))
+        if (path) {
+          return { kind: 'url', url: path, target: obj.target || '_self' }
+        }
+        return obj
+      }
+      if (Array.isArray(obj)) return obj.map(injectResolved)
+      const out: any = {}
+      for (const [k, v] of Object.entries(obj)) out[k] = injectResolved(v)
+      return out
+    }
+
+    return moduleStates.map(({ pm, mergedProps, module }) => {
+      const finalProps = injectResolved(mergedProps)
+      const componentName = module.getComponentName()
+      const renderingMode = module.getRenderingMode()
+
+      return {
+        id: pm.id,
+        type: pm.type,
+        scope: pm.scope || 'post',
+        globalSlug: (pm as any)?.globalSlug || null,
+        globalLabel: (pm as any)?.globalLabel || null,
+        componentName,
+        renderingMode,
+        props: finalProps,
+        sourceProps: pm.props || null,
+        sourceOverrides: pm.overrides || null,
+        reviewProps: (pm as any).reviewProps || null,
+        aiReviewProps: (pm as any).aiReviewProps || null,
+        overrides: (pm as any).overrides || null,
+        reviewOverrides: (pm as any).reviewOverrides || null,
+        aiReviewOverrides: (pm as any).aiReviewOverrides || null,
+        reviewAdded: pm.reviewAdded || false,
+        reviewDeleted: pm.reviewDeleted || false,
+        aiReviewAdded: pm.aiReviewAdded || false,
+        aiReviewDeleted: pm.aiReviewDeleted || false,
+      }
+    })
   }
 
   /**
@@ -367,9 +416,13 @@ class PostRenderingService {
    */
   resolvePostFields(
     post: Post,
-    options: { wantReview?: boolean; reviewDraft?: Record<string, unknown> | null } = {}
+    options: {
+      wantReview?: boolean
+      reviewDraft?: Record<string, unknown> | null
+      aiReviewDraft?: Record<string, unknown> | null
+    } = {}
   ): PostRenderData {
-    const { wantReview = false, reviewDraft = null } = options
+    const { wantReview = false, reviewDraft = null, aiReviewDraft = null } = options
     const useReview = wantReview && reviewDraft
 
     return {
@@ -385,6 +438,8 @@ class PostRenderingService {
         : post.metaDescription,
       status: post.status,
       author: null, // To be filled by caller
+      reviewDraft: (post as any).reviewDraft || (post as any).review_draft || null,
+      aiReviewDraft: (post as any).aiReviewDraft || (post as any).ai_review_draft || null,
     }
   }
 
@@ -408,7 +463,12 @@ class PostRenderingService {
     const modulesRaw = await this.loadPostModules(post.id, { includeReviewFields: true })
     const modules = await this.buildModulesForView(modulesRaw, {
       wantReview,
-      reviewDraft: draftMode === 'ai-review' ? null : reviewDraft,
+      reviewDraft:
+        draftMode === 'ai-review'
+          ? (aiReviewDraft as any)
+          : draftMode === 'auto'
+            ? (reviewDraft as any) || (aiReviewDraft as any)
+            : (reviewDraft as any),
       draftMode: draftMode === 'auto' ? (reviewDraft ? 'review' : 'ai-review') : draftMode,
     })
 
@@ -430,6 +490,7 @@ class PostRenderingService {
     const postData = this.resolvePostFields(post, {
       wantReview,
       reviewDraft: draftMode === 'ai-review' ? (aiReviewDraft as any) : reviewDraft,
+      aiReviewDraft: aiReviewDraft as any,
     })
     postData.author = author
 

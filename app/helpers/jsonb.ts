@@ -79,4 +79,44 @@ export function coerceJsonArray(value: unknown): any[] {
 	return []
 }
 
+export function coerceJsonObject(value: unknown): Record<string, any> {
+	if (value === null || value === undefined) return {}
+	if (typeof value === 'object' && !Array.isArray(value)) return value as Record<string, any>
 
+	if (typeof value === 'string') {
+		try {
+			const parsed = JSON.parse(value)
+			if (parsed && typeof parsed === 'object' && !Array.isArray(parsed)) return parsed
+			// Handle accidentally-stored "raw builder" objects
+			if (parsed && typeof parsed === 'object' && Array.isArray((parsed as any).bindings)) {
+				const b0 = (parsed as any).bindings?.[0]
+				if (typeof b0 === 'string') {
+					try {
+						const inner = JSON.parse(b0)
+						return inner && typeof inner === 'object' && !Array.isArray(inner) ? inner : {}
+					} catch {
+						return {}
+					}
+				}
+			}
+			return {}
+		} catch {
+			return {}
+		}
+	}
+
+	// Buffer (node)
+	const anyVal: any = value as any
+	try {
+		// eslint-disable-next-line no-undef
+		if (typeof Buffer !== 'undefined' && Buffer.isBuffer(anyVal)) {
+			const s = anyVal.toString('utf8')
+			const parsed = JSON.parse(s)
+			return parsed && typeof parsed === 'object' && !Array.isArray(parsed) ? parsed : {}
+		}
+	} catch {
+		// ignore
+	}
+
+	return {}
+}

@@ -30,11 +30,11 @@ import {
 } from '~/components/ui/select'
 import { RadioGroup, RadioGroupItem } from '~/components/ui/radio-group'
 import { ModulePicker } from '../../components/modules/ModulePicker'
-import { FormEvent, useCallback, useEffect, useMemo, useRef, useState } from 'react'
+import { FormEvent, memo, useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react'
 import { toast } from 'sonner'
 import { humanizeSlug } from '~/utils/strings'
 import type { CustomFieldType } from '~/types/custom_field'
-import { ModuleEditorPanel, ModuleListItem } from '../../components/modules/ModuleEditorPanel'
+import { ModuleEditorInline, prefetchModuleSchemas } from '../../components/modules/ModuleEditorPanel'
 import { MediaPickerModal } from '../../components/media/MediaPickerModal'
 import { Popover, PopoverTrigger, PopoverContent } from '~/components/ui/popover'
 import { Calendar } from '~/components/ui/calendar'
@@ -84,6 +84,87 @@ type TaxonomyTermNode = {
   children?: TaxonomyTermNode[]
 }
 
+const InlineModuleEditor = memo(function InlineModuleEditor({
+  module,
+  postId,
+  viewMode,
+  fieldAgents,
+  registerFlush,
+  onStage,
+  onMarkDirty,
+}: {
+  module: {
+    id: string
+    moduleInstanceId: string
+    type: string
+    scope: string
+    props: Record<string, any>
+    overrides?: Record<string, any> | null
+    locked: boolean
+    orderIndex: number
+  }
+  postId: string
+  viewMode: 'source' | 'review' | 'ai-review'
+  fieldAgents: Agent[]
+  registerFlush: (moduleId: string, flush: (() => Promise<void>) | null) => void
+  onStage: (moduleId: string, overrides: Record<string, any> | null, edited: Record<string, any>) => void
+  onMarkDirty: (mode: 'source' | 'review' | 'ai-review', moduleId: string) => void
+}) {
+  const onDirty = useCallback(() => onMarkDirty(viewMode, module.id), [onMarkDirty, viewMode, module.id])
+  const onSave = useCallback(
+    (overrides: Record<string, any> | null, edited: Record<string, any>) =>
+      onStage(module.id, overrides, edited),
+    [onStage, module.id]
+  )
+  const onRegisterFlush = useCallback(
+    (flush: (() => Promise<void>) | null) => registerFlush(module.id, flush),
+    [registerFlush, module.id]
+  )
+
+  return (
+    <ModuleEditorInline
+      moduleItem={{
+        id: module.id,
+        moduleInstanceId: module.moduleInstanceId,
+        type: module.type,
+        scope: module.scope,
+        props: module.props || {},
+        overrides: module.overrides || null,
+        locked: module.locked,
+        orderIndex: module.orderIndex,
+      }}
+      postId={postId}
+      moduleInstanceId={module.moduleInstanceId}
+      viewMode={viewMode}
+      fieldAgents={fieldAgents}
+      onDirty={onDirty}
+      // Avoid re-render churn while typing (which can steal focus).
+      // We flush all module edits right before Save/Publish.
+      autoSaveOnBlur={false}
+      registerFlush={onRegisterFlush}
+      onSave={onSave}
+    />
+  )
+}, (prev, next) => {
+  // Prevent re-rendering the editor subtree when unrelated parent state changes (e.g. enabling Save).
+  // Re-rendering/remounting here can drop focus and even revert the first typed character for controlled inputs.
+  return (
+    prev.postId === next.postId &&
+    prev.viewMode === next.viewMode &&
+    prev.fieldAgents === next.fieldAgents &&
+    prev.registerFlush === next.registerFlush &&
+    prev.onStage === next.onStage &&
+    prev.onMarkDirty === next.onMarkDirty &&
+    prev.module.id === next.module.id &&
+    prev.module.type === next.module.type &&
+    prev.module.scope === next.module.scope &&
+    prev.module.locked === next.module.locked &&
+    prev.module.orderIndex === next.module.orderIndex &&
+    prev.module.props === next.module.props &&
+    prev.module.overrides === next.module.overrides
+  )
+})
+
 interface EditorProps {
   post: {
     id: string
@@ -106,6 +187,7 @@ interface EditorProps {
   }
   modules: {
     id: string
+    moduleInstanceId: string
     type: string
     scope: string
     props: Record<string, any>
@@ -148,6 +230,217 @@ interface EditorProps {
   selectedTaxonomyTermIds?: string[]
   fieldTypes?: Array<{ type: string; adminComponent: string }>
 }
+
+function SortableItem({
+  id,
+  disabled,
+  children,
+}: {
+  id: string
+  disabled?: boolean
+  children: React.ReactNode | ((listeners: any, attributes: any) => React.ReactNode)
+}) {
+  const { attributes, listeners, setNodeRef, transform, transition } = useSortable({
+    id,
+    disabled: !!disabled,
+  })
+  const style = {
+    transform: CSS.Transform.toString(transform),
+    transition,
+  }
+  return (
+    <div ref={setNodeRef} style={style} {...(disabled ? {} : attributes)}>
+      {typeof children === 'function'
+        ? children(disabled ? {} : listeners, disabled ? {} : attributes)
+        : children}
+    </div>
+  )
+}
+
+const ModuleRow = memo(function ModuleRow({
+  m,
+  viewMode,
+  isDraggingModules,
+  modulesAccordionOpen,
+  moduleSchemasReady,
+  moduleFieldAgents,
+  globalSlugToLabel,
+  moduleRegistry,
+  moduleFlushFns,
+  setModulesAccordionOpen,
+  setPendingRemoved,
+  setPendingReviewRemoved,
+  setModules,
+  registerModuleFlush,
+  stageModuleEdits,
+  markModuleDirty,
+  postId,
+}: {
+  m: any
+  viewMode: 'source' | 'review' | 'ai-review'
+  isDraggingModules: boolean
+  modulesAccordionOpen: Set<string>
+  moduleSchemasReady: boolean
+  moduleFieldAgents: Agent[]
+  globalSlugToLabel: Map<string, string>
+  moduleRegistry: Record<string, any>
+  moduleFlushFns: React.MutableRefObject<Record<string, (() => Promise<void>) | null>>
+  setModulesAccordionOpen: React.Dispatch<React.SetStateAction<Set<string>>>
+  setPendingRemoved: React.Dispatch<React.SetStateAction<Set<string>>>
+  setPendingReviewRemoved: React.Dispatch<React.SetStateAction<Set<string>>>
+  setModules: React.Dispatch<React.SetStateAction<any[]>>
+  registerModuleFlush: (moduleId: string, flush: (() => Promise<void>) | null) => void
+  stageModuleEdits: (moduleId: string, overrides: Record<string, any> | null, edited: Record<string, any>) => void
+  markModuleDirty: (mode: 'source' | 'review' | 'ai-review', moduleId: string) => void
+  postId: string
+}) {
+  const isOpen = modulesAccordionOpen.has(m.id)
+  const isLocked = m.locked
+
+  return (
+    <SortableItem key={m.id} id={m.id} disabled={isLocked}>
+      {(listeners: any) => (
+        <li className="bg-backdrop-low border border-line-low rounded-lg">
+          <div className="px-4 py-3 flex items-start justify-between gap-3">
+            <div className="flex items-start gap-3 min-w-0">
+              <DragHandle
+                aria-label="Drag"
+                disabled={isLocked}
+                {...(isLocked ? {} : listeners)}
+              />
+              <button
+                type="button"
+                className="min-w-0 text-left"
+                onClick={() => {
+                  // If collapsing, flush first so we don't lose in-progress edits on unmount.
+                  if (isOpen) {
+                    const flush = moduleFlushFns.current[m.id]
+                    if (flush) {
+                      void flush().finally(() => {
+                        setModulesAccordionOpen((prev) => {
+                          const next = new Set(prev)
+                          next.delete(m.id)
+                          return next
+                        })
+                      })
+                      return
+                    }
+                  }
+                  setModulesAccordionOpen((prev) => {
+                    const next = new Set(prev)
+                    if (next.has(m.id)) next.delete(m.id)
+                    else next.add(m.id)
+                    return next
+                  })
+                }}
+              >
+                <div className="text-sm font-medium text-neutral-high truncate">
+                  {m.scope === 'global'
+                    ? globalSlugToLabel.get(String((m as any).globalSlug || '')) ||
+                    (m as any).globalLabel ||
+                    (m as any).globalSlug ||
+                    moduleRegistry[m.type]?.name ||
+                    m.type
+                    : moduleRegistry[m.type]?.name || m.type}
+                </div>
+                <div className="text-xs text-neutral-low">
+                  Order: {m.orderIndex}{' '}
+                  <span className="ml-2">
+                    {isOpen && !isDraggingModules ? '▾' : '▸'}
+                  </span>
+                </div>
+              </button>
+            </div>
+
+            <div className="flex items-center gap-2 shrink-0">
+              {moduleRegistry[m.type]?.renderingMode === 'react' && (
+                <span
+                  className="inline-flex items-center rounded border border-line-medium bg-backdrop-low px-2 py-1 text-xs text-neutral-high"
+                  title="React module (client-side interactivity)"
+                  aria-label="React module"
+                >
+                  <FontAwesomeIcon icon={faReact} className="mr-1 text-sky-400" />
+                  React
+                </span>
+              )}
+              {m.scope === 'global' && (
+                <span
+                  className="inline-flex items-center rounded border border-line-medium bg-backdrop-low px-2 py-1 text-xs text-neutral-high"
+                  title="Global module"
+                  aria-label="Global module"
+                >
+                  <FontAwesomeIcon icon={faGlobe} className="w-3.5 h-3.5" />
+                </span>
+              )}
+              <button
+                className="text-xs px-2 py-1 rounded border border-[#ef4444] text-[#ef4444] hover:bg-[rgba(239,68,68,0.1)] disabled:opacity-50"
+                disabled={isLocked}
+                onClick={async () => {
+                  if (isLocked) {
+                    toast.error('Locked modules cannot be removed')
+                    return
+                  }
+                  // Mark for removal in appropriate mode; actual apply on save
+                  if (viewMode === 'review') {
+                    setPendingReviewRemoved((prev) => {
+                      const next = new Set(prev)
+                      next.add(m.id)
+                      return next
+                    })
+                  } else {
+                    setPendingRemoved((prev) => {
+                      const next = new Set(prev)
+                      next.add(m.id)
+                      return next
+                    })
+                    // For source mode, optimistically remove from UI
+                    setModules((prev) => prev.filter((pm) => pm.id !== m.id))
+                  }
+                  toast.success('Module marked for removal (apply by saving)')
+                }}
+                type="button"
+              >
+                Remove
+              </button>
+            </div>
+          </div>
+
+          {isOpen && !isDraggingModules && (
+            <div className="border-t border-line-low px-4 py-4">
+              {!moduleSchemasReady ? (
+                <div className="py-4 text-sm text-neutral-low">
+                  Loading module fields…
+                </div>
+              ) : (
+                <InlineModuleEditor
+                  module={m}
+                  postId={postId}
+                  viewMode={viewMode}
+                  fieldAgents={moduleFieldAgents}
+                  registerFlush={registerModuleFlush}
+                  onStage={stageModuleEdits}
+                  onMarkDirty={markModuleDirty}
+                />
+              )}
+            </div>
+          )}
+        </li>
+      )}
+    </SortableItem>
+  )
+}, (prev, next) => {
+  return (
+    prev.m === next.m &&
+    prev.viewMode === next.viewMode &&
+    prev.isDraggingModules === next.isDraggingModules &&
+    prev.modulesAccordionOpen.has(prev.m.id) === next.modulesAccordionOpen.has(next.m.id) &&
+    prev.moduleSchemasReady === next.moduleSchemasReady &&
+    prev.moduleFieldAgents === next.moduleFieldAgents &&
+    prev.globalSlugToLabel === next.globalSlugToLabel &&
+    prev.moduleRegistry === next.moduleRegistry &&
+    prev.postId === next.postId
+  )
+})
 
 export default function Editor({
   post,
@@ -274,9 +567,110 @@ export default function Editor({
       }
       : null
   )
+  type ViewMode = 'source' | 'review' | 'ai-review'
   const [pendingModules, setPendingModules] = useState<
     Record<string, { overrides: Record<string, any> | null; edited: Record<string, any> }>
   >({})
+  // Track modules that have been edited locally but not yet flushed/staged into pendingModules.
+  // This enables the page-level Save button immediately after editing a module field.
+  const [unstagedDirtyModulesByMode, setUnstagedDirtyModulesByMode] = useState<
+    Record<ViewMode, Record<string, true>>
+  >({ source: {}, review: {}, 'ai-review': {} })
+  const restoreScrollFocusRef = useRef<{
+    scrollY: number
+    activeName: string | null
+    activeRootId: string | null
+    selectionStart: number | null
+    selectionEnd: number | null
+  } | null>(null)
+
+  useLayoutEffect(() => {
+    const restore = restoreScrollFocusRef.current
+    if (!restore) return
+    restoreScrollFocusRef.current = null
+    try {
+      const escapeAttr = (s: string) =>
+        String(s).replace(/\\/g, '\\\\').replace(/"/g, '\\"')
+      if (typeof window !== 'undefined') {
+        window.scrollTo({ top: restore.scrollY })
+      }
+      if (restore.activeName) {
+        const selector = restore.activeRootId
+          ? `[data-root-id="${escapeAttr(restore.activeRootId)}"][name="${escapeAttr(restore.activeName)}"]`
+          : `[name="${escapeAttr(restore.activeName)}"]`
+        const el = document.querySelector(selector) as
+          | HTMLInputElement
+          | HTMLTextAreaElement
+          | HTMLSelectElement
+          | null
+        if (el) {
+          requestAnimationFrame(() => {
+            try {
+              // Avoid scrolling while restoring focus (supported by modern browsers)
+              ; (el as any).focus?.({ preventScroll: true })
+              if (
+                (el instanceof HTMLInputElement || el instanceof HTMLTextAreaElement) &&
+                restore.selectionStart != null &&
+                restore.selectionEnd != null
+              ) {
+                el.setSelectionRange(restore.selectionStart, restore.selectionEnd)
+              }
+            } catch {
+              /* ignore */
+            }
+          })
+        }
+      }
+    } catch {
+      // ignore
+    }
+  })
+
+  const markModuleDirty = useCallback((mode: ViewMode, moduleId: string) => {
+    // Preserve scroll + focus on the first module edit in a clean state.
+    // Some re-renders (e.g. enabling Save / updating Actions) can cause the browser to jump scroll or lose focus.
+    try {
+      const active = document.activeElement as
+        | HTMLInputElement
+        | HTMLTextAreaElement
+        | HTMLSelectElement
+        | null
+      const activeName = active?.getAttribute?.('name') || null
+      const activeRootId = active?.getAttribute?.('data-root-id') || null
+      const selectionStart =
+        active && (active instanceof HTMLInputElement || active instanceof HTMLTextAreaElement)
+          ? active.selectionStart
+          : null
+      const selectionEnd =
+        active && (active instanceof HTMLInputElement || active instanceof HTMLTextAreaElement)
+          ? active.selectionEnd
+          : null
+      restoreScrollFocusRef.current = {
+        scrollY: typeof window !== 'undefined' ? window.scrollY : 0,
+        activeName,
+        activeRootId,
+        selectionStart,
+        selectionEnd,
+      }
+    } catch {
+      // ignore
+    }
+    setUnstagedDirtyModulesByMode((prev) => {
+      const bucket = prev[mode] || {}
+      if (bucket[moduleId]) return prev
+      return { ...prev, [mode]: { ...bucket, [moduleId]: true } }
+    })
+  }, [])
+  const registerModuleFlush = useCallback(
+    (moduleId: string, flush: (() => Promise<void>) | null) => {
+      moduleFlushFns.current[moduleId] = flush
+    },
+    []
+  )
+  // Track pending module edits per active version, so switching versions doesn't overwrite drafts.
+  const pendingModulesByModeRef = useRef<
+    Record<ViewMode, Record<string, { overrides: Record<string, any> | null; edited: Record<string, any> }>>
+  >({ source: {}, review: {}, 'ai-review': {} })
   const [pendingRemoved, setPendingRemoved] = useState<Set<string>>(new Set())
   const [pendingReviewRemoved, setPendingReviewRemoved] = useState<Set<string>>(new Set())
   const [pendingAiReviewRemoved, setPendingAiReviewRemoved] = useState<Set<string>>(new Set())
@@ -556,7 +950,25 @@ export default function Editor({
     return 'source'
   }, [hasReviewBaseline, hasSourceBaseline, hasAiReviewBaseline])
 
-  const [viewMode, setViewMode] = useState<'source' | 'review' | 'ai-review'>(initialViewMode)
+  const setViewModeWithReload = (mode: 'source' | 'review' | 'ai-review') => {
+    // Stage any current inline edits before switching tabs
+    flushAllModuleEdits()
+
+    // Use router.visit to reload the page with the new view mode.
+    // This ensures the backend's "Atomic Draft" module resolution (in PostsViewController)
+    // runs for the correct mode, providing the full saved state of modules instantly.
+    router.visit(window.location.pathname + `?view=${mode}`, {
+      preserveScroll: true,
+      only: ['post', 'modules', 'reviewDraft', 'aiReviewDraft'],
+    })
+  }
+
+  const [viewMode, _setViewMode] = useState<'source' | 'review' | 'ai-review'>(initialViewMode)
+  const setViewMode = setViewModeWithReload
+
+  useEffect(() => {
+    _setViewMode(initialViewMode)
+  }, [initialViewMode])
   const [saveTarget, setSaveTarget] = useState<'source' | 'review'>(() =>
     initialViewMode === 'review' ? 'review' : 'source'
   )
@@ -615,24 +1027,62 @@ export default function Editor({
   }, [viewMode, hasReviewBaseline, hasAiReviewBaseline, canApproveReview, canApproveAiReview])
 
   async function executeSave(target: 'source' | 'review' | 'ai-review') {
+    // Critical: ensure inline module editors have staged their latest values before we commit/publish.
+    await flushAllModuleEdits()
+
+    const buildDraftSnapshot = (snapshotTarget: 'review' | 'ai-review') => {
+      // Use the raw modules array to ensure we capture all modules, even those not visible in current view.
+      return modules.map((m) => {
+        const pending = pendingModulesByModeRef.current[viewMode][m.id]
+        const isLocal = m.scope === 'post' || m.scope === 'local'
+
+        // Start with the baseline for the target mode
+        let finalProps = isLocal ? (m.reviewProps ?? m.props ?? {}) : {}
+        let finalOverrides = !isLocal ? (m.reviewOverrides ?? m.overrides ?? null) : null
+
+        if (snapshotTarget === 'ai-review') {
+          finalProps = isLocal ? (m.aiReviewProps ?? m.reviewProps ?? m.props ?? {}) : {}
+          finalOverrides = !isLocal ? (m.aiReviewOverrides ?? m.reviewOverrides ?? m.overrides ?? null) : null
+        }
+
+        // If we have unsaved edits from the current session (regardless of mode), 
+        // they MUST be injected into the snapshot to ensure "Save edits to X" captures them.
+        if (pending) {
+          if (isLocal) {
+            finalProps = pending.edited
+          } else {
+            finalOverrides = pending.overrides
+          }
+        }
+
+        return {
+          ...m,
+          props: finalProps,
+          overrides: finalOverrides,
+        }
+      })
+    }
+
     if (target === 'review') {
+      const reviewSnapshot = buildDraftSnapshot('review')
       const created = await createPendingNewModules('review')
-      await commitPendingModules('review', created)
-      await saveForReview()
+      await commitPendingModules('review', created, viewMode)
+      await saveForReview(reviewSnapshot)
       return
     }
 
     if (target === 'ai-review') {
+      const aiReviewSnapshot = buildDraftSnapshot('ai-review')
       const created = await createPendingNewModules('ai-review')
-      await commitPendingModules('ai-review', created)
-      await saveForAiReview()
+      await commitPendingModules('ai-review', created, viewMode)
+      await saveForAiReview(aiReviewSnapshot)
       return
     }
 
     // Save to Source (existing flow)
     try {
       const created = await createPendingNewModules('publish')
-      await commitPendingModules('publish', created)
+      await commitPendingModules('publish', created, viewMode)
       if (hasStructuralChanges) {
         const persistedModules = modules.filter((m) => !m.id.startsWith('temp-'))
         await persistOrder(persistedModules)
@@ -756,18 +1206,32 @@ export default function Editor({
       const baseline =
         viewMode === 'review' && reviewInitialRef.current
           ? reviewInitialRef.current
-          : initialDataRef.current
-      const fieldsChanged = JSON.stringify(pickForm(data)) !== JSON.stringify(baseline)
-      const modulesPending = modulesEnabled ? Object.keys(pendingModules).length > 0 : false
-      const removalsPendingSource = modulesEnabled ? pendingRemoved.size > 0 : false
-      const removalsPendingReview = modulesEnabled ? pendingReviewRemoved.size > 0 : false
+          : viewMode === 'ai-review' && aiReviewInitialRef.current
+            ? aiReviewInitialRef.current
+            : initialDataRef.current
+      // Normalize BOTH sides via pickForm so '' vs null coercions don't create false "dirty" states.
+      const fieldsChanged =
+        JSON.stringify(pickForm(data)) !== JSON.stringify(pickForm(baseline as any))
+      // Only count pending module edits for the current view mode (we keep drafts for other modes too).
+      const modulesPending = modulesEnabled
+        ? Object.keys(pendingModules).some((k) => k.startsWith(`${viewMode}:`))
+        : false
+      const removalsPendingSource = modulesEnabled && viewMode === 'source' ? pendingRemoved.size > 0 : false
+      const removalsPendingReview = modulesEnabled && viewMode === 'review' ? pendingReviewRemoved.size > 0 : false
+      const removalsPendingAiReview =
+        modulesEnabled && viewMode === 'ai-review' ? pendingAiReviewRemoved.size > 0 : false
+      const unstagedModulesDirty = modulesEnabled
+        ? Object.keys(unstagedDirtyModulesByMode[viewMode] || {}).length > 0
+        : false
       const newModulesPending = modulesEnabled ? pendingNewModules.length > 0 : false
       const structuralChanges = modulesEnabled ? hasStructuralChanges : false
       return (
         fieldsChanged ||
         modulesPending ||
+        unstagedModulesDirty ||
         removalsPendingSource ||
         removalsPendingReview ||
+        removalsPendingAiReview ||
         newModulesPending ||
         structuralChanges
       )
@@ -778,8 +1242,10 @@ export default function Editor({
     data,
     viewMode,
     pendingModules,
+    unstagedDirtyModulesByMode,
     pendingRemoved,
     pendingReviewRemoved,
+    pendingAiReviewRemoved,
     pendingNewModules,
     hasStructuralChanges,
     modulesEnabled,
@@ -790,6 +1256,7 @@ export default function Editor({
   const [moduleRegistry, setModuleRegistry] = useState<
     Record<string, { name: string; description?: string; renderingMode?: 'static' | 'react' }>
   >({})
+  const [moduleSchemasReady, setModuleSchemasReady] = useState<boolean>(false)
   const [globalSlugToLabel, setGlobalSlugToLabel] = useState<Map<string, string>>(new Map())
 
   // Keep local state in sync with server props after Inertia navigations
@@ -858,6 +1325,34 @@ export default function Editor({
     }
   }, [post.type, modulesEnabled])
 
+  const moduleTypeKey = useMemo(() => {
+    if (!modulesEnabled) return ''
+    const types = Array.from(new Set((modules || []).map((m) => m.type))).sort()
+    return types.join('|')
+  }, [modules, modulesEnabled])
+
+  // Prefetch all module schemas before rendering inline module editors.
+  // This prevents a schema-loading rerender from stealing focus/scroll on the first edit.
+  useEffect(() => {
+    if (!modulesEnabled) {
+      setModuleSchemasReady(true)
+      return
+    }
+    let alive = true
+    setModuleSchemasReady(false)
+      ; (async () => {
+        try {
+          const types = Array.from(new Set((modules || []).map((m) => m.type)))
+          await prefetchModuleSchemas(types)
+        } finally {
+          if (alive) setModuleSchemasReady(true)
+        }
+      })()
+    return () => {
+      alive = false
+    }
+  }, [moduleTypeKey, modulesEnabled])
+
   // Load URL pattern for this post type/locale to preview final path
   useEffect(() => {
     if (uiConfig?.hasPermalinks === false) {
@@ -914,6 +1409,51 @@ export default function Editor({
     }
   }, [])
 
+  // Update reviewInitialRef when reviewDraft changes
+  useEffect(() => {
+    if (reviewDraft) {
+      reviewInitialRef.current = {
+        title: String(reviewDraft.title ?? post.title),
+        slug: String(reviewDraft.slug ?? post.slug),
+        excerpt: String(reviewDraft.excerpt ?? (post.excerpt || '')),
+        status: String(reviewDraft.status ?? post.status),
+        parentId: String((reviewDraft.parentId ?? (post as any).parentId ?? '') || ''),
+        orderIndex: Number(reviewDraft.orderIndex ?? (post as any).orderIndex ?? 0),
+        metaTitle: String(reviewDraft.metaTitle ?? (post.metaTitle || '')),
+        metaDescription: String(reviewDraft.metaDescription ?? (post.metaDescription || '')),
+        canonicalUrl: String(reviewDraft.canonicalUrl ?? (post.canonicalUrl || '')),
+        robotsJson:
+          typeof reviewDraft.robotsJson === 'string'
+            ? reviewDraft.robotsJson
+            : reviewDraft.robotsJson
+              ? JSON.stringify(reviewDraft.robotsJson, null, 2)
+              : '',
+        jsonldOverrides:
+          typeof reviewDraft.jsonldOverrides === 'string'
+            ? reviewDraft.jsonldOverrides
+            : reviewDraft.jsonldOverrides
+              ? JSON.stringify(reviewDraft.jsonldOverrides, null, 2)
+              : '',
+        featuredImageId: String(reviewDraft.featuredImageId ?? (post.featuredImageId || '')),
+        customFields: Array.isArray(reviewDraft.customFields)
+          ? reviewDraft.customFields
+          : Array.isArray(initialCustomFields)
+            ? initialCustomFields.map((f) => ({
+              fieldId: f.id,
+              slug: f.slug,
+              value: f.value ?? null,
+            }))
+            : [],
+        taxonomyTermIds: selectedTaxonomyTermIds,
+      }
+      // If we're currently in Review mode, update the form data immediately
+      if (viewMode === 'review') {
+        setData((prev) => ({ ...prev, ...reviewInitialRef.current }))
+      }
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [reviewDraft, initialCustomFields, post])
+
   // Switch between Published view, Review view, and AI Review view
   // Update aiReviewInitialRef when aiReviewDraft changes (e.g., after agent run)
   useEffect(() => {
@@ -954,11 +1494,11 @@ export default function Editor({
       }
       // If we're currently in AI Review mode, update the form data immediately
       if (viewMode === 'ai-review') {
-        setData({ ...data, ...aiReviewInitialRef.current })
+        setData((prev) => ({ ...prev, ...aiReviewInitialRef.current }))
       }
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [aiReviewDraft])
+  }, [aiReviewDraft, initialCustomFields, post])
 
   useEffect(() => {
     if (viewMode === 'review' && reviewInitialRef.current) {
@@ -974,12 +1514,21 @@ export default function Editor({
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [viewMode])
 
-  async function saveForReview() {
+  async function saveForReview(modulesOverride?: any[]) {
     const payload = {
       ...pickForm(data),
       mode: 'review',
       customFields: Array.isArray((data as any).customFields) ? (data as any).customFields : [],
       reviewModuleRemovals: Array.from(pendingReviewRemoved),
+      // Include full module state in the draft snapshot for "dependable" JSON-based storage
+      modules: modulesOverride || modules.map((m) => {
+        const isLocal = m.scope === 'post' || m.scope === 'local'
+        return {
+          ...m,
+          props: isLocal ? (m.reviewProps ?? m.props ?? {}) : {},
+          overrides: !isLocal ? (m.reviewOverrides ?? m.overrides ?? null) : null,
+        }
+      }),
     }
     const res = await fetch(`/api/posts/${post.id}`, {
       method: 'PUT',
@@ -995,18 +1544,34 @@ export default function Editor({
       toast.success('Saved for review')
       reviewInitialRef.current = pickForm(data)
       setPendingReviewRemoved(new Set())
-      router.reload({ only: ['reviewDraft', 'post', 'modules'] })
+
+      // Redirect to Review tab if we're not already there
+      const url = new URL(window.location.href)
+      url.searchParams.set('view', 'review')
+      router.visit(url.toString(), {
+        preserveScroll: true,
+        only: ['reviewDraft', 'post', 'modules'],
+      })
     } else {
       toast.error('Failed to save for review')
     }
   }
 
-  async function saveForAiReview() {
+  async function saveForAiReview(modulesOverride?: any[]) {
     const payload = {
       ...pickForm(data),
       mode: 'ai-review',
       customFields: Array.isArray((data as any).customFields) ? (data as any).customFields : [],
       aiReviewModuleRemovals: Array.from(pendingAiReviewRemoved),
+      // Include full module state in the draft snapshot for "dependable" JSON-based storage
+      modules: modulesOverride || modules.map((m) => {
+        const isLocal = m.scope === 'post' || m.scope === 'local'
+        return {
+          ...m,
+          props: isLocal ? (m.aiReviewProps ?? m.reviewProps ?? m.props ?? {}) : {},
+          overrides: !isLocal ? (m.aiReviewOverrides ?? m.reviewOverrides ?? m.overrides ?? null) : null,
+        }
+      }),
     }
     const res = await fetch(`/api/posts/${post.id}`, {
       method: 'PUT',
@@ -1022,11 +1587,14 @@ export default function Editor({
       toast.success('Saved for AI review')
       aiReviewInitialRef.current = pickForm(data)
       setPendingAiReviewRemoved(new Set())
-      // Update URL to preserve view mode on reload
+
+      // Redirect to AI Review tab if we're not already there
       const url = new URL(window.location.href)
       url.searchParams.set('view', 'ai-review')
-      window.history.replaceState({}, '', url.toString())
-      router.reload({ only: ['aiReviewDraft', 'post', 'modules'] })
+      router.visit(url.toString(), {
+        preserveScroll: true,
+        only: ['aiReviewDraft', 'post', 'modules'],
+      })
     } else {
       toast.error('Failed to save for AI review')
     }
@@ -1065,7 +1633,18 @@ export default function Editor({
   }
 
   // Overrides panel state
-  const [editing, setEditing] = useState<ModuleListItem | null>(null)
+  const [modulesAccordionOpen, setModulesAccordionOpen] = useState<Set<string>>(new Set())
+  const modulesAccordionOpenBeforeDrag = useRef<Set<string> | null>(null)
+  const [isDraggingModules, setIsDraggingModules] = useState(false)
+  const [moduleFieldAgents, setModuleFieldAgents] = useState<Agent[]>([])
+  const moduleFlushFns = useRef<Record<string, (() => Promise<void>) | null>>({})
+
+  async function flushAllModuleEdits() {
+    const fns = Object.values(moduleFlushFns.current).filter(Boolean) as Array<() => Promise<void>>
+    if (fns.length === 0) return
+    // Best-effort flush; don't block publish on a single module flush error
+    await Promise.allSettled(fns.map((fn) => fn()))
+  }
   // Removed explicit savingOverrides state; handled via pendingModules flow
   const [revisions, setRevisions] = useState<
     Array<{
@@ -1246,31 +1825,6 @@ export default function Editor({
   // DnD sensors (pointer only to avoid key conflicts)
   const sensors = useSensors(useSensor(PointerSensor))
 
-  function SortableItem({
-    id,
-    disabled,
-    children,
-  }: {
-    id: string
-    disabled?: boolean
-    children: React.ReactNode | ((listeners: any, attributes: any) => React.ReactNode)
-  }) {
-    const { attributes, listeners, setNodeRef, transform, transition } = useSortable({
-      id,
-      disabled: !!disabled,
-    })
-    const style = {
-      transform: CSS.Transform.toString(transform),
-      transition,
-    }
-    return (
-      <div ref={setNodeRef} style={style} {...(disabled ? {} : attributes)}>
-        {typeof children === 'function'
-          ? children(disabled ? {} : listeners, disabled ? {} : attributes)
-          : children}
-      </div>
-    )
-  }
 
   const orderedIds = useMemo(
     () =>
@@ -1435,6 +1989,12 @@ export default function Editor({
 
   function onDragEnd(event: DragEndEvent) {
     const { active, over } = event
+    // Restore accordions after dragging
+    setIsDraggingModules(false)
+    if (modulesAccordionOpenBeforeDrag.current) {
+      setModulesAccordionOpen(new Set(modulesAccordionOpenBeforeDrag.current))
+      modulesAccordionOpenBeforeDrag.current = null
+    }
     if (!over || active.id === over.id) return
     const current = modules.slice().sort((a, b) => a.orderIndex - b.orderIndex)
     const dragged = current.find((m) => m.id === active.id)
@@ -1467,6 +2027,23 @@ export default function Editor({
     const next = rebuilt.map((m, idx) => ({ ...m, orderIndex: idx }))
     setModules(next)
     setHasStructuralChanges(true)
+  }
+
+  async function onDragStart() {
+    // If the user starts dragging immediately after editing, flush first so we don't lose edits when collapsing.
+    await flushAllModuleEdits()
+    // Temporarily collapse all accordions for easier reordering
+    setIsDraggingModules(true)
+    modulesAccordionOpenBeforeDrag.current = new Set(modulesAccordionOpen)
+    setModulesAccordionOpen(new Set())
+  }
+
+  function onDragCancel() {
+    setIsDraggingModules(false)
+    if (modulesAccordionOpenBeforeDrag.current) {
+      setModulesAccordionOpen(new Set(modulesAccordionOpenBeforeDrag.current))
+      modulesAccordionOpenBeforeDrag.current = null
+    }
   }
 
   const adjustModuleForView = useCallback(
@@ -1534,17 +2111,137 @@ export default function Editor({
     return base.map(adjustModuleForView)
   }, [modules, viewMode, pendingReviewRemoved, adjustModuleForView])
 
-  // Keep editing module in sync when view mode changes
+  // Load field-scoped agents once for inline module editors (avoid N fetches per module)
   useEffect(() => {
-    if (!editing) return
-    const match = modules.find((m) => m.id === editing.id)
-    if (!match) return
-    const adjusted = adjustModuleForView(match)
-    const sameProps = adjusted.props === editing.props
-    const sameOverrides = adjusted.overrides === editing.overrides
-    if (sameProps && sameOverrides) return
-    setEditing(adjusted)
-  }, [viewMode, modules, editing?.id, adjustModuleForView])
+    if (!hasFieldPermission) {
+      setModuleFieldAgents([])
+      return
+    }
+    let alive = true
+      ; (async () => {
+        try {
+          const res = await fetch('/api/agents?scope=field', { credentials: 'same-origin' })
+          const json = await res.json().catch(() => ({}))
+          const list: Agent[] = Array.isArray(json?.data) ? json.data : []
+          if (alive) setModuleFieldAgents(list)
+        } catch {
+          if (alive) setModuleFieldAgents([])
+        }
+      })()
+    return () => {
+      alive = false
+    }
+  }, [hasFieldPermission])
+
+  // Default: all module accordions expanded (and keep new modules expanded)
+  // Optimization: If there are many modules (> 15), start with them collapsed to prevent mount jank.
+  const sortedModuleIds = useMemo(() => sortedModules.map((m) => m.id), [sortedModules])
+  const initialExpandDone = useRef(false)
+
+  useEffect(() => {
+    setModulesAccordionOpen((prev) => {
+      const next = new Set(prev)
+      const isInitial = !initialExpandDone.current
+      const shouldExpandAll = isInitial ? sortedModuleIds.length <= 15 : false
+
+      // Add new module ids or initial expand
+      for (const id of sortedModuleIds) {
+        if (shouldExpandAll || !prev.has(id)) {
+          // If we're initial and have > 15, we DON'T add to 'next'
+          if (isInitial && sortedModuleIds.length > 15) {
+            // keep collapsed
+          } else {
+            next.add(id)
+          }
+        }
+      }
+
+      // Remove ids that no longer exist
+      for (const id of Array.from(next)) {
+        if (!sortedModuleIds.includes(id)) next.delete(id)
+      }
+
+      initialExpandDone.current = true
+      return next
+    })
+  }, [sortedModuleIds.join('|')])
+
+  const stageModuleEdits = useCallback(
+    (moduleId: string, overrides: Record<string, any> | null, edited: Record<string, any>) => {
+      // If there are no effective changes, don't mark this module as pending.
+      // This prevents "Save" being enabled when nothing actually changed.
+      const isEmptyOverrides =
+        overrides == null || (typeof overrides === 'object' && Object.keys(overrides).length === 0)
+      if (isEmptyOverrides) {
+        // If user changed something and then reverted back, clear any "unstaged dirty" marker for this module.
+        setUnstagedDirtyModulesByMode((prev) => {
+          const bucket = prev[viewMode] || {}
+          if (!bucket[moduleId]) return prev
+          const nextBucket = { ...bucket }
+          delete nextBucket[moduleId]
+          return { ...prev, [viewMode]: nextBucket }
+        })
+        // Clear union pending entry for this viewMode/moduleId if it exists
+        const unionKey = `${viewMode}:${moduleId}`
+        setPendingModules((prev) => {
+          if (!prev[unionKey]) return prev
+          const next = { ...prev }
+          delete next[unionKey]
+          return next
+        })
+        // Clear per-mode bucket entry if it exists
+        const nextBucket = { ...(pendingModulesByModeRef.current[viewMode] || {}) }
+        if (nextBucket[moduleId]) {
+          delete nextBucket[moduleId]
+          pendingModulesByModeRef.current[viewMode] = nextBucket
+        }
+        return
+      }
+
+      // This module is now staged, so it no longer counts as "unstaged dirty".
+      setUnstagedDirtyModulesByMode((prev) => {
+        const bucket = prev[viewMode]
+        if (!bucket[moduleId]) return prev
+        const nextBucket = { ...bucket }
+        delete nextBucket[moduleId]
+        return { ...prev, [viewMode]: nextBucket }
+      })
+
+      // Update per-mode ref immediately so save flows can commit even before React state flushes.
+      pendingModulesByModeRef.current[viewMode] = {
+        ...pendingModulesByModeRef.current[viewMode],
+        [moduleId]: { overrides, edited },
+      }
+      // Also keep a union map for isDirty + UI (keyed by mode so multiple versions can coexist).
+      const unionKey = `${viewMode}:${moduleId}`
+      setPendingModules((prev) => ({ ...prev, [unionKey]: { overrides, edited } }))
+      setModules((prev) =>
+        prev.map((m) => {
+          if (m.id !== moduleId) return m
+          if (viewMode === 'review') {
+            if (m.scope === 'post') {
+              return { ...m, reviewProps: edited, overrides: null }
+            } else {
+              return { ...m, reviewOverrides: overrides }
+            }
+          } else if (viewMode === 'ai-review') {
+            if (m.scope === 'post') {
+              return { ...m, aiReviewProps: edited, overrides: null }
+            } else {
+              return { ...m, aiReviewOverrides: overrides }
+            }
+          } else {
+            if (m.scope === 'post') {
+              return { ...m, props: edited, overrides: null }
+            } else {
+              return { ...m, overrides }
+            }
+          }
+        })
+      )
+    },
+    [modules, viewMode]
+  )
 
   const translationsSet = useMemo(
     () => new Set((translations || []).map((t) => t.locale)),
@@ -1561,9 +2258,12 @@ export default function Editor({
   async function commitPendingModules(
     mode: 'review' | 'publish' | 'ai-review',
     created?: Array<{ tempId: string; postModuleId: string }>
+    ,
+    fromMode: ViewMode = viewMode
   ) {
     if (!modulesEnabled) return
-    const entries = Object.entries(pendingModules)
+    const bucket = pendingModulesByModeRef.current[fromMode] || {}
+    const entries = Object.entries(bucket)
     const idMap = new Map<string, string>(
       (created || []).map((c) => [String(c.tempId), String(c.postModuleId)])
     )
@@ -1577,8 +2277,8 @@ export default function Editor({
         return resolved ? ([resolved, payload] as const) : null
       })
       .filter(Boolean) as Array<
-      readonly [string, { overrides: Record<string, any> | null; edited: Record<string, any> }]
-    >
+        readonly [string, { overrides: Record<string, any> | null; edited: Record<string, any> }]
+      >
 
     const findModule = (id: string) => {
       const direct = modules.find((m) => m.id === id)
@@ -1624,14 +2324,25 @@ export default function Editor({
         for (const [origId] of entries) {
           const resolved = resolveId(origId)
           if (!resolved) continue
-          delete next[origId]
-          delete next[resolved]
+          // Union map uses mode-prefixed keys
+          delete next[`${fromMode}:${origId}`]
+          delete next[`${fromMode}:${resolved}`]
         }
         return next
       })
+      // Also clear the per-mode bucket ref
+      const nextBucket = { ...(pendingModulesByModeRef.current[fromMode] || {}) }
+      for (const [origId] of entries) {
+        const resolved = resolveId(origId)
+        if (!resolved) continue
+        delete nextBucket[origId]
+        delete nextBucket[resolved]
+      }
+      pendingModulesByModeRef.current[fromMode] = nextBucket
     } else {
       // If no persisted entries, still clear temp entries since they'll be created fresh
       setPendingModules({})
+      pendingModulesByModeRef.current = { source: {}, review: {}, 'ai-review': {} }
     }
     // 2) Apply removals
     if (pendingRemoved.size > 0) {
@@ -2174,7 +2885,28 @@ export default function Editor({
               {modulesEnabled && (
                 <div className="mt-6">
                   <div className="flex items-center justify-between mb-4">
-                    <h3 className="text-base font-semibold text-neutral-high">Modules</h3>
+                    <div className="flex items-center gap-4">
+                      <h3 className="text-base font-semibold text-neutral-high">Modules</h3>
+                      {modules.length > 0 && (
+                        <div className="flex items-center gap-2">
+                          <button
+                            type="button"
+                            onClick={() => setModulesAccordionOpen(new Set(modules.map((m) => m.id)))}
+                            className="text-[10px] uppercase tracking-wider text-neutral-low hover:text-primary transition-colors"
+                          >
+                            Expand All
+                          </button>
+                          <span className="text-neutral-low/30 text-[10px]">|</span>
+                          <button
+                            type="button"
+                            onClick={() => setModulesAccordionOpen(new Set())}
+                            className="text-[10px] uppercase tracking-wider text-neutral-low hover:text-primary transition-colors"
+                          >
+                            Collapse All
+                          </button>
+                        </div>
+                      )}
+                    </div>
                     <ModulePicker
                       postId={post.id}
                       postType={post.type}
@@ -2190,102 +2922,33 @@ export default function Editor({
                     <DndContext
                       sensors={sensors}
                       collisionDetection={closestCenter}
+                      onDragStart={onDragStart}
+                      onDragCancel={onDragCancel}
                       onDragEnd={onDragEnd}
                     >
                       <SortableContext items={orderedIds} strategy={verticalListSortingStrategy}>
                         <ul className="space-y-3">
                           {sortedModules.map((m) => (
-                            <SortableItem key={m.id} id={m.id} disabled={m.locked}>
-                              {(listeners: any) => (
-                                <li className="bg-backdrop-low border border-line-low rounded-lg px-4 py-3 flex items-center justify-between">
-                                  <div className="flex items-center gap-3">
-                                    <DragHandle
-                                      aria-label="Drag"
-                                      disabled={m.locked}
-                                      {...(m.locked ? {} : listeners)}
-                                    />
-                                    <div>
-                                      <div className="text-sm font-medium text-neutral-high">
-                                        {m.scope === 'global'
-                                          ? globalSlugToLabel.get(
-                                            String((m as any).globalSlug || '')
-                                          ) ||
-                                          (m as any).globalLabel ||
-                                          (m as any).globalSlug ||
-                                          moduleRegistry[m.type]?.name ||
-                                          m.type
-                                          : moduleRegistry[m.type]?.name || m.type}
-                                      </div>
-                                      <div className="text-xs text-neutral-low">
-                                        Order: {m.orderIndex}
-                                      </div>
-                                    </div>
-                                  </div>
-                                  <div className="flex items-center gap-2">
-                                    {moduleRegistry[m.type]?.renderingMode === 'react' && (
-                                      <span
-                                        className="inline-flex items-center rounded border border-line-medium bg-backdrop-low px-2 py-1 text-xs text-neutral-high"
-                                        title="React module (client-side interactivity)"
-                                        aria-label="React module"
-                                      >
-                                        <FontAwesomeIcon
-                                          icon={faReact}
-                                          className="mr-1 text-sky-400"
-                                        />
-                                        React
-                                      </span>
-                                    )}
-                                    {m.scope === 'global' ? (
-                                      <span
-                                        className="inline-flex items-center rounded border border-line-medium bg-backdrop-low px-2 py-1 text-xs text-neutral-high"
-                                        title="Global module"
-                                        aria-label="Global module"
-                                      >
-                                        <FontAwesomeIcon icon={faGlobe} className="w-3.5 h-3.5" />
-                                      </span>
-                                    ) : (
-                                      <button
-                                        className="text-xs px-2 py-1 rounded border border-line-low bg-backdrop-input text-neutral-high hover:bg-backdrop-medium"
-                                        onClick={() => setEditing(adjustModuleForView(m))}
-                                        type="button"
-                                      >
-                                        Edit
-                                      </button>
-                                    )}
-                                    <button
-                                      className="text-xs px-2 py-1 rounded border border-[#ef4444] text-[#ef4444] hover:bg-[rgba(239,68,68,0.1)] disabled:opacity-50"
-                                      disabled={m.locked}
-                                      onClick={async () => {
-                                        if (m.locked) {
-                                          toast.error('Locked modules cannot be removed')
-                                          return
-                                        }
-                                        // Mark for removal in appropriate mode; actual apply on save
-                                        if (viewMode === 'review') {
-                                          setPendingReviewRemoved((prev) => {
-                                            const next = new Set(prev)
-                                            next.add(m.id)
-                                            return next
-                                          })
-                                        } else {
-                                          setPendingRemoved((prev) => {
-                                            const next = new Set(prev)
-                                            next.add(m.id)
-                                            return next
-                                          })
-                                          // For source mode, optimistically remove from UI
-                                          setModules((prev) => prev.filter((pm) => pm.id !== m.id))
-                                        }
-                                        toast.success('Module marked for removal (apply by saving)')
-                                      }}
-                                      type="button"
-                                    >
-                                      Remove
-                                    </button>
-                                  </div>
-                                </li>
-                              )}
-                            </SortableItem>
+                            <ModuleRow
+                              key={m.id}
+                              m={m}
+                              viewMode={viewMode}
+                              isDraggingModules={isDraggingModules}
+                              modulesAccordionOpen={modulesAccordionOpen}
+                              moduleSchemasReady={moduleSchemasReady}
+                              moduleFieldAgents={moduleFieldAgents}
+                              globalSlugToLabel={globalSlugToLabel}
+                              moduleRegistry={moduleRegistry}
+                              moduleFlushFns={moduleFlushFns}
+                              setModulesAccordionOpen={setModulesAccordionOpen}
+                              setPendingRemoved={setPendingRemoved}
+                              setPendingReviewRemoved={setPendingReviewRemoved}
+                              setModules={setModules}
+                              registerModuleFlush={registerModuleFlush}
+                              stageModuleEdits={stageModuleEdits}
+                              markModuleDirty={markModuleDirty}
+                              postId={post.id}
+                            />
                           ))}
                         </ul>
                       </SortableContext>
@@ -2423,7 +3086,9 @@ export default function Editor({
                     {hasSourceBaseline && (
                       <button
                         type="button"
-                        onClick={() => {
+                        onClick={async () => {
+                          // Preserve unsaved module edits for the current version before switching.
+                          await flushAllModuleEdits()
                           setViewMode('source')
                           // Update URL to preserve view mode on reload
                           const url = new URL(window.location.href)
@@ -2438,7 +3103,8 @@ export default function Editor({
                     {hasReviewBaseline && (canSaveForReview || canApproveReview) && (
                       <button
                         type="button"
-                        onClick={() => {
+                        onClick={async () => {
+                          await flushAllModuleEdits()
                           setViewMode('review')
                           // Update URL to preserve view mode on reload
                           const url = new URL(window.location.href)
@@ -2453,7 +3119,8 @@ export default function Editor({
                     {hasAiReviewBaseline && canApproveAiReview && (
                       <button
                         type="button"
-                        onClick={() => {
+                        onClick={async () => {
+                          await flushAllModuleEdits()
                           setViewMode('ai-review')
                           // Update URL to preserve view mode on reload
                           const url = new URL(window.location.href)
@@ -3181,7 +3848,15 @@ export default function Editor({
                       Save edits to
                     </label>
                     <div className="flex items-center gap-2">
-                      <Select value={saveTarget} onValueChange={(val) => setSaveTarget(val as any)}>
+                      <Select
+                        value={saveTarget}
+                        onValueChange={async (val) => {
+                          // Changing the save target should not change the visible version,
+                          // and must not discard in-progress module edits. Stash local edits first.
+                          await flushAllModuleEdits()
+                          setSaveTarget(val as any)
+                        }}
+                      >
                         <SelectTrigger className="flex-1 h-8 text-xs">
                           <SelectValue />
                         </SelectTrigger>
@@ -3269,14 +3944,17 @@ export default function Editor({
                 {viewMode !== 'source' &&
                   ((hasAiReviewBaseline && canApproveAiReview) ||
                     (hasReviewBaseline && canApproveReview)) && (
-                    <div className="space-y-2">
+                    <div
+                      className={`space-y-2 ${isDirty ? 'opacity-50' : ''}`}
+                      aria-disabled={isDirty ? true : undefined}
+                    >
                       <label className="block text-xs font-medium text-neutral-medium">
                         Decision
                       </label>
                       <RadioGroup
                         value={decision}
                         onValueChange={(val) => setDecision(val as any)}
-                        className="space-y-2"
+                        className={`space-y-2 ${isDirty ? 'pointer-events-none' : ''}`}
                       >
                         {hasReviewBaseline && canApproveReview && (
                           <label className="flex items-center gap-2 text-xs text-neutral-high">
@@ -3308,7 +3986,7 @@ export default function Editor({
                         <button
                           type="button"
                           className="h-8 px-3 text-xs border border-border rounded-lg hover:bg-backdrop-medium text-neutral-medium disabled:opacity-50"
-                          disabled={!decision || processing}
+                          disabled={isDirty || !decision || processing}
                           onClick={async () => {
                             if (!decision) return
                             if (decision.startsWith('reject-')) {
@@ -3814,46 +4492,6 @@ export default function Editor({
           </div>
         </div>
       )}
-      <ModuleEditorPanel
-        key={`${editing ? editing.id : 'none'}-${viewMode}`}
-        open={!!editing}
-        moduleItem={editing}
-        onClose={() => setEditing(null)}
-        postId={post.id}
-        moduleInstanceId={editing?.id}
-        viewMode={viewMode}
-        onSave={(overrides, edited) => {
-          if (!editing) return Promise.resolve()
-          // stage changes locally and mark as pending; do NOT persist now
-          setPendingModules((prev) => ({ ...prev, [editing.id]: { overrides, edited } }))
-          setModules((prev) =>
-            prev.map((m) => {
-              if (m.id !== editing.id) return m
-              if (viewMode === 'review') {
-                if (m.scope === 'post') {
-                  return { ...m, reviewProps: edited, overrides: null }
-                } else {
-                  return { ...m, reviewOverrides: overrides }
-                }
-              } else if (viewMode === 'ai-review') {
-                if (m.scope === 'post') {
-                  return { ...m, aiReviewProps: edited, overrides: null }
-                } else {
-                  return { ...m, aiReviewOverrides: overrides }
-                }
-              } else {
-                if (m.scope === 'post') {
-                  return { ...m, props: edited, overrides: null }
-                } else {
-                  return { ...m, overrides }
-                }
-              }
-            })
-          )
-          return Promise.resolve()
-        }}
-        processing={false}
-      />
     </div>
   )
 }

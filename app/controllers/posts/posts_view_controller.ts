@@ -13,6 +13,7 @@ import PostCustomFieldValue from '#models/post_custom_field_value'
 import Taxonomy from '#models/taxonomy'
 import TaxonomyTerm from '#models/taxonomy_term'
 import ModuleGroupModule from '#models/module_group_module'
+import { coerceJsonObject } from '../../helpers/jsonb.js'
 
 /**
  * Posts View Controller
@@ -24,7 +25,7 @@ export default class PostsViewController extends BasePostsController {
    * GET /admin/posts/:id/edit
    * Show the post editor
    */
-  async edit({ params, inertia }: HttpContext) {
+  async edit({ params, inertia, request }: HttpContext) {
     try {
       // Temporarily disable soft deletes to allow editing soft-deleted posts
       Post.softDeleteEnabled = false
@@ -36,19 +37,78 @@ export default class PostsViewController extends BasePostsController {
       const modulesEnabled = uiCfg.modulesEnabled !== false && uiCfg.urlPatterns.length > 0
 
       // Load post modules for editor
-      const postModules = modulesEnabled
+      let postModules = modulesEnabled
         ? await PostModule.query()
-            .where('postId', post.id)
-            .orderBy('orderIndex', 'asc')
-            .orderBy('createdAt', 'asc')
-            .preload('moduleInstance')
+          .where('postId', post.id)
+          .orderBy('orderIndex', 'asc')
+          .orderBy('createdAt', 'asc')
+          .preload('moduleInstance')
+        : []
+
+      // Atomic Draft support: if we're in review/ai-review mode and the draft has modules, use them
+      const viewParam = request.input('view', '').toLowerCase()
+      const draftToUse =
+        viewParam === 'ai-review'
+          ? coerceJsonObject(post.aiReviewDraft)
+          : viewParam === 'review'
+            ? coerceJsonObject(post.reviewDraft)
+            : null
+      const draftModules = (draftToUse as any)?.modules
+
+      const editorModules = modulesEnabled
+        ? postModules.map((pm) => {
+          const mi = pm.moduleInstance as any as ModuleInstance
+
+          // Check if this specific module has a newer version in the atomic draft
+          const draftModule = Array.isArray(draftModules)
+            ? draftModules.find((dm: any) => dm.id === pm.id)
+            : null
+
+          return {
+            id: pm.id,
+            moduleInstanceId: pm.moduleId,
+            type: mi?.type,
+            scope: mi?.scope,
+            props: coerceJsonObject(mi?.props),
+            reviewProps: (() => {
+              if (draftModule && draftModule.props && mi?.scope === 'post') return draftModule.props
+              const obj = coerceJsonObject((mi as any)?.reviewProps || (mi as any)?.review_props)
+              return Object.keys(obj).length > 0 ? obj : null
+            })(),
+            aiReviewProps: (() => {
+              if (draftModule && draftModule.props && mi?.scope === 'post' && viewParam === 'ai-review') return draftModule.props
+              const obj = coerceJsonObject((mi as any)?.aiReviewProps || (mi as any)?.ai_review_props)
+              return Object.keys(obj).length > 0 ? obj : null
+            })(),
+            overrides: coerceJsonObject(pm.overrides),
+            reviewOverrides: (() => {
+              if (draftModule && draftModule.overrides && mi?.scope !== 'post') return draftModule.overrides
+              const obj = coerceJsonObject((pm as any).reviewOverrides || (pm as any).review_overrides)
+              return Object.keys(obj).length > 0 ? obj : null
+            })(),
+            aiReviewOverrides: (() => {
+              if (draftModule && draftModule.overrides && mi?.scope !== 'post' && viewParam === 'ai-review') return draftModule.overrides
+              const obj = coerceJsonObject((pm as any).aiReviewOverrides || (pm as any).ai_review_overrides)
+              return Object.keys(obj).length > 0 ? obj : null
+            })(),
+            reviewAdded: (pm as any).reviewAdded || false,
+            reviewDeleted: (pm as any).reviewDeleted || false,
+            aiReviewAdded: (pm as any).aiReviewAdded || (pm as any).ai_review_added || false,
+            aiReviewDeleted:
+              (pm as any).aiReviewDeleted || (pm as any).ai_review_deleted || false,
+            locked: pm.locked,
+            orderIndex: pm.orderIndex,
+            globalSlug: mi?.globalSlug || null,
+            globalLabel: mi?.globalLabel || null,
+          }
+        })
         : []
 
       // If the post has a module group template, but the post modules all share the same orderIndex
       // (common when older/generated posts were seeded with a bad order_index), fall back to the
       // module group ordering so the editor respects the template order.
-      if (modulesEnabled && post.moduleGroupId && postModules.length > 1) {
-        const uniq = new Set(postModules.map((pm) => Number((pm as any).orderIndex ?? 0)))
+      if (modulesEnabled && post.moduleGroupId && editorModules.length > 1) {
+        const uniq = new Set(editorModules.map((pm) => Number((pm as any).orderIndex ?? 0)))
         if (uniq.size <= 1) {
           const groupRows = await ModuleGroupModule.query()
             .where('moduleGroupId', post.moduleGroupId)
@@ -64,13 +124,10 @@ export default class PostsViewController extends BasePostsController {
           })
 
           const getKeyForPm = (pm: any) => {
-            const mi = pm.moduleInstance as any as ModuleInstance
-            const scope = String(mi?.scope || 'post') // 'post' or 'global'
-            const globalSlug = String(mi?.globalSlug || '')
-            return `${String(mi?.type || '')}|${scope}|${globalSlug}`
+            return `${String(pm.type || '')}|${pm.scope}|${pm.globalSlug || ''}`
           }
 
-          postModules.sort((a: any, b: any) => {
+          editorModules.sort((a: any, b: any) => {
             const ra = rank.get(getKeyForPm(a))
             const rb = rank.get(getKeyForPm(b))
             if (ra !== undefined && rb !== undefined) return ra - rb
@@ -113,7 +170,7 @@ export default class PostsViewController extends BasePostsController {
         fields.map(async (f: any) => {
           const rawValue = valuesBySlug.get(String(f.slug)) ?? null
           let resolvedValue = rawValue
-          
+
           // Resolve post references in link field values by adding the resolved URL
           // We keep the postId so links work even if slug changes
           if (f.type === 'link' && rawValue && typeof rawValue === 'object' && rawValue.kind === 'post' && rawValue.postId) {
@@ -129,7 +186,7 @@ export default class PostsViewController extends BasePostsController {
               console.warn(`Failed to resolve post reference for ${rawValue.postId}:`, error)
             }
           }
-          
+
           return {
             id: f.slug,
             slug: f.slug,
@@ -209,33 +266,7 @@ export default class PostsViewController extends BasePostsController {
         },
         reviewDraft: post.reviewDraft || null,
         aiReviewDraft: post.aiReviewDraft || null,
-        modules: modulesEnabled
-          ? postModules.map((pm) => {
-              const mi = pm.moduleInstance as any as ModuleInstance
-              return {
-                id: pm.id,
-                type: mi?.type,
-                scope: mi?.scope,
-                props: mi?.props || {},
-                reviewProps: (mi as any)?.reviewProps || (mi as any)?.review_props || null,
-                aiReviewProps: (mi as any)?.aiReviewProps || (mi as any)?.ai_review_props || null,
-                overrides: pm.overrides || null,
-                reviewOverrides:
-                  (pm as any).reviewOverrides || (pm as any).review_overrides || null,
-                aiReviewOverrides:
-                  (pm as any).aiReviewOverrides || (pm as any).ai_review_overrides || null,
-                reviewAdded: (pm as any).reviewAdded || false,
-                reviewDeleted: (pm as any).reviewDeleted || false,
-                aiReviewAdded: (pm as any).aiReviewAdded || (pm as any).ai_review_added || false,
-                aiReviewDeleted:
-                  (pm as any).aiReviewDeleted || (pm as any).ai_review_deleted || false,
-                locked: pm.locked,
-                orderIndex: pm.orderIndex,
-                globalSlug: mi?.globalSlug || null,
-                globalLabel: mi?.globalLabel || null,
-              }
-            })
-          : [],
+        modules: editorModules,
         translations,
         customFields,
         uiConfig: { ...uiCfg, modulesEnabled, hasPermalinks },
@@ -406,6 +437,7 @@ export default class PostsViewController extends BasePostsController {
         ...additionalProps,
       })
     } catch (error) {
+      console.error('Error loading post editor:', error)
       return this.response.serverError(response, 'Failed to resolve post', error)
     }
   }

@@ -1,5 +1,6 @@
 import db from '@adonisjs/lucid/services/db'
 import postTypeConfigService from '#services/post_type_config_service'
+import { coerceJsonObject } from '../../helpers/jsonb.js'
 
 type UpdatePostModuleParams = {
   postModuleId: string
@@ -108,18 +109,22 @@ export default class UpdatePostModule {
       if (moduleInstance && moduleInstance.scope === 'post') {
         // Local module: edit props; in review/ai-review mode, write to review_props/ai_review_props
         const baseProps = (() => {
+          const props = coerceJsonObject(moduleInstance.props)
+          const revProps = coerceJsonObject((moduleInstance as any).review_props)
+          const aiProps = coerceJsonObject((moduleInstance as any).ai_review_props)
+
           if (mode === 'ai-review') {
-            return (
-              (moduleInstance as any).ai_review_props ||
-              (moduleInstance as any).review_props ||
-              moduleInstance.props ||
-              {}
-            )
+            // Priority: AI Review > Review > Source
+            if (Object.keys(aiProps).length > 0) return aiProps
+            if (Object.keys(revProps).length > 0) return revProps
+            return props
           }
           if (mode === 'review') {
-            return (moduleInstance as any).review_props || moduleInstance.props || {}
+            // Priority: Review > Source
+            if (Object.keys(revProps).length > 0) return revProps
+            return props
           }
-          return moduleInstance.props || {}
+          return props
         })()
         // Deep-merge overrides to preserve nested richtext JSON
         const mergedProps = UpdatePostModule.deepMerge(baseProps, overrides || {})

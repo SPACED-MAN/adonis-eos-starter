@@ -1,3 +1,4 @@
+import React from 'react'
 import { Textarea } from '~/components/ui/textarea'
 
 type Props = {
@@ -5,9 +6,9 @@ type Props = {
   onChange: (val: string | null) => void
   placeholder?: string
   maxLength?: number
-}
+} & Omit<React.ComponentProps<typeof Textarea>, 'value' | 'onChange' | 'placeholder' | 'maxLength'>
 
-export default function TextareaField({ value, onChange, placeholder, maxLength }: Props) {
+export default function TextareaField({ value, onChange, placeholder, maxLength, ...rest }: Props) {
   return (
     <Textarea
       value={value ?? ''}
@@ -15,6 +16,7 @@ export default function TextareaField({ value, onChange, placeholder, maxLength 
       placeholder={placeholder}
       onChange={(e) => onChange(e.target.value || null)}
       rows={4}
+      {...rest}
     />
   )
 }

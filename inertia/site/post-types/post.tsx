@@ -16,6 +16,8 @@ interface PostPageProps {
     metaTitle: string | null
     metaDescription: string | null
     status: string
+    reviewDraft?: any
+    aiReviewDraft?: any
   }
   modules: Array<{
     id: string
@@ -24,11 +26,14 @@ interface PostPageProps {
     globalSlug?: string | null
     globalLabel?: string | null
     props: Record<string, any>
+    sourceProps?: Record<string, any>
+    sourceOverrides?: Record<string, any>
     reviewProps?: Record<string, any>
     aiReviewProps?: Record<string, any>
     overrides?: Record<string, any>
     reviewOverrides?: Record<string, any>
     aiReviewOverrides?: Record<string, any>
+    aiReviewAdded?: boolean
   }>
   seo?: {
     canonical?: string
@@ -80,11 +85,11 @@ export default function PostTypeDefault({ post, modules, seo, siteSettings }: Po
               className="container mx-auto px-4 sm:px-6 lg:px-8 py-8"
               {...(isAuthenticated
                 ? {
-                    'data-inline-module': module.id,
-                    'data-inline-scope': module.scope || 'local',
-                    'data-inline-global-slug': module.globalSlug || undefined,
-                    'data-inline-global-label': module.globalLabel || undefined,
-                  }
+                  'data-inline-module': module.id,
+                  'data-inline-scope': module.scope || 'local',
+                  'data-inline-global-slug': module.globalSlug || undefined,
+                  'data-inline-global-label': module.globalLabel || undefined,
+                }
                 : {})}
             >
               <Component
@@ -130,17 +135,21 @@ export default function PostTypeDefault({ post, modules, seo, siteSettings }: Po
       {isAuthenticated ? (
         <InlineEditorProvider
           postId={post.id}
+          post={post}
           modules={modules.map((m) => ({
             id: m.id,
             scope: m.scope,
             globalSlug: m.globalSlug,
             globalLabel: m.globalLabel,
             props: m.props,
+            sourceProps: m.sourceProps,
+            sourceOverrides: m.sourceOverrides,
             reviewProps: m.reviewProps,
             aiReviewProps: m.aiReviewProps,
             overrides: m.overrides,
             reviewOverrides: m.reviewOverrides,
             aiReviewOverrides: m.aiReviewOverrides,
+            aiReviewAdded: (m as any).aiReviewAdded,
           }))}
         >
           {content}

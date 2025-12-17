@@ -1,4 +1,4 @@
-import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react'
+import React, { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState, memo } from 'react'
 import { createPortal } from 'react-dom'
 import { toast } from 'sonner'
 import { LexicalEditor } from '../LexicalEditor'
@@ -37,34 +37,74 @@ export interface ModuleListItem {
 
 type FieldSchema =
   | {
-      name: string
-      label?: string
-      type:
-        | 'text'
-        | 'textarea'
-        | 'number'
-        | 'select'
-        | 'multiselect'
-        | 'boolean'
-        | 'date'
-        | 'url'
-        | 'media'
-        | 'object'
-        | 'repeater'
-        | 'slider'
-        | 'icon'
-      required?: boolean
-      placeholder?: string
-      options?: Array<{ label: string; value: string }>
-      fields?: FieldSchema[] // for object
-      item?: FieldSchema // for repeater
-      // slider configuration (optional)
-      min?: number
-      max?: number
-      step?: number
-      unit?: string
-    }
-  | { name: string; [key: string]: any }
+    name: string
+    label?: string
+    type:
+    | 'text'
+    | 'textarea'
+    | 'number'
+    | 'select'
+    | 'multiselect'
+    | 'boolean'
+    | 'date'
+    | 'url'
+    | 'media'
+    | 'object'
+    | 'repeater'
+    | 'slider'
+    | 'icon'
+    required?: boolean
+    placeholder?: string
+    options?: Array<{ label: string; value: string }>
+    fields?: FieldSchema[] // for object
+    item?: FieldSchema // for repeater
+    // slider configuration (optional)
+    min?: number
+    max?: number
+    step?: number
+    unit?: string
+  }
+  | { name: string;[key: string]: any }
+
+// Cache module schemas by type to avoid N identical fetches when rendering multiple editors.
+const moduleSchemaCache = new Map<string, { schema: FieldSchema[] | null; label: string | null }>()
+
+export async function prefetchModuleSchemas(moduleTypes: string[]): Promise<void> {
+  const unique = Array.from(new Set(moduleTypes.filter(Boolean)))
+  const missing = unique.filter((t) => !moduleSchemaCache.has(t))
+  if (missing.length === 0) return
+
+  await Promise.allSettled(
+    missing.map(async (type) => {
+      try {
+        const res = await fetch(`/api/modules/${encodeURIComponent(type)}/schema`, {
+          credentials: 'same-origin',
+        })
+        const json = await res.json().catch(() => null)
+        const ps =
+          json?.data?.propsSchema ||
+          json?.propsSchema ||
+          (json?.data?.schema ? json?.data?.schema?.propsSchema : null) ||
+          null
+        const friendlyName: string | null =
+          (json?.data && (json.data.name as string | undefined)) ||
+          (json && (json.name as string | undefined)) ||
+          null
+        if (ps && typeof ps === 'object') {
+          const fields: FieldSchema[] = Object.keys(ps).map((k) => {
+            const def = (ps as any)[k] || {}
+            return { name: k, ...(def || {}) }
+          })
+          moduleSchemaCache.set(type, { schema: fields, label: friendlyName || type })
+        } else {
+          moduleSchemaCache.set(type, { schema: null, label: friendlyName || type })
+        }
+      } catch {
+        moduleSchemaCache.set(type, { schema: null, label: type })
+      }
+    })
+  )
+}
 
 type EditorFieldCtx = {
   latestDraft: React.MutableRefObject<Record<string, any>>
@@ -76,7 +116,9 @@ type EditorFieldCtx = {
   getLabel: (path: string[], field: FieldSchema) => string
   syncFormToDraft: () => Record<string, any>
   getByPath: (obj: Record<string, any>, path: string) => any
-  formRef: React.RefObject<HTMLFormElement | null>
+  // NOTE: Inline editors use a <div> container; modal editor uses a <form>.
+  // Both support querySelectorAll and (optionally) scrollTop.
+  formRef: React.RefObject<HTMLElement | null>
   postId?: string
   moduleInstanceId?: string
   moduleType?: string
@@ -84,8 +126,8 @@ type EditorFieldCtx = {
   viewMode?: 'source' | 'review' | 'ai-review'
 }
 
-function setByPath(obj: Record<string, any>, pathStr: string, value: any) {
-  const parts = pathStr.split('.')
+function setByPath(obj: Record<string, any>, path: string | string[], value: any) {
+  const parts = typeof path === 'string' ? path.split('.') : path
   let target: any = obj
 
   for (let i = 0; i < parts.length - 1; i++) {
@@ -116,8 +158,8 @@ function setByPath(obj: Record<string, any>, pathStr: string, value: any) {
   }
 }
 
-function getByPath(obj: Record<string, any>, pathStr: string): any {
-  const parts = pathStr.split('.')
+function getByPath(obj: Record<string, any>, path: string | string[]): any {
+  const parts = typeof path === 'string' ? path.split('.') : path
   let target: any = obj
   for (const part of parts) {
     if (target === null || target === undefined) return undefined
@@ -194,26 +236,65 @@ function mergeProps(
 
 function diffOverrides(
   base: Record<string, any>,
-  edited: Record<string, any>
+  edited: Record<string, any>,
+  depth = 0
 ): Record<string, any> | null {
+  // Depth limit to prevent infinite loops on circular refs (though we sanitize them)
+  if (depth > 10) return edited
+
   const out: Record<string, any> = {}
   let changed = false
-  for (const key of new Set([...Object.keys(base), ...Object.keys(edited)])) {
+
+  const allKeys = new Set([...Object.keys(base), ...Object.keys(edited)])
+
+  for (const key of allKeys) {
     const b = base[key]
     const e = edited[key]
+
+    // Fast check for reference equality
+    if (b === e) continue
+
     if (isPlainObject(b) && isPlainObject(e)) {
-      const child = diffOverrides(b, e)
+      // For very large objects (e.g. rich text > 100KB), deep diffing is slow.
+      // If it changed at all (ref check failed), just send it as-is if it's too big.
+      const sizeB = JSON.stringify(b).length
+      if (sizeB > 102400) {
+        if (JSON.stringify(b) !== JSON.stringify(e)) {
+          out[key] = e
+          changed = true
+        }
+        continue
+      }
+
+      const child = diffOverrides(b, e, depth + 1)
       if (child && Object.keys(child).length) {
         out[key] = child
         changed = true
       }
     } else if (Array.isArray(b) || Array.isArray(e)) {
-      // Array editing not supported yet; if changed, store entire array
-      if (JSON.stringify(b) !== JSON.stringify(e)) {
+      // Optimized array comparison: skip stringify for simple cases
+      if (!Array.isArray(b) || !Array.isArray(e) || b.length !== e.length) {
         out[key] = e
         changed = true
+      } else {
+        // Quick check for primitive arrays
+        let arrayMatch = true
+        for (let i = 0; i < b.length; i++) {
+          if (b[i] !== e[i]) {
+            arrayMatch = false
+            break
+          }
+        }
+        if (!arrayMatch) {
+          // If primitives didn't match, fallback to JSON check
+          if (JSON.stringify(b) !== JSON.stringify(e)) {
+            out[key] = e
+            changed = true
+          }
+        }
       }
-    } else if (b !== e) {
+    } else {
+      // Primitive mismatch
       out[key] = e
       changed = true
     }
@@ -248,8 +329,14 @@ export function ModuleEditorPanel({
     [moduleItem]
   )
   const [draft, setDraft] = useState<Record<string, any>>(merged)
-  const [schema, setSchema] = useState<FieldSchema[] | null>(null)
-  const [moduleLabel, setModuleLabel] = useState<string | null>(null)
+  const [schema, setSchema] = useState<FieldSchema[] | null>(() => {
+    const cached = moduleItem ? moduleSchemaCache.get(moduleItem.type) : null
+    return cached ? cached.schema : null
+  })
+  const [moduleLabel, setModuleLabel] = useState<string | null>(() => {
+    const cached = moduleItem ? moduleSchemaCache.get(moduleItem.type) : null
+    return cached ? cached.label : null
+  })
   const formRef = useRef<HTMLFormElement | null>(null)
   const [fieldAgents, setFieldAgents] = useState<Agent[]>([])
   const hasFieldPermission = useHasPermission('agents.field')
@@ -318,26 +405,27 @@ export function ModuleEditorPanel({
       return
     }
     let alive = true
-    ;(async () => {
-      try {
-        const res = await fetch('/api/agents?scope=field', { credentials: 'same-origin' })
-        const json = await res.json().catch(() => ({}))
-        const list: Agent[] = Array.isArray(json?.data) ? json.data : []
-        if (alive) {
-          setFieldAgents(list)
+      ; (async () => {
+        try {
+          const res = await fetch('/api/agents?scope=field', { credentials: 'same-origin' })
+          const json = await res.json().catch(() => ({}))
+          const list: Agent[] = Array.isArray(json?.data) ? json.data : []
+          if (alive) {
+            setFieldAgents(list)
+          }
+        } catch (error) {
+          console.error('Failed to load field-scoped agents:', error)
+          if (alive) setFieldAgents([])
         }
-      } catch (error) {
-        console.error('Failed to load field-scoped agents:', error)
-        if (alive) setFieldAgents([])
-      }
-    })()
+      })()
     return () => {
       alive = false
     }
   }, [open, hasFieldPermission])
 
   const syncFormToDraft = useCallback((): Record<string, any> => {
-    const edited = JSON.parse(JSON.stringify(latestDraft.current))
+    // Avoid slow JSON stringify/parse for cloning the draft
+    const edited = { ...(latestDraft.current || {}) }
     const form = formRef.current
     if (form) {
       const elements = form.querySelectorAll<
@@ -393,38 +481,48 @@ export function ModuleEditorPanel({
   // Load module schema (if available)
   useEffect(() => {
     let alive = true
-    ;(async () => {
-      if (!open || !moduleItem) return
-      try {
-        const res = await fetch(`/api/modules/${encodeURIComponent(moduleItem.type)}/schema`, {
-          credentials: 'same-origin',
-        })
-        const json = await res.json().catch(() => null)
-        const ps =
-          json?.data?.propsSchema ||
-          json?.propsSchema ||
-          (json?.data?.schema ? json?.data?.schema?.propsSchema : null) ||
-          null
-        const friendlyName: string | null =
-          (json?.data && (json.data.name as string | undefined)) ||
-          (json && (json.name as string | undefined)) ||
-          null
-        if (alive) {
-          setModuleLabel(friendlyName || moduleItem.type)
-        }
-        if (ps && typeof ps === 'object') {
-          const fields: FieldSchema[] = Object.keys(ps).map((k) => {
-            const def = (ps as any)[k] || {}
-            return { name: k, ...(def || {}) }
+      ; (async () => {
+        if (!open || !moduleItem) return
+        try {
+          const cached = moduleSchemaCache.get(moduleItem.type)
+          if (cached) {
+            if (alive) {
+              setModuleLabel(cached.label || moduleItem.type)
+              setSchema(cached.schema)
+            }
+            return
+          }
+          const res = await fetch(`/api/modules/${encodeURIComponent(moduleItem.type)}/schema`, {
+            credentials: 'same-origin',
           })
-          if (alive) setSchema(fields)
-        } else {
+          const json = await res.json().catch(() => null)
+          const ps =
+            json?.data?.propsSchema ||
+            json?.propsSchema ||
+            (json?.data?.schema ? json?.data?.schema?.propsSchema : null) ||
+            null
+          const friendlyName: string | null =
+            (json?.data && (json.data.name as string | undefined)) ||
+            (json && (json.name as string | undefined)) ||
+            null
+          if (alive) {
+            setModuleLabel(friendlyName || moduleItem.type)
+          }
+          if (ps && typeof ps === 'object') {
+            const fields: FieldSchema[] = Object.keys(ps).map((k) => {
+              const def = (ps as any)[k] || {}
+              return { name: k, ...(def || {}) }
+            })
+            if (alive) setSchema(fields)
+            moduleSchemaCache.set(moduleItem.type, { schema: fields, label: friendlyName || moduleItem.type })
+          } else {
+            if (alive) setSchema(null)
+            moduleSchemaCache.set(moduleItem.type, { schema: null, label: friendlyName || moduleItem.type })
+          }
+        } catch {
           if (alive) setSchema(null)
         }
-      } catch {
-        if (alive) setSchema(null)
-      }
-    })()
+      })()
     return () => {
       alive = false
     }
@@ -718,7 +816,1520 @@ export function ModuleEditorPanel({
   )
 }
 
-function FieldPrimitiveInternal({
+export const ModuleEditorInline = memo(function ModuleEditorInline({
+  moduleItem,
+  onSave,
+  onDirty,
+  processing = false,
+  postId,
+  moduleInstanceId,
+  viewMode,
+  fieldAgents = [],
+  autoSaveOnBlur = true,
+  registerFlush,
+  className = '',
+}: {
+  moduleItem: ModuleListItem
+  onSave: (overrides: Record<string, any> | null, edited: Record<string, any>) => Promise<void> | void
+  // Called once when the user changes any field in this module (used to enable the page-level Save button)
+  onDirty?: () => void
+  processing?: boolean
+  postId?: string
+  moduleInstanceId?: string
+  viewMode?: 'source' | 'review' | 'ai-review'
+  fieldAgents?: Agent[]
+  autoSaveOnBlur?: boolean
+  registerFlush?: (flush: (() => Promise<void>) | null) => void
+  className?: string
+}) {
+  const merged = useMemo(
+    () => (moduleItem ? mergeProps(moduleItem.props || {}, moduleItem.overrides || null) : {}),
+    [moduleItem]
+  )
+  const [draft, setDraft] = useState<Record<string, any>>(merged)
+  const [schema, setSchema] = useState<FieldSchema[] | null>(() => {
+    const cached = moduleItem ? moduleSchemaCache.get(moduleItem.type) : null
+    return cached ? cached.schema : null
+  })
+  const [moduleLabel, setModuleLabel] = useState<string | null>(() => {
+    const cached = moduleItem ? moduleSchemaCache.get(moduleItem.type) : null
+    return cached ? cached.label : null
+  })
+  // IMPORTANT: do not render a nested <form> inside the post editor's <form>.
+  const formRef = useRef<HTMLDivElement | null>(null)
+
+  const fieldComponents = useMemo(() => {
+    const modules = import.meta.glob('../../fields/*.tsx', { eager: true }) as Record<
+      string,
+      { default: any }
+    >
+    const map: Record<string, any> = {}
+    Object.entries(modules).forEach(([p, mod]) => {
+      const nm = p
+        .split('/')
+        .pop()
+        ?.replace(/\.\w+$/, '')
+      if (nm && mod?.default) map[nm] = mod.default
+    })
+    return map
+  }, [])
+
+  const pascalFromType = (t?: string | null) => {
+    if (!t || typeof t !== 'string') return ''
+    return t
+      .split(/[-_]/g)
+      .map((s) => s.charAt(0).toUpperCase() + s.slice(1))
+      .join('')
+  }
+
+  const supportedFieldTypes = useMemo(
+    () =>
+      new Set([
+        'text',
+        'textarea',
+        'number',
+        'select',
+        'multiselect',
+        'boolean',
+        'url',
+        'link',
+        'file',
+        'taxonomy',
+        'form-reference',
+        'post-reference',
+        'richtext',
+        'slider',
+      ]),
+    []
+  )
+
+  const latestDraft = useRef(draft)
+  useEffect(() => {
+    latestDraft.current = draft
+  }, [draft])
+
+  const fallbackDraftKeys = useMemo(
+    () => Object.keys(draft || {}).filter((k) => k !== 'type' && k !== 'properties'),
+    [draft]
+  )
+
+  const isNoFieldModule = moduleItem?.type === 'reading-progress'
+
+  const syncFormToDraft = useCallback((): Record<string, any> => {
+    // Avoid slow JSON stringify/parse for cloning the draft
+    const edited = { ...(latestDraft.current || {}) }
+    const form = formRef.current
+    if (form) {
+      const elements = form.querySelectorAll<
+        HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement
+      >('input[name], textarea[name], select[name]')
+      elements.forEach((el) => {
+        const name = el.getAttribute('name')!
+        if ((el as HTMLInputElement).type === 'checkbox') {
+          setByPath(edited, name, (el as HTMLInputElement).checked)
+        } else if ((el as HTMLInputElement).type === 'number') {
+          const val = (el as HTMLInputElement).value
+          setByPath(edited, name, val === '' ? 0 : Number(val))
+        } else if (
+          (el as HTMLInputElement).dataset &&
+          (el as HTMLInputElement).dataset.json === '1'
+        ) {
+          const val = (el as HTMLInputElement).value
+          try {
+            setByPath(edited, name, val ? JSON.parse(val) : null)
+          } catch {
+            setByPath(edited, name, val)
+          }
+        } else if (
+          (el as HTMLInputElement).dataset &&
+          (el as HTMLInputElement).dataset.bool === '1'
+        ) {
+          const val = (el as HTMLInputElement).value
+          setByPath(edited, name, val === 'true')
+        } else if (
+          (el as HTMLInputElement).dataset &&
+          (el as HTMLInputElement).dataset.number === '1'
+        ) {
+          const val = (el as HTMLInputElement).value
+          setByPath(edited, name, val === '' ? 0 : Number(val))
+        } else if ((el as HTMLSelectElement).multiple) {
+          const vals = Array.from((el as HTMLSelectElement).selectedOptions).map((o) => o.value)
+          setByPath(edited, name, vals)
+        } else {
+          setByPath(edited, name, (el as HTMLInputElement).value)
+        }
+      })
+    }
+    return edited
+  }, [])
+
+  useEffect(() => {
+    const currentId = moduleItem?.id
+    const prevId = prevModuleItemIdRef.current
+
+    const pendingRef = pendingInputValueRef.current
+    const hasPendingForThisModule = pendingRef && pendingRef.rootId === currentId
+
+    // Check if we have pending input value (unsaved changes) for THIS module - if so, NEVER reset
+    // This prevents losing edits when parent re-renders after onDirty
+    // This check must happen BEFORE the ID check, because we want to preserve edits even if props change
+    if (hasPendingForThisModule) {
+      // Still update the ref so we don't keep checking
+      if (currentId !== prevId) {
+        prevModuleItemIdRef.current = currentId
+      }
+      return
+    }
+
+    // Only reset if the ID actually changed (not just a re-render)
+    if (currentId === prevId) {
+      return
+    }
+
+    // Only reset draft if ID actually changed AND we don't have pending edits
+    const newDraft = mergeProps(moduleItem.props || {}, moduleItem.overrides || null)
+
+    // Double-check: if we have pending edits, NEVER reset, even if props changed
+    // This is a safety check in case the pending ref check above failed
+    if (pendingInputValueRef.current && pendingInputValueRef.current.rootId === currentId) {
+      prevModuleItemIdRef.current = currentId
+      return
+    }
+
+    // Compare with current draft - only reset if actually different
+    // This prevents unnecessary resets when parent re-renders with same data
+    setDraft((prev) => {
+      const prevStr = JSON.stringify(prev || {})
+      const newStr = JSON.stringify(newDraft)
+      if (prevStr === newStr) {
+        return prev // No change, keep existing draft
+      }
+      return newDraft
+    })
+    setModuleLabel(null)
+    prevModuleItemIdRef.current = currentId
+  }, [moduleItem?.id]) // Only depend on ID, not props/overrides, to prevent resets when parent re-renders
+
+  useEffect(() => {
+    let alive = true
+      ; (async () => {
+        if (!moduleItem) return
+        try {
+          const cached = moduleSchemaCache.get(moduleItem.type)
+          if (cached) {
+            if (alive) {
+              setModuleLabel(cached.label || moduleItem.type)
+              setSchema(cached.schema)
+            }
+            return
+          }
+          const res = await fetch(`/api/modules/${encodeURIComponent(moduleItem.type)}/schema`, {
+            credentials: 'same-origin',
+          })
+          const json = await res.json().catch(() => null)
+          const ps =
+            json?.data?.propsSchema ||
+            json?.propsSchema ||
+            (json?.data?.schema ? json?.data?.schema?.propsSchema : null) ||
+            null
+          const friendlyName: string | null =
+            (json?.data && (json.data.name as string | undefined)) ||
+            (json && (json.name as string | undefined)) ||
+            null
+          if (alive) setModuleLabel(friendlyName || moduleItem.type)
+          if (ps && typeof ps === 'object') {
+            const fields: FieldSchema[] = Object.keys(ps).map((k) => {
+              const def = (ps as any)[k] || {}
+              return { name: k, ...(def || {}) }
+            })
+            if (alive) setSchema(fields)
+            moduleSchemaCache.set(moduleItem.type, { schema: fields, label: friendlyName || moduleItem.type })
+          } else {
+            if (alive) setSchema(null)
+            moduleSchemaCache.set(moduleItem.type, { schema: null, label: friendlyName || moduleItem.type })
+          }
+        } catch {
+          if (alive) setSchema(null)
+        }
+      })()
+    return () => {
+      alive = false
+    }
+  }, [moduleItem?.type])
+
+  const ctx = useMemo(
+    () => ({
+      latestDraft,
+      setDraft,
+      fieldComponents,
+      supportedFieldTypes,
+      pascalFromType,
+      setByPath,
+      getLabel,
+      syncFormToDraft,
+      getByPath,
+      formRef,
+      postId,
+      moduleInstanceId,
+      moduleType: moduleItem?.type,
+      fieldAgents,
+      viewMode,
+    }),
+    [
+      setDraft,
+      fieldComponents,
+      supportedFieldTypes,
+      syncFormToDraft,
+      postId,
+      moduleInstanceId,
+      moduleItem?.type,
+      fieldAgents,
+      viewMode,
+    ]
+  )
+
+  const collectEdited = useCallback(() => {
+    const base = moduleItem?.props || {}
+    // Avoid slow JSON stringify/parse for cloning the merged baseline
+    const edited = { ...(merged || {}) }
+    const form = formRef.current
+    if (form) {
+      const elements = form.querySelectorAll<
+        HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement
+      >('input[name], textarea[name], select[name]')
+      elements.forEach((el) => {
+        const name = el.getAttribute('name')!
+        if ((el as HTMLInputElement).type === 'checkbox') {
+          setByPath(edited, name, (el as HTMLInputElement).checked)
+        } else if ((el as HTMLInputElement).type === 'number') {
+          const val = (el as HTMLInputElement).value
+          setByPath(edited, name, val === '' ? 0 : Number(val))
+        } else if (
+          (el as HTMLInputElement).dataset &&
+          (el as HTMLInputElement).dataset.json === '1'
+        ) {
+          const val = (el as HTMLInputElement).value
+          try {
+            setByPath(edited, name, val ? JSON.parse(val) : null)
+          } catch {
+            setByPath(edited, name, val)
+          }
+        } else if (
+          (el as HTMLInputElement).dataset &&
+          (el as HTMLInputElement).dataset.bool === '1'
+        ) {
+          const val = (el as HTMLInputElement).value
+          setByPath(edited, name, val === 'true')
+        } else if (
+          (el as HTMLInputElement).dataset &&
+          (el as HTMLInputElement).dataset.number === '1'
+        ) {
+          const val = (el as HTMLInputElement).value
+          setByPath(edited, name, val === '' ? 0 : Number(val))
+        } else if ((el as HTMLSelectElement).multiple) {
+          const vals = Array.from((el as HTMLSelectElement).selectedOptions).map((o) => o.value)
+          setByPath(edited, name, vals)
+        } else {
+          setByPath(edited, name, (el as HTMLInputElement).value)
+        }
+      })
+    }
+    const overrides = diffOverrides(base, edited)
+    return { overrides, edited }
+  }, [merged, moduleItem])
+
+  const saveNow = useCallback(async () => {
+    const { overrides, edited } = collectEdited()
+    await onSave(overrides, edited)
+  }, [collectEdited, onSave])
+
+  useEffect(() => {
+    if (!registerFlush) return
+    registerFlush(saveNow)
+    return () => {
+      registerFlush(null)
+    }
+  }, [registerFlush, saveNow])
+
+  const autosaveTimer = useRef<number | null>(null)
+  const didSignalDirtyRef = useRef(false)
+  const signalDirtyTimeoutRef = useRef<number | null>(null)
+  // Store the current input value in a ref to preserve it across re-renders
+  const pendingInputValueRef = useRef<{ name: string; value: string; rootId: string; cursorPos: number } | null>(null)
+  // Track the previous moduleItem.id to detect actual ID changes
+  const prevModuleItemIdRef = useRef<string | undefined>(moduleItem?.id)
+
+  useEffect(() => {
+    return () => {
+      if (autosaveTimer.current) {
+        window.clearTimeout(autosaveTimer.current)
+        autosaveTimer.current = null
+      }
+      if (signalDirtyTimeoutRef.current) {
+        window.clearTimeout(signalDirtyTimeoutRef.current)
+        signalDirtyTimeoutRef.current = null
+      }
+    }
+  }, [])
+
+  // Track the last draft value we restored to prevent infinite loops
+  const lastRestoredDraftRef = useRef<{ name: string; value: string } | null>(null)
+
+  // Restore input value and draft after re-renders to prevent first character loss
+  // This runs synchronously after DOM mutations but before paint, ensuring we catch any value resets
+  useLayoutEffect(() => {
+    if (pendingInputValueRef.current) {
+      const { name, value, rootId, cursorPos } = pendingInputValueRef.current
+      const el = formRef.current?.querySelector(
+        `[name="${name}"][data-root-id="${rootId}"]`
+      ) as HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement | null
+
+      // Restore input value if it was reset
+      if (el && el.value !== value) {
+        el.value = value
+        if (el instanceof HTMLInputElement || el instanceof HTMLTextAreaElement) {
+          el.setSelectionRange(cursorPos, cursorPos)
+        }
+      }
+
+      // Restore draft if it was reset (this happens after onDirty triggers parent re-renders)
+      const currentDraftValue = draft ? draft[name] : undefined
+      const lastRestored = lastRestoredDraftRef.current
+      const alreadyRestored = lastRestored?.name === name && lastRestored?.value === value
+
+      if (currentDraftValue !== value && !alreadyRestored) {
+        setDraft((prev) => {
+          const next = { ...(prev || {}) }
+          setByPath(next, name, value)
+          return next
+        })
+        lastRestoredDraftRef.current = { name, value }
+
+        // Also restore the input value
+        if (el && el.value !== value) {
+          el.value = value
+          if (el instanceof HTMLInputElement || el instanceof HTMLTextAreaElement) {
+            el.setSelectionRange(cursorPos, cursorPos)
+          }
+        }
+      } else if (currentDraftValue === value && lastRestored?.name === name) {
+        // Draft matches, clear the restoration tracking
+        lastRestoredDraftRef.current = null
+      }
+
+      // Keep ref active for 1 second to handle all re-render cascades after onDirty
+      // Only clear if draft matches and has been stable
+      const timeoutId = window.setTimeout(() => {
+        if (pendingInputValueRef.current?.name === name) {
+          const finalDraftValue = draft ? draft[name] : undefined
+          if (finalDraftValue === value) {
+            pendingInputValueRef.current = null
+            lastRestoredDraftRef.current = null
+          }
+        }
+      }, 1000)
+
+      return () => window.clearTimeout(timeoutId)
+    }
+  }, [draft])
+
+  return (
+    <div className={className}>
+      <div
+        ref={formRef}
+        className="grid grid-cols-1 gap-5"
+        onChangeCapture={(e) => {
+          // Keep local draft in sync while typing so parent rerenders don't "wipe" in-progress edits.
+          // IMPORTANT: do NOT call onSave here (that would churn parent state and steal focus).
+          try {
+            // Use the event target, not document.activeElement. Focus can temporarily move during the first edit,
+            // and using activeElement can miss the correct input (causing the first character to be lost).
+            const el = e.target as
+              | HTMLInputElement
+              | HTMLTextAreaElement
+              | HTMLSelectElement
+              | null
+            const name = el?.getAttribute?.('name') || ''
+            const rootId = el?.getAttribute?.('data-root-id') || ''
+            if (!name) return
+
+            // Capture the current input value IMMEDIATELY to preserve it across re-renders
+            // This must happen before any state updates that might trigger re-renders
+            const currentValue = (el as HTMLInputElement | HTMLTextAreaElement).value || ''
+
+            // Prevent processing if this is a programmatic change (not user input)
+            // Check if the value matches what we already have stored
+            const storedValue = pendingInputValueRef.current?.name === name &&
+              pendingInputValueRef.current?.rootId === rootId
+              ? pendingInputValueRef.current.value
+              : null
+            if (storedValue !== null && currentValue === storedValue) {
+              return
+            }
+
+            const cursorPos = el instanceof HTMLInputElement || el instanceof HTMLTextAreaElement
+              ? el.selectionStart ?? currentValue.length
+              : currentValue.length
+
+            // Store the value in a ref that persists across re-renders
+            // This is the last line of defense against value loss
+            if (rootId) {
+              pendingInputValueRef.current = { name, value: currentValue, rootId, cursorPos }
+            }
+
+            // Update draft state - let React batch naturally for better performance during fast typing.
+            // The pendingInputValueRef + useLayoutEffect still provide safety if a re-render resets the DOM.
+            setDraft((prev) => {
+              const next = { ...(prev || {}) }
+              // Match syncFormToDraft coercions, but only for the changed field for performance.
+              if ((el as HTMLInputElement).type === 'checkbox') {
+                setByPath(next, name, (el as HTMLInputElement).checked)
+              } else if ((el as HTMLInputElement).type === 'number') {
+                const val = (el as HTMLInputElement).value
+                setByPath(next, name, val === '' ? 0 : Number(val))
+              } else if ((el as HTMLInputElement).dataset && (el as HTMLInputElement).dataset.json === '1') {
+                const val = (el as HTMLInputElement).value
+                try {
+                  setByPath(next, name, val ? JSON.parse(val) : null)
+                } catch {
+                  setByPath(next, name, val)
+                }
+              } else if ((el as HTMLInputElement).dataset && (el as HTMLInputElement).dataset.bool === '1') {
+                const val = (el as HTMLInputElement).value
+                setByPath(next, name, val === 'true')
+              } else if ((el as HTMLInputElement).dataset && (el as HTMLInputElement).dataset.number === '1') {
+                const val = (el as HTMLInputElement).value
+                setByPath(next, name, val === '' ? 0 : Number(val))
+              } else if ((el as HTMLSelectElement).multiple) {
+                const vals = Array.from((el as HTMLSelectElement).selectedOptions).map((o) => o.value)
+                setByPath(next, name, vals)
+              } else {
+                // Use the captured value to ensure we have the latest
+                setByPath(next, name, currentValue)
+              }
+              return next
+            })
+
+            // Signal dirty with a longer delay to avoid parent re-renders while the user is still typing.
+            // A 400ms delay ensures that for fast typing, the parent re-render happens after the word is done.
+            if (!didSignalDirtyRef.current) {
+              didSignalDirtyRef.current = true
+              if (onDirty) {
+                signalDirtyTimeoutRef.current = window.setTimeout(() => {
+                  signalDirtyTimeoutRef.current = null
+                  onDirty()
+                }, 400)
+              }
+            }
+          } catch {
+            /* ignore */
+          }
+        }}
+        onBlurCapture={() => {
+          if (!autoSaveOnBlur) return
+          if (autosaveTimer.current) window.clearTimeout(autosaveTimer.current)
+          autosaveTimer.current = window.setTimeout(() => {
+            saveNow()
+          }, 250)
+        }}
+      >
+        <fieldset disabled={processing || !!moduleItem.locked} className={moduleItem.locked ? 'opacity-60' : ''}>
+          {schema && schema.length > 0 ? (
+            schema.map((f) => {
+              // If we have pending unsaved changes for this field, use the pending value
+              // This prevents React from resetting the input when parent re-renders
+              const fieldName = (f as any).name
+              const pendingRef = pendingInputValueRef.current
+              const hasPendingValue = pendingRef?.name === fieldName &&
+                pendingRef?.rootId === moduleItem.id
+              const pendingValue = hasPendingValue && pendingRef ? pendingRef.value : null
+              const draftValue = draft ? draft[fieldName] : undefined
+              const valueToUse = pendingValue !== null ? pendingValue : draftValue
+
+              return (
+                <FieldBySchemaInternal
+                  key={fieldName}
+                  path={[fieldName]}
+                  field={f}
+                  value={valueToUse}
+                  rootId={moduleItem.id}
+                  ctx={ctx}
+                />
+              )
+            })
+          ) : isNoFieldModule || fallbackDraftKeys.length === 0 ? (
+            <p className="text-sm text-neutral-low">No editable fields.</p>
+          ) : (
+            fallbackDraftKeys.map((key) => {
+              const rawVal = draft[key]
+              if (key === 'content') {
+                let initial: any = undefined
+                if (isPlainObject(rawVal)) {
+                  initial = rawVal
+                } else if (typeof rawVal === 'string') {
+                  try {
+                    const parsed = JSON.parse(rawVal)
+                    initial = parsed
+                  } catch {
+                    initial = undefined
+                  }
+                }
+                return (
+                  <div key={key}>
+                    <label className="block text-sm font-medium text-neutral-medium mb-1">{key}</label>
+                    {(fieldComponents as Record<string, any>)['RichtextField'] ? (
+                      (fieldComponents as Record<string, any>)['RichtextField']({
+                        editorKey: `${moduleItem.id}:${key}`,
+                        value: initial,
+                        onChange: (json: any) => {
+                          const hidden =
+                            (formRef.current?.querySelector(
+                              `input[type="hidden"][name="${key}"]`
+                            ) as HTMLInputElement) || null
+                          if (hidden) {
+                            try {
+                              hidden.value = JSON.stringify(json)
+                            } catch {
+                              /* ignore */
+                            }
+                          }
+                          const next = JSON.parse(JSON.stringify(draft))
+                          setByPath(next, key, json)
+                          setDraft(next)
+                        },
+                      })
+                    ) : (
+                      <LexicalEditor
+                        editorKey={`${moduleItem.id}:${key}`}
+                        value={initial}
+                        onChange={(json) => {
+                          const hidden =
+                            (formRef.current?.querySelector(
+                              `input[type="hidden"][name="${key}"]`
+                            ) as HTMLInputElement) || null
+                          if (hidden) {
+                            try {
+                              hidden.value = JSON.stringify(json)
+                            } catch {
+                              /* ignore */
+                            }
+                          }
+                          const next = JSON.parse(JSON.stringify(draft))
+                          setByPath(next, key, json)
+                          setDraft(next)
+                        }}
+                      />
+                    )}
+                    <input
+                      type="hidden"
+                      name={key}
+                      data-json="1"
+                      defaultValue={
+                        isPlainObject(rawVal)
+                          ? JSON.stringify(rawVal)
+                          : typeof rawVal === 'string'
+                            ? rawVal
+                            : ''
+                      }
+                    />
+                  </div>
+                )
+              }
+              const val = rawVal
+              if (isPlainObject(val) || Array.isArray(val)) {
+                return (
+                  <div key={key}>
+                    <label className="block text-sm font-medium text-neutral-medium mb-1">{key}</label>
+                    <textarea
+                      className="w-full px-3 py-2 min-h-[140px] border border-border rounded-lg bg-backdrop-low text-neutral-high font-mono text-xs focus:ring-1 ring-ring focus:border-transparent"
+                      defaultValue={JSON.stringify(val, null, 2)}
+                      onBlur={(e) => {
+                        try {
+                          const parsed = JSON.parse(e.target.value || 'null')
+                          const next = JSON.parse(JSON.stringify(draft))
+                          setByPath(next, key, parsed)
+                          setDraft(next)
+                        } catch {
+                          toast.error('Invalid JSON')
+                        }
+                      }}
+                    />
+                    <p className="text-xs text-neutral-low mt-1">Edit JSON directly.</p>
+                  </div>
+                )
+              }
+              return (
+                <FieldPrimitiveInternal
+                  key={key}
+                  path={[key]}
+                  field={
+                    {
+                      name: key,
+                      type:
+                        typeof val === 'number'
+                          ? 'number'
+                          : typeof val === 'boolean'
+                            ? 'boolean'
+                            : 'text',
+                    } as any
+                  }
+                  value={val}
+                  rootId={moduleItem.id}
+                  ctx={ctx}
+                />
+              )
+            })
+          )}
+        </fieldset>
+
+        <div className="flex items-center justify-end gap-2 border-t border-line-low pt-4">
+          <button
+            type="button"
+            className="px-3 py-1.5 text-xs rounded border border-line-medium text-neutral-high hover:bg-backdrop-medium"
+            onClick={saveNow}
+            disabled={processing || !!moduleItem.locked}
+            title={moduleLabel ? `Apply changes to ${moduleLabel}` : 'Apply changes'}
+          >
+            Apply
+          </button>
+        </div>
+      </div>
+    </div>
+  )
+})
+
+// --------------------------------------------------------------------------
+// Global cache for media metadata to avoid N fetches for the same ID across modules
+// --------------------------------------------------------------------------
+const mediaMetadataCache = new Map<string, any>()
+const mediaMetadataLoading = new Map<string, Promise<any>>()
+const mediaMetadata404 = new Set<string>()
+
+const DateFieldInternal = memo(({
+  name,
+  label,
+  rootId,
+  hideLabel,
+  initial,
+}: {
+  name: string
+  label: string
+  rootId: string
+  hideLabel: boolean
+  initial: string
+}) => {
+  const initialDate = initial ? new Date(initial) : null
+  const [selected, setSelected] = useState<Date | null>(initialDate)
+  const hiddenRef = useRef<HTMLInputElement | null>(null)
+
+  function formatDate(d: Date | null) {
+    if (!d) return ''
+    const y = d.getFullYear()
+    const m = String(d.getMonth() + 1).padStart(2, '0')
+    const da = String(d.getDate()).padStart(2, '0')
+    return `${y}-${m}-${da}`
+  }
+
+  return (
+    <FormField>
+      {!hideLabel && <FormLabel>{label}</FormLabel>}
+      <Popover>
+        <PopoverTrigger asChild>
+          <button
+            type="button"
+            className="w-full text-left px-3 py-2 border border-border rounded-lg bg-backdrop-low text-neutral-high hover:bg-backdrop-medium"
+          >
+            {selected ? formatDate(selected) : 'Pick a date'}
+          </button>
+        </PopoverTrigger>
+        <PopoverContent>
+          <Calendar
+            mode="single"
+            selected={selected || undefined}
+            onSelect={(d: Date | undefined) => {
+              const val = d || null
+              setSelected(val)
+              if (hiddenRef.current) {
+                hiddenRef.current.value = formatDate(val)
+                hiddenRef.current.dispatchEvent(new Event('input', { bubbles: true }))
+                hiddenRef.current.dispatchEvent(new Event('change', { bubbles: true }))
+              }
+            }}
+          />
+        </PopoverContent>
+      </Popover>
+      <input
+        type="hidden"
+        name={name}
+        ref={hiddenRef}
+        defaultValue={initial}
+        data-root-id={rootId}
+      />
+    </FormField>
+  )
+})
+
+const SliderFieldInternal = memo(({
+  name,
+  label,
+  value,
+  rootId,
+  hideLabel,
+  field,
+}: {
+  name: string
+  label: string
+  value: any
+  rootId: string
+  hideLabel: boolean
+  field: any
+}) => {
+  const min = field.min ?? 0
+  const max = field.max ?? 100
+  const step = field.step ?? 1
+  const unit = field.unit ?? ''
+  const current = typeof value === 'number' ? value : min
+  const [val, setVal] = useState<number>(current)
+  const hiddenRef = useRef<HTMLInputElement | null>(null)
+
+  return (
+    <FormField>
+      {!hideLabel && <FormLabel>{label}</FormLabel>}
+      <Slider
+        defaultValue={[current]}
+        min={min}
+        max={max}
+        step={step}
+        onValueChange={(v) => {
+          const n = Array.isArray(v) ? (v[0] ?? min) : min
+          setVal(n)
+          if (hiddenRef.current) {
+            hiddenRef.current.value = String(n)
+            hiddenRef.current.dispatchEvent(new Event('input', { bubbles: true }))
+            hiddenRef.current.dispatchEvent(new Event('change', { bubbles: true }))
+          }
+        }}
+      />
+      <div className="mt-1 text-xs text-neutral-medium">
+        {val}
+        {unit} (min {min}, max {max}, step {step})
+      </div>
+      <input
+        type="hidden"
+        name={name}
+        ref={hiddenRef}
+        defaultValue={String(current)}
+        data-number="1"
+        data-root-id={rootId}
+      />
+    </FormField>
+  )
+})
+
+const MediaFieldInternal = memo(({
+  name,
+  label,
+  value,
+  hideLabel,
+  field,
+  ctx,
+}: {
+  name: string
+  label: string
+  value: any
+  hideLabel: boolean
+  field: any
+  ctx: EditorFieldCtx
+}) => {
+  type ModalMediaItem = {
+    id: string
+    url: string
+    originalFilename?: string
+    alt?: string | null
+  }
+  const storeAsId = field.storeAs === 'id' || field.store === 'id'
+  const [modalOpen, setModalOpen] = useState(false)
+  const [agentModalOpen, setAgentModalOpen] = useState(false)
+  const [selectedFieldAgent, setSelectedFieldAgent] = useState<Agent | null>(null)
+  const [preSelectedMediaId, setPreSelectedMediaId] = useState<string | null>(null)
+  const hiddenRef = useRef<HTMLInputElement | null>(null)
+  const displayRef = useRef<HTMLInputElement | null>(null)
+  const currentVal = typeof value === 'string' ? value : ''
+  const [preview, setPreview] = useState<ModalMediaItem | null>(null)
+
+  const matchingAgents = ctx.fieldAgents.filter((agent: any) => {
+    return agent.scopes?.some((scope: any) => {
+      if (scope.scope !== 'field' || !scope.enabled) return false
+      if (Array.isArray(scope.fieldTypes) && scope.fieldTypes.length > 0) {
+        return scope.fieldTypes.includes('media')
+      }
+      return true
+    })
+  })
+
+  const [mediaData, setMediaData] = useState<{
+    baseUrl: string
+    variants: MediaVariant[]
+    darkSourceUrl?: string
+  } | null>(null)
+  const isDark = useIsDarkMode()
+
+  useEffect(() => {
+    if (!storeAsId || !currentVal || !/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(currentVal)) {
+      if (!storeAsId && typeof value === 'string' && value) {
+        setPreview({ id: '', url: value, originalFilename: value, alt: null })
+      } else {
+        setPreview(null)
+      }
+      setMediaData(null)
+      return
+    }
+
+    if (mediaMetadata404.has(currentVal)) {
+      setPreview(null)
+      setMediaData(null)
+      return
+    }
+
+    if (mediaMetadataCache.has(currentVal)) {
+      const data = mediaMetadataCache.get(currentVal)
+      setPreview(data.item)
+      setMediaData(data.mediaData)
+      return
+    }
+
+    let alive = true
+      ; (async () => {
+        try {
+          let promise = mediaMetadataLoading.get(currentVal)
+          if (!promise) {
+            promise = fetch(`/api/media/${encodeURIComponent(currentVal)}`, { credentials: 'same-origin' })
+              .then(res => {
+                if (res.status === 404) {
+                  mediaMetadata404.add(currentVal)
+                  throw new Error('404')
+                }
+                return res.json()
+              })
+            mediaMetadataLoading.set(currentVal, promise)
+          }
+
+          const j = await promise
+          if (!j?.data) throw new Error('No data')
+
+          const item: ModalMediaItem = {
+            id: j.data.id,
+            url: j.data.url,
+            originalFilename: j.data.originalFilename,
+            alt: j.data.alt,
+          }
+          const meta = j.data.metadata || {}
+          const variants: MediaVariant[] = Array.isArray(meta?.variants) ? meta.variants : []
+          const darkSourceUrl = typeof meta.darkSourceUrl === 'string' ? meta.darkSourceUrl : undefined
+          const mData = { baseUrl: j.data.url, variants, darkSourceUrl }
+
+          mediaMetadataCache.set(currentVal, { item, mediaData: mData })
+          mediaMetadataLoading.delete(currentVal)
+
+          if (alive) {
+            setPreview(item)
+            setMediaData(mData)
+          }
+        } catch {
+          mediaMetadataLoading.delete(currentVal)
+          if (alive) {
+            setPreview(null)
+            setMediaData(null)
+          }
+        }
+      })()
+    return () => { alive = false }
+  }, [storeAsId, currentVal])
+
+  const displayUrl = useMemo(() => {
+    if (!preview) return null
+    if (!mediaData) return preview.url
+    return pickMediaVariantUrl(mediaData.baseUrl, mediaData.variants, 'thumb', {
+      darkSourceUrl: mediaData.darkSourceUrl,
+    })
+  }, [preview, mediaData, isDark])
+
+  function applySelection(m: ModalMediaItem) {
+    if (hiddenRef.current) {
+      hiddenRef.current.value = storeAsId ? m.id : m.url
+      hiddenRef.current.dispatchEvent(new Event('input', { bubbles: true }))
+      hiddenRef.current.dispatchEvent(new Event('change', { bubbles: true }))
+    }
+    ctx.setDraft((prev) => {
+      const next = { ...(prev || {}) }
+      ctx.setByPath(next, name, storeAsId ? m.id : m.url)
+      return next
+    })
+    setPreview(m)
+    setMediaData(null)
+  }
+
+  const fieldKey = ctx.moduleType && ctx.postId ? `module.${ctx.moduleType}.${name}` : undefined
+
+  return (
+    <FormField className="group">
+      <div className="flex items-center justify-between">
+        {!hideLabel && <FormLabel>{label}</FormLabel>}
+        {matchingAgents.length > 0 && (
+          <button
+            type="button"
+            onClick={() => {
+              setSelectedFieldAgent(matchingAgents[0])
+              setAgentModalOpen(true)
+            }}
+            className="opacity-0 group-hover:opacity-100 transition-opacity p-1.5 rounded hover:bg-backdrop-medium text-primary"
+            title="AI Assistant"
+          >
+            <FontAwesomeIcon icon={faWandMagicSparkles} className="text-sm" />
+          </button>
+        )}
+      </div>
+      <div className="flex items-start gap-3">
+        <div className="min-w-[72px]">
+          {displayUrl ? (
+            <div className="w-[72px] h-[72px] border border-line-medium rounded overflow-hidden bg-backdrop-medium">
+              <img
+                src={displayUrl}
+                alt={preview?.alt || preview?.originalFilename || ''}
+                className="w-full h-full object-cover"
+                key={`${displayUrl}-${isDark}`}
+              />
+            </div>
+          ) : (
+            <div className="w-[72px] h-[72px] border border-dashed border-line-high rounded flex items-center justify-center text-[10px] text-neutral-medium">
+              No image
+            </div>
+          )}
+        </div>
+        <div className="flex-1">
+          {storeAsId ? (
+            <>
+              <input type="hidden" name={name} defaultValue={currentVal} ref={hiddenRef} />
+              <input type="text" defaultValue={currentVal} ref={displayRef} className="hidden" readOnly />
+            </>
+          ) : (
+            <Input
+              type="text"
+              name={name}
+              defaultValue={value ?? ''}
+              ref={displayRef}
+              placeholder={field.placeholder || 'https://...'}
+            />
+          )}
+          <div className="mt-2 flex items-center gap-2">
+            <button
+              type="button"
+              className="px-2 py-1 text-xs border border-line-medium rounded hover:bg-backdrop-medium text-neutral-medium"
+              onClick={() => setModalOpen(true)}
+            >
+              {preview ? 'Change' : 'Choose'}
+            </button>
+            {preview && (
+              <button
+                type="button"
+                className="px-2 py-1 text-xs border border-line-medium rounded hover:bg-backdrop-medium text-neutral-medium"
+                onClick={() => applySelection({ id: '', url: '', originalFilename: '', alt: '' })}
+              >
+                Clear
+              </button>
+            )}
+            {preview && (
+              <div className="text-[11px] text-neutral-low truncate max-w-[240px]">
+                {(preview.alt || preview.originalFilename || '').toString()}
+              </div>
+            )}
+          </div>
+        </div>
+        <MediaPickerModal
+          open={modalOpen}
+          onOpenChange={(open) => {
+            setModalOpen(open)
+            if (!open) setPreSelectedMediaId(null)
+          }}
+          initialSelectedId={storeAsId ? preSelectedMediaId || currentVal || undefined : undefined}
+          onSelect={(m) => {
+            applySelection(m as ModalMediaItem)
+            setPreSelectedMediaId(null)
+          }}
+        />
+        {selectedFieldAgent && (
+          <AgentModal
+            open={agentModalOpen}
+            onOpenChange={setAgentModalOpen}
+            agent={selectedFieldAgent}
+            contextId={ctx.postId}
+            context={{
+              scope: 'field',
+              fieldKey,
+              fieldType: 'media',
+              moduleInstanceId: ctx.moduleInstanceId,
+            }}
+            scope="field"
+            fieldKey={fieldKey}
+            fieldType="media"
+            viewMode={ctx.viewMode}
+            onSuccess={(response) => {
+              setAgentModalOpen(false)
+              setSelectedFieldAgent(null)
+              if (response.generatedMediaId && storeAsId) {
+                setTimeout(() => {
+                  setPreSelectedMediaId(response.generatedMediaId!)
+                  setModalOpen(true)
+                }, 100)
+              }
+            }}
+          />
+        )}
+      </div>
+    </FormField>
+  )
+})
+
+const IconFieldInternal = memo(({
+  name,
+  label,
+  value,
+  rootId,
+  hideLabel,
+  ctx,
+}: {
+  name: string
+  label: string
+  value: any
+  rootId: string
+  hideLabel: boolean
+  ctx: EditorFieldCtx
+}) => {
+  const initial = typeof value === 'string' ? value : ''
+  const [selectedIcon, setSelectedIcon] = useState<string>(initial)
+  const [pickerOpen, setPickerOpen] = useState(false)
+  const hiddenRef = useRef<HTMLInputElement | null>(null)
+
+  return (
+    <FormField>
+      {!hideLabel && <FormLabel>{label}</FormLabel>}
+      <Popover open={pickerOpen} onOpenChange={setPickerOpen}>
+        <PopoverTrigger asChild>
+          <button
+            type="button"
+            className="w-full text-left px-3 py-2 border border-border rounded-lg bg-backdrop-low text-neutral-high hover:bg-backdrop-medium flex items-center gap-2"
+          >
+            {selectedIcon && iconMap[selectedIcon] ? (
+              <>
+                <FontAwesomeIcon icon={iconMap[selectedIcon]} className="w-4 h-4" />
+                <span>{selectedIcon}</span>
+              </>
+            ) : (
+              <span className="text-neutral-low">Select an icon</span>
+            )}
+          </button>
+        </PopoverTrigger>
+        <PopoverContent className="w-96">
+          <div className="grid grid-cols-4 gap-2 max-h-96 overflow-auto">
+            {iconOptions.map((iconItem) => (
+              <button
+                key={iconItem.name}
+                type="button"
+                className={`p-3 border rounded-lg hover:bg-backdrop-medium flex flex-col items-center gap-1 ${selectedIcon === iconItem.name
+                  ? 'border-standout-medium bg-standout-medium/10'
+                  : 'border-line-low'
+                  }`}
+                onClick={() => {
+                  setSelectedIcon(iconItem.name)
+                  if (hiddenRef.current) {
+                    hiddenRef.current.value = iconItem.name
+                    hiddenRef.current.dispatchEvent(new Event('input', { bubbles: true }))
+                    hiddenRef.current.dispatchEvent(new Event('change', { bubbles: true }))
+                  }
+                  ctx.setDraft((prev) => {
+                    const next = { ...(prev || {}) }
+                    ctx.setByPath(next, name, iconItem.name)
+                    return next
+                  })
+                  setPickerOpen(false)
+                }}
+                title={iconItem.label}
+              >
+                <FontAwesomeIcon icon={iconItem.icon} className="w-6 h-6" />
+                <span className="text-[10px] text-neutral-low truncate w-full text-center">
+                  {iconItem.label}
+                </span>
+              </button>
+            ))}
+          </div>
+        </PopoverContent>
+      </Popover>
+      <input type="hidden" name={name} ref={hiddenRef} defaultValue={initial} data-root-id={rootId} />
+    </FormField>
+  )
+})
+
+const PostReferenceFieldInternal = memo(({
+  name,
+  label,
+  value,
+  rootId,
+  hideLabel,
+  field,
+}: {
+  name: string
+  label: string
+  value: any
+  rootId: string
+  hideLabel: boolean
+  field: any
+}) => {
+  const allowedTypes = Array.isArray(field.postTypes) ? field.postTypes : []
+  const allowMultiple = field.allowMultiple !== false
+  const [options, setOptions] = useState<Array<{ label: string; value: string }>>([])
+  const initialVals = Array.isArray(value) ? value : value ? [String(value)] : []
+  const [vals, setVals] = useState<string[]>(initialVals)
+  const [query, setQuery] = useState('')
+  const hiddenRef = useRef<HTMLInputElement | null>(null)
+
+  useEffect(() => {
+    if (hiddenRef.current) {
+      hiddenRef.current.value = allowMultiple ? JSON.stringify(vals) : (vals[0] ?? '')
+      hiddenRef.current.dispatchEvent(new Event('input', { bubbles: true }))
+      hiddenRef.current.dispatchEvent(new Event('change', { bubbles: true }))
+    }
+  }, [vals, allowMultiple])
+
+  useEffect(() => {
+    let alive = true
+      ; (async () => {
+        try {
+          const params = new URLSearchParams()
+          params.set('status', 'published')
+          params.set('limit', '100')
+          if (allowedTypes.length > 0) params.set('types', allowedTypes.join(','))
+          const r = await fetch(`/api/posts?${params.toString()}`, { credentials: 'same-origin' })
+          const j = await r.json().catch(() => ({}))
+          if (alive) setOptions((j?.data || []).map((p: any) => ({ label: p.title || p.id, value: p.id })))
+        } catch {
+          if (alive) setOptions([])
+        }
+      })()
+    return () => { alive = false }
+  }, [allowedTypes.join(',')])
+
+  const filteredOptions = query.trim() === '' ? options : options.filter((opt) => opt.label.toLowerCase().includes(query.toLowerCase()))
+
+  return (
+    <FormField>
+      {!hideLabel && <FormLabel>{label}</FormLabel>}
+      <Popover>
+        <PopoverTrigger asChild>
+          <button
+            type="button"
+            className="w-full text-left px-3 py-2 border border-border rounded-lg bg-backdrop-low text-neutral-high hover:bg-backdrop-medium"
+          >
+            {vals.length === 0 ? 'Select posts' : `${vals.length} selected`}
+          </button>
+        </PopoverTrigger>
+        <PopoverContent className="w-80">
+          <div className="space-y-2">
+            <Input
+              type="text"
+              placeholder="Search posts…"
+              value={query}
+              onChange={(e) => setQuery(e.target.value)}
+              className="h-8 text-xs"
+            />
+            <div className="max-h-64 overflow-auto space-y-2">
+              {filteredOptions.length === 0 ? (
+                <div className="text-xs text-neutral-low">No posts found.</div>
+              ) : (
+                filteredOptions.map((opt) => (
+                  <label key={opt.value} className="flex items-center gap-2 cursor-pointer hover:bg-backdrop-medium p-1 rounded">
+                    <Checkbox
+                      checked={vals.includes(opt.value)}
+                      onCheckedChange={(c) => {
+                        setVals((prev) => {
+                          if (allowMultiple) {
+                            const next = new Set(prev)
+                            if (c) next.add(opt.value)
+                            else next.delete(opt.value)
+                            return Array.from(next)
+                          }
+                          return c ? [opt.value] : []
+                        })
+                      }}
+                    />
+                    <span className="text-sm">{opt.label}</span>
+                  </label>
+                ))
+              )}
+            </div>
+          </div>
+        </PopoverContent>
+      </Popover>
+      <input
+        type="hidden"
+        name={name}
+        ref={hiddenRef}
+        defaultValue={allowMultiple ? JSON.stringify(initialVals) : (initialVals[0] ?? '')}
+        data-json={allowMultiple ? '1' : undefined}
+        data-root-id={rootId}
+      />
+    </FormField>
+  )
+})
+
+const FormReferenceFieldInternal = memo(({
+  name,
+  label,
+  value,
+  rootId,
+  hideLabel,
+}: {
+  name: string
+  label: string
+  value: any
+  rootId: string
+  hideLabel: boolean
+}) => {
+  const [options, setOptions] = useState<Array<{ label: string; value: string }>>([])
+  const initial = typeof value === 'string' ? value : ''
+  const [current, setCurrent] = useState<string>(initial)
+  const hiddenRef = useRef<HTMLInputElement | null>(null)
+
+  useEffect(() => {
+    let alive = true
+      ; (async () => {
+        try {
+          const res = await fetch('/api/forms-definitions', { credentials: 'same-origin' })
+          const j = await res.json().catch(() => ({}))
+          if (alive) setOptions((j?.data || []).map((f: any) => ({ value: String(f.slug), label: f.title || f.slug })))
+        } catch {
+          if (alive) setOptions([])
+        }
+      })()
+    return () => { alive = false }
+  }, [])
+
+  useEffect(() => {
+    if (hiddenRef.current) {
+      hiddenRef.current.value = current || ''
+      hiddenRef.current.dispatchEvent(new Event('input', { bubbles: true }))
+      hiddenRef.current.dispatchEvent(new Event('change', { bubbles: true }))
+    }
+  }, [current])
+
+  return (
+    <FormField>
+      {!hideLabel && <FormLabel>{label}</FormLabel>}
+      <Select defaultValue={initial || undefined} onValueChange={setCurrent}>
+        <SelectTrigger>
+          <SelectValue placeholder="Select a form" />
+        </SelectTrigger>
+        <SelectContent>
+          {options.map((opt) => <SelectItem key={opt.value} value={opt.value}>{opt.label}</SelectItem>)}
+        </SelectContent>
+      </Select>
+      <input type="hidden" name={name} defaultValue={initial} ref={hiddenRef} data-root-id={rootId} />
+    </FormField>
+  )
+})
+
+const SelectFieldInternal = memo(({
+  name,
+  label,
+  value,
+  rootId,
+  hideLabel,
+  field,
+  type,
+}: {
+  name: string
+  label: string
+  value: any
+  rootId: string
+  hideLabel: boolean
+  field: any
+  type: string
+}) => {
+  const isMulti = type === 'multiselect'
+  const [dynamicOptions, setDynamicOptions] = useState<Array<{ label: string; value: string }>>(
+    Array.isArray(field.options) ? field.options : []
+  )
+  const optionsSource = field.optionsSource as string | undefined
+
+  useEffect(() => {
+    let alive = true
+      ; (async () => {
+        try {
+          if (dynamicOptions.length === 0 && optionsSource === 'post-types') {
+            const r = await fetch('/api/post-types', { credentials: 'same-origin' })
+            const j = await r.json().catch(() => ({}))
+            if (alive) setDynamicOptions((j?.data || []).map((t: string) => ({ label: t, value: t })))
+          }
+        } catch { }
+      })()
+    return () => { alive = false }
+  }, [optionsSource, dynamicOptions.length])
+
+  if (!isMulti) {
+    const initial = typeof value === 'string' ? value : ''
+    const hiddenRef = useRef<HTMLInputElement | null>(null)
+    return (
+      <FormField>
+        {!hideLabel && <FormLabel>{label}</FormLabel>}
+        <Select
+          defaultValue={initial || undefined}
+          onValueChange={(val) => {
+            if (hiddenRef.current) {
+              hiddenRef.current.value = val ?? ''
+              hiddenRef.current.dispatchEvent(new Event('input', { bubbles: true }))
+              hiddenRef.current.dispatchEvent(new Event('change', { bubbles: true }))
+            }
+          }}
+        >
+          <SelectTrigger>
+            <SelectValue placeholder="Select an option" />
+          </SelectTrigger>
+          <SelectContent>
+            {dynamicOptions.map((opt) => (
+              <SelectItem key={opt.value} value={opt.value}>{opt.label ?? opt.value}</SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
+        <input type="hidden" name={name} defaultValue={initial} ref={hiddenRef} data-root-id={rootId} />
+      </FormField>
+    )
+  } else {
+    const initial = Array.isArray(value) ? value : []
+    const [vals, setVals] = useState<string[]>(initial)
+    const hiddenRef = useRef<HTMLInputElement | null>(null)
+    useEffect(() => {
+      if (hiddenRef.current) {
+        hiddenRef.current.value = JSON.stringify(vals)
+        hiddenRef.current.dispatchEvent(new Event('input', { bubbles: true }))
+        hiddenRef.current.dispatchEvent(new Event('change', { bubbles: true }))
+      }
+    }, [vals])
+    return (
+      <FormField>
+        {!hideLabel && <FormLabel>{label}</FormLabel>}
+        {vals.length > 0 && (
+          <div className="flex flex-wrap gap-2 mb-2">
+            {vals.map((v) => (
+              <button
+                key={v}
+                type="button"
+                className="inline-flex items-center gap-1 rounded-full bg-backdrop-low border border-border px-3 py-1 text-sm text-neutral-high hover:bg-backdrop-medium"
+                onClick={() => setVals((prev) => prev.filter((x) => x !== v))}
+              >
+                <span>{dynamicOptions.find((o) => o.value === v)?.label ?? v}</span>
+                <span className="text-neutral-low">✕</span>
+              </button>
+            ))}
+          </div>
+        )}
+        <Popover>
+          <PopoverTrigger asChild>
+            <button
+              type="button"
+              className="w-full text-left px-3 py-2 border border-border rounded-lg bg-backdrop-low text-neutral-high hover:bg-backdrop-medium"
+            >
+              {vals.length === 0 ? 'Select options' : 'Edit selection'}
+            </button>
+          </PopoverTrigger>
+          <PopoverContent className="w-64">
+            <div className="space-y-2">
+              {dynamicOptions.map((opt) => (
+                <label key={opt.value} className="flex items-center gap-2 cursor-pointer hover:bg-backdrop-medium p-1 rounded">
+                  <Checkbox
+                    checked={vals.includes(opt.value)}
+                    onCheckedChange={(c) => {
+                      setVals((prev) => {
+                        const next = new Set(prev)
+                        if (c) next.add(opt.value)
+                        else next.delete(opt.value)
+                        return Array.from(next)
+                      })
+                    }}
+                  />
+                  <span className="text-sm">{opt.label ?? opt.value}</span>
+                </label>
+              ))}
+            </div>
+          </PopoverContent>
+        </Popover>
+        <input
+          type="hidden"
+          name={name}
+          defaultValue={JSON.stringify(initial)}
+          ref={hiddenRef}
+          data-json="1"
+          data-root-id={rootId}
+        />
+      </FormField>
+    )
+  }
+})
+
+const BooleanFieldInternal = memo(({
+  name,
+  label,
+  value,
+  rootId,
+  ctx,
+}: {
+  name: string
+  label: string
+  value: any
+  rootId: string
+  ctx: EditorFieldCtx
+}) => {
+  const hiddenRef = useRef<HTMLInputElement | null>(null)
+  const checked = !!value
+
+  useEffect(() => {
+    if (hiddenRef.current) {
+      hiddenRef.current.value = checked ? 'true' : 'false'
+    }
+  }, [checked])
+
+  return (
+    <div className="flex items-center gap-2">
+      <Checkbox
+        checked={checked}
+        onCheckedChange={(c) => {
+          if (hiddenRef.current) {
+            hiddenRef.current.value = c ? 'true' : 'false'
+            hiddenRef.current.dispatchEvent(new Event('input', { bubbles: true }))
+            hiddenRef.current.dispatchEvent(new Event('change', { bubbles: true }))
+          }
+          ctx.setDraft((prev) => {
+            const next = { ...(prev || {}) }
+            ctx.setByPath(next, name, !!c)
+            return next
+          })
+        }}
+        id={`${rootId}:${name}`}
+      />
+      <label htmlFor={`${rootId}:${name}`} className="text-sm text-neutral-high cursor-pointer">
+        {label}
+      </label>
+      <input
+        ref={hiddenRef}
+        type="hidden"
+        name={name}
+        defaultValue={checked ? 'true' : 'false'}
+        data-bool="1"
+        data-root-id={rootId}
+      />
+    </div>
+  )
+})
+
+const FieldPrimitiveInternal = memo(({
   path,
   field,
   value,
@@ -730,7 +2341,7 @@ function FieldPrimitiveInternal({
   value: any
   rootId: string
   ctx: EditorFieldCtx
-}) {
+}) => {
   const name = path.join('.')
   const hideLabel = (field as any).hideLabel === true
   const label = hideLabel ? '' : ctx.getLabel(path, field)
@@ -745,10 +2356,10 @@ function FieldPrimitiveInternal({
     const cfg = field as any
     const handleChange = (val: any) => {
       try {
-        const next = JSON.parse(JSON.stringify(ctx.latestDraft.current))
+        const next = { ...(ctx.latestDraft.current || {}) }
         ctx.setByPath(next, name, val)
         ctx.setDraft(next)
-      } catch {}
+      } catch { }
       if (hiddenRef.current) {
         if (val === null || val === undefined) hiddenRef.current.value = ''
         else if (typeof val === 'object') hiddenRef.current.value = JSON.stringify(val)
@@ -758,11 +2369,39 @@ function FieldPrimitiveInternal({
       }
     }
 
+    const {
+      type: _t,
+      name: _n,
+      label: _l,
+      hideLabel: _hl,
+      required: _r,
+      translatable: _tr,
+      fields: _f,
+      item: _i,
+      validation: _v,
+      optionsSource: _os,
+      store: _s,
+      storeAs: _sa,
+      placeholder: _p,
+      min: _min,
+      max: _max,
+      step: _step,
+      unit: _u,
+      // Standard schema props that might leak
+      aiGuidance: _aig,
+      defaultValue: _dv,
+      description: _desc,
+      ...domSafeCfg
+    } = cfg
+
     const props: Record<string, any> = {
       value: value ?? null,
       onChange: handleChange,
-      ...cfg,
+      ...domSafeCfg,
     }
+    // Ensure visible controls are uniquely targetable for focus restoration (multiple modules can share field names).
+    props.name = name
+    props['data-root-id'] = rootId
     if (type === 'richtext') props.editorKey = `${rootId}:${name}`
     if (type === 'select') props.options = Array.isArray(cfg.options) ? cfg.options : []
     if (type === 'multiselect') {
@@ -779,6 +2418,7 @@ function FieldPrimitiveInternal({
           ref={hiddenRef}
           type="hidden"
           name={name}
+          data-root-id={rootId}
           defaultValue={
             value === null || value === undefined
               ? ''
@@ -798,778 +2438,109 @@ function FieldPrimitiveInternal({
 
   const rendered = maybeRenderComponent()
   if (rendered) return rendered
+
   if (type === 'date') {
-    const initial = typeof value === 'string' ? value : ''
-    const initialDate = initial ? new Date(initial) : null
-    const [selected, setSelected] = useState<Date | null>(initialDate)
-    const hiddenRef = useRef<HTMLInputElement | null>(null)
-    function formatDate(d: Date | null) {
-      if (!d) return ''
-      const y = d.getFullYear()
-      const m = String(d.getMonth() + 1).padStart(2, '0')
-      const da = String(d.getDate()).padStart(2, '0')
-      return `${y}-${m}-${da}`
-    }
     return (
-      <FormField>
-        {!hideLabel && <FormLabel>{label}</FormLabel>}
-        <Popover>
-          <PopoverTrigger asChild>
-            <button
-              type="button"
-              className="w-full text-left px-3 py-2 border border-border rounded-lg bg-backdrop-low text-neutral-high hover:bg-backdrop-medium"
-            >
-              {selected ? formatDate(selected) : 'Pick a date'}
-            </button>
-          </PopoverTrigger>
-          <PopoverContent>
-            <Calendar
-              mode="single"
-              selected={selected || undefined}
-              onSelect={(d: Date | undefined) => {
-                const val = d || null
-                setSelected(val)
-                if (hiddenRef.current) {
-                  hiddenRef.current.value = formatDate(val)
-                }
-              }}
-            />
-          </PopoverContent>
-        </Popover>
-        <input type="hidden" ref={hiddenRef} name={name} defaultValue={initial} />
-      </FormField>
+      <DateFieldInternal
+        name={name}
+        label={label}
+        rootId={rootId}
+        hideLabel={hideLabel}
+        initial={typeof value === 'string' ? value : ''}
+      />
     )
   }
   if (type === 'slider') {
-    const min = (field as any).min ?? 0
-    const max = (field as any).max ?? 100
-    const step = (field as any).step ?? 1
-    const unit = (field as any).unit ?? ''
-    const current = typeof value === 'number' ? value : min
-    const [val, setVal] = useState<number>(current)
-    const hiddenRef = useRef<HTMLInputElement | null>(null)
     return (
-      <FormField>
-        {!hideLabel && <FormLabel>{label}</FormLabel>}
-        <Slider
-          defaultValue={[current]}
-          min={min}
-          max={max}
-          step={step}
-          onValueChange={(v) => {
-            const n = Array.isArray(v) ? (v[0] ?? min) : min
-            setVal(n)
-            if (hiddenRef.current) hiddenRef.current.value = String(n)
-          }}
-        />
-        <div className="mt-1 text-xs text-neutral-medium">
-          {val}
-          {unit} (min {min}, max {max}, step {step})
-        </div>
-        <input
-          type="hidden"
-          name={name}
-          ref={hiddenRef}
-          defaultValue={String(current)}
-          data-number="1"
-        />
-      </FormField>
+      <SliderFieldInternal
+        name={name}
+        label={label}
+        value={value}
+        rootId={rootId}
+        hideLabel={hideLabel}
+        field={field}
+      />
     )
   }
   if (type === 'textarea') {
     return (
       <FormField>
         {!hideLabel && <FormLabel>{label}</FormLabel>}
-        <Textarea name={name} defaultValue={value ?? ''} />
+        <Textarea name={name} defaultValue={value ?? ''} data-root-id={rootId} />
       </FormField>
     )
   }
   if (type === 'media') {
-    type ModalMediaItem = {
-      id: string
-      url: string
-      originalFilename?: string
-      alt?: string | null
-    }
-    const storeAsId = (field as any).storeAs === 'id' || (field as any).store === 'id'
-    const [modalOpen, setModalOpen] = useState(false)
-    const [agentModalOpen, setAgentModalOpen] = useState(false)
-    const [selectedFieldAgent, setSelectedFieldAgent] = useState<Agent | null>(null)
-    const [preSelectedMediaId, setPreSelectedMediaId] = useState<string | null>(null)
-    const hiddenRef = useRef<HTMLInputElement | null>(null)
-    const displayRef = useRef<HTMLInputElement | null>(null)
-    const currentVal = typeof value === 'string' ? value : ''
-    const [preview, setPreview] = useState<ModalMediaItem | null>(null)
-
-    // Find agents that match this field type
-    const matchingAgents = ctx.fieldAgents.filter((agent: any) => {
-      // Check if agent has field scope with fieldTypes that include 'media'
-      const hasMatchingScope = agent.scopes?.some((scope: any) => {
-        if (scope.scope !== 'field' || !scope.enabled) return false
-        // If fieldTypes is specified, check if it includes 'media'
-        if (Array.isArray(scope.fieldTypes) && scope.fieldTypes.length > 0) {
-          return scope.fieldTypes.includes('media')
-        }
-        // If no fieldTypes specified, agent is available for all field types
-        return true
-      })
-      return hasMatchingScope
-    })
-
-    const [mediaData, setMediaData] = useState<{
-      baseUrl: string
-      variants: MediaVariant[]
-      darkSourceUrl?: string
-    } | null>(null)
-    const isDark = useIsDarkMode()
-
-    // Load preview for existing value
-    useEffect(() => {
-      let alive = true
-      ;(async () => {
-        try {
-          if (storeAsId) {
-            if (!currentVal) {
-              if (alive) {
-                setPreview(null)
-                setMediaData(null)
-              }
-              return
-            }
-            const res = await fetch(`/api/media/${encodeURIComponent(currentVal)}`, {
-              credentials: 'same-origin',
-            })
-            const j = await res.json().catch(() => ({}))
-            if (!j?.data) {
-              if (alive) {
-                setPreview(null)
-                setMediaData(null)
-              }
-              return
-            }
-            const item: ModalMediaItem = {
-              id: j.data.id,
-              url: j.data.url,
-              originalFilename: j.data.originalFilename,
-              alt: j.data.alt,
-            }
-            const meta = j.data.metadata || {}
-            const variants: MediaVariant[] = Array.isArray(meta?.variants) ? meta.variants : []
-            const darkSourceUrl =
-              typeof meta.darkSourceUrl === 'string' ? meta.darkSourceUrl : undefined
-            if (alive) {
-              setPreview(item)
-              setMediaData({ baseUrl: j.data.url, variants, darkSourceUrl })
-            }
-          } else {
-            // If storing URL directly, best-effort preview
-            if (typeof value === 'string' && value) {
-              if (alive) {
-                setPreview({ id: '', url: value, originalFilename: value, alt: null })
-                setMediaData(null)
-              }
-            } else {
-              if (alive) {
-                setPreview(null)
-                setMediaData(null)
-              }
-            }
-          }
-        } catch {
-          if (alive) {
-            setPreview(null)
-            setMediaData(null)
-          }
-        }
-      })()
-      return () => {
-        alive = false
-      }
-      // re-evaluate when selection changes
-    }, [storeAsId, currentVal, value])
-
-    // Compute the display URL based on theme
-    const displayUrl = useMemo(() => {
-      if (!preview) return null
-      if (!mediaData) return preview.url
-      return pickMediaVariantUrl(mediaData.baseUrl, mediaData.variants, 'thumb', {
-        darkSourceUrl: mediaData.darkSourceUrl,
-      })
-    }, [preview, mediaData, isDark])
-
-    function applySelection(m: ModalMediaItem) {
-      if (storeAsId) {
-        if (hiddenRef.current) {
-          hiddenRef.current.value = m.id
-          hiddenRef.current.dispatchEvent(new Event('input', { bubbles: true }))
-          hiddenRef.current.dispatchEvent(new Event('change', { bubbles: true }))
-        }
-        if (displayRef.current) displayRef.current.value = m.id
-      } else {
-        if (displayRef.current) {
-          displayRef.current.value = m.url
-          displayRef.current.dispatchEvent(new Event('input', { bubbles: true }))
-          displayRef.current.dispatchEvent(new Event('change', { bubbles: true }))
-        }
-      }
-      try {
-        const next = JSON.parse(JSON.stringify(ctx.latestDraft.current))
-        ctx.setByPath(next, name, storeAsId ? m.id : m.url)
-        ctx.setDraft(next)
-      } catch {}
-      setPreview(m)
-      // Clear mediaData so it re-fetches on next render cycle
-      setMediaData(null)
-    }
-
-    function clearSelection() {
-      if (storeAsId) {
-        if (hiddenRef.current) {
-          hiddenRef.current.value = ''
-          hiddenRef.current.dispatchEvent(new Event('input', { bubbles: true }))
-          hiddenRef.current.dispatchEvent(new Event('change', { bubbles: true }))
-        }
-        if (displayRef.current) displayRef.current.value = ''
-      } else {
-        if (displayRef.current) {
-          displayRef.current.value = ''
-          displayRef.current.dispatchEvent(new Event('input', { bubbles: true }))
-          displayRef.current.dispatchEvent(new Event('change', { bubbles: true }))
-        }
-      }
-      try {
-        const next = JSON.parse(JSON.stringify(ctx.latestDraft.current))
-        ctx.setByPath(next, name, '')
-        ctx.setDraft(next)
-      } catch {}
-      setPreview(null)
-      setMediaData(null)
-    }
-    const fieldKey = ctx.moduleType && ctx.postId ? `module.${ctx.moduleType}.${name}` : undefined
-
     return (
-      <FormField className="group">
-        <div className="flex items-center justify-between">
-          {!hideLabel && <FormLabel>{label}</FormLabel>}
-          {matchingAgents.length > 0 ? (
-            <button
-              type="button"
-              onClick={() => {
-                if (matchingAgents.length === 1) {
-                  setSelectedFieldAgent(matchingAgents[0])
-                  setAgentModalOpen(true)
-                } else {
-                  // TODO: Show agent selection menu
-                  setSelectedFieldAgent(matchingAgents[0])
-                  setAgentModalOpen(true)
-                }
-              }}
-              className="opacity-0 group-hover:opacity-100 transition-opacity p-1.5 rounded hover:bg-backdrop-medium text-primary"
-              title="AI Assistant"
-            >
-              <FontAwesomeIcon icon={faWandMagicSparkles} className="text-sm" />
-            </button>
-          ) : null}
-        </div>
-        <div className="flex items-start gap-3">
-          <div className="min-w-[72px]">
-            {displayUrl ? (
-              <div className="w-[72px] h-[72px] border border-line-medium rounded overflow-hidden bg-backdrop-medium">
-                <img
-                  src={displayUrl}
-                  alt={preview?.alt || preview?.originalFilename || ''}
-                  className="w-full h-full object-cover"
-                  key={`${displayUrl}-${isDark}`}
-                />
-              </div>
-            ) : (
-              <div className="w-[72px] h-[72px] border border-dashed border-line-high rounded flex items-center justify-center text-[10px] text-neutral-medium">
-                No image
-              </div>
-            )}
-          </div>
-          <div className="flex-1">
-            {storeAsId ? (
-              <>
-                <input type="hidden" name={name} defaultValue={currentVal} ref={hiddenRef} />
-                <input
-                  type="text"
-                  defaultValue={currentVal}
-                  ref={displayRef}
-                  className="hidden"
-                  readOnly
-                />
-              </>
-            ) : (
-              <Input
-                type="text"
-                name={name}
-                defaultValue={value ?? ''}
-                ref={displayRef}
-                placeholder={(field as any).placeholder || 'https://...'}
-              />
-            )}
-            <div className="mt-2 flex items-center gap-2">
-              <button
-                type="button"
-                className="px-2 py-1 text-xs border border-line-medium rounded hover:bg-backdrop-medium text-neutral-medium"
-                onClick={() => setModalOpen(true)}
-              >
-                {preview ? 'Change' : 'Choose'}
-              </button>
-              {preview && (
-                <button
-                  type="button"
-                  className="px-2 py-1 text-xs border border-line-medium rounded hover:bg-backdrop-medium text-neutral-medium"
-                  onClick={clearSelection}
-                >
-                  Clear
-                </button>
-              )}
-              {preview && (
-                <div className="text-[11px] text-neutral-low truncate max-w-[240px]">
-                  {(preview.alt || preview.originalFilename || '').toString()}
-                </div>
-              )}
-            </div>
-          </div>
-          <MediaPickerModal
-            open={modalOpen}
-            onOpenChange={(open) => {
-              setModalOpen(open)
-              if (!open) {
-                // Clear pre-selection when modal closes
-                setPreSelectedMediaId(null)
-              }
-            }}
-            initialSelectedId={
-              storeAsId ? preSelectedMediaId || currentVal || undefined : undefined
-            }
-            onSelect={(m) => {
-              applySelection(m as ModalMediaItem)
-              setPreSelectedMediaId(null) // Clear after selection
-            }}
-          />
-          {selectedFieldAgent && (
-            <AgentModal
-              open={agentModalOpen}
-              onOpenChange={setAgentModalOpen}
-              agent={selectedFieldAgent}
-              contextId={ctx.postId}
-              context={{
-                scope: 'field',
-                fieldKey,
-                fieldType: 'media',
-                moduleInstanceId: ctx.moduleInstanceId,
-              }}
-              scope="field"
-              fieldKey={fieldKey}
-              fieldType="media"
-              viewMode={ctx.viewMode}
-              onSuccess={(response) => {
-                setAgentModalOpen(false)
-                setSelectedFieldAgent(null)
-                // If an image was generated, open the media picker with it pre-selected
-                if (response.generatedMediaId && storeAsId) {
-                  // Small delay to ensure agent modal closes first
-                  setTimeout(() => {
-                    setPreSelectedMediaId(response.generatedMediaId!)
-                    setModalOpen(true)
-                  }, 100)
-                }
-              }}
-            />
-          )}
-        </div>
-      </FormField>
+      <MediaFieldInternal
+        name={name}
+        label={label}
+        value={value}
+        hideLabel={hideLabel}
+        field={field}
+        ctx={ctx}
+      />
     )
   }
   if (type === 'icon') {
-    // Icon picker - shared options
-    const availableIcons = iconOptions
-
-    const initial = typeof value === 'string' ? value : ''
-    const [selectedIcon, setSelectedIcon] = useState<string>(initial)
-    const [pickerOpen, setPickerOpen] = useState(false)
-    const hiddenRef = useRef<HTMLInputElement | null>(null)
-
     return (
-      <FormField>
-        {!hideLabel && <FormLabel>{label}</FormLabel>}
-        <Popover open={pickerOpen} onOpenChange={setPickerOpen}>
-          <PopoverTrigger asChild>
-            <button
-              type="button"
-              className="w-full text-left px-3 py-2 border border-border rounded-lg bg-backdrop-low text-neutral-high hover:bg-backdrop-medium flex items-center gap-2"
-            >
-              {selectedIcon && iconMap[selectedIcon] ? (
-                <>
-                  <FontAwesomeIcon icon={iconMap[selectedIcon]} className="w-4 h-4" />
-                  <span>{selectedIcon}</span>
-                </>
-              ) : (
-                <span className="text-neutral-low">Select an icon</span>
-              )}
-            </button>
-          </PopoverTrigger>
-          <PopoverContent className="w-96">
-            <div className="grid grid-cols-4 gap-2 max-h-96 overflow-auto">
-              {availableIcons.map((iconItem) => (
-                <button
-                  key={iconItem.name}
-                  type="button"
-                  className={`p-3 border rounded-lg hover:bg-backdrop-medium flex flex-col items-center gap-1 ${
-                    selectedIcon === iconItem.name
-                      ? 'border-standout-medium bg-standout-medium/10'
-                      : 'border-line-low'
-                  }`}
-                  onClick={() => {
-                    setSelectedIcon(iconItem.name)
-                    if (hiddenRef.current) {
-                      hiddenRef.current.value = iconItem.name
-                      hiddenRef.current.dispatchEvent(new Event('input', { bubbles: true }))
-                      hiddenRef.current.dispatchEvent(new Event('change', { bubbles: true }))
-                    }
-                    try {
-                      const next = JSON.parse(JSON.stringify(ctx.latestDraft.current))
-                      ctx.setByPath(next, name, iconItem.name)
-                      ctx.setDraft(next)
-                    } catch {}
-                    setPickerOpen(false)
-                  }}
-                  title={iconItem.label}
-                >
-                  <FontAwesomeIcon icon={iconItem.icon} className="w-6 h-6" />
-                  <span className="text-[10px] text-neutral-low truncate w-full text-center">
-                    {iconItem.label}
-                  </span>
-                </button>
-              ))}
-            </div>
-          </PopoverContent>
-        </Popover>
-        <input type="hidden" name={name} ref={hiddenRef} defaultValue={initial} />
-      </FormField>
+      <IconFieldInternal
+        name={name}
+        label={label}
+        value={value}
+        rootId={rootId}
+        hideLabel={hideLabel}
+        ctx={ctx}
+      />
     )
   }
   if (type === 'number') {
     return (
       <FormField>
         {!hideLabel && <FormLabel>{label}</FormLabel>}
-        <Input type="number" name={name} defaultValue={value ?? 0} />
+        <Input type="number" name={name} defaultValue={value ?? 0} data-root-id={rootId} />
       </FormField>
     )
   }
   if (type === 'post-reference') {
-    // Dynamic multi-select of posts (optionally limited to post types)
-    const allowedTypes: string[] = Array.isArray((field as any).postTypes)
-      ? (field as any).postTypes
-      : []
-    const allowMultiple = (field as any).allowMultiple !== false
-    const [options, setOptions] = useState<Array<{ label: string; value: string }>>([])
-    const initialVals: string[] = Array.isArray(value) ? value : value ? [String(value)] : []
-    const [vals, setVals] = useState<string[]>(initialVals)
-    const [query, setQuery] = useState('')
-    const hiddenRef = useRef<HTMLInputElement | null>(null)
-
-    useEffect(() => {
-      if (hiddenRef.current) {
-        hiddenRef.current.value = allowMultiple ? JSON.stringify(vals) : (vals[0] ?? '')
-      }
-    }, [vals, allowMultiple])
-
-    useEffect(() => {
-      let alive = true
-      ;(async () => {
-        try {
-          const params = new URLSearchParams()
-          params.set('status', 'published')
-          params.set('limit', '100')
-          params.set('sortBy', 'published_at')
-          params.set('sortOrder', 'desc')
-          if (allowedTypes.length > 0) {
-            params.set('types', allowedTypes.join(','))
-          }
-          const r = await fetch(`/api/posts?${params.toString()}`, { credentials: 'same-origin' })
-          const j = await r.json().catch(() => ({}))
-          const list: Array<{ id: string; title: string }> = Array.isArray(j?.data) ? j.data : []
-          if (!alive) return
-          setOptions(list.map((p) => ({ label: p.title || p.id, value: p.id })))
-        } catch {
-          if (!alive) return
-          setOptions([])
-        }
-      })()
-      return () => {
-        alive = false
-      }
-    }, [allowedTypes.join(',')])
-
-    const filteredOptions =
-      query.trim().length === 0
-        ? options
-        : options.filter((opt) => opt.label.toLowerCase().includes(query.toLowerCase()))
-
     return (
-      <FormField>
-        {!hideLabel && <FormLabel>{label}</FormLabel>}
-        <Popover>
-          <PopoverTrigger asChild>
-            <button
-              type="button"
-              className="w-full text-left px-3 py-2 border border-border rounded-lg bg-backdrop-low text-neutral-high hover:bg-backdrop-medium"
-            >
-              {vals.length === 0 ? 'Select posts' : `${vals.length} selected`}
-            </button>
-          </PopoverTrigger>
-          <PopoverContent className="w-80">
-            <div className="space-y-2">
-              <Input
-                type="text"
-                placeholder="Search posts…"
-                value={query}
-                onChange={(e) => setQuery(e.target.value)}
-                className="h-8 text-xs"
-              />
-              <div className="max-h-64 overflow-auto space-y-2">
-                {filteredOptions.length === 0 ? (
-                  <div className="text-xs text-neutral-low">No posts found.</div>
-                ) : (
-                  filteredOptions.map((opt) => {
-                    const checked = vals.includes(opt.value)
-                    return (
-                      <label key={opt.value} className="flex items-center gap-2">
-                        <Checkbox
-                          checked={checked}
-                          onCheckedChange={(c) => {
-                            setVals((prev) => {
-                              if (allowMultiple) {
-                                const next = new Set(prev)
-                                if (c) next.add(opt.value)
-                                else next.delete(opt.value)
-                                return Array.from(next)
-                              }
-                              return c ? [opt.value] : []
-                            })
-                          }}
-                        />
-                        <span className="text-sm">{opt.label}</span>
-                      </label>
-                    )
-                  })
-                )}
-              </div>
-            </div>
-          </PopoverContent>
-        </Popover>
-        <input
-          type="hidden"
-          name={name}
-          ref={hiddenRef}
-          defaultValue={allowMultiple ? JSON.stringify(initialVals) : (initialVals[0] ?? '')}
-          data-json={allowMultiple ? '1' : undefined}
-        />
-      </FormField>
+      <PostReferenceFieldInternal
+        name={name}
+        label={label}
+        value={value}
+        rootId={rootId}
+        hideLabel={hideLabel}
+        field={field}
+      />
     )
   }
   if (type === 'form-reference') {
-    const [options, setOptions] = useState<Array<{ label: string; value: string }>>([])
-    const initial = typeof value === 'string' ? value : ''
-    const [current, setCurrent] = useState<string>(initial)
-    const hiddenRef = useRef<HTMLInputElement | null>(null)
-
-    useEffect(() => {
-      let alive = true
-      ;(async () => {
-        try {
-          const res = await fetch('/api/forms-definitions', { credentials: 'same-origin' })
-          const j = await res.json().catch(() => ({}))
-          if (!alive) return
-          const list: Array<any> = Array.isArray(j?.data) ? j.data : []
-          setOptions(
-            list.map((f) => ({
-              value: String(f.slug),
-              label: f.title ? String(f.title) : String(f.slug),
-            }))
-          )
-        } catch {
-          if (!alive) setOptions([])
-        }
-      })()
-      return () => {
-        alive = false
-      }
-    }, [])
-
-    useEffect(() => {
-      if (hiddenRef.current) {
-        hiddenRef.current.value = current || ''
-      }
-    }, [current])
-
     return (
-      <FormField>
-        {!hideLabel && <FormLabel>{label}</FormLabel>}
-        <Select
-          defaultValue={initial || undefined}
-          onValueChange={(val) => {
-            setCurrent(val)
-          }}
-        >
-          <SelectTrigger>
-            <SelectValue placeholder="Select a form" />
-          </SelectTrigger>
-          <SelectContent>
-            {options.map((opt) => (
-              <SelectItem key={opt.value} value={opt.value}>
-                {opt.label}
-              </SelectItem>
-            ))}
-          </SelectContent>
-        </Select>
-        <input type="hidden" name={name} defaultValue={initial} ref={hiddenRef} />
-      </FormField>
+      <FormReferenceFieldInternal
+        name={name}
+        label={label}
+        value={value}
+        rootId={rootId}
+        hideLabel={hideLabel}
+      />
     )
   }
   if (type === 'select' || type === 'multiselect') {
-    const [dynamicOptions, setDynamicOptions] = useState<Array<{ label: string; value: string }>>(
-      Array.isArray((field as any).options) ? ((field as any).options as any) : []
+    return (
+      <SelectFieldInternal
+        name={name}
+        label={label}
+        value={value}
+        rootId={rootId}
+        hideLabel={hideLabel}
+        field={field}
+        type={type}
+      />
     )
-    const optionsSource = (field as any).optionsSource as string | undefined
-    useEffect(() => {
-      let alive = true
-      ;(async () => {
-        try {
-          // Only fetch when we have a known source and no static options
-          if (dynamicOptions.length > 0) return
-          if (optionsSource === 'post-types') {
-            const r = await fetch('/api/post-types', { credentials: 'same-origin' })
-            const j = await r.json().catch(() => ({}))
-            const list: string[] = Array.isArray(j?.data) ? j.data : []
-            if (!alive) return
-            setDynamicOptions(list.map((t) => ({ label: t, value: t })))
-          }
-        } catch {
-          /* ignore */
-        }
-      })()
-      return () => {
-        alive = false
-      }
-    }, [optionsSource, dynamicOptions.length])
-    const options = dynamicOptions
-    const isMulti = type === 'multiselect'
-    if (!isMulti) {
-      const initial = typeof value === 'string' ? value : ''
-      const hiddenRef = useRef<HTMLInputElement | null>(null)
-      return (
-        <FormField>
-          {!hideLabel && <FormLabel>{label}</FormLabel>}
-          <Select
-            defaultValue={initial || undefined}
-            onValueChange={(val) => {
-              if (hiddenRef.current) hiddenRef.current.value = val ?? ''
-            }}
-          >
-            <SelectTrigger>
-              <SelectValue placeholder="Select an option" />
-            </SelectTrigger>
-            <SelectContent>
-              {options.map((opt: any) => (
-                <SelectItem key={opt.value} value={opt.value}>
-                  {opt.label ?? opt.value}
-                </SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
-          <input type="hidden" name={name} defaultValue={initial} ref={hiddenRef} />
-        </FormField>
-      )
-    } else {
-      const initial: string[] = Array.isArray(value) ? value : []
-      const [vals, setVals] = useState<string[]>(initial)
-      const hiddenRef = useRef<HTMLInputElement | null>(null)
-      useEffect(() => {
-        if (hiddenRef.current) hiddenRef.current.value = JSON.stringify(vals)
-      }, [vals])
-      return (
-        <FormField>
-          {!hideLabel && <FormLabel>{label}</FormLabel>}
-          {vals.length > 0 && (
-            <div className="flex flex-wrap gap-2 mb-2">
-              {vals.map((val) => {
-                const opt = options.find((o: any) => o.value === val)
-                const text = opt?.label ?? opt?.value ?? val
-                return (
-                  <button
-                    key={val}
-                    type="button"
-                    className="inline-flex items-center gap-1 rounded-full bg-backdrop-low border border-border px-3 py-1 text-sm text-neutral-high hover:bg-backdrop-medium"
-                    onClick={() => setVals((prev) => prev.filter((v) => v !== val))}
-                  >
-                    <span>{text}</span>
-                    <span className="text-neutral-low">✕</span>
-                  </button>
-                )
-              })}
-            </div>
-          )}
-          <Popover>
-            <PopoverTrigger asChild>
-              <button
-                type="button"
-                className="w-full text-left px-3 py-2 border border-border rounded-lg bg-backdrop-low text-neutral-high hover:bg-backdrop-medium"
-              >
-                {vals.length === 0 ? 'Select options' : 'Edit selection'}
-              </button>
-            </PopoverTrigger>
-            <PopoverContent className="w-64">
-              <div className="space-y-2">
-                {options.map((opt: any) => {
-                  const checked = vals.includes(opt.value)
-                  return (
-                    <label key={opt.value} className="flex items-center gap-2">
-                      <Checkbox
-                        checked={checked}
-                        onCheckedChange={(c) => {
-                          setVals((prev) => {
-                            const next = new Set(prev)
-                            if (c) next.add(opt.value)
-                            else next.delete(opt.value)
-                            return Array.from(next)
-                          })
-                        }}
-                      />
-                      <span className="text-sm">{opt.label ?? opt.value}</span>
-                    </label>
-                  )
-                })}
-              </div>
-            </PopoverContent>
-          </Popover>
-          <input
-            type="hidden"
-            name={name}
-            defaultValue={JSON.stringify(initial)}
-            ref={hiddenRef}
-            data-json="1"
-          />
-        </FormField>
-      )
-    }
   }
   if (type === 'link') {
     const initial: LinkFieldValue = (value as any) ?? null
     const hiddenRef = useRef<HTMLInputElement | null>(null)
-    useEffect(() => {
-      if (!hiddenRef.current) return
-      if (!initial) {
-        hiddenRef.current.value = ''
-      } else {
-        hiddenRef.current.value = JSON.stringify(initial)
-      }
-      // eslint-disable-next-line react-hooks/exhaustive-deps
-    }, [])
     return (
       <>
         <LinkField
@@ -1578,6 +2549,8 @@ function FieldPrimitiveInternal({
           onChange={(val: LinkFieldValue) => {
             if (hiddenRef.current) {
               hiddenRef.current.value = val ? JSON.stringify(val) : ''
+              hiddenRef.current.dispatchEvent(new Event('input', { bubbles: true }))
+              hiddenRef.current.dispatchEvent(new Event('change', { bubbles: true }))
             }
           }}
         />
@@ -1587,49 +2560,23 @@ function FieldPrimitiveInternal({
           defaultValue={initial ? JSON.stringify(initial) : ''}
           ref={hiddenRef}
           data-json="1"
+          data-root-id={rootId}
         />
       </>
     )
   }
   if (type === 'boolean') {
-    const hiddenRef = useRef<HTMLInputElement | null>(null)
-    const checked = !!value
-
-    useEffect(() => {
-      if (hiddenRef.current) hiddenRef.current.value = checked ? 'true' : 'false'
-    }, [checked])
-
     return (
-      <div className="flex items-center gap-2">
-        <Checkbox
-          checked={checked}
-          onCheckedChange={(checked) => {
-            if (hiddenRef.current) hiddenRef.current.value = checked ? 'true' : 'false'
-            // Keep draft state in sync so adding/removing repeater rows doesn't reset booleans
-            if (ctx && typeof ctx.setDraft === 'function' && typeof ctx.setByPath === 'function') {
-              ctx.setDraft((prev) => {
-                const next = JSON.parse(JSON.stringify(prev))
-                ctx.setByPath(next, name, checked ? true : false)
-                return next
-              })
-            }
-          }}
-          id={`${rootId}:${name}`}
-        />
-        <label htmlFor={`${rootId}:${name}`} className="text-sm text-neutral-high">
-          {label}
-        </label>
-        <input
-          ref={hiddenRef}
-          type="hidden"
-          name={name}
-          defaultValue={!!value ? 'true' : 'false'}
-          data-bool="1"
-        />
-      </div>
+      <BooleanFieldInternal
+        name={name}
+        label={label}
+        value={value}
+        rootId={rootId}
+        ctx={ctx}
+      />
     )
   }
-  // text, url, media fallback to text input
+  // text, url fallback to text input
   return (
     <FormField>
       {!hideLabel && <FormLabel>{label}</FormLabel>}
@@ -1638,12 +2585,13 @@ function FieldPrimitiveInternal({
         name={name}
         placeholder={(field as any).placeholder || ''}
         defaultValue={value ?? ''}
+        data-root-id={rootId}
       />
     </FormField>
   )
-}
+})
 
-function FieldBySchemaInternal({
+const FieldBySchemaInternal = memo(({
   path,
   field,
   value,
@@ -1655,7 +2603,7 @@ function FieldBySchemaInternal({
   value: any
   rootId: string
   ctx: EditorFieldCtx
-}) {
+}) => {
   const type = (field as any).type as string
   const name = path.join('.')
   const label = ctx.getLabel(path, field)
@@ -1793,7 +2741,7 @@ function FieldBySchemaInternal({
               {itemSchema ? (
                 <>
                   {(itemSchema as any).type === 'object' &&
-                  Array.isArray((itemSchema as any).fields) ? (
+                    Array.isArray((itemSchema as any).fields) ? (
                     <>
                       {((itemSchema as any).fields as FieldSchema[]).map((f) => (
                         <FieldBySchemaInternal
@@ -1843,9 +2791,9 @@ function FieldBySchemaInternal({
                 const t = (itemSchema as any).type
                 if (t === 'object' && Array.isArray((itemSchema as any).fields)) {
                   empty = {}
-                  ;(itemSchema as any).fields.forEach((f: any) => {
-                    empty[f.name] = f.type === 'number' ? 0 : f.type === 'boolean' ? false : ''
-                  })
+                    ; (itemSchema as any).fields.forEach((f: any) => {
+                      empty[f.name] = f.type === 'number' ? 0 : f.type === 'boolean' ? false : ''
+                    })
                 } else if (t === 'number') {
                   empty = 0
                 } else if (t === 'boolean') {
@@ -1874,4 +2822,4 @@ function FieldBySchemaInternal({
   return (
     <FieldPrimitiveInternal path={path} field={field} value={value} rootId={rootId} ctx={ctx} />
   )
-}
+})

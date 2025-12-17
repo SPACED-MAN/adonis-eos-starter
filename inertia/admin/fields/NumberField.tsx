@@ -1,3 +1,4 @@
+import React from 'react'
 import { Input } from '~/components/ui/input'
 
 type Props = {
@@ -6,9 +7,9 @@ type Props = {
   min?: number
   max?: number
   step?: number
-}
+} & Omit<React.ComponentProps<typeof Input>, 'value' | 'onChange' | 'min' | 'max' | 'step' | 'type'>
 
-export default function NumberField({ value, onChange, min, max, step }: Props) {
+export default function NumberField({ value, onChange, min, max, step, ...rest }: Props) {
   return (
     <Input
       type="number"
@@ -20,6 +21,7 @@ export default function NumberField({ value, onChange, min, max, step }: Props) 
         const v = e.target.value
         onChange(v === '' ? null : Number(v))
       }}
+      {...rest}
     />
   )
 }

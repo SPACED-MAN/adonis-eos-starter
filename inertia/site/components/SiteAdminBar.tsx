@@ -16,23 +16,25 @@ type InlineBridge = {
   toggleShowDiffs: () => void
 }
 
-export function SiteAdminBar() {
+export function SiteAdminBar({ initialProps }: { initialProps?: any }) {
   const [inline, setInline] = useState<InlineBridge>({
     enabled: false,
     canEdit: false,
     mode: 'source',
-    toggle: () => {},
-    setMode: () => {},
+    toggle: () => { },
+    setMode: () => { },
     dirty: false,
-    saveAll: async () => {},
-    saveForReview: async () => {},
+    saveAll: async () => { },
+    saveForReview: async () => { },
     availableModes: { hasSource: true, hasReview: false, hasAiReview: false },
     showDiffs: false,
-    toggleShowDiffs: () => {},
+    toggleShowDiffs: () => { },
   })
   const [mounted, setMounted] = useState(false)
   useEffect(() => {
     setMounted(true)
+    // Extra sync on mount to catch anything missed during hydration
+    setProps(getProps())
   }, [])
   useEffect(() => {
     const handler = (e: any) => {
@@ -46,7 +48,7 @@ export function SiteAdminBar() {
   }, [])
 
   const getProps = () => {
-    if (typeof window === 'undefined') return {}
+    if (typeof window === 'undefined') return initialProps || {}
     // Inertia injects page props here
     const fromInertia =
       ((window as any).Inertia &&
@@ -54,8 +56,12 @@ export function SiteAdminBar() {
         (window as any).Inertia.page.props) ||
       null
     if (fromInertia) return fromInertia
+
+    // Try to get from router directly if window.Inertia isn't set yet
+    if (router?.page?.props) return router.page.props
+
     const fromHistory = (window.history && (window.history.state as any)?.page?.props) || null
-    return fromHistory || {}
+    return fromHistory || initialProps || {}
   }
   const [props, setProps] = useState<any>(getProps())
   useEffect(() => {

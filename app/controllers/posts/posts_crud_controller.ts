@@ -11,6 +11,7 @@ import webhookService from '#services/webhook_service'
 import roleRegistry from '#services/role_registry'
 import taxonomyService from '#services/taxonomy_service'
 import BasePostsController from './base_posts_controller.js'
+import { coerceJsonObject } from '../../helpers/jsonb.js'
 import {
   createPostValidator,
   updatePostValidator,
@@ -543,6 +544,7 @@ export default class PostsCrudController extends BasePostsController {
       jsonldOverrides: payload.jsonldOverrides,
       featuredImageId: payload.featuredImageId,
       customFields: payload.customFields,
+      modules: payload.modules,
       taxonomyTermIds: Array.isArray((payload as any).taxonomyTermIds)
         ? ((payload as any).taxonomyTermIds as string[])
         : undefined,
@@ -606,7 +608,7 @@ export default class PostsCrudController extends BasePostsController {
     }
 
     // Promote module changes
-    await this.promoteModuleChanges(id)
+    await this.promoteModuleChanges(id, rd.modules)
 
     // Promote taxonomy term assignments (if present in review draft)
     if (Array.isArray((rd as any).taxonomyTermIds)) {
@@ -652,6 +654,7 @@ export default class PostsCrudController extends BasePostsController {
       jsonldOverrides: payload.jsonldOverrides,
       featuredImageId: payload.featuredImageId,
       customFields: payload.customFields,
+      modules: payload.modules,
       taxonomyTermIds: Array.isArray((payload as any).taxonomyTermIds)
         ? ((payload as any).taxonomyTermIds as string[])
         : undefined,
@@ -710,13 +713,16 @@ export default class PostsCrudController extends BasePostsController {
     }
 
     // Promote AI review modules to review modules
-    await this.promoteAiReviewModulesToReview(id)
+    await this.promoteAiReviewModulesToReview(id, ard.modules)
 
     // Update review_draft with AI review content
     await Post.query()
       .where('id', id)
       .update({
-        review_draft: reviewPayload,
+        review_draft: {
+          ...reviewPayload,
+          modules: ard.modules, // Include atomic modules in the promoted draft
+        },
         ai_review_draft: null,
       } as any)
 
@@ -815,7 +821,44 @@ export default class PostsCrudController extends BasePostsController {
     return response.ok({ message: 'AI Review discarded' })
   }
 
-  private async promoteAiReviewModulesToReview(postId: string) {
+  private async promoteAiReviewModulesToReview(postId: string, draftModules?: any[]) {
+    // If we have an atomic draft, use its modules list for promotion
+    if (Array.isArray(draftModules)) {
+      for (const dm of draftModules) {
+        const isLocal = dm.scope === 'post' || dm.scope === 'local'
+        if (isLocal) {
+          // Robust ID lookup for older drafts that might be missing moduleInstanceId
+          let miId = dm.moduleInstanceId
+          if (!miId && dm.id) {
+            const pm = await db.from('post_modules').where('id', dm.id).first()
+            miId = pm?.module_id
+          }
+
+          if (miId) {
+            await db
+              .from('module_instances')
+              .where('id', miId)
+              .update({
+                review_props: dm.props || {},
+                ai_review_props: null,
+                updated_at: new Date(),
+              } as any)
+          }
+        } else {
+          await db
+            .from('post_modules')
+            .where('id', dm.id)
+            .update({
+              review_overrides: dm.overrides || null,
+              ai_review_overrides: null,
+              updated_at: new Date(),
+            } as any)
+        }
+      }
+      return
+    }
+
+    // Fallback: Promote via DB columns
     // Load all module instances for this post to merge props properly in JavaScript
     const moduleInstances = await db
       .from('module_instances')
@@ -827,12 +870,16 @@ export default class PostsCrudController extends BasePostsController {
     // Only merge ai_review_props and review_props - do NOT include props (source/approved content)
     // Props is the approved/live content and should not be mixed into review content
     for (const instance of moduleInstances) {
-      const reviewProps = (instance.review_props as Record<string, any>) || {}
-      const aiReviewProps = (instance.ai_review_props as Record<string, any>) || {}
+      const reviewProps = coerceJsonObject(instance.review_props)
+      const aiReviewProps = coerceJsonObject(instance.ai_review_props)
 
       // Merge: AI review props (base AI content) + existing review props
       // Review props should only contain review-stage content, not source/approved content
-      const mergedReviewProps = { ...aiReviewProps, ...reviewProps }
+      // Use Object.assign to avoid issues with empty objects in spread
+      const mergedReviewProps =
+        Object.keys(aiReviewProps).length > 0
+          ? { ...reviewProps, ...aiReviewProps }
+          : reviewProps
 
       await db
         .from('module_instances')
@@ -853,8 +900,8 @@ export default class PostsCrudController extends BasePostsController {
     // Promote ai_review_overrides to review_overrides for post_modules
     // Only merge ai_review_overrides and review_overrides - do NOT include overrides (source/approved content)
     for (const pm of postModules) {
-      const reviewOverrides = (pm.review_overrides as Record<string, any>) || {}
-      const aiReviewOverrides = (pm.ai_review_overrides as Record<string, any>) || {}
+      const reviewOverrides = coerceJsonObject(pm.review_overrides)
+      const aiReviewOverrides = coerceJsonObject(pm.ai_review_overrides)
 
       // Merge: AI review overrides (base AI content) + existing review overrides
       // Review overrides should only contain review-stage content, not source/approved content
@@ -923,7 +970,46 @@ export default class PostsCrudController extends BasePostsController {
     }
   }
 
-  private async promoteModuleChanges(postId: string) {
+  private async promoteModuleChanges(postId: string, draftModules?: any[]) {
+    // If we have an atomic draft, use its modules list for promotion
+    if (Array.isArray(draftModules)) {
+      for (const dm of draftModules) {
+        const isLocal = dm.scope === 'post' || dm.scope === 'local'
+        if (isLocal) {
+          // Robust ID lookup for older drafts that might be missing moduleInstanceId
+          let miId = dm.moduleInstanceId
+          if (!miId && dm.id) {
+            const pm = await db.from('post_modules').where('id', dm.id).first()
+            miId = pm?.module_id
+          }
+
+          if (miId) {
+            await db
+              .from('module_instances')
+              .where('id', miId)
+              .update({
+                props: dm.props || {},
+                review_props: null,
+                ai_review_props: null,
+                updated_at: new Date(),
+              } as any)
+          }
+        } else {
+          await db
+            .from('post_modules')
+            .where('id', dm.id)
+            .update({
+              overrides: dm.overrides || null,
+              review_overrides: null,
+              ai_review_overrides: null,
+              updated_at: new Date(),
+            } as any)
+        }
+      }
+      return
+    }
+
+    // Fallback: Promote via DB columns
     // Load all module instances for this post to merge props properly in JavaScript
     // This prevents SQL expressions from being saved as JSON data
     const moduleInstances = await db
@@ -935,17 +1021,17 @@ export default class PostsCrudController extends BasePostsController {
     // Promote review_props to props for local modules
     // Merge: props (base) + review_props (if exists, overrides props)
     for (const instance of moduleInstances) {
-      const props = (instance.props as Record<string, any>) || {}
-      const reviewProps = (instance.review_props as Record<string, any>) || {}
+      const props = coerceJsonObject(instance.props)
+      const reviewProps = coerceJsonObject(instance.review_props)
 
       // If props contains a SQL expression (corrupted data), use review_props or empty object
       let mergedProps: Record<string, any>
       if (props && typeof props === 'object' && 'sql' in props) {
         // Props is corrupted (contains SQL expression), use review_props or empty
-        mergedProps = reviewProps && Object.keys(reviewProps).length > 0 ? reviewProps : {}
+        mergedProps = Object.keys(reviewProps).length > 0 ? reviewProps : {}
       } else {
         // Normal case: merge review_props over props
-        mergedProps = { ...props, ...reviewProps }
+        mergedProps = Object.keys(reviewProps).length > 0 ? { ...props, ...reviewProps } : props
       }
 
       await db
@@ -1003,11 +1089,11 @@ export default class PostsCrudController extends BasePostsController {
     // Resolve requested terms -> taxonomy slug and filter to allowed taxonomies
     const rows = termIds.length
       ? await db
-          .from('taxonomy_terms as tt')
-          .join('taxonomies as t', 'tt.taxonomy_id', 't.id')
-          .whereIn('tt.id', termIds)
-          .whereIn('t.slug', allowedTaxonomySlugs)
-          .select('tt.id as termId', 't.slug as taxonomySlug')
+        .from('taxonomy_terms as tt')
+        .join('taxonomies as t', 'tt.taxonomy_id', 't.id')
+        .whereIn('tt.id', termIds)
+        .whereIn('t.slug', allowedTaxonomySlugs)
+        .select('tt.id as termId', 't.slug as taxonomySlug')
       : []
 
     const byTaxonomy = new Map<string, string[]>()

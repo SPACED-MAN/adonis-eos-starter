@@ -2,6 +2,7 @@ import type { HttpContext } from '@adonisjs/core/http'
 import db from '@adonisjs/lucid/services/db'
 import roleRegistry from '#services/role_registry'
 import moduleRegistry from '#services/module_registry'
+import { coerceJsonObject } from '../helpers/jsonb.js'
 
 type TargetScope = 'props' | 'overrides'
 
@@ -96,12 +97,21 @@ export default class InlineEditorController {
 
     // Update payload based on mode and target
     if (target === 'props') {
-      const baseProps =
-        mode === 'review'
-          ? (row as any).review_props || (row as any).props || {}
-          : mode === 'ai-review'
-            ? (row as any).ai_review_props || (row as any).props || {}
-            : (row as any).props || {}
+      const baseProps = (() => {
+        const props = coerceJsonObject((row as any).props)
+        const revProps = coerceJsonObject((row as any).review_props)
+        const aiProps = coerceJsonObject((row as any).ai_review_props)
+
+        if (mode === 'review') {
+          return Object.keys(revProps).length > 0 ? revProps : props
+        }
+        if (mode === 'ai-review') {
+          if (Object.keys(aiProps).length > 0) return aiProps
+          if (Object.keys(revProps).length > 0) return revProps
+          return props
+        }
+        return props
+      })()
       const next = { ...baseProps }
       setAtPath(next, path, value)
       const update: Record<string, any> = { updated_at: new Date() }
@@ -120,12 +130,13 @@ export default class InlineEditorController {
     }
 
     // overrides path
-    const baseOverrides =
+    const baseOverrides = coerceJsonObject(
       mode === 'review'
-        ? (row as any).review_overrides || (row as any).overrides || {}
+        ? (row as any).review_overrides || (row as any).overrides
         : mode === 'ai-review'
-          ? (row as any).ai_review_overrides || (row as any).overrides || {}
-          : (row as any).overrides || {}
+          ? (row as any).ai_review_overrides || (row as any).overrides
+          : (row as any).overrides
+    )
     const nextOverrides = { ...baseOverrides }
     setAtPath(nextOverrides, path, value)
     const update: Record<string, any> = { updated_at: new Date() }

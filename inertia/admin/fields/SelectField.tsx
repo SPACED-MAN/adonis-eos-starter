@@ -1,3 +1,5 @@
+import React from 'react'
+
 type Option = { label: string; value: string }
 
 type Props = {
@@ -5,9 +7,9 @@ type Props = {
   onChange: (val: string | string[] | null) => void
   options: Option[]
   multiple?: boolean
-}
+} & Omit<React.SelectHTMLAttributes<HTMLSelectElement>, 'value' | 'onChange' | 'multiple'>
 
-export default function SelectField({ value, onChange, options, multiple }: Props) {
+export default function SelectField({ value, onChange, options, multiple, ...rest }: Props) {
   const selected = Array.isArray(value) ? value : value ? [value] : []
 
   return (
@@ -36,6 +38,7 @@ export default function SelectField({ value, onChange, options, multiple }: Prop
         multiple={!!multiple}
         className="block w-full border border-line-low rounded bg-backdrop-low px-3 py-2 text-sm text-neutral-high"
         value={multiple ? selected : value || ''}
+        {...rest}
         onChange={(e) => {
           if (multiple) {
             const vals = Array.from(e.target.selectedOptions).map((o) => o.value)

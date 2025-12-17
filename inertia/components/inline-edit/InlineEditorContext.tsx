@@ -66,6 +66,8 @@ type ModuleSeed = {
   globalSlug?: string | null
   globalLabel?: string | null
   props: Record<string, any>
+  sourceProps?: Record<string, any>
+  sourceOverrides?: Record<string, any>
   reviewProps?: Record<string, any>
   aiReviewProps?: Record<string, any>
   overrides?: Record<string, any>
@@ -78,16 +80,56 @@ export function InlineEditorProvider({
   children,
   postId,
   modules,
+  post,
 }: {
   children: ReactNode
   postId: string
   modules: ModuleSeed[]
+  post?: any
 }) {
   const page = usePage()
   const permissions: string[] = (page.props as any)?.permissions || []
   const canEdit = permissions.includes('posts.edit')
   const [enabled, setEnabled] = useState(false)
-  const [mode, setMode] = useState<Mode>('source')
+  const [mode, setMode] = useState<Mode>(() => {
+    if (typeof window !== 'undefined') {
+      const params = new URLSearchParams(window.location.search)
+      const v = params.get('view')
+      if (v === 'review' || v === 'ai-review' || v === 'source') return v as Mode
+    }
+    return 'source'
+  })
+
+  // Update mode if URL changes (e.g. via browser back/forward)
+  useEffect(() => {
+    if (typeof window !== 'undefined') {
+      const handlePopState = () => {
+        const params = new URLSearchParams(window.location.search)
+        const v = params.get('view')
+        if (v === 'review' || v === 'ai-review' || v === 'source') {
+          setMode(v as Mode)
+        } else {
+          setMode('source')
+        }
+      }
+      window.addEventListener('popstate', handlePopState)
+      return () => window.removeEventListener('popstate', handlePopState)
+    }
+  }, [])
+
+  // Sync mode to URL when setMode is called manually (if not already handled by window.location)
+  const setModeWithUrl = useCallback((m: Mode) => {
+    setMode(m)
+    if (typeof window !== 'undefined') {
+      const url = new URL(window.location.href)
+      if (url.searchParams.get('view') !== m) {
+        url.searchParams.set('view', m)
+        window.history.pushState({}, '', url.toString())
+        // Trigger a reload to get the new version's content from the server
+        window.location.reload()
+      }
+    }
+  }, [])
   const [drafts, setDrafts] = useState<Record<string, DraftPatch>>({})
   const [dirtyModules, setDirtyModules] = useState<Set<string>>(new Set())
   const [showDiffs, setShowDiffs] = useState(false)
@@ -112,6 +154,8 @@ export function InlineEditorProvider({
       string,
       {
         props: Record<string, any>
+        sourceProps?: Record<string, any>
+        sourceOverrides?: Record<string, any>
         reviewProps?: Record<string, any>
         aiReviewProps?: Record<string, any>
         overrides?: Record<string, any>
@@ -124,6 +168,8 @@ export function InlineEditorProvider({
     modules.forEach((m) => {
       out[m.id] = {
         props: m.props || {},
+        sourceProps: m.sourceProps || m.props || {},
+        sourceOverrides: m.sourceOverrides || m.overrides || {},
         reviewProps: m.reviewProps || {},
         aiReviewProps: m.aiReviewProps || {},
         overrides: m.overrides || {},
@@ -142,14 +188,14 @@ export function InlineEditorProvider({
       const hasAiReviewProps = !!(mod.aiReviewProps && Object.keys(mod.aiReviewProps).length)
       const baseProps =
         targetMode === 'source'
-          ? mod.props
+          ? mod.sourceProps || mod.props
           : targetMode === 'review'
             ? hasReviewProps
               ? mod.reviewProps
-              : mod.props
+              : mod.sourceProps || mod.props
             : hasAiReviewProps
               ? mod.aiReviewProps
-              : mod.props
+              : mod.sourceProps || mod.props
 
       const hasReviewOverrides = !!(
         mod.reviewOverrides && Object.keys(mod.reviewOverrides as any).length > 0
@@ -159,14 +205,14 @@ export function InlineEditorProvider({
       )
       const baseOverrides =
         targetMode === 'source'
-          ? mod.overrides
+          ? mod.sourceOverrides || mod.overrides
           : targetMode === 'review'
             ? hasReviewOverrides
               ? mod.reviewOverrides
-              : mod.overrides
+              : mod.sourceOverrides || mod.overrides
             : hasAiReviewOverrides
               ? mod.aiReviewOverrides
-              : mod.overrides
+              : mod.sourceOverrides || mod.overrides
       const merged = { ...(baseProps || {}), ...(baseOverrides || {}) }
       return getAtPath(merged, path, fallback)
     },
@@ -189,33 +235,18 @@ export function InlineEditorProvider({
     if (!val || typeof val !== 'object') return false
 
     // Native DOM checks (browser)
-    try {
-      if (typeof Element !== 'undefined' && val instanceof Element) return true
-      if (typeof HTMLElement !== 'undefined' && val instanceof HTMLElement) return true
-    } catch {
-      // ignore (cross-realm / server)
-    }
+    if (typeof Element !== 'undefined' && val instanceof Element) return true
+    if (typeof HTMLElement !== 'undefined' && val instanceof HTMLElement) return true
 
-    // DOM-ish shape checks
-    if (val.nodeType !== undefined && val.nodeName !== undefined) return true
-    if (val.tagName !== undefined && val.textContent !== undefined) return true
-    if (
-      typeof (val as any).addEventListener === 'function' &&
-      typeof (val as any).removeEventListener === 'function'
-    ) {
-      return true
-    }
+    // DOM-ish shape checks (fast path)
+    if (val.nodeType !== undefined && typeof val.nodeName === 'string') return true
 
     // React fiber markers are suffixed (e.g. "__reactFiber$abc123")
-    try {
-      const props = Object.getOwnPropertyNames(val)
-      if (
-        props.some((k) => k.startsWith('__reactFiber') || k.startsWith('__reactInternalInstance'))
-      ) {
+    // Use for...in for a slightly faster early exit than Object.getOwnPropertyNames().some()
+    for (const k in val) {
+      if (k.startsWith('__reactFiber') || k.startsWith('__reactInternalInstance')) {
         return true
       }
-    } catch {
-      // ignore
     }
 
     return false
@@ -228,6 +259,23 @@ export function InlineEditorProvider({
         // Global/static modules are view-only in inline editor
         return
       }
+
+      // Fast path for primitives
+      if (value === null || value === undefined || typeof value !== 'object') {
+        setDrafts((prev) => {
+          const next = { ...(prev[moduleId] || {}) }
+          next[path] = value
+          return { ...prev, [moduleId]: next }
+        })
+        setDirtyModules((prev) => {
+          if (prev.has(moduleId)) return prev
+          const copy = new Set(prev)
+          copy.add(moduleId)
+          return copy
+        })
+        return
+      }
+
       // Fallback: if DOM marks this module as global/static, block
       if (typeof document !== 'undefined') {
         const el = document.querySelector<HTMLElement>(`[data-inline-module="${moduleId}"]`)
@@ -292,6 +340,7 @@ export function InlineEditorProvider({
         return { ...prev, [moduleId]: next }
       })
       setDirtyModules((prev) => {
+        if (prev.has(moduleId)) return prev
         const copy = new Set(prev)
         copy.add(moduleId)
         return copy
@@ -630,6 +679,12 @@ export function InlineEditorProvider({
 
   const saveForReview = useCallback(async () => {
     await saveAll('review')
+    // Redirect to review version on the frontend
+    if (typeof window !== 'undefined') {
+      const url = new URL(window.location.href)
+      url.searchParams.set('view', 'review')
+      window.location.href = url.toString()
+    }
   }, [saveAll])
 
   // Determine which modes are available based on module data
@@ -651,6 +706,16 @@ export function InlineEditorProvider({
       if (m.aiReviewOverrides && Object.keys(m.aiReviewOverrides).length > 0) hasAiReview = true
     }
 
+    // Also check if there is an atomic draft in the post itself
+    const rd = post?.reviewDraft
+    if (rd && typeof rd === 'object' && Object.keys(rd).length > 0) {
+      hasReview = true
+    }
+    const ard = post?.aiReviewDraft
+    if (ard && typeof ard === 'object' && Object.keys(ard).length > 0) {
+      hasAiReview = true
+    }
+
     // If no modules at all, but we have some content, assume source exists
     // This handles edge cases where modules might be empty but post has content
     if (modules.length === 0) {
@@ -661,7 +726,7 @@ export function InlineEditorProvider({
     }
 
     return { hasSource, hasReview, hasAiReview }
-  }, [modules])
+  }, [modules, post])
 
   // If Source is not available and we're in source mode, switch to AI Review mode
   useEffect(() => {
@@ -682,7 +747,7 @@ export function InlineEditorProvider({
       canEdit,
       postId,
       mode,
-      setMode,
+      setMode: setModeWithUrl,
       toggle: () => setEnabled((v) => !v),
       getValue,
       getModeValue,

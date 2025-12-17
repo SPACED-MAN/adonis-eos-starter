@@ -6,6 +6,7 @@ import PostModule from '#models/post_module'
 import ModuleInstance from '#models/module_instance'
 import PostCustomFieldValue from '#models/post_custom_field_value'
 import db from '@adonisjs/lucid/services/db'
+import { coerceJsonObject } from '../helpers/jsonb.js'
 
 type CanonicalModule = {
   type: string
@@ -283,26 +284,15 @@ export default class PostSerializerService {
       },
       modules: moduleRows.map((row: any) => {
         // Get base props (handle both JSON string and object)
-        let baseProps = row.props
-        if (typeof baseProps === 'string') {
-          try {
-            baseProps = JSON.parse(baseProps)
-          } catch {
-            baseProps = {}
-          }
-        }
-        let effectiveProps = baseProps || {}
+        const baseProps = coerceJsonObject(row.props)
+        let effectiveProps = { ...baseProps }
 
         // Merge with review or ai-review props based on mode
         if (mode === 'review' && row.review_props) {
-          const reviewProps =
-            typeof row.review_props === 'string' ? JSON.parse(row.review_props) : row.review_props
+          const reviewProps = coerceJsonObject(row.review_props)
           effectiveProps = { ...effectiveProps, ...reviewProps }
         } else if (mode === 'ai-review' && row.ai_review_props) {
-          const aiReviewProps =
-            typeof row.ai_review_props === 'string'
-              ? JSON.parse(row.ai_review_props)
-              : row.ai_review_props
+          const aiReviewProps = coerceJsonObject(row.ai_review_props)
           effectiveProps = { ...effectiveProps, ...aiReviewProps }
         }
 
@@ -360,7 +350,7 @@ export default class PostSerializerService {
     if (Array.isArray(data.post?.customFields) && data.post!.customFields!.length > 0) {
       const { randomUUID } = await import('node:crypto')
       for (const f of data.post!.customFields!) {
-        const value = typeof f.value === 'string' ? JSON.stringify(f.value) : f.value
+        const value = f.value // models handle JSON conversion
         await PostCustomFieldValue.create({
           id: randomUUID(),
           postId: post.id,
