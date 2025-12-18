@@ -102,6 +102,7 @@ const InlineModuleEditor = memo(function InlineModuleEditor({
     overrides?: Record<string, any> | null
     locked: boolean
     orderIndex: number
+    globalSlug?: string | null
   }
   postId: string
   viewMode: 'source' | 'review' | 'ai-review'
@@ -132,6 +133,7 @@ const InlineModuleEditor = memo(function InlineModuleEditor({
         overrides: module.overrides || null,
         locked: module.locked,
         orderIndex: module.orderIndex,
+        globalSlug: (module as any).globalSlug || null,
       }}
       postId={postId}
       moduleInstanceId={module.moduleInstanceId}
@@ -202,6 +204,7 @@ interface EditorProps {
     aiReviewDeleted?: boolean
     locked: boolean
     orderIndex: number
+    globalSlug?: string | null
   }[]
   translations: { id: string; locale: string }[]
   reviewDraft?: any | null

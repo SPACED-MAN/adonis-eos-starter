@@ -33,6 +33,7 @@ export interface ModuleListItem {
   overrides: Record<string, any> | null
   locked: boolean
   orderIndex: number
+  globalSlug?: string | null
 }
 
 type FieldSchema =
@@ -645,6 +646,17 @@ export function ModuleEditorPanel({
             Edit Module — {moduleLabel || moduleItem.type}
           </h3>
         </div>
+        {moduleItem.scope === 'global' && (
+          <div className="px-5 py-3 bg-amber-500/10 border-b border-amber-500/20 text-xs text-amber-500 flex items-center justify-between">
+            <span>Global modules are shared across posts and must be edited in the global settings.</span>
+            <a
+              href={`/admin/modules?tab=globals&editSlug=${moduleItem.globalSlug}`}
+              className="font-semibold underline hover:text-amber-400"
+            >
+              Edit Global Module
+            </a>
+          </div>
+        )}
         <form
           ref={formRef}
           className="p-5 grid grid-cols-1 gap-5 overflow-auto"
@@ -652,145 +664,147 @@ export function ModuleEditorPanel({
             e.preventDefault()
           }}
         >
-          {schema && schema.length > 0 ? (
-            schema.map((f) => (
-              <FieldBySchemaInternal
-                key={(f as any).name}
-                path={[(f as any).name]}
-                field={f}
-                value={draft ? draft[(f as any).name] : undefined}
-                rootId={moduleItem.id}
-                ctx={ctx}
-              />
-            ))
-          ) : isNoFieldModule || fallbackDraftKeys.length === 0 ? (
-            <p className="text-sm text-neutral-low">No editable fields.</p>
-          ) : (
-            fallbackDraftKeys.map((key) => {
-              const rawVal = draft[key]
-              // Heuristic: always treat 'content' as rich text
-              if (key === 'content') {
-                let initial: any = undefined
-                if (isPlainObject(rawVal)) {
-                  initial = rawVal
-                } else if (typeof rawVal === 'string') {
-                  try {
-                    const parsed = JSON.parse(rawVal)
-                    initial = parsed
-                  } catch {
-                    initial = undefined
-                  }
-                }
-                return (
-                  <div key={key}>
-                    <label className="block text-sm font-medium text-neutral-medium mb-1">
-                      {key}
-                    </label>
-                    {(fieldComponents as Record<string, any>)['RichtextField'] ? (
-                      (fieldComponents as Record<string, any>)['RichtextField']({
-                        editorKey: `${moduleItem.id}:${key}`,
-                        value: initial,
-                        onChange: (json: any) => {
-                          const hidden =
-                            (formRef.current?.querySelector(
-                              `input[type="hidden"][name="${key}"]`
-                            ) as HTMLInputElement) || null
-                          if (hidden) {
-                            try {
-                              hidden.value = JSON.stringify(json)
-                            } catch {
-                              /* ignore */
-                            }
-                          }
-                          const next = JSON.parse(JSON.stringify(draft))
-                          setByPath(next, key, json)
-                          setDraft(next)
-                        },
-                      })
-                    ) : (
-                      <LexicalEditor
-                        editorKey={`${moduleItem.id}:${key}`}
-                        value={initial}
-                        onChange={(json) => {
-                          const hidden =
-                            (formRef.current?.querySelector(
-                              `input[type="hidden"][name="${key}"]`
-                            ) as HTMLInputElement) || null
-                          if (hidden) {
-                            try {
-                              hidden.value = JSON.stringify(json)
-                            } catch {
-                              /* ignore */
-                            }
-                          }
-                          const next = JSON.parse(JSON.stringify(draft))
-                          setByPath(next, key, json)
-                          setDraft(next)
-                        }}
-                      />
-                    )}
-                    <input
-                      type="hidden"
-                      name={key}
-                      data-json="1"
-                      defaultValue={
-                        isPlainObject(rawVal)
-                          ? JSON.stringify(rawVal)
-                          : typeof rawVal === 'string'
-                            ? rawVal
-                            : ''
-                      }
-                    />
-                  </div>
-                )
-              }
-              const val = rawVal
-              if (isPlainObject(val) || Array.isArray(val)) {
-                return (
-                  <div key={key}>
-                    <label className="block text-sm font-medium text-neutral-medium mb-1">
-                      {key}
-                    </label>
-                    <textarea
-                      className="w-full px-3 py-2 min-h-[140px] border border-border rounded-lg bg-backdrop-low text-neutral-high font-mono text-xs focus:ring-1 ring-ring focus:border-transparent"
-                      defaultValue={JSON.stringify(val, null, 2)}
-                      onBlur={(e) => {
-                        try {
-                          const parsed = JSON.parse(e.target.value || 'null')
-                          const next = JSON.parse(JSON.stringify(draft))
-                          setByPath(next, key, parsed)
-                          setDraft(next)
-                        } catch {
-                          toast.error('Invalid JSON')
-                        }
-                      }}
-                    />
-                    <p className="text-xs text-neutral-low mt-1">Edit JSON directly.</p>
-                  </div>
-                )
-              }
-              return (
-                <FieldPrimitiveInternal
-                  key={key}
-                  path={[key]}
-                  field={
-                    {
-                      name: key,
-                      type:
-                        typeof val === 'number'
-                          ? 'number'
-                          : typeof val === 'boolean'
-                            ? 'boolean'
-                            : 'text',
-                    } as any
-                  }
-                  value={val}
+          <fieldset disabled={processing || moduleItem.scope === 'global'} className="contents">
+            {schema && schema.length > 0 ? (
+              schema.map((f) => (
+                <FieldBySchemaInternal
+                  key={(f as any).name}
+                  path={[(f as any).name]}
+                  field={f}
+                  value={draft ? draft[(f as any).name] : undefined}
                   rootId={moduleItem.id}
                   ctx={ctx}
                 />
-              )
-            })
-          )}
+              ))
+            ) : isNoFieldModule || fallbackDraftKeys.length === 0 ? (
+              <p className="text-sm text-neutral-low">No editable fields.</p>
+            ) : (
+              fallbackDraftKeys.map((key) => {
+                const rawVal = draft[key]
+                // Heuristic: always treat 'content' as rich text
+                if (key === 'content') {
+                  let initial: any = undefined
+                  if (isPlainObject(rawVal)) {
+                    initial = rawVal
+                  } else if (typeof rawVal === 'string') {
+                    try {
+                      const parsed = JSON.parse(rawVal)
+                      initial = parsed
+                    } catch {
+                      initial = undefined
+                    }
+                  }
+                  return (
+                    <div key={key}>
+                      <label className="block text-sm font-medium text-neutral-medium mb-1">
+                        {key}
+                      </label>
+                      {(fieldComponents as Record<string, any>)['RichtextField'] ? (
+                        (fieldComponents as Record<string, any>)['RichtextField']({
+                          editorKey: `${moduleItem.id}:${key}`,
+                          value: initial,
+                          onChange: (json: any) => {
+                            const hidden =
+                              (formRef.current?.querySelector(
+                                `input[type="hidden"][name="${key}"]`
+                              ) as HTMLInputElement) || null
+                            if (hidden) {
+                              try {
+                                hidden.value = JSON.stringify(json)
+                              } catch {
+                                /* ignore */
+                              }
+                            }
+                            const next = JSON.parse(JSON.stringify(draft))
+                            setByPath(next, key, json)
+                            setDraft(next)
+                          },
+                        })
+                      ) : (
+                        <LexicalEditor
+                          editorKey={`${moduleItem.id}:${key}`}
+                          value={initial}
+                          onChange={(json) => {
+                            const hidden =
+                              (formRef.current?.querySelector(
+                                `input[type="hidden"][name="${key}"]`
+                              ) as HTMLInputElement) || null
+                            if (hidden) {
+                              try {
+                                hidden.value = JSON.stringify(json)
+                              } catch {
+                                /* ignore */
+                              }
+                            }
+                            const next = JSON.parse(JSON.stringify(draft))
+                            setByPath(next, key, json)
+                            setDraft(next)
+                          }}
+                        />
+                      )}
+                      <input
+                        type="hidden"
+                        name={key}
+                        data-json="1"
+                        defaultValue={
+                          isPlainObject(rawVal)
+                            ? JSON.stringify(rawVal)
+                            : typeof rawVal === 'string'
+                              ? rawVal
+                              : ''
+                        }
+                      />
+                    </div>
+                  )
+                }
+                const val = rawVal
+                if (isPlainObject(val) || Array.isArray(val)) {
+                  return (
+                    <div key={key}>
+                      <label className="block text-sm font-medium text-neutral-medium mb-1">
+                        {key}
+                      </label>
+                      <textarea
+                        className="w-full px-3 py-2 min-h-[140px] border border-border rounded-lg bg-backdrop-low text-neutral-high font-mono text-xs focus:ring-1 ring-ring focus:border-transparent"
+                        defaultValue={JSON.stringify(val, null, 2)}
+                        onBlur={(e) => {
+                          try {
+                            const parsed = JSON.parse(e.target.value || 'null')
+                            const next = JSON.parse(JSON.stringify(draft))
+                            setByPath(next, key, parsed)
+                            setDraft(next)
+                          } catch {
+                            toast.error('Invalid JSON')
+                          }
+                        }}
+                      />
+                      <p className="text-xs text-neutral-low mt-1">Edit JSON directly.</p>
+                    </div>
+                  )
+                }
+                return (
+                  <FieldPrimitiveInternal
+                    key={key}
+                    path={[key]}
+                    field={
+                      {
+                        name: key,
+                        type:
+                          typeof val === 'number'
+                            ? 'number'
+                            : typeof val === 'boolean'
+                              ? 'boolean'
+                              : 'text',
+                      } as any
+                    }
+                    value={val}
+                    rootId={moduleItem.id}
+                    ctx={ctx}
+                  />
+                )
+              })
+            )}
+          </fieldset>
           <div className="flex items-center justify-end gap-2 border-t border-line-low pt-4">
             <button
               type="button"
@@ -804,7 +818,7 @@ export function ModuleEditorPanel({
               type="button"
               className="px-3 py-1.5 text-xs rounded bg-standout-medium text-on-standout disabled:opacity-60"
               onClick={saveAndClose}
-              disabled={processing}
+              disabled={processing || moduleItem.scope === 'global'}
             >
               Done
             </button>
@@ -1235,6 +1249,17 @@ export const ModuleEditorInline = memo(function ModuleEditorInline({
 
   return (
     <div className={className}>
+      {moduleItem.scope === 'global' && (
+        <div className="mb-4 p-3 bg-amber-500/10 border border-amber-500/20 rounded text-xs text-amber-500 flex items-center justify-between">
+          <span>Global module (shared) - edit in settings.</span>
+          <a
+            href={`/admin/modules?tab=globals&editSlug=${moduleItem.globalSlug}`}
+            className="font-semibold underline hover:text-amber-400"
+          >
+            Edit Global
+          </a>
+        </div>
+      )}
       <div
         ref={formRef}
         className="grid grid-cols-1 gap-5"
@@ -1333,7 +1358,7 @@ export const ModuleEditorInline = memo(function ModuleEditorInline({
           }, 250)
         }}
       >
-        <fieldset disabled={processing || !!moduleItem.locked} className={moduleItem.locked ? 'opacity-60' : ''}>
+        <fieldset disabled={processing || moduleItem.scope === 'global'} className={moduleItem.scope === 'global' ? 'opacity-60' : ''}>
           {schema && schema.length > 0 ? (
             schema.map((f) => {
               // If we have pending unsaved changes for this field, use the pending value
@@ -1487,7 +1512,7 @@ export const ModuleEditorInline = memo(function ModuleEditorInline({
             type="button"
             className="px-3 py-1.5 text-xs rounded border border-line-medium text-neutral-high hover:bg-backdrop-medium"
             onClick={saveNow}
-            disabled={processing || !!moduleItem.locked}
+            disabled={processing || moduleItem.scope === 'global'}
             title={moduleLabel ? `Apply changes to ${moduleLabel}` : 'Apply changes'}
           >
             Apply
