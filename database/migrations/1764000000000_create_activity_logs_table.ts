@@ -26,6 +26,8 @@ BEGIN
     CREATE INDEX IF NOT EXISTS activity_logs_action_idx ON ${this.tableName}(action);
     CREATE INDEX IF NOT EXISTS activity_logs_entity_idx ON ${this.tableName}(entity_type, entity_id);
     CREATE INDEX IF NOT EXISTS activity_logs_metadata_gin ON ${this.tableName} USING GIN (metadata);
+    CREATE INDEX IF NOT EXISTS idx_activity_logs_entity ON ${this.tableName}(entity_type, entity_id, created_at DESC);
+    CREATE INDEX IF NOT EXISTS idx_activity_logs_user ON ${this.tableName}(user_id, created_at DESC) WHERE user_id IS NOT NULL;
   END IF;
 END $$;
     `)

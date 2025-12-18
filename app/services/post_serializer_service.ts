@@ -19,7 +19,10 @@ type CanonicalModule = {
 }
 
 export type CanonicalPost = {
-  version: 1
+  metadata: {
+    version: string
+    exportedAt: string
+  }
   post: {
     type: string
     locale: string
@@ -39,6 +42,7 @@ export type CanonicalPost = {
 }
 
 export default class PostSerializerService {
+  private static readonly VERSION = '2.0.0'
   /**
    * Serialize a post based on view mode (source/review/ai-review) and its modules into a canonical JSON object.
    * @param postId - Post ID
@@ -267,7 +271,10 @@ export default class PostSerializerService {
     }
 
     const canonical: CanonicalPost = {
-      version: 1 as const,
+      metadata: {
+        version: this.VERSION,
+        exportedAt: new Date().toISOString(),
+      },
       post: {
         type: post.type,
         locale: post.locale,
@@ -315,7 +322,9 @@ export default class PostSerializerService {
    * Create a new post from canonical JSON.
    */
   static async importCreate(data: CanonicalPost, userId: number) {
-    if (!data || data.version !== 1) throw new Error('Unsupported or missing version')
+    if (!data || !data.metadata?.version?.startsWith('2.')) {
+      throw new Error('Unsupported or missing version')
+    }
     const p = data.post
     const post = await CreatePost.handle({
       type: p.type,
@@ -366,7 +375,9 @@ export default class PostSerializerService {
    * Replace an existing post's live data and modules from canonical JSON.
    */
   static async importReplace(postId: string, data: CanonicalPost) {
-    if (!data || data.version !== 1) throw new Error('Unsupported or missing version')
+    if (!data || !data.metadata?.version?.startsWith('2.')) {
+      throw new Error('Unsupported or missing version')
+    }
     const p = data.post
     await UpdatePost.handle({
       postId,

@@ -8,6 +8,12 @@ test.group('Module Registry', (group) => {
     moduleRegistry.clear()
   })
 
+  group.teardown(async () => {
+    // Re-register all modules so subsequent tests (functional) don't fail
+    const { registerAllModules } = await import('../actions/module_test_helper.js')
+    await registerAllModules()
+  })
+
   test('should register a module', ({ assert }) => {
     const proseModule = new ProseModule()
     moduleRegistry.register(proseModule)

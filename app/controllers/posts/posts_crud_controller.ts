@@ -1,7 +1,11 @@
 import type { HttpContext } from '@adonisjs/core/http'
+import SaveReviewDraft from '#actions/posts/save_review_draft'
+import ApproveReviewDraft from '#actions/posts/approve_review_draft'
+import RejectReviewDraft from '#actions/posts/reject_review_draft'
 import Post from '#models/post'
 import CreatePost, { CreatePostException } from '#actions/posts/create_post'
 import UpdatePost, { UpdatePostException } from '#actions/posts/update_post'
+import UpsertPostCustomFields from '#actions/posts/upsert_post_custom_fields'
 import BulkPostsAction from '#actions/posts/bulk_action'
 import db from '@adonisjs/lucid/services/db'
 import authorizationService from '#services/authorization_service'
@@ -9,9 +13,7 @@ import RevisionService from '#services/revision_service'
 import postTypeConfigService from '#services/post_type_config_service'
 import webhookService from '#services/webhook_service'
 import roleRegistry from '#services/role_registry'
-import taxonomyService from '#services/taxonomy_service'
 import BasePostsController from './base_posts_controller.js'
-import { coerceJsonObject } from '../../helpers/jsonb.js'
 import {
   createPostValidator,
   updatePostValidator,
@@ -255,7 +257,10 @@ export default class PostsCrudController extends BasePostsController {
 
       // Update custom fields
       if (Array.isArray(payload.customFields)) {
-        await this.upsertCustomFields(id, payload.customFields)
+        await UpsertPostCustomFields.handle({
+          postId: id,
+          customFields: payload.customFields,
+        })
       }
 
       // Record revision (captures all active versions + module staging)
@@ -530,43 +535,13 @@ export default class PostsCrudController extends BasePostsController {
     auth: HttpContext['auth'],
     response: HttpContext['response']
   ) {
-    const draftPayload: Record<string, any> = {
-      slug: payload.slug,
-      title: payload.title,
-      status: payload.status,
-      excerpt: payload.excerpt,
-      parentId: payload.parentId,
-      orderIndex: payload.orderIndex,
-      metaTitle: payload.metaTitle,
-      metaDescription: payload.metaDescription,
-      canonicalUrl: payload.canonicalUrl,
-      robotsJson: payload.robotsJson,
-      jsonldOverrides: payload.jsonldOverrides,
-      featuredImageId: payload.featuredImageId,
-      customFields: payload.customFields,
-      modules: payload.modules,
-      taxonomyTermIds: Array.isArray((payload as any).taxonomyTermIds)
-        ? ((payload as any).taxonomyTermIds as string[])
-        : undefined,
-      savedAt: new Date().toISOString(),
-      savedBy: (auth.use('web').user as any)?.email || null,
-    }
-
-    await Post.query()
-      .where('id', id)
-      .update({ review_draft: draftPayload } as any)
-
-    // Promote AI Review module content to Review when saving for review
-    // This ensures that any AI Review edits (including inline edits) are available in Review mode
-    await this.promoteAiReviewModulesToReview(id)
-
-    await RevisionService.recordActiveVersionsSnapshot({
+    await SaveReviewDraft.handle({
       postId: id,
+      payload,
+      userId: auth.user!.id,
+      userEmail: (auth.use('web').user as any)?.email || null,
       mode: 'review',
-      action: 'save-review',
-      userId: (auth.use('web').user as any)?.id,
     })
-
     return response.ok({ message: 'Saved for review' })
   }
 
@@ -575,62 +550,10 @@ export default class PostsCrudController extends BasePostsController {
     auth: HttpContext['auth'],
     response: HttpContext['response']
   ) {
-    const current = await Post.findOrFail(id)
-    const rd: any = current.reviewDraft
-
-    if (!rd) {
-      return this.response.badRequest(response, 'No review draft to approve')
-    }
-
-    await UpdatePost.handle({
+    await ApproveReviewDraft.handle({
       postId: id,
-      slug: rd.slug ?? current.slug,
-      title: rd.title ?? current.title,
-      status: current.status,
-      excerpt: rd.excerpt ?? current.excerpt,
-      parentId: rd.parentId ?? current.parentId ?? undefined,
-      metaTitle: rd.metaTitle ?? current.metaTitle,
-      metaDescription: rd.metaDescription ?? current.metaDescription,
-      canonicalUrl: rd.canonicalUrl ?? current.canonicalUrl,
-      robotsJson: this.parseJsonField(rd.robotsJson) ?? current.robotsJson,
-      jsonldOverrides: this.parseJsonField(rd.jsonldOverrides) ?? current.jsonldOverrides,
-      featuredImageId:
-        rd.featuredImageId !== undefined
-          ? rd.featuredImageId === null || rd.featuredImageId === ''
-            ? null
-            : rd.featuredImageId
-          : current.featuredImageId,
+      userId: auth.user!.id,
     })
-
-    // Promote custom fields
-    if (Array.isArray(rd.customFields)) {
-      await this.upsertCustomFields(id, rd.customFields)
-    }
-
-    // Promote module changes
-    await this.promoteModuleChanges(id, rd.modules)
-
-    // Promote taxonomy term assignments (if present in review draft)
-    if (Array.isArray((rd as any).taxonomyTermIds)) {
-      const termIds = ((rd as any).taxonomyTermIds as any[]).map((x) => String(x))
-      const applied = await this.applyTaxonomyAssignments(id, current.type, termIds)
-      if (!applied.ok) {
-        return this.response.badRequest(response, applied.error || 'Invalid taxonomy assignments')
-      }
-    }
-
-    // Clear review draft
-    await Post.query()
-      .where('id', id)
-      .update({ review_draft: null } as any)
-
-    await RevisionService.recordActiveVersionsSnapshot({
-      postId: id,
-      mode: 'source',
-      action: 'approve-review-to-source',
-      userId: (auth.use('web').user as any)?.id,
-    })
-
     return response.ok({ message: 'Review promoted to Source' })
   }
 
@@ -640,39 +563,13 @@ export default class PostsCrudController extends BasePostsController {
     auth: HttpContext['auth'],
     response: HttpContext['response']
   ) {
-    const draftPayload: Record<string, any> = {
-      slug: payload.slug,
-      title: payload.title,
-      status: payload.status,
-      excerpt: payload.excerpt,
-      parentId: payload.parentId,
-      orderIndex: payload.orderIndex,
-      metaTitle: payload.metaTitle,
-      metaDescription: payload.metaDescription,
-      canonicalUrl: payload.canonicalUrl,
-      robotsJson: payload.robotsJson,
-      jsonldOverrides: payload.jsonldOverrides,
-      featuredImageId: payload.featuredImageId,
-      customFields: payload.customFields,
-      modules: payload.modules,
-      taxonomyTermIds: Array.isArray((payload as any).taxonomyTermIds)
-        ? ((payload as any).taxonomyTermIds as string[])
-        : undefined,
-      savedAt: new Date().toISOString(),
-      savedBy: 'AI Agent',
-    }
-
-    await Post.query()
-      .where('id', id)
-      .update({ ai_review_draft: draftPayload } as any)
-
-    await RevisionService.recordActiveVersionsSnapshot({
+    await SaveReviewDraft.handle({
       postId: id,
+      payload,
+      userId: auth.user!.id,
+      userEmail: 'AI Agent',
       mode: 'ai-review',
-      action: 'save-ai-review',
-      userId: (auth.use('web').user as any)?.id,
     })
-
     return response.ok({ message: 'Saved to AI Review' })
   }
 
@@ -688,62 +585,21 @@ export default class PostsCrudController extends BasePostsController {
       return this.response.badRequest(response, 'No AI review draft to approve')
     }
 
-    // Instead of promoting to Source, promote to review_draft
-    const reviewPayload: Record<string, any> = {
-      slug: ard.slug ?? current.slug,
-      title: ard.title ?? current.title,
-      status: ard.status ?? current.status,
-      excerpt: ard.excerpt ?? current.excerpt,
-      parentId: ard.parentId ?? current.parentId,
-      orderIndex: ard.orderIndex ?? current.orderIndex,
-      metaTitle: ard.metaTitle ?? current.metaTitle,
-      metaDescription: ard.metaDescription ?? current.metaDescription,
-      canonicalUrl: ard.canonicalUrl ?? current.canonicalUrl,
-      robotsJson: ard.robotsJson ?? current.robotsJson,
-      jsonldOverrides: ard.jsonldOverrides ?? current.jsonldOverrides,
-      featuredImageId:
-        ard.featuredImageId !== undefined
-          ? ard.featuredImageId === null || ard.featuredImageId === ''
-            ? null
-            : ard.featuredImageId
-          : current.featuredImageId,
-      customFields: ard.customFields ?? [],
-      savedAt: new Date().toISOString(),
-      savedBy: (auth.use('web').user as any)?.email || null,
-    }
-
-    // Promote AI review modules to review modules
-    await this.promoteAiReviewModulesToReview(id, ard.modules)
-
-    // Update review_draft with AI review content
-    await Post.query()
-      .where('id', id)
-      .update({
-        review_draft: {
-          ...reviewPayload,
-          modules: ard.modules, // Include atomic modules in the promoted draft
-        },
-        ai_review_draft: null,
-      } as any)
-
-    await RevisionService.recordActiveVersionsSnapshot({
+    await SaveReviewDraft.handle({
       postId: id,
+      payload: ard,
+      userId: auth.user!.id,
+      userEmail: (auth.use('web').user as any)?.email || null,
       mode: 'review',
-      action: 'promote-ai-review-to-review',
-      userId: (auth.use('web').user as any)?.id,
     })
 
-    // Preserve agent execution history when promoting AI Review to Review
+    await Post.query().where('id', id).update({ ai_review_draft: null } as any)
+
+    // Preserve agent execution history
     try {
       const agentExecutionService = await import('#services/agent_execution_service')
       await agentExecutionService.default.promoteAiReviewToReview(id)
-    } catch (historyError: any) {
-      // Don't fail the request if history promotion fails, but log it
-      console.error('Failed to promote agent execution history:', {
-        postId: id,
-        error: historyError?.message,
-      })
-    }
+    } catch {}
 
     return response.ok({ message: 'AI Review promoted to Review' })
   }
@@ -753,36 +609,11 @@ export default class PostsCrudController extends BasePostsController {
     auth: HttpContext['auth'],
     response: HttpContext['response']
   ) {
-    const userId = (auth.use('web').user as any)?.id ?? null
-    // Capture current full Active Versions state before discarding
-    await RevisionService.recordActiveVersionsSnapshot({
+    await RejectReviewDraft.handle({
       postId,
+      userId: auth.user!.id,
       mode: 'review',
-      action: 'reject-review',
-      userId,
     })
-
-    const now = new Date()
-    // Clear review draft
-    await Post.query()
-      .where('id', postId)
-      .update({ review_draft: null } as any)
-    // Clear staged module state for Review
-    await db
-      .from('module_instances')
-      .where('scope', 'post')
-      .andWhereIn('id', db.from('post_modules').where('post_id', postId).select('module_id'))
-      .update({ review_props: null, updated_at: now } as any)
-    await db
-      .from('post_modules')
-      .where('post_id', postId)
-      .update({
-        review_overrides: null,
-        review_added: false,
-        review_deleted: false,
-        updated_at: now,
-      } as any)
-
     return response.ok({ message: 'Review discarded' })
   }
 
@@ -791,360 +622,11 @@ export default class PostsCrudController extends BasePostsController {
     auth: HttpContext['auth'],
     response: HttpContext['response']
   ) {
-    const userId = (auth.use('web').user as any)?.id ?? null
-    await RevisionService.recordActiveVersionsSnapshot({
+    await RejectReviewDraft.handle({
       postId,
+      userId: auth.user!.id,
       mode: 'ai-review',
-      action: 'reject-ai-review',
-      userId,
     })
-
-    const now = new Date()
-    await Post.query()
-      .where('id', postId)
-      .update({ ai_review_draft: null } as any)
-    await db
-      .from('module_instances')
-      .where('scope', 'post')
-      .andWhereIn('id', db.from('post_modules').where('post_id', postId).select('module_id'))
-      .update({ ai_review_props: null, updated_at: now } as any)
-    await db
-      .from('post_modules')
-      .where('post_id', postId)
-      .update({
-        ai_review_overrides: null,
-        ai_review_added: false,
-        ai_review_deleted: false,
-        updated_at: now,
-      } as any)
-
     return response.ok({ message: 'AI Review discarded' })
-  }
-
-  private async promoteAiReviewModulesToReview(postId: string, draftModules?: any[]) {
-    // If we have an atomic draft, use its modules list for promotion
-    if (Array.isArray(draftModules)) {
-      for (const dm of draftModules) {
-        const isLocal = dm.scope === 'post' || dm.scope === 'local'
-        if (isLocal) {
-          // Robust ID lookup for older drafts that might be missing moduleInstanceId
-          let miId = dm.moduleInstanceId
-          if (!miId && dm.id) {
-            const pm = await db.from('post_modules').where('id', dm.id).first()
-            miId = pm?.module_id
-          }
-
-          if (miId) {
-            await db
-              .from('module_instances')
-              .where('id', miId)
-              .update({
-                review_props: dm.props || {},
-                ai_review_props: null,
-                updated_at: new Date(),
-              } as any)
-          }
-        } else {
-          await db
-            .from('post_modules')
-            .where('id', dm.id)
-            .update({
-              review_overrides: dm.overrides || null,
-              ai_review_overrides: null,
-              updated_at: new Date(),
-            } as any)
-        }
-      }
-      return
-    }
-
-    // Fallback: Promote via DB columns
-    // Load all module instances for this post to merge props properly in JavaScript
-    const moduleInstances = await db
-      .from('module_instances')
-      .where('scope', 'post')
-      .andWhereIn('id', db.from('post_modules').where('post_id', postId).select('module_id'))
-      .select('id', 'props', 'review_props', 'ai_review_props')
-
-    // Promote ai_review_props to review_props for local modules
-    // Only merge ai_review_props and review_props - do NOT include props (source/approved content)
-    // Props is the approved/live content and should not be mixed into review content
-    for (const instance of moduleInstances) {
-      const reviewProps = coerceJsonObject(instance.review_props)
-      const aiReviewProps = coerceJsonObject(instance.ai_review_props)
-
-      // Merge: AI review props (base AI content) + existing review props
-      // Review props should only contain review-stage content, not source/approved content
-      // Use Object.assign to avoid issues with empty objects in spread
-      const mergedReviewProps =
-        Object.keys(aiReviewProps).length > 0
-          ? { ...reviewProps, ...aiReviewProps }
-          : reviewProps
-
-      await db
-        .from('module_instances')
-        .where('id', instance.id)
-        .update({
-          review_props: mergedReviewProps,
-          ai_review_props: null,
-          updated_at: new Date(),
-        } as any)
-    }
-
-    // Load all post_modules for this post to merge overrides properly
-    const postModules = await db
-      .from('post_modules')
-      .where('post_id', postId)
-      .select('id', 'overrides', 'review_overrides', 'ai_review_overrides')
-
-    // Promote ai_review_overrides to review_overrides for post_modules
-    // Only merge ai_review_overrides and review_overrides - do NOT include overrides (source/approved content)
-    for (const pm of postModules) {
-      const reviewOverrides = coerceJsonObject(pm.review_overrides)
-      const aiReviewOverrides = coerceJsonObject(pm.ai_review_overrides)
-
-      // Merge: AI review overrides (base AI content) + existing review overrides
-      // Review overrides should only contain review-stage content, not source/approved content
-      const mergedReviewOverrides = { ...aiReviewOverrides, ...reviewOverrides }
-
-      await db
-        .from('post_modules')
-        .where('id', pm.id)
-        .update({
-          review_overrides: mergedReviewOverrides,
-          ai_review_overrides: null,
-          updated_at: new Date(),
-        } as any)
-    }
-
-    // Promote ai_review_added/deleted flags to review flags
-    await db
-      .from('post_modules')
-      .where('post_id', postId)
-      .andWhere('ai_review_added', true)
-      .update({
-        review_added: true,
-        ai_review_added: false,
-        updated_at: new Date(),
-      })
-
-    await db
-      .from('post_modules')
-      .where('post_id', postId)
-      .andWhere('ai_review_deleted', true)
-      .update({
-        review_deleted: true,
-        ai_review_deleted: false,
-        updated_at: new Date(),
-      })
-  }
-
-  private async upsertCustomFields(
-    postId: string,
-    customFields: Array<{ slug?: string; value: any }>
-  ) {
-    const now = new Date()
-    for (const cf of customFields) {
-      if (!cf?.slug) continue
-      const fieldSlug = String(cf.slug).trim()
-      if (!fieldSlug) continue
-
-      const value = this.normalizeJsonb(cf.value === undefined ? null : cf.value)
-
-      const updated = await db
-        .from('post_custom_field_values')
-        .where({ post_id: postId, field_slug: fieldSlug })
-        .update({ value, updated_at: now })
-
-      if (!updated) {
-        const { randomUUID } = await import('node:crypto')
-        await db.table('post_custom_field_values').insert({
-          id: randomUUID(),
-          post_id: postId,
-          field_slug: fieldSlug,
-          value,
-          created_at: now,
-          updated_at: now,
-        })
-      }
-    }
-  }
-
-  private async promoteModuleChanges(postId: string, draftModules?: any[]) {
-    // If we have an atomic draft, use its modules list for promotion
-    if (Array.isArray(draftModules)) {
-      for (const dm of draftModules) {
-        const isLocal = dm.scope === 'post' || dm.scope === 'local'
-        if (isLocal) {
-          // Robust ID lookup for older drafts that might be missing moduleInstanceId
-          let miId = dm.moduleInstanceId
-          if (!miId && dm.id) {
-            const pm = await db.from('post_modules').where('id', dm.id).first()
-            miId = pm?.module_id
-          }
-
-          if (miId) {
-            await db
-              .from('module_instances')
-              .where('id', miId)
-              .update({
-                props: dm.props || {},
-                review_props: null,
-                ai_review_props: null,
-                updated_at: new Date(),
-              } as any)
-          }
-        } else {
-          await db
-            .from('post_modules')
-            .where('id', dm.id)
-            .update({
-              overrides: dm.overrides || null,
-              review_overrides: null,
-              ai_review_overrides: null,
-              updated_at: new Date(),
-            } as any)
-        }
-      }
-      return
-    }
-
-    // Fallback: Promote via DB columns
-    // Load all module instances for this post to merge props properly in JavaScript
-    // This prevents SQL expressions from being saved as JSON data
-    const moduleInstances = await db
-      .from('module_instances')
-      .where('scope', 'post')
-      .andWhereIn('id', db.from('post_modules').where('post_id', postId).select('module_id'))
-      .select('id', 'props', 'review_props')
-
-    // Promote review_props to props for local modules
-    // Merge: props (base) + review_props (if exists, overrides props)
-    for (const instance of moduleInstances) {
-      const props = coerceJsonObject(instance.props)
-      const reviewProps = coerceJsonObject(instance.review_props)
-
-      // If props contains a SQL expression (corrupted data), use review_props or empty object
-      let mergedProps: Record<string, any>
-      if (props && typeof props === 'object' && 'sql' in props) {
-        // Props is corrupted (contains SQL expression), use review_props or empty
-        mergedProps = Object.keys(reviewProps).length > 0 ? reviewProps : {}
-      } else {
-        // Normal case: merge review_props over props
-        mergedProps = Object.keys(reviewProps).length > 0 ? { ...props, ...reviewProps } : props
-      }
-
-      await db
-        .from('module_instances')
-        .where('id', instance.id)
-        .update({
-          props: mergedProps,
-          review_props: null,
-          updated_at: new Date(),
-        } as any)
-    }
-
-    // Promote review_overrides to overrides
-    await db
-      .from('post_modules')
-      .where('post_id', postId)
-      .update({
-        overrides: db.raw('COALESCE(review_overrides, overrides)'),
-        review_overrides: null,
-        updated_at: new Date(),
-      })
-
-    // Delete modules marked for deletion
-    await db.from('post_modules').where('post_id', postId).andWhere('review_deleted', true).delete()
-
-    // Finalize newly added modules
-    await db
-      .from('post_modules')
-      .where('post_id', postId)
-      .andWhere('review_added', true)
-      .update({ review_added: false, updated_at: new Date() })
-  }
-
-  /**
-   * Replace taxonomy term assignments for this post (scoped to taxonomies enabled for the post type).
-   *
-   * This is invoked during Review approval, so it never runs on AI Review directly.
-   */
-  private async applyTaxonomyAssignments(
-    postId: string,
-    postType: string,
-    requestedTermIds: string[]
-  ): Promise<{ ok: true } | { ok: false; error: string }> {
-    const uiCfg = postTypeConfigService.getUiConfig(postType)
-    const allowedTaxonomySlugs = Array.isArray((uiCfg as any).taxonomies)
-      ? (uiCfg as any).taxonomies
-      : []
-    if (allowedTaxonomySlugs.length === 0) {
-      return { ok: true }
-    }
-
-    // Normalize ids
-    const termIds = Array.from(new Set(requestedTermIds.map((x) => String(x)).filter(Boolean)))
-
-    // Resolve requested terms -> taxonomy slug and filter to allowed taxonomies
-    const rows = termIds.length
-      ? await db
-          .from('taxonomy_terms as tt')
-          .join('taxonomies as t', 'tt.taxonomy_id', 't.id')
-          .whereIn('tt.id', termIds)
-          .whereIn('t.slug', allowedTaxonomySlugs)
-          .select('tt.id as termId', 't.slug as taxonomySlug')
-      : []
-
-    const byTaxonomy = new Map<string, string[]>()
-    for (const r of rows as any[]) {
-      const slug = String(r.taxonomyslug || r.taxonomySlug)
-      const id = String(r.termid || r.termId)
-      if (!byTaxonomy.has(slug)) byTaxonomy.set(slug, [])
-      byTaxonomy.get(slug)!.push(id)
-    }
-
-    // Enforce maxSelections per taxonomy (when configured)
-    for (const [slug, ids] of byTaxonomy.entries()) {
-      const cfg = taxonomyService.getConfig(slug)
-      const max =
-        cfg?.maxSelections === undefined || cfg?.maxSelections === null
-          ? null
-          : Number(cfg.maxSelections)
-      if (max !== null && Number.isFinite(max) && ids.length > max) {
-        return { ok: false, error: `Too many selections for taxonomy '${slug}' (max ${max})` }
-      }
-    }
-
-    // Remove existing assignments for allowed taxonomies only
-    await db
-      .from('post_taxonomy_terms')
-      .where('post_id', postId)
-      .whereIn(
-        'taxonomy_term_id',
-        db
-          .from('taxonomy_terms as tt')
-          .join('taxonomies as t', 'tt.taxonomy_id', 't.id')
-          .whereIn('t.slug', allowedTaxonomySlugs)
-          .select('tt.id')
-      )
-      .delete()
-
-    if (rows.length === 0) return { ok: true }
-
-    // Insert requested (filtered) assignments
-    const { randomUUID } = await import('node:crypto')
-    const now = new Date()
-    await db.table('post_taxonomy_terms').insert(
-      (rows as any[]).map((r) => ({
-        id: randomUUID(),
-        post_id: postId,
-        taxonomy_term_id: String(r.termid || r.termId),
-        created_at: now,
-        updated_at: now,
-      }))
-    )
-
-    return { ok: true }
   }
 }

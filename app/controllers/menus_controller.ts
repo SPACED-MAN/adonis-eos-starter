@@ -101,20 +101,6 @@ async function expandDynamicMenuItems(items: any[], locale: string): Promise<any
 }
 
 export default class MenusController {
-  private async menuItemLocaleColumnExists(): Promise<boolean> {
-    try {
-      const row = await db
-        .from('information_schema.columns')
-        .where('table_schema', 'public')
-        .andWhere('table_name', 'menu_items')
-        .andWhere('column_name', 'locale')
-        .first()
-      return !!row
-    } catch {
-      return false
-    }
-  }
-
   async index({ response }: HttpContext) {
     const rows = await db.from('menus').orderBy('updated_at', 'desc')
     return response.ok({
@@ -176,19 +162,16 @@ export default class MenusController {
     const { id } = params
     const menu = await db.from('menus').where('id', id).first()
     if (!menu) return response.notFound({ error: 'Menu not found' })
-    const hasLocale = await this.menuItemLocaleColumnExists()
-    const editingLocale = hasLocale
-      ? String(request.input('locale', (menu as any).locale || 'en') || 'en')
-      : ''
+    const editingLocale = String(request.input('locale', (menu as any).locale || 'en') || 'en')
     const q = db.from('menu_items').where('menu_id', id).orderBy('order_index', 'asc')
-    if (hasLocale && editingLocale) {
+    if (editingLocale) {
       q.andWhere('locale', editingLocale)
     }
     const items = await q.select(
       'id',
       'parent_id as parentId',
       'order_index as orderIndex',
-      ...(hasLocale ? ['locale'] : []),
+      'locale',
       'label',
       'type',
       'post_id as postId',
@@ -209,7 +192,7 @@ export default class MenusController {
         locale: menu.locale,
         template: (menu as any).template || null,
         meta: (menu as any).meta_json || {},
-        editingLocale: hasLocale ? editingLocale : undefined,
+        editingLocale,
         itemsTree: buildTree(items),
         items,
       },
@@ -304,11 +287,8 @@ export default class MenusController {
       if (p) label = String((p as any).title || '')
     }
     if (!label) return response.badRequest({ error: 'label is required' })
-    const hasLocale = await this.menuItemLocaleColumnExists()
     // Locale for this item (if supported)
-    const itemLocale = hasLocale
-      ? String(request.input('locale', (menu as any).locale || 'en') || 'en')
-      : null
+    const itemLocale = String(request.input('locale', (menu as any).locale || 'en') || 'en')
     if (kind !== 'section') {
       if (type === 'post' && !postId)
         return response.badRequest({ error: 'postId is required for type=post' })
@@ -319,7 +299,7 @@ export default class MenusController {
     }
     // Determine next order index within parent group
     const maxQ = db.from('menu_items').where('menu_id', menuId).max('order_index as max')
-    if (hasLocale && itemLocale) {
+    if (itemLocale) {
       maxQ.andWhere('locale', itemLocale)
     }
     if (parentId !== null) {
@@ -348,9 +328,7 @@ export default class MenusController {
       dynamic_depth_limit: type === 'dynamic' ? dynamicDepthLimit : null,
       created_at: now,
       updated_at: now,
-    }
-    if (hasLocale && itemLocale) {
-      row.locale = itemLocale
+      locale: itemLocale,
     }
     await db.table('menu_items').insert(row)
     return response.created({ message: 'Created' })
@@ -364,18 +342,17 @@ export default class MenusController {
     const slug = String(params.slug || '').trim()
     const menu = await db.from('menus').where('slug', slug).first()
     if (!menu) return response.notFound({ error: 'Menu not found' })
-    const hasLocale = await this.menuItemLocaleColumnExists()
     const locale = String(request.input('locale', (menu as any).locale || 'en') || 'en')
     const q = db
       .from('menu_items')
       .where('menu_id', (menu as any).id)
       .orderBy('order_index', 'asc')
-    if (hasLocale && locale) q.andWhere('locale', locale)
+    if (locale) q.andWhere('locale', locale)
     const rows = await q.select(
       'id',
       'parent_id as parentId',
       'order_index as orderIndex',
-      ...(hasLocale ? ['locale'] : []),
+      'locale',
       'label',
       'type',
       'post_id as postId',
@@ -504,11 +481,10 @@ export default class MenusController {
     const row = await db.from('menu_items').where('id', id).first()
     if (!row) return response.notFound({ error: 'Menu item not found' })
     // Delete the item and any descendants to avoid orphaned children
-    const hasLocale = await this.menuItemLocaleColumnExists()
     const menuId = String((row as any).menu_id)
-    const locale = hasLocale ? String((row as any).locale || '') : ''
+    const locale = String((row as any).locale || '')
     const allQ = db.from('menu_items').where('menu_id', menuId).select('id', 'parent_id')
-    if (hasLocale && locale) allQ.andWhere('locale', locale)
+    if (locale) allQ.andWhere('locale', locale)
     const all = await allQ
     const parentToChildren = new Map<string, string[]>()
     for (const it of all) {
@@ -557,10 +533,9 @@ export default class MenusController {
           ? null
           : String(scopeParentIdRaw).trim()
         : null
-    const hasLocale = await this.menuItemLocaleColumnExists()
-    const scopeLocale = hasLocale ? String(scopeRaw?.locale || '').trim() : ''
+    const scopeLocale = String(scopeRaw?.locale || '').trim()
     if (!scopeMenuId) return response.badRequest({ error: 'scope.menuId is required' })
-    if (hasLocale && !scopeLocale) return response.badRequest({ error: 'scope.locale is required' })
+    if (!scopeLocale) return response.badRequest({ error: 'scope.locale is required' })
     const items: Array<{ id: string; orderIndex: number; parentId?: string | null }> =
       Array.isArray(request.input('items')) ? request.input('items') : []
     if (!Array.isArray(items) || items.length === 0) {
@@ -600,7 +575,7 @@ export default class MenusController {
           if (String((row as any).menu_id) !== scopeMenuId) {
             throw new Error('Reorder items must belong to the same menu')
           }
-          if (hasLocale && String((row as any).locale) !== scopeLocale) {
+          if (String((row as any).locale) !== scopeLocale) {
             throw new Error('Reorder items must belong to the same locale')
           }
           const currentParent: string | null = (row as any).parent_id ?? null
@@ -640,13 +615,6 @@ export default class MenusController {
     if (!roleRegistry.hasPermission(role, 'menus.edit')) {
       return response.forbidden({ error: 'Not allowed' })
     }
-    const hasLocale = await this.menuItemLocaleColumnExists()
-    if (!hasLocale) {
-      return response.badRequest({
-        error:
-          'Locale-aware menu variations require menu_items.locale column. Run latest migrations.',
-      })
-    }
     const { id } = params
     const menu = await db.from('menus').where('id', id).first()
     if (!menu) return response.notFound({ error: 'Menu not found' })
@@ -674,6 +642,35 @@ export default class MenusController {
         'target',
         'rel'
       )
+
+    // Pre-fetch all source posts and their translation families to avoid N+1 queries
+    const sourcePostIds = sourceItems.filter((it) => it.type === 'post' && it.postId).map((it) => it.postId)
+    let postTranslationMap = new Map<string, Map<string, { id: string; title: string }>>()
+
+    if (sourcePostIds.length > 0) {
+      const sourcePosts = await db.from('posts').whereIn('id', sourcePostIds).select('id', 'translation_of_id', 'type')
+      const familyIds = Array.from(new Set(sourcePosts.map((p) => (p as any).translation_of_id || (p as any).id)))
+      
+      const allRelated = await db
+        .from('posts')
+        .whereIn('translation_of_id', familyIds)
+        .orWhereIn('id', familyIds)
+        .select('id', 'translation_of_id', 'locale', 'title')
+
+      for (const srcId of sourcePostIds) {
+        const srcPost = sourcePosts.find((p) => String((p as any).id) === String(srcId))
+        if (!srcPost) continue
+        const baseId = (srcPost as any).translation_of_id || (srcPost as any).id
+        
+        const familyMap = new Map<string, { id: string; title: string }>()
+        allRelated
+          .filter((p) => String((p as any).translation_of_id || (p as any).id) === String(baseId))
+          .forEach((p) => familyMap.set((p as any).locale, { id: (p as any).id, title: (p as any).title }))
+        
+        postTranslationMap.set(String(srcId), familyMap)
+      }
+    }
+
     // Build adjacency for parent relations
     for (const loc of toLocales) {
       await db.transaction(async (trx) => {
@@ -697,25 +694,16 @@ export default class MenusController {
           for (const it of group) {
             let destPostId: string | null = null
             let destPostTitle: string | null = null
+            
             if (it.type === 'post' && it.postId) {
-              // Find translated post for this locale
-              const src = await trx.from('posts').where('id', it.postId).first()
-              if (src) {
-                const baseId = (src as any).translation_of_id || (src as any).id
-                const translated = await trx
-                  .from('posts')
-                  .where({ locale: loc })
-                  .andWhere((qb) => qb.where('translation_of_id', baseId).orWhere('id', baseId))
-                  .select('id', 'title')
-                  .first()
-                if (translated) {
-                  destPostId = String((translated as any).id)
-                  destPostTitle = String((translated as any).title || '')
-                } else {
-                  destPostId = null
-                }
+              const familyMap = postTranslationMap.get(String(it.postId))
+              const translated = familyMap?.get(loc)
+              if (translated) {
+                destPostId = translated.id
+                destPostTitle = translated.title
               }
             }
+
             if (it.type === 'post' && !destPostId) {
               // omit if translation missing
               continue

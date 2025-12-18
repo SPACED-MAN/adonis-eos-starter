@@ -11,13 +11,19 @@ export default class extends BaseSchema {
       table.string('locale', 10).notNullable().defaultTo('en')
       table.integer('order_index').notNullable().defaultTo(0)
       table.text('label').notNullable()
-      table.enum('type', ['post', 'custom']).notNullable().defaultTo('custom')
+      table.enum('type', ['post', 'custom', 'dynamic']).notNullable().defaultTo('custom')
       table.uuid('post_id').nullable().references('id').inTable('posts').onDelete('SET NULL')
       table.text('custom_url').nullable()
       table.text('anchor').nullable()
       table.text('target').nullable() // e.g. _blank
       table.text('rel').nullable() // e.g. nofollow noopener
       table.string('kind', 20).notNullable().defaultTo('item') // 'item' | 'section'
+
+      // Dynamic menu fields
+      table.string('dynamic_post_type', 50).nullable()
+      table.uuid('dynamic_parent_id').nullable().references('id').inTable('posts').onDelete('SET NULL')
+      table.integer('dynamic_depth_limit').nullable().defaultTo(1)
+
       table.timestamp('created_at', { useTz: true }).defaultTo(this.now())
       table.timestamp('updated_at', { useTz: true }).defaultTo(this.now())
     })
@@ -29,6 +35,7 @@ export default class extends BaseSchema {
       table.index(['order_index'])
       table.index(['type'])
       table.index(['kind'])
+      table.index(['type', 'dynamic_post_type'])
     })
   }
 

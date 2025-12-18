@@ -156,12 +156,12 @@ class DatabaseImportService {
       return { valid: false, error: 'Invalid export data: missing version' }
     }
 
-    // Check version compatibility (accepting 1.x.x and 2.x.x)
+    // Check version compatibility (accepting 2.x.x)
     const version = data.metadata.version
-    if (!version.startsWith('1.') && !version.startsWith('2.')) {
+    if (!version.startsWith('2.')) {
       return {
         valid: false,
-        error: `Incompatible export version: ${version} (expected 1.x.x or 2.x.x)`,
+        error: `Incompatible export version: ${version} (expected 2.x.x)`,
       }
     }
 
@@ -836,17 +836,6 @@ class DatabaseImportService {
       console.error(`   ⚠️  Error checking if table ${tableName} exists:`, errorMsg)
       return true // Assume it exists to proceed with import
     }
-  }
-
-  /**
-   * Insert row or ignore conflicts
-   * @deprecated Use insertOrIgnoreWithResult instead
-   */
-  // @ts-ignore - unused but kept for backwards compatibility
-  private async insertOrIgnore(_trx: any, _tableName: string, _row: any): Promise<void> {
-    // Deprecated - use insertOrIgnoreWithResult instead
-    // This method is kept for backwards compatibility but is not used
-    return Promise.resolve()
   }
 
   /**

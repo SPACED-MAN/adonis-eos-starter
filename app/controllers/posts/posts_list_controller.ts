@@ -32,7 +32,7 @@ export default class PostsListController extends BasePostsController {
       Math.max(
         1,
         Number(request.input('limit', cmsConfig.pagination.defaultLimit)) ||
-          cmsConfig.pagination.defaultLimit
+        cmsConfig.pagination.defaultLimit
       )
     )
 
@@ -122,44 +122,10 @@ export default class PostsListController extends BasePostsController {
         query.whereNull('parent_id')
       }
 
-      // Separate count query with the same filters (no pagination)
-      const countQuery = db.from('posts')
-      if (q) {
-        countQuery.where((builder) => {
-          builder.whereILike('title', `%${q}%`).orWhereILike('slug', `%${q}%`)
-        })
-      }
-      if (type) {
-        countQuery.where('type', type)
-      }
-      if (!type && types.length > 0) {
-        countQuery.whereIn('type', types)
-      }
-      if (status) {
-        countQuery.where('status', status)
-      }
-      if (inReview) {
-        countQuery.whereNotNull('review_draft')
-      }
-      if (locale) {
-        countQuery.where('locale', locale)
-      }
-      if (termIdsForFilter && termIdsForFilter.length > 0) {
-        countQuery.join('post_taxonomy_terms as ptt', 'ptt.post_id', 'posts.id')
-        countQuery.whereIn('ptt.taxonomy_term_id', termIdsForFilter)
-      }
-      if (parentId) {
-        countQuery.where('parent_id', parentId)
-      } else if (wantRoots) {
-        countQuery.whereNull('parent_id')
-      }
-
-      const countRows = await countQuery.count('* as total')
-      const countRow = countRows[0] as any
-      const total = Number(countRow?.total || 0)
-
-      // Apply sorting + pagination for current page
-      const rows = await query.orderBy(sortBy, sortOrder).forPage(page, limit)
+      // Apply sorting and paginate in one go
+      const result = await query.orderBy(sortBy, sortOrder).paginate(page, limit)
+      const rows = result.all()
+      const total = result.getMeta().total
 
       // Optional: include translation family locales
       const withTranslations = String(request.input('withTranslations', '0')).trim() === '1'
@@ -170,6 +136,7 @@ export default class PostsListController extends BasePostsController {
         const familyPosts = await Post.query()
           .whereIn('translation_of_id', baseIds)
           .orWhereIn('id', baseIds)
+          .select('id', 'translation_of_id', 'locale') // Optimized select
 
         baseIdToLocales = new Map()
         familyPosts.forEach((fp) => {

@@ -10,9 +10,12 @@ test.group('Post Actions - CreatePost', (group) => {
   group.each.setup(async () => {
     await testUtils.db().truncate()
 
-    // Register modules
-    moduleRegistry.clear()
-    moduleRegistry.register(new ProseModule())
+    // Ensure modules are registered (start/modules.ts might have already run, 
+    // but we ensure it for unit tests that might boot partially)
+    if (moduleRegistry.count() === 0) {
+      const { registerAllModules } = await import('./module_test_helper.js')
+      await registerAllModules()
+    }
   })
 
   test('should create a basic post', async ({ assert }) => {

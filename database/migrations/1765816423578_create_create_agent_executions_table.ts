@@ -7,8 +7,8 @@ export default class extends BaseSchema {
     this.schema.createTable(this.tableName, (table) => {
       table.uuid('id').primary().defaultTo(this.db.rawQuery('gen_random_uuid()').knexQuery)
 
-      // Link to post
-      table.uuid('post_id').notNullable().references('id').inTable('posts').onDelete('CASCADE')
+      // Link to post (nullable to support global agents)
+      table.uuid('post_id').nullable().references('id').inTable('posts').onDelete('CASCADE')
 
       // Agent identifier
       table.string('agent_id', 100).notNullable()
@@ -33,6 +33,7 @@ export default class extends BaseSchema {
       // Indexes for efficient queries
       table.index(['post_id', 'agent_id', 'created_at'])
       table.index(['post_id', 'view_mode'])
+      table.index(['agent_id', 'created_at'])
       table.index('user_id')
     })
 

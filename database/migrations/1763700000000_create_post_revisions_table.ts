@@ -17,7 +17,7 @@ export default class extends BaseSchema {
       table.enum('mode', ['approved', 'review', 'ai-review']).notNullable().defaultTo('approved')
       table.jsonb('snapshot').notNullable()
       table.timestamp('created_at').notNullable().defaultTo(this.now())
-      table.index(['post_id', 'created_at'])
+      table.index(['post_id', 'created_at'], 'idx_post_revisions_history')
     })
   }
 

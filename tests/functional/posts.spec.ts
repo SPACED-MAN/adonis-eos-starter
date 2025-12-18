@@ -14,6 +14,10 @@ test.group('Posts API', (group) => {
     editorUser = await UserFactory.apply('editor')
       .merge({ email: 'editor-test@example.com' })
       .create()
+
+    // Ensure modules are registered
+    const { registerAllModules } = await import('../unit/actions/module_test_helper.js')
+    await registerAllModules()
   })
 
   group.teardown(async () => {
@@ -404,7 +408,7 @@ test.group('Posts Export/Import API', (group) => {
 
     response.assertStatus(200)
     const exportBody = response.body()
-    assert.equal(exportBody.version, 1)
+    assert.equal(exportBody.metadata.version, '2.0.0')
     assert.exists(exportBody.post)
     assert.equal(exportBody.post.slug, post.slug)
   })
@@ -415,7 +419,10 @@ test.group('Posts Export/Import API', (group) => {
       .withCsrfToken()
       .json({
         data: {
-          version: 1,
+          metadata: {
+            version: '2.0.0',
+            timestamp: new Date().toISOString(),
+          },
           post: {
             type: 'blog',
             locale: 'en',

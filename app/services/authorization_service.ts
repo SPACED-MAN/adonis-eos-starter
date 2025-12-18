@@ -17,10 +17,7 @@ export class AuthorizationService {
   }
 
   static canCreatePost(role: UserRole, postType?: string): boolean {
-    return (
-      roleRegistry.hasPermission(role, 'posts.create', postType) ||
-      roleRegistry.hasPermission(role, 'posts.edit', postType)
-    )
+    return roleRegistry.hasPermission(role, 'posts.create', postType)
   }
 
   static canDeletePosts(role: UserRole, postType?: string): boolean {

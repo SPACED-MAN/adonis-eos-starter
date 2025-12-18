@@ -160,9 +160,7 @@ export default function ProseWithMedia({
 }
 
 /**
- * Convert Lexical JSON (or legacy strings) to HTML for rendering.
- * - Supports legacy plain strings by treating them as HTML unless they look like JSON.
- * - Supports JSON strings by parsing and rendering Lexical JSON.
+ * Convert Lexical JSON to HTML for rendering.
  */
 function lexicalContentToHtml(content: LexicalJSON | string): string {
   if (content === undefined || content === null) return '<p>Empty content</p>'
@@ -174,10 +172,10 @@ function lexicalContentToHtml(content: LexicalJSON | string): string {
         const parsed = JSON.parse(trimmed)
         return renderLexicalToHtml(parsed)
       } catch {
-        return content
+        return '<p>Invalid content format</p>'
       }
     }
-    return content
+    return '<p>Invalid content format</p>'
   }
   return renderLexicalToHtml(content)
 }

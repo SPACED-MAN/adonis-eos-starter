@@ -36,6 +36,7 @@ export default class extends BaseSchema {
       table.unique(['scope', 'global_slug'], 'module_instances_scope_global_slug_unique')
       table.index(['scope', 'type'], 'module_instances_scope_idx') // For module filtering
       table.index('post_id') // For post-module lookups
+      table.index('global_slug', 'idx_module_instances_global')
     })
 
     // GIN index for JSONB queries (must be done after table creation)

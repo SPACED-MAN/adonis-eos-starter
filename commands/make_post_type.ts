@@ -7,7 +7,6 @@ import { fileURLToPath } from 'node:url'
 
 export default class MakePostType extends BaseCommand {
   static commandName = 'make:post-type'
-  static aliases = ['make:post_type'] // backward compatibility
   static description = 'Scaffold a new code-first post type config'
 
   static options: CommandOptions = {

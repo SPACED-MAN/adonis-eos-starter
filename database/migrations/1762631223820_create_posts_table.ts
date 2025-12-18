@@ -83,6 +83,17 @@ export default class extends BaseSchema {
       table.index(['parent_id'])
       table.index(['type', 'parent_id'])
       table.index(['type', 'parent_id', 'order_index'])
+
+      // Performance indexes for dashboard filtering and sorting
+      table.index(['type', 'status', 'locale', 'updated_at'], 'idx_posts_dashboard')
+      // Index for author lookups
+      table.index(['author_id', 'type'], 'idx_posts_author_type')
+      // Index for scheduled post queries
+      table.index(['status', 'scheduled_at'], 'idx_posts_scheduled')
+      // Index for translation family lookups
+      table.index(['translation_of_id', 'locale'], 'idx_posts_translation_locale')
+      // Index for hierarchy queries
+      table.index(['parent_id', 'order_index'], 'idx_posts_parent_order')
     })
     // GIN indexes for JSONB fields (guarded to avoid errors if table creation failed)
     await this.schema.raw(`
