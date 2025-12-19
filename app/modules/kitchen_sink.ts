@@ -48,10 +48,10 @@ export default class KitchenSinkModule extends BaseModule {
         linkUrl: { type: 'url', label: 'Link URL', placeholder: 'https://example.com' },
         image: {
           type: 'media',
-          label: 'Image',
-          accept: 'image/*',
+          label: 'Media',
+          accept: 'image/*,video/*',
           storeAs: 'id',
-          description: 'Pick an image (stores media ID).',
+          description: 'Pick an image or video (stores media ID).',
         },
         imageVariant: {
           type: 'select',

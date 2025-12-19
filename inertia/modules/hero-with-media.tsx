@@ -3,6 +3,7 @@ import { pickMediaVariantUrl } from '../lib/media'
 import type { Button, LinkValue } from './types'
 import { useInlineValue } from '../components/inline-edit/InlineEditorContext'
 import { resolveLink } from '../utils/resolve_link'
+import { MediaRenderer } from '../components/MediaRenderer'
 
 interface HeroWithMediaProps {
   title: string
@@ -37,37 +38,42 @@ export default function HeroWithMedia({
   const imageId = useInlineValue(__moduleId, 'image', image)
   const titleValue = useInlineValue(__moduleId, 'title', title)
   const subtitleValue = useInlineValue(__moduleId, 'subtitle', subtitle)
-  const [resolvedImageUrl, setResolvedImageUrl] = useState<string | null>(null)
+  const [resolvedMedia, setResolvedMedia] = useState<{
+    url: string
+    mimeType?: string
+    metadata?: any
+  } | null>(null)
 
   useEffect(() => {
     let cancelled = false
 
     async function resolveImage() {
       if (!imageId) {
-        if (!cancelled) setResolvedImageUrl(null)
+        if (!cancelled) setResolvedMedia(null)
         return
       }
 
       try {
         const res = await fetch(`/public/media/${encodeURIComponent(String(imageId))}`)
         if (!res.ok) {
-          if (!cancelled) setResolvedImageUrl(null)
+          if (!cancelled) setResolvedMedia(null)
           return
         }
         const j = await res.json().catch(() => null)
         const data = j?.data
         if (!data) {
-          if (!cancelled) setResolvedImageUrl(null)
+          if (!cancelled) setResolvedMedia(null)
           return
         }
+        const mimeType = data.mimeType
         const meta = (data as any).metadata || {}
         const variants = Array.isArray(meta?.variants) ? (meta.variants as any[]) : []
         const darkSourceUrl =
           typeof meta.darkSourceUrl === 'string' ? (meta.darkSourceUrl as string) : undefined
         const url = pickMediaVariantUrl(data.url, variants, undefined, { darkSourceUrl })
-        if (!cancelled) setResolvedImageUrl(url)
+        if (!cancelled) setResolvedMedia({ url, mimeType, metadata: meta })
       } catch {
-        if (!cancelled) setResolvedImageUrl(null)
+        if (!cancelled) setResolvedMedia(null)
       }
     }
 
@@ -79,19 +85,20 @@ export default function HeroWithMedia({
 
   const hasCtas = Boolean(primaryCta || secondaryCta)
 
-  const imageBlock = resolvedImageUrl ? (
+  const imageBlock = resolvedMedia ? (
     <div className="lg:col-span-5 flex justify-center lg:justify-end">
       <div
         className="w-full max-w-md rounded-xl overflow-hidden border border-line-low bg-backdrop-high relative aspect-4/3"
         data-inline-type="media"
         data-inline-path="image"
       >
-        <img
-          src={resolvedImageUrl}
+        <MediaRenderer
+          url={resolvedMedia.url}
+          mimeType={resolvedMedia.mimeType}
           alt={imageAlt || ''}
-          className="w-full h-full object-cover"
           fetchPriority="high"
           decoding="async"
+          playMode={resolvedMedia.metadata?.playMode || 'autoplay'}
         />
       </div>
     </div>

@@ -1,0 +1,136 @@
+import React, { useState, forwardRef } from 'react'
+import { Dialog, DialogContent, DialogTitle } from './ui/dialog'
+
+export interface MediaRendererProps {
+  url: string | null | undefined
+  mimeType?: string | null
+  alt?: string | null
+  className?: string
+  fetchPriority?: 'high' | 'low' | 'auto'
+  decoding?: 'async' | 'auto' | 'sync'
+  loading?: 'lazy' | 'eager'
+  controls?: boolean
+  autoPlay?: boolean
+  loop?: boolean
+  muted?: boolean
+  playsInline?: boolean
+  objectFit?: 'cover' | 'contain' | 'fill' | 'none' | 'scale-down'
+  playMode?: 'autoplay' | 'inline' | 'modal'
+  poster?: string | null
+}
+
+export const MediaRenderer = forwardRef<HTMLImageElement | HTMLVideoElement, MediaRendererProps>(
+  (
+    {
+      url,
+      mimeType,
+      alt = '',
+      className = 'w-full h-full object-cover',
+      fetchPriority,
+      decoding,
+      loading,
+      controls: initialControls,
+      autoPlay: initialAutoPlay,
+      loop: initialLoop,
+      muted: initialMuted,
+      playsInline = true,
+      objectFit = 'cover',
+      playMode = 'autoplay',
+      poster,
+    },
+    ref
+  ) => {
+    const [isModalOpen, setIsModalOpen] = useState(false)
+
+    if (!url) return null
+
+    const isVideo =
+      mimeType?.startsWith('video/') ||
+      url.toLowerCase().endsWith('.mp4') ||
+      url.toLowerCase().endsWith('.webm') ||
+      url.toLowerCase().endsWith('.ogg')
+
+    if (isVideo) {
+      const isAutoplayMode = playMode === 'autoplay'
+      const isModalMode = playMode === 'modal'
+
+      const videoProps = {
+        src: url,
+        className,
+        style: { objectFit },
+        playsInline,
+      }
+
+      if (isModalMode) {
+        return (
+          <>
+            <div className="relative group cursor-pointer w-full h-full" onClick={() => setIsModalOpen(true)}>
+              <video
+                {...(videoProps as any)}
+                ref={ref as React.Ref<HTMLVideoElement>}
+                autoPlay={false}
+                loop={false}
+                muted={true}
+                controls={false}
+                poster={poster || undefined}
+              />
+              <div className="absolute inset-0 flex items-center justify-center bg-black/20 group-hover:bg-black/40 transition-colors">
+                <div className="w-12 h-12 flex items-center justify-center rounded-full bg-white/80 text-black shadow-lg">
+                  <svg
+                    xmlns="http://www.w3.org/2000/svg"
+                    width="24"
+                    height="24"
+                    viewBox="0 0 24 24"
+                    fill="currentColor"
+                  >
+                    <path d="M8 5v14l11-7z" />
+                  </svg>
+                </div>
+              </div>
+            </div>
+
+            <Dialog open={isModalOpen} onOpenChange={setIsModalOpen}>
+              <DialogContent className="max-w-4xl p-0 overflow-hidden bg-black border-none">
+                <DialogTitle className="sr-only">Video Player</DialogTitle>
+                <video
+                  src={url}
+                  className="w-full h-auto max-h-[80vh]"
+                  controls
+                  autoPlay
+                  playsInline
+                />
+              </DialogContent>
+            </Dialog>
+          </>
+        )
+      }
+
+      return (
+        <video
+          {...(videoProps as any)}
+          ref={ref as React.Ref<HTMLVideoElement>}
+          controls={initialControls ?? (isAutoplayMode ? false : true)}
+          autoPlay={initialAutoPlay ?? (isAutoplayMode ? true : false)}
+          loop={initialLoop ?? (isAutoplayMode ? true : false)}
+          muted={initialMuted ?? (isAutoplayMode ? true : false)}
+          poster={poster || undefined}
+        />
+      )
+    }
+
+    return (
+      <img
+        ref={ref as React.Ref<HTMLImageElement>}
+        src={url}
+        alt={alt || ''}
+        className={className}
+        fetchPriority={fetchPriority}
+        decoding={decoding}
+        loading={loading}
+        style={{ objectFit }}
+      />
+    )
+  }
+)
+
+MediaRenderer.displayName = 'MediaRenderer'

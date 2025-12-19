@@ -100,6 +100,7 @@ export default class PostsViewController extends BasePostsController {
             orderIndex: pm.orderIndex,
             globalSlug: mi?.globalSlug || null,
             globalLabel: mi?.globalLabel || null,
+            adminLabel: (coerceJsonObject(mi?.props) as any)?._adminLabel || (coerceJsonObject(pm.overrides) as any)?._adminLabel || null,
           }
         })
         : []

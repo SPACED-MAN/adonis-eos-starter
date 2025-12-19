@@ -34,6 +34,7 @@ import {
   TableRow,
 } from '../../../components/ui/table'
 import { pickMediaVariantUrl, type MediaVariant } from '../../../lib/media'
+import { MediaRenderer } from '../../../components/MediaRenderer'
 
 type Variant = { name: string; url: string; width?: number; height?: number; size?: number }
 type MediaItem = {
@@ -49,7 +50,15 @@ type MediaItem = {
   description?: string | null
   categories?: string[]
   createdAt: string
-  metadata?: { variants?: Variant[] } | null
+  metadata?: { variants?: Variant[]; playMode?: 'autoplay' | 'inline' | 'modal' } | null
+}
+
+const isMediaVideo = (m: any) => {
+  if (!m) return false
+  return (
+    m.mimeType?.startsWith('video/') ||
+    /\.(mp4|webm|ogg)$/i.test(m.url || '')
+  )
 }
 
 type PageProps = {
@@ -66,6 +75,7 @@ export default function MediaIndex() {
   const [editAlt, setEditAlt] = useState<string>('')
   const [editTitle, setEditTitle] = useState<string>('')
   const [editDescription, setEditDescription] = useState<string>('')
+  const [editPlayMode, setEditPlayMode] = useState<'autoplay' | 'inline' | 'modal'>('autoplay')
   const [savingEdit, setSavingEdit] = useState<boolean>(false)
   const [sortBy, setSortBy] = useState<'created_at' | 'original_filename' | 'size'>('created_at')
   const [sortOrder, setSortOrder] = useState<'asc' | 'desc'>('desc')
@@ -155,6 +165,7 @@ export default function MediaIndex() {
       setEditAlt(viewing.altText || '')
       setEditTitle(viewing.title || '')
       setEditDescription((viewing as any).description || '')
+      setEditPlayMode((viewing.metadata as any)?.playMode || 'autoplay')
       setEditCategories(Array.isArray(viewing.categories) ? viewing.categories : [])
       setNewFilename('')
     }
@@ -768,7 +779,7 @@ export default function MediaIndex() {
   }
 
   async function applyCrop() {
-    const target = imageEditingFor || viewing
+    const target = viewing
     if (!target || !imgRef.current) return
     if (selectedVariantName !== 'original') {
       toast.error('Crop is only available for the Original image')
@@ -815,7 +826,7 @@ export default function MediaIndex() {
   }
 
   async function applyFocal() {
-    const target = imageEditingFor || viewing
+    const target = viewing
     if (!target || !imgRef.current || !focalDot) return
     if (selectedVariantName !== 'original') {
       toast.error('Focal point is only available for the Original image')
@@ -938,7 +949,9 @@ export default function MediaIndex() {
             <div className="w-[200px]">
               <Select
                 key={bulkKey}
-                onValueChange={(val: 'optimize' | 'regenerate' | 'delete' | 'categories') => {
+                onValueChange={(
+                  val: 'optimize' | 'generate-missing' | 'regenerate' | 'delete' | 'categories'
+                ) => {
                   if (val === 'optimize') {
                     applyBulk('optimize')
                   } else if (val === 'generate-missing') {
@@ -1013,17 +1026,14 @@ export default function MediaIndex() {
                             </label>
                           </div>
                           <div className="aspect-video bg-backdrop-medium border border-line-low overflow-hidden rounded">
-                            {isImage ? (
-                              <img
-                                src={preview || m.url}
-                                alt={m.altText || m.originalFilename}
-                                className="w-full h-full object-cover"
-                              />
-                            ) : (
-                              <div className="w-full h-full flex items-center justify-center text-xs text-neutral-low">
-                                No preview
-                              </div>
-                            )}
+                            <MediaRenderer
+                              url={preview || m.url}
+                              mimeType={m.mimeType}
+                              alt={m.altText || m.originalFilename}
+                              className="w-full h-full object-cover"
+                              controls={false}
+                              autoPlay={false}
+                            />
                           </div>
                           <div className="mt-2">
                             <div className="text-xs text-neutral-high break-all">
@@ -1462,81 +1472,104 @@ export default function MediaIndex() {
 
         {/* Single-item integrated editor modal (meta + image editing) */}
         {viewing && (
-          <div className="fixed inset-0 z-50 flex items-center justify-center">
-            <div className="relative z-10 w-full max-w-5xl rounded-lg border border-line-low bg-backdrop-input p-3 shadow-xl">
-              <div className="flex items-center justify-between mb-2">
-                <div className="text-sm text-neutral-high break-all">
-                  {viewing.altText || viewing.originalFilename}
-                </div>
-                <div className="flex items-center gap-2">
-                  <button
-                    className="text-neutral-medium hover:text-neutral-high"
-                    onClick={() => {
-                      setViewing(null)
-                      setCropping(false)
-                      setCropSel(null)
-                      setFocalMode(false)
-                      setFocalDot(null)
-                      setSelectedVariantName('original')
-                      setEditTheme('light')
-                      setReplaceFile(null)
-                    }}
-                  >
-                    ✕
-                  </button>
-                </div>
-              </div>
-              <div className="flex gap-4 max-h-[70vh] overflow-auto text-sm">
-                {/* Left: image editor with theme + variants */}
-                <div className="flex-1">
-                  <div className="mb-2 flex items-center justify-between">
-                    <div className="inline-flex items-center gap-1 text-xs border border-line-low rounded overflow-hidden">
-                      <button
-                        className={`px-2 py-1 ${editTheme === 'light' ? 'bg-backdrop-medium text-neutral-high' : 'bg-backdrop-low text-neutral-medium'}`}
-                        onClick={() => {
-                          setEditTheme('light')
-                          setSelectedVariantName('original')
-                        }}
-                      >
-                        Light
-                      </button>
-                      <button
-                        className={`px-2 py-1 ${editTheme === 'dark' ? 'bg-backdrop-medium text-neutral-high' : 'bg-backdrop-low text-neutral-medium'}`}
-                        onClick={() => {
-                          setEditTheme('dark')
-                          // When switching to dark, prefer the first dark variant if available
-                          const variants: any[] = Array.isArray(
-                            (viewing as any)?.metadata?.variants
-                          )
-                            ? (viewing as any).metadata.variants
-                            : []
-                          const firstDark = variants.find((v) =>
-                            String(v.name || '').endsWith('-dark')
-                          )
-                          setSelectedVariantName(firstDark?.name || 'original')
-                        }}
-                      >
-                        Dark
-                      </button>
-                    </div>
+          <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+            <div
+              className="absolute inset-0 bg-black/60 backdrop-blur-sm"
+              onClick={() => setViewing(null)}
+            />
+            <div className="relative z-10 w-full max-w-5xl rounded-2xl border border-line-low bg-backdrop-low shadow-2xl overflow-hidden flex flex-col max-h-[90vh]">
+              <div className="flex items-center justify-between p-4 border-b border-line-low bg-backdrop-low">
+                <div className="flex flex-col ml-1">
+                  <div className="text-sm font-bold text-neutral-high truncate max-w-md">
+                    {isMediaVideo(viewing)
+                      ? viewing.originalFilename
+                      : viewing.altText || viewing.originalFilename}
                   </div>
-                  <div className="max-h-[55vh] overflow-auto">
+                  <div className="text-[10px] text-neutral-medium uppercase tracking-wider font-semibold flex items-center gap-2">
+                    <span className="iconify" data-icon={isMediaVideo(viewing) ? 'lucide:video' : 'lucide:image'} />
+                    {isMediaVideo(viewing) ? 'Video Asset' : 'Image Asset'} • {viewing.id}
+                  </div>
+                </div>
+                <button
+                  className="w-10 h-10 flex items-center justify-center rounded-full text-neutral-medium hover:text-neutral-high hover:bg-backdrop-medium transition-all"
+                  onClick={() => {
+                    setViewing(null)
+                    setCropping(false)
+                    setCropSel(null)
+                    setFocalMode(false)
+                    setFocalDot(null)
+                    setSelectedVariantName('original')
+                    setEditTheme('light')
+                    setReplaceFile(null)
+                  }}
+                >
+                  <span className="iconify text-xl" data-icon="lucide:x" />
+                </button>
+              </div>
+              <div className="flex flex-1 min-h-0 overflow-hidden text-sm">
+                {/* Left Panel: Preview & Creative Controls */}
+                <div className="flex-1 overflow-auto p-8 bg-backdrop-medium/20 flex flex-col items-center justify-center min-h-[400px]">
+                  {!isMediaVideo(viewing) && (
+                    <div className="mb-6 flex items-center justify-center w-full">
+                      <div className="inline-flex items-center p-1 bg-backdrop-medium rounded-xl border border-line-low shadow-sm">
+                        <button
+                          className={`px-5 py-2 text-xs font-bold rounded-lg transition-all ${editTheme === 'light'
+                            ? 'bg-backdrop-low text-neutral-high shadow-sm ring-1 ring-black/5'
+                            : 'text-neutral-medium hover:text-neutral-high'
+                            }`}
+                          onClick={() => {
+                            setEditTheme('light')
+                            setSelectedVariantName('original')
+                          }}
+                        >
+                          Light Mode
+                        </button>
+                        <button
+                          className={`px-5 py-2 text-xs font-bold rounded-lg transition-all ${editTheme === 'dark'
+                            ? 'bg-backdrop-low text-neutral-high shadow-sm ring-1 ring-black/5'
+                            : 'text-neutral-medium hover:text-neutral-high'
+                            }`}
+                          onClick={() => {
+                            setEditTheme('dark')
+                            const variants: any[] = Array.isArray(
+                              (viewing as any)?.metadata?.variants
+                            )
+                              ? (viewing as any).metadata.variants
+                              : []
+                            const firstDark = variants.find((v) =>
+                              String(v.name || '').endsWith('-dark')
+                            )
+                            setSelectedVariantName(firstDark?.name || 'original')
+                          }}
+                        >
+                          Dark Mode
+                        </button>
+                      </div>
+                    </div>
+                  )}
+
+                  <div className="relative group max-w-full flex items-center justify-center">
                     <div
-                      className="relative inline-block"
+                      className="relative flex items-center justify-center border border-line-low shadow-2xl rounded-xl overflow-hidden bg-black/10 min-w-[200px] min-h-[200px]"
                       onMouseDown={onCropMouseDown}
                       onMouseMove={onCropMouseMove}
                       onMouseUp={onCropMouseUp}
                       onClick={onFocalClick}
                     >
-                      <img
+                      <MediaRenderer
                         ref={imgRef}
-                        src={getEditDisplayUrl(viewing, editTheme)}
+                        url={getEditDisplayUrl(viewing, editTheme)}
+                        mimeType={viewing.mimeType}
                         alt={viewing.altText || viewing.originalFilename}
-                        className="w-full h-auto max-h-[55vh]"
+                        className="max-w-full h-auto max-h-[55vh] block"
+                        controls={isMediaVideo(viewing)}
+                        autoPlay={false}
+                        playMode={editPlayMode}
+                        objectFit="contain"
                       />
                       {cropping && cropSel && (
                         <div
-                          className="absolute border-2 border-standout-medium bg-standout-medium/10"
+                          className="absolute border-2 border-standout-medium bg-standout-medium/10 ring-1 ring-white/50"
                           style={{
                             left: `${cropSel.x}px`,
                             top: `${cropSel.y}px`,
@@ -1547,413 +1580,457 @@ export default function MediaIndex() {
                       )}
                       {focalMode && focalDot && (
                         <div
-                          className="absolute -translate-x-1/2 -translate-y-1/2"
+                          className="absolute -translate-x-1/2 -translate-y-1/2 drop-shadow-md pointer-events-none"
                           style={{ left: `${focalDot.x}px`, top: `${focalDot.y}px` }}
                         >
-                          <div className="w-4 h-4 rounded-full bg-standout-medium border-2 border-white shadow" />
+                          <div className="w-6 h-6 rounded-full bg-standout-medium border-2 border-white shadow-lg animate-pulse" />
                         </div>
                       )}
                     </div>
                   </div>
-                  <div className="mt-2 flex flex-wrap items-center gap-2">
-                    <select
-                      className="text-xs border border-line-low bg-backdrop-input text-neutral-high px-2 py-1"
-                      value={selectedVariantName}
-                      onChange={(e) => setSelectedVariantName(e.target.value)}
-                    >
-                      <option value="original">
-                        {editTheme === 'dark' ? 'Original image (dark)' : 'Original image (light)'}
-                      </option>
-                      {(viewing as any).metadata?.variants
-                        ?.filter((v: any) =>
-                          editTheme === 'dark'
-                            ? String(v.name || '').endsWith('-dark')
-                            : !String(v.name || '').endsWith('-dark')
-                        )
-                        .map((v: any) => (
-                          <option key={v.name} value={v.name}>
-                            {getVariantLabel(v)}
-                          </option>
-                        ))}
-                    </select>
-                    {!focalMode &&
-                      !cropping &&
-                      selectedVariantName === 'original' &&
-                      (() => {
-                        const mime = (viewing?.mimeType || '').toLowerCase()
-                        const isSvg =
-                          mime === 'image/svg+xml' ||
-                          (viewing?.url || '').toLowerCase().endsWith('.svg')
-                        if (isSvg) return null
-                        return (
-                          <button
-                            className="px-2 py-1 text-xs border border-line-medium rounded hover:bg-backdrop-medium"
-                            onClick={() => setCropping(true)}
-                          >
-                            Crop
-                          </button>
-                        )
-                      })()}
-                    {cropping && (
-                      <>
-                        <button
-                          className="px-2 py-1 text-xs border border-line-medium rounded hover:bg-backdrop-medium"
-                          onClick={() => {
-                            setCropping(false)
-                            setCropSel(null)
-                          }}
-                        >
-                          Cancel
-                        </button>
-                        <button
-                          className="px-2 py-1 text-xs rounded bg-standout-medium text-on-standout"
-                          onClick={applyCrop}
-                        >
-                          Apply crop
-                        </button>
-                      </>
-                    )}
-                    {!cropping &&
-                      !focalMode &&
-                      selectedVariantName === 'original' &&
-                      (() => {
-                        const mime = (viewing?.mimeType || '').toLowerCase()
-                        const isSvg =
-                          mime === 'image/svg+xml' ||
-                          (viewing?.url || '').toLowerCase().endsWith('.svg')
-                        if (isSvg) {
-                          return null
-                        }
-                        return (
-                          <>
-                            <button
-                              className="px-2 py-1 text-xs border border-line-medium rounded hover:bg-backdrop-medium"
-                              onClick={() => setFocalMode(true)}
-                            >
-                              Focal point
-                            </button>
-                            {(() => {
-                              const status = getVariantStatus(viewing)
-                              const allVariantsExist =
-                                status.hasAllLight && status.hasAllDark && status.hasDarkBase
-                              const buttonLabel = allVariantsExist
-                                ? 'Regenerate variations'
-                                : 'Generate missing variations'
-                              const isRegenerateMode = allVariantsExist
 
+                  {!isMediaVideo(viewing) && (
+                    <div className="mt-8 flex flex-wrap items-center justify-center gap-4">
+                      <div className="flex flex-col gap-1.5">
+                        <span className="text-[10px] text-neutral-medium font-bold uppercase tracking-wider px-1">
+                          Variation Preview
+                        </span>
+                        <select
+                          className="text-xs border border-line-medium bg-backdrop-low text-neutral-high px-4 py-2.5 rounded-xl focus:ring-2 focus:ring-standout-medium/20 focus:border-standout-medium outline-none transition-all min-w-[160px] shadow-sm"
+                          value={selectedVariantName}
+                          onChange={(e) => setSelectedVariantName(e.target.value)}
+                        >
+                          <option value="original">
+                            {editTheme === 'dark' ? 'Original (Dark)' : 'Original (Light)'}
+                          </option>
+                          {(viewing as any).metadata?.variants
+                            ?.filter((v: any) =>
+                              editTheme === 'dark'
+                                ? String(v.name || '').endsWith('-dark')
+                                : !String(v.name || '').endsWith('-dark')
+                            )
+                            .map((v: any) => (
+                              <option key={v.name} value={v.name}>
+                                {getVariantLabel(v)}
+                              </option>
+                            ))}
+                        </select>
+                      </div>
+
+                      <div className="flex flex-col gap-1.5">
+                        <span className="text-[10px] text-neutral-medium font-bold uppercase tracking-wider px-1 invisible">
+                          Tools
+                        </span>
+                        <div className="flex items-center gap-2">
+                          {!focalMode &&
+                            !cropping &&
+                            selectedVariantName === 'original' &&
+                            (() => {
+                              const mime = (viewing?.mimeType || '').toLowerCase()
+                              const isSvg =
+                                mime === 'image/svg+xml' ||
+                                (viewing?.url || '').toLowerCase().endsWith('.svg')
+                              if (isSvg) return null
                               return (
                                 <button
-                                  className="px-2 py-1 text-xs border border-line-medium rounded hover:bg-backdrop-medium"
-                                  onClick={async () => {
-                                    if (!viewing) return
-                                    const targetId = viewing.id
-
-                                    try {
-                                      // Generate light variants (if missing or if regenerating)
-                                      if (!status.hasAllLight || isRegenerateMode) {
-                                        await toast.promise(
-                                          fetch(
-                                            `/api/media/${encodeURIComponent(targetId)}/variants`,
-                                            {
-                                              method: 'POST',
-                                              headers: {
-                                                'Accept': 'application/json',
-                                                'Content-Type': 'application/json',
-                                                ...(xsrfFromCookie
-                                                  ? { 'X-XSRF-TOKEN': xsrfFromCookie }
-                                                  : {}),
-                                              },
-                                              credentials: 'same-origin',
-                                              body: JSON.stringify({ theme: 'light' }),
-                                            }
-                                          ).then((r) => {
-                                            if (!r.ok)
-                                              throw new Error('Light variants generation failed')
-                                            return r
-                                          }),
-                                          {
-                                            loading: 'Generating light variants…',
-                                            success: 'Light variants generated',
-                                            error: (e) => String((e as any).message || e),
-                                          }
-                                        )
-                                      }
-
-                                      // Generate dark variants (if missing or if regenerating)
-                                      if (
-                                        !status.hasAllDark ||
-                                        !status.hasDarkBase ||
-                                        isRegenerateMode
-                                      ) {
-                                        await toast.promise(
-                                          fetch(
-                                            `/api/media/${encodeURIComponent(targetId)}/variants`,
-                                            {
-                                              method: 'POST',
-                                              headers: {
-                                                'Accept': 'application/json',
-                                                'Content-Type': 'application/json',
-                                                ...(xsrfFromCookie
-                                                  ? { 'X-XSRF-TOKEN': xsrfFromCookie }
-                                                  : {}),
-                                              },
-                                              credentials: 'same-origin',
-                                              body: JSON.stringify({ theme: 'dark' }),
-                                            }
-                                          ).then((r) => {
-                                            if (!r.ok)
-                                              throw new Error('Dark variants generation failed')
-                                            return r
-                                          }),
-                                          {
-                                            loading: 'Generating dark variants…',
-                                            success: 'Dark variants generated',
-                                            error: (e) => String((e as any).message || e),
-                                          }
-                                        )
-                                      }
-
-                                      // Refresh to show new variants
-                                      await refreshMediaItem(targetId)
-                                      setDarkPreviewVersion((v) => v + 1)
-
-                                      if (!isRegenerateMode) {
-                                        // Switch to Dark theme to show the newly generated dark variants
-                                        setEditTheme('dark')
-                                        setSelectedVariantName('original')
-                                      }
-                                    } catch (err) {
-                                      toast.error(String((err as any).message || err))
-                                    }
-                                  }}
+                                  className="px-4 py-2.5 text-xs font-bold border border-line-medium rounded-xl hover:bg-backdrop-low hover:border-neutral-low transition-all flex items-center gap-2 shadow-sm bg-backdrop-low/50"
+                                  onClick={() => setCropping(true)}
                                 >
-                                  {buttonLabel}
+                                  <span className="iconify" data-icon="lucide:crop" />
+                                  Crop Image
                                 </button>
                               )
                             })()}
-                          </>
-                        )
-                      })()}
-                    {focalMode && (
-                      <>
-                        <button
-                          className="px-2 py-1 text-xs border border-line-medium rounded hover:bg-backdrop-medium"
-                          onClick={() => {
-                            setFocalMode(false)
-                            setFocalDot(null)
-                          }}
-                        >
-                          Cancel
-                        </button>
-                        <button
-                          className="px-2 py-1 text-xs rounded bg-standout-medium text-on-standout"
-                          onClick={applyFocal}
-                        >
-                          Apply focal
-                        </button>
-                      </>
-                    )}
-                  </div>
+                          {cropping && (
+                            <>
+                              <button
+                                className="px-5 py-2.5 text-xs font-bold border border-line-medium rounded-xl hover:bg-backdrop-medium transition-all"
+                                onClick={() => {
+                                  setCropping(false)
+                                  setCropSel(null)
+                                }}
+                              >
+                                Cancel
+                              </button>
+                              <button
+                                className="px-5 py-2.5 text-xs font-bold rounded-xl bg-standout-medium text-on-standout shadow-lg shadow-standout-medium/20 hover:bg-standout-high transition-all"
+                                onClick={applyCrop}
+                              >
+                                Apply Crop
+                              </button>
+                            </>
+                          )}
+                          {!cropping &&
+                            !focalMode &&
+                            selectedVariantName === 'original' &&
+                            (() => {
+                              const mime = (viewing?.mimeType || '').toLowerCase()
+                              const isSvg =
+                                mime === 'image/svg+xml' ||
+                                (viewing?.url || '').toLowerCase().endsWith('.svg')
+                              if (isSvg) return null
+                              return (
+                                <>
+                                  <button
+                                    className="px-4 py-2.5 text-xs font-bold border border-line-medium rounded-xl hover:bg-backdrop-low hover:border-neutral-low transition-all flex items-center gap-2 shadow-sm bg-backdrop-low/50"
+                                    onClick={() => setFocalMode(true)}
+                                  >
+                                    <span className="iconify" data-icon="lucide:focus" />
+                                    Focal Point
+                                  </button>
+                                  {(() => {
+                                    const status = getVariantStatus(viewing)
+                                    const allVariantsExist =
+                                      status.hasAllLight && status.hasAllDark && status.hasDarkBase
+                                    const buttonLabel = allVariantsExist
+                                      ? 'Regenerate All'
+                                      : 'Generate Variations'
+                                    const isRegenerateMode = allVariantsExist
+
+                                    return (
+                                      <button
+                                        className="px-4 py-2.5 text-xs font-bold border border-line-medium rounded-xl hover:bg-backdrop-low hover:border-neutral-low transition-all shadow-sm bg-backdrop-low/50"
+                                        onClick={async () => {
+                                          if (!viewing) return
+                                          const targetId = viewing.id
+                                          try {
+                                            if (!status.hasAllLight || isRegenerateMode) {
+                                              await toast.promise(
+                                                fetch(
+                                                  `/api/media/${encodeURIComponent(targetId)}/variants`,
+                                                  {
+                                                    method: 'POST',
+                                                    headers: {
+                                                      'Accept': 'application/json',
+                                                      'Content-Type': 'application/json',
+                                                      ...(xsrfFromCookie
+                                                        ? { 'X-XSRF-TOKEN': xsrfFromCookie }
+                                                        : {}),
+                                                    },
+                                                    credentials: 'same-origin',
+                                                    body: JSON.stringify({ theme: 'light' }),
+                                                  }
+                                                ).then((r) => {
+                                                  if (!r.ok)
+                                                    throw new Error('Light variants failed')
+                                                  return r
+                                                }),
+                                                {
+                                                  loading: 'Generating light variants…',
+                                                  success: 'Light variants generated',
+                                                  error: (e) => String(e.message || e),
+                                                }
+                                              )
+                                            }
+                                            if (
+                                              !status.hasAllDark ||
+                                              !status.hasDarkBase ||
+                                              isRegenerateMode
+                                            ) {
+                                              await toast.promise(
+                                                fetch(
+                                                  `/api/media/${encodeURIComponent(targetId)}/variants`,
+                                                  {
+                                                    method: 'POST',
+                                                    headers: {
+                                                      'Accept': 'application/json',
+                                                      'Content-Type': 'application/json',
+                                                      ...(xsrfFromCookie
+                                                        ? { 'X-XSRF-TOKEN': xsrfFromCookie }
+                                                        : {}),
+                                                    },
+                                                    credentials: 'same-origin',
+                                                    body: JSON.stringify({ theme: 'dark' }),
+                                                  }
+                                                ).then((r) => {
+                                                  if (!r.ok)
+                                                    throw new Error('Dark variants failed')
+                                                  return r
+                                                }),
+                                                {
+                                                  loading: 'Generating dark variants…',
+                                                  success: 'Dark variants generated',
+                                                  error: (e) => String(e.message || e),
+                                                }
+                                              )
+                                            }
+                                            await refreshMediaItem(targetId)
+                                            setDarkPreviewVersion((v) => v + 1)
+                                            if (!isRegenerateMode) {
+                                              setEditTheme('dark')
+                                              setSelectedVariantName('original')
+                                            }
+                                          } catch (err) {
+                                            toast.error(String(err.message || err))
+                                          }
+                                        }}
+                                      >
+                                        {buttonLabel}
+                                      </button>
+                                    )
+                                  })()}
+                                </>
+                              )
+                            })()}
+                          {focalMode && (
+                            <>
+                              <button
+                                className="px-5 py-2.5 text-xs font-bold border border-line-medium rounded-xl hover:bg-backdrop-medium transition-all"
+                                onClick={() => {
+                                  setFocalMode(false)
+                                  setFocalDot(null)
+                                }}
+                              >
+                                Cancel
+                              </button>
+                              <button
+                                className="px-5 py-2.5 text-xs font-bold rounded-xl bg-standout-medium text-on-standout shadow-lg shadow-standout-medium/20 hover:bg-standout-high transition-all"
+                                onClick={applyFocal}
+                              >
+                                Save Focal Point
+                              </button>
+                            </>
+                          )}
+                        </div>
+                      </div>
+                    </div>
+                  )}
                 </div>
 
-                {/* Right: metadata + theme-aware replace */}
-                <div className="w-full max-w-xs space-y-3">
-                  <div>
-                    <label className="block text-xs text-neutral-medium mb-1">Alt Text</label>
-                    <input
-                      className="w-full px-2 py-1 border border-line-input bg-backdrop-input text-neutral-high"
-                      value={editAlt}
-                      onChange={(e) => setEditAlt(e.target.value)}
-                    />
-                  </div>
-                  <div>
-                    <label className="block text-xs text-neutral-medium mb-1">Title</label>
-                    <input
-                      className="w-full px-2 py-1 border border-line-input bg-backdrop-input text-neutral-high"
-                      value={editTitle}
-                      onChange={(e) => setEditTitle(e.target.value)}
-                    />
-                  </div>
-                  <div>
-                    <label className="block text-xs text-neutral-medium mb-1">
-                      Description (used as caption)
-                    </label>
-                    <textarea
-                      className="w-full px-2 py-1 border border-line-low bg-backdrop-input text-neutral-high min-h-[80px]"
-                      value={editDescription}
-                      onChange={(e) => setEditDescription(e.target.value)}
-                    />
-                  </div>
-                  <div>
-                    <label className="block text-xs text-neutral-medium mb-1">
-                      Categories (free tags)
-                    </label>
-                    <div className="flex items-center gap-2 flex-wrap mb-2">
-                      {editCategories.map((c) => (
-                        <span
-                          key={c}
-                          className="inline-flex items-center gap-1 px-2 py-0.5 text-xs rounded-full bg-backdrop-medium border border-line-medium"
-                        >
-                          {c}
-                          <button
-                            className="ml-1 text-neutral-medium hover:text-neutral-high"
-                            onClick={() => setEditCategories((prev) => prev.filter((x) => x !== c))}
-                          >
-                            ×
-                          </button>
-                        </span>
-                      ))}
-                    </div>
-                    <input
-                      className="w-full px-2 py-1 border border-line-low bg-backdrop-input text-neutral-high"
-                      placeholder="Type a tag and press Enter"
-                      value={newCategory}
-                      onChange={(e) => setNewCategory(e.target.value)}
-                      onKeyDown={(e) => {
-                        if (e.key === 'Enter' || e.key === ',') {
-                          e.preventDefault()
-                          const v = newCategory.trim()
-                          if (v && !editCategories.includes(v))
-                            setEditCategories([...editCategories, v])
-                          setNewCategory('')
-                        }
-                      }}
-                    />
-                  </div>
+                {/* Right Panel: Metadata & Management */}
+                <div className="w-full max-w-[340px] flex flex-col border-l border-line-low bg-backdrop-low/50">
+                  <div className="flex-1 overflow-auto p-6 space-y-8">
+                    {/* General Section */}
+                    <div className="space-y-4">
+                      <h3 className="text-[10px] font-bold uppercase tracking-[0.15em] text-neutral-medium px-1">
+                        Metadata
+                      </h3>
 
-                  <div className="p-2 border border-dashed border-line-high rounded">
-                    <div className="text-xs font-medium mb-2">Rename file</div>
-                    <div className="flex items-center gap-2">
-                      <input
-                        className="flex-1 px-2 py-1 border border-line-input bg-backdrop-input text-neutral-high"
-                        placeholder="new-filename (optional extension)"
-                        value={newFilename}
-                        onChange={(e) => setNewFilename(e.target.value)}
-                      />
-                      <button
-                        className="px-3 py-1.5 text-xs rounded bg-standout-medium text-on-standout disabled:opacity-50"
-                        disabled={renaming || !newFilename}
-                        onClick={async () => {
-                          if (!viewing || !newFilename) return
-                          setRenaming(true)
-                          try {
-                            const res = await fetch(
-                              `/api/media/${encodeURIComponent(viewing.id)}/rename`,
-                              {
-                                method: 'PATCH',
-                                headers: {
-                                  'Accept': 'application/json',
-                                  'Content-Type': 'application/json',
-                                  ...(xsrfFromCookie ? { 'X-XSRF-TOKEN': xsrfFromCookie } : {}),
-                                },
-                                credentials: 'same-origin',
-                                body: JSON.stringify({ filename: newFilename }),
-                              }
-                            )
-                            if (res.ok) {
-                              toast.success('Renamed')
-                              await load()
-                              setNewFilename('')
-                            } else {
-                              toast.error('Rename failed')
-                            }
-                          } finally {
-                            setRenaming(false)
-                          }
-                        }}
-                      >
-                        Rename
-                      </button>
-                    </div>
-                  </div>
-
-                  <div className="p-2 border border-dashed border-line-high rounded space-y-2">
-                    <div className="flex items-center justify-between gap-2">
-                      <div className="text-xs font-medium">
-                        Replace {editTheme === 'dark' ? 'dark' : 'light'} image
-                      </div>
-                      {viewing?.originalFilename && (
-                        <div
-                          className="text-[10px] text-neutral-low truncate max-w-[140px]"
-                          title={viewing.originalFilename}
-                        >
-                          Current: {viewing.originalFilename}
+                      {!isMediaVideo(viewing) && (
+                        <div>
+                          <label className="block text-[11px] font-bold text-neutral-medium mb-1.5 ml-1">
+                            Alt Text
+                          </label>
+                          <input
+                            className="w-full px-4 py-2.5 text-xs border border-line-medium rounded-xl bg-backdrop-input text-neutral-high focus:ring-2 focus:ring-standout-medium/20 focus:border-standout-medium outline-none transition-all shadow-sm"
+                            value={editAlt}
+                            onChange={(e) => setEditAlt(e.target.value)}
+                            placeholder="Screen reader description"
+                          />
                         </div>
                       )}
-                    </div>
-                    <div className="space-y-1">
-                      <label className="block text-[11px] text-neutral-medium">
-                        Choose a new {editTheme === 'dark' ? 'dark' : 'light'} image file
-                      </label>
-                      <Input
-                        type="file"
-                        accept="image/*"
-                        className="h-8 text-xs"
-                        onChange={(e) => setReplaceFile(e.target.files?.[0] || null)}
-                        disabled={replaceUploading}
-                      />
-                      <p className="text-[11px] text-neutral-low">
-                        Dark theme keeps a separate base so your light image stays unchanged.
-                      </p>
-                    </div>
-                    <button
-                      className="w-full px-3 py-1.5 text-xs rounded bg-standout-medium text-on-standout disabled:opacity-50"
-                      disabled={replaceUploading || !replaceFile}
-                      onClick={async () => {
-                        if (!viewing || !replaceFile) return
-                        setReplaceUploading(true)
-                        try {
-                          const form = new FormData()
-                          form.append('file', replaceFile)
-                          form.append('theme', editTheme)
-                          const res = await fetch(
-                            `/api/media/${encodeURIComponent(viewing.id)}/override`,
-                            {
-                              method: 'POST',
-                              headers: {
-                                ...(xsrfFromCookie ? { 'X-XSRF-TOKEN': xsrfFromCookie } : {}),
-                              },
-                              credentials: 'same-origin',
-                              body: form,
+
+                      <div>
+                        <label className="block text-[11px] font-bold text-neutral-medium mb-1.5 ml-1">
+                          Caption / Title
+                        </label>
+                        <input
+                          className="w-full px-4 py-2.5 text-xs border border-line-medium rounded-xl bg-backdrop-input text-neutral-high focus:ring-2 focus:ring-standout-medium/20 focus:border-standout-medium outline-none transition-all shadow-sm"
+                          value={editTitle}
+                          onChange={(e) => setEditTitle(e.target.value)}
+                          placeholder="Optional display title"
+                        />
+                      </div>
+
+                      <div>
+                        <label className="block text-[11px] font-bold text-neutral-medium mb-1.5 ml-1">
+                          Description
+                        </label>
+                        <textarea
+                          className="w-full px-4 py-2.5 text-xs border border-line-medium rounded-xl bg-backdrop-input text-neutral-high min-h-[90px] focus:ring-2 focus:ring-standout-medium/20 focus:border-standout-medium outline-none transition-all resize-none shadow-sm"
+                          value={editDescription}
+                          onChange={(e) => setEditDescription(e.target.value)}
+                          placeholder="Longer context or notes"
+                        />
+                      </div>
+
+                      {isMediaVideo(viewing) && (
+                        <div>
+                          <label className="block text-[11px] font-bold text-neutral-medium mb-1.5 ml-1">
+                            Default Video Behavior
+                          </label>
+                          <Select
+                            value={editPlayMode}
+                            onValueChange={(val: any) => setEditPlayMode(val)}
+                          >
+                            <SelectTrigger className="h-10 text-xs border-line-medium bg-backdrop-input rounded-xl shadow-sm">
+                              <SelectValue placeholder="Select play mode" />
+                            </SelectTrigger>
+                            <SelectContent>
+                              <SelectItem value="autoplay">Inline (Auto-loop)</SelectItem>
+                              <SelectItem value="inline">Inline (With Controls)</SelectItem>
+                              <SelectItem value="modal">Open in Modal</SelectItem>
+                            </SelectContent>
+                          </Select>
+                        </div>
+                      )}
+
+                      <div>
+                        <label className="block text-[11px] font-bold text-neutral-medium mb-1.5 ml-1">
+                          Categorization
+                        </label>
+                        <div className="flex items-center gap-1.5 flex-wrap mb-2.5 px-1">
+                          {editCategories.map((c) => (
+                            <span
+                              key={c}
+                              className="inline-flex items-center gap-1.5 px-2.5 py-1 text-[10px] font-bold rounded-lg bg-backdrop-medium border border-line-medium text-neutral-high group transition-all hover:border-neutral-low"
+                            >
+                              {c}
+                              <button
+                                className="text-neutral-low hover:text-error transition-colors"
+                                onClick={() =>
+                                  setEditCategories((prev) => prev.filter((x) => x !== c))
+                                }
+                              >
+                                <span className="iconify" data-icon="lucide:x" />
+                              </button>
+                            </span>
+                          ))}
+                        </div>
+                        <input
+                          className="w-full px-4 py-2.5 text-xs border border-line-medium rounded-xl bg-backdrop-input text-neutral-high focus:ring-2 focus:ring-standout-medium/20 focus:border-standout-medium outline-none transition-all shadow-sm"
+                          placeholder="Type tag and press enter..."
+                          value={newCategory}
+                          onChange={(e) => setNewCategory(e.target.value)}
+                          onKeyDown={(e) => {
+                            if (e.key === 'Enter' || e.key === ',') {
+                              e.preventDefault()
+                              const v = newCategory.trim()
+                              if (v && !editCategories.includes(v))
+                                setEditCategories([...editCategories, v])
+                              setNewCategory('')
                             }
-                          )
-                          if (res.ok) {
-                            toast.success(`Replaced ${editTheme} image`)
-                            await load()
-                            setReplaceFile(null)
-                          } else {
-                            toast.error('Replace failed')
-                          }
-                        } finally {
-                          setReplaceUploading(false)
-                        }
-                      }}
-                    >
-                      {replaceUploading
-                        ? 'Replacing…'
-                        : `Replace ${editTheme === 'dark' ? 'dark' : 'light'} image`}
-                    </button>
+                          }}
+                        />
+                      </div>
+                    </div>
+
+                    {/* Management Section */}
+                    <div className="space-y-4 pt-4 border-t border-line-low">
+                      <h3 className="text-[10px] font-bold uppercase tracking-[0.15em] text-neutral-medium px-1">
+                        Management
+                      </h3>
+
+                      <div className="p-4 bg-backdrop-medium/40 border border-line-low rounded-2xl space-y-4 shadow-inner">
+                        <div className="text-[11px] font-bold text-neutral-high flex items-center gap-2">
+                          <span className="iconify" data-icon="lucide:replace" />
+                          Replace Asset Source
+                        </div>
+                        <div className="space-y-3">
+                          <input
+                            type="file"
+                            id="replace-file-input"
+                            className="hidden"
+                            accept={isMediaVideo(viewing) ? 'video/*' : 'image/*'}
+                            onChange={(e) => setReplaceFile(e.target.files?.[0] || null)}
+                            disabled={replaceUploading}
+                          />
+                          <label
+                            htmlFor="replace-file-input"
+                            className="flex flex-col items-center justify-center p-4 border-2 border-dashed border-line-medium rounded-xl cursor-pointer hover:bg-backdrop-medium hover:border-neutral-low transition-all"
+                          >
+                            <span className="iconify text-xl mb-1 text-neutral-low" data-icon="lucide:upload-cloud" />
+                            <span className="text-[10px] font-semibold text-neutral-medium text-center">
+                              {replaceFile ? replaceFile.name : 'Click to choose new file'}
+                            </span>
+                          </label>
+                          <button
+                            className="w-full px-4 py-2.5 text-[11px] font-bold rounded-xl bg-neutral-high text-backdrop-low hover:bg-neutral-high/90 disabled:opacity-50 transition-all shadow-md disabled:cursor-not-allowed"
+                            disabled={replaceUploading || !replaceFile}
+                            onClick={async () => {
+                              if (!viewing || !replaceFile) return
+                              setReplaceUploading(true)
+                              try {
+                                const form = new FormData()
+                                form.append('file', replaceFile)
+                                form.append('theme', editTheme)
+                                const res = await fetch(
+                                  `/api/media/${encodeURIComponent(viewing.id)}/override`,
+                                  {
+                                    method: 'POST',
+                                    headers: {
+                                      ...(xsrfFromCookie ? { 'X-XSRF-TOKEN': xsrfFromCookie } : {}),
+                                    },
+                                    credentials: 'same-origin',
+                                    body: form,
+                                  }
+                                )
+                                if (res.ok) {
+                                  toast.success(
+                                    isMediaVideo(viewing) ? 'Video replaced' : 'Image replaced'
+                                  )
+                                  await load()
+                                  setReplaceFile(null)
+                                } else {
+                                  toast.error('Replacement failed')
+                                }
+                              } finally {
+                                setReplaceUploading(false)
+                              }
+                            }}
+                          >
+                            {replaceUploading ? 'Uploading...' : 'Confirm Replacement'}
+                          </button>
+                        </div>
+                      </div>
+
+                      <div className="p-4 bg-backdrop-medium/40 border border-line-low rounded-2xl space-y-4 shadow-inner">
+                        <div className="text-[11px] font-bold text-neutral-high flex items-center gap-2">
+                          <span className="iconify" data-icon="lucide:type" />
+                          Rename Filename
+                        </div>
+                        <div className="flex flex-col gap-3">
+                          <input
+                            className="px-4 py-2.5 text-[11px] border border-line-medium rounded-xl bg-backdrop-low text-neutral-high outline-none focus:ring-2 focus:ring-standout-medium/20 transition-all shadow-sm"
+                            placeholder="Enter new name..."
+                            value={newFilename}
+                            onChange={(e) => setNewFilename(e.target.value)}
+                          />
+                          <button
+                            className="w-full px-4 py-2.5 text-[11px] font-bold rounded-xl border border-line-medium bg-backdrop-low hover:bg-backdrop-medium transition-all shadow-sm"
+                            disabled={renaming || !newFilename}
+                            onClick={async () => {
+                              if (!viewing || !newFilename) return
+                              setRenaming(true)
+                              try {
+                                const res = await fetch(
+                                  `/api/media/${encodeURIComponent(viewing.id)}/rename`,
+                                  {
+                                    method: 'PATCH',
+                                    headers: {
+                                      'Accept': 'application/json',
+                                      'Content-Type': 'application/json',
+                                      ...(xsrfFromCookie
+                                        ? { 'X-XSRF-TOKEN': xsrfFromCookie }
+                                        : {}),
+                                    },
+                                    credentials: 'same-origin',
+                                    body: JSON.stringify({ filename: newFilename }),
+                                  }
+                                )
+                                if (res.ok) {
+                                  toast.success('Renamed successfully')
+                                  await load()
+                                  setNewFilename('')
+                                } else {
+                                  toast.error('Rename failed')
+                                }
+                              } finally {
+                                setRenaming(false)
+                              }
+                            }}
+                          >
+                            {renaming ? 'Renaming...' : 'Apply New Name'}
+                          </button>
+                        </div>
+                      </div>
+                    </div>
                   </div>
 
-                  <div className="flex items-center justify-end gap-2 pt-1">
+                  {/* Footer Actions */}
+                  <div className="p-6 border-t border-line-low bg-backdrop-low flex flex-col gap-3">
                     <button
-                      className="px-3 py-1.5 text-xs border border-line-low rounded hover:bg-backdrop-medium"
-                      onClick={() => {
-                        setViewing(null)
-                        setWhereUsed(null)
-                        setCropping(false)
-                        setCropSel(null)
-                        setFocalMode(false)
-                        setFocalDot(null)
-                        setSelectedVariantName('original')
-                        setEditTheme('light')
-                        setReplaceFile(null)
-                      }}
-                    >
-                      Close
-                    </button>
-                    <button
-                      className="px-3 py-1.5 text-xs rounded bg-standout-medium text-on-standout disabled:opacity-50"
+                      className="w-full px-6 py-3 text-xs font-bold rounded-xl bg-standout-medium text-on-standout shadow-lg shadow-standout-medium/20 hover:bg-standout-high hover:shadow-standout-medium/30 transition-all disabled:opacity-50 flex items-center justify-center gap-2"
                       disabled={savingEdit}
                       onClick={async () => {
                         if (!viewing) return
@@ -1968,25 +2045,41 @@ export default function MediaIndex() {
                             },
                             credentials: 'same-origin',
                             body: JSON.stringify({
-                              altText: editAlt,
+                              altText: isMediaVideo(viewing) ? undefined : editAlt,
                               title: editTitle,
                               description: editDescription,
+                              playMode: isMediaVideo(viewing) ? editPlayMode : undefined,
                               categories: editCategories,
                             }),
                           })
                           if (res.ok) {
-                            toast.success('Saved')
+                            toast.success('Changes saved successfully')
                             await load()
                             setViewing(null)
                           } else {
-                            toast.error('Save failed')
+                            toast.error('Failed to save metadata')
                           }
                         } finally {
                           setSavingEdit(false)
                         }
                       }}
                     >
-                      Save
+                      {savingEdit ? 'Saving...' : 'Save All Changes'}
+                    </button>
+                    <button
+                      className="w-full px-6 py-3 text-xs font-bold rounded-xl border border-line-medium text-neutral-high hover:bg-backdrop-medium transition-all"
+                      onClick={() => {
+                        setViewing(null)
+                        setCropping(false)
+                        setCropSel(null)
+                        setFocalMode(false)
+                        setFocalDot(null)
+                        setSelectedVariantName('original')
+                        setEditTheme('light')
+                        setReplaceFile(null)
+                      }}
+                    >
+                      Discard & Close
                     </button>
                   </div>
                 </div>

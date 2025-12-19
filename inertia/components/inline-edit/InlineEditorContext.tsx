@@ -8,6 +8,7 @@ import {
   useEffect,
 } from 'react'
 import { usePage } from '@inertiajs/react'
+import { TokenService } from '../../lib/tokens'
 
 type Mode = 'source' | 'review' | 'ai-review'
 type DraftPatch = Record<string, any> // path -> value
@@ -81,13 +82,16 @@ export function InlineEditorProvider({
   postId,
   modules,
   post,
+  customFields,
 }: {
   children: ReactNode
   postId: string
   modules: ModuleSeed[]
   post?: any
+  customFields?: Record<string, any>
 }) {
   const page = usePage()
+  const siteSettings = (page.props as any)?.siteSettings || {}
   const permissions: string[] = (page.props as any)?.permissions || []
   const canEdit = permissions.includes('posts.edit')
   const [enabled, setEnabled] = useState(false)
@@ -222,12 +226,27 @@ export function InlineEditorProvider({
   const getValue = useCallback(
     (moduleId: string, path: string, fallback: any) => {
       const patch = drafts[moduleId] || {}
+      let val: any
       if (Object.prototype.hasOwnProperty.call(patch, path)) {
-        return patch[path]
+        val = patch[path]
+      } else {
+        val = getModeValue(moduleId, path, mode, fallback)
       }
-      return getModeValue(moduleId, path, mode, fallback)
+
+      // If the editor is NOT enabled, we should resolve tokens in the value.
+      // If it IS enabled, we show raw tokens so they can be edited.
+      if (!enabled && val && (typeof val === 'string' || typeof val === 'object')) {
+        const tokenContext = {
+          post,
+          siteSettings,
+          customFields,
+        }
+        return TokenService.resolveRecursive(val, tokenContext)
+      }
+
+      return val
     },
-    [drafts, mode, getModeValue]
+    [drafts, mode, getModeValue, enabled, post, siteSettings, customFields]
   )
 
   // Helper to check if a value is a DOM element (including React-wrapped via __reactFiber$... keys)

@@ -77,6 +77,8 @@ const flattenTerms = (
   return out
 }
 
+import { TokenField } from '../../components/ui/TokenField'
+
 type TaxonomyTermNode = {
   id: string
   slug: string
@@ -84,7 +86,7 @@ type TaxonomyTermNode = {
   children?: TaxonomyTermNode[]
 }
 
-const InlineModuleEditor = memo(function InlineModuleEditor({
+const InlineModuleEditor = function InlineModuleEditor({
   module,
   postId,
   viewMode,
@@ -92,6 +94,7 @@ const InlineModuleEditor = memo(function InlineModuleEditor({
   registerFlush,
   onStage,
   onMarkDirty,
+  customFields = [],
 }: {
   module: {
     id: string
@@ -110,6 +113,7 @@ const InlineModuleEditor = memo(function InlineModuleEditor({
   registerFlush: (moduleId: string, flush: (() => Promise<void>) | null) => void
   onStage: (moduleId: string, overrides: Record<string, any> | null, edited: Record<string, any>) => void
   onMarkDirty: (mode: 'source' | 'review' | 'ai-review', moduleId: string) => void
+  customFields?: Array<{ slug: string; label: string }>
 }) {
   const onDirty = useCallback(() => onMarkDirty(viewMode, module.id), [onMarkDirty, viewMode, module.id])
   const onSave = useCallback(
@@ -145,27 +149,10 @@ const InlineModuleEditor = memo(function InlineModuleEditor({
       autoSaveOnBlur={false}
       registerFlush={onRegisterFlush}
       onSave={onSave}
+      customFields={customFields}
     />
   )
-}, (prev, next) => {
-  // Prevent re-rendering the editor subtree when unrelated parent state changes (e.g. enabling Save).
-  // Re-rendering/remounting here can drop focus and even revert the first typed character for controlled inputs.
-  return (
-    prev.postId === next.postId &&
-    prev.viewMode === next.viewMode &&
-    prev.fieldAgents === next.fieldAgents &&
-    prev.registerFlush === next.registerFlush &&
-    prev.onStage === next.onStage &&
-    prev.onMarkDirty === next.onMarkDirty &&
-    prev.module.id === next.module.id &&
-    prev.module.type === next.module.type &&
-    prev.module.scope === next.module.scope &&
-    prev.module.locked === next.module.locked &&
-    prev.module.orderIndex === next.module.orderIndex &&
-    prev.module.props === next.module.props &&
-    prev.module.overrides === next.module.overrides
-  )
-})
+}
 
 interface EditorProps {
   post: {
@@ -260,7 +247,7 @@ function SortableItem({
   )
 }
 
-const ModuleRow = memo(function ModuleRow({
+function ModuleRowBase({
   m,
   viewMode,
   isDraggingModules,
@@ -278,6 +265,7 @@ const ModuleRow = memo(function ModuleRow({
   stageModuleEdits,
   markModuleDirty,
   postId,
+  customFields = [],
 }: {
   m: any
   viewMode: 'source' | 'review' | 'ai-review'
@@ -296,26 +284,171 @@ const ModuleRow = memo(function ModuleRow({
   stageModuleEdits: (moduleId: string, overrides: Record<string, any> | null, edited: Record<string, any>) => void
   markModuleDirty: (mode: 'source' | 'review' | 'ai-review', moduleId: string) => void
   postId: string
+  customFields?: Array<{ slug: string; label: string }>
 }) {
   const isOpen = modulesAccordionOpen.has(m.id)
   const isLocked = m.locked
+  const [isEditingLabel, setIsEditingLabel] = useState(false)
+  const [localLabel, setLocalLabel] = useState(m.adminLabel || '')
+
+  const moduleName = m.scope === 'global'
+    ? globalSlugToLabel.get(String((m as any).globalSlug || '')) ||
+    (m as any).globalLabel ||
+    (m as any).globalSlug ||
+    moduleRegistry[m.type]?.name ||
+    m.type
+    : moduleRegistry[m.type]?.name || m.type
+
+  const saveLabel = () => {
+    const label = localLabel.trim() || null
+    setIsEditingLabel(false)
+    if (label === m.adminLabel) return
+
+    // Update the local module state in the parent
+    const isLocal = m.scope === 'post' || m.scope === 'local'
+    const nextProps = { ...(m.props || {}), _adminLabel: label }
+    const nextOverrides = { ...(m.overrides || {}), _adminLabel: label }
+
+    stageModuleEdits(
+      m.id,
+      isLocal ? (m.overrides || null) : nextOverrides,
+      isLocal ? nextProps : (m.props || {})
+    )
+    markModuleDirty(viewMode, m.id)
+    toast.success('Module label updated')
+  }
 
   return (
     <SortableItem key={m.id} id={m.id} disabled={isLocked}>
       {(listeners: any) => (
-        <li className="bg-backdrop-low border border-line-low rounded-lg">
-          <div className="px-4 py-3 flex items-start justify-between gap-3">
-            <div className="flex items-start gap-3 min-w-0">
+        <li className={`group bg-backdrop-low border transition-all duration-200 ${isOpen ? 'border-line-medium shadow-sm rounded-xl mb-4' : 'border-line-low rounded-lg mb-2'}`}>
+          <div className={`px-4 py-3 flex items-center justify-between gap-3 ${isOpen ? 'bg-backdrop-medium/10' : ''}`}>
+            <div className="flex items-center gap-3 min-w-0 flex-1">
               <DragHandle
                 aria-label="Drag"
                 disabled={isLocked}
                 {...(isLocked ? {} : listeners)}
+                className="opacity-40 group-hover:opacity-100 transition-opacity"
               />
+              
+              <div className="flex flex-col min-w-0 flex-1">
+                <div className="flex items-center gap-2 group/label min-w-0">
+                  {isEditingLabel ? (
+                    <div className="flex items-center gap-2 flex-1 max-w-md">
+                      <input
+                        autoFocus
+                        className="flex-1 px-2 py-1 text-sm font-bold bg-backdrop-low border border-standout-medium rounded-lg outline-none focus:ring-2 focus:ring-standout-medium/20"
+                        value={localLabel}
+                        onChange={(e) => setLocalLabel(e.target.value)}
+                        onBlur={saveLabel}
+                        onKeyDown={(e) => {
+                          if (e.key === 'Enter') saveLabel()
+                          if (e.key === 'Escape') {
+                            setLocalLabel(m.adminLabel || '')
+                            setIsEditingLabel(false)
+                          }
+                        }}
+                        placeholder="Enter label..."
+                      />
+                    </div>
+                  ) : (
+                    <>
+                      <button
+                        type="button"
+                        className="text-sm font-bold text-neutral-high truncate hover:text-standout-high transition-colors text-left"
+                        onClick={() => setModulesAccordionOpen((prev) => {
+                          const next = new Set(prev)
+                          if (next.has(m.id)) next.delete(m.id)
+                          else next.add(m.id)
+                          return next
+                        })}
+                      >
+                        {m.adminLabel || moduleName}
+                      </button>
+                      
+                      {m.adminLabel && (
+                        <span className="text-xs text-neutral-medium italic shrink-0">
+                          ({moduleName})
+                        </span>
+                      )}
+
+                      <button
+                        type="button"
+                        onClick={() => setIsEditingLabel(true)}
+                        className="opacity-0 group-hover/label:opacity-100 p-1 rounded-md hover:bg-backdrop-medium text-neutral-low hover:text-neutral-high transition-all"
+                        title="Edit label"
+                      >
+                        <span className="iconify" data-icon="lucide:pencil" />
+                      </button>
+                    </>
+                  )}
+                </div>
+                
+                <div className="flex items-center gap-3 mt-0.5">
+                  <div className="text-[10px] font-bold text-neutral-low uppercase tracking-wider">
+                    Order: {m.orderIndex}
+                  </div>
+                  <div className="text-[10px] text-neutral-low/50">
+                    ID: {m.id.split('-')[0]}...
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <div className="flex items-center gap-2 shrink-0">
+              {moduleRegistry[m.type]?.renderingMode === 'react' && (
+                <span
+                  className="inline-flex items-center rounded-full border border-sky-500/20 bg-sky-500/5 px-2 py-0.5 text-[10px] font-bold text-sky-500 uppercase tracking-tight"
+                  title="React module"
+                >
+                  <FontAwesomeIcon icon={faReact} className="mr-1" />
+                  React
+                </span>
+              )}
+              {m.scope === 'global' && (
+                <span
+                  className="inline-flex items-center rounded-full border border-amber-500/20 bg-amber-500/5 px-2 py-0.5 text-[10px] font-bold text-amber-500 uppercase tracking-tight"
+                  title="Global module"
+                >
+                  <FontAwesomeIcon icon={faGlobe} className="mr-1" />
+                  Global
+                </span>
+              )}
+              
+              <button
+                className="p-2 rounded-lg text-neutral-low hover:text-red-500 hover:bg-red-500/10 transition-all"
+                disabled={isLocked}
+                onClick={async () => {
+                  if (isLocked) {
+                    toast.error('Locked modules cannot be removed')
+                    return
+                  }
+                  if (viewMode === 'review') {
+                    setPendingReviewRemoved((prev) => {
+                      const next = new Set(prev)
+                      next.add(m.id)
+                      return next
+                    })
+                  } else {
+                    setPendingRemoved((prev) => {
+                      const next = new Set(prev)
+                      next.add(m.id)
+                      return next
+                    })
+                    setModules((prev) => prev.filter((pm) => pm.id !== m.id))
+                  }
+                  toast.success('Module marked for removal')
+                }}
+                type="button"
+                title="Remove module"
+              >
+                <span className="iconify text-lg" data-icon="lucide:trash-2" />
+              </button>
+
               <button
                 type="button"
-                className="min-w-0 text-left"
+                className={`p-2 rounded-lg transition-all ${isOpen ? 'bg-backdrop-medium text-neutral-high' : 'text-neutral-low hover:bg-backdrop-medium'}`}
                 onClick={() => {
-                  // If collapsing, flush first so we don't lose in-progress edits on unmount.
                   if (isOpen) {
                     const flush = moduleFlushFns.current[m.id]
                     if (flush) {
@@ -337,82 +470,17 @@ const ModuleRow = memo(function ModuleRow({
                   })
                 }}
               >
-                <div className="text-sm font-medium text-neutral-high truncate">
-                  {m.scope === 'global'
-                    ? globalSlugToLabel.get(String((m as any).globalSlug || '')) ||
-                    (m as any).globalLabel ||
-                    (m as any).globalSlug ||
-                    moduleRegistry[m.type]?.name ||
-                    m.type
-                    : moduleRegistry[m.type]?.name || m.type}
-                </div>
-                <div className="text-xs text-neutral-low">
-                  Order: {m.orderIndex}{' '}
-                  <span className="ml-2">
-                    {isOpen && !isDraggingModules ? '▾' : '▸'}
-                  </span>
-                </div>
-              </button>
-            </div>
-
-            <div className="flex items-center gap-2 shrink-0">
-              {moduleRegistry[m.type]?.renderingMode === 'react' && (
-                <span
-                  className="inline-flex items-center rounded border border-line-medium bg-backdrop-low px-2 py-1 text-xs text-neutral-high"
-                  title="React module (client-side interactivity)"
-                  aria-label="React module"
-                >
-                  <FontAwesomeIcon icon={faReact} className="mr-1 text-sky-400" />
-                  React
-                </span>
-              )}
-              {m.scope === 'global' && (
-                <span
-                  className="inline-flex items-center rounded border border-line-medium bg-backdrop-low px-2 py-1 text-xs text-neutral-high"
-                  title="Global module"
-                  aria-label="Global module"
-                >
-                  <FontAwesomeIcon icon={faGlobe} className="w-3.5 h-3.5" />
-                </span>
-              )}
-              <button
-                className="text-xs px-2 py-1 rounded border border-[#ef4444] text-[#ef4444] hover:bg-[rgba(239,68,68,0.1)] disabled:opacity-50"
-                disabled={isLocked}
-                onClick={async () => {
-                  if (isLocked) {
-                    toast.error('Locked modules cannot be removed')
-                    return
-                  }
-                  // Mark for removal in appropriate mode; actual apply on save
-                  if (viewMode === 'review') {
-                    setPendingReviewRemoved((prev) => {
-                      const next = new Set(prev)
-                      next.add(m.id)
-                      return next
-                    })
-                  } else {
-                    setPendingRemoved((prev) => {
-                      const next = new Set(prev)
-                      next.add(m.id)
-                      return next
-                    })
-                    // For source mode, optimistically remove from UI
-                    setModules((prev) => prev.filter((pm) => pm.id !== m.id))
-                  }
-                  toast.success('Module marked for removal (apply by saving)')
-                }}
-                type="button"
-              >
-                Remove
+                <span className={`iconify text-xl transition-transform duration-200 ${isOpen ? 'rotate-180' : ''}`} data-icon="lucide:chevron-down" />
               </button>
             </div>
           </div>
 
           {isOpen && !isDraggingModules && (
-            <div className="border-t border-line-low px-4 py-4">
+            <div className="p-6 bg-backdrop-low rounded-b-xl border-t border-line-low">
               {!moduleSchemasReady ? (
-                <div className="py-4 text-sm text-neutral-low">
-                  Loading module fields…
+                <div className="flex flex-col items-center justify-center py-12 gap-3 text-neutral-medium">
+                  <span className="iconify text-3xl animate-spin" data-icon="lucide:loader-2" />
+                  <span className="text-sm font-medium">Loading module fields…</span>
                 </div>
               ) : (
                 <InlineModuleEditor
@@ -423,6 +491,7 @@ const ModuleRow = memo(function ModuleRow({
                   registerFlush={registerModuleFlush}
                   onStage={stageModuleEdits}
                   onMarkDirty={markModuleDirty}
+                  customFields={customFields}
                 />
               )}
             </div>
@@ -431,19 +500,9 @@ const ModuleRow = memo(function ModuleRow({
       )}
     </SortableItem>
   )
-}, (prev, next) => {
-  return (
-    prev.m === next.m &&
-    prev.viewMode === next.viewMode &&
-    prev.isDraggingModules === next.isDraggingModules &&
-    prev.modulesAccordionOpen.has(prev.m.id) === next.modulesAccordionOpen.has(next.m.id) &&
-    prev.moduleSchemasReady === next.moduleSchemasReady &&
-    prev.moduleFieldAgents === next.moduleFieldAgents &&
-    prev.globalSlugToLabel === next.globalSlugToLabel &&
-    prev.moduleRegistry === next.moduleRegistry &&
-    prev.postId === next.postId
-  )
-})
+}
+
+const ModuleRow = ModuleRowBase
 
 export default function Editor({
   post,
@@ -1636,7 +1695,9 @@ export default function Editor({
   }
 
   // Overrides panel state
-  const [modulesAccordionOpen, setModulesAccordionOpen] = useState<Set<string>>(new Set())
+  const [modulesAccordionOpen, setModulesAccordionOpen] = useState<Set<string>>(() => {
+    return new Set((initialModules || []).map((m) => m.id))
+  })
   const modulesAccordionOpenBeforeDrag = useRef<Set<string> | null>(null)
   const [isDraggingModules, setIsDraggingModules] = useState(false)
   const [moduleFieldAgents, setModuleFieldAgents] = useState<Agent[]>([])
@@ -2221,23 +2282,24 @@ export default function Editor({
       setModules((prev) =>
         prev.map((m) => {
           if (m.id !== moduleId) return m
+          const nextLabel = edited?._adminLabel || overrides?._adminLabel || m.adminLabel
           if (viewMode === 'review') {
             if (m.scope === 'post') {
-              return { ...m, reviewProps: edited, overrides: null }
+              return { ...m, reviewProps: edited, overrides: null, adminLabel: nextLabel }
             } else {
-              return { ...m, reviewOverrides: overrides }
+              return { ...m, reviewOverrides: overrides, adminLabel: nextLabel }
             }
           } else if (viewMode === 'ai-review') {
             if (m.scope === 'post') {
-              return { ...m, aiReviewProps: edited, overrides: null }
+              return { ...m, aiReviewProps: edited, overrides: null, adminLabel: nextLabel }
             } else {
-              return { ...m, aiReviewOverrides: overrides }
+              return { ...m, aiReviewOverrides: overrides, adminLabel: nextLabel }
             }
           } else {
             if (m.scope === 'post') {
-              return { ...m, props: edited, overrides: null }
+              return { ...m, props: edited, overrides: null, adminLabel: nextLabel }
             } else {
-              return { ...m, overrides }
+              return { ...m, overrides, adminLabel: nextLabel }
             }
           }
         })
@@ -2260,8 +2322,7 @@ export default function Editor({
 
   async function commitPendingModules(
     mode: 'review' | 'publish' | 'ai-review',
-    created?: Array<{ tempId: string; postModuleId: string }>
-    ,
+    created?: Array<{ tempId: string; postModuleId: string }>,
     fromMode: ViewMode = viewMode
   ) {
     if (!modulesEnabled) return
@@ -2385,14 +2446,14 @@ export default function Editor({
       <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
           {/* Left Column - Post Content */}
-          <div className="lg:col-span-2 space-y-6">
+          <div className="lg:col-span-2 space-y-8">
             {/* Content Card */}
-            <div className="bg-backdrop-low rounded-lg p-6 border border-line-low">
-              <div className="flex items-start justify-between gap-3 mb-4">
-                <h2 className="text-lg font-semibold text-neutral-high">Content</h2>
+            <div className="bg-backdrop-low rounded-2xl p-8 border border-line-low shadow-sm">
+              <div className="flex items-start justify-between gap-3 mb-8">
+                <h2 className="text-xl font-bold text-neutral-high tracking-tight">Content</h2>
                 {uiConfig?.hasPermalinks !== false && (
                   <button
-                    className="px-2 py-1 text-xs border border-border rounded hover:bg-backdrop-medium text-neutral-medium"
+                    className="px-3 py-1.5 text-[11px] font-bold uppercase tracking-wider border border-line-medium rounded-lg hover:bg-backdrop-medium text-neutral-medium transition-all"
                     onClick={() => {
                       const base = (post as any).publicPath || `/posts/${post.slug}`
                       const target =
@@ -2409,15 +2470,16 @@ export default function Editor({
                 )}
               </div>
 
-              <form className="space-y-4" onSubmit={handleSubmit}>
+              <form className="space-y-6" onSubmit={handleSubmit}>
                 {/* Title */}
                 {(uiConfig?.hideCoreFields || []).includes('title') ? null : (
                   <div>
-                    <label className="block text-sm font-medium text-neutral-medium mb-1">
+                    <label className="block text-[11px] font-bold text-neutral-medium uppercase tracking-wider mb-1.5 ml-1">
                       Title *
                     </label>
                     <Input
                       type="text"
+                      className="text-lg font-semibold py-6 border-line-medium focus:ring-standout-medium/20 focus:border-standout-medium rounded-xl"
                       value={data.title}
                       onChange={(e) => {
                         const val = e.target.value
@@ -2429,34 +2491,35 @@ export default function Editor({
                       }}
                       placeholder="Enter post title"
                     />
-                    {errors.title && <p className="text-sm text-[#dc2626] mt-1">{errors.title}</p>}
+                    {errors.title && <p className="text-sm text-red-500 mt-1.5 ml-1">{errors.title}</p>}
                   </div>
                 )}
 
                 {/* Excerpt */}
                 <div>
-                  <label className="block text-sm font-medium text-neutral-medium mb-1">
+                  <label className="block text-[11px] font-bold text-neutral-medium uppercase tracking-wider mb-1.5 ml-1">
                     Excerpt
                   </label>
                   <Textarea
+                    className="border-line-medium focus:ring-standout-medium/20 focus:border-standout-medium rounded-xl min-h-[100px]"
                     value={data.excerpt}
                     onChange={(e) => setData('excerpt', e.target.value)}
                     rows={3}
                     placeholder="Brief description (optional)"
                   />
                   {errors.excerpt && (
-                    <p className="text-sm text-[#dc2626] mt-1">{errors.excerpt}</p>
+                    <p className="text-sm text-red-500 mt-1.5 ml-1">{errors.excerpt}</p>
                   )}
                 </div>
 
                 {/* Featured Image (core) */}
                 {uiConfig?.featuredImage?.enabled && (
                   <div className="group">
-                    <label className="block text-sm font-medium text-neutral-medium mb-1">
+                    <label className="block text-[11px] font-bold text-neutral-medium uppercase tracking-wider mb-1.5 ml-1">
                       <div className="flex items-center justify-between">
-                        <span className="inline-flex items-center gap-1">
-                          <Star className="w-3 h-3 text-amber-500" aria-hidden="true" />
-                          <span>{uiConfig.featuredImage.label || 'Featured Image'}</span>
+                        <span className="inline-flex items-center gap-1.5">
+                          <Star className="w-3.5 h-3.5 text-amber-500" aria-hidden="true" />
+                          <span>{uiConfig.featuredImage.label || 'Featured Media'}</span>
                         </span>
                         {featuredImageFieldAgents.length > 0 && hasFieldPermission && (
                           <button
@@ -2466,31 +2529,28 @@ export default function Editor({
                                 setSelectedFeaturedImageAgent(featuredImageFieldAgents[0])
                                 setFeaturedImageAgentModalOpen(true)
                               } else {
-                                // If multiple agents, could show a picker - for now just use first
                                 setSelectedFeaturedImageAgent(featuredImageFieldAgents[0])
                                 setFeaturedImageAgentModalOpen(true)
                               }
                             }}
-                            className="opacity-0 group-hover:opacity-100 transition-opacity p-1 hover:bg-backdrop-medium rounded"
-                            title={
-                              featuredImageFieldAgents.length === 1
-                                ? featuredImageFieldAgents[0].name
-                                : 'AI Assistant'
-                            }
+                            className="opacity-0 group-hover:opacity-100 transition-opacity p-1.5 hover:bg-backdrop-medium rounded-lg"
                           >
                             <FontAwesomeIcon
                               icon={faWandMagicSparkles}
-                              className="text-md text-neutral-high dark:text-neutral-high"
+                              className="text-neutral-medium hover:text-standout-medium transition-colors"
                             />
                           </button>
                         )}
                       </div>
                     </label>
-                    <MediaThumb
-                      mediaId={(data as any).featuredImageId || null}
-                      onChange={() => setOpenMediaForField('featuredImage')}
-                      onClear={() => setData('featuredImageId', '')}
-                    />
+                    <div className="p-1 border border-line-medium rounded-2xl bg-backdrop-medium/20">
+                      <MediaThumb
+                        mediaId={(data as any).featuredImageId || null}
+                        onChange={() => setOpenMediaForField('featuredImage')}
+                        onClear={() => setData('featuredImageId', '')}
+                      />
+                    </div>
+                    {/* ... modal logic ... */}
                     <MediaPickerModal
                       open={openMediaForField === 'featuredImage'}
                       onOpenChange={(o) => setOpenMediaForField(o ? 'featuredImage' : null)}
@@ -2528,8 +2588,8 @@ export default function Editor({
 
                 {/* Categories (Taxonomies) */}
                 {taxonomyOptions.length > 0 && (
-                  <div className="space-y-4">
-                    <div className="text-sm font-semibold text-neutral-high">Categories</div>
+                  <div className="space-y-6">
+                    <div className="text-[11px] font-bold text-neutral-medium uppercase tracking-wider mb-2 ml-1">Categories</div>
                     {taxonomyOptions.map((tax) => {
                       const selectedCount = Array.from(selectedTaxonomyTerms).filter((id) =>
                         tax.options.some((o) => o.id === id)
@@ -2538,22 +2598,27 @@ export default function Editor({
                       return (
                         <div
                           key={tax.slug}
-                          className="space-y-2 rounded border border-border p-3 bg-backdrop-low"
+                          className="space-y-4 rounded-xl border border-line-low p-5 bg-backdrop-medium/10 shadow-sm"
                         >
-                          <div className="text-sm font-medium text-neutral-high">{tax.name}</div>
+                          <div className="text-sm font-bold text-neutral-high flex items-center justify-between">
+                            <span>{tax.name}</span>
+                            {tax.maxSelections && (
+                              <span className="text-[10px] text-neutral-low uppercase">Limit: {tax.maxSelections}</span>
+                            )}
+                          </div>
                           {tax.options.length === 0 ? (
-                            <p className="text-xs text-neutral-low">
+                            <p className="text-xs text-neutral-low italic">
                               No terms available for {tax.name}
                             </p>
                           ) : (
-                            <div className="space-y-2">
+                            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                               {tax.options.map((opt, idx) => {
                                 const checked = selectedTaxonomyTerms.has(opt.id)
                                 const disableUnchecked = !checked && selectedCount >= limit
                                 return (
                                   <label
                                     key={`${tax.slug}:${String(opt.id || idx)}`}
-                                    className="flex items-center gap-2 text-sm text-neutral-high"
+                                    className={`flex items-center gap-2 text-sm p-2 rounded-lg border transition-all cursor-pointer ${checked ? 'bg-standout-medium/5 border-standout-medium/20 text-neutral-high' : 'bg-backdrop-low border-line-low text-neutral-medium hover:border-line-medium'}`}
                                   >
                                     <Checkbox
                                       checked={checked}
@@ -2570,7 +2635,7 @@ export default function Editor({
                             </div>
                           )}
                           {tax.freeTagging && (
-                            <div className="flex items-center gap-2">
+                            <div className="flex items-center gap-2 pt-2 border-t border-line-low/50 mt-2">
                               <Input
                                 ref={(el) => {
                                   taxonomyInputRefs.current[tax.slug] = el
@@ -2585,12 +2650,12 @@ export default function Editor({
                                     createInlineTerm(tax.slug, true)
                                   }
                                 }}
-                                placeholder={`Add ${tax.name}`}
-                                className="flex-1"
+                                placeholder={`Add new ${tax.name.toLowerCase()}...`}
+                                className="flex-1 h-9 text-sm rounded-lg border-line-medium"
                               />
                               <button
                                 type="button"
-                                className="px-3 py-2 text-sm rounded bg-standout-medium text-on-standout disabled:opacity-50"
+                                className="h-9 px-4 text-xs font-bold uppercase tracking-wider rounded-lg bg-neutral-high text-backdrop-low hover:bg-neutral-low disabled:opacity-30 transition-all"
                                 onClick={() => createInlineTerm(tax.slug, true)}
                                 disabled={!newTermNames[tax.slug]?.trim()}
                               >
@@ -2685,6 +2750,7 @@ export default function Editor({
                                 onChange={setValue}
                                 placeholder={cfg.placeholder}
                                 maxLength={cfg.maxLength}
+                                customFields={initialCustomFields || []}
                               />
                             )}
                           </div>
@@ -2696,11 +2762,13 @@ export default function Editor({
                             <label className="block text-sm font-medium text-neutral-medium mb-1">
                               {f.label}
                             </label>
-                            <Textarea
+                            <TokenField
+                              type="textarea"
                               value={entry.value ?? ''}
-                              onChange={(e) => setValue(e.target.value)}
+                              onChange={setValue}
                               rows={4}
                               placeholder={f.label}
+                              customFields={initialCustomFields || []}
                             />
                           </div>
                         )
@@ -2872,10 +2940,12 @@ export default function Editor({
                           <label className="block text-sm font-medium text-neutral-medium mb-1">
                             {f.label}
                           </label>
-                          <Input
+                          <TokenField
+                            type="text"
                             value={entry.value ?? ''}
-                            onChange={(e) => setValue(e.target.value)}
+                            onChange={setValue}
                             placeholder={f.label}
+                            customFields={initialCustomFields || []}
                           />
                         </div>
                       )
@@ -2951,6 +3021,7 @@ export default function Editor({
                               stageModuleEdits={stageModuleEdits}
                               markModuleDirty={markModuleDirty}
                               postId={post.id}
+                              customFields={initialCustomFields || []}
                             />
                           ))}
                         </ul>
@@ -2962,115 +3033,132 @@ export default function Editor({
             </div>
 
             {/* SEO Card */}
-            <div className="bg-backdrop-low rounded-lg p-6 border border-line-low">
-              <h2 className="text-lg font-semibold text-neutral-high mb-4">SEO</h2>
+            <div className="bg-backdrop-low rounded-2xl p-8 border border-line-low shadow-sm">
+              <h2 className="text-xl font-bold text-neutral-high mb-8 tracking-tight">SEO & Meta</h2>
 
-              <div className="space-y-4">
+              <div className="space-y-6">
                 {/* Slug */}
                 <div>
-                  <label className="block text-sm font-medium text-neutral-medium mb-1">
+                  <label className="block text-[11px] font-bold text-neutral-medium uppercase tracking-wider mb-1.5 ml-1">
                     Slug *
                   </label>
-                  <Input
-                    type="text"
-                    value={data.slug}
-                    onChange={(e) => {
-                      const v = String(e.target.value || '')
-                        .toLowerCase()
-                        .replace(/[^a-z0-9-]+/g, '-')
-                      setData('slug', v)
-                      // If user clears slug, re-enable auto; otherwise consider it manually controlled
-                      setSlugAuto(v === '')
-                    }}
-                    onBlur={() => {
-                      // Normalize fully on blur
-                      const v = slugify(String((data as any).slug || ''))
-                      setData('slug', v)
-                    }}
-                    className="font-mono text-sm"
-                    placeholder="post-slug"
-                  />
-                  {errors.slug && <p className="text-sm text-[#dc2626] mt-1">{errors.slug}</p>}
+                  <div className="relative">
+                    <Input
+                      type="text"
+                      className="font-mono text-sm border-line-medium focus:ring-standout-medium/20 focus:border-standout-medium rounded-xl h-11"
+                      value={data.slug}
+                      onChange={(e) => {
+                        const v = String(e.target.value || '')
+                          .toLowerCase()
+                          .replace(/[^a-z0-9-]+/g, '-')
+                        setData('slug', v)
+                        // If user clears slug, re-enable auto; otherwise consider it manually controlled
+                        setSlugAuto(v === '')
+                      }}
+                      onBlur={() => {
+                        // Normalize fully on blur
+                        const v = slugify(String((data as any).slug || ''))
+                        setData('slug', v)
+                      }}
+                      placeholder="post-slug"
+                    />
+                    <div className="absolute right-3 top-1/2 -translate-y-1/2">
+                      <span className={`iconify text-lg ${slugAuto ? 'text-standout-medium' : 'text-neutral-low opacity-20'}`} data-icon="lucide:link" />
+                    </div>
+                  </div>
+                  {errors.slug && <p className="text-sm text-red-500 mt-1.5 ml-1">{errors.slug}</p>}
                   {pathPattern && (
-                    <p className="mt-1 text-xs text-neutral-low font-mono">
+                    <p className="mt-2 text-[10px] text-neutral-low font-mono bg-backdrop-medium/30 px-2 py-1 rounded border border-line-low/50 truncate">
                       Preview: {buildPreviewPath(data.slug)}
                     </p>
                   )}
                 </div>
-                {/* Meta Title */}
-                <div>
-                  <label className="block text-sm font-medium text-neutral-medium mb-1">
-                    Meta Title
-                  </label>
-                  <Input
-                    type="text"
-                    value={data.metaTitle}
-                    onChange={(e) => setData('metaTitle', e.target.value)}
-                    placeholder="Custom meta title (optional)"
-                  />
-                  <p className="text-xs text-neutral-low mt-1">Leave blank to use post title</p>
+
+                <div className="grid grid-cols-1 gap-6">
+                  {/* Meta Title */}
+                  <div>
+                    <label className="block text-[11px] font-bold text-neutral-medium uppercase tracking-wider mb-1.5 ml-1">
+                      Meta Title
+                    </label>
+                    <Input
+                      type="text"
+                      className="border-line-medium focus:ring-standout-medium/20 focus:border-standout-medium rounded-xl h-11"
+                      value={data.metaTitle}
+                      onChange={(e) => setData('metaTitle', e.target.value)}
+                      placeholder="Custom meta title (optional)"
+                    />
+                    <p className="text-[10px] text-neutral-low mt-1.5 ml-1 italic">Leave blank to use post title</p>
+                  </div>
+
+                  {/* Meta Description */}
+                  <div>
+                    <label className="block text-[11px] font-bold text-neutral-medium uppercase tracking-wider mb-1.5 ml-1">
+                      Meta Description
+                    </label>
+                    <Textarea
+                      className="border-line-medium focus:ring-standout-medium/20 focus:border-standout-medium rounded-xl"
+                      value={data.metaDescription}
+                      onChange={(e) => setData('metaDescription', e.target.value)}
+                      rows={3}
+                      placeholder="Custom meta description (optional)"
+                    />
+                    <p className="text-[10px] text-neutral-low mt-1.5 ml-1 italic">Recommended: 150-160 characters</p>
+                  </div>
                 </div>
 
-                {/* Meta Description */}
-                <div>
-                  <label className="block text-sm font-medium text-neutral-medium mb-1">
-                    Meta Description
-                  </label>
-                  <Textarea
-                    value={data.metaDescription}
-                    onChange={(e) => setData('metaDescription', e.target.value)}
-                    rows={3}
-                    placeholder="Custom meta description (optional)"
-                  />
-                  <p className="text-xs text-neutral-low mt-1">Recommended: 150-160 characters</p>
-                </div>
+                {/* Advanced SEO Toggle */}
+                <details className="group/advanced border-t border-line-low pt-4 mt-6">
+                  <summary className="flex items-center gap-2 text-[11px] font-bold text-neutral-low uppercase tracking-wider cursor-pointer hover:text-neutral-high transition-colors list-none">
+                    <span className="iconify group-open/advanced:rotate-180 transition-transform" data-icon="lucide:chevron-down" />
+                    Advanced SEO Settings
+                  </summary>
+                  
+                  <div className="mt-6 space-y-6">
+                    {/* Canonical URL */}
+                    <div>
+                      <label className="block text-[11px] font-bold text-neutral-medium uppercase tracking-wider mb-1.5 ml-1">
+                        Canonical URL
+                      </label>
+                      <Input
+                        type="url"
+                        className="border-line-medium focus:ring-standout-medium/20 focus:border-standout-medium rounded-xl h-11 text-sm"
+                        value={data.canonicalUrl}
+                        onChange={(e) => setData('canonicalUrl', e.target.value)}
+                        placeholder="https://example.com/my-post"
+                      />
+                    </div>
 
-                {/* Canonical URL */}
-                <div>
-                  <label className="block text-sm font-medium text-neutral-medium mb-1">
-                    Canonical URL
-                  </label>
-                  <Input
-                    type="url"
-                    value={data.canonicalUrl}
-                    onChange={(e) => setData('canonicalUrl', e.target.value)}
-                    placeholder="https://example.com/my-post"
-                  />
-                </div>
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                      {/* Robots JSON */}
+                      <div>
+                        <label className="block text-[11px] font-bold text-neutral-medium uppercase tracking-wider mb-1.5 ml-1">
+                          Robots (JSON)
+                        </label>
+                        <Textarea
+                          value={data.robotsJson}
+                          onChange={(e) => setData('robotsJson', e.target.value)}
+                          rows={4}
+                          className="font-mono text-[11px] border-line-medium focus:ring-standout-medium/20 focus:border-standout-medium rounded-xl bg-backdrop-medium/10"
+                          placeholder={JSON.stringify({ index: true, follow: true }, null, 2)}
+                        />
+                      </div>
 
-                {/* Robots JSON */}
-                <div>
-                  <label className="block text-sm font-medium text-neutral-medium mb-1">
-                    Robots (JSON)
-                  </label>
-                  <Textarea
-                    value={data.robotsJson}
-                    onChange={(e) => setData('robotsJson', e.target.value)}
-                    rows={4}
-                    className="font-mono text-xs"
-                    placeholder={JSON.stringify({ index: true, follow: true }, null, 2)}
-                  />
-                  <p className="text-xs text-neutral-low mt-1">
-                    Leave empty for defaults. Must be valid JSON.
-                  </p>
-                </div>
-
-                {/* JSON-LD Overrides */}
-                <div>
-                  <label className="block text-sm font-medium text-neutral-medium mb-1">
-                    JSON-LD Overrides (JSON)
-                  </label>
-                  <Textarea
-                    value={data.jsonldOverrides}
-                    onChange={(e) => setData('jsonldOverrides', e.target.value)}
-                    rows={6}
-                    className="font-mono text-xs"
-                    placeholder={JSON.stringify({ '@type': 'BlogPosting' }, null, 2)}
-                  />
-                  <p className="text-xs text-neutral-low mt-1">
-                    Leave empty to auto-generate structured data.
-                  </p>
-                </div>
+                      {/* JSON-LD Overrides */}
+                      <div>
+                        <label className="block text-[11px] font-bold text-neutral-medium uppercase tracking-wider mb-1.5 ml-1">
+                          JSON-LD Overrides
+                        </label>
+                        <Textarea
+                          value={data.jsonldOverrides}
+                          onChange={(e) => setData('jsonldOverrides', e.target.value)}
+                          rows={4}
+                          className="font-mono text-[11px] border-line-medium focus:ring-standout-medium/20 focus:border-standout-medium rounded-xl bg-backdrop-medium/10"
+                          placeholder={JSON.stringify({ '@type': 'BlogPosting' }, null, 2)}
+                        />
+                      </div>
+                    </div>
+                  </div>
+                </details>
               </div>
             </div>
 
@@ -3078,27 +3166,27 @@ export default function Editor({
           </div>
 
           {/* Right Column - Sidebar */}
-          <div className="space-y-6">
+          <div className="space-y-8">
             {/* Actions */}
-            <div className="bg-backdrop-low rounded-lg shadow p-6 border border-border">
-              <h3 className="text-sm font-semibold text-neutral-high mb-4">Actions</h3>
-              <div className="space-y-6">
+            <div className="bg-backdrop-low rounded-2xl shadow-sm p-6 border border-line-low sticky top-8">
+              <h3 className="text-[11px] font-bold text-neutral-medium uppercase tracking-wider mb-6 ml-1">Actions</h3>
+              
+              <div className="space-y-8">
                 {/* Active Version toggle */}
-                <div className="flex items-center gap-2">
-                  <div className="inline-flex rounded border border-border overflow-hidden">
+                <div className="space-y-3">
+                  <label className="block text-[10px] font-bold text-neutral-low uppercase tracking-widest ml-1">Active Version</label>
+                  <div className="flex p-1 bg-backdrop-medium/30 rounded-xl border border-line-low">
                     {hasSourceBaseline && (
                       <button
                         type="button"
                         onClick={async () => {
-                          // Preserve unsaved module edits for the current version before switching.
                           await flushAllModuleEdits()
                           setViewMode('source')
-                          // Update URL to preserve view mode on reload
                           const url = new URL(window.location.href)
                           url.searchParams.set('view', 'source')
                           window.history.replaceState({}, '', url.toString())
                         }}
-                        className={`px-2 py-1 text-xs ${viewMode === 'source' ? 'bg-standout-medium text-on-standout' : 'text-neutral-medium hover:bg-backdrop-medium'}`}
+                        className={`flex-1 py-1.5 text-[11px] font-bold rounded-lg transition-all ${viewMode === 'source' ? 'bg-backdrop-low text-neutral-high shadow-sm' : 'text-neutral-low hover:text-neutral-medium'}`}
                       >
                         Source
                       </button>
@@ -3109,12 +3197,11 @@ export default function Editor({
                         onClick={async () => {
                           await flushAllModuleEdits()
                           setViewMode('review')
-                          // Update URL to preserve view mode on reload
                           const url = new URL(window.location.href)
                           url.searchParams.set('view', 'review')
                           window.history.replaceState({}, '', url.toString())
                         }}
-                        className={`px-2 py-1 text-xs ${viewMode === 'review' ? 'bg-standout-medium text-on-standout' : 'text-neutral-medium hover:bg-backdrop-medium'}`}
+                        className={`flex-1 py-1.5 text-[11px] font-bold rounded-lg transition-all ${viewMode === 'review' ? 'bg-backdrop-low text-neutral-high shadow-sm' : 'text-neutral-low hover:text-neutral-medium'}`}
                       >
                         Review
                       </button>
@@ -3125,12 +3212,11 @@ export default function Editor({
                         onClick={async () => {
                           await flushAllModuleEdits()
                           setViewMode('ai-review')
-                          // Update URL to preserve view mode on reload
                           const url = new URL(window.location.href)
                           url.searchParams.set('view', 'ai-review')
                           window.history.replaceState({}, '', url.toString())
                         }}
-                        className={`px-2 py-1 text-xs ${viewMode === 'ai-review' ? 'bg-standout-medium text-on-standout' : 'text-neutral-medium hover:bg-backdrop-medium'}`}
+                        className={`flex-1 py-1.5 text-[11px] font-bold rounded-lg transition-all ${viewMode === 'ai-review' ? 'bg-backdrop-low text-neutral-high shadow-sm' : 'text-neutral-low hover:text-neutral-medium'}`}
                       >
                         AI Review
                       </button>
@@ -3139,11 +3225,11 @@ export default function Editor({
                 </div>
 
                 {/* Locale Switcher */}
-                <div>
-                  <label className="block text-xs font-medium text-neutral-medium mb-1">
+                <div className="space-y-3">
+                  <label className="block text-[10px] font-bold text-neutral-low uppercase tracking-widest ml-1">
                     Locale
                   </label>
-                  <div className="flex items-center gap-2">
+                  <div className="flex flex-col gap-2">
                     <Select
                       defaultValue={selectedLocale}
                       onValueChange={(nextLocale) => {
@@ -3155,86 +3241,98 @@ export default function Editor({
                         }
                       }}
                     >
-                      <SelectTrigger className="w-[160px] h-8 text-xs">
+                      <SelectTrigger className="w-full h-10 text-sm font-medium border-line-medium rounded-xl">
                         <SelectValue />
                       </SelectTrigger>
-                      <SelectContent className="text-xs">
+                      <SelectContent>
                         {availableLocales.map((loc) => {
                           const exists = translationsSet.has(loc)
                           const label = exists
                             ? `${loc.toUpperCase()}`
                             : `${loc.toUpperCase()} (missing)`
                           return (
-                            <SelectItem key={loc} value={loc} className="text-xs">
+                            <SelectItem key={loc} value={loc} className="text-sm">
                               {label}
                             </SelectItem>
                           )
                         })}
                       </SelectContent>
                     </Select>
+                    
+                    {selectedLocale !== post.locale && !translationsSet.has(selectedLocale) && (
+                      <button
+                        type="button"
+                        className="w-full py-2 text-xs font-bold uppercase tracking-wider rounded-xl border border-standout-medium/30 text-standout-medium hover:bg-standout-medium/5 transition-all"
+                        onClick={async () => {
+                          const toCreate = selectedLocale
+                          const res = await fetch(`/api/posts/${post.id}/translations`, {
+                            method: 'POST',
+                            headers: {
+                              'Accept': 'application/json',
+                              'Content-Type': 'application/json',
+                              ...xsrfHeader(),
+                            },
+                            credentials: 'same-origin',
+                            body: JSON.stringify({ locale: toCreate }),
+                          })
+                          if (res.redirected) {
+                            window.location.href = res.url
+                            return
+                          }
+                          if (res.ok) {
+                            window.location.reload()
+                          } else {
+                            toast.error('Failed to create translation')
+                          }
+                        }}
+                      >
+                        Create Translation
+                      </button>
+                    )}
                   </div>
-                  {selectedLocale !== post.locale && !translationsSet.has(selectedLocale) && (
-                    <button
-                      type="button"
-                      className="mt-2 text-xs px-2 py-1 rounded border border-border bg-backdrop-low text-neutral-high hover:bg-backdrop-medium"
-                      onClick={async () => {
-                        const toCreate = selectedLocale
-                        const res = await fetch(`/api/posts/${post.id}/translations`, {
-                          method: 'POST',
-                          headers: {
-                            'Accept': 'application/json',
-                            'Content-Type': 'application/json',
-                            ...xsrfHeader(),
-                          },
-                          credentials: 'same-origin',
-                          body: JSON.stringify({ locale: toCreate }),
-                        })
-                        if (res.redirected) {
-                          window.location.href = res.url
-                          return
-                        }
-                        if (res.ok) {
-                          window.location.reload()
-                        } else {
-                          toast.error('Failed to create translation')
-                        }
-                      }}
-                    >
-                      Create Translation
-                    </button>
-                  )}
                 </div>
+
                 {/* Agent Runner */}
-                <div>
-                  <label className="block text-xs font-medium text-neutral-medium mb-1">
-                    <div className="flex items-center gap-2">
-                      <span>Agent</span>
-                      <FontAwesomeIcon
-                        icon={faWandMagicSparkles}
-                        className="text-md text-neutral-high dark:text-neutral-high"
-                      />
-                    </div>
+                <div className="space-y-3">
+                  <label className="block text-[10px] font-bold text-neutral-low uppercase tracking-widest ml-1">
+                    AI Assistant
                   </label>
-                  <div>
+                  <div className="space-y-2">
                     <Select value={selectedAgent} onValueChange={(val) => setSelectedAgent(val)}>
-                      <SelectTrigger className="w-full h-8 text-xs">
-                        <SelectValue placeholder="Select an agent" />
+                      <SelectTrigger className="w-full h-10 text-sm font-medium border-line-medium rounded-xl">
+                        <div className="flex items-center gap-2">
+                          <FontAwesomeIcon icon={faWandMagicSparkles} className="text-standout-medium" />
+                          <SelectValue placeholder="Select an agent..." />
+                        </div>
                       </SelectTrigger>
-                      <SelectContent className="text-xs">
+                      <SelectContent>
                         {agents.length === 0 ? (
-                          <SelectItem value="__none__" disabled className="text-xs">
+                          <SelectItem value="__none__" disabled className="text-sm">
                             No agents configured
                           </SelectItem>
                         ) : (
                           agents.map((a) => (
-                            <SelectItem key={a.id} value={a.id} className="text-xs">
+                            <SelectItem key={a.id} value={a.id} className="text-sm">
                               {a.name}
                             </SelectItem>
                           ))
                         )}
                       </SelectContent>
                     </Select>
+                    
                     {selectedAgent && (
+                      <button
+                        type="button"
+                        onClick={() => setAgentPromptOpen(true)}
+                        className="w-full py-2.5 text-xs font-bold uppercase tracking-wider rounded-xl bg-neutral-high text-backdrop-low hover:bg-neutral-low transition-all shadow-sm"
+                      >
+                        Run Assistant
+                      </button>
+                    )}
+                  </div>
+                </div>
+
+                {selectedAgent && (
                       <>
                         <AlertDialog
                           open={agentPromptOpen}
@@ -3766,8 +3864,7 @@ export default function Editor({
                         </button>
                       </>
                     )}
-                  </div>
-                </div>
+
                 {/* Status (Source only) */}
                 {viewMode === 'source' && (
                   <div>
@@ -4114,12 +4211,9 @@ export default function Editor({
                     </AlertDialogFooter>
                   </AlertDialogContent>
                 </AlertDialog>
-
-                {/* Unpublish action handled by changing status to draft and saving */}
               </div>
             </div>
 
-            {/* Author (Admin) */}
             {isAdmin && (
               <div className="bg-backdrop-low rounded-lg shadow p-6 border border-border">
                 <h3 className="text-sm font-semibold text-neutral-high mb-4">Author</h3>

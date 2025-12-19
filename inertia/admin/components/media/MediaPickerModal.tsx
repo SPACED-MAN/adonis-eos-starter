@@ -9,11 +9,13 @@ import {
 } from '~/components/ui/alert-dialog'
 import { Input } from '~/components/ui/input'
 import { pickMediaVariantUrl, type MediaVariant } from '../../../lib/media'
+import { MediaRenderer } from '../../../components/MediaRenderer'
 
 type MediaItem = {
   id: string
   url: string
   originalFilename?: string
+  mimeType?: string
   alt?: string | null
   metadata?: {
     variants?: MediaVariant[]
@@ -155,7 +157,7 @@ export function MediaPickerModal({
                     className={`group border rounded overflow-hidden ${selectedId === m.id ? 'border-standout-medium' : 'border-line-low'} bg-backdrop-low`}
                     title={m.originalFilename || m.id}
                   >
-                    <div className="aspect-square">
+                    <div className="aspect-square flex items-center justify-center bg-backdrop-medium">
                       {(() => {
                         const baseUrl = m.url
                         const meta = (m as any).metadata || {}
@@ -170,10 +172,13 @@ export function MediaPickerModal({
                           darkSourceUrl,
                         })
                         return (
-                          <img
-                            src={thumbUrl}
+                          <MediaRenderer
+                            url={thumbUrl || baseUrl}
+                            mimeType={m.mimeType}
                             alt={m.originalFilename || ''}
                             className="w-full h-full object-cover"
+                            controls={false}
+                            autoPlay={false}
                           />
                         )
                       })()}
@@ -192,7 +197,7 @@ export function MediaPickerModal({
               <div className="text-sm text-neutral-medium">Choose a file to upload</div>
               <Input
                 type="file"
-                accept="image/*"
+                accept="image/*,video/*"
                 onChange={(e) => {
                   const f = e.currentTarget.files?.[0] || null
                   setFile(f)

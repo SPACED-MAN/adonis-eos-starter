@@ -44,10 +44,10 @@ export default class HeroWithMediaModule extends BaseModule {
         },
         image: {
           type: 'media',
-          label: 'Hero Image',
-          accept: 'image/*',
+          label: 'Hero Media',
+          accept: 'image/*,video/*',
           storeAs: 'id',
-          description: 'Hero image (stored as media ID, resolved via the media API)',
+          description: 'Hero image or video (stored as media ID, resolved via the media API)',
         },
         imagePosition: {
           type: 'select',

@@ -454,26 +454,30 @@ export function InlineOverlay() {
             setMediaTarget(null)
           }}
           allowUpload
-          title="Select image"
+          title="Select media"
         />
       )}
       <Dialog
         open={enabled && !!dialogState}
         onOpenChange={(open) => !open && setDialogState(null)}
       >
-        <DialogContent className="sm:max-w-[520px] max-h-[90vh] overflow-y-auto">
+        <DialogContent className="sm:max-w-[560px] max-h-[90vh] overflow-y-auto p-0 border-none bg-transparent shadow-none">
           {dialogState && (
-            <>
-              <DialogHeader>
-                <DialogTitle>{dialogState.label || formatPathLabel(dialogState.path)}</DialogTitle>
+            <div className="bg-backdrop-low rounded-2xl border border-line-low shadow-2xl overflow-hidden flex flex-col">
+              <DialogHeader className="px-6 py-4 border-b border-line-low bg-backdrop-low">
+                <DialogTitle className="text-base font-bold text-neutral-high">
+                  {dialogState.label || formatPathLabel(dialogState.path)}
+                </DialogTitle>
               </DialogHeader>
-              <FieldDialogContent
-                pop={dialogState}
-                onClose={() => setDialogState(null)}
-                getValue={getValue}
-                setValue={setValue}
-              />
-            </>
+              <div className="p-6 overflow-auto">
+                <FieldDialogContent
+                  pop={dialogState}
+                  onClose={() => setDialogState(null)}
+                  getValue={getValue}
+                  setValue={setValue}
+                />
+              </div>
+            </div>
           )}
         </DialogContent>
       </Dialog>
@@ -523,51 +527,65 @@ function FieldDialogContent({ pop, onClose, getValue, setValue }: DialogContentP
     onClose()
   }
 
+  const labelStyle = "block text-[11px] font-bold text-neutral-medium uppercase tracking-wider mb-1.5 ml-1"
+  const inputStyle = "w-full border border-line-medium rounded-xl px-4 py-2.5 bg-backdrop-low text-neutral-high text-sm focus:ring-2 focus:ring-standout-medium/20 focus:border-standout-medium outline-none transition-all shadow-sm"
+  const selectStyle = "w-full border border-line-medium rounded-xl px-4 py-2.5 bg-backdrop-low text-neutral-high text-sm focus:ring-2 focus:ring-standout-medium/20 focus:border-standout-medium outline-none transition-all shadow-sm appearance-none"
+  const buttonStyle = "w-full mt-6 bg-standout-medium text-on-standout px-4 py-3 rounded-xl font-bold shadow-lg shadow-standout-medium/20 hover:bg-standout-high transition-all flex items-center justify-center gap-2"
+  const containerStyle = "p-4 bg-backdrop-medium/30 border border-line-low rounded-xl space-y-4"
+
   const renderControl = () => {
     switch (type) {
       case 'richtext': {
         return (
-          <div className="space-y-3">
-            <LexicalEditor
-              value={draft ?? ''}
-              onChange={(val) => setDraft(val)}
-              placeholder="Start typing…"
-              editorKey={`${moduleId}-${path}-richtext`}
-            />
+          <div className="space-y-4">
+            <div className="border border-line-medium rounded-xl bg-backdrop-low overflow-hidden shadow-sm">
+              <LexicalEditor
+                value={draft ?? ''}
+                onChange={(val) => setDraft(val)}
+                placeholder="Start typing…"
+                editorKey={`${moduleId}-${path}-richtext`}
+              />
+            </div>
             <button
-              className="w-full mt-2 bg-standout-medium text-on-standout px-3 py-1.5 rounded font-medium"
+              className={buttonStyle}
               onClick={() => commit(draft)}
             >
-              Save
+              <span className="iconify" data-icon="lucide:check" />
+              Save Changes
             </button>
           </div>
         )
       }
       case 'post-reference': {
         return (
-          <div className="space-y-3">
-            <EditablePostReference
-              moduleId={moduleId}
-              path={path}
-              multiple={multi}
-              postType={pop.postType}
-              label={pop.label || 'Select posts'}
-            />
+          <div className="space-y-4">
+            <div className={containerStyle}>
+              <EditablePostReference
+                moduleId={moduleId}
+                path={path}
+                multiple={multi}
+                postType={pop.postType}
+                label={pop.label || 'Select posts'}
+              />
+            </div>
           </div>
         )
       }
       case 'link': {
         return (
-          <div className="space-y-3">
-            <LinkField
-              label="Destination"
-              value={draft}
-              onChange={(val: LinkFieldValue) => setDraft(val)}
-            />
+          <div className="space-y-4">
+            <div className={containerStyle}>
+              <LinkField
+                label="Destination"
+                value={draft}
+                onChange={(val: LinkFieldValue) => setDraft(val)}
+              />
+            </div>
             <button
-              className="w-full mt-2 bg-standout-medium text-on-standout px-3 py-1.5 rounded font-medium"
+              className={buttonStyle}
               onClick={() => commit(draft)}
             >
+              <span className="iconify" data-icon="lucide:link" />
               Save Link
             </button>
           </div>
@@ -578,8 +596,8 @@ function FieldDialogContent({ pop, onClose, getValue, setValue }: DialogContentP
         const opts = type === 'icon' ? iconOptions : options || []
         if (type === 'icon') {
           return (
-            <div className="space-y-3">
-              <div className="grid grid-cols-4 gap-2 max-h-64 overflow-auto">
+            <div className="space-y-4">
+              <div className="grid grid-cols-4 gap-2 max-h-64 overflow-auto p-1">
                 {opts.map((o: any) => {
                   const val = o.name ?? o.value
                   const icon = o.icon ?? val
@@ -587,16 +605,16 @@ function FieldDialogContent({ pop, onClose, getValue, setValue }: DialogContentP
                     <button
                       key={val}
                       type="button"
-                      className={`p-3 border rounded-lg hover:bg-backdrop-medium flex flex-col items-center gap-1 ${
+                      className={`p-3 border rounded-xl hover:bg-backdrop-medium flex flex-col items-center gap-2 transition-all ${
                         draft === val
-                          ? 'border-standout-medium bg-standout-medium/10'
-                          : 'border-line-low'
+                          ? 'border-standout-medium bg-standout-medium/10 shadow-sm ring-1 ring-standout-medium/20'
+                          : 'border-line-low bg-backdrop-low/50'
                       }`}
                       onClick={() => setDraft(val)}
                       title={o.label}
                     >
-                      <FontAwesomeIcon icon={icon as any} className="w-5 h-5" />
-                      <span className="text-[11px] text-neutral-low truncate w-full text-center">
+                      <FontAwesomeIcon icon={icon as any} className="w-6 h-6" />
+                      <span className="text-[10px] font-medium text-neutral-medium truncate w-full text-center">
                         {o.label}
                       </span>
                     </button>
@@ -604,55 +622,68 @@ function FieldDialogContent({ pop, onClose, getValue, setValue }: DialogContentP
                 })}
               </div>
               <button
-                className="w-full mt-1 bg-standout-medium text-on-standout px-3 py-1 rounded"
+                className={buttonStyle}
                 onClick={() => commit(draft || '')}
               >
-                Save
+                <span className="iconify" data-icon="lucide:check" />
+                Save Icon
               </button>
             </div>
           )
         }
         return (
-          <div className="space-y-2">
-            <label className="block text-xs text-neutral-medium">Select</label>
-            <select
-              className="w-full border border-line-medium rounded px-2 py-1 bg-backdrop-high text-neutral-high"
-              value={draft ?? ''}
-              onChange={(e) => setDraft(e.target.value)}
-            >
-              <option value="">--</option>
-              {opts.map((o: any) => {
-                const val = o.value ?? o.name
-                return (
-                  <option key={val} value={val}>
-                    {o.label}
-                  </option>
-                )
-              })}
-            </select>
+          <div className="space-y-4">
+            <div className={containerStyle}>
+              <label className={labelStyle}>Select Option</label>
+              <div className="relative">
+                <select
+                  className={selectStyle}
+                  value={draft ?? ''}
+                  onChange={(e) => setDraft(e.target.value)}
+                >
+                  <option value="">-- Select --</option>
+                  {opts.map((o: any) => {
+                    const val = o.value ?? o.name
+                    return (
+                      <option key={val} value={val}>
+                        {o.label}
+                      </option>
+                    )
+                  })}
+                </select>
+                <div className="absolute right-4 top-1/2 -translate-y-1/2 pointer-events-none text-neutral-low">
+                  <span className="iconify" data-icon="lucide:chevron-down" />
+                </div>
+              </div>
+            </div>
             <button
-              className="w-full mt-2 bg-standout-medium text-on-standout px-3 py-1 rounded"
+              className={buttonStyle}
               onClick={() => commit(draft || '')}
             >
-              Save
+              <span className="iconify" data-icon="lucide:check" />
+              Save Selection
             </button>
           </div>
         )
       }
       case 'textarea': {
         return (
-          <div className="space-y-2">
-            <label className="block text-xs text-neutral-medium">Text</label>
-            <textarea
-              className="w-full border border-line-medium rounded px-2 py-1.5 bg-backdrop-high text-neutral-high text-sm min-h-[120px] resize-vertical"
-              value={draft ?? ''}
-              onChange={(e) => setDraft(e.target.value)}
-            />
+          <div className="space-y-4">
+            <div className={containerStyle}>
+              <label className={labelStyle}>Content</label>
+              <textarea
+                className={`${inputStyle} min-h-[160px] resize-vertical`}
+                value={draft ?? ''}
+                onChange={(e) => setDraft(e.target.value)}
+                placeholder="Start typing..."
+              />
+            </div>
             <button
-              className="w-full mt-2 bg-standout-medium text-on-standout px-3 py-1 rounded"
+              className={buttonStyle}
               onClick={() => commit(draft ?? '')}
             >
-              Save
+              <span className="iconify" data-icon="lucide:check" />
+              Save Text
             </button>
           </div>
         )
@@ -664,18 +695,22 @@ function FieldDialogContent({ pop, onClose, getValue, setValue }: DialogContentP
             ? draft.split('\n').filter(Boolean)
             : []
         return (
-          <div className="space-y-2">
-            <label className="block text-xs text-neutral-medium">Items (one per line)</label>
-            <textarea
-              className="w-full border border-line-medium rounded px-2 py-1.5 bg-backdrop-high text-neutral-high text-sm min-h-[140px] resize-vertical"
-              value={asArray.join('\n')}
-              onChange={(e) => setDraft(e.target.value.split('\n'))}
-            />
+          <div className="space-y-4">
+            <div className={containerStyle}>
+              <label className={labelStyle}>List Items (one per line)</label>
+              <textarea
+                className={`${inputStyle} min-h-[180px] resize-vertical font-mono text-xs`}
+                value={asArray.join('\n')}
+                onChange={(e) => setDraft(e.target.value.split('\n'))}
+                placeholder="Item 1&#10;Item 2..."
+              />
+            </div>
             <button
-              className="w-full mt-2 bg-standout-medium text-on-standout px-3 py-1 rounded"
+              className={buttonStyle}
               onClick={() => commit(asArray)}
             >
-              Save
+              <span className="iconify" data-icon="lucide:list" />
+              Save List
             </button>
           </div>
         )
@@ -684,36 +719,44 @@ function FieldDialogContent({ pop, onClose, getValue, setValue }: DialogContentP
         const opts = options || []
         const current: any[] = Array.isArray(draft) ? draft : []
         return (
-          <div className="space-y-2">
-            <div className="text-xs text-neutral-medium">Select options</div>
-            <div className="space-y-1 max-h-48 overflow-auto">
-              {opts.map((o) => {
-                const checked = current.includes(o.value)
-                return (
-                  <label
-                    key={o.value}
-                    className="flex items-center gap-2 text-sm text-neutral-high"
-                  >
-                    <input
-                      type="checkbox"
-                      checked={checked}
-                      onChange={() => {
-                        const next = checked
-                          ? current.filter((v) => v !== o.value)
-                          : [...current, o.value]
-                        setDraft(next)
-                      }}
-                    />
-                    {o.label}
-                  </label>
-                )
-              })}
+          <div className="space-y-4">
+            <div className={containerStyle}>
+              <label className={labelStyle}>Select Multiple</label>
+              <div className="space-y-2 max-h-64 overflow-auto p-1">
+                {opts.map((o) => {
+                  const checked = current.includes(o.value)
+                  return (
+                    <label
+                      key={o.value}
+                      className={`flex items-center gap-3 p-2.5 rounded-xl border transition-all cursor-pointer ${
+                        checked 
+                          ? 'bg-standout-medium/10 border-standout-medium/30 text-neutral-high' 
+                          : 'bg-backdrop-low border-line-medium text-neutral-medium hover:border-neutral-low'
+                      }`}
+                    >
+                      <input
+                        type="checkbox"
+                        className="w-4 h-4 rounded border-line-high text-standout-medium focus:ring-standout-medium/20"
+                        checked={checked}
+                        onChange={() => {
+                          const next = checked
+                            ? current.filter((v) => v !== o.value)
+                            : [...current, o.value]
+                          setDraft(next)
+                        }}
+                      />
+                      <span className="text-sm font-medium">{o.label}</span>
+                    </label>
+                  )
+                })}
+              </div>
             </div>
             <button
-              className="w-full mt-2 bg-standout-medium text-on-standout px-3 py-1 rounded"
+              className={buttonStyle}
               onClick={() => commit(current)}
             >
-              Save
+              <span className="iconify" data-icon="lucide:check-circle" />
+              Save Selection
             </button>
           </div>
         )
@@ -721,19 +764,22 @@ function FieldDialogContent({ pop, onClose, getValue, setValue }: DialogContentP
       case 'number':
       case 'slider': {
         return (
-          <div className="space-y-2">
-            <label className="block text-xs text-neutral-medium">Value</label>
-            <input
-              type="number"
-              className="w-full border border-line-medium rounded px-2 py-1 bg-backdrop-high text-neutral-high"
-              value={draft ?? ''}
-              onChange={(e) => setDraft(e.target.value === '' ? null : Number(e.target.value))}
-            />
+          <div className="space-y-4">
+            <div className={containerStyle}>
+              <label className={labelStyle}>Value</label>
+              <input
+                type="number"
+                className={inputStyle}
+                value={draft ?? ''}
+                onChange={(e) => setDraft(e.target.value === '' ? null : Number(e.target.value))}
+              />
+            </div>
             <button
-              className="w-full mt-2 bg-standout-medium text-on-standout px-3 py-1 rounded"
+              className={buttonStyle}
               onClick={() => commit(draft === '' ? null : draft)}
             >
-              Save
+              <span className="iconify" data-icon="lucide:check" />
+              Save Value
             </button>
           </div>
         )
@@ -741,39 +787,46 @@ function FieldDialogContent({ pop, onClose, getValue, setValue }: DialogContentP
       case 'boolean': {
         const checked = !!draft
         return (
-          <div className="space-y-2">
-            <label className="flex items-center gap-2 text-sm text-neutral-high">
-              <input
-                type="checkbox"
-                checked={checked}
-                onChange={(e) => setDraft(e.target.checked)}
-              />
-              Toggle
-            </label>
+          <div className="space-y-4">
+            <div className={containerStyle}>
+              <label className="flex items-center gap-3 p-4 rounded-xl border border-line-medium bg-backdrop-low cursor-pointer hover:border-neutral-low transition-all">
+                <input
+                  type="checkbox"
+                  className="w-5 h-5 rounded border-line-high text-standout-medium focus:ring-standout-medium/20"
+                  checked={checked}
+                  onChange={(e) => setDraft(e.target.checked)}
+                />
+                <span className="text-sm font-semibold text-neutral-high uppercase tracking-wider">Enabled</span>
+              </label>
+            </div>
             <button
-              className="w-full mt-2 bg-standout-medium text-on-standout px-3 py-1 rounded"
+              className={buttonStyle}
               onClick={() => commit(!!draft)}
             >
-              Save
+              <span className="iconify" data-icon="lucide:check" />
+              Save Toggle
             </button>
           </div>
         )
       }
       case 'date': {
         return (
-          <div className="space-y-2">
-            <label className="block text-xs text-neutral-medium">Date</label>
-            <input
-              type="date"
-              className="w-full border border-line-medium rounded px-2 py-1 bg-backdrop-high text-neutral-high"
-              value={draft ?? ''}
-              onChange={(e) => setDraft(e.target.value || null)}
-            />
+          <div className="space-y-4">
+            <div className={containerStyle}>
+              <label className={labelStyle}>Date</label>
+              <input
+                type="date"
+                className={inputStyle}
+                value={draft ?? ''}
+                onChange={(e) => setDraft(e.target.value || null)}
+              />
+            </div>
             <button
-              className="w-full mt-2 bg-standout-medium text-on-standout px-3 py-1 rounded"
+              className={buttonStyle}
               onClick={() => commit(draft || null)}
             >
-              Save
+              <span className="iconify" data-icon="lucide:calendar" />
+              Save Date
             </button>
           </div>
         )
@@ -781,7 +834,10 @@ function FieldDialogContent({ pop, onClose, getValue, setValue }: DialogContentP
       case 'object': {
         if (!fields || fields.length === 0) {
           return (
-            <div className="text-xs text-neutral-medium">No fields defined for this object</div>
+            <div className="p-8 text-center bg-backdrop-medium/20 rounded-xl border border-dashed border-line-medium">
+              <span className="iconify text-3xl text-neutral-low mb-2" data-icon="lucide:help-circle" />
+              <p className="text-sm text-neutral-medium">No fields defined for this object</p>
+            </div>
           )
         }
         const obj = draft && typeof draft === 'object' ? draft : {}
@@ -789,215 +845,229 @@ function FieldDialogContent({ pop, onClose, getValue, setValue }: DialogContentP
           setDraft((prev: any) => ({ ...(prev || {}), [fieldName]: value }))
         }
         return (
-          <div className="space-y-4">
-            {fields.map((field) => {
-              const fieldValue = obj[field.name]
-              switch (field.type) {
-                case 'text':
-                case 'textarea':
-                  return (
-                    <div key={field.name} className="space-y-1">
-                      <label className="block text-xs font-medium text-neutral-medium">
-                        {field.label}
-                      </label>
-                      {field.type === 'textarea' ? (
-                        <textarea
-                          className="w-full border border-line-medium rounded px-2 py-1.5 bg-backdrop-high text-neutral-high text-sm resize-none"
-                          rows={3}
-                          value={fieldValue ?? ''}
-                          onChange={(e) => updateField(field.name, e.target.value)}
-                        />
-                      ) : (
-                        <input
-                          type="text"
-                          className="w-full border border-line-medium rounded px-2 py-1.5 bg-backdrop-high text-neutral-high text-sm"
-                          value={fieldValue ?? ''}
-                          onChange={(e) => updateField(field.name, e.target.value)}
-                        />
-                      )}
-                    </div>
-                  )
-                case 'link':
-                  return (
-                    <div key={field.name} className="space-y-1">
-                      <LinkField
-                        label={field.label}
-                        value={fieldValue}
-                        onChange={(val) => updateField(field.name, val)}
-                      />
-                    </div>
-                  )
-                case 'richtext':
-                  return (
-                    <div key={field.name} className="space-y-2">
-                      <label className="block text-xs font-medium text-neutral-medium">
-                        {field.label}
-                      </label>
-                      <div className="border border-line-medium rounded bg-backdrop-high p-2">
-                        <LexicalEditor
-                          value={fieldValue ?? ''}
+          <div className="space-y-6">
+            <div className={containerStyle}>
+              {fields.map((field) => {
+                const fieldValue = obj[field.name]
+                switch (field.type) {
+                  case 'text':
+                  case 'textarea':
+                    return (
+                      <div key={field.name} className="space-y-1.5">
+                        <label className={labelStyle}>
+                          {field.label}
+                        </label>
+                        {field.type === 'textarea' ? (
+                          <textarea
+                            className={`${inputStyle} min-h-[100px] resize-none`}
+                            rows={3}
+                            value={fieldValue ?? ''}
+                            onChange={(e) => updateField(field.name, e.target.value)}
+                          />
+                        ) : (
+                          <input
+                            type="text"
+                            className={inputStyle}
+                            value={fieldValue ?? ''}
+                            onChange={(e) => updateField(field.name, e.target.value)}
+                          />
+                        )}
+                      </div>
+                    )
+                  case 'link':
+                    return (
+                      <div key={field.name} className="space-y-1.5 pt-2 border-t border-line-low/50">
+                        <LinkField
+                          label={field.label}
+                          value={fieldValue}
                           onChange={(val) => updateField(field.name, val)}
-                          placeholder="Start typing…"
-                          editorKey={`${moduleId}-${path}-${field.name}`}
                         />
                       </div>
-                    </div>
-                  )
-                case 'select':
-                  return (
-                    <div key={field.name} className="space-y-1">
-                      <label className="block text-xs font-medium text-neutral-medium">
-                        {field.label}
-                      </label>
-                      <select
-                        className="w-full border border-line-medium rounded px-2 py-1.5 bg-backdrop-high text-neutral-high text-sm"
-                        value={fieldValue ?? ''}
-                        onChange={(e) => updateField(field.name, e.target.value)}
-                      >
-                        <option value="">--</option>
-                        {(field.options || []).map((o) => (
-                          <option key={o.value} value={o.value}>
-                            {o.label}
-                          </option>
-                        ))}
-                      </select>
-                    </div>
-                  )
-                case 'repeater-text': {
-                  const arr: string[] = Array.isArray(fieldValue)
-                    ? fieldValue
-                    : typeof fieldValue === 'string'
-                      ? fieldValue.split('\n').filter(Boolean)
-                      : []
-                  const updateItem = (i: number, val: string) => {
-                    const next = [...arr]
-                    next[i] = val
-                    updateField(field.name, next)
-                  }
-                  const removeItem = (i: number) => {
-                    const next = arr.filter((_, idx) => idx !== i)
-                    updateField(field.name, next)
-                  }
-                  const moveItem = (i: number, dir: -1 | 1) => {
-                    const j = i + dir
-                    if (j < 0 || j >= arr.length) return
-                    const next = [...arr]
-                    const tmp = next[i]
-                    next[i] = next[j]
-                    next[j] = tmp
-                    updateField(field.name, next)
-                  }
-                  const addItem = () => {
-                    updateField(field.name, [...arr, ''])
-                  }
-                  return (
-                    <div key={field.name} className="space-y-2">
-                      <label className="block text-xs font-medium text-neutral-medium">
-                        {field.label}
-                      </label>
-                      <div className="space-y-2">
-                        {arr.map((val, i) => (
-                          <div key={i} className="flex items-center gap-2">
-                            <input
-                              type="text"
-                              className="flex-1 border border-line-medium rounded px-2 py-1.5 bg-backdrop-high text-neutral-high text-sm"
-                              value={val}
-                              onChange={(e) => updateItem(i, e.target.value)}
-                            />
-                            <div className="flex gap-1">
-                              <button
-                                type="button"
-                                className="px-2 py-1 text-xs border border-line-medium rounded bg-backdrop-high hover:bg-backdrop-medium"
-                                onClick={() => moveItem(i, -1)}
-                                aria-label="Move up"
-                              >
-                                ↑
-                              </button>
-                              <button
-                                type="button"
-                                className="px-2 py-1 text-xs border border-line-medium rounded bg-backdrop-high hover:bg-backdrop-medium"
-                                onClick={() => moveItem(i, 1)}
-                                aria-label="Move down"
-                              >
-                                ↓
-                              </button>
-                              <button
-                                type="button"
-                                className="px-2 py-1 text-xs border border-line-medium rounded bg-backdrop-high hover:bg-backdrop-medium text-danger"
-                                onClick={() => removeItem(i)}
-                                aria-label="Remove"
-                              >
-                                ×
-                              </button>
-                            </div>
+                    )
+                  case 'richtext':
+                    return (
+                      <div key={field.name} className="space-y-1.5 pt-2 border-t border-line-low/50">
+                        <label className={labelStyle}>
+                          {field.label}
+                        </label>
+                        <div className="border border-line-medium rounded-xl bg-backdrop-low p-2 shadow-sm">
+                          <LexicalEditor
+                            value={fieldValue ?? ''}
+                            onChange={(val) => updateField(field.name, val)}
+                            placeholder="Start typing…"
+                            editorKey={`${moduleId}-${path}-${field.name}`}
+                          />
+                        </div>
+                      </div>
+                    )
+                  case 'select':
+                    return (
+                      <div key={field.name} className="space-y-1.5 pt-2 border-t border-line-low/50">
+                        <label className={labelStyle}>
+                          {field.label}
+                        </label>
+                        <div className="relative">
+                          <select
+                            className={selectStyle}
+                            value={fieldValue ?? ''}
+                            onChange={(e) => updateField(field.name, e.target.value)}
+                          >
+                            <option value="">-- Select --</option>
+                            {(field.options || []).map((o) => (
+                              <option key={o.value} value={o.value}>
+                                {o.label}
+                              </option>
+                            ))}
+                          </select>
+                          <div className="absolute right-4 top-1/2 -translate-y-1/2 pointer-events-none text-neutral-low">
+                            <span className="iconify" data-icon="lucide:chevron-down" />
                           </div>
-                        ))}
-                        <button
-                          type="button"
-                          className="px-3 py-1.5 text-xs rounded border border-line-medium bg-backdrop-high hover:bg-backdrop-medium"
-                          onClick={addItem}
-                        >
-                          Add item
-                        </button>
+                        </div>
                       </div>
-                    </div>
-                  )
-                }
-                case 'number':
-                  return (
-                    <div key={field.name} className="space-y-1">
-                      <label className="block text-xs font-medium text-neutral-medium">
-                        {field.label}
-                      </label>
-                      <input
-                        type="number"
-                        className="w-full border border-line-medium rounded px-2 py-1.5 bg-backdrop-high text-neutral-high text-sm"
-                        value={fieldValue ?? ''}
-                        onChange={(e) =>
-                          updateField(
-                            field.name,
-                            e.target.value === '' ? null : Number(e.target.value)
-                          )
-                        }
-                      />
-                    </div>
-                  )
-                case 'boolean':
-                  return (
-                    <div key={field.name} className="space-y-1">
-                      <label className="flex items-center gap-2 text-sm text-neutral-high">
+                    )
+                  case 'repeater-text': {
+                    const arr: string[] = Array.isArray(fieldValue)
+                      ? fieldValue
+                      : typeof fieldValue === 'string'
+                        ? fieldValue.split('\n').filter(Boolean)
+                        : []
+                    const updateItem = (i: number, val: string) => {
+                      const next = [...arr]
+                      next[i] = val
+                      updateField(field.name, next)
+                    }
+                    const removeItem = (i: number) => {
+                      const next = arr.filter((_, idx) => idx !== i)
+                      updateField(field.name, next)
+                    }
+                    const moveItem = (i: number, dir: -1 | 1) => {
+                      const j = i + dir
+                      if (j < 0 || j >= arr.length) return
+                      const next = [...arr]
+                      const tmp = next[i]
+                      next[i] = next[j]
+                      next[j] = tmp
+                      updateField(field.name, next)
+                    }
+                    const addItem = () => {
+                      updateField(field.name, [...arr, ''])
+                    }
+                    return (
+                      <div key={field.name} className="space-y-3 pt-2 border-t border-line-low/50">
+                        <label className={labelStyle}>
+                          {field.label}
+                        </label>
+                        <div className="space-y-2">
+                          {arr.map((val, i) => (
+                            <div key={i} className="flex items-center gap-2 group/item">
+                              <input
+                                type="text"
+                                className="flex-1 border border-line-medium rounded-xl px-3 py-2 bg-backdrop-low text-neutral-high text-sm focus:ring-2 focus:ring-standout-medium/20 focus:border-standout-medium outline-none transition-all shadow-sm"
+                                value={val}
+                                onChange={(e) => updateItem(i, e.target.value)}
+                              />
+                              <div className="flex gap-1 opacity-0 group-hover/item:opacity-100 transition-opacity">
+                                <button
+                                  type="button"
+                                  className="w-8 h-8 flex items-center justify-center border border-line-medium rounded-lg bg-backdrop-low hover:bg-backdrop-medium text-neutral-medium hover:text-neutral-high transition-colors shadow-sm"
+                                  onClick={() => moveItem(i, -1)}
+                                  aria-label="Move up"
+                                >
+                                  <span className="iconify" data-icon="lucide:arrow-up" />
+                                </button>
+                                <button
+                                  type="button"
+                                  className="w-8 h-8 flex items-center justify-center border border-line-medium rounded-lg bg-backdrop-low hover:bg-backdrop-medium text-neutral-medium hover:text-neutral-high transition-colors shadow-sm"
+                                  onClick={() => moveItem(i, 1)}
+                                  aria-label="Move down"
+                                >
+                                  <span className="iconify" data-icon="lucide:arrow-down" />
+                                </button>
+                                <button
+                                  type="button"
+                                  className="w-8 h-8 flex items-center justify-center border border-line-medium rounded-lg bg-backdrop-low hover:bg-red-500/10 text-neutral-low hover:text-red-500 transition-colors shadow-sm"
+                                  onClick={() => removeItem(i)}
+                                  aria-label="Remove"
+                                >
+                                  <span className="iconify" data-icon="lucide:trash-2" />
+                                </button>
+                              </div>
+                            </div>
+                          ))}
+                          <button
+                            type="button"
+                            className="w-full py-2.5 text-xs font-bold rounded-xl border border-dashed border-line-high text-neutral-medium hover:border-neutral-low hover:bg-backdrop-medium transition-all flex items-center justify-center gap-2 mt-2"
+                            onClick={addItem}
+                          >
+                            <span className="iconify" data-icon="lucide:plus" />
+                            Add {field.label} Item
+                          </button>
+                        </div>
+                      </div>
+                    )
+                  }
+                  case 'number':
+                    return (
+                      <div key={field.name} className="space-y-1.5 pt-2 border-t border-line-low/50">
+                        <label className={labelStyle}>
+                          {field.label}
+                        </label>
                         <input
-                          type="checkbox"
-                          checked={!!fieldValue}
-                          onChange={(e) => updateField(field.name, e.target.checked)}
+                          type="number"
+                          className={inputStyle}
+                          value={fieldValue ?? ''}
+                          onChange={(e) =>
+                            updateField(
+                              field.name,
+                              e.target.value === '' ? null : Number(e.target.value)
+                            )
+                          }
                         />
-                        {field.label}
-                      </label>
-                    </div>
-                  )
-                default:
-                  return (
-                    <div key={field.name} className="text-xs text-neutral-low">
-                      Unsupported field type: {field.type}
-                    </div>
-                  )
-              }
-            })}
+                      </div>
+                    )
+                  case 'boolean':
+                    return (
+                      <div key={field.name} className="space-y-1.5 pt-2 border-t border-line-low/50">
+                        <label className="flex items-center gap-3 p-3 rounded-xl border border-line-medium bg-backdrop-low cursor-pointer hover:border-neutral-low transition-all">
+                          <input
+                            type="checkbox"
+                            className="w-5 h-5 rounded border-line-high text-standout-medium focus:ring-standout-medium/20"
+                            checked={!!fieldValue}
+                            onChange={(e) => updateField(field.name, e.target.checked)}
+                          />
+                          <span className="text-xs font-bold text-neutral-high uppercase tracking-wider">{field.label}</span>
+                        </label>
+                      </div>
+                    )
+                  default:
+                    return (
+                      <div key={field.name} className="p-3 bg-red-500/5 border border-red-500/10 rounded-xl text-[10px] text-red-500 font-mono">
+                        Unsupported field type: {field.type}
+                      </div>
+                    )
+                }
+              })}
+            </div>
             <button
-              className="w-full mt-2 bg-standout-medium text-on-standout px-3 py-1.5 rounded font-medium"
+              className={buttonStyle}
               onClick={() => commit(obj)}
             >
-              Save
+              <span className="iconify" data-icon="lucide:save" />
+              Save Field Group
             </button>
           </div>
         )
       }
       default:
         return (
-          <div className="space-y-2">
-            <div className="text-xs text-neutral-medium">Unsupported inline field type: {type}</div>
+          <div className="space-y-4">
+            <div className="p-8 text-center bg-backdrop-medium/20 rounded-xl border border-dashed border-line-medium">
+              <span className="iconify text-3xl text-neutral-low mb-2" data-icon="lucide:alert-circle" />
+              <p className="text-sm text-neutral-medium uppercase font-bold tracking-wider">Unsupported Inline Type</p>
+              <p className="text-xs text-neutral-low mt-1">{type}</p>
+            </div>
             <button
-              className="w-full mt-2 bg-backdrop-high text-neutral-high px-3 py-1 rounded border border-line-medium"
+              className={`${buttonStyle} bg-backdrop-medium text-neutral-high border border-line-medium shadow-none hover:bg-backdrop-high`}
               onClick={onClose}
             >
               Close
@@ -1007,5 +1077,5 @@ function FieldDialogContent({ pop, onClose, getValue, setValue }: DialogContentP
     }
   }
 
-  return <div className="mt-4">{renderControl()}</div>
+  return <div>{renderControl()}</div>
 }

@@ -47,6 +47,7 @@ interface PostPageProps {
     defaultMetaDescription?: string | null
     [key: string]: any
   }
+  customFields?: Record<string, any>
 }
 
 function getModuleComponent(type: string): any {
@@ -55,7 +56,7 @@ function getModuleComponent(type: string): any {
   return Modules[key as keyof typeof Modules] || null
 }
 
-export default function PostTypeDefault({ post, modules, seo, siteSettings }: PostPageProps) {
+export default function PostTypeDefault({ post, modules, seo, siteSettings, customFields }: PostPageProps) {
   const page = usePage()
   const currentUser = (page.props as any)?.currentUser
   const isAuthenticated =
@@ -136,6 +137,7 @@ export default function PostTypeDefault({ post, modules, seo, siteSettings }: Po
         <InlineEditorProvider
           postId={post.id}
           post={post}
+          customFields={customFields}
           modules={modules.map((m) => ({
             id: m.id,
             scope: m.scope,

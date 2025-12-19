@@ -31,8 +31,8 @@ export function EditableImage({ children, path, moduleId, postId, title }: Edita
         {children({ open: () => setOpen(true) })}
         <button
           type="button"
-          aria-label="Edit image"
-          title={title || 'Edit image'}
+          aria-label="Edit media"
+          title={title || 'Edit media'}
           onClick={() => setOpen(true)}
           className="absolute top-2 right-2 inline-flex items-center justify-center rounded-full bg-backdrop-high/90 border border-line-medium text-neutral-high p-2 shadow hover:bg-backdrop-medium opacity-0 group-hover:opacity-100 transition-opacity"
         >
@@ -47,7 +47,7 @@ export function EditableImage({ children, path, moduleId, postId, title }: Edita
           setOpen(false)
         }}
         allowUpload
-        title="Select image"
+        title="Select media"
       />
     </>
   )

@@ -242,6 +242,7 @@ export default class MediaController {
     const altText = request.input('altText')
     const title = request.input('title')
     const description = request.input('description')
+    const playMode = request.input('playMode')
     let categoriesInput = request.input('categories')
     let categories: string[] | undefined
     if (categoriesInput !== undefined) {
@@ -262,6 +263,16 @@ export default class MediaController {
     if (title !== undefined) update.caption = title
     if (description !== undefined) update.description = description
     if (categories !== undefined) update.categories = categories
+
+    if (playMode !== undefined) {
+      const row = await db.from('media_assets').where('id', id).first()
+      if (row) {
+        const meta = (row.metadata as any) || {}
+        meta.playMode = playMode
+        update.metadata = JSON.stringify(meta)
+      }
+    }
+
     const count = await db.from('media_assets').where('id', id).update(update)
     if (!count) return response.notFound({ error: 'Media not found' })
     try {
@@ -988,6 +999,7 @@ export default class MediaController {
       data: {
         id: row.id,
         url: row.url,
+        mimeType: row.mime_type,
         metadata: row.metadata || null,
         altText: row.alt_text,
         categories: Array.isArray(row.categories) ? row.categories : [],

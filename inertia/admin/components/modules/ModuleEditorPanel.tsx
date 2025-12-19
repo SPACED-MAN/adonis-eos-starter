@@ -19,11 +19,14 @@ import { FormField, FormLabel } from '~/components/forms/field'
 import { LinkField, type LinkFieldValue } from '~/components/forms/LinkField'
 import { MediaPickerModal } from '../media/MediaPickerModal'
 import { pickMediaVariantUrl, type MediaVariant } from '../../../lib/media'
+import { MediaRenderer } from '../../../components/MediaRenderer'
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome'
 import { faWandMagicSparkles } from '@fortawesome/free-solid-svg-icons'
 import { iconOptions, iconMap } from '../ui/iconOptions'
 import { AgentModal, type Agent } from '../agents/AgentModal'
 import { useHasPermission } from '~/utils/permissions'
+
+import { TokenField } from '../ui/TokenField'
 
 export interface ModuleListItem {
   id: string
@@ -64,6 +67,12 @@ type FieldSchema =
     max?: number
     step?: number
     unit?: string
+    showIf?: {
+      field: string
+      equals?: any
+      notEquals?: any
+      isVideo?: boolean
+    }
   }
   | { name: string;[key: string]: any }
 
@@ -125,6 +134,8 @@ type EditorFieldCtx = {
   moduleType?: string
   fieldAgents: Agent[]
   viewMode?: 'source' | 'review' | 'ai-review'
+  customFields?: Array<{ slug: string; label: string }>
+  onDirty?: () => void
 }
 
 function setByPath(obj: Record<string, any>, path: string | string[], value: any) {
@@ -312,6 +323,7 @@ export function ModuleEditorPanel({
   postId,
   moduleInstanceId,
   viewMode,
+  customFields = [],
 }: {
   open: boolean
   moduleItem: ModuleListItem | null
@@ -324,6 +336,7 @@ export function ModuleEditorPanel({
   postId?: string
   moduleInstanceId?: string
   viewMode?: 'source' | 'review' | 'ai-review'
+  customFields?: Array<{ slug: string; label: string }>
 }) {
   const merged = useMemo(
     () => (moduleItem ? mergeProps(moduleItem.props || {}, moduleItem.overrides || null) : {}),
@@ -546,6 +559,8 @@ export function ModuleEditorPanel({
       moduleType: moduleItem?.type,
       fieldAgents,
       viewMode,
+      customFields,
+      onDirty,
     }),
     [
       setDraft,
@@ -558,6 +573,8 @@ export function ModuleEditorPanel({
       moduleItem?.type,
       fieldAgents,
       viewMode,
+      customFields,
+      onDirty,
     ]
   )
 
@@ -718,6 +735,7 @@ export function ModuleEditorPanel({
                             const next = JSON.parse(JSON.stringify(draft))
                             setByPath(next, key, json)
                             setDraft(next)
+                            if (ctx.onDirty) ctx.onDirty()
                           },
                         })
                       ) : (
@@ -739,6 +757,7 @@ export function ModuleEditorPanel({
                             const next = JSON.parse(JSON.stringify(draft))
                             setByPath(next, key, json)
                             setDraft(next)
+                            if (ctx.onDirty) ctx.onDirty()
                           }}
                         />
                       )}
@@ -842,6 +861,7 @@ export const ModuleEditorInline = memo(function ModuleEditorInline({
   autoSaveOnBlur = true,
   registerFlush,
   className = '',
+  customFields = [],
 }: {
   moduleItem: ModuleListItem
   onSave: (overrides: Record<string, any> | null, edited: Record<string, any>) => Promise<void> | void
@@ -855,6 +875,7 @@ export const ModuleEditorInline = memo(function ModuleEditorInline({
   autoSaveOnBlur?: boolean
   registerFlush?: (flush: (() => Promise<void>) | null) => void
   className?: string
+  customFields?: Array<{ slug: string; label: string }>
 }) {
   const merged = useMemo(
     () => (moduleItem ? mergeProps(moduleItem.props || {}, moduleItem.overrides || null) : {}),
@@ -1088,6 +1109,8 @@ export const ModuleEditorInline = memo(function ModuleEditorInline({
       moduleType: moduleItem?.type,
       fieldAgents,
       viewMode,
+      customFields,
+      onDirty,
     }),
     [
       setDraft,
@@ -1099,6 +1122,8 @@ export const ModuleEditorInline = memo(function ModuleEditorInline({
       moduleItem?.type,
       fieldAgents,
       viewMode,
+      customFields,
+      onDirty,
     ]
   )
 
@@ -1669,6 +1694,7 @@ const MediaFieldInternal = memo(({
   type ModalMediaItem = {
     id: string
     url: string
+    mimeType?: string
     originalFilename?: string
     alt?: string | null
   }
@@ -1679,7 +1705,7 @@ const MediaFieldInternal = memo(({
   const [preSelectedMediaId, setPreSelectedMediaId] = useState<string | null>(null)
   const hiddenRef = useRef<HTMLInputElement | null>(null)
   const displayRef = useRef<HTMLInputElement | null>(null)
-  const currentVal = typeof value === 'string' ? value : ''
+  const currentVal = typeof value === 'string' ? value : (value?.id || '')
   const [preview, setPreview] = useState<ModalMediaItem | null>(null)
 
   const matchingAgents = ctx.fieldAgents.filter((agent: any) => {
@@ -1694,9 +1720,12 @@ const MediaFieldInternal = memo(({
 
   const [mediaData, setMediaData] = useState<{
     baseUrl: string
+    mimeType?: string
     variants: MediaVariant[]
     darkSourceUrl?: string
+    playMode?: 'autoplay' | 'inline' | 'modal'
   } | null>(null)
+  const [localPlayMode, setLocalPlayMode] = useState<'autoplay' | 'inline' | 'modal'>('autoplay')
   const isDark = useIsDarkMode()
 
   useEffect(() => {
@@ -1720,6 +1749,7 @@ const MediaFieldInternal = memo(({
       const data = mediaMetadataCache.get(currentVal)
       setPreview(data.item)
       setMediaData(data.mediaData)
+      setLocalPlayMode(data.mediaData.playMode || 'autoplay')
       return
     }
 
@@ -1745,13 +1775,15 @@ const MediaFieldInternal = memo(({
           const item: ModalMediaItem = {
             id: j.data.id,
             url: j.data.url,
+            mimeType: j.data.mimeType,
             originalFilename: j.data.originalFilename,
             alt: j.data.alt,
           }
           const meta = j.data.metadata || {}
           const variants: MediaVariant[] = Array.isArray(meta?.variants) ? meta.variants : []
           const darkSourceUrl = typeof meta.darkSourceUrl === 'string' ? meta.darkSourceUrl : undefined
-          const mData = { baseUrl: j.data.url, variants, darkSourceUrl }
+          const playMode = meta.playMode || 'autoplay'
+          const mData = { baseUrl: j.data.url, mimeType: j.data.mimeType, variants, darkSourceUrl, playMode }
 
           mediaMetadataCache.set(currentVal, { item, mediaData: mData })
           mediaMetadataLoading.delete(currentVal)
@@ -1759,6 +1791,9 @@ const MediaFieldInternal = memo(({
           if (alive) {
             setPreview(item)
             setMediaData(mData)
+            setLocalPlayMode(playMode)
+            // Trigger a re-render of the editor so showIf conditions can re-evaluate
+            ctx.setDraft((prev) => ({ ...prev }))
           }
         } catch {
           mediaMetadataLoading.delete(currentVal)
@@ -1779,6 +1814,43 @@ const MediaFieldInternal = memo(({
     })
   }, [preview, mediaData, isDark])
 
+  const xsrfFromCookie = useMemo(() => {
+    if (typeof document === 'undefined') return undefined
+    const m = document.cookie.match(/(?:^|; )XSRF-TOKEN=([^;]+)/)
+    return m ? decodeURIComponent(m[1]) : undefined
+  }, [])
+
+  async function updateMediaPlayMode(val: 'autoplay' | 'inline' | 'modal') {
+    setLocalPlayMode(val)
+    if (!preview?.id) return
+    try {
+      const res = await fetch(`/api/media/${encodeURIComponent(preview.id)}`, {
+        method: 'PATCH',
+        headers: {
+          'Accept': 'application/json',
+          'Content-Type': 'application/json',
+          ...(xsrfFromCookie ? { 'X-XSRF-TOKEN': xsrfFromCookie } : {}),
+        },
+        credentials: 'same-origin',
+        body: JSON.stringify({ playMode: val }),
+      })
+      if (!res.ok) throw new Error('Failed to update')
+
+      // Update cache
+      const cached = mediaMetadataCache.get(preview.id)
+      if (cached) {
+        cached.mediaData.playMode = val
+        mediaMetadataCache.set(preview.id, cached)
+      }
+      toast.success('Video play mode saved')
+      // Trigger a re-render
+      ctx.setDraft((prev) => ({ ...prev }))
+      if (ctx.onDirty) ctx.onDirty()
+    } catch {
+      toast.error('Failed to save play mode')
+    }
+  }
+
   function applySelection(m: ModalMediaItem) {
     if (hiddenRef.current) {
       hiddenRef.current.value = storeAsId ? m.id : m.url
@@ -1790,8 +1862,22 @@ const MediaFieldInternal = memo(({
       ctx.setByPath(next, name, storeAsId ? m.id : m.url)
       return next
     })
+    if (ctx.onDirty) ctx.onDirty()
     setPreview(m)
-    setMediaData(null)
+    if (m.mimeType) {
+      const meta = (m as any).metadata || {}
+      const playMode = meta.playMode || 'autoplay'
+      setMediaData({
+        baseUrl: m.url,
+        mimeType: m.mimeType,
+        variants: meta.variants || [],
+        darkSourceUrl: meta.darkSourceUrl,
+        playMode,
+      })
+      setLocalPlayMode(playMode)
+    } else {
+      setMediaData(null)
+    }
   }
 
   const fieldKey = ctx.moduleType && ctx.postId ? `module.${ctx.moduleType}.${name}` : undefined
@@ -1816,18 +1902,22 @@ const MediaFieldInternal = memo(({
       </div>
       <div className="flex items-start gap-3">
         <div className="min-w-[72px]">
-          {displayUrl ? (
+          {preview ? (
             <div className="w-[72px] h-[72px] border border-line-medium rounded overflow-hidden bg-backdrop-medium">
-              <img
-                src={displayUrl}
+              <MediaRenderer
+                url={displayUrl || preview.url}
+                mimeType={mediaData?.mimeType}
                 alt={preview?.alt || preview?.originalFilename || ''}
                 className="w-full h-full object-cover"
                 key={`${displayUrl}-${isDark}`}
+                controls={false}
+                autoPlay={false}
+                playMode={mediaData?.mimeType?.startsWith('video/') ? (mediaData as any).playMode : undefined}
               />
             </div>
           ) : (
             <div className="w-[72px] h-[72px] border border-dashed border-line-high rounded flex items-center justify-center text-[10px] text-neutral-medium">
-              No image
+              No media
             </div>
           )}
         </div>
@@ -1863,13 +1953,40 @@ const MediaFieldInternal = memo(({
                 Clear
               </button>
             )}
-            {preview && (
-              <div className="text-[11px] text-neutral-low truncate max-w-[240px]">
-                {(preview.alt || preview.originalFilename || '').toString()}
-              </div>
-            )}
-          </div>
+          {preview && (
+            <div className="text-[11px] text-neutral-low truncate max-w-[240px]">
+              {(preview.alt || preview.originalFilename || '').toString()}
+            </div>
+          )}
         </div>
+        {(() => {
+          const isVideo =
+            mediaData?.mimeType?.startsWith('video/') ||
+            preview?.url?.toLowerCase().endsWith('.mp4') ||
+            preview?.url?.toLowerCase().endsWith('.webm') ||
+            preview?.url?.toLowerCase().endsWith('.ogg')
+
+          if (!isVideo) return null
+
+          return (
+            <div className="mt-3 space-y-1">
+              <label className="text-[11px] font-medium text-neutral-medium">
+                Play Mode (Media Field)
+              </label>
+              <Select value={localPlayMode} onValueChange={(v: any) => updateMediaPlayMode(v)}>
+                <SelectTrigger className="h-8 text-xs">
+                  <SelectValue placeholder="Select play mode" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="autoplay">Inline (Auto-loop)</SelectItem>
+                  <SelectItem value="inline">Inline (With Controls)</SelectItem>
+                  <SelectItem value="modal">Open in Modal</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+          )
+        })()}
+      </div>
         <MediaPickerModal
           open={modalOpen}
           onOpenChange={(open) => {
@@ -2491,7 +2608,18 @@ const FieldPrimitiveInternal = memo(({
     return (
       <FormField>
         {!hideLabel && <FormLabel>{label}</FormLabel>}
-        <Textarea name={name} defaultValue={value ?? ''} data-root-id={rootId} />
+        <TokenField
+          type="textarea"
+          name={name}
+          value={value ?? ''}
+          onChange={(val) => {
+            const next = { ...(ctx.latestDraft.current || {}) }
+            ctx.setByPath(next, name, val)
+            ctx.setDraft(next)
+          }}
+          data-root-id={rootId}
+          customFields={ctx.customFields}
+        />
       </FormField>
     )
   }
@@ -2605,12 +2733,18 @@ const FieldPrimitiveInternal = memo(({
   return (
     <FormField>
       {!hideLabel && <FormLabel>{label}</FormLabel>}
-      <Input
+      <TokenField
         type="text"
         name={name}
         placeholder={(field as any).placeholder || ''}
-        defaultValue={value ?? ''}
+        value={value ?? ''}
+        onChange={(val) => {
+          const next = { ...(ctx.latestDraft.current || {}) }
+          ctx.setByPath(next, name, val)
+          ctx.setDraft(next)
+        }}
         data-root-id={rootId}
+        customFields={ctx.customFields}
       />
     </FormField>
   )
@@ -2629,6 +2763,27 @@ const FieldBySchemaInternal = memo(({
   rootId: string
   ctx: EditorFieldCtx
 }) => {
+  const showIf = (field as any).showIf
+  if (showIf && typeof showIf === 'object') {
+    const depPath = showIf.field
+    const depValue = ctx.getByPath(ctx.latestDraft.current, depPath)
+
+    if (showIf.isVideo === true) {
+      const cached = mediaMetadataCache.get(depValue)
+      const isVideo =
+        cached?.mediaData?.mimeType?.startsWith('video/') ||
+        (typeof depValue === 'string' &&
+          (depValue.toLowerCase().endsWith('.mp4') ||
+            depValue.toLowerCase().endsWith('.webm') ||
+            depValue.toLowerCase().endsWith('.ogg')))
+      if (!isVideo) return null
+    } else if (showIf.equals !== undefined) {
+      if (depValue !== showIf.equals) return null
+    } else if (showIf.notEquals !== undefined) {
+      if (depValue === showIf.notEquals) return null
+    }
+  }
+
   const type = (field as any).type as string
   const name = path.join('.')
   const label = ctx.getLabel(path, field)

@@ -32,9 +32,9 @@ export default class ProseWithMediaModule extends BaseModule {
         image: {
           type: 'media',
           label: 'Media',
-          accept: 'image/*',
+          accept: 'image/*,video/*',
           storeAs: 'id',
-          description: 'Image or illustration shown beside the prose (stored as media ID).',
+          description: 'Image or video shown beside the prose (stored as media ID).',
         },
         imagePosition: {
           type: 'select',

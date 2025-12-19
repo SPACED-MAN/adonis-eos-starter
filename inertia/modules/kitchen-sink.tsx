@@ -1,5 +1,6 @@
 import React, { useEffect, useState } from 'react'
 import { pickMediaVariantUrl } from '../lib/media'
+import { MediaRenderer } from '../components/MediaRenderer'
 
 type KitchenSinkProps = {
   title: string
@@ -25,27 +26,28 @@ type KitchenSinkProps = {
 }
 
 export default function KitchenSink(props: KitchenSinkProps) {
-  const [resolvedImageUrl, setResolvedImageUrl] = useState<string | null>(null)
+  const [resolvedMedia, setResolvedMedia] = useState<{ url: string; mimeType?: string } | null>(null)
 
   useEffect(() => {
     async function resolveImage() {
       const id = props.image
       if (!id) {
-        setResolvedImageUrl(null)
+        setResolvedMedia(null)
         return
       }
       try {
         const res = await fetch(`/public/media/${encodeURIComponent(id)}`)
         if (!res.ok) {
-          setResolvedImageUrl(null)
+          setResolvedMedia(null)
           return
         }
         const j = await res.json().catch(() => null)
         const data = j?.data
         if (!data) {
-          setResolvedImageUrl(null)
+          setResolvedMedia(null)
           return
         }
+        const mimeType = data.mimeType
         const meta = (data as any).metadata || {}
         const variants = Array.isArray(meta?.variants) ? (meta.variants as any[]) : []
         const darkSourceUrl =
@@ -53,9 +55,9 @@ export default function KitchenSink(props: KitchenSinkProps) {
         const url = pickMediaVariantUrl(data.url, variants, props.imageVariant || null, {
           darkSourceUrl,
         })
-        setResolvedImageUrl(url)
+        setResolvedMedia({ url, mimeType })
       } catch {
-        setResolvedImageUrl(null)
+        setResolvedMedia(null)
       }
     }
     resolveImage()
@@ -79,16 +81,17 @@ export default function KitchenSink(props: KitchenSinkProps) {
             )}
           </header>
 
-          {resolvedImageUrl && (
+          {resolvedMedia && (
             <div
               className="rounded-lg overflow-hidden border border-line-medium aspect-[16/9]"
               data-inline-type="media"
               data-inline-path="image"
             >
-              <img
-                src={resolvedImageUrl}
+              <MediaRenderer
+                url={resolvedMedia.url}
+                mimeType={resolvedMedia.mimeType}
                 alt={props.title}
-                className="w-full h-full object-cover"
+                playMode={resolvedMedia.metadata?.playMode || 'autoplay'}
               />
             </div>
           )}

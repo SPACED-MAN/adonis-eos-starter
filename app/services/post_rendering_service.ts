@@ -4,6 +4,7 @@ import PostModule from '#models/post_module'
 import urlPatternService from '#services/url_pattern_service'
 import siteSettingsService from '#services/site_settings_service'
 import moduleRegistry from '#services/module_registry'
+import tokenService from '#services/token_service'
 import { robotsConfigToString, DEFAULT_ROBOTS, type PostSeoData } from '#types/seo'
 import { resolvePostReferences } from '#helpers/resolve_post_references'
 
@@ -459,6 +460,35 @@ class PostRenderingService {
     const aiReviewDraft = (post as any).aiReviewDraft || (post as any).ai_review_draft || null
     const { wantReview = false, draftMode = 'review' } = options
 
+    // Load site settings and custom fields first for token resolution
+    const siteSettings = await siteSettingsService.get()
+    const customFieldRows = await db
+      .from('post_custom_field_values')
+      .where('post_id', post.id)
+      .select('field_slug', 'value')
+    const customFields: Record<string, any> = {}
+    customFieldRows.forEach((row) => {
+      customFields[row.field_slug] = row.value
+    })
+
+    // Load author
+    const authorId = (post as any).authorId || (post as any).author_id
+    const author = await this.loadAuthor(authorId)
+
+    // Resolve post fields (handles drafts and fallback logic)
+    const postData = this.resolvePostFields(post, {
+      wantReview,
+      reviewDraft: draftMode === 'ai-review' ? (aiReviewDraft as any) : reviewDraft,
+      aiReviewDraft: aiReviewDraft as any,
+    })
+    postData.author = author
+
+    const tokenContext = {
+      post, // Use raw model (published/base values) for initial token resolution
+      siteSettings,
+      customFields,
+    }
+
     // Load modules
     const modulesRaw = await this.loadPostModules(post.id, { includeReviewFields: true })
     const modules = await this.buildModulesForView(modulesRaw, {
@@ -472,36 +502,39 @@ class PostRenderingService {
       draftMode: draftMode === 'auto' ? (reviewDraft ? 'review' : 'ai-review') : draftMode,
     })
 
-    // Load author
-    const authorId = (post as any).authorId || (post as any).author_id
-    const author = await this.loadAuthor(authorId)
+    // Resolve tokens in post data (title, excerpt, meta fields)
+    // Note: this uses the raw post in context to avoid recursion if draft contains tokens
+    const resolvedPostData = tokenService.resolveRecursive(postData, tokenContext)
+
+    // Update tokenContext with the resolved post data for module/SEO resolution
+    // This allows modules to see draft values for fields other than themselves
+    tokenContext.post = resolvedPostData
+
+    // Resolve tokens in modules
+    const resolvedModules = modules.map((m) => ({
+      ...m,
+      props: tokenService.resolveRecursive(m.props, tokenContext),
+      overrides: tokenService.resolveRecursive(m.overrides, tokenContext),
+    }))
 
     // Build SEO
     // SEO is currently derived from reviewDraft; for AI review previews, fall back to aiReviewDraft
-    const seo = await this.buildSeoData(post, {
+    const seoRaw = await this.buildSeoData(post, {
       ...options,
       reviewDraft: draftMode === 'ai-review' ? (aiReviewDraft as any) : reviewDraft,
     })
-
-    // Load site settings
-    const siteSettings = await siteSettingsService.get()
-
-    // Resolve post fields
-    const postData = this.resolvePostFields(post, {
-      wantReview,
-      reviewDraft: draftMode === 'ai-review' ? (aiReviewDraft as any) : reviewDraft,
-      aiReviewDraft: aiReviewDraft as any,
-    })
-    postData.author = author
+    // Resolve tokens in SEO (canonical URL, meta titles, OG fields)
+    const seo = tokenService.resolveRecursive(seoRaw, tokenContext)
 
     // Build breadcrumb trail from hierarchy
     const breadcrumbTrail = await this.buildBreadcrumbTrail(post)
 
     return {
-      post: postData,
-      modules,
+      post: resolvedPostData,
+      modules: resolvedModules,
       seo,
       siteSettings: siteSettings as Record<string, unknown>,
+      customFields,
       hasReviewDraft: Boolean(reviewDraft || aiReviewDraft),
       breadcrumbTrail,
     }

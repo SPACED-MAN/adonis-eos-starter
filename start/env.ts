@@ -82,6 +82,17 @@ export default await Env.create(new URL('../', import.meta.url), {
   MEDIA_DERIVATIVES: Env.schema.string.optional(),
   MEDIA_ADMIN_THUMBNAIL_VARIANT: Env.schema.string.optional(),
   MEDIA_ADMIN_MODAL_VARIANT: Env.schema.string.optional(),
+  MEDIA_DARK_BRIGHTNESS: Env.schema.number.optional(),
+  MEDIA_DARK_SATURATION: Env.schema.number.optional(),
+  MEDIA_WEBP_QUALITY: Env.schema.number.optional(),
+
+  /*
+  |----------------------------------------------------------
+  | Protected Access
+  |----------------------------------------------------------
+  */
+  PROTECTED_ACCESS_USERNAME: Env.schema.string.optional(),
+  PROTECTED_ACCESS_PASSWORD: Env.schema.string.optional(),
 
   /*
   |----------------------------------------------------------
@@ -122,6 +133,7 @@ export default await Env.create(new URL('../', import.meta.url), {
   */
   CMS_SCHEDULER_DEV_INTERVAL: Env.schema.number.optional(),
   CMS_SCHEDULER_PROD_INTERVAL: Env.schema.number.optional(),
+  SCHEDULER_DISABLED: Env.schema.boolean.optional(),
 
   /*
   |----------------------------------------------------------
@@ -145,6 +157,18 @@ export default await Env.create(new URL('../', import.meta.url), {
   AI_PROVIDER_ANTHROPIC_API_KEY: Env.schema.string.optional(),
   AI_PROVIDER_GOOGLE_API_KEY: Env.schema.string.optional(),
   AI_PROVIDER_NANOBANANA_API_KEY: Env.schema.string.optional(),
+  AGENT_SECRET: Env.schema.string.optional(),
+  AGENT_USERS_BOOTSTRAP_DISABLED: Env.schema.boolean.optional(),
+
+  /*
+  |----------------------------------------------------------
+  | Workflows
+  |----------------------------------------------------------
+  */
+  SLACK_WEBHOOK_URL: Env.schema.string.optional(),
+  N8N_WEBHOOK_URL: Env.schema.string.optional(),
+  WEBHOOK_SECRET: Env.schema.string.optional(),
+  WORKFLOW_USERS_BOOTSTRAP_DISABLED: Env.schema.boolean.optional(),
 
   /*
   |----------------------------------------------------------
@@ -152,6 +176,13 @@ export default await Env.create(new URL('../', import.meta.url), {
   |----------------------------------------------------------
   */
   MCP_SYSTEM_USER_ID: Env.schema.number.optional(),
+  MCP_AUTH_TOKEN: Env.schema.string.optional(),
+  MCP_AUTH_HEADER_NAME: Env.schema.string.optional(),
+  MCP_AUTH_HEADER_VALUE: Env.schema.string.optional(),
+  MCP_TRANSPORT: Env.schema.enum.optional(['sse', 'stdio'] as const),
+  MCP_HOST: Env.schema.string.optional(),
+  MCP_PORT: Env.schema.number.optional(),
+  MCP_QUIET: Env.schema.boolean.optional(),
 
   /*
   |----------------------------------------------------------
@@ -173,4 +204,5 @@ export default await Env.create(new URL('../', import.meta.url), {
   |----------------------------------------------------------
   */
   ENABLE_DEV_TOOLS: Env.schema.boolean.optional(),
+  APP_ENV: Env.schema.enum.optional(['development', 'production', 'test'] as const),
 })

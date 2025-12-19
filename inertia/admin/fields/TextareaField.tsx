@@ -1,20 +1,23 @@
 import React from 'react'
-import { Textarea } from '~/components/ui/textarea'
+import { TokenField } from '../components/ui/TokenField'
 
 type Props = {
   value: string | null
   onChange: (val: string | null) => void
   placeholder?: string
   maxLength?: number
-} & Omit<React.ComponentProps<typeof Textarea>, 'value' | 'onChange' | 'placeholder' | 'maxLength'>
+  customFields?: Array<{ slug: string; label: string }>
+} & Omit<React.ComponentProps<typeof TokenField>, 'value' | 'onChange' | 'placeholder' | 'maxLength'>
 
-export default function TextareaField({ value, onChange, placeholder, maxLength, ...rest }: Props) {
+export default function TextareaField({ value, onChange, placeholder, maxLength, customFields, ...rest }: Props) {
   return (
-    <Textarea
+    <TokenField
+      type="textarea"
       value={value ?? ''}
       maxLength={maxLength}
       placeholder={placeholder}
-      onChange={(e) => onChange(e.target.value || null)}
+      onChange={(val) => onChange(val || null)}
+      customFields={customFields}
       rows={4}
       {...rest}
     />

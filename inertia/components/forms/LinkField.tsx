@@ -283,40 +283,46 @@ export const LinkField: React.FC<LinkFieldProps> = ({
 
   return (
     <FormField>
-      <FormLabel>{label}</FormLabel>
-      <div className="space-y-2">
+      <FormLabel className="block text-[11px] font-bold text-neutral-medium uppercase tracking-wider mb-1.5 ml-1">{label}</FormLabel>
+      <div className="space-y-4">
         <div className="flex items-center gap-2">
-          <span className="text-xs text-neutral-low">Link to</span>
-          <select
-            className="text-xs px-2 py-1 border border-border rounded bg-backdrop-low text-neutral-high"
-            value={mode}
-            onChange={(e) => {
-              const nextMode = e.target.value === 'post' ? 'post' : 'url'
-              setMode(nextMode)
-              const prevTarget = link && (link as any).target === '_blank' ? '_blank' : '_self'
-              if (nextMode === 'url') {
-                const currentUrl = link && link.kind === 'url' ? link.url : ''
-                setLink(currentUrl ? { kind: 'url', url: currentUrl, target: prevTarget } : null)
-              } else {
-                // switch to post mode, but keep previous selection if any
-                if (link && link.kind === 'post') {
-                  setLink({ ...link, target: prevTarget })
+          <span className="text-xs font-semibold text-neutral-medium">Link to</span>
+          <div className="relative">
+            <select
+              className="text-xs px-3 py-1.5 border border-line-medium rounded-lg bg-backdrop-low text-neutral-high outline-none focus:ring-2 focus:ring-standout-medium/20 focus:border-standout-medium transition-all appearance-none pr-8"
+              value={mode}
+              onChange={(e) => {
+                const nextMode = e.target.value === 'post' ? 'post' : 'url'
+                setMode(nextMode)
+                const prevTarget = link && (link as any).target === '_blank' ? '_blank' : '_self'
+                if (nextMode === 'url') {
+                  const currentUrl = link && link.kind === 'url' ? link.url : ''
+                  setLink(currentUrl ? { kind: 'url', url: currentUrl, target: prevTarget } : null)
                 } else {
-                  setLink(null)
+                  // switch to post mode, but keep previous selection if any
+                  if (link && link.kind === 'post') {
+                    setLink({ ...link, target: prevTarget })
+                  } else {
+                    setLink(null)
+                  }
                 }
-              }
-            }}
-          >
-            <option value="post">Post</option>
-            <option value="url">Custom URL (external only)</option>
-          </select>
+              }}
+            >
+              <option value="post">Post</option>
+              <option value="url">Custom URL (external only)</option>
+            </select>
+            <div className="absolute right-2 top-1/2 -translate-y-1/2 pointer-events-none text-neutral-low">
+              <span className="iconify" data-icon="lucide:chevron-down" />
+            </div>
+          </div>
         </div>
 
         {mode === 'url' ? (
-          <div className="space-y-1">
+          <div className="space-y-1.5">
             <Input
               type="url"
               placeholder="https://example.com"
+              className="rounded-xl border-line-medium focus:ring-standout-medium/20 focus:border-standout-medium"
               value={link && link.kind === 'url' ? link.url : ''}
               onChange={(e) => {
                 const val = e.target.value
@@ -333,46 +339,54 @@ export const LinkField: React.FC<LinkFieldProps> = ({
               }}
             />
             {urlError ? (
-              <FormHelper className="text-danger">{urlError}</FormHelper>
+              <FormHelper className="text-danger ml-1">{urlError}</FormHelper>
             ) : (
-              <FormHelper>
+              <FormHelper className="ml-1 opacity-70">
                 Enter a full URL. Use this for external destinations only. For internal links, use
                 &quot;Post&quot;.
               </FormHelper>
             )}
           </div>
         ) : (
-          <div className="space-y-1">
+          <div className="space-y-1.5">
             <Popover>
               <PopoverTrigger asChild>
                 <button
                   type="button"
-                  className="w-full text-left px-3 py-2 border border-border rounded-lg bg-backdrop-low text-neutral-high hover:bg-backdrop-medium"
+                  className="w-full text-left px-4 py-2.5 border border-line-medium rounded-xl bg-backdrop-low text-neutral-high hover:bg-backdrop-medium transition-all shadow-sm flex items-center justify-between group"
                 >
-                  {loading
-                    ? 'Loading…'
-                    : selectedPostId
-                      ? (() => {
-                        const p = posts.find((x) => x.id === selectedPostId)
-                        return p ? `${p.title} (${p.type}, ${p.locale})` : 'Select a post…'
-                      })()
-                      : 'Select a post…'}
+                  <span className="truncate">
+                    {loading
+                      ? 'Loading…'
+                      : selectedPostId
+                        ? (() => {
+                          const p = posts.find((x) => x.id === selectedPostId)
+                          return p ? `${p.title} (${p.type}, ${p.locale})` : 'Select a post…'
+                        })()
+                        : 'Select a post…'}
+                  </span>
+                  <span className="iconify text-neutral-low group-hover:text-neutral-medium transition-colors" data-icon="lucide:search" />
                 </button>
               </PopoverTrigger>
-              <PopoverContent className="w-96">
+              <PopoverContent className="w-96 p-2 rounded-2xl border-line-low shadow-2xl bg-backdrop-low">
                 <div className="space-y-2">
-                  <Input
-                    type="text"
-                    placeholder="Search posts… (title, slug, type, locale)"
-                    value={query}
-                    onChange={(e) => setQuery(e.target.value)}
-                    className="h-8 text-xs"
-                  />
-                  <div className="max-h-64 overflow-auto space-y-2">
+                  <div className="relative">
+                    <Input
+                      type="text"
+                      placeholder="Search posts… (title, slug, type, locale)"
+                      value={query}
+                      onChange={(e) => setQuery(e.target.value)}
+                      className="h-9 text-xs rounded-lg pl-9"
+                    />
+                    <div className="absolute left-3 top-1/2 -translate-y-1/2 text-neutral-low">
+                      <span className="iconify" data-icon="lucide:search" />
+                    </div>
+                  </div>
+                  <div className="max-h-64 overflow-auto space-y-1 pr-1 custom-scrollbar">
                     {loading ? (
-                      <div className="text-xs text-neutral-low">Loading…</div>
+                      <div className="text-xs text-neutral-low p-4 text-center">Loading…</div>
                     ) : filteredPosts.length === 0 ? (
-                      <div className="text-xs text-neutral-low">No posts found.</div>
+                      <div className="text-xs text-neutral-low p-4 text-center">No posts found.</div>
                     ) : (
                       filteredPosts.map((p) => {
                         const isSelected = selectedPostId === p.id
@@ -380,10 +394,10 @@ export const LinkField: React.FC<LinkFieldProps> = ({
                           <button
                             key={p.id}
                             type="button"
-                            className={`w-full text-left px-3 py-2 rounded border ${isSelected
-                                ? 'border-standout-medium bg-standout-medium/5'
-                                : 'border-border'
-                              } hover:bg-backdrop-low`}
+                            className={`w-full text-left px-3 py-2 rounded-lg border transition-all ${isSelected
+                                ? 'border-standout-medium bg-standout-medium/5 ring-1 ring-standout-medium/20'
+                                : 'border-transparent hover:bg-backdrop-medium'
+                              }`}
                             onClick={() => {
                               setLink({
                                 kind: 'post',
@@ -395,8 +409,8 @@ export const LinkField: React.FC<LinkFieldProps> = ({
                               })
                             }}
                           >
-                            <div className="text-sm text-neutral-high">{p.title}</div>
-                            <div className="text-[11px] text-neutral-low">
+                            <div className="text-sm font-semibold text-neutral-high">{p.title}</div>
+                            <div className="text-[10px] text-neutral-low font-medium uppercase tracking-tight mt-0.5">
                               {p.type} · {p.locale} · {p.slug}
                             </div>
                           </button>
@@ -408,9 +422,9 @@ export const LinkField: React.FC<LinkFieldProps> = ({
               </PopoverContent>
             </Popover>
             {error ? (
-              <FormHelper className="text-danger">{error}</FormHelper>
+              <FormHelper className="text-danger ml-1">{error}</FormHelper>
             ) : (
-              <FormHelper>
+              <FormHelper className="ml-1 opacity-70">
                 Choose an existing post. The actual URL will be generated from the post&apos;s
                 permalink pattern.
               </FormHelper>
@@ -419,32 +433,37 @@ export const LinkField: React.FC<LinkFieldProps> = ({
         )}
 
         {/* Target selection */}
-        <div className="space-y-1">
+        <div className="space-y-1.5 pt-2 border-t border-line-low/50">
           <div className="flex items-center gap-2">
-            <span className="text-xs text-neutral-low">Open in</span>
-            <select
-              className="text-xs px-2 py-1 border border-border rounded bg-backdrop-low text-neutral-high"
-              value={currentTarget}
-              onChange={(e) => {
-                const nextTarget: '_self' | '_blank' =
-                  e.target.value === '_blank' ? '_blank' : '_self'
-                setLink((prev) => {
-                  if (!prev) return prev
-                  return { ...prev, target: nextTarget }
-                })
-              }}
-            >
-              <option value="_self">Same tab</option>
-              <option value="_blank">New tab</option>
-            </select>
+            <span className="text-xs font-semibold text-neutral-medium">Open in</span>
+            <div className="relative">
+              <select
+                className="text-xs px-3 py-1.5 border border-line-medium rounded-lg bg-backdrop-low text-neutral-high outline-none focus:ring-2 focus:ring-standout-medium/20 focus:border-standout-medium transition-all appearance-none pr-8"
+                value={currentTarget}
+                onChange={(e) => {
+                  const nextTarget: '_self' | '_blank' =
+                    e.target.value === '_blank' ? '_blank' : '_self'
+                  setLink((prev) => {
+                    if (!prev) return prev
+                    return { ...prev, target: nextTarget }
+                  })
+                }}
+              >
+                <option value="_self">Same tab</option>
+                <option value="_blank">New tab</option>
+              </select>
+              <div className="absolute right-2 top-1/2 -translate-y-1/2 pointer-events-none text-neutral-low">
+                <span className="iconify" data-icon="lucide:chevron-down" />
+              </div>
+            </div>
           </div>
-          <FormHelper>
+          <FormHelper className="ml-1 opacity-70">
             Use a new tab for outbound links or flows that temporarily take visitors away from the
             site.
           </FormHelper>
         </div>
 
-        {helperText && <FormHelper>{helperText}</FormHelper>}
+        {helperText && <FormHelper className="ml-1">{helperText}</FormHelper>}
       </div>
     </FormField>
   )
