@@ -330,7 +330,7 @@ function ModuleRowBase({
                 {...(isLocked ? {} : listeners)}
                 className="opacity-40 group-hover:opacity-100 transition-opacity"
               />
-              
+
               <div className="flex flex-col min-w-0 flex-1">
                 <div className="flex items-center gap-2 group/label min-w-0">
                   {isEditingLabel ? (
@@ -365,7 +365,7 @@ function ModuleRowBase({
                       >
                         {m.adminLabel || moduleName}
                       </button>
-                      
+
                       {m.adminLabel && (
                         <span className="text-xs text-neutral-medium italic shrink-0">
                           ({moduleName})
@@ -383,7 +383,7 @@ function ModuleRowBase({
                     </>
                   )}
                 </div>
-                
+
                 <div className="flex items-center gap-3 mt-0.5">
                   <div className="text-[10px] font-bold text-neutral-low uppercase tracking-wider">
                     Order: {m.orderIndex}
@@ -414,7 +414,7 @@ function ModuleRowBase({
                   Global
                 </span>
               )}
-              
+
               <button
                 className="p-2 rounded-lg text-neutral-low hover:text-red-500 hover:bg-red-500/10 transition-all"
                 disabled={isLocked}
@@ -1270,7 +1270,7 @@ export default function Editor({
           ? reviewInitialRef.current
           : viewMode === 'ai-review' && aiReviewInitialRef.current
             ? aiReviewInitialRef.current
-          : initialDataRef.current
+            : initialDataRef.current
       // Normalize BOTH sides via pickForm so '' vs null coercions don't create false "dirty" states.
       const fieldsChanged =
         JSON.stringify(pickForm(data)) !== JSON.stringify(pickForm(baseline as any))
@@ -2341,8 +2341,8 @@ export default function Editor({
         return resolved ? ([resolved, payload] as const) : null
       })
       .filter(Boolean) as Array<
-      readonly [string, { overrides: Record<string, any> | null; edited: Record<string, any> }]
-    >
+        readonly [string, { overrides: Record<string, any> | null; edited: Record<string, any> }]
+      >
 
     const findModule = (id: string) => {
       const direct = modules.find((m) => m.id === id)
@@ -2959,7 +2959,7 @@ export default function Editor({
                 <div className="mt-6">
                   <div className="flex items-center justify-between mb-4">
                     <div className="flex items-center gap-4">
-                    <h3 className="text-base font-semibold text-neutral-high">Modules</h3>
+                      <h3 className="text-base font-semibold text-neutral-high">Modules</h3>
                       {modules.length > 0 && (
                         <div className="flex items-center gap-2">
                           <button
@@ -3112,7 +3112,7 @@ export default function Editor({
                     <span className="iconify group-open/advanced:rotate-180 transition-transform" data-icon="lucide:chevron-down" />
                     Advanced SEO Settings
                   </summary>
-                  
+
                   <div className="mt-6 space-y-6">
                     {/* Canonical URL */}
                     <div>
@@ -3168,9 +3168,9 @@ export default function Editor({
           {/* Right Column - Sidebar */}
           <div className="space-y-8">
             {/* Actions */}
-            <div className="bg-backdrop-low rounded-2xl shadow-sm p-6 border border-line-low sticky top-8">
+            <div className="bg-backdrop-low rounded-2xl shadow-sm p-6 border border-line-low">
               <h3 className="text-[11px] font-bold text-neutral-medium uppercase tracking-wider mb-6 ml-1">Actions</h3>
-              
+
               <div className="space-y-8">
                 {/* Active Version toggle */}
                 <div className="space-y-3">
@@ -3258,7 +3258,7 @@ export default function Editor({
                         })}
                       </SelectContent>
                     </Select>
-                    
+
                     {selectedLocale !== post.locale && !translationsSet.has(selectedLocale) && (
                       <button
                         type="button"
@@ -3319,7 +3319,7 @@ export default function Editor({
                         )}
                       </SelectContent>
                     </Select>
-                    
+
                     {selectedAgent && (
                       <button
                         type="button"
@@ -3333,537 +3333,537 @@ export default function Editor({
                 </div>
 
                 {selectedAgent && (
-                      <>
-                        <AlertDialog
-                          open={agentPromptOpen}
-                          onOpenChange={(open) => {
-                            // Always allow opening (even if running - shouldn't happen but be safe)
-                            if (open && !agentPromptOpen) {
-                              setAgentPromptOpen(true)
-                              return
-                            }
-                            // Don't allow closing if agent is running or has a response
-                            if ((runningAgent || agentResponse) && !open) {
-                              // Force dialog to stay open - prevent closing
-                              return
-                            }
-                            // Only allow closing when not running and no response
-                            if (!runningAgent && !agentResponse) {
-                              setAgentPromptOpen(open)
-                              if (!open) {
-                                // Reset response when closing
-                                setAgentResponse(null)
-                                setAgentOpenEndedContext('')
-                              }
-                            }
-                          }}
-                        >
-                          <AlertDialogContent
-                            ref={agentModalContentRef}
-                            className="max-w-2xl max-h-[80vh] overflow-y-auto"
-                          >
-                            <AlertDialogHeader>
-                              <AlertDialogTitle>
-                                {agentResponse ? 'Agent Response' : 'Instructions'}
-                              </AlertDialogTitle>
-                              {agentResponse && (
-                                <AlertDialogDescription>
-                                  Review the AI response and changes that were applied:
-                                </AlertDialogDescription>
-                              )}
-                            </AlertDialogHeader>
+                  <>
+                    <AlertDialog
+                      open={agentPromptOpen}
+                      onOpenChange={(open) => {
+                        // Always allow opening (even if running - shouldn't happen but be safe)
+                        if (open && !agentPromptOpen) {
+                          setAgentPromptOpen(true)
+                          return
+                        }
+                        // Don't allow closing if agent is running or has a response
+                        if ((runningAgent || agentResponse) && !open) {
+                          // Force dialog to stay open - prevent closing
+                          return
+                        }
+                        // Only allow closing when not running and no response
+                        if (!runningAgent && !agentResponse) {
+                          setAgentPromptOpen(open)
+                          if (!open) {
+                            // Reset response when closing
+                            setAgentResponse(null)
+                            setAgentOpenEndedContext('')
+                          }
+                        }
+                      }}
+                    >
+                      <AlertDialogContent
+                        ref={agentModalContentRef}
+                        className="max-w-2xl max-h-[80vh] overflow-y-auto"
+                      >
+                        <AlertDialogHeader>
+                          <AlertDialogTitle>
+                            {agentResponse ? 'Agent Response' : 'Instructions'}
+                          </AlertDialogTitle>
+                          {agentResponse && (
+                            <AlertDialogDescription>
+                              Review the AI response and changes that were applied:
+                            </AlertDialogDescription>
+                          )}
+                        </AlertDialogHeader>
 
-                            {runningAgent ? (
-                              <div className="mt-3 space-y-4">
-                                <div className="flex items-center gap-3">
-                                  <Spinner className="size-5 text-primary" />
-                                  <div className="text-sm font-medium">Running agent...</div>
-                                </div>
-                                <div className="text-xs text-neutral-medium">
-                                  Please wait while the agent processes your request.
-                                </div>
+                        {runningAgent ? (
+                          <div className="mt-3 space-y-4">
+                            <div className="flex items-center gap-3">
+                              <Spinner className="size-5 text-primary" />
+                              <div className="text-sm font-medium">Running agent...</div>
+                            </div>
+                            <div className="text-xs text-neutral-medium">
+                              Please wait while the agent processes your request.
+                            </div>
+                          </div>
+                        ) : !agentResponse ? (
+                          <div className="mt-3 space-y-4">
+                            {/* Agent History */}
+                            {loadingAgentHistory ? (
+                              <div className="flex items-center gap-2 text-xs text-neutral-medium">
+                                <Spinner className="size-4" />
+                                <span>Loading history...</span>
                               </div>
-                            ) : !agentResponse ? (
-                              <div className="mt-3 space-y-4">
-                                {/* Agent History */}
-                                {loadingAgentHistory ? (
-                                  <div className="flex items-center gap-2 text-xs text-neutral-medium">
-                                    <Spinner className="size-4" />
-                                    <span>Loading history...</span>
-                                  </div>
-                                ) : agentHistory.length > 0 ? (
-                                  <div className="space-y-3">
-                                    {[...agentHistory].reverse().map((item) => (
-                                      <div key={item.id} className="space-y-2">
-                                        {/* User Request */}
-                                        {item.request && (
-                                          <div className="flex justify-end">
-                                            <div className="max-w-[80%] space-y-1">
-                                              {item.user && (
-                                                <div className="text-xs text-neutral-medium text-right mb-1">
-                                                  {item.user.fullName || item.user.email}
-                                                </div>
-                                              )}
-                                              <div className="bg-primary text-on-primary p-3 rounded-lg rounded-tr-sm text-sm">
-                                                {item.request}
-                                              </div>
-                                              <div className="text-xs text-neutral-low text-right">
-                                                {new Date(item.createdAt).toLocaleString()}
-                                              </div>
+                            ) : agentHistory.length > 0 ? (
+                              <div className="space-y-3">
+                                {[...agentHistory].reverse().map((item) => (
+                                  <div key={item.id} className="space-y-2">
+                                    {/* User Request */}
+                                    {item.request && (
+                                      <div className="flex justify-end">
+                                        <div className="max-w-[80%] space-y-1">
+                                          {item.user && (
+                                            <div className="text-xs text-neutral-medium text-right mb-1">
+                                              {item.user.fullName || item.user.email}
                                             </div>
+                                          )}
+                                          <div className="bg-primary text-on-primary p-3 rounded-lg rounded-tr-sm text-sm">
+                                            {item.request}
                                           </div>
-                                        )}
-                                        {/* AI Response */}
-                                        {item.response && (
-                                          <div className="flex justify-start">
-                                            <div className="max-w-[80%] space-y-1">
-                                              <div className="bg-backdrop-medium p-3 rounded-lg rounded-tl-sm border border-line-medium text-sm">
-                                                {item.response.summary ||
-                                                  (item.response.rawResponse
-                                                    ? (() => {
-                                                      try {
-                                                        const jsonMatch =
-                                                          item.response.rawResponse?.match(
-                                                            /```(?:json)?\s*(\{[\s\S]*\})\s*```/
-                                                          )
-                                                        const jsonStr = jsonMatch
-                                                          ? jsonMatch[1]
-                                                          : item.response.rawResponse
-                                                        const parsed = JSON.parse(jsonStr)
-                                                        return (
-                                                          parsed.summary || 'Changes applied.'
-                                                        )
-                                                      } catch {
-                                                        return (
-                                                          item.response.rawResponse ||
-                                                          'Changes applied.'
-                                                        )
-                                                      }
-                                                    })()
-                                                    : 'Changes applied.')}
-                                              </div>
-                                              {item.response.applied &&
-                                                item.response.applied.length > 0 && (
-                                                  <div className="text-xs text-neutral-medium">
-                                                    Applied: {item.response.applied.join(', ')}
-                                                  </div>
-                                                )}
-                                            </div>
+                                          <div className="text-xs text-neutral-low text-right">
+                                            {new Date(item.createdAt).toLocaleString()}
                                           </div>
-                                        )}
+                                        </div>
                                       </div>
-                                    ))}
-                                  </div>
-                                ) : null}
-
-                                {/* Label and Description - only show when no response and history is loaded or empty */}
-                                {!agentResponse && !loadingAgentHistory && (
-                                  <div className="space-y-2 pt-4">
-                                    {/* Label (e.g., "What would you like the AI to help with?") */}
-                                    {(() => {
-                                      const a = agents.find((x) => x.id === selectedAgent)
-                                      const label = a?.openEndedContext?.label
-                                      if (label) {
-                                        return (
-                                          <div className="text-md font-medium text-neutral-high">
-                                            {label}
+                                    )}
+                                    {/* AI Response */}
+                                    {item.response && (
+                                      <div className="flex justify-start">
+                                        <div className="max-w-[80%] space-y-1">
+                                          <div className="bg-backdrop-medium p-3 rounded-lg rounded-tl-sm border border-line-medium text-sm">
+                                            {item.response.summary ||
+                                              (item.response.rawResponse
+                                                ? (() => {
+                                                  try {
+                                                    const jsonMatch =
+                                                      item.response.rawResponse?.match(
+                                                        /```(?:json)?\s*(\{[\s\S]*\})\s*```/
+                                                      )
+                                                    const jsonStr = jsonMatch
+                                                      ? jsonMatch[1]
+                                                      : item.response.rawResponse
+                                                    const parsed = JSON.parse(jsonStr)
+                                                    return (
+                                                      parsed.summary || 'Changes applied.'
+                                                    )
+                                                  } catch {
+                                                    return (
+                                                      item.response.rawResponse ||
+                                                      'Changes applied.'
+                                                    )
+                                                  }
+                                                })()
+                                                : 'Changes applied.')}
                                           </div>
-                                        )
-                                      }
-                                      return null
-                                    })()}
-                                    {/* Description */}
-                                    <div className="text-sm text-neutral-medium whitespace-pre-wrap">
-                                      {(() => {
-                                        const a = agents.find((x) => x.id === selectedAgent)
-                                        if (a?.description) {
-                                          return a.description
-                                        }
-                                        return 'Provide any extra context or requirements for this agent run.'
-                                      })()}
-                                    </div>
+                                          {item.response.applied &&
+                                            item.response.applied.length > 0 && (
+                                              <div className="text-xs text-neutral-medium">
+                                                Applied: {item.response.applied.join(', ')}
+                                              </div>
+                                            )}
+                                        </div>
+                                      </div>
+                                    )}
                                   </div>
-                                )}
+                                ))}
+                              </div>
+                            ) : null}
 
-                                {/* Current Input */}
-                                <div className="space-y-2">
-                                  <Textarea
-                                    value={agentOpenEndedContext}
-                                    onChange={(e) => setAgentOpenEndedContext(e.target.value)}
-                                    placeholder={(() => {
-                                      const a = agents.find((x) => x.id === selectedAgent)
-                                      return (
-                                        a?.openEndedContext?.placeholder ||
-                                        'Example: "Rewrite this page for a more confident tone. Keep it under 500 words. Preserve the CTA."'
-                                      )
-                                    })()}
-                                    className="min-h-[120px]"
-                                  />
-                                  {(() => {
-                                    const a = agents.find((x) => x.id === selectedAgent)
-                                    const max = a?.openEndedContext?.maxChars
-                                    if (!max) return null
+                            {/* Label and Description - only show when no response and history is loaded or empty */}
+                            {!agentResponse && !loadingAgentHistory && (
+                              <div className="space-y-2 pt-4">
+                                {/* Label (e.g., "What would you like the AI to help with?") */}
+                                {(() => {
+                                  const a = agents.find((x) => x.id === selectedAgent)
+                                  const label = a?.openEndedContext?.label
+                                  if (label) {
                                     return (
-                                      <div className="text-xs text-neutral-medium">
-                                        {agentOpenEndedContext.length}/{max}
+                                      <div className="text-md font-medium text-neutral-high">
+                                        {label}
                                       </div>
                                     )
+                                  }
+                                  return null
+                                })()}
+                                {/* Description */}
+                                <div className="text-sm text-neutral-medium whitespace-pre-wrap">
+                                  {(() => {
+                                    const a = agents.find((x) => x.id === selectedAgent)
+                                    if (a?.description) {
+                                      return a.description
+                                    }
+                                    return 'Provide any extra context or requirements for this agent run.'
                                   })()}
                                 </div>
                               </div>
-                            ) : (
-                              <div className="mt-3 space-y-4">
-                                {/* Show user's request */}
-                                {agentOpenEndedContext && (
-                                  <div className="space-y-1">
-                                    <div className="text-xs text-neutral-medium">Your request:</div>
-                                    <div className="bg-backdrop-medium p-3 rounded border border-neutral-border text-sm">
-                                      {agentOpenEndedContext}
-                                    </div>
-                                  </div>
-                                )}
+                            )}
 
-                                {/* Show AI's natural response */}
-                                {agentResponse.summary && (
-                                  <div className="space-y-1">
-                                    <div className="text-xs text-neutral-medium">AI Response:</div>
-                                    <div className="bg-standout-light p-4 rounded-lg border border-standout-medium text-sm whitespace-pre-wrap wrap-break-word">
-                                      {agentResponse.summary}
-                                    </div>
+                            {/* Current Input */}
+                            <div className="space-y-2">
+                              <Textarea
+                                value={agentOpenEndedContext}
+                                onChange={(e) => setAgentOpenEndedContext(e.target.value)}
+                                placeholder={(() => {
+                                  const a = agents.find((x) => x.id === selectedAgent)
+                                  return (
+                                    a?.openEndedContext?.placeholder ||
+                                    'Example: "Rewrite this page for a more confident tone. Keep it under 500 words. Preserve the CTA."'
+                                  )
+                                })()}
+                                className="min-h-[120px]"
+                              />
+                              {(() => {
+                                const a = agents.find((x) => x.id === selectedAgent)
+                                const max = a?.openEndedContext?.maxChars
+                                if (!max) return null
+                                return (
+                                  <div className="text-xs text-neutral-medium">
+                                    {agentOpenEndedContext.length}/{max}
                                   </div>
-                                )}
-                                {/* Fallback: Try to extract summary from raw response if not provided */}
-                                {!agentResponse.summary && agentResponse.rawResponse && (
-                                  <div className="space-y-1">
-                                    <div className="text-xs text-neutral-medium">AI Response:</div>
-                                    <div className="bg-standout-light p-4 rounded-lg border border-standout-medium text-sm whitespace-pre-wrap wrap-break-word">
-                                      {(() => {
-                                        const raw = agentResponse.rawResponse
-                                        // Try to parse as JSON and extract summary
-                                        try {
-                                          // First try to extract JSON from markdown code blocks
-                                          const jsonMatch = raw.match(
-                                            /```(?:json)?\s*(\{[\s\S]*\})\s*```/
-                                          )
-                                          const jsonStr = jsonMatch ? jsonMatch[1] : raw
-                                          const parsed = JSON.parse(jsonStr)
-                                          // If there's a summary field, use it
-                                          if (
-                                            parsed.summary &&
-                                            typeof parsed.summary === 'string'
-                                          ) {
-                                            return parsed.summary
-                                          }
-                                          // If no summary, return a message indicating we couldn't extract it
-                                          return 'Summary not available. Changes have been applied.'
-                                        } catch {
-                                          // If parsing fails, return raw (shouldn't happen normally)
-                                          return raw
-                                        }
-                                      })()}
-                                    </div>
-                                  </div>
-                                )}
-
-                                {agentResponse.applied && agentResponse.applied.length > 0 && (
-                                  <div className="space-y-1">
-                                    <div className="text-xs text-neutral-medium">
-                                      Changes applied:
-                                    </div>
-                                    <div className="bg-success-light p-3 rounded border border-success-medium">
-                                      <ul className="list-disc list-inside space-y-1 text-sm">
-                                        {agentResponse.applied.map((field, i) => (
-                                          <li key={i}>{field}</li>
-                                        ))}
-                                      </ul>
-                                    </div>
-                                  </div>
-                                )}
-
-                                {agentResponse.message && (
-                                  <div className="text-sm text-success-medium font-medium">
-                                    {agentResponse.message}
-                                  </div>
-                                )}
+                                )
+                              })()}
+                            </div>
+                          </div>
+                        ) : (
+                          <div className="mt-3 space-y-4">
+                            {/* Show user's request */}
+                            {agentOpenEndedContext && (
+                              <div className="space-y-1">
+                                <div className="text-xs text-neutral-medium">Your request:</div>
+                                <div className="bg-backdrop-medium p-3 rounded border border-neutral-border text-sm">
+                                  {agentOpenEndedContext}
+                                </div>
                               </div>
                             )}
 
-                            <AlertDialogFooter>
-                              {agentResponse ? (
-                                <>
-                                  <AlertDialogCancel
-                                    type="button"
-                                    onClick={() => {
-                                      setAgentPromptOpen(false)
-                                      setAgentResponse(null)
-                                      setAgentOpenEndedContext('')
-                                    }}
-                                  >
-                                    Close
-                                  </AlertDialogCancel>
-                                  <AlertDialogAction
-                                    type="button"
-                                    onClick={() => {
-                                      setAgentPromptOpen(false)
-                                      setAgentResponse(null)
-                                      setAgentOpenEndedContext('')
-                                      // Switch to AI Review view to see the changes
-                                      const agent = agents.find((x) => x.id === selectedAgent)
-                                      const targetMode =
-                                        (agent as any)?.type === 'internal' ? 'ai-review' : 'review'
-                                      // Update URL to preserve view mode on reload
-                                      const url = new URL(window.location.href)
-                                      url.searchParams.set('view', targetMode)
-                                      window.history.replaceState({}, '', url.toString())
-                                      // Reload data to get the latest changes from the agent
-                                      router.reload({
-                                        only:
-                                          targetMode === 'ai-review'
-                                            ? ['aiReviewDraft', 'post', 'modules']
-                                            : ['reviewDraft', 'post', 'modules'],
-                                        onSuccess: () => {
-                                          // After reload, switch to the target mode
-                                          setViewMode(targetMode)
-                                        },
-                                      })
-                                    }}
-                                  >
-                                    View Changes
-                                  </AlertDialogAction>
-                                </>
-                              ) : (
-                                <>
-                                  <AlertDialogCancel
-                                    type="button"
-                                    onClick={() => {
-                                      setAgentPromptOpen(false)
-                                      setAgentResponse(null)
-                                    }}
-                                  >
-                                    Cancel
-                                  </AlertDialogCancel>
-                                  <AlertDialogAction
-                                    type="button"
-                                    disabled={runningAgent}
-                                    onClick={async (e) => {
-                                      // Prevent default form submission behavior and stop propagation
-                                      e.preventDefault()
-                                      e.stopPropagation()
-                                      if (!selectedAgent) return
-                                      // CRITICAL: Set running state BEFORE any async operations
-                                      // This prevents the dialog from closing via onOpenChange
-                                      setRunningAgent(true)
-                                      setAgentResponse(null)
-                                      // Force dialog to stay open
-                                      setAgentPromptOpen(true)
-                                      try {
-                                        const csrf = (() => {
-                                          if (typeof document === 'undefined') return undefined
-                                          const m = document.cookie.match(
-                                            /(?:^|; )XSRF-TOKEN=([^;]+)/
-                                          )
-                                          return m ? decodeURIComponent(m[1]) : undefined
-                                        })()
-
-                                        const openEnded = agentOpenEndedContext.trim()
-                                        const res = await fetch(
-                                          `/api/posts/${post.id}/agents/${encodeURIComponent(selectedAgent)}/run`,
-                                          {
-                                            method: 'POST',
-                                            headers: {
-                                              'Accept': 'application/json',
-                                              'Content-Type': 'application/json',
-                                              ...(csrf ? { 'X-XSRF-TOKEN': csrf } : {}),
-                                            },
-                                            credentials: 'same-origin',
-                                            body: JSON.stringify({
-                                              context: {
-                                                locale: selectedLocale,
-                                                viewMode: viewMode, // Pass current view mode to agent
-                                              },
-                                              openEndedContext: openEnded || undefined,
-                                            }),
-                                          }
-                                        )
-                                        const j = await res.json().catch(() => ({}))
-                                        if (res.ok) {
-                                          // Keep dialog open and show response
-                                          setAgentResponse({
-                                            rawResponse: j.rawResponse,
-                                            summary: j.summary || null,
-                                            applied: j.applied || [],
-                                            message: j.message,
-                                          })
-                                          toast.success('Agent completed successfully')
-
-                                          // Refresh agent history to show the new execution
-                                          try {
-                                            const historyRes = await fetch(
-                                              `/api/posts/${post.id}/agents/${encodeURIComponent(selectedAgent)}/history`,
-                                              {
-                                                headers: { Accept: 'application/json' },
-                                                credentials: 'same-origin',
-                                              }
-                                            )
-                                            if (historyRes.ok) {
-                                              const historyJson = await historyRes
-                                                .json()
-                                                .catch(() => null)
-                                              if (historyJson?.data) {
-                                                setAgentHistory(
-                                                  Array.isArray(historyJson.data)
-                                                    ? historyJson.data
-                                                    : []
-                                                )
-                                              }
-                                            }
-                                          } catch {
-                                            // Ignore history refresh errors
-                                          }
-
-                                          // Refresh page data to load updated aiReviewDraft and modules
-                                          // Delay reload slightly to ensure dialog state is set first
-                                          // Wrap in try-catch to prevent reload errors from affecting the UI
-                                          setTimeout(() => {
-                                            try {
-                                              router.reload({
-                                                only: ['aiReviewDraft', 'post', 'modules'],
-                                              })
-                                            } catch (reloadError) {
-                                              console.warn(
-                                                'Page reload failed (non-critical):',
-                                                reloadError
-                                              )
-                                              // Reload failed but agent succeeded - user can manually refresh
-                                            }
-                                          }, 100)
-                                        } else {
-                                          toast.error(j?.error || 'Agent run failed')
-                                          setAgentResponse({
-                                            message: `Error: ${j?.error || 'Agent run failed'}`,
-                                          })
-                                        }
-                                      } catch (error: any) {
-                                        console.error('Agent execution error:', error)
-                                        toast.error('Agent run failed')
-                                        setAgentResponse({
-                                          message: `Error: ${error?.message || 'Agent run failed'}`,
-                                        })
-                                      } finally {
-                                        setRunningAgent(false)
+                            {/* Show AI's natural response */}
+                            {agentResponse.summary && (
+                              <div className="space-y-1">
+                                <div className="text-xs text-neutral-medium">AI Response:</div>
+                                <div className="bg-standout-light p-4 rounded-lg border border-standout-medium text-sm whitespace-pre-wrap wrap-break-word">
+                                  {agentResponse.summary}
+                                </div>
+                              </div>
+                            )}
+                            {/* Fallback: Try to extract summary from raw response if not provided */}
+                            {!agentResponse.summary && agentResponse.rawResponse && (
+                              <div className="space-y-1">
+                                <div className="text-xs text-neutral-medium">AI Response:</div>
+                                <div className="bg-standout-light p-4 rounded-lg border border-standout-medium text-sm whitespace-pre-wrap wrap-break-word">
+                                  {(() => {
+                                    const raw = agentResponse.rawResponse
+                                    // Try to parse as JSON and extract summary
+                                    try {
+                                      // First try to extract JSON from markdown code blocks
+                                      const jsonMatch = raw.match(
+                                        /```(?:json)?\s*(\{[\s\S]*\})\s*```/
+                                      )
+                                      const jsonStr = jsonMatch ? jsonMatch[1] : raw
+                                      const parsed = JSON.parse(jsonStr)
+                                      // If there's a summary field, use it
+                                      if (
+                                        parsed.summary &&
+                                        typeof parsed.summary === 'string'
+                                      ) {
+                                        return parsed.summary
                                       }
-                                    }}
-                                  >
-                                    {runningAgent ? 'Running…' : 'Run Agent'}
-                                  </AlertDialogAction>
-                                </>
-                              )}
-                            </AlertDialogFooter>
-                          </AlertDialogContent>
-                        </AlertDialog>
+                                      // If no summary, return a message indicating we couldn't extract it
+                                      return 'Summary not available. Changes have been applied.'
+                                    } catch {
+                                      // If parsing fails, return raw (shouldn't happen normally)
+                                      return raw
+                                    }
+                                  })()}
+                                </div>
+                              </div>
+                            )}
 
-                        <button
-                          className="mt-2 w-full h-8 px-3 text-xs rounded-lg bg-standout-medium text-on-standout font-medium disabled:opacity-50"
-                          disabled={runningAgent}
-                          onClick={() => {
-                            const a = agents.find((x) => x.id === selectedAgent)
-                            const enabled = a?.openEndedContext?.enabled === true
-                            if (enabled) {
-                              setAgentPromptOpen(true)
-                              return
-                            }
-                            // No prompt required: run immediately, but still show response in dialog
-                            ; (async () => {
-                              // Open dialog FIRST to ensure it's open before setting running state
-                              setAgentPromptOpen(true)
-                              // Use requestAnimationFrame to ensure dialog state is set before preventing close
-                              await new Promise((resolve) => requestAnimationFrame(resolve))
-                              setRunningAgent(true)
-                              setAgentResponse(null)
-                              try {
-                                const csrf = (() => {
-                                  if (typeof document === 'undefined') return undefined
-                                  const m = document.cookie.match(/(?:^|; )XSRF-TOKEN=([^;]+)/)
-                                  return m ? decodeURIComponent(m[1]) : undefined
-                                })()
-                                const res = await fetch(
-                                  `/api/posts/${post.id}/agents/${encodeURIComponent(selectedAgent)}/run`,
-                                  {
-                                    method: 'POST',
-                                    headers: {
-                                      'Accept': 'application/json',
-                                      'Content-Type': 'application/json',
-                                      ...(csrf ? { 'X-XSRF-TOKEN': csrf } : {}),
+                            {agentResponse.applied && agentResponse.applied.length > 0 && (
+                              <div className="space-y-1">
+                                <div className="text-xs text-neutral-medium">
+                                  Changes applied:
+                                </div>
+                                <div className="bg-success-light p-3 rounded border border-success-medium">
+                                  <ul className="list-disc list-inside space-y-1 text-sm">
+                                    {agentResponse.applied.map((field, i) => (
+                                      <li key={i}>{field}</li>
+                                    ))}
+                                  </ul>
+                                </div>
+                              </div>
+                            )}
+
+                            {agentResponse.message && (
+                              <div className="text-sm text-success-medium font-medium">
+                                {agentResponse.message}
+                              </div>
+                            )}
+                          </div>
+                        )}
+
+                        <AlertDialogFooter>
+                          {agentResponse ? (
+                            <>
+                              <AlertDialogCancel
+                                type="button"
+                                onClick={() => {
+                                  setAgentPromptOpen(false)
+                                  setAgentResponse(null)
+                                  setAgentOpenEndedContext('')
+                                }}
+                              >
+                                Close
+                              </AlertDialogCancel>
+                              <AlertDialogAction
+                                type="button"
+                                onClick={() => {
+                                  setAgentPromptOpen(false)
+                                  setAgentResponse(null)
+                                  setAgentOpenEndedContext('')
+                                  // Switch to AI Review view to see the changes
+                                  const agent = agents.find((x) => x.id === selectedAgent)
+                                  const targetMode =
+                                    (agent as any)?.type === 'internal' ? 'ai-review' : 'review'
+                                  // Update URL to preserve view mode on reload
+                                  const url = new URL(window.location.href)
+                                  url.searchParams.set('view', targetMode)
+                                  window.history.replaceState({}, '', url.toString())
+                                  // Reload data to get the latest changes from the agent
+                                  router.reload({
+                                    only:
+                                      targetMode === 'ai-review'
+                                        ? ['aiReviewDraft', 'post', 'modules']
+                                        : ['reviewDraft', 'post', 'modules'],
+                                    onSuccess: () => {
+                                      // After reload, switch to the target mode
+                                      setViewMode(targetMode)
                                     },
-                                    credentials: 'same-origin',
-                                    body: JSON.stringify({ context: { locale: selectedLocale } }),
-                                  }
-                                )
-                                const j = await res.json().catch(() => ({}))
-                                if (res.ok) {
-                                  // Show response in dialog
-                                  setAgentResponse({
-                                    rawResponse: j.rawResponse,
-                                    applied: j.applied || [],
-                                    message: j.message,
                                   })
-                                  toast.success('Agent completed successfully')
-
-                                  // Refresh agent history to show the new execution
+                                }}
+                              >
+                                View Changes
+                              </AlertDialogAction>
+                            </>
+                          ) : (
+                            <>
+                              <AlertDialogCancel
+                                type="button"
+                                onClick={() => {
+                                  setAgentPromptOpen(false)
+                                  setAgentResponse(null)
+                                }}
+                              >
+                                Cancel
+                              </AlertDialogCancel>
+                              <AlertDialogAction
+                                type="button"
+                                disabled={runningAgent}
+                                onClick={async (e) => {
+                                  // Prevent default form submission behavior and stop propagation
+                                  e.preventDefault()
+                                  e.stopPropagation()
+                                  if (!selectedAgent) return
+                                  // CRITICAL: Set running state BEFORE any async operations
+                                  // This prevents the dialog from closing via onOpenChange
+                                  setRunningAgent(true)
+                                  setAgentResponse(null)
+                                  // Force dialog to stay open
+                                  setAgentPromptOpen(true)
                                   try {
-                                    const historyRes = await fetch(
-                                      `/api/posts/${post.id}/agents/${encodeURIComponent(selectedAgent)}/history`,
+                                    const csrf = (() => {
+                                      if (typeof document === 'undefined') return undefined
+                                      const m = document.cookie.match(
+                                        /(?:^|; )XSRF-TOKEN=([^;]+)/
+                                      )
+                                      return m ? decodeURIComponent(m[1]) : undefined
+                                    })()
+
+                                    const openEnded = agentOpenEndedContext.trim()
+                                    const res = await fetch(
+                                      `/api/posts/${post.id}/agents/${encodeURIComponent(selectedAgent)}/run`,
                                       {
-                                        headers: { Accept: 'application/json' },
+                                        method: 'POST',
+                                        headers: {
+                                          'Accept': 'application/json',
+                                          'Content-Type': 'application/json',
+                                          ...(csrf ? { 'X-XSRF-TOKEN': csrf } : {}),
+                                        },
                                         credentials: 'same-origin',
+                                        body: JSON.stringify({
+                                          context: {
+                                            locale: selectedLocale,
+                                            viewMode: viewMode, // Pass current view mode to agent
+                                          },
+                                          openEndedContext: openEnded || undefined,
+                                        }),
                                       }
                                     )
-                                    if (historyRes.ok) {
-                                      const historyJson = await historyRes.json().catch(() => null)
-                                      if (historyJson?.data) {
-                                        setAgentHistory(
-                                          Array.isArray(historyJson.data) ? historyJson.data : []
-                                        )
-                                      }
-                                    }
-                                  } catch {
-                                    // Ignore history refresh errors
-                                  }
+                                    const j = await res.json().catch(() => ({}))
+                                    if (res.ok) {
+                                      // Keep dialog open and show response
+                                      setAgentResponse({
+                                        rawResponse: j.rawResponse,
+                                        summary: j.summary || null,
+                                        applied: j.applied || [],
+                                        message: j.message,
+                                      })
+                                      toast.success('Agent completed successfully')
 
-                                  // Refresh page data to load updated aiReviewDraft
-                                  setTimeout(() => {
-                                    try {
-                                      router.reload({ only: ['aiReviewDraft', 'post'] })
-                                    } catch (reloadError) {
-                                      console.warn(
-                                        'Page reload failed (non-critical):',
-                                        reloadError
-                                      )
+                                      // Refresh agent history to show the new execution
+                                      try {
+                                        const historyRes = await fetch(
+                                          `/api/posts/${post.id}/agents/${encodeURIComponent(selectedAgent)}/history`,
+                                          {
+                                            headers: { Accept: 'application/json' },
+                                            credentials: 'same-origin',
+                                          }
+                                        )
+                                        if (historyRes.ok) {
+                                          const historyJson = await historyRes
+                                            .json()
+                                            .catch(() => null)
+                                          if (historyJson?.data) {
+                                            setAgentHistory(
+                                              Array.isArray(historyJson.data)
+                                                ? historyJson.data
+                                                : []
+                                            )
+                                          }
+                                        }
+                                      } catch {
+                                        // Ignore history refresh errors
+                                      }
+
+                                      // Refresh page data to load updated aiReviewDraft and modules
+                                      // Delay reload slightly to ensure dialog state is set first
+                                      // Wrap in try-catch to prevent reload errors from affecting the UI
+                                      setTimeout(() => {
+                                        try {
+                                          router.reload({
+                                            only: ['aiReviewDraft', 'post', 'modules'],
+                                          })
+                                        } catch (reloadError) {
+                                          console.warn(
+                                            'Page reload failed (non-critical):',
+                                            reloadError
+                                          )
+                                          // Reload failed but agent succeeded - user can manually refresh
+                                        }
+                                      }, 100)
+                                    } else {
+                                      toast.error(j?.error || 'Agent run failed')
+                                      setAgentResponse({
+                                        message: `Error: ${j?.error || 'Agent run failed'}`,
+                                      })
                                     }
-                                  }, 100)
-                                } else {
-                                  toast.error(j?.error || 'Agent run failed')
-                                  setAgentResponse({
-                                    message: `Error: ${j?.error || 'Agent run failed'}`,
-                                  })
-                                }
-                              } catch (error: any) {
-                                console.error('Agent execution error:', error)
-                                toast.error('Agent run failed')
-                                setAgentResponse({
-                                  message: `Error: ${error?.message || 'Agent run failed'}`,
-                                })
-                              } finally {
-                                setRunningAgent(false)
-                              }
+                                  } catch (error: any) {
+                                    console.error('Agent execution error:', error)
+                                    toast.error('Agent run failed')
+                                    setAgentResponse({
+                                      message: `Error: ${error?.message || 'Agent run failed'}`,
+                                    })
+                                  } finally {
+                                    setRunningAgent(false)
+                                  }
+                                }}
+                              >
+                                {runningAgent ? 'Running…' : 'Run Agent'}
+                              </AlertDialogAction>
+                            </>
+                          )}
+                        </AlertDialogFooter>
+                      </AlertDialogContent>
+                    </AlertDialog>
+
+                    <button
+                      className="mt-2 w-full h-8 px-3 text-xs rounded-lg bg-standout-medium text-on-standout font-medium disabled:opacity-50"
+                      disabled={runningAgent}
+                      onClick={() => {
+                        const a = agents.find((x) => x.id === selectedAgent)
+                        const enabled = a?.openEndedContext?.enabled === true
+                        if (enabled) {
+                          setAgentPromptOpen(true)
+                          return
+                        }
+                        // No prompt required: run immediately, but still show response in dialog
+                        ; (async () => {
+                          // Open dialog FIRST to ensure it's open before setting running state
+                          setAgentPromptOpen(true)
+                          // Use requestAnimationFrame to ensure dialog state is set before preventing close
+                          await new Promise((resolve) => requestAnimationFrame(resolve))
+                          setRunningAgent(true)
+                          setAgentResponse(null)
+                          try {
+                            const csrf = (() => {
+                              if (typeof document === 'undefined') return undefined
+                              const m = document.cookie.match(/(?:^|; )XSRF-TOKEN=([^;]+)/)
+                              return m ? decodeURIComponent(m[1]) : undefined
                             })()
-                          }}
-                          type="button"
-                        >
-                          {runningAgent ? 'Running…' : 'Run Agent'}
-                        </button>
-                      </>
-                    )}
+                            const res = await fetch(
+                              `/api/posts/${post.id}/agents/${encodeURIComponent(selectedAgent)}/run`,
+                              {
+                                method: 'POST',
+                                headers: {
+                                  'Accept': 'application/json',
+                                  'Content-Type': 'application/json',
+                                  ...(csrf ? { 'X-XSRF-TOKEN': csrf } : {}),
+                                },
+                                credentials: 'same-origin',
+                                body: JSON.stringify({ context: { locale: selectedLocale } }),
+                              }
+                            )
+                            const j = await res.json().catch(() => ({}))
+                            if (res.ok) {
+                              // Show response in dialog
+                              setAgentResponse({
+                                rawResponse: j.rawResponse,
+                                applied: j.applied || [],
+                                message: j.message,
+                              })
+                              toast.success('Agent completed successfully')
+
+                              // Refresh agent history to show the new execution
+                              try {
+                                const historyRes = await fetch(
+                                  `/api/posts/${post.id}/agents/${encodeURIComponent(selectedAgent)}/history`,
+                                  {
+                                    headers: { Accept: 'application/json' },
+                                    credentials: 'same-origin',
+                                  }
+                                )
+                                if (historyRes.ok) {
+                                  const historyJson = await historyRes.json().catch(() => null)
+                                  if (historyJson?.data) {
+                                    setAgentHistory(
+                                      Array.isArray(historyJson.data) ? historyJson.data : []
+                                    )
+                                  }
+                                }
+                              } catch {
+                                // Ignore history refresh errors
+                              }
+
+                              // Refresh page data to load updated aiReviewDraft
+                              setTimeout(() => {
+                                try {
+                                  router.reload({ only: ['aiReviewDraft', 'post'] })
+                                } catch (reloadError) {
+                                  console.warn(
+                                    'Page reload failed (non-critical):',
+                                    reloadError
+                                  )
+                                }
+                              }, 100)
+                            } else {
+                              toast.error(j?.error || 'Agent run failed')
+                              setAgentResponse({
+                                message: `Error: ${j?.error || 'Agent run failed'}`,
+                              })
+                            }
+                          } catch (error: any) {
+                            console.error('Agent execution error:', error)
+                            toast.error('Agent run failed')
+                            setAgentResponse({
+                              message: `Error: ${error?.message || 'Agent run failed'}`,
+                            })
+                          } finally {
+                            setRunningAgent(false)
+                          }
+                        })()
+                      }}
+                      type="button"
+                    >
+                      {runningAgent ? 'Running…' : 'Run Agent'}
+                    </button>
+                  </>
+                )}
 
                 {/* Status (Source only) */}
                 {viewMode === 'source' && (
