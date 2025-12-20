@@ -14,6 +14,7 @@ import Taxonomy from '#models/taxonomy'
 import TaxonomyTerm from '#models/taxonomy_term'
 import ModuleGroupModule from '#models/module_group_module'
 import { coerceJsonObject } from '../../helpers/jsonb.js'
+import { getSiteInertiaOverrideForPost } from '#services/site_inertia_overrides_service'
 
 /**
  * Posts View Controller
@@ -443,13 +444,16 @@ export default class PostsViewController extends BasePostsController {
       // Get post-type-specific additional props (delegated to service)
       const additionalProps = await postTypeViewService.getAdditionalProps(post)
 
-      return inertia.render('site/post', {
+      const overrideComponent = getSiteInertiaOverrideForPost(post.type, post.slug)
+
+      return inertia.render(overrideComponent || 'site/post', {
         post: pageData.post,
         hasReviewDraft: pageData.hasReviewDraft,
         siteSettings: pageData.siteSettings,
         modules: pageData.modules,
         seo: pageData.seo,
         breadcrumbTrail: pageData.breadcrumbTrail,
+        inertiaOverride: overrideComponent ? { key: `${post.type}:${post.slug}` } : null,
         ...additionalProps,
       })
     } catch (error) {

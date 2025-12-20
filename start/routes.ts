@@ -14,6 +14,7 @@ import '#start/taxonomies'
 const SitemapController = () => import('#controllers/sitemap_controller')
 const RobotsController = () => import('#controllers/robots_controller')
 const SeoController = () => import('#controllers/seo_controller')
+const SiteSearchController = () => import('#controllers/site_search_controller')
 
 // Homepage - resolve from posts (slug: 'home', type: 'page')
 // This delegates to the post resolution system
@@ -33,6 +34,11 @@ router.get('/', async ({ request, response, inertia, auth }) => {
 // Public media info (no auth)
 const MediaController = () => import('#controllers/media_controller')
 router.get('/public/media/:id', [MediaController, 'showPublic'])
+
+/**
+ * Public search (static Inertia page)
+ */
+router.get('/search', [SiteSearchController, 'index'])
 
 /**
  * Auth routes (admin)

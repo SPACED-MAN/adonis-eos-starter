@@ -17,7 +17,7 @@ export function NavBar({
   currentUser?: any
 }) {
   return (
-    <header className="border-b border-line-low bg-backdrop-input/80 backdrop-blur">
+    <header className="border-b border-line-low bg-backdrop/80 backdrop-blur">
       <div className="container mx-auto px-4 sm:px-6 lg:px-8 py-3 flex items-center justify-between gap-4">
         <a href="/" className="flex items-center gap-2 text-neutral-high font-semibold">
           {logoLightUrl || logoDarkUrl ? (
@@ -39,6 +39,21 @@ export function NavBar({
           )}
         </a>
         <div className="flex-1 flex items-center justify-end gap-6">
+          {/* Public search (GET -> /search) */}
+          <form action="/search" method="get" className="hidden lg:flex items-center gap-2">
+            <input
+              type="search"
+              name="q"
+              placeholder="Search…"
+              className="w-64 rounded-md border border-line-medium bg-backdrop px-3 py-2 text-sm text-neutral-high placeholder:text-neutral-low outline-none focus:ring-2 focus:ring-standout-medium/30 focus:border-standout-medium/40"
+            />
+            <button
+              type="submit"
+              className="inline-flex items-center rounded-md border border-line-medium bg-backdrop px-3 py-2 text-sm font-medium text-neutral-high hover:bg-backdrop-medium hover:text-standout-high"
+            >
+              Search
+            </button>
+          </form>
           <nav className="hidden md:flex items-center gap-6">
             {primaryNodes.map((n) => (
               <NavItem key={n.id} node={n} menuMeta={menuMeta} />
@@ -50,14 +65,14 @@ export function NavBar({
             {currentUser ? (
               <a
                 href="/admin"
-                className="inline-flex items-center rounded-md border border-line-high bg-backdrop px-4 py-3 text-xs sm:text-sm font-medium text-neutral-high hover:bg-backdrop-input hover:text-standout-high min-h-[48px]"
+                className="inline-flex items-center rounded-md border border-line-high bg-backdrop px-4 py-3 text-xs sm:text-sm font-medium text-neutral-high hover:bg-backdrop-medium hover:text-standout-high min-h-[48px]"
               >
                 Dashboard
               </a>
             ) : (
               <a
                 href="/admin/login"
-                className="inline-flex items-center rounded-md border border-line-high bg-backdrop px-4 py-3 text-xs sm:text-sm font-medium text-neutral-high hover:bg-backdrop-input hover:text-standout-high min-h-[48px]"
+                className="inline-flex items-center rounded-md border border-line-high bg-backdrop px-4 py-3 text-xs sm:text-sm font-medium text-neutral-high hover:bg-backdrop-medium hover:text-standout-high min-h-[48px]"
               >
                 Login
               </a>

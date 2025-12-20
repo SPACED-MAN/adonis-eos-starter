@@ -36,6 +36,8 @@ Technical documentation for developers and system administrators:
 - [AI Agents](developers/09-ai-agents.md) - AI-powered content enhancement
 - [Workflows](developers/10-workflows.md) - Event-driven automation and webhook integrations
 - [MCP (Model Context Protocol)](developers/10-mcp.md) - Connect external AI tools (Cursor, n8n) to CMS context + safe write tools
+- [Override Pages](developers/22-override-pages.md) - Render one-off site pages for specific post type + slug
+- [Template Tokens](developers/23-template-tokens.md) - `{title}` / `{custom.*}` / `{settings.*}` token substitution
 - [Deployment Guide](developers/19-deployment.md) - Production deployment strategies
 - [Update Philosophy](developers/20-update-philosophy.md) - How to approach upgrades and maintenance
 - [Export/Import](developers/12-export-import.md) - Database export/import pipeline (dev seeding + production promotion)
