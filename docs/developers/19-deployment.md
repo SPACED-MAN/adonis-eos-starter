@@ -82,6 +82,12 @@ DB_POOL_MIN=2                         # Minimum pool connections (default: 2)
 DB_POOL_MAX=10                        # Maximum pool connections (default: 10)
 DB_DEBUG=false                        # Enable SQL query debugging (default: false)
 
+# Database TLS (recommended for production)
+DB_SSL=true                           # Enable TLS for Postgres connections (default: false)
+DB_SSL_REJECT_UNAUTHORIZED=true       # Verify server certificate (default: true)
+DB_SSL_CA=                            # Optional CA bundle contents (PEM string)
+DB_SSL_ALLOW_INSECURE=false           # Escape hatch: allow non-TLS DB in production (NOT recommended)
+
 # Internationalization (i18n)
 DEFAULT_LOCALE=en                     # Default locale code (default: 'en')
 SUPPORTED_LOCALES=en,es,fr            # Comma-separated list of supported locales (default: 'en')
@@ -91,6 +97,9 @@ CMS_REVISIONS_LIMIT=20                # Maximum revisions to keep per post (0 = 
 CMS_REVISIONS_AUTO_PRUNE=true         # Auto-delete old revisions on save (default: true)
 CMS_PREVIEW_EXPIRATION_HOURS=24       # Preview link expiration in hours (default: 24)
 CMS_PREVIEW_SECRET=                   # Preview token secret (defaults to APP_KEY)
+CMS_WEBHOOK_SECRET=                  # Webhook signing secret (recommended if webhooks enabled)
+CMS_WEBHOOK_ALLOWED_HOSTS=           # Optional: comma-separated hostname allowlist for outbound webhooks
+CORS_ORIGINS=                        # REQUIRED in production (comma-separated) when CORS is enabled
 CMS_SOFT_DELETE_ENABLED=true          # Enable soft deletes for posts (default: true)
 CMS_SOFT_DELETE_RETENTION_DAYS=30     # Days to retain soft-deleted posts (default: 30)
 

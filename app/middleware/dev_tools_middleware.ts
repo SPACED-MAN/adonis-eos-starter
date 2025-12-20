@@ -35,11 +35,15 @@ export default class DevToolsMiddleware {
 
     // Listen for queries
     const queryListener = (query: any) => {
-      queries.push({
+      // SOC2/Security: never collect query bindings in production (often contains PII/secrets).
+      const safeQuery = {
         sql: query.sql,
-        bindings: query.bindings,
+        bindings: app.inProduction ? undefined : query.bindings,
         duration: query.duration,
         timestamp: new Date().toISOString(),
+      }
+      queries.push({
+        ...safeQuery,
       })
     }
     db.emitter.on('db:query', queryListener)
@@ -76,7 +80,8 @@ export default class DevToolsMiddleware {
       }
 
       // Log to terminal if enabled
-      if (isEnabled) {
+      // SOC2/Security: never log SQL to terminal in production; use admin-only UI (session) instead.
+      if (isEnabled && !app.inProduction) {
         const color = queries.length > 20 ? '\x1b[31m' : queries.length > 10 ? '\x1b[33m' : '\x1b[32m'
         const reset = '\x1b[0m'
         const bold = '\x1b[1m'

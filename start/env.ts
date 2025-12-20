@@ -37,6 +37,12 @@ export default await Env.create(new URL('../', import.meta.url), {
   DB_USER: Env.schema.string(),
   DB_PASSWORD: Env.schema.string.optional(),
   DB_DATABASE: Env.schema.string(),
+  // SOC2/Security: enable TLS-in-transit for managed Postgres where supported.
+  DB_SSL: Env.schema.boolean.optional(),
+  DB_SSL_REJECT_UNAUTHORIZED: Env.schema.boolean.optional(),
+  DB_SSL_CA: Env.schema.string.optional(),
+  // SOC2/Security: fail fast in production if DB_SSL is not enabled (unless explicitly allowed).
+  DB_SSL_ALLOW_INSECURE: Env.schema.boolean.optional(),
 
   /*
   |----------------------------------------------------------
@@ -125,6 +131,7 @@ export default await Env.create(new URL('../', import.meta.url), {
   CMS_WEBHOOK_TIMEOUT: Env.schema.number.optional(),
   CMS_WEBHOOK_MAX_RETRIES: Env.schema.number.optional(),
   CMS_WEBHOOK_SECRET: Env.schema.string.optional(),
+  CMS_WEBHOOK_ALLOWED_HOSTS: Env.schema.string.optional(),
 
   /*
   |----------------------------------------------------------

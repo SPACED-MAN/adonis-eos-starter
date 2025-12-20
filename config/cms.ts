@@ -104,6 +104,11 @@ const cmsConfig = {
     maxRetries: env.get('CMS_WEBHOOK_MAX_RETRIES') ?? 3,
     /** Secret for signing webhook payloads */
     secret: env.get('CMS_WEBHOOK_SECRET') ?? '',
+    /** Optional hostname allowlist for outbound webhook delivery (comma-separated). */
+    allowedHosts: (env.get('CMS_WEBHOOK_ALLOWED_HOSTS') ?? '')
+      .split(',')
+      .map((h) => h.trim().toLowerCase())
+      .filter(Boolean),
   },
 
   /**

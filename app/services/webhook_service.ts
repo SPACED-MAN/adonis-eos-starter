@@ -2,6 +2,40 @@ import db from '@adonisjs/lucid/services/db'
 import { createHmac } from 'node:crypto'
 import cmsConfig from '#config/cms'
 
+function isPrivateOrLocalHost(hostname: string): boolean {
+  const h = String(hostname || '')
+    .trim()
+    .toLowerCase()
+  if (!h) return true
+  if (h === 'localhost') return true
+  if (h === '0.0.0.0') return true
+  if (h === '127.0.0.1') return true
+  if (h === '::1') return true
+  // Common cloud metadata endpoints
+  if (h === '169.254.169.254') return true
+  // Block direct private IPv4 literals (basic guard; DNS-based SSRF still possible without resolution)
+  if (/^\d{1,3}(\.\d{1,3}){3}$/.test(h)) {
+    const [a, b] = h.split('.').map((n) => Number(n))
+    if (a === 10) return true
+    if (a === 127) return true
+    if (a === 192 && b === 168) return true
+    if (a === 169 && b === 254) return true
+    if (a === 172 && b >= 16 && b <= 31) return true
+  }
+  return false
+}
+
+function isAllowedWebhookHost(hostname: string): boolean {
+  const allow = (cmsConfig.webhooks as any)?.allowedHosts as string[] | undefined
+  if (!allow || allow.length === 0) return true // no allowlist configured
+  const h = String(hostname || '')
+    .trim()
+    .toLowerCase()
+  if (!h) return false
+  // exact match or suffix match (".example.com" style by allowing "example.com")
+  return allow.some((allowed) => h === allowed || h.endsWith(`.${allowed}`))
+}
+
 /**
  * Webhook events
  */
@@ -108,6 +142,45 @@ class WebhookService {
   ): Promise<DeliveryResult> {
     const startTime = Date.now()
     const payloadString = JSON.stringify(payload)
+
+    // SOC2/Security: Basic SSRF guardrails.
+    // - Require HTTPS in production
+    // - Block localhost/private IP literals (best-effort)
+    let parsedUrl: URL | null = null
+    try {
+      parsedUrl = new URL(webhook.url)
+      if (process.env.NODE_ENV === 'production' && parsedUrl.protocol !== 'https:') {
+        throw new Error('Webhook URL must use https in production')
+      }
+      if (isPrivateOrLocalHost(parsedUrl.hostname)) {
+        throw new Error('Webhook URL hostname is not allowed')
+      }
+      if (!isAllowedWebhookHost(parsedUrl.hostname)) {
+        throw new Error('Webhook URL hostname is not in CMS_WEBHOOK_ALLOWED_HOSTS allowlist')
+      }
+    } catch (e: any) {
+      const durationMs = Date.now() - startTime
+      const errorMessage = e?.message || 'Invalid webhook URL'
+      // Record a failed delivery attempt for visibility
+      try {
+        await db.table('webhook_deliveries').insert({
+          webhook_id: webhook.id,
+          event: payload.event,
+          payload: payload,
+          attempt,
+          status: 'failed',
+          error: `Blocked webhook dispatch: ${errorMessage}`,
+        })
+      } catch {
+        // ignore
+      }
+      return {
+        webhookId: webhook.id,
+        success: false,
+        error: `Blocked webhook dispatch: ${errorMessage}`,
+        durationMs,
+      }
+    }
 
     const headers: Record<string, string> = {
       'Content-Type': 'application/json',

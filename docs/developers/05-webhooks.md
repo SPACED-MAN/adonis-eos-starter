@@ -14,6 +14,15 @@ Webhooks are gated by config:
 
 - `cmsConfig.webhooks.enabled` (see `config/cms.ts`)
 
+## Security notes (SOC2-relevant)
+
+Outbound webhooks are a high-risk integration. Recommended hardening:
+
+- **Use HTTPS** for webhook URLs in production.
+- **Avoid localhost/private network destinations** (SSRF risk).
+- Set a **global signing secret** (`CMS_WEBHOOK_SECRET`) and/or per-webhook `secret` so receivers can validate `X-Webhook-Signature`.
+- Prefer a **destination allowlist** (`CMS_WEBHOOK_ALLOWED_HOSTS`) so webhooks can only be delivered to approved hostnames.
+
 Each webhook record supports:
 
 - **name**: display name
