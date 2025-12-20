@@ -16,6 +16,14 @@ export default class PromotePostModules {
       if (Array.isArray(draftModules)) {
         for (const dm of draftModules) {
           const isLocal = dm.scope === 'post' || dm.scope === 'local'
+          const nextAdminLabel =
+            dm.adminLabel !== undefined
+              ? dm.adminLabel
+              : dm.props && dm.props._adminLabel !== undefined
+                ? dm.props._adminLabel
+                : dm.overrides && dm.overrides._adminLabel !== undefined
+                  ? dm.overrides._adminLabel
+                  : undefined
           if (isLocal) {
             // Note: Removed "robust ID lookup" for legacy drafts as requested
             const miId = dm.moduleInstanceId
@@ -38,8 +46,17 @@ export default class PromotePostModules {
                 overrides: dm.overrides || null,
                 review_overrides: null,
                 ai_review_overrides: null,
+                ...(nextAdminLabel !== undefined ? { admin_label: nextAdminLabel } : {}),
                 updated_at: new Date(),
               } as any)
+          }
+
+          // Apply label to Source for BOTH local and global modules (label is on post_modules).
+          if (nextAdminLabel !== undefined) {
+            await trx
+              .from('post_modules')
+              .where('id', dm.id)
+              .update({ admin_label: nextAdminLabel, updated_at: new Date() } as any)
           }
         }
         return

@@ -35,6 +35,9 @@ export default class PostModule extends BaseModel {
   @column({ columnName: 'order_index' })
   declare orderIndex: number
 
+  @column({ columnName: 'admin_label' })
+  declare adminLabel: string | null
+
   @column({ columnName: 'review_added' })
   declare reviewAdded: boolean
 

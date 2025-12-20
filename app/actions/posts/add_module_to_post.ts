@@ -14,6 +14,7 @@ type AddModuleToPostParams = {
   globalSlug?: string | null
   orderIndex?: number
   locked?: boolean
+  adminLabel?: string | null
   mode?: 'review' | 'ai-review' | 'publish'
 }
 
@@ -37,8 +38,10 @@ export default class AddModuleToPost {
     globalSlug = null,
     orderIndex,
     locked = false,
+    adminLabel,
     mode,
   }: AddModuleToPostParams) {
+    // Note: module labels are staged in drafts and promoted to Source on approval.
     // Find the post
     const post = await Post.find(postId)
 
@@ -101,6 +104,11 @@ export default class AddModuleToPost {
               ? moduleConfig.defaultProps
               : props
           )
+          
+          if (adminLabel !== undefined && initialProps._adminLabel !== undefined) {
+            delete initialProps._adminLabel
+          }
+
           const [newGlobal] = await trx
             .table('module_instances')
             .insert({
@@ -126,6 +134,11 @@ export default class AddModuleToPost {
             ? moduleConfig.defaultProps
             : props
         )
+
+        if (adminLabel !== undefined && initialProps._adminLabel !== undefined) {
+          delete initialProps._adminLabel
+        }
+
         const [newInstance] = await trx
           .table('module_instances')
           .insert({
@@ -171,6 +184,8 @@ export default class AddModuleToPost {
           post_id: postId,
           module_id: moduleInstanceId,
           order_index: finalOrderIndex,
+          // Only set Source label on publish-mode creation; review/ai-review labels live in draft snapshots.
+          admin_label: mode === 'review' || mode === 'ai-review' ? null : adminLabel,
           overrides: null,
           ai_review_overrides: null,
           review_added: mode === 'review' ? true : false,

@@ -8,7 +8,7 @@ import { ListPlugin } from '@lexical/react/LexicalListPlugin'
 import { LinkPlugin } from '@lexical/react/LexicalLinkPlugin'
 import { useLexicalComposerContext } from '@lexical/react/LexicalComposerContext'
 import { LexicalErrorBoundary } from '@lexical/react/LexicalErrorBoundary'
-import { HeadingNode, QuoteNode } from '@lexical/rich-text'
+import { HeadingNode, QuoteNode, $createParagraphNode } from '@lexical/rich-text'
 import { ListItemNode, ListNode } from '@lexical/list'
 import { LinkNode, AutoLinkNode } from '@lexical/link'
 import { CodeNode } from '@lexical/code'
@@ -34,7 +34,8 @@ import {
   faMinus,
 } from '@fortawesome/free-solid-svg-icons'
 import { $createCodeNode } from '@lexical/code'
-import { $insertNodes } from 'lexical'
+import { $insertNodes, $createTextNode } from 'lexical'
+import { TokenPicker } from './ui/TokenPicker'
 
 function InitialContentPlugin({ initialValue }: { initialValue: any }) {
   const [editor] = useLexicalComposerContext()
@@ -121,11 +122,13 @@ export function LexicalEditor({
   onChange,
   placeholder = 'Start typing…',
   editorKey,
+  customFields,
 }: {
   value: any
   onChange: (json: any) => void
   placeholder?: string
   editorKey?: string
+  customFields?: Array<{ slug: string; label: string }>
 }) {
   const theme = useMemo(
     () => ({
@@ -179,7 +182,7 @@ export function LexicalEditor({
   return (
     <LexicalComposer key={editorKey} initialConfig={initialConfig}>
       <div className="border border-border rounded bg-backdrop-low">
-        <Toolbar />
+        <Toolbar customFields={customFields} />
         <RichTextPlugin
           contentEditable={
             <ContentEditable className="min-h-[160px] p-3 outline-none text-neutral-high" />
@@ -206,8 +209,26 @@ export function LexicalEditor({
   )
 }
 
-function Toolbar() {
+function Toolbar({ customFields }: { customFields?: Array<{ slug: string; label: string }> }) {
   const [editor] = useLexicalComposerContext()
+
+  const handleTokenSelect = (tokenName: string) => {
+    editor.update(() => {
+      const selection = $getSelection()
+      const tokenText = `{${tokenName}}`
+      
+      if (selection) {
+        // Insert token at cursor position, replacing any selected text
+        selection.insertText(tokenText)
+      } else {
+        // If no selection, insert text node directly
+        // This handles the edge case where editor is empty or has no focus
+        const textNode = $createTextNode(tokenText)
+        $insertNodes([textNode])
+      }
+    })
+  }
+
   return (
     <div className="flex items-center gap-1 border-b border-line-low bg-backdrop-medium px-2 py-1">
       <button
@@ -314,6 +335,8 @@ function Toolbar() {
       >
         <FontAwesomeIcon icon={faMinus} />
       </button>
+      <div className="mx-2 h-4 w-px bg-line" />
+      <TokenPicker onSelect={handleTokenSelect} customFields={customFields} />
     </div>
   )
 }

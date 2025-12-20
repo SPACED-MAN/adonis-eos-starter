@@ -1,4 +1,6 @@
 import * as React from 'react'
+import { FontAwesomeIcon } from '@fortawesome/react-fontawesome'
+import { faChevronDown, faSearch } from '@fortawesome/free-solid-svg-icons'
 import { Input } from '~/components/ui/input'
 import { Popover, PopoverContent, PopoverTrigger } from '~/components/ui/popover'
 import { FormField, FormLabel, FormHelper } from './field'
@@ -283,7 +285,7 @@ export const LinkField: React.FC<LinkFieldProps> = ({
 
   return (
     <FormField>
-      <FormLabel className="block text-[11px] font-bold text-neutral-medium uppercase tracking-wider mb-1.5 ml-1">{label}</FormLabel>
+      <FormLabel className="block text-[11px] font-bold text-neutral-medium uppercase tracking-wider mt-2 mb-1.5 ml-1">{label}</FormLabel>
       <div className="space-y-4">
         <div className="flex items-center gap-2">
           <span className="text-xs font-semibold text-neutral-medium">Link to</span>
@@ -312,7 +314,7 @@ export const LinkField: React.FC<LinkFieldProps> = ({
               <option value="url">Custom URL (external only)</option>
             </select>
             <div className="absolute right-2 top-1/2 -translate-y-1/2 pointer-events-none text-neutral-low">
-              <span className="iconify" data-icon="lucide:chevron-down" />
+              <FontAwesomeIcon icon={faChevronDown} className="text-neutral-medium" />
             </div>
           </div>
         </div>
@@ -365,7 +367,7 @@ export const LinkField: React.FC<LinkFieldProps> = ({
                         })()
                         : 'Select a post…'}
                   </span>
-                  <span className="iconify text-neutral-low group-hover:text-neutral-medium transition-colors" data-icon="lucide:search" />
+                  <FontAwesomeIcon icon={faSearch} className="text-neutral-low group-hover:text-neutral-medium transition-colors" />
                 </button>
               </PopoverTrigger>
               <PopoverContent className="w-96 p-2 rounded-2xl border-line-low shadow-2xl bg-backdrop-low">
@@ -379,7 +381,7 @@ export const LinkField: React.FC<LinkFieldProps> = ({
                       className="h-9 text-xs rounded-lg pl-9"
                     />
                     <div className="absolute left-3 top-1/2 -translate-y-1/2 text-neutral-low">
-                      <span className="iconify" data-icon="lucide:search" />
+                      <FontAwesomeIcon icon={faSearch} />
                     </div>
                   </div>
                   <div className="max-h-64 overflow-auto space-y-1 pr-1 custom-scrollbar">
@@ -395,8 +397,8 @@ export const LinkField: React.FC<LinkFieldProps> = ({
                             key={p.id}
                             type="button"
                             className={`w-full text-left px-3 py-2 rounded-lg border transition-all ${isSelected
-                                ? 'border-standout-medium bg-standout-medium/5 ring-1 ring-standout-medium/20'
-                                : 'border-transparent hover:bg-backdrop-medium'
+                              ? 'border-standout-medium bg-standout-medium/5 ring-1 ring-standout-medium/20'
+                              : 'border-transparent hover:bg-backdrop-medium'
                               }`}
                             onClick={() => {
                               setLink({
@@ -453,7 +455,7 @@ export const LinkField: React.FC<LinkFieldProps> = ({
                 <option value="_blank">New tab</option>
               </select>
               <div className="absolute right-2 top-1/2 -translate-y-1/2 pointer-events-none text-neutral-low">
-                <span className="iconify" data-icon="lucide:chevron-down" />
+                <FontAwesomeIcon icon={faChevronDown} className="text-neutral-medium" />
               </div>
             </div>
           </div>

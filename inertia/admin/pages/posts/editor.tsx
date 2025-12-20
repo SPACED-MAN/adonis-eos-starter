@@ -30,7 +30,7 @@ import {
 } from '~/components/ui/select'
 import { RadioGroup, RadioGroupItem } from '~/components/ui/radio-group'
 import { ModulePicker } from '../../components/modules/ModulePicker'
-import { FormEvent, memo, useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react'
+import { FormEvent, useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react'
 import { toast } from 'sonner'
 import { humanizeSlug } from '~/utils/strings'
 import type { CustomFieldType } from '~/types/custom_field'
@@ -54,7 +54,15 @@ import { Star } from 'lucide-react'
 import { DragHandle } from '../../components/ui/DragHandle'
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome'
 import { faReact } from '@fortawesome/free-brands-svg-icons'
-import { faGlobe, faWandMagicSparkles } from '@fortawesome/free-solid-svg-icons'
+import {
+  faGlobe,
+  faWandMagicSparkles,
+  faPencil,
+  faTrash,
+  faChevronDown,
+  faSpinner,
+  faLink,
+} from '@fortawesome/free-solid-svg-icons'
 import { getXsrf } from '~/utils/xsrf'
 import { LinkField, type LinkFieldValue } from '~/components/forms/LinkField'
 import { useHasPermission } from '~/utils/permissions'
@@ -106,6 +114,7 @@ const InlineModuleEditor = function InlineModuleEditor({
     locked: boolean
     orderIndex: number
     globalSlug?: string | null
+    adminLabel?: string | null
   }
   postId: string
   viewMode: 'source' | 'review' | 'ai-review'
@@ -138,6 +147,7 @@ const InlineModuleEditor = function InlineModuleEditor({
         locked: module.locked,
         orderIndex: module.orderIndex,
         globalSlug: (module as any).globalSlug || null,
+        adminLabel: module.adminLabel || null,
       }}
       postId={postId}
       moduleInstanceId={module.moduleInstanceId}
@@ -192,6 +202,7 @@ interface EditorProps {
     locked: boolean
     orderIndex: number
     globalSlug?: string | null
+    adminLabel?: string | null
   }[]
   translations: { id: string; locale: string }[]
   reviewDraft?: any | null
@@ -291,6 +302,10 @@ function ModuleRowBase({
   const [isEditingLabel, setIsEditingLabel] = useState(false)
   const [localLabel, setLocalLabel] = useState(m.adminLabel || '')
 
+  useEffect(() => {
+    setLocalLabel(m.adminLabel || '')
+  }, [m.adminLabel])
+
   const moduleName = m.scope === 'global'
     ? globalSlugToLabel.get(String((m as any).globalSlug || '')) ||
     (m as any).globalLabel ||
@@ -299,23 +314,21 @@ function ModuleRowBase({
     m.type
     : moduleRegistry[m.type]?.name || m.type
 
-  const saveLabel = () => {
+  const saveLabel = async () => {
     const label = localLabel.trim() || null
     setIsEditingLabel(false)
     if (label === m.adminLabel) return
 
-    // Update the local module state in the parent
-    const isLocal = m.scope === 'post' || m.scope === 'local'
+    // Stage label like any other field: it should NOT persist until the user hits Save/Publish/Approve.
+    // We store it in the module's staged JSON as `_adminLabel` so it flows through existing draft snapshots,
+    // and also mirror it into `m.adminLabel` in local state so the editor header reflects the change immediately.
+    setModules((prev) => prev.map((pm) => (pm.id === m.id ? { ...pm, adminLabel: label } : pm)))
+
     const nextProps = { ...(m.props || {}), _adminLabel: label }
     const nextOverrides = { ...(m.overrides || {}), _adminLabel: label }
-
-    stageModuleEdits(
-      m.id,
-      isLocal ? (m.overrides || null) : nextOverrides,
-      isLocal ? nextProps : (m.props || {})
-    )
+    stageModuleEdits(m.id, nextOverrides, nextProps)
     markModuleDirty(viewMode, m.id)
-    toast.success('Module label updated')
+    toast.success('Module label staged (unsaved)')
   }
 
   return (
@@ -375,10 +388,10 @@ function ModuleRowBase({
                       <button
                         type="button"
                         onClick={() => setIsEditingLabel(true)}
-                        className="opacity-0 group-hover/label:opacity-100 p-1 rounded-md hover:bg-backdrop-medium text-neutral-low hover:text-neutral-high transition-all"
+                        className="opacity-40 group-hover/label:opacity-100 p-1 rounded-md hover:bg-backdrop-medium text-neutral-low hover:text-neutral-high transition-all"
                         title="Edit label"
                       >
-                        <span className="iconify" data-icon="lucide:pencil" />
+                        <FontAwesomeIcon icon={faPencil} className="w-3.5 h-3.5" />
                       </button>
                     </>
                   )}
@@ -410,7 +423,7 @@ function ModuleRowBase({
                   className="inline-flex items-center rounded-full border border-amber-500/20 bg-amber-500/5 px-2 py-0.5 text-[10px] font-bold text-amber-500 uppercase tracking-tight"
                   title="Global module"
                 >
-                  <FontAwesomeIcon icon={faGlobe} className="mr-1" />
+                  <FontAwesomeIcon icon={faGlobe} className="w-3 h-3 mr-1" />
                   Global
                 </span>
               )}
@@ -442,7 +455,7 @@ function ModuleRowBase({
                 type="button"
                 title="Remove module"
               >
-                <span className="iconify text-lg" data-icon="lucide:trash-2" />
+                <FontAwesomeIcon icon={faTrash} className="w-4 h-4" />
               </button>
 
               <button
@@ -470,7 +483,10 @@ function ModuleRowBase({
                   })
                 }}
               >
-                <span className={`iconify text-xl transition-transform duration-200 ${isOpen ? 'rotate-180' : ''}`} data-icon="lucide:chevron-down" />
+                <FontAwesomeIcon
+                  icon={faChevronDown}
+                  className={`w-4 h-4 transition-transform duration-200 ${isOpen ? 'rotate-180' : ''}`}
+                />
               </button>
             </div>
           </div>
@@ -479,7 +495,7 @@ function ModuleRowBase({
             <div className="p-6 bg-backdrop-low rounded-b-xl border-t border-line-low">
               {!moduleSchemasReady ? (
                 <div className="flex flex-col items-center justify-center py-12 gap-3 text-neutral-medium">
-                  <span className="iconify text-3xl animate-spin" data-icon="lucide:loader-2" />
+                  <FontAwesomeIcon icon={faSpinner} className="text-3xl animate-spin" />
                   <span className="text-sm font-medium">Loading module fields…</span>
                 </div>
               ) : (
@@ -744,6 +760,7 @@ export default function Editor({
       scope: 'local' | 'global'
       globalSlug?: string | null
       orderIndex: number
+      adminLabel?: string | null
     }>
   >([])
   // Track structural changes that need to be published
@@ -879,14 +896,14 @@ export default function Editor({
     slug: d.slug,
     excerpt: d.excerpt,
     status: d.status,
-    parentId: String((d as any).parentId || '').trim() || null,
+    parentId: String((d as any).parentId || '').trim() || '',
     orderIndex: d.orderIndex,
-    metaTitle: String(d.metaTitle || '').trim() || null,
-    metaDescription: String(d.metaDescription || '').trim() || null,
-    canonicalUrl: String(d.canonicalUrl || '').trim() || null,
+    metaTitle: String(d.metaTitle || '').trim() || '',
+    metaDescription: String(d.metaDescription || '').trim() || '',
+    canonicalUrl: String(d.canonicalUrl || '').trim() || '',
     robotsJson: d.robotsJson,
     jsonldOverrides: d.jsonldOverrides,
-    featuredImageId: String((d as any).featuredImageId || '').trim() || null,
+    featuredImageId: String((d as any).featuredImageId || '').trim() || '',
     customFields: Array.isArray((d as any).customFields)
       ? (d as any).customFields.map((e: any) => ({
         fieldId: e.fieldId,
@@ -1117,10 +1134,20 @@ export default function Editor({
           }
         }
 
+        const adminLabel =
+          pending && (pending.edited as any)?._adminLabel !== undefined
+            ? (pending.edited as any)._adminLabel
+            : pending && (pending.overrides as any)?._adminLabel !== undefined
+              ? (pending.overrides as any)._adminLabel
+              : (m as any).adminLabel !== undefined && (m as any).adminLabel !== null
+                ? (m as any).adminLabel
+                : (finalOverrides as any)?._adminLabel ?? (finalProps as any)?._adminLabel ?? null
+
         return {
           ...m,
           props: finalProps,
           overrides: finalOverrides,
+          adminLabel,
         }
       })
     }
@@ -1933,7 +1960,17 @@ export default function Editor({
     if (!modulesEnabled) return []
     if (pendingNewModules.length === 0) return []
 
+    // Map 'publish' to 'source' for ref access
+    const refMode: ViewMode = mode === 'publish' ? 'source' : mode
+
     const creates = pendingNewModules.map(async (pm) => {
+      const pending = pendingModulesByModeRef.current[refMode]?.[pm.tempId]
+      const labelFromPending =
+        (pending?.edited as any)?._adminLabel !== undefined
+          ? (pending?.edited as any)._adminLabel
+          : (pending?.overrides as any)?._adminLabel
+      const finalLabel = labelFromPending !== undefined ? labelFromPending : pm.adminLabel
+
       const res = await fetch(`/api/posts/${post.id}/modules`, {
         method: 'POST',
         headers: {
@@ -1948,6 +1985,7 @@ export default function Editor({
           globalSlug: pm.globalSlug,
           orderIndex: pm.orderIndex,
           locked: false,
+          adminLabel: finalLabel,
           mode,
         }),
       })
@@ -2033,12 +2071,14 @@ export default function Editor({
         scope: payload.scope === 'post' ? 'local' : 'global',
         globalSlug: payload.globalSlug || null,
         orderIndex: nextOrderIndex,
+        adminLabel: null,
       },
     ])
 
     // Add to modules display list with temporary data
     const newModule: EditorProps['modules'][0] = {
       id: tempId,
+      moduleInstanceId: tempId,
       type: payload.type,
       scope: payload.scope === 'post' ? 'local' : 'global',
       props: {},
@@ -2112,33 +2152,36 @@ export default function Editor({
 
   const adjustModuleForView = useCallback(
     (m: EditorProps['modules'][number]) => {
+      let currentProps = m.props || {}
+      let currentOverrides = m.overrides || null
+
       if (viewMode === 'review') {
         if (m.scope === 'post') {
-          return {
-            ...m,
-            props: m.reviewProps ?? m.props ?? {},
-            overrides: m.overrides,
-          }
+          currentProps = m.reviewProps ?? m.props ?? {}
+        } else {
+          currentOverrides = (m as any).reviewOverrides ?? m.overrides ?? null
         }
-        return {
-          ...m,
-          overrides: (m as any).reviewOverrides ?? m.overrides ?? null,
-        }
-      }
-      if (viewMode === 'ai-review') {
+      } else if (viewMode === 'ai-review') {
         if (m.scope === 'post') {
-          return {
-            ...m,
-            props: (m as any).aiReviewProps ?? m.props ?? {},
-            overrides: m.overrides,
-          }
-        }
-        return {
-          ...m,
-          overrides: (m as any).aiReviewOverrides ?? m.overrides ?? null,
+          currentProps = (m as any).aiReviewProps ?? m.props ?? {}
+        } else {
+          currentOverrides = (m as any).aiReviewOverrides ?? m.overrides ?? null
         }
       }
-      return m
+
+	      // Prefer DB-backed/admin state label first, then fall back to legacy _adminLabel stored in JSON.
+	      // Note: keep null/empty-string semantics intact; do NOT use `||` here.
+	      const adminLabel =
+	        m.adminLabel !== undefined && m.adminLabel !== null
+	          ? m.adminLabel
+	          : (currentOverrides as any)?._adminLabel ?? (currentProps as any)?._adminLabel ?? null
+
+      return {
+        ...m,
+        props: currentProps,
+        overrides: currentOverrides,
+        adminLabel,
+      }
     },
     [viewMode]
   )
@@ -2232,11 +2275,29 @@ export default function Editor({
 
   const stageModuleEdits = useCallback(
     (moduleId: string, overrides: Record<string, any> | null, edited: Record<string, any>) => {
-      // If there are no effective changes, don't mark this module as pending.
-      // This prevents "Save" being enabled when nothing actually changed.
+      // Check if there are any effective changes (including _adminLabel in edited or overrides)
+      const hasAdminLabel = (edited as any)?._adminLabel !== undefined || (overrides as any)?._adminLabel !== undefined
       const isEmptyOverrides =
         overrides == null || (typeof overrides === 'object' && Object.keys(overrides).length === 0)
-      if (isEmptyOverrides) {
+      const isEmptyEdited =
+        edited == null || (typeof edited === 'object' && Object.keys(edited).length === 0)
+      // If both are empty AND there's no adminLabel, don't mark this module as pending.
+      // This prevents "Save" being enabled when nothing actually changed.
+      if (isEmptyOverrides && isEmptyEdited && !hasAdminLabel) {
+	        // If we already have a staged label for this module, do not clear it just because
+	        // a later flush/stage call computed an empty diff (common when label was edited
+	        // outside the ModuleEditorPanel form fields).
+	        const existing = (pendingModulesByModeRef.current[viewMode] || {})[moduleId]
+	        const existingHasLabel =
+	          !!existing &&
+	          (((existing.edited as any)?._adminLabel !== undefined) ||
+	            ((existing.overrides as any)?._adminLabel !== undefined))
+	        const incomingHasLabel =
+	          (edited as any)?._adminLabel !== undefined || (overrides as any)?._adminLabel !== undefined
+	        if (existingHasLabel && !incomingHasLabel) {
+	          return
+	        }
+
         // If user changed something and then reverted back, clear any "unstaged dirty" marker for this module.
         setUnstagedDirtyModulesByMode((prev) => {
           const bucket = prev[viewMode] || {}
@@ -2271,35 +2332,60 @@ export default function Editor({
         return { ...prev, [viewMode]: nextBucket }
       })
 
+      // Ensure we preserve the admin label if it's already set but missing from this update.
+      // This prevents the label from being lost when editing other module fields.
+      const currentModule = modules.find((mod) => mod.id === moduleId)
+      const preservedLabel = currentModule?.adminLabel
+      const isLocal = currentModule?.scope === 'post' || currentModule?.scope === 'local'
+
+      const mergedEdited = { ...edited }
+      // If _adminLabel is explicitly set in edited, use it (even if null to clear).
+      // Otherwise, preserve existing label if available.
+      if (!('_adminLabel' in mergedEdited) && isLocal && preservedLabel !== undefined && preservedLabel !== null) {
+        mergedEdited._adminLabel = preservedLabel
+      }
+
+      const mergedOverrides = overrides ? { ...overrides } : null
+      // If _adminLabel is explicitly set in overrides, use it (even if null to clear).
+      // Otherwise, preserve existing label if available.
+      if (mergedOverrides && !('_adminLabel' in mergedOverrides) && !isLocal && preservedLabel !== undefined && preservedLabel !== null) {
+        mergedOverrides._adminLabel = preservedLabel
+      }
+
       // Update per-mode ref immediately so save flows can commit even before React state flushes.
       pendingModulesByModeRef.current[viewMode] = {
         ...pendingModulesByModeRef.current[viewMode],
-        [moduleId]: { overrides, edited },
+        [moduleId]: { overrides: mergedOverrides, edited: mergedEdited },
       }
       // Also keep a union map for isDirty + UI (keyed by mode so multiple versions can coexist).
       const unionKey = `${viewMode}:${moduleId}`
-      setPendingModules((prev) => ({ ...prev, [unionKey]: { overrides, edited } }))
+      setPendingModules((prev) => ({ ...prev, [unionKey]: { overrides: mergedOverrides, edited: mergedEdited } }))
       setModules((prev) =>
         prev.map((m) => {
           if (m.id !== moduleId) return m
-          const nextLabel = edited?._adminLabel || overrides?._adminLabel || m.adminLabel
+          const nextLabel =
+            mergedEdited && '_adminLabel' in mergedEdited
+              ? mergedEdited._adminLabel
+              : mergedOverrides && '_adminLabel' in mergedOverrides
+                ? mergedOverrides._adminLabel
+                : m.adminLabel
           if (viewMode === 'review') {
             if (m.scope === 'post') {
-              return { ...m, reviewProps: edited, overrides: null, adminLabel: nextLabel }
+              return { ...m, reviewProps: mergedEdited, overrides: null, adminLabel: nextLabel }
             } else {
-              return { ...m, reviewOverrides: overrides, adminLabel: nextLabel }
+              return { ...m, reviewOverrides: mergedOverrides, adminLabel: nextLabel }
             }
           } else if (viewMode === 'ai-review') {
             if (m.scope === 'post') {
-              return { ...m, aiReviewProps: edited, overrides: null, adminLabel: nextLabel }
+              return { ...m, aiReviewProps: mergedEdited, overrides: null, adminLabel: nextLabel }
             } else {
-              return { ...m, aiReviewOverrides: overrides, adminLabel: nextLabel }
+              return { ...m, aiReviewOverrides: mergedOverrides, adminLabel: nextLabel }
             }
           } else {
             if (m.scope === 'post') {
-              return { ...m, props: edited, overrides: null, adminLabel: nextLabel }
+              return { ...m, props: mergedEdited, overrides: null, adminLabel: nextLabel }
             } else {
-              return { ...m, overrides, adminLabel: nextLabel }
+              return { ...m, overrides: mergedOverrides, adminLabel: nextLabel }
             }
           }
         })
@@ -2356,14 +2442,34 @@ export default function Editor({
     }
     // 1) Apply updates
     if (persistedEntries.length > 0) {
-      const updates = persistedEntries.map(([id, payload]) => {
+      const updates = persistedEntries.map(async ([id, payload]) => {
         const url = `/api/post-modules/${encodeURIComponent(id)}`
         // For local modules, send edited props as overrides (they get merged into ai_review_props/review_props)
         // For global modules, send overrides (they get saved to ai_review_overrides/review_overrides)
         const module = findModule(id)
         const isLocal = module?.scope === 'post' || module?.scope === 'local'
         const overridesToSend = isLocal ? payload.edited : payload.overrides
-        return fetch(url, {
+        // Extract adminLabel: check both edited and overrides, prioritizing edited for local modules
+        // null means "clear the label", undefined means "don't change it"
+        let adminLabel: string | null | undefined = undefined
+        
+        // Check edited first (for local modules, this is where _adminLabel should be)
+        if ((payload.edited as any)?._adminLabel !== undefined) {
+          adminLabel = (payload.edited as any)._adminLabel
+        }
+        // Check overrides second (for global modules, this is where _adminLabel should be)
+        // Only use overrides if edited doesn't have it (to handle edge cases)
+        if (adminLabel === undefined && (payload.overrides as any)?._adminLabel !== undefined) {
+          adminLabel = (payload.overrides as any)._adminLabel
+        }
+
+        // Build request body - only include adminLabel if it's explicitly set (not undefined)
+        const body: any = { overrides: overridesToSend, mode }
+        if (adminLabel !== undefined) {
+          body.adminLabel = adminLabel
+        }
+
+        return await fetch(url, {
           method: 'PUT',
           headers: {
             'Accept': 'application/json',
@@ -2371,7 +2477,7 @@ export default function Editor({
             ...xsrfHeader(),
           },
           credentials: 'same-origin',
-          body: JSON.stringify({ overrides: overridesToSend, mode }),
+          body: JSON.stringify(body),
         })
       })
       const results = await Promise.allSettled(updates)
@@ -2474,12 +2580,12 @@ export default function Editor({
                 {/* Title */}
                 {(uiConfig?.hideCoreFields || []).includes('title') ? null : (
                   <div>
-                    <label className="block text-[11px] font-bold text-neutral-medium uppercase tracking-wider mb-1.5 ml-1">
+                    <label className="block text-[11px] font-bold text-neutral-medium uppercase tracking-wider mt-2 mb-1.5 ml-1">
                       Title *
                     </label>
                     <Input
                       type="text"
-                      className="text-lg font-semibold py-6 border-line-medium focus:ring-standout-medium/20 focus:border-standout-medium rounded-xl"
+                      className="text-lg font-semibold border-line-medium focus:ring-standout-medium/20 focus:border-standout-medium rounded-xl"
                       value={data.title}
                       onChange={(e) => {
                         const val = e.target.value
@@ -2497,7 +2603,7 @@ export default function Editor({
 
                 {/* Excerpt */}
                 <div>
-                  <label className="block text-[11px] font-bold text-neutral-medium uppercase tracking-wider mb-1.5 ml-1">
+                  <label className="block text-[11px] font-bold text-neutral-medium uppercase tracking-wider mt-2 mb-1.5 ml-1">
                     Excerpt
                   </label>
                   <Textarea
@@ -2515,7 +2621,7 @@ export default function Editor({
                 {/* Featured Image (core) */}
                 {uiConfig?.featuredImage?.enabled && (
                   <div className="group">
-                    <label className="block text-[11px] font-bold text-neutral-medium uppercase tracking-wider mb-1.5 ml-1">
+                    <label className="block text-[11px] font-bold text-neutral-medium uppercase tracking-wider mt-2 mb-1.5 ml-1">
                       <div className="flex items-center justify-between">
                         <span className="inline-flex items-center gap-1.5">
                           <Star className="w-3.5 h-3.5 text-amber-500" aria-hidden="true" />
@@ -2959,7 +3065,7 @@ export default function Editor({
                 <div className="mt-6">
                   <div className="flex items-center justify-between mb-4">
                     <div className="flex items-center gap-4">
-                      <h3 className="text-base font-semibold text-neutral-high">Modules</h3>
+                      <h3 className="text-[11px] font-bold text-neutral-medium uppercase tracking-wider">Modules</h3>
                       {modules.length > 0 && (
                         <div className="flex items-center gap-2">
                           <button
@@ -2992,41 +3098,59 @@ export default function Editor({
                       <p>No modules yet. Use “Add Module” to insert one.</p>
                     </div>
                   ) : (
-                    <DndContext
-                      sensors={sensors}
-                      collisionDetection={closestCenter}
-                      onDragStart={onDragStart}
-                      onDragCancel={onDragCancel}
-                      onDragEnd={onDragEnd}
-                    >
-                      <SortableContext items={orderedIds} strategy={verticalListSortingStrategy}>
-                        <ul className="space-y-3">
-                          {sortedModules.map((m) => (
-                            <ModuleRow
-                              key={m.id}
-                              m={m}
-                              viewMode={viewMode}
-                              isDraggingModules={isDraggingModules}
-                              modulesAccordionOpen={modulesAccordionOpen}
-                              moduleSchemasReady={moduleSchemasReady}
-                              moduleFieldAgents={moduleFieldAgents}
-                              globalSlugToLabel={globalSlugToLabel}
-                              moduleRegistry={moduleRegistry}
-                              moduleFlushFns={moduleFlushFns}
-                              setModulesAccordionOpen={setModulesAccordionOpen}
-                              setPendingRemoved={setPendingRemoved}
-                              setPendingReviewRemoved={setPendingReviewRemoved}
-                              setModules={setModules}
-                              registerModuleFlush={registerModuleFlush}
-                              stageModuleEdits={stageModuleEdits}
-                              markModuleDirty={markModuleDirty}
-                              postId={post.id}
-                              customFields={initialCustomFields || []}
-                            />
-                          ))}
-                        </ul>
-                      </SortableContext>
-                    </DndContext>
+                    <>
+                      <DndContext
+                        sensors={sensors}
+                        collisionDetection={closestCenter}
+                        onDragStart={onDragStart}
+                        onDragCancel={onDragCancel}
+                        onDragEnd={onDragEnd}
+                      >
+                        <SortableContext items={orderedIds} strategy={verticalListSortingStrategy}>
+                          <ul className="space-y-3">
+                            {sortedModules.map((m) => (
+                              <ModuleRow
+                                key={m.id}
+                                m={m}
+                                viewMode={viewMode}
+                                isDraggingModules={isDraggingModules}
+                                modulesAccordionOpen={modulesAccordionOpen}
+                                moduleSchemasReady={moduleSchemasReady}
+                                moduleFieldAgents={moduleFieldAgents}
+                                globalSlugToLabel={globalSlugToLabel}
+                                moduleRegistry={moduleRegistry}
+                                moduleFlushFns={moduleFlushFns}
+                                setModulesAccordionOpen={setModulesAccordionOpen}
+                                setPendingRemoved={setPendingRemoved}
+                                setPendingReviewRemoved={setPendingReviewRemoved}
+                                setModules={setModules}
+                                registerModuleFlush={registerModuleFlush}
+                                stageModuleEdits={stageModuleEdits}
+                                markModuleDirty={markModuleDirty}
+                                postId={post.id}
+                                customFields={initialCustomFields || []}
+                              />
+                            ))}
+                          </ul>
+                        </SortableContext>
+                      </DndContext>
+                      {modules.length > 3 && (
+                        <div className="flex justify-center mt-4">
+                          <ModulePicker
+                            postId={post.id}
+                            postType={post.type}
+                            mode={
+                              viewMode === 'review'
+                                ? 'review'
+                                : viewMode === 'ai-review'
+                                  ? 'ai-review'
+                                  : 'publish'
+                            }
+                            onAdd={handleAddModule}
+                          />
+                        </div>
+                      )}
+                    </>
                   )}
                 </div>
               )}
@@ -3039,7 +3163,7 @@ export default function Editor({
               <div className="space-y-6">
                 {/* Slug */}
                 <div>
-                  <label className="block text-[11px] font-bold text-neutral-medium uppercase tracking-wider mb-1.5 ml-1">
+                  <label className="block text-[11px] font-bold text-neutral-medium uppercase tracking-wider mt-2 mb-1.5 ml-1">
                     Slug *
                   </label>
                   <div className="relative">
@@ -3063,7 +3187,10 @@ export default function Editor({
                       placeholder="post-slug"
                     />
                     <div className="absolute right-3 top-1/2 -translate-y-1/2">
-                      <span className={`iconify text-lg ${slugAuto ? 'text-standout-medium' : 'text-neutral-low opacity-20'}`} data-icon="lucide:link" />
+                      <FontAwesomeIcon
+                        icon={faLink}
+                        className={`text-lg ${slugAuto ? 'text-standout-medium' : 'text-neutral-low opacity-20'}`}
+                      />
                     </div>
                   </div>
                   {errors.slug && <p className="text-sm text-red-500 mt-1.5 ml-1">{errors.slug}</p>}
@@ -3077,7 +3204,7 @@ export default function Editor({
                 <div className="grid grid-cols-1 gap-6">
                   {/* Meta Title */}
                   <div>
-                    <label className="block text-[11px] font-bold text-neutral-medium uppercase tracking-wider mb-1.5 ml-1">
+                    <label className="block text-[11px] font-bold text-neutral-medium uppercase tracking-wider mt-2 mb-1.5 ml-1">
                       Meta Title
                     </label>
                     <Input
@@ -3092,7 +3219,7 @@ export default function Editor({
 
                   {/* Meta Description */}
                   <div>
-                    <label className="block text-[11px] font-bold text-neutral-medium uppercase tracking-wider mb-1.5 ml-1">
+                    <label className="block text-[11px] font-bold text-neutral-medium uppercase tracking-wider mt-2 mb-1.5 ml-1">
                       Meta Description
                     </label>
                     <Textarea
@@ -3109,14 +3236,17 @@ export default function Editor({
                 {/* Advanced SEO Toggle */}
                 <details className="group/advanced border-t border-line-low pt-4 mt-6">
                   <summary className="flex items-center gap-2 text-[11px] font-bold text-neutral-low uppercase tracking-wider cursor-pointer hover:text-neutral-high transition-colors list-none">
-                    <span className="iconify group-open/advanced:rotate-180 transition-transform" data-icon="lucide:chevron-down" />
+                    <FontAwesomeIcon
+                      icon={faChevronDown}
+                      className="group-open/advanced:rotate-180 transition-transform"
+                    />
                     Advanced SEO Settings
                   </summary>
 
                   <div className="mt-6 space-y-6">
                     {/* Canonical URL */}
                     <div>
-                      <label className="block text-[11px] font-bold text-neutral-medium uppercase tracking-wider mb-1.5 ml-1">
+                      <label className="block text-[11px] font-bold text-neutral-medium uppercase tracking-wider mt-2 mb-1.5 ml-1">
                         Canonical URL
                       </label>
                       <Input
@@ -3131,7 +3261,7 @@ export default function Editor({
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                       {/* Robots JSON */}
                       <div>
-                        <label className="block text-[11px] font-bold text-neutral-medium uppercase tracking-wider mb-1.5 ml-1">
+                        <label className="block text-[11px] font-bold text-neutral-medium uppercase tracking-wider mt-2 mb-1.5 ml-1">
                           Robots (JSON)
                         </label>
                         <Textarea
@@ -3145,7 +3275,7 @@ export default function Editor({
 
                       {/* JSON-LD Overrides */}
                       <div>
-                        <label className="block text-[11px] font-bold text-neutral-medium uppercase tracking-wider mb-1.5 ml-1">
+                        <label className="block text-[11px] font-bold text-neutral-medium uppercase tracking-wider mt-2 mb-1.5 ml-1">
                           JSON-LD Overrides
                         </label>
                         <Textarea
@@ -3301,7 +3431,7 @@ export default function Editor({
                     <Select value={selectedAgent} onValueChange={(val) => setSelectedAgent(val)}>
                       <SelectTrigger className="w-full h-10 text-sm font-medium border-line-medium rounded-xl">
                         <div className="flex items-center gap-2">
-                          <FontAwesomeIcon icon={faWandMagicSparkles} className="text-standout-medium" />
+                          <FontAwesomeIcon icon={faWandMagicSparkles} className="w-4 h-4 text-standout-medium" />
                           <SelectValue placeholder="Select an agent..." />
                         </div>
                       </SelectTrigger>

@@ -30,6 +30,7 @@ import { TokenField } from '../ui/TokenField'
 
 export interface ModuleListItem {
   id: string
+  moduleInstanceId: string
   type: string
   scope: string
   props: Record<string, any>
@@ -37,6 +38,7 @@ export interface ModuleListItem {
   locked: boolean
   orderIndex: number
   globalSlug?: string | null
+  adminLabel?: string | null
 }
 
 type FieldSchema =
@@ -1953,40 +1955,40 @@ const MediaFieldInternal = memo(({
                 Clear
               </button>
             )}
-          {preview && (
-            <div className="text-[11px] text-neutral-low truncate max-w-[240px]">
-              {(preview.alt || preview.originalFilename || '').toString()}
-            </div>
-          )}
+            {preview && (
+              <div className="text-[11px] text-neutral-low truncate max-w-[240px]">
+                {(preview.alt || preview.originalFilename || '').toString()}
+              </div>
+            )}
+          </div>
+          {(() => {
+            const isVideo =
+              mediaData?.mimeType?.startsWith('video/') ||
+              preview?.url?.toLowerCase().endsWith('.mp4') ||
+              preview?.url?.toLowerCase().endsWith('.webm') ||
+              preview?.url?.toLowerCase().endsWith('.ogg')
+
+            if (!isVideo) return null
+
+            return (
+              <div className="mt-3 space-y-1">
+                <label className="text-[11px] font-medium text-neutral-medium">
+                  Play Mode (Media Field)
+                </label>
+                <Select value={localPlayMode} onValueChange={(v: any) => updateMediaPlayMode(v)}>
+                  <SelectTrigger className="h-8 text-xs">
+                    <SelectValue placeholder="Select play mode" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="autoplay">Inline (Auto-loop)</SelectItem>
+                    <SelectItem value="inline">Inline (With Controls)</SelectItem>
+                    <SelectItem value="modal">Open in Modal</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+            )
+          })()}
         </div>
-        {(() => {
-          const isVideo =
-            mediaData?.mimeType?.startsWith('video/') ||
-            preview?.url?.toLowerCase().endsWith('.mp4') ||
-            preview?.url?.toLowerCase().endsWith('.webm') ||
-            preview?.url?.toLowerCase().endsWith('.ogg')
-
-          if (!isVideo) return null
-
-          return (
-            <div className="mt-3 space-y-1">
-              <label className="text-[11px] font-medium text-neutral-medium">
-                Play Mode (Media Field)
-              </label>
-              <Select value={localPlayMode} onValueChange={(v: any) => updateMediaPlayMode(v)}>
-                <SelectTrigger className="h-8 text-xs">
-                  <SelectValue placeholder="Select play mode" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="autoplay">Inline (Auto-loop)</SelectItem>
-                  <SelectItem value="inline">Inline (With Controls)</SelectItem>
-                  <SelectItem value="modal">Open in Modal</SelectItem>
-                </SelectContent>
-              </Select>
-            </div>
-          )
-        })()}
-      </div>
         <MediaPickerModal
           open={modalOpen}
           onOpenChange={(open) => {
@@ -2804,7 +2806,7 @@ const FieldBySchemaInternal = memo(({
 
     if (objectFields && objectFields.length > 0) {
       return (
-        <fieldset className="border border-line-low rounded-lg p-3">
+        <fieldset className="border border-line-low rounded-lg mt-4 p-3">
           <legend className="px-1 text-xs font-medium text-neutral-low">{label}</legend>
           <div className="grid grid-cols-1 gap-4">
             {objectFields.map((f) => (
@@ -2844,7 +2846,7 @@ const FieldBySchemaInternal = memo(({
       }
     }
     return (
-      <fieldset className="border border-line-low rounded-lg p-3">
+      <fieldset className="border border-line-low rounded-lg mt-4 p-3">
         <legend className="px-1 text-xs font-medium text-neutral-low">{label}</legend>
         <div className="space-y-3">
           {items.length === 0 && (

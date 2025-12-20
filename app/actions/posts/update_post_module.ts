@@ -1,12 +1,14 @@
-import db from '@adonisjs/lucid/services/db'
+import PostModule from '#models/post_module'
 import postTypeConfigService from '#services/post_type_config_service'
 import { coerceJsonObject } from '../../helpers/jsonb.js'
+import db from '@adonisjs/lucid/services/db'
 
 type UpdatePostModuleParams = {
   postModuleId: string
   orderIndex?: number
   overrides?: Record<string, any> | null
   locked?: boolean
+  adminLabel?: string | null
   mode?: 'review' | 'ai-review' | 'publish'
 }
 
@@ -50,25 +52,32 @@ export default class UpdatePostModule {
     }
     return out
   }
+
   static async handle({
     postModuleId,
     orderIndex,
     overrides,
     locked,
+    adminLabel,
     mode,
   }: UpdatePostModuleParams) {
+    // NOTE: Keep this action stable; it's used heavily by the editor.
     if (!isUuid(postModuleId)) {
       throw new UpdatePostModuleException('Invalid post module id', 400, { postModuleId })
     }
 
-    // Find the post_module
-    const postModule = await db.from('post_modules').where('id', postModuleId).first()
+    // Find the post_module using Lucid
+    const postModule = await PostModule.query().where('id', postModuleId).first()
 
     if (!postModule) {
       throw new UpdatePostModuleException('Post module not found', 404, { postModuleId })
     }
 
-    const postRow = await db.from('posts').where('id', postModule.post_id).first()
+    // Load post to check config
+    await postModule.load('moduleInstance')
+    const mi = postModule.moduleInstance
+
+    const postRow = await db.from('posts').where('id', postModule.postId).first()
     if (!postRow) {
       throw new UpdatePostModuleException('Post not found for module', 404, { postModuleId })
     }
@@ -87,87 +96,91 @@ export default class UpdatePostModule {
       })
     }
 
-    // Build update object for post_modules
-    const updateData: Record<string, any> = {
-      updated_at: new Date(),
-    }
-
     if (orderIndex !== undefined) {
       // Only apply order changes to approved version; review/ai-review ordering is staged
       if (mode !== 'review' && mode !== 'ai-review') {
-        updateData.order_index = orderIndex
+        postModule.orderIndex = orderIndex
       }
+    }
+
+    // IMPORTANT:
+    // - Source label (post_modules.admin_label) should ONLY change on publish/source saves.
+    // - Review/AI Review label changes must stay in the draft snapshot until promoted.
+    if (adminLabel !== undefined && mode !== 'review' && mode !== 'ai-review') {
+      postModule.adminLabel = adminLabel
     }
 
     // If overrides provided and module is local (scope='post'), merge into module props instead
     // to reflect that local modules own their props rather than using per-post overrides.
     if (overrides !== undefined) {
-      const moduleInstance = await db
-        .from('module_instances')
-        .where('id', postModule.module_id)
-        .first()
-      if (moduleInstance && moduleInstance.scope === 'post') {
+      if (mi && mi.scope === 'post') {
         // Local module: edit props; in review/ai-review mode, write to review_props/ai_review_props
         const baseProps = (() => {
-          const props = coerceJsonObject(moduleInstance.props)
-          const revProps = coerceJsonObject((moduleInstance as any).review_props)
-          const aiProps = coerceJsonObject((moduleInstance as any).ai_review_props)
+          const props = coerceJsonObject(mi.props)
+          const revProps = coerceJsonObject(mi.reviewProps)
+          const aiProps = coerceJsonObject(mi.aiReviewProps)
 
           if (mode === 'ai-review') {
-            // Priority: AI Review > Review > Source
             if (Object.keys(aiProps).length > 0) return aiProps
             if (Object.keys(revProps).length > 0) return revProps
             return props
           }
           if (mode === 'review') {
-            // Priority: Review > Source
             if (Object.keys(revProps).length > 0) return revProps
             return props
           }
           return props
         })()
-        // Deep-merge overrides to preserve nested richtext JSON
+
+        // Deep-merge overrides
         const mergedProps = UpdatePostModule.deepMerge(baseProps, overrides || {})
-        const propsColumn =
-          mode === 'ai-review' ? 'ai_review_props' : mode === 'review' ? 'review_props' : 'props'
-        await db
-          .from('module_instances')
-          .where('id', postModule.module_id)
-          .update({
-            [propsColumn]: mergedProps,
-            updated_at: new Date(),
-          } as any)
-        // Clear standard overrides for local modules (both fields)
+
+        // Clean up old _adminLabel from JSON props if we're using the new column
+        if (adminLabel !== undefined && (mergedProps as any)._adminLabel !== undefined) {
+          delete (mergedProps as any)._adminLabel
+        }
+
         if (mode === 'ai-review') {
-          updateData.ai_review_overrides = null
+          mi.aiReviewProps = mergedProps
         } else if (mode === 'review') {
-          updateData.review_overrides = null
+          mi.reviewProps = mergedProps
         } else {
-          updateData.overrides = null
+          mi.props = mergedProps
+        }
+        await mi.save()
+
+        // Clear standard overrides for local modules
+        if (mode === 'ai-review') {
+          postModule.aiReviewOverrides = null
+        } else if (mode === 'review') {
+          postModule.reviewOverrides = null
+        } else {
+          postModule.overrides = null
         }
       } else {
-        // Global: edit overrides on join table; in review/ai-review mode, write to review_overrides/ai_review_overrides
+        // Global: edit overrides on join table
+        let finalOverrides = overrides
+        if (adminLabel !== undefined && finalOverrides && (finalOverrides as any)._adminLabel !== undefined) {
+          finalOverrides = { ...finalOverrides }
+          delete (finalOverrides as any)._adminLabel
+        }
+
         if (mode === 'ai-review') {
-          updateData.ai_review_overrides = overrides
+          postModule.aiReviewOverrides = finalOverrides
         } else if (mode === 'review') {
-          updateData.review_overrides = overrides
+          postModule.reviewOverrides = finalOverrides
         } else {
-          updateData.overrides = overrides
+          postModule.overrides = finalOverrides
         }
       }
     }
 
     if (locked !== undefined) {
-      updateData.locked = locked
+      postModule.locked = locked
     }
 
-    // Update the post_module
-    const [updated] = await db
-      .from('post_modules')
-      .where('id', postModuleId)
-      .update(updateData)
-      .returning('*')
+    await postModule.save()
 
-    return updated
+    return postModule
   }
 }

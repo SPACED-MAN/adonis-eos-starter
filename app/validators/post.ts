@@ -99,6 +99,7 @@ export const addModuleValidator = vine.compile(
     globalSlug: vine.string().trim().maxLength(100).nullable().optional(),
     orderIndex: vine.number().min(0).optional(),
     locked: vine.boolean().optional(),
+    adminLabel: vine.string().trim().maxLength(255).nullable().optional(),
     mode: vine.enum(['publish', 'review', 'ai-review']).optional(),
   })
 )
@@ -111,6 +112,7 @@ export const updateModuleValidator = vine.compile(
     orderIndex: vine.number().min(0).optional(),
     overrides: vine.any().optional(),
     locked: vine.boolean().optional(),
+    adminLabel: vine.string().trim().maxLength(255).nullable().optional(),
     mode: vine.enum(['publish', 'review', 'ai-review']).optional(),
   })
 )

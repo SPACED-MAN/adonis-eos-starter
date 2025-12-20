@@ -1,6 +1,21 @@
 import { useEffect, useState } from 'react'
 import { createPortal } from 'react-dom'
 import { createRoot } from 'react-dom/client'
+import {
+  faCheck,
+  faLink,
+  faChevronDown,
+  faList,
+  faCheckCircle,
+  faCalendar,
+  faCircleQuestion,
+  faArrowUp,
+  faArrowDown,
+  faTrash,
+  faPlus,
+  faSave,
+  faCircleExclamation,
+} from '@fortawesome/free-solid-svg-icons'
 import { MediaPickerModal } from '../../admin/components/media/MediaPickerModal'
 import { useInlineEditor } from './InlineEditorContext'
 import { LinkField, type LinkFieldValue } from '../forms/LinkField'
@@ -527,7 +542,7 @@ function FieldDialogContent({ pop, onClose, getValue, setValue }: DialogContentP
     onClose()
   }
 
-  const labelStyle = "block text-[11px] font-bold text-neutral-medium uppercase tracking-wider mb-1.5 ml-1"
+  const labelStyle = "block text-[11px] font-bold text-neutral-medium uppercase tracking-wider mt-2 mb-1.5 ml-1"
   const inputStyle = "w-full border border-line-medium rounded-xl px-4 py-2.5 bg-backdrop-low text-neutral-high text-sm focus:ring-2 focus:ring-standout-medium/20 focus:border-standout-medium outline-none transition-all shadow-sm"
   const selectStyle = "w-full border border-line-medium rounded-xl px-4 py-2.5 bg-backdrop-low text-neutral-high text-sm focus:ring-2 focus:ring-standout-medium/20 focus:border-standout-medium outline-none transition-all shadow-sm appearance-none"
   const buttonStyle = "w-full mt-6 bg-standout-medium text-on-standout px-4 py-3 rounded-xl font-bold shadow-lg shadow-standout-medium/20 hover:bg-standout-high transition-all flex items-center justify-center gap-2"
@@ -550,7 +565,7 @@ function FieldDialogContent({ pop, onClose, getValue, setValue }: DialogContentP
               className={buttonStyle}
               onClick={() => commit(draft)}
             >
-              <span className="iconify" data-icon="lucide:check" />
+              <FontAwesomeIcon icon={faCheck} className="w-4 h-4" />
               Save Changes
             </button>
           </div>
@@ -585,7 +600,7 @@ function FieldDialogContent({ pop, onClose, getValue, setValue }: DialogContentP
               className={buttonStyle}
               onClick={() => commit(draft)}
             >
-              <span className="iconify" data-icon="lucide:link" />
+              <FontAwesomeIcon icon={faLink} className="w-4 h-4" />
               Save Link
             </button>
           </div>
@@ -605,11 +620,10 @@ function FieldDialogContent({ pop, onClose, getValue, setValue }: DialogContentP
                     <button
                       key={val}
                       type="button"
-                      className={`p-3 border rounded-xl hover:bg-backdrop-medium flex flex-col items-center gap-2 transition-all ${
-                        draft === val
-                          ? 'border-standout-medium bg-standout-medium/10 shadow-sm ring-1 ring-standout-medium/20'
-                          : 'border-line-low bg-backdrop-low/50'
-                      }`}
+                      className={`p-3 border rounded-xl hover:bg-backdrop-medium flex flex-col items-center gap-2 transition-all ${draft === val
+                        ? 'border-standout-medium bg-standout-medium/10 shadow-sm ring-1 ring-standout-medium/20'
+                        : 'border-line-low bg-backdrop-low/50'
+                        }`}
                       onClick={() => setDraft(val)}
                       title={o.label}
                     >
@@ -625,7 +639,7 @@ function FieldDialogContent({ pop, onClose, getValue, setValue }: DialogContentP
                 className={buttonStyle}
                 onClick={() => commit(draft || '')}
               >
-                <span className="iconify" data-icon="lucide:check" />
+                <FontAwesomeIcon icon={faCheck} className="w-4 h-4" />
                 Save Icon
               </button>
             </div>
@@ -652,7 +666,7 @@ function FieldDialogContent({ pop, onClose, getValue, setValue }: DialogContentP
                   })}
                 </select>
                 <div className="absolute right-4 top-1/2 -translate-y-1/2 pointer-events-none text-neutral-low">
-                  <span className="iconify" data-icon="lucide:chevron-down" />
+                  <FontAwesomeIcon icon={faChevronDown} className="w-4 h-4" />
                 </div>
               </div>
             </div>
@@ -660,7 +674,7 @@ function FieldDialogContent({ pop, onClose, getValue, setValue }: DialogContentP
               className={buttonStyle}
               onClick={() => commit(draft || '')}
             >
-              <span className="iconify" data-icon="lucide:check" />
+              <FontAwesomeIcon icon={faCheck} className="w-4 h-4" />
               Save Selection
             </button>
           </div>
@@ -682,7 +696,7 @@ function FieldDialogContent({ pop, onClose, getValue, setValue }: DialogContentP
               className={buttonStyle}
               onClick={() => commit(draft ?? '')}
             >
-              <span className="iconify" data-icon="lucide:check" />
+              <FontAwesomeIcon icon={faCheck} className="w-4 h-4" />
               Save Text
             </button>
           </div>
@@ -709,7 +723,7 @@ function FieldDialogContent({ pop, onClose, getValue, setValue }: DialogContentP
               className={buttonStyle}
               onClick={() => commit(asArray)}
             >
-              <span className="iconify" data-icon="lucide:list" />
+              <FontAwesomeIcon icon={faList} className="w-4 h-4" />
               Save List
             </button>
           </div>
@@ -728,11 +742,10 @@ function FieldDialogContent({ pop, onClose, getValue, setValue }: DialogContentP
                   return (
                     <label
                       key={o.value}
-                      className={`flex items-center gap-3 p-2.5 rounded-xl border transition-all cursor-pointer ${
-                        checked 
-                          ? 'bg-standout-medium/10 border-standout-medium/30 text-neutral-high' 
-                          : 'bg-backdrop-low border-line-medium text-neutral-medium hover:border-neutral-low'
-                      }`}
+                      className={`flex items-center gap-3 p-2.5 rounded-xl border transition-all cursor-pointer ${checked
+                        ? 'bg-standout-medium/10 border-standout-medium/30 text-neutral-high'
+                        : 'bg-backdrop-low border-line-medium text-neutral-medium hover:border-neutral-low'
+                        }`}
                     >
                       <input
                         type="checkbox"
@@ -755,7 +768,7 @@ function FieldDialogContent({ pop, onClose, getValue, setValue }: DialogContentP
               className={buttonStyle}
               onClick={() => commit(current)}
             >
-              <span className="iconify" data-icon="lucide:check-circle" />
+              <FontAwesomeIcon icon={faCheckCircle} className="w-4 h-4" />
               Save Selection
             </button>
           </div>
@@ -778,7 +791,7 @@ function FieldDialogContent({ pop, onClose, getValue, setValue }: DialogContentP
               className={buttonStyle}
               onClick={() => commit(draft === '' ? null : draft)}
             >
-              <span className="iconify" data-icon="lucide:check" />
+              <FontAwesomeIcon icon={faCheck} className="w-4 h-4" />
               Save Value
             </button>
           </div>
@@ -803,7 +816,7 @@ function FieldDialogContent({ pop, onClose, getValue, setValue }: DialogContentP
               className={buttonStyle}
               onClick={() => commit(!!draft)}
             >
-              <span className="iconify" data-icon="lucide:check" />
+              <FontAwesomeIcon icon={faCheck} className="w-4 h-4" />
               Save Toggle
             </button>
           </div>
@@ -825,7 +838,7 @@ function FieldDialogContent({ pop, onClose, getValue, setValue }: DialogContentP
               className={buttonStyle}
               onClick={() => commit(draft || null)}
             >
-              <span className="iconify" data-icon="lucide:calendar" />
+              <FontAwesomeIcon icon={faCalendar} className="w-4 h-4" />
               Save Date
             </button>
           </div>
@@ -835,7 +848,7 @@ function FieldDialogContent({ pop, onClose, getValue, setValue }: DialogContentP
         if (!fields || fields.length === 0) {
           return (
             <div className="p-8 text-center bg-backdrop-medium/20 rounded-xl border border-dashed border-line-medium">
-              <span className="iconify text-3xl text-neutral-low mb-2" data-icon="lucide:help-circle" />
+              <FontAwesomeIcon icon={faCircleQuestion} className="text-3xl text-neutral-low mb-2" />
               <p className="text-sm text-neutral-medium">No fields defined for this object</p>
             </div>
           )
@@ -920,7 +933,7 @@ function FieldDialogContent({ pop, onClose, getValue, setValue }: DialogContentP
                             ))}
                           </select>
                           <div className="absolute right-4 top-1/2 -translate-y-1/2 pointer-events-none text-neutral-low">
-                            <span className="iconify" data-icon="lucide:chevron-down" />
+                            <FontAwesomeIcon icon={faChevronDown} className="w-4 h-4" />
                           </div>
                         </div>
                       </div>
@@ -973,7 +986,7 @@ function FieldDialogContent({ pop, onClose, getValue, setValue }: DialogContentP
                                   onClick={() => moveItem(i, -1)}
                                   aria-label="Move up"
                                 >
-                                  <span className="iconify" data-icon="lucide:arrow-up" />
+                                  <FontAwesomeIcon icon={faArrowUp} className="w-4 h-4" />
                                 </button>
                                 <button
                                   type="button"
@@ -981,7 +994,7 @@ function FieldDialogContent({ pop, onClose, getValue, setValue }: DialogContentP
                                   onClick={() => moveItem(i, 1)}
                                   aria-label="Move down"
                                 >
-                                  <span className="iconify" data-icon="lucide:arrow-down" />
+                                  <FontAwesomeIcon icon={faArrowDown} className="w-4 h-4" />
                                 </button>
                                 <button
                                   type="button"
@@ -989,7 +1002,7 @@ function FieldDialogContent({ pop, onClose, getValue, setValue }: DialogContentP
                                   onClick={() => removeItem(i)}
                                   aria-label="Remove"
                                 >
-                                  <span className="iconify" data-icon="lucide:trash-2" />
+                                  <FontAwesomeIcon icon={faTrash} className="w-4 h-4" />
                                 </button>
                               </div>
                             </div>
@@ -999,7 +1012,7 @@ function FieldDialogContent({ pop, onClose, getValue, setValue }: DialogContentP
                             className="w-full py-2.5 text-xs font-bold rounded-xl border border-dashed border-line-high text-neutral-medium hover:border-neutral-low hover:bg-backdrop-medium transition-all flex items-center justify-center gap-2 mt-2"
                             onClick={addItem}
                           >
-                            <span className="iconify" data-icon="lucide:plus" />
+                            <FontAwesomeIcon icon={faPlus} className="w-4 h-4" />
                             Add {field.label} Item
                           </button>
                         </div>
@@ -1052,7 +1065,7 @@ function FieldDialogContent({ pop, onClose, getValue, setValue }: DialogContentP
               className={buttonStyle}
               onClick={() => commit(obj)}
             >
-              <span className="iconify" data-icon="lucide:save" />
+              <FontAwesomeIcon icon={faSave} className="w-4 h-4" />
               Save Field Group
             </button>
           </div>
@@ -1062,7 +1075,7 @@ function FieldDialogContent({ pop, onClose, getValue, setValue }: DialogContentP
         return (
           <div className="space-y-4">
             <div className="p-8 text-center bg-backdrop-medium/20 rounded-xl border border-dashed border-line-medium">
-              <span className="iconify text-3xl text-neutral-low mb-2" data-icon="lucide:alert-circle" />
+              <FontAwesomeIcon icon={faCircleExclamation} className="text-3xl text-neutral-low mb-2" />
               <p className="text-sm text-neutral-medium uppercase font-bold tracking-wider">Unsupported Inline Type</p>
               <p className="text-xs text-neutral-low mt-1">{type}</p>
             </div>

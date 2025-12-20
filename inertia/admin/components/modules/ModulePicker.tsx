@@ -36,7 +36,7 @@ export function ModulePicker({
 }: {
   postId?: string
   postType: string
-  mode?: 'review' | 'publish'
+  mode?: 'review' | 'publish' | 'ai-review'
   onAdd?: (p: OnAddPayload) => Promise<void> | void
   buttonLabel?: string
 }) {

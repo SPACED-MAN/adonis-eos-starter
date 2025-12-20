@@ -1,4 +1,22 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
+import { FontAwesomeIcon } from '@fortawesome/react-fontawesome'
+import {
+  faPencil,
+  faTrash,
+  faChartBar,
+  faSync,
+  faWandMagicSparkles,
+  faListOl,
+  faThLarge,
+  faVideo,
+  faImage,
+  faXmark,
+  faCrop,
+  faCrosshairs,
+  faExchangeAlt,
+  faCloudUploadAlt,
+  faFont,
+} from '@fortawesome/free-solid-svg-icons'
 import { AdminHeader } from '../../components/AdminHeader'
 import { AdminFooter } from '../../components/AdminFooter'
 import { toast } from 'sonner'
@@ -1486,7 +1504,7 @@ export default function MediaIndex() {
                       : viewing.altText || viewing.originalFilename}
                   </div>
                   <div className="text-[10px] text-neutral-medium uppercase tracking-wider font-semibold flex items-center gap-2">
-                    <span className="iconify" data-icon={isMediaVideo(viewing) ? 'lucide:video' : 'lucide:image'} />
+                    <FontAwesomeIcon icon={isMediaVideo(viewing) ? faVideo : faImage} className="w-4 h-4" />
                     {isMediaVideo(viewing) ? 'Video Asset' : 'Image Asset'} • {viewing.id}
                   </div>
                 </div>
@@ -1503,7 +1521,7 @@ export default function MediaIndex() {
                     setReplaceFile(null)
                   }}
                 >
-                  <span className="iconify text-xl" data-icon="lucide:x" />
+                  <FontAwesomeIcon icon={faXmark} className="w-5 h-5" />
                 </button>
               </div>
               <div className="flex flex-1 min-h-0 overflow-hidden text-sm">
@@ -1636,7 +1654,7 @@ export default function MediaIndex() {
                                   className="px-4 py-2.5 text-xs font-bold border border-line-medium rounded-xl hover:bg-backdrop-low hover:border-neutral-low transition-all flex items-center gap-2 shadow-sm bg-backdrop-low/50"
                                   onClick={() => setCropping(true)}
                                 >
-                                  <span className="iconify" data-icon="lucide:crop" />
+                                  <FontAwesomeIcon icon={faCrop} className="w-3.5 h-3.5" />
                                   Crop Image
                                 </button>
                               )
@@ -1675,7 +1693,7 @@ export default function MediaIndex() {
                                     className="px-4 py-2.5 text-xs font-bold border border-line-medium rounded-xl hover:bg-backdrop-low hover:border-neutral-low transition-all flex items-center gap-2 shadow-sm bg-backdrop-low/50"
                                     onClick={() => setFocalMode(true)}
                                   >
-                                    <span className="iconify" data-icon="lucide:focus" />
+                                    <FontAwesomeIcon icon={faCrosshairs} className="w-3.5 h-3.5" />
                                     Focal Point
                                   </button>
                                   {(() => {
@@ -1882,7 +1900,7 @@ export default function MediaIndex() {
                                   setEditCategories((prev) => prev.filter((x) => x !== c))
                                 }
                               >
-                                <span className="iconify" data-icon="lucide:x" />
+                                <FontAwesomeIcon icon={faXmark} className="w-3.5 h-3.5" />
                               </button>
                             </span>
                           ))}
@@ -1913,7 +1931,7 @@ export default function MediaIndex() {
 
                       <div className="p-4 bg-backdrop-medium/40 border border-line-low rounded-2xl space-y-4 shadow-inner">
                         <div className="text-[11px] font-bold text-neutral-high flex items-center gap-2">
-                          <span className="iconify" data-icon="lucide:replace" />
+                          <FontAwesomeIcon icon={faExchangeAlt} className="w-3.5 h-3.5" />
                           Replace Asset Source
                         </div>
                         <div className="space-y-3">
@@ -1929,7 +1947,7 @@ export default function MediaIndex() {
                             htmlFor="replace-file-input"
                             className="flex flex-col items-center justify-center p-4 border-2 border-dashed border-line-medium rounded-xl cursor-pointer hover:bg-backdrop-medium hover:border-neutral-low transition-all"
                           >
-                            <span className="iconify text-xl mb-1 text-neutral-low" data-icon="lucide:upload-cloud" />
+                            <FontAwesomeIcon icon={faCloudUploadAlt} className="w-6 h-6 mb-1 text-neutral-low" />
                             <span className="text-[10px] font-semibold text-neutral-medium text-center">
                               {replaceFile ? replaceFile.name : 'Click to choose new file'}
                             </span>
@@ -1976,7 +1994,7 @@ export default function MediaIndex() {
 
                       <div className="p-4 bg-backdrop-medium/40 border border-line-low rounded-2xl space-y-4 shadow-inner">
                         <div className="text-[11px] font-bold text-neutral-high flex items-center gap-2">
-                          <span className="iconify" data-icon="lucide:type" />
+                          <FontAwesomeIcon icon={faFont} className="w-3.5 h-3.5" />
                           Rename Filename
                         </div>
                         <div className="flex flex-col gap-3">

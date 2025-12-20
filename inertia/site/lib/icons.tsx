@@ -26,6 +26,16 @@ import {
   faPencil,
   faGlobe,
   faHighlighter,
+  faLink,
+  faList,
+  faCheckCircle,
+  faCalendar,
+  faArrowUp,
+  faArrowDown,
+  faTrash,
+  faPlus,
+  faSave,
+  faCircleExclamation,
 } from '@fortawesome/free-solid-svg-icons'
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome'
 
@@ -56,7 +66,17 @@ library.add(
   faWrench,
   faPencil,
   faGlobe,
-  faHighlighter
+  faHighlighter,
+  faLink,
+  faList,
+  faCheckCircle,
+  faCalendar,
+  faArrowUp,
+  faArrowDown,
+  faTrash,
+  faPlus,
+  faSave,
+  faCircleExclamation
 )
 
 export { FontAwesomeIcon }

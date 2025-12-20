@@ -100,10 +100,25 @@ export default class PostsViewController extends BasePostsController {
             orderIndex: pm.orderIndex,
             globalSlug: mi?.globalSlug || null,
             globalLabel: mi?.globalLabel || null,
-            adminLabel: (coerceJsonObject(mi?.props) as any)?._adminLabel || (coerceJsonObject(pm.overrides) as any)?._adminLabel || null,
+            adminLabel: (() => {
+              // Priority 1: Label from the draft snapshot (Review/AI Review)
+              if ((draftModule as any)?.adminLabel !== undefined) {
+                return (draftModule as any).adminLabel
+              }
+              // Priority 2: Label from the dedicated database column
+              if (pm.adminLabel !== null && pm.adminLabel !== undefined) {
+                return pm.adminLabel
+              }
+              // Priority 3: Legacy label from JSON props (local) or overrides (global)
+              const props = coerceJsonObject(mi?.props)
+              const overrides = coerceJsonObject(pm.overrides)
+              return (props as any)?._adminLabel || (overrides as any)?._adminLabel || null
+            })(),
           }
         })
         : []
+
+      // (No debug logging)
 
       // If the post has a module group template, but the post modules all share the same orderIndex
       // (common when older/generated posts were seeded with a bad order_index), fall back to the

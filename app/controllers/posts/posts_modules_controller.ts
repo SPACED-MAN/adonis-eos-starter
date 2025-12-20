@@ -33,6 +33,7 @@ export default class PostsModulesController extends BasePostsController {
         globalSlug: payload.globalSlug ?? null,
         orderIndex: payload.orderIndex,
         locked: payload.locked || false,
+        adminLabel: payload.adminLabel,
         mode:
           payload.mode === 'review'
             ? 'review'
@@ -85,6 +86,7 @@ export default class PostsModulesController extends BasePostsController {
         orderIndex: payload.orderIndex,
         overrides: payload.overrides,
         locked: payload.locked,
+        adminLabel: payload.adminLabel,
         mode:
           payload.mode === 'review'
             ? 'review'
@@ -93,20 +95,29 @@ export default class PostsModulesController extends BasePostsController {
               : 'publish',
       })
 
+      const resolvedMode =
+        payload.mode === 'review' ? 'review' : payload.mode === 'ai-review' ? 'ai-review' : 'publish'
+
       return response.ok({
         data: {
           id: updated.id,
-          orderIndex: updated.order_index,
+          orderIndex: (updated as any).orderIndex ?? (updated as any).order_index,
           overrides:
-            payload.mode === 'review'
-              ? updated.review_overrides
-              : payload.mode === 'ai-review'
-                ? updated.ai_review_overrides
-                : updated.overrides,
-          reviewOverrides: updated.review_overrides ?? null,
-          aiReviewOverrides: updated.ai_review_overrides ?? null,
-          locked: updated.locked,
-          updatedAt: updated.updated_at,
+            resolvedMode === 'review'
+              ? (updated as any).reviewOverrides ?? (updated as any).review_overrides
+              : resolvedMode === 'ai-review'
+                ? (updated as any).aiReviewOverrides ?? (updated as any).ai_review_overrides
+                : (updated as any).overrides,
+          reviewOverrides: (updated as any).reviewOverrides ?? (updated as any).review_overrides ?? null,
+          aiReviewOverrides:
+            (updated as any).aiReviewOverrides ?? (updated as any).ai_review_overrides ?? null,
+          adminLabel: (updated as any).adminLabel ?? (updated as any).admin_label ?? null,
+          locked: (updated as any).locked,
+          updatedAt:
+            (updated as any).updatedAt?.toISO?.() ??
+            (updated as any).updated_at?.toISOString?.() ??
+            (updated as any).updated_at ??
+            null,
         },
         message: 'Post module updated successfully',
       })

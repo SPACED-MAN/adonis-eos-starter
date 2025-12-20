@@ -59,6 +59,7 @@ export default class RevisionService {
       .select(
         'post_modules.id as postModuleId',
         'post_modules.order_index as orderIndex',
+        'post_modules.admin_label as adminLabel',
         'post_modules.locked as locked',
         'post_modules.review_added as reviewAdded',
         'post_modules.review_deleted as reviewDeleted',
@@ -129,6 +130,7 @@ export default class RevisionService {
         scope: m.scope,
         globalSlug: m.globalSlug ?? null,
         globalLabel: m.globalLabel ?? null,
+        adminLabel: m.adminLabel ?? null,
         orderIndex: m.orderIndex ?? 0,
         locked: !!m.locked,
         flags: {

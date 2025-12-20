@@ -209,6 +209,7 @@ export default class PostsRevisionsController extends BasePostsController {
                 ai_review_added: !!m?.flags?.aiReviewAdded,
                 ai_review_deleted: !!m?.flags?.aiReviewDeleted,
                 order_index: typeof m.orderIndex === 'number' ? m.orderIndex : undefined,
+                admin_label: m.adminLabel ?? null,
                 locked: !!m.locked,
                 updated_at: now,
               } as any)
