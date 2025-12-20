@@ -177,6 +177,7 @@ export default function DatabaseIndex() {
     'categories',
     'module_groups',
   ])
+  const [exportAllTables, setExportAllTables] = useState(false)
   const [preserveIds, setPreserveIds] = useState(true)
 
   // Import options
@@ -328,7 +329,7 @@ export default function DatabaseIndex() {
 
   // Export database
   const handleExport = async () => {
-    if (selectedContentTypes.length === 0) {
+    if (!exportAllTables && selectedContentTypes.length === 0) {
       toast.error('Please select at least one content type to export')
       return
     }
@@ -336,7 +337,9 @@ export default function DatabaseIndex() {
     setExporting(true)
     try {
       const params = new URLSearchParams()
-      params.set('contentTypes', selectedContentTypes.join(','))
+      if (!exportAllTables) {
+        params.set('contentTypes', selectedContentTypes.join(','))
+      }
       params.set('preserveIds', preserveIds.toString())
 
       const res = await fetch(`/api/database/export?${params.toString()}`, {
@@ -516,11 +519,27 @@ export default function DatabaseIndex() {
                     <button
                       type="button"
                       onClick={toggleAll}
+                      disabled={exportAllTables}
                       className="text-xs text-standout-high hover:underline"
                     >
                       {selectedContentTypes.length === 7 ? 'Deselect All' : 'Select All'}
                     </button>
                   </div>
+                  <label className="flex items-start gap-2 mb-3 p-3 rounded border border-line-medium bg-backdrop">
+                    <input
+                      type="checkbox"
+                      checked={exportAllTables}
+                      onChange={(e) => setExportAllTables(e.target.checked)}
+                      className="rounded mt-0.5"
+                    />
+                    <div className="flex-1">
+                      <div className="text-sm font-medium text-neutral-dark">Export all tables</div>
+                      <p className="text-xs text-neutral-medium">
+                        Exports every table in the database (excluding system schema tables). Use this for
+                        full backups. Content type selection is ignored while enabled.
+                      </p>
+                    </div>
+                  </label>
                   <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
                     {(Object.keys(CONTENT_TYPE_LABELS) as ContentType[]).map((type) => {
                       const stats = exportStats?.contentTypes?.[type]
@@ -538,6 +557,7 @@ export default function DatabaseIndex() {
                             type="checkbox"
                             checked={isSelected}
                             onChange={() => toggleContentType(type)}
+                            disabled={exportAllTables}
                             className="rounded"
                           />
                           <div className="flex-1">
@@ -598,7 +618,7 @@ export default function DatabaseIndex() {
 
                   <button
                     onClick={handleExport}
-                    disabled={exporting || selectedContentTypes.length === 0}
+                    disabled={exporting || (!exportAllTables && selectedContentTypes.length === 0)}
                     className="px-4 py-2 bg-standout-medium text-on-standout rounded-lg hover:opacity-90 transition disabled:opacity-50 font-medium"
                   >
                     {exporting ? (

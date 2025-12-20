@@ -114,8 +114,10 @@ class DatabaseImportService {
     post_revisions: ['snapshot'],
     form_submissions: ['payload'],
     activity_logs: ['metadata'],
-    webhooks: ['headers', 'payload'],
+    webhooks: ['headers'],
+    webhook_deliveries: ['payload'],
     post_type_settings: ['settings'],
+    agent_executions: ['response', 'context'],
   }
 
   /**
@@ -489,7 +491,7 @@ class DatabaseImportService {
                 // Ensure JSONB fields are properly handled by Knex (pre-cast for Postgres)
                 const rowForInsert =
                   dbConfig.connections[dbConfig.connection].client === 'pg' ||
-                  dbConfig.connections[dbConfig.connection].client === 'postgres'
+                    dbConfig.connections[dbConfig.connection].client === 'postgres'
                     ? this.prepareRowForPostgres(trx, tableName, processedRow)
                     : processedRow
                 try {
@@ -774,19 +776,23 @@ class DatabaseImportService {
       'locales',
       'users',
       'user_profiles',
+      'post_type_settings',
       'forms',
       'media_assets',
       'module_groups',
       'module_group_modules',
       'url_patterns',
+      'url_redirects',
       'module_scopes',
       'posts',
+      'custom_fields',
       'post_type_custom_fields',
       'post_custom_field_values',
       // Ensure module_instances (parent) comes before post_modules (child)
       'module_instances',
       'post_modules',
       'post_revisions',
+      'preview_tokens',
       'taxonomies',
       'taxonomy_terms',
       'post_taxonomy_terms',
@@ -794,6 +800,9 @@ class DatabaseImportService {
       'menu_items',
       'form_submissions',
       'webhooks',
+      'webhook_deliveries',
+      'workflow_executions',
+      'agent_executions',
       'activity_logs',
     ]
 

@@ -34,14 +34,28 @@ const CONTENT_TYPE_TABLES: Record<ContentType, string[]> = {
     'posts',
     'post_revisions',
     'post_modules',
+    // Custom field definitions + attachments
+    'custom_fields',
     'post_type_custom_fields',
     'post_custom_field_values',
+    // Preview system (token-based previews)
+    'preview_tokens',
   ],
   modules: ['module_instances', 'module_scopes'],
   forms: ['forms', 'form_submissions'],
   menus: ['menus', 'menu_items'],
   categories: ['taxonomies', 'taxonomy_terms', 'post_taxonomy_terms'],
-  module_groups: ['module_groups', 'module_group_modules', 'url_patterns'],
+  module_groups: [
+    'module_groups',
+    'module_group_modules',
+    'url_patterns',
+    // Routing + per-post-type settings
+    'url_redirects',
+    'post_type_settings',
+    // Webhooks (automation configuration + delivery history)
+    'webhooks',
+    'webhook_deliveries',
+  ],
 }
 
 /**
@@ -181,6 +195,8 @@ class DatabaseExportService {
       includedTables.add('site_settings')
       includedTables.add('site_custom_field_values')
       includedTables.add('locales')
+      // Per-post-type settings can affect rendering/routing; treat as essential configuration.
+      includedTables.add('post_type_settings')
 
       // Add tables for selected content types
       for (const contentType of contentTypes) {

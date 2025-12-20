@@ -46,20 +46,22 @@ Notes:
 
 - **`preserveIds=true`** is recommended for portable content so relationships remain intact.
 - `contentTypes` can restrict which groups of tables are exported.
+- If `contentTypes` is omitted, the exporter will include **all tables** (excluding system schema tables). This is recommended for full backups.
 
 ## Content types (export filters)
 
 Content types are defined in `app/services/database_export_service.ts`:
 
 - `media` → `media_assets`
-- `posts` → `posts`, `post_revisions`, `post_modules`, `post_type_custom_fields`, `post_custom_field_values`
+- `posts` → `posts`, `post_revisions`, `post_modules`, `custom_fields`, `post_type_custom_fields`, `post_custom_field_values`, `preview_tokens`
 - `modules` → `module_instances`, `module_scopes`
 - `forms` → `forms`, `form_submissions`
 - `menus` → `menus`, `menu_items`
 - `categories` → `taxonomies`, `taxonomy_terms`, `post_taxonomy_terms`
-- `module_groups` → `module_groups`, `module_group_modules`, `url_patterns`
+- `module_groups` → `module_groups`, `module_group_modules`, `url_patterns`, `url_redirects`, `post_type_settings`, `webhooks`, `webhook_deliveries`
 
 The exporter always includes “essential” tables like `users`, `site_settings`, `locales`.
+It also includes `post_type_settings` as essential configuration (even when filtering by content types).
 
 ## Import strategies
 
@@ -81,6 +83,13 @@ From `app/controllers/database_admin_controller.ts`:
 - `GET /api/database/export/stats`
 - `GET /api/database/export` (downloads JSON)
 - `POST /api/database/import` (multipart file upload)
+
+## Full backup export (recommended when auditing coverage)
+
+To capture everything (including newer tables that might not map cleanly to a single “content type”), use either:
+
+- Admin UI: **Export all tables** toggle (Database → Export)
+- API: call `GET /api/database/export?preserveIds=true` **without** `contentTypes`
 
 ## Seeding behavior (local/dev)
 
