@@ -7,61 +7,45 @@ import CreatePost from '#actions/posts/create_post'
 import siteSettingsService from '#services/site_settings_service'
 import PostCustomFieldValue from '#models/post_custom_field_value'
 import activityLogService from '#services/activity_log_service'
+import {
+  createUserValidator,
+  updateUserValidator,
+  resetPasswordValidator,
+} from '#validators/user'
 
 export default class UsersController {
   /**
    * POST /api/users (admin)
    */
   async store({ request, response }: HttpContext) {
-    const { email, password, role, username, fullName } = request.only([
-      'email',
-      'password',
-      'role',
-      'username',
-      'fullName',
-    ])
-
-    const emailStr = String(email || '')
-      .trim()
-      .toLowerCase()
-    if (!emailStr || !emailStr.includes('@')) {
-      return response.badRequest({ error: 'Valid email is required' })
-    }
-
-    const pwd = String(password || '')
-    if (!pwd || pwd.length < 8) {
-      return response.badRequest({ error: 'Password must be at least 8 characters' })
-    }
-
-    if (!role || !ROLES.includes(String(role) as any)) {
-      return response.badRequest({ error: 'Invalid role' })
-    }
+    const { email, password, role, username, fullName } =
+      await request.validateUsing(createUserValidator)
 
     // Uniqueness checks
-    const emailExists = await db.from('users').where('email', emailStr).first()
+    const emailExists = await db.from('users').where('email', email).first()
     if (emailExists) {
       return response.status(409).json({ error: 'Email already in use' })
     }
     if (username) {
       const usernameExists = await db
         .from('users')
-        .whereRaw('LOWER(username) = LOWER(?)', [String(username)])
+        .whereRaw('LOWER(username) = LOWER(?)', [username])
         .first()
       if (usernameExists) {
         return response.status(409).json({ error: 'Username already in use' })
       }
     }
 
-    const hashed = await hash.make(pwd)
+    const hashed = await hash.make(password)
     const now = new Date()
     const [created] = await db
       .table('users')
       .insert({
-        email: emailStr,
+        email,
         password: hashed,
-        role: String(role),
-        username: username ? String(username) : null,
-        full_name: fullName ? String(fullName) : null,
+        role,
+        username: username || null,
+        full_name: fullName || null,
         created_at: now,
         updated_at: now,
       })
@@ -177,15 +161,12 @@ export default class UsersController {
    */
   async update({ params, request, response }: HttpContext) {
     const { id } = params
-    const { email, role, username } = request.only(['email', 'role', 'username'])
-    if (role && !ROLES.includes(String(role) as any)) {
-      return response.badRequest({ error: 'Invalid role' })
-    }
+    const { email, role, username, fullName } = await request.validateUsing(updateUserValidator)
     // Unique email check when changing
-    if (email) {
+    if (email !== undefined) {
       const existing = await db
         .from('users')
-        .where('email', String(email))
+        .where('email', email)
         .andWhereNot('id', id)
         .first()
       if (existing) {
@@ -193,10 +174,10 @@ export default class UsersController {
       }
     }
     // Unique username check when changing (when provided)
-    if (username) {
+    if (username !== undefined) {
       const existingU = await db
         .from('users')
-        .whereRaw('LOWER(username) = LOWER(?)', [String(username)])
+        .whereRaw('LOWER(username) = LOWER(?)', [username])
         .andWhereNot('id', id)
         .first()
       if (existingU) {
@@ -205,9 +186,10 @@ export default class UsersController {
     }
     const now = new Date()
     const update: any = { updated_at: now }
-    if (typeof email === 'string') update.email = email
-    if (typeof role === 'string') update.role = role
-    if (typeof username === 'string') update.username = username
+    if (email !== undefined) update.email = email
+    if (role !== undefined) update.role = role
+    if (username !== undefined) update.username = username
+    if (fullName !== undefined) update.full_name = fullName
     const count = await db.from('users').where('id', id).update(update)
     if (!count) return response.notFound({ error: 'User not found' })
     // Activity log
@@ -244,12 +226,8 @@ export default class UsersController {
    */
   async resetPassword({ params, request, response }: HttpContext) {
     const { id } = params
-    const { password } = request.only(['password'])
-    const pwd = String(password || '')
-    if (!pwd || pwd.length < 8) {
-      return response.badRequest({ error: 'Password must be at least 8 characters' })
-    }
-    const hashed = await hash.make(pwd)
+    const { password } = await request.validateUsing(resetPasswordValidator)
+    const hashed = await hash.make(password)
     const now = new Date()
     const count = await db
       .from('users')

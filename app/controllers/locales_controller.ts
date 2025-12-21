@@ -1,6 +1,7 @@
 import type { HttpContext } from '@adonisjs/core/http'
 import localeService from '#services/locale_service'
 import db from '@adonisjs/lucid/services/db'
+import { updateLocaleValidator } from '#validators/locale'
 
 /**
  * Controller for managing locales
@@ -45,7 +46,7 @@ export default class LocalesController {
    */
   async update({ params, request, response }: HttpContext) {
     const { locale } = params
-    const { isEnabled, isDefault } = request.only(['isEnabled', 'isDefault'])
+    const { isEnabled, isDefault } = await request.validateUsing(updateLocaleValidator)
     const code = String(locale).toLowerCase()
     const row = await db.from('locales').where('code', code).first()
     if (!row) {

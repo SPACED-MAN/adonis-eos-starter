@@ -4,6 +4,8 @@ import env from '#start/env'
 import app from '@adonisjs/core/services/app'
 import cmsConfig from '#config/cms'
 import { adminPath } from '#services/admin_path_service'
+import { auditLogsQueryValidator, loginHistoryQueryValidator } from '#validators/query'
+import { securitySessionsQueryValidator } from '#validators/security'
 
 /**
  * Security Controller
@@ -27,8 +29,10 @@ export default class SecurityController {
    * GET /api/security/sessions
    * Get active sessions for current user
    */
-  async sessions({ auth, response }: HttpContext) {
+  async sessions({ request, auth, response }: HttpContext) {
     const user = auth.getUserOrFail()
+    // Validate query params
+    await request.validateUsing(securitySessionsQueryValidator)
     // Note: AdonisJS session guard uses cookie-based sessions
     // We can't easily list all sessions without Redis/DB session store
     // For now, return current session info
@@ -85,13 +89,11 @@ export default class SecurityController {
    * Get audit logs with filters
    */
   async auditLogs({ request, response }: HttpContext) {
-    const userId = request.input('userId')
-    const action = request.input('action')
-    const entityType = request.input('entityType')
-    const limit = Math.min(Number(request.input('limit') || 50), 200)
-    const offset = Math.max(Number(request.input('offset') || 0), 0)
-    const startDate = request.input('startDate')
-    const endDate = request.input('endDate')
+    const { userId, action, entityType, limit, offset, startDate, endDate } =
+      await request.validateUsing(auditLogsQueryValidator)
+
+    const effectiveLimit = limit || 50
+    const effectiveOffset = offset || 0
 
     let q = db
       .from('activity_logs')
@@ -109,12 +111,12 @@ export default class SecurityController {
         'users.id as userId'
       )
       .orderBy('activity_logs.created_at', 'desc')
-      .limit(limit)
-      .offset(offset)
+      .limit(effectiveLimit)
+      .offset(effectiveOffset)
 
     if (userId) q = q.where('activity_logs.user_id', userId)
-    if (action) q = q.where('activity_logs.action', String(action))
-    if (entityType) q = q.where('activity_logs.entity_type', String(entityType))
+    if (action) q = q.where('activity_logs.action', action)
+    if (entityType) q = q.where('activity_logs.entity_type', entityType)
     if (startDate) q = q.where('activity_logs.created_at', '>=', startDate)
     if (endDate) q = q.where('activity_logs.created_at', '<=', endDate)
 
@@ -124,8 +126,8 @@ export default class SecurityController {
     return response.ok({
       data: rows,
       pagination: {
-        limit,
-        offset,
+        limit: effectiveLimit,
+        offset: effectiveOffset,
         total: Number(total?.total || 0),
       },
     })
@@ -245,8 +247,9 @@ export default class SecurityController {
    * Get login history (failed/successful logins)
    */
   async loginHistory({ request, response }: HttpContext) {
-    const limit = Math.min(Number(request.input('limit') || 50), 200)
-    const offset = Math.max(Number(request.input('offset') || 0), 0)
+    const { limit, offset } = await request.validateUsing(loginHistoryQueryValidator)
+    const effectiveLimit = limit || 50
+    const effectiveOffset = offset || 0
 
     // Query activity logs for login-related actions
     const rows = await db
@@ -263,8 +266,8 @@ export default class SecurityController {
         'users.id as userId'
       )
       .orderBy('activity_logs.created_at', 'desc')
-      .limit(limit)
-      .offset(offset)
+      .limit(effectiveLimit)
+      .offset(effectiveOffset)
 
     const total = await db
       .from('activity_logs')
@@ -275,8 +278,8 @@ export default class SecurityController {
     return response.ok({
       data: rows,
       pagination: {
-        limit,
-        offset,
+        limit: effectiveLimit,
+        offset: effectiveOffset,
         total: Number(total?.total || 0),
       },
     })

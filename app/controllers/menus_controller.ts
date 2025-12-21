@@ -3,6 +3,13 @@ import menuTemplates from '#services/menu_template_registry'
 import db from '@adonisjs/lucid/services/db'
 import { randomUUID } from 'node:crypto'
 import roleRegistry from '#services/role_registry'
+import {
+  createMenuValidator,
+  updateMenuValidator,
+  createMenuItemValidator,
+  updateMenuItemValidator,
+  reorderMenuItemsValidator,
+} from '#validators/menu'
 
 function buildTree(items: any[]): any[] {
   const idToNode = new Map<string, any>()
@@ -135,12 +142,7 @@ export default class MenusController {
     if (!roleRegistry.hasPermission(role, 'menus.edit')) {
       return response.forbidden({ error: 'Not allowed to create menus' })
     }
-    const name = String(request.input('name', '')).trim()
-    const slug = String(request.input('slug', '')).trim()
-    const locale = String(request.input('locale', '')).trim() || null
-    const template = request.input('template') ? String(request.input('template')) : null
-    const meta = request.input('meta')
-    if (!name || !slug) return response.badRequest({ error: 'name and slug are required' })
+    const { name, slug, locale, template, meta } = await request.validateUsing(createMenuValidator)
     const now = new Date()
     await db.table('menus').insert({
       id: randomUUID(),
@@ -211,21 +213,14 @@ export default class MenusController {
     const { id } = params
     const row = await db.from('menus').where('id', id).first()
     if (!row) return response.notFound({ error: 'Menu not found' })
-    const name = request.input('name')
-    const slug = request.input('slug')
-    const locale = request.input('locale')
+    const { name, slug, locale, template, meta } = await request.validateUsing(updateMenuValidator)
     const update: any = { updated_at: new Date() }
-    if (name !== undefined) update.name = String(name)
-    if (slug !== undefined) update.slug = String(slug)
-    if (locale !== undefined) update.locale = locale ? String(locale) : null
-    if (request.input('template') !== undefined) {
-      const t = request.input('template')
-      update.template = t ? String(t) : null
-    }
-    if (request.input('meta') !== undefined) {
-      const meta = request.input('meta')
-      update.meta_json =
-        meta && typeof meta === 'object' ? JSON.stringify(meta) : JSON.stringify({})
+    if (name !== undefined) update.name = name
+    if (slug !== undefined) update.slug = slug
+    if (locale !== undefined) update.locale = locale
+    if (template !== undefined) update.template = template
+    if (meta !== undefined) {
+      update.meta_json = meta && typeof meta === 'object' ? JSON.stringify(meta) : JSON.stringify({})
     }
     await db.from('menus').where('id', id).update(update)
     return response.ok({ message: 'Updated' })
@@ -259,44 +254,33 @@ export default class MenusController {
     const { id: menuId } = params
     const menu = await db.from('menus').where('id', menuId).first()
     if (!menu) return response.notFound({ error: 'Menu not found' })
-    const type = String(request.input('type', 'custom')).trim() as 'post' | 'custom' | 'dynamic'
-    const kind = String(request.input('kind', 'item')).trim() as 'item' | 'section'
-    let label = String(request.input('label', '')).trim()
-    const parentIdRaw = request.input('parentId')
-    const parentId = parentIdRaw ? String(parentIdRaw) : null
-    const postId = request.input('postId') ? String(request.input('postId')) : null
-    const customUrl = request.input('customUrl') ? String(request.input('customUrl')) : null
-    const anchor = request.input('anchor') ? String(request.input('anchor')) : null
-    const target = request.input('target') ? String(request.input('target')) : null
-    const rel = request.input('rel') ? String(request.input('rel')) : null
-
-    // Dynamic menu item fields
-    const dynamicPostType = request.input('dynamicPostType')
-      ? String(request.input('dynamicPostType'))
-      : null
-    const dynamicParentId = request.input('dynamicParentId')
-      ? String(request.input('dynamicParentId'))
-      : null
-    const dynamicDepthLimit = request.input('dynamicDepthLimit')
-      ? Number(request.input('dynamicDepthLimit'))
-      : 1
+    const {
+      label: labelInput,
+      type,
+      locale: itemLocaleInput,
+      postId,
+      customUrl,
+      anchor,
+      target,
+      rel,
+      kind,
+      parentId: parentIdInput,
+      orderIndex,
+      dynamicPostType,
+      dynamicParentId,
+      dynamicDepthLimit,
+    } = await request.validateUsing(createMenuItemValidator)
 
     // Auto-label from post title if not provided
+    let label = labelInput
     if (!label && type === 'post' && postId) {
       const p = await db.from('posts').where('id', postId).select('title').first()
       if (p) label = String((p as any).title || '')
     }
     if (!label) return response.badRequest({ error: 'label is required' })
     // Locale for this item (if supported)
-    const itemLocale = String(request.input('locale', (menu as any).locale || 'en') || 'en')
-    if (kind !== 'section') {
-      if (type === 'post' && !postId)
-        return response.badRequest({ error: 'postId is required for type=post' })
-      if (type === 'custom' && !customUrl)
-        return response.badRequest({ error: 'customUrl is required for type=custom' })
-      if (type === 'dynamic' && !dynamicPostType)
-        return response.badRequest({ error: 'dynamicPostType is required for type=dynamic' })
-    }
+    const itemLocale = itemLocaleInput || (menu as any).locale || 'en'
+    const parentId = parentIdInput || null
     // Determine next order index within parent group
     const maxQ = db.from('menu_items').where('menu_id', menuId).max('order_index as max')
     if (itemLocale) {
@@ -309,23 +293,24 @@ export default class MenusController {
     }
     const maxRow = await maxQ.first()
     const maxIndex = Number((maxRow as any)?.max ?? 0)
+    const effectiveOrderIndex = orderIndex !== undefined ? orderIndex : (Number.isNaN(maxIndex) ? 0 : maxIndex + 1)
     const now = new Date()
     const row: any = {
       id: randomUUID(),
       menu_id: menuId,
       parent_id: parentId,
-      order_index: Number.isNaN(maxIndex) ? 0 : maxIndex + 1,
+      order_index: effectiveOrderIndex,
       label,
-      kind,
+      kind: kind || 'item',
       type: kind === 'section' ? 'custom' : type,
       post_id: kind === 'section' ? null : type === 'post' ? postId : null,
       custom_url: kind === 'section' ? null : type === 'custom' ? customUrl : null,
-      anchor,
-      target,
-      rel,
+      anchor: anchor || null,
+      target: target || null,
+      rel: rel || null,
       dynamic_post_type: type === 'dynamic' ? dynamicPostType : null,
       dynamic_parent_id: type === 'dynamic' ? dynamicParentId : null,
-      dynamic_depth_limit: type === 'dynamic' ? dynamicDepthLimit : null,
+      dynamic_depth_limit: type === 'dynamic' ? (dynamicDepthLimit || 1) : null,
       created_at: now,
       updated_at: now,
       locale: itemLocale,
@@ -395,17 +380,31 @@ export default class MenusController {
     const { id } = params
     const row = await db.from('menu_items').where('id', id).first()
     if (!row) return response.notFound({ error: 'Menu item not found' })
+    const {
+      label,
+      type,
+      locale,
+      postId,
+      customUrl,
+      anchor,
+      target,
+      rel,
+      parentId,
+      orderIndex,
+      dynamicPostType,
+      dynamicParentId,
+      dynamicDepthLimit,
+    } = await request.validateUsing(updateMenuItemValidator)
     const update: any = { updated_at: new Date() }
-    const fields = ['label', 'anchor', 'target', 'rel'] as const
-    for (const f of fields) {
-      if (request.input(f) !== undefined) update[f] = request.input(f)
-    }
+    if (label !== undefined) update.label = label
+    if (anchor !== undefined) update.anchor = anchor
+    if (target !== undefined) update.target = target
+    if (rel !== undefined) update.rel = rel
+    if (locale !== undefined) update.locale = locale
     // switch type/post/custom_url/dynamic
-    if (request.input('type') !== undefined) {
-      const type = String(request.input('type')).trim() as 'post' | 'custom' | 'dynamic'
+    if (type !== undefined) {
       update.type = type
       if (type === 'post') {
-        const postId = String(request.input('postId') || '')
         if (!postId) return response.badRequest({ error: 'postId is required for type=post' })
         update.post_id = postId
         update.custom_url = null
@@ -413,7 +412,6 @@ export default class MenusController {
         update.dynamic_parent_id = null
         update.dynamic_depth_limit = null
       } else if (type === 'custom') {
-        const customUrl = String(request.input('customUrl') || '')
         if (!customUrl)
           return response.badRequest({ error: 'customUrl is required for type=custom' })
         update.custom_url = customUrl
@@ -422,47 +420,23 @@ export default class MenusController {
         update.dynamic_parent_id = null
         update.dynamic_depth_limit = null
       } else if (type === 'dynamic') {
-        const dynamicPostType = String(request.input('dynamicPostType') || '')
         if (!dynamicPostType)
           return response.badRequest({ error: 'dynamicPostType is required for type=dynamic' })
         update.post_id = null
         update.custom_url = null
         update.dynamic_post_type = dynamicPostType
-        update.dynamic_parent_id = request.input('dynamicParentId')
-          ? String(request.input('dynamicParentId'))
-          : null
-        update.dynamic_depth_limit = request.input('dynamicDepthLimit')
-          ? Number(request.input('dynamicDepthLimit'))
-          : 1
+        update.dynamic_parent_id = dynamicParentId || null
+        update.dynamic_depth_limit = dynamicDepthLimit || 1
       }
     } else {
-      if (request.input('postId') !== undefined)
-        update.post_id = request.input('postId') ? String(request.input('postId')) : null
-      if (request.input('customUrl') !== undefined)
-        update.custom_url = request.input('customUrl') ? String(request.input('customUrl')) : null
-      if (request.input('dynamicPostType') !== undefined)
-        update.dynamic_post_type = request.input('dynamicPostType')
-          ? String(request.input('dynamicPostType'))
-          : null
-      if (request.input('dynamicParentId') !== undefined)
-        update.dynamic_parent_id = request.input('dynamicParentId')
-          ? String(request.input('dynamicParentId'))
-          : null
-      if (request.input('dynamicDepthLimit') !== undefined)
-        update.dynamic_depth_limit = request.input('dynamicDepthLimit')
-          ? Number(request.input('dynamicDepthLimit'))
-          : null
+      if (postId !== undefined) update.post_id = postId || null
+      if (customUrl !== undefined) update.custom_url = customUrl || null
+      if (dynamicPostType !== undefined) update.dynamic_post_type = dynamicPostType || null
+      if (dynamicParentId !== undefined) update.dynamic_parent_id = dynamicParentId || null
+      if (dynamicDepthLimit !== undefined) update.dynamic_depth_limit = dynamicDepthLimit || null
     }
-    if ((request.all() as any).hasOwnProperty('parentId')) {
-      const pidRaw = request.input('parentId')
-      update.parent_id =
-        pidRaw === undefined ? undefined : pidRaw === null || pidRaw === '' ? null : String(pidRaw)
-    }
-    if (request.input('orderIndex') !== undefined) {
-      const oi = Number(request.input('orderIndex'))
-      if (Number.isNaN(oi)) return response.badRequest({ error: 'orderIndex must be a number' })
-      update.order_index = oi
-    }
+    if (parentId !== undefined) update.parent_id = parentId
+    if (orderIndex !== undefined) update.order_index = orderIndex
     await db.from('menu_items').where('id', id).update(update)
     return response.ok({ message: 'Updated' })
   }
@@ -512,7 +486,7 @@ export default class MenusController {
 
   /**
    * POST /api/menus/:id/reorder
-   * Body: { scope: { menuId: string; parentId: string | null; locale: string }, items: Array<{ id: string; orderIndex: number; parentId?: string | null }> }
+   * Body: { items: Array<{ id: string; orderIndex: number; parentId?: string | null }> }
    */
   async reorder({ params, request, response, auth }: HttpContext) {
     const role = (auth.use('web').user as any)?.role as
@@ -524,6 +498,9 @@ export default class MenusController {
       return response.forbidden({ error: 'Not allowed to reorder menu items' })
     }
     const { id: menuIdParam } = params
+    const { items } = await request.validateUsing(reorderMenuItemsValidator)
+    // Note: The validator validates items structure, but we still need scope info from request
+    // for validation against the database
     const scopeRaw = request.input('scope')
     const scopeMenuId = String(scopeRaw?.menuId || menuIdParam || '').trim()
     const scopeParentIdRaw = (scopeRaw as any)?.parentId
@@ -536,26 +513,9 @@ export default class MenusController {
     const scopeLocale = String(scopeRaw?.locale || '').trim()
     if (!scopeMenuId) return response.badRequest({ error: 'scope.menuId is required' })
     if (!scopeLocale) return response.badRequest({ error: 'scope.locale is required' })
-    const items: Array<{ id: string; orderIndex: number; parentId?: string | null }> =
-      Array.isArray(request.input('items')) ? request.input('items') : []
-    if (!Array.isArray(items) || items.length === 0) {
-      return response.badRequest({ error: 'items must be a non-empty array' })
-    }
     const sanitized: Array<{ id: string; orderIndex: number; parentId?: string | null }> = []
     for (const it of items) {
-      const id = String((it as any)?.id || '').trim()
-      const oiRaw = (it as any)?.orderIndex
-      const orderIndex = Number(oiRaw)
-      const parentIdRaw = (it as any)?.parentId
-      const hasParent = (it as any)?.hasOwnProperty('parentId')
-      const parentId = hasParent
-        ? parentIdRaw === null || parentIdRaw === ''
-          ? null
-          : String(parentIdRaw).trim()
-        : undefined
-      if (!id || Number.isNaN(orderIndex)) {
-        return response.badRequest({ error: 'Each item must include valid id and orderIndex' })
-      }
+      const { id, orderIndex, parentId } = it
       if (parentId !== undefined && parentId === id) {
         return response.badRequest({ error: 'Cannot set an item as its own parent' })
       }

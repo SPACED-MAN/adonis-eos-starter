@@ -2,6 +2,7 @@ import type { HttpContext } from '@adonisjs/core/http'
 import Post from '#models/post'
 import urlPatternService from '#services/url_pattern_service'
 import postTypeRegistry from '#services/post_type_registry'
+import { siteSearchQueryValidator } from '#validators/query'
 
 export default class SiteSearchController {
 	/**
@@ -14,9 +15,11 @@ export default class SiteSearchController {
 	 * - locale: locale (optional; default "en")
 	 */
 	async index({ request, inertia }: HttpContext) {
-		const qRaw = String(request.input('q', '') || '').trim()
-		const typeRaw = String(request.input('type', '') || '').trim()
-		const locale = String(request.input('locale', 'en') || '').trim() || 'en'
+		const { q: qRaw, type: typeRaw, locale: localeRaw } = await request.validateUsing(
+			siteSearchQueryValidator
+		)
+		const locale = localeRaw || 'en'
+		const qTrimmed = (qRaw || '').trim()
 
 		const allowedTypes = postTypeRegistry.list()
 		const type = typeRaw && allowedTypes.includes(typeRaw) ? typeRaw : ''
@@ -33,7 +36,7 @@ export default class SiteSearchController {
 			updatedAt: string
 		}> = []
 
-		if (qRaw.length > 0) {
+		if (qTrimmed.length > 0) {
 			const query = Post.query()
 				.apply((scopes) => {
 					scopes.published()
@@ -43,9 +46,9 @@ export default class SiteSearchController {
 				.where((sub) => {
 					// Basic, fast fields only (no module content scanning).
 					sub
-						.whereILike('title', `%${qRaw}%`)
-						.orWhereILike('excerpt', `%${qRaw}%`)
-						.orWhereILike('slug', `%${qRaw}%`)
+						.whereILike('title', `%${qTrimmed}%`)
+						.orWhereILike('excerpt', `%${qTrimmed}%`)
+						.orWhereILike('slug', `%${qTrimmed}%`)
 				})
 				.orderBy('updatedAt', 'desc')
 				.limit(limit)
@@ -74,7 +77,7 @@ export default class SiteSearchController {
 		}
 
 		return inertia.render('site/overrides/search', {
-			q: qRaw,
+			q: qTrimmed,
 			type,
 			locale,
 			postTypes: allowedTypes,

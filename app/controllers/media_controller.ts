@@ -10,6 +10,7 @@ import storageService from '#services/storage_service'
 import roleRegistry from '#services/role_registry'
 import createDarkBaseAction from '#actions/create_dark_base_action'
 import generateMediaVariantsAction from '#actions/generate_media_variants_action'
+import { mediaQueryValidator, mediaUploadValidator, updateMediaValidator } from '#validators/media'
 
 function sanitizeBaseName(name: string): string {
   return (
@@ -37,20 +38,30 @@ export default class MediaController {
    * Query: limit?, page?
    */
   async index({ request, response }: HttpContext) {
-    const limit = Math.min(100, Math.max(1, Number(request.input('limit', 20)) || 20))
-    const page = Math.max(1, Number(request.input('page', 1)) || 1)
-    const sortByRaw = String(request.input('sortBy', 'created_at')).trim().toLowerCase()
-    const sortOrderRaw = String(request.input('sortOrder', 'desc')).trim().toLowerCase()
-    const categoryFilter = String(request.input('category', '') || '').trim()
-    const allowed = new Set(['created_at', 'original_filename', 'size'])
-    const sortBy = (allowed as Set<string>).has(sortByRaw) ? sortByRaw : 'created_at'
-    const sortOrder = sortOrderRaw === 'asc' ? 'asc' : 'desc'
+    const { limit, page, sortBy, sortOrder, category, q } =
+      await request.validateUsing(mediaQueryValidator)
+    const effectiveLimit = limit || 20
+    const effectivePage = page || 1
+    const effectiveSortBy = sortBy || 'created_at'
+    const effectiveSortOrder = sortOrder || 'desc'
+    const categoryFilter = category || ''
     let query = db.from('media_assets') as any
     if (categoryFilter) {
       // Postgres text[] membership check
       query = query.whereRaw('? = ANY(categories)', [categoryFilter])
     }
-    const rows = await query.orderBy(sortBy, sortOrder).forPage(page, limit)
+    // Search query support (if provided)
+    if (q) {
+      query = query.where((sub: any) => {
+        sub
+          .whereILike('original_filename', `%${q}%`)
+          .orWhereILike('alt_text', `%${q}%`)
+          .orWhereILike('caption', `%${q}%`)
+      })
+    }
+    const rows = await query
+      .orderBy(effectiveSortBy, effectiveSortOrder)
+      .forPage(effectivePage, effectiveLimit)
     const [{ total }] = await db.from('media_assets').count('* as total')
     return response.ok({
       data: rows.map((r: any) => ({
@@ -70,7 +81,7 @@ export default class MediaController {
         createdAt: r.created_at,
         updatedAt: r.updated_at,
       })),
-      meta: { page, limit, total: Number(total || 0) },
+      meta: { page: effectivePage, limit: effectiveLimit, total: Number(total || 0) },
     })
   }
 
@@ -97,9 +108,9 @@ export default class MediaController {
       return response.badRequest({ error: 'Invalid file' })
     }
 
-    const naming = String(request.input('naming', 'uuid')) === 'original' ? 'original' : 'uuid'
-    const appendIdIfExists =
-      String(request.input('appendIdIfExists', 'false')).toLowerCase() === 'true'
+    // Validate form fields (not file itself)
+    const { altText, title, description, naming, appendIdIfExists, categories } =
+      await request.validateUsing(mediaUploadValidator)
 
     const uploadsDir = path.join(process.cwd(), 'public', 'uploads')
     await fs.promises.mkdir(uploadsDir, { recursive: true })
@@ -189,11 +200,10 @@ export default class MediaController {
       }
     }
 
-    const altFromRequest = String(request.input('altText', '')).trim()
-    const altText = altFromRequest || computeDefaultAlt(clientName)
+    const effectiveAltText = altText || computeDefaultAlt(clientName)
     // We continue to store this in the `caption` column but expose it as `title` in the API.
-    const caption = String(request.input('title', '')).trim() || null
-    const description = String(request.input('description', '')).trim() || null
+    const caption = title || null
+    const effectiveDescription = description || null
 
     await db.table('media_assets').insert({
       id,
@@ -201,10 +211,10 @@ export default class MediaController {
       original_filename: clientName,
       mime_type: mime,
       size: Number(size),
-      alt_text: altText,
+      alt_text: effectiveAltText,
       caption,
-      description,
-      categories: db.raw('ARRAY[]::text[]') as any,
+      description: effectiveDescription,
+      categories: categories && categories.length > 0 ? categories : (db.raw('ARRAY[]::text[]') as any),
       metadata: metadata as any,
       created_at: now,
       updated_at: now,
@@ -239,24 +249,10 @@ export default class MediaController {
       return response.forbidden({ error: 'Not allowed to update media' })
     }
     const { id } = params
-    const altText = request.input('altText')
-    const title = request.input('title')
-    const description = request.input('description')
+    const { altText, title, description, categories } = await request.validateUsing(
+      updateMediaValidator
+    )
     const playMode = request.input('playMode')
-    let categoriesInput = request.input('categories')
-    let categories: string[] | undefined
-    if (categoriesInput !== undefined) {
-      if (Array.isArray(categoriesInput)) {
-        categories = (categoriesInput as any[])
-          .map((t) => String(t))
-          .filter((t) => t.trim().length > 0)
-      } else if (typeof categoriesInput === 'string') {
-        categories = categoriesInput
-          .split(',')
-          .map((t) => t.trim())
-          .filter((t) => t.length > 0)
-      }
-    }
     const now = new Date()
     const update: any = { updated_at: now }
     if (altText !== undefined) update.alt_text = altText
