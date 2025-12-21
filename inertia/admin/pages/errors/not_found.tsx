@@ -2,7 +2,11 @@
  * Admin Panel - 404 Not Found
  */
 
+import { useAdminPath } from '~/utils/adminPath'
+
 export default function NotFound() {
+  const adminPath = useAdminPath()
+
   return (
     <div className="min-h-screen bg-backdrop flex items-center justify-center px-4">
       <div className="max-w-md w-full text-center">
@@ -16,7 +20,7 @@ export default function NotFound() {
 
         <div className="space-y-3">
           <a
-            href="/admin"
+            href={adminPath()}
             className="block w-full px-6 py-3 bg-standout-medium hover:bg-standout-medium/90 text-on-standout font-semibold rounded-lg transition-colors"
           >
             Go to Dashboard

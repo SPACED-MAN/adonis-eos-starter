@@ -77,6 +77,9 @@ These have sensible defaults but can be customized:
 APP_NAME=Adonis EOS                   # Application name (used in logs)
 TZ=UTC                                # Timezone (defaults to UTC)
 
+# Admin Path Configuration
+ADMIN_PATH_PREFIX=admin               # Admin URL prefix (default: 'admin'). Change to obfuscate admin routes (e.g., 'blah' makes /admin/* become /blah/*)
+
 # Database Pool Configuration
 DB_POOL_MIN=2                         # Minimum pool connections (default: 2)
 DB_POOL_MAX=10                        # Maximum pool connections (default: 10)

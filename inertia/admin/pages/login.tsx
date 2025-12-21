@@ -1,4 +1,5 @@
 import { Head, useForm, usePage } from '@inertiajs/react'
+import { useAdminPath } from '~/utils/adminPath'
 
 interface SharedProps {
   csrf: string
@@ -9,6 +10,7 @@ interface SharedProps {
 
 export default function Login() {
   const { csrf, error, errors } = usePage<SharedProps>().props
+  const adminPath = useAdminPath()
 
   const form = useForm({
     email: '',
@@ -17,7 +19,7 @@ export default function Login() {
 
   function submit(e: React.FormEvent) {
     e.preventDefault()
-    form.post('/admin/login')
+    form.post(adminPath('login'))
   }
 
   return (

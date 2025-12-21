@@ -1,11 +1,13 @@
 import type { HttpContext } from '@adonisjs/core/http'
 import { loginValidator } from '#validators/auth'
 import User from '#models/user'
+import { adminPath } from '#services/admin_path_service'
+import activityLogService from '#services/activity_log_service'
 
 export default class AuthController {
   async showLogin({ inertia, auth }: HttpContext) {
     if (auth.isAuthenticated) {
-      return inertia.location('/admin')
+      return inertia.location(adminPath())
     }
     return inertia.render('admin/login')
   }
@@ -22,16 +24,43 @@ export default class AuthController {
       // Login the user
       await auth.use('web').login(user)
 
-      return response.redirect('/admin')
+      // Log successful login
+      await activityLogService.log({
+        action: 'user.login',
+        userId: user.id,
+        ip: request.ip(),
+        userAgent: request.header('user-agent') || null,
+      })
+
+      return response.redirect(adminPath())
     } catch (error) {
+      // Log failed login attempt
+      await activityLogService.log({
+        action: 'user.login_failed',
+        userId: null,
+        ip: request.ip(),
+        userAgent: request.header('user-agent') || null,
+        metadata: { email },
+      })
+
       // verifyCredentials throws E_INVALID_CREDENTIALS on failure
       session.flash('error', 'Invalid email or password')
       return response.redirect().back()
     }
   }
 
-  async logout({ response, auth }: HttpContext) {
+  async logout({ request, response, auth }: HttpContext) {
+    const user = auth.getUserOrFail()
     await auth.use('web').logout()
-    return response.redirect('/admin/login')
+
+    // Log logout
+    await activityLogService.log({
+      action: 'user.logout',
+      userId: user.id,
+      ip: request.ip(),
+      userAgent: request.header('user-agent') || null,
+    })
+
+    return response.redirect(adminPath('login'))
   }
 }

@@ -1,6 +1,7 @@
 import { defineConfig } from '@adonisjs/inertia'
 import type { InferSharedProps } from '@adonisjs/inertia/types'
 import siteSettingsService from '#services/site_settings_service'
+import { getAdminPathPrefix } from '#services/admin_path_service'
 
 const inertiaConfig = defineConfig({
   /**
@@ -35,6 +36,7 @@ const inertiaConfig = defineConfig({
           return 'EOS'
         }
       }),
+    adminPathPrefix: () => getAdminPathPrefix(),
   },
 
   /**

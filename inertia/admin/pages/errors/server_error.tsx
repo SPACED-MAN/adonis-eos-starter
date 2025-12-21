@@ -2,6 +2,8 @@
  * Admin Panel - 500 Server Error
  */
 
+import { useAdminPath } from '~/utils/adminPath'
+
 interface ServerErrorProps {
   error: {
     message: string
@@ -11,6 +13,7 @@ interface ServerErrorProps {
 
 export default function ServerError({ error }: ServerErrorProps) {
   const isDevelopment = import.meta.env.DEV
+  const adminPath = useAdminPath()
 
   return (
     <div className="min-h-screen bg-backdrop-medium flex items-center justify-center px-4">
@@ -47,7 +50,7 @@ export default function ServerError({ error }: ServerErrorProps) {
               Retry
             </button>
             <a
-              href="/admin"
+              href={adminPath()}
               className="block w-full px-6 py-3 border-2 border-border hover:bg-backdrop-medium text-neutral-medium font-semibold rounded-lg text-center transition-colors"
             >
               Go to Dashboard

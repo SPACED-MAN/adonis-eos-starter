@@ -2,9 +2,11 @@ import { Link, usePage } from '@inertiajs/react'
 import { SidebarProvider, SidebarTrigger } from '~/components/ui/sidebar'
 import { AdminSidebar } from './AdminSidebar'
 import { GlobalAgentButton } from './agents/GlobalAgentButton'
+import { useAdminPath } from '~/utils/adminPath'
 
 export function AdminHeader({ title = 'Admin' }: { title?: string }) {
   const page = usePage()
+  const adminPath = useAdminPath()
   const role: string | undefined =
     (page.props as any)?.currentUser?.role ?? (page.props as any)?.auth?.user?.role
   const isAdminShared: boolean | undefined = (page.props as any)?.isAdmin
@@ -32,7 +34,7 @@ export function AdminHeader({ title = 'Admin' }: { title?: string }) {
                 View Site
               </a>
               <Link
-                href="/admin/logout"
+                href={adminPath('logout')}
                 method="post"
                 as="button"
                 className="px-3 py-1.5 border border-line-low rounded-lg text-sm text-neutral-medium hover:bg-backdrop-medium cursor-pointer"

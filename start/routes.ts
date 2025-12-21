@@ -10,6 +10,7 @@
 import router from '@adonisjs/core/services/router'
 import { middleware } from '#start/kernel'
 import '#start/taxonomies'
+import { adminPath } from '#services/admin_path_service'
 
 const SitemapController = () => import('#controllers/sitemap_controller')
 const RobotsController = () => import('#controllers/robots_controller')
@@ -45,21 +46,21 @@ router.get('/search', [SiteSearchController, 'index'])
  */
 const AuthController = () => import('#controllers/auth_controller')
 router
-  .get('/admin/login', [AuthController, 'showLogin'])
+  .get(adminPath('login'), [AuthController, 'showLogin'])
   .use(middleware.guest())
   .use(middleware.rateLimitAuth())
 router
-  .post('/admin/login', [AuthController, 'login'])
+  .post(adminPath('login'), [AuthController, 'login'])
   .use(middleware.guest())
   .use(middleware.rateLimitAuth())
-router.post('/admin/logout', [AuthController, 'logout']).use(middleware.auth())
+router.post(adminPath('logout'), [AuthController, 'logout']).use(middleware.auth())
 
 /**
  * Admin home (protected)
  */
 const Post = () => import('#models/post')
 router
-  .get('/admin', async ({ inertia }) => {
+  .get(adminPath(), async ({ inertia }) => {
     const PostModel = await Post()
     const posts = await PostModel.default.query().orderBy('updated_at', 'desc').limit(10)
 
@@ -90,7 +91,7 @@ const InlineEditorController = () => import('#controllers/inline_editor_controll
 /**
  * Admin - Posts (using split controllers)
  */
-router.get('/admin/posts/:id/edit', [PostsViewController, 'edit']).use(middleware.auth())
+router.get(adminPath('posts/:id/edit'), [PostsViewController, 'edit']).use(middleware.auth())
 
 /**
  * API Routes - Locales
@@ -191,7 +192,6 @@ const FormsController = () => import('#controllers/forms_controller')
 const FormsAdminController = () => import('#controllers/forms_admin_controller')
 const MenusController = () => import('#controllers/menus_controller')
 const UsersController = () => import('#controllers/users_controller')
-const ActivityLogsController = () => import('#controllers/activity_logs_controller')
 const TaxonomiesController = () => import('#controllers/taxonomies_controller')
 const ProtectedAccessController = () => import('#controllers/protected_access_controller')
 // MediaController imported above
@@ -293,8 +293,6 @@ router
     router
       .post('/users/:id/profile', [UsersController, 'createProfileForUser'])
       .use(middleware.admin())
-    // Activity Logs (admin)
-    router.get('/activity-logs', [ActivityLogsController, 'index']).use(middleware.admin())
     // Media
     router.get('/media', [MediaController, 'index'])
     router.get('/media/categories', [MediaController, 'categories'])
@@ -402,6 +400,24 @@ router
   .use(middleware.admin())
 
 /**
+ * Security endpoints (admin)
+ */
+const SecurityController = () => import('#controllers/security_controller')
+router
+  .group(() => {
+    router.get('/security/sessions', [SecurityController, 'sessions'])
+    router.delete('/security/sessions/:sessionId', [SecurityController, 'revokeSession'])
+    router.post('/security/sessions/revoke-all', [SecurityController, 'revokeAllSessions'])
+    router.get('/security/audit-logs', [SecurityController, 'auditLogs'])
+    router.get('/security/posture', [SecurityController, 'posture'])
+    router.get('/security/webhooks', [SecurityController, 'webhooks'])
+    router.get('/security/login-history', [SecurityController, 'loginHistory'])
+  })
+  .prefix('/api')
+  .use(middleware.auth())
+  .use(middleware.admin())
+
+/**
  * Preview Routes (with token validation)
  */
 router.get('/preview/:id', [PostsViewController, 'preview'])
@@ -412,28 +428,28 @@ router.get('/preview/:id', [PostsViewController, 'preview'])
  * Admin Settings Pages
  */
 router
-  .get('/admin/settings/url-patterns', async ({ inertia }) => {
+  .get(adminPath('settings/url-patterns'), async ({ inertia }) => {
     return inertia.render('admin/settings/url-patterns')
   })
   .use(middleware.auth())
   .use(middleware.admin())
 
 router
-  .get('/admin/settings/redirects', async ({ inertia }) => {
+  .get(adminPath('settings/redirects'), async ({ inertia }) => {
     return inertia.render('admin/settings/redirects')
   })
   .use(middleware.auth())
   .use(middleware.admin())
 
 router
-  .get('/admin/settings/locales', async ({ inertia }) => {
+  .get(adminPath('settings/locales'), async ({ inertia }) => {
     return inertia.render('admin/settings/locales')
   })
   .use(middleware.auth())
   .use(middleware.admin())
 
 router
-  .get('/admin/settings/module-groups', async ({ inertia }) => {
+  .get(adminPath('settings/module-groups'), async ({ inertia }) => {
     return inertia.render('admin/settings/module-groups')
   })
   .use(middleware.auth())
@@ -441,79 +457,77 @@ router
 
 // Admin Media Library (editors allowed)
 router
-  .get('/admin/media', async ({ inertia }) => {
+  .get(adminPath('media'), async ({ inertia }) => {
     return inertia.render('admin/media/index')
   })
   .use(middleware.auth())
 
 // Admin Posts (list) (editors allowed)
 router
-  .get('/admin/posts', async ({ inertia }) => {
+  .get(adminPath('posts'), async ({ inertia }) => {
     return inertia.render('admin/posts/index')
   })
   .use(middleware.auth())
 
 // Admin Profile (current user)
 router
-  .get('/admin/profile', async ({ inertia }) => {
+  .get(adminPath('profile'), async ({ inertia }) => {
     return inertia.render('admin/profile/index')
   })
   .use(middleware.auth())
 
 // Admin Global/Static Module Manager
 router
-  .get('/admin/modules', async ({ inertia }) => {
+  .get(adminPath('modules'), async ({ inertia }) => {
     return inertia.render('admin/modules/index')
   })
   .use(middleware.auth())
   .use(middleware.admin())
 
 // Admin Forms (submissions) - editors allowed
-router.get('/admin/forms', [FormsAdminController, 'index']).use(middleware.auth())
-router.get('/admin/forms/new', [FormsAdminController, 'createPage']).use(middleware.auth())
-router.get('/admin/forms/:id/edit', [FormsAdminController, 'edit']).use(middleware.auth())
+router.get(adminPath('forms'), [FormsAdminController, 'index']).use(middleware.auth())
+router.get(adminPath('forms/new'), [FormsAdminController, 'createPage']).use(middleware.auth())
+router.get(adminPath('forms/:id/edit'), [FormsAdminController, 'edit']).use(middleware.auth())
 
 // Admin Menus - editors allowed
 router
-  .get('/admin/menus', async ({ inertia }) => {
+  .get(adminPath('menus'), async ({ inertia }) => {
     return inertia.render('admin/menus/index')
   })
   .use(middleware.auth())
 
 // Admin Categories (Taxonomies) (editors allowed)
 router
-  .get('/admin/categories', async ({ inertia }) => {
+  .get(adminPath('categories'), async ({ inertia }) => {
     return inertia.render('admin/categories')
   })
   .use(middleware.auth())
 
 // Admin Users (stub)
 router
-  .get('/admin/users', async ({ inertia }) => {
+  .get(adminPath('users'), async ({ inertia }) => {
     return inertia.render('admin/users/index')
   })
   .use(middleware.auth())
   .use(middleware.admin())
 
 router
-  .get('/admin/users/:id/edit', async ({ params, inertia }) => {
+  .get(adminPath('users/:id/edit'), async ({ params, inertia }) => {
     return inertia.render('admin/users/edit', { id: params.id })
   })
   .use(middleware.auth())
   .use(middleware.admin())
 
-// Admin Activity Log
+// Admin Security Center
 router
-  .get('/admin/users/activity', async ({ inertia }) => {
-    return inertia.render('admin/users/activity')
-  })
+  .get(adminPath('security'), [SecurityController, 'index'])
   .use(middleware.auth())
   .use(middleware.admin())
 
 // Admin Database (Export/Import and Optimize)
 const DatabaseAdminController = () => import('#controllers/database_admin_controller')
 router
-  .get('/admin/database', [DatabaseAdminController, 'index'])
+  .get(adminPath('database'), [DatabaseAdminController, 'index'])
   .use(middleware.auth())
   .use(middleware.admin())
 
@@ -549,14 +563,14 @@ router
 
 // Admin General Settings
 router
-  .get('/admin/settings/general', async ({ inertia }) => {
+  .get(adminPath('settings/general'), async ({ inertia }) => {
     return inertia.render('admin/settings/general')
   })
   .use(middleware.auth())
   .use(middleware.admin())
 
 router
-  .get('/admin/settings/seo', async ({ inertia }) => {
+  .get(adminPath('settings/seo'), async ({ inertia }) => {
     return inertia.render('admin/settings/seo')
   })
   .use(middleware.auth())
@@ -571,7 +585,7 @@ router
 
 // Graceful forbidden page for non-admins
 router
-  .get('/admin/forbidden', async ({ inertia }) => {
+  .get(adminPath('forbidden'), async ({ inertia }) => {
     return inertia.render('admin/errors/forbidden')
   })
   .use(middleware.auth())
