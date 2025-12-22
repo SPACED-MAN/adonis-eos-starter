@@ -11,14 +11,14 @@ import { SimpleMessagesProvider } from '@vinejs/vine'
  * Update locale validator
  */
 export const updateLocaleValidator = vine.compile(
-  vine.object({
-    isEnabled: vine.boolean().optional(),
-    isDefault: vine.boolean().optional(),
-  })
+	vine.object({
+		isEnabled: vine.boolean().optional(),
+		isDefault: vine.boolean().optional(),
+	})
 )
 
 updateLocaleValidator.messagesProvider = new SimpleMessagesProvider({
-  'isEnabled.boolean': 'isEnabled must be a boolean',
-  'isDefault.boolean': 'isDefault must be a boolean',
+	'isEnabled.boolean': 'isEnabled must be a boolean',
+	'isDefault.boolean': 'isDefault must be a boolean',
 })
 
