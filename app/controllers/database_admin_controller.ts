@@ -1,6 +1,7 @@
 import type { HttpContext } from '@adonisjs/core/http'
 import databaseExportService, { type ContentType } from '#services/database_export_service'
 import databaseImportService, { type ImportStrategy } from '#services/database_import_service'
+import findReplaceService from '#services/find_replace_service'
 import roleRegistry from '#services/role_registry'
 import { readFile } from 'node:fs/promises'
 import db from '@adonisjs/lucid/services/db'
@@ -421,6 +422,66 @@ export default class DatabaseAdminController {
       return response.ok({
         message: 'Database optimization completed',
         results,
+      })
+    } catch (error) {
+      return response.badRequest({ error: (error as Error).message })
+    }
+  }
+
+  /**
+   * GET /api/database/find-replace/tables
+   * Get list of searchable tables and their columns
+   */
+  async getFindReplaceTables({ response, auth }: HttpContext) {
+    const role = (auth.use('web').user as any)?.role as 'admin' | 'editor' | 'translator' | undefined
+
+    if (!roleRegistry.hasPermission(role, 'admin.database.export')) {
+      return response.forbidden({ error: 'Admin role required' })
+    }
+
+    try {
+      const tables = await findReplaceService.getSearchableTables()
+      return response.ok({ data: tables })
+    } catch (error) {
+      return response.badRequest({ error: (error as Error).message })
+    }
+  }
+
+  /**
+   * POST /api/database/find-replace
+   * Perform find and replace
+   */
+  async findReplace({ request, response, auth }: HttpContext) {
+    const role = (auth.use('web').user as any)?.role as 'admin' | 'editor' | 'translator' | undefined
+
+    if (!roleRegistry.hasPermission(role, 'admin.database.export')) {
+      return response.forbidden({ error: 'Admin role required' })
+    }
+
+    try {
+      const search = request.input('search')
+      const replace = request.input('replace')
+      const tables = request.input('tables')
+      const dryRun = request.input('dryRun', true) !== false
+
+      if (!search) {
+        return response.badRequest({ error: 'Search string is required' })
+      }
+
+      if (!tables || !Array.isArray(tables) || tables.length === 0) {
+        return response.badRequest({ error: 'At least one table must be selected' })
+      }
+
+      const result = await findReplaceService.performReplace({
+        search,
+        replace,
+        tables,
+        dryRun,
+      })
+
+      return response.ok({
+        message: dryRun ? 'Dry run completed' : 'Find and replace completed',
+        result,
       })
     } catch (error) {
       return response.badRequest({ error: (error as Error).message })

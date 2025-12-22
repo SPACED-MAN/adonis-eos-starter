@@ -375,6 +375,14 @@ export function ModuleEditorPanel({
     latestDraft.current = draft
   }, [draft])
 
+  const isMountedRef = useRef(false)
+  useEffect(() => {
+    isMountedRef.current = true
+    return () => {
+      isMountedRef.current = false
+    }
+  }, [])
+
   const fallbackDraftKeys = useMemo(
     () => Object.keys(draft || {}).filter((k) => k !== 'type' && k !== 'properties'),
     [draft]
@@ -932,6 +940,14 @@ export const ModuleEditorInline = memo(function ModuleEditorInline({
     latestDraft.current = draft
   }, [draft])
 
+  const isMountedRef = useRef(false)
+  useEffect(() => {
+    isMountedRef.current = true
+    return () => {
+      isMountedRef.current = false
+    }
+  }, [])
+
   const fallbackDraftKeys = useMemo(
     () => Object.keys(draft || {}).filter((k) => k !== 'type' && k !== 'properties'),
     [draft]
@@ -1099,7 +1115,9 @@ export const ModuleEditorInline = memo(function ModuleEditorInline({
       fieldAgents,
       viewMode,
       customFields,
-      onDirty,
+      onDirty: () => {
+        if (isMountedRef.current && onDirty) onDirty()
+      },
     }),
     [
       setDraft,
@@ -1180,7 +1198,6 @@ export const ModuleEditorInline = memo(function ModuleEditorInline({
   }, [registerFlush, saveNow])
 
   const autosaveTimer = useRef<number | null>(null)
-  const didSignalDirtyRef = useRef(false)
   const signalDirtyTimeoutRef = useRef<number | null>(null)
   // Store the current input value in a ref to preserve it across re-renders
   const pendingInputValueRef = useRef<{ name: string; value: string; rootId: string; cursorPos: number } | null>(null)
@@ -1351,14 +1368,12 @@ export const ModuleEditorInline = memo(function ModuleEditorInline({
 
             // Signal dirty with a longer delay to avoid parent re-renders while the user is still typing.
             // A 400ms delay ensures that for fast typing, the parent re-render happens after the word is done.
-            if (!didSignalDirtyRef.current) {
-              didSignalDirtyRef.current = true
               if (onDirty) {
+              if (signalDirtyTimeoutRef.current) window.clearTimeout(signalDirtyTimeoutRef.current)
                 signalDirtyTimeoutRef.current = window.setTimeout(() => {
                   signalDirtyTimeoutRef.current = null
                   onDirty()
                 }, 400)
-              }
             }
           } catch {
             /* ignore */
@@ -1446,6 +1461,8 @@ export const ModuleEditorInline = memo(function ModuleEditorInline({
                           if (hidden) {
                             try {
                               hidden.value = JSON.stringify(json)
+                              hidden.dispatchEvent(new Event('input', { bubbles: true }))
+                              hidden.dispatchEvent(new Event('change', { bubbles: true }))
                             } catch {
                               /* ignore */
                             }
@@ -1453,6 +1470,7 @@ export const ModuleEditorInline = memo(function ModuleEditorInline({
                           const next = JSON.parse(JSON.stringify(draft))
                           setByPath(next, key, json)
                           setDraft(next)
+                          ctx.onDirty?.()
                         },
                       })
                     ) : (
@@ -1467,6 +1485,8 @@ export const ModuleEditorInline = memo(function ModuleEditorInline({
                           if (hidden) {
                             try {
                               hidden.value = JSON.stringify(json)
+                              hidden.dispatchEvent(new Event('input', { bubbles: true }))
+                              hidden.dispatchEvent(new Event('change', { bubbles: true }))
                             } catch {
                               /* ignore */
                             }
@@ -1474,6 +1494,7 @@ export const ModuleEditorInline = memo(function ModuleEditorInline({
                           const next = JSON.parse(JSON.stringify(draft))
                           setByPath(next, key, json)
                           setDraft(next)
+                          ctx.onDirty?.()
                         }}
                       />
                     )}
@@ -1568,12 +1589,14 @@ const DateFieldInternal = memo(({
   rootId,
   hideLabel,
   initial,
+  ctx,
 }: {
   name: string
   label: string
   rootId: string
   hideLabel: boolean
   initial: string
+  ctx: EditorFieldCtx
 }) => {
   const initialDate = initial ? new Date(initial) : null
   const [selected, setSelected] = useState<Date | null>(initialDate)
@@ -1606,6 +1629,10 @@ const DateFieldInternal = memo(({
             onSelect={(d: Date | undefined) => {
               const val = d || null
               setSelected(val)
+              const next = { ...(ctx.latestDraft.current || {}) }
+              ctx.setByPath(next, name, formatDate(val))
+              ctx.setDraft(next)
+              ctx.onDirty?.()
               if (hiddenRef.current) {
                 hiddenRef.current.value = formatDate(val)
                 hiddenRef.current.dispatchEvent(new Event('input', { bubbles: true }))
@@ -1633,6 +1660,7 @@ const SliderFieldInternal = memo(({
   rootId,
   hideLabel,
   field,
+  ctx,
 }: {
   name: string
   label: string
@@ -1640,6 +1668,7 @@ const SliderFieldInternal = memo(({
   rootId: string
   hideLabel: boolean
   field: any
+  ctx: EditorFieldCtx
 }) => {
   const min = field.min ?? 0
   const max = field.max ?? 100
@@ -1660,6 +1689,10 @@ const SliderFieldInternal = memo(({
         onValueChange={(v) => {
           const n = Array.isArray(v) ? (v[0] ?? min) : min
           setVal(n)
+          const next = { ...(ctx.latestDraft.current || {}) }
+          ctx.setByPath(next, name, n)
+          ctx.setDraft(next)
+          ctx.onDirty?.()
           if (hiddenRef.current) {
             hiddenRef.current.value = String(n)
             hiddenRef.current.dispatchEvent(new Event('input', { bubbles: true }))
@@ -2100,6 +2133,7 @@ const IconFieldInternal = memo(({
                     ctx.setByPath(next, name, iconItem.name)
                     return next
                   })
+                  ctx.onDirty?.()
                   setPickerOpen(false)
                 }}
                 title={iconItem.label}
@@ -2125,6 +2159,7 @@ const PostReferenceFieldInternal = memo(({
   rootId,
   hideLabel,
   field,
+  ctx,
 }: {
   name: string
   label: string
@@ -2132,9 +2167,18 @@ const PostReferenceFieldInternal = memo(({
   rootId: string
   hideLabel: boolean
   field: any
+  ctx: EditorFieldCtx
 }) => {
-  const allowedTypes = Array.isArray(field.postTypes) ? field.postTypes : []
-  const allowMultiple = field.allowMultiple !== false
+  // Normalize allowed types from field (support singular postType or plural postTypes)
+  const allowedTypes: string[] = Array.isArray(field.postTypes)
+    ? field.postTypes
+    : field.postType
+      ? [String(field.postType)]
+      : []
+
+  // Normalize allowMultiple from field (support multiple or allowMultiple)
+  const allowMultiple = field.allowMultiple !== false && field.multiple !== false
+
   const [options, setOptions] = useState<Array<{ label: string; value: string }>>([])
   const initialVals = Array.isArray(value) ? value : value ? [String(value)] : []
   const [vals, setVals] = useState<string[]>(initialVals)
@@ -2143,9 +2187,17 @@ const PostReferenceFieldInternal = memo(({
 
   useEffect(() => {
     if (hiddenRef.current) {
-      hiddenRef.current.value = allowMultiple ? JSON.stringify(vals) : (vals[0] ?? '')
+      const nextVal = allowMultiple ? JSON.stringify(vals) : (vals[0] ?? '')
+      if (hiddenRef.current.value !== nextVal) {
+        hiddenRef.current.value = nextVal
       hiddenRef.current.dispatchEvent(new Event('input', { bubbles: true }))
       hiddenRef.current.dispatchEvent(new Event('change', { bubbles: true }))
+        
+        const next = { ...(ctx.latestDraft.current || {}) }
+        ctx.setByPath(next, name, allowMultiple ? vals : (vals[0] ?? null))
+        ctx.setDraft(next)
+        ctx.onDirty?.()
+      }
     }
   }, [vals, allowMultiple])
 
@@ -2154,8 +2206,10 @@ const PostReferenceFieldInternal = memo(({
       ; (async () => {
         try {
           const params = new URLSearchParams()
-          params.set('status', 'published')
+          // In the admin, we usually want to be able to refer to any post that isn't archived/deleted
           params.set('limit', '100')
+          params.set('sortBy', 'updated_at')
+          params.set('sortOrder', 'desc')
           if (allowedTypes.length > 0) params.set('types', allowedTypes.join(','))
           const r = await fetch(`/api/posts?${params.toString()}`, { credentials: 'same-origin' })
           const j = await r.json().catch(() => ({}))
@@ -2185,7 +2239,7 @@ const PostReferenceFieldInternal = memo(({
           <div className="space-y-2">
             <Input
               type="text"
-              placeholder="Search posts…"
+              placeholder="Search posts..."
               value={query}
               onChange={(e) => setQuery(e.target.value)}
               className="h-8 text-xs"
@@ -2236,12 +2290,14 @@ const FormReferenceFieldInternal = memo(({
   value,
   rootId,
   hideLabel,
+  ctx,
 }: {
   name: string
   label: string
   value: any
   rootId: string
   hideLabel: boolean
+  ctx: EditorFieldCtx
 }) => {
   const [options, setOptions] = useState<Array<{ label: string; value: string }>>([])
   const initial = typeof value === 'string' ? value : ''
@@ -2264,9 +2320,16 @@ const FormReferenceFieldInternal = memo(({
 
   useEffect(() => {
     if (hiddenRef.current) {
+      if (hiddenRef.current.value !== (current || '')) {
       hiddenRef.current.value = current || ''
       hiddenRef.current.dispatchEvent(new Event('input', { bubbles: true }))
       hiddenRef.current.dispatchEvent(new Event('change', { bubbles: true }))
+        
+        const next = { ...(ctx.latestDraft.current || {}) }
+        ctx.setByPath(next, name, current || null)
+        ctx.setDraft(next)
+        ctx.onDirty?.()
+      }
     }
   }, [current])
 
@@ -2336,6 +2399,11 @@ const SelectFieldInternal = memo(({
               hiddenRef.current.value = val ?? ''
               hiddenRef.current.dispatchEvent(new Event('input', { bubbles: true }))
               hiddenRef.current.dispatchEvent(new Event('change', { bubbles: true }))
+              
+              const next = { ...(ctx.latestDraft.current || {}) }
+              ctx.setByPath(next, name, val || null)
+              ctx.setDraft(next)
+              ctx.onDirty?.()
             }
           }}
         >
@@ -2357,9 +2425,17 @@ const SelectFieldInternal = memo(({
     const hiddenRef = useRef<HTMLInputElement | null>(null)
     useEffect(() => {
       if (hiddenRef.current) {
-        hiddenRef.current.value = JSON.stringify(vals)
+      const nextVal = JSON.stringify(vals)
+      if (hiddenRef.current.value !== nextVal) {
+        hiddenRef.current.value = nextVal
         hiddenRef.current.dispatchEvent(new Event('input', { bubbles: true }))
         hiddenRef.current.dispatchEvent(new Event('change', { bubbles: true }))
+        
+        const next = { ...(ctx.latestDraft.current || {}) }
+        ctx.setByPath(next, name, vals)
+        ctx.setDraft(next)
+        ctx.onDirty?.()
+      }
       }
     }, [vals])
     return (
@@ -2508,6 +2584,7 @@ const FieldPrimitiveInternal = memo(({
         const next = { ...(ctx.latestDraft.current || {}) }
         ctx.setByPath(next, name, val)
         ctx.setDraft(next)
+        ctx.onDirty?.()
       } catch { }
       if (hiddenRef.current) {
         if (val === null || val === undefined) hiddenRef.current.value = ''
@@ -2623,6 +2700,7 @@ const FieldPrimitiveInternal = memo(({
             const next = { ...(ctx.latestDraft.current || {}) }
             ctx.setByPath(next, name, val)
             ctx.setDraft(next)
+            ctx.onDirty?.()
           }}
           data-root-id={rootId}
           customFields={ctx.customFields}
@@ -2873,6 +2951,7 @@ const FieldBySchemaInternal = memo(({
                     arr.splice(idx, 1)
                     ctx.setByPath(next, name, arr)
                     ctx.setDraft(next)
+                    ctx.onDirty?.()
                     requestAnimationFrame(() => {
                       if (scroller) scroller.scrollTop = prevScrollTop
                     })
@@ -2895,6 +2974,7 @@ const FieldBySchemaInternal = memo(({
                     arr.splice(idx - 1, 0, moved)
                     ctx.setByPath(next, name, arr)
                     ctx.setDraft(next)
+                    ctx.onDirty?.()
                     requestAnimationFrame(() => {
                       if (scroller) scroller.scrollTop = prevScrollTop
                     })
@@ -2917,6 +2997,7 @@ const FieldBySchemaInternal = memo(({
                     arr.splice(idx + 1, 0, moved)
                     ctx.setByPath(next, name, arr)
                     ctx.setDraft(next)
+                    ctx.onDirty?.()
                     requestAnimationFrame(() => {
                       if (scroller) scroller.scrollTop = prevScrollTop
                     })
@@ -2994,6 +3075,7 @@ const FieldBySchemaInternal = memo(({
               arr.push(empty)
               ctx.setByPath(next, name, arr)
               ctx.setDraft(next)
+              ctx.onDirty?.()
               requestAnimationFrame(() => {
                 if (scroller) scroller.scrollTop = prevScrollTop
               })

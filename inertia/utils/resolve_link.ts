@@ -60,8 +60,7 @@ export async function resolvePostLink(
   target?: '_self' | '_blank'
 ): Promise<ResolvedLink> {
   try {
-    const res = await fetch(`/api/posts?ids=${encodeURIComponent(postId)}&limit=1`, {
-      credentials: 'same-origin',
+    const res = await fetch(`/api/public/posts?ids=${encodeURIComponent(postId)}&limit=1`, {
       headers: { Accept: 'application/json' },
     })
 

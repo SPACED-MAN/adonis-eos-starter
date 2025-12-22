@@ -15,6 +15,7 @@ type InlineBridge = {
   availableModes: { hasSource: boolean; hasReview: boolean; hasAiReview: boolean }
   showDiffs: boolean
   toggleShowDiffs: () => void
+  abVariations: Array<{ id: string; variation: string; status: string }>
 }
 
 export function SiteAdminBar({ initialProps }: { initialProps?: any }) {
@@ -30,6 +31,7 @@ export function SiteAdminBar({ initialProps }: { initialProps?: any }) {
     availableModes: { hasSource: true, hasReview: false, hasAiReview: false },
     showDiffs: false,
     toggleShowDiffs: () => { },
+    abVariations: [],
   })
   const [mounted, setMounted] = useState(false)
   useEffect(() => {
@@ -100,8 +102,33 @@ export function SiteAdminBar({ initialProps }: { initialProps?: any }) {
         className="fixed z-50 flex items-center gap-2 pointer-events-auto"
         style={{ bottom: '16px', right: '16px' }}
       >
+        {/* Variations (Moved to left with a gap) */}
+        {inline.abVariations.length > 1 && (
+          <div className="inline-flex overflow-hidden rounded-md border border-line-medium bg-backdrop-high shadow bg-backdrop-medium/20">
+            {inline.abVariations.map((v) => (
+              <button
+                key={v.id}
+                type="button"
+                className={`px-3 py-2 text-[10px] font-bold transition-all ${
+                  v.id === post?.id
+                    ? 'bg-standout-medium text-on-standout shadow-inner'
+                    : 'text-neutral-high hover:bg-backdrop-medium'
+                } ${v.id !== inline.abVariations[inline.abVariations.length - 1].id ? 'border-r border-line-medium' : ''}`}
+                onClick={() => {
+                  if (v.id === post?.id) return
+                  const url = new URL(window.location.href)
+                  url.searchParams.set('variation_id', v.id)
+                  window.location.href = url.toString()
+                }}
+                title={`Switch to Variation ${v.variation}`}
+              >
+                Var {v.variation}
+              </button>
+            ))}
+          </div>
+        )}
+
         <div className="inline-flex overflow-hidden rounded-md border border-line-medium bg-backdrop-high shadow">
-          {/* ... existing buttons ... */}
           {inline.availableModes.hasSource && (
             <button
               type="button"
@@ -129,6 +156,7 @@ export function SiteAdminBar({ initialProps }: { initialProps?: any }) {
               AI Review
             </button>
           )}
+
           <button
             type="button"
             className={`px-3 py-2 text-xs font-medium border-r border-line-medium ${inline.enabled ? 'bg-standout-medium text-on-standout' : 'text-neutral-high hover:bg-backdrop-medium'}`}

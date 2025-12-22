@@ -30,9 +30,44 @@ export default class UpsertPostCustomFields {
       const placeholders: string[] = []
       const bindings: any[] = []
 
+      // Helper to unwrap accidentally double/triple-encoded JSON
+      const unwrap = (val: any): any => {
+        if (typeof val === 'string') {
+          const trimmed = val.trim()
+          if (
+            (trimmed.startsWith('[') && trimmed.endsWith(']')) ||
+            (trimmed.startsWith('{') && trimmed.endsWith('}'))
+          ) {
+            try {
+              return unwrap(JSON.parse(trimmed))
+            } catch {
+              return val
+            }
+          }
+        }
+        if (Array.isArray(val) && val.length === 1 && typeof val[0] === 'string') {
+          const trimmed = val[0].trim()
+          if (trimmed.startsWith('[') && trimmed.endsWith(']')) {
+            try {
+              const parsed = JSON.parse(trimmed)
+              if (Array.isArray(parsed)) {
+                return unwrap(parsed)
+              }
+            } catch {
+              // ignore
+            }
+          }
+        }
+        return val
+      }
+
       for (const entry of entries) {
-        const normalizedValue =
-          typeof entry.value === 'string' ? JSON.stringify(entry.value) : entry.value
+        let normalizedValue = unwrap(entry.value)
+
+        if (normalizedValue !== null && normalizedValue !== undefined) {
+          // Always stringify for the DB binding to ensure it's stored correctly in JSONB
+          normalizedValue = JSON.stringify(normalizedValue)
+        }
 
         placeholders.push('(?, ?, ?, ?, ?, ?)')
         bindings.push(randomUUID(), postId, entry.slug, normalizedValue, now, now)

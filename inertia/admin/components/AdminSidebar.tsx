@@ -126,7 +126,7 @@ export function AdminSidebar() {
           {canAccessForms && (
             <SidebarMenuItem href={adminPath('forms')} active={isActive(adminPath('forms'))}>
               <span className="inline-flex items-center gap-2">
-                <FontAwesomeIcon icon={faEnvelope} className="w-4 h-4" /> <span>Form Submissions</span>
+                <FontAwesomeIcon icon={faEnvelope} className="w-4 h-4" /> <span>Forms</span>
               </span>
             </SidebarMenuItem>
           )}

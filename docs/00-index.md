@@ -13,6 +13,7 @@ Perfect for non-technical users who create and manage content:
 - [Using the Review System](editors/03-review-workflow.md) - Collaboration and approval
 - [Managing Media](editors/04-media.md) - Uploading and organizing images
 - [Translations](editors/05-translations.md) - Multi-language content
+- [SEO](editors/07-seo.md) - Optimizing for search and conversion
 
 ## For Developers
 

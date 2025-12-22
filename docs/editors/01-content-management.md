@@ -217,6 +217,8 @@ Always fill in:
 - Featured image
 - Proper heading hierarchy
 
+See the [SEO](07-seo.md) for detailed best practices.
+
 ### 8. Accessibility
 
 - Add alt text to all images

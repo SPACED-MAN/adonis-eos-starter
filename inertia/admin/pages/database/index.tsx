@@ -22,6 +22,9 @@ import {
   faTrash,
   faBroom,
   faRefresh,
+  faSearch,
+  faExchangeAlt,
+  faInfoCircle,
 } from '@fortawesome/free-solid-svg-icons'
 import {
   AlertDialog,
@@ -130,7 +133,7 @@ const CONTENT_TYPE_LABELS: Record<ContentType, string> = {
 }
 
 export default function DatabaseIndex() {
-  const [activeTab, setActiveTab] = useState<'export' | 'optimize'>('export')
+  const [activeTab, setActiveTab] = useState<'export' | 'optimize' | 'search-replace'>('export')
 
   // Export/Import state
   const [exportStats, setExportStats] = useState<ExportStats | null>(null)
@@ -186,6 +189,21 @@ export default function DatabaseIndex() {
   const [pendingImportFile, setPendingImportFile] = useState<File | null>(null)
   const [resultFilter, setResultFilter] = useState('')
 
+  // Find and Replace state
+  const [frSearch, setFrSearch] = useState('')
+  const [frReplace, setFrReplace] = useState('')
+  const [frSelectedTables, setFrReplaceSelectedTables] = useState<string[]>([])
+  const [frDryRun, setFrDryRun] = useState(true)
+  const [frLoadingTables, setFrLoadingTables] = useState(false)
+  const [frRunning, setFrRunning] = useState(false)
+  const [frTables, setFrTables] = useState<Array<{ name: string; columns: string[] }>>([])
+  const [frResult, setFrResult] = useState<{
+    summary: Array<{ table: string; column: string; matches: number; replacements: number }>
+    totalMatches: number
+    totalReplacements: number
+  } | null>(null)
+  const [confirmFrOpen, setConfirmFrOpen] = useState(false)
+
   // Build rows for the status table (skipped + errors), with filter
   const getStatusRows = (result: ImportResult, filter: string): StatusRow[] => {
     const rows: StatusRow[] = []
@@ -213,8 +231,85 @@ export default function DatabaseIndex() {
       loadExportStats()
     } else if (activeTab === 'optimize') {
       loadOptimizeStats()
+    } else if (activeTab === 'search-replace') {
+      loadFrTables()
     }
   }, [activeTab])
+
+  // Load Find and Replace tables
+  const loadFrTables = async () => {
+    setFrLoadingTables(true)
+    try {
+      const res = await fetch('/api/database/find-replace/tables', {
+        credentials: 'same-origin',
+        headers: { Accept: 'application/json' },
+      })
+      if (res.ok) {
+        const json = await res.json()
+        setFrTables(json.data)
+        // Select all tables by default
+        setFrReplaceSelectedTables(json.data.map((t: any) => t.name))
+      } else {
+        toast.error('Failed to load database tables')
+      }
+    } catch (error) {
+      toast.error('Failed to load database tables')
+    } finally {
+      setFrLoadingTables(false)
+    }
+  }
+
+  const handleFrExecute = async () => {
+    if (!frSearch) {
+      toast.error('Please enter a search string')
+      return
+    }
+    if (frSelectedTables.length === 0) {
+      toast.error('Please select at least one table')
+      return
+    }
+
+    setFrRunning(true)
+    setFrResult(null)
+    setConfirmFrOpen(false)
+
+    try {
+      const csrf = (() => {
+        if (typeof document === 'undefined') return undefined
+        const m = document.cookie.match(/(?:^|; )XSRF-TOKEN=([^;]+)/)
+        return m ? decodeURIComponent(m[1]) : undefined
+      })()
+
+      const res = await fetch('/api/database/find-replace', {
+        method: 'POST',
+        credentials: 'same-origin',
+        headers: {
+          'Content-Type': 'application/json',
+          'Accept': 'application/json',
+          ...(csrf ? { 'X-XSRF-TOKEN': csrf } : {}),
+        },
+        body: JSON.stringify({
+          search: frSearch,
+          replace: frReplace,
+          tables: frSelectedTables,
+          dryRun: frDryRun,
+        }),
+      })
+
+      const json = await res.json()
+
+      if (res.ok) {
+        setFrResult(json.result)
+        toast.success(json.message || 'Find and replace completed')
+      } else {
+        toast.error(json.error || 'Find and replace failed')
+      }
+    } catch (error) {
+      toast.error('Find and replace failed')
+    } finally {
+      setFrRunning(false)
+    }
+  }
 
   // Load optimize stats
   const loadOptimizeStats = async () => {
@@ -488,6 +583,13 @@ export default function DatabaseIndex() {
               onClick={() => setActiveTab('optimize')}
             >
               Optimize
+            </button>
+            <button
+              type="button"
+              className={`px-3 py-2 rounded text-sm font-semibold border ${activeTab === 'search-replace' ? 'bg-standout-medium text-on-standout border-standout-medium' : 'bg-backdrop-medium text-neutral-dark border-line-medium'}`}
+              onClick={() => setActiveTab('search-replace')}
+            >
+              Find and Replace
             </button>
           </div>
 
@@ -971,6 +1073,273 @@ export default function DatabaseIndex() {
             </>
           )}
 
+          {activeTab === 'search-replace' && (
+            <>
+              <div className="mb-6">
+                <p className="text-neutral-medium">
+                  Search the entire database for a string and replace it with another. This is
+                  extremely useful for updating domain names, fixing broken links, or mass-renaming
+                  content.
+                </p>
+              </div>
+
+              {/* Search and Replace Section */}
+              <div className="bg-backdrop-medium border border-line-low rounded-lg p-6 mb-6">
+                <div className="flex items-center gap-2 mb-6">
+                  <FontAwesomeIcon icon={faExchangeAlt} className="text-standout-medium" />
+                  <h2 className="text-xl font-semibold text-neutral-dark">Find and Replace</h2>
+                </div>
+
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
+                  <div>
+                    <label className="block text-sm font-semibold text-neutral-dark mb-2">
+                      Find String
+                    </label>
+                    <div className="relative">
+                      <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none text-neutral-medium">
+                        <FontAwesomeIcon icon={faSearch} />
+                      </div>
+                      <input
+                        type="text"
+                        value={frSearch}
+                        onChange={(e) => setFrSearch(e.target.value)}
+                        placeholder="Search for..."
+                        className="w-full pl-10 pr-3 py-2 border border-line-medium rounded-lg bg-backdrop-low focus:ring-standout-medium focus:border-standout-medium"
+                      />
+                    </div>
+                    <p className="text-xs text-neutral-medium mt-1">
+                      The exact string you want to find in the database.
+                    </p>
+                  </div>
+
+                  <div>
+                    <label className="block text-sm font-semibold text-neutral-dark mb-2">
+                      Replace with
+                    </label>
+                    <div className="relative">
+                      <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none text-neutral-medium">
+                        <FontAwesomeIcon icon={faExchangeAlt} />
+                      </div>
+                      <input
+                        type="text"
+                        value={frReplace}
+                        onChange={(e) => setFrReplace(e.target.value)}
+                        placeholder="Replace with..."
+                        className="w-full pl-10 pr-3 py-2 border border-line-medium rounded-lg bg-backdrop-low focus:ring-standout-medium focus:border-standout-medium"
+                      />
+                    </div>
+                    <p className="text-xs text-neutral-medium mt-1">
+                      The string that will replace the searched string.
+                    </p>
+                  </div>
+                </div>
+
+                <div className="mb-6">
+                  <div className="flex items-center justify-between mb-2">
+                    <label className="text-sm font-semibold text-neutral-dark">
+                      Select Tables
+                    </label>
+                    <div className="flex gap-3">
+                      <button
+                        type="button"
+                        onClick={() => setFrReplaceSelectedTables(frTables.map((t) => t.name))}
+                        className="text-xs text-standout-high hover:underline"
+                      >
+                        Select All
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => setFrReplaceSelectedTables([])}
+                        className="text-xs text-neutral-medium hover:underline"
+                      >
+                        Deselect All
+                      </button>
+                    </div>
+                  </div>
+                  <div className="bg-backdrop-high border border-line-medium rounded-lg p-4 max-h-64 overflow-y-auto">
+                    {frLoadingTables ? (
+                      <div className="text-center py-4">
+                        <FontAwesomeIcon icon={faSpinner} spin className="mr-2" />
+                        Loading tables...
+                      </div>
+                    ) : frTables.length > 0 ? (
+                      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-2">
+                        {frTables.map((table) => {
+                          const isSelected = frSelectedTables.includes(table.name)
+                          return (
+                            <label
+                              key={table.name}
+                              className={`flex items-center gap-2 px-3 py-2 rounded border cursor-pointer transition ${
+                                isSelected
+                                  ? 'border-standout-medium bg-standout-medium/10'
+                                  : 'border-line-low hover:border-line-medium bg-backdrop-low'
+                              }`}
+                            >
+                              <input
+                                type="checkbox"
+                                checked={isSelected}
+                                onChange={() => {
+                                  setFrReplaceSelectedTables((prev) =>
+                                    prev.includes(table.name)
+                                      ? prev.filter((t) => t !== table.name)
+                                      : [...prev, table.name]
+                                  )
+                                }}
+                                className="rounded"
+                              />
+                              <div className="flex-1 min-w-0">
+                                <div className="text-xs font-mono truncate text-neutral-dark">
+                                  {table.name}
+                                </div>
+                                <div className="text-[10px] text-neutral-medium">
+                                  {table.columns.length} columns
+                                </div>
+                              </div>
+                            </label>
+                          )
+                        })}
+                      </div>
+                    ) : (
+                      <div className="text-center py-4 text-neutral-medium">No tables found</div>
+                    )}
+                  </div>
+                </div>
+
+                <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 p-4 bg-yellow-50 border border-yellow-200 rounded-lg mb-6">
+                  <div className="flex items-start gap-3">
+                    <FontAwesomeIcon icon={faInfoCircle} className="text-yellow-600 mt-1" />
+                    <div>
+                      <div className="text-sm font-semibold text-yellow-800">Dry Run Mode</div>
+                      <p className="text-xs text-yellow-700">
+                        When enabled, the tool will only count matches without making any actual
+                        changes to your database. Recommended to keep this enabled first.
+                      </p>
+                    </div>
+                  </div>
+                  <label className="flex items-center gap-2 cursor-pointer shrink-0">
+                    <input
+                      type="checkbox"
+                      checked={frDryRun}
+                      onChange={(e) => setFrDryRun(e.target.checked)}
+                      className="rounded text-standout-medium focus:ring-standout-medium h-5 w-5"
+                    />
+                    <span className="text-sm font-bold text-yellow-800">Enabled</span>
+                  </label>
+                </div>
+
+                <div className="flex gap-3">
+                  <button
+                    onClick={() => {
+                      if (frDryRun) {
+                        handleFrExecute()
+                      } else {
+                        setConfirmFrOpen(true)
+                      }
+                    }}
+                    disabled={frRunning || !frSearch || frSelectedTables.length === 0}
+                    className={`px-6 py-2 rounded-lg transition disabled:opacity-50 font-bold ${
+                      frDryRun
+                        ? 'bg-standout-medium text-on-standout hover:opacity-90'
+                        : 'bg-rose-600 text-white hover:bg-rose-700'
+                    }`}
+                  >
+                    {frRunning ? (
+                      <>
+                        <FontAwesomeIcon icon={faSpinner} spin className="mr-2" />
+                        Processing...
+                      </>
+                    ) : (
+                      <>
+                        <FontAwesomeIcon icon={frDryRun ? faSearch : faExchangeAlt} className="mr-2" />
+                        {frDryRun ? 'Dry Run' : 'Execute Replace'}
+                      </>
+                    )}
+                  </button>
+                </div>
+              </div>
+
+              {/* Find and Replace Results */}
+              {frResult && (
+                <div className="bg-backdrop-medium border border-line-low rounded-lg p-6 animate-in fade-in slide-in-from-top-4 duration-300">
+                  <div className="flex items-center justify-between mb-6">
+                    <div className="flex items-center gap-2">
+                      <FontAwesomeIcon
+                        icon={frDryRun ? faInfoCircle : faCheckCircle}
+                        className={frDryRun ? 'text-blue-500' : 'text-green-500'}
+                      />
+                      <h2 className="text-xl font-semibold text-neutral-dark">
+                        {frDryRun ? 'Dry Run Results' : 'Replacement Summary'}
+                      </h2>
+                    </div>
+                    <div className="flex gap-4">
+                      <div className="text-center">
+                        <div className="text-xs text-neutral-medium uppercase tracking-wider">
+                          Matches Found
+                        </div>
+                        <div className="text-2xl font-bold text-neutral-dark">
+                          {frResult.totalMatches.toLocaleString()}
+                        </div>
+                      </div>
+                      {!frDryRun && (
+                        <div className="text-center border-l border-line-medium pl-4">
+                          <div className="text-xs text-neutral-medium uppercase tracking-wider">
+                            Actual Replaced
+                          </div>
+                          <div className="text-2xl font-bold text-green-600">
+                            {frResult.totalReplacements.toLocaleString()}
+                          </div>
+                        </div>
+                      )}
+                    </div>
+                  </div>
+
+                  {frResult.summary.length > 0 ? (
+                    <div className="overflow-x-auto rounded border border-line-low">
+                      <Table>
+                        <TableHeader className="bg-backdrop-high">
+                          <TableRow>
+                            <TableHead>Table</TableHead>
+                            <TableHead>Column</TableHead>
+                            <TableHead className="text-right">Matches</TableHead>
+                            {!frDryRun && <TableHead className="text-right">Replaced</TableHead>}
+                          </TableRow>
+                        </TableHeader>
+                        <TableBody>
+                          {frResult.summary.map((row, i) => (
+                            <TableRow key={i} className="hover:bg-backdrop-low transition-colors">
+                              <TableCell className="font-mono text-xs font-semibold text-neutral-dark">
+                                {row.table}
+                              </TableCell>
+                              <TableCell className="font-mono text-xs text-neutral-medium">
+                                {row.column}
+                              </TableCell>
+                              <TableCell className="text-right font-semibold">
+                                {row.matches.toLocaleString()}
+                              </TableCell>
+                              {!frDryRun && (
+                                <TableCell className="text-right font-bold text-green-600">
+                                  {row.replacements.toLocaleString()}
+                                </TableCell>
+                              )}
+                            </TableRow>
+                          ))}
+                        </TableBody>
+                      </Table>
+                    </div>
+                  ) : (
+                    <div className="p-12 text-center bg-backdrop-high rounded border border-dashed border-line-medium">
+                      <FontAwesomeIcon
+                        icon={faSearch}
+                        className="text-4xl text-neutral-low mb-4 opacity-20"
+                      />
+                      <p className="text-neutral-medium">No matches found for "{frSearch}"</p>
+                    </div>
+                  )}
+                </div>
+              )}
+            </>
+          )}
+
           {activeTab === 'optimize' && (
             <>
               <div className="mb-6">
@@ -1391,6 +1760,66 @@ export default function DatabaseIndex() {
               className="bg-standout-medium text-on-standout hover:opacity-90"
             >
               {optimizing ? 'Optimizing...' : 'Optimize'}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+
+      <AlertDialog
+        open={confirmFrOpen}
+        onOpenChange={(open) => {
+          if (!open && !frRunning) {
+            setConfirmFrOpen(false)
+          } else {
+            setConfirmFrOpen(open)
+          }
+        }}
+      >
+        <AlertDialogContent className="max-w-2xl">
+          <AlertDialogHeader>
+            <AlertDialogTitle className="text-rose-600 flex items-center gap-2">
+              <FontAwesomeIcon icon={faExclamationTriangle} />
+              Execute Find and Replace?
+            </AlertDialogTitle>
+            <AlertDialogDescription className="text-neutral-dark font-medium">
+              This will permanently modify your database. This action CANNOT be undone.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <div className="text-sm text-neutral-medium space-y-4 p-4 bg-backdrop-high rounded-lg border border-line-low">
+            <div className="grid grid-cols-2 gap-4">
+              <div>
+                <div className="text-[10px] font-bold uppercase text-neutral-low mb-1">Finding</div>
+                <div className="font-mono text-xs bg-backdrop p-2 rounded border border-line-low break-all">
+                  {frSearch}
+                </div>
+              </div>
+              <div>
+                <div className="text-[10px] font-bold uppercase text-neutral-low mb-1"> Replacing with</div>
+                <div className="font-mono text-xs bg-backdrop p-2 rounded border border-line-low break-all">
+                  {frReplace || <span className="italic opacity-50">(empty string)</span>}
+                </div>
+              </div>
+            </div>
+            <div>
+              <div className="text-[10px] font-bold uppercase text-neutral-low mb-1">Target Tables</div>
+              <div className="text-xs">
+                {frSelectedTables.length === frTables.length
+                  ? 'All tables'
+                  : `${frSelectedTables.length} selected tables`}
+              </div>
+            </div>
+            <div className="p-3 bg-rose-50 border border-rose-100 rounded text-rose-800 text-xs font-semibold">
+              Warning: It is highly recommended to perform a Dry Run and have a full database backup before proceeding.
+            </div>
+          </div>
+          <AlertDialogFooter>
+            <AlertDialogCancel disabled={frRunning}>Cancel</AlertDialogCancel>
+            <AlertDialogAction
+              disabled={frRunning}
+              onClick={handleFrExecute}
+              className="bg-rose-600 text-white hover:bg-rose-700 font-bold"
+            >
+              {frRunning ? 'Processing...' : 'I understand, execute replacement'}
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>

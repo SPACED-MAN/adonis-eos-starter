@@ -58,7 +58,11 @@ export default class UpdatePost {
 
     // If slug is being changed, normalize and check uniqueness
     if (slug) {
-      let newSlug = slug
+      let newSlug = slug.toLowerCase()
+        .replace(/[^a-z0-9]+/g, '-')
+        .replace(/^-+|-+$/g, '')
+        .replace(/-+/g, '-')
+      
       if (newSlug.includes('/')) {
         newSlug = newSlug.replace(/^\/+/, '').split('/').pop() || newSlug
       }

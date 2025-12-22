@@ -42,6 +42,7 @@ type InlineEditorContextValue = {
   saveAll: () => Promise<void>
   showDiffs: boolean
   toggleShowDiffs: () => void
+  abVariations: Array<{ id: string; variation: string; status: string }>
 }
 
 const InlineEditorContext = createContext<InlineEditorContextValue>({
@@ -59,6 +60,7 @@ const InlineEditorContext = createContext<InlineEditorContextValue>({
   saveAll: async () => { },
   showDiffs: false,
   toggleShowDiffs: () => { },
+  abVariations: [],
 })
 
 type ModuleSeed = {
@@ -83,12 +85,14 @@ export function InlineEditorProvider({
   modules,
   post,
   customFields,
+  abVariations = [],
 }: {
   children: ReactNode
   postId: string
   modules: ModuleSeed[]
   post?: any
   customFields?: Record<string, any>
+  abVariations?: Array<{ id: string; variation: string; status: string }>
 }) {
   const page = usePage()
   const siteSettings = (page.props as any)?.siteSettings || {}
@@ -786,6 +790,7 @@ export function InlineEditorProvider({
       saveAll,
       showDiffs,
       toggleShowDiffs,
+      abVariations,
     }),
     [
       enabled,
@@ -800,6 +805,7 @@ export function InlineEditorProvider({
       saveAll,
       showDiffs,
       toggleShowDiffs,
+      abVariations,
     ]
   )
 
@@ -817,6 +823,7 @@ export function InlineEditorProvider({
       availableModes,
       showDiffs: value.showDiffs,
       toggleShowDiffs: value.toggleShowDiffs,
+      abVariations: value.abVariations,
     })
   }, [
     value.enabled,
@@ -830,6 +837,7 @@ export function InlineEditorProvider({
     availableModes,
     value.showDiffs,
     value.toggleShowDiffs,
+    value.abVariations,
   ])
 
   // Clear drafts when disabling
@@ -871,6 +879,7 @@ function publishInlineBridge(state: {
   availableModes: { hasSource: boolean; hasReview: boolean; hasAiReview: boolean }
   showDiffs: boolean
   toggleShowDiffs: () => void
+  abVariations: Array<{ id: string; variation: string; status: string }>
 }) {
   if (typeof window === 'undefined') return
     ; (window as any).__inlineBridge = state

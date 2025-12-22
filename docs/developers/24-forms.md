@@ -7,7 +7,7 @@ Adonis EOS uses a **code-first approach** for defining frontend forms. Forms are
 1.  **Definitions**: Forms are defined in `app/forms/*.ts`.
 2.  **Registry**: The `FormRegistry` service (`app/services/form_registry.ts`) automatically discovers and manages these definitions.
 3.  **Submissions**: Form entries are stored in the `form_submissions` table.
-4.  **Admin UI**: A dedicated "Form Submissions" view allows editors to see and delete submissions.
+4.  **Admin UI**: A dedicated "Forms" view allows editors to see and delete submissions.
 
 ## Creating a Form
 
@@ -57,5 +57,5 @@ When a form is submitted:
 
 ## Admin Access
 
-Editors can view all submissions in the admin area under **Form Submissions**. Each submission includes the full JSON payload, IP address, and timestamp.
+Editors can view all submissions in the admin area under **Forms**. Each submission includes the full JSON payload, IP address, and timestamp.
 

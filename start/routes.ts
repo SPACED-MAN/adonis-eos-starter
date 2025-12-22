@@ -30,7 +30,7 @@ router.get('/', async ({ request, response, inertia, auth }) => {
   } finally {
     request.url = originalUrl
   }
-})
+}).use(middleware.maintenance())
 
 // Public media info (no auth)
 const MediaController = () => import('#controllers/media_controller')
@@ -201,6 +201,7 @@ router
   .group(() => {
     router.get('/menus/by-slug/:slug', [MenusController, 'bySlug'])
     router.get('/site-settings', [SiteSettingsController, 'show'])
+    router.get('/public/posts', [PostsListController, 'publicIndex'])
   })
   .prefix('/api')
 
@@ -243,6 +244,9 @@ router
     router.post('/posts/reorder', [PostsCrudController, 'reorder'])
     router.patch('/posts/:id/author', [PostsCrudController, 'updateAuthor']).use(middleware.admin())
     router.post('/posts/:id/variations', [PostsCrudController, 'createVariation'])
+    router.post('/posts/:id/promote-variation', [PostsCrudController, 'promoteVariation'])
+    router.delete('/posts/:id/variation', [PostsCrudController, 'deleteVariation'])
+    router.get('/posts/:id/ab-stats', [PostsCrudController, 'getAbStats'])
 
     // Modules
     router.post('/posts/:id/modules', [PostsModulesController, 'store'])
@@ -341,7 +345,9 @@ router
     router.get('/modules/static', [GlobalModulesController, 'index']).use(middleware.admin())
     // Forms definitions
     router.get('/forms-definitions', [FormsAdminController, 'listDefinitions'])
-    // Form submissions (delete only for now)
+    // Form submissions
+    router.get('/forms-submissions/export', [FormsAdminController, 'exportCsv'])
+    router.post('/forms-submissions/bulk-delete', [FormsAdminController, 'bulkDelete'])
     router.delete('/forms-submissions/:id', [FormsAdminController, 'deleteSubmission'])
     // Taxonomies (editors allowed)
     router.get('/taxonomies', [TaxonomiesController, 'list'])
@@ -559,6 +565,16 @@ router
   .use(middleware.auth())
   .use(middleware.admin())
 
+router
+  .get('/api/database/find-replace/tables', [DatabaseAdminController, 'getFindReplaceTables'])
+  .use(middleware.auth())
+  .use(middleware.admin())
+
+router
+  .post('/api/database/find-replace', [DatabaseAdminController, 'findReplace'])
+  .use(middleware.auth())
+  .use(middleware.admin())
+
 // Admin General Settings
 router
   .get(adminPath('settings/general'), async ({ inertia }) => {
@@ -612,4 +628,4 @@ router.get('/sitemap.xml', [SitemapController, 'index'])
 /**
  * Catch-all: resolve posts by URL patterns (must be last)
  */
-router.get('*', [PostsViewController, 'resolve'])
+router.get('*', [PostsViewController, 'resolve']).use(middleware.maintenance())

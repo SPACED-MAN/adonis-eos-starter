@@ -5,6 +5,8 @@ import RejectReviewDraft from '#actions/posts/reject_review_draft'
 import Post from '#models/post'
 import CreatePost, { CreatePostException } from '#actions/posts/create_post'
 import CreateVariation from '#actions/posts/create_variation'
+import PromoteVariation from '#actions/posts/promote_variation'
+import DeleteVariation from '#actions/posts/delete_variation'
 import UpdatePost, { UpdatePostException } from '#actions/posts/update_post'
 import UpsertPostCustomFields from '#actions/posts/upsert_post_custom_fields'
 import BulkPostsAction from '#actions/posts/bulk_action'
@@ -555,6 +557,121 @@ export default class PostsCrudController extends BasePostsController {
     } catch (error: any) {
       return this.response.badRequest(response, error.message || 'Failed to create variation')
     }
+  }
+
+  /**
+   * POST /api/posts/:id/promote-variation
+   * Promote a variation to be the main post (ends A/B test).
+   */
+  async promoteVariation({ params, response, auth }: HttpContext) {
+    const { id } = params
+
+    try {
+      const post = await PromoteVariation.handle({
+        postId: id,
+        userId: auth.user!.id,
+      })
+
+      return response.ok({
+        id: post.id,
+        message: 'Variation promoted successfully. A/B test has ended.',
+      })
+    } catch (error: any) {
+      return response.badRequest({ error: error.message || 'Failed to promote variation' })
+    }
+  }
+
+  /**
+   * DELETE /api/posts/:id/variation
+   * Delete a single variation from an A/B test.
+   */
+  async deleteVariation({ params, response, auth }: HttpContext) {
+    const { id } = params
+
+    try {
+      const result = await DeleteVariation.handle({
+        postId: id,
+        userId: auth.user!.id,
+      })
+
+      return response.ok(result)
+    } catch (error: any) {
+      return response.badRequest({ error: error.message || 'Failed to delete variation' })
+    }
+  }
+
+  /**
+   * GET /api/posts/:id/ab-stats
+   * Get A/B testing stats for a post and its variations
+   */
+  async getAbStats({ params, response }: HttpContext) {
+    const { id } = params
+    const post = await Post.find(id)
+    if (!post) {
+      return this.response.notFound(response, 'Post not found')
+    }
+
+    const abGroupId = post.abGroupId || post.id
+
+    // Get views per variation
+    const views = await db
+      .from('post_variation_views')
+      .where('ab_group_id', abGroupId)
+      .select('ab_variation')
+      .count('* as count')
+      .groupBy('ab_variation')
+
+    // Get submissions per variation
+    const submissions = await db
+      .from('form_submissions')
+      .where('ab_group_id', abGroupId)
+      .select('ab_variation')
+      .count('* as count')
+      .groupBy('ab_variation')
+
+    const stats: Record<string, { views: number; submissions: number; conversionRate: number }> = {}
+
+    // Initialize with variations from config if possible
+    const uiConfig = postTypeConfigService.getUiConfig(post.type)
+    const variations = uiConfig.abTesting.variations || []
+
+    // We should also look at actual variations in the DB for this group
+    const dbVariations = await Post.query().where('abGroupId', abGroupId).select('ab_variation')
+    const labels = new Set([
+      ...variations.map((v) => v.value),
+      ...(dbVariations.map((v) => v.abVariation).filter(Boolean) as string[]),
+      'A', // fallback
+    ])
+
+    for (const label of labels) {
+      stats[label] = { views: 0, submissions: 0, conversionRate: 0 }
+    }
+
+    views.forEach((v: any) => {
+      const label = v.ab_variation || 'A'
+      if (!stats[label]) {
+        stats[label] = { views: 0, submissions: 0, conversionRate: 0 }
+      }
+      stats[label].views = parseInt(v.count)
+    })
+
+    submissions.forEach((s: any) => {
+      const label = s.ab_variation || 'A'
+      if (!stats[label]) {
+        stats[label] = { views: 0, submissions: 0, conversionRate: 0 }
+      }
+      stats[label].submissions = parseInt(s.count)
+    })
+
+    // Calculate rates
+    Object.keys(stats).forEach((label) => {
+      const s = stats[label]
+      if (s.views > 0) {
+        s.conversionRate = (s.submissions / s.views) * 100
+      }
+    })
+
+    return response.ok({ data: stats })
   }
 
   // Private helper methods

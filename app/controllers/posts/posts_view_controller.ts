@@ -1,3 +1,4 @@
+import db from '@adonisjs/lucid/services/db'
 import type { HttpContext } from '@adonisjs/core/http'
 import Post from '#models/post'
 import urlPatternService from '#services/url_pattern_service'
@@ -57,66 +58,97 @@ export default class PostsViewController extends BasePostsController {
       const draftModules = (draftToUse as any)?.modules
 
       const editorModules = modulesEnabled
-        ? postModules.map((pm) => {
-          const mi = pm.moduleInstance as any as ModuleInstance
+        ? postModules
+          .map((pm) => {
+            const mi = pm.moduleInstance as any as ModuleInstance
 
-          // Check if this specific module has a newer version in the atomic draft
-          const draftModule = Array.isArray(draftModules)
-            ? draftModules.find((dm: any) => dm.id === pm.id)
-            : null
+            // Check if this specific module has a newer version in the atomic draft
+            const draftModule = Array.isArray(draftModules)
+              ? draftModules.find((dm: any) => dm.id === pm.id)
+              : null
 
-          return {
-            id: pm.id,
-            moduleInstanceId: pm.moduleId,
-            type: mi?.type,
-            scope: mi?.scope,
-            props: coerceJsonObject(mi?.props),
-            reviewProps: (() => {
-              if (draftModule && draftModule.props && mi?.scope === 'post') return draftModule.props
-              const obj = coerceJsonObject((mi as any)?.reviewProps || (mi as any)?.review_props)
-              return Object.keys(obj).length > 0 ? obj : null
-            })(),
-            aiReviewProps: (() => {
-              if (draftModule && draftModule.props && mi?.scope === 'post' && viewParam === 'ai-review') return draftModule.props
-              const obj = coerceJsonObject((mi as any)?.aiReviewProps || (mi as any)?.ai_review_props)
-              return Object.keys(obj).length > 0 ? obj : null
-            })(),
-            overrides: coerceJsonObject(pm.overrides),
-            reviewOverrides: (() => {
-              if (draftModule && draftModule.overrides && mi?.scope !== 'post') return draftModule.overrides
-              const obj = coerceJsonObject((pm as any).reviewOverrides || (pm as any).review_overrides)
-              return Object.keys(obj).length > 0 ? obj : null
-            })(),
-            aiReviewOverrides: (() => {
-              if (draftModule && draftModule.overrides && mi?.scope !== 'post' && viewParam === 'ai-review') return draftModule.overrides
-              const obj = coerceJsonObject((pm as any).aiReviewOverrides || (pm as any).ai_review_overrides)
-              return Object.keys(obj).length > 0 ? obj : null
-            })(),
-            reviewAdded: (pm as any).reviewAdded || false,
-            reviewDeleted: (pm as any).reviewDeleted || false,
-            aiReviewAdded: (pm as any).aiReviewAdded || (pm as any).ai_review_added || false,
-            aiReviewDeleted:
-              (pm as any).aiReviewDeleted || (pm as any).ai_review_deleted || false,
-            locked: pm.locked,
-            orderIndex: pm.orderIndex,
-            globalSlug: mi?.globalSlug || null,
-            globalLabel: mi?.globalLabel || null,
-            adminLabel: (() => {
-              // Priority 1: Label from the draft snapshot (Review/AI Review)
-              if ((draftModule as any)?.adminLabel !== undefined) {
-                return (draftModule as any).adminLabel
-              }
-              // Priority 2: Label from the dedicated database column
-              if (pm.adminLabel !== null && pm.adminLabel !== undefined) {
-                return pm.adminLabel
-              }
-              // Priority 3: Legacy label from JSON props (local) or overrides (global)
-              const props = coerceJsonObject(mi?.props)
-              const overrides = coerceJsonObject(pm.overrides)
-              return (props as any)?._adminLabel || (overrides as any)?._adminLabel || null
-            })(),
-          }
-        })
+            return {
+              id: pm.id,
+              moduleInstanceId: pm.moduleId,
+              type: mi?.type,
+              scope: mi?.scope,
+              props: coerceJsonObject(mi?.props),
+              reviewProps: (() => {
+                if (draftModule && draftModule.props && mi?.scope === 'post') return draftModule.props
+                const obj = coerceJsonObject((mi as any)?.reviewProps || (mi as any)?.review_props)
+                return Object.keys(obj).length > 0 ? obj : null
+              })(),
+              aiReviewProps: (() => {
+                if (
+                  draftModule &&
+                  draftModule.props &&
+                  mi?.scope === 'post' &&
+                  viewParam === 'ai-review'
+                )
+                  return draftModule.props
+                const obj = coerceJsonObject((mi as any)?.aiReviewProps || (mi as any)?.ai_review_props)
+                return Object.keys(obj).length > 0 ? obj : null
+              })(),
+              overrides: coerceJsonObject(pm.overrides),
+              reviewOverrides: (() => {
+                if (draftModule && draftModule.overrides && mi?.scope !== 'post')
+                  return draftModule.overrides
+                const obj = coerceJsonObject((pm as any).reviewOverrides || (pm as any).review_overrides)
+                return Object.keys(obj).length > 0 ? obj : null
+              })(),
+              aiReviewOverrides: (() => {
+                if (
+                  draftModule &&
+                  draftModule.overrides &&
+                  mi?.scope !== 'post' &&
+                  viewParam === 'ai-review'
+                )
+                  return draftModule.overrides
+                const obj = coerceJsonObject(
+                  (pm as any).aiReviewOverrides || (pm as any).ai_review_overrides
+                )
+                return Object.keys(obj).length > 0 ? obj : null
+              })(),
+              reviewAdded: (pm as any).reviewAdded || false,
+              reviewDeleted: (pm as any).reviewDeleted || false,
+              aiReviewAdded: (pm as any).aiReviewAdded || (pm as any).ai_review_added || false,
+              aiReviewDeleted: (pm as any).aiReviewDeleted || (pm as any).ai_review_deleted || false,
+              locked: pm.locked,
+              orderIndex: pm.orderIndex,
+              globalSlug: mi?.globalSlug || null,
+              globalLabel: mi?.globalLabel || null,
+              adminLabel: (() => {
+                // Priority 1: Label from the draft snapshot (Review/AI Review)
+                if ((draftModule as any)?.adminLabel !== undefined) {
+                  return (draftModule as any).adminLabel
+                }
+                // Priority 2: Label from the dedicated database column
+                if (pm.adminLabel !== null && pm.adminLabel !== undefined) {
+                  return pm.adminLabel
+                }
+                // Priority 3: Legacy label from JSON props (local) or overrides (global)
+                const props = coerceJsonObject(mi?.props)
+                const overrides = coerceJsonObject(pm.overrides)
+                return (props as any)?._adminLabel || (overrides as any)?._adminLabel || null
+              })(),
+            }
+          })
+          .sort((a, b) => {
+            // If in Review/AI Review mode, respect the order in the draft snapshot if it exists
+            if (
+              (viewParam === 'review' || viewParam === 'ai-review') &&
+              Array.isArray(draftModules) &&
+              draftModules.length > 0
+            ) {
+              const idxA = draftModules.findIndex((dm: any) => dm.id === a.id)
+              const idxB = draftModules.findIndex((dm: any) => dm.id === b.id)
+              if (idxA >= 0 && idxB >= 0) return idxA - idxB
+              if (idxA >= 0) return -1
+              if (idxB >= 0) return 1
+            }
+            // Fallback to table-based ordering (already applied by query, but keep sort for stability)
+            return (a.orderIndex ?? 0) - (b.orderIndex ?? 0)
+          })
         : []
 
       // (No debug logging)
@@ -172,17 +204,31 @@ export default class PostsViewController extends BasePostsController {
         const variationRows = await Post.query()
           .where('abGroupId', abGroupId)
           .where('locale', locale)
-          .select('id', 'ab_variation as variation', 'status')
-        variations = variationRows.map((v: any) => ({
-          id: String(v.id),
-          variation: String(v.variation || 'A'),
-          status: String(v.status),
-        }))
+          .whereNot('id', post.id)
+          .select('id', 'ab_variation', 'status')
 
-        // Ensure current post is correctly represented in the list if it's missing abGroupId
-        if (!post.abGroupId && !variations.some(v => v.id === post.id)) {
-           variations.push({ id: post.id, variation: 'A', status: post.status })
+        variations = variationRows.map((v) => {
+          // Check both the object property and the $extras bucket
+          const label = String(v.abVariation || (v as any).ab_variation || v.$extras?.ab_variation || 'A').trim().toUpperCase()
+          return {
+            id: String(v.id),
+            variation: label,
+            status: String(v.status),
+          }
+        })
+
+        // Always add the current post explicitly with its correct label
+        const currentVarLabel = String(post.abVariation || (post.id === abGroupId ? 'A' : 'A')).trim().toUpperCase()
+        if (!variations.some(v => v.id === post.id)) {
+          variations.push({
+            id: post.id,
+            variation: currentVarLabel,
+            status: post.status
+          })
         }
+
+        // Sort variations by label (A, B, C...)
+        variations.sort((a, b) => a.variation.localeCompare(b.variation))
       }
 
       // Build public path (use hierarchical path if post has parents)
@@ -302,6 +348,8 @@ export default class PostsViewController extends BasePostsController {
           updatedAt: post.updatedAt.toISO(),
           publicPath,
           author,
+          abVariation: post.abVariation || (post.abGroupId || variations.length > 0 ? 'A' : null),
+          abGroupId: post.abGroupId,
         },
         reviewDraft: post.reviewDraft || null,
         aiReviewDraft: post.aiReviewDraft || null,
@@ -309,7 +357,7 @@ export default class PostsViewController extends BasePostsController {
         translations,
         customFields,
         uiConfig: { ...uiCfg, modulesEnabled, hasPermalinks },
-        variations,
+        abVariations: variations,
         taxonomies: taxonomyData,
         selectedTaxonomyTermIds,
       })
@@ -380,6 +428,7 @@ export default class PostsViewController extends BasePostsController {
    */
   async resolve({ request, response, inertia, auth }: HttpContext) {
     const path = request.url().split('?')[0]
+    const isAuthenticated = await auth.use('web').check()
 
     const match = await urlPatternService.matchPath(path)
 
@@ -406,7 +455,10 @@ export default class PostsViewController extends BasePostsController {
     const viewParam = String(request.input('view', '')).toLowerCase()
     const wantReview = viewParam === 'review' && Boolean(request.header('cookie'))
 
+    let isAbSwapped = false
     try {
+      const uiConfig = postTypeConfigService.getUiConfig(postType)
+
       // Query by slug to find the primary post match
       let post = await Post.query()
         .where('slug', slug)
@@ -419,27 +471,43 @@ export default class PostsViewController extends BasePostsController {
       }
 
       // A/B Testing Logic: if enabled, we may swap this post for another variation in the same group
-      const uiCfg = postTypeConfigService.getUiConfig(postType)
-      if (uiCfg.abTesting?.enabled && post.status === 'published') {
+      if (uiConfig.abTesting?.enabled && post.status === 'published') {
         const abGroupId = post.abGroupId || post.id
         const publishedVariations = await Post.query()
           .where('abGroupId', abGroupId)
           .where('locale', locale)
           .where('status', 'published')
-          .select('id', 'ab_variation as variation')
+          .select('id', 'ab_variation')
 
         if (publishedVariations.length > 1) {
           const cookieName = `ab_group_${abGroupId}`
           let chosenVariation = request.cookie(cookieName)
 
+          // Admin override: allow forcing a variation via query param for editing
+          const forcedVariationId = request.input('variation_id')
+          const forcedVariationLabel = request.input('variation')
+
+          if (isAuthenticated && (forcedVariationId || forcedVariationLabel)) {
+            const match = publishedVariations.find(
+              (v) => v.id === forcedVariationId || v.abVariation === forcedVariationLabel
+            )
+            if (match) {
+              chosenVariation = match.abVariation
+              // Also update cookie so the choice sticks during the session
+              response.cookie(cookieName, chosenVariation, { maxAge: '1h', path: '/' })
+            }
+          }
+
           // If no variation chosen yet or chosen variation is no longer available, pick one
-          if (!chosenVariation || !publishedVariations.some((v) => v.variation === chosenVariation)) {
-            const configVariations = uiCfg.abTesting.variations || []
-            if (configVariations.length > 0) {
+          const variationLabels = publishedVariations.map((v) => v.abVariation).filter(Boolean)
+
+          if (!chosenVariation || !variationLabels.includes(chosenVariation)) {
+            const variationsFromConfig = uiConfig.abTesting.variations || []
+            if (variationsFromConfig.length > 0) {
               // Weighted random choice
-              const totalWeight = configVariations.reduce((sum, v) => sum + (v.weight || 1), 0)
+              const totalWeight = variationsFromConfig.reduce((sum, v) => sum + (v.weight || 1), 0)
               let random = Math.random() * totalWeight
-              for (const v of configVariations) {
+              for (const v of variationsFromConfig) {
                 random -= v.weight || 1
                 if (random <= 0) {
                   chosenVariation = v.value
@@ -449,25 +517,41 @@ export default class PostsViewController extends BasePostsController {
             } else {
               // Simple random choice from available published variations
               const idx = Math.floor(Math.random() * publishedVariations.length)
-              chosenVariation = publishedVariations[idx].variation
+              chosenVariation = publishedVariations[idx].abVariation
             }
 
             // Persist choice if strategy is cookie
-            if (uiCfg.abTesting.strategy === 'cookie' || !uiCfg.abTesting.strategy) {
+            if (uiConfig.abTesting.strategy === 'cookie' || !uiConfig.abTesting.strategy) {
               response.cookie(cookieName, chosenVariation, { maxAge: '30d', path: '/' })
             }
           }
 
           // Swap post if the chosen variation is different from the matched one
-          const match = publishedVariations.find((v) => v.variation === chosenVariation)
+          const match = publishedVariations.find((v) => v.abVariation === chosenVariation)
           if (match && match.id !== post.id) {
             post = await Post.findOrFail(match.id)
+            isAbSwapped = true
+          }
+
+          // Track A/B view
+          try {
+            const abGroupId = post.abGroupId || post.id
+            await db.table('post_variation_views').insert({
+              id: (await import('node:crypto')).randomUUID(),
+              post_id: post.id,
+              ab_group_id: abGroupId,
+              ab_variation: chosenVariation,
+              created_at: new Date(),
+            })
+          } catch (e) {
+            console.error('[AB] Failed to track variation view:', e)
           }
         }
       }
 
       // For hierarchical paths, verify the full path matches
-      if (usesPath && fullPath) {
+      // Skip strict check if we swapped for an A/B variation (which has a different internal slug)
+      if (usesPath && fullPath && !isAbSwapped) {
         try {
           // Build the expected canonical path for this post
           const expectedPath = await urlPatternService.buildPostPathForPost(post.id)
@@ -481,9 +565,6 @@ export default class PostsViewController extends BasePostsController {
           // This can happen if URL patterns aren't properly set up
         }
       }
-
-      // Check if user is authenticated using the web guard
-      const isAuthenticated = await auth.use('web').check()
 
       // Draft and archived posts are not visible to unauthenticated users
       if ((post.status === 'draft' || post.status === 'archived') && !isAuthenticated) {
@@ -515,6 +596,32 @@ export default class PostsViewController extends BasePostsController {
       // Get post-type-specific additional props (delegated to service)
       const additionalProps = await postTypeViewService.getAdditionalProps(post)
 
+      // Load variations if user is authenticated and A/B testing is enabled
+      let abVariations: Array<{ id: string; variation: string; status: string }> = []
+      if (isAuthenticated && uiConfig.abTesting?.enabled) {
+        const abGroupId = post.abGroupId || post.id
+        const variationRows = await Post.query()
+          .where('abGroupId', abGroupId)
+          .where('locale', locale)
+          .select('id', 'ab_variation', 'status')
+
+        abVariations = variationRows.map((v) => ({
+          id: String(v.id),
+          variation: String(v.abVariation || (v.id === abGroupId ? 'A' : 'A')).trim().toUpperCase(),
+          status: String(v.status),
+        }))
+
+        // Ensure current post is in the list with its ID
+        if (!abVariations.some((v) => v.id === post.id)) {
+          abVariations.push({
+            id: post.id,
+            variation: String(post.abVariation || 'A').trim().toUpperCase(),
+            status: post.status,
+          })
+        }
+        abVariations.sort((a, b) => a.variation.localeCompare(b.variation))
+      }
+
       const overrideComponent = getSiteInertiaOverrideForPost(post.type, post.slug)
 
       return inertia.render(overrideComponent || 'site/post', {
@@ -525,6 +632,7 @@ export default class PostsViewController extends BasePostsController {
         seo: pageData.seo,
         breadcrumbTrail: pageData.breadcrumbTrail,
         inertiaOverride: overrideComponent ? { key: `${post.type}:${post.slug}` } : null,
+        abVariations,
         ...additionalProps,
       })
     } catch (error) {

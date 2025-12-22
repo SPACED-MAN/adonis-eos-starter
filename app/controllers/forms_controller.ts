@@ -37,7 +37,22 @@ export default class FormsController {
     const errors: Record<string, string> = {}
     const payload: Record<string, unknown> = {}
 
+    // Extract A/B tracking info from silent fields or cookies
+    const originPostId = body.__origin_post_id ? String(body.__origin_post_id) : null
+    let abGroupId: string | null = null
+    let abVariation: string | null = null
+
+    if (originPostId) {
+      const post = await db.from('posts').where('id', originPostId).select('ab_group_id', 'id').first()
+      if (post) {
+        abGroupId = post.ab_group_id || post.id
+        const cookieName = `ab_group_${abGroupId}`
+        abVariation = request.cookie(cookieName) || null
+      }
+    }
+
     for (const field of form.fields) {
+      if (field.slug.startsWith('__')) continue // Skip internal fields
       const raw = body[field.slug]
       const val = typeof raw === 'string' ? raw.trim() : raw === undefined ? undefined : raw
 
@@ -82,6 +97,9 @@ export default class FormsController {
         id: crypto.randomUUID(),
         form_slug: slug,
         payload,
+        ab_group_id: abGroupId,
+        ab_variation: abVariation,
+        origin_post_id: originPostId,
         ip_address: ip,
         user_agent: userAgent,
         created_at: now,

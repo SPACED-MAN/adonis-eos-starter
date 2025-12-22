@@ -3,6 +3,7 @@ import { AdminHeader } from '../../components/AdminHeader'
 import { AdminFooter } from '../../components/AdminFooter'
 import { Input } from '../../../components/ui/input'
 import { Textarea } from '../../../components/ui/textarea'
+import { Checkbox } from '../../../components/ui/checkbox'
 import { toast } from 'sonner'
 import { MediaPickerModal } from '../../components/media/MediaPickerModal'
 import { pickMediaVariantUrl, type MediaVariant } from '../../../lib/media'
@@ -15,6 +16,7 @@ type Settings = {
   faviconMediaId: string | null
   defaultOgMediaId: string | null
   logoMediaId: string | null
+  isMaintenanceMode: boolean
   profileRolesEnabled: string[]
   customFieldDefs?: CustomFieldDefinition[]
   customFields?: Record<string, any>
@@ -35,6 +37,7 @@ export default function GeneralSettings() {
     faviconMediaId: '',
     defaultOgMediaId: '',
     logoMediaId: '',
+    isMaintenanceMode: false,
     profileRolesEnabled: [],
     customFieldDefs: [],
     customFields: {},
@@ -54,6 +57,7 @@ export default function GeneralSettings() {
           faviconMediaId: j?.data?.faviconMediaId || '',
           defaultOgMediaId: j?.data?.defaultOgMediaId || '',
           logoMediaId: j?.data?.logoMediaId || '',
+          isMaintenanceMode: !!j?.data?.isMaintenanceMode,
           profileRolesEnabled: Array.isArray(j?.data?.profileRolesEnabled)
             ? j.data.profileRolesEnabled
             : [],
@@ -90,6 +94,7 @@ export default function GeneralSettings() {
           faviconMediaId: form.faviconMediaId || null,
           defaultOgMediaId: form.defaultOgMediaId || null,
           logoMediaId: form.logoMediaId || null,
+          isMaintenanceMode: form.isMaintenanceMode,
           profileRolesEnabled: form.profileRolesEnabled || [],
           customFields: form.customFields || {},
         }),
@@ -313,6 +318,34 @@ export default function GeneralSettings() {
                 Recommended SVG/PNG sized for your header. Theme-specific variants can be managed on
                 the media item.
               </p>
+            </div>
+          </div>
+
+          <div className="border-t border-line-low pt-6">
+            <h3 className="text-base font-semibold text-neutral-high mb-4">Maintenance Mode</h3>
+            <div className="bg-amber-50 dark:bg-amber-950/20 border border-amber-200 dark:border-amber-900/50 rounded-lg p-4">
+              <div className="flex items-start gap-3">
+                <Checkbox
+                  id="maintenance-mode"
+                  checked={form.isMaintenanceMode}
+                  onCheckedChange={(checked) =>
+                    setForm({ ...form, isMaintenanceMode: checked === true })
+                  }
+                  className="mt-1"
+                />
+                <div>
+                  <label
+                    htmlFor="maintenance-mode"
+                    className="text-sm font-semibold text-amber-900 dark:text-amber-200 cursor-pointer"
+                  >
+                    Enable Maintenance Mode
+                  </label>
+                  <p className="text-xs text-amber-800/70 dark:text-amber-400/70 mt-1">
+                    When enabled, public visitors will see a maintenance page. 
+                    Administrators and Editors can still access the site and admin panel.
+                  </p>
+                </div>
+              </div>
             </div>
           </div>
           {/* Site Custom Fields */}

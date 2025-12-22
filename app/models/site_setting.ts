@@ -27,6 +27,9 @@ export default class SiteSetting extends BaseModel {
   @column({ columnName: 'logo_media_id' })
   declare logoMediaId: string | null
 
+  @column({ columnName: 'is_maintenance_mode' })
+  declare isMaintenanceMode: boolean
+
   @column({ columnName: 'profile_roles_enabled' })
   declare profileRolesEnabled: string[]
 

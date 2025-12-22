@@ -19,9 +19,18 @@ export default class CreateVariation {
   static async handle({ sourcePostId, variation, userId }: CreateVariationParams): Promise<Post> {
     const sourcePost = await Post.findOrFail(sourcePostId)
 
-    // Ensure the source post has an abGroupId
+    // Ensure the source post has an abGroupId and variation 'A' if not already set
+    let changed = false
     if (!sourcePost.abGroupId) {
       sourcePost.abGroupId = sourcePost.id
+      changed = true
+    }
+    // Only set 'A' if it's the leader and doesn't have a variation set
+    if (sourcePost.id === sourcePost.abGroupId && !sourcePost.abVariation) {
+      sourcePost.abVariation = 'A'
+      changed = true
+    }
+    if (changed) {
       await sourcePost.save()
     }
 
@@ -38,10 +47,23 @@ export default class CreateVariation {
 
     return await db.transaction(async (trx) => {
       // 1. Clone the post record
+      const randomSuffix = Math.random().toString(36).substring(2, 8)
+      
+      // Strict slugification helper to match regex: /^[a-z0-9]+(?:-[a-z0-9]+)*$/
+      const sanitizeSlug = (s: string) => {
+        return s.toLowerCase()
+          .replace(/[^a-z0-9]+/g, '-') // Replace non-alphanumeric with a single dash
+          .replace(/^-+|-+$/g, '') // Trim dashes from start and end
+          .replace(/-+/g, '-') // Collapsing double dashes into one
+      }
+
+      const baseSlug = sanitizeSlug(sourcePost.slug)
+      const variationSlug = sanitizeSlug(`${baseSlug}-v-${variation}-${randomSuffix}`)
+      
       const newPost = await Post.create(
         {
           type: sourcePost.type,
-          slug: `${sourcePost.slug}-${variation.toLowerCase()}-${Date.now()}`, // Temporary slug to avoid conflict
+          slug: variationSlug,
           title: `${sourcePost.title} (Variation ${variation})`,
           excerpt: sourcePost.excerpt,
           status: 'draft',
@@ -49,8 +71,8 @@ export default class CreateVariation {
           featuredImageId: sourcePost.featuredImageId,
           metaTitle: sourcePost.metaTitle,
           metaDescription: sourcePost.metaDescription,
-          canonicalUrl: null,
-          robotsJson: sourcePost.robotsJson,
+          canonicalUrl: sourcePost.canonicalUrl || null, // Variations should point to main post's canonical URL
+          robotsJson: { index: false, follow: false }, // Variations shouldn't be indexed directly
           jsonldOverrides: sourcePost.jsonldOverrides,
           parentId: sourcePost.parentId,
           orderIndex: sourcePost.orderIndex,

@@ -2,6 +2,7 @@ export const CUSTOM_FIELD_TYPES = [
   'text',
   'textarea',
   'number',
+  'boolean',
   'select',
   'multiselect',
   'media',

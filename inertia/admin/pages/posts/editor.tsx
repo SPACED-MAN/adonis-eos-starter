@@ -1,5 +1,5 @@
 /**
- * Admin Post Editor
+ * Admin Post Editor - refresh
  *
  * Main editing interface for posts with modules, translations, and metadata.
  */
@@ -47,6 +47,8 @@ import {
   useSensor,
   useSensors,
   DragEndEvent,
+  DragStartEvent,
+  DragOverlay,
 } from '@dnd-kit/core'
 import { SortableContext, useSortable, verticalListSortingStrategy } from '@dnd-kit/sortable'
 import { CSS } from '@dnd-kit/utilities'
@@ -186,6 +188,8 @@ interface EditorProps {
     updatedAt: string
     publicPath: string
     author?: { id: number; email: string; fullName: string | null } | null
+    abVariation?: string | null
+    abGroupId?: string | null
   }
   modules: {
     id: string
@@ -208,7 +212,7 @@ interface EditorProps {
     adminLabel?: string | null
   }[]
   translations: { id: string; locale: string }[]
-  variations?: { id: string; variation: string; status: string }[]
+  abVariations?: { id: string; variation: string; status: string }[]
   reviewDraft?: any | null
   aiReviewDraft?: any | null
   customFields?: Array<
@@ -243,13 +247,14 @@ function SortableItem({
   disabled?: boolean
   children: React.ReactNode | ((listeners: any, attributes: any) => React.ReactNode)
 }) {
-  const { attributes, listeners, setNodeRef, transform, transition } = useSortable({
+  const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({
     id,
     disabled: !!disabled,
   })
   const style = {
     transform: CSS.Transform.toString(transform),
-    transition,
+    transition: isDragging ? 'none' : transition,
+    opacity: isDragging ? 0 : 1,
   }
   return (
     <div ref={setNodeRef} style={style} {...(disabled ? {} : attributes)}>
@@ -279,6 +284,7 @@ function ModuleRowBase({
   markModuleDirty,
   postId,
   customFields = [],
+  isOverlay = false,
 }: {
   m: any
   viewMode: 'source' | 'review' | 'ai-review'
@@ -298,8 +304,9 @@ function ModuleRowBase({
   markModuleDirty: (mode: 'source' | 'review' | 'ai-review', moduleId: string) => void
   postId: string
   customFields?: Array<{ slug: string; label: string }>
+  isOverlay?: boolean
 }) {
-  const isOpen = modulesAccordionOpen.has(m.id)
+  const isOpen = modulesAccordionOpen.has(m.id) && !isOverlay
   const isLocked = m.locked
   const [isEditingLabel, setIsEditingLabel] = useState(false)
   const [localLabel, setLocalLabel] = useState(m.adminLabel || '')
@@ -336,7 +343,7 @@ function ModuleRowBase({
   return (
     <SortableItem key={m.id} id={m.id} disabled={isLocked}>
       {(listeners: any) => (
-        <li className={`group bg-backdrop-low border transition-all duration-200 ${isOpen ? 'border-line-medium shadow-sm rounded-xl mb-4' : 'border-line-low rounded-lg mb-2'}`}>
+        <li className={`group bg-backdrop-low border ${isOverlay || isDraggingModules ? '' : 'transition-all duration-200'} ${isOpen ? 'border-line-medium shadow-sm rounded-xl mb-4' : 'border-line-low rounded-lg mb-2'}`}>
           <div className={`px-4 py-3 flex items-center justify-between gap-3 ${isOpen ? 'bg-backdrop-medium/10' : ''}`}>
             <div className="flex items-center gap-3 min-w-0 flex-1">
               <DragHandle
@@ -498,7 +505,7 @@ function ModuleRowBase({
               {!moduleSchemasReady ? (
                 <div className="flex flex-col items-center justify-center py-12 gap-3 text-neutral-medium">
                   <FontAwesomeIcon icon={faSpinner} className="text-3xl animate-spin" />
-                  <span className="text-sm font-medium">Loading module fields…</span>
+                  <span className="text-sm font-medium">Loading module fields...</span>
                 </div>
               ) : (
                 <InlineModuleEditor
@@ -526,6 +533,7 @@ export default function Editor({
   post,
   modules: initialModules,
   translations,
+  abVariations = [],
   reviewDraft,
   aiReviewDraft,
   customFields: initialCustomFields,
@@ -535,11 +543,16 @@ export default function Editor({
   fieldTypes = [],
 }: EditorProps) {
   const hasFieldPermission = useHasPermission('agents.field')
+  const initialTaxonomyIds = useMemo(() => Array.isArray(selectedTaxonomyTermIds) ? [...selectedTaxonomyTermIds].map(String).sort() : [], [selectedTaxonomyTermIds])
+  const initialCustomFieldsData = useMemo(() => Array.isArray(initialCustomFields)
+    ? initialCustomFields.map((f) => ({ fieldId: f.id, slug: f.slug, value: f.value ?? null }))
+    : [], [initialCustomFields])
+
   const { data, setData, put, processing, errors } = useForm({
-    title: post.title,
-    slug: post.slug,
+    title: post.title || '',
+    slug: post.slug || '',
     excerpt: post.excerpt || '',
-    status: post.status,
+    status: post.status || 'draft',
     parentId: (post as any).parentId || '',
     orderIndex: (post as any).orderIndex ?? 0,
     metaTitle: post.metaTitle || '',
@@ -548,16 +561,14 @@ export default function Editor({
     robotsJson: post.robotsJson ? JSON.stringify(post.robotsJson, null, 2) : '',
     jsonldOverrides: post.jsonldOverrides ? JSON.stringify(post.jsonldOverrides, null, 2) : '',
     featuredImageId: post.featuredImageId || '',
-    customFields: Array.isArray(initialCustomFields)
-      ? initialCustomFields.map((f) => ({ fieldId: f.id, slug: f.slug, value: f.value ?? null }))
-      : [],
-    taxonomyTermIds: selectedTaxonomyTermIds,
+    customFields: initialCustomFieldsData,
+    taxonomyTermIds: initialTaxonomyIds,
   })
   const initialDataRef = useRef({
-    title: post.title,
-    slug: post.slug,
+    title: post.title || '',
+    slug: post.slug || '',
     excerpt: post.excerpt || '',
-    status: post.status,
+    status: post.status || 'draft',
     parentId: (post as any).parentId || '',
     orderIndex: (post as any).orderIndex ?? 0,
     metaTitle: post.metaTitle || '',
@@ -566,10 +577,8 @@ export default function Editor({
     robotsJson: post.robotsJson ? JSON.stringify(post.robotsJson, null, 2) : '',
     jsonldOverrides: post.jsonldOverrides ? JSON.stringify(post.jsonldOverrides, null, 2) : '',
     featuredImageId: post.featuredImageId || '',
-    customFields: Array.isArray(initialCustomFields)
-      ? initialCustomFields.map((f) => ({ fieldId: f.id, slug: f.slug, value: f.value ?? null }))
-      : [],
-    taxonomyTermIds: selectedTaxonomyTermIds,
+    customFields: initialCustomFieldsData,
+    taxonomyTermIds: initialTaxonomyIds,
   })
   const reviewInitialRef = useRef<null | typeof initialDataRef.current>(
     reviewDraft
@@ -770,14 +779,14 @@ export default function Editor({
   const [taxonomyTrees, setTaxonomyTrees] = useState(taxonomies)
   const [newTermNames, setNewTermNames] = useState<Record<string, string>>({})
   const [selectedTaxonomyTerms, setSelectedTaxonomyTerms] = useState<Set<string>>(
-    new Set(selectedTaxonomyTermIds)
+    new Set(initialTaxonomyIds)
   )
   const taxonomyInputRefs = useRef<Record<string, HTMLInputElement | null>>({})
 
   useEffect(() => {
     setTaxonomyTrees(taxonomies)
-    setSelectedTaxonomyTerms(new Set(selectedTaxonomyTermIds))
-    setData('taxonomyTermIds' as any, selectedTaxonomyTermIds)
+    const sortedIds = Array.isArray(selectedTaxonomyTermIds) ? [...selectedTaxonomyTermIds].map(String).sort() : []
+    setSelectedTaxonomyTerms(new Set(sortedIds))
   }, [taxonomies, selectedTaxonomyTermIds])
 
   const taxonomyOptions = useMemo(
@@ -858,28 +867,57 @@ export default function Editor({
       toast.error('Failed to create category')
     }
   }
-  const pickForm = (d: typeof data) => ({
-    title: d.title,
-    slug: d.slug,
-    excerpt: d.excerpt,
-    status: d.status,
-    parentId: String((d as any).parentId || '').trim() || '',
-    orderIndex: d.orderIndex,
+  const pickForm = (d: any) => {
+    if (!d) return {}
+    return {
+      title: d.title || '',
+      slug: d.slug || '',
+      excerpt: d.excerpt || '',
+      status: d.status || '',
+      parentId: String(d.parentId || '').trim() || '',
+      orderIndex: Number(d.orderIndex || 0),
     metaTitle: String(d.metaTitle || '').trim() || '',
     metaDescription: String(d.metaDescription || '').trim() || '',
     canonicalUrl: String(d.canonicalUrl || '').trim() || '',
-    robotsJson: d.robotsJson,
-    jsonldOverrides: d.jsonldOverrides,
-    featuredImageId: String((d as any).featuredImageId || '').trim() || '',
-    customFields: Array.isArray((d as any).customFields)
-      ? (d as any).customFields.map((e: any) => ({
+      // Normalize JSON strings by parsing and re-stringifying without whitespace
+      robotsJson: (() => {
+        const val = d.robotsJson || ''
+        if (!val) return ''
+        try {
+          return JSON.stringify(JSON.parse(val))
+        } catch {
+          return val.trim()
+        }
+      })(),
+      jsonldOverrides: (() => {
+        const val = d.jsonldOverrides || ''
+        if (!val) return ''
+        try {
+          return JSON.stringify(JSON.parse(val))
+        } catch {
+          return val.trim()
+        }
+      })(),
+      featuredImageId: String(d.featuredImageId || '').trim() || '',
+      customFields: Array.isArray(d.customFields)
+        ? [...d.customFields]
+          .sort((a, b) => (a.slug || '').localeCompare(b.slug || ''))
+          .map((e: any) => ({
         fieldId: e.fieldId,
         slug: e.slug,
-        value: e.value,
+            // Normalize values: null/undefined -> '', objects -> stable JSON
+            value: (() => {
+              if (e.value === null || e.value === undefined) return ''
+              if (typeof e.value === 'object') return JSON.stringify(e.value)
+              return String(e.value)
+            })(),
       }))
       : [],
-    taxonomyTermIds: Array.isArray((d as any).taxonomyTermIds) ? (d as any).taxonomyTermIds : [],
-  })
+      taxonomyTermIds: Array.isArray(d.taxonomyTermIds)
+        ? [...d.taxonomyTermIds].map(String).sort()
+        : [],
+    }
+  }
   const modulesEnabled = uiConfig?.modulesEnabled !== false
 
   // CSRF/XSRF token for fetch requests
@@ -928,8 +966,9 @@ export default function Editor({
       .toLowerCase()
       .trim()
       .replace(/['"]/g, '')
-      .replace(/[^a-z0-9]+/g, '-')
-      .replace(/^-+|-+$/g, '')
+      .replace(/[^a-z0-9]+/g, '-') // Replace non-alphanumeric with dash
+      .replace(/-+/g, '-') // Collapse multiple dashes
+      .replace(/^-+|-+$/g, '') // Trim dashes from ends
   }
   const [slugAuto, setSlugAuto] = useState<boolean>(() => {
     const s = String((post as any).slug || '').trim()
@@ -943,6 +982,7 @@ export default function Editor({
   const [modules, setModules] = useState<EditorProps['modules']>(
     modulesEnabled ? initialModules || [] : []
   )
+  const [activeId, setActiveId] = useState<string | null>(null)
 
   const hasSourceBaseline = useMemo(() => {
     // "Source" exists if:
@@ -1029,6 +1069,16 @@ export default function Editor({
   const [pendingSaveTarget, setPendingSaveTarget] = useState<null | 'source' | 'review'>(null)
   const [approveConfirmOpen, setApproveConfirmOpen] = useState(false)
   const [rejectConfirmOpen, setRejectConfirmOpen] = useState(false)
+  const [variationCreateConfirmOpen, setVariationCreateConfirmOpen] = useState(false)
+  const [pendingVariationToCreate, setPendingVariationToCreate] = useState<{
+    value: string
+    label: string
+  } | null>(null)
+  const [variationDeleteConfirmOpen, setVariationDeleteConfirmOpen] = useState(false)
+  const [pendingVariationToDelete, setPendingVariationToDelete] = useState<{
+    id: string
+    variation: string
+  } | null>(null)
 
   useEffect(() => {
     // Keep default save target intuitive as the user switches Active Versions
@@ -1073,12 +1123,25 @@ export default function Editor({
   }, [viewMode, hasReviewBaseline, hasAiReviewBaseline, canApproveReview, canApproveAiReview])
 
   async function executeSave(target: 'source' | 'review' | 'ai-review') {
+    // Automatically clean slug to match strict validator: /^[a-z0-9]+(?:-[a-z0-9]+)*$/
+    const cleanedSlug = data.slug
+      .toLowerCase()
+      .trim()
+      .replace(/[^a-z0-9]+/g, '-')
+      .replace(/^-+|-+$/g, '')
+      .replace(/-+/g, '-')
+
+    if (cleanedSlug !== data.slug) {
+      setData('slug', cleanedSlug)
+    }
+
     // Critical: ensure inline module editors have staged their latest values before we commit/publish.
     await flushAllModuleEdits()
 
-    const buildDraftSnapshot = (snapshotTarget: 'review' | 'ai-review') => {
-      // Use the raw modules array to ensure we capture all modules, even those not visible in current view.
-      return modules.map((m) => {
+    const buildDraftSnapshot = (snapshotTarget: 'review' | 'ai-review', modulesList?: any[]) => {
+      // Use the provided list or raw modules array.
+      const list = modulesList || modules
+      return list.map((m) => {
         const pending = pendingModulesByModeRef.current[viewMode][m.id]
         const isLocal = m.scope === 'post' || m.scope === 'local'
 
@@ -1120,17 +1183,33 @@ export default function Editor({
     }
 
     if (target === 'review') {
-      const reviewSnapshot = buildDraftSnapshot('review')
       const created = await createPendingNewModules('review')
       await commitPendingModules('review', created, viewMode)
+      
+      // Remap temp IDs to real IDs in the snapshot
+      const idMap = new Map(created.map(c => [c.tempId, c.postModuleId]))
+      const modulesWithRealIds = modules.map(m => ({
+        ...m,
+        id: idMap.get(m.id) || m.id
+      }))
+      
+      const reviewSnapshot = buildDraftSnapshot('review', modulesWithRealIds)
       await saveForReview(reviewSnapshot)
       return
     }
 
     if (target === 'ai-review') {
-      const aiReviewSnapshot = buildDraftSnapshot('ai-review')
       const created = await createPendingNewModules('ai-review')
       await commitPendingModules('ai-review', created, viewMode)
+      
+      // Remap temp IDs to real IDs in the snapshot
+      const idMap = new Map(created.map(c => [c.tempId, c.postModuleId]))
+      const modulesWithRealIds = modules.map(m => ({
+        ...m,
+        id: idMap.get(m.id) || m.id
+      }))
+      
+      const aiReviewSnapshot = buildDraftSnapshot('ai-review', modulesWithRealIds)
       await saveForAiReview(aiReviewSnapshot)
       return
     }
@@ -1140,8 +1219,16 @@ export default function Editor({
       const created = await createPendingNewModules('publish')
       await commitPendingModules('publish', created, viewMode)
       if (hasStructuralChanges) {
-        const persistedModules = modules.filter((m) => !m.id.startsWith('temp-'))
-        await persistOrder(persistedModules)
+        // Build a fresh module list using the real IDs for newly created modules.
+        // This ensures persistOrder(RealID) updates the DB with the correct orderIndex.
+        const idMap = new Map(created.map(c => [c.tempId, c.postModuleId]))
+        const modulesWithRealIds = modules.map(m => ({
+          ...m,
+          id: idMap.get(m.id) || m.id
+        }))
+        
+        const persistedModules = modulesWithRealIds.filter((m) => !m.id.startsWith('temp-'))
+        await persistOrder(persistedModules, 'publish')
       }
       // Clean nullable fields before sending - convert empty strings to null
       const canonicalRaw = data.canonicalUrl?.trim() || null
@@ -1265,9 +1352,11 @@ export default function Editor({
           : viewMode === 'ai-review' && aiReviewInitialRef.current
             ? aiReviewInitialRef.current
             : initialDataRef.current
-      // Normalize BOTH sides via pickForm so '' vs null coercions don't create false "dirty" states.
-      const fieldsChanged =
-        JSON.stringify(pickForm(data)) !== JSON.stringify(pickForm(baseline as any))
+      
+      const pickedData = pickForm(data)
+      const pickedBaseline = pickForm(baseline as any)
+      const fieldsChanged = JSON.stringify(pickedData) !== JSON.stringify(pickedBaseline)
+
       // Only count pending module edits for the current view mode (we keep drafts for other modes too).
       const modulesPending = modulesEnabled
         ? Object.keys(pendingModules).some((k) => k.startsWith(`${viewMode}:`))
@@ -1752,6 +1841,7 @@ export default function Editor({
     }>
   >([])
   const [loadingAgentHistory, setLoadingAgentHistory] = useState(false)
+  const [abStats, setAbStats] = useState<Record<string, { views: number; submissions: number; conversionRate: number }> | null>(null)
   const agentModalContentRef = useRef<HTMLDivElement | null>(null)
   // Author management (admin)
   const [users, setUsers] = useState<Array<{ id: number; email: string; fullName: string | null }>>(
@@ -1784,10 +1874,21 @@ export default function Editor({
       }
     }
     loadRevisions()
+
+    // Load AB Stats
+    if (uiConfig.abTesting?.enabled) {
+      fetch(`/api/posts/${post.id}/ab-stats`, { credentials: 'same-origin' })
+        .then((res) => res.json())
+        .then((json) => {
+          if (json.data && alive) setAbStats(json.data)
+        })
+        .catch((err) => console.error('Failed to load AB stats:', err))
+    }
+
     return () => {
       alive = false
     }
-  }, [post.id])
+  }, [post.id, uiConfig.abTesting?.enabled])
 
   // Load agents
   useEffect(() => {
@@ -1881,7 +1982,13 @@ export default function Editor({
   }, [agentPromptOpen, loadingAgentHistory, agentHistory])
 
   // DnD sensors (pointer only to avoid key conflicts)
-  const sensors = useSensors(useSensor(PointerSensor))
+  const sensors = useSensors(
+    useSensor(PointerSensor, {
+      activationConstraint: {
+        distance: 8,
+      },
+    })
+  )
 
 
   const orderedIds = useMemo(
@@ -1893,7 +2000,7 @@ export default function Editor({
     [modules]
   )
 
-  async function persistOrder(next: EditorProps['modules']) {
+  async function persistOrder(next: EditorProps['modules'], mode: 'publish' | 'review' | 'ai-review' = 'publish') {
     if (!modulesEnabled) return
     // Always update all modules' order indices to ensure they're saved correctly
     // Don't skip based on current orderIndex since it may have been updated in local state
@@ -1911,7 +2018,7 @@ export default function Editor({
           credentials: 'same-origin',
           body: JSON.stringify({
             orderIndex: index,
-            mode: viewMode === 'review' ? 'review' : 'publish',
+            mode,
           }),
         })
       )
@@ -2060,12 +2167,11 @@ export default function Editor({
 
   function onDragEnd(event: DragEndEvent) {
     const { active, over } = event
-    // Restore accordions after dragging
+    setActiveId(null)
     setIsDraggingModules(false)
-    if (modulesAccordionOpenBeforeDrag.current) {
-      setModulesAccordionOpen(new Set(modulesAccordionOpenBeforeDrag.current))
-      modulesAccordionOpenBeforeDrag.current = null
-    }
+    // NOTE: removed accordion restoration as requested; they stay collapsed after drag.
+    modulesAccordionOpenBeforeDrag.current = null
+
     if (!over || active.id === over.id) return
     const current = modules.slice().sort((a, b) => a.orderIndex - b.orderIndex)
     const dragged = current.find((m) => m.id === active.id)
@@ -2100,7 +2206,10 @@ export default function Editor({
     setHasStructuralChanges(true)
   }
 
-  async function onDragStart() {
+  async function onDragStart(event: DragStartEvent) {
+    const { active } = event
+    setActiveId(String(active.id))
+
     // If the user starts dragging immediately after editing, flush first so we don't lose edits when collapsing.
     await flushAllModuleEdits()
     // Temporarily collapse all accordions for easier reordering
@@ -2111,10 +2220,9 @@ export default function Editor({
 
   function onDragCancel() {
     setIsDraggingModules(false)
-    if (modulesAccordionOpenBeforeDrag.current) {
-      setModulesAccordionOpen(new Set(modulesAccordionOpenBeforeDrag.current))
-      modulesAccordionOpenBeforeDrag.current = null
-    }
+    setActiveId(null)
+    // NOTE: removed accordion restoration as requested; they stay collapsed.
+    modulesAccordionOpenBeforeDrag.current = null
   }
 
   const adjustModuleForView = useCallback(
@@ -2163,6 +2271,11 @@ export default function Editor({
       setViewMode(hasAiReviewBaseline ? 'ai-review' : hasSourceBaseline ? 'source' : 'ai-review')
     }
   }, [hasSourceBaseline, hasAiReviewBaseline, hasReviewBaseline, viewMode])
+
+  const activeModule = useMemo(() => {
+    if (!activeId) return null
+    return modules.find((m) => m.id === activeId)
+  }, [activeId, modules])
 
   const sortedModules = useMemo(() => {
     const baseAll = modules.slice().sort((a, b) => a.orderIndex - b.orderIndex)
@@ -2513,7 +2626,9 @@ export default function Editor({
 
   return (
     <div className="min-h-screen bg-backdrop-medium">
-      <AdminHeader title={`Edit ${post.type ? humanizeSlug(post.type) : 'Post'}`} />
+      <AdminHeader
+        title={`Edit ${post.type ? humanizeSlug(post.type) : 'Post'}${post.abVariation ? ` (Var ${post.abVariation})` : ''}`}
+      />
 
       {/* Main Content */}
       <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
@@ -2559,7 +2674,8 @@ export default function Editor({
                         setData('title', val)
                         // Auto-suggest slug while slug is marked auto-generated
                         if (slugAuto) {
-                          setData('slug', slugify(val))
+                          const suggested = slugify(val)
+                          setData('slug', suggested)
                         }
                       }}
                       placeholder="Enter post title"
@@ -2799,6 +2915,9 @@ export default function Editor({
                       else list.push(next)
                       setData('customFields', list as any)
                     }}
+                    onDirty={() => {
+                      // Custom fields are already part of `data`, so `setData` will update `isDirty`.
+                    }}
                   />
                 </div>
               )}
@@ -2876,6 +2995,33 @@ export default function Editor({
                             ))}
                           </ul>
                         </SortableContext>
+                        <DragOverlay adjustScale={false} zIndex={1000}>
+                          {activeModule ? (
+                            <div className="w-full max-w-4xl shadow-2xl rounded-xl overflow-hidden ring-2 ring-standout-medium/50 cursor-grabbing bg-backdrop-low">
+                              <ModuleRow
+                                m={activeModule}
+                                viewMode={viewMode}
+                                isDraggingModules={true}
+                                modulesAccordionOpen={new Set()}
+                                moduleSchemasReady={moduleSchemasReady}
+                                moduleFieldAgents={moduleFieldAgents}
+                                globalSlugToLabel={globalSlugToLabel}
+                                moduleRegistry={moduleRegistry}
+                                moduleFlushFns={moduleFlushFns}
+                                setModulesAccordionOpen={setModulesAccordionOpen}
+                                setPendingRemoved={setPendingRemoved}
+                                setPendingReviewRemoved={setPendingReviewRemoved}
+                                setModules={setModules}
+                                registerModuleFlush={registerModuleFlush}
+                                stageModuleEdits={stageModuleEdits}
+                                markModuleDirty={markModuleDirty}
+                                postId={post.id}
+                                customFields={initialCustomFields || []}
+                                isOverlay={true}
+                              />
+                            </div>
+                          ) : null}
+                        </DragOverlay>
                       </DndContext>
                       {modules.length > 3 && (
                         <div className="flex justify-center mt-4">
@@ -2907,7 +3053,14 @@ export default function Editor({
                 {/* Slug */}
                 <div>
                   <label className="block text-[11px] font-bold text-neutral-medium uppercase tracking-wider mt-2 mb-1.5 ml-1">
-                    Slug *
+                    <div className="flex items-center justify-between">
+                      <span>Slug *</span>
+                      {post.abVariation && (
+                        <span className="text-[9px] text-standout-medium normal-case font-normal">
+                          Note: Variations share the primary post's public URL.
+                        </span>
+                      )}
+                    </div>
                   </label>
                   <div className="relative">
                     <Input
@@ -2917,14 +3070,15 @@ export default function Editor({
                       onChange={(e) => {
                         const v = String(e.target.value || '')
                           .toLowerCase()
-                          .replace(/[^a-z0-9-]+/g, '-')
+                          .replace(/[^a-z0-9]+/g, '-')
+                          .replace(/-+/g, '-')
                         setData('slug', v)
                         // If user clears slug, re-enable auto; otherwise consider it manually controlled
                         setSlugAuto(v === '')
                       }}
                       onBlur={() => {
                         // Normalize fully on blur
-                        const v = slugify(String((data as any).slug || ''))
+                        const v = slugify(String(data.slug || ''))
                         setData('slug', v)
                       }}
                       placeholder="post-slug"
@@ -3048,63 +3202,138 @@ export default function Editor({
                 {/* A/B Variation toggle */}
                 {uiConfig.abTesting?.enabled && (
                   <div className="space-y-3">
-                    <label className="block text-[10px] font-bold text-neutral-low uppercase tracking-widest ml-1">
+                    <div className="flex items-center justify-between ml-1">
+                      <label className="block text-[10px] font-bold text-neutral-low uppercase tracking-widest">
                       A/B Variation
                     </label>
-                    <div className="flex p-1 bg-backdrop-medium/30 rounded-xl border border-line-low">
-                      {(variations || []).length > 0 ? (
-                        (variations || []).map((v) => (
-                          <button
-                            key={v.id}
-                            type="button"
-                            onClick={() => {
-                              if (v.id === post.id) return
-                              window.location.href = `/admin/posts/${v.id}/edit`
-                            }}
-                            className={`flex-1 py-1.5 text-[11px] font-bold rounded-lg transition-all ${
-                              v.id === post.id
-                                ? 'bg-backdrop-low text-neutral-high shadow-sm'
-                                : 'text-neutral-low hover:text-neutral-medium'
-                            }`}
-                          >
-                            Variation {v.variation}
-                          </button>
-                        ))
-                      ) : (
-                        <div className="flex-1 py-1.5 text-[11px] font-bold rounded-lg bg-backdrop-low text-neutral-high shadow-sm text-center">
-                          Variation A
-                        </div>
-                      )}
-                      {!(variations || []).some((v) => v.variation === 'B') && (
+                      {post.abVariation && (
                         <button
                           type="button"
                           onClick={async () => {
-                            if (confirm('Create Variation B by cloning current variation?')) {
+                            if (
+                              confirm(
+                                `Promote Variation ${post.abVariation} as the winner? This will replace the main post content with this variation and end the A/B test.`
+                              )
+                            ) {
                               try {
-                                const res = await fetch(`/api/posts/${post.id}/variations`, {
+                                const res = await fetch(`/api/posts/${post.id}/promote-variation`, {
                                   method: 'POST',
                                   headers: {
                                     'Content-Type': 'application/json',
                                     'X-XSRF-TOKEN': getXsrf() || '',
                                   },
-                                  body: JSON.stringify({ variation: 'B' }),
                                 })
                                 const j = await res.json()
-                                if (j.id) {
+                                if (res.ok) {
+                                  toast.success('Variation promoted successfully!')
                                   window.location.href = `/admin/posts/${j.id}/edit`
                                 } else {
-                                  toast.error(j.error || 'Failed to create variation')
+                                  toast.error(j.error || 'Failed to promote variation')
                                 }
                               } catch {
-                                toast.error('Failed to create variation')
+                                toast.error('Failed to promote variation')
                               }
                             }
                           }}
-                          className="flex-1 py-1.5 text-[11px] font-bold rounded-lg text-standout-medium hover:bg-standout-medium/5 transition-all"
+                          className="text-[10px] font-bold text-standout-medium uppercase hover:underline"
                         >
-                          + Create B
+                          Promote as Winner
                         </button>
                       )}
+                    </div>
+                    <div className="flex flex-wrap gap-1.5 p-1 bg-backdrop-medium/30 rounded-xl border border-line-low">
+                      {(() => {
+                        // Ensure unique variations and sort them
+                        const uniqueVarsMap = new Map<string, any>()
+
+                        // Process the abVariations list
+                        ;(abVariations || []).forEach((v) => {
+                          const vLabel = String(v.variation || '').trim().toUpperCase()
+                          const existing = uniqueVarsMap.get(vLabel)
+                          // Keep existing, but if current post is in the list, it should win
+                          if (!existing || v.id === post.id) {
+                            uniqueVarsMap.set(vLabel, { ...v, variation: vLabel })
+                          }
+                        })
+
+                        const finalVars = Array.from(uniqueVarsMap.values()).sort((a, b) =>
+                          a.variation.localeCompare(b.variation)
+                        )
+
+                        return finalVars.map((v) => (
+                          <div key={v.id} className="relative group/var flex-1 min-w-[65px]">
+                            <button
+                              type="button"
+                              onClick={() => {
+                                if (v.id === post.id) return
+                                router.visit(`/admin/posts/${v.id}/edit`)
+                              }}
+                              className={`w-full py-1.5 px-2 text-[11px] font-bold rounded-lg transition-all flex flex-col items-center ${
+                                v.id === post.id
+                                  ? 'bg-backdrop-low text-neutral-high shadow-sm'
+                                  : 'text-neutral-low hover:text-neutral-medium hover:bg-backdrop-medium/20'
+                              }`}
+                            >
+                              <span>Var {v.variation}</span>
+                              {abStats?.[v.variation] && (
+                                <div className="mt-0.5 text-[9px] opacity-60 font-normal">
+                                  {abStats[v.variation].views} views · {abStats[v.variation].conversionRate.toFixed(1)}%
+                                </div>
+                              )}
+                            </button>
+                            {abVariations.length > 1 && v.id !== post.id && (
+                              <div
+                                onClick={(e) => {
+                                  e.preventDefault()
+                                  e.stopPropagation()
+                                  setPendingVariationToDelete(v)
+                                  setVariationDeleteConfirmOpen(true)
+                                }}
+                                className="absolute -top-1.5 -right-1.5 bg-backdrop-medium text-neutral-low hover:text-standout-medium rounded-full w-5 h-5 flex items-center justify-center border border-line-medium transition-all z-30 shadow-sm opacity-60 group-hover/var:opacity-100 cursor-pointer"
+                                title="Delete variation"
+                              >
+                                <FontAwesomeIcon
+                                  icon={faTrash}
+                                  className="w-[9px] h-[9px] pointer-events-none"
+                                />
+                              </div>
+                            )}
+                          </div>
+                        ))
+                      })()}
+
+                      {/* Add next variation from config */}
+                      {(() => {
+                        const configVariations = uiConfig.abTesting?.variations || []
+                        const existingVariations = new Set(
+                          (abVariations || []).map((v) =>
+                            String(v.variation || '').trim().toUpperCase()
+                          )
+                        )
+                        // If no variations explicitly set yet, A is assumed existing
+                        if (existingVariations.size === 0) existingVariations.add('A')
+
+                        const nextVar = configVariations.find(
+                          (v) =>
+                            !existingVariations.has(String(v.value || '').trim().toUpperCase())
+                        )
+
+                        if (nextVar) {
+                          return (
+                            <button
+                              type="button"
+                              onClick={() => {
+                                setPendingVariationToCreate(nextVar)
+                                setVariationCreateConfirmOpen(true)
+                              }}
+                              className="flex-1 min-w-[60px] py-1.5 text-[11px] font-bold rounded-lg text-standout-medium hover:bg-standout-medium/5 transition-all"
+                            >
+                              + {nextVar.value}
+                            </button>
+                          )
+                        }
+                        return null
+                      })()}
                     </div>
                   </div>
                 )}
@@ -3691,7 +3920,7 @@ export default function Editor({
                                   }
                                 }}
                               >
-                                {runningAgent ? 'Running…' : 'Run Agent'}
+                                {runningAgent ? 'Running...' : 'Run Agent'}
                               </AlertDialogAction>
                             </>
                           )}
@@ -3797,7 +4026,7 @@ export default function Editor({
                       }}
                       type="button"
                     >
-                      {runningAgent ? 'Running…' : 'Run Agent'}
+                      {runningAgent ? 'Running...' : 'Run Agent'}
                     </button>
                   </>
                 )}
@@ -4193,7 +4422,7 @@ export default function Editor({
                         }
                       }}
                     >
-                      <option value="">Select a user…</option>
+                      <option value="">Select a user...</option>
                       {users.map((u) => (
                         <option key={u.id} value={u.id}>
                           {u.fullName || u.email} ({u.email})
@@ -4261,7 +4490,7 @@ export default function Editor({
                 </button>
               </div>
               {loadingRevisions ? (
-                <p className="text-sm text-neutral-low">Loading…</p>
+                <p className="text-sm text-neutral-low">Loading...</p>
               ) : revisions.length === 0 ? (
                 <p className="text-sm text-neutral-low">No revisions yet.</p>
               ) : (
@@ -4526,128 +4755,97 @@ export default function Editor({
           </div>
         </div>
       )}
-    </div>
-  )
-}
 
-function PostCustomPostReferenceField({
-  label,
-  value,
-  onChange,
-  config,
-}: {
-  label: string
-  value: any
-  onChange: (val: any) => void
-  config?: Record<string, any>
-}) {
-  const allowedTypes: string[] = Array.isArray((config as any)?.postTypes)
-    ? (config as any).postTypes
-    : []
-  const allowMultiple = (config as any)?.allowMultiple !== false
-  const initialVals: string[] = Array.isArray(value)
-    ? value.map((v: any) => String(v))
-    : value
-      ? [String(value)]
-      : []
-  const [vals, setVals] = useState<string[]>(initialVals)
-  const [options, setOptions] = useState<Array<{ label: string; value: string }>>([])
-  const [query, setQuery] = useState('')
-
-  useEffect(() => {
-    onChange(allowMultiple ? vals : (vals[0] ?? null))
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [vals, allowMultiple])
-
-  useEffect(() => {
-    let alive = true
-      ; (async () => {
-        try {
-          const params = new URLSearchParams()
-          params.set('status', 'published')
-          params.set('limit', '100')
-          params.set('sortBy', 'published_at')
-          params.set('sortOrder', 'desc')
-          if (allowedTypes.length > 0) {
-            params.set('types', allowedTypes.join(','))
-          }
-          const res = await fetch(`/api/posts?${params.toString()}`, { credentials: 'same-origin' })
-          const j = await res.json().catch(() => ({}))
-          const list: Array<{ id: string; title: string; slug?: string }> = Array.isArray(j?.data)
-            ? j.data
-            : []
-          if (!alive) return
-          setOptions(
-            list.map((p) => ({ label: p.title || p.slug || String(p.id), value: String(p.id) }))
-          )
+      {/* Variation Creation Confirm */}
+      <AlertDialog open={variationCreateConfirmOpen} onOpenChange={setVariationCreateConfirmOpen}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Create Variation {pendingVariationToCreate?.value}?</AlertDialogTitle>
+            <AlertDialogDescription>
+              This will clone the current variation's structure and modules into a new variation.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={async () => {
+                if (!pendingVariationToCreate) return
+                setVariationCreateConfirmOpen(false)
+                try {
+                  const res = await fetch(`/api/posts/${post.id}/variations`, {
+                    method: 'POST',
+                    headers: {
+                      'Content-Type': 'application/json',
+                      'X-XSRF-TOKEN': getXsrf() || '',
+                    },
+                    body: JSON.stringify({
+                      variation: pendingVariationToCreate.value,
+                    }),
+                  })
+                  const j = await res.json()
+                  if (j.id) {
+                    window.location.href = `/admin/posts/${j.id}/edit`
+                  } else {
+                    toast.error(j.error || 'Failed to create variation')
+                  }
         } catch {
-          if (!alive) return
-          setOptions([])
+                  toast.error('Failed to create variation')
         }
-      })()
-    return () => {
-      alive = false
-    }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [JSON.stringify(allowedTypes)])
+              }}
+            >
+              Create Variation
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
 
-  const filteredOptions =
-    query.trim().length === 0
-      ? options
-      : options.filter((opt) => opt.label.toLowerCase().includes(query.toLowerCase()))
-
-  return (
-    <div>
-      <label className="block text-sm font-medium text-neutral-medium mb-1">{label}</label>
-      <Popover>
-        <PopoverTrigger asChild>
-          <button
-            type="button"
-            className="w-full text-left px-3 py-2 border border-border rounded-lg bg-backdrop-low text-neutral-high hover:bg-backdrop-medium"
-          >
-            {vals.length === 0 ? 'Select posts' : `${vals.length} selected`}
-          </button>
-        </PopoverTrigger>
-        <PopoverContent className="w-80">
-          <div className="space-y-2">
-            <Input
-              type="text"
-              placeholder="Search posts…"
-              value={query}
-              onChange={(e) => setQuery(e.target.value)}
-              className="h-8 text-xs"
-            />
-            <div className="max-h-64 overflow-auto space-y-2">
-              {filteredOptions.length === 0 ? (
-                <div className="text-xs text-neutral-low">No posts found.</div>
-              ) : (
-                filteredOptions.map((opt) => {
-                  const checked = vals.includes(opt.value)
-                  return (
-                    <label key={opt.value} className="flex items-center gap-2">
-                      <Checkbox
-                        checked={checked}
-                        onCheckedChange={(c) => {
-                          setVals((prev) => {
-                            if (allowMultiple) {
-                              const next = new Set(prev)
-                              if (c) next.add(opt.value)
-                              else next.delete(opt.value)
-                              return Array.from(next)
+      {/* Variation Deletion Confirm */}
+      <AlertDialog open={variationDeleteConfirmOpen} onOpenChange={setVariationDeleteConfirmOpen}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Delete Variation {pendingVariationToDelete?.variation}?</AlertDialogTitle>
+            <AlertDialogDescription>
+              Are you sure you want to delete this variation? This action cannot be undone.
+              {pendingVariationToDelete?.id === post.id &&
+                ' You are currently editing this variation. You will be redirected if deleted.'}
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <AlertDialogAction
+              className="bg-red-600 hover:bg-red-700 text-white"
+              onClick={async () => {
+                if (!pendingVariationToDelete) return
+                setVariationDeleteConfirmOpen(false)
+                try {
+                  const res = await fetch(`/api/posts/${pendingVariationToDelete.id}/variation`, {
+                    method: 'DELETE',
+                    headers: {
+                      'Content-Type': 'application/json',
+                      'X-XSRF-TOKEN': getXsrf() || '',
+                    },
+                  })
+                  const j = await res.json()
+                  if (res.ok) {
+                    toast.success(j.message || 'Variation deleted')
+                    if (j.remainingPostId) {
+                      window.location.href = `/admin/posts/${j.remainingPostId}/edit`
+                    } else {
+                      window.location.reload()
+                    }
+                  } else {
+                    toast.error(j.error || 'Failed to delete variation')
                             }
-                            return c ? [opt.value] : []
-                          })
-                        }}
-                      />
-                      <span className="text-sm">{opt.label}</span>
-                    </label>
-                  )
-                })
-              )}
-            </div>
-          </div>
-        </PopoverContent>
-      </Popover>
+                } catch {
+                  toast.error('Failed to delete variation')
+                }
+              }}
+            >
+              Delete
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   )
 }
@@ -4841,7 +5039,7 @@ function ParentSelect({
         onValueChange={(val) => onChange(val === '__none__' ? '' : val)}
       >
         <SelectTrigger>
-          <SelectValue placeholder={loading ? 'Loading…' : 'None'} />
+          <SelectValue placeholder={loading ? 'Loading...' : 'None'} />
         </SelectTrigger>
         <SelectContent className="max-h-64 overflow-auto">
           <SelectItem key="__none__" value="__none__">

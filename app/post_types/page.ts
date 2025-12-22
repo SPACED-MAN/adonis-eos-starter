@@ -21,4 +21,14 @@ export default {
 
   // No taxonomies by default for pages
   taxonomies: [],
+
+  // A/B testing configuration
+  abTesting: {
+    enabled: true,
+    strategy: 'cookie',
+    variations: [
+      { label: 'Variation A', value: 'A', weight: 50 },
+      { label: 'Variation B', value: 'B', weight: 50 },
+    ],
+  },
 } as const

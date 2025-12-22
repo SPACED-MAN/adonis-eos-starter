@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useState, useRef } from 'react'
 import { Popover, PopoverContent, PopoverTrigger } from '~/components/ui/popover'
 import { Input } from '~/components/ui/input'
 import { Checkbox } from '~/components/ui/checkbox'
@@ -11,21 +11,46 @@ type Props = {
 }
 
 export default function PostCustomPostReferenceField({ label, value, onChange, config }: Props) {
+  // Normalize allowed types from config (support singular postType or plural postTypes)
   const allowedTypes: string[] = Array.isArray((config as any)?.postTypes)
     ? (config as any).postTypes
-    : []
-  const allowMultiple = (config as any)?.allowMultiple !== false
-  const initialVals: string[] = Array.isArray(value)
-    ? value.map((v: any) => String(v))
-    : value
-      ? [String(value)]
+    : (config as any)?.postType
+      ? [String((config as any).postType)]
       : []
+
+  // Normalize allowMultiple from config (support multiple or allowMultiple)
+  const allowMultiple = (config as any)?.allowMultiple !== false && (config as any)?.multiple !== false
+
+  const initialVals: string[] = (() => {
+    // If it's already an array, use it
+    if (Array.isArray(value)) {
+      return value.map((v: any) => String(v))
+    }
+    // If it's a string, it might be a double-encoded JSON array string
+    if (typeof value === 'string' && value.trim().startsWith('[') && value.trim().endsWith(']')) {
+      try {
+        const parsed = JSON.parse(value)
+        if (Array.isArray(parsed)) {
+          return parsed.map((v: any) => String(v))
+        }
+      } catch {
+        // Not valid JSON array string, fall through
+      }
+    }
+    // Single value or other
+    return value ? [String(value)] : []
+  })()
   const [vals, setVals] = useState<string[]>(initialVals)
   const [options, setOptions] = useState<Array<{ label: string; value: string }>>([])
   const [query, setQuery] = useState('')
 
+  const isMounted = useRef(false)
   useEffect(() => {
+    if (isMounted.current) {
     onChange(allowMultiple ? vals : (vals[0] ?? null))
+    } else {
+      isMounted.current = true
+    }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [vals, allowMultiple])
 
@@ -34,9 +59,10 @@ export default function PostCustomPostReferenceField({ label, value, onChange, c
     ;(async () => {
       try {
         const params = new URLSearchParams()
-        params.set('status', 'published')
+        // In the admin, we usually want to be able to refer to any post that isn't archived/deleted
+        // We'll let the backend handle the default filtering if status isn't provided
         params.set('limit', '100')
-        params.set('sortBy', 'published_at')
+        params.set('sortBy', 'updated_at')
         params.set('sortOrder', 'desc')
         if (allowedTypes.length > 0) {
           params.set('types', allowedTypes.join(','))
@@ -100,7 +126,7 @@ export default function PostCustomPostReferenceField({ label, value, onChange, c
           <div className="space-y-2">
             <Input
               type="text"
-              placeholder="Search posts…"
+              placeholder="Search posts..."
               value={query}
               onChange={(e) => setQuery(e.target.value)}
               className="h-8 text-xs"

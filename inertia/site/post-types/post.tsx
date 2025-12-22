@@ -1,3 +1,4 @@
+import { useEffect } from 'react'
 import { Head, usePage } from '@inertiajs/react'
 import Modules from '../../modules'
 import { SiteFooter } from '../components/SiteFooter'
@@ -18,7 +19,10 @@ interface PostPageProps {
     status: string
     reviewDraft?: any
     aiReviewDraft?: any
+    abVariation?: string | null
+    abGroupId?: string | null
   }
+  abVariations?: Array<{ id: string; variation: string; status: string }>
   modules: Array<{
     id: string
     type: string
@@ -56,11 +60,29 @@ function getModuleComponent(type: string): any {
   return Modules[key as keyof typeof Modules] || null
 }
 
-export default function PostTypeDefault({ post, modules, seo, siteSettings, customFields }: PostPageProps) {
+export default function PostTypeDefault({
+  post,
+  modules,
+  seo,
+  siteSettings,
+  customFields,
+  abVariations = [],
+}: PostPageProps) {
   const page = usePage()
   const currentUser = (page.props as any)?.currentUser
   const isAuthenticated =
     !!currentUser && ['admin', 'editor', 'translator'].includes(String(currentUser.role || ''))
+
+  // Track A/B variation in Google Analytics dataLayer if available
+  useEffect(() => {
+    if (post.abVariation && typeof window !== 'undefined' && (window as any).dataLayer) {
+      ; (window as any).dataLayer.push({
+        event: 'ab_variation_view',
+        ab_variation: post.abVariation,
+        ab_group_id: post.abGroupId || post.id,
+      })
+    }
+  }, [post.id, post.abVariation, post.abGroupId])
 
   // Generate meta description with fallback chain
   const metaDescription =
@@ -86,16 +108,17 @@ export default function PostTypeDefault({ post, modules, seo, siteSettings, cust
               className="container mx-auto px-4 sm:px-6 lg:px-8 py-8"
               {...(isAuthenticated
                 ? {
-                    'data-inline-module': module.id,
-                    'data-inline-scope': module.scope || 'local',
-                    'data-inline-global-slug': module.globalSlug || undefined,
-                    'data-inline-global-label': module.globalLabel || undefined,
-                  }
+                  'data-inline-module': module.id,
+                  'data-inline-scope': module.scope || 'local',
+                  'data-inline-global-slug': module.globalSlug || undefined,
+                  'data-inline-global-label': module.globalLabel || undefined,
+                }
                 : {})}
             >
               <Component
                 {...module.props}
-                {...(isAuthenticated ? { __postId: post.id, __moduleId: module.id } : {})}
+                __postId={post.id}
+                __moduleId={module.id}
               />
             </section>
           )
@@ -138,6 +161,7 @@ export default function PostTypeDefault({ post, modules, seo, siteSettings, cust
           postId={post.id}
           post={post}
           customFields={customFields}
+          abVariations={abVariations}
           modules={modules.map((m) => ({
             id: m.id,
             scope: m.scope,

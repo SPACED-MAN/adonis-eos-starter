@@ -1,12 +1,24 @@
-import { useEffect, useState, FormEvent } from 'react'
+import { useEffect, useState, FormEvent, ChangeEvent } from 'react'
 
-type FormFieldType = 'text' | 'email' | 'textarea' | 'checkbox'
+type FormFieldType =
+  | 'text'
+  | 'email'
+  | 'textarea'
+  | 'checkbox'
+  | 'boolean'
+  | 'number'
+  | 'date'
+  | 'url'
+  | 'select'
+  | 'multiselect'
 
 interface FormFieldConfig {
   slug: string
   label: string
   type: FormFieldType
   required?: boolean
+  options?: Array<{ label: string; value: any }>
+  placeholder?: string
 }
 
 interface FormDefinition {
@@ -21,9 +33,10 @@ interface FormModuleProps {
   title?: string | null
   subtitle?: string | null
   formSlug: string
+  __postId?: string
 }
 
-export default function FormModule({ title, subtitle, formSlug }: FormModuleProps) {
+export default function FormModule({ title, subtitle, formSlug, __postId }: FormModuleProps) {
   const [definition, setDefinition] = useState<FormDefinition | null>(null)
   const [values, setValues] = useState<Record<string, any>>({})
   const [errors, setErrors] = useState<Record<string, string>>({})
@@ -70,7 +83,7 @@ export default function FormModule({ title, subtitle, formSlug }: FormModuleProp
     return (
       <section className="bg-backdrop-low py-8 lg:py-16" data-module="form">
         <div className="container mx-auto px-4 sm:px-6 lg:px-8">
-          <p className="text-sm text-neutral-low">Loading form…</p>
+          <p className="text-sm text-neutral-low">Loading form...</p>
         </div>
       </section>
     )
@@ -82,8 +95,19 @@ export default function FormModule({ title, subtitle, formSlug }: FormModuleProp
 
   const visibleTitle = title || definition.title
 
-  const handleChange = (field: FormFieldConfig, value: any) => {
-    setValues((prev) => ({ ...prev, [field.slug]: value }))
+  const handleChange = (slug: string, value: any) => {
+    setValues((prev) => ({ ...prev, [slug]: value }))
+  }
+
+  const handleMultiselectChange = (slug: string, value: string, checked: boolean) => {
+    setValues((prev) => {
+      const current = Array.isArray(prev[slug]) ? prev[slug] : []
+      if (checked) {
+        return { ...prev, [slug]: [...current, value] }
+      } else {
+        return { ...prev, [slug]: current.filter((v: string) => v !== value) }
+      }
+    })
   }
 
   const handleSubmit = async (e: FormEvent) => {
@@ -99,7 +123,10 @@ export default function FormModule({ title, subtitle, formSlug }: FormModuleProp
           'Accept': 'application/json',
           'Content-Type': 'application/json',
         },
-        body: JSON.stringify(values),
+        body: JSON.stringify({
+          ...values,
+          __origin_post_id: __postId,
+        }),
       })
 
       const j = await res.json().catch(() => null)
@@ -164,50 +191,114 @@ export default function FormModule({ title, subtitle, formSlug }: FormModuleProp
         <form onSubmit={handleSubmit} className="space-y-4">
           {definition.fields.map((field) => {
             const fieldError = errors[field.slug]
-            const value = values[field.slug] ?? (field.type === 'checkbox' ? false : '')
-
+            const rawValue = values[field.slug]
             const fieldId = `form-field-${field.slug}`
+            const isCheckbox = field.type === 'checkbox' || field.type === 'boolean'
+
             return (
               <div key={field.slug} className="space-y-1">
-                {field.type !== 'checkbox' && (
+                {!isCheckbox && (
                   <label htmlFor={fieldId} className="block text-sm font-medium text-neutral-high">
                     {field.label}
                     {field.required && <span className="text-danger ml-0.5">*</span>}
                   </label>
                 )}
-                {field.type === 'textarea' ? (
+
+                {(() => {
+                  switch (field.type) {
+                    case 'textarea':
+                      return (
                   <textarea
                     id={fieldId}
                     className="block w-full rounded-md border border-line-low bg-backdrop-input px-3 py-2 text-sm text-neutral-high focus:outline-none focus:ring-2 focus:ring-standout-medium/40"
                     rows={4}
-                    value={value}
-                    onChange={(e) => handleChange(field, e.target.value)}
+                          placeholder={field.placeholder}
+                          value={rawValue ?? ''}
+                          onChange={(e) => handleChange(field.slug, e.target.value)}
                     required={field.required}
                   />
-                ) : field.type === 'checkbox' ? (
+                      )
+
+                    case 'checkbox':
+                    case 'boolean':
+                      return (
                   <div className="flex items-center gap-2">
                     <input
                       id={fieldId}
                       type="checkbox"
                       className="h-4 w-4 rounded border-line-low bg-backdrop-input text-standout-medium focus:ring-standout-medium/50"
-                      checked={Boolean(value)}
-                      onChange={(e) => handleChange(field, e.target.checked)}
+                            checked={Boolean(rawValue)}
+                            onChange={(e) => handleChange(field.slug, e.target.checked)}
                     />
                     <label htmlFor={fieldId} className="text-sm text-neutral-medium">
                       {field.label}
                       {field.required && <span className="text-danger ml-0.5">*</span>}
                     </label>
                   </div>
-                ) : (
+                      )
+
+                    case 'select':
+                      return (
+                        <select
+                          id={fieldId}
+                          className="block w-full rounded-md border border-line-low bg-backdrop-input px-3 py-2 text-sm text-neutral-high focus:outline-none focus:ring-2 focus:ring-standout-medium/40"
+                          value={rawValue ?? ''}
+                          onChange={(e) => handleChange(field.slug, e.target.value)}
+                          required={field.required}
+                        >
+                          <option value="">{field.placeholder || 'Select an option'}</option>
+                          {(field.options || []).map((opt) => (
+                            <option key={String(opt.value)} value={String(opt.value)}>
+                              {opt.label}
+                            </option>
+                          ))}
+                        </select>
+                      )
+
+                    case 'multiselect':
+                      return (
+                        <div className="space-y-2 p-3 border border-line-low rounded-md bg-backdrop-input/50">
+                          {(field.options || []).map((opt) => {
+                            const optId = `${fieldId}-${opt.value}`
+                            const isChecked = Array.isArray(rawValue) && rawValue.includes(String(opt.value))
+                            return (
+                              <div key={String(opt.value)} className="flex items-center gap-2">
+                                <input
+                                  id={optId}
+                                  type="checkbox"
+                                  className="h-4 w-4 rounded border-line-low bg-backdrop-input text-standout-medium focus:ring-standout-medium/50"
+                                  checked={isChecked}
+                                  onChange={(e) => handleMultiselectChange(field.slug, String(opt.value), e.target.checked)}
+                                />
+                                <label htmlFor={optId} className="text-sm text-neutral-medium cursor-pointer">
+                                  {opt.label}
+                                </label>
+                              </div>
+                            )
+                          })}
+                        </div>
+                      )
+
+                    case 'number':
+                    case 'date':
+                    case 'url':
+                    case 'email':
+                    case 'text':
+                    default:
+                      return (
                   <input
                     id={fieldId}
-                    type={field.type === 'email' ? 'email' : 'text'}
+                          type={field.type === 'boolean' ? 'checkbox' : field.type === 'multiselect' ? 'text' : field.type}
                     className="block w-full rounded-md border border-line-low bg-backdrop-input px-3 py-2 text-sm text-neutral-high focus:outline-none focus:ring-2 focus:ring-standout-medium/40"
-                    value={value}
-                    onChange={(e) => handleChange(field, e.target.value)}
+                          placeholder={field.placeholder}
+                          value={rawValue ?? ''}
+                          onChange={(e) => handleChange(field.slug, e.target.value)}
                     required={field.required}
                   />
-                )}
+                      )
+                  }
+                })()}
+
                 {fieldError && <p className="text-xs text-danger mt-1">{fieldError}</p>}
               </div>
             )
@@ -219,7 +310,7 @@ export default function FormModule({ title, subtitle, formSlug }: FormModuleProp
               disabled={submitting}
               className="inline-flex items-center px-5 py-2.5 rounded-md bg-standout-medium text-on-standout text-sm font-medium hover:bg-standout-medium/90 disabled:opacity-60 focus:outline-none focus:ring-2 focus:ring-standout-medium/40"
             >
-              {submitting ? 'Sending…' : 'Submit'}
+              {submitting ? 'Sending...' : 'Submit'}
             </button>
           </div>
         </form>

@@ -68,3 +68,4 @@ resetPasswordValidator.messagesProvider = new SimpleMessagesProvider({
 	'password.minLength': 'Password must be at least 8 characters',
 })
 
+

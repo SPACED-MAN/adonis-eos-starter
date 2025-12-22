@@ -22,3 +22,4 @@ updateLocaleValidator.messagesProvider = new SimpleMessagesProvider({
 	'isDefault.boolean': 'isDefault must be a boolean',
 })
 
+

@@ -18,9 +18,20 @@ export default class PostsListController extends BasePostsController {
   async index({ request, response }: HttpContext) {
     const q = String(request.input('q', '')).trim()
     const type = String(request.input('type', '')).trim()
+    const idsParam = request.input('ids')
+    let ids: string[] = []
+    if (Array.isArray(idsParam)) {
+      ids = idsParam.map((id) => String(id).trim()).filter(Boolean)
+    } else if (typeof idsParam === 'string' && idsParam.trim()) {
+      ids = idsParam
+        .split(',')
+        .map((id) => id.trim())
+        .filter(Boolean)
+    }
+
     const inReviewParam = String(request.input('inReview', '')).trim()
     const inReview = inReviewParam === '1' || inReviewParam.toLowerCase() === 'true'
-    const status = String(request.input('status', '')).trim()
+    const statusParam = request.input('status')
     const locale = String(request.input('locale', '')).trim()
     const termIdRaw = String(request.input('termId', '')).trim()
     const includeDescendants = String(request.input('includeDescendants', '1')).trim() === '1'
@@ -35,6 +46,17 @@ export default class PostsListController extends BasePostsController {
         cmsConfig.pagination.defaultLimit
       )
     )
+
+    // Support multiple statuses
+    let statuses: string[] = []
+    if (Array.isArray(request.qs().status)) {
+      statuses = (request.qs().status as string[]).map((s) => String(s).trim()).filter(Boolean)
+    } else if (typeof statusParam === 'string' && statusParam.trim()) {
+      statuses = statusParam
+        .split(',')
+        .map((s) => s.trim())
+        .filter(Boolean)
+    }
 
     // Include deleted posts if requested (admin only)
     const includeDeleted = String(request.input('includeDeleted', '')).trim() === '1'
@@ -82,14 +104,17 @@ export default class PostsListController extends BasePostsController {
           builder.whereILike('title', `%${q}%`).orWhereILike('slug', `%${q}%`)
         })
       }
+      if (ids.length > 0) {
+        query.whereIn('id', ids)
+      }
       if (type) {
         query.where('type', type)
       }
       if (!type && types.length > 0) {
         query.whereIn('type', types)
       }
-      if (status) {
-        query.where('status', status)
+      if (statuses.length > 0) {
+        query.whereIn('status', statuses)
       }
       if (inReview) {
         query.whereNotNull('review_draft')
@@ -166,6 +191,49 @@ export default class PostsListController extends BasePostsController {
         Post.softDeleteEnabled = true
       }
     }
+  }
+
+  /**
+   * GET /api/public/posts
+   * Public endpoint for resolving post info (links, basic metadata).
+   * Restricted to published posts only.
+   */
+  async publicIndex({ request, response }: HttpContext) {
+    const idsParam = request.input('ids')
+    let ids: string[] = []
+    if (Array.isArray(idsParam)) {
+      ids = idsParam.map((id) => String(id).trim()).filter(Boolean)
+    } else if (typeof idsParam === 'string' && idsParam.trim()) {
+      ids = idsParam
+        .split(',')
+        .map((id) => id.trim())
+        .filter(Boolean)
+    }
+
+    if (ids.length === 0) {
+      return response.badRequest({ error: 'ids parameter is required' })
+    }
+
+    const posts = await Post.query()
+      .whereIn('id', ids)
+      .where('status', 'published')
+      .select('id', 'title', 'slug', 'type', 'locale', 'canonical_url')
+
+    const items = await Promise.all(
+      posts.map(async (p) => {
+        const url = p.canonicalUrl || (await (await import('#services/url_pattern_service')).default.buildPostPathForPost(p.id))
+        return {
+          id: p.id,
+          title: p.title,
+          slug: p.slug,
+          type: p.type,
+          locale: p.locale,
+          url,
+        }
+      })
+    )
+
+    return response.ok({ data: items })
   }
 
   /**

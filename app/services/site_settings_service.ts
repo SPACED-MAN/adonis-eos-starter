@@ -6,6 +6,7 @@ type SiteSettings = {
   faviconMediaId: string | null
   defaultOgMediaId: string | null
   logoMediaId: string | null
+  isMaintenanceMode: boolean
   profileRolesEnabled: string[]
 }
 
@@ -26,6 +27,7 @@ class SiteSettingsService {
       faviconMediaId: row?.faviconMediaId || null,
       defaultOgMediaId: row?.defaultOgMediaId || null,
       logoMediaId: row?.logoMediaId || null,
+      isMaintenanceMode: !!row?.isMaintenanceMode,
       profileRolesEnabled: Array.isArray(row?.profileRolesEnabled) ? row.profileRolesEnabled : [],
     }
     this.cache = settings
@@ -42,6 +44,7 @@ class SiteSettingsService {
           faviconMediaId: currentRow.faviconMediaId,
           defaultOgMediaId: currentRow.defaultOgMediaId,
           logoMediaId: currentRow.logoMediaId,
+          isMaintenanceMode: !!currentRow.isMaintenanceMode,
           profileRolesEnabled: currentRow.profileRolesEnabled || [],
         }
       : await this.get()
@@ -57,6 +60,8 @@ class SiteSettingsService {
       defaultOgMediaId:
         'defaultOgMediaId' in payload ? payload.defaultOgMediaId! : current.defaultOgMediaId,
       logoMediaId: 'logoMediaId' in payload ? payload.logoMediaId! : current.logoMediaId,
+      isMaintenanceMode:
+        'isMaintenanceMode' in payload ? !!payload.isMaintenanceMode : current.isMaintenanceMode,
       profileRolesEnabled: payload.profileRolesEnabled ?? current.profileRolesEnabled ?? [],
     }
     if (currentRow) {
@@ -66,6 +71,7 @@ class SiteSettingsService {
         faviconMediaId: next.faviconMediaId,
         defaultOgMediaId: next.defaultOgMediaId,
         logoMediaId: next.logoMediaId,
+        isMaintenanceMode: next.isMaintenanceMode,
         profileRolesEnabled: next.profileRolesEnabled,
       })
       await currentRow.save()
@@ -76,6 +82,7 @@ class SiteSettingsService {
         faviconMediaId: next.faviconMediaId,
         defaultOgMediaId: next.defaultOgMediaId,
         logoMediaId: next.logoMediaId,
+        isMaintenanceMode: next.isMaintenanceMode,
         profileRolesEnabled: next.profileRolesEnabled,
       })
     }
