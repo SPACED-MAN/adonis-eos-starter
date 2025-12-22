@@ -75,6 +75,7 @@ export default defineConfig({
     () => import('#start/post_types'), // Register post types and sync URL patterns from config
     () => import('#start/url_patterns'), // Ensure defaults exist for any missing patterns
     () => import('#start/menus'),
+    () => import('#start/forms'),
     () => import('#start/roles'),
     () => import('#start/agents'),
     () => import('#start/workflows'),

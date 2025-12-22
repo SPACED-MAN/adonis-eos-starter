@@ -338,11 +338,10 @@ router
       .delete('/modules/global/:id', [GlobalModulesController, 'destroy'])
       .use(middleware.admin())
     router.get('/modules/static', [GlobalModulesController, 'index']).use(middleware.admin())
-    // Forms definitions (RBAC checks in controller)
+    // Forms definitions
     router.get('/forms-definitions', [FormsAdminController, 'listDefinitions'])
-    router.post('/forms-definitions', [FormsAdminController, 'createDefinition'])
-    router.put('/forms-definitions/:id', [FormsAdminController, 'updateDefinition'])
-    router.delete('/forms-definitions/:id', [FormsAdminController, 'deleteDefinition'])
+    // Form submissions (delete only for now)
+    router.delete('/forms-submissions/:id', [FormsAdminController, 'deleteSubmission'])
     // Taxonomies (editors allowed)
     router.get('/taxonomies', [TaxonomiesController, 'list'])
     router.get('/taxonomies/:slug/terms', [TaxonomiesController, 'termsBySlug'])
@@ -486,8 +485,6 @@ router
 
 // Admin Forms (submissions) - editors allowed
 router.get(adminPath('forms'), [FormsAdminController, 'index']).use(middleware.auth())
-router.get(adminPath('forms/new'), [FormsAdminController, 'createPage']).use(middleware.auth())
-router.get(adminPath('forms/:id/edit'), [FormsAdminController, 'edit']).use(middleware.auth())
 
 // Admin Menus - editors allowed
 router

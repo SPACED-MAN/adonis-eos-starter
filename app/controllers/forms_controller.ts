@@ -2,42 +2,21 @@ import type { HttpContext } from '@adonisjs/core/http'
 import db from '@adonisjs/lucid/services/db'
 import crypto from 'node:crypto'
 import webhookService from '#services/webhook_service'
-import type { FormConfig } from '#types/form_types'
-import { coerceJsonArray } from '#helpers/jsonb'
+import formRegistry from '#services/form_registry'
 
 export default class FormsController {
-  private mapRowToFormConfig(row: any): FormConfig {
-    const fieldsRaw = coerceJsonArray(row.fields_json)
-    const fields = fieldsRaw.map((f: any) => ({
-      slug: String(f.slug || ''),
-      label: String(f.label || f.slug || ''),
-      type: (f.type as any) || 'text',
-      required: Boolean(f.required),
-    }))
-
-    return {
-      slug: String(row.slug),
-      title: String(row.title),
-      description: row.description ? String(row.description) : undefined,
-      fields,
-      successMessage: (row as any).success_message
-        ? String((row as any).success_message)
-        : undefined,
-    }
-  }
-
   /**
    * GET /api/forms/:slug
    * Returns the public form definition (fields, labels, etc.).
    */
   async show({ params, response }: HttpContext) {
     const slug = String(params.slug || '').trim()
-    const row = await db.from('forms').where('slug', slug).first()
-    if (!row) {
+    const form = formRegistry.get(slug)
+
+    if (!form) {
       return response.notFound({ error: 'Form not found' })
     }
 
-    const form = this.mapRowToFormConfig(row)
     return response.ok({ data: form })
   }
 
@@ -48,12 +27,11 @@ export default class FormsController {
    */
   async submit({ params, request, response }: HttpContext) {
     const slug = String(params.slug || '').trim()
-    const row = await db.from('forms').where('slug', slug).first()
-    if (!row) {
+    const form = formRegistry.get(slug)
+
+    if (!form) {
       return response.notFound({ error: 'Form not found' })
     }
-
-    const form = this.mapRowToFormConfig(row)
 
     const body = request.body() as Record<string, unknown>
     const errors: Record<string, string> = {}
@@ -68,7 +46,12 @@ export default class FormsController {
         continue
       }
 
-      if (field.type === 'email' && typeof val === 'string' && val) {
+      // Basic email validation for text fields with slug 'email' or if we want to be more explicit
+      if (
+        (field.slug === 'email' || field.type === ( 'email' as any)) &&
+        typeof val === 'string' &&
+        val
+      ) {
         const simpleEmail = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
         if (!simpleEmail.test(val)) {
           errors[field.slug] = 'Please enter a valid email address.'
@@ -76,7 +59,7 @@ export default class FormsController {
         }
       }
 
-      if (field.type === 'checkbox') {
+      if (field.type === 'boolean') {
         payload[field.slug] = Boolean(val)
       } else if (val !== undefined) {
         payload[field.slug] = val
@@ -108,7 +91,7 @@ export default class FormsController {
 
     const submissionId = (inserted as any)?.id
 
-    // Fire global webhooks for form submission; integrators can subscribe to 'form.submitted'
+    // Fire global webhooks for form submission
     try {
       await webhookService.dispatch('form.submitted', {
         formSlug: slug,
@@ -119,35 +102,23 @@ export default class FormsController {
       // Webhook failures should not block the user-facing success response.
     }
 
-    // Fire any per-form subscriptions (webhook IDs stored on the form)
-    try {
-      const subsRaw = coerceJsonArray((row as any).subscriptions_json)
-      const webhookIds: string[] = subsRaw
-        .map((s: any) => {
-          if (typeof s === 'string') return s
-          if (s && typeof s.webhookId === 'string') return s.webhookId
-          return null
-        })
-        .filter((id: string | null): id is string => !!id)
-
-      if (webhookIds.length > 0) {
-        await webhookService.dispatchToWebhooks(webhookIds, 'form.submitted', {
+    // Fire any per-form subscriptions
+    if (Array.isArray(form.subscriptions) && form.subscriptions.length > 0) {
+      try {
+        await webhookService.dispatchToWebhooks(form.subscriptions, 'form.submitted', {
           formSlug: slug,
           submissionId,
           payload,
         })
+      } catch {
+        // Ignore subscription-specific errors
       }
-    } catch {
-      // Ignore subscription-specific errors
     }
 
     // Optional thank-you redirect
     let redirectTo: string | null = null
-    const thankYouPostId = (row as any).thank_you_post_id
-      ? String((row as any).thank_you_post_id)
-      : ''
-    if (thankYouPostId) {
-      const post = await db.from('posts').where('id', thankYouPostId).first()
+    if (form.thankYouPostId) {
+      const post = await db.from('posts').where('id', form.thankYouPostId).first()
       if (post && (post as any).slug) {
         redirectTo = `/posts/${encodeURIComponent(String((post as any).slug))}`
       }
@@ -157,7 +128,7 @@ export default class FormsController {
       data: {
         id: submissionId,
         redirectTo,
-        successMessage: form.successMessage,
+        successMessage: form.successMessage || 'Thank you! Your submission has been received.',
       },
     })
   }
