@@ -31,7 +31,19 @@ import {
 import { SortableContext, useSortable, verticalListSortingStrategy } from '@dnd-kit/sortable'
 import { CSS } from '@dnd-kit/utilities'
 
-type Taxonomy = { id: string; slug: string; name: string; hierarchical?: boolean }
+type Taxonomy = {
+  id: string
+  slug: string
+  name: string
+  hierarchical?: boolean
+  customFieldDefs?: Array<{
+    slug: string
+    label: string
+    type: string
+    category?: string
+    config?: Record<string, any>
+  }>
+}
 type TermNode = {
   id: string
   taxonomyId: string
@@ -41,6 +53,7 @@ type TermNode = {
   description: string | null
   orderIndex: number
   children: TermNode[]
+  customFields?: Record<string, any>
 }
 
 function getXsrf(): string | undefined {
@@ -68,6 +81,32 @@ export default function CategoriesPage() {
   const [newTermName, setNewTermName] = useState<string>('')
   const [viewMode, setViewMode] = useState<'terms' | 'termPosts'>('terms')
   const [editingTerm, setEditingTerm] = useState<TermNode | null>(null)
+  const [editingTermDraft, setEditingTermDraft] = useState<Record<string, any>>({})
+  const [saving, setSaving] = useState(false)
+
+  const fieldComponents = useMemo(() => {
+    const modules = import.meta.glob('../fields/*.tsx', { eager: true }) as Record<
+      string,
+      { default: any }
+    >
+    const map: Record<string, any> = {}
+    Object.entries(modules).forEach(([path, mod]) => {
+      const name = path
+        .split('/')
+        .pop()
+        ?.replace(/\.\w+$/, '')
+      if (name && mod?.default) {
+        map[name] = mod.default
+      }
+    })
+    return map
+  }, [])
+
+  const pascalFromType = (t: string) =>
+    t
+      .split(/[-_]/g)
+      .map((s) => s.charAt(0).toUpperCase() + s.slice(1))
+      .join('')
   const sensors = useSensors(useSensor(PointerSensor, { activationConstraint: { distance: 4 } }))
 
   useEffect(() => {
@@ -190,6 +229,32 @@ export default function CategoriesPage() {
     }
     await loadTerms(selectedTaxonomy)
     toast.success('Updated')
+  }
+
+  async function saveTermCustomFields() {
+    if (!editingTerm) return
+    try {
+      setSaving(true)
+      const res = await fetch(`/api/taxonomy-terms/${encodeURIComponent(editingTerm.id)}`, {
+        method: 'PATCH',
+        headers: {
+          'Content-Type': 'application/json',
+          ...(getXsrf() ? { 'X-XSRF-TOKEN': getXsrf()! } : {}),
+        },
+        body: JSON.stringify({ customFields: editingTermDraft }),
+        credentials: 'same-origin',
+      })
+      if (!res.ok) {
+        const j = await res.json().catch(() => ({}))
+        throw new Error(j?.error || 'Failed to save')
+      }
+      toast.success('Fields saved')
+      await loadTerms(selectedTaxonomy)
+    } catch (e: any) {
+      toast.error(e.message)
+    } finally {
+      setSaving(false)
+    }
   }
 
   async function deleteTerm(termId: string) {
@@ -322,6 +387,7 @@ export default function CategoriesPage() {
                           onEdit={async () => {
                             setSelectedTermId(term.id)
                             setEditingTerm(term)
+                            setEditingTermDraft(term.customFields || {})
                             setViewMode('termPosts')
                             await loadPostsForTerm(term.id)
                           }}
@@ -341,53 +407,144 @@ export default function CategoriesPage() {
             </div>
           </div>
           {viewMode === 'termPosts' && editingTerm && (
-            <div className="mt-8">
-              <div className="flex items-center justify-between mb-3">
-                <h3 className="font-semibold">Posts in “{editingTerm.name}”</h3>
-                <button
-                  type="button"
-                  className="px-3 py-1.5 text-xs border border-line-low rounded text-neutral-medium hover:bg-backdrop-medium"
-                  onClick={() => {
-                    setViewMode('terms')
-                    setEditingTerm(null)
-                    setSelectedTermId('')
-                    setPosts([])
-                  }}
-                >
-                  Back to terms
-                </button>
+            <div className="mt-8 grid grid-cols-1 md:grid-cols-2 gap-8">
+              <div>
+                <div className="flex items-center justify-between mb-3">
+                  <h3 className="font-semibold text-neutral-high">Custom Fields</h3>
+                  <button
+                    type="button"
+                    className="px-3 py-1 text-xs bg-standout-medium text-on-standout rounded hover:opacity-90 disabled:opacity-50"
+                    onClick={saveTermCustomFields}
+                    disabled={saving}
+                  >
+                    {saving ? 'Saving…' : 'Save Fields'}
+                  </button>
+                </div>
+                <div className="bg-backdrop-medium/10 border border-line-low rounded-xl p-5 space-y-6">
+                  {(() => {
+                    const tax = taxonomies.find((t) => t.slug === selectedTaxonomy)
+                    const defs = tax?.customFieldDefs || []
+                    if (defs.length === 0) {
+                      return <p className="text-xs text-neutral-low italic">No custom fields defined for this taxonomy.</p>
+                    }
+
+                    const groups: Record<string, typeof defs> = {}
+                    defs.forEach((d) => {
+                      const cat = d.category || 'General'
+                      if (!groups[cat]) groups[cat] = []
+                      groups[cat].push(d)
+                    })
+
+                    return Object.entries(groups).map(([category, fields]) => (
+                      <div key={category} className="space-y-4">
+                        {category !== 'General' && (
+                          <h4 className="text-[10px] font-bold text-neutral-low uppercase tracking-widest border-b border-line-low pb-1">
+                            {category}
+                          </h4>
+                        )}
+                        <div className="space-y-4">
+                          {fields.map((f) => {
+                            const val = editingTermDraft[f.slug]
+                            const compName = `${pascalFromType(f.type)}Field`
+                            const Renderer = (fieldComponents as Record<string, any>)[compName]
+                            if (Renderer) {
+                              return (
+                                <div key={f.slug}>
+                                  <label className="block text-[11px] font-bold text-neutral-medium uppercase tracking-wider mb-1.5 ml-1">
+                                    {f.label}
+                                  </label>
+                                  <Renderer
+                                    value={val ?? null}
+                                    onChange={(next: any) =>
+                                      setEditingTermDraft((prev) => ({
+                                        ...prev,
+                                        [f.slug]: next,
+                                      }))
+                                    }
+                                    {...(f as any)}
+                                  />
+                                </div>
+                              )
+                            }
+                            return (
+                              <div key={f.slug}>
+                                <label className="block text-[11px] font-bold text-neutral-medium uppercase tracking-wider mb-1.5 ml-1">
+                                  {f.label}
+                                </label>
+                                <Input
+                                  value={typeof val === 'string' ? val : ''}
+                                  onChange={(e) =>
+                                    setEditingTermDraft((prev) => ({
+                                      ...prev,
+                                      [f.slug]: e.target.value,
+                                    }))
+                                  }
+                                />
+                              </div>
+                            )
+                          })}
+                        </div>
+                      </div>
+                    ))
+                  })()}
+                </div>
               </div>
-              {posts.length === 0 ? (
-                <div className="text-sm text-neutral-low">No posts in this term yet.</div>
-              ) : (
-                <Table>
-                  <TableHeader>
-                    <TableRow>
-                      <TableHead>Title</TableHead>
-                      <TableHead>Type</TableHead>
-                      <TableHead>Locale</TableHead>
-                      <TableHead>Status</TableHead>
-                    </TableRow>
-                  </TableHeader>
-                  <TableBody>
-                    {posts.map((p) => (
-                      <TableRow key={p.id}>
-                        <TableCell>
-                          <a
-                            className="text-link hover:underline"
-                            href={`/admin/posts/${p.id}/edit`}
-                          >
-                            {p.title}
-                          </a>
-                        </TableCell>
-                        <TableCell>{p.type}</TableCell>
-                        <TableCell>{p.locale}</TableCell>
-                        <TableCell className="capitalize">{p.status}</TableCell>
-                      </TableRow>
-                    ))}
-                  </TableBody>
-                </Table>
-              )}
+
+              <div>
+                <div className="flex items-center justify-between mb-3">
+                  <h3 className="font-semibold text-neutral-high">Posts in “{editingTerm.name}”</h3>
+                  <button
+                    type="button"
+                    className="px-3 py-1.5 text-xs border border-line-low rounded text-neutral-medium hover:bg-backdrop-medium"
+                    onClick={() => {
+                      setViewMode('terms')
+                      setEditingTerm(null)
+                      setSelectedTermId('')
+                      setPosts([])
+                    }}
+                  >
+                    Back to terms
+                  </button>
+                </div>
+                {posts.length === 0 ? (
+                  <div className="text-sm text-neutral-low italic bg-backdrop-medium/10 border border-line-low rounded-xl p-8 text-center">
+                    No posts in this term yet.
+                  </div>
+                ) : (
+                  <div className="bg-backdrop-low border border-line-low rounded-xl overflow-hidden shadow-sm">
+                    <Table>
+                      <TableHeader>
+                        <TableRow className="hover:bg-transparent">
+                          <TableHead className="text-[10px] font-bold uppercase tracking-wider">Title</TableHead>
+                          <TableHead className="text-[10px] font-bold uppercase tracking-wider text-right">Type</TableHead>
+                        </TableRow>
+                      </TableHeader>
+                      <TableBody>
+                        {posts.map((p) => (
+                          <TableRow key={p.id}>
+                            <TableCell className="font-medium">
+                              <a
+                                className="text-standout-medium hover:text-standout-high transition-colors"
+                                href={`/admin/posts/${p.id}/edit`}
+                              >
+                                {p.title}
+                              </a>
+                              <div className="text-[10px] text-neutral-low mt-0.5 uppercase tracking-tighter">
+                                {p.locale} · {p.status}
+                              </div>
+                            </TableCell>
+                            <TableCell className="text-right">
+                              <span className="inline-flex items-center px-2 py-0.5 rounded text-[10px] font-bold bg-backdrop-medium text-neutral-medium uppercase tracking-tight">
+                                {p.type}
+                              </span>
+                            </TableCell>
+                          </TableRow>
+                        ))}
+                      </TableBody>
+                    </Table>
+                  </div>
+                )}
+              </div>
             </div>
           )}
         </div>

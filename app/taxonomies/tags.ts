@@ -6,6 +6,14 @@ const taxonomy: RegisteredTaxonomyConfig = {
   hierarchical: false,
   freeTagging: true,
   maxSelections: null, // null = unlimited
+  fields: [
+    {
+      slug: 'description',
+      label: 'Description',
+      type: 'textarea',
+    },
+  ],
 }
 
 export default taxonomy
+

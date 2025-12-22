@@ -1,6 +1,7 @@
 import type { HttpContext } from '@adonisjs/core/http'
 import db from '@adonisjs/lucid/services/db'
 import taxonomyService from '#services/taxonomy_service'
+import taxonomyCustomFieldsService from '#services/taxonomy_custom_fields_service'
 
 export default class TaxonomiesController {
   /**
@@ -8,7 +9,14 @@ export default class TaxonomiesController {
    */
   async list({ response }: HttpContext) {
     const taxonomies = await taxonomyService.listTaxonomies()
-    return response.ok({ data: taxonomies })
+    const data = taxonomies.map((t) => {
+      const cfg = taxonomyService.getConfig(t.slug)
+      return {
+        ...t,
+        customFieldDefs: cfg?.fields || [],
+      }
+    })
+    return response.ok({ data })
   }
 
   /**
@@ -17,6 +25,18 @@ export default class TaxonomiesController {
   async termsBySlug({ params, response }: HttpContext) {
     const { slug } = params
     const tree = await taxonomyService.getTermsTreeBySlug(String(slug))
+    
+    // Enrich with custom field values
+    const walk = async (nodes: any[]) => {
+      for (const node of nodes) {
+        node.customFields = await taxonomyCustomFieldsService.getValues(node.id)
+        if (node.children?.length) {
+          await walk(node.children)
+        }
+      }
+    }
+    await walk(tree)
+
     return response.ok({ data: tree })
   }
 
@@ -153,8 +173,23 @@ export default class TaxonomiesController {
       updates.order_index = Number(orderIndexRaw) || 0
     }
     await db.from('taxonomy_terms').where('id', id).update(updates)
+
+    // Handle custom fields
+    const customFields = request.input('customFields')
+    if (customFields && typeof customFields === 'object') {
+      const taxonomy = await db
+        .from('taxonomies')
+        .where('id', term.taxonomy_id)
+        .select('slug')
+        .first()
+      if (taxonomy) {
+        await taxonomyCustomFieldsService.upsertValues(id, taxonomy.slug, customFields)
+      }
+    }
+
     const updated = await db.from('taxonomy_terms').where('id', id).first()
-    return response.ok({ data: updated })
+    const values = await taxonomyCustomFieldsService.getValues(id)
+    return response.ok({ data: { ...updated, customFields: values } })
   }
 
   /**

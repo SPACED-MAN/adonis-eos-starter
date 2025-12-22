@@ -50,6 +50,9 @@ const taxonomy: RegisteredTaxonomyConfig = {
   hierarchical: ${this.hierarchical ? 'true' : 'false'},
   freeTagging: ${this.freeTagging ? 'true' : 'false'},
   maxSelections: ${maxSel}, // null = unlimited
+  fields: [
+    // { slug: 'description', label: 'Description', type: 'textarea' },
+  ],
 }
 
 export default taxonomy

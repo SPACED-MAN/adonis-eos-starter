@@ -27,8 +27,41 @@ Fields:
 - `hierarchical`: If true, terms can nest and be reordered.
 - `freeTagging`: If true, editors can create terms inline while editing posts.
 - `maxSelections`: Limit of terms per post (number) or `null` for unlimited.
+- `fields`: Array of custom field definitions (e.g., description, color, image) attached to each term in this taxonomy.
 
-Taxonomies are loaded on boot by `start/taxonomies.ts`, which also ensures the taxonomy row exists in DB.
+### Custom Fields for Terms
+
+You can define custom fields for taxonomy terms. This is useful for adding metadata like descriptions, featured images, or custom colors to categories.
+
+```ts
+import type { RegisteredTaxonomyConfig } from '#services/taxonomy_registry'
+
+const taxonomy: RegisteredTaxonomyConfig = {
+  slug: 'tags',
+  name: 'Tags',
+  hierarchical: false,
+  freeTagging: true,
+  maxSelections: null,
+  fields: [
+    {
+      slug: 'description',
+      label: 'Description',
+      type: 'textarea',
+      category: 'General'
+    },
+    {
+      slug: 'featured_image',
+      label: 'Featured Image',
+      type: 'media',
+      category: 'Display'
+    }
+  ],
+}
+
+export default taxonomy
+```
+
+These fields appear in the **Categories** admin page when editing a term. Values are stored in the `taxonomy_term_custom_field_values` table.
 
 ### CLI scaffolding
 
