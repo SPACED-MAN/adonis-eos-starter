@@ -45,6 +45,8 @@ router.get('/search', [SiteSearchController, 'index'])
  * Auth routes (admin)
  */
 const AuthController = () => import('#controllers/auth_controller')
+const PasswordResetsController = () => import('#controllers/auth/password_resets_controller')
+
 router
   .get(adminPath('login'), [AuthController, 'showLogin'])
   .use(middleware.guest())
@@ -53,6 +55,23 @@ router
   .post(adminPath('login'), [AuthController, 'login'])
   .use(middleware.guest())
   .use(middleware.rateLimitAuth())
+
+// Password Reset Routes
+router
+  .get(adminPath('forgot-password'), [PasswordResetsController, 'showForgot'])
+  .use(middleware.guest())
+router
+  .post(adminPath('forgot-password'), [PasswordResetsController, 'sendEmail'])
+  .use(middleware.guest())
+  .use(middleware.rateLimitAuth())
+router
+  .get(adminPath('reset-password'), [PasswordResetsController, 'showReset'])
+  .use(middleware.guest())
+router
+  .post(adminPath('reset-password'), [PasswordResetsController, 'reset'])
+  .use(middleware.guest())
+  .use(middleware.rateLimitAuth())
+
 router.post(adminPath('logout'), [AuthController, 'logout']).use(middleware.auth())
 
 /**

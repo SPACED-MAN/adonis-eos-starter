@@ -219,4 +219,17 @@ export default await Env.create(new URL('../', import.meta.url), {
   */
   ENABLE_DEV_TOOLS: Env.schema.boolean.optional(),
   APP_ENV: Env.schema.enum.optional(['development', 'production', 'test'] as const),
+
+  /*
+  |----------------------------------------------------------
+  | Variables for configuring mail package
+  |----------------------------------------------------------
+  */
+  SMTP_HOST: Env.schema.string.optional(),
+  SMTP_PORT: Env.schema.number.optional(),
+  SMTP_USERNAME: Env.schema.string.optional(),
+  SMTP_PASSWORD: Env.schema.string.optional(),
+  RESEND_API_KEY: Env.schema.string.optional(),
+  MAIL_FROM_ADDRESS: Env.schema.string.optional(),
+  MAIL_FROM_NAME: Env.schema.string.optional(),
 })

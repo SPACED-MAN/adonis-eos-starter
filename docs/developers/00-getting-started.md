@@ -134,3 +134,4 @@ adonis-eos/
 - [MCP (Model Context Protocol)](10-mcp.md) - Connect external AI tools (Cursor, n8n) to CMS context + safe write tools
 - [Content Management](../editors/01-content-management.md) - Managing posts and pages
 - [CLI Commands](21-cli-commands.md) - Scaffold post types, modules, roles, menus, taxonomies
+- [Email Configuration](25-email-configuration.md) - Setup SMTP/Resend for password resets and notifications

@@ -43,6 +43,7 @@ Technical documentation for developers and system administrators:
 - [Update Philosophy](developers/20-update-philosophy.md) - How to approach upgrades and maintenance
 - [Export/Import](developers/12-export-import.md) - Database export/import pipeline (dev seeding + production promotion)
 - [CLI Commands](developers/21-cli-commands.md) - Code-first makers (post types, modules, roles, menus, taxonomies)
+- [Email Configuration](developers/25-email-configuration.md) - SMTP/Resend setup and password reset flow
 
 <!-- Coming Soon:
 - Post Types - Defining custom content types
