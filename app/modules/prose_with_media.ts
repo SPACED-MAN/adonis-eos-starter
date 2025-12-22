@@ -14,29 +14,33 @@ export default class ProseWithMediaModule extends BaseModule {
       icon: 'layout-text-media',
       allowedScopes: ['local', 'global'],
       lockable: true,
-      propsSchema: {
-        title: {
+      fieldSchema: [
+        {
+          slug: 'title',
           type: 'text',
           label: 'Title',
           required: true,
           description: 'Main heading text',
           translatable: true,
         },
-        body: {
+        {
+          slug: 'body',
           type: 'richtext',
           label: 'Body',
           required: false,
           description: 'Supporting rich text content below the title (Lexical JSON)',
           translatable: true,
         },
-        image: {
+        {
+          slug: 'image',
           type: 'media',
           label: 'Media',
           accept: 'image/*,video/*',
-          storeAs: 'id',
+          config: { storeAs: 'id' },
           description: 'Image or video shown beside the prose (stored as media ID).',
         },
-        imagePosition: {
+        {
+          slug: 'imagePosition',
           type: 'select',
           label: 'Image Position',
           description: 'Which side the media appears on for larger screens',
@@ -44,28 +48,28 @@ export default class ProseWithMediaModule extends BaseModule {
             { label: 'Left', value: 'left' },
             { label: 'Right', value: 'right' },
           ],
-          default: 'left',
         },
-        primaryCta: {
+        {
+          slug: 'primaryCta',
           type: 'object',
           label: 'Primary CTA',
           description: 'Main call-to-action button beneath the prose',
           fields: [
             {
-              name: 'label',
+              slug: 'label',
               type: 'text',
               label: 'Label',
               translatable: true,
             },
             {
-              name: 'url',
+              slug: 'url',
               type: 'link',
               label: 'Destination',
             },
           ],
         },
-      },
-      defaultProps: {
+      ],
+      defaultValues: {
         title: "Let's create more tools and ideas that bring us together.",
         body: {
           root: {

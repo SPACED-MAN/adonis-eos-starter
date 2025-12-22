@@ -26,10 +26,8 @@ export default class SeparatorModule extends BaseModule {
       icon: 'minus',
       allowedScopes: ['local'],
       lockable: false,
-      propsSchema: {
-        // No custom fields - this is a pure presentational component
-      },
-      defaultProps: {},
+      fieldSchema: [],
+      defaultValues: {},
       allowedPostTypes: [], // Available for all post types
     }
   }

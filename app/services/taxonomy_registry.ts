@@ -1,4 +1,4 @@
-import type { PostTypeField } from '../types/custom_field.ts'
+import type { CustomFieldDefinition } from '../types/custom_field.ts'
 
 export type RegisteredTaxonomyConfig = {
   slug: string
@@ -6,7 +6,7 @@ export type RegisteredTaxonomyConfig = {
   hierarchical: boolean
   freeTagging: boolean
   maxSelections?: number | null
-  fields?: PostTypeField[]
+  fields?: CustomFieldDefinition[]
 }
 
 class TaxonomyRegistry {

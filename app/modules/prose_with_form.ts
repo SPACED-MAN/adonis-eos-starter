@@ -15,28 +15,32 @@ export default class ProseWithFormModule extends BaseModule {
       icon: 'layout-text-sidebar',
       allowedScopes: ['local', 'global'],
       lockable: true,
-      propsSchema: {
-        title: {
+      fieldSchema: [
+        {
+          slug: 'title',
           type: 'text',
           label: 'Title',
           required: true,
           description: 'Main heading text',
           translatable: true,
         },
-        body: {
+        {
+          slug: 'body',
           type: 'textarea',
           label: 'Body',
           required: false,
           description: 'Supporting prose-style paragraph below the title',
           translatable: true,
         },
-        formSlug: {
+        {
+          slug: 'formSlug',
           type: 'form-reference',
           label: 'Form',
           required: true,
           description: 'Form to embed (e.g., contact). Choose from Forms defined in the admin.',
         },
-        layout: {
+        {
+          slug: 'layout',
           type: 'select',
           label: 'Form Position',
           description: 'Which side the form appears on for larger screens',
@@ -44,10 +48,9 @@ export default class ProseWithFormModule extends BaseModule {
             { label: 'Form on right', value: 'form-right' },
             { label: 'Form on left', value: 'form-left' },
           ],
-          default: 'form-right',
         },
-      },
-      defaultProps: {
+      ],
+      defaultValues: {
         title: "Let's talk about your next project.",
         body: 'Use this section to tell a short story about how your team partners with customers, and include a simple form for follow-up.',
         formSlug: 'contact',

@@ -7,6 +7,8 @@
  */
 export type ModuleScope = 'local' | 'global'
 
+import type { CustomFieldDefinition } from './custom_field.js'
+
 /**
  * Module configuration metadata
  */
@@ -47,14 +49,14 @@ export interface ModuleConfig {
   lockable: boolean
 
   /**
-   * JSON schema for module props validation (omit when module has no props)
+   * Definitions for module custom fields
    */
-  propsSchema?: Record<string, any>
+  fieldSchema?: CustomFieldDefinition[]
 
   /**
-   * Default props for new instances (omit when module has no props)
+   * Default values for new instances
    */
-  defaultProps?: Record<string, any>
+  defaultValues?: Record<string, any>
 
   /**
    * Which post types can use this module (empty = all)
@@ -154,7 +156,7 @@ export interface ModuleInstanceData {
   scope: ModuleScope
   type: string
   globalSlug?: string | null
-  props: Record<string, any>
+  fields: Record<string, any>
   createdAt: Date
   updatedAt: Date
 }
@@ -179,7 +181,7 @@ export interface PostModuleData {
 export interface MergedModuleData {
   type: string
   scope: ModuleScope
-  props: Record<string, any> // Base props + overrides merged
+  fields: Record<string, any> // Base fields + overrides merged
   locked: boolean
   orderIndex: number
 }

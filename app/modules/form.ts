@@ -32,26 +32,29 @@ export default class FormModule extends BaseModule {
         compositionNotes:
           'Commonly placed near the bottom of a landing page or after a persuasive content section. Keep surrounding copy short and specific.',
       },
-      propsSchema: {
-        title: {
-          type: 'string',
+      fieldSchema: [
+        {
+          slug: 'title',
+          type: 'text',
           required: false,
           description: 'Optional heading shown above the form',
           translatable: true,
         },
-        subtitle: {
+        {
+          slug: 'subtitle',
           type: 'textarea',
           required: false,
           description: 'Optional supporting copy shown below the heading',
           translatable: true,
         },
-        formSlug: {
+        {
+          slug: 'formSlug',
           type: 'form-reference',
           required: true,
           description: 'Form to render (e.g., contact). Choose from Forms defined in the admin.',
         },
-      },
-      defaultProps: {
+      ],
+      defaultValues: {
         title: 'Contact us',
         subtitle: 'Fill out the form and our team will get back to you shortly.',
         formSlug: 'contact',

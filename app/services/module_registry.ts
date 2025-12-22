@@ -119,8 +119,8 @@ class ModuleRegistry {
     icon?: string
     allowedScopes: string[]
     lockable: boolean
-    propsSchema: Record<string, any>
-    defaultProps: Record<string, any>
+    fieldSchema: any[]
+    defaultValues: Record<string, any>
     allowedPostTypes?: string[]
     aiGuidance?: {
       useWhen: string[]
@@ -139,8 +139,8 @@ class ModuleRegistry {
       icon: config.icon,
       allowedScopes: config.allowedScopes,
       lockable: config.lockable,
-      propsSchema: config.propsSchema || {},
-      defaultProps: config.defaultProps || {},
+      fieldSchema: config.fieldSchema || [],
+      defaultValues: config.defaultValues || {},
       allowedPostTypes: config.allowedPostTypes,
       aiGuidance: (config as any).aiGuidance,
     }

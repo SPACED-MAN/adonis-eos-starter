@@ -11,83 +11,91 @@ export default class PricingModule extends BaseModule {
       icon: 'tags',
       allowedScopes: ['local', 'global'],
       lockable: true,
-      propsSchema: {
-        title: {
-          type: 'string',
+      fieldSchema: [
+        {
+          slug: 'title',
+          type: 'text',
           required: true,
           description: 'Section heading shown above the pricing grid',
           translatable: true,
         },
-        subtitle: {
+        {
+          slug: 'subtitle',
           type: 'textarea',
           required: false,
           description: 'Short paragraph explaining the pricing section',
           translatable: true,
         },
-        plans: {
-          type: 'array',
+        {
+          slug: 'plans',
+          type: 'repeater',
           required: true,
           description: 'List of pricing plans (up to 3)',
-          maxItems: 3,
-          items: {
+          item: {
             type: 'object',
-            properties: {
-              name: {
-                type: 'string',
+            fields: [
+              {
+                slug: 'name',
+                type: 'text',
                 required: true,
                 description: 'Plan name (e.g., Starter, Company, Enterprise)',
                 translatable: true,
               },
-              description: {
+              {
+                slug: 'description',
                 type: 'textarea',
                 required: false,
                 description: 'Short description of who this plan is for',
                 translatable: true,
               },
-              price: {
-                type: 'string',
+              {
+                slug: 'price',
+                type: 'text',
                 required: true,
                 description: 'Price amount (e.g., 29, 99, 499)',
               },
-              period: {
-                type: 'string',
+              {
+                slug: 'period',
+                type: 'text',
                 required: false,
                 description: 'Billing period label (e.g., /month)',
-                default: '/month',
               },
-              features: {
-                type: 'array',
+              {
+                slug: 'features',
+                type: 'repeater',
                 required: false,
                 description: 'List of feature bullets for this plan',
-                maxItems: 12,
-                items: {
-                  type: 'string',
+                item: {
+                  slug: 'feature',
+                  type: 'text',
                   required: true,
                   translatable: true,
                 },
               },
-              primary: {
+              {
+                slug: 'primary',
                 type: 'boolean',
                 required: false,
                 description: 'Highlights this plan as primary (slightly stronger visual emphasis)',
               },
-              ctaLabel: {
-                type: 'string',
+              {
+                slug: 'ctaLabel',
+                type: 'text',
                 required: false,
                 description: 'Label for the call-to-action button',
                 translatable: true,
-                default: 'Get started',
               },
-              ctaUrl: {
+              {
+                slug: 'ctaUrl',
                 type: 'link',
                 required: false,
                 description: 'Destination for the call-to-action button',
               },
-            },
+            ],
           },
         },
-      },
-      defaultProps: {
+      ],
+      defaultValues: {
         title: 'Designed for business teams like yours',
         subtitle:
           'We focus on markets where technology, innovation, and capital can unlock long-term value and drive economic growth.',

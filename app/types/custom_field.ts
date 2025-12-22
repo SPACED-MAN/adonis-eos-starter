@@ -11,14 +11,37 @@ export const CUSTOM_FIELD_TYPES = [
   'link',
   'post-reference',
   'icon',
+  'object',
+  'repeater',
+  'richtext',
+  'slider',
+  'taxonomy',
 ] as const
 
 export type CustomFieldType = (typeof CUSTOM_FIELD_TYPES)[number]
 
-export type PostTypeField = {
+export interface CustomFieldDefinition {
   slug: string
-  label: string
+  label?: string
   type: CustomFieldType
+  category?: string
   translatable?: boolean
+  required?: boolean
+  placeholder?: string
+  options?: Array<{ label: string; value: any }>
+  fields?: CustomFieldDefinition[] // For 'object' type
+  item?: CustomFieldDefinition // For 'repeater' type
   config?: Record<string, any>
+  // slider/number configuration
+  min?: number
+  max?: number
+  step?: number
+  unit?: string
+  // conditional visibility
+  showIf?: {
+    field: string
+    equals?: any
+    notEquals?: any
+    isVideo?: boolean
+  }
 }

@@ -6,6 +6,8 @@ import { Textarea } from '../../../components/ui/textarea'
 import { toast } from 'sonner'
 import { MediaPickerModal } from '../../components/media/MediaPickerModal'
 import { pickMediaVariantUrl, type MediaVariant } from '../../../lib/media'
+import { CustomFieldRenderer } from '../../components/CustomFieldRenderer'
+import type { CustomFieldDefinition } from '~/types/custom_field'
 
 type Settings = {
   siteTitle: string
@@ -14,11 +16,7 @@ type Settings = {
   defaultOgMediaId: string | null
   logoMediaId: string | null
   profileRolesEnabled: string[]
-  customFieldDefs?: Array<{
-    slug: string
-    label: string
-    type: 'text' | 'url' | 'textarea' | 'boolean' | 'media' | 'form-reference'
-  }>
+  customFieldDefs?: CustomFieldDefinition[]
   customFields?: Record<string, any>
 }
 
@@ -41,30 +39,6 @@ export default function GeneralSettings() {
     customFieldDefs: [],
     customFields: {},
   })
-
-  const fieldComponents = useMemo(() => {
-    const modules = import.meta.glob('../fields/*.tsx', { eager: true }) as Record<
-      string,
-      { default: any }
-    >
-    const map: Record<string, any> = {}
-    Object.entries(modules).forEach(([path, mod]) => {
-      const name = path
-        .split('/')
-        .pop()
-        ?.replace(/\.\w+$/, '')
-      if (name && mod?.default) {
-        map[name] = mod.default
-      }
-    })
-    return map
-  }, [])
-
-  const pascalFromType = (t: string) =>
-    t
-      .split(/[-_]/g)
-      .map((s) => s.charAt(0).toUpperCase() + s.slice(1))
-      .join('')
 
   useEffect(() => {
     let alive = true
@@ -344,54 +318,20 @@ export default function GeneralSettings() {
           {/* Site Custom Fields */}
           {Array.isArray(form.customFieldDefs) && form.customFieldDefs.length > 0 && (
             <div className="border-t border-line-low pt-6">
-              <h3 className="text-base font-semibold text-neutral-high mb-3">Site Fields</h3>
-              <div className="space-y-4">
-                {form.customFieldDefs.map((f) => {
-                  const val = form.customFields?.[f.slug]
-                  const compName = `${pascalFromType(f.type)}Field`
-                  const Renderer = (fieldComponents as Record<string, any>)[compName]
-                  if (Renderer) {
-                    return (
-                      <div key={f.slug}>
-                        <label className="block text-sm font-medium text-neutral-medium mb-1">
-                          {f.label}
-                        </label>
-                        <Renderer
-                          value={val ?? null}
-                          onChange={(next: any) =>
-                            setForm((prev) => ({
-                              ...prev,
-                              customFields: { ...(prev.customFields || {}), [f.slug]: next },
-                            }))
-                          }
-                          {...(f as any)}
-                        />
-                      </div>
-                    )
-                  }
-                  // fallback
-                  return (
-                    <div key={f.slug}>
-                      <label className="block text-sm font-medium text-neutral-medium mb-1">
-                        {f.label}
-                      </label>
-                      <Input
-                        value={typeof val === 'string' ? val : ''}
-                        onChange={(e) =>
-                          setForm((prev) => ({
-                            ...prev,
-                            customFields: {
-                              ...(prev.customFields || {}),
-                              [f.slug]: e.target.value,
-                            },
-                          }))
-                        }
-                        placeholder={f.type === 'url' ? 'https://' : ''}
-                      />
-                    </div>
-                  )
-                })}
-              </div>
+              <h3 className="text-base font-semibold text-neutral-high mb-6">Site Fields</h3>
+              <CustomFieldRenderer
+                definitions={form.customFieldDefs}
+                values={form.customFields || {}}
+                onChange={(slug, val) => {
+                  setForm((prev) => ({
+                    ...prev,
+                    customFields: {
+                      ...(prev.customFields || {}),
+                      [slug]: val,
+                    },
+                  }))
+                }}
+              />
             </div>
           )}
           {/* Profiles enablement */}

@@ -11,29 +11,34 @@ export default class CompanyListModule extends BaseModule {
       icon: 'building',
       allowedScopes: ['local', 'global'],
       lockable: true,
-      propsSchema: {
-        title: {
-          type: 'string',
+      fieldSchema: [
+        {
+          slug: 'title',
+          type: 'text',
           required: true,
           description: 'Section heading shown above the company grid',
           translatable: true,
         },
-        subtitle: {
+        {
+          slug: 'subtitle',
           type: 'textarea',
           required: false,
           description: 'Optional short paragraph describing the customers or partners displayed.',
           translatable: true,
         },
-        companies: {
+        {
+          slug: 'companies',
           type: 'post-reference',
           required: false,
           description:
             'Optional list of specific Companies to feature. If empty, all company posts will be shown.',
-          postTypes: ['company'],
-          allowMultiple: true,
+          config: {
+            postTypes: ['company'],
+            allowMultiple: true,
+          },
         },
-      },
-      defaultProps: {
+      ],
+      defaultValues: {
         title: 'You’ll be in good company',
         subtitle: 'Logos and names of customers or partners, managed via the Company post type.',
         companies: [],

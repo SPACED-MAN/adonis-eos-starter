@@ -44,32 +44,33 @@ export default class GalleryModule extends BaseModule {
         compositionNotes:
           'Works best after explanatory prose. Prefer 6–12 images; keep alt text meaningful and consistent.',
       },
-      propsSchema: {
-        images: {
-          type: 'array',
+      fieldSchema: [
+        {
+          slug: 'images',
+          type: 'repeater',
           required: true,
           description: 'Array of images with url, alt, and optional caption',
           item: {
             type: 'object',
             fields: [
               {
-                name: 'url',
+                slug: 'url',
                 type: 'media',
                 required: true,
                 label: 'Image',
                 accept: 'image/*',
-                storeAs: 'id',
+                config: { storeAs: 'id' },
                 description: 'Select an image from the media library',
               },
               {
-                name: 'alt',
+                slug: 'alt',
                 type: 'text',
                 required: true,
                 label: 'Alt Text',
                 description: 'Alternative text for accessibility',
               },
               {
-                name: 'caption',
+                slug: 'caption',
                 type: 'textarea',
                 required: false,
                 label: 'Caption',
@@ -78,21 +79,24 @@ export default class GalleryModule extends BaseModule {
             ],
           },
         },
-        layout: {
-          type: 'string',
-          default: 'grid',
-          enum: ['grid', 'masonry'],
+        {
+          slug: 'layout',
+          type: 'select',
           description: 'Gallery layout style',
+          options: [
+            { label: 'Grid', value: 'grid' },
+            { label: 'Masonry', value: 'masonry' },
+          ],
         },
-        columns: {
+        {
+          slug: 'columns',
           type: 'number',
-          default: 3,
           min: 1,
           max: 6,
           description: 'Number of columns for grid layout',
         },
-      },
-      defaultProps: {
+      ],
+      defaultValues: {
         images: [],
         layout: 'grid',
         columns: 3,

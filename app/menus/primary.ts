@@ -5,10 +5,10 @@ export const primaryMenuTemplate: MenuTemplate = {
   name: 'Primary',
   description: 'Primary site navigation. Supports mega menu Sections.',
   fields: [
-    { key: 'tagline', label: 'Tagline', type: 'text' },
-    { key: 'ctaText', label: 'CTA Text', type: 'text' },
-    { key: 'ctaUrl', label: 'CTA URL', type: 'url' },
-    { key: 'showSearch', label: 'Show search', type: 'boolean' },
+    { slug: 'tagline', label: 'Tagline', type: 'text', category: 'General' },
+    { slug: 'ctaText', label: 'CTA Text', type: 'text', category: 'Call to Action' },
+    { slug: 'ctaUrl', label: 'CTA URL', type: 'url', category: 'Call to Action' },
+    { slug: 'showSearch', label: 'Show search', type: 'boolean', category: 'General' },
   ],
   render: {
     variant: 'primary',

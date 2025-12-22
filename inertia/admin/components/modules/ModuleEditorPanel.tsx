@@ -7,7 +7,6 @@ import { Checkbox } from '~/components/ui/checkbox'
 import { Slider } from '~/components/ui/slider'
 import { Calendar } from '~/components/ui/calendar'
 import { Input } from '~/components/ui/input'
-import { Textarea } from '~/components/ui/textarea'
 import {
   Select,
   SelectTrigger,
@@ -25,6 +24,7 @@ import { faWandMagicSparkles } from '@fortawesome/free-solid-svg-icons'
 import { iconOptions, iconMap } from '../ui/iconOptions'
 import { AgentModal, type Agent } from '../agents/AgentModal'
 import { useHasPermission } from '~/utils/permissions'
+import { CustomFieldDefinition } from '~/types/custom_field'
 
 import { TokenField } from '../ui/TokenField'
 
@@ -41,45 +41,11 @@ export interface ModuleListItem {
   adminLabel?: string | null
 }
 
-type FieldSchema =
-  | {
-    name: string
-    label?: string
-    type:
-    | 'text'
-    | 'textarea'
-    | 'number'
-    | 'select'
-    | 'multiselect'
-    | 'boolean'
-    | 'date'
-    | 'url'
-    | 'media'
-    | 'object'
-    | 'repeater'
-    | 'slider'
-    | 'icon'
-    required?: boolean
-    placeholder?: string
-    options?: Array<{ label: string; value: string }>
-    fields?: FieldSchema[] // for object
-    item?: FieldSchema // for repeater
-    // slider configuration (optional)
-    min?: number
-    max?: number
-    step?: number
-    unit?: string
-    showIf?: {
-      field: string
-      equals?: any
-      notEquals?: any
-      isVideo?: boolean
-    }
-  }
-  | { name: string;[key: string]: any }
-
 // Cache module schemas by type to avoid N identical fetches when rendering multiple editors.
-const moduleSchemaCache = new Map<string, { schema: FieldSchema[] | null; label: string | null }>()
+const moduleSchemaCache = new Map<
+  string,
+  { schema: CustomFieldDefinition[] | null; label: string | null }
+>()
 
 export async function prefetchModuleSchemas(moduleTypes: string[]): Promise<void> {
   const unique = Array.from(new Set(moduleTypes.filter(Boolean)))
@@ -94,18 +60,20 @@ export async function prefetchModuleSchemas(moduleTypes: string[]): Promise<void
         })
         const json = await res.json().catch(() => null)
         const ps =
+          json?.data?.fieldSchema ||
+          json?.fieldSchema ||
           json?.data?.propsSchema ||
           json?.propsSchema ||
-          (json?.data?.schema ? json?.data?.schema?.propsSchema : null) ||
+          (json?.data?.schema ? json?.data?.schema?.fieldSchema || json?.data?.schema?.propsSchema : null) ||
           null
         const friendlyName: string | null =
           (json?.data && (json.data.name as string | undefined)) ||
           (json && (json.name as string | undefined)) ||
           null
         if (ps && typeof ps === 'object') {
-          const fields: FieldSchema[] = Object.keys(ps).map((k) => {
+          const fields: CustomFieldDefinition[] = Object.keys(ps).map((k) => {
             const def = (ps as any)[k] || {}
-            return { name: k, ...(def || {}) }
+            return { slug: k, ...(def || {}) }
           })
           moduleSchemaCache.set(type, { schema: fields, label: friendlyName || type })
         } else {
@@ -125,7 +93,7 @@ type EditorFieldCtx = {
   supportedFieldTypes: Set<string>
   pascalFromType: (t: string) => string
   setByPath: (obj: Record<string, any>, path: string, value: any) => void
-  getLabel: (path: string[], field: FieldSchema) => string
+  getLabel: (path: string[], field: CustomFieldDefinition) => string
   syncFormToDraft: () => Record<string, any>
   getByPath: (obj: Record<string, any>, path: string) => any
   // NOTE: Inline editors use a <div> container; modal editor uses a <form>.
@@ -198,8 +166,8 @@ function humanizeKey(raw: string): string {
   return words.join(' ')
 }
 
-function getLabel(path: string[], field: FieldSchema): string {
-  const explicit = (field as any).label
+function getLabel(path: string[], field: CustomFieldDefinition): string {
+  const explicit = field.label
   if (explicit) return explicit as string
   const key = path[path.length - 1] || ''
   return humanizeKey(key)
@@ -230,7 +198,7 @@ function useIsDarkMode() {
   return isDark
 }
 
-function mergeProps(
+function mergeFields(
   base: Record<string, any>,
   overrides: Record<string, any> | null
 ): Record<string, any> {
@@ -240,7 +208,7 @@ function mergeProps(
     const overrideVal = overrides[key]
     const baseVal = base[key]
     if (isPlainObject(overrideVal) && isPlainObject(baseVal)) {
-      result[key] = mergeProps(baseVal, overrideVal)
+      result[key] = mergeFields(baseVal, overrideVal)
     } else {
       result[key] = overrideVal
     }
@@ -341,11 +309,11 @@ export function ModuleEditorPanel({
   customFields?: Array<{ slug: string; label: string }>
 }) {
   const merged = useMemo(
-    () => (moduleItem ? mergeProps(moduleItem.props || {}, moduleItem.overrides || null) : {}),
+    () => (moduleItem ? mergeFields(moduleItem.props || {}, moduleItem.overrides || null) : {}),
     [moduleItem]
   )
   const [draft, setDraft] = useState<Record<string, any>>(merged)
-  const [schema, setSchema] = useState<FieldSchema[] | null>(() => {
+  const [schema, setSchema] = useState<CustomFieldDefinition[] | null>(() => {
     const cached = moduleItem ? moduleSchemaCache.get(moduleItem.type) : null
     return cached ? cached.schema : null
   })
@@ -489,7 +457,7 @@ export function ModuleEditorPanel({
 
   useEffect(() => {
     if (!open || !moduleItem) return
-    setDraft(mergeProps(moduleItem.props || {}, moduleItem.overrides || null))
+    setDraft(mergeFields(moduleItem.props || {}, moduleItem.overrides || null))
     setModuleLabel(null)
     // Only reinitialize when the selection changes, not on object identity churn
   }, [open, moduleItem?.id])
@@ -525,9 +493,9 @@ export function ModuleEditorPanel({
             setModuleLabel(friendlyName || moduleItem.type)
           }
           if (ps && typeof ps === 'object') {
-            const fields: FieldSchema[] = Object.keys(ps).map((k) => {
+            const fields: CustomFieldDefinition[] = Object.keys(ps).map((k) => {
               const def = (ps as any)[k] || {}
-              return { name: k, ...(def || {}) }
+              return { slug: k, ...(def || {}) }
             })
             if (alive) setSchema(fields)
             moduleSchemaCache.set(moduleItem.type, { schema: fields, label: friendlyName || moduleItem.type })
@@ -544,7 +512,7 @@ export function ModuleEditorPanel({
     }
   }, [open, moduleItem?.type])
 
-  const ctx = useMemo(
+  const ctx: EditorFieldCtx = useMemo(
     () => ({
       latestDraft,
       setDraft,
@@ -562,7 +530,7 @@ export function ModuleEditorPanel({
       fieldAgents,
       viewMode,
       customFields,
-      onDirty,
+      onDirty: undefined,
     }),
     [
       setDraft,
@@ -576,7 +544,6 @@ export function ModuleEditorPanel({
       fieldAgents,
       viewMode,
       customFields,
-      onDirty,
     ]
   )
 
@@ -662,7 +629,7 @@ export function ModuleEditorPanel({
       >
         <div className="px-5 py-4 border-b border-line-low flex items-center justify-between">
           <h3 className="text-sm font-semibold text-neutral-high">
-            Edit Module — {moduleLabel || moduleItem.type}
+            Module Custom Fields — {moduleLabel || moduleItem.type}
           </h3>
         </div>
         {moduleItem.scope === 'global' && (
@@ -685,16 +652,36 @@ export function ModuleEditorPanel({
         >
           <fieldset disabled={processing || moduleItem.scope === 'global'} className="contents">
             {schema && schema.length > 0 ? (
-              schema.map((f) => (
-                <FieldBySchemaInternal
-                  key={(f as any).name}
-                  path={[(f as any).name]}
-                  field={f}
-                  value={draft ? draft[(f as any).name] : undefined}
-                  rootId={moduleItem.id}
-                  ctx={ctx}
-                />
-              ))
+              (() => {
+                const groups: Record<string, CustomFieldDefinition[]> = {}
+                schema.forEach((f) => {
+                  const cat = f.category || 'General'
+                  if (!groups[cat]) groups[cat] = []
+                  groups[cat].push(f)
+                })
+
+                return Object.entries(groups).map(([category, fields]) => (
+                  <div key={category} className="mb-8 space-y-4">
+                    {category !== 'General' && (
+                      <h4 className="text-[11px] font-bold text-neutral-medium uppercase tracking-wider border-b border-line-low pb-2 mb-4">
+                        {category}
+                      </h4>
+                    )}
+                    <div className="space-y-4">
+                      {fields.map((f) => (
+                        <FieldBySchemaInternal
+                          key={f.slug}
+                          path={[f.slug]}
+                          field={f}
+                          value={draft ? draft[f.slug] : undefined}
+                          rootId={moduleItem.id}
+                          ctx={ctx}
+                        />
+                      ))}
+                    </div>
+                  </div>
+                ))
+              })()
             ) : isNoFieldModule || fallbackDraftKeys.length === 0 ? (
               <p className="text-sm text-neutral-low">No editable fields.</p>
             ) : (
@@ -737,7 +724,7 @@ export function ModuleEditorPanel({
                             const next = JSON.parse(JSON.stringify(draft))
                             setByPath(next, key, json)
                             setDraft(next)
-                            if (ctx.onDirty) ctx.onDirty()
+                            ctx.onDirty?.()
                           },
                         })
                       ) : (
@@ -759,7 +746,7 @@ export function ModuleEditorPanel({
                             const next = JSON.parse(JSON.stringify(draft))
                             setByPath(next, key, json)
                             setDraft(next)
-                            if (ctx.onDirty) ctx.onDirty()
+                            ctx.onDirty?.()
                           }}
                         />
                       )}
@@ -880,11 +867,11 @@ export const ModuleEditorInline = memo(function ModuleEditorInline({
   customFields?: Array<{ slug: string; label: string }>
 }) {
   const merged = useMemo(
-    () => (moduleItem ? mergeProps(moduleItem.props || {}, moduleItem.overrides || null) : {}),
+    () => (moduleItem ? mergeFields(moduleItem.props || {}, moduleItem.overrides || null) : {}),
     [moduleItem]
   )
   const [draft, setDraft] = useState<Record<string, any>>(merged)
-  const [schema, setSchema] = useState<FieldSchema[] | null>(() => {
+  const [schema, setSchema] = useState<CustomFieldDefinition[] | null>(() => {
     const cached = moduleItem ? moduleSchemaCache.get(moduleItem.type) : null
     return cached ? cached.schema : null
   })
@@ -1024,7 +1011,7 @@ export const ModuleEditorInline = memo(function ModuleEditorInline({
     }
 
     // Only reset draft if ID actually changed AND we don't have pending edits
-    const newDraft = mergeProps(moduleItem.props || {}, moduleItem.overrides || null)
+    const newDraft = mergeFields(moduleItem.props || {}, moduleItem.overrides || null)
 
     // Double-check: if we have pending edits, NEVER reset, even if props changed
     // This is a safety check in case the pending ref check above failed
@@ -1075,9 +1062,9 @@ export const ModuleEditorInline = memo(function ModuleEditorInline({
             null
           if (alive) setModuleLabel(friendlyName || moduleItem.type)
           if (ps && typeof ps === 'object') {
-            const fields: FieldSchema[] = Object.keys(ps).map((k) => {
+            const fields: CustomFieldDefinition[] = Object.keys(ps).map((k) => {
               const def = (ps as any)[k] || {}
-              return { name: k, ...(def || {}) }
+              return { slug: k, ...(def || {}) }
             })
             if (alive) setSchema(fields)
             moduleSchemaCache.set(moduleItem.type, { schema: fields, label: friendlyName || moduleItem.type })
@@ -1387,28 +1374,46 @@ export const ModuleEditorInline = memo(function ModuleEditorInline({
       >
         <fieldset disabled={processing || moduleItem.scope === 'global'} className={moduleItem.scope === 'global' ? 'opacity-60' : ''}>
           {schema && schema.length > 0 ? (
-            schema.map((f) => {
-              // If we have pending unsaved changes for this field, use the pending value
-              // This prevents React from resetting the input when parent re-renders
-              const fieldName = (f as any).name
-              const pendingRef = pendingInputValueRef.current
-              const hasPendingValue = pendingRef?.name === fieldName &&
-                pendingRef?.rootId === moduleItem.id
-              const pendingValue = hasPendingValue && pendingRef ? pendingRef.value : null
-              const draftValue = draft ? draft[fieldName] : undefined
-              const valueToUse = pendingValue !== null ? pendingValue : draftValue
+            (() => {
+              const groups: Record<string, CustomFieldDefinition[]> = {}
+              schema.forEach((f) => {
+                const cat = f.category || 'General'
+                if (!groups[cat]) groups[cat] = []
+                groups[cat].push(f)
+              })
 
-              return (
-                <FieldBySchemaInternal
-                  key={fieldName}
-                  path={[fieldName]}
-                  field={f}
-                  value={valueToUse}
-                  rootId={moduleItem.id}
-                  ctx={ctx}
-                />
-              )
-            })
+              return Object.entries(groups).map(([category, fields]) => (
+                <div key={category} className="mb-8 space-y-4">
+                  {category !== 'General' && (
+                    <h4 className="text-[11px] font-bold text-neutral-medium uppercase tracking-wider border-b border-line-low pb-2 mb-4">
+                      {category}
+                    </h4>
+                  )}
+                  <div className="space-y-4">
+                    {fields.map((f) => {
+                      const fieldName = f.slug
+                      const pendingRef = pendingInputValueRef.current
+                      const hasPendingValue =
+                        pendingRef?.name === fieldName && pendingRef?.rootId === moduleItem.id
+                      const pendingValue = hasPendingValue && pendingRef ? pendingRef.value : null
+                      const draftValue = draft ? draft[fieldName] : undefined
+                      const valueToUse = pendingValue !== null ? pendingValue : draftValue
+
+                      return (
+                        <FieldBySchemaInternal
+                          key={fieldName}
+                          path={[fieldName]}
+                          field={f}
+                          value={valueToUse}
+                          rootId={moduleItem.id}
+                          ctx={ctx}
+                        />
+                      )
+                    })}
+                  </div>
+                </div>
+              ))
+            })()
           ) : isNoFieldModule || fallbackDraftKeys.length === 0 ? (
             <p className="text-sm text-neutral-low">No editable fields.</p>
           ) : (
@@ -2481,7 +2486,7 @@ const FieldPrimitiveInternal = memo(({
   ctx,
 }: {
   path: string[]
-  field: FieldSchema
+  field: CustomFieldDefinition
   value: any
   rootId: string
   ctx: EditorFieldCtx
@@ -2760,7 +2765,7 @@ const FieldBySchemaInternal = memo(({
   ctx,
 }: {
   path: string[]
-  field: FieldSchema
+  field: CustomFieldDefinition
   value: any
   rootId: string
   ctx: EditorFieldCtx
@@ -2790,17 +2795,17 @@ const FieldBySchemaInternal = memo(({
   const name = path.join('.')
   const label = ctx.getLabel(path, field)
   if (type === 'object') {
-    // Support both `fields: FieldSchema[]` and `properties: { [key]: schema }`
+    // Support both `fields: CustomFieldDefinition[]` and `properties: { [key]: schema }`
     const rawFields: any = (field as any).fields
-    let objectFields: FieldSchema[] | null = null
+    let objectFields: CustomFieldDefinition[] | null = null
 
     if (Array.isArray(rawFields)) {
-      objectFields = rawFields as FieldSchema[]
+      objectFields = rawFields as CustomFieldDefinition[]
     } else if ((field as any).properties && typeof (field as any).properties === 'object') {
       const props = (field as any).properties as Record<string, any>
       objectFields = Object.keys(props).map((propName) => {
         const def = props[propName] || {}
-        return { name: propName, ...(def as any) } as FieldSchema
+        return { slug: propName, ...(def as any) } as CustomFieldDefinition
       })
     }
 
@@ -2811,10 +2816,10 @@ const FieldBySchemaInternal = memo(({
           <div className="grid grid-cols-1 gap-4">
             {objectFields.map((f) => (
               <FieldBySchemaInternal
-                key={`${name}.${(f as any).name}`}
-                path={[...path, (f as any).name]}
+                key={`${name}.${f.slug}`}
+                path={[...path, f.slug]}
                 field={f}
-                value={value ? value[(f as any).name] : undefined}
+                value={value ? value[f.slug] : undefined}
                 rootId={rootId}
                 ctx={ctx}
               />
@@ -2826,23 +2831,23 @@ const FieldBySchemaInternal = memo(({
   }
   if (type === 'repeater' || type === 'array') {
     const items: any[] = Array.isArray(value) ? value : []
-    const rawItemSchema: FieldSchema | undefined = (field as any).item
+    const rawItemSchema: CustomFieldDefinition | undefined = (field as any).item
     const rawItemsDef: any = (field as any).items
 
-    let itemSchema: FieldSchema | undefined = rawItemSchema
+    let itemSchema: CustomFieldDefinition | undefined = rawItemSchema
 
     // Support "array + items.properties" shape from backend by mapping to a repeater item schema
     if (!itemSchema && rawItemsDef) {
       const itemsType = (rawItemsDef as any).type
       const props = (rawItemsDef as any).properties
       if (itemsType === 'object' && props && typeof props === 'object') {
-        const fields: FieldSchema[] = Object.keys(props).map((propName) => {
+        const fields: CustomFieldDefinition[] = Object.keys(props).map((propName) => {
           const def = (props as any)[propName] || {}
-          return { name: propName, ...(def || {}) }
+          return { slug: propName, ...(def || {}) }
         })
-        itemSchema = { name: 'item', type: 'object', fields } as any
+        itemSchema = { slug: 'item', type: 'object', fields } as any
       } else {
-        itemSchema = { name: 'item', ...(rawItemsDef || {}) } as any
+        itemSchema = { slug: 'item', ...(rawItemsDef || {}) } as any
       }
     }
     return (
@@ -2925,12 +2930,12 @@ const FieldBySchemaInternal = memo(({
                   {(itemSchema as any).type === 'object' &&
                     Array.isArray((itemSchema as any).fields) ? (
                     <>
-                      {((itemSchema as any).fields as FieldSchema[]).map((f) => (
+                      {((itemSchema as any).fields as CustomFieldDefinition[]).map((f) => (
                         <FieldBySchemaInternal
-                          key={`${name}.${idx}.${(f as any).name}`}
-                          path={[...path, String(idx), (f as any).name]}
+                          key={`${name}.${idx}.${f.slug}`}
+                          path={[...path, String(idx), f.slug]}
                           field={f}
-                          value={it ? it[(f as any).name] : undefined}
+                          value={it ? it[f.slug] : undefined}
                           rootId={rootId}
                           ctx={ctx}
                         />
@@ -2939,7 +2944,7 @@ const FieldBySchemaInternal = memo(({
                   ) : (
                     <FieldBySchemaInternal
                       path={[...path, String(idx)]}
-                      field={{ ...itemSchema, name: String(idx), hideLabel: true } as any}
+                      field={{ ...itemSchema, slug: String(idx), hideLabel: true } as any}
                       value={it}
                       rootId={rootId}
                       ctx={ctx}
@@ -2974,7 +2979,7 @@ const FieldBySchemaInternal = memo(({
                 if (t === 'object' && Array.isArray((itemSchema as any).fields)) {
                   empty = {}
                     ; (itemSchema as any).fields.forEach((f: any) => {
-                      empty[f.name] = f.type === 'number' ? 0 : f.type === 'boolean' ? false : ''
+                      empty[f.slug] = f.type === 'number' ? 0 : f.type === 'boolean' ? false : ''
                     })
                 } else if (t === 'number') {
                   empty = 0

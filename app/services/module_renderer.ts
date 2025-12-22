@@ -101,7 +101,7 @@ class ModuleRenderer {
       moduleId: string
       type: string
       scope: 'local' | 'global' | 'static'
-      props: Record<string, any>
+      fields: Record<string, any>
       overrides: Record<string, any> | null
       locked: boolean
       orderIndex: number
@@ -111,10 +111,10 @@ class ModuleRenderer {
     // Get module from registry
     const module = moduleRegistry.get(postModule.type)
 
-    // Merge defaults + base props + overrides
-    const defaultProps = (module.getConfig?.().defaultProps || {}) as Record<string, any>
-    const mergedProps = module.mergeProps(
-      { ...defaultProps, ...(postModule.props || {}) },
+    // Merge defaults + base fields + overrides
+    const defaultValues = (module.getConfig?.().defaultValues || {}) as Record<string, any>
+    const mergedFields = module.mergeFields(
+      { ...defaultValues, ...(postModule.fields || {}) },
       postModule.overrides
     )
 
@@ -122,13 +122,13 @@ class ModuleRenderer {
     const mergedData = {
       type: postModule.type,
       scope: postModule.scope,
-      props: mergedProps,
+      fields: mergedFields,
       locked: postModule.locked,
       orderIndex: postModule.orderIndex,
     } as {
       type: string
       scope: 'local' | 'global' | 'static'
-      props: Record<string, any>
+      fields: Record<string, any>
       locked: boolean
       orderIndex: number
     }
@@ -166,7 +166,7 @@ class ModuleRenderer {
       moduleId: row.moduleId,
       type: row.type,
       scope: row.scope,
-      props: row.props || {},
+      fields: row.props || {},
       overrides: row.overrides || null,
       locked: row.locked,
       orderIndex: row.orderIndex,
@@ -206,9 +206,9 @@ class ModuleRenderer {
     // Get module from registry
     const module = moduleRegistry.get(instance.type)
 
-    // Merge props with overrides if provided
-    const mergedProps = options.overrides
-      ? module.mergeProps(instance.props || {}, options.overrides)
+    // Merge fields with overrides if provided
+    const mergedFields = options.overrides
+      ? module.mergeFields(instance.props || {}, options.overrides)
       : instance.props || {}
 
     // Prepare context
@@ -225,7 +225,7 @@ class ModuleRenderer {
     const mergedData = {
       type: instance.type,
       scope: 'global' as const,
-      props: mergedProps,
+      fields: mergedFields,
       locked: false,
       orderIndex: 0,
     }
@@ -248,7 +248,7 @@ class ModuleRenderer {
     data: {
       type: string
       scope: 'local' | 'global' | 'static'
-      props: Record<string, any>
+      fields: Record<string, any>
       locked: boolean
       orderIndex: number
     },
@@ -276,7 +276,7 @@ class ModuleRenderer {
         cacheKey =
           typeof module.generateCacheKey === 'function'
             ? module.generateCacheKey(data, context)
-            : `module:${data.type}:${context.locale}:${JSON.stringify(data.props)}`
+            : `module:${data.type}:${context.locale}:${JSON.stringify(data.fields)}`
 
         const cached = await redis.get(cacheKey as string)
         if (cached) {

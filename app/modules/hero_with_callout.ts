@@ -10,43 +10,47 @@ export default class HeroWithCalloutModule extends BaseModule {
       icon: 'megaphone',
       allowedScopes: ['local', 'global'],
       lockable: true,
-      propsSchema: {
-        title: {
-          type: 'string',
+      fieldSchema: [
+        {
+          slug: 'title',
+          type: 'text',
           required: true,
           description: 'Main heading text',
           translatable: true,
         },
-        subtitle: {
+        {
+          slug: 'subtitle',
           type: 'textarea',
           required: false,
           description: 'Supporting text below the title',
           translatable: true,
         },
-        callouts: {
-          type: 'array',
+        {
+          slug: 'callouts',
+          type: 'repeater',
           required: false,
           description: 'Call-to-action buttons',
-          maxItems: 12,
-          items: {
+          item: {
             type: 'object',
-            properties: {
-              label: {
-                type: 'string',
+            fields: [
+              {
+                slug: 'label',
+                type: 'text',
                 required: true,
                 translatable: true,
                 description: 'Button text',
               },
-              url: {
+              {
+                slug: 'url',
                 type: 'link',
                 required: true,
                 description: 'Button destination',
               },
-            },
+            ],
           },
         },
-      },
-      defaultProps: {
+      ],
+      defaultValues: {
         title: "We invest in the world's potential",
         subtitle:
           'We focus on markets where technology, innovation, and capital can unlock long-term value and drive durable growth.',

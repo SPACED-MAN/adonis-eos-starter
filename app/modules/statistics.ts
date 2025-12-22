@@ -14,36 +14,39 @@ export default class StatisticsModule extends BaseModule {
       icon: 'chart-donut',
       allowedScopes: ['local', 'global'],
       lockable: true,
-      propsSchema: {
-        stats: {
-          type: 'array',
+      fieldSchema: [
+        {
+          slug: 'stats',
+          type: 'repeater',
           required: true,
           description: 'List of statistics to display (e.g., 73M+ developers).',
-          maxItems: 12,
-          items: {
+          item: {
             type: 'object',
-            properties: {
-              value: {
+            fields: [
+              {
+                slug: 'value',
                 type: 'number',
                 required: true,
                 description: 'Base numeric value used for the animated counter.',
               },
-              suffix: {
-                type: 'string',
+              {
+                slug: 'suffix',
+                type: 'text',
                 required: false,
                 description: 'Suffix or unit to display after the number (e.g., %, M+, B+).',
               },
-              label: {
-                type: 'string',
+              {
+                slug: 'label',
+                type: 'text',
                 required: true,
                 description: 'Short label describing the statistic.',
                 translatable: true,
               },
-            },
+            ],
           },
         },
-      },
-      defaultProps: {
+      ],
+      defaultValues: {
         stats: [
           { value: 73_000_000, suffix: 'M+', label: 'developers' },
           { value: 1_000_000_000, suffix: 'B+', label: 'contributors' },

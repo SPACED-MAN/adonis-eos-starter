@@ -4,6 +4,8 @@ import { AdminHeader } from '../../components/AdminHeader'
 import { AdminFooter } from '../../components/AdminFooter'
 import { toast } from 'sonner'
 import { Checkbox } from '../../../components/ui/checkbox'
+import { CustomFieldRenderer } from '../../components/CustomFieldRenderer'
+import type { CustomFieldDefinition } from '~/types/custom_field'
 import {
   Select,
   SelectContent,
@@ -86,12 +88,7 @@ export default function MenusIndex() {
       slug: string
       name: string
       description?: string
-      fields?: Array<{
-        key: string
-        label: string
-        type: 'text' | 'url' | 'boolean'
-        multiline?: boolean
-      }>
+      fields?: CustomFieldDefinition[]
     }>
   >([])
   const [savingMenuMeta, setSavingMenuMeta] = useState<boolean>(false)
@@ -744,52 +741,14 @@ export default function MenusIndex() {
                             {savingMenuMeta ? 'Saving…' : 'Save Settings'}
                           </button>
                         </div>
-                        <div className="mt-1 grid grid-cols-1 md:grid-cols-2 gap-3">
-                          {tmpl?.fields?.map((f) => (
-                            <div key={f.key} className="flex flex-col gap-1">
-                              <label className="text-xs text-neutral-medium">{f.label}</label>
-                              {f.type === 'boolean' ? (
-                                <label className="inline-flex items-center gap-2 text-sm text-neutral-high">
-                                  <Checkbox
-                                    checked={!!menuMeta[f.key]}
-                                    onCheckedChange={(c) =>
-                                      setMenuMeta((prev) => ({ ...prev, [f.key]: !!c }))
-                                    }
-                                  />
-                                  {f.label}
-                                </label>
-                              ) : f.type === 'text' ? (
-                                f.multiline ? (
-                                  <textarea
-                                    className="px-2 py-1 text-sm border border-line-low bg-backdrop-input text-neutral-high"
-                                    rows={3}
-                                    value={String(menuMeta[f.key] ?? '')}
-                                    onChange={(e) =>
-                                      setMenuMeta((prev) => ({ ...prev, [f.key]: e.target.value }))
-                                    }
-                                  />
-                                ) : (
-                                  <input
-                                    className="px-2 py-1 text-sm border border-line-low bg-backdrop-input text-neutral-high"
-                                    value={String(menuMeta[f.key] ?? '')}
-                                    onChange={(e) =>
-                                      setMenuMeta((prev) => ({ ...prev, [f.key]: e.target.value }))
-                                    }
-                                  />
-                                )
-                              ) : (
-                                <input
-                                  className="px-2 py-1 text-sm border border-line-low bg-backdrop-input text-neutral-high"
-                                  type="url"
-                                  value={String(menuMeta[f.key] ?? '')}
-                                  onChange={(e) =>
-                                    setMenuMeta((prev) => ({ ...prev, [f.key]: e.target.value }))
-                                  }
-                                  placeholder="https://"
-                                />
-                              )}
-                            </div>
-                          ))}
+                        <div className="mt-1">
+                          <CustomFieldRenderer
+                            definitions={tmpl.fields || []}
+                            values={menuMeta}
+                            onChange={(slug, val) =>
+                              setMenuMeta((prev) => ({ ...prev, [slug]: val }))
+                            }
+                          />
                         </div>
                       </div>
                     )

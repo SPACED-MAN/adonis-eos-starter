@@ -11,40 +11,45 @@ export default class BlockquoteModule extends BaseModule {
       icon: 'quote-left',
       allowedScopes: ['local', 'global'],
       lockable: true,
-      propsSchema: {
-        quote: {
+      fieldSchema: [
+        {
+          slug: 'quote',
           type: 'textarea',
           required: true,
           description: 'Quoted testimonial text shown in the blockquote',
           translatable: true,
         },
-        authorName: {
-          type: 'string',
+        {
+          slug: 'authorName',
+          type: 'text',
           required: true,
           description: 'Name of the person quoted',
           translatable: true,
         },
-        authorTitle: {
-          type: 'string',
+        {
+          slug: 'authorTitle',
+          type: 'text',
           required: false,
           description: 'Role or organization for the person quoted',
           translatable: true,
         },
-        avatar: {
+        {
+          slug: 'avatar',
           type: 'media',
           label: 'Avatar',
           accept: 'image/*',
-          storeAs: 'id',
+          config: { storeAs: 'id' },
           required: false,
           description: 'Optional avatar image for the quoted person (stored as media ID)',
         },
-        backgroundColor: {
-          type: 'string',
+        {
+          slug: 'backgroundColor',
+          type: 'text',
           required: false,
           description: 'Optional background utility class for the section',
         },
-      },
-      defaultProps: {
+      ],
+      defaultValues: {
         quote:
           'Flowbite is just awesome. It contains tons of predesigned components and pages starting from login screen to complex dashboard. Perfect choice for your next SaaS application.',
         authorName: 'Michael Gough',

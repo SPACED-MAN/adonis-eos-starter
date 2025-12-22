@@ -15,17 +15,18 @@ export default class KitchenSinkModule extends BaseModule {
       icon: 'flask',
       allowedScopes: ['local', 'global'],
       lockable: false,
-      propsSchema: {
-        postRefs: {
+      fieldSchema: [
+        {
+          slug: 'postRefs',
           type: 'post-reference',
           label: 'Post References',
-          postTypes: ['blog'],
-          allowMultiple: true,
+          config: { postTypes: ['blog'], allowMultiple: true },
         },
-        title: { type: 'text', label: 'Title', required: true, placeholder: 'Enter title' },
-        description: { type: 'textarea', label: 'Description' },
-        count: { type: 'number', label: 'Count' },
-        category: {
+        { slug: 'title', type: 'text', label: 'Title', required: true, placeholder: 'Enter title' },
+        { slug: 'description', type: 'textarea', label: 'Description' },
+        { slug: 'count', type: 'number', label: 'Count' },
+        {
+          slug: 'category',
           type: 'select',
           label: 'Category',
           options: [
@@ -34,7 +35,8 @@ export default class KitchenSinkModule extends BaseModule {
             { label: 'Updates', value: 'updates' },
           ],
         },
-        tags: {
+        {
+          slug: 'tags',
           type: 'multiselect',
           label: 'Tags',
           options: [
@@ -43,17 +45,19 @@ export default class KitchenSinkModule extends BaseModule {
             { label: 'Gamma', value: 'gamma' },
           ],
         },
-        featured: { type: 'boolean', label: 'Featured' },
-        publishDate: { type: 'date', label: 'Publish Date' },
-        linkUrl: { type: 'url', label: 'Link URL', placeholder: 'https://example.com' },
-        image: {
+        { slug: 'featured', type: 'boolean', label: 'Featured' },
+        { slug: 'publishDate', type: 'date', label: 'Publish Date' },
+        { slug: 'linkUrl', type: 'url', label: 'Link URL', placeholder: 'https://example.com' },
+        {
+          slug: 'image',
           type: 'media',
           label: 'Media',
           accept: 'image/*,video/*',
-          storeAs: 'id',
+          config: { storeAs: 'id' },
           description: 'Pick an image or video (stores media ID).',
         },
-        imageVariant: {
+        {
+          slug: 'imageVariant',
           type: 'select',
           label: 'Image Variant',
           options: [
@@ -65,7 +69,8 @@ export default class KitchenSinkModule extends BaseModule {
             { label: 'Cropped', value: 'cropped' },
           ],
         },
-        progress: {
+        {
+          slug: 'progress',
           type: 'slider',
           label: 'Progress',
           min: 0,
@@ -73,35 +78,38 @@ export default class KitchenSinkModule extends BaseModule {
           step: 5,
           unit: '%',
         },
-        metadata: {
+        {
+          slug: 'metadata',
           type: 'object',
           label: 'Metadata',
           fields: [
-            { name: 'author', type: 'text', label: 'Author' },
-            { name: 'readingTime', type: 'number', label: 'Reading Time (min)' },
-            { name: 'attributionRequired', type: 'boolean', label: 'Attribution Required' },
+            { slug: 'author', type: 'text', label: 'Author' },
+            { slug: 'readingTime', type: 'number', label: 'Reading Time (min)' },
+            { slug: 'attributionRequired', type: 'boolean', label: 'Attribution Required' },
           ],
         },
-        items: {
+        {
+          slug: 'items',
           type: 'repeater',
           label: 'Items',
           item: {
-            name: 'item',
+            slug: 'item',
             type: 'object',
             fields: [
-              { name: 'label', type: 'text', label: 'Label' },
-              { name: 'value', type: 'text', label: 'Value' },
-              { name: 'highlight', type: 'boolean', label: 'Highlight' },
+              { slug: 'label', type: 'text', label: 'Label' },
+              { slug: 'value', type: 'text', label: 'Value' },
+              { slug: 'highlight', type: 'boolean', label: 'Highlight' },
             ],
           },
         },
-        content: {
+        {
+          slug: 'content',
           type: 'richtext',
           label: 'Rich Text Content',
           required: false,
         },
-      },
-      defaultProps: {
+      ],
+      defaultValues: {
         postRefs: [],
         title: 'Kitchen Sink Demo',
         description: 'This module demonstrates all supported field types.',

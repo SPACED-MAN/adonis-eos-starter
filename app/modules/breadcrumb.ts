@@ -28,10 +28,8 @@ export default class BreadcrumbModule extends BaseModule {
       icon: 'arrow-right',
       allowedScopes: ['local', 'global'],
       lockable: true,
-      propsSchema: {
-        // No configurable props - styling/behavior is configured in code
-      },
-      defaultProps: {},
+      fieldSchema: [],
+      defaultValues: {},
       allowedPostTypes: [], // Available for all post types
     }
   }

@@ -27,29 +27,33 @@ export default class HeroWithMediaModule extends BaseModule {
       icon: 'layout-hero-media',
       allowedScopes: ['local', 'global'],
       lockable: true,
-      propsSchema: {
-        title: {
+      fieldSchema: [
+        {
+          slug: 'title',
           type: 'text',
           label: 'Title',
           required: true,
           description: 'Main heading text',
           translatable: true,
         },
-        subtitle: {
+        {
+          slug: 'subtitle',
           type: 'textarea',
           label: 'Subtitle',
           required: false,
           description: 'Supporting text below the title',
           translatable: true,
         },
-        image: {
+        {
+          slug: 'image',
           type: 'media',
           label: 'Hero Media',
           accept: 'image/*,video/*',
-          storeAs: 'id',
+          config: { storeAs: 'id' },
           description: 'Hero image or video (stored as media ID, resolved via the media API)',
         },
-        imagePosition: {
+        {
+          slug: 'imagePosition',
           type: 'select',
           label: 'Image Position',
           description: 'Which side the media appears on for large screens',
@@ -57,26 +61,26 @@ export default class HeroWithMediaModule extends BaseModule {
             { label: 'Right', value: 'right' },
             { label: 'Left', value: 'left' },
           ],
-          default: 'right',
         },
-        primaryCta: {
+        {
+          slug: 'primaryCta',
           type: 'object',
           label: 'Primary CTA',
           description: 'Main call-to-action button',
           fields: [
             {
-              name: 'label',
+              slug: 'label',
               type: 'text',
               label: 'Label',
               translatable: true,
             },
             {
-              name: 'url',
+              slug: 'url',
               type: 'link',
               label: 'Destination',
             },
             {
-              name: 'style',
+              slug: 'style',
               type: 'select',
               label: 'Style',
               options: [
@@ -84,28 +88,28 @@ export default class HeroWithMediaModule extends BaseModule {
                 { label: 'Secondary', value: 'secondary' },
                 { label: 'Outline', value: 'outline' },
               ],
-              default: 'primary',
             },
           ],
         },
-        secondaryCta: {
+        {
+          slug: 'secondaryCta',
           type: 'object',
           label: 'Secondary CTA',
           description: 'Secondary call-to-action button',
           fields: [
             {
-              name: 'label',
+              slug: 'label',
               type: 'text',
               label: 'Label',
               translatable: true,
             },
             {
-              name: 'url',
+              slug: 'url',
               type: 'link',
               label: 'Destination',
             },
             {
-              name: 'style',
+              slug: 'style',
               type: 'select',
               label: 'Style',
               options: [
@@ -113,13 +117,12 @@ export default class HeroWithMediaModule extends BaseModule {
                 { label: 'Secondary', value: 'secondary' },
                 { label: 'Outline', value: 'outline' },
               ],
-              default: 'outline',
             },
           ],
         },
         // Note: Background classes are fixed in code to avoid exposing Tailwind to editors
-      },
-      defaultProps: {
+      ],
+      defaultValues: {
         title: 'Payments tool for software companies',
         subtitle:
           'From checkout to global sales tax compliance, companies around the world use this platform to simplify their payment stack.',

@@ -1,12 +1,12 @@
 import taxonomyRegistry from '#services/taxonomy_registry'
 import fieldTypeRegistry from '#services/field_type_registry'
 import TaxonomyTermCustomFieldValueModel from '#models/taxonomy_term_custom_field_value'
-import type { PostTypeField } from '../types/custom_field.ts'
+import type { CustomFieldDefinition } from '../types/custom_field.ts'
 
 export type TaxonomyCustomFieldValue = Record<string, any>
 
 class TaxonomyCustomFieldsService {
-  listDefinitions(taxonomySlug: string): PostTypeField[] {
+  listDefinitions(taxonomySlug: string): CustomFieldDefinition[] {
     const cfg = taxonomyRegistry.get(taxonomySlug)
     return cfg?.fields || []
   }
@@ -24,7 +24,7 @@ class TaxonomyCustomFieldsService {
 
   async upsertValues(termId: string, taxonomySlug: string, values: Record<string, any>): Promise<void> {
     const defs = this.listDefinitions(taxonomySlug)
-    const defsBySlug = new Map<string, PostTypeField>()
+    const defsBySlug = new Map<string, CustomFieldDefinition>()
     defs.forEach((d) => defsBySlug.set(d.slug, d))
 
     for (const [slug, value] of Object.entries(values)) {

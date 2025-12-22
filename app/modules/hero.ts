@@ -24,21 +24,23 @@ export default class HeroModule extends BaseModule {
         compositionNotes:
           'Typically first module on a page. Pair with Prose or Features List as the next section; keep copy concise.',
       },
-      propsSchema: {
-        title: {
-          type: 'string',
+      fieldSchema: [
+        {
+          slug: 'title',
+          type: 'text',
           required: true,
           description: 'Main heading text',
           translatable: true,
         },
-        subtitle: {
+        {
+          slug: 'subtitle',
           type: 'textarea',
           required: false,
           description: 'Supporting text below the title',
           translatable: true,
         },
-      },
-      defaultProps: {
+      ],
+      defaultValues: {
         title: "We invest in the world's potential",
         subtitle:
           'We focus on markets where technology, innovation, and capital can unlock long-term value and drive durable growth.',

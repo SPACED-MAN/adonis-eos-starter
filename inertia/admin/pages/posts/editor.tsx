@@ -164,6 +164,9 @@ const InlineModuleEditor = function InlineModuleEditor({
   )
 }
 
+import { CustomFieldRenderer } from '../../components/CustomFieldRenderer'
+import type { CustomFieldDefinition } from '~/types/custom_field'
+
 interface EditorProps {
   post: {
     id: string
@@ -207,15 +210,13 @@ interface EditorProps {
   translations: { id: string; locale: string }[]
   reviewDraft?: any | null
   aiReviewDraft?: any | null
-  customFields?: Array<{
-    id: string
-    slug: string
-    label: string
-    fieldType: CustomFieldType
-    config?: Record<string, any>
-    translatable?: boolean
-    value?: any
-  }>
+  customFields?: Array<
+    CustomFieldDefinition & {
+      id: string
+      fieldType?: CustomFieldType // For compatibility with older code if any
+      value?: any
+    }
+  >
   uiConfig?: {
     hideCoreFields?: string[]
     hierarchyEnabled?: boolean
@@ -771,41 +772,6 @@ export default function Editor({
     new Set(selectedTaxonomyTermIds)
   )
   const taxonomyInputRefs = useRef<Record<string, HTMLInputElement | null>>({})
-  const fieldComponents = useMemo(() => {
-    const modules = import.meta.glob('../fields/*.tsx', { eager: true }) as Record<
-      string,
-      { default: any }
-    >
-    const map: Record<string, any> = {}
-    Object.entries(modules).forEach(([path, mod]) => {
-      const name = path
-        .split('/')
-        .pop()
-        ?.replace(/\.\w+$/, '')
-      if (name && mod?.default) {
-        map[name] = mod.default
-      }
-    })
-    return map
-  }, [])
-
-  const fieldRenderers = useMemo(() => {
-    const byType = new Map<string, string>()
-    fieldTypes.forEach((f) => {
-      const compName = f.adminComponent
-        ?.split('/')
-        .pop()
-        ?.replace(/\.\w+$/, '')
-      if (f.type && compName) byType.set(f.type, compName)
-    })
-    return byType
-  }, [fieldTypes])
-
-  const pascalFromType = (t: string) =>
-    t
-      .split(/[-_]/g)
-      .map((s) => s.charAt(0).toUpperCase() + s.slice(1))
-      .join('')
 
   useEffect(() => {
     setTaxonomyTrees(taxonomies)
@@ -2807,256 +2773,32 @@ export default function Editor({
               </form>
               {/* Custom Fields (e.g., Profile fields) - inside Content, above Modules */}
               {Array.isArray(initialCustomFields) && initialCustomFields.length > 0 && (
-                <div className="mt-6">
-                  <div className="space-y-4">
-                    {initialCustomFields.map((f) => {
-                      const entry = (data as any).customFields?.find(
-                        (e: any) => e.fieldId === f.id
-                      ) || { value: null }
-                      const setValue = (val: any) => {
-                        const prev: any[] = Array.isArray((data as any).customFields)
-                          ? (data as any).customFields
-                          : []
-                        const list = prev.slice()
-                        const idx = list.findIndex((e) => e.fieldId === f.id)
-                        const next = { fieldId: f.id, slug: f.slug, value: val }
-                        if (idx >= 0) list[idx] = next
-                        else list.push(next)
-                        setData('customFields', list as any)
-                      }
-                      const rendererKey = (f as any).fieldType || (f as any).type
-                      const compName =
-                        fieldRenderers.get(rendererKey) ||
-                        rendererKey
-                          ?.split('/')
-                          .pop()
-                          ?.replace(/\.\w+$/, '') ||
-                        `${pascalFromType(rendererKey)}Field`
-                      const Renderer = compName
-                        ? (fieldComponents as Record<string, any>)[compName]
-                        : undefined
-                      if (Renderer) {
-                        const cfg = (f as any).config || {}
-                        const isSelect = compName === 'SelectField'
-                        return (
-                          <div key={f.id}>
-                            <label className="block text-sm font-medium text-neutral-medium mb-1">
-                              {f.label}
-                            </label>
-                            {isSelect ? (
-                              <Renderer
-                                value={entry.value ?? null}
-                                onChange={setValue}
-                                options={Array.isArray(cfg.options) ? cfg.options : []}
-                                multiple={!!cfg.multiple}
-                              />
-                            ) : (
-                              <Renderer
-                                value={entry.value ?? null}
-                                onChange={setValue}
-                                placeholder={cfg.placeholder}
-                                maxLength={cfg.maxLength}
-                                customFields={initialCustomFields || []}
-                              />
-                            )}
-                          </div>
-                        )
-                      }
-                      if (f.fieldType === 'textarea') {
-                        return (
-                          <div key={f.id}>
-                            <label className="block text-sm font-medium text-neutral-medium mb-1">
-                              {f.label}
-                            </label>
-                            <TokenField
-                              type="textarea"
-                              value={entry.value ?? ''}
-                              onChange={setValue}
-                              rows={4}
-                              placeholder={f.label}
-                              customFields={initialCustomFields || []}
-                            />
-                          </div>
-                        )
-                      }
-                      if (f.fieldType === 'media') {
-                        const currentId: string | null =
-                          typeof entry.value === 'string'
-                            ? entry.value || null
-                            : entry.value?.id
-                              ? String(entry.value.id)
-                              : null
-                        return (
-                          <div key={f.id}>
-                            <label className="block text-sm font-medium text-neutral-medium mb-1">
-                              {f.label}
-                            </label>
-                            <MediaThumb
-                              mediaId={currentId}
-                              onChange={() => setOpenMediaForField(f.id)}
-                              onClear={() => setValue(null)}
-                            />
-                            <MediaPickerModal
-                              open={openMediaForField === f.id}
-                              onOpenChange={(o) => setOpenMediaForField(o ? f.id : null)}
-                              initialSelectedId={currentId || undefined}
-                              onSelect={(m) => {
-                                setValue({ id: m.id, url: m.url })
-                                setOpenMediaForField(null)
-                              }}
-                            />
-                          </div>
-                        )
-                      }
-                      if (f.fieldType === 'post-reference') {
-                        return (
-                          <div key={f.id}>
-                            <PostCustomPostReferenceField
-                              label={f.label}
-                              value={entry.value}
-                              onChange={setValue}
-                              config={f.config}
-                            />
-                          </div>
-                        )
-                      }
-                      if (f.fieldType === 'link') {
-                        return (
-                          <div key={f.id}>
-                            <LinkField
-                              label={f.label}
-                              value={entry.value}
-                              onChange={(val: LinkFieldValue) => setValue(val)}
-                              currentLocale={post.locale}
-                              helperText="Use an existing post when possible so links stay valid if URLs change."
-                            />
-                          </div>
-                        )
-                      }
-                      if (f.fieldType === 'file') {
-                        const current = entry.value || null
-                        const currentLabel: string | null =
-                          typeof current === 'object' && current !== null
-                            ? current.originalFilename || current.filename || current.name || null
-                            : typeof current === 'string'
-                              ? current
-                              : null
-                        const handleFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
-                          const file = e.target.files?.[0]
-                          if (!file) return
-                          try {
-                            const form = new FormData()
-                            form.append('file', file)
-                            form.append('naming', 'original')
-                            form.append('appendIdIfExists', 'true')
-                            form.append('altText', f.label || file.name)
-                            const res = await fetch('/api/media', {
-                              method: 'POST',
-                              headers: {
-                                ...xsrfHeader(),
-                              },
-                              credentials: 'same-origin',
-                              body: form,
-                            })
-                            if (!res.ok) {
-                              const j = await res.json().catch(() => ({}))
-                              toast.error(j?.error || 'File upload failed')
-                              return
-                            }
-                            const j = await res.json().catch(() => ({}))
-                            const id = j?.data?.id
-                            const url = j?.data?.url
-                            if (!id || !url) {
-                              toast.error('File upload response was invalid')
-                              return
-                            }
-                            setValue({ id, url, originalFilename: file.name })
-                            toast.success('File uploaded')
-                          } catch {
-                            toast.error('File upload failed')
-                          } finally {
-                            e.target.value = ''
-                          }
-                        }
-                        return (
-                          <div key={f.id}>
-                            <label className="block text-sm font-medium text-neutral-medium mb-1">
-                              {f.label}
-                            </label>
-                            <div className="space-y-2">
-                              <Input
-                                type="file"
-                                onChange={handleFileChange}
-                                className="h-9 text-sm"
-                              />
-                              {currentLabel && (
-                                <div className="flex items-center justify-between text-[11px] text-neutral-low">
-                                  <span className="truncate max-w-[220px]" title={currentLabel}>
-                                    Attached: {currentLabel}
-                                  </span>
-                                  <button
-                                    type="button"
-                                    className="text-xs text-danger hover:underline"
-                                    onClick={() => setValue(null)}
-                                  >
-                                    Clear
-                                  </button>
-                                </div>
-                              )}
-                            </div>
-                          </div>
-                        )
-                      }
-                      if (f.fieldType === 'icon') {
-                        const current: string = typeof entry.value === 'string' ? entry.value : ''
-                        return (
-                          <div key={f.id}>
-                            <label className="block text-sm font-medium text-neutral-medium mb-1">
-                              {f.label}
-                            </label>
-                            <div className="space-y-1">
-                              <Input
-                                type="text"
-                                value={current}
-                                onChange={(e) => setValue(e.target.value)}
-                                placeholder="fa-solid fa-briefcase"
-                              />
-                              <p className="text-[11px] text-neutral-low">
-                                Enter a Font Awesome class string (for example{' '}
-                                <code className="font-mono text-[11px]">fa-solid fa-briefcase</code>
-                                ). This will be rendered wherever the field is used.
-                              </p>
-                              {current && (
-                                <div className="flex items-center gap-2 text-[11px] text-neutral-medium">
-                                  <span className="inline-flex h-7 w-7 items-center justify-center rounded-full bg-backdrop-medium">
-                                    <i className={current} aria-hidden="true" />
-                                  </span>
-                                  <span className="truncate max-w-[220px]" title={current}>
-                                    {current}
-                                  </span>
-                                </div>
-                              )}
-                            </div>
-                          </div>
-                        )
-                      }
-                      // Fallback simple input
-                      return (
-                        <div key={f.id}>
-                          <label className="block text-sm font-medium text-neutral-medium mb-1">
-                            {f.label}
-                          </label>
-                          <TokenField
-                            type="text"
-                            value={entry.value ?? ''}
-                            onChange={setValue}
-                            placeholder={f.label}
-                            customFields={initialCustomFields || []}
-                          />
-                        </div>
-                      )
-                    })}
-                  </div>
+                <div className="mt-6 border-t border-line-low pt-6">
+                  <CustomFieldRenderer
+                    definitions={initialCustomFields.map((f) => ({
+                      ...f,
+                      type: f.type || f.fieldType || 'text',
+                    }))}
+                    values={(() => {
+                      const vals: Record<string, any> = {}
+                      ;(data.customFields as any[])?.forEach((v) => {
+                        vals[v.slug] = v.value
+                      })
+                      return vals
+                    })()}
+                    onChange={(slug, val) => {
+                      const prev = (data.customFields as any[]) || []
+                      const def = initialCustomFields.find((f) => f.slug === slug)
+                      if (!def) return
+
+                      const list = prev.slice()
+                      const idx = list.findIndex((e) => e.slug === slug)
+                      const next = { fieldId: def.id, slug, value: val }
+                      if (idx >= 0) list[idx] = next
+                      else list.push(next)
+                      setData('customFields', list as any)
+                    }}
+                  />
                 </div>
               )}
 

@@ -11,29 +11,34 @@ export default class BlogListModule extends BaseModule {
       icon: 'newspaper',
       allowedScopes: ['local', 'global'],
       lockable: true,
-      propsSchema: {
-        title: {
-          type: 'string',
+      fieldSchema: [
+        {
+          slug: 'title',
+          type: 'text',
           required: true,
           description: 'Section heading shown above the blog list',
           translatable: true,
         },
-        subtitle: {
+        {
+          slug: 'subtitle',
           type: 'textarea',
           required: false,
           description: 'Optional short paragraph describing the blog or content theme.',
           translatable: true,
         },
-        posts: {
+        {
+          slug: 'posts',
           type: 'post-reference',
           required: false,
           description:
             'Optional list of specific blog posts to feature. If empty, all published blog posts will be shown.',
-          postTypes: ['blog'],
-          allowMultiple: true,
+          config: {
+            postTypes: ['blog'],
+            allowMultiple: true,
+          },
         },
-      },
-      defaultProps: {
+      ],
+      defaultValues: {
         title: 'Our Blog',
         subtitle:
           'Insights, stories, and updates from the team. Blog posts are pulled from the Blog post type so they stay in sync.',

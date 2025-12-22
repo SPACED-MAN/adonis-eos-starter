@@ -11,49 +11,54 @@ export default class FeaturesListModule extends BaseModule {
       icon: 'list-ul',
       allowedScopes: ['local', 'global'],
       lockable: true,
-      propsSchema: {
-        title: {
-          type: 'string',
+      fieldSchema: [
+        {
+          slug: 'title',
+          type: 'text',
           required: true,
           description: 'Section heading shown above the features grid',
           translatable: true,
         },
-        subtitle: {
+        {
+          slug: 'subtitle',
           type: 'textarea',
           required: false,
           description: 'Short paragraph explaining the section',
           translatable: true,
         },
-        features: {
-          type: 'array',
+        {
+          slug: 'features',
+          type: 'repeater',
           required: true,
           description: 'List of feature items (up to 24)',
-          maxItems: 24,
-          items: {
+          item: {
             type: 'object',
-            properties: {
-              icon: {
+            fields: [
+              {
+                slug: 'icon',
                 type: 'icon',
                 required: false,
                 description: 'Fort Awesome icon from the registered icon library',
               },
-              title: {
-                type: 'string',
+              {
+                slug: 'title',
+                type: 'text',
                 required: true,
                 description: 'Short feature title',
                 translatable: true,
               },
-              body: {
+              {
+                slug: 'body',
                 type: 'textarea',
                 required: true,
                 description: 'Short feature description',
                 translatable: true,
               },
-            },
+            ],
           },
         },
-      },
-      defaultProps: {
+      ],
+      defaultValues: {
         title: 'Designed for business teams like yours',
         subtitle:
           'We focus on markets where technology, innovation, and capital can unlock long-term value and drive economic growth.',

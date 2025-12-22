@@ -11,65 +11,71 @@ export default class FeaturesListExpandedModule extends BaseModule {
       icon: 'list-check',
       allowedScopes: ['local', 'global'],
       lockable: true,
-      propsSchema: {
-        title: {
-          type: 'string',
+      fieldSchema: [
+        {
+          slug: 'title',
+          type: 'text',
           required: true,
           description: 'Section heading shown above the expanded feature list',
           translatable: true,
         },
-        subtitle: {
+        {
+          slug: 'subtitle',
           type: 'textarea',
           required: false,
           description: 'Short paragraph explaining the section',
           translatable: true,
         },
-        features: {
-          type: 'array',
+        {
+          slug: 'features',
+          type: 'repeater',
           required: true,
           description: 'List of feature items (up to 12)',
-          maxItems: 12,
-          items: {
+          item: {
             type: 'object',
-            properties: {
-              icon: {
+            fields: [
+              {
+                slug: 'icon',
                 type: 'icon',
                 required: false,
                 description: 'Fort Awesome icon from the registered icon library',
               },
-              title: {
-                type: 'string',
+              {
+                slug: 'title',
+                type: 'text',
                 required: true,
                 description: 'Short feature title',
                 translatable: true,
               },
-              body: {
+              {
+                slug: 'body',
                 type: 'textarea',
                 required: true,
                 description: 'Longer description for this feature item',
                 translatable: true,
               },
-            },
+            ],
           },
         },
-        cta: {
+        {
+          slug: 'cta',
           type: 'object',
           label: 'Section CTA',
           description: 'Optional call-to-action button rendered below the feature list',
           fields: [
             {
-              name: 'label',
-              type: 'string',
+              slug: 'label',
+              type: 'text',
               label: 'Label',
               translatable: true,
             },
             {
-              name: 'url',
+              slug: 'url',
               type: 'link',
               label: 'Destination',
             },
             {
-              name: 'style',
+              slug: 'style',
               type: 'select',
               label: 'Style',
               options: [
@@ -77,12 +83,11 @@ export default class FeaturesListExpandedModule extends BaseModule {
                 { label: 'Secondary', value: 'secondary' },
                 { label: 'Outline', value: 'outline' },
               ],
-              default: 'primary',
             },
           ],
         },
-      },
-      defaultProps: {
+      ],
+      defaultValues: {
         title: 'Built for growing teams and ambitious roadmaps',
         subtitle:
           'Use this section to highlight major phases, advantages, or pillars of your product or service with more detailed copy.',

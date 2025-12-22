@@ -11,29 +11,34 @@ export default class TestimonialListModule extends BaseModule {
       icon: 'quote',
       allowedScopes: ['local', 'global'],
       lockable: true,
-      propsSchema: {
-        title: {
-          type: 'string',
+      fieldSchema: [
+        {
+          slug: 'title',
+          type: 'text',
           required: true,
           description: 'Section heading shown above the testimonials grid',
           translatable: true,
         },
-        subtitle: {
+        {
+          slug: 'subtitle',
           type: 'textarea',
           required: false,
           description: 'Short paragraph describing the testimonials section',
           translatable: true,
         },
-        testimonials: {
+        {
+          slug: 'testimonials',
           type: 'post-reference',
           required: false,
           description:
             'Optional list of specific Testimonials to feature. If empty, all available Testimonials will be shown.',
-          postTypes: ['testimonial'],
-          allowMultiple: true,
+          config: {
+            postTypes: ['testimonial'],
+            allowMultiple: true,
+          },
         },
-      },
-      defaultProps: {
+      ],
+      defaultValues: {
         title: 'Testimonials',
         subtitle:
           'Hear from customers and partners. Testimonials are pulled from the Testimonial post type so they stay in sync.',

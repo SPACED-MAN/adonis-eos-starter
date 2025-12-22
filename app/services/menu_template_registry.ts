@@ -1,7 +1,6 @@
-export type MenuTemplateField =
-  | { key: string; label: string; type: 'text'; multiline?: boolean; required?: boolean }
-  | { key: string; label: string; type: 'url'; required?: boolean }
-  | { key: string; label: string; type: 'boolean' }
+import type { CustomFieldDefinition } from '../types/custom_field.js'
+
+export type MenuTemplateField = CustomFieldDefinition
 
 export type MenuTemplate = {
   slug: string

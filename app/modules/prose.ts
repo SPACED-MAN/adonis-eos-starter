@@ -40,14 +40,16 @@ export default class ProseModule extends BaseModule {
         compositionNotes:
           'Commonly used after a hero. Pair with media modules (prose-with-media, gallery) or CTA modules to break up long text.',
       },
-      propsSchema: {
-        content: {
+      fieldSchema: [
+        {
+          slug: 'content',
           type: 'richtext', // Lexical JSON rich text editor
           required: true,
           description: 'Rich text content (Lexical JSON)',
           translatable: true,
         },
-        textAlign: {
+        {
+          slug: 'textAlign',
           type: 'select',
           label: 'Text Alignment',
           required: false,
@@ -58,11 +60,10 @@ export default class ProseModule extends BaseModule {
             { label: 'Right', value: 'right' },
             { label: 'Justify', value: 'justify' },
           ],
-          default: 'left',
         },
         // Note: Other visual classes (font size, colors, padding) remain fixed in code for consistency.
-      },
-      defaultProps: {
+      ],
+      defaultValues: {
         content: {
           root: {
             type: 'root',
@@ -88,16 +89,16 @@ export default class ProseModule extends BaseModule {
   /**
    * Validate that content is valid Lexical JSON
    */
-  validate(props: Record<string, any>): boolean {
+  validate(fields: Record<string, any>): boolean {
     // Call parent validation
-    super.validate(props)
+    super.validate(fields)
 
     // Check that content has the root structure
-    if (!props.content || typeof props.content !== 'object') {
+    if (!fields.content || typeof fields.content !== 'object') {
       throw new Error('Content must be a valid Lexical JSON object')
     }
 
-    if (!props.content.root || typeof props.content.root !== 'object') {
+    if (!fields.content.root || typeof fields.content.root !== 'object') {
       throw new Error('Content must have a root node')
     }
 

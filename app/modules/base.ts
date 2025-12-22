@@ -44,23 +44,23 @@ export default abstract class BaseModule {
   }
 
   /**
-   * Validate module props against schema
+   * Validate module fields against schema
    *
-   * Default implementation uses the propsSchema from config.
+   * Default implementation uses the fieldSchema from config.
    * Can be overridden for custom validation logic.
    *
-   * @param props - Props to validate
+   * @param fields - Fields to validate
    * @returns True if valid, throws error otherwise
    */
-  validate(props: Record<string, any>): boolean {
+  validate(fields: Record<string, any>): boolean {
     const config = this.getConfig()
 
     // Basic validation: check required fields exist
-    const schema = config.propsSchema || {}
+    const schema = config.fieldSchema || []
 
-    for (const [key, fieldSchema] of Object.entries(schema)) {
-      if (fieldSchema.required && !(key in props)) {
-        throw new Error(`Missing required field: ${key}`)
+    for (const f of schema) {
+      if (f.required && !(f.slug in fields)) {
+        throw new Error(`Missing required field: ${f.slug}`)
       }
     }
 
@@ -68,55 +68,55 @@ export default abstract class BaseModule {
   }
 
   /**
-   * Merge base props with overrides
+   * Merge base fields with overrides
    *
    * Default implementation performs a shallow merge.
    * Can be overridden for deep merge or custom logic.
    *
-   * @param baseProps - Base props from module instance
+   * @param baseFields - Base fields from module instance
    * @param overrides - Overrides from post_modules
-   * @returns Merged props
+   * @returns Merged fields
    */
-  mergeProps(
-    baseProps: Record<string, any>,
+  mergeFields(
+    baseFields: Record<string, any>,
     overrides: Record<string, any> | null
   ): Record<string, any> {
     if (!overrides) {
-      return { ...baseProps }
+      return { ...baseFields }
     }
 
     // Shallow merge by default
     return {
-      ...baseProps,
+      ...baseFields,
       ...overrides,
     }
   }
 
   /**
-   * Extract localized content from props
+   * Extract localized content from fields
    *
-   * If a prop value is an object with locale keys, extract the value for the current locale.
+   * If a field value is an object with locale keys, extract the value for the current locale.
    * Otherwise, return the value as-is. Recursively handles nested objects.
    *
-   * @param props - Props to localize
+   * @param fields - Fields to localize
    * @param locale - Current locale
    * @param fallbackLocale - Fallback locale if current not found
-   * @returns Localized props
+   * @returns Localized fields
    */
-  localizeProps(
-    props: Record<string, any>,
+  localizeFields(
+    fields: Record<string, any>,
     locale: string,
     fallbackLocale: string = 'en'
   ): Record<string, any> {
     const localized: Record<string, any> = {}
 
-    for (const [key, value] of Object.entries(props)) {
+    for (const [key, value] of Object.entries(fields)) {
       if (this.isLocalizedValue(value)) {
         // Extract locale-specific value
         localized[key] = value[locale] || value[fallbackLocale] || null
       } else if (typeof value === 'object' && value !== null && !Array.isArray(value)) {
         // Recursively localize nested objects
-        localized[key] = this.localizeProps(value, locale, fallbackLocale)
+        localized[key] = this.localizeFields(value, locale, fallbackLocale)
       } else {
         localized[key] = value
       }
@@ -168,7 +168,7 @@ export default abstract class BaseModule {
    */
   generateCacheKey(data: MergedModuleData, context: ModuleRenderContext): string {
     const config = this.getConfig()
-    return `module:${config.type}:${context.locale}:${JSON.stringify(data.props)}`
+    return `module:${config.type}:${context.locale}:${JSON.stringify(data.fields)}`
   }
 
   /**

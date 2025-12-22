@@ -1,9 +1,9 @@
-import type { PostTypeField } from '../types/custom_field.ts'
+import type { CustomFieldDefinition } from '../types/custom_field.ts'
 
 type PostTypeUiConfig = {
   hideCoreFields?: Array<'title' | 'excerpt' | 'parent' | 'slug' | 'meta' | 'seo'>
   hierarchyEnabled?: boolean
-  fields?: PostTypeField[]
+  fields?: CustomFieldDefinition[]
   moduleGroup?: { name: string; description?: string } | null
   urlPatterns?: Array<{ locale: string; pattern: string; isDefault?: boolean }>
   permalinksEnabled?: boolean

@@ -11,55 +11,61 @@ export default class FaqModule extends BaseModule {
       icon: 'question-circle',
       allowedScopes: ['local', 'global'],
       lockable: true,
-      propsSchema: {
-        title: {
-          type: 'string',
+      fieldSchema: [
+        {
+          slug: 'title',
+          type: 'text',
           required: true,
           description: 'Section heading shown above the FAQ grid',
           translatable: true,
         },
-        subtitle: {
+        {
+          slug: 'subtitle',
           type: 'textarea',
           required: false,
           description: 'Optional short paragraph introducing the FAQ section',
           translatable: true,
         },
-        items: {
-          type: 'array',
+        {
+          slug: 'items',
+          type: 'repeater',
           required: true,
           description: 'List of frequently asked questions',
-          maxItems: 12,
-          items: {
+          item: {
             type: 'object',
-            properties: {
-              question: {
-                type: 'string',
+            fields: [
+              {
+                slug: 'question',
+                type: 'text',
                 required: true,
                 description: 'Question text',
                 translatable: true,
               },
-              answer: {
+              {
+                slug: 'answer',
                 type: 'textarea',
                 required: true,
                 description: 'Answer body copy',
                 translatable: true,
               },
-              linkLabel: {
-                type: 'string',
+              {
+                slug: 'linkLabel',
+                type: 'text',
                 required: false,
                 description: 'Optional call-to-action label appended to the answer',
                 translatable: true,
               },
-              linkUrl: {
+              {
+                slug: 'linkUrl',
                 type: 'link',
                 required: false,
                 description: 'Optional link destination for the call-to-action',
               },
-            },
+            ],
           },
         },
-      },
-      defaultProps: {
+      ],
+      defaultValues: {
         title: 'Frequently asked questions',
         subtitle:
           'Answers to common questions about how we work, what is included, and how we support your team.',

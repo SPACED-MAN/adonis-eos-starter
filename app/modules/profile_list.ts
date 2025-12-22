@@ -11,32 +11,37 @@ export default class ProfileListModule extends BaseModule {
       icon: 'users',
       allowedScopes: ['local', 'global'],
       lockable: true,
-      propsSchema: {
-        title: {
-          type: 'string',
+      fieldSchema: [
+        {
+          slug: 'title',
+          type: 'text',
           required: true,
           description: 'Section heading shown above the profiles grid',
           translatable: true,
         },
-        subtitle: {
+        {
+          slug: 'subtitle',
           type: 'textarea',
           required: false,
           description: 'Short paragraph describing the team or group of profiles',
           translatable: true,
         },
-        profiles: {
+        {
+          slug: 'profiles',
           type: 'post-reference',
           required: false,
           description:
             'Optional list of specific Profiles to feature. If empty, all available Profiles will be shown.',
-          postTypes: ['profile'],
-          allowMultiple: true,
+          config: {
+            postTypes: ['profile'],
+            allowMultiple: true,
+          },
         },
-      },
-      defaultProps: {
+      ],
+      defaultValues: {
         title: 'Our Team',
         subtitle:
-          'Meet the people behind the work. Profiles are pulled from the Profile post type so they stay in sync.',
+          'Meet the people behind the work. Profiles are pulled from the Profile post type so they sync automatically.',
         profiles: [],
       },
       allowedPostTypes: ['page', 'blog'],

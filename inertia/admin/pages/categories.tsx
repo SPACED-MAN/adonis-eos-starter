@@ -31,18 +31,15 @@ import {
 import { SortableContext, useSortable, verticalListSortingStrategy } from '@dnd-kit/sortable'
 import { CSS } from '@dnd-kit/utilities'
 
+import { CustomFieldRenderer } from '../components/CustomFieldRenderer'
+import type { CustomFieldDefinition } from '~/types/custom_field'
+
 type Taxonomy = {
   id: string
   slug: string
   name: string
   hierarchical?: boolean
-  customFieldDefs?: Array<{
-    slug: string
-    label: string
-    type: string
-    category?: string
-    config?: Record<string, any>
-  }>
+  customFieldDefs?: CustomFieldDefinition[]
 }
 type TermNode = {
   id: string
@@ -84,29 +81,6 @@ export default function CategoriesPage() {
   const [editingTermDraft, setEditingTermDraft] = useState<Record<string, any>>({})
   const [saving, setSaving] = useState(false)
 
-  const fieldComponents = useMemo(() => {
-    const modules = import.meta.glob('../fields/*.tsx', { eager: true }) as Record<
-      string,
-      { default: any }
-    >
-    const map: Record<string, any> = {}
-    Object.entries(modules).forEach(([path, mod]) => {
-      const name = path
-        .split('/')
-        .pop()
-        ?.replace(/\.\w+$/, '')
-      if (name && mod?.default) {
-        map[name] = mod.default
-      }
-    })
-    return map
-  }, [])
-
-  const pascalFromType = (t: string) =>
-    t
-      .split(/[-_]/g)
-      .map((s) => s.charAt(0).toUpperCase() + s.slice(1))
-      .join('')
   const sensors = useSensors(useSensor(PointerSensor, { activationConstraint: { distance: 4 } }))
 
   useEffect(() => {
@@ -420,72 +394,30 @@ export default function CategoriesPage() {
                     {saving ? 'Saving…' : 'Save Fields'}
                   </button>
                 </div>
-                <div className="bg-backdrop-medium/10 border border-line-low rounded-xl p-5 space-y-6">
+                <div className="bg-backdrop-medium/10 border border-line-low rounded-xl p-5">
                   {(() => {
                     const tax = taxonomies.find((t) => t.slug === selectedTaxonomy)
                     const defs = tax?.customFieldDefs || []
                     if (defs.length === 0) {
-                      return <p className="text-xs text-neutral-low italic">No custom fields defined for this taxonomy.</p>
+                      return (
+                        <p className="text-xs text-neutral-low italic">
+                          No custom fields defined for this taxonomy.
+                        </p>
+                      )
                     }
 
-                    const groups: Record<string, typeof defs> = {}
-                    defs.forEach((d) => {
-                      const cat = d.category || 'General'
-                      if (!groups[cat]) groups[cat] = []
-                      groups[cat].push(d)
-                    })
-
-                    return Object.entries(groups).map(([category, fields]) => (
-                      <div key={category} className="space-y-4">
-                        {category !== 'General' && (
-                          <h4 className="text-[10px] font-bold text-neutral-low uppercase tracking-widest border-b border-line-low pb-1">
-                            {category}
-                          </h4>
-                        )}
-                        <div className="space-y-4">
-                          {fields.map((f) => {
-                            const val = editingTermDraft[f.slug]
-                            const compName = `${pascalFromType(f.type)}Field`
-                            const Renderer = (fieldComponents as Record<string, any>)[compName]
-                            if (Renderer) {
-                              return (
-                                <div key={f.slug}>
-                                  <label className="block text-[11px] font-bold text-neutral-medium uppercase tracking-wider mb-1.5 ml-1">
-                                    {f.label}
-                                  </label>
-                                  <Renderer
-                                    value={val ?? null}
-                                    onChange={(next: any) =>
-                                      setEditingTermDraft((prev) => ({
-                                        ...prev,
-                                        [f.slug]: next,
-                                      }))
-                                    }
-                                    {...(f as any)}
-                                  />
-                                </div>
-                              )
-                            }
-                            return (
-                              <div key={f.slug}>
-                                <label className="block text-[11px] font-bold text-neutral-medium uppercase tracking-wider mb-1.5 ml-1">
-                                  {f.label}
-                                </label>
-                                <Input
-                                  value={typeof val === 'string' ? val : ''}
-                                  onChange={(e) =>
-                                    setEditingTermDraft((prev) => ({
-                                      ...prev,
-                                      [f.slug]: e.target.value,
-                                    }))
-                                  }
-                                />
-                              </div>
-                            )
-                          })}
-                        </div>
-                      </div>
-                    ))
+                    return (
+                      <CustomFieldRenderer
+                        definitions={defs}
+                        values={editingTermDraft}
+                        onChange={(slug, val) =>
+                          setEditingTermDraft((prev) => ({
+                            ...prev,
+                            [slug]: val,
+                          }))
+                        }
+                      />
+                    )
                   })()}
                 </div>
               </div>
