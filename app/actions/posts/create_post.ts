@@ -161,6 +161,8 @@ export default class CreatePost {
           moduleGroupId: moduleGroupsEnabled ? effectiveModuleGroupId : null,
           userId,
           authorId: userId,
+          abVariation: 'A',
+          abGroupId: randomUUID(),
         },
         { client: trx }
       )

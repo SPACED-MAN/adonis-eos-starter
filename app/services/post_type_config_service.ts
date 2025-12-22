@@ -22,6 +22,11 @@ type PostTypeUiConfig = {
     enabled: boolean
     label?: string
   }
+  abTesting?: {
+    enabled: boolean
+    strategy?: 'random' | 'cookie' | 'session'
+    variations?: Array<{ label: string; value: string; weight?: number }>
+  }
 }
 
 import postTypeRegistry from '#services/post_type_registry'
@@ -42,6 +47,7 @@ class PostTypeConfigService {
       moduleGroupsEnabled: true,
       taxonomies: [],
       featuredImage: { enabled: false, label: 'Featured Image' },
+      abTesting: { enabled: false, strategy: 'cookie', variations: [] },
     }
     const isDev = process.env.NODE_ENV === 'development'
     if (!isDev && cache.has(postType)) return cache.get(postType)!
@@ -99,6 +105,13 @@ class PostTypeConfigService {
         cfg.featuredImage && cfg.featuredImage.enabled
           ? { enabled: true, label: cfg.featuredImage.label || 'Featured Image' }
           : { enabled: false, label: 'Featured Image' },
+      abTesting: cfg.abTesting
+        ? {
+            enabled: !!cfg.abTesting.enabled,
+            strategy: cfg.abTesting.strategy || 'cookie',
+            variations: Array.isArray(cfg.abTesting.variations) ? cfg.abTesting.variations : [],
+          }
+        : base.abTesting,
     }
     if (!isDev) cache.set(postType, full)
     return full

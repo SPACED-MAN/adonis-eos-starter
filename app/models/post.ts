@@ -75,6 +75,12 @@ export default class Post extends BaseModel {
   @column({ columnName: 'ai_review_draft' })
   declare aiReviewDraft: Record<string, any> | null
 
+  @column({ columnName: 'ab_variation' })
+  declare abVariation: string | null
+
+  @column({ columnName: 'ab_group_id' })
+  declare abGroupId: string | null
+
   @column({ columnName: 'parent_id' })
   declare parentId: string | null
 

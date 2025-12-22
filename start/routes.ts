@@ -242,6 +242,7 @@ router
     router.post('/posts/bulk', [PostsCrudController, 'bulk'])
     router.post('/posts/reorder', [PostsCrudController, 'reorder'])
     router.patch('/posts/:id/author', [PostsCrudController, 'updateAuthor']).use(middleware.admin())
+    router.post('/posts/:id/variations', [PostsCrudController, 'createVariation'])
 
     // Modules
     router.post('/posts/:id/modules', [PostsModulesController, 'store'])

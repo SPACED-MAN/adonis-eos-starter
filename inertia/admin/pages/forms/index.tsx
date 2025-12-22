@@ -17,7 +17,6 @@ import {
   DialogTitle,
   DialogDescription,
 } from '../../../components/ui/dialog'
-import { Button } from '../../../components/ui/button'
 import { toast } from 'sonner'
 
 interface FormSubmissionSummary {
@@ -123,15 +122,14 @@ export default function FormsIndex({ forms, submissions: initialSubmissions }: F
                         )}
                       </TableCell>
                       <TableCell className="text-right" onClick={(e) => e.stopPropagation()}>
-                        <Button
-                          variant="ghost"
-                          size="sm"
-                          className="text-neutral-low hover:text-danger"
+                        <button
+                          type="button"
+                          className="px-2 py-1 text-xs text-neutral-low hover:text-danger disabled:opacity-50"
                           onClick={() => handleDelete(s.id)}
                           disabled={isDeleting === s.id}
                         >
                           Delete
-                        </Button>
+                        </button>
                       </TableCell>
                     </TableRow>
                   ))}
@@ -162,7 +160,13 @@ export default function FormsIndex({ forms, submissions: initialSubmissions }: F
               ))}
             </div>
             <div className="flex justify-end pt-4 border-t border-line-low">
-              <Button variant="outline" onClick={() => setSelectedSubmission(null)}>Close</Button>
+              <button
+                type="button"
+                className="px-4 py-2 text-sm rounded border border-line-medium text-neutral-high hover:bg-backdrop-medium transition-colors"
+                onClick={() => setSelectedSubmission(null)}
+              >
+                Close
+              </button>
             </div>
           </div>
         </DialogContent>

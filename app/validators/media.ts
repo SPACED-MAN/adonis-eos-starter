@@ -8,6 +8,20 @@ import { SimpleMessagesProvider } from '@vinejs/vine'
  */
 
 /**
+ * Media query validator (for list/index filtering)
+ */
+export const mediaQueryValidator = vine.compile(
+	vine.object({
+		limit: vine.number().min(1).max(100).optional(),
+		page: vine.number().min(1).optional(),
+		sortBy: vine.string().trim().optional(),
+		sortOrder: vine.enum(['asc', 'desc']).optional(),
+		category: vine.string().trim().optional(),
+		q: vine.string().trim().optional(),
+	})
+)
+
+/**
  * Media upload validator (for form fields, not file itself)
  * Note: File validation happens in controller due to multipart/form-data
  */

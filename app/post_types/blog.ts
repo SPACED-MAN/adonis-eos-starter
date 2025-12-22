@@ -28,4 +28,14 @@ export default {
   permalinksEnabled: true,
   // Taxonomies attached to this post type (shared by slug across post types)
   taxonomies: ['tags'],
+
+  // A/B testing configuration
+  abTesting: {
+    enabled: true,
+    strategy: 'cookie',
+    variations: [
+      { label: 'Variation A', value: 'A', weight: 50 },
+      { label: 'Variation B', value: 'B', weight: 50 },
+    ],
+  },
 } as const

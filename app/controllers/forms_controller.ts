@@ -48,7 +48,7 @@ export default class FormsController {
 
       // Basic email validation for text fields with slug 'email' or if we want to be more explicit
       if (
-        (field.slug === 'email' || field.type === ( 'email' as any)) &&
+        (field.slug === 'email' || field.type === ('email' as any)) &&
         typeof val === 'string' &&
         val
       ) {

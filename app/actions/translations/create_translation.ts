@@ -172,6 +172,8 @@ export default class CreateTranslation {
       jsonldOverrides: null,
       publishedAt: null,
       scheduledAt: null,
+      abVariation: basePost.abVariation,
+      abGroupId: basePost.abGroupId,
     })
   }
 }

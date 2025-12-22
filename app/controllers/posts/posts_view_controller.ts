@@ -163,6 +163,28 @@ export default class PostsViewController extends BasePostsController {
       })
       const translations = family.map((p) => ({ id: p.id, locale: p.locale }))
 
+      // Load variations if A/B testing is enabled
+      let variations: Array<{ id: string; variation: string; status: string }> = []
+      if (uiCfg.abTesting.enabled) {
+        const abGroupId = post.abGroupId || post.id
+        const locale = post.locale
+        // We only want variations for the current locale to keep the switcher clean
+        const variationRows = await Post.query()
+          .where('abGroupId', abGroupId)
+          .where('locale', locale)
+          .select('id', 'ab_variation as variation', 'status')
+        variations = variationRows.map((v: any) => ({
+          id: String(v.id),
+          variation: String(v.variation || 'A'),
+          status: String(v.status),
+        }))
+
+        // Ensure current post is correctly represented in the list if it's missing abGroupId
+        if (!post.abGroupId && !variations.some(v => v.id === post.id)) {
+           variations.push({ id: post.id, variation: 'A', status: post.status })
+        }
+      }
+
       // Build public path (use hierarchical path if post has parents)
       const publicPath = hasPermalinks ? await urlPatternService.buildPostPathForPost(post.id) : ''
 
@@ -287,6 +309,7 @@ export default class PostsViewController extends BasePostsController {
         translations,
         customFields,
         uiConfig: { ...uiCfg, modulesEnabled, hasPermalinks },
+        variations,
         taxonomies: taxonomyData,
         selectedTaxonomyTermIds,
       })
@@ -384,8 +407,8 @@ export default class PostsViewController extends BasePostsController {
     const wantReview = viewParam === 'review' && Boolean(request.header('cookie'))
 
     try {
-      // Query by slug to find the post
-      const post = await Post.query()
+      // Query by slug to find the primary post match
+      let post = await Post.query()
         .where('slug', slug)
         .where('locale', locale)
         .where('type', postType)
@@ -393,6 +416,54 @@ export default class PostsViewController extends BasePostsController {
 
       if (!post) {
         return inertia.render('site/errors/not_found')
+      }
+
+      // A/B Testing Logic: if enabled, we may swap this post for another variation in the same group
+      const uiCfg = postTypeConfigService.getUiConfig(postType)
+      if (uiCfg.abTesting?.enabled && post.status === 'published') {
+        const abGroupId = post.abGroupId || post.id
+        const publishedVariations = await Post.query()
+          .where('abGroupId', abGroupId)
+          .where('locale', locale)
+          .where('status', 'published')
+          .select('id', 'ab_variation as variation')
+
+        if (publishedVariations.length > 1) {
+          const cookieName = `ab_group_${abGroupId}`
+          let chosenVariation = request.cookie(cookieName)
+
+          // If no variation chosen yet or chosen variation is no longer available, pick one
+          if (!chosenVariation || !publishedVariations.some((v) => v.variation === chosenVariation)) {
+            const configVariations = uiCfg.abTesting.variations || []
+            if (configVariations.length > 0) {
+              // Weighted random choice
+              const totalWeight = configVariations.reduce((sum, v) => sum + (v.weight || 1), 0)
+              let random = Math.random() * totalWeight
+              for (const v of configVariations) {
+                random -= v.weight || 1
+                if (random <= 0) {
+                  chosenVariation = v.value
+                  break
+                }
+              }
+            } else {
+              // Simple random choice from available published variations
+              const idx = Math.floor(Math.random() * publishedVariations.length)
+              chosenVariation = publishedVariations[idx].variation
+            }
+
+            // Persist choice if strategy is cookie
+            if (uiCfg.abTesting.strategy === 'cookie' || !uiCfg.abTesting.strategy) {
+              response.cookie(cookieName, chosenVariation, { maxAge: '30d', path: '/' })
+            }
+          }
+
+          // Swap post if the chosen variation is different from the matched one
+          const match = publishedVariations.find((v) => v.variation === chosenVariation)
+          if (match && match.id !== post.id) {
+            post = await Post.findOrFail(match.id)
+          }
+        }
       }
 
       // For hierarchical paths, verify the full path matches

@@ -208,6 +208,7 @@ interface EditorProps {
     adminLabel?: string | null
   }[]
   translations: { id: string; locale: string }[]
+  variations?: { id: string; variation: string; status: string }[]
   reviewDraft?: any | null
   aiReviewDraft?: any | null
   customFields?: Array<
@@ -3044,6 +3045,70 @@ export default function Editor({
               <h3 className="text-[11px] font-bold text-neutral-medium uppercase tracking-wider mb-6 ml-1">Actions</h3>
 
               <div className="space-y-8">
+                {/* A/B Variation toggle */}
+                {uiConfig.abTesting?.enabled && (
+                  <div className="space-y-3">
+                    <label className="block text-[10px] font-bold text-neutral-low uppercase tracking-widest ml-1">
+                      A/B Variation
+                    </label>
+                    <div className="flex p-1 bg-backdrop-medium/30 rounded-xl border border-line-low">
+                      {(variations || []).length > 0 ? (
+                        (variations || []).map((v) => (
+                          <button
+                            key={v.id}
+                            type="button"
+                            onClick={() => {
+                              if (v.id === post.id) return
+                              window.location.href = `/admin/posts/${v.id}/edit`
+                            }}
+                            className={`flex-1 py-1.5 text-[11px] font-bold rounded-lg transition-all ${
+                              v.id === post.id
+                                ? 'bg-backdrop-low text-neutral-high shadow-sm'
+                                : 'text-neutral-low hover:text-neutral-medium'
+                            }`}
+                          >
+                            Variation {v.variation}
+                          </button>
+                        ))
+                      ) : (
+                        <div className="flex-1 py-1.5 text-[11px] font-bold rounded-lg bg-backdrop-low text-neutral-high shadow-sm text-center">
+                          Variation A
+                        </div>
+                      )}
+                      {!(variations || []).some((v) => v.variation === 'B') && (
+                        <button
+                          type="button"
+                          onClick={async () => {
+                            if (confirm('Create Variation B by cloning current variation?')) {
+                              try {
+                                const res = await fetch(`/api/posts/${post.id}/variations`, {
+                                  method: 'POST',
+                                  headers: {
+                                    'Content-Type': 'application/json',
+                                    'X-XSRF-TOKEN': getXsrf() || '',
+                                  },
+                                  body: JSON.stringify({ variation: 'B' }),
+                                })
+                                const j = await res.json()
+                                if (j.id) {
+                                  window.location.href = `/admin/posts/${j.id}/edit`
+                                } else {
+                                  toast.error(j.error || 'Failed to create variation')
+                                }
+                              } catch {
+                                toast.error('Failed to create variation')
+                              }
+                            }
+                          }}
+                          className="flex-1 py-1.5 text-[11px] font-bold rounded-lg text-standout-medium hover:bg-standout-medium/5 transition-all"
+                        >
+                          + Create B
+                        </button>
+                      )}
+                    </div>
+                  </div>
+                )}
+
                 {/* Active Version toggle */}
                 <div className="space-y-3">
                   <label className="block text-[10px] font-bold text-neutral-low uppercase tracking-widest ml-1">Active Version</label>

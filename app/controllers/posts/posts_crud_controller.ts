@@ -4,6 +4,7 @@ import ApproveReviewDraft from '#actions/posts/approve_review_draft'
 import RejectReviewDraft from '#actions/posts/reject_review_draft'
 import Post from '#models/post'
 import CreatePost, { CreatePostException } from '#actions/posts/create_post'
+import CreateVariation from '#actions/posts/create_variation'
 import UpdatePost, { UpdatePostException } from '#actions/posts/update_post'
 import UpsertPostCustomFields from '#actions/posts/upsert_post_custom_fields'
 import BulkPostsAction from '#actions/posts/bulk_action'
@@ -525,6 +526,35 @@ export default class PostsCrudController extends BasePostsController {
     await db.from('posts').where('id', id).update({ author_id: authorId, updated_at: new Date() })
 
     return response.ok({ message: 'Author updated' })
+  }
+
+  /**
+   * POST /api/posts/:id/variations
+   * Create a new variation (B) from an existing post (A).
+   */
+  async createVariation({ params, request, response, auth }: HttpContext) {
+    const { id } = params
+    const { variation } = request.only(['variation']) as { variation: string }
+
+    if (!variation) {
+      return this.response.badRequest(response, 'Variation identifier is required')
+    }
+
+    try {
+      const newPost = await CreateVariation.handle({
+        sourcePostId: id,
+        variation,
+        userId: auth.user!.id,
+      })
+
+      return response.created({
+        id: newPost.id,
+        variation: newPost.abVariation,
+        message: `Variation ${variation} created successfully`,
+      })
+    } catch (error: any) {
+      return this.response.badRequest(response, error.message || 'Failed to create variation')
+    }
   }
 
   // Private helper methods
