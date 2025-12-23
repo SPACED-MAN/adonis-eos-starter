@@ -40,6 +40,7 @@ export default class PricingModule extends BaseModule {
           required: true,
           description: 'List of pricing plans (up to 3)',
           item: {
+            slug: 'item',
             type: 'object',
             fields: [
               {

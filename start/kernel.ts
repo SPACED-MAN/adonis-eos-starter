@@ -46,6 +46,7 @@ router.use([
   () => import('@adonisjs/auth/initialize_auth_middleware'),
   // Share auth context with Inertia props (must run after auth init)
   () => import('#middleware/inertia_auth_share_middleware'),
+  () => import('#middleware/theme_middleware'),
   () => import('#middleware/dev_tools_middleware'),
   () => import('#middleware/locale_middleware'),
   () => import('#middleware/cache_control_middleware'),

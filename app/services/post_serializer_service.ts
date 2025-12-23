@@ -9,6 +9,7 @@ import db from '@adonisjs/lucid/services/db'
 import { coerceJsonObject } from '../helpers/jsonb.js'
 
 type CanonicalModule = {
+  postModuleId: string // Unique ID for updating this module instance on the post
   type: string
   scope: 'local' | 'global'
   orderIndex: number
@@ -35,6 +36,7 @@ export type CanonicalPost = {
     canonicalUrl?: string | null
     robotsJson?: Record<string, any> | null
     jsonldOverrides?: Record<string, any> | null
+    featuredImageId?: string | null
     customFields?: Array<{ slug: string; value: any }>
   }
   modules: CanonicalModule[]
@@ -156,6 +158,7 @@ export default class PostSerializerService {
       canonicalUrl: (post as any).canonicalUrl ?? (post as any).canonical_url ?? null,
       robotsJson: (post as any).robotsJson ?? (post as any).robots_json ?? null,
       jsonldOverrides: (post as any).jsonldOverrides ?? (post as any).jsonld_overrides ?? null,
+      featuredImageId: (post as any).featuredImageId ?? (post as any).featured_image_id ?? null,
     }
 
     if (mode === 'review') {
@@ -182,6 +185,9 @@ export default class PostSerializerService {
             : {}),
           ...(reviewDraft.jsonldOverrides !== undefined
             ? { jsonldOverrides: reviewDraft.jsonldOverrides ?? null }
+            : {}),
+          ...(reviewDraft.featuredImageId !== undefined
+            ? { featuredImageId: reviewDraft.featuredImageId ?? null }
             : {}),
         }
       }
@@ -213,6 +219,9 @@ export default class PostSerializerService {
             ...(reviewDraft.jsonldOverrides !== undefined
               ? { jsonldOverrides: reviewDraft.jsonldOverrides ?? null }
               : {}),
+            ...(reviewDraft.featuredImageId !== undefined
+              ? { featuredImageId: reviewDraft.featuredImageId ?? null }
+              : {}),
           }
         }
         // Then merge ai_review_draft on top
@@ -238,6 +247,9 @@ export default class PostSerializerService {
             : {}),
           ...(aiReviewDraft.jsonldOverrides !== undefined
             ? { jsonldOverrides: aiReviewDraft.jsonldOverrides ?? null }
+            : {}),
+          ...(aiReviewDraft.featuredImageId !== undefined
+            ? { featuredImageId: aiReviewDraft.featuredImageId ?? null }
             : {}),
         }
       } else {
@@ -265,6 +277,9 @@ export default class PostSerializerService {
             ...(reviewDraft.jsonldOverrides !== undefined
               ? { jsonldOverrides: reviewDraft.jsonldOverrides ?? null }
               : {}),
+            ...(reviewDraft.featuredImageId !== undefined
+              ? { featuredImageId: reviewDraft.featuredImageId ?? null }
+              : {}),
           }
         }
       }
@@ -287,6 +302,7 @@ export default class PostSerializerService {
         canonicalUrl: postFields.canonicalUrl ?? null,
         robotsJson: postFields.robotsJson ?? null,
         jsonldOverrides: postFields.jsonldOverrides ?? null,
+        featuredImageId: postFields.featuredImageId ?? null,
         customFields,
       },
       modules: moduleRows.map((row: any) => {

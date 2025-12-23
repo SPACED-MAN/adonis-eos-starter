@@ -1,7 +1,6 @@
 import OpenAI from 'openai'
 import Anthropic from '@anthropic-ai/sdk'
 import { GoogleGenerativeAI } from '@google/generative-ai'
-import env from '#start/env'
 
 /**
  * Supported AI providers
@@ -366,7 +365,7 @@ class AIProviderService {
         `https://generativelanguage.googleapis.com/v1beta/models?key=${apiKey}`
       )
       if (response.ok) {
-        const data = await response.json()
+        const data = (await response.json()) as any
         const v1betaModels = (data.models || [])
           .map((m: any) => m.name?.replace('models/', '') || m.name)
           .filter(Boolean)
@@ -382,7 +381,7 @@ class AIProviderService {
         `https://generativelanguage.googleapis.com/v1/models?key=${apiKey}`
       )
       if (response.ok) {
-        const data = await response.json()
+        const data = (await response.json()) as any
         const v1Models = (data.models || [])
           .map((m: any) => m.name?.replace('models/', '') || m.name)
           .filter(Boolean)
@@ -407,7 +406,6 @@ class AIProviderService {
   ): Promise<AICompletionResult> {
     // Nano Banana uses Google's Gemini API, so we can reuse the Google implementation
     // but with a custom base URL if provided
-    const baseUrl = config.baseUrl || 'https://api.nanobanana.ai/v1'
 
     // Use GoogleGenerativeAI client but with custom base URL if needed
     // For now, we'll use the standard Google client but this can be extended

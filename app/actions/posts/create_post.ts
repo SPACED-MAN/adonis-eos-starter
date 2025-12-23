@@ -227,7 +227,7 @@ export default class CreatePost {
     const now = new Date()
     for (const [idx, tm] of groupModules.entries()) {
       // Merge module defaults + module group defaults (module group wins)
-      const defaultsFromRegistry = (moduleRegistry.get(tm.type).getConfig().defaultProps ||
+      const defaultsFromRegistry = (moduleRegistry.get(tm.type).getConfig().defaultValues ||
         {}) as Record<string, any>
       const defaultsFromGroup = ((tm as any).default_props || {}) as Record<string, any>
       const mergedTemplateProps = { ...defaultsFromRegistry, ...defaultsFromGroup }

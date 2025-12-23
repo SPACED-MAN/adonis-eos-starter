@@ -2,7 +2,7 @@ import { useEffect, useState } from 'react'
 import type { MenuItem, TreeNode } from './menu/types'
 import { NavBar } from './menu/NavBar'
 import { usePage } from '@inertiajs/react'
-import { pickMediaVariantUrl, type MediaVariant } from '../../lib/media'
+import { type MediaVariant } from '../../lib/media'
 import { AnnouncementBanner } from './AnnouncementBanner'
 import { CookieConsent } from './CookieConsent'
 
@@ -35,7 +35,7 @@ export function SiteHeader() {
   const currentUser = (page.props as any)?.currentUser
 
   useEffect(() => {
-    ;(async () => {
+    ; (async () => {
       try {
         // Primary menu
         const res = await fetch('/api/menus/by-slug/primary?locale=en', {
@@ -52,7 +52,7 @@ export function SiteHeader() {
   }, [])
 
   useEffect(() => {
-    ;(async () => {
+    ; (async () => {
       try {
         const res = await fetch('/api/site-settings', { credentials: 'same-origin' })
         const j = await res.json().catch(() => ({}))
@@ -60,34 +60,28 @@ export function SiteHeader() {
         if (data?.siteTitle) {
           setSiteTitle(String(data.siteTitle))
         }
-        
+
         const customFields = data?.customFields || {}
         if ('show_search' in customFields) {
           setShowSearch(customFields.show_search !== false && customFields.show_search !== 'false')
         }
 
-        const logoMediaId: string | null = data?.logoMediaId || null
-
-        if (logoMediaId) {
-          try {
-            const resLogo = await fetch(`/public/media/${encodeURIComponent(logoMediaId)}`, {
-              credentials: 'same-origin',
-            })
-            const jm = await resLogo.json().catch(() => ({}))
-            const media = jm?.data as any
-            if (media && media.url) {
-              const meta = (media as any).metadata || {}
-              const variants: MediaVariant[] = Array.isArray(meta?.variants)
-                ? (meta.variants as MediaVariant[])
-                : []
-              const darkSourceUrl =
-                typeof meta.darkSourceUrl === 'string' ? (meta.darkSourceUrl as string) : null
-              setLogoBaseUrl(String(media.url))
-              setLogoVariants(variants)
-              setLogoDarkSourceUrl(darkSourceUrl)
-            }
-          } catch {
-            // ignore logo load errors
+        // Logo media is now pre-resolved on the server and passed directly
+        if (data?.logoMedia) {
+          if (typeof data.logoMedia === 'object' && data.logoMedia.url) {
+            const meta = data.logoMedia.metadata || {}
+            const variants: MediaVariant[] = Array.isArray(meta?.variants)
+              ? (meta.variants as MediaVariant[])
+              : []
+            const darkSourceUrl =
+              typeof meta.darkSourceUrl === 'string' ? (meta.darkSourceUrl as string) : null
+            setLogoBaseUrl(String(data.logoMedia.url))
+            setLogoVariants(variants)
+            setLogoDarkSourceUrl(darkSourceUrl)
+          } else if (typeof data.logoMedia === 'string') {
+            setLogoBaseUrl(data.logoMedia)
+            setLogoVariants([])
+            setLogoDarkSourceUrl(null)
           }
         }
       } catch {
@@ -96,12 +90,15 @@ export function SiteHeader() {
     })()
   }, [])
 
-  const resolvedLogoUrl =
-    logoBaseUrl && logoVariants
-      ? pickMediaVariantUrl(logoBaseUrl, logoVariants, undefined, {
-          darkSourceUrl: logoDarkSourceUrl ?? undefined,
-        })
-      : logoBaseUrl
+  const logoMedia = logoBaseUrl
+    ? {
+      url: logoBaseUrl,
+      metadata: {
+        variants: logoVariants || [],
+        darkSourceUrl: logoDarkSourceUrl,
+      },
+    }
+    : null
 
   return (
     <>
@@ -111,8 +108,7 @@ export function SiteHeader() {
         primaryNodes={primaryNodes}
         menuMeta={menuMeta || undefined}
         menuName={siteTitle}
-        logoLightUrl={resolvedLogoUrl || undefined}
-        logoDarkUrl={undefined}
+        logo={logoMedia || undefined}
         currentUser={currentUser || undefined}
         showSearch={showSearch}
       />

@@ -415,7 +415,7 @@ export default class DatabaseAdminController {
               render_cache_html: null,
               render_etag: null,
             })
-          results.renderCacheCleared = cleared
+          results.renderCacheCleared = Number(Array.isArray(cleared) ? cleared[0] : cleared) || 0
         }
       })
 

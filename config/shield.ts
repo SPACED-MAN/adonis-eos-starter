@@ -75,7 +75,7 @@ const shieldConfig = defineConfig({
       baseUri: ["'self'"],
       formAction: ["'self'"],
       frameAncestors: ["'none'"], // Redundant with X-Frame-Options but good practice
-      ...(env.get('NODE_ENV') === 'production' ? { upgradeInsecureRequests: true } : {}), // Upgrade HTTP to HTTPS in production
+      ...(env.get('NODE_ENV') === 'production' ? { upgradeInsecureRequests: [] } : {}), // Upgrade HTTP to HTTPS in production
     },
     reportOnly: false,
   },

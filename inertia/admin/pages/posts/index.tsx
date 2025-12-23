@@ -737,10 +737,11 @@ export default function PostsIndexPage({}: PostsIndexProps) {
                   </SelectTrigger>
                   <SelectContent>
                     <SelectItem value="all">All locales</SelectItem>
-                    <SelectItem value="en">EN</SelectItem>
-                    <SelectItem value="es">ES</SelectItem>
-                    <SelectItem value="fr">FR</SelectItem>
-                    <SelectItem value="pt">PT</SelectItem>
+                    {supportedLocales.map((loc) => (
+                      <SelectItem key={loc} value={loc}>
+                        {loc.toUpperCase()}
+                      </SelectItem>
+                    ))}
                   </SelectContent>
                 </Select>
                 <Select

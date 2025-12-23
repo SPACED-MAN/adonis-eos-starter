@@ -51,7 +51,6 @@ import {
   TableHeader,
   TableRow,
 } from '../../../components/ui/table'
-import { pickMediaVariantUrl, type MediaVariant } from '../../../lib/media'
 import { MediaRenderer } from '../../../components/MediaRenderer'
 
 type Variant = { name: string; url: string; width?: number; height?: number; size?: number }
@@ -497,42 +496,6 @@ export default function MediaIndex() {
     const ext = file.slice(dot)
     const name = `${base}.thumb${ext}`
     return dir ? `${dir}/${name}` : name
-  }
-
-  function getPreviewUrl(m: MediaItem): string {
-    const url = m.url || ''
-    const isImage =
-      (m.mimeType && m.mimeType.startsWith('image/')) ||
-      /\.(png|jpe?g|gif|webp|svg|avif)$/i.test(url)
-    if (!isImage) return ''
-
-    const meta = (m as any).metadata || {}
-    const variants: MediaVariant[] = Array.isArray(meta?.variants)
-      ? (meta.variants as MediaVariant[])
-      : []
-    const darkSourceUrl =
-      typeof meta.darkSourceUrl === 'string' ? (meta.darkSourceUrl as string) : undefined
-
-    const desiredVariant = preferredThumb || null
-    return pickMediaVariantUrl(url, variants, desiredVariant, { darkSourceUrl })
-  }
-
-  function getViewUrl(m: MediaItem): string {
-    const url = m.url || ''
-    const isImage =
-      (m.mimeType && m.mimeType.startsWith('image/')) ||
-      /\.(png|jpe?g|gif|webp|svg|avif)$/i.test(url)
-    if (!isImage) return url
-
-    const meta = (m as any).metadata || {}
-    const variants: MediaVariant[] = Array.isArray(meta?.variants)
-      ? (meta.variants as MediaVariant[])
-      : []
-    const darkSourceUrl =
-      typeof meta.darkSourceUrl === 'string' ? (meta.darkSourceUrl as string) : undefined
-
-    const desiredVariant = preferredModal || null
-    return pickMediaVariantUrl(url, variants, desiredVariant, { darkSourceUrl })
   }
 
   function defaultAltFromFilename(name: string): string {
@@ -1024,7 +987,6 @@ export default function MediaIndex() {
                 {viewMode === 'gallery' ? (
                   <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
                     {items.map((m) => {
-                      const preview = getPreviewUrl(m)
                       const isImage =
                         (m.mimeType && m.mimeType.startsWith('image/')) ||
                         /\.(png|jpe?g|gif|webp|svg|avif)$/i.test(m.url || '')
@@ -1045,8 +1007,8 @@ export default function MediaIndex() {
                           </div>
                           <div className="aspect-video bg-backdrop-medium border border-line-low overflow-hidden rounded">
                             <MediaRenderer
-                              url={preview || m.url}
-                              mimeType={m.mimeType}
+                              image={m}
+                              variant="thumb"
                               alt={m.altText || m.originalFilename}
                               className="w-full h-full object-cover"
                               controls={false}
@@ -1212,7 +1174,6 @@ export default function MediaIndex() {
                           const isImage =
                             (m.mimeType && m.mimeType.startsWith('image/')) ||
                             /\.(png|jpe?g|gif|webp|svg|avif)$/i.test(m.url || '')
-                          const preview = getPreviewUrl(m)
                           const checked = selectedIds.has(m.id)
                           return (
                             <TableRow key={m.id}>
@@ -1225,17 +1186,14 @@ export default function MediaIndex() {
                               </TableCell>
                               <TableCell>
                                 <div className="w-16 h-10 border border-line-low overflow-hidden rounded bg-backdrop-medium">
-                                  {isImage ? (
-                                    <img
-                                      src={preview || m.url}
-                                      alt=""
-                                      className="w-full h-full object-cover"
-                                    />
-                                  ) : (
-                                    <div className="w-full h-full flex items-center justify-center text-[10px] text-neutral-low">
-                                      N/A
-                                    </div>
-                                  )}
+                                  <MediaRenderer
+                                    image={m}
+                                    variant="thumb"
+                                    alt=""
+                                    className="w-full h-full object-cover"
+                                    controls={false}
+                                    autoPlay={false}
+                                  />
                                 </div>
                               </TableCell>
                               <TableCell className="max-w-[240px] truncate">

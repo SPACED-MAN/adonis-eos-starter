@@ -81,8 +81,8 @@ test.group('Module Registry', (group) => {
 
     const schema = moduleRegistry.getSchema('prose')
     assert.equal(schema.type, 'prose')
-    assert.isDefined(schema.propsSchema)
-    assert.isDefined(schema.defaultProps)
+    assert.isDefined(schema.fieldSchema)
+    assert.isDefined(schema.defaultValues)
     assert.isArray(schema.allowedScopes)
   })
 

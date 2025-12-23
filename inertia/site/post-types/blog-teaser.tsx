@@ -1,15 +1,17 @@
 import { FontAwesomeIcon } from '../lib/icons'
+import { MediaRenderer } from '../../components/MediaRenderer'
+import { type MediaObject } from '../../utils/useMediaUrl'
 
 interface BlogTeaserProps {
   id: string
   title: string
   excerpt?: string | null
   updatedAt?: string | null
-  imageUrl?: string | null
+  image?: MediaObject | string | null
   url: string
 }
 
-export default function BlogTeaser({ title, excerpt, updatedAt, imageUrl, url }: BlogTeaserProps) {
+export default function BlogTeaser({ title, excerpt, updatedAt, image, url }: BlogTeaserProps) {
   const formatDate = (iso?: string | null): string | null => {
     if (!iso) return null
     const d = new Date(iso)
@@ -25,12 +27,12 @@ export default function BlogTeaser({ title, excerpt, updatedAt, imageUrl, url }:
 
   return (
     <article className="bg-backdrop-medium rounded-lg border border-line-low shadow-sm overflow-hidden flex flex-col">
-      {imageUrl && (
-        <a href={url} className="block">
-          <img
-            src={imageUrl}
-            alt={title}
-            className="w-full h-40 object-cover"
+      {image && (
+        <a href={url} className="block h-40 overflow-hidden">
+          <MediaRenderer
+            image={image}
+            variant="wide"
+            className="w-full h-full object-cover"
             loading="lazy"
             decoding="async"
           />

@@ -181,6 +181,7 @@ export const LinkField: React.FC<LinkFieldProps> = ({
           // Fetch posts list
           const params = new URLSearchParams()
           params.set('status', 'published')
+          params.set('hasPermalinks', '1') // Only show linkable posts
           if (currentLocale) params.set('locale', currentLocale)
           params.set('limit', '200')
 

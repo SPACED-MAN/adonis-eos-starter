@@ -24,5 +24,11 @@ yarn-error.log
 # Platform specific
 .DS_Store
 
+# Uploads
+public/uploads/*
+!public/uploads/logo-eos.svg
+!public/uploads/logo-eos-dark.svg
+!public/uploads/demo-video.mp4
+
 # Local development notes
 PROMPT-HISTORY.md

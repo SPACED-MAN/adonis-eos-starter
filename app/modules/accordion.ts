@@ -21,6 +21,7 @@ export default class AccordionModule extends BaseModule {
           required: true,
           description: 'Accordion items',
           item: {
+            slug: 'item',
             type: 'object',
             fields: [
               {

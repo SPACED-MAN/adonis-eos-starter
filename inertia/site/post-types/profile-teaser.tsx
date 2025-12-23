@@ -1,21 +1,23 @@
+import { MediaRenderer } from '../../components/MediaRenderer'
+import { type MediaObject } from '../../utils/useMediaUrl'
+
 interface ProfileTeaserProps {
   id: string
   name: string
   role?: string | null
   bio?: string | null
-  imageUrl?: string | null
+  image?: MediaObject | string | null
   url: string
 }
 
-export default function ProfileTeaser({ name, role, bio, imageUrl, url }: ProfileTeaserProps) {
+export default function ProfileTeaser({ name, role, bio, image, url }: ProfileTeaserProps) {
   return (
     <article className="items-center bg-backdrop-medium shadow sm:flex border border-line-low">
-      {imageUrl && (
-        <a href={url} className="p-1 sm:shrink-0">
-          <img
-            className="w-full sm:w-44 h-full max-h-60 object-cover"
-            src={imageUrl}
-            alt={name}
+      {image && (
+        <a href={url} className="p-1 sm:shrink-0 block w-full sm:w-44 h-44 sm:h-full max-h-60 overflow-hidden">
+          <MediaRenderer
+            image={image}
+            variant="thumb"
             loading="lazy"
             decoding="async"
           />

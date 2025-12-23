@@ -1,6 +1,4 @@
-import { useEffect, useState } from 'react'
-import { motion } from 'framer-motion'
-import { pickMediaVariantUrl } from '../lib/media'
+import { motion, type Variants } from 'framer-motion'
 import { FontAwesomeIcon } from '../site/lib/icons'
 import type { Button, LinkValue } from './types'
 import { useInlineValue } from '../components/inline-edit/InlineEditorContext'
@@ -18,8 +16,13 @@ interface ProseWithMediaProps {
   title: string
   // Lexical JSON or legacy string (plain text / HTML / JSON string)
   body?: LexicalJSON | string | null
-  image?: string | null // media ID
-  imageAlt?: string | null
+  image?: {
+    id: string
+    url: string
+    mimeType?: string
+    altText?: string
+    metadata?: any
+  } | null // media object
   imagePosition?: 'left' | 'right'
   primaryCta?: Button | null
   backgroundColor?: string
@@ -31,7 +34,6 @@ export default function ProseWithMedia({
   title,
   body,
   image,
-  imageAlt,
   imagePosition = 'left',
   primaryCta,
   backgroundColor = 'bg-backdrop-low',
@@ -40,51 +42,7 @@ export default function ProseWithMedia({
 }: ProseWithMediaProps) {
   const titleValue = useInlineValue(__moduleId, 'title', title)
   const bodyValue = useInlineValue(__moduleId, 'body', body)
-  const imageId = useInlineValue(__moduleId, 'image', image)
-  const [resolvedMedia, setResolvedMedia] = useState<{
-    url: string
-    mimeType?: string
-    metadata?: any
-  } | null>(null)
-
-  useEffect(() => {
-    let cancelled = false
-
-    async function resolveImage() {
-      if (!imageId) {
-        if (!cancelled) setResolvedMedia(null)
-        return
-      }
-
-      try {
-        const res = await fetch(`/public/media/${encodeURIComponent(String(imageId))}`)
-        if (!res.ok) {
-          if (!cancelled) setResolvedMedia(null)
-          return
-        }
-        const j = await res.json().catch(() => null)
-        const data = j?.data
-        if (!data) {
-          if (!cancelled) setResolvedMedia(null)
-          return
-        }
-        const mimeType = data.mimeType
-        const meta = (data as any).metadata || {}
-        const variants = Array.isArray(meta?.variants) ? (meta.variants as any[]) : []
-        const darkSourceUrl =
-          typeof meta.darkSourceUrl === 'string' ? (meta.darkSourceUrl as string) : undefined
-        const url = pickMediaVariantUrl(data.url, variants, undefined, { darkSourceUrl })
-        if (!cancelled) setResolvedMedia({ url, mimeType, metadata: meta })
-      } catch {
-        if (!cancelled) setResolvedMedia(null)
-      }
-    }
-
-    resolveImage()
-    return () => {
-      cancelled = true
-    }
-  }, [imageId])
+  const imageValue = useInlineValue(__moduleId, 'image', image)
 
   function resolveButtonHref(url: string | LinkValue): string | undefined {
     return resolveLink(url).href
@@ -93,7 +51,7 @@ export default function ProseWithMedia({
   const hasCta = Boolean(primaryCta && primaryCta.label && primaryCta.url)
   const bodyHtml = bodyValue ? lexicalContentToHtml(bodyValue) : ''
 
-  const containerVariants = {
+  const containerVariants: Variants = {
     hidden: { opacity: 0 },
     visible: {
       opacity: 1,
@@ -103,7 +61,7 @@ export default function ProseWithMedia({
     },
   }
 
-  const textVariants = {
+  const textVariants: Variants = {
     hidden: { opacity: 0, x: imagePosition === 'left' ? 30 : -30 },
     visible: {
       opacity: 1,
@@ -112,7 +70,7 @@ export default function ProseWithMedia({
     },
   }
 
-  const imageVariants = {
+  const imageVariants: Variants = {
     hidden: { opacity: 0, scale: 0.95, x: imagePosition === 'left' ? -30 : 30 },
     visible: {
       opacity: 1,
@@ -122,20 +80,19 @@ export default function ProseWithMedia({
     },
   }
 
-  const imageBlock = resolvedMedia ? (
+  const imageBlock = imageValue ? (
     <div className="w-full">
       <div
-        className="w-full rounded-xl overflow-hidden border border-line-low bg-backdrop-high aspect-[4/3]"
+        className="w-full overflow-hidden aspect-[4/3]"
         data-inline-type="media"
         data-inline-path="image"
       >
         <MediaRenderer
-          url={resolvedMedia.url}
-          mimeType={resolvedMedia.mimeType}
-          alt={imageAlt || ''}
+          image={imageValue}
+          alt={(typeof imageValue === 'object' ? imageValue.altText : null) || ''}
           loading="lazy"
           decoding="async"
-          playMode={resolvedMedia.metadata?.playMode || 'autoplay'}
+          playMode={typeof imageValue === 'object' ? imageValue.metadata?.playMode : 'autoplay'}
         />
       </div>
     </div>
@@ -196,7 +153,7 @@ export default function ProseWithMedia({
                 ? '_blank'
                 : '_self'
               : primaryCta.target || '_self'
-          
+
           const btn = (
             <a
               href={href}
@@ -261,7 +218,6 @@ export default function ProseWithMedia({
     </section>
   )
 }
-
 
 /**
  * Convert Lexical JSON to HTML for rendering.

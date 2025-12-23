@@ -172,7 +172,7 @@ class FindReplaceService {
     }
   }
 
-  private getColumnTypeForCast(table: string, column: string): string {
+  private getColumnTypeForCast(_table: string, column: string): string {
     const col = column.toLowerCase()
     // This is a bit simplified, but helps avoid casting issues in PG
     if (

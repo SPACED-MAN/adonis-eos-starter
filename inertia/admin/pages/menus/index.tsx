@@ -81,6 +81,30 @@ export default function MenusIndex() {
   const [menuLocale, setMenuLocale] = useState<string | null>(null)
   const [editingLocale, setEditingLocale] = useState<string>('en')
   const [selectedMenuSlug, setSelectedMenuSlug] = useState<string>('')
+  const [supportedLocales, setSupportedLocales] = useState<string[]>([])
+
+  useEffect(() => {
+    ;(async () => {
+      try {
+        const res = await fetch('/api/locales', { credentials: 'same-origin' })
+        const json = await res.json().catch(() => ({}))
+        const list: Array<{ code: string; isEnabled?: boolean; is_enabled?: boolean }> =
+          Array.isArray(json?.data) ? json.data : []
+        const enabled = list
+          .filter(
+            (l) =>
+              (l as any).isEnabled === true ||
+              (l as any).is_enabled === true ||
+              (l as any).isEnabled === undefined
+          )
+          .map((l) => l.code)
+        setSupportedLocales(enabled.length ? enabled : ['en'])
+      } catch {
+        setSupportedLocales(['en'])
+      }
+    })()
+  }, [])
+
   const [menuTemplate, setMenuTemplate] = useState<string | null>(null)
   const [menuMeta, setMenuMeta] = useState<Record<string, any>>({})
   const [templates, setTemplates] = useState<
@@ -243,6 +267,7 @@ export default function MenusIndex() {
       if (query) params.set('q', query)
       params.set('limit', '20')
       params.set('status', 'published')
+      params.set('hasPermalinks', '1')
       params.set('sortBy', 'updated_at')
       params.set('sortOrder', 'desc')
       if (!searchAllLocales && menuLocale) params.set('locale', menuLocale)
@@ -260,6 +285,7 @@ export default function MenusIndex() {
         if (query) params2.set('q', query)
         params2.set('limit', '20')
         params2.set('status', 'published')
+        params2.set('hasPermalinks', '1')
         params2.set('sortBy', 'updated_at')
         params2.set('sortOrder', 'desc')
         const res2 = await fetch(`/api/posts?${params2.toString()}`, { credentials: 'same-origin' })
@@ -640,10 +666,11 @@ export default function MenusIndex() {
                           <SelectValue placeholder="Locale" />
                         </SelectTrigger>
                         <SelectContent>
-                          <SelectItem value="en">en</SelectItem>
-                          <SelectItem value="es">es</SelectItem>
-                          <SelectItem value="fr">fr</SelectItem>
-                          <SelectItem value="pt">pt</SelectItem>
+                          {supportedLocales.map((loc) => (
+                            <SelectItem key={loc} value={loc} className="text-sm">
+                              {loc.toUpperCase()}
+                            </SelectItem>
+                          ))}
                         </SelectContent>
                       </Select>
                     </div>
@@ -654,7 +681,7 @@ export default function MenusIndex() {
                             className="px-2 py-1 text-xs border border-line-medium rounded"
                             onClick={async () => {
                               if (!selectedMenuId) return
-                              const targets = ['en', 'es', 'fr', 'pt'].filter(
+                              const targets = supportedLocales.filter(
                                 (l) => l !== editingLocale
                               )
                               await toast.promise(

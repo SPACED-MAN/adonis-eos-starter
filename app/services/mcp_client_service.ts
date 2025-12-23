@@ -1,11 +1,19 @@
 import { Client } from '@modelcontextprotocol/sdk/client/index.js'
 import { StdioClientTransport } from '@modelcontextprotocol/sdk/client/stdio.js'
 import env from '#start/env'
-import CreatePost from '#actions/posts/create_post'
+import CreatePost, { CreatePostException } from '#actions/posts/create_post'
+import CreateTranslation from '#actions/translations/create_translation'
 import { getUserIdForAgent } from '#services/agent_user_service'
 import { markdownToLexical } from '#helpers/markdown_to_lexical'
 import UpdatePostModule from '#actions/posts/update_post_module'
+import AddModuleToPost from '#actions/posts/add_module_to_post'
+import SaveReviewDraft from '#actions/posts/save_review_draft'
+import PostSerializerService from '#services/post_serializer_service'
+import postTypeConfigService from '#services/post_type_config_service'
+import Post from '#models/post'
 import RevisionService from '#services/revision_service'
+import moduleRegistry from '#services/module_registry'
+import agentRegistry from '#services/agent_registry'
 import db from '@adonisjs/lucid/services/db'
 import path from 'node:path'
 import fs from 'node:fs/promises'
@@ -59,6 +67,16 @@ class MCPClientService {
       { name: 'add_module_to_post_ai_review', description: 'Add a module to a post' },
       { name: 'update_post_module_ai_review', description: 'Update a post module' },
       { name: 'remove_post_module_ai_review', description: 'Remove a post module' },
+      {
+        name: 'create_translation_ai_review',
+        description:
+          'Create a translation post for a base post and initialize AI Review content (optionally cloning module structure).',
+      },
+      {
+        name: 'create_translations_ai_review_bulk',
+        description:
+          'Create translation posts for multiple locales and initialize AI Review drafts (optionally cloning module structure).',
+      },
       { name: 'suggest_modules_for_layout', description: 'Suggest modules for a page layout' },
       {
         name: 'search_media',
@@ -82,6 +100,66 @@ class MCPClientService {
     // This avoids the overhead of HTTP/SSE communication
 
     switch (toolName) {
+      case 'get_post_type_config': {
+        const { postType } = params
+        if (!postType) throw new Error('get_post_type_config requires "postType"')
+        const config = postTypeConfigService.getUiConfig(postType)
+        return { success: true, config }
+      }
+
+      case 'list_modules': {
+        const { postType } = params
+        const modules = postType
+          ? await moduleRegistry.getAllowedForPostType(postType)
+          : moduleRegistry.getAll()
+
+        return {
+          success: true,
+          modules: modules.map((m) => {
+            const c = m.getConfig()
+            return {
+              type: c.type,
+              name: c.name,
+              description: c.description,
+            }
+          }),
+        }
+      }
+
+      case 'get_module_schema': {
+        const { type } = params
+        if (!type) throw new Error('get_module_schema requires "type"')
+        const schema = moduleRegistry.getSchema(type)
+        return { success: true, schema }
+      }
+
+      case 'list_posts': {
+        const { type, status, q, locale, limit } = params
+        let query = Post.query()
+
+        if (type) query = query.where('type', type)
+        if (status) query = query.where('status', status)
+        if (locale) query = query.where('locale', locale)
+        if (q) {
+          query = query.where((b) => {
+            b.whereILike('title', `%${q}%`).orWhereILike('slug', `%${q}%`)
+          })
+        }
+
+        const posts = await query.orderBy('created_at', 'desc').limit(limit || 20)
+        return {
+          success: true,
+          posts: posts.map((p) => ({
+            id: p.id,
+            title: p.title,
+            slug: p.slug,
+            type: p.type,
+            status: p.status,
+            locale: p.locale,
+          })),
+        }
+      }
+
       case 'create_post_ai_review': {
         // Resolve actor user ID (for agent attribution)
         const actorUserId = await this.resolveActorUserId(agentId)
@@ -117,24 +195,63 @@ class MCPClientService {
         }
 
         // Create the post with ai-review seed mode (this will seed modules from module group)
-        const post = await CreatePost.handle({
-          type,
-          locale,
-          slug,
-          title,
-          status: 'draft' as any,
-          excerpt: excerpt ?? null,
-          metaTitle: null,
-          metaDescription: null,
-          moduleGroupId: resolvedModuleGroupId,
-          seedMode: 'ai-review',
-          userId: actorUserId,
-        })
+        // Auto-retry with incremented slug if slug conflict occurs
+        let post: any = null
+        let finalSlug = slug
+        let attempt = 1
+        const maxAttempts = 10
+
+        while (!post && attempt <= maxAttempts) {
+          try {
+            post = await CreatePost.handle({
+              type,
+              locale,
+              slug: finalSlug,
+              title,
+              status: 'draft' as any,
+              excerpt: excerpt ?? null,
+              metaTitle: null,
+              metaDescription: null,
+              moduleGroupId: resolvedModuleGroupId,
+              seedMode: 'ai-review',
+              userId: actorUserId,
+            })
+            // Success - break out of retry loop
+            break
+          } catch (error: any) {
+            // Check if it's a slug conflict (409 status code)
+            const isSlugConflict =
+              error instanceof CreatePostException &&
+              error.statusCode === 409 &&
+              error.message?.includes('slug already exists')
+
+            if (isSlugConflict) {
+              // Increment slug and retry
+              attempt++
+              if (attempt > maxAttempts) {
+                throw new Error(
+                  `Failed to create post: unable to find available slug after ${maxAttempts} attempts. Last attempted slug: ${finalSlug}`
+                )
+              }
+              // Append -2, -3, etc. to the slug
+              finalSlug = `${slug}-${attempt}`
+            } else {
+              // Not a slug conflict - rethrow the error
+              throw error
+            }
+          }
+        }
+
+        if (!post) {
+          throw new Error(
+            `Failed to create post: unable to find available slug after ${maxAttempts} attempts`
+          )
+        }
 
         // Update ai_review_draft on the post
         const savedBy = agentId ? `agent:${agentId}` : 'system'
         const draftPayload = {
-          slug,
+          slug: finalSlug, // Use the final slug (may have been incremented)
           title,
           status: 'draft',
           excerpt: excerpt ?? null,
@@ -353,6 +470,359 @@ class MCPClientService {
         }
       }
 
+      case 'get_post_context': {
+        const { postId } = params
+        if (!postId) throw new Error('get_post_context requires a "postId" parameter')
+
+        const post = await Post.find(postId)
+        if (!post) throw new Error(`Post not found: ${postId}`)
+
+        // Serialize post in AI review mode to see current staged changes
+        const context = await PostSerializerService.serialize(post.id, 'ai-review')
+        return {
+          success: true,
+          ...context,
+        }
+      }
+
+      case 'save_post_ai_review': {
+        const { postId, patch } = params
+        if (!postId || !patch) {
+          throw new Error('save_post_ai_review requires "postId" and "patch" parameters')
+        }
+
+        const actorUserId = await this.resolveActorUserId(agentId)
+        if (!actorUserId) throw new Error('Actor user not found')
+
+        // Fetch current AI review draft to merge with
+        const post = await Post.find(postId)
+        if (!post) throw new Error(`Post not found: ${postId}`)
+
+        const currentDraft = (post as any).aiReviewDraft || (post as any).ai_review_draft || {}
+
+        // Ensure we don't pass undefined values to SaveReviewDraft which might overwrite existing data
+        const mergedPayload = { ...currentDraft }
+        for (const key of Object.keys(patch)) {
+          if (patch[key] !== undefined) {
+            mergedPayload[key] = patch[key]
+          }
+        }
+
+        await SaveReviewDraft.handle({
+          postId,
+          payload: mergedPayload,
+          userId: actorUserId,
+          userEmail: `agent:${agentId || 'system'}`,
+          mode: 'ai-review',
+        })
+
+        return {
+          success: true,
+          message: 'AI review draft updated successfully',
+        }
+      }
+
+      case 'add_module_to_post_ai_review': {
+        const { postId, moduleType, scope = 'local', props = {}, orderIndex, globalSlug } = params
+        if (!postId || !moduleType) {
+          throw new Error('add_module_to_post_ai_review requires "postId" and "moduleType"')
+        }
+
+        const result = await AddModuleToPost.handle({
+          postId,
+          moduleType,
+          scope,
+          props,
+          orderIndex,
+          globalSlug,
+          mode: 'ai-review',
+        })
+
+        return {
+          success: true,
+          postModuleId: result.postModuleId,
+          moduleInstanceId: result.moduleInstanceId,
+          message: 'Module added to AI review draft',
+        }
+      }
+
+      case 'update_post_module_ai_review': {
+        const { postModuleId, locked, orderIndex } = params
+        const overrides = params.overrides || params.props // Accept both overrides and props
+
+        if (!postModuleId) {
+          throw new Error('update_post_module_ai_review requires "postModuleId"')
+        }
+
+        await UpdatePostModule.handle({
+          postModuleId,
+          overrides,
+          locked,
+          orderIndex,
+          mode: 'ai-review',
+        })
+
+        return {
+          success: true,
+          message: 'Module updated in AI review draft',
+        }
+      }
+
+      case 'remove_post_module_ai_review': {
+        const { postModuleId } = params
+        if (!postModuleId) {
+          throw new Error('remove_post_module_ai_review requires "postModuleId"')
+        }
+
+        await db.from('post_modules').where('id', postModuleId).update({ ai_review_deleted: true })
+
+        return {
+          success: true,
+          message: 'Module marked as deleted in AI review draft',
+        }
+      }
+
+      case 'create_translation_ai_review': {
+        const {
+          postId,
+          locale,
+          sourceMode = 'review',
+          cloneModules = true,
+          agentName,
+          slug,
+          title,
+          metaTitle,
+          metaDescription,
+        } = params
+
+        if (!postId || !locale) {
+          throw new Error('create_translation_ai_review requires "postId" and "locale"')
+        }
+
+        const agentLabel = this.resolveAgentLabel(agentId, agentName)
+
+        // Create the translation row (inherits type/module group and sets status=draft)
+        const translation = await CreateTranslation.handle({
+          postId,
+          locale,
+          slug,
+          title,
+          metaTitle: metaTitle ?? null,
+          metaDescription: metaDescription ?? null,
+        })
+
+        // Load base post info for drafting context
+        const base = await db.from('posts').where('id', postId).whereNull('deleted_at').first()
+        const baseId = base?.translation_of_id || base?.id || postId
+        const source = await db.from('posts').where('id', baseId).whereNull('deleted_at').first()
+
+        // Base content for AI Review: use review draft when requested and present
+        const sourceDraft =
+          sourceMode === 'review' && source?.review_draft ? source.review_draft : null
+        const basePayload = sourceDraft || {
+          slug: source?.slug,
+          title: source?.title,
+          status: source?.status,
+          excerpt: source?.excerpt ?? null,
+          parentId: source?.parent_id ?? null,
+          orderIndex: source?.order_index ?? 0,
+          metaTitle: source?.meta_title ?? null,
+          metaDescription: source?.meta_description ?? null,
+          canonicalUrl: source?.canonical_url ?? null,
+          robotsJson: source?.robots_json ?? null,
+          jsonldOverrides: source?.jsonld_overrides ?? null,
+          featuredImageId: source?.featured_image_id ?? null,
+        }
+
+        const aiReviewDraft = {
+          ...basePayload,
+          slug: (translation as any).slug,
+          title: (translation as any).title,
+          status: (translation as any).status,
+          savedAt: new Date().toISOString(),
+          savedBy: agentLabel,
+          translation: {
+            sourcePostId: baseId,
+            sourceLocale: source?.locale || null,
+            targetLocale: locale,
+          },
+        }
+
+        await db
+          .from('posts')
+          .where('id', (translation as any).id)
+          .update({
+            ai_review_draft: aiReviewDraft,
+            updated_at: new Date(),
+          } as any)
+
+        const actorUserId = await this.resolveActorUserId(agentId)
+
+        await RevisionService.record({
+          postId: (translation as any).id,
+          mode: 'ai-review' as any,
+          snapshot: aiReviewDraft,
+          userId: actorUserId,
+        })
+
+        // Optionally clone module structure into AI Review staging for the translation post
+        if (cloneModules) {
+          const modules = await db
+            .from('post_modules as pm')
+            .join('module_instances as mi', 'pm.module_id', 'mi.id')
+            .where('pm.post_id', baseId)
+            .orderBy('pm.order_index', 'asc')
+            .select(
+              'pm.id as postModuleId',
+              'pm.order_index as orderIndex',
+              'pm.locked',
+              'pm.overrides',
+              'pm.review_overrides as reviewOverrides',
+              'pm.review_deleted as reviewDeleted',
+              'mi.type',
+              'mi.scope',
+              'mi.props',
+              'mi.review_props as reviewProps',
+              'mi.global_slug as globalSlug'
+            )
+
+          const map: Array<{ sourcePostModuleId: string; newPostModuleId: string }> = []
+          for (const m of modules as any[]) {
+            if (sourceMode === 'review' && m.reviewDeleted) continue
+
+            const effectiveProps =
+              sourceMode === 'review' ? m.reviewProps || m.props || {} : m.props || {}
+            const effectiveOverrides =
+              sourceMode === 'review'
+                ? (m.reviewOverrides ?? m.overrides ?? null)
+                : (m.overrides ?? null)
+
+            const isGlobal = m.scope === 'global'
+            const added = await AddModuleToPost.handle({
+              postId: (translation as any).id,
+              moduleType: m.type,
+              scope: isGlobal ? 'global' : 'local',
+              props: effectiveProps,
+              globalSlug: isGlobal ? m.globalSlug : null,
+              orderIndex: Number(m.orderIndex ?? 0),
+              locked: !!m.locked,
+              mode: 'ai-review',
+            })
+
+            map.push({
+              sourcePostModuleId: String(m.postModuleId),
+              newPostModuleId: added.postModule.id,
+            })
+
+            // For global modules, stage overrides into ai_review_overrides
+            if (isGlobal && effectiveOverrides) {
+              await UpdatePostModule.handle({
+                postModuleId: added.postModule.id,
+                overrides: effectiveOverrides,
+                mode: 'ai-review',
+              })
+            }
+          }
+
+          return {
+            success: true,
+            translationId: (translation as any).id,
+            locale: (translation as any).locale,
+            slug: (translation as any).slug,
+            title: (translation as any).title,
+            clonedModules: map,
+          }
+        }
+
+        return {
+          success: true,
+          translationId: (translation as any).id,
+          locale: (translation as any).locale,
+          slug: (translation as any).slug,
+          title: (translation as any).title,
+        }
+      }
+
+      case 'create_translations_ai_review_bulk': {
+        const { postId, locales, sourceMode = 'review', cloneModules = true, agentName } = params
+
+        if (!postId || !Array.isArray(locales) || locales.length === 0) {
+          throw new Error('create_translations_ai_review_bulk requires "postId" and "locales" (array)')
+        }
+
+        const results: any[] = []
+        for (const locale of locales) {
+          try {
+            const res = await this.callTool(
+              'create_translation_ai_review',
+              {
+                postId,
+                locale,
+                sourceMode,
+                cloneModules,
+                agentName,
+              },
+              agentId
+            )
+            results.push({ locale, success: true, ...res })
+          } catch (e: any) {
+            results.push({ locale, success: false, error: e?.message })
+          }
+        }
+
+        return { success: true, results }
+      }
+
+      case 'suggest_modules_for_layout': {
+        const { brief, desiredLayoutRoles, postType, excludeModuleTypes } = params
+
+        // Get all allowed modules for this post type
+        const allModules = postType
+          ? await moduleRegistry.getAllowedForPostType(postType)
+          : moduleRegistry.getAll()
+
+        const suggestions: any[] = []
+        const missingRoles: string[] = []
+
+        // If specific roles desired, find modules matching those roles
+        if (desiredLayoutRoles && Array.isArray(desiredLayoutRoles)) {
+          for (const role of desiredLayoutRoles) {
+            const matches = allModules.filter((m) => {
+              const config = m.getConfig()
+              if (excludeModuleTypes?.includes(config.type)) return false
+              return config.aiGuidance?.layoutRoles?.includes(role)
+            })
+
+            if (matches.length > 0) {
+              // Pick the best match (or first)
+              const best = matches[0].getConfig()
+              suggestions.push({
+                role,
+                moduleType: best.type,
+                name: best.name,
+                reason: `Matches desired role: ${role}`,
+              })
+            } else {
+              missingRoles.push(role)
+            }
+          }
+        }
+
+        return {
+          success: true,
+          suggestions,
+          missingRoles,
+          allAvailableModules: allModules.map((m) => {
+            const c = m.getConfig()
+            return {
+              type: c.type,
+              name: c.name,
+              roles: c.aiGuidance?.layoutRoles || [],
+            }
+          }),
+        }
+      }
+
       case 'search_media': {
         const { q, alt_text, description, category, limit } = params
 
@@ -482,7 +952,7 @@ class MCPClientService {
             )
           }
 
-          const dalleData = await dalleResponse.json()
+          const dalleData = (await dalleResponse.json()) as any
           imageUrl = dalleData.data?.[0]?.url
           revisedPrompt = dalleData.data?.[0]?.revised_prompt || null
 
@@ -608,6 +1078,19 @@ class MCPClientService {
       default:
         throw new Error(`MCP tool '${toolName}' not yet implemented in internal agent executor`)
     }
+  }
+
+  /**
+   * Resolve a label for an agent (name or ID)
+   */
+  private resolveAgentLabel(agentId?: string, agentName?: string): string {
+    const id = (agentId || '').trim()
+    if (id) {
+      const def = agentRegistry.get(id)
+      if (def?.name) return def.name
+    }
+    const name = (agentName || '').trim()
+    return name || 'AI Agent'
   }
 
   /**

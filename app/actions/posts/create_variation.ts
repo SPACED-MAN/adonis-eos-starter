@@ -1,6 +1,5 @@
 import Post from '#models/post'
 import PostModule from '#models/post_module'
-import ModuleInstance from '#models/module_instance'
 import PostCustomFieldValue from '#models/post_custom_field_value'
 import db from '@adonisjs/lucid/services/db'
 import { randomUUID } from 'node:crypto'

@@ -24,9 +24,9 @@
   --color-backdrop-high: var(--color-zinc-400);
   --color-backdrop-input: var(--color-zinc-100);
 
-  --color-line-low: var(--color-zinc-300);
-  --color-line-medium: var(--color-zinc-400);
-  --color-line-high: var(--color-zinc-500);
+  --color-line-low: var(--color-zinc-400);
+  --color-line-medium: var(--color-zinc-500);
+  --color-line-high: var(--color-zinc-600);
   --color-line-inline-input-editable: var(--color-zinc-100);
   --color-line-inline-input-global: var(--color-amber-500);
   --color-placeholder: var(--color-zinc-500);
@@ -35,9 +35,9 @@
 
 [data-theme='admin'].dark {
   --color-standout-low: var(--color-violet-800);
-  --color-standout-medium: var(--color-violet-600);
+  --color-standout-medium: var(--color-violet-500);
   --color-standout-high: var(--color-violet-400);
-  --color-on-standout: var(--color-white);
+  --color-on-standout: var(--color-black);
 
   --color-neutral-low: var(--color-zinc-400);
   --color-neutral-medium: var(--color-zinc-300);
@@ -72,9 +72,9 @@
   --color-backdrop-high: var(--color-zinc-400);
   --color-backdrop-input: var(--color-zinc-100);
 
-  --color-line-low: var(--color-zinc-300);
-  --color-line-medium: var(--color-zinc-400);
-  --color-line-high: var(--color-zinc-500);
+  --color-line-low: var(--color-zinc-400);
+  --color-line-medium: var(--color-zinc-500);
+  --color-line-high: var(--color-zinc-600);
   --color-line-inline-input-editable: var(--color-zinc-100);
   --color-line-inline-input-global: var(--color-amber-500);
   --color-placeholder: var(--color-zinc-500);
@@ -83,9 +83,9 @@
 
 [data-theme='site'].dark {
   --color-standout-low: var(--color-violet-800);
-  --color-standout-medium: var(--color-violet-600);
+  --color-standout-medium: var(--color-violet-500);
   --color-standout-high: var(--color-violet-400);
-  --color-on-standout: var(--color-white);
+  --color-on-standout: var(--color-black);
 
   --color-neutral-low: var(--color-zinc-400);
   --color-neutral-medium: var(--color-zinc-300);

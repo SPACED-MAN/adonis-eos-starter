@@ -38,6 +38,7 @@ export default class HeroWithCalloutModule extends BaseModule {
           required: false,
           description: 'Call-to-action buttons',
           item: {
+            slug: 'item',
             type: 'object',
             fields: [
               {

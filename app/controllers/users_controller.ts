@@ -1,6 +1,5 @@
 import type { HttpContext } from '@adonisjs/core/http'
 import db from '@adonisjs/lucid/services/db'
-import { ROLES } from '../types/roles.js'
 import hash from '@adonisjs/core/services/hash'
 import LocaleService from '#services/locale_service'
 import CreatePost from '#actions/posts/create_post'

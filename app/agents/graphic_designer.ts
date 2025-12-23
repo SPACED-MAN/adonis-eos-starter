@@ -28,44 +28,30 @@ const GraphicDesignerAgent: AgentDefinition = {
     // API key (optional - will use AI_PROVIDER_NANOBANANA_API_KEY env var if not set)
     // apiKey: process.env.AI_PROVIDER_NANOBANANA_API_KEY,
 
-    // System prompt for media generation/enhancement
     systemPrompt: `You are a professional graphic designer AI assistant specialized in creating and enhancing visual media assets.
 
-Your role is to help users:
-- Generate images using AI when requested
-- Create alt text and descriptions for accessibility and SEO
-- Suggest improvements to existing media
-- Provide design recommendations and concepts
-- Enhance media metadata (alt text, descriptions, tags)
+You have access to MCP (Model Context Protocol) tools:
+- get_post_context: Read post modules and data. Params: { postId }
+- save_post_ai_review: Update post fields (e.g. featuredImageId). Params: { postId, patch: { ... } }
+- update_post_module_ai_review: Update a module's content. Params: { postModuleId, overrides: { ... } }
+- search_media: Find existing images. Params: { q }
+- generate_image: Create new images. Params: { prompt, alt_text }
 
-When the user requests an image:
-- If they use words like "generate", "create", or "make" a new image → Use the generate_image tool
-- If they use words like "add", "include", "find", or "use" an image → Use the search_media tool first to find existing images
-- After generating or finding an image, update the module to use the new media
-- Include appropriate alt text and description
+AGENT PROTOCOL - MEDIA HANDLING:
+1. GENERATE vs SEARCH:
+   - If the user uses "generate" or "create" → Use the generate_image tool immediately.
+   - If the user uses "add", "include", or "find" → Search the existing media library first using search_media.
+2. AUTO-POPULATE EMPTY FIELDS (CRITICAL):
+   - When helping with a module or post, you MUST check for empty media fields.
+   - For EACH empty media field you encounter:
+     a) Use search_media first with relevant keywords.
+     b) If no match, use generate_image.
+     c) Use update_post_module_ai_review to assign the media ID: { overrides: { image: { id: "MEDIA_ID" } } }
+3. CONTEXTUAL SELECTION:
+   - Use the module's text content as the context for searching or generating media.
 
-When responding about media:
-- Provide clear, actionable design guidance
-- Consider accessibility and SEO best practices
-- Suggest specific design elements (colors, layouts, styles)
-- Be creative but practical
-
-CRITICAL: You MUST respond with valid JSON only. If you need to generate an image, use tool_calls:
-{
-  "summary": "A brief natural language summary of what you've done",
-  "tool_calls": [
-    {
-      "tool": "generate_image",
-      "params": {
-        "prompt": "Detailed description of the image to generate",
-        "alt_text": "Descriptive alt text for accessibility",
-        "description": "Detailed description of the generated image"
-      }
-    }
-  ]
-}
-
-After generating an image, you should also update the module to use it:
+CRITICAL: You MUST respond with valid JSON ONLY. No conversational text.
+Example for generating an image and updating a module:
 {
   "summary": "Generated image and updated module",
   "tool_calls": [
@@ -73,46 +59,61 @@ After generating an image, you should also update the module to use it:
       "tool": "generate_image",
       "params": {
         "prompt": "...",
-        "alt_text": "...",
-        "description": "..."
-      }
-    }
-  ],
-  "modules": [
-    {
-      "type": "hero-with-media",
-      "props": {
-        "image": {
-          "id": "<mediaId from generate_image result>",
-          "alt": "<alt_text from generate_image>",
-          "description": "<description from generate_image>"
-        }
+        "alt_text": "..."
       }
     }
   ]
 }
 
-The "modules" array should contain updates to the module that contains the media field. Only include the props you are actually changing. The module type and structure will be provided in the context.
+After you receive the media ID from generate_image, you MUST call update_post_module_ai_review to assign it.`,
 
-Do NOT include any markdown, explanations, or text outside the JSON. Only return the JSON object.`,
-
-    // Model options
     options: {
       temperature: 0.8, // Higher creativity for design work
-      maxTokens: 1500,
+      maxTokens: 8000,
     },
 
     // Enable MCP tool usage for media operations
     useMCP: true,
 
-    // MCP Tool Access Control (RBAC) - Restrict to media-related tools only
-    // This agent can ONLY use these tools (cannot create posts or modify content)
-    // Available tools: list_media, get_media, search_media, generate_image
-    // See docs/developers/09-ai-agents.md for full list of available tools
-    allowedMCPTools: ['list_media', 'get_media', 'search_media', 'generate_image'],
+    // MCP Tool Access Control (RBAC)
+    allowedMCPTools: [
+      'list_media',
+      'get_media',
+      'search_media',
+      'generate_image',
+      'get_post_context',
+      'update_post_module_ai_review',
+      'save_post_ai_review',
+    ],
+  },
+
+  // Style guide for media generation
+  styleGuide: {
+    designStyle: 'modern minimalist',
+    colorPalette: 'clean and professional',
+    designTreatments: ['high-quality photography', 'subtle gradients'],
+    notes: 'Images should be professional and relevant to the content context.',
+  },
+
+  // Writing style preferences (even if media-focused, can be used for metadata)
+  writingStyle: {
+    tone: 'professional',
+    voice: 'engaging',
+    conventions: ['use active voice', 'descriptive but concise'],
+    notes: 'Metadata like alt text and descriptions should be descriptive and helpful for accessibility.',
   },
 
   scopes: [
+    {
+      scope: 'dropdown',
+      order: 10,
+      enabled: true,
+    },
+    {
+      scope: 'global',
+      order: 10,
+      enabled: true,
+    },
     {
       scope: 'field',
       order: 10,
@@ -128,7 +129,7 @@ Do NOT include any markdown, explanations, or text outside the JSON. Only return
     label: 'What would you like the Graphic Designer to help with?',
     placeholder:
       'Example: "Create a modern, minimalist design for a tech startup logo" or "Suggest improvements for this image"',
-    maxChars: 500,
+    maxChars: 2000,
   },
 
   // Optional: Reactions (execute after agent completion)

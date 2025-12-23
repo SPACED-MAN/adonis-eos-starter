@@ -10,7 +10,9 @@ import {
 } from '@adonisjs/lucid/orm'
 import type { BelongsTo, HasMany } from '@adonisjs/lucid/types/relations'
 import type { ModelQueryBuilderContract } from '@adonisjs/lucid/types/model'
+import PostCustomFieldValue from './post_custom_field_value.js'
 import User from './user.js'
+import MediaAsset from './media_asset.js'
 import type { RobotsConfig, JsonLdOverrides } from '#types/seo'
 
 export default class Post extends BaseModel {
@@ -96,6 +98,14 @@ export default class Post extends BaseModel {
   @column({ columnName: 'author_id' })
   declare authorId: number | null
 
+  /**
+   * Relationship: Featured Image
+   */
+  @belongsTo(() => MediaAsset, {
+    foreignKey: 'featuredImageId',
+  })
+  declare featuredImage: BelongsTo<typeof MediaAsset>
+
   @column.dateTime()
   declare publishedAt: DateTime | null
 
@@ -110,6 +120,14 @@ export default class Post extends BaseModel {
 
   @column.dateTime({ autoCreate: true, autoUpdate: true })
   declare updatedAt: DateTime
+
+  /**
+   * Relationship: Custom field values
+   */
+  @hasMany(() => PostCustomFieldValue, {
+    foreignKey: 'postId',
+  })
+  declare customFieldValues: HasMany<typeof PostCustomFieldValue>
 
   /**
    * Hook: Exclude soft-deleted records from single queries

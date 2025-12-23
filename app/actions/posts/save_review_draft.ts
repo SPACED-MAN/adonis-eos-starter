@@ -1,5 +1,4 @@
 import Post from '#models/post'
-import db from '@adonisjs/lucid/services/db'
 import RevisionService from '#services/revision_service'
 
 type SaveReviewDraftParams = {

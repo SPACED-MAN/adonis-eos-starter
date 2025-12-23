@@ -128,7 +128,7 @@ function replaceCmsPaths(
   // Match markdown links: [text](/docs/...)
   return content.replace(
     /\[([^\]]+)\]\((\/docs\/[^)]+)\)/g,
-    (match, text, path) => {
+    (_match, text, path) => {
       const relativePath = cmsPathToRelative(path, currentFile)
       return `[${text}](${relativePath})`
     }

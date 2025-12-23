@@ -10,7 +10,10 @@ export default defineConfig({
       ssr: { enabled: true, entrypoint: 'inertia/site/app.tsx' },
     }),
     react(),
-    adonisjs({ entrypoints: ['inertia/app/app.tsx'], reload: ['resources/views/**/*.edge'] }),
+    adonisjs({
+      entrypoints: ['inertia/site/app.tsx', 'inertia/admin/app.tsx'],
+      reload: ['resources/views/**/*.edge'],
+    }),
   ],
 
   /**

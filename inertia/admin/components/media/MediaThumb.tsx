@@ -1,5 +1,4 @@
-import { useEffect, useMemo, useState } from 'react'
-import { pickMediaVariantUrl, type MediaVariant } from '../../../lib/media'
+import { useEffect, useState } from 'react'
 import { MediaRenderer } from '../../../components/MediaRenderer'
 import {
   Select,
@@ -10,48 +9,26 @@ import {
 } from '~/components/ui/select'
 import { toast } from 'sonner'
 
-function useIsDarkMode() {
-  const [isDark, setIsDark] = useState(false)
-
-  useEffect(() => {
-    setIsDark(document.documentElement.classList.contains('dark'))
-    const observer = new MutationObserver(() => {
-      setIsDark(document.documentElement.classList.contains('dark'))
-    })
-    observer.observe(document.documentElement, {
-      attributes: true,
-      attributeFilter: ['class'],
-    })
-    return () => observer.disconnect()
-  }, [])
-
-  return isDark
-}
-
 type Props = {
   mediaId: string | null
   onChange: () => void
   onClear: () => void
   onDirty?: () => void
+  fallbackUrl?: string
 }
 
-export function MediaThumb({ mediaId, onChange, onClear, onDirty }: Props) {
-  const [previewUrl, setPreviewUrl] = useState<string | null>(null)
-  const [mediaData, setMediaData] = useState<{
-    baseUrl: string
-    mimeType?: string
-    variants: MediaVariant[]
-    darkSourceUrl?: string
-    playMode?: 'autoplay' | 'inline' | 'modal'
-  } | null>(null)
+export function MediaThumb({ mediaId, onChange, onClear, onDirty, fallbackUrl }: Props) {
+  const [mediaData, setMediaData] = useState<any | null>(null)
   const [localPlayMode, setLocalPlayMode] = useState<'autoplay' | 'inline' | 'modal'>('autoplay')
-  const isDark = useIsDarkMode()
 
-  const xsrfFromCookie = useMemo(() => {
-    if (typeof document === 'undefined') return undefined
-    const m = document.cookie.match(/(?:^|; )XSRF-TOKEN=([^;]+)/)
-    return m ? decodeURIComponent(m[1]) : undefined
-  }, [])
+  const hasMedia = !!mediaId || !!fallbackUrl
+
+  const xsrfFromCookie = typeof document !== 'undefined'
+    ? (() => {
+      const m = document.cookie.match(/(?:^|; )XSRF-TOKEN=([^;]+)/)
+      return m ? decodeURIComponent(m[1]) : undefined
+    })()
+    : undefined
 
   async function updateMediaPlayMode(val: 'autoplay' | 'inline' | 'modal') {
     setLocalPlayMode(val)
@@ -78,11 +55,10 @@ export function MediaThumb({ mediaId, onChange, onClear, onDirty }: Props) {
   // Fetch media data when mediaId changes
   useEffect(() => {
     let alive = true
-    ;(async () => {
+    async function load() {
       if (!mediaId) {
         if (alive) {
           setMediaData(null)
-          setPreviewUrl(null)
         }
         return
       }
@@ -92,75 +68,37 @@ export function MediaThumb({ mediaId, onChange, onClear, onDirty }: Props) {
         })
         const j = await res.json().catch(() => ({}))
         const data = j?.data
-        if (!data) {
-          if (alive) {
-            setMediaData(null)
-            setPreviewUrl(null)
-          }
-          return
-        }
-        const baseUrl: string | null = data.url || null
-        if (!baseUrl) {
-          if (alive) {
-            setMediaData(null)
-            setPreviewUrl(null)
-          }
-          return
-        }
-        const meta = (data as any).metadata || {}
-        const playMode = meta.playMode || 'autoplay'
-        const variants: MediaVariant[] = Array.isArray(meta?.variants)
-          ? (meta.variants as MediaVariant[])
-          : []
-        const darkSourceUrl =
-          typeof meta.darkSourceUrl === 'string' ? (meta.darkSourceUrl as string) : undefined
         if (alive) {
-          setMediaData({ baseUrl, mimeType: data.mimeType, variants, darkSourceUrl, playMode })
-          setLocalPlayMode(playMode)
+          setMediaData(data || null)
+          if (data?.metadata?.playMode) {
+            setLocalPlayMode(data.metadata.playMode)
+          }
         }
       } catch (err) {
         console.error('MediaThumb: Failed to load media', err)
         if (alive) {
           setMediaData(null)
-          setPreviewUrl(null)
         }
       }
-    })()
+    }
+    load()
     return () => {
       alive = false
     }
   }, [mediaId])
 
-  // Compute display URL when media data or theme changes
-  useEffect(() => {
-    if (!mediaData) {
-      setPreviewUrl(null)
-      return
-    }
-    const adminThumb =
-      (typeof process !== 'undefined' &&
-        process.env &&
-        (process.env as any).MEDIA_ADMIN_THUMBNAIL_VARIANT) ||
-      'thumb'
-    const resolved = pickMediaVariantUrl(mediaData.baseUrl, mediaData.variants, adminThumb, {
-      darkSourceUrl: mediaData.darkSourceUrl,
-    })
-    setPreviewUrl(resolved || mediaData.baseUrl)
-  }, [mediaData, isDark])
-
   return (
     <div className="border border-line-low rounded p-2 bg-backdrop-low space-y-2">
       <div className="flex items-center gap-3">
         <div className="w-16 h-16 bg-backdrop-medium rounded overflow-hidden flex items-center justify-center shrink-0">
-          {mediaData ? (
+          {mediaData || fallbackUrl ? (
             <MediaRenderer
-              url={previewUrl}
-              mimeType={mediaData.mimeType}
+              image={mediaData}
+              url={!mediaData ? fallbackUrl : undefined}
+              variant="thumb"
               className="w-full h-full object-cover"
-              key={`${previewUrl}-${isDark}`}
               controls={false}
               autoPlay={false}
-              playMode={mediaData.playMode}
             />
           ) : (
             <span className="text-xs text-neutral-medium">No media</span>
@@ -172,9 +110,9 @@ export function MediaThumb({ mediaId, onChange, onClear, onDirty }: Props) {
             className="px-2 py-1 text-xs border border-line-medium rounded hover:bg-backdrop-medium text-neutral-medium"
             onClick={onChange}
           >
-            {mediaId ? 'Change' : 'Choose'}
+            {hasMedia ? 'Change' : 'Choose'}
           </button>
-          {mediaId && (
+          {hasMedia && (
             <button
               type="button"
               className="px-2 py-1 text-xs border border-line-medium rounded hover:bg-backdrop-medium text-neutral-medium"
@@ -188,9 +126,9 @@ export function MediaThumb({ mediaId, onChange, onClear, onDirty }: Props) {
       {(() => {
         const isVideo =
           mediaData?.mimeType?.startsWith('video/') ||
-          mediaData?.baseUrl?.toLowerCase().endsWith('.mp4') ||
-          mediaData?.baseUrl?.toLowerCase().endsWith('.webm') ||
-          mediaData?.baseUrl?.toLowerCase().endsWith('.ogg')
+          mediaData?.url?.toLowerCase().endsWith('.mp4') ||
+          mediaData?.url?.toLowerCase().endsWith('.webm') ||
+          mediaData?.url?.toLowerCase().endsWith('.ogg')
 
         if (!isVideo) return null
 

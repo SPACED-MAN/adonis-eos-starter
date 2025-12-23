@@ -1,9 +1,9 @@
 import { useEffect, useState } from 'react'
-import { motion } from 'framer-motion'
+import { motion, type Variants } from 'framer-motion'
 import { useInlineEditor, useInlineValue } from '../components/inline-edit/InlineEditorContext'
 import { FontAwesomeIcon } from '../site/lib/icons'
-import { pickMediaVariantUrl } from '../lib/media'
 import TestimonialTeaser from '../site/post-types/testimonial-teaser'
+import type { MediaObject } from '../utils/useMediaUrl'
 
 interface TestimonialListProps {
   title: string
@@ -19,8 +19,7 @@ type TestimonialSummary = {
   authorName: string
   authorTitle?: string | null
   quote?: string | null
-  imageId?: string | null
-  imageUrl?: string | null
+  image?: MediaObject | null
 }
 
 export default function TestimonialList({
@@ -39,77 +38,49 @@ export default function TestimonialList({
 
   useEffect(() => {
     let cancelled = false
-    ;(async () => {
-      try {
-        const params = new URLSearchParams()
-        params.set('status', 'published')
-        params.set('limit', '8')
-        const ids = Array.isArray(testimonials) ? testimonials.filter(Boolean) : []
-        if (ids.length > 0) {
-          params.set('ids', ids.join(','))
-        }
-        const res = await fetch(`/api/testimonials?${params.toString()}`, {
-          credentials: 'same-origin',
-          headers: { Accept: 'application/json' },
-        })
-        if (!res.ok) {
-          throw new Error('Failed to load testimonials')
-        }
-        const j = await res.json().catch(() => null)
-        const list: any[] = Array.isArray(j?.data) ? j.data : []
-        if (cancelled) return
+      ; (async () => {
+        try {
+          const params = new URLSearchParams()
+          params.set('status', 'published')
+          params.set('limit', '8')
+          const ids = Array.isArray(testimonials) ? testimonials.filter(Boolean) : []
+          if (ids.length > 0) {
+            params.set('ids', ids.join(','))
+          }
+          const res = await fetch(`/api/testimonials?${params.toString()}`, {
+            credentials: 'same-origin',
+            headers: { Accept: 'application/json' },
+          })
+          if (!res.ok) {
+            throw new Error('Failed to load testimonials')
+          }
+          const j = await res.json().catch(() => null)
+          const list: any[] = Array.isArray(j?.data) ? j.data : []
+          if (cancelled) return
 
-        const mapped: TestimonialSummary[] = list.map((t: any) => ({
-          id: String(t.id),
-          authorName: String(t.authorName || 'Anonymous'),
-          authorTitle: (t as any).authorTitle ?? null,
-          quote: (t as any).quote ?? null,
-          imageId: (t as any).imageId ?? null,
-          imageUrl: null,
-        }))
-
-        // Resolve avatar media variants in parallel for all testimonials
-        const uniqueIds = Array.from(
-          new Set(mapped.map((m) => m.imageId).filter(Boolean) as string[])
-        )
-        const urlById = new Map<string, string>()
-        await Promise.all(
-          uniqueIds.map(async (id) => {
-            try {
-              const resMedia = await fetch(`/public/media/${encodeURIComponent(id)}`)
-              if (!resMedia.ok) return
-              const jm = await resMedia.json().catch(() => null)
-              const data = jm?.data
-              if (!data) return
-              const meta = (data as any).metadata || {}
-              const variants = Array.isArray(meta?.variants) ? (meta.variants as any[]) : []
-              const darkSourceUrl =
-                typeof meta.darkSourceUrl === 'string' ? (meta.darkSourceUrl as string) : undefined
-              const url = pickMediaVariantUrl(data.url, variants, 'thumb', { darkSourceUrl })
-              urlById.set(id, url)
-            } catch {
-              // ignore
+          const mapped: TestimonialSummary[] = list.map((t: any) => {
+            return {
+              id: String(t.id),
+              authorName: String(t.authorName || 'Anonymous'),
+              authorTitle: t.authorTitle ?? null,
+              quote: t.quote ?? null,
+              image: t.image ?? null,
             }
           })
-        )
 
-        const withImages = mapped.map((m) => ({
-          ...m,
-          imageUrl: m.imageId ? urlById.get(m.imageId) || null : null,
-        }))
-        setItems(withImages)
-      } catch {
-        if (!cancelled) setItems([])
-      } finally {
-        if (!cancelled) setLoading(false)
-      }
-    })()
+          setItems(mapped)
+        } catch {
+          if (!cancelled) setItems([])
+        } finally {
+          if (!cancelled) setLoading(false)
+        }
+      })()
     return () => {
       cancelled = true
     }
   }, [JSON.stringify(testimonials ?? [])])
 
-  const containerVariants = {
+  const containerVariants: Variants = {
     hidden: { opacity: 0 },
     visible: {
       opacity: 1,
@@ -119,7 +90,7 @@ export default function TestimonialList({
     },
   }
 
-  const itemVariants = {
+  const itemVariants: Variants = {
     hidden: { opacity: 0, y: 30 },
     visible: {
       opacity: 1,
@@ -198,7 +169,7 @@ export default function TestimonialList({
             quote={t.quote}
             authorName={t.authorName}
             authorTitle={t.authorTitle}
-            imageUrl={t.imageUrl}
+            image={t.image}
           />
         )
         return _useReact ? (
@@ -241,7 +212,7 @@ export default function TestimonialList({
           <motion.div
             initial="hidden"
             whileInView="visible"
-            viewport={{ once: true, margin: '-50px' }}
+            viewport={{ once: true, margin: '-100px' }}
             variants={containerVariants}
           >
             {gridContent}
@@ -262,4 +233,3 @@ export default function TestimonialList({
     </section>
   )
 }
-

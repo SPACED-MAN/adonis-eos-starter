@@ -1,9 +1,12 @@
+import fs from 'node:fs'
+import path from 'node:path'
 import type { HttpContext } from '@adonisjs/core/http'
 import Post from '#models/post'
-import db from '@adonisjs/lucid/services/db'
 import BasePostsController from './base_posts_controller.js'
 import cmsConfig from '#config/cms'
 import PostListItemDto from '#dtos/post_list_item_dto'
+import postTypeConfigService from '#services/post_type_config_service'
+import postTypeRegistry from '#services/post_type_registry'
 
 /**
  * Posts List Controller
@@ -90,12 +93,50 @@ export default class PostsListController extends BasePostsController {
     const rootsOnly = String(request.input('roots', '')).trim()
     const wantRoots = rootsOnly === '1' || rootsOnly.toLowerCase() === 'true'
 
+    const hasPermalinksOnly =
+      String(request.input('hasPermalinks', '')).trim() === '1' ||
+      String(request.input('hasPermalinks', '')).toLowerCase() === 'true'
+
     // Temporarily disable soft delete filter if requested
     if (includeDeleted) {
       Post.softDeleteEnabled = false
     }
 
     try {
+      // If filtering by permalinks, resolve the set of allowed types first
+      let permalinkEnabledTypes: string[] | null = null
+      if (hasPermalinksOnly) {
+        try {
+          const allTypes: string[] = Array.from(
+            new Set([
+              ...(Array.isArray(postTypeRegistry.list?.()) ? postTypeRegistry.list() : []),
+              // Also include types from directory scan
+              ...(() => {
+                try {
+                  const dir = path.join(process.cwd(), 'app', 'post_types')
+                  return fs.existsSync(dir)
+                    ? fs
+                        .readdirSync(dir)
+                        .filter((f: string) => f.endsWith('.ts') || f.endsWith('.js'))
+                        .map((f: string) => f.replace(/\.ts$|\.js$/g, ''))
+                    : []
+                } catch {
+                  return []
+                }
+              })(),
+            ])
+          )
+
+          permalinkEnabledTypes = allTypes.filter((t) => {
+            const cfg = postTypeConfigService.getUiConfig(t)
+            // hasPermalinks logic: enabled AND has patterns
+            return cfg.permalinksEnabled && cfg.urlPatterns.length > 0
+          })
+        } catch (e) {
+          console.error('[PostsListController] Failed to resolve permalink types:', e)
+        }
+      }
+
       // Build base query with filters
       const query = Post.query()
 
@@ -107,11 +148,26 @@ export default class PostsListController extends BasePostsController {
       if (ids.length > 0) {
         query.whereIn('id', ids)
       }
+
+      // Type filtering
       if (type) {
+        // If specific type requested, check if it fits permalink filter
+        if (permalinkEnabledTypes && !permalinkEnabledTypes.includes(type)) {
+          return this.response.paginated(response, [], { total: 0, page, limit, sortBy, sortOrder })
+        }
         query.where('type', type)
-      }
-      if (!type && types.length > 0) {
-        query.whereIn('type', types)
+      } else if (types.length > 0) {
+        // If list of types requested, intersect with permalink filter
+        const effectiveTypes = permalinkEnabledTypes
+          ? types.filter((t) => permalinkEnabledTypes!.includes(t))
+          : types
+        if (effectiveTypes.length === 0) {
+          return this.response.paginated(response, [], { total: 0, page, limit, sortBy, sortOrder })
+        }
+        query.whereIn('type', effectiveTypes)
+      } else if (permalinkEnabledTypes) {
+        // No types requested, but permalink filter active: restrict to enabled types
+        query.whereIn('type', permalinkEnabledTypes)
       }
       if (statuses.length > 0) {
         query.whereIn('status', statuses)
@@ -244,8 +300,6 @@ export default class PostsListController extends BasePostsController {
     const out = new Set<string>()
 
     try {
-      const registryModule = await import('#services/post_type_registry')
-      const postTypeRegistry = registryModule.default as any
       const regList: string[] = Array.isArray(postTypeRegistry.list?.())
         ? postTypeRegistry.list()
         : []
@@ -255,10 +309,7 @@ export default class PostsListController extends BasePostsController {
     }
 
     try {
-      const fs = require('node:fs')
-      const path = require('node:path')
-      const appRoot = process.cwd()
-      const dir = path.join(appRoot, 'app', 'post_types')
+      const dir = path.join(process.cwd(), 'app', 'post_types')
       const list = fs.existsSync(dir) ? fs.readdirSync(dir) : []
       list
         .filter((f: string) => f.endsWith('.ts') || f.endsWith('.js'))

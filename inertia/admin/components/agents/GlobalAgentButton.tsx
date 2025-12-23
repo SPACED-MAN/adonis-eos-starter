@@ -7,8 +7,9 @@
 
 import React, { useEffect, useState } from 'react'
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome'
-import { faWandMagicSparkles } from '@fortawesome/free-solid-svg-icons'
+import { faWandMagicSparkles, faBrain } from '@fortawesome/free-solid-svg-icons'
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '~/components/ui/tooltip'
+import { Popover, PopoverContent, PopoverTrigger } from '~/components/ui/popover'
 import { AgentModal, type Agent } from './AgentModal'
 import { useHasPermission } from '~/utils/permissions'
 
@@ -16,22 +17,23 @@ export function GlobalAgentButton() {
   const [agents, setAgents] = useState<Agent[]>([])
   const [selectedAgent, setSelectedAgent] = useState<Agent | null>(null)
   const [modalOpen, setModalOpen] = useState(false)
+  const [popoverOpen, setPopoverOpen] = useState(false)
   const hasGlobalPermission = useHasPermission('agents.global')
 
   // Load global-scoped agents
   useEffect(() => {
     if (!hasGlobalPermission) return
     let alive = true
-    ;(async () => {
-      try {
-        const res = await fetch('/api/agents?scope=global', { credentials: 'same-origin' })
-        const json = await res.json().catch(() => ({}))
-        const list: Agent[] = Array.isArray(json?.data) ? json.data : []
-        if (alive) setAgents(list)
-      } catch {
-        if (alive) setAgents([])
-      }
-    })()
+      ; (async () => {
+        try {
+          const res = await fetch('/api/agents?scope=global', { credentials: 'same-origin' })
+          const json = await res.json().catch(() => ({}))
+          const list: Agent[] = Array.isArray(json?.data) ? json.data : []
+          if (alive) setAgents(list)
+        } catch {
+          if (alive) setAgents([])
+        }
+      })()
     return () => {
       alive = false
     }
@@ -40,44 +42,86 @@ export function GlobalAgentButton() {
   // Don't render if no permission or no agents
   if (!hasGlobalPermission || agents.length === 0) return null
 
-  const handleClick = () => {
-    if (agents.length === 1) {
-      // Single agent - open directly
-      setSelectedAgent(agents[0])
-      setModalOpen(true)
-    } else {
-      // Multiple agents - show selection (for now, just open first)
-      // TODO: Add agent selection UI
-      setSelectedAgent(agents[0])
-      setModalOpen(true)
-    }
+  const handleAgentClick = (agent: Agent) => {
+    setSelectedAgent(agent)
+    setModalOpen(true)
+    setPopoverOpen(false)
   }
+
+  const trigger = (
+    <button
+      className="fixed bottom-6 right-6 z-50 flex items-center justify-center w-12 h-12 rounded-full bg-standout-high text-on-standout shadow-lg hover:bg-standout-medium hover:scale-105 active:scale-95 transition-all duration-200"
+      aria-label="AI Assistant"
+    >
+      <FontAwesomeIcon icon={faWandMagicSparkles} className="text-xl" />
+    </button>
+  )
 
   return (
     <>
       <TooltipProvider>
-        <Tooltip>
-          <TooltipTrigger asChild>
-            <button
-              onClick={handleClick}
-              className="fixed bottom-6 right-6 z-50 flex items-center justify-center w-10 h-10 rounded-full bg-primary text-on-primary shadow-lg hover:bg-primary/90 transition-colors"
-              aria-label="AI Assistant"
-            >
-              <FontAwesomeIcon icon={faWandMagicSparkles} className="text-lg" />
-            </button>
-          </TooltipTrigger>
-          <TooltipContent side="left">
-            <p>AI Assistant</p>
-          </TooltipContent>
-        </Tooltip>
+        {agents.length === 1 ? (
+          <Tooltip>
+            <TooltipTrigger asChild>
+              <div onClick={() => handleAgentClick(agents[0])}>
+                {trigger}
+              </div>
+            </TooltipTrigger>
+            <TooltipContent side="left">
+              <p>AI Assistant ({agents[0].name})</p>
+            </TooltipContent>
+          </Tooltip>
+        ) : (
+          <Popover open={popoverOpen} onOpenChange={setPopoverOpen}>
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <PopoverTrigger asChild>
+                  {trigger}
+                </PopoverTrigger>
+              </TooltipTrigger>
+              <TooltipContent side="left">
+                <p>AI Assistants</p>
+              </TooltipContent>
+            </Tooltip>
+            <PopoverContent side="top" align="end" className="w-64 p-2 mb-2 bg-backdrop-high border-line-medium shadow-2xl rounded-2xl overflow-hidden">
+              <div className="px-3 py-2 border-b border-line-low mb-1">
+                <h3 className="text-[10px] font-bold text-neutral-low uppercase tracking-widest">Select AI Assistant</h3>
+              </div>
+              <div className="space-y-1">
+                {agents.map((agent) => (
+                  <button
+                    key={agent.id}
+                    onClick={() => handleAgentClick(agent)}
+                    className="w-full flex items-start gap-3 p-3 rounded-xl hover:bg-backdrop-medium text-left transition-colors group"
+                  >
+                    <div className="mt-0.5 w-8 h-8 rounded-lg bg-standout-medium/10 flex items-center justify-center text-standout-medium group-hover:bg-standout-medium group-hover:text-on-standout transition-colors">
+                      <FontAwesomeIcon icon={faBrain} className="text-sm" />
+                    </div>
+                    <div className="flex-1 min-w-0">
+                      <div className="text-sm font-semibold text-neutral-high leading-tight">{agent.name}</div>
+                      {agent.description && (
+                        <div className="text-[11px] text-neutral-low line-clamp-2 mt-1 leading-snug">
+                          {agent.description}
+                        </div>
+                      )}
+                    </div>
+                  </button>
+                ))}
+              </div>
+            </PopoverContent>
+          </Popover>
+        )}
       </TooltipProvider>
 
       {selectedAgent && (
         <AgentModal
           open={modalOpen}
-          onOpenChange={setModalOpen}
+          onOpenChange={(open) => {
+            setModalOpen(open)
+            if (!open) setSelectedAgent(null)
+          }}
           agent={selectedAgent}
-          contextId={undefined} // Global scope doesn't need a post ID
+          contextId={undefined}
           context={{
             scope: 'global',
           }}

@@ -1,13 +1,13 @@
-import { getFormBySlug, listForms } from '../forms/index.js'
+import formRegistry from '#services/form_registry'
 import type { FormConfig } from '#types/form_types'
 
 class FormConfigService {
   list(): FormConfig[] {
-    return listForms()
+    return formRegistry.list()
   }
 
   get(slug: string): FormConfig | null {
-    return getFormBySlug(slug)
+    return formRegistry.get(slug) || null
   }
 }
 

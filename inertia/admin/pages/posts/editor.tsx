@@ -68,7 +68,8 @@ import {
 import { getXsrf } from '~/utils/xsrf'
 import { LinkField, type LinkFieldValue } from '~/components/forms/LinkField'
 import { useHasPermission } from '~/utils/permissions'
-import { pickMediaVariantUrl, type MediaVariant } from '../../../lib/media'
+import { useMediaUrl } from '../../../utils/useMediaUrl'
+import { MediaRenderer } from '../../../components/MediaRenderer'
 import { AgentModal, type Agent } from '../../components/agents/AgentModal'
 // Field components are auto-discovered via Vite glob below
 
@@ -911,16 +912,11 @@ export default function Editor({
         ? [...d.customFields]
           .sort((a, b) => (a.slug || '').localeCompare(b.slug || ''))
           .map((e: any) => ({
-        fieldId: e.fieldId,
-        slug: e.slug,
-            // Normalize values: null/undefined -> '', objects -> stable JSON
-            value: (() => {
-              if (e.value === null || e.value === undefined) return ''
-              if (typeof e.value === 'object') return JSON.stringify(e.value)
-              return String(e.value)
-            })(),
-      }))
-      : [],
+            fieldId: e.fieldId,
+            slug: e.slug,
+            value: e.value ?? null,
+          }))
+        : [],
       taxonomyTermIds: Array.isArray(d.taxonomyTermIds)
         ? [...d.taxonomyTermIds].map(String).sort()
         : [],
@@ -966,6 +962,7 @@ export default function Editor({
   const canApproveReview = useHasPermission('posts.review.approve')
   const canApproveAiReview = useHasPermission('posts.ai-review.approve')
   const canPublish = useHasPermission('posts.publish')
+  const canDelete = useHasPermission('posts.delete')
   const [isImportModeOpen, setIsImportModeOpen] = useState(false)
   const [pendingImportJson, setPendingImportJson] = useState<any | null>(null)
   const importFileRef = useRef<HTMLInputElement | null>(null)
@@ -1083,6 +1080,7 @@ export default function Editor({
     label: string
   } | null>(null)
   const [variationDeleteConfirmOpen, setVariationDeleteConfirmOpen] = useState(false)
+  const [postDeleteConfirmOpen, setPostDeleteConfirmOpen] = useState(false)
   const [pendingVariationToDelete, setPendingVariationToDelete] = useState<{
     id: string
     variation: string
@@ -1352,6 +1350,26 @@ export default function Editor({
     console.error('Approve failed:', res.status, err)
     toast.error(err?.errors ? 'Failed (validation)' : 'Failed')
   }
+
+  async function executeDelete() {
+    const res = await fetch(`/api/posts/${post.id}`, {
+      method: 'DELETE',
+      headers: {
+        'Accept': 'application/json',
+        ...xsrfHeader(),
+      },
+      credentials: 'same-origin',
+    })
+    if (res.ok) {
+      toast.success('Post deleted successfully')
+      router.visit('/admin/posts')
+      return
+    }
+    const err = await res.json().catch(() => null)
+    console.error('Delete failed:', res.status, err)
+    toast.error(err?.error || 'Failed to delete post')
+  }
+
   const isDirty = useMemo(() => {
     try {
       const baseline =
@@ -1561,6 +1579,30 @@ export default function Editor({
       mounted = false
     }
   }, [])
+
+  // Sync initialDataRef and data when post prop changes (e.g. after agent run)
+  useEffect(() => {
+    const newData = {
+      title: post.title || '',
+      slug: post.slug || '',
+      excerpt: post.excerpt || '',
+      status: post.status || 'draft',
+      parentId: (post as any).parentId || '',
+      orderIndex: (post as any).orderIndex ?? 0,
+      metaTitle: post.metaTitle || '',
+      metaDescription: post.metaDescription || '',
+      canonicalUrl: post.canonicalUrl || '',
+      robotsJson: post.robotsJson ? JSON.stringify(post.robotsJson, null, 2) : '',
+      jsonldOverrides: post.jsonldOverrides ? JSON.stringify(post.jsonldOverrides, null, 2) : '',
+      featuredImageId: post.featuredImageId || '',
+      customFields: initialCustomFieldsData,
+      taxonomyTermIds: initialTaxonomyIds,
+    }
+    initialDataRef.current = newData
+    if (viewMode === 'source') {
+      setData((prev) => ({ ...prev, ...newData }))
+    }
+  }, [post, initialCustomFieldsData, initialTaxonomyIds, viewMode, setData])
 
   // Update reviewInitialRef when reviewDraft changes
   useEffect(() => {
@@ -2719,24 +2761,60 @@ export default function Editor({
                           <span>{uiConfig.featuredImage.label || 'Featured Media'}</span>
                         </span>
                         {featuredImageFieldAgents.length > 0 && hasFieldPermission && (
-                          <button
-                            type="button"
-                            onClick={() => {
-                              if (featuredImageFieldAgents.length === 1) {
-                                setSelectedFeaturedImageAgent(featuredImageFieldAgents[0])
-                                setFeaturedImageAgentModalOpen(true)
-                              } else {
-                                setSelectedFeaturedImageAgent(featuredImageFieldAgents[0])
-                                setFeaturedImageAgentModalOpen(true)
-                              }
-                            }}
-                            className="opacity-0 group-hover:opacity-100 transition-opacity p-1.5 hover:bg-backdrop-medium rounded-lg"
-                          >
-                            <FontAwesomeIcon
-                              icon={faWandMagicSparkles}
-                              className="text-neutral-medium hover:text-standout-medium transition-colors"
-                            />
-                          </button>
+                          <div className="flex items-center">
+                            {featuredImageFieldAgents.length === 1 ? (
+                              <button
+                                type="button"
+                                onClick={() => {
+                                  setSelectedFeaturedImageAgent(featuredImageFieldAgents[0])
+                                  setFeaturedImageAgentModalOpen(true)
+                                }}
+                                className="opacity-0 group-hover:opacity-100 transition-opacity p-1.5 hover:bg-backdrop-medium rounded-lg"
+                                title={`AI Assistant: ${featuredImageFieldAgents[0].name}`}
+                              >
+                                <FontAwesomeIcon
+                                  icon={faWandMagicSparkles}
+                                  className="text-neutral-medium hover:text-standout-medium transition-colors"
+                                />
+                              </button>
+                            ) : (
+                              <Popover>
+                                <PopoverTrigger asChild>
+                                  <button
+                                    type="button"
+                                    className="opacity-0 group-hover:opacity-100 transition-opacity p-1.5 hover:bg-backdrop-medium rounded-lg"
+                                  >
+                                    <FontAwesomeIcon
+                                      icon={faWandMagicSparkles}
+                                      className="text-neutral-medium hover:text-standout-medium transition-colors"
+                                    />
+                                  </button>
+                                </PopoverTrigger>
+                                <PopoverContent align="end" className="w-56 p-2 bg-backdrop-high border-line-medium shadow-xl rounded-xl">
+                                  <div className="px-2 py-1.5 border-b border-line-low mb-1">
+                                    <h4 className="text-[10px] font-bold text-neutral-low uppercase tracking-widest">Select AI Agent</h4>
+                                  </div>
+                                  <div className="space-y-0.5">
+                                    {featuredImageFieldAgents.map((agent) => (
+                                      <button
+                                        key={agent.id}
+                                        onClick={() => {
+                                          setSelectedFeaturedImageAgent(agent)
+                                          setFeaturedImageAgentModalOpen(true)
+                                        }}
+                                        className="w-full flex items-center gap-2.5 px-2.5 py-2 rounded-lg hover:bg-backdrop-medium text-left transition-colors"
+                                      >
+                                        <div className="w-6 h-6 rounded bg-standout-medium/10 flex items-center justify-center text-standout-medium">
+                                          <FontAwesomeIcon icon={faWandMagicSparkles} className="text-[10px]" />
+                                        </div>
+                                        <span className="text-xs font-medium text-neutral-high">{agent.name}</span>
+                                      </button>
+                                    ))}
+                                  </div>
+                                </PopoverContent>
+                              </Popover>
+                            )}
+                          </div>
                         )}
                       </div>
                     </label>
@@ -2772,11 +2850,12 @@ export default function Editor({
                         fieldKey="post.featuredImageId"
                         fieldType="media"
                         viewMode={viewMode}
-                        onSuccess={() => {
-                          setFeaturedImageAgentModalOpen(false)
-                          setSelectedFeaturedImageAgent(null)
-                          // Reload the page to show updated featured image
-                          router.reload({ only: ['post'] })
+                        onSuccess={(resp) => {
+                          // Note: AgentModal now performs background router.reload
+                          // We don't close it immediately so user can see summary
+                          if (resp.generatedMediaId) {
+                            // If an image was generated, we might want to do something else
+                          }
                         }}
                       />
                     )}
@@ -3785,6 +3864,18 @@ export default function Editor({
                                   const agent = agents.find((x) => x.id === selectedAgent)
                                   const targetMode =
                                     (agent as any)?.type === 'internal' ? 'ai-review' : 'review'
+
+                                  // Check for redirection if a new post/translation was created
+                                  if (agentResponse.redirectPostId && agentResponse.redirectPostId !== post.id) {
+                                    setAgentPromptOpen(false)
+                                    setAgentResponse(null)
+                                    setAgentOpenEndedContext('')
+                                    // Use window.location for a hard redirect if router.visit feels stuck,
+                                    // but router.visit is preferred for Inertia.
+                                    router.visit(`/admin/posts/${agentResponse.redirectPostId}/edit?view=${targetMode}`)
+                                    return
+                                  }
+
                                   // Update URL to preserve view mode on reload
                                   const url = new URL(window.location.href)
                                   url.searchParams.set('view', targetMode)
@@ -3793,8 +3884,8 @@ export default function Editor({
                                   router.reload({
                                     only:
                                       targetMode === 'ai-review'
-                                        ? ['aiReviewDraft', 'post', 'modules']
-                                        : ['reviewDraft', 'post', 'modules'],
+                                        ? ['aiReviewDraft', 'post', 'modules', 'translations']
+                                        : ['reviewDraft', 'post', 'modules', 'translations'],
                                     onSuccess: () => {
                                       // After reload, switch to the target mode
                                       setViewMode(targetMode)
@@ -4062,6 +4153,16 @@ export default function Editor({
                           {canPublish && <SelectItem value="archived">Archived</SelectItem>}
                         </SelectContent>
                       </Select>
+                      {post.status === 'archived' && canDelete && (
+                        <button
+                          type="button"
+                          className="h-9 px-3 text-xs bg-red-600 hover:bg-red-700 text-white font-medium rounded-lg flex items-center gap-2 transition-colors"
+                          onClick={() => setPostDeleteConfirmOpen(true)}
+                        >
+                          <FontAwesomeIcon icon={faTrash} />
+                          Delete
+                        </button>
+                      )}
                     </div>
                     {errors.status && (
                       <p className="text-xs text-red-600 dark:text-red-400 mt-1">{errors.status}</p>
@@ -4854,29 +4955,31 @@ export default function Editor({
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
+
+      <AlertDialog open={postDeleteConfirmOpen} onOpenChange={setPostDeleteConfirmOpen}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Delete Post?</AlertDialogTitle>
+            <AlertDialogDescription>
+              Are you sure you want to delete this post? This action cannot be undone.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <AlertDialogAction
+              className="bg-red-600 hover:bg-red-700 text-white"
+              onClick={async () => {
+                await executeDelete()
+                setPostDeleteConfirmOpen(false)
+              }}
+            >
+              Delete Post
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   )
-}
-
-function useIsDarkMode() {
-  const [isDark, setIsDark] = useState(false)
-
-  useEffect(() => {
-    // Initial check
-    setIsDark(document.documentElement.classList.contains('dark'))
-
-    // Watch for changes
-    const observer = new MutationObserver(() => {
-      setIsDark(document.documentElement.classList.contains('dark'))
-    })
-    observer.observe(document.documentElement, {
-      attributes: true,
-      attributeFilter: ['class'],
-    })
-    return () => observer.disconnect()
-  }, [])
-
-  return isDark
 }
 
 function MediaThumb({
@@ -4888,13 +4991,7 @@ function MediaThumb({
   onChange: () => void
   onClear: () => void
 }) {
-  const [url, setUrl] = useState<string | null>(null)
-  const [mediaData, setMediaData] = useState<{
-    baseUrl: string
-    variants: MediaVariant[]
-    darkSourceUrl?: string
-  } | null>(null)
-  const isDark = useIsDarkMode()
+  const [mediaData, setMediaData] = useState<any | null>(null)
 
   // Fetch media data when mediaId changes
   useEffect(() => {
@@ -4903,7 +5000,6 @@ function MediaThumb({
       if (!mediaId) {
         if (alive) {
           setMediaData(null)
-          setUrl(null)
         }
         return
       }
@@ -4913,35 +5009,13 @@ function MediaThumb({
         })
         const j = await res.json().catch(() => ({}))
         const data = j?.data
-        if (!data) {
-          if (alive) {
-            setMediaData(null)
-            setUrl(null)
-          }
-          return
-        }
-        const baseUrl: string | null = data.url || null
-        if (!baseUrl) {
-          if (alive) {
-            setMediaData(null)
-            setUrl(null)
-          }
-          return
-        }
-        const meta = (data as any).metadata || {}
-        const variants: MediaVariant[] = Array.isArray(meta?.variants)
-          ? (meta.variants as MediaVariant[])
-          : []
-        const darkSourceUrl =
-          typeof meta.darkSourceUrl === 'string' ? (meta.darkSourceUrl as string) : undefined
         if (alive) {
-          setMediaData({ baseUrl, variants, darkSourceUrl })
+          setMediaData(data || null)
         }
       } catch (err) {
         console.error('MediaThumb: Failed to load media', err)
         if (alive) {
           setMediaData(null)
-          setUrl(null)
         }
       }
     }
@@ -4951,28 +5025,16 @@ function MediaThumb({
     }
   }, [mediaId])
 
-  // Resolve URL when media data or theme changes
-  useEffect(() => {
-    if (!mediaData) {
-      setUrl(null)
-      return
-    }
-    const adminThumb =
-      (typeof process !== 'undefined' &&
-        process.env &&
-        (process.env as any).MEDIA_ADMIN_THUMBNAIL_VARIANT) ||
-      'thumb'
-    const resolved = pickMediaVariantUrl(mediaData.baseUrl, mediaData.variants, adminThumb, {
-      darkSourceUrl: mediaData.darkSourceUrl,
-    })
-    setUrl(resolved)
-  }, [mediaData, isDark])
-
   return (
     <div className="border border-line-low rounded p-2 bg-backdrop-low flex items-center gap-3">
       <div className="w-16 h-16 bg-backdrop-medium rounded overflow-hidden flex items-center justify-center">
-        {url ? (
-          <img src={url} alt="" className="w-full h-full object-cover" key={`${url}-${isDark}`} />
+        {mediaData ? (
+          <MediaRenderer
+            image={mediaData}
+            variant="thumb"
+            alt=""
+            className="w-full h-full object-cover"
+          />
         ) : (
           <span className="text-xs text-neutral-medium">No image</span>
         )}

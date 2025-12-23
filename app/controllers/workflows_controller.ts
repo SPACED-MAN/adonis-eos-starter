@@ -9,7 +9,7 @@ export default class WorkflowsController {
    * GET /api/workflows
    * List all registered workflows
    */
-  async index({ request, response, auth }: HttpContext) {
+  async index({ response, auth }: HttpContext) {
     const role = (auth.use('web').user as any)?.role as
       | 'admin'
       | 'editor'
@@ -111,7 +111,6 @@ export default class WorkflowsController {
 
     const trigger = (request.input('trigger') as WorkflowTrigger) || 'manual'
     const payload = request.input('payload') || {}
-    const context = request.input('context') || {}
 
     const result = await workflowExecutionService.executeWorkflow(
       workflow,

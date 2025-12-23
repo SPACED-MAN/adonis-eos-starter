@@ -3,7 +3,6 @@ import db from '@adonisjs/lucid/services/db'
 import env from '#start/env'
 import app from '@adonisjs/core/services/app'
 import cmsConfig from '#config/cms'
-import { adminPath } from '#services/admin_path_service'
 import { auditLogsQueryValidator } from '#validators/query'
 import { securitySessionsQueryValidator, loginHistoryQueryValidator } from '#validators/security'
 
@@ -29,14 +28,14 @@ export default class SecurityController {
    * GET /api/security/sessions
    * Get active sessions for current user
    */
-  async sessions({ request, auth, response }: HttpContext) {
+  async sessions({ request, session, auth, response }: HttpContext) {
     const user = auth.getUserOrFail()
     // Validate query params
     await request.validateUsing(securitySessionsQueryValidator)
     // Note: AdonisJS session guard uses cookie-based sessions
     // We can't easily list all sessions without Redis/DB session store
     // For now, return current session info
-    const sessionId = auth.use('web').sessionId
+    const sessionId = (session as any).sessionId
     return response.ok({
       data: [
         {
@@ -57,7 +56,7 @@ export default class SecurityController {
    * Revoke a session (logout)
    */
   async revokeSession({ params, auth, response }: HttpContext) {
-    const user = auth.getUserOrFail()
+    auth.getUserOrFail()
     const sessionId = params.sessionId
 
     // If revoking current session, logout
@@ -76,7 +75,7 @@ export default class SecurityController {
    * Revoke all other sessions (logout everywhere except current)
    */
   async revokeAllSessions({ auth, response }: HttpContext) {
-    const user = auth.getUserOrFail()
+    auth.getUserOrFail()
     // Note: With cookie-based sessions, we can't revoke other sessions
     // This would require Redis/DB session store
     return response.ok({

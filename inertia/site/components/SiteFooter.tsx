@@ -3,17 +3,20 @@ import { ThemeToggle } from '../../components/ThemeToggle'
 import type { MenuItem } from './menu/types'
 import { MenuItemLink } from './menu/MenuItemLink'
 import { FontAwesomeIcon, getIconProp } from '../lib/icons'
-import { pickMediaVariantUrl, type MediaVariant } from '../../lib/media'
+import { type MediaVariant } from '../../lib/media'
+import { useMediaUrl } from '../../utils/useMediaUrl'
 
 export function SiteFooter() {
   const [items, setItems] = useState<MenuItem[]>([])
   const [siteTitle, setSiteTitle] = useState<string>('Site')
   const [description, setDescription] = useState<string | null>(null)
-  const [logoUrl, setLogoUrl] = useState<string | null>(null)
+  const [logoMedia, setLogoMedia] = useState<any | null>(null)
   const [socialProfiles, setSocialProfiles] = useState<Array<{ network: string; label: string; icon: string; url: string; enabled: boolean }>>([])
 
+  const logoUrl = useMediaUrl(logoMedia)
+
   useEffect(() => {
-    ;(async () => {
+    ; (async () => {
       try {
         const res = await fetch('/api/menus/by-slug/footer?locale=en', {
           credentials: 'same-origin',
@@ -31,7 +34,7 @@ export function SiteFooter() {
   }, [])
 
   useEffect(() => {
-    ;(async () => {
+    ; (async () => {
       try {
         const res = await fetch('/api/site-settings', { credentials: 'same-origin' })
         const j = await res.json().catch(() => ({}))
@@ -46,30 +49,9 @@ export function SiteFooter() {
           setSocialProfiles(data.socialSettings.profiles.filter((p: any) => p.enabled && p.url))
         }
 
-        const logoMediaId: string | null = data?.logoMediaId || null
-        if (logoMediaId) {
-          try {
-            const resLogo = await fetch(`/public/media/${encodeURIComponent(logoMediaId)}`, {
-              credentials: 'same-origin',
-            })
-            const jm = await resLogo.json().catch(() => ({}))
-            const media = jm?.data as any
-            if (media && media.url) {
-              const meta = (media as any).metadata || {}
-              const variants: MediaVariant[] = Array.isArray(meta?.variants)
-                ? (meta.variants as MediaVariant[])
-                : []
-              const darkSourceUrl =
-                typeof meta.darkSourceUrl === 'string' ? (meta.darkSourceUrl as string) : undefined
-              
-              const resolved = pickMediaVariantUrl(media.url, variants, undefined, {
-                darkSourceUrl,
-              })
-              setLogoUrl(resolved)
-            }
-          } catch {
-            // ignore logo load errors
-          }
+        // Logo media is now pre-resolved on the server and passed directly
+        if (data?.logoMedia) {
+          setLogoMedia(data.logoMedia)
         }
       } catch {
         // ignore
@@ -101,7 +83,7 @@ export function SiteFooter() {
             {description}
           </p>
         )}
-        
+
         {socialProfiles.length > 0 && (
           <div className="flex justify-center items-center gap-4 mb-6">
             {socialProfiles.map((profile) => (

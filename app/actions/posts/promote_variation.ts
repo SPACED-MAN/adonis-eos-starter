@@ -68,7 +68,7 @@ export default class PromoteVariation {
       // Log activity
       try {
         const activityService = (await import('#services/activity_log_service')).default
-        await activityService.default.log({
+        await activityService.log({
           action: 'post.ab_test.promote',
           userId: userId,
           entityType: 'post',

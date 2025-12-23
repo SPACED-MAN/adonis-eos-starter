@@ -1,4 +1,3 @@
-import db from '@adonisjs/lucid/services/db'
 import AgentExecution, { type ViewMode } from '#models/agent_execution'
 import type { HttpContext } from '@adonisjs/core/http'
 

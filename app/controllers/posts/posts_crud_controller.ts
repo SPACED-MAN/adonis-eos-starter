@@ -1,5 +1,6 @@
 import type { HttpContext } from '@adonisjs/core/http'
 import SaveReviewDraft from '#actions/posts/save_review_draft'
+import PromoteAiReviewToReview from '#actions/posts/promote_ai_review_to_review'
 import ApproveReviewDraft from '#actions/posts/approve_review_draft'
 import RejectReviewDraft from '#actions/posts/reject_review_draft'
 import Post from '#models/post'
@@ -259,10 +260,11 @@ export default class PostsCrudController extends BasePostsController {
       }
 
       // Update custom fields
-      if (Array.isArray(payload.customFields)) {
+      const customFields = payload.customFields || request.input('customFields')
+      if (Array.isArray(customFields)) {
         await UpsertPostCustomFields.handle({
           postId: id,
-          customFields: payload.customFields,
+          customFields,
         })
       }
 
@@ -312,6 +314,11 @@ export default class PostsCrudController extends BasePostsController {
 
     if (!post) {
       return this.response.notFound(response, 'Post not found')
+    }
+
+    const role = (auth.use('web').user as any)?.role
+    if (!authorizationService.canDeletePosts(role, post.type)) {
+      return this.response.forbidden(response, 'Not allowed to delete posts')
     }
 
     if (post.status !== 'archived') {
@@ -697,6 +704,25 @@ export default class PostsCrudController extends BasePostsController {
     auth: HttpContext['auth'],
     response: HttpContext['response']
   ) {
+    const current = await Post.findOrFail(id)
+
+    // Check if there are any Review changes (post-level or module-level)
+    const hasPostDraft = !!current.reviewDraft
+    const hasModuleChanges = await db
+      .from('module_instances')
+      .whereIn('id', db.from('post_modules').where('post_id', id).select('module_id'))
+      .whereNotNull('review_props')
+      .first()
+    const hasJoinChanges = await db
+      .from('post_modules')
+      .where('post_id', id)
+      .where((q) => q.whereNotNull('review_overrides').orWhere('review_added', true).orWhere('review_deleted', true))
+      .first()
+
+    if (!hasPostDraft && !hasModuleChanges && !hasJoinChanges) {
+      return this.response.badRequest(response, 'No review draft to approve')
+    }
+
     await ApproveReviewDraft.handle({
       postId: id,
       userId: auth.user!.id,
@@ -726,27 +752,29 @@ export default class PostsCrudController extends BasePostsController {
     response: HttpContext['response']
   ) {
     const current = await Post.findOrFail(id)
-    const ard: any = current.aiReviewDraft
+    
+    // Check if there are any AI Review changes (post-level or module-level)
+    const hasPostDraft = !!current.aiReviewDraft
+    const hasModuleChanges = await db
+      .from('module_instances')
+      .whereIn('id', db.from('post_modules').where('post_id', id).select('module_id'))
+      .whereNotNull('ai_review_props')
+      .first()
+    const hasJoinChanges = await db
+      .from('post_modules')
+      .where('post_id', id)
+      .where((q) => q.whereNotNull('ai_review_overrides').orWhere('ai_review_added', true).orWhere('ai_review_deleted', true))
+      .first()
 
-    if (!ard) {
+    if (!hasPostDraft && !hasModuleChanges && !hasJoinChanges) {
       return this.response.badRequest(response, 'No AI review draft to approve')
     }
 
-    await SaveReviewDraft.handle({
+    await PromoteAiReviewToReview.handle({
       postId: id,
-      payload: ard,
       userId: auth.user!.id,
       userEmail: (auth.use('web').user as any)?.email || null,
-      mode: 'review',
     })
-
-    await Post.query().where('id', id).update({ ai_review_draft: null } as any)
-
-    // Preserve agent execution history
-    try {
-      const agentExecutionService = await import('#services/agent_execution_service')
-      await agentExecutionService.default.promoteAiReviewToReview(id)
-    } catch {}
 
     return response.ok({ message: 'AI Review promoted to Review' })
   }

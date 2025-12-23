@@ -8,7 +8,6 @@ import {
   AlertDialogAction,
 } from '~/components/ui/alert-dialog'
 import { Input } from '~/components/ui/input'
-import { pickMediaVariantUrl, type MediaVariant } from '../../../lib/media'
 import { MediaRenderer } from '../../../components/MediaRenderer'
 
 type MediaItem = {
@@ -158,30 +157,14 @@ export function MediaPickerModal({
                     title={m.originalFilename || m.id}
                   >
                     <div className="aspect-square flex items-center justify-center bg-backdrop-medium">
-                      {(() => {
-                        const baseUrl = m.url
-                        const meta = (m as any).metadata || {}
-                        const variants: MediaVariant[] = Array.isArray(meta?.variants)
-                          ? (meta.variants as MediaVariant[])
-                          : []
-                        const darkSourceUrl =
-                          typeof meta.darkSourceUrl === 'string'
-                            ? (meta.darkSourceUrl as string)
-                            : undefined
-                        const thumbUrl = pickMediaVariantUrl(baseUrl, variants, 'thumb', {
-                          darkSourceUrl,
-                        })
-                        return (
-                          <MediaRenderer
-                            url={thumbUrl || baseUrl}
-                            mimeType={m.mimeType}
-                            alt={m.originalFilename || ''}
-                            className="w-full h-full object-cover"
-                            controls={false}
-                            autoPlay={false}
-                          />
-                        )
-                      })()}
+                      <MediaRenderer
+                        image={m}
+                        variant="thumb"
+                        alt={m.originalFilename || ''}
+                        className="w-full h-full object-cover"
+                        controls={false}
+                        autoPlay={false}
+                      />
                     </div>
                     <div className="p-1 text-[10px] text-neutral-medium truncate">
                       {m.alt || m.originalFilename || m.id}

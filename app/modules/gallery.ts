@@ -51,6 +51,7 @@ export default class GalleryModule extends BaseModule {
           required: true,
           description: 'Array of images with url, alt, and optional caption',
           item: {
+            slug: 'item',
             type: 'object',
             fields: [
               {
@@ -60,21 +61,7 @@ export default class GalleryModule extends BaseModule {
                 label: 'Image',
                 accept: 'image/*',
                 config: { storeAs: 'id' },
-                description: 'Select an image from the media library',
-              },
-              {
-                slug: 'alt',
-                type: 'text',
-                required: true,
-                label: 'Alt Text',
-                description: 'Alternative text for accessibility',
-              },
-              {
-                slug: 'caption',
-                type: 'textarea',
-                required: false,
-                label: 'Caption',
-                description: 'Optional caption for the image',
+                description: 'Select an image from the media library (alt text and caption are pulled from the media record)',
               },
             ],
           },

@@ -47,7 +47,10 @@ export default class TestimonialsController {
       query.whereIn('id', ids)
     }
 
-    const rows = await query.orderBy('updated_at', sortOrder).limit(limit)
+    const rows = await query
+      .orderBy('updated_at', sortOrder)
+      .limit(limit)
+      .preload('featuredImage')
 
     if (rows.length === 0) {
       return response.ok({ data: [] })
@@ -100,19 +103,26 @@ export default class TestimonialsController {
     const items = rows.map((p) => {
       const pid = String(p.id)
       const extras = byPostId.get(pid)
-      const featuredImageId = (p as any).featuredImageId || (p as any).featured_image_id || null
+      const featuredImage = p.featuredImage
 
       const authorName = extras?.author_name || p.title || 'Testimonial'
       const authorTitle = extras?.author_title || null
       const quote = extras?.quote || null
-      const imageId = featuredImageId ? String(featuredImageId) : null
+
+      const image = featuredImage ? {
+        id: featuredImage.id,
+        url: featuredImage.url,
+        mimeType: featuredImage.mimeType,
+        altText: featuredImage.altText,
+        metadata: featuredImage.metadata,
+      } : null
 
       return {
         id: pid,
         authorName,
         authorTitle,
         quote,
-        imageId,
+        image,
       }
     })
 

@@ -157,6 +157,16 @@ export function CustomFieldRenderer({
     const Renderer = (fieldComponents as Record<string, any>)[compName]
 
     if (Renderer) {
+      // Destructure to avoid passing unwanted props to DOM elements via spread
+      const {
+        type: _type,
+        fieldType: _fieldType,
+        translatable: _translatable,
+        config,
+        value: _value,
+        ...rest
+      } = f
+
       return (
         <div key={f.slug}>
           <LabelWithDescription label={f.label} description={f.description} />
@@ -164,8 +174,8 @@ export function CustomFieldRenderer({
             value={val ?? null}
             onChange={handleChange}
             customFields={customFields}
-            {...f}
-            {...(f.config || {})}
+            {...rest}
+            {...(config || {})}
           />
         </div>
       )

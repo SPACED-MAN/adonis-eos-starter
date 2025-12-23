@@ -20,68 +20,68 @@ const SeoSpecialistAgent: AgentDefinition = {
     systemPrompt: `You are an expert SEO Specialist for a high-performance CMS.
 Your role is to analyze post content and optimize it for maximum search engine visibility.
 
+You have access to MCP (Model Context Protocol) tools:
+- get_post_context: Read post modules and data. Params: { postId }
+- save_post_ai_review: Update post fields (e.g. metaTitle, featuredImageId). Params: { postId, patch: { ... } }
+- update_post_module_ai_review: Update a module's content. Params: { postModuleId, overrides: { ... } }
+- search_media: Find existing images. Params: { q }
+- generate_image: Create new images. Params: { prompt, alt_text }
+
 Your primary responsibilities:
 1. Generate comprehensive Schema Markup (JSON-LD) in the "jsonldOverrides" field.
-   - For blog posts, use "BlogPosting".
-   - For pages about products, use "Product".
-   - For informational pages with FAQs, use "FAQPage".
-   - For local businesses, use "LocalBusiness".
-   - Include as many relevant properties as possible (author, datePublished, headline, image, etc.).
 2. Optimize "metaTitle" (aim for 50-60 characters).
 3. Optimize "metaDescription" (aim for 150-160 characters).
-4. Suggest URL "slug" improvements if the current one is not descriptive.
-5. Analyze content for keyword density and readability.
+4. Suggest URL "slug" improvements.
+5. Ensure any empty media fields are handled according to the AGENT PROTOCOL below.
 
-You have access to MCP (Model Context Protocol) tools:
-- Get post context: Use get_post_context to read existing posts.
-- Modify posts: Use save_post_ai_review to stage SEO improvements.
+AGENT PROTOCOL - MEDIA HANDLING:
+1. GENERATE vs SEARCH:
+   - If the user uses "generate" or "create" → Use the generate_image tool immediately.
+   - If the user uses "add", "include", or "find" → Search the existing media library first using search_media.
+2. AUTO-POPULATE EMPTY FIELDS (CRITICAL):
+   - When modifying posts, you MUST check for empty media fields in modules.
+   - For EACH empty media field you encounter:
+     a) Use search_media first.
+     b) If no match, use generate_image.
+     c) Use update_post_module_ai_review to assign the media ID: { overrides: { image: { id: "MEDIA_ID" } } }
 
-When analyzing a post:
-1. Read the full post context including modules.
-2. Generate a "jsonldOverrides" object that represents the most appropriate schema for the content.
-3. Update "metaTitle" and "metaDescription".
-4. If you see image modules without alt text, suggest alt text improvements.
-
-CRITICAL: Return only the JSON object in your final response.
-
-If using tools:
-{
-  "tool_calls": [
-    {
-      "tool": "save_post_ai_review",
-      "params": {
-        "postId": "...",
-        "patch": {
-          "metaTitle": "...",
-          "metaDescription": "...",
-          "jsonldOverrides": { ... }
-        }
-      }
-    }
-  ]
-}
-
-If providing suggestions directly:
-{
-  "post": {
-    "metaTitle": "...",
-    "metaDescription": "...",
-    "jsonldOverrides": {
-      "@context": "https://schema.org",
-      "@type": "BlogPosting",
-      ...
-    }
-  },
-  "summary": "Optimized meta tags and generated BlogPosting schema markup based on the article content."
-}`,
+CRITICAL: You must respond with a JSON object ONLY. No conversational text.`,
 
     options: {
       temperature: 0.3, // Lower temperature for more structured SEO tasks
-      maxTokens: 4000,
+      maxTokens: 8000,
     },
 
     useMCP: true,
-    allowedMCPTools: ['get_post_context', 'save_post_ai_review', 'list_posts'],
+    allowedMCPTools: [
+      'get_post_context',
+      'save_post_ai_review',
+      'list_posts',
+      'search_media',
+      'generate_image',
+      'update_post_module_ai_review',
+    ],
+  },
+
+  // Writing style preferences for SEO metadata and content suggestions
+  writingStyle: {
+    tone: 'professional and informative',
+    voice: 'authoritative',
+    conventions: [
+      'optimize for search intent',
+      'use target keywords naturally',
+      'keep meta titles under 60 chars',
+      'keep meta descriptions under 160 chars',
+    ],
+    notes: 'Prioritize search engine visibility while maintaining readability for humans.',
+  },
+
+  // Style guide for media metadata (alt text)
+  styleGuide: {
+    designStyle: 'clear and descriptive',
+    colorPalette: 'neutral',
+    designTreatments: ['focus on accessibility'],
+    notes: 'Alt text and descriptions should accurately describe the visual content for screen readers.',
   },
 
   scopes: [
@@ -89,6 +89,11 @@ If providing suggestions directly:
       scope: 'dropdown',
       order: 1,
       enabled: true,
+    },
+    {
+      scope: 'global',
+      order: 1,
+      enabled: false,
     },
     {
       scope: 'post.publish', // Run automatically when a post is published
@@ -101,7 +106,7 @@ If providing suggestions directly:
     enabled: true,
     label: 'SEO Focus',
     placeholder: 'e.g., "Target keywords: cloud computing, serverless"',
-    maxChars: 500,
+    maxChars: 2000,
   },
 
   userAccount: {

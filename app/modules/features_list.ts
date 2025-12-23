@@ -40,6 +40,7 @@ export default class FeaturesListModule extends BaseModule {
           required: true,
           description: 'List of feature items (up to 24)',
           item: {
+            slug: 'item',
             type: 'object',
             fields: [
               {

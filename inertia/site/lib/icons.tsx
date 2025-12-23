@@ -38,6 +38,8 @@ import {
   faCircleExclamation,
   faEnvelope,
   faShareNodes,
+  faLocationDot,
+  faPhone,
 } from '@fortawesome/free-solid-svg-icons'
 import {
   faFacebookF,
@@ -88,6 +90,8 @@ library.add(
   faCircleExclamation,
   faEnvelope,
   faShareNodes,
+  faLocationDot,
+  faPhone,
   faFacebookF,
   faXTwitter,
   faLinkedinIn,

@@ -1,9 +1,8 @@
-import type { AgentDefinition, AgentExecutionContext, AIMessage } from '#types/agent_types'
+import type { AgentDefinition, AgentExecutionContext } from '#types/agent_types'
 import aiProviderService from '#services/ai_provider_service'
-import type { AIProviderConfig, AICompletionOptions } from '#services/ai_provider_service'
+import type { AIProviderConfig, AICompletionOptions, AIMessage } from '#services/ai_provider_service'
 import mcpClientService from '#services/mcp_client_service'
 import reactionExecutorService from '#services/reaction_executor_service'
-import env from '#start/env'
 
 /**
  * Internal Agent Executor Service
@@ -23,37 +22,118 @@ class InternalAgentExecutor {
     success: boolean
     data?: any
     error?: Error
+    lastCreatedPostId?: string | null
   }> {
     if (!agent.internal) {
       throw new Error('Agent is not configured as internal')
     }
 
     try {
-      // 1. Build messages from context and payload
+      // 1. Build initial messages
       const messages = await this.buildMessages(agent, context, payload)
 
       // 2. Get AI provider configuration
       const aiConfig = this.getAIConfig(agent.internal)
-
-      // Validate config
       aiProviderService.validateConfig(aiConfig)
 
       // 3. Get completion options
       const completionOptions = this.getCompletionOptions(agent.internal)
 
-      // 4. Execute AI completion
-      const aiResult = await aiProviderService.complete(messages, completionOptions, aiConfig)
+      // 4. First AI completion
+      let aiResult = await aiProviderService.complete(messages, completionOptions, aiConfig)
+      let finalContent = aiResult.content
 
-      // 5. If MCP is enabled, allow agent to use tools
-      let finalResult = aiResult.content
+      // 5. Handle multi-turn tool execution if MCP is enabled
+      let lastCreatedPostId: string | null = null
       if (agent.internal.useMCP) {
-        finalResult = await this.executeWithMCP(agent, messages, aiResult.content, context, payload)
+        let currentTurn = 1
+        const maxTurns = 10 // Increased from 6 to 10 for complex workflows
+
+        while (currentTurn < maxTurns) {
+          let parsed: any
+          try {
+            const jsonStr = this.extractJSON(aiResult.content)
+            parsed = JSON.parse(jsonStr)
+          } catch {
+            // Not JSON or no tool calls in this turn
+            break
+          }
+
+          if (parsed?.tool_calls && Array.isArray(parsed.tool_calls) && parsed.tool_calls.length > 0) {
+            // Execute tools for this turn
+            const toolResults = await this.executeTools(agent, parsed.tool_calls)
+
+            // Check if any tool was create_post_ai_review or create_translation_ai_review
+            const creationTool = toolResults.find(
+              (r: any) =>
+                (r.tool === 'create_post_ai_review' || r.tool === 'create_translation_ai_review') &&
+                r.success &&
+                (r.result?.postId || r.result?.translationId)
+            )
+
+            if (creationTool) {
+              lastCreatedPostId = creationTool.result.postId || creationTool.result.translationId
+            }
+
+            // Add assistant's response to history
+            messages.push({
+              role: 'assistant',
+              content: aiResult.content,
+            })
+
+            // Build user prompt for next turn with tool results
+            let nextTurnPrompt = `Tool execution results (Turn ${currentTurn}):\n${JSON.stringify(toolResults, null, 2)}\n\n`
+
+            if (creationTool) {
+              const newPostId = lastCreatedPostId
+              nextTurnPrompt += `IMPORTANT: Post/Translation created (ID: ${newPostId}). To fulfill the user's request, you MUST now:
+1. Use get_post_context(postId: "${newPostId}") to see the seeded or cloned modules and their current IDs.
+2. For each module or field that needs content:
+   - Use update_post_module_ai_review with the specific postModuleId and overrides.
+   - Use save_post_ai_review for post-level fields like title and excerpt.
+3. Once all translations/edits are finished, provide a final response with "redirectPostId": "${newPostId}" so the user can be taken to the new version.
+
+RESPOND WITH YOUR NEXT TOOL CALLS IN JSON FORMAT.`
+            } else {
+              nextTurnPrompt += `Analyze the results above. If you need more tools to complete the user's request, include a "tool_calls" array. If the task is finished, provide your final response with a "summary". RESPOND IN JSON FORMAT.`
+            }
+
+            messages.push({
+              role: 'user',
+              content: nextTurnPrompt,
+            })
+
+            // Get next AI completion
+            aiResult = await aiProviderService.complete(messages, completionOptions, aiConfig)
+            finalContent = aiResult.content
+            currentTurn++
+          } else {
+            // No more tool calls, we're done
+            break
+          }
+        }
+
+        // If we hit the turn limit, add a warning to the content
+        if (currentTurn >= maxTurns) {
+          console.warn(`Agent ${agent.id} reached max turns (${maxTurns})`)
+          // Try to wrap the last response in a JSON that includes a warning summary if it's not already helpful
+          try {
+            const lastJson = JSON.parse(this.extractJSON(finalContent))
+            if (lastJson.tool_calls) {
+              lastJson.summary = (lastJson.summary || '') + ' (Note: Reached maximum execution turns. Some tasks may be incomplete.)'
+              finalContent = JSON.stringify(lastJson)
+            }
+          } catch {
+            // ignore
+          }
+        }
       }
 
-      // 6. Parse result (could be JSON or plain text)
+      // 6. Parse final result
       let parsedResult: any
       try {
-        parsedResult = JSON.parse(finalResult)
+        const jsonStr = this.extractJSON(finalContent)
+        parsedResult = JSON.parse(jsonStr)
 
         // If the AI returned just a post object directly, wrap it
         if (parsedResult.title || parsedResult.slug || parsedResult.excerpt) {
@@ -62,8 +142,15 @@ class InternalAgentExecutor {
 
         // Ensure we have a post object in the response
         if (!parsedResult.post && Object.keys(parsedResult).length > 0) {
-          // If we have other keys but no post, try to extract post-like fields
-          const postFields = ['title', 'slug', 'excerpt', 'metaTitle', 'metaDescription', 'status']
+          const postFields = [
+            'title',
+            'slug',
+            'excerpt',
+            'metaTitle',
+            'metaDescription',
+            'status',
+            'featuredImageId',
+          ]
           const hasPostFields = postFields.some((field) => parsedResult[field] !== undefined)
           if (hasPostFields) {
             const post: any = {}
@@ -77,29 +164,13 @@ class InternalAgentExecutor {
           }
         }
       } catch {
-        // If JSON parsing fails, try to extract JSON from markdown code blocks
-        const jsonMatch =
-          finalResult.match(/```(?:json)?\s*(\{[\s\S]*\})\s*```/) ||
-          finalResult.match(/(\{[\s\S]*\})/)
-        if (jsonMatch) {
-          try {
-            parsedResult = JSON.parse(jsonMatch[1])
-            if (parsedResult.title || parsedResult.slug) {
-              parsedResult = { post: parsedResult }
-            }
-          } catch {
-            parsedResult = { content: finalResult }
-          }
-        } else {
-          parsedResult = { content: finalResult }
-        }
+        parsedResult = { content: finalContent }
       }
 
-      // Handle case where AI wrapped the response in a "content" field (string JSON)
+      // Handle case where AI wrapped the response in a "content" field
       if (parsedResult.content && typeof parsedResult.content === 'string') {
         try {
           const unwrapped = JSON.parse(parsedResult.content)
-          // Merge unwrapped content into parsedResult, preserving other fields
           parsedResult = { ...parsedResult, ...unwrapped }
           delete parsedResult.content
         } catch {
@@ -107,11 +178,9 @@ class InternalAgentExecutor {
         }
       }
 
-      // Extract summary if present (for natural language display) - do this BEFORE logging
-      // so we can see if summary was found
+      // Extract summary
       let summary = parsedResult.summary || null
       if (summary) {
-        // Remove summary from parsedResult so it doesn't interfere with data processing
         delete parsedResult.summary
       }
 
@@ -119,10 +188,9 @@ class InternalAgentExecutor {
       const result = {
         success: true,
         data: parsedResult,
-        // Include raw response for UI preview
-        rawResponse: aiResult.content,
-        // Include summary for natural language display
-        summary: summary || this.extractNaturalSummary(aiResult.content, parsedResult),
+        rawResponse: finalContent,
+        summary: summary || this.extractNaturalSummary(finalContent, parsedResult),
+        lastCreatedPostId,
       }
 
       if (agent.reactions && agent.reactions.length > 0) {
@@ -131,12 +199,10 @@ class InternalAgentExecutor {
 
       return result
     } catch (error: any) {
-      // Log the full error for debugging
       console.error('Internal agent execution error:', {
         agentId: agent.id,
         error: error?.message || String(error),
         stack: error?.stack,
-        cause: error?.cause,
       })
 
       const errorResult = {
@@ -144,13 +210,66 @@ class InternalAgentExecutor {
         error: error instanceof Error ? error : new Error(String(error)),
       }
 
-      // Execute error reactions
       if (agent.reactions && agent.reactions.length > 0) {
         await reactionExecutorService.executeReactions(agent.reactions, context, errorResult)
       }
 
       return errorResult
     }
+  }
+
+  /**
+   * Extract JSON string from raw text (handles markdown code blocks)
+   */
+  private extractJSON(text: string): string {
+    const jsonMatch = text.match(/```(?:json)?\s*(\{[\s\S]*\})\s*```/) || text.match(/(\{[\s\S]*\})/)
+
+    if (jsonMatch) {
+      return jsonMatch[1]
+    }
+    return text
+  }
+
+  /**
+   * Execute MCP tools and return results
+   */
+  private async executeTools(agent: AgentDefinition, toolCalls: any[]): Promise<any[]> {
+    const results: any[] = []
+
+    for (const toolCall of toolCalls) {
+      const tool = toolCall.tool || toolCall.tool_name
+      const params = toolCall.params || toolCall.arguments
+      if (!tool || !params) continue
+
+      try {
+        // Check if tool is allowed
+        if (agent.internal?.allowedMCPTools && agent.internal.allowedMCPTools.length > 0) {
+          if (!agent.internal.allowedMCPTools.includes(tool)) {
+            results.push({
+              tool,
+              error: `Tool '${tool}' is not in the allowed list`,
+            })
+            continue
+          }
+        }
+
+        // Execute the tool
+        const result = await mcpClientService.callTool(tool, params, agent.id)
+        results.push({
+          tool,
+          success: true,
+          result,
+        })
+      } catch (error: any) {
+        results.push({
+          tool,
+          success: false,
+          error: error?.message || 'Tool execution failed',
+        })
+      }
+    }
+
+    return results
   }
 
   /**
@@ -209,37 +328,23 @@ class InternalAgentExecutor {
       // Add format instructions to ensure proper JSON response
       const formatInstructions = `
 
-IMPORTANT: You must respond with a JSON object that includes both a natural language summary and the structured changes. Your response should be in this format:
+IMPORTANT: You must respond with a JSON object. If you need to use tools, include a "tool_calls" array. If you are providing a final response, include a "summary".
+
+Format for tool calls:
 {
-  "summary": "A brief, natural language description of what changes you made. For example: 'I've replaced all copy with Lorem Ipsum text across all modules, updating titles, subtitles, descriptions, and other text fields while preserving the structure and formatting.'",
-  "post": {
-    "title": "Updated title",
-    "excerpt": "Updated excerpt",
-    "metaTitle": "Updated meta title",
-    "metaDescription": "Updated meta description",
-    // ... other post fields you want to change
-  },
-  "modules": [
-    {
-      "type": "hero",
-      "props": {
-        "title": "Updated module title",
-        // ... other module props you want to change
-      }
-    }
+  "tool_calls": [
+    { "tool": "tool_name", "params": { "key": "value" } }
   ]
 }
 
-The "summary" field should be a clear, human-readable explanation of your changes. The "post" and "modules" fields contain the actual structured changes.
+Format for final response:
+{
+  "summary": "A brief natural language description of what you've done",
+  "post": { "title": "..." },
+  "modules": [ { "type": "...", "props": { "..." } } ]
+}
 
-For modules: You can identify modules by their "type" (e.g., "hero", "prose", "gallery"). 
-- If you want to update ALL modules of a type, include the module in the array WITHOUT "orderIndex"
-- If you want to update a SPECIFIC module, include "orderIndex" (0-based) to target that exact one
-- If you want to update ALL modules regardless of type, you can include multiple entries in the array, one for each type
-- IMPORTANT: When asked to "replace all copy" or update "all modules", you MUST include ALL modules in the response, not just the first one
-- You can include multiple modules in the array to update multiple modules at once
-- Only include the props you are actually changing - all other props will be preserved automatically
-Only include fields/modules that you are actually changing. Do not include fields that should remain unchanged.`
+Only include fields/modules that you are actually changing. Do not include any text outside the JSON object.`
 
       messages.push({
         role: 'system',
@@ -376,9 +481,9 @@ Only include fields that you are actually changing.`,
   private getAIConfig(internal: NonNullable<AgentDefinition['internal']>): AIProviderConfig {
     // Get API key from config or environment
     let apiKey = internal.apiKey
+    const envKey = `AI_PROVIDER_${internal.provider.toUpperCase()}_API_KEY`
     if (!apiKey) {
       // Try environment variable
-      const envKey = `AI_PROVIDER_${internal.provider.toUpperCase()}_API_KEY`
       apiKey = process.env[envKey] || ''
     }
 
@@ -408,179 +513,6 @@ Only include fields that you are actually changing.`,
       maxTokens: internal.options?.maxTokens,
       topP: internal.options?.topP,
       stop: internal.options?.stop,
-    }
-  }
-
-  /**
-   * Execute agent with MCP tool support
-   * Parses tool calls from AI response, executes them, and returns the final result
-   */
-  private async executeWithMCP(
-    agent: AgentDefinition,
-    messages: AIMessage[],
-    aiResponse: string,
-    context: AgentExecutionContext,
-    payload: any
-  ): Promise<string> {
-    try {
-      // Try to parse the AI response as JSON to look for tool calls
-      let parsed: any
-      try {
-        // Extract JSON from markdown code blocks if present
-        // Try multiple patterns to extract JSON (greedy match to get the full object)
-        let jsonStr = aiResponse
-        const jsonMatch =
-          aiResponse.match(/```(?:json)?\s*(\{[\s\S]*\})\s*```/) ||
-          aiResponse.match(/```(?:json)?\s*(\{[\s\S]*)/) || // Match even if incomplete (no closing ```)
-          aiResponse.match(/(\{[\s\S]*\})/) // Fallback to any JSON object
-
-        if (jsonMatch) {
-          jsonStr = jsonMatch[1]
-          // Try to complete incomplete JSON if it ends with an incomplete string
-          if (!jsonStr.trim().endsWith('}')) {
-            // Try to find the last complete property and close the JSON
-            const lastCompleteProp = jsonStr.lastIndexOf('",')
-            if (lastCompleteProp > 0) {
-              jsonStr = jsonStr.substring(0, lastCompleteProp + 1) + '}'
-            } else {
-              // If we can't find a good place to close, try to close arrays/objects
-              let openBraces = (jsonStr.match(/\{/g) || []).length
-              let closeBraces = (jsonStr.match(/\}/g) || []).length
-              let openBrackets = (jsonStr.match(/\[/g) || []).length
-              let closeBrackets = (jsonStr.match(/\]/g) || []).length
-
-              // Close any open brackets first
-              while (closeBrackets < openBrackets) {
-                jsonStr += ']'
-                closeBrackets++
-              }
-              // Close any open braces
-              while (closeBraces < openBraces) {
-                jsonStr += '}'
-                closeBraces++
-              }
-            }
-          }
-        }
-
-        parsed = JSON.parse(jsonStr)
-      } catch (parseError: any) {
-        // If not JSON, return as-is (agent might be responding naturally)
-        return aiResponse
-      }
-
-      // Check if the response contains tool calls
-      if (parsed.tool_calls && Array.isArray(parsed.tool_calls)) {
-        const toolResults: any[] = []
-
-        // Execute each tool call
-        for (const toolCall of parsed.tool_calls) {
-          // Support both 'tool' and 'tool_name' formats
-          const tool = toolCall.tool || toolCall.tool_name
-          const params = toolCall.params || toolCall.arguments
-          if (!tool || !params) continue
-
-          try {
-            // Check if tool is allowed
-            if (agent.internal?.allowedMCPTools && agent.internal.allowedMCPTools.length > 0) {
-              if (!agent.internal.allowedMCPTools.includes(tool)) {
-                toolResults.push({
-                  tool,
-                  error: `Tool '${tool}' is not in the allowed list`,
-                })
-                continue
-              }
-            }
-
-            // Execute the tool
-            const result = await mcpClientService.callTool(tool, params, agent.id)
-            toolResults.push({
-              tool,
-              success: true,
-              result,
-            })
-          } catch (error: any) {
-            toolResults.push({
-              tool,
-              success: false,
-              error: error?.message || 'Tool execution failed',
-            })
-          }
-        }
-
-        // If we have tool results, merge them into the response
-        // For generate_image, we can automatically update modules if the agent provided module updates
-        const response: any = {
-          summary: parsed.summary || `Executed ${toolResults.length} tool call(s)`,
-          toolResults,
-        }
-
-        // If the original response had other fields, include them
-        if (parsed.post) response.post = parsed.post
-        if (parsed.modules) response.modules = parsed.modules
-
-        // For generate_image tool, if we have a successful result and module updates,
-        // we can automatically inject the mediaId into the module props
-        const generateImageResult = toolResults.find(
-          (r: any) => (r.tool === 'generate_image' || r.tool_name === 'generate_image') && r.success
-        )
-
-
-        if (generateImageResult && response.modules && Array.isArray(response.modules)) {
-          const result = generateImageResult.result
-          const mediaId = result?.mediaId
-          const mediaUrl = result?.url
-          const altText = result?.altText
-          const description = result?.description
-
-
-          if (mediaId) {
-            // Find modules that need the image and inject the mediaId
-            for (const module of response.modules) {
-              if (module.props?.image && typeof module.props.image === 'object') {
-                // Check if ID is missing, is a placeholder, or needs to be replaced
-                const currentId = module.props.image.id
-                const isPlaceholder =
-                  !currentId ||
-                  (typeof currentId === 'string' &&
-                    (currentId.includes('<mediaId') ||
-                      currentId.includes('from generate_image') ||
-                      currentId.includes('mediaId') ||
-                      currentId === ''))
-
-
-                if (isPlaceholder && mediaId) {
-                  // Inject the generated mediaId
-                  module.props.image.id = mediaId
-                  if (mediaUrl) {
-                    module.props.image.url = mediaUrl
-                  }
-                  // Use tool result alt/description if not already set or if they're placeholders
-                  if (altText && (!module.props.image.alt || module.props.image.alt === altText)) {
-                    module.props.image.alt = altText
-                  }
-                  if (
-                    description &&
-                    (!module.props.image.description ||
-                      module.props.image.description === description)
-                  ) {
-                    module.props.image.description = description
-                  }
-                }
-              }
-            }
-          }
-        }
-
-        return JSON.stringify(response)
-      }
-
-      // No tool calls, return the original response
-      return aiResponse
-    } catch (error: any) {
-      console.error('MCP execution error:', error)
-      // On error, return the original response
-      return aiResponse
     }
   }
 

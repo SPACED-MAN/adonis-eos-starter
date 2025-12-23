@@ -22,6 +22,10 @@ type Agent = {
     placeholder?: string
     maxChars?: number
   }
+  scopes: Array<{
+    scope: string
+    enabled: boolean
+  }>
 }
 
 export default function AgentsIndex() {
@@ -63,19 +67,20 @@ export default function AgentsIndex() {
                 <TableHead>Name</TableHead>
                 <TableHead>Type</TableHead>
                 <TableHead>Description</TableHead>
+                <TableHead>Scopes</TableHead>
                 <TableHead>Context</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
               {loading ? (
                 <TableRow>
-                  <TableCell colSpan={4} className="text-center py-8 text-neutral-low">
+                  <TableCell colSpan={5} className="text-center py-8 text-neutral-low">
                     Loading agents...
                   </TableCell>
                 </TableRow>
               ) : agents.length === 0 ? (
                 <TableRow>
-                  <TableCell colSpan={4} className="text-center py-8 text-neutral-low">
+                  <TableCell colSpan={5} className="text-center py-8 text-neutral-low">
                     No agents found.
                   </TableCell>
                 </TableRow>
@@ -86,13 +91,25 @@ export default function AgentsIndex() {
                     <TableCell className="capitalize">{agent.type}</TableCell>
                     <TableCell className="max-w-md">{agent.description}</TableCell>
                     <TableCell>
+                      <div className="flex flex-wrap gap-1">
+                        {agent.scopes.map((s) => (
+                          <span
+                            key={s.scope}
+                            className="text-[10px] bg-backdrop-medium text-neutral-medium px-1.5 py-0.5 rounded border border-line-low"
+                          >
+                            {s.scope}
+                          </span>
+                        ))}
+                      </div>
+                    </TableCell>
+                    <TableCell>
                       {agent.openEndedContext.enabled ? (
-                        <span className="text-xs bg-success-low text-success-high px-2 py-1 rounded">
-                          Open-ended enabled
+                        <span className="text-[10px] bg-success-low text-success-high px-1.5 py-0.5 rounded border border-success-medium/20">
+                          Open-ended
                         </span>
                       ) : (
-                        <span className="text-xs bg-backdrop-medium text-neutral-low px-2 py-1 rounded">
-                          Fixed context
+                        <span className="text-[10px] bg-backdrop-medium text-neutral-low px-1.5 py-0.5 rounded">
+                          Fixed
                         </span>
                       )}
                     </TableCell>

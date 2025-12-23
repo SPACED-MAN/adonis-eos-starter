@@ -101,7 +101,7 @@ export default class AddModuleToPost {
             props === null ||
               props === undefined ||
               (typeof props === 'object' && Object.keys(props).length === 0)
-              ? moduleConfig.defaultProps
+              ? moduleConfig.defaultValues || {}
               : props
           )
           
@@ -131,7 +131,7 @@ export default class AddModuleToPost {
           props === null ||
             props === undefined ||
             (typeof props === 'object' && Object.keys(props).length === 0)
-            ? moduleConfig.defaultProps
+            ? moduleConfig.defaultValues || {}
             : props
         )
 

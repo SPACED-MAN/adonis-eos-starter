@@ -84,9 +84,10 @@ export default class InlineEditorController {
     // Basic field whitelist using module config (if available)
     try {
       const cfg = moduleRegistry.getSchema(row.moduleType)
-      if (cfg?.propsSchema && typeof cfg.propsSchema === 'object') {
+      if (cfg?.fieldSchema && Array.isArray(cfg.fieldSchema)) {
         const rootKey = path.split('.')[0]
-        if (rootKey && !Object.prototype.hasOwnProperty.call(cfg.propsSchema, rootKey)) {
+        const fieldExists = cfg.fieldSchema.some((f: any) => f.slug === rootKey)
+        if (rootKey && !fieldExists && rootKey !== '_useReact') {
           return response.badRequest({ error: `Unknown field: ${rootKey}` })
         }
       }

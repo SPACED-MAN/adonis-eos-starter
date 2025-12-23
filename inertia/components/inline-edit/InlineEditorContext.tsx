@@ -237,6 +237,10 @@ export function InlineEditorProvider({
         val = getModeValue(moduleId, path, mode, fallback)
       }
 
+      if (path === 'image' || path === 'avatar' || path === 'logoMedia') {
+        console.log(`[InlineEditorContext] getValue for ${moduleId}.${path}:`, val)
+      }
+
       // If the editor is NOT enabled, we should resolve tokens in the value.
       // If it IS enabled, we show raw tokens so they can be edited.
       if (!enabled && val && (typeof val === 'string' || typeof val === 'object')) {
@@ -245,7 +249,11 @@ export function InlineEditorProvider({
           siteSettings,
           customFields,
         }
-        return TokenService.resolveRecursive(val, tokenContext)
+        const resolved = TokenService.resolveRecursive(val, tokenContext)
+        if (path === 'image' || path === 'avatar' || path === 'logoMedia') {
+          console.log(`[InlineEditorContext] resolved for ${moduleId}.${path}:`, resolved)
+        }
+        return resolved
       }
 
       return val

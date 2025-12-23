@@ -3,6 +3,7 @@ import ReactDOMServer from 'react-dom/server'
 import { createInertiaApp } from '@inertiajs/react'
 import redis from '@adonisjs/redis/services/main'
 import crypto from 'node:crypto'
+import { ThemeProvider } from '../utils/ThemeContext'
 
 export default async function render(page: any) {
   const componentName = String(page?.component ?? '')
@@ -61,7 +62,14 @@ export default async function render(page: any) {
 
         return (module as any).default
       },
-      setup: ({ App, props }) => <App {...props} />,
+      setup: ({ App, props }) => {
+        const initialIsDark = (props as any)?.isDark
+        return (
+          <ThemeProvider initialIsDark={initialIsDark}>
+            <App {...props} />
+          </ThemeProvider>
+        )
+      },
     })
 
     // Cache the rendered HTML for 1 hour

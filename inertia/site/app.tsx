@@ -6,6 +6,7 @@ import { hydrateRoot } from 'react-dom/client'
 import { createInertiaApp } from '@inertiajs/react'
 import { resolvePageComponent } from '@adonisjs/inertia/helpers'
 import { SiteAdminBar } from './components/SiteAdminBar'
+import { ThemeProvider } from '../utils/ThemeContext'
 
 let appName = import.meta.env.VITE_APP_NAME || 'EOS'
 
@@ -30,12 +31,15 @@ createInertiaApp({
     if (initialSiteTitle) {
       appName = String(initialSiteTitle)
     }
+
+    const initialIsDark = (props.initialPage?.props as any)?.isDark
+
     hydrateRoot(
       el,
-      <>
+      <ThemeProvider initialIsDark={initialIsDark}>
         <App {...props} />
         <SiteAdminBar initialProps={props.initialPage.props} />
-      </>
+      </ThemeProvider>
     )
   },
 })

@@ -6,6 +6,7 @@ import { hydrateRoot, createRoot } from 'react-dom/client'
 import { createInertiaApp } from '@inertiajs/react'
 import { resolvePageComponent } from '@adonisjs/inertia/helpers'
 import { Toaster } from '../components/ui/sonner'
+import { ThemeProvider } from '../utils/ThemeContext'
 
 let appName = import.meta.env.VITE_APP_NAME || 'EOS'
 
@@ -30,13 +31,16 @@ createInertiaApp({
     if (initialSiteTitle) {
       appName = String(initialSiteTitle)
     }
+
+    const initialIsDark = (props.initialPage?.props as any)?.isDark
+
     // If there is no server-rendered markup, do a client render to avoid hydration mismatch
     const hasSSRContent = el.hasChildNodes()
     const app = (
-      <>
+      <ThemeProvider initialIsDark={initialIsDark}>
         <App {...props} />
         <Toaster />
-      </>
+      </ThemeProvider>
     )
     if (hasSSRContent) {
       hydrateRoot(el, app)

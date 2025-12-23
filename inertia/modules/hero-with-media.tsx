@@ -1,6 +1,4 @@
-import { useEffect, useState } from 'react'
-import { motion } from 'framer-motion'
-import { pickMediaVariantUrl } from '../lib/media'
+import { motion, type Variants } from 'framer-motion'
 import type { Button, LinkValue } from './types'
 import { useInlineValue } from '../components/inline-edit/InlineEditorContext'
 import { resolveLink } from '../utils/resolve_link'
@@ -9,8 +7,13 @@ import { MediaRenderer } from '../components/MediaRenderer'
 interface HeroWithMediaProps {
   title: string
   subtitle?: string
-  image?: string | null // media ID
-  imageAlt?: string | null
+  image?: {
+    id: string
+    url: string
+    mimeType?: string
+    altText?: string
+    metadata?: any
+  } | null // media object
   imagePosition?: 'left' | 'right'
   primaryCta?: Button | null
   secondaryCta?: Button | null
@@ -30,7 +33,6 @@ export default function HeroWithMedia({
   title,
   subtitle,
   image,
-  imageAlt,
   imagePosition = 'right',
   primaryCta,
   secondaryCta,
@@ -38,57 +40,13 @@ export default function HeroWithMedia({
   __moduleId,
   _useReact,
 }: HeroWithMediaProps) {
-  const imageId = useInlineValue(__moduleId, 'image', image)
+  const imageValue = useInlineValue(__moduleId, 'image', image)
   const titleValue = useInlineValue(__moduleId, 'title', title)
   const subtitleValue = useInlineValue(__moduleId, 'subtitle', subtitle)
-  const [resolvedMedia, setResolvedMedia] = useState<{
-    url: string
-    mimeType?: string
-    metadata?: any
-  } | null>(null)
-
-  useEffect(() => {
-    let cancelled = false
-
-    async function resolveImage() {
-      if (!imageId) {
-        if (!cancelled) setResolvedMedia(null)
-        return
-      }
-
-      try {
-        const res = await fetch(`/public/media/${encodeURIComponent(String(imageId))}`)
-        if (!res.ok) {
-          if (!cancelled) setResolvedMedia(null)
-          return
-        }
-        const j = await res.json().catch(() => null)
-        const data = j?.data
-        if (!data) {
-          if (!cancelled) setResolvedMedia(null)
-          return
-        }
-        const mimeType = data.mimeType
-        const meta = (data as any).metadata || {}
-        const variants = Array.isArray(meta?.variants) ? (meta.variants as any[]) : []
-        const darkSourceUrl =
-          typeof meta.darkSourceUrl === 'string' ? (meta.darkSourceUrl as string) : undefined
-        const url = pickMediaVariantUrl(data.url, variants, undefined, { darkSourceUrl })
-        if (!cancelled) setResolvedMedia({ url, mimeType, metadata: meta })
-      } catch {
-        if (!cancelled) setResolvedMedia(null)
-      }
-    }
-
-    resolveImage()
-    return () => {
-      cancelled = true
-    }
-  }, [imageId])
 
   const hasCtas = Boolean(primaryCta || secondaryCta)
 
-  const containerVariants = {
+  const containerVariants: Variants = {
     hidden: { opacity: 0 },
     visible: {
       opacity: 1,
@@ -98,7 +56,7 @@ export default function HeroWithMedia({
     },
   }
 
-  const textVariants = {
+  const textVariants: Variants = {
     hidden: { opacity: 0, x: imagePosition === 'left' ? 30 : -30 },
     visible: {
       opacity: 1,
@@ -107,7 +65,7 @@ export default function HeroWithMedia({
     },
   }
 
-  const imageVariants = {
+  const imageVariants: Variants = {
     hidden: { opacity: 0, scale: 0.9, x: imagePosition === 'left' ? -30 : 30 },
     visible: {
       opacity: 1,
@@ -119,22 +77,23 @@ export default function HeroWithMedia({
 
   const imageBlockContent = (
     <div
-      className="w-full max-w-md rounded-xl overflow-hidden border border-line-low bg-backdrop-high relative aspect-4/3"
+      className="w-full max-w-md overflow-hidden relative aspect-[4/3]"
       data-inline-type="media"
       data-inline-path="image"
     >
-      <MediaRenderer
-        url={resolvedMedia?.url || ''}
-        mimeType={resolvedMedia?.mimeType}
-        alt={imageAlt || ''}
-        fetchPriority="high"
-        decoding="async"
-        playMode={resolvedMedia?.metadata?.playMode || 'autoplay'}
-      />
+      {imageValue && (
+        <MediaRenderer
+          image={imageValue}
+          alt={(typeof imageValue === 'object' ? imageValue.altText : null) || ''}
+          fetchPriority="high"
+          decoding="async"
+          playMode={typeof imageValue === 'object' ? imageValue.metadata?.playMode : 'autoplay'}
+        />
+      )}
     </div>
   )
 
-  const imageBlock = resolvedMedia ? (
+  const imageBlock = imageValue ? (
     <div className="lg:col-span-5 flex justify-center lg:justify-end">
       {_useReact ? (
         <motion.div variants={imageVariants} className="w-full">
@@ -266,7 +225,6 @@ export default function HeroWithMedia({
     </section>
   )
 }
-
 
 // Define the CTA object schema for inline editing
 const ctaObjectFields = JSON.stringify([

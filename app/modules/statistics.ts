@@ -25,6 +25,7 @@ export default class StatisticsModule extends BaseModule {
           required: true,
           description: 'List of statistics to display (e.g., 73M+ developers).',
           item: {
+            slug: 'item',
             type: 'object',
             fields: [
               {

@@ -46,6 +46,7 @@ export default class DevToolsMiddleware {
         ...safeQuery,
       })
     }
+    // @ts-ignore - access private emitter for dev tools
     db.emitter.on('db:query', queryListener)
 
     try {
@@ -62,6 +63,7 @@ export default class DevToolsMiddleware {
 
       await next()
     } finally {
+      // @ts-ignore - access private emitter for dev tools
       db.emitter.off('db:query', queryListener)
       
       const endTime = process.hrtime(startTime)

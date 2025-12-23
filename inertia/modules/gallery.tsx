@@ -8,100 +8,33 @@
  * No -static suffix = React component with full interactivity
  */
 
-import { useState, useEffect, useMemo } from 'react'
-import { motion, AnimatePresence } from 'framer-motion'
-import { pickMediaVariantUrl } from '../lib/media'
-import type { Image } from './types'
+import { useState } from 'react'
+import { motion, AnimatePresence, type Variants } from 'framer-motion'
+import { MediaRenderer } from '../components/MediaRenderer'
+import type { MediaObject } from '../utils/useMediaUrl'
 
 interface GalleryProps {
-  images: Image[]
+  images: Array<{
+    url: string | MediaObject
+    alt?: string
+    altText?: string
+    caption?: string
+    width?: number
+    height?: number
+    mimeType?: string
+    metadata?: any
+  }>
   layout?: 'grid' | 'masonry'
   columns?: number
   _useReact?: boolean
 }
 
 export default function Gallery({
-  images,
+  images = [],
   layout = 'grid',
   columns = 3,
   _useReact,
 }: GalleryProps) {
-  // Resolved images with URLs (media IDs converted to actual URLs)
-  const [resolvedImages, setResolvedImages] = useState<Image[]>([])
-
-  // Extract unique media IDs from images (where url looks like a UUID)
-  const mediaIds = useMemo(() => {
-    const ids: string[] = []
-    const uuidRegex = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i
-    images.forEach((img) => {
-      if (img.url && (uuidRegex.test(img.url) || img.url.length === 36)) {
-        ids.push(img.url)
-      }
-    })
-    return [...new Set(ids)] // Remove duplicates
-  }, [images])
-
-  // Resolve media IDs to URLs
-  useEffect(() => {
-    let cancelled = false
-
-    async function resolveImages() {
-      if (mediaIds.length === 0) {
-        // If no media IDs, use images as-is (already URLs)
-        if (!cancelled) setResolvedImages(images)
-        return
-      }
-
-      // Create a map of media ID -> resolved URL
-      const urlMap = new Map<string, string>()
-
-      // Fetch all media items in parallel
-      await Promise.all(
-        mediaIds.map(async (id) => {
-          try {
-            const res = await fetch(`/public/media/${encodeURIComponent(id)}`)
-            if (!res.ok) return
-            const j = await res.json().catch(() => null)
-            const data = j?.data
-            if (!data) return
-
-            const meta = (data as any).metadata || {}
-            const variants = Array.isArray(meta?.variants) ? (meta.variants as any[]) : []
-            const darkSourceUrl =
-              typeof meta.darkSourceUrl === 'string' ? (meta.darkSourceUrl as string) : undefined
-            const url = pickMediaVariantUrl(data.url, variants, undefined, { darkSourceUrl })
-            if (!cancelled) urlMap.set(id, url)
-          } catch {
-            // Ignore errors for individual images
-          }
-        })
-      )
-
-      if (cancelled) return
-
-      // Map images to resolved URLs
-      const resolved = images.map((img) => {
-        // If url looks like a UUID, resolve it; otherwise use as-is
-        const uuidRegex = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i
-        if (img.url && (uuidRegex.test(img.url) || img.url.length === 36)) {
-          const resolvedUrl = urlMap.get(img.url) || img.url
-          return { ...img, url: resolvedUrl }
-        }
-        return img
-      })
-
-      setResolvedImages(resolved)
-    }
-
-    resolveImages()
-
-    return () => {
-      cancelled = true
-    }
-  }, [images, mediaIds])
-
-  // Use resolved images for rendering
-  const displayImages = resolvedImages.length > 0 ? resolvedImages : images
   const [lightboxOpen, setLightboxOpen] = useState(false)
   const [currentIndex, setCurrentIndex] = useState(0)
 
@@ -115,11 +48,11 @@ export default function Gallery({
   }
 
   const nextImage = () => {
-    setCurrentIndex((prev) => (prev + 1) % displayImages.length)
+    setCurrentIndex((prev) => (prev + 1) % images.length)
   }
 
   const prevImage = () => {
-    setCurrentIndex((prev) => (prev - 1 + displayImages.length) % displayImages.length)
+    setCurrentIndex((prev) => (prev - 1 + images.length) % images.length)
   }
 
   // Handle keyboard navigation
@@ -141,7 +74,7 @@ export default function Gallery({
 
   const gridClass = layout === 'grid' ? `grid grid-cols-${columns} gap-4` : 'columns-3 gap-4'
 
-  const containerVariants = {
+  const containerVariants: Variants = {
     hidden: { opacity: 0 },
     visible: {
       opacity: 1,
@@ -151,7 +84,7 @@ export default function Gallery({
     },
   }
 
-  const itemVariants = {
+  const itemVariants: Variants = {
     hidden: { opacity: 0, scale: 0.9, y: 20 },
     visible: {
       opacity: 1,
@@ -163,21 +96,28 @@ export default function Gallery({
 
   const gridContent = (
     <div className={gridClass}>
-      {displayImages.map((image, idx) => {
-        const hasCaption = image.caption?.trim()
-        const altMatchesCaption = hasCaption && image.alt?.trim() === hasCaption
+      {images.map((item, idx) => {
+        // EOS resolves the media ID to a full object. Because the field slug was 'url',
+        // item.url will be the media object if resolved, or a string if not.
+        const media = (typeof item.url === 'object' && item.url !== null ? item.url : null) as MediaObject | null
+        const imageSource = media || (item.url as string)
+        
+        const caption = media?.title || media?.caption || item.caption
+        const hasCaption = !!caption?.trim()
+        const effectiveAlt = media?.altText || item.alt || item.altText || ''
+        const altMatchesCaption = hasCaption && effectiveAlt.trim() === caption?.trim()
         const altText = altMatchesCaption
-          ? `Image ${idx + 1}${hasCaption ? `: ${hasCaption.substring(0, 50)}` : ''}`
-          : image.alt || (hasCaption ? `Image ${idx + 1}` : `Gallery image ${idx + 1}`)
+          ? `Image ${idx + 1}${hasCaption ? `: ${caption.substring(0, 50)}` : ''}`
+          : effectiveAlt || (hasCaption ? `Image ${idx + 1}` : `Gallery image ${idx + 1}`)
 
-        const item = (
+        const figure = (
           <figure
             key={idx}
             className="cursor-pointer overflow-hidden rounded-lg transition-all hover:ring-2 hover:ring-primary/50 aspect-square group bg-backdrop-medium"
             onClick={() => openLightbox(idx)}
           >
-            <img
-              src={image.url}
+            <MediaRenderer
+              image={imageSource}
               alt={altText}
               className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-110"
               loading="lazy"
@@ -185,7 +125,7 @@ export default function Gallery({
             />
             {hasCaption && (
               <figcaption className="p-2 text-sm text-neutral-low truncate bg-backdrop-high/80">
-                {image.caption}
+                {caption}
               </figcaption>
             )}
           </figure>
@@ -193,10 +133,10 @@ export default function Gallery({
 
         return _useReact ? (
           <motion.div key={idx} variants={itemVariants}>
-            {item}
+            {figure}
           </motion.div>
         ) : (
-          <div key={idx}>{item}</div>
+          <div key={idx}>{figure}</div>
         )
       })}
     </div>
@@ -242,7 +182,7 @@ export default function Gallery({
             </button>
 
             {/* Previous Button */}
-            {displayImages.length > 1 && (
+            {images.length > 1 && (
               <button
                 onClick={(e) => {
                   e.stopPropagation()
@@ -265,29 +205,34 @@ export default function Gallery({
               onClick={(e) => e.stopPropagation()}
             >
               {(() => {
-                const currentImage = displayImages[currentIndex]
-                const hasCaption = currentImage.caption?.trim()
-                const altMatchesCaption = hasCaption && currentImage.alt?.trim() === hasCaption
+                const item = images[currentIndex]
+                const media = (typeof item.url === 'object' && item.url !== null ? item.url : null) as MediaObject | null
+                const imageSource = media || (item.url as string)
+                
+                const caption = media?.title || media?.caption || item.caption
+                const hasCaption = !!caption?.trim()
+                const effectiveAlt = media?.altText || item.alt || item.altText || ''
+                const altMatchesCaption = hasCaption && effectiveAlt.trim() === caption?.trim()
                 const altText = altMatchesCaption
-                  ? `Image ${currentIndex + 1}${hasCaption ? `: ${hasCaption.substring(0, 50)}` : ''
+                  ? `Image ${currentIndex + 1}${hasCaption ? `: ${caption.substring(0, 50)}` : ''
                   }`
-                  : currentImage.alt ||
+                  : effectiveAlt ||
                   (hasCaption
                     ? `Image ${currentIndex + 1}`
                     : `Gallery image ${currentIndex + 1}`)
 
                 return (
                   <>
-                    <img
-                      key={currentIndex}
-                      src={currentImage.url}
+                    <MediaRenderer
+                      image={imageSource}
                       alt={altText}
                       className="max-w-full max-h-[80vh] object-contain shadow-2xl rounded"
                       decoding="async"
+                      key={currentIndex}
                     />
                     {hasCaption && (
                       <p className="text-center text-white mt-6 max-w-2xl px-4 italic">
-                        {currentImage.caption}
+                        {caption}
                       </p>
                     )}
                   </>
@@ -296,7 +241,7 @@ export default function Gallery({
             </motion.div>
 
             {/* Next Button */}
-            {displayImages.length > 1 && (
+            {images.length > 1 && (
               <button
                 onClick={(e) => {
                   e.stopPropagation()
@@ -311,7 +256,7 @@ export default function Gallery({
 
             {/* Image Counter */}
             <div className="absolute bottom-8 left-1/2 -translate-x-1/2 text-white/70 text-sm font-medium tracking-widest uppercase">
-              {currentIndex + 1} / {displayImages.length}
+              {currentIndex + 1} / {images.length}
             </div>
           </motion.div>
         )}
@@ -319,4 +264,3 @@ export default function Gallery({
     </div>
   )
 }
-

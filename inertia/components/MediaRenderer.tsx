@@ -1,8 +1,11 @@
 import React, { useState, forwardRef } from 'react'
 import { Dialog, DialogContent, DialogTitle } from './ui/dialog'
+import { useMediaUrl, type MediaObject } from '../utils/useMediaUrl'
 
 export interface MediaRendererProps {
-  url: string | null | undefined
+  url?: string | null | undefined
+  image?: MediaObject | string | null | undefined
+  variant?: string | null
   mimeType?: string | null
   alt?: string | null
   className?: string
@@ -22,8 +25,10 @@ export interface MediaRendererProps {
 export const MediaRenderer = forwardRef<HTMLImageElement | HTMLVideoElement, MediaRendererProps>(
   (
     {
-      url,
-      mimeType,
+      url: explicitUrl,
+      image,
+      variant,
+      mimeType: explicitMimeType,
       alt = '',
       className = 'w-full h-full object-cover',
       fetchPriority,
@@ -41,21 +46,30 @@ export const MediaRenderer = forwardRef<HTMLImageElement | HTMLVideoElement, Med
     ref
   ) => {
     const [isModalOpen, setIsModalOpen] = useState(false)
+    
+    // Resolve URL seamlessly if an image object is provided, otherwise fall back to explicit url
+    const resolvedUrl = useMediaUrl(image, variant) || explicitUrl
+    const mimeType = (typeof image === 'object' && image !== null ? (image as any).mimeType : null) || explicitMimeType
 
-    if (!url) return null
+    if (!resolvedUrl || typeof resolvedUrl !== 'string') {
+      if (resolvedUrl) {
+        console.warn('[MediaRenderer] resolvedUrl is not a string:', resolvedUrl, { image, explicitUrl })
+      }
+      return null
+    }
 
     const isVideo =
-      mimeType?.startsWith('video/') ||
-      url.toLowerCase().endsWith('.mp4') ||
-      url.toLowerCase().endsWith('.webm') ||
-      url.toLowerCase().endsWith('.ogg')
+      (typeof mimeType === 'string' && mimeType.startsWith('video/')) ||
+      resolvedUrl.toLowerCase().endsWith('.mp4') ||
+      resolvedUrl.toLowerCase().endsWith('.webm') ||
+      resolvedUrl.toLowerCase().endsWith('.ogg')
 
     if (isVideo) {
       const isAutoplayMode = playMode === 'autoplay'
       const isModalMode = playMode === 'modal'
 
       const videoProps = {
-        src: url,
+        src: resolvedUrl,
         className,
         style: { objectFit },
         playsInline,
@@ -93,7 +107,7 @@ export const MediaRenderer = forwardRef<HTMLImageElement | HTMLVideoElement, Med
               <DialogContent className="max-w-4xl p-0 overflow-hidden bg-black border-none">
                 <DialogTitle className="sr-only">Video Player</DialogTitle>
                 <video
-                  src={url}
+                  src={resolvedUrl}
                   className="w-full h-auto max-h-[80vh]"
                   controls
                   autoPlay
@@ -121,8 +135,8 @@ export const MediaRenderer = forwardRef<HTMLImageElement | HTMLVideoElement, Med
     return (
       <img
         ref={ref as React.Ref<HTMLImageElement>}
-        src={url}
-        alt={alt || ''}
+        src={resolvedUrl}
+        alt={alt || (typeof image === 'object' ? image?.altText : null) || ''}
         className={className}
         fetchPriority={fetchPriority}
         decoding={decoding}

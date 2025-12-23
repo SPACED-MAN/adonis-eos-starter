@@ -52,6 +52,8 @@ export function ThemeToggle() {
       root.classList.remove('dark')
     }
     localStorage.setItem('theme-mode', next)
+    // Set a plain cookie for the server to read (expires in 1 year)
+    document.cookie = `theme-mode=${next}; path=/; max-age=${60 * 60 * 24 * 365}; SameSite=Lax`
     setMode(next)
   }
 

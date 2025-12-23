@@ -25,7 +25,7 @@ export default class DeleteVariation {
       // Log activity
       try {
         const activityService = (await import('#services/activity_log_service')).default
-        await activityService.default.log({
+        await activityService.log({
           action: 'post.ab_test.delete_variation',
           userId: userId,
           entityType: 'post',

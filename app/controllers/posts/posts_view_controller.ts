@@ -245,8 +245,8 @@ export default class PostsViewController extends BasePostsController {
       let valuesBySlug = new Map<string, any>()
       if (slugs.length > 0) {
         const vals = await PostCustomFieldValue.query()
-          .where('postId', post.id)
-          .whereIn('fieldSlug', slugs)
+          .where('post_id', post.id)
+          .whereIn('field_slug', slugs)
         valuesBySlug = new Map(vals.map((v: any) => [String(v.fieldSlug), v.value]))
       }
 
@@ -416,6 +416,7 @@ export default class PostsViewController extends BasePostsController {
       post: pageData.post,
       hasReviewDraft: pageData.hasReviewDraft,
       siteSettings: pageData.siteSettings,
+      customFields: pageData.customFields,
       seo: pageData.seo,
       modules: pageData.modules,
       breadcrumbTrail: pageData.breadcrumbTrail,
@@ -648,6 +649,7 @@ export default class PostsViewController extends BasePostsController {
         post: pageData.post,
         hasReviewDraft: pageData.hasReviewDraft,
         siteSettings: pageData.siteSettings,
+        customFields: pageData.customFields,
         modules: pageData.modules,
         seo: pageData.seo,
         breadcrumbTrail: pageData.breadcrumbTrail,

@@ -98,9 +98,9 @@ export default class AgentsController {
           maxChars: a.openEndedContext.maxChars,
         }
         : { enabled: false },
-      // Include scope configuration for frontend filtering
+      // Include ALL enabled scopes for the UI to display
       scopes: a.scopes
-        .filter((s) => s.scope === scope && s.enabled !== false)
+        .filter((s) => s.enabled !== false)
         .map((s) => ({
           scope: s.scope,
           order: s.order,
@@ -228,6 +228,7 @@ export default class AgentsController {
         // Store raw response and summary for later use (before we enter nested blocks)
         const rawResponse = (result as any).rawResponse
         const summary = (result as any).summary
+        const lastCreatedPostId = (result as any).lastCreatedPostId
 
         // Extract generated mediaId from tool results (if image was generated)
         let generatedMediaId: string | undefined = undefined
@@ -415,6 +416,24 @@ export default class AgentsController {
         }
 
 
+        // Determine if we should redirect (e.g. for new translations)
+        let redirectPostId = suggestions.redirectPostId
+        if (!redirectPostId && lastCreatedPostId && lastCreatedPostId !== id) {
+          redirectPostId = lastCreatedPostId
+        }
+
+        if (process.env.NODE_ENV === 'development') {
+          console.log(`[Agent Redirect] Current ID: ${id}, Last Created: ${lastCreatedPostId}, Suggestion Redirect: ${suggestions.redirectPostId}, Final Redirect: ${redirectPostId}`)
+        }
+
+        // Safety check: if we are redirecting to a DIFFERENT post, we should
+        // strictly ignore any "post" or "modules" keys returned in the final JSON.
+        // These are almost certainly accidental side-effects of the LLM's context
+        // and would overwrite the source language (e.g. EN) with translated copy.
+        const isRedirecting = !!(redirectPostId && redirectPostId !== id)
+        const finalSuggestedPost = isRedirecting ? {} : (suggestions.post || {})
+        const finalSuggestedModules = isRedirecting ? [] : (Array.isArray(suggestions?.modules) ? suggestions.modules : [])
+
         // For field-scoped agents, respect the active view mode
         // For other scopes, use the default AI Review workflow
         const isFieldScope = scope === 'field'
@@ -480,252 +499,16 @@ export default class AgentsController {
         }
 
         // Merge: base + existing draft + new suggestions
-        const merged = { ...base, ...existingDraft, ...(suggestedPost || {}) }
-
-
-        try {
-          // Use Post.query() to match other code patterns
-          // Note: Use snake_case column names for direct updates
-          if (updateColumn === 'approved') {
-            // For source mode without review_draft, update approved fields directly
-            await Post.query()
-              .where('id', id)
-              .update({
-                slug: merged.slug,
-                title: merged.title,
-                excerpt: merged.excerpt,
-                meta_title: merged.metaTitle,
-                meta_description: merged.metaDescription,
-                canonical_url: merged.canonicalUrl,
-                robots_json: merged.robotsJson,
-                jsonld_overrides: merged.jsonldOverrides,
-                featured_image_id: merged.featuredImageId,
-                updated_at: new Date(),
-              } as any)
-          } else {
-            // For review_draft or ai_review_draft, update the JSONB column
-            await Post.query()
-              .where('id', id)
-              .update({ [updateColumn]: merged, updated_at: new Date() } as any)
-          }
-
-          // Apply module changes based on target view mode
-          if (suggestedModules.length > 0) {
-            // Determine which props column to update based on view mode
-            const modulePropsColumn =
-              targetViewMode === 'source'
-                ? 'props' // Source mode: update approved props directly
-                : targetViewMode === 'review'
-                  ? 'review_props' // Review mode: update review_props
-                  : 'ai_review_props' // AI Review mode: update ai_review_props
-
-            // Get all post modules for this post with props based on view mode
-            const postModules = await db
-              .from('post_modules')
-              .join('module_instances', 'post_modules.module_id', 'module_instances.id')
-              .where('post_modules.post_id', id)
-              .select(
-                'post_modules.id as postModuleId',
-                'post_modules.order_index as orderIndex',
-                'module_instances.id as moduleInstanceId',
-                'module_instances.type as moduleType',
-                'module_instances.props as baseProps',
-                'module_instances.review_props as existingReviewProps',
-                'module_instances.ai_review_props as existingAiReviewProps'
-              )
-              .orderBy('post_modules.order_index', 'asc')
-
-            // For field-scoped agents, automatically inject orderIndex and type if missing
-            // This helps when the AI doesn't know the exact module context
-            if (scope === 'field' && fieldKey && fieldKey.startsWith('module.')) {
-              // Parse module type from fieldKey (format: "module.{type}.{fieldName}")
-              const fieldKeyParts = fieldKey.split('.')
-              if (fieldKeyParts.length >= 2) {
-                const moduleTypeFromFieldKey = fieldKeyParts[1]
-
-                // Find the module instance that contains this field
-                // We'll match by module type and check if the field exists in the props
-                const targetModule = postModules.find((pm: any) => {
-                  if (pm.moduleType !== moduleTypeFromFieldKey) return false
-
-                  // If we have moduleInstanceId in context, use it for exact match
-                  const contextModuleInstanceId = (ctx as any).moduleInstanceId
-                  if (contextModuleInstanceId && pm.moduleInstanceId === contextModuleInstanceId) {
-                    return true
-                  }
-
-                  // Otherwise, just match by type (will use first match)
-                  return true
-                })
-
-                if (targetModule) {
-                  // Auto-inject orderIndex and type for any module updates that are missing them
-                  for (const suggestedModule of suggestedModules) {
-                    if (!suggestedModule.type || suggestedModule.type === moduleTypeFromFieldKey) {
-                      suggestedModule.type = targetModule.moduleType
-                    }
-                    if (suggestedModule.orderIndex === undefined) {
-                      suggestedModule.orderIndex = targetModule.orderIndex
-                    }
-                  }
-                }
-              }
-            }
-
-            // Deep merge helper function
-            const deepMerge = (
-              baseObj: Record<string, any>,
-              overrideObj: Record<string, any>
-            ): Record<string, any> => {
-              const mergedResult = { ...baseObj }
-              for (const key in overrideObj) {
-                const overrideVal = overrideObj[key]
-                const baseVal = baseObj[key]
-                if (
-                  overrideVal &&
-                  typeof overrideVal === 'object' &&
-                  !Array.isArray(overrideVal) &&
-                  baseVal &&
-                  typeof baseVal === 'object' &&
-                  !Array.isArray(baseVal)
-                ) {
-                  // Deep merge nested objects
-                  mergedResult[key] = deepMerge(baseVal, overrideVal)
-                } else {
-                  // Replace primitives and arrays
-                  mergedResult[key] = overrideVal
-                }
-              }
-              return mergedResult
-            }
-
-            for (const suggestedModule of suggestedModules) {
-              // Find matching modules by type and optionally orderIndex
-              // If orderIndex is specified, match only that one; otherwise match ALL modules of that type
-              const matchingModules = postModules.filter((pm: any) => {
-                if (pm.moduleType !== suggestedModule.type) return false
-                if (suggestedModule.orderIndex !== undefined) {
-                  return pm.orderIndex === suggestedModule.orderIndex
-                }
-                return true
-              })
-
-              if (matchingModules.length === 0) {
-                console.warn(
-                  `Module not found: type=${suggestedModule.type}, orderIndex=${suggestedModule.orderIndex}`
-                )
-                continue
-              }
-
-              // Update ALL matching modules (not just the first)
-              // This allows the AI to update all modules of a type when orderIndex is not specified
-              for (const targetModule of matchingModules) {
-                // Get base props (the approved/live props)
-                // Handle both JSON string and object formats
-                let baseProps: Record<string, any> = {}
-                if (targetModule.baseProps) {
-                  if (typeof targetModule.baseProps === 'string') {
-                    try {
-                      baseProps = JSON.parse(targetModule.baseProps)
-                    } catch {
-                      baseProps = {}
-                    }
-                  } else {
-                    baseProps = targetModule.baseProps as Record<string, any>
-                  }
-                }
-
-                // Get existing draft props based on view mode
-                // Handle both JSON string and object formats
-                let existingDraftProps: Record<string, any> = {}
-                if (targetViewMode === 'source') {
-                  // Source mode: no draft props, update base props directly
-                  existingDraftProps = {}
-                } else if (targetViewMode === 'review') {
-                  // Review mode: get existing review_props
-                  if (targetModule.existingReviewProps) {
-                    if (typeof targetModule.existingReviewProps === 'string') {
-                      try {
-                        existingDraftProps = JSON.parse(targetModule.existingReviewProps)
-                      } catch {
-                        existingDraftProps = {}
-                      }
-                    } else {
-                      existingDraftProps = targetModule.existingReviewProps as Record<string, any>
-                    }
-                  }
-                } else {
-                  // AI Review mode: get existing ai_review_props
-                  if (targetModule.existingAiReviewProps) {
-                    if (typeof targetModule.existingAiReviewProps === 'string') {
-                      try {
-                        existingDraftProps = JSON.parse(targetModule.existingAiReviewProps)
-                      } catch {
-                        existingDraftProps = {}
-                      }
-                    } else {
-                      existingDraftProps = targetModule.existingAiReviewProps as Record<string, any>
-                    }
-                  }
-                }
-
-                // Get current effective props (base + existing draft) - this is what the user sees in the current mode
-                const currentEffectiveProps = deepMerge(baseProps, existingDraftProps)
-
-                // Merge current effective props with new suggested props
-                // This ensures we preserve all existing props and only update what's changed
-                const mergedDraftProps = deepMerge(
-                  currentEffectiveProps,
-                  suggestedModule.props || {}
-                )
-
-                // Update module instance props based on view mode
-                if (targetViewMode === 'source') {
-                  // Source mode: update base props directly
-                  await db
-                    .from('module_instances')
-                    .where('id', targetModule.moduleInstanceId)
-                    .update({ props: mergedDraftProps, updated_at: new Date() } as any)
-                } else {
-                  // Review or AI Review mode: update the appropriate draft column
-                  await db
-                    .from('module_instances')
-                    .where('id', targetModule.moduleInstanceId)
-                    .update({
-                      [modulePropsColumn]: mergedDraftProps,
-                      updated_at: new Date(),
-                    } as any)
-                }
-              }
-            }
-          }
-
-          await RevisionService.record({
-            postId: id,
-            mode: revisionMode,
-            snapshot: merged,
-            userId: (auth.use('web').user as any)?.id,
-          })
-        } catch (dbError: any) {
-          console.error('Database update failed:', {
-            agentId,
-            error: dbError?.message,
-            stack: dbError?.stack,
-            merged,
-            errorName: dbError?.name,
-            errorCode: dbError?.code,
-          })
-          throw dbError
-        }
+        const merged = { ...base, ...existingDraft, ...finalSuggestedPost }
 
         // Build applied changes list
         const applied: string[] = []
-        if (suggestedPost && Object.keys(suggestedPost).length > 0) {
-          applied.push(...Object.keys(suggestedPost).map((key) => `post.${key}`))
+        if (finalSuggestedPost && Object.keys(finalSuggestedPost).length > 0) {
+          applied.push(...Object.keys(finalSuggestedPost).map((key) => `post.${key}`))
         }
-        if (suggestedModules.length > 0) {
+        if (finalSuggestedModules.length > 0) {
           applied.push(
-            ...suggestedModules.map((m: any) => {
+            ...finalSuggestedModules.map((m: any) => {
               // Get module label from registry
               let moduleLabel = m.type
               try {
@@ -742,10 +525,254 @@ export default class AgentsController {
           )
         }
 
+        // Only update if there are actual suggestions for the current post
+        if (applied.length > 0) {
+          try {
+            // Use Post.query() to match other code patterns
+            // Note: Use snake_case column names for direct updates
+            if (updateColumn === 'approved') {
+              // For source mode without review_draft, update approved fields directly
+              await Post.query()
+                .where('id', id)
+                .update({
+                  slug: merged.slug,
+                  title: merged.title,
+                  excerpt: merged.excerpt,
+                  meta_title: merged.metaTitle,
+                  meta_description: merged.metaDescription,
+                  canonical_url: merged.canonicalUrl,
+                  robots_json: merged.robotsJson,
+                  jsonld_overrides: merged.jsonldOverrides,
+                  featured_image_id: merged.featuredImageId,
+                  updated_at: new Date(),
+                } as any)
+            } else {
+              // For review_draft or ai_review_draft, update the JSONB column
+              await Post.query()
+                .where('id', id)
+                .update({ [updateColumn]: merged, updated_at: new Date() } as any)
+            }
+
+            // Apply module changes based on target view mode
+            if (finalSuggestedModules.length > 0) {
+              // Determine which props column to update based on view mode
+              const modulePropsColumn =
+                targetViewMode === 'source'
+                  ? 'props' // Source mode: update approved props directly
+                  : targetViewMode === 'review'
+                    ? 'review_props' // Review mode: update review_props
+                    : 'ai_review_props' // AI Review mode: update ai_review_props
+
+              // Get all post modules for this post with props based on view mode
+              const postModules = await db
+                .from('post_modules')
+                .join('module_instances', 'post_modules.module_id', 'module_instances.id')
+                .where('post_modules.post_id', id)
+                .select(
+                  'post_modules.id as postModuleId',
+                  'post_modules.order_index as orderIndex',
+                  'module_instances.id as moduleInstanceId',
+                  'module_instances.type as moduleType',
+                  'module_instances.props as baseProps',
+                  'module_instances.review_props as existingReviewProps',
+                  'module_instances.ai_review_props as existingAiReviewProps'
+                )
+                .orderBy('post_modules.order_index', 'asc')
+
+              // For field-scoped agents, automatically inject orderIndex and type if missing
+              // This helps when the AI doesn't know the exact module context
+              if (scope === 'field' && fieldKey && fieldKey.startsWith('module.')) {
+                // Parse module type from fieldKey (format: "module.{type}.{fieldName}")
+                const fieldKeyParts = fieldKey.split('.')
+                if (fieldKeyParts.length >= 2) {
+                  const moduleTypeFromFieldKey = fieldKeyParts[1]
+
+                  // Find the module instance that contains this field
+                  // We'll match by module type and check if the field exists in the props
+                  const targetModule = postModules.find((pm: any) => {
+                    if (pm.moduleType !== moduleTypeFromFieldKey) return false
+
+                    // If we have moduleInstanceId in context, use it for exact match
+                    const contextModuleInstanceId = (ctx as any).moduleInstanceId
+                    if (contextModuleInstanceId && pm.moduleInstanceId === contextModuleInstanceId) {
+                      return true
+                    }
+
+                    // Otherwise, just match by type (will use first match)
+                    return true
+                  })
+
+                  if (targetModule) {
+                    // Auto-inject orderIndex and type for any module updates that are missing them
+                    for (const suggestedModule of finalSuggestedModules) {
+                      if (!suggestedModule.type || suggestedModule.type === moduleTypeFromFieldKey) {
+                        suggestedModule.type = targetModule.moduleType
+                      }
+                      if (suggestedModule.orderIndex === undefined) {
+                        suggestedModule.orderIndex = targetModule.orderIndex
+                      }
+                    }
+                  }
+                }
+              }
+
+              // Deep merge helper function
+              const deepMerge = (
+                baseObj: Record<string, any>,
+                overrideObj: Record<string, any>
+              ): Record<string, any> => {
+                const mergedResult = { ...baseObj }
+                for (const key in overrideObj) {
+                  const overrideVal = overrideObj[key]
+                  const baseVal = baseObj[key]
+                  if (
+                    overrideVal &&
+                    typeof overrideVal === 'object' &&
+                    !Array.isArray(overrideVal) &&
+                    baseVal &&
+                    typeof baseVal === 'object' &&
+                    !Array.isArray(baseVal)
+                  ) {
+                    // Deep merge nested objects
+                    mergedResult[key] = deepMerge(baseVal, overrideVal)
+                  } else {
+                    // Replace primitives and arrays
+                    mergedResult[key] = overrideVal
+                  }
+                }
+                return mergedResult
+              }
+
+              for (const suggestedModule of finalSuggestedModules) {
+                // Find matching modules by type and optionally orderIndex
+                // If orderIndex is specified, match only that one; otherwise match ALL modules of that type
+                const matchingModules = postModules.filter((pm: any) => {
+                  if (pm.moduleType !== suggestedModule.type) return false
+                  if (suggestedModule.orderIndex !== undefined) {
+                    return pm.orderIndex === suggestedModule.orderIndex
+                  }
+                  return true
+                })
+
+                if (matchingModules.length === 0) {
+                  console.warn(
+                    `Module not found: type=${suggestedModule.type}, orderIndex=${suggestedModule.orderIndex}`
+                  )
+                  continue
+                }
+
+                // Update ALL matching modules (not just the first)
+                // This allows the AI to update all modules of a type when orderIndex is not specified
+                for (const targetModule of matchingModules) {
+                  // Get base props (the approved/live props)
+                  // Handle both JSON string and object formats
+                  let baseProps: Record<string, any> = {}
+                  if (targetModule.baseProps) {
+                    if (typeof targetModule.baseProps === 'string') {
+                      try {
+                        baseProps = JSON.parse(targetModule.baseProps)
+                      } catch {
+                        baseProps = {}
+                      }
+                    } else {
+                      baseProps = targetModule.baseProps as Record<string, any>
+                    }
+                  }
+
+                  // Get existing draft props based on view mode
+                  // Handle both JSON string and object formats
+                  let existingDraftProps: Record<string, any> = {}
+                  if (targetViewMode === 'source') {
+                    // Source mode: no draft props, update base props directly
+                    existingDraftProps = {}
+                  } else if (targetViewMode === 'review') {
+                    // Review mode: get existing review_props
+                    if (targetModule.existingReviewProps) {
+                      if (typeof targetModule.existingReviewProps === 'string') {
+                        try {
+                          existingDraftProps = JSON.parse(targetModule.existingReviewProps)
+                        } catch {
+                          existingDraftProps = {}
+                        }
+                      } else {
+                        existingDraftProps = targetModule.existingReviewProps as Record<string, any>
+                      }
+                    }
+                  } else {
+                    // AI Review mode: get existing ai_review_props
+                    if (targetModule.existingAiReviewProps) {
+                      if (typeof targetModule.existingAiReviewProps === 'string') {
+                        try {
+                          existingDraftProps = JSON.parse(targetModule.existingAiReviewProps)
+                        } catch {
+                          existingDraftProps = {}
+                        }
+                      } else {
+                        existingDraftProps = targetModule.existingAiReviewProps as Record<string, any>
+                      }
+                    }
+                  }
+
+                  // Get current effective props (base + existing draft) - this is what the user sees in the current mode
+                  const currentEffectiveProps = deepMerge(baseProps, existingDraftProps)
+
+                  // Merge current effective props with new suggested props
+                  // This ensures we preserve all existing props and only update what's changed
+                  const mergedDraftProps = deepMerge(
+                    currentEffectiveProps,
+                    suggestedModule.props || {}
+                  )
+
+                  // Update module instance props based on view mode
+                  if (targetViewMode === 'source') {
+                    // Source mode: update base props directly
+                    await db
+                      .from('module_instances')
+                      .where('id', targetModule.moduleInstanceId)
+                      .update({ props: mergedDraftProps, updated_at: new Date() } as any)
+                  } else {
+                    // Review or AI Review mode: update the appropriate draft column
+                    await db
+                      .from('module_instances')
+                      .where('id', targetModule.moduleInstanceId)
+                      .update({
+                        [modulePropsColumn]: mergedDraftProps,
+                        updated_at: new Date(),
+                      } as any)
+                  }
+                }
+              }
+            }
+
+            await RevisionService.record({
+              postId: id,
+              mode: revisionMode,
+              snapshot: merged,
+              userId: (auth.use('web').user as any)?.id,
+            })
+          } catch (dbError: any) {
+            console.error('Database update failed:', {
+              agentId,
+              error: dbError?.message,
+              stack: dbError?.stack,
+              merged,
+              errorName: dbError?.name,
+              errorCode: dbError?.code,
+            })
+            throw dbError
+          }
+        }
+
         // For internal agents, include the raw AI response for preview
         const responseData: any = {
-          message: 'Suggestions saved to AI review draft',
+          message: applied.length > 0 ? 'Suggestions saved to AI review draft' : (isRedirecting ? 'Translation complete. View the new post to see changes.' : 'Agent completed successfully'),
           applied,
+          suggestions,
+        }
+
+        // Include redirect post ID if one was determined
+        if (isRedirecting) {
+          responseData.redirectPostId = redirectPostId
         }
 
         // Include raw response and summary if available (for UI preview)

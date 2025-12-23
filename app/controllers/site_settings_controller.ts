@@ -3,6 +3,7 @@ import siteSettingsService from '#services/site_settings_service'
 import roleRegistry from '#services/role_registry'
 import siteCustomFieldsService from '#services/site_custom_fields_service'
 import db from '@adonisjs/lucid/services/db'
+import MediaAsset from '#models/media_asset'
 
 export default class SiteSettingsController {
   /**
@@ -12,7 +13,39 @@ export default class SiteSettingsController {
     const s = await siteSettingsService.get()
     const defs = siteCustomFieldsService.listDefinitions()
     const vals = await siteCustomFieldsService.getValues()
-    return response.ok({ data: { ...s, customFieldDefs: defs, customFields: vals } })
+
+    // Resolve media IDs in site settings
+    const mediaIds = new Set<string>()
+    const uuidRegex = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i
+
+    if (s.logoMediaId && uuidRegex.test(s.logoMediaId)) mediaIds.add(s.logoMediaId)
+    if (s.faviconMediaId && uuidRegex.test(s.faviconMediaId)) mediaIds.add(s.faviconMediaId)
+    if (s.defaultOgMediaId && uuidRegex.test(s.defaultOgMediaId)) mediaIds.add(s.defaultOgMediaId)
+
+    const resolvedMedia = new Map<string, any>()
+    if (mediaIds.size > 0) {
+      const assets = await MediaAsset.query().whereIn('id', Array.from(mediaIds))
+      assets.forEach((a) => {
+        resolvedMedia.set(String(a.id), {
+          id: a.id,
+          url: a.url,
+          mimeType: a.mimeType,
+          metadata: a.metadata || {},
+          altText: a.altText,
+        })
+      })
+    }
+
+    const data = {
+      ...s,
+      logoMedia: (s.logoMediaId && resolvedMedia.get(s.logoMediaId)) || s.logoMediaId || null,
+      faviconMedia: (s.faviconMediaId && resolvedMedia.get(s.faviconMediaId)) || s.faviconMediaId || null,
+      defaultOgMedia: (s.defaultOgMediaId && resolvedMedia.get(s.defaultOgMediaId)) || s.defaultOgMediaId || null,
+      customFieldDefs: defs,
+      customFields: vals,
+    }
+
+    return response.ok({ data })
   }
 
   /**

@@ -12,18 +12,11 @@
  */
 
 import { execSync } from 'child_process'
-import { readFileSync, existsSync } from 'fs'
+import { readFileSync } from 'fs'
 import { join } from 'path'
 
 const STARTER_REMOTE_NAME = 'starter'
 const DEFAULT_BRANCH = 'main'
-
-// Files that should be protected from automatic overwrites
-const PROTECTED_FILES = [
-  '.env',
-  'package.json', // Handle carefully - may have project-specific deps
-  'database/seed_data/*', // Project-specific seed data
-]
 
 interface SyncOptions {
   commitOrTag?: string

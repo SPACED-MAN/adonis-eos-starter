@@ -1,5 +1,4 @@
 import type { AgentDefinition, AgentScope, AgentScopeConfig } from '#types/agent_types'
-import env from '#start/env'
 
 /**
  * Central registry for managing agent definitions
@@ -112,7 +111,7 @@ class AgentRegistry {
    * @deprecated External agents have been moved to the Workflows system.
    * Use workflowRegistry.getWebhookUrl() instead.
    */
-  getWebhookUrl(agentId: string): string | null {
+  getWebhookUrl(_agentId: string): string | null {
     return null
   }
 
@@ -120,7 +119,7 @@ class AgentRegistry {
    * @deprecated External agents have been moved to the Workflows system.
    * Use workflowRegistry.getTimeout() instead.
    */
-  getTimeout(agentId: string): number {
+  getTimeout(_agentId: string): number {
     return 30000
   }
 

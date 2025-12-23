@@ -144,7 +144,7 @@ class WorkflowRegistry {
     }
 
     // Use dev URL in development if available
-    if (env.NODE_ENV === 'development' && workflow.webhook.devUrl) {
+    if (env.get('NODE_ENV') === 'development' && workflow.webhook.devUrl) {
       return workflow.webhook.devUrl
     }
 

@@ -1,5 +1,4 @@
-import React, { useEffect, useState } from 'react'
-import { pickMediaVariantUrl } from '../lib/media'
+import React from 'react'
 import { MediaRenderer } from '../components/MediaRenderer'
 import { motion } from 'framer-motion'
 
@@ -13,7 +12,13 @@ type KitchenSinkProps = {
   featured?: boolean
   publishDate?: string
   linkUrl?: string | { url?: string; target?: string; kind?: string }
-  image?: string // media ID
+  image?: {
+    id: string
+    url: string
+    mimeType?: string
+    altText?: string
+    metadata?: any
+  } | null // media object
   imageVariant?: string // e.g., thumb, small, medium, large, hero, cropped
   metadata?: { author?: string; readingTime?: number; attributionRequired?: boolean }
   items?: Array<{ label?: string; value?: string; highlight?: boolean }>
@@ -28,43 +33,7 @@ type KitchenSinkProps = {
 }
 
 export default function KitchenSink(props: KitchenSinkProps) {
-  const [resolvedMedia, setResolvedMedia] = useState<{ url: string; mimeType?: string } | null>(null)
   const isHybrid = props._useReact === true
-
-  useEffect(() => {
-    async function resolveImage() {
-      const id = props.image
-      if (!id) {
-        setResolvedMedia(null)
-        return
-      }
-      try {
-        const res = await fetch(`/public/media/${encodeURIComponent(id)}`)
-        if (!res.ok) {
-          setResolvedMedia(null)
-          return
-        }
-        const j = await res.json().catch(() => null)
-        const data = j?.data
-        if (!data) {
-          setResolvedMedia(null)
-          return
-        }
-        const mimeType = data.mimeType
-        const meta = (data as any).metadata || {}
-        const variants = Array.isArray(meta?.variants) ? (meta.variants as any[]) : []
-        const darkSourceUrl =
-          typeof meta.darkSourceUrl === 'string' ? (meta.darkSourceUrl as string) : undefined
-        const url = pickMediaVariantUrl(data.url, variants, props.imageVariant || null, {
-          darkSourceUrl,
-        })
-        setResolvedMedia({ url, mimeType })
-      } catch {
-        setResolvedMedia(null)
-      }
-    }
-    resolveImage()
-  }, [props.image, props.imageVariant])
 
   const content = (
     <div className="container mx-auto px-4 sm:px-6 lg:px-8">
@@ -96,17 +65,17 @@ export default function KitchenSink(props: KitchenSinkProps) {
           )}
         </header>
 
-        {resolvedMedia && (
+        {props.image && (
           <div
             className="rounded-lg overflow-hidden border border-line-medium aspect-[16/9]"
             data-inline-type="media"
             data-inline-path="image"
           >
             <MediaRenderer
-              url={resolvedMedia.url}
-              mimeType={resolvedMedia.mimeType}
-              alt={props.title}
-              playMode={resolvedMedia.metadata?.playMode || 'autoplay'}
+              image={props.image}
+              variant={props.imageVariant}
+              alt={(typeof props.image === 'object' ? props.image.altText : null) || props.title}
+              playMode={typeof props.image === 'object' ? props.image.metadata?.playMode : 'autoplay'}
             />
           </div>
         )}

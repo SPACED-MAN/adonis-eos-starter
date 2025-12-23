@@ -40,6 +40,7 @@ export default class FaqModule extends BaseModule {
           required: true,
           description: 'List of frequently asked questions',
           item: {
+            slug: 'item',
             type: 'object',
             fields: [
               {

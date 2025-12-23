@@ -1,4 +1,5 @@
 import db from '@adonisjs/lucid/services/db'
+import MediaAsset from '#models/media_asset'
 import Post from '#models/post'
 import PostModule from '#models/post_module'
 import urlPatternService from '#services/url_pattern_service'
@@ -6,7 +7,6 @@ import siteSettingsService from '#services/site_settings_service'
 import moduleRegistry from '#services/module_registry'
 import tokenService from '#services/token_service'
 import { robotsConfigToString, DEFAULT_ROBOTS, type PostSeoData } from '#types/seo'
-import { resolvePostReferences } from '#helpers/resolve_post_references'
 
 /**
  * Module data for rendering
@@ -84,6 +84,7 @@ export interface PageRenderData {
   }>
   seo: PostSeoData
   siteSettings: Record<string, unknown>
+  customFields?: Record<string, any>
   hasReviewDraft: boolean
   breadcrumbTrail?: Array<{ label: string; url: string; current?: boolean }>
 }
@@ -214,7 +215,10 @@ class PostRenderingService {
       })()
 
       const module = moduleRegistry.get(pm.type)
-      const defaultProps = (module.getConfig?.().defaultProps || {}) as Record<string, unknown>
+      if (!module) {
+        console.warn(`[PostRenderingService] Module not found in registry: ${pm.type}`)
+      }
+      const defaultProps = (module?.getConfig?.().defaultValues || {}) as Record<string, unknown>
 
       const draftModulesArray = (reviewDraft as any)?.modules || []
       const draftModuleState = Array.isArray(draftModulesArray)
@@ -262,15 +266,39 @@ class PostRenderingService {
 
     // Batch resolve post references across all modules for performance
     const allPostIds = new Set<string>()
+    const allMediaIds = new Set<string>()
+
     const extractPostIds = (obj: any) => {
       if (!obj || typeof obj !== 'object') return
       if (obj.kind === 'post' && obj.postId) allPostIds.add(String(obj.postId))
       if (Array.isArray(obj)) obj.forEach(extractPostIds)
       else Object.values(obj).forEach(extractPostIds)
     }
-    moduleStates.forEach((s) => extractPostIds(s.mergedProps))
 
-    const resolvedPaths = await urlPatternService.buildPostPaths(Array.from(allPostIds))
+    moduleStates.forEach((s) => {
+      const fieldSchema = s.module.getConfig().fieldSchema || []
+      extractPostIds(s.mergedProps)
+      this.extractMediaIdsFromProps(fieldSchema, s.mergedProps, allMediaIds)
+
+      // Also extract from source/review props and overrides
+      if (s.pm.props) this.extractMediaIdsFromProps(fieldSchema, s.pm.props, allMediaIds)
+      if (s.pm.overrides) this.extractMediaIdsFromProps(fieldSchema, s.pm.overrides, allMediaIds)
+      if (s.pm.reviewProps) this.extractMediaIdsFromProps(fieldSchema, s.pm.reviewProps, allMediaIds)
+      if (s.pm.reviewOverrides) this.extractMediaIdsFromProps(fieldSchema, s.pm.reviewOverrides, allMediaIds)
+      if (s.pm.aiReviewProps) this.extractMediaIdsFromProps(fieldSchema, s.pm.aiReviewProps, allMediaIds)
+      if (s.pm.aiReviewOverrides) this.extractMediaIdsFromProps(fieldSchema, s.pm.aiReviewOverrides, allMediaIds)
+    })
+
+    const [resolvedPaths, resolvedMedia] = await Promise.all([
+      urlPatternService.buildPostPaths(Array.from(allPostIds)),
+      this.resolveMediaAssets(Array.from(allMediaIds)),
+    ])
+
+    console.log(`[PostRenderingService] Resolved ${resolvedMedia.size}/${allMediaIds.size} media assets`)
+    if (allMediaIds.size > 0) {
+      console.log(`[PostRenderingService] IDs attempted:`, Array.from(allMediaIds))
+      console.log(`[PostRenderingService] IDs successful:`, Array.from(resolvedMedia.keys()))
+    }
 
     const injectResolved = (obj: any): any => {
       if (!obj || typeof obj !== 'object') return obj
@@ -288,14 +316,37 @@ class PostRenderingService {
     }
 
     return moduleStates.map(({ pm, mergedProps, module }) => {
-      const finalProps = injectResolved(mergedProps)
+      const fieldSchema = module.getConfig().fieldSchema || []
+      const propsWithPosts = injectResolved(mergedProps)
+      const finalProps = this.injectResolvedMedia(fieldSchema, propsWithPosts, resolvedMedia)
+
       const componentName = module.getComponentName()
-      
+
       // Resolve rendering mode (hybrid logic)
       let renderingMode = module.getRenderingMode()
       if (renderingMode === 'hybrid') {
         renderingMode = finalProps._useReact === true ? 'react' : 'static'
       }
+
+      // Resolve media in all prop/override sets so InlineEditorContext sees resolved objects
+      const sourcePropsResolved = pm.props
+        ? this.injectResolvedMedia(fieldSchema, injectResolved(pm.props), resolvedMedia)
+        : null
+      const sourceOverridesResolved = pm.overrides
+        ? this.injectResolvedMedia(fieldSchema, injectResolved(pm.overrides), resolvedMedia)
+        : null
+      const reviewPropsResolved = (pm as any).reviewProps
+        ? this.injectResolvedMedia(fieldSchema, injectResolved((pm as any).reviewProps), resolvedMedia)
+        : null
+      const reviewOverridesResolved = (pm as any).reviewOverrides
+        ? this.injectResolvedMedia(fieldSchema, injectResolved((pm as any).reviewOverrides), resolvedMedia)
+        : null
+      const aiReviewPropsResolved = (pm as any).aiReviewProps
+        ? this.injectResolvedMedia(fieldSchema, injectResolved((pm as any).aiReviewProps), resolvedMedia)
+        : null
+      const aiReviewOverridesResolved = (pm as any).aiReviewOverrides
+        ? this.injectResolvedMedia(fieldSchema, injectResolved((pm as any).aiReviewOverrides), resolvedMedia)
+        : null
 
       return {
         id: pm.id,
@@ -306,13 +357,13 @@ class PostRenderingService {
         componentName,
         renderingMode,
         props: finalProps,
-        sourceProps: pm.props || null,
-        sourceOverrides: pm.overrides || null,
-        reviewProps: (pm as any).reviewProps || null,
-        aiReviewProps: (pm as any).aiReviewProps || null,
-        overrides: (pm as any).overrides || null,
-        reviewOverrides: (pm as any).reviewOverrides || null,
-        aiReviewOverrides: (pm as any).aiReviewOverrides || null,
+        sourceProps: sourcePropsResolved,
+        sourceOverrides: sourceOverridesResolved,
+        reviewProps: reviewPropsResolved,
+        aiReviewProps: aiReviewPropsResolved,
+        overrides: sourceOverridesResolved, // Map sourceOverrides to overrides for consistency
+        reviewOverrides: reviewOverridesResolved,
+        aiReviewOverrides: aiReviewOverridesResolved,
         reviewAdded: pm.reviewAdded || false,
         reviewDeleted: pm.reviewDeleted || false,
         aiReviewAdded: pm.aiReviewAdded || false,
@@ -352,9 +403,10 @@ class PostRenderingService {
       host: string
       wantReview?: boolean
       reviewDraft?: Record<string, unknown> | null
+      modules?: any[]
     }
   ): Promise<PostSeoData> {
-    const { protocol, host, wantReview = false, reviewDraft = null } = options
+    const { protocol, host, wantReview = false, reviewDraft = null, modules = [] } = options
     const useReview = wantReview && reviewDraft
 
     // Build canonical URL
@@ -425,7 +477,64 @@ class PostRenderingService {
       ...(description && { description }),
       ...schemaExtras
     }
-    const jsonLd = { ...defaultJsonLd, ...(post.jsonldOverrides || {}) }
+
+    // Collect ItemList from modules (e.g. Company List)
+    const jsonLdGraph: any[] = [{ ...defaultJsonLd, ...(post.jsonldOverrides || {}) }]
+
+    const companyListModules = modules.filter(m => m.type === 'company-list')
+    if (companyListModules.length > 0) {
+      const allCompanyIds = new Set<string>()
+      let fetchAll = false
+      for (const m of companyListModules) {
+        const ids = Array.isArray(m.props?.companies) ? m.props.companies : []
+        if (ids.length === 0) {
+          fetchAll = true
+          break
+        }
+        ids.forEach((id: string) => allCompanyIds.add(String(id)))
+      }
+
+      const companiesQuery = Post.query()
+        .where('type', 'company')
+        .where('status', 'published')
+        .preload('customFieldValues')
+
+      if (!fetchAll && allCompanyIds.size > 0) {
+        companiesQuery.whereIn('id', Array.from(allCompanyIds))
+      }
+
+      if (fetchAll || allCompanyIds.size > 0) {
+        const companies = await companiesQuery.orderBy('title', 'asc').limit(fetchAll ? 50 : 100)
+
+        if (companies.length > 0) {
+          const itemList: any = {
+            '@type': 'ItemList',
+            'itemListElement': companies.map((c, idx) => {
+              const fields = new Map(c.customFieldValues.map(v => [v.fieldSlug, v.value]))
+              const cExtras: Record<string, any> = {}
+              if (fields.has('address')) cExtras.address = { '@type': 'PostalAddress', 'streetAddress': fields.get('address') }
+              if (fields.has('phone')) cExtras.telephone = fields.get('phone')
+
+              return {
+                '@type': 'ListItem',
+                'position': idx + 1,
+                'item': {
+                  '@type': 'LocalBusiness',
+                  'name': c.title,
+                  ...cExtras
+                }
+              }
+            })
+          }
+          jsonLdGraph.push(itemList)
+        }
+      }
+    }
+
+    const jsonLd = jsonLdGraph.length === 1 ? jsonLdGraph[0] : {
+      '@context': 'https://schema.org',
+      '@graph': jsonLdGraph
+    }
 
     return {
       canonical,
@@ -454,10 +563,9 @@ class PostRenderingService {
     options: {
       wantReview?: boolean
       reviewDraft?: Record<string, unknown> | null
-      aiReviewDraft?: Record<string, unknown> | null
     } = {}
   ): PostRenderData {
-    const { wantReview = false, reviewDraft = null, aiReviewDraft = null } = options
+    const { wantReview = false, reviewDraft = null } = options
     const useReview = wantReview && reviewDraft
 
     return {
@@ -505,6 +613,24 @@ class PostRenderingService {
       customFields[row.field_slug] = row.value
     })
 
+    // Pre-resolve media IDs in site settings if they exist
+    const siteMediaIds = new Set<string>()
+    if (siteSettings.logoMediaId) siteMediaIds.add(siteSettings.logoMediaId)
+    if (siteSettings.faviconMediaId) siteMediaIds.add(siteSettings.faviconMediaId)
+    if (siteSettings.defaultOgMediaId) siteMediaIds.add(siteSettings.defaultOgMediaId)
+
+    const siteResolvedMedia = await this.resolveMediaAssets(Array.from(siteMediaIds))
+    const siteSettingsWithMedia = {
+      ...siteSettings,
+      logoMedia: siteSettings.logoMediaId ? siteResolvedMedia.get(siteSettings.logoMediaId) : null,
+      faviconMedia: siteSettings.faviconMediaId
+        ? siteResolvedMedia.get(siteSettings.faviconMediaId)
+        : null,
+      defaultOgMedia: siteSettings.defaultOgMediaId
+        ? siteResolvedMedia.get(siteSettings.defaultOgMediaId)
+        : null,
+    }
+
     // Load author
     const authorId = (post as any).authorId || (post as any).author_id
     const author = await this.loadAuthor(authorId)
@@ -513,13 +639,12 @@ class PostRenderingService {
     const postData = this.resolvePostFields(post, {
       wantReview,
       reviewDraft: draftMode === 'ai-review' ? (aiReviewDraft as any) : reviewDraft,
-      aiReviewDraft: aiReviewDraft as any,
     })
     postData.author = author
 
     const tokenContext = {
       post, // Use raw model (published/base values) for initial token resolution
-      siteSettings,
+      siteSettings: siteSettingsWithMedia,
       customFields,
     }
 
@@ -556,6 +681,7 @@ class PostRenderingService {
     const seoRaw = await this.buildSeoData(post, {
       ...options,
       reviewDraft: draftMode === 'ai-review' ? (aiReviewDraft as any) : reviewDraft,
+      modules: resolvedModules,
     })
     // Resolve tokens in SEO (canonical URL, meta titles, OG fields)
     const seo = tokenService.resolveRecursive(seoRaw, tokenContext)
@@ -567,11 +693,122 @@ class PostRenderingService {
       post: resolvedPostData,
       modules: resolvedModules,
       seo,
-      siteSettings: siteSettings as Record<string, unknown>,
+      siteSettings: siteSettingsWithMedia as Record<string, unknown>,
       customFields,
       hasReviewDraft: Boolean(reviewDraft || aiReviewDraft),
       breadcrumbTrail,
     }
+  }
+
+  /**
+   * Extract media IDs from module props based on its field schema
+   */
+  private extractMediaIdsFromProps(schema: any[], props: any, mediaIds: Set<string>): void {
+    if (!props || typeof props !== 'object' || !schema) return
+
+    const uuidRegex = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i
+
+    for (const field of schema) {
+      const value = props[field.slug]
+      if (!value) continue
+
+      if (field.type === 'media') {
+        const id = typeof value === 'string' ? value : (value as any)?.id
+        if (typeof id === 'string' && uuidRegex.test(id)) {
+          mediaIds.add(id.toLowerCase())
+        }
+      } else if (field.type === 'object' && field.fields) {
+        this.extractMediaIdsFromProps(field.fields, value, mediaIds)
+      } else if (field.type === 'repeater' && field.item) {
+        if (Array.isArray(value)) {
+          value.forEach((item) => {
+            if (field.item.fields) {
+              this.extractMediaIdsFromProps(field.item.fields, item, mediaIds)
+            } else if (field.item.type === 'media') {
+              const id = typeof item === 'string' ? item : (item as any)?.id
+              if (typeof id === 'string' && uuidRegex.test(id)) {
+                mediaIds.add(id.toLowerCase())
+              }
+            }
+          })
+        }
+      }
+    }
+  }
+
+  /**
+   * Inject resolved media objects into module props
+   */
+  private injectResolvedMedia(schema: any[], props: any, resolvedMedia: Map<string, any>): any {
+    if (!props || typeof props !== 'object' || !schema) return props
+
+    const out = { ...props }
+    for (const field of schema) {
+      const value = out[field.slug]
+      if (!value) continue
+
+      if (field.type === 'media') {
+        const id = typeof value === 'string' ? value : (value as any)?.id
+        if (typeof id === 'string') {
+          const asset = resolvedMedia.get(id.toLowerCase())
+          if (asset) {
+            out[field.slug] = asset
+          } else if (/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(id)) {
+            console.warn(`[PostRenderingService] Failed to resolve media ID: ${id}`)
+          }
+        }
+      } else if (field.type === 'object' && field.fields) {
+        out[field.slug] = this.injectResolvedMedia(field.fields, value, resolvedMedia)
+      } else if (field.type === 'repeater' && field.item) {
+        if (Array.isArray(value)) {
+          out[field.slug] = value.map((item) => {
+            if (field.item.fields) {
+              return this.injectResolvedMedia(field.item.fields, item, resolvedMedia)
+            } else if (field.item.type === 'media') {
+              const id = typeof item === 'string' ? item : (item as any)?.id
+              if (typeof id === 'string') {
+                const asset = resolvedMedia.get(id.toLowerCase())
+                if (asset) return asset
+                if (/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(id)) {
+                  console.warn(`[PostRenderingService] Failed to resolve media ID in repeater: ${id}`)
+                }
+              }
+              return item
+            }
+            return item
+          })
+        }
+      }
+    }
+    return out
+  }
+
+  /**
+   * Batch resolve media IDs to asset objects
+   */
+  private async resolveMediaAssets(ids: string[]): Promise<Map<string, any>> {
+    const map = new Map<string, any>()
+    const uuidRegex = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i
+    const uniqueIds = Array.from(new Set(ids.filter((id) => id && uuidRegex.test(id))))
+    if (uniqueIds.length === 0) return map
+
+    try {
+      const assets = await MediaAsset.query().whereIn('id', uniqueIds)
+      assets.forEach((asset) => {
+        const id = String(asset.id).toLowerCase()
+        map.set(id, {
+          id: asset.id,
+          url: asset.url,
+          mimeType: asset.mimeType,
+          altText: asset.altText,
+          metadata: asset.metadata || {},
+        })
+      })
+    } catch (e) {
+      console.error('[PostRenderingService] Failed to resolve media assets:', e)
+    }
+
+    return map
   }
 
   /**

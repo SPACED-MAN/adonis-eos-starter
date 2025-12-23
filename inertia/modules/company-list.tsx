@@ -1,9 +1,9 @@
 import { useEffect, useState } from 'react'
-import { motion } from 'framer-motion'
+import { motion, type Variants } from 'framer-motion'
 import { useInlineEditor, useInlineValue } from '../components/inline-edit/InlineEditorContext'
 import { FontAwesomeIcon } from '../site/lib/icons'
-import { pickMediaVariantUrl } from '../lib/media'
 import CompanyTeaser from '../site/post-types/company-teaser'
+import type { MediaObject } from '../utils/useMediaUrl'
 
 interface CompanyListProps {
   title: string
@@ -18,8 +18,8 @@ type CompanySummary = {
   id: string
   title: string
   slug: string
-  imageId?: string | null
-  imageUrl?: string | null
+  image?: MediaObject | null
+  customFields?: Record<string, any>
 }
 
 export default function CompanyList({
@@ -38,76 +38,49 @@ export default function CompanyList({
 
   useEffect(() => {
     let cancelled = false
-    ;(async () => {
-      try {
-        const params = new URLSearchParams()
-        params.set('status', 'published')
-        params.set('limit', '50')
-        const ids = Array.isArray(companies) ? companies.filter(Boolean) : []
-        if (ids.length > 0) {
-          params.set('ids', ids.join(','))
-        }
-        const res = await fetch(`/api/companies?${params.toString()}`, {
-          credentials: 'same-origin',
-          headers: { Accept: 'application/json' },
-        })
-        if (!res.ok) {
-          throw new Error('Failed to load companies')
-        }
-        const j = await res.json().catch(() => null)
-        const list: any[] = Array.isArray(j?.data) ? j.data : []
-        if (cancelled) return
-        const mapped: CompanySummary[] = list.map((p: any) => ({
-          id: String(p.id),
-          title: String(p.title || 'Company'),
-          slug: String(p.slug),
-          imageId: (p as any).imageId ?? null,
-          imageUrl: null,
-        }))
+      ; (async () => {
+        try {
+          const params = new URLSearchParams()
+          params.set('status', 'published')
+          params.set('limit', '50')
+          const ids = Array.isArray(companies) ? companies.filter(Boolean) : []
+          if (ids.length > 0) {
+            params.set('ids', ids.join(','))
+          }
+          const res = await fetch(`/api/companies?${params.toString()}`, {
+            credentials: 'same-origin',
+            headers: { Accept: 'application/json' },
+          })
+          if (!res.ok) {
+            throw new Error('Failed to load companies')
+          }
+          const j = await res.json().catch(() => null)
+          const list: any[] = Array.isArray(j?.data) ? j.data : []
+          if (cancelled) return
 
-        // Resolve logo media variants in parallel for all companies
-        const uniqueIds = Array.from(
-          new Set(mapped.map((m) => m.imageId).filter(Boolean) as string[])
-        )
-        const urlById = new Map<string, string>()
-        await Promise.all(
-          uniqueIds.map(async (id) => {
-            try {
-              const resMedia = await fetch(`/public/media/${encodeURIComponent(id)}`)
-              if (!resMedia.ok) return
-              const jm = await resMedia.json().catch(() => null)
-              const data = jm?.data
-              if (!data) return
-              const meta = (data as any).metadata || {}
-              const variants = Array.isArray(meta?.variants) ? (meta.variants as any[]) : []
-              const darkSourceUrl =
-                typeof meta.darkSourceUrl === 'string' ? (meta.darkSourceUrl as string) : undefined
-              const url = pickMediaVariantUrl(data.url, variants, 'thumb', { darkSourceUrl })
-              urlById.set(id, url)
-            } catch {
-              // ignore
+          const mapped: CompanySummary[] = list.map((p: any) => {
+            return {
+              id: String(p.id),
+              title: String(p.title || 'Company'),
+              slug: String(p.slug),
+              image: p.image ?? null,
+              customFields: p.customFields || {},
             }
           })
-        )
 
-        const withImages = mapped.map((m) => ({
-          ...m,
-          imageUrl: m.imageId ? urlById.get(m.imageId) || null : null,
-        }))
-
-        setItems(withImages)
-      } catch {
-        if (!cancelled) setItems([])
-      } finally {
-        if (!cancelled) setLoading(false)
-      }
-    })()
+          setItems(mapped)
+        } catch {
+          if (!cancelled) setItems([])
+        } finally {
+          if (!cancelled) setLoading(false)
+        }
+      })()
     return () => {
       cancelled = true
     }
   }, [JSON.stringify(companies ?? [])])
 
-  const containerVariants = {
+  const containerVariants: Variants = {
     hidden: { opacity: 0 },
     visible: {
       opacity: 1,
@@ -117,7 +90,7 @@ export default function CompanyList({
     },
   }
 
-  const itemVariants = {
+  const itemVariants: Variants = {
     hidden: { opacity: 0, scale: 0.7, y: 10 },
     visible: {
       opacity: 1,
@@ -195,8 +168,9 @@ export default function CompanyList({
             key={c.id}
             id={c.id}
             title={c.title}
-            imageUrl={c.imageUrl}
+            image={c.image}
             url={`/posts/${encodeURIComponent(c.slug)}`}
+            customFields={c.customFields}
           />
         )
         return _useReact ? (
@@ -254,4 +228,3 @@ export default function CompanyList({
     </section>
   )
 }
-

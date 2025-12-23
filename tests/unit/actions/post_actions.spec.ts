@@ -4,7 +4,6 @@ import User from '#models/user'
 import CreatePost, { CreatePostException } from '#actions/posts/create_post'
 import UpdatePost, { UpdatePostException } from '#actions/posts/update_post'
 import moduleRegistry from '#services/module_registry'
-import ProseModule from '#modules/prose'
 
 test.group('Post Actions - CreatePost', (group) => {
   group.each.setup(async () => {

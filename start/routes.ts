@@ -257,7 +257,7 @@ router
     // CRUD operations
     router.post('/posts', [PostsCrudController, 'store'])
     router.put('/posts/:id', [PostsCrudController, 'update'])
-    router.delete('/posts/:id', [PostsCrudController, 'destroy']).use(middleware.admin())
+    router.delete('/posts/:id', [PostsCrudController, 'destroy'])
     router.post('/posts/:id/restore', [PostsCrudController, 'restore']).use(middleware.admin())
     router.post('/posts/bulk', [PostsCrudController, 'bulk'])
     router.post('/posts/reorder', [PostsCrudController, 'reorder'])

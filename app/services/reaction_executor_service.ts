@@ -242,9 +242,9 @@ class ReactionExecutorService {
    * Execute email reaction
    */
   private async executeEmailReaction(
-    reaction: AgentReaction,
-    context: AgentExecutionContext,
-    result: { success: boolean; data?: any; error?: Error }
+    _reaction: AgentReaction,
+    _context: AgentExecutionContext,
+    _result: { success: boolean; data?: any; error?: Error }
   ): Promise<void> {
     // TODO: Implement email sending using AdonisJS mail
   }
@@ -264,27 +264,29 @@ class ReactionExecutorService {
     }
 
     // Interpolate tool params if it's a template string
-    let params = toolParams
+    let params: Record<string, any> = {}
     if (typeof toolParams === 'string') {
       try {
         params = JSON.parse(this.interpolate(toolParams, { ...result, ...context.data }))
       } catch {
         throw new Error('Invalid toolParams template')
       }
+    } else {
+      params = (toolParams as Record<string, any>) || {}
     }
 
-    await mcpClientService.callTool(toolName, params || {})
+    await mcpClientService.callTool(toolName, params)
   }
 
   /**
    * Execute custom reaction
    */
   private async executeCustomReaction(
-    reaction: AgentReaction,
-    context: AgentExecutionContext,
-    result: { success: boolean; data?: any; error?: Error }
+    _reaction: AgentReaction,
+    _context: AgentExecutionContext,
+    _result: { success: boolean; data?: any; error?: Error }
   ): Promise<void> {
-    const { handler } = reaction.config
+    const { handler } = _reaction.config
 
     if (!handler) {
       throw new Error('Custom handler path is required')

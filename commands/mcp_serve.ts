@@ -244,16 +244,16 @@ function createServerInstance() {
         // Enrich with module group context from DB (editor parity)
         const moduleGroups = cfg.moduleGroupsEnabled
           ? await db
-              .from('module_groups')
-              .where('post_type', postType)
-              .orderBy('updated_at', 'desc')
-              .select('id', 'name', 'description', 'locked', 'post_type')
+            .from('module_groups')
+            .where('post_type', postType)
+            .orderBy('updated_at', 'desc')
+            .select('id', 'name', 'description', 'locked', 'post_type')
           : []
 
         const defaultName = cfg.moduleGroup?.name
         const defaultModuleGroup = cfg.moduleGroupsEnabled
           ? moduleGroups.find((g: any) => defaultName && String(g.name) === String(defaultName)) ||
-            (moduleGroups.length === 1 ? moduleGroups[0] : null)
+          (moduleGroups.length === 1 ? moduleGroups[0] : null)
           : null
 
         return jsonResult({
@@ -1124,7 +1124,7 @@ function createServerInstance() {
           orderIndex,
           mode: 'ai-review',
         })
-        return jsonResult({ data: { id: updated.id, updatedAt: updated.updated_at } })
+        return jsonResult({ data: { id: updated.id, updatedAt: updated.updatedAt } })
       } catch (e: any) {
         return errorResult('Failed to update post module (AI review)', { message: e?.message })
       }
@@ -1638,11 +1638,11 @@ function createServerInstance() {
             type: a.type,
             openEndedContext: a.openEndedContext?.enabled
               ? {
-                  enabled: true,
-                  label: a.openEndedContext.label,
-                  placeholder: a.openEndedContext.placeholder,
-                  maxChars: a.openEndedContext.maxChars,
-                }
+                enabled: true,
+                label: a.openEndedContext.label,
+                placeholder: a.openEndedContext.placeholder,
+                maxChars: a.openEndedContext.maxChars,
+              }
               : { enabled: false },
             scopes: (a.scopes || []).map((s: any) => ({
               scope: s.scope,
@@ -1710,8 +1710,10 @@ function createServerInstance() {
         return errorResult('Agent not available for field scope', { agentId })
       }
 
-      if (agent.type !== 'external' || !agent.external) {
-        return errorResult('Only external agents are supported for run_field_agent', { agentId })
+      // Agents are now internal-only (AI-powered)
+      // For external automation, use Workflows
+      if (agent.type !== 'internal') {
+        return errorResult('Only internal agents are supported for run_field_agent', { agentId })
       }
 
       // Server-side enforcement: only allow openEndedContext if the agent explicitly opts in
@@ -1754,7 +1756,6 @@ function createServerInstance() {
 
       // Get module rows when needed
       let moduleRow: any | null = null
-      let moduleSchema: any | null = null
       if (fieldKey.startsWith('module.')) {
         const rows = await db
           .from('post_modules as pm')
@@ -1795,11 +1796,6 @@ function createServerInstance() {
             modulesCount: rows.length,
           })
         }
-        try {
-          moduleSchema = moduleRegistry.getSchema(String(moduleRow.type))
-        } catch {
-          moduleSchema = null
-        }
       }
 
       const effectiveCurrentValue = (() => {
@@ -1818,72 +1814,50 @@ function createServerInstance() {
         return undefined
       })()
 
-      // Build payload for the external agent
-      const webhookUrl = agentRegistry.getWebhookUrl(agentId)
-      if (!webhookUrl) return errorResult('Agent webhook URL not configured', { agentId })
-
-      const headers: Record<string, string> = { 'Content-Type': 'application/json' }
-      if (agent.external.secret) {
-        if (agent.external.secretHeader)
-          headers[agent.external.secretHeader] = agent.external.secret
-        else headers['Authorization'] = `Bearer ${agent.external.secret}`
-      }
-
-      const timeout = agentRegistry.getTimeout(agentId)
-      const controller = new AbortController()
-      const timeoutId = setTimeout(() => controller.abort(), timeout)
-
+      // Execute internal agent
       let agentResponse: any = null
       try {
-        const res = await fetch(webhookUrl, {
-          method: 'POST',
-          headers,
-          body: JSON.stringify({
-            scope: 'field',
-            post: {
-              id: post.id,
-              type: post.type,
-              locale: post.locale,
-              status: post.status,
-            },
-            field: {
-              key: fieldKey,
-              currentValue: effectiveCurrentValue,
-            },
-            draftBase: baseDraft, // review draft (preferred) or approved snapshot
-            module: moduleRow
-              ? {
-                  postModuleId: moduleRow.postModuleId,
-                  moduleInstanceId: moduleRow.moduleInstanceId,
-                  type: moduleRow.type,
-                  scope: moduleRow.scope === 'post' ? 'local' : 'global',
-                  globalSlug: moduleRow.globalSlug || null,
-                  props: moduleRow.props || {},
-                  reviewProps: moduleRow.reviewProps || null,
-                  aiReviewProps: moduleRow.aiReviewProps || null,
-                  overrides: moduleRow.overrides || null,
-                  reviewOverrides: moduleRow.reviewOverrides || null,
-                  aiReviewOverrides: moduleRow.aiReviewOverrides || null,
-                  schema: moduleSchema,
-                }
-              : null,
-            context: {
-              ...(context || {}),
-              ...(openEndedContext ? { openEndedContext } : {}),
-            },
-          }),
-          signal: controller.signal,
-        })
-        clearTimeout(timeoutId)
-        if (!res.ok) {
-          const txt = await res.text().catch(() => '')
-          return errorResult('Agent request failed', { status: res.status, body: txt })
+        // Build execution context
+        const executionContext: any = {
+          agent,
+          scope: 'field',
+          userId: await resolveSystemUserId(),
+          data: {
+            postId,
+            fieldKey,
+            currentValue: effectiveCurrentValue,
+            postModuleId,
+            moduleInstanceId,
+            context,
+          },
         }
-        agentResponse = await res.json().catch(() => ({}))
+
+        // We need to import the internal agent executor dynamically
+        const { default: internalAgentExecutor } = await import('#services/internal_agent_executor')
+
+        // Create a payload for the agent
+        const canonical = await PostSerializerService.serialize(postId, 'source')
+        const payload = {
+          post: canonical,
+          field: {
+            key: fieldKey,
+            currentValue: effectiveCurrentValue,
+          },
+          context: {
+            ...(context || {}),
+            ...(openEndedContext ? { openEndedContext } : {}),
+          },
+        }
+
+        const result = await internalAgentExecutor.execute(agent as any, executionContext, payload as any)
+
+        if (!result.success) {
+          return errorResult('Internal agent execution failed', { message: result.error?.message })
+        }
+
+        agentResponse = result.data
       } catch (e: any) {
-        clearTimeout(timeoutId)
-        if (e?.name === 'AbortError') return errorResult('Agent request timed out', { agentId })
-        return errorResult('Agent request error', { message: e?.message || String(e) })
+        return errorResult('Agent execution error', { message: e?.message || String(e) })
       }
 
       // Optionally stage response into AI review draft (best-effort, by convention)
@@ -2579,7 +2553,7 @@ export default class McpServe extends BaseCommand {
     httpServer.listen(port, host, () => {
       const authMode =
         process.env.MCP_AUTH_TOKEN ||
-        (process.env.MCP_AUTH_HEADER_NAME && process.env.MCP_AUTH_HEADER_VALUE)
+          (process.env.MCP_AUTH_HEADER_NAME && process.env.MCP_AUTH_HEADER_VALUE)
           ? 'enabled'
           : 'disabled'
       this.logger.info(`MCP SSE server listening on http://${host}:${port}`)

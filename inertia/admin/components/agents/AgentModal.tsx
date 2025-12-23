@@ -56,6 +56,7 @@ export interface AgentResponse {
   applied?: string[]
   message?: string
   generatedMediaId?: string // Media ID if an image was generated
+  suggestions?: any
 }
 
 type AgentModalProps = {
@@ -201,13 +202,23 @@ export function AgentModal({
       })
       const j = await res.json().catch(() => ({}))
       if (res.ok) {
-        setAgentResponse({
+        const response: AgentResponse = {
           rawResponse: j.rawResponse,
           summary: j.summary || null,
           applied: j.applied || [],
           message: j.message,
-        })
+          generatedMediaId: j.generatedMediaId,
+          suggestions: j.suggestions,
+        }
+        setAgentResponse(response)
         toast.success('Agent completed successfully')
+
+        // Perform a background reload to update the UI while the modal is still open
+        if (contextId && scope !== 'global') {
+          router.reload({
+            only: ['post', 'modules', 'aiReviewDraft', 'reviewDraft'],
+          })
+        }
 
         // Refresh agent history (works for both post-based and global)
         try {
@@ -236,13 +247,7 @@ export function AgentModal({
 
         // Call onSuccess callback if provided
         if (onSuccess) {
-          onSuccess({
-            rawResponse: j.rawResponse,
-            summary: j.summary || null,
-            applied: j.applied || [],
-            message: j.message,
-            generatedMediaId: j.generatedMediaId,
-          })
+          onSuccess(response)
         }
       } else {
         toast.error(j?.error || 'Agent run failed')

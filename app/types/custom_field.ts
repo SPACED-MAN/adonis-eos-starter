@@ -17,6 +17,7 @@ export const CUSTOM_FIELD_TYPES = [
   'richtext',
   'slider',
   'taxonomy',
+  'form-reference',
 ] as const
 
 export type CustomFieldType = (typeof CUSTOM_FIELD_TYPES)[number]
@@ -28,7 +29,10 @@ export interface CustomFieldDefinition {
   category?: string
   translatable?: boolean
   required?: boolean
+  description?: string
+  default?: any
   placeholder?: string
+  accept?: string
   options?: Array<{ label: string; value: any }>
   fields?: CustomFieldDefinition[] // For 'object' type
   item?: CustomFieldDefinition // For 'repeater' type

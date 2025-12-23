@@ -44,7 +44,11 @@ export default class CompaniesController {
       query.whereIn('id', ids)
     }
 
-    const rows = await query.orderBy('title', sortOrder).limit(limit)
+    const rows = await query
+      .orderBy('title', sortOrder)
+      .limit(limit)
+      .preload('customFieldValues')
+      .preload('featuredImage')
 
     if (rows.length === 0) {
       return response.ok({ data: [] })
@@ -52,13 +56,30 @@ export default class CompaniesController {
 
     const items = rows.map((p) => {
       const pid = String(p.id)
-      const featuredImageId = (p as any).featuredImageId || (p as any).featured_image_id || null
+      const featuredImageId = p.featuredImageId || null
+      const featuredImage = p.featuredImage
+
+      const image = featuredImage ? {
+        id: featuredImage.id,
+        url: featuredImage.url,
+        mimeType: featuredImage.mimeType,
+        altText: featuredImage.altText,
+        metadata: featuredImage.metadata,
+      } : null
+
+      const customFields: Record<string, any> = {}
+      if (p.customFieldValues) {
+        for (const cf of p.customFieldValues) {
+          customFields[cf.fieldSlug] = cf.value
+        }
+      }
 
       return {
         id: pid,
         title: p.title || 'Company',
         slug: p.slug,
-        imageId: featuredImageId ? String(featuredImageId) : null,
+        image,
+        customFields,
       }
     })
 

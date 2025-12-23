@@ -1,14 +1,19 @@
-import { useEffect, useState } from 'react'
 import { motion } from 'framer-motion'
-import { pickMediaVariantUrl } from '../lib/media'
 import { FontAwesomeIcon } from '../site/lib/icons'
 import { useInlineValue } from '../components/inline-edit/InlineEditorContext'
+import { MediaRenderer } from '../components/MediaRenderer'
 
 interface BlockquoteProps {
   quote: string
   authorName: string
   authorTitle?: string | null
-  avatar?: string | null // media ID
+  avatar?: {
+    id: string
+    url: string
+    mimeType?: string
+    altText?: string
+    metadata?: any
+  } | null // media object
   backgroundColor?: string
   __moduleId?: string
   _useReact?: boolean
@@ -28,45 +33,6 @@ export default function Blockquote({
   const authorTitle = useInlineValue(__moduleId, 'authorTitle', initialAuthorTitle)
   const avatar = useInlineValue(__moduleId, 'avatar', initialAvatar)
   const bg = useInlineValue(__moduleId, 'backgroundColor', backgroundColor)
-  const [avatarUrl, setAvatarUrl] = useState<string | null>(null)
-
-  useEffect(() => {
-    let cancelled = false
-
-    async function resolveAvatar() {
-      if (!avatar) {
-        if (!cancelled) setAvatarUrl(null)
-        return
-      }
-
-      try {
-        const res = await fetch(`/public/media/${encodeURIComponent(String(avatar))}`)
-        if (!res.ok) {
-          if (!cancelled) setAvatarUrl(null)
-          return
-        }
-        const j = await res.json().catch(() => null)
-        const data = j?.data
-        if (!data) {
-          if (!cancelled) setAvatarUrl(null)
-          return
-        }
-        const meta = (data as any).metadata || {}
-        const variants = Array.isArray(meta?.variants) ? (meta.variants as any[]) : []
-        const darkSourceUrl =
-          typeof meta.darkSourceUrl === 'string' ? (meta.darkSourceUrl as string) : undefined
-        const url = pickMediaVariantUrl(data.url, variants, 'thumb', { darkSourceUrl })
-        if (!cancelled) setAvatarUrl(url)
-      } catch {
-        if (!cancelled) setAvatarUrl(null)
-      }
-    }
-
-    resolveAvatar()
-    return () => {
-      cancelled = true
-    }
-  }, [avatar])
 
   const content = (
     <div className="max-w-7xl px-4 mx-auto text-center">
@@ -109,16 +75,18 @@ export default function Blockquote({
           )}
         </blockquote>
         <figcaption className="flex items-center justify-center mt-8 space-x-4">
-          {avatarUrl && (
-            <img
-              className="w-14 h-14 rounded-full object-cover"
-              src={avatarUrl}
-              alt={authorName}
-              loading="lazy"
-              decoding="async"
-              data-inline-type="media"
-              data-inline-path="avatar"
-            />
+          {avatar && (
+            <div className="w-14 h-14 rounded-full overflow-hidden shrink-0">
+              <MediaRenderer
+                image={avatar}
+                variant="thumb"
+                alt={(typeof avatar === 'object' ? avatar.altText : null) || authorName || ''}
+                loading="lazy"
+                decoding="async"
+                data-inline-type="media"
+                data-inline-path="avatar"
+              />
+            </div>
           )}
           <div className="flex items-center divide-x-2 divide-neutral-low/60">
             <div className="pr-3 font-medium text-neutral-high" data-inline-path="authorName">
@@ -159,4 +127,3 @@ export default function Blockquote({
     </section>
   )
 }
-

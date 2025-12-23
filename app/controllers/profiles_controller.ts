@@ -45,7 +45,10 @@ export default class ProfilesController {
       query.whereIn('id', ids)
     }
 
-    const rows = await query.orderBy('updated_at', sortOrder).limit(limit)
+    const rows = await query
+      .orderBy('updated_at', sortOrder)
+      .limit(limit)
+      .preload('featuredImage')
 
     if (rows.length === 0) {
       return response.ok({ data: [] })
@@ -118,9 +121,15 @@ export default class ProfilesController {
       const name = [first, last].filter(Boolean).join(' ') || p.title || 'Profile'
       const role = extras?.role || null
       const bio = p.excerpt ?? null
+      const featuredImage = p.featuredImage
 
-      const featuredImageId = (p as any).featuredImageId || (p as any).featured_image_id || null
-      const imageId = featuredImageId ? String(featuredImageId) : null
+      const image = featuredImage ? {
+        id: featuredImage.id,
+        url: featuredImage.url,
+        mimeType: featuredImage.mimeType,
+        altText: featuredImage.altText,
+        metadata: featuredImage.metadata,
+      } : null
 
       return {
         id: pid,
@@ -128,7 +137,7 @@ export default class ProfilesController {
         role,
         bio,
         slug: p.slug,
-        imageId,
+        image,
       }
     })
 

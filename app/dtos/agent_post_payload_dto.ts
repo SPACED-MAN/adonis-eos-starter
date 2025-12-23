@@ -18,7 +18,7 @@ import { BaseModelDto } from './base_model_dto.js'
  * }
  */
 export default class AgentPostPayloadDto extends BaseModelDto {
-  declare version: CanonicalPost['version']
+  declare version: number
   declare post: CanonicalPost['post']
   declare modules: CanonicalPost['modules']
   declare translations: CanonicalPost['translations']
@@ -28,7 +28,7 @@ export default class AgentPostPayloadDto extends BaseModelDto {
     super()
     if (!canonical) {
       // default-empty payload (not expected in normal flow)
-      this.version = 1 as const
+      this.version = 1
       this.post = {} as any
       this.modules = []
       this.translations = []
@@ -36,7 +36,8 @@ export default class AgentPostPayloadDto extends BaseModelDto {
       return
     }
 
-    this.version = canonical.version
+    // Agent payload protocol version is separate from post schema version
+    this.version = 2
     this.post = canonical.post
     this.modules = canonical.modules
     this.translations = canonical.translations ?? []

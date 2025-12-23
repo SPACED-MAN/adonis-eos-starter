@@ -2,8 +2,8 @@ import { useEffect, useState } from 'react'
 import { motion } from 'framer-motion'
 import { useInlineEditor, useInlineValue } from '../components/inline-edit/InlineEditorContext'
 import { FontAwesomeIcon } from '../site/lib/icons'
-import { pickMediaVariantUrl } from '../lib/media'
 import BlogTeaser from '../site/post-types/blog-teaser'
+import type { MediaObject } from '../utils/useMediaUrl'
 
 interface BlogListProps {
   title: string
@@ -20,8 +20,7 @@ type BlogSummary = {
   slug: string
   excerpt?: string | null
   updatedAt?: string | null
-  imageId?: string | null
-  imageUrl?: string | null
+  image?: MediaObject | null
 }
 
 export default function BlogList({
@@ -40,73 +39,42 @@ export default function BlogList({
 
   useEffect(() => {
     let cancelled = false
-    ;(async () => {
-      try {
-        const params = new URLSearchParams()
-        params.set('status', 'published')
-        params.set('limit', '20')
-        const ids = Array.isArray(posts) ? posts.filter(Boolean) : []
-        if (ids.length > 0) {
-          params.set('ids', ids.join(','))
-        }
-        const res = await fetch(`/api/blogs?${params.toString()}`, {
-          credentials: 'same-origin',
-          headers: { Accept: 'application/json' },
-        })
-        if (!res.ok) {
-          throw new Error('Failed to load blog posts')
-        }
-        const j = await res.json().catch(() => null)
-        const list: any[] = Array.isArray(j?.data) ? j.data : []
-        if (cancelled) return
-
-        const mapped: BlogSummary[] = list.map((p: any) => ({
-          id: String(p.id),
-          title: String(p.title || 'Untitled'),
-          slug: String(p.slug),
-          excerpt: (p as any).excerpt ?? null,
-          updatedAt: (p as any).updatedAt ?? null,
-          imageId: (p as any).imageId ?? null,
-          imageUrl: null,
-        }))
-
-        // Resolve hero media variants in parallel for all blogs
-        const uniqueIds = Array.from(
-          new Set(mapped.map((m) => m.imageId).filter(Boolean) as string[])
-        )
-        const urlById = new Map<string, string>()
-        await Promise.all(
-          uniqueIds.map(async (id) => {
-            try {
-              const resMedia = await fetch(`/public/media/${encodeURIComponent(id)}`)
-              if (!resMedia.ok) return
-              const jm = await resMedia.json().catch(() => null)
-              const data = jm?.data
-              if (!data) return
-              const meta = (data as any).metadata || {}
-              const variants = Array.isArray(meta?.variants) ? (meta.variants as any[]) : []
-              const darkSourceUrl =
-                typeof meta.darkSourceUrl === 'string' ? (meta.darkSourceUrl as string) : undefined
-              const url = pickMediaVariantUrl(data.url, variants, 'wide', { darkSourceUrl })
-              urlById.set(id, url)
-            } catch {
-              // ignore
-            }
+      ; (async () => {
+        try {
+          const params = new URLSearchParams()
+          params.set('status', 'published')
+          params.set('limit', '20')
+          const ids = Array.isArray(posts) ? posts.filter(Boolean) : []
+          if (ids.length > 0) {
+            params.set('ids', ids.join(','))
+          }
+          const res = await fetch(`/api/blogs?${params.toString()}`, {
+            credentials: 'same-origin',
+            headers: { Accept: 'application/json' },
           })
-        )
+          if (!res.ok) {
+            throw new Error('Failed to load blog posts')
+          }
+          const j = await res.json().catch(() => null)
+          const list: any[] = Array.isArray(j?.data) ? j.data : []
+          if (cancelled) return
 
-        const withImages = mapped.map((m) => ({
-          ...m,
-          imageUrl: m.imageId ? urlById.get(m.imageId) || null : null,
-        }))
+          const mapped: BlogSummary[] = list.map((p: any) => ({
+            id: String(p.id),
+            title: String(p.title || 'Untitled'),
+            slug: String(p.slug),
+            excerpt: (p as any).excerpt ?? null,
+            updatedAt: (p as any).updatedAt ?? null,
+            image: p.image ?? null,
+          }))
 
-        setItems(withImages)
-      } catch {
-        if (!cancelled) setItems([])
-      } finally {
-        if (!cancelled) setLoading(false)
-      }
-    })()
+          setItems(mapped)
+        } catch {
+          if (!cancelled) setItems([])
+        } finally {
+          if (!cancelled) setLoading(false)
+        }
+      })()
     return () => {
       cancelled = true
     }
@@ -198,7 +166,7 @@ export default function BlogList({
             title={p.title}
             excerpt={p.excerpt}
             updatedAt={p.updatedAt}
-            imageUrl={p.imageUrl}
+            image={p.image}
             url={`/posts/${encodeURIComponent(p.slug)}`}
           />
         )

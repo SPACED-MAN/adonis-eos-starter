@@ -6,7 +6,8 @@ import { Textarea } from '../../../components/ui/textarea'
 import { Checkbox } from '../../../components/ui/checkbox'
 import { toast } from 'sonner'
 import { MediaPickerModal } from '../../components/media/MediaPickerModal'
-import { pickMediaVariantUrl, type MediaVariant } from '../../../lib/media'
+import { useMediaUrl } from '../../../utils/useMediaUrl'
+import { MediaRenderer } from '../../../components/MediaRenderer'
 import { CustomFieldRenderer } from '../../components/CustomFieldRenderer'
 import type { CustomFieldDefinition } from '~/types/custom_field'
 import { FontAwesomeIcon, getIconProp } from '~/site/lib/icons'
@@ -167,27 +168,6 @@ export default function GeneralSettings() {
     }
   }
 
-  function useIsDarkMode() {
-    const [isDark, setIsDark] = useState(false)
-
-    useEffect(() => {
-      // Initial check
-      setIsDark(document.documentElement.classList.contains('dark'))
-
-      // Watch for changes
-      const observer = new MutationObserver(() => {
-        setIsDark(document.documentElement.classList.contains('dark'))
-      })
-      observer.observe(document.documentElement, {
-        attributes: true,
-        attributeFilter: ['class'],
-      })
-      return () => observer.disconnect()
-    }, [])
-
-    return isDark
-  }
-
   function MediaIdPicker({
     label,
     value,
@@ -198,15 +178,9 @@ export default function GeneralSettings() {
     onChange: (id: string | null) => void
   }) {
     const [open, setOpen] = useState(false)
-    const [previewUrl, setPreviewUrl] = useState<string | null>(null)
     const [previewAlt, setPreviewAlt] = useState<string>('')
-    const [mediaData, setMediaData] = useState<{
-      baseUrl: string
-      variants: MediaVariant[]
-      darkSourceUrl?: string
-    } | null>(null)
+    const [mediaData, setMediaData] = useState<any | null>(null)
     const id = value || ''
-    const isDark = useIsDarkMode()
 
     // Fetch media data when id changes
     useEffect(() => {
@@ -216,7 +190,6 @@ export default function GeneralSettings() {
           if (!id) {
             if (alive) {
               setMediaData(null)
-              setPreviewUrl(null)
               setPreviewAlt('')
             }
             return
@@ -225,25 +198,14 @@ export default function GeneralSettings() {
             credentials: 'same-origin',
           })
           const j = await res.json().catch(() => ({}))
-          const baseUrl = j?.data?.url || null
-          const alt = j?.data?.alt || j?.data?.originalFilename || ''
-          const meta = j?.data?.metadata || {}
-          const variants: MediaVariant[] = Array.isArray(meta?.variants) ? meta.variants : []
-          const darkSourceUrl =
-            typeof meta.darkSourceUrl === 'string' ? meta.darkSourceUrl : undefined
+          const data = j?.data
           if (alive) {
-            if (baseUrl) {
-              setMediaData({ baseUrl, variants, darkSourceUrl })
-            } else {
-              setMediaData(null)
-              setPreviewUrl(null)
-            }
-            setPreviewAlt(alt)
+            setMediaData(data || null)
+            setPreviewAlt(data?.altText || data?.originalFilename || '')
           }
         } catch {
           if (alive) {
             setMediaData(null)
-            setPreviewUrl(null)
             setPreviewAlt('')
           }
         }
@@ -253,30 +215,18 @@ export default function GeneralSettings() {
       }
     }, [id])
 
-    // Resolve URL when media data or theme changes
-    useEffect(() => {
-      if (!mediaData) {
-        setPreviewUrl(null)
-        return
-      }
-      const resolved = pickMediaVariantUrl(mediaData.baseUrl, mediaData.variants, 'thumb', {
-        darkSourceUrl: mediaData.darkSourceUrl,
-      })
-      setPreviewUrl(resolved)
-    }, [mediaData, isDark])
-
     return (
       <div>
         <label className="block text-sm font-medium text-neutral-medium mb-1">{label}</label>
         <div className="flex items-start gap-3">
           <div className="min-w-[72px]">
-            {previewUrl ? (
+            {mediaData ? (
               <div className="w-[72px] h-[72px] border border-line-medium rounded overflow-hidden bg-backdrop-medium">
-                <img
-                  src={previewUrl}
+                <MediaRenderer
+                  image={mediaData}
+                  variant="thumb"
                   alt={previewAlt}
                   className="w-full h-full object-cover"
-                  key={`${previewUrl}-${isDark}`}
                 />
               </div>
             ) : (

@@ -3,6 +3,7 @@ import { createPortal } from 'react-dom'
 import { toast } from 'sonner'
 import { LexicalEditor } from '../LexicalEditor'
 import { Popover, PopoverTrigger, PopoverContent } from '~/components/ui/popover'
+import { cn } from '~/components/ui/utils'
 import { Checkbox } from '~/components/ui/checkbox'
 import { Slider } from '~/components/ui/slider'
 import { Calendar } from '~/components/ui/calendar'
@@ -24,8 +25,8 @@ import {
 } from '~/components/ui/tooltip'
 import { LinkField, type LinkFieldValue } from '~/components/forms/LinkField'
 import { MediaPickerModal } from '../media/MediaPickerModal'
-import { pickMediaVariantUrl, type MediaVariant } from '../../../lib/media'
 import { MediaRenderer } from '../../../components/MediaRenderer'
+import { useMediaUrl } from '../../../utils/useMediaUrl'
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome'
 import { faWandMagicSparkles, faCircleInfo } from '@fortawesome/free-solid-svg-icons'
 import { iconOptions, iconMap } from '../ui/iconOptions'
@@ -110,6 +111,10 @@ type EditorFieldCtx = {
   moduleInstanceId?: string
   moduleType?: string
   fieldAgents: Agent[]
+  setSelectedFieldAgent: (agent: Agent | null) => void
+  setAgentModalOpen: (open: boolean) => void
+  setAgentFieldKey: (key: string) => void
+  setAgentFieldType: (type: string) => void
   viewMode?: 'source' | 'review' | 'ai-review'
   customFields?: Array<{ slug: string; label: string }>
   onDirty?: () => void
@@ -184,26 +189,81 @@ function isPlainObject(value: unknown): value is Record<string, any> {
   return !!value && typeof value === 'object' && !Array.isArray(value)
 }
 
-function useIsDarkMode() {
-  const [isDark, setIsDark] = useState(false)
+const AgentTrigger = memo(({
+  agents,
+  onSelect,
+  className = "",
+}: {
+  agents: Agent[]
+  onSelect: (agent: Agent) => void
+  className?: string
+}) => {
+  if (agents.length === 0) return null
 
-  useEffect(() => {
-    // Initial check
-    setIsDark(document.documentElement.classList.contains('dark'))
+  // console.log('[AgentTrigger] agents:', agents.length, agents.map(a => a.name))
 
-    // Watch for changes
-    const observer = new MutationObserver(() => {
-      setIsDark(document.documentElement.classList.contains('dark'))
-    })
-    observer.observe(document.documentElement, {
-      attributes: true,
-      attributeFilter: ['class'],
-    })
-    return () => observer.disconnect()
-  }, [])
+  const buttonClass = cn(
+    "opacity-0 group-hover:opacity-100 transition-opacity p-1.5 rounded hover:bg-backdrop-medium text-primary",
+    className
+  )
 
-  return isDark
-}
+  if (agents.length === 1) {
+    const agent = agents[0]
+    return (
+      <TooltipProvider>
+        <Tooltip>
+          <TooltipTrigger asChild>
+            <button
+              type="button"
+              onClick={() => onSelect(agent)}
+              className={buttonClass}
+              title={`AI Assistant: ${agent.name}`}
+            >
+              <FontAwesomeIcon icon={faWandMagicSparkles} className="text-sm" />
+            </button>
+          </TooltipTrigger>
+          <TooltipContent side="top">
+            <p>AI Assistant: {agent.name}</p>
+          </TooltipContent>
+        </Tooltip>
+      </TooltipProvider>
+    )
+  }
+
+  return (
+    <Popover>
+      <PopoverTrigger asChild>
+        <button type="button" className={buttonClass}>
+          <FontAwesomeIcon icon={faWandMagicSparkles} className="text-sm" />
+        </button>
+      </PopoverTrigger>
+      <PopoverContent
+        align="end"
+        className="w-56 p-2 bg-backdrop-high border-line-medium shadow-xl rounded-xl z-[60]"
+      >
+        <div className="px-2 py-1.5 border-b border-line-low mb-1">
+          <h4 className="text-[10px] font-bold text-neutral-low uppercase tracking-widest">
+            Select AI Agent
+          </h4>
+        </div>
+        <div className="space-y-0.5">
+          {agents.map((agent) => (
+            <button
+              key={agent.id}
+              onClick={() => onSelect(agent)}
+              className="w-full flex items-center gap-2.5 px-2.5 py-2 rounded-lg hover:bg-backdrop-medium text-left transition-colors"
+            >
+              <div className="w-6 h-6 rounded bg-standout-medium/10 flex items-center justify-center text-standout-medium">
+                <FontAwesomeIcon icon={faWandMagicSparkles} className="text-[10px]" />
+              </div>
+              <span className="text-xs font-medium text-neutral-high">{agent.name}</span>
+            </button>
+          ))}
+        </div>
+      </PopoverContent>
+    </Popover>
+  )
+})
 
 function mergeFields(
   base: Record<string, any>,
@@ -330,6 +390,10 @@ export function ModuleEditorPanel({
   })
   const formRef = useRef<HTMLFormElement | null>(null)
   const [fieldAgents, setFieldAgents] = useState<Agent[]>([])
+  const [selectedFieldAgent, setSelectedFieldAgent] = useState<Agent | null>(null)
+  const [agentModalOpen, setAgentModalOpen] = useState(false)
+  const [agentFieldKey, setAgentFieldKey] = useState<string>('')
+  const [agentFieldType, setAgentFieldType] = useState<string>('')
   const hasFieldPermission = useHasPermission('agents.field')
 
   const fieldComponents = useMemo(() => {
@@ -472,10 +536,21 @@ export function ModuleEditorPanel({
 
   useEffect(() => {
     if (!open || !moduleItem) return
-    setDraft(mergeFields(moduleItem.props || {}, moduleItem.overrides || null))
+    
+    // Update draft when module data changes (e.g., from agent updates or reload)
+    const newDraft = mergeFields(moduleItem.props || {}, moduleItem.overrides || null)
+    
+    // Compare with current draft - only update if actually different to avoid unnecessary re-renders
+    setDraft((prev) => {
+      const prevStr = JSON.stringify(prev || {})
+      const newStr = JSON.stringify(newDraft)
+      if (prevStr === newStr) {
+        return prev // No change, keep existing draft
+      }
+      return newDraft
+    })
     setModuleLabel(null)
-    // Only reinitialize when the selection changes, not on object identity churn
-  }, [open, moduleItem?.id])
+  }, [open, moduleItem?.id, JSON.stringify(moduleItem?.props), JSON.stringify(moduleItem?.overrides)])
 
   // Load module schema (if available)
   useEffect(() => {
@@ -543,6 +618,10 @@ export function ModuleEditorPanel({
       moduleInstanceId,
       moduleType: moduleItem?.type,
       fieldAgents,
+      setSelectedFieldAgent,
+      setAgentModalOpen,
+      setAgentFieldKey,
+      setAgentFieldType,
       viewMode,
       customFields,
       onDirty: undefined,
@@ -557,6 +636,10 @@ export function ModuleEditorPanel({
       moduleInstanceId,
       moduleItem?.type,
       fieldAgents,
+      setSelectedFieldAgent,
+      setAgentModalOpen,
+      setAgentFieldKey,
+      setAgentFieldType,
       viewMode,
       customFields,
     ]
@@ -848,6 +931,27 @@ export function ModuleEditorPanel({
           </div>
         </form>
       </div>
+      {selectedFieldAgent && (
+        <AgentModal
+          open={agentModalOpen}
+          onOpenChange={setAgentModalOpen}
+          agent={selectedFieldAgent}
+          contextId={postId}
+          context={{
+            scope: 'field',
+            fieldKey: agentFieldKey,
+            fieldType: agentFieldType,
+            moduleInstanceId: moduleInstanceId,
+          }}
+          scope="field"
+          fieldKey={agentFieldKey}
+          fieldType={agentFieldType}
+          viewMode={viewMode}
+          onSuccess={() => {
+            // Note: AgentModal now performs background router.reload
+          }}
+        />
+      )}
     </div>,
     document.body
   )
@@ -894,6 +998,10 @@ export const ModuleEditorInline = memo(function ModuleEditorInline({
     const cached = moduleItem ? moduleSchemaCache.get(moduleItem.type) : null
     return cached ? cached.label : null
   })
+  const [selectedFieldAgent, setSelectedFieldAgent] = useState<Agent | null>(null)
+  const [agentModalOpen, setAgentModalOpen] = useState(false)
+  const [agentFieldKey, setAgentFieldKey] = useState<string>('')
+  const [agentFieldType, setAgentFieldType] = useState<string>('')
   // IMPORTANT: do not render a nested <form> inside the post editor's <form>.
   const formRef = useRef<HTMLDivElement | null>(null)
 
@@ -1028,20 +1136,8 @@ export const ModuleEditorInline = memo(function ModuleEditorInline({
       return
     }
 
-    // Only reset if the ID actually changed (not just a re-render)
-    if (currentId === prevId) {
-      return
-    }
-
-    // Only reset draft if ID actually changed AND we don't have pending edits
+    // Only reset draft if ID actually changed OR if props/overrides changed AND we don't have pending edits
     const newDraft = mergeFields(moduleItem.props || {}, moduleItem.overrides || null)
-
-    // Double-check: if we have pending edits, NEVER reset, even if props changed
-    // This is a safety check in case the pending ref check above failed
-    if (pendingInputValueRef.current && pendingInputValueRef.current.rootId === currentId) {
-      prevModuleItemIdRef.current = currentId
-      return
-    }
 
     // Compare with current draft - only reset if actually different
     // This prevents unnecessary resets when parent re-renders with same data
@@ -1055,7 +1151,7 @@ export const ModuleEditorInline = memo(function ModuleEditorInline({
     })
     setModuleLabel(null)
     prevModuleItemIdRef.current = currentId
-  }, [moduleItem?.id]) // Only depend on ID, not props/overrides, to prevent resets when parent re-renders
+  }, [moduleItem?.id, JSON.stringify(moduleItem?.props), JSON.stringify(moduleItem?.overrides)]) // Sync when props/overrides change (e.g. from agent)
 
   useEffect(() => {
     let alive = true
@@ -1120,6 +1216,10 @@ export const ModuleEditorInline = memo(function ModuleEditorInline({
       moduleInstanceId,
       moduleType: moduleItem?.type,
       fieldAgents,
+      setSelectedFieldAgent,
+      setAgentModalOpen,
+      setAgentFieldKey,
+      setAgentFieldType,
       viewMode,
       customFields,
       onDirty: () => {
@@ -1135,6 +1235,10 @@ export const ModuleEditorInline = memo(function ModuleEditorInline({
       moduleInstanceId,
       moduleItem?.type,
       fieldAgents,
+      setSelectedFieldAgent,
+      setAgentModalOpen,
+      setAgentFieldKey,
+      setAgentFieldType,
       viewMode,
       customFields,
       onDirty,
@@ -1283,6 +1387,50 @@ export const ModuleEditorInline = memo(function ModuleEditorInline({
 
       return () => window.clearTimeout(timeoutId)
     }
+  }, [draft])
+
+  // Synchronize DOM elements with draft when draft changes externally (e.g. from agent or reload)
+  // This ensures that programmatic updates are reflected in the UI without a full refresh.
+  useLayoutEffect(() => {
+    if (!formRef.current) return
+
+    // Skip if we're currently restoring a value from a user edit
+    if (pendingInputValueRef.current) return
+
+    const elements = formRef.current.querySelectorAll<
+      HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement
+    >('input[name], textarea[name], select[name]')
+
+    elements.forEach((el) => {
+      // Don't touch the element if it's currently focused (the user is typing)
+      if (document.activeElement === el) return
+
+      const name = el.getAttribute('name')
+      if (!name) return
+
+      const val = getByPath(draft, name)
+      const isJson = el.dataset.json === '1'
+      const isBool = el.dataset.bool === '1'
+
+      let stringifiedDraftVal = ''
+      if (isJson) {
+        stringifiedDraftVal = isPlainObject(val) || Array.isArray(val) ? JSON.stringify(val) : String(val ?? '')
+      } else if (isBool) {
+        stringifiedDraftVal = val === true ? 'true' : 'false'
+      } else {
+        stringifiedDraftVal = String(val ?? '')
+      }
+
+      if (el instanceof HTMLInputElement && el.type === 'checkbox') {
+        if (el.checked !== !!val) {
+          el.checked = !!val
+        }
+      } else if (el.value !== stringifiedDraftVal) {
+        el.value = stringifiedDraftVal
+        // Trigger a change event so any local listeners know the value changed
+        el.dispatchEvent(new Event('change', { bubbles: true }))
+      }
+    })
   }, [draft])
 
   return (
@@ -1567,6 +1715,28 @@ export const ModuleEditorInline = memo(function ModuleEditorInline({
           )}
         </fieldset>
       </div>
+      {selectedFieldAgent && (
+        <AgentModal
+          open={agentModalOpen}
+          onOpenChange={setAgentModalOpen}
+          agent={selectedFieldAgent}
+          contextId={postId}
+          context={{
+            scope: 'field',
+            fieldKey: agentFieldKey,
+            fieldType: agentFieldType,
+            moduleInstanceId: moduleInstanceId,
+          }}
+          scope="field"
+          fieldKey={agentFieldKey}
+          fieldType={agentFieldType}
+          viewMode={viewMode}
+          onSuccess={() => {
+            setAgentModalOpen(false)
+            setSelectedFieldAgent(null)
+          }}
+        />
+      )}
     </div>
   )
 })
@@ -1586,6 +1756,7 @@ const DateFieldInternal = memo(({
   initial,
   ctx,
   field,
+  matchingAgents = [],
 }: {
   name: string
   label: string
@@ -1594,6 +1765,7 @@ const DateFieldInternal = memo(({
   initial: string
   ctx: EditorFieldCtx
   field?: CustomFieldDefinition
+  matchingAgents?: Agent[]
 }) => {
   const initialDate = initial ? new Date(initial) : null
   const [selected, setSelected] = useState<Date | null>(initialDate)
@@ -1608,12 +1780,23 @@ const DateFieldInternal = memo(({
   }
 
   return (
-    <FormField>
-      <LabelWithDescription
-        label={label}
-        description={(field as any)?.description}
-        hideLabel={hideLabel}
-      />
+    <FormField className="group">
+      <div className="flex items-center justify-between">
+        <LabelWithDescription
+          label={label}
+          description={(field as any)?.description}
+          hideLabel={hideLabel}
+        />
+        <AgentTrigger
+          agents={matchingAgents}
+          onSelect={(agent) => {
+            ctx.setSelectedFieldAgent(agent)
+            ctx.setAgentFieldKey(name)
+            ctx.setAgentFieldType('date')
+            ctx.setAgentModalOpen(true)
+          }}
+        />
+      </div>
       <Popover>
         <PopoverTrigger asChild>
           <button
@@ -1662,6 +1845,7 @@ const SliderFieldInternal = memo(({
   hideLabel,
   field,
   ctx,
+  matchingAgents = [],
 }: {
   name: string
   label: string
@@ -1670,6 +1854,7 @@ const SliderFieldInternal = memo(({
   hideLabel: boolean
   field: any
   ctx: EditorFieldCtx
+  matchingAgents?: Agent[]
 }) => {
   const min = field.min ?? 0
   const max = field.max ?? 100
@@ -1680,12 +1865,23 @@ const SliderFieldInternal = memo(({
   const hiddenRef = useRef<HTMLInputElement | null>(null)
 
   return (
-    <FormField>
-      <LabelWithDescription
-        label={label}
-        description={(field as any)?.description}
-        hideLabel={hideLabel}
-      />
+    <FormField className="group">
+      <div className="flex items-center justify-between">
+        <LabelWithDescription
+          label={label}
+          description={(field as any)?.description}
+          hideLabel={hideLabel}
+        />
+        <AgentTrigger
+          agents={matchingAgents}
+          onSelect={(agent) => {
+            ctx.setSelectedFieldAgent(agent)
+            ctx.setAgentFieldKey(name)
+            ctx.setAgentFieldType('slider')
+            ctx.setAgentModalOpen(true)
+          }}
+        />
+      </div>
       <Slider
         defaultValue={[current]}
         min={min}
@@ -1728,6 +1924,7 @@ const MediaFieldInternal = memo(({
   hideLabel,
   field,
   ctx,
+  matchingAgents = [],
 }: {
   name: string
   label: string
@@ -1735,6 +1932,7 @@ const MediaFieldInternal = memo(({
   hideLabel: boolean
   field: any
   ctx: EditorFieldCtx
+  matchingAgents?: Agent[]
 }) => {
   type ModalMediaItem = {
     id: string
@@ -1743,7 +1941,7 @@ const MediaFieldInternal = memo(({
     originalFilename?: string
     alt?: string | null
   }
-  const storeAsId = field.storeAs === 'id' || field.store === 'id'
+  const storeAsId = field.storeAs === 'id' || field.store === 'id' || field.config?.storeAs === 'id' || field.config?.store === 'id'
   const [modalOpen, setModalOpen] = useState(false)
   const [agentModalOpen, setAgentModalOpen] = useState(false)
   const [selectedFieldAgent, setSelectedFieldAgent] = useState<Agent | null>(null)
@@ -1753,16 +1951,6 @@ const MediaFieldInternal = memo(({
   const currentVal = typeof value === 'string' ? value : (value?.id || '')
   const [preview, setPreview] = useState<ModalMediaItem | null>(null)
 
-  const matchingAgents = ctx.fieldAgents.filter((agent: any) => {
-    return agent.scopes?.some((scope: any) => {
-      if (scope.scope !== 'field' || !scope.enabled) return false
-      if (Array.isArray(scope.fieldTypes) && scope.fieldTypes.length > 0) {
-        return scope.fieldTypes.includes('media')
-      }
-      return true
-    })
-  })
-
   const [mediaData, setMediaData] = useState<{
     baseUrl: string
     mimeType?: string
@@ -1771,7 +1959,6 @@ const MediaFieldInternal = memo(({
     playMode?: 'autoplay' | 'inline' | 'modal'
   } | null>(null)
   const [localPlayMode, setLocalPlayMode] = useState<'autoplay' | 'inline' | 'modal'>('autoplay')
-  const isDark = useIsDarkMode()
 
   useEffect(() => {
     if (!storeAsId || !currentVal || !/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(currentVal)) {
@@ -1851,14 +2038,6 @@ const MediaFieldInternal = memo(({
     return () => { alive = false }
   }, [storeAsId, currentVal])
 
-  const displayUrl = useMemo(() => {
-    if (!preview) return null
-    if (!mediaData) return preview.url
-    return pickMediaVariantUrl(mediaData.baseUrl, mediaData.variants, 'thumb', {
-      darkSourceUrl: mediaData.darkSourceUrl,
-    })
-  }, [preview, mediaData, isDark])
-
   const xsrfFromCookie = useMemo(() => {
     if (typeof document === 'undefined') return undefined
     const m = document.cookie.match(/(?:^|; )XSRF-TOKEN=([^;]+)/)
@@ -1935,33 +2114,25 @@ const MediaFieldInternal = memo(({
           description={(field as any)?.description}
           hideLabel={hideLabel}
         />
-        {matchingAgents.length > 0 && (
-          <button
-            type="button"
-            onClick={() => {
-              setSelectedFieldAgent(matchingAgents[0])
-              setAgentModalOpen(true)
-            }}
-            className="opacity-0 group-hover:opacity-100 transition-opacity p-1.5 rounded hover:bg-backdrop-medium text-primary"
-            title="AI Assistant"
-          >
-            <FontAwesomeIcon icon={faWandMagicSparkles} className="text-sm" />
-          </button>
-        )}
+        <AgentTrigger
+          agents={matchingAgents}
+          onSelect={(agent) => {
+            setSelectedFieldAgent(agent)
+            setAgentModalOpen(true)
+          }}
+        />
       </div>
       <div className="flex items-start gap-3">
         <div className="min-w-[72px]">
-          {preview ? (
+          {preview || mediaData ? (
             <div className="w-[72px] h-[72px] border border-line-medium rounded overflow-hidden bg-backdrop-medium">
               <MediaRenderer
-                url={displayUrl || preview.url}
-                mimeType={mediaData?.mimeType}
+                image={mediaData || preview}
+                variant="thumb"
                 alt={preview?.alt || preview?.originalFilename || ''}
                 className="w-full h-full object-cover"
-                key={`${displayUrl}-${isDark}`}
                 controls={false}
                 autoPlay={false}
-                playMode={mediaData?.mimeType?.startsWith('video/') ? (mediaData as any).playMode : undefined}
               />
             </div>
           ) : (
@@ -2089,6 +2260,7 @@ const IconFieldInternal = memo(({
   hideLabel,
   ctx,
   field,
+  matchingAgents = [],
 }: {
   name: string
   label: string
@@ -2097,6 +2269,7 @@ const IconFieldInternal = memo(({
   hideLabel: boolean
   ctx: EditorFieldCtx
   field?: CustomFieldDefinition
+  matchingAgents?: Agent[]
 }) => {
   const initial = typeof value === 'string' ? value : ''
   const [selectedIcon, setSelectedIcon] = useState<string>(initial)
@@ -2104,12 +2277,23 @@ const IconFieldInternal = memo(({
   const hiddenRef = useRef<HTMLInputElement | null>(null)
 
   return (
-    <FormField>
-      <LabelWithDescription
-        label={label}
-        description={(field as any)?.description}
-        hideLabel={hideLabel}
-      />
+    <FormField className="group">
+      <div className="flex items-center justify-between">
+        <LabelWithDescription
+          label={label}
+          description={(field as any)?.description}
+          hideLabel={hideLabel}
+        />
+        <AgentTrigger
+          agents={matchingAgents}
+          onSelect={(agent) => {
+            ctx.setSelectedFieldAgent(agent)
+            ctx.setAgentFieldKey(name)
+            ctx.setAgentFieldType('icon')
+            ctx.setAgentModalOpen(true)
+          }}
+        />
+      </div>
       <Popover open={pickerOpen} onOpenChange={setPickerOpen}>
         <PopoverTrigger asChild>
           <button
@@ -2175,6 +2359,7 @@ const PostReferenceFieldInternal = memo(({
   hideLabel,
   field,
   ctx,
+  matchingAgents = [],
 }: {
   name: string
   label: string
@@ -2183,7 +2368,9 @@ const PostReferenceFieldInternal = memo(({
   hideLabel: boolean
   field: any
   ctx: EditorFieldCtx
+  matchingAgents?: Agent[]
 }) => {
+  const type = "post-reference"
   // Normalize allowed types from field (support singular postType or plural postTypes)
   const allowedTypes: string[] = Array.isArray(field.postTypes)
     ? field.postTypes
@@ -2205,9 +2392,9 @@ const PostReferenceFieldInternal = memo(({
       const nextVal = allowMultiple ? JSON.stringify(vals) : (vals[0] ?? '')
       if (hiddenRef.current.value !== nextVal) {
         hiddenRef.current.value = nextVal
-      hiddenRef.current.dispatchEvent(new Event('input', { bubbles: true }))
-      hiddenRef.current.dispatchEvent(new Event('change', { bubbles: true }))
-        
+        hiddenRef.current.dispatchEvent(new Event('input', { bubbles: true }))
+        hiddenRef.current.dispatchEvent(new Event('change', { bubbles: true }))
+
         const next = { ...(ctx.latestDraft.current || {}) }
         ctx.setByPath(next, name, allowMultiple ? vals : (vals[0] ?? null))
         ctx.setDraft(next)
@@ -2239,12 +2426,21 @@ const PostReferenceFieldInternal = memo(({
   const filteredOptions = query.trim() === '' ? options : options.filter((opt) => opt.label.toLowerCase().includes(query.toLowerCase()))
 
   return (
-    <FormField>
-      <LabelWithDescription
-        label={label}
-        description={(field as any)?.description}
-        hideLabel={hideLabel}
-      />
+    <FormField className="group">
+      <div className="flex items-center justify-between">
+        <LabelWithDescription
+          label={label}
+          description={(field as any)?.description}
+          hideLabel={hideLabel}
+        />
+        <AgentTrigger
+          agents={matchingAgents}
+          onSelect={(agent) => {
+            ctx.setSelectedFieldAgent(agent)
+            ctx.setAgentModalOpen(true)
+          }}
+        />
+      </div>
       <Popover>
         <PopoverTrigger asChild>
           <button
@@ -2310,6 +2506,7 @@ const FormReferenceFieldInternal = memo(({
   rootId,
   hideLabel,
   ctx,
+  matchingAgents = [],
 }: {
   name: string
   label: string
@@ -2317,7 +2514,9 @@ const FormReferenceFieldInternal = memo(({
   rootId: string
   hideLabel: boolean
   ctx: EditorFieldCtx
+  matchingAgents?: Agent[]
 }) => {
+  const type = "form-reference"
   const [options, setOptions] = useState<Array<{ label: string; value: string }>>([])
   const initial = typeof value === 'string' ? value : ''
   const [current, setCurrent] = useState<string>(initial)
@@ -2353,12 +2552,21 @@ const FormReferenceFieldInternal = memo(({
   }, [current])
 
   return (
-    <FormField>
-      <LabelWithDescription
-        label={label}
-        description={(field as any)?.description}
-        hideLabel={hideLabel}
-      />
+    <FormField className="group">
+      <div className="flex items-center justify-between">
+        <LabelWithDescription
+          label={label}
+          description={(field as any)?.description}
+          hideLabel={hideLabel}
+        />
+        <AgentTrigger
+          agents={matchingAgents}
+          onSelect={(agent) => {
+            ctx.setSelectedFieldAgent(agent)
+            ctx.setAgentModalOpen(true)
+          }}
+        />
+      </div>
       <Select defaultValue={initial || undefined} onValueChange={setCurrent}>
         <SelectTrigger>
           <SelectValue placeholder="Select a form" />
@@ -2380,6 +2588,8 @@ const SelectFieldInternal = memo(({
   hideLabel,
   field,
   type,
+  ctx,
+  matchingAgents = [],
 }: {
   name: string
   label: string
@@ -2388,6 +2598,8 @@ const SelectFieldInternal = memo(({
   hideLabel: boolean
   field: any
   type: string
+  ctx: EditorFieldCtx
+  matchingAgents?: Agent[]
 }) => {
   const isMulti = type === 'multiselect'
   const [dynamicOptions, setDynamicOptions] = useState<Array<{ label: string; value: string }>>(
@@ -2413,12 +2625,23 @@ const SelectFieldInternal = memo(({
     const initial = typeof value === 'string' ? value : ''
     const hiddenRef = useRef<HTMLInputElement | null>(null)
     return (
-      <FormField>
-        <LabelWithDescription
-          label={label}
-          description={(field as any)?.description}
-          hideLabel={hideLabel}
-        />
+      <FormField className="group">
+        <div className="flex items-center justify-between">
+          <LabelWithDescription
+            label={label}
+            description={(field as any)?.description}
+            hideLabel={hideLabel}
+          />
+          <AgentTrigger
+            agents={matchingAgents}
+            onSelect={(agent) => {
+              ctx.setSelectedFieldAgent(agent)
+              ctx.setAgentFieldKey(name)
+              ctx.setAgentFieldType(type)
+              ctx.setAgentModalOpen(true)
+            }}
+          />
+        </div>
         <Select
           defaultValue={initial || undefined}
           onValueChange={(val) => {
@@ -2466,12 +2689,23 @@ const SelectFieldInternal = memo(({
       }
     }, [vals])
     return (
-      <FormField>
-        <LabelWithDescription
-          label={label}
-          description={(field as any)?.description}
-          hideLabel={hideLabel}
-        />
+      <FormField className="group">
+        <div className="flex items-center justify-between">
+          <LabelWithDescription
+            label={label}
+            description={(field as any)?.description}
+            hideLabel={hideLabel}
+          />
+          <AgentTrigger
+            agents={matchingAgents}
+            onSelect={(agent) => {
+              ctx.setSelectedFieldAgent(agent)
+              ctx.setAgentFieldKey(name)
+              ctx.setAgentFieldType(type)
+              ctx.setAgentModalOpen(true)
+            }}
+          />
+        </div>
         {vals.length > 0 && (
           <div className="flex flex-wrap gap-2 mb-2">
             {vals.map((v) => (
@@ -2536,13 +2770,16 @@ const BooleanFieldInternal = memo(({
   value,
   rootId,
   ctx,
+  matchingAgents = [],
 }: {
   name: string
   label: string
   value: any
   rootId: string
   ctx: EditorFieldCtx
+  matchingAgents?: Agent[]
 }) => {
+  const type = "boolean"
   const hiddenRef = useRef<HTMLInputElement | null>(null)
   const checked = !!value
 
@@ -2553,7 +2790,7 @@ const BooleanFieldInternal = memo(({
   }, [checked])
 
   return (
-    <div className="flex items-center gap-2">
+    <div className="flex items-center gap-2 group">
       <Checkbox
         checked={checked}
         onCheckedChange={(c) => {
@@ -2573,6 +2810,13 @@ const BooleanFieldInternal = memo(({
       <label htmlFor={`${rootId}:${name}`} className="text-sm text-neutral-high cursor-pointer">
         {label}
       </label>
+      <AgentTrigger
+        agents={matchingAgents}
+        onSelect={(agent) => {
+          ctx.setSelectedFieldAgent(agent)
+          ctx.setAgentModalOpen(true)
+        }}
+      />
       <input
         ref={hiddenRef}
         type="hidden"
@@ -2602,6 +2846,18 @@ const FieldPrimitiveInternal = memo(({
   const hideLabel = (field as any).hideLabel === true
   const label = hideLabel ? '' : ctx.getLabel(path, field)
   const type = (field as any).type as string
+
+  const matchingAgents = useMemo(() => {
+    return ctx.fieldAgents.filter((agent: any) => {
+      return agent.scopes?.some((scope: any) => {
+        if (scope.scope !== 'field' || !scope.enabled) return false
+        if (Array.isArray(scope.fieldTypes) && scope.fieldTypes.length > 0) {
+          return scope.fieldTypes.includes(type)
+        }
+        return true
+      })
+    })
+  }, [ctx.fieldAgents, type])
 
   const maybeRenderComponent = () => {
     const compName = `${ctx.pascalFromType(type)}Field`
@@ -2670,8 +2926,19 @@ const FieldPrimitiveInternal = memo(({
     const description = cfg.description
 
     return (
-      <FormField>
-        <LabelWithDescription label={label} description={description} hideLabel={hideLabel} />
+      <FormField className="group">
+        <div className="flex items-center justify-between">
+          <LabelWithDescription label={label} description={description} hideLabel={hideLabel} />
+          <AgentTrigger
+            agents={matchingAgents}
+            onSelect={(agent) => {
+              ctx.setSelectedFieldAgent(agent)
+              ctx.setAgentFieldKey(name)
+              ctx.setAgentFieldType(type)
+              ctx.setAgentModalOpen(true)
+            }}
+          />
+        </div>
         <Renderer {...props} />
         <input
           ref={hiddenRef}
@@ -2708,6 +2975,7 @@ const FieldPrimitiveInternal = memo(({
         initial={typeof value === 'string' ? value : ''}
         ctx={ctx}
         field={field}
+        matchingAgents={matchingAgents}
       />
     )
   }
@@ -2720,17 +2988,30 @@ const FieldPrimitiveInternal = memo(({
         rootId={rootId}
         hideLabel={hideLabel}
         field={field}
+        ctx={ctx}
+        matchingAgents={matchingAgents}
       />
     )
   }
   if (type === 'textarea') {
     return (
-      <FormField>
-        <LabelWithDescription
-          label={label}
-          description={(field as any).description}
-          hideLabel={hideLabel}
-        />
+      <FormField className="group">
+        <div className="flex items-center justify-between">
+          <LabelWithDescription
+            label={label}
+            description={(field as any).description}
+            hideLabel={hideLabel}
+          />
+          <AgentTrigger
+            agents={matchingAgents}
+            onSelect={(agent) => {
+              ctx.setSelectedFieldAgent(agent)
+              ctx.setAgentFieldKey(name)
+              ctx.setAgentFieldType(type)
+              ctx.setAgentModalOpen(true)
+            }}
+          />
+        </div>
         <TokenField
           type="textarea"
           name={name}
@@ -2756,6 +3037,7 @@ const FieldPrimitiveInternal = memo(({
         hideLabel={hideLabel}
         field={field}
         ctx={ctx}
+        matchingAgents={matchingAgents}
       />
     )
   }
@@ -2769,6 +3051,7 @@ const FieldPrimitiveInternal = memo(({
         hideLabel={hideLabel}
         ctx={ctx}
         field={field}
+        matchingAgents={matchingAgents}
       />
     )
   }
@@ -2793,6 +3076,8 @@ const FieldPrimitiveInternal = memo(({
         rootId={rootId}
         hideLabel={hideLabel}
         field={field}
+        ctx={ctx}
+        matchingAgents={matchingAgents}
       />
     )
   }
@@ -2804,6 +3089,8 @@ const FieldPrimitiveInternal = memo(({
         value={value}
         rootId={rootId}
         hideLabel={hideLabel}
+        ctx={ctx}
+        matchingAgents={matchingAgents}
       />
     )
   }
@@ -2817,6 +3104,8 @@ const FieldPrimitiveInternal = memo(({
         hideLabel={hideLabel}
         field={field}
         type={type}
+        ctx={ctx}
+        matchingAgents={matchingAgents}
       />
     )
   }
@@ -2855,17 +3144,27 @@ const FieldPrimitiveInternal = memo(({
         value={value}
         rootId={rootId}
         ctx={ctx}
+        matchingAgents={matchingAgents}
       />
     )
   }
   // text, url fallback to text input
   return (
-    <FormField>
-      <LabelWithDescription
-        label={label}
-        description={(field as any)?.description}
-        hideLabel={hideLabel}
-      />
+    <FormField className="group">
+      <div className="flex items-center justify-between">
+        <LabelWithDescription
+          label={label}
+          description={(field as any)?.description}
+          hideLabel={hideLabel}
+        />
+        <AgentTrigger
+          agents={matchingAgents}
+          onSelect={(agent) => {
+            ctx.setSelectedFieldAgent(agent)
+            ctx.setAgentModalOpen(true)
+          }}
+        />
+      </div>
       <TokenField
         type="text"
         name={name}

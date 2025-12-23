@@ -51,9 +51,16 @@ export class LocaleService {
     if (toInsert.length) {
       await db.table('locales').insert(toInsert)
     }
+
+    // Disable locales that are no longer in the environment list
+    await db
+      .from('locales')
+      .whereNotIn('code', uniq)
+      .update({ is_enabled: false, updated_at: now })
+
     // Ensure only one default
     await db.from('locales').update({ is_default: false })
-    await db.from('locales').where('code', defaultLocale).update({ is_default: true })
+    await db.from('locales').where('code', defaultLocale).update({ is_default: true, is_enabled: true })
   }
   /**
    * Get list of supported locales (sync, env-based)
