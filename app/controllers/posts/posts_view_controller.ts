@@ -7,6 +7,7 @@ import postRenderingService from '#services/post_rendering_service'
 import previewService from '#services/preview_service'
 import postTypeViewService from '#services/post_type_view_service'
 import taxonomyService from '#services/taxonomy_service'
+import activityLogService from '#services/activity_log_service'
 import BasePostsController from './base_posts_controller.js'
 import PostModule from '#models/post_module'
 import ModuleInstance from '#models/module_instance'
@@ -433,6 +434,13 @@ export default class PostsViewController extends BasePostsController {
     const match = await urlPatternService.matchPath(path)
 
     if (!match) {
+      // Log 404 for SEO monitoring
+      await activityLogService.log({
+        action: 'system.404',
+        ip: request.ip(),
+        userAgent: request.header('user-agent'),
+        metadata: { path },
+      })
       return inertia.render('site/errors/not_found')
     }
 
@@ -445,6 +453,12 @@ export default class PostsViewController extends BasePostsController {
         const hasPermalinks =
           uiConfig.permalinksEnabled !== false && uiConfig.urlPatterns.length > 0
         if (!hasPermalinks) {
+          await activityLogService.log({
+            action: 'system.404',
+            ip: request.ip(),
+            userAgent: request.header('user-agent'),
+            metadata: { path, reason: 'permalinks_disabled', postType },
+          })
           return inertia.render('site/errors/not_found')
         }
       } catch {
@@ -467,6 +481,12 @@ export default class PostsViewController extends BasePostsController {
         .first()
 
       if (!post) {
+        await activityLogService.log({
+          action: 'system.404',
+          ip: request.ip(),
+          userAgent: request.header('user-agent'),
+          metadata: { path, reason: 'post_not_found', slug, locale, postType },
+        })
         return inertia.render('site/errors/not_found')
       }
 

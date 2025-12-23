@@ -6,7 +6,40 @@ export default {
   hierarchyEnabled: false,
 
   // Custom fields attached to this post type (editorial only)
-  fields: [],
+  fields: [
+    {
+      slug: 'address',
+      label: 'Business Address',
+      type: 'textarea',
+      config: {
+        placeholder: '123 Main St, City, State, ZIP',
+      },
+    },
+    {
+      slug: 'phone',
+      label: 'Phone Number',
+      type: 'text',
+      config: {
+        placeholder: '+1 (555) 000-0000',
+      },
+    },
+    {
+      slug: 'openingHours',
+      label: 'Opening Hours',
+      type: 'textarea',
+      config: {
+        placeholder: 'Mo-Fr 09:00-17:00',
+      },
+    },
+    {
+      slug: 'geo',
+      label: 'Coordinates (Lat, Lng)',
+      type: 'text',
+      config: {
+        placeholder: '40.7128, -74.0060',
+      },
+    },
+  ],
 
   // Featured image enabled with custom label
   featuredImage: {

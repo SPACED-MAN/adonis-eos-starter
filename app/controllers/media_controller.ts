@@ -8,6 +8,7 @@ import sharp from 'sharp'
 import activityLogService from '#services/activity_log_service'
 import storageService from '#services/storage_service'
 import roleRegistry from '#services/role_registry'
+import workflowExecutionService from '#services/workflow_execution_service'
 import createDarkBaseAction from '#actions/create_dark_base_action'
 import generateMediaVariantsAction from '#actions/generate_media_variants_action'
 import { mediaQueryValidator, mediaUploadValidator, updateMediaValidator } from '#validators/media'
@@ -229,6 +230,23 @@ export default class MediaController {
         metadata: { filename: clientName, mime, size: Number(size) },
       })
     } catch {}
+
+    // Trigger media.uploaded workflows (e.g. for AI alt text generation)
+    try {
+      await workflowExecutionService.executeWorkflows('media.uploaded', {
+        id,
+        url,
+        filename: clientName,
+        mime,
+        size: Number(size),
+        altText: effectiveAltText,
+      }, {
+        userId: (auth.use('web').user as any)?.id
+      })
+    } catch (e) {
+      console.error('Failed to trigger media.uploaded workflows:', e)
+    }
+
     return response.created({ data: { id, url } })
   }
 

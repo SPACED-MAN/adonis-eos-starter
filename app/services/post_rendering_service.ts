@@ -388,13 +388,42 @@ class PostRenderingService {
       ? ((reviewDraft as any).metaDescription ?? post.metaDescription)
       : post.metaDescription
 
+    let schemaType = 'BlogPosting'
+    const schemaExtras: Record<string, any> = {}
+
+    // Special handling for Local SEO on 'company' post type
+    if (post.type === 'company') {
+      schemaType = 'LocalBusiness'
+      // Load custom fields to populate schema
+      const fieldRows = await db
+        .from('post_custom_field_values')
+        .where('post_id', post.id)
+        .select('field_slug', 'value')
+      const fields = new Map(fieldRows.map((r) => [r.field_slug, r.value]))
+
+      if (fields.has('address')) schemaExtras.address = { '@type': 'PostalAddress', 'streetAddress': fields.get('address') }
+      if (fields.has('phone')) schemaExtras.telephone = fields.get('phone')
+      if (fields.has('openingHours')) schemaExtras.openingHours = fields.get('openingHours')
+      if (fields.has('geo')) {
+        const coords = String(fields.get('geo')).split(',').map(s => s.trim())
+        if (coords.length === 2) {
+          schemaExtras.geo = {
+            '@type': 'GeoCoordinates',
+            'latitude': coords[0],
+            'longitude': coords[1]
+          }
+        }
+      }
+    }
+
     const defaultJsonLd: Record<string, unknown> = {
       '@context': 'https://schema.org',
-      '@type': 'BlogPosting',
+      '@type': schemaType,
       'headline': title,
       'inLanguage': post.locale,
       'mainEntityOfPage': canonical,
       ...(description && { description }),
+      ...schemaExtras
     }
     const jsonLd = { ...defaultJsonLd, ...(post.jsonldOverrides || {}) }
 

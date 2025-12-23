@@ -16,6 +16,7 @@ export type WorkflowTrigger =
   | 'post.ai-review.save' // AI review draft is saved
   | 'post.ai-review.approve' // AI review is approved
   | 'form.submit' // Form is submitted
+  | 'media.uploaded' // Media is uploaded
   | 'agent.completed' // AI agent execution completes
   | 'workflow.completed' // Another workflow completes
   | 'manual' // Manual trigger only (via UI)
