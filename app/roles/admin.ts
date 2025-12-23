@@ -34,6 +34,10 @@ const adminRole: RoleDefinition = {
     'menus.view',
     'menus.edit',
     'menus.delete',
+    // Taxonomies
+    'taxonomies.view',
+    'taxonomies.edit',
+    'taxonomies.delete',
     // Forms
     'forms.view',
     'forms.edit',

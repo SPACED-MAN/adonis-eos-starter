@@ -25,6 +25,9 @@ const editorRole: RoleDefinition = {
     // Menus
     'menus.view',
     'menus.edit',
+    // Taxonomies
+    'taxonomies.view',
+    'taxonomies.edit',
     // Forms
     'forms.view',
     'forms.edit',

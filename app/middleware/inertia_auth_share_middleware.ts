@@ -1,5 +1,12 @@
 import type { HttpContext } from '@adonisjs/core/http'
 import roleRegistry from '#services/role_registry'
+import formRegistry from '#services/form_registry'
+import taxonomyRegistry from '#services/taxonomy_registry'
+import menuTemplateRegistry from '#services/menu_template_registry'
+import localeService from '#services/locale_service'
+import agentRegistry from '#services/agent_registry'
+import workflowRegistry from '#services/workflow_registry'
+import moduleRegistry from '#services/module_registry'
 
 export default class InertiaAuthShareMiddleware {
   async handle(ctx: HttpContext, next: () => Promise<void>) {
@@ -37,6 +44,15 @@ export default class InertiaAuthShareMiddleware {
         isAdmin: !!(sharedUser && sharedUser.role === 'admin'),
         permissions, // Share permissions array with frontend
         roles, // Share role definitions with frontend
+        features: {
+          forms: formRegistry.list().length > 0,
+          taxonomies: taxonomyRegistry.list().length > 0,
+          menus: menuTemplateRegistry.list().length > 0,
+          locales: localeService.getSupportedLocales().length > 1,
+          agents: agentRegistry.list().length > 0,
+          workflows: workflowRegistry.list().length > 0,
+          modules: moduleRegistry.getAllConfigs().length > 0,
+        },
         mediaAdmin: {
           thumbnailVariant: process.env.MEDIA_ADMIN_THUMBNAIL_VARIANT || null,
           modalVariant: process.env.MEDIA_ADMIN_MODAL_VARIANT || null,
