@@ -509,6 +509,22 @@ router
   .use(middleware.auth())
   .use(middleware.admin())
 
+// Admin Agents
+router
+  .get(adminPath('agents'), async ({ inertia }) => {
+    return inertia.render('admin/agents/index')
+  })
+  .use(middleware.auth())
+  .use(middleware.admin())
+
+// Admin Workflows
+router
+  .get(adminPath('workflows'), async ({ inertia }) => {
+    return inertia.render('admin/workflows/index')
+  })
+  .use(middleware.auth())
+  .use(middleware.admin())
+
 // Admin Forms (submissions) - editors allowed
 router.get(adminPath('forms'), [FormsAdminController, 'index']).use(middleware.auth())
 

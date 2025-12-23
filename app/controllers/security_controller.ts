@@ -4,8 +4,8 @@ import env from '#start/env'
 import app from '@adonisjs/core/services/app'
 import cmsConfig from '#config/cms'
 import { adminPath } from '#services/admin_path_service'
-import { auditLogsQueryValidator, loginHistoryQueryValidator } from '#validators/query'
-import { securitySessionsQueryValidator } from '#validators/security'
+import { auditLogsQueryValidator } from '#validators/query'
+import { securitySessionsQueryValidator, loginHistoryQueryValidator } from '#validators/security'
 
 /**
  * Security Controller
