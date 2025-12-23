@@ -2,10 +2,12 @@ import { useEffect, useState } from 'react'
 import { ThemeToggle } from '../../components/ThemeToggle'
 import type { MenuItem } from './menu/types'
 import { MenuItemLink } from './menu/MenuItemLink'
+import { FontAwesomeIcon, getIconProp } from '../lib/icons'
 
 export function SiteFooter() {
   const [items, setItems] = useState<MenuItem[]>([])
   const [siteTitle, setSiteTitle] = useState<string>('Site')
+  const [socialProfiles, setSocialProfiles] = useState<Array<{ network: string; label: string; icon: string; url: string; enabled: boolean }>>([])
 
   useEffect(() => {
     ;(async () => {
@@ -34,6 +36,9 @@ export function SiteFooter() {
         if (data?.siteTitle) {
           setSiteTitle(String(data.siteTitle))
         }
+        if (data?.socialSettings?.profiles) {
+          setSocialProfiles(data.socialSettings.profiles.filter((p: any) => p.enabled && p.url))
+        }
       } catch {
         // ignore
       }
@@ -59,6 +64,24 @@ export function SiteFooter() {
           Build and manage rich marketing pages with reusable content blocks, media, and
           navigation—powered by the Adonis EOS starter.
         </p>
+        
+        {socialProfiles.length > 0 && (
+          <div className="flex justify-center items-center gap-4 mb-6">
+            {socialProfiles.map((profile) => (
+              <a
+                key={profile.network}
+                href={profile.url}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="text-neutral-low hover:text-standout-high transition-colors"
+                title={profile.label}
+              >
+                <FontAwesomeIcon icon={getIconProp(profile.icon)} className="w-5 h-5" />
+              </a>
+            ))}
+          </div>
+        )}
+
         {items.length > 0 && (
           <ul className="flex flex-wrap justify-center items-center mb-4 text-sm text-neutral-high gap-x-4 gap-y-2">
             {items.map((item) => (

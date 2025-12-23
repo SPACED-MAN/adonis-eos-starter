@@ -33,6 +33,7 @@ export default class SiteSettingsController {
       'logoMediaId',
       'isMaintenanceMode',
       'profileRolesEnabled',
+      'socialSettings',
     ])
     const next = await siteSettingsService.upsert({
       siteTitle: payload.siteTitle,
@@ -45,6 +46,7 @@ export default class SiteSettingsController {
       profileRolesEnabled: Array.isArray(payload.profileRolesEnabled)
         ? payload.profileRolesEnabled.filter((r: any) => typeof r === 'string')
         : current.profileRolesEnabled,
+      socialSettings: payload.socialSettings,
     })
     // Upsert site-level custom fields if provided
     const customFields = request.input('customFields')

@@ -9,6 +9,22 @@ import { MediaPickerModal } from '../../components/media/MediaPickerModal'
 import { pickMediaVariantUrl, type MediaVariant } from '../../../lib/media'
 import { CustomFieldRenderer } from '../../components/CustomFieldRenderer'
 import type { CustomFieldDefinition } from '~/types/custom_field'
+import { FontAwesomeIcon, getIconProp } from '~/site/lib/icons'
+
+type SocialProfile = {
+  network: string
+  label: string
+  icon: string
+  url: string
+  enabled: boolean
+}
+
+type SocialSharing = {
+  network: string
+  label: string
+  icon: string
+  enabled: boolean
+}
 
 type Settings = {
   siteTitle: string
@@ -18,6 +34,10 @@ type Settings = {
   logoMediaId: string | null
   isMaintenanceMode: boolean
   profileRolesEnabled: string[]
+  socialSettings?: {
+    profiles: SocialProfile[]
+    sharing: SocialSharing[]
+  }
   customFieldDefs?: CustomFieldDefinition[]
   customFields?: Record<string, any>
 }
@@ -39,9 +59,29 @@ export default function GeneralSettings() {
     logoMediaId: '',
     isMaintenanceMode: false,
     profileRolesEnabled: [],
+    socialSettings: {
+      profiles: [],
+      sharing: [],
+    },
     customFieldDefs: [],
     customFields: {},
   })
+
+  const defaultProfiles: SocialProfile[] = [
+    { network: 'facebook', label: 'Facebook', icon: 'facebook-f', url: '', enabled: false },
+    { network: 'twitter', label: 'X (Twitter)', icon: 'x-twitter', url: '', enabled: false },
+    { network: 'linkedin', label: 'LinkedIn', icon: 'linkedin-in', url: '', enabled: false },
+    { network: 'instagram', label: 'Instagram', icon: 'instagram', url: '', enabled: false },
+    { network: 'youtube', label: 'YouTube', icon: 'youtube', url: '', enabled: false },
+  ]
+
+  const defaultSharing: SocialSharing[] = [
+    { network: 'facebook', label: 'Facebook', icon: 'facebook-f', enabled: true },
+    { network: 'twitter', label: 'X (Twitter)', icon: 'x-twitter', enabled: true },
+    { network: 'linkedin', label: 'LinkedIn', icon: 'linkedin-in', enabled: true },
+    { network: 'email', label: 'Email', icon: 'envelope', enabled: true },
+    { network: 'link', label: 'Copy Link', icon: 'link', enabled: true },
+  ]
 
   useEffect(() => {
     let alive = true
@@ -51,6 +91,18 @@ export default function GeneralSettings() {
         const res = await fetch('/api/site-settings', { credentials: 'same-origin' })
         const j = await res.json().catch(() => ({}))
         if (!alive) return
+        
+        // Merge fetched social settings with defaults to ensure all networks are present
+        const fetchedSocial = j?.data?.socialSettings || {}
+        const mergedProfiles = defaultProfiles.map(def => {
+          const found = (fetchedSocial.profiles || []).find((p: any) => p.network === def.network)
+          return found ? { ...def, ...found } : def
+        })
+        const mergedSharing = defaultSharing.map(def => {
+          const found = (fetchedSocial.sharing || []).find((s: any) => s.network === def.network)
+          return found ? { ...def, ...found } : def
+        })
+
         const s: Settings = {
           siteTitle: j?.data?.siteTitle || '',
           defaultMetaDescription: j?.data?.defaultMetaDescription || '',
@@ -61,6 +113,10 @@ export default function GeneralSettings() {
           profileRolesEnabled: Array.isArray(j?.data?.profileRolesEnabled)
             ? j.data.profileRolesEnabled
             : [],
+          socialSettings: {
+            profiles: mergedProfiles,
+            sharing: mergedSharing,
+          },
           customFieldDefs: Array.isArray(j?.data?.customFieldDefs) ? j.data.customFieldDefs : [],
           customFields:
             j?.data?.customFields && typeof j.data.customFields === 'object'
@@ -96,6 +152,7 @@ export default function GeneralSettings() {
           logoMediaId: form.logoMediaId || null,
           isMaintenanceMode: form.isMaintenanceMode,
           profileRolesEnabled: form.profileRolesEnabled || [],
+          socialSettings: form.socialSettings,
           customFields: form.customFields || {},
         }),
       })
@@ -348,6 +405,115 @@ export default function GeneralSettings() {
               </div>
             </div>
           </div>
+          <div className="border-t border-line-low pt-6">
+            <h3 className="text-base font-semibold text-neutral-high mb-4">Social Networks</h3>
+            
+            <div className="space-y-8">
+              {/* Social Profiles */}
+              <div>
+                <h4 className="text-sm font-medium text-neutral-medium mb-3">Social Profiles</h4>
+                <div className="space-y-4">
+                  {form.socialSettings?.profiles.map((profile, idx) => (
+                    <div key={profile.network} className="flex flex-col sm:flex-row items-start sm:items-center gap-4 p-4 border border-line-low rounded-lg bg-backdrop-medium/30">
+                      <div className="flex items-center gap-3 min-w-[120px]">
+                        <div className="w-8 h-8 rounded bg-backdrop-high flex items-center justify-center text-neutral-medium">
+                          <FontAwesomeIcon icon={getIconProp(profile.icon)} />
+                        </div>
+                        <span className="text-sm font-medium text-neutral-high">{profile.label}</span>
+                      </div>
+                      
+                      <div className="flex-1 w-full sm:w-auto">
+                        <Input
+                          value={profile.url}
+                          onChange={(e) => {
+                            const next = [...(form.socialSettings?.profiles || [])]
+                            next[idx] = { ...next[idx], url: e.target.value }
+                            setForm({ ...form, socialSettings: { ...form.socialSettings!, profiles: next } })
+                          }}
+                          placeholder="https://..."
+                          className="h-8 text-xs"
+                        />
+                      </div>
+
+                      <div className="flex items-center gap-2 min-w-[100px]">
+                        <Checkbox
+                          id={`profile-enable-${profile.network}`}
+                          checked={profile.enabled}
+                          onCheckedChange={(checked) => {
+                            const next = [...(form.socialSettings?.profiles || [])]
+                            next[idx] = { ...next[idx], enabled: checked === true }
+                            setForm({ ...form, socialSettings: { ...form.socialSettings!, profiles: next } })
+                          }}
+                        />
+                        <label htmlFor={`profile-enable-${profile.network}`} className="text-xs text-neutral-medium cursor-pointer">
+                          Enabled
+                        </label>
+                      </div>
+
+                      <div className="w-24">
+                        <Input
+                          value={profile.icon}
+                          onChange={(e) => {
+                            const next = [...(form.socialSettings?.profiles || [])]
+                            next[idx] = { ...next[idx], icon: e.target.value }
+                            setForm({ ...form, socialSettings: { ...form.socialSettings!, profiles: next } })
+                          }}
+                          placeholder="Icon name"
+                          className="h-8 text-[10px] font-mono"
+                          title="FontAwesome icon name"
+                        />
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+
+              {/* Social Sharing */}
+              <div>
+                <h4 className="text-sm font-medium text-neutral-medium mb-3">Social Sharing</h4>
+                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+                  {form.socialSettings?.sharing.map((share, idx) => (
+                    <div key={share.network} className="flex items-center justify-between p-3 border border-line-low rounded-lg bg-backdrop-medium/30">
+                      <div className="flex items-center gap-3">
+                        <div className="w-8 h-8 rounded bg-backdrop-high flex items-center justify-center text-neutral-medium">
+                          <FontAwesomeIcon icon={getIconProp(share.icon)} />
+                        </div>
+                        <span className="text-xs font-medium text-neutral-high">{share.label}</span>
+                      </div>
+                      
+                      <div className="flex items-center gap-4">
+                        <div className="w-20">
+                          <Input
+                            value={share.icon}
+                            onChange={(e) => {
+                              const next = [...(form.socialSettings?.sharing || [])]
+                              next[idx] = { ...next[idx], icon: e.target.value }
+                              setForm({ ...form, socialSettings: { ...form.socialSettings!, sharing: next } })
+                            }}
+                            placeholder="Icon"
+                            className="h-7 text-[10px] font-mono px-2"
+                          />
+                        </div>
+                        <Checkbox
+                          id={`share-enable-${share.network}`}
+                          checked={share.enabled}
+                          onCheckedChange={(checked) => {
+                            const next = [...(form.socialSettings?.sharing || [])]
+                            next[idx] = { ...next[idx], enabled: checked === true }
+                            setForm({ ...form, socialSettings: { ...form.socialSettings!, sharing: next } })
+                          }}
+                        />
+                      </div>
+                    </div>
+                  ))}
+                </div>
+                <p className="text-xs text-neutral-low mt-2">
+                  Icons for sharing are FontAwesome icons. Some networks (email, copy link) have special handling.
+                </p>
+              </div>
+            </div>
+          </div>
+
           {/* Site Custom Fields */}
           {Array.isArray(form.customFieldDefs) && form.customFieldDefs.length > 0 && (
             <div className="border-t border-line-low pt-6">

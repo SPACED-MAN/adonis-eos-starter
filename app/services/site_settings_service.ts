@@ -8,6 +8,21 @@ type SiteSettings = {
   logoMediaId: string | null
   isMaintenanceMode: boolean
   profileRolesEnabled: string[]
+  socialSettings: {
+    profiles: Array<{
+      network: string
+      label: string
+      icon: string
+      url: string
+      enabled: boolean
+    }>
+    sharing: Array<{
+      network: string
+      label: string
+      icon: string
+      enabled: boolean
+    }>
+  } | null
 }
 
 class SiteSettingsService {
@@ -29,6 +44,7 @@ class SiteSettingsService {
       logoMediaId: row?.logoMediaId || null,
       isMaintenanceMode: !!row?.isMaintenanceMode,
       profileRolesEnabled: Array.isArray(row?.profileRolesEnabled) ? row.profileRolesEnabled : [],
+      socialSettings: row?.socialSettings || { profiles: [], sharing: [] },
     }
     this.cache = settings
     this.lastLoadedAt = now
@@ -46,6 +62,7 @@ class SiteSettingsService {
           logoMediaId: currentRow.logoMediaId,
           isMaintenanceMode: !!currentRow.isMaintenanceMode,
           profileRolesEnabled: currentRow.profileRolesEnabled || [],
+          socialSettings: currentRow.socialSettings || { profiles: [], sharing: [] },
         }
       : await this.get()
 
@@ -63,6 +80,7 @@ class SiteSettingsService {
       isMaintenanceMode:
         'isMaintenanceMode' in payload ? !!payload.isMaintenanceMode : current.isMaintenanceMode,
       profileRolesEnabled: payload.profileRolesEnabled ?? current.profileRolesEnabled ?? [],
+      socialSettings: payload.socialSettings ?? current.socialSettings,
     }
     if (currentRow) {
       currentRow.merge({
@@ -73,6 +91,7 @@ class SiteSettingsService {
         logoMediaId: next.logoMediaId,
         isMaintenanceMode: next.isMaintenanceMode,
         profileRolesEnabled: next.profileRolesEnabled,
+        socialSettings: next.socialSettings,
       })
       await currentRow.save()
     } else {
@@ -84,6 +103,7 @@ class SiteSettingsService {
         logoMediaId: next.logoMediaId,
         isMaintenanceMode: next.isMaintenanceMode,
         profileRolesEnabled: next.profileRolesEnabled,
+        socialSettings: next.socialSettings,
       })
     }
     this.cache = next

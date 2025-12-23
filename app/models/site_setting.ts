@@ -33,6 +33,9 @@ export default class SiteSetting extends BaseModel {
   @column({ columnName: 'profile_roles_enabled' })
   declare profileRolesEnabled: string[]
 
+  @column({ columnName: 'social_settings' })
+  declare socialSettings: any | null
+
   @column.dateTime({ autoCreate: true, columnName: 'created_at' })
   declare createdAt: DateTime
 
