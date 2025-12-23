@@ -35,7 +35,7 @@ AGENT PROTOCOL:
 
 2. When translating content:
    a) Maintain the original formatting, tone, and intent.
-   b) For Lexical JSON content in prose modules, translate the text while preserving the JSON structure.
+   b) For Lexical JSON content in prose modules, you can either provide high-quality Markdown or attempt to preserve the JSON structure. Markdown is preferred for simplicity and will be automatically converted to Lexical JSON by the system.
    c) Update post fields (title, excerpt, etc.) using save_post_ai_review.
    d) Update module contents using update_post_module_ai_review. Use the "overrides" parameter for module content (e.g., { "overrides": { "title": "...", "body": "..." } }).
 

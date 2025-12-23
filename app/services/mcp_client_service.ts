@@ -548,10 +548,46 @@ class MCPClientService {
 
       case 'update_post_module_ai_review': {
         const { postModuleId, locked, orderIndex } = params
-        const overrides = params.overrides || params.props // Accept both overrides and props
+        let overrides = params.overrides || params.props // Accept both overrides and props
 
         if (!postModuleId) {
           throw new Error('update_post_module_ai_review requires "postModuleId"')
+        }
+
+        // Automatic Markdown-to-Lexical conversion for RichText fields
+        if (overrides && typeof overrides === 'object') {
+          try {
+            // Find the module instance to get its type
+            const pm = await db.from('post_modules').where('id', postModuleId).first()
+            if (pm) {
+              const mi = await db.from('module_instances').where('id', pm.module_id).first()
+              if (mi && moduleRegistry.has(mi.type)) {
+                const schema = moduleRegistry.getSchema(mi.type)
+                const richTextFields = schema.fieldSchema
+                  .filter((f: any) => f.type === 'richtext')
+                  .map((f: any) => f.slug)
+
+                for (const key of Object.keys(overrides)) {
+                  if (richTextFields.includes(key)) {
+                    const val = overrides[key]
+                    if (typeof val === 'string' && val.trim() !== '') {
+                      // If it's a string, it's likely Markdown or plain text from an AI agent
+                      // Check if it's already JSON
+                      const trimmed = val.trim()
+                      const looksJson = trimmed.startsWith('{') || trimmed.startsWith('[')
+                      if (!looksJson) {
+                        // Convert to Lexical JSON
+                        overrides[key] = markdownToLexical(val, { skipFirstH1: false })
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          } catch (error) {
+            console.error('Failed to auto-convert Markdown to Lexical:', error)
+            // Continue anyway with raw overrides
+          }
         }
 
         await UpdatePostModule.handle({

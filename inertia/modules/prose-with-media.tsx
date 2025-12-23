@@ -232,10 +232,12 @@ function lexicalContentToHtml(content: LexicalJSON | string): string {
         const parsed = JSON.parse(trimmed)
         return renderLexicalToHtml(parsed)
       } catch {
-        return '<p>Invalid content format</p>'
+        // Fall back to treating the string as already-rendered HTML or plain text
+        return trimmed
       }
     }
-    return '<p>Invalid content format</p>'
+    // Fall back to treating the string as already-rendered HTML or plain text
+    return trimmed
   }
   return renderLexicalToHtml(content)
 }

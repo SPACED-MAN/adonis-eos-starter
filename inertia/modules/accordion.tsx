@@ -12,10 +12,11 @@ import { useState } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
 import { FontAwesomeIcon } from '../site/lib/icons'
 import { useInlineValue } from '../components/inline-edit/InlineEditorContext'
+import { renderLexicalToHtml } from './prose'
 
 interface AccordionItem {
   title: string
-  content: string
+  content: any // Lexical JSON or string
 }
 
 interface AccordionProps {
@@ -24,6 +25,23 @@ interface AccordionProps {
   defaultOpenIndex?: number
   __moduleId?: string
   _useReact?: boolean
+}
+
+function renderContent(content: any): string {
+  if (!content) return ''
+  if (typeof content === 'string') {
+    const trimmed = content.trim()
+    const looksJson = trimmed.startsWith('{') || trimmed.startsWith('[')
+    if (looksJson) {
+      try {
+        return renderLexicalToHtml(JSON.parse(trimmed))
+      } catch {
+        return content
+      }
+    }
+    return content
+  }
+  return renderLexicalToHtml(content)
 }
 
 export default function Accordion({
@@ -78,6 +96,7 @@ export default function Accordion({
     <div className="space-y-2">
       {items.map((item, index) => {
         const isOpen = openIndices.has(index)
+        const htmlContent = renderContent(item.content)
 
         const accordionItem = (
           <div key={index} className="border border-border rounded-lg overflow-hidden">
@@ -116,7 +135,7 @@ export default function Accordion({
                       className="text-neutral-medium prose max-w-none"
                       data-inline-type="richtext"
                       data-inline-path={`items.${index}.content`}
-                      dangerouslySetInnerHTML={{ __html: item.content }}
+                      dangerouslySetInnerHTML={{ __html: htmlContent }}
                     />
                   </div>
                 </motion.div>

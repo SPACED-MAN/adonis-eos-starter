@@ -10,6 +10,7 @@ import internalAgentExecutor from '#services/internal_agent_executor'
 import type { AgentExecutionContext } from '#types/agent_types'
 import moduleRegistry from '#services/module_registry'
 import agentExecutionService from '#services/agent_execution_service'
+import { markdownToLexical } from '#helpers/markdown_to_lexical'
 
 export default class AgentsController {
   /**
@@ -713,15 +714,32 @@ export default class AgentsController {
                     }
                   }
 
-                  // Get current effective props (base + existing draft) - this is what the user sees in the current mode
-                  const currentEffectiveProps = deepMerge(baseProps, existingDraftProps)
-
                   // Merge current effective props with new suggested props
                   // This ensures we preserve all existing props and only update what's changed
-                  const mergedDraftProps = deepMerge(
-                    currentEffectiveProps,
-                    suggestedModule.props || {}
-                  )
+                  const propsToApply = { ...(suggestedModule.props || {}) }
+
+                  // Automatic Markdown-to-Lexical conversion for RichText fields
+                  if (moduleRegistry.has(targetModule.moduleType)) {
+                    const schema = moduleRegistry.getSchema(targetModule.moduleType)
+                    const richTextFields = schema.fieldSchema
+                      .filter((f: any) => f.type === 'richtext')
+                      .map((f: any) => f.slug)
+
+                    for (const key of Object.keys(propsToApply)) {
+                      if (richTextFields.includes(key)) {
+                        const val = propsToApply[key]
+                        if (typeof val === 'string' && val.trim() !== '') {
+                          const trimmed = val.trim()
+                          const looksJson = trimmed.startsWith('{') || trimmed.startsWith('[')
+                          if (!looksJson) {
+                            propsToApply[key] = markdownToLexical(val, { skipFirstH1: false })
+                          }
+                        }
+                      }
+                    }
+                  }
+
+                  const mergedDraftProps = deepMerge(currentEffectiveProps, propsToApply)
 
                   // Update module instance props based on view mode
                   if (targetViewMode === 'source') {
