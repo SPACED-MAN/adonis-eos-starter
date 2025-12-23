@@ -1,6 +1,6 @@
 import type { ModuleConfig, ModuleRenderContext, MergedModuleData } from '#types/module_types'
 
-export type RenderingMode = 'static' | 'react'
+export type RenderingMode = 'static' | 'react' | 'hybrid'
 
 /**
  * Base class for all modules
@@ -16,13 +16,14 @@ export default abstract class BaseModule {
   abstract getConfig(): ModuleConfig
 
   /**
-   * Rendering mode: 'static' (default) or 'react'
+   * Rendering mode: 'static' (default), 'react', or 'hybrid'
    *
    * - 'static': Pure SSR, no client-side hydration (best performance)
    * - 'react': SSR + hydration for interactive components
+   * - 'hybrid': Instance-level choice. Adds a toggle to opt-in to React.
    *
-   * Default: 'static' – opt in to 'react' only for modules that truly
-   * need client-side interactivity.
+   * Default: 'static' – opt in to 'react' or 'hybrid' only for modules
+   * that truly need client-side interactivity or optional animations.
    */
   getRenderingMode(): RenderingMode {
     return 'static'

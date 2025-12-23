@@ -67,7 +67,7 @@ export interface PageRenderData {
     id: string
     type: string
     componentName: string
-    renderingMode: 'static' | 'react'
+    renderingMode: 'static' | 'react' | 'hybrid'
     props: Record<string, unknown>
     html?: string
     sourceProps?: Record<string, unknown> | null
@@ -290,7 +290,12 @@ class PostRenderingService {
     return moduleStates.map(({ pm, mergedProps, module }) => {
       const finalProps = injectResolved(mergedProps)
       const componentName = module.getComponentName()
-      const renderingMode = module.getRenderingMode()
+      
+      // Resolve rendering mode (hybrid logic)
+      let renderingMode = module.getRenderingMode()
+      if (renderingMode === 'hybrid') {
+        renderingMode = finalProps._useReact === true ? 'react' : 'static'
+      }
 
       return {
         id: pm.id,

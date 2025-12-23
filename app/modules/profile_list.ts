@@ -2,6 +2,13 @@ import BaseModule from '#modules/base'
 import type { ModuleConfig } from '#types/module_types'
 
 export default class ProfileListModule extends BaseModule {
+  /**
+   * Profile list supports hybrid rendering for staggered entrance animations.
+   */
+  getRenderingMode() {
+    return 'hybrid' as const
+  }
+
   getConfig(): ModuleConfig {
     return {
       type: 'profile-list',

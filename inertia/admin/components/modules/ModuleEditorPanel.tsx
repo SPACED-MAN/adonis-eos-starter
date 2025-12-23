@@ -15,12 +15,19 @@ import {
   SelectItem,
 } from '~/components/ui/select'
 import { FormField, FormLabel } from '~/components/forms/field'
+import { LabelWithDescription } from '~/components/forms/LabelWithDescription'
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
+} from '~/components/ui/tooltip'
 import { LinkField, type LinkFieldValue } from '~/components/forms/LinkField'
 import { MediaPickerModal } from '../media/MediaPickerModal'
 import { pickMediaVariantUrl, type MediaVariant } from '../../../lib/media'
 import { MediaRenderer } from '../../../components/MediaRenderer'
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome'
-import { faWandMagicSparkles } from '@fortawesome/free-solid-svg-icons'
+import { faWandMagicSparkles, faCircleInfo } from '@fortawesome/free-solid-svg-icons'
 import { iconOptions, iconMap } from '../ui/iconOptions'
 import { AgentModal, type Agent } from '../agents/AgentModal'
 import { useHasPermission } from '~/utils/permissions'
@@ -1590,6 +1597,7 @@ const DateFieldInternal = memo(({
   hideLabel,
   initial,
   ctx,
+  field,
 }: {
   name: string
   label: string
@@ -1597,6 +1605,7 @@ const DateFieldInternal = memo(({
   hideLabel: boolean
   initial: string
   ctx: EditorFieldCtx
+  field?: CustomFieldDefinition
 }) => {
   const initialDate = initial ? new Date(initial) : null
   const [selected, setSelected] = useState<Date | null>(initialDate)
@@ -1612,7 +1621,11 @@ const DateFieldInternal = memo(({
 
   return (
     <FormField>
-      {!hideLabel && <FormLabel>{label}</FormLabel>}
+      <LabelWithDescription
+        label={label}
+        description={(field as any)?.description}
+        hideLabel={hideLabel}
+      />
       <Popover>
         <PopoverTrigger asChild>
           <button
@@ -1680,7 +1693,11 @@ const SliderFieldInternal = memo(({
 
   return (
     <FormField>
-      {!hideLabel && <FormLabel>{label}</FormLabel>}
+      <LabelWithDescription
+        label={label}
+        description={(field as any)?.description}
+        hideLabel={hideLabel}
+      />
       <Slider
         defaultValue={[current]}
         min={min}
@@ -1925,7 +1942,11 @@ const MediaFieldInternal = memo(({
   return (
     <FormField className="group">
       <div className="flex items-center justify-between">
-        {!hideLabel && <FormLabel>{label}</FormLabel>}
+        <LabelWithDescription
+          label={label}
+          description={(field as any)?.description}
+          hideLabel={hideLabel}
+        />
         {matchingAgents.length > 0 && (
           <button
             type="button"
@@ -2079,6 +2100,7 @@ const IconFieldInternal = memo(({
   rootId,
   hideLabel,
   ctx,
+  field,
 }: {
   name: string
   label: string
@@ -2086,6 +2108,7 @@ const IconFieldInternal = memo(({
   rootId: string
   hideLabel: boolean
   ctx: EditorFieldCtx
+  field?: CustomFieldDefinition
 }) => {
   const initial = typeof value === 'string' ? value : ''
   const [selectedIcon, setSelectedIcon] = useState<string>(initial)
@@ -2094,7 +2117,11 @@ const IconFieldInternal = memo(({
 
   return (
     <FormField>
-      {!hideLabel && <FormLabel>{label}</FormLabel>}
+      <LabelWithDescription
+        label={label}
+        description={(field as any)?.description}
+        hideLabel={hideLabel}
+      />
       <Popover open={pickerOpen} onOpenChange={setPickerOpen}>
         <PopoverTrigger asChild>
           <button
@@ -2225,7 +2252,11 @@ const PostReferenceFieldInternal = memo(({
 
   return (
     <FormField>
-      {!hideLabel && <FormLabel>{label}</FormLabel>}
+      <LabelWithDescription
+        label={label}
+        description={(field as any)?.description}
+        hideLabel={hideLabel}
+      />
       <Popover>
         <PopoverTrigger asChild>
           <button
@@ -2335,7 +2366,11 @@ const FormReferenceFieldInternal = memo(({
 
   return (
     <FormField>
-      {!hideLabel && <FormLabel>{label}</FormLabel>}
+      <LabelWithDescription
+        label={label}
+        description={(field as any)?.description}
+        hideLabel={hideLabel}
+      />
       <Select defaultValue={initial || undefined} onValueChange={setCurrent}>
         <SelectTrigger>
           <SelectValue placeholder="Select a form" />
@@ -2391,7 +2426,11 @@ const SelectFieldInternal = memo(({
     const hiddenRef = useRef<HTMLInputElement | null>(null)
     return (
       <FormField>
-        {!hideLabel && <FormLabel>{label}</FormLabel>}
+        <LabelWithDescription
+          label={label}
+          description={(field as any)?.description}
+          hideLabel={hideLabel}
+        />
         <Select
           defaultValue={initial || undefined}
           onValueChange={(val) => {
@@ -2440,7 +2479,11 @@ const SelectFieldInternal = memo(({
     }, [vals])
     return (
       <FormField>
-        {!hideLabel && <FormLabel>{label}</FormLabel>}
+        <LabelWithDescription
+          label={label}
+          description={(field as any)?.description}
+          hideLabel={hideLabel}
+        />
         {vals.length > 0 && (
           <div className="flex flex-wrap gap-2 mb-2">
             {vals.map((v) => (
@@ -2636,9 +2679,11 @@ const FieldPrimitiveInternal = memo(({
     }
     if (type === 'taxonomy') props.taxonomySlug = cfg.taxonomySlug
 
+    const description = cfg.description
+
     return (
       <FormField>
-        {!hideLabel && <FormLabel>{label}</FormLabel>}
+        <LabelWithDescription label={label} description={description} hideLabel={hideLabel} />
         <Renderer {...props} />
         <input
           ref={hiddenRef}
@@ -2673,6 +2718,8 @@ const FieldPrimitiveInternal = memo(({
         rootId={rootId}
         hideLabel={hideLabel}
         initial={typeof value === 'string' ? value : ''}
+        ctx={ctx}
+        field={field}
       />
     )
   }
@@ -2691,7 +2738,11 @@ const FieldPrimitiveInternal = memo(({
   if (type === 'textarea') {
     return (
       <FormField>
-        {!hideLabel && <FormLabel>{label}</FormLabel>}
+        <LabelWithDescription
+          label={label}
+          description={(field as any).description}
+          hideLabel={hideLabel}
+        />
         <TokenField
           type="textarea"
           name={name}
@@ -2729,13 +2780,18 @@ const FieldPrimitiveInternal = memo(({
         rootId={rootId}
         hideLabel={hideLabel}
         ctx={ctx}
+        field={field}
       />
     )
   }
   if (type === 'number') {
     return (
       <FormField>
-        {!hideLabel && <FormLabel>{label}</FormLabel>}
+        <LabelWithDescription
+          label={label}
+          description={(field as any).description}
+          hideLabel={hideLabel}
+        />
         <Input type="number" name={name} defaultValue={value ?? 0} data-root-id={rootId} />
       </FormField>
     )
@@ -2817,7 +2873,11 @@ const FieldPrimitiveInternal = memo(({
   // text, url fallback to text input
   return (
     <FormField>
-      {!hideLabel && <FormLabel>{label}</FormLabel>}
+      <LabelWithDescription
+        label={label}
+        description={(field as any)?.description}
+        hideLabel={hideLabel}
+      />
       <TokenField
         type="text"
         name={name}

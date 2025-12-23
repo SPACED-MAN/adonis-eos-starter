@@ -3,11 +3,10 @@ import type { ModuleConfig } from '#types/module_types'
 
 export default class ReadingProgressModule extends BaseModule {
   /**
-   * Reading progress is an interactive, client-side module that hooks into
-   * scroll/resize events, so it must be rendered as a React module.
+   * Reading progress is now a static module.
    */
   getRenderingMode() {
-    return 'react' as const
+    return 'static' as const
   }
 
   public getConfig(): ModuleConfig {

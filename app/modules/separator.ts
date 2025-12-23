@@ -9,7 +9,7 @@ import type { ModuleConfig } from '#types/module_types'
  */
 export default class SeparatorModule extends BaseModule {
   /**
-   * Rendering mode: Static (pure SSR, no fields, no interactivity)
+   * Rendering mode: Static
    */
   getRenderingMode() {
     return 'static' as const

@@ -11,10 +11,10 @@ import type { ModuleConfig } from '#types/module_types'
  */
 export default class BreadcrumbModule extends BaseModule {
   /**
-   * Rendering mode: React (SSR + hydration)
+   * Rendering mode: Static
    */
   getRenderingMode() {
-    return 'react' as const
+    return 'static' as const
   }
 
   /**

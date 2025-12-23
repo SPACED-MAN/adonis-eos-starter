@@ -2,6 +2,13 @@ import BaseModule from '#modules/base'
 import type { ModuleConfig } from '#types/module_types'
 
 export default class HeroWithCalloutModule extends BaseModule {
+  /**
+   * Hero with callout supports hybrid rendering for entrance animations.
+   */
+  getRenderingMode() {
+    return 'hybrid' as const
+  }
+
   getConfig(): ModuleConfig {
     return {
       type: 'hero-with-callout',

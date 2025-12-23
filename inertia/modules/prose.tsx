@@ -1,11 +1,4 @@
-/**
- * Prose Module
- *
- * Pure SSR-friendly component for rich text content from the Lexical editor.
- * Rendering mode (static vs React) is controlled by the backend module's
- * `getRenderingMode()` – this component is shared between admin preview
- * and the public site.
- */
+import { motion } from 'framer-motion'
 import { useInlineValue } from '../components/inline-edit/InlineEditorContext'
 
 interface LexicalJSON {
@@ -27,6 +20,7 @@ interface ProseProps {
   textAlign?: 'left' | 'center' | 'right' | 'justify' // Alignment inside prose
   padding?: string // Tailwind class
   __moduleId?: string
+  _useReact?: boolean
 }
 
 export default function Prose({
@@ -39,6 +33,7 @@ export default function Prose({
   textAlign: initialTextAlign = 'left',
   padding: initialPadding = 'py-12',
   __moduleId,
+  _useReact,
 }: ProseProps) {
   const content = useInlineValue(__moduleId, 'content', initialContent)
   const maxWidth = useInlineValue(__moduleId, 'maxWidth', initialMaxWidth)
@@ -71,29 +66,49 @@ export default function Prose({
     htmlContent = renderLexicalToHtml(content)
   }
 
+  const innerContent = (
+    <div className="container mx-auto px-4 sm:px-6 lg:px-8">
+      <div className={`w-full ${maxWidth}`}>
+        <div
+          className={`prose max-w-none ${fontSize} ${textColor} ${textAlign === 'center'
+            ? 'text-center'
+            : textAlign === 'right'
+              ? 'text-right'
+              : textAlign === 'justify'
+                ? 'text-justify'
+                : 'text-left'
+            }`}
+          suppressHydrationWarning
+          data-inline-type="richtext"
+          data-inline-path="content"
+          dangerouslySetInnerHTML={{ __html: htmlContent }}
+        />
+      </div>
+    </div>
+  )
+
+  if (_useReact) {
+    return (
+      <motion.section
+        initial={{ opacity: 0, y: 30 }}
+        whileInView={{ opacity: 1, y: 0 }}
+        viewport={{ once: true, margin: '-100px' }}
+        transition={{ duration: 1.0, ease: 'easeOut' }}
+        className={`${backgroundColor} ${padding}`}
+        data-module="prose"
+      >
+        {innerContent}
+      </motion.section>
+    )
+  }
+
   return (
     <section className={`${backgroundColor} ${padding}`} data-module="prose">
-      <div className="container mx-auto px-4 sm:px-6 lg:px-8">
-        <div className={`w-full ${maxWidth}`}>
-          <div
-            className={`prose max-w-none ${fontSize} ${textColor} ${textAlign === 'center'
-              ? 'text-center'
-              : textAlign === 'right'
-                ? 'text-right'
-                : textAlign === 'justify'
-                  ? 'text-justify'
-                  : 'text-left'
-              }`}
-            suppressHydrationWarning
-            data-inline-type="richtext"
-            data-inline-path="content"
-            dangerouslySetInnerHTML={{ __html: htmlContent }}
-          />
-        </div>
-      </div>
+      {innerContent}
     </section>
   )
 }
+
 
 /**
  * Escape HTML entities to prevent code injection and render code as text

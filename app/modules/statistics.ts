@@ -2,8 +2,12 @@ import BaseModule from '#modules/base'
 import type { ModuleConfig } from '#types/module_types'
 
 export default class StatisticsModule extends BaseModule {
+  /**
+   * Statistics module can be hybrid to support animated counters
+   * when interactivity is enabled.
+   */
   getRenderingMode() {
-    return 'react' as const
+    return 'hybrid' as const
   }
 
   getConfig(): ModuleConfig {

@@ -1,6 +1,7 @@
 import React, { useMemo } from 'react'
 import { CustomFieldDefinition } from '~/types/custom_field'
 import { Input } from '~/components/ui/input'
+import { LabelWithDescription } from '~/components/forms/LabelWithDescription'
 
 interface CustomFieldRendererProps {
   definitions: CustomFieldDefinition[]
@@ -80,9 +81,7 @@ export function CustomFieldRenderer({
     if (f.type === 'object' && f.fields) {
       return (
         <div key={f.slug} className="space-y-2">
-          <label className="block text-[11px] font-bold text-neutral-medium uppercase tracking-wider mb-1.5 ml-1">
-            {f.label}
-          </label>
+          <LabelWithDescription label={f.label} description={f.description} />
           <div className="pl-4 border-l-2 border-line-low ml-1">
             <CustomFieldRenderer
               definitions={f.fields}
@@ -105,9 +104,7 @@ export function CustomFieldRenderer({
       const items = Array.isArray(val) ? val : []
       return (
         <div key={f.slug} className="space-y-4">
-          <label className="block text-[11px] font-bold text-neutral-medium uppercase tracking-wider mb-1.5 ml-1">
-            {f.label}
-          </label>
+          <LabelWithDescription label={f.label} description={f.description} />
           <div className="space-y-4 pl-4 border-l-2 border-line-low ml-1">
             {items.map((itemVal, idx) => (
               <div key={idx} className="relative group p-4 bg-backdrop-medium/5 rounded-lg border border-line-low">
@@ -162,9 +159,7 @@ export function CustomFieldRenderer({
     if (Renderer) {
       return (
         <div key={f.slug}>
-          <label className="block text-[11px] font-bold text-neutral-medium uppercase tracking-wider mb-1.5 ml-1">
-            {f.label}
-          </label>
+          <LabelWithDescription label={f.label} description={f.description} />
           <Renderer
             value={val ?? null}
             onChange={handleChange}
@@ -179,9 +174,7 @@ export function CustomFieldRenderer({
     // Fallback
     return (
       <div key={f.slug}>
-        <label className="block text-[11px] font-bold text-neutral-medium uppercase tracking-wider mb-1.5 ml-1">
-          {f.label}
-        </label>
+        <LabelWithDescription label={f.label} description={f.description} />
         <Input
           value={typeof val === 'string' ? val : ''}
           onChange={(e) => handleChange(e.target.value)}

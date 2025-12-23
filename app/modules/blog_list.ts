@@ -2,6 +2,14 @@ import BaseModule from '#modules/base'
 import type { ModuleConfig } from '#types/module_types'
 
 export default class BlogListModule extends BaseModule {
+  /**
+   * Blog list can be hybrid to support staggered entry animations
+   * when interactivity is enabled.
+   */
+  getRenderingMode() {
+    return 'hybrid' as const
+  }
+
   getConfig(): ModuleConfig {
     return {
       type: 'blog-list',

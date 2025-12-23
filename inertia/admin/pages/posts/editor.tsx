@@ -418,15 +418,23 @@ function ModuleRowBase({
             </div>
 
             <div className="flex items-center gap-2 shrink-0">
-              {moduleRegistry[m.type]?.renderingMode === 'react' && (
-                <span
-                  className="inline-flex items-center rounded-full border border-sky-500/20 bg-sky-500/5 px-2 py-0.5 text-[10px] font-bold text-sky-500 uppercase tracking-tight"
-                  title="React module"
-                >
-                  <FontAwesomeIcon icon={faReact} className="mr-1" />
-                  React
-                </span>
-              )}
+              {(() => {
+                const mode = moduleRegistry[m.type]?.renderingMode
+                const isReact = mode === 'react' || (mode === 'hybrid' && (m.props?._useReact === true || m.reviewProps?._useReact === true || m.aiReviewProps?._useReact === true))
+
+                if (isReact) {
+                  return (
+                    <span
+                      className="inline-flex items-center rounded-full border border-sky-500/20 bg-sky-500/5 px-2 py-0.5 text-[10px] font-bold text-sky-500 uppercase tracking-tight"
+                      title={mode === 'hybrid' ? 'React enabled via hybrid mode' : 'React module'}
+                    >
+                      <FontAwesomeIcon icon={faReact} className="mr-1" />
+                      React
+                    </span>
+                  )
+                }
+                return null
+              })()}
               {m.scope === 'global' && (
                 <span
                   className="inline-flex items-center rounded-full border border-amber-500/20 bg-amber-500/5 px-2 py-0.5 text-[10px] font-bold text-amber-500 uppercase tracking-tight"

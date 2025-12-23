@@ -1,9 +1,3 @@
-/**
- * Separator Module
- *
- * Simple horizontal rule divider with no client-side interactivity.
- */
-
 export default function Separator() {
   return (
     <section className="py-8" data-module="separator">

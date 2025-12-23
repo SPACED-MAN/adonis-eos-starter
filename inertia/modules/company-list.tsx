@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react'
+import { motion } from 'framer-motion'
 import { useInlineEditor, useInlineValue } from '../components/inline-edit/InlineEditorContext'
 import { FontAwesomeIcon } from '../site/lib/icons'
 import { pickMediaVariantUrl } from '../lib/media'
@@ -10,6 +11,7 @@ interface CompanyListProps {
   // IDs of Company posts selected via post-reference field; if empty, show all.
   companies?: string[] | null
   __moduleId?: string
+  _useReact?: boolean
 }
 
 type CompanySummary = {
@@ -25,6 +27,7 @@ export default function CompanyList({
   subtitle: initialSubtitle,
   companies: initialCompanies,
   __moduleId,
+  _useReact,
 }: CompanyListProps) {
   const [items, setItems] = useState<CompanySummary[]>([])
   const [loading, setLoading] = useState(true)
@@ -104,21 +107,120 @@ export default function CompanyList({
     }
   }, [JSON.stringify(companies ?? [])])
 
+  const containerVariants = {
+    hidden: { opacity: 0 },
+    visible: {
+      opacity: 1,
+      transition: {
+        staggerChildren: 0.05,
+      },
+    },
+  }
+
+  const itemVariants = {
+    hidden: { opacity: 0, scale: 0.7, y: 10 },
+    visible: {
+      opacity: 1,
+      scale: 1,
+      y: 0,
+      transition: { duration: 0.6, ease: 'easeOut' },
+    },
+  }
+
+  const headerContent = (
+    <>
+      {_useReact ? (
+        <motion.h2
+          initial={{ opacity: 0, y: -20 }}
+          whileInView={{ opacity: 1, y: 0 }}
+          viewport={{ once: true }}
+          transition={{ duration: 0.8 }}
+          className="mb-8 lg:mb-16 text-3xl md:text-4xl font-extrabold tracking-tight leading-tight text-center text-neutral-high"
+          data-inline-path="title"
+        >
+          {title}
+        </motion.h2>
+      ) : (
+        <h2
+          className="mb-8 lg:mb-16 text-3xl md:text-4xl font-extrabold tracking-tight leading-tight text-center text-neutral-high"
+          data-inline-path="title"
+        >
+          {title}
+        </h2>
+      )}
+      {subtitle &&
+        (_useReact ? (
+          <motion.p
+            initial={{ opacity: 0 }}
+            whileInView={{ opacity: 1 }}
+            viewport={{ once: true }}
+            transition={{ duration: 0.8, delay: 0.2 }}
+            className="max-w-2xl mx-auto mb-10 text-center font-light text-neutral-medium sm:text-xl"
+            data-inline-path="subtitle"
+          >
+            {subtitle}
+          </motion.p>
+        ) : (
+          <p
+            className="max-w-2xl mx-auto mb-10 text-center font-light text-neutral-medium sm:text-xl"
+            data-inline-path="subtitle"
+          >
+            {subtitle}
+          </p>
+        ))}
+      {enabled && (
+        <div className="mb-6 text-center">
+          <button
+            type="button"
+            className="inline-flex items-center gap-2 text-xs text-neutral-low underline underline-offset-2"
+            data-inline-type="post-reference"
+            data-inline-path="companies"
+            data-inline-multi="true"
+            data-inline-post-type="company"
+            aria-label="Edit companies"
+          >
+            <FontAwesomeIcon icon="pencil" className="w-3 h-3" />
+            Edit companies ({items.length})
+          </button>
+        </div>
+      )}
+    </>
+  )
+
+  const gridContent = (
+    <div className="grid grid-cols-2 gap-8 text-neutral-medium sm:gap-12 md:grid-cols-3 lg:grid-cols-6">
+      {items.map((c) => {
+        const teaser = (
+          <CompanyTeaser
+            key={c.id}
+            id={c.id}
+            title={c.title}
+            imageUrl={c.imageUrl}
+            url={`/posts/${encodeURIComponent(c.slug)}`}
+          />
+        )
+        return _useReact ? (
+          <motion.div key={c.id} variants={itemVariants} className="flex justify-center items-center">
+            {teaser}
+          </motion.div>
+        ) : (
+          <div key={c.id} className="flex justify-center items-center">
+            {teaser}
+          </div>
+        )
+      })}
+    </div>
+  )
+
   if (loading && items.length === 0) {
     return (
       <section className="bg-backdrop-low py-8 lg:py-16" data-module="company-list">
         <div className="container mx-auto px-4 lg:px-6">
-          <h2
-            className="mb-4 lg:mb-8 text-3xl md:text-4xl font-extrabold tracking-tight text-center text-neutral-high"
-            data-inline-path="title"
-          >
+          <h2 className="mb-4 lg:mb-8 text-3xl md:text-4xl font-extrabold tracking-tight text-center text-neutral-high">
             {title}
           </h2>
           {subtitle && (
-            <p
-              className="max-w-2xl mx-auto text-center font-light text-neutral-medium sm:text-xl"
-              data-inline-path="subtitle"
-            >
+            <p className="max-w-2xl mx-auto text-center font-light text-neutral-medium sm:text-xl">
               {subtitle}
             </p>
           )}
@@ -135,48 +237,21 @@ export default function CompanyList({
   return (
     <section className="bg-backdrop-low py-8 lg:py-16" data-module="company-list">
       <div className="container mx-auto px-4 lg:px-6">
-        <h2
-          className="mb-8 lg:mb-16 text-3xl md:text-4xl font-extrabold tracking-tight leading-tight text-center text-neutral-high"
-          data-inline-path="title"
-        >
-          {title}
-        </h2>
-        {subtitle && (
-          <p
-            className="max-w-2xl mx-auto mb-10 text-center font-light text-neutral-medium sm:text-xl"
-            data-inline-path="subtitle"
+        {headerContent}
+        {_useReact ? (
+          <motion.div
+            initial="hidden"
+            whileInView="visible"
+            viewport={{ once: true, margin: '-50px' }}
+            variants={containerVariants}
           >
-            {subtitle}
-          </p>
+            {gridContent}
+          </motion.div>
+        ) : (
+          gridContent
         )}
-        {enabled && (
-          <div className="mb-6 text-center">
-            <button
-              type="button"
-              className="inline-flex items-center gap-2 text-xs text-neutral-low underline underline-offset-2"
-              data-inline-type="post-reference"
-              data-inline-path="companies"
-              data-inline-multi="true"
-              data-inline-post-type="company"
-              aria-label="Edit companies"
-            >
-              <FontAwesomeIcon icon="pencil" className="w-3 h-3" />
-              Edit companies ({items.length})
-            </button>
-          </div>
-        )}
-        <div className="grid grid-cols-2 gap-8 text-neutral-medium sm:gap-12 md:grid-cols-3 lg:grid-cols-6">
-          {items.map((c) => (
-            <CompanyTeaser
-              key={c.id}
-              id={c.id}
-              title={c.title}
-              imageUrl={c.imageUrl}
-              url={`/posts/${encodeURIComponent(c.slug)}`}
-            />
-          ))}
-        </div>
       </div>
     </section>
   )
 }
+

@@ -9,6 +9,7 @@
  */
 
 import { useState, useEffect, useMemo } from 'react'
+import { motion, AnimatePresence } from 'framer-motion'
 import { pickMediaVariantUrl } from '../lib/media'
 import type { Image } from './types'
 
@@ -16,18 +17,24 @@ interface GalleryProps {
   images: Image[]
   layout?: 'grid' | 'masonry'
   columns?: number
+  _useReact?: boolean
 }
 
-export default function Gallery({ images, layout = 'grid', columns = 3 }: GalleryProps) {
+export default function Gallery({
+  images,
+  layout = 'grid',
+  columns = 3,
+  _useReact,
+}: GalleryProps) {
   // Resolved images with URLs (media IDs converted to actual URLs)
   const [resolvedImages, setResolvedImages] = useState<Image[]>([])
 
   // Extract unique media IDs from images (where url looks like a UUID)
   const mediaIds = useMemo(() => {
     const ids: string[] = []
-    const uuidRegex = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i
+    const uuidRegex = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i
     images.forEach((img) => {
-      if (img.url && uuidRegex.test(img.url)) {
+      if (img.url && (uuidRegex.test(img.url) || img.url.length === 36)) {
         ids.push(img.url)
       }
     })
@@ -75,8 +82,8 @@ export default function Gallery({ images, layout = 'grid', columns = 3 }: Galler
       // Map images to resolved URLs
       const resolved = images.map((img) => {
         // If url looks like a UUID, resolve it; otherwise use as-is
-        const uuidRegex = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i
-        if (img.url && uuidRegex.test(img.url)) {
+        const uuidRegex = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i
+        if (img.url && (uuidRegex.test(img.url) || img.url.length === 36)) {
           const resolvedUrl = urlMap.get(img.url) || img.url
           return { ...img, url: resolvedUrl }
         }
@@ -134,120 +141,182 @@ export default function Gallery({ images, layout = 'grid', columns = 3 }: Galler
 
   const gridClass = layout === 'grid' ? `grid grid-cols-${columns} gap-4` : 'columns-3 gap-4'
 
+  const containerVariants = {
+    hidden: { opacity: 0 },
+    visible: {
+      opacity: 1,
+      transition: {
+        staggerChildren: 0.08,
+      },
+    },
+  }
+
+  const itemVariants = {
+    hidden: { opacity: 0, scale: 0.9, y: 20 },
+    visible: {
+      opacity: 1,
+      scale: 1,
+      y: 0,
+      transition: { duration: 0.8, ease: 'easeOut' },
+    },
+  }
+
+  const gridContent = (
+    <div className={gridClass}>
+      {displayImages.map((image, idx) => {
+        const hasCaption = image.caption?.trim()
+        const altMatchesCaption = hasCaption && image.alt?.trim() === hasCaption
+        const altText = altMatchesCaption
+          ? `Image ${idx + 1}${hasCaption ? `: ${hasCaption.substring(0, 50)}` : ''}`
+          : image.alt || (hasCaption ? `Image ${idx + 1}` : `Gallery image ${idx + 1}`)
+
+        const item = (
+          <figure
+            key={idx}
+            className="cursor-pointer overflow-hidden rounded-lg transition-all hover:ring-2 hover:ring-primary/50 aspect-square group bg-backdrop-medium"
+            onClick={() => openLightbox(idx)}
+          >
+            <img
+              src={image.url}
+              alt={altText}
+              className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-110"
+              loading="lazy"
+              decoding="async"
+            />
+            {hasCaption && (
+              <figcaption className="p-2 text-sm text-neutral-low truncate bg-backdrop-high/80">
+                {image.caption}
+              </figcaption>
+            )}
+          </figure>
+        )
+
+        return _useReact ? (
+          <motion.div key={idx} variants={itemVariants}>
+            {item}
+          </motion.div>
+        ) : (
+          <div key={idx}>{item}</div>
+        )
+      })}
+    </div>
+  )
+
   return (
     <div className="gallery-module py-8" data-module="gallery">
       {/* Gallery Grid */}
-      <div className={gridClass}>
-        {displayImages.map((image, idx) => {
-          // Avoid redundant alt text - if alt exactly matches caption, use a concise alternative
-          // This prevents screen readers from reading the same text twice
-          const hasCaption = image.caption?.trim()
-          const altMatchesCaption = hasCaption && image.alt?.trim() === hasCaption
-          const altText = altMatchesCaption
-            ? `Image ${idx + 1}${hasCaption ? `: ${hasCaption.substring(0, 50)}` : ''}`
-            : image.alt || (hasCaption ? `Image ${idx + 1}` : `Gallery image ${idx + 1}`)
-
-          return (
-            <figure
-              key={idx}
-              className="cursor-pointer overflow-hidden rounded-lg transition-transform hover:scale-105 aspect-square"
-              onClick={() => openLightbox(idx)}
-            >
-              <img
-                src={image.url}
-                alt={altText}
-                className="w-full h-full object-cover"
-                loading="lazy"
-                decoding="async"
-              />
-              {hasCaption && (
-                <figcaption className="p-2 text-sm text-neutral-low">{image.caption}</figcaption>
-              )}
-            </figure>
-          )
-        })}
-      </div>
+      {_useReact ? (
+        <motion.div
+          initial="hidden"
+          whileInView="visible"
+          viewport={{ once: true, margin: '-100px' }}
+          variants={containerVariants}
+        >
+          {gridContent}
+        </motion.div>
+      ) : (
+        gridContent
+      )}
 
       {/* Lightbox */}
-      {lightboxOpen && (
-        <div
-          className="fixed inset-0 z-50 bg-black/90 flex items-center justify-center p-4"
-          onClick={closeLightbox}
-          onKeyDown={handleKeyDown}
-          tabIndex={0}
-          role="dialog"
-          aria-modal="true"
-        >
-          {/* Close Button */}
-          <button
+      <AnimatePresence>
+        {lightboxOpen && (
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            className="fixed inset-0 z-50 bg-black/90 flex items-center justify-center p-4 backdrop-blur-sm"
             onClick={closeLightbox}
-            className="absolute top-4 right-4 text-white text-4xl hover:text-neutral-low transition"
-            aria-label="Close lightbox"
+            onKeyDown={handleKeyDown}
+            tabIndex={0}
+            role="dialog"
+            aria-modal="true"
           >
-            ×
-          </button>
-
-          {/* Previous Button */}
-          {displayImages.length > 1 && (
+            {/* Close Button */}
             <button
-              onClick={(e) => {
-                e.stopPropagation()
-                prevImage()
-              }}
-              className="absolute left-4 text-white text-4xl hover:text-neutral-low transition"
-              aria-label="Previous image"
+              onClick={closeLightbox}
+              className="absolute top-4 right-4 text-white text-4xl hover:text-neutral-low transition-colors z-10"
+              aria-label="Close lightbox"
             >
-              ‹
+              ×
             </button>
-          )}
 
-          {/* Image */}
-          <div className="max-w-7xl max-h-full" onClick={(e) => e.stopPropagation()}>
-            {(() => {
-              const currentImage = displayImages[currentIndex]
-              const hasCaption = currentImage.caption?.trim()
-              const altMatchesCaption = hasCaption && currentImage.alt?.trim() === hasCaption
-              const altText = altMatchesCaption
-                ? `Image ${currentIndex + 1}${hasCaption ? `: ${hasCaption.substring(0, 50)}` : ''}`
-                : currentImage.alt ||
-                  (hasCaption ? `Image ${currentIndex + 1}` : `Gallery image ${currentIndex + 1}`)
+            {/* Previous Button */}
+            {displayImages.length > 1 && (
+              <button
+                onClick={(e) => {
+                  e.stopPropagation()
+                  prevImage()
+                }}
+                className="absolute left-4 text-white text-4xl hover:text-neutral-low transition-colors z-10"
+                aria-label="Previous image"
+              >
+                ‹
+              </button>
+            )}
 
-              return (
-                <>
-                  <img
-                    src={currentImage.url}
-                    alt={altText}
-                    className="max-w-full max-h-[90vh] object-contain"
-                    decoding="async"
-                  />
-                  {hasCaption && (
-                    <p className="text-center text-white mt-4">{currentImage.caption}</p>
-                  )}
-                </>
-              )
-            })()}
-          </div>
-
-          {/* Next Button */}
-          {displayImages.length > 1 && (
-            <button
-              onClick={(e) => {
-                e.stopPropagation()
-                nextImage()
-              }}
-              className="absolute right-4 text-white text-4xl hover:text-neutral-low transition"
-              aria-label="Next image"
+            {/* Image */}
+            <motion.div
+              initial={{ scale: 0.9, opacity: 0 }}
+              animate={{ scale: 1, opacity: 1 }}
+              exit={{ scale: 0.9, opacity: 0 }}
+              transition={{ type: 'spring', damping: 25, stiffness: 300 }}
+              className="max-w-7xl max-h-full flex flex-col items-center"
+              onClick={(e) => e.stopPropagation()}
             >
-              ›
-            </button>
-          )}
+              {(() => {
+                const currentImage = displayImages[currentIndex]
+                const hasCaption = currentImage.caption?.trim()
+                const altMatchesCaption = hasCaption && currentImage.alt?.trim() === hasCaption
+                const altText = altMatchesCaption
+                  ? `Image ${currentIndex + 1}${hasCaption ? `: ${hasCaption.substring(0, 50)}` : ''
+                  }`
+                  : currentImage.alt ||
+                  (hasCaption
+                    ? `Image ${currentIndex + 1}`
+                    : `Gallery image ${currentIndex + 1}`)
 
-          {/* Image Counter */}
-          <div className="absolute bottom-4 left-1/2 -translate-x-1/2 text-white">
-            {currentIndex + 1} / {displayImages.length}
-          </div>
-        </div>
-      )}
+                return (
+                  <>
+                    <img
+                      key={currentIndex}
+                      src={currentImage.url}
+                      alt={altText}
+                      className="max-w-full max-h-[80vh] object-contain shadow-2xl rounded"
+                      decoding="async"
+                    />
+                    {hasCaption && (
+                      <p className="text-center text-white mt-6 max-w-2xl px-4 italic">
+                        {currentImage.caption}
+                      </p>
+                    )}
+                  </>
+                )
+              })()}
+            </motion.div>
+
+            {/* Next Button */}
+            {displayImages.length > 1 && (
+              <button
+                onClick={(e) => {
+                  e.stopPropagation()
+                  nextImage()
+                }}
+                className="absolute right-4 text-white text-4xl hover:text-neutral-low transition-colors z-10"
+                aria-label="Next image"
+              >
+                ›
+              </button>
+            )}
+
+            {/* Image Counter */}
+            <div className="absolute bottom-8 left-1/2 -translate-x-1/2 text-white/70 text-sm font-medium tracking-widest uppercase">
+              {currentIndex + 1} / {displayImages.length}
+            </div>
+          </motion.div>
+        )}
+      </AnimatePresence>
     </div>
   )
 }
+

@@ -2,8 +2,11 @@ import BaseModule from '#modules/base'
 import type { ModuleConfig } from '#types/module_types'
 
 export default class ProseWithFormModule extends BaseModule {
+  /**
+   * Prose with form supports hybrid rendering for entrance animations.
+   */
   getRenderingMode() {
-    return 'react' as const
+    return 'hybrid' as const
   }
 
   getConfig(): ModuleConfig {

@@ -12,11 +12,11 @@ import type { ModuleConfig } from '#types/module_types'
  */
 export default class GalleryModule extends BaseModule {
   /**
-   * Rendering mode: React (needs client-side interactivity)
-   * Gallery requires lightbox, navigation, keyboard events, etc.
+   * Gallery supports animations. We use 'hybrid' mode
+   * to allow optional interactivity.
    */
   getRenderingMode() {
-    return 'react' as const
+    return 'hybrid' as const
   }
 
   /**

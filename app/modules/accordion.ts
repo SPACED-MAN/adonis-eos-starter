@@ -1,0 +1,64 @@
+import BaseModule from '#modules/base'
+import type { ModuleConfig } from '#types/module_types'
+
+export default class AccordionModule extends BaseModule {
+  getRenderingMode() {
+    return 'hybrid' as const
+  }
+
+  getConfig(): ModuleConfig {
+    return {
+      type: 'accordion',
+      name: 'Accordion',
+      description: 'A list of collapsible content items.',
+      icon: 'chevron-down',
+      allowedScopes: ['local', 'global'],
+      lockable: true,
+      fieldSchema: [
+        {
+          slug: 'items',
+          type: 'repeater',
+          required: true,
+          description: 'Accordion items',
+          item: {
+            type: 'object',
+            fields: [
+              {
+                slug: 'title',
+                type: 'text',
+                required: true,
+                description: 'Item title',
+                translatable: true,
+              },
+              {
+                slug: 'content',
+                type: 'richtext',
+                required: true,
+                description: 'Item content',
+                translatable: true,
+              },
+            ],
+          },
+        },
+        {
+          slug: 'allowMultiple',
+          label: 'Allow Multiple Open',
+          type: 'boolean',
+          required: false,
+          description: 'Whether multiple items can be open at the same time',
+        },
+      ],
+      defaultValues: {
+        items: [
+          {
+            title: 'How do I use this?',
+            content: '<p>Simply click the title to expand the content.</p>',
+          },
+        ],
+        allowMultiple: false,
+      },
+      allowedPostTypes: [],
+    }
+  }
+}
+

@@ -76,7 +76,7 @@ export default function Breadcrumb() {
 
   return (
     <nav
-      className={`${BREADCRUMB_CONFIG.backgroundColor} py-3 border-b border-line`}
+      className={`${BREADCRUMB_CONFIG.backgroundColor} py-3 border-b border-line-low`}
       data-module="breadcrumb"
       aria-label="Breadcrumb"
     >

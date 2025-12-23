@@ -133,6 +133,7 @@
     "class-variance-authority": "^0.7.1",
     "clsx": "^2.1.1",
     "edge.js": "^6.2.1",
+    "framer-motion": "^12.23.26",
     "lexical": "^0.38.2",
     "lucide-react": "^0.553.0",
     "luxon": "^3.7.2",

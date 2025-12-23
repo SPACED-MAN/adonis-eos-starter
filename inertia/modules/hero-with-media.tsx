@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react'
+import { motion } from 'framer-motion'
 import { pickMediaVariantUrl } from '../lib/media'
 import type { Button, LinkValue } from './types'
 import { useInlineValue } from '../components/inline-edit/InlineEditorContext'
@@ -15,6 +16,7 @@ interface HeroWithMediaProps {
   secondaryCta?: Button | null
   backgroundColor?: string
   __moduleId?: string
+  _useReact?: boolean
 }
 
 export function resolveHrefAndTarget(
@@ -34,6 +36,7 @@ export default function HeroWithMedia({
   secondaryCta,
   backgroundColor = 'bg-backdrop-low',
   __moduleId,
+  _useReact,
 }: HeroWithMediaProps) {
   const imageId = useInlineValue(__moduleId, 'image', image)
   const titleValue = useInlineValue(__moduleId, 'title', title)
@@ -85,75 +88,185 @@ export default function HeroWithMedia({
 
   const hasCtas = Boolean(primaryCta || secondaryCta)
 
+  const containerVariants = {
+    hidden: { opacity: 0 },
+    visible: {
+      opacity: 1,
+      transition: {
+        staggerChildren: 0.2,
+      },
+    },
+  }
+
+  const textVariants = {
+    hidden: { opacity: 0, x: imagePosition === 'left' ? 30 : -30 },
+    visible: {
+      opacity: 1,
+      x: 0,
+      transition: { duration: 0.8, ease: 'easeOut' },
+    },
+  }
+
+  const imageVariants = {
+    hidden: { opacity: 0, scale: 0.9, x: imagePosition === 'left' ? -30 : 30 },
+    visible: {
+      opacity: 1,
+      scale: 1,
+      x: 0,
+      transition: { duration: 1.0, ease: 'easeOut' },
+    },
+  }
+
+  const imageBlockContent = (
+    <div
+      className="w-full max-w-md rounded-xl overflow-hidden border border-line-low bg-backdrop-high relative aspect-4/3"
+      data-inline-type="media"
+      data-inline-path="image"
+    >
+      <MediaRenderer
+        url={resolvedMedia?.url || ''}
+        mimeType={resolvedMedia?.mimeType}
+        alt={imageAlt || ''}
+        fetchPriority="high"
+        decoding="async"
+        playMode={resolvedMedia?.metadata?.playMode || 'autoplay'}
+      />
+    </div>
+  )
+
   const imageBlock = resolvedMedia ? (
     <div className="lg:col-span-5 flex justify-center lg:justify-end">
-      <div
-        className="w-full max-w-md rounded-xl overflow-hidden border border-line-low bg-backdrop-high relative aspect-4/3"
-        data-inline-type="media"
-        data-inline-path="image"
-      >
-        <MediaRenderer
-          url={resolvedMedia.url}
-          mimeType={resolvedMedia.mimeType}
-          alt={imageAlt || ''}
-          fetchPriority="high"
-          decoding="async"
-          playMode={resolvedMedia.metadata?.playMode || 'autoplay'}
-        />
-      </div>
+      {_useReact ? (
+        <motion.div variants={imageVariants} className="w-full">
+          {imageBlockContent}
+        </motion.div>
+      ) : (
+        imageBlockContent
+      )}
     </div>
   ) : null
 
-  return (
-    <section className={`${backgroundColor} py-12 lg:py-16`} data-module="hero-with-media">
-      <div className="container mx-auto px-4 sm:px-6 lg:px-8">
-        <div className="grid lg:grid-cols-12 gap-8 items-center">
-          {imagePosition === 'left' && imageBlock}
+  const textBlock = (
+    <div className="lg:col-span-7 space-y-6">
+      {_useReact ? (
+        <motion.h1
+          variants={textVariants}
+          className="max-w-2xl text-4xl font-extrabold tracking-tight leading-tight sm:text-5xl xl:text-6xl text-neutral-high"
+          data-inline-path="title"
+        >
+          {titleValue}
+        </motion.h1>
+      ) : (
+        <h1
+          className="max-w-2xl text-4xl font-extrabold tracking-tight leading-tight sm:text-5xl xl:text-6xl text-neutral-high"
+          data-inline-path="title"
+        >
+          {titleValue}
+        </h1>
+      )}
 
-          <div className="lg:col-span-7 space-y-6">
-            <h1
-              className="max-w-2xl text-4xl font-extrabold tracking-tight leading-tight sm:text-5xl xl:text-6xl text-neutral-high"
-              data-inline-path="title"
-            >
-              {titleValue}
-            </h1>
-            {subtitleValue && (
-              <p
-                className="max-w-2xl text-lg lg:text-xl font-light text-neutral-medium"
-                data-inline-path="subtitle"
-              >
-                {subtitleValue}
-              </p>
-            )}
+      {subtitleValue &&
+        (_useReact ? (
+          <motion.p
+            variants={textVariants}
+            className="max-w-2xl text-lg lg:text-xl font-light text-neutral-medium"
+            data-inline-path="subtitle"
+          >
+            {subtitleValue}
+          </motion.p>
+        ) : (
+          <p
+            className="max-w-2xl text-lg lg:text-xl font-light text-neutral-medium"
+            data-inline-path="subtitle"
+          >
+            {subtitleValue}
+          </p>
+        ))}
 
-            {hasCtas && (
-              <div className="flex flex-wrap items-center gap-4">
-                {primaryCta && (
+      {hasCtas && (
+        <div className="flex flex-wrap items-center gap-4">
+          {_useReact ? (
+            <>
+              {primaryCta && (
+                <motion.div variants={textVariants}>
                   <ButtonComponent
                     {...primaryCta}
                     moduleId={__moduleId}
                     inlineObjectPath="primaryCta"
                     inlineObjectLabel="Primary CTA"
                   />
-                )}
-                {secondaryCta && (
+                </motion.div>
+              )}
+              {secondaryCta && (
+                <motion.div variants={textVariants}>
                   <ButtonComponent
                     {...secondaryCta}
                     moduleId={__moduleId}
                     inlineObjectPath="secondaryCta"
                     inlineObjectLabel="Secondary CTA"
                   />
-                )}
-              </div>
-            )}
-          </div>
+                </motion.div>
+              )}
+            </>
+          ) : (
+            <>
+              {primaryCta && (
+                <ButtonComponent
+                  {...primaryCta}
+                  moduleId={__moduleId}
+                  inlineObjectPath="primaryCta"
+                  inlineObjectLabel="Primary CTA"
+                />
+              )}
+              {secondaryCta && (
+                <ButtonComponent
+                  {...secondaryCta}
+                  moduleId={__moduleId}
+                  inlineObjectPath="secondaryCta"
+                  inlineObjectLabel="Secondary CTA"
+                />
+              )}
+            </>
+          )}
+        </div>
+      )}
+    </div>
+  )
 
+  if (_useReact) {
+    return (
+      <motion.section
+        initial="hidden"
+        whileInView="visible"
+        viewport={{ once: true, margin: '-100px' }}
+        variants={containerVariants}
+        className={`${backgroundColor} py-12 lg:py-16 overflow-hidden`}
+        data-module="hero-with-media"
+      >
+        <div className="container mx-auto px-4 sm:px-6 lg:px-8">
+          <div className="grid lg:grid-cols-12 gap-8 items-center">
+            {imagePosition === 'left' && imageBlock}
+            {textBlock}
+            {imagePosition !== 'left' && imageBlock}
+          </div>
+        </div>
+      </motion.section>
+    )
+  }
+
+  return (
+    <section className={`${backgroundColor} py-12 lg:py-16`} data-module="hero-with-media">
+      <div className="container mx-auto px-4 sm:px-6 lg:px-8">
+        <div className="grid lg:grid-cols-12 gap-8 items-center">
+          {imagePosition === 'left' && imageBlock}
+          {textBlock}
           {imagePosition !== 'left' && imageBlock}
         </div>
       </div>
     </section>
   )
 }
+
 
 // Define the CTA object schema for inline editing
 const ctaObjectFields = JSON.stringify([

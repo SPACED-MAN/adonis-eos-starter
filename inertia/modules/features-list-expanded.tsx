@@ -1,3 +1,4 @@
+import { motion } from 'framer-motion'
 import { FontAwesomeIcon } from '../site/lib/icons'
 import { useInlineValue } from '../components/inline-edit/InlineEditorContext'
 import type { Button, LinkValue } from './types'
@@ -16,6 +17,7 @@ interface FeaturesListExpandedProps {
   cta?: Button | null
   backgroundColor?: string
   __moduleId?: string
+  _useReact?: boolean
 }
 
 function resolveHrefAndTarget(
@@ -32,6 +34,7 @@ export default function FeaturesListExpanded({
   cta: initialCta,
   backgroundColor = 'bg-backdrop-low',
   __moduleId,
+  _useReact,
 }: FeaturesListExpandedProps) {
   const title = useInlineValue(__moduleId, 'title', initialTitle)
   const subtitle = useInlineValue(__moduleId, 'subtitle', initialSubtitle)
@@ -42,80 +45,151 @@ export default function FeaturesListExpanded({
 
   const hasCta = Boolean(cta && cta.label && cta.url)
 
+  const containerVariants = {
+    hidden: { opacity: 0 },
+    visible: {
+      opacity: 1,
+      transition: {
+        staggerChildren: 0.2,
+      },
+    },
+  }
+
+  const itemVariants = (isEven: boolean) => ({
+    hidden: { opacity: 0, x: isEven ? -30 : 30 },
+    visible: {
+      opacity: 1,
+      x: 0,
+      transition: { duration: 0.8, ease: 'easeOut' },
+    },
+  })
+
+  const headerContent = (
+    <div className="max-w-3xl mx-auto mb-10 text-center">
+      {_useReact ? (
+        <motion.h2
+          initial={{ opacity: 0, y: -20 }}
+          whileInView={{ opacity: 1, y: 0 }}
+          viewport={{ once: true }}
+          transition={{ duration: 0.8 }}
+          className="text-3xl sm:text-4xl font-extrabold tracking-tight text-neutral-high mb-4"
+          data-inline-path="title"
+        >
+          {title}
+        </motion.h2>
+      ) : (
+        <h2
+          className="text-3xl sm:text-4xl font-extrabold tracking-tight text-neutral-high mb-4"
+          data-inline-path="title"
+        >
+          {title}
+        </h2>
+      )}
+      {subtitle &&
+        (_useReact ? (
+          <motion.p
+            initial={{ opacity: 0 }}
+            whileInView={{ opacity: 1 }}
+            viewport={{ once: true }}
+            transition={{ duration: 0.8, delay: 0.2 }}
+            className="text-neutral-medium text-base sm:text-lg"
+            data-inline-path="subtitle"
+          >
+            {subtitle}
+          </motion.p>
+        ) : (
+          <p className="text-neutral-medium text-base sm:text-lg" data-inline-path="subtitle">
+            {subtitle}
+          </p>
+        ))}
+    </div>
+  )
+
+  const featuresList = (
+    <>
+      {safeFeatures.map((feature, idx) => {
+        const isEven = idx % 2 === 0
+        const featureItem = (
+          <div
+            className={`flex items-center lg:w-3/5 mx-auto border-b border-line-low pb-10 mb-10 sm:flex-row flex-col ${
+              !isEven ? 'sm:flex-row-reverse' : ''
+            }`}
+            data-inline-type="object"
+            data-inline-path={`features.${idx}`}
+            data-inline-label={`Feature ${idx + 1}`}
+            data-inline-fields={JSON.stringify([
+              {
+                name: 'icon',
+                type: 'select',
+                label: 'Icon',
+                options: [
+                  { label: 'check', value: 'check' },
+                  { label: 'bolt', value: 'bolt' },
+                  { label: 'gear', value: 'gear' },
+                  { label: 'circle-question', value: 'circle-question' },
+                  { label: 'rocket', value: 'rocket' },
+                  { label: 'palette', value: 'palette' },
+                ],
+              },
+              { name: 'title', type: 'text', label: 'Title' },
+              { name: 'body', type: 'textarea', label: 'Body' },
+            ])}
+          >
+            {feature.icon && (
+              <div
+                className={`sm:w-32 sm:h-32 h-16 w-16 ${
+                  isEven ? 'sm:mr-10' : 'sm:ml-10'
+                } inline-flex items-center justify-center rounded-full bg-standout-medium/10 text-standout-medium shrink-0`}
+              >
+                <FontAwesomeIcon icon={feature.icon as any} size="2x" />
+              </div>
+            )}
+
+            <div className="grow sm:text-left text-center mt-6 sm:mt-0">
+              <h3
+                className="text-neutral-high text-lg sm:text-xl font-semibold mb-2"
+                data-inline-path={`features.${idx}.title`}
+              >
+                {feature.title}
+              </h3>
+              <p
+                className="leading-relaxed text-sm sm:text-base text-neutral-medium"
+                data-inline-path={`features.${idx}.body`}
+              >
+                {feature.body}
+              </p>
+            </div>
+          </div>
+        )
+
+        return _useReact ? (
+          <motion.div key={idx} variants={itemVariants(isEven)} viewport={{ once: true, margin: '-50px' }}>
+            {featureItem}
+          </motion.div>
+        ) : (
+          <div key={idx}>{featureItem}</div>
+        )
+      })}
+    </>
+  )
+
   return (
     <section className={`${backgroundColor} py-12 sm:py-16`} data-module="features-list-expanded">
       <div className="container mx-auto px-4 sm:px-6 lg:px-8">
-        <div className="max-w-3xl mx-auto mb-10 text-center">
-          <h2
-            className="text-3xl sm:text-4xl font-extrabold tracking-tight text-neutral-high mb-4"
-            data-inline-path="title"
+        {headerContent}
+
+        {_useReact ? (
+          <motion.div
+            initial="hidden"
+            whileInView="visible"
+            viewport={{ once: true, margin: '-50px' }}
+            variants={containerVariants}
           >
-            {title}
-          </h2>
-          {subtitle && (
-            <p className="text-neutral-medium text-base sm:text-lg" data-inline-path="subtitle">
-              {subtitle}
-            </p>
-          )}
-        </div>
-
-        {safeFeatures.map((feature, idx) => {
-          const isEven = idx % 2 === 0
-
-          return (
-            <div
-              key={idx}
-              className={`flex items-center lg:w-3/5 mx-auto border-b border-line-low pb-10 mb-10 sm:flex-row flex-col ${
-                !isEven ? 'sm:flex-row-reverse' : ''
-              }`}
-              data-inline-type="object"
-              data-inline-path={`features.${idx}`}
-              data-inline-label={`Feature ${idx + 1}`}
-              data-inline-fields={JSON.stringify([
-                {
-                  name: 'icon',
-                  type: 'select',
-                  label: 'Icon',
-                  options: [
-                    { label: 'check', value: 'check' },
-                    { label: 'bolt', value: 'bolt' },
-                    { label: 'gear', value: 'gear' },
-                    { label: 'circle-question', value: 'circle-question' },
-                    { label: 'rocket', value: 'rocket' },
-                    { label: 'palette', value: 'palette' },
-                  ],
-                },
-                { name: 'title', type: 'text', label: 'Title' },
-                { name: 'body', type: 'textarea', label: 'Body' },
-              ])}
-            >
-              {feature.icon && (
-                <div
-                  className={`sm:w-32 sm:h-32 h-16 w-16 ${
-                    isEven ? 'sm:mr-10' : 'sm:ml-10'
-                  } inline-flex items-center justify-center rounded-full bg-standout-medium/10 text-standout-medium shrink-0`}
-                >
-                  <FontAwesomeIcon icon={feature.icon as any} size="2x" />
-                </div>
-              )}
-
-              <div className="grow sm:text-left text-center mt-6 sm:mt-0">
-                <h3
-                  className="text-neutral-high text-lg sm:text-xl font-semibold mb-2"
-                  data-inline-path={`features.${idx}.title`}
-                >
-                  {feature.title}
-                </h3>
-                <p
-                  className="leading-relaxed text-sm sm:text-base text-neutral-medium"
-                  data-inline-path={`features.${idx}.body`}
-                >
-                  {feature.body}
-                </p>
-              </div>
-            </div>
-          )
-        })}
+            {featuresList}
+          </motion.div>
+        ) : (
+          featuresList
+        )}
 
         {hasCta && cta && (
           <SectionButton
@@ -125,6 +199,7 @@ export default function FeaturesListExpanded({
             target={cta?.target}
             rel={cta?.rel}
             inlinePath="cta"
+            _useReact={_useReact}
           />
         )}
       </div>
@@ -139,7 +214,8 @@ function SectionButton({
   target,
   rel,
   inlinePath,
-}: Button & { inlinePath?: string }) {
+  _useReact,
+}: Button & { inlinePath?: string; _useReact?: boolean }) {
   const styleClasses =
     {
       primary: 'bg-standout-medium text-on-standout',
@@ -150,18 +226,34 @@ function SectionButton({
   const { href, target: finalTarget } = resolveHrefAndTarget(url, target)
   if (!href) return null
 
+  const btn = (
+    <a
+      href={href}
+      target={finalTarget}
+      rel={finalTarget === '_blank' ? 'noopener noreferrer' : rel}
+      className={`inline-flex items-center justify-center px-8 py-3 text-base font-medium rounded-lg transition-all duration-200 ${styleClasses} active:scale-95`}
+      data-inline-type="link"
+      data-inline-path={inlinePath ? `${inlinePath}.url` : undefined}
+    >
+      <span data-inline-path={inlinePath ? `${inlinePath}.label` : undefined}>{label}</span>
+    </a>
+  )
+
   return (
     <div className="flex justify-center mt-12">
-      <a
-        href={href}
-        target={finalTarget}
-        rel={finalTarget === '_blank' ? 'noopener noreferrer' : rel}
-        className={`inline-flex items-center justify-center px-8 py-3 text-base font-medium rounded-lg transition-colors duration-200 ${styleClasses}`}
-        data-inline-type="link"
-        data-inline-path={inlinePath ? `${inlinePath}.url` : undefined}
-      >
-        <span data-inline-path={inlinePath ? `${inlinePath}.label` : undefined}>{label}</span>
-      </a>
+      {_useReact ? (
+        <motion.div
+          initial={{ opacity: 0, scale: 0.9 }}
+          whileInView={{ opacity: 1, scale: 1 }}
+          viewport={{ once: true }}
+          transition={{ duration: 0.8, delay: 0.4 }}
+        >
+          {btn}
+        </motion.div>
+      ) : (
+        btn
+      )}
     </div>
   )
 }
+

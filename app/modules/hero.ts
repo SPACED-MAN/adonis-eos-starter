@@ -2,6 +2,15 @@ import BaseModule from '#modules/base'
 import type { ModuleConfig } from '#types/module_types'
 
 export default class HeroModule extends BaseModule {
+  /**
+   * Hero modules support Framer Motion animations.
+   * We use 'hybrid' mode so users can choose between pure static SSR
+   * or React hydration for animations on a per-instance basis.
+   */
+  getRenderingMode() {
+    return 'hybrid' as const
+  }
+
   getConfig(): ModuleConfig {
     return {
       type: 'hero',

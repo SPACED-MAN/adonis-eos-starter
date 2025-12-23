@@ -2,6 +2,13 @@ import BaseModule from '#modules/base'
 import type { ModuleConfig } from '#types/module_types'
 
 export default class BlockquoteModule extends BaseModule {
+  /**
+   * Blockquote supports hybrid rendering for entrance animations.
+   */
+  getRenderingMode() {
+    return 'hybrid' as const
+  }
+
   getConfig(): ModuleConfig {
     return {
       type: 'blockquote',

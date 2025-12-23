@@ -2,8 +2,12 @@ import BaseModule from '#modules/base'
 import type { ModuleConfig } from '#types/module_types'
 
 export default class KitchenSinkModule extends BaseModule {
+  /**
+   * Kitchen sink is a demo module. Hybrid mode allows
+   * testing both static and interactive variants.
+   */
   getRenderingMode() {
-    return 'react' as const
+    return 'hybrid' as const
   }
 
   getConfig(): ModuleConfig {

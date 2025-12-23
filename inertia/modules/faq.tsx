@@ -1,3 +1,4 @@
+import { motion } from 'framer-motion'
 import { resolveHrefAndTarget } from './hero-with-media'
 import { FontAwesomeIcon } from '../site/lib/icons'
 import { useInlineValue } from '../components/inline-edit/InlineEditorContext'
@@ -25,6 +26,7 @@ interface FaqProps {
   subtitle?: string | null
   items: FaqItem[]
   __moduleId?: string
+  _useReact?: boolean
 }
 
 export default function Faq({
@@ -32,6 +34,7 @@ export default function Faq({
   subtitle: initialSubtitle,
   items: initialItems,
   __moduleId,
+  _useReact,
 }: FaqProps) {
   const title = useInlineValue(__moduleId, 'title', initialTitle)
   const subtitle = useInlineValue(__moduleId, 'subtitle', initialSubtitle)
@@ -44,14 +47,33 @@ export default function Faq({
   const left = safeItems.slice(0, midpoint)
   const right = safeItems.slice(midpoint)
 
+  const containerVariants = {
+    hidden: { opacity: 0 },
+    visible: {
+      opacity: 1,
+      transition: {
+        staggerChildren: 0.12,
+      },
+    },
+  }
+
+  const itemVariants = {
+    hidden: { opacity: 0, y: 30 },
+    visible: {
+      opacity: 1,
+      y: 0,
+      transition: { duration: 1.0, ease: 'easeOut' },
+    },
+  }
+
   const renderItem = (item: FaqItem, idx: number) => {
     const hasLink = !!item.linkLabel && !!item.linkUrl
     const link = hasLink
       ? resolveHrefAndTarget(item.linkUrl!)
       : { href: undefined, target: '_self' as const }
 
-    return (
-      <div key={idx} className="mb-8 last:mb-0">
+    const content = (
+      <div className="mb-8 last:mb-0 h-full">
         <h3
           className="flex items-start mb-3 text-base sm:text-lg font-semibold text-neutral-high"
           data-inline-type="object"
@@ -72,7 +94,7 @@ export default function Faq({
           <span data-inline-path={`items.${idx}.question`}>{item.question}</span>
         </h3>
         <p
-          className="text-sm sm:text-base text-neutral-medium"
+          className="text-sm sm:text-base text-neutral-medium ml-11"
           data-inline-path={`items.${idx}.answer`}
         >
           {item.answer}
@@ -94,29 +116,84 @@ export default function Faq({
         </p>
       </div>
     )
+
+    if (_useReact) {
+      return (
+        <motion.div key={idx} variants={itemVariants}>
+          {content}
+        </motion.div>
+      )
+    }
+
+    return <div key={idx}>{content}</div>
   }
+
+  const headerContent = (
+    <div className="max-w-3xl mb-8 sm:mb-10">
+      {_useReact ? (
+        <motion.h2
+          initial={{ opacity: 0, x: -30 }}
+          whileInView={{ opacity: 1, x: 0 }}
+          viewport={{ once: true }}
+          transition={{ duration: 1.0 }}
+          className="mb-4 text-3xl sm:text-4xl font-extrabold tracking-tight text-neutral-high"
+          data-inline-path="title"
+        >
+          {title}
+        </motion.h2>
+      ) : (
+        <h2
+          className="mb-4 text-3xl sm:text-4xl font-extrabold tracking-tight text-neutral-high"
+          data-inline-path="title"
+        >
+          {title}
+        </h2>
+      )}
+      {subtitle &&
+        (_useReact ? (
+          <motion.p
+            initial={{ opacity: 0, x: -30 }}
+            whileInView={{ opacity: 1, x: 0 }}
+            viewport={{ once: true }}
+            transition={{ duration: 1.0, delay: 0.15 }}
+            className="text-neutral-medium text-base sm:text-lg"
+            data-inline-path="subtitle"
+          >
+            {subtitle}
+          </motion.p>
+        ) : (
+          <p className="text-neutral-medium text-base sm:text-lg" data-inline-path="subtitle">
+            {subtitle}
+          </p>
+        ))}
+    </div>
+  )
+
+  const columnsContent = (
+    <div className="grid gap-10 border-t border-line-low pt-8 md:grid-cols-2 md:gap-12">
+      <div>{left.map((item, idx) => renderItem(item, idx))}</div>
+      <div>{right.map((item, idx) => renderItem(item, midpoint + idx))}</div>
+    </div>
+  )
 
   return (
     <section className="bg-backdrop-low py-12 sm:py-16" data-module="faq">
       <div className="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8">
-        <div className="max-w-3xl mb-8 sm:mb-10">
-          <h2
-            className="mb-4 text-3xl sm:text-4xl font-extrabold tracking-tight text-neutral-high"
-            data-inline-path="title"
+        {headerContent}
+        {_useReact ? (
+          <motion.div
+            initial="hidden"
+            whileInView="visible"
+            viewport={{ once: true, margin: '-100px' }}
+            variants={containerVariants}
           >
-            {title}
-          </h2>
-          {subtitle && (
-            <p className="text-neutral-medium text-base sm:text-lg" data-inline-path="subtitle">
-              {subtitle}
-            </p>
-          )}
-        </div>
-        <div className="grid gap-10 border-t border-line-low pt-8 md:grid-cols-2 md:gap-12">
-          <div>{left.map((item, idx) => renderItem(item, idx))}</div>
-          <div>{right.map((item, idx) => renderItem(item, midpoint + idx))}</div>
-        </div>
+            {columnsContent}
+          </motion.div>
+        ) : (
+          columnsContent
+        )}
       </div>
     </section>
   )
 }
+

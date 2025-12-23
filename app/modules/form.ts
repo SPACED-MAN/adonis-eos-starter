@@ -4,10 +4,11 @@ import type { ModuleConfig } from '#types/module_types'
 export default class FormModule extends BaseModule {
   /**
    * Frontend forms are interactive (client-side validation, submission,
-   * conditional error states), so they must be rendered as React modules.
+   * conditional error states). We use hybrid mode to allow optional
+   * entrance animations.
    */
   getRenderingMode() {
-    return 'react' as const
+    return 'hybrid' as const
   }
 
   getConfig(): ModuleConfig {

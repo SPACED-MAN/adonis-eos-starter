@@ -2,8 +2,11 @@ import BaseModule from '#modules/base'
 import type { ModuleConfig } from '#types/module_types'
 
 export default class ProseWithMediaModule extends BaseModule {
+  /**
+   * Prose with media supports hybrid rendering for entrance animations.
+   */
   getRenderingMode() {
-    return 'react' as const
+    return 'hybrid' as const
   }
 
   getConfig(): ModuleConfig {

@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react'
+import { motion } from 'framer-motion'
 import { useInlineEditor, useInlineValue } from '../components/inline-edit/InlineEditorContext'
 import { FontAwesomeIcon } from '../site/lib/icons'
 import { pickMediaVariantUrl } from '../lib/media'
@@ -10,6 +11,7 @@ interface TestimonialListProps {
   // IDs of Testimonial posts selected via post-reference field; if empty, show all.
   testimonials?: string[] | null
   __moduleId?: string
+  _useReact?: boolean
 }
 
 type TestimonialSummary = {
@@ -26,6 +28,7 @@ export default function TestimonialList({
   subtitle: initialSubtitle,
   testimonials: initialTestimonials,
   __moduleId,
+  _useReact,
 }: TestimonialListProps) {
   const [items, setItems] = useState<TestimonialSummary[]>([])
   const [loading, setLoading] = useState(true)
@@ -106,6 +109,109 @@ export default function TestimonialList({
     }
   }, [JSON.stringify(testimonials ?? [])])
 
+  const containerVariants = {
+    hidden: { opacity: 0 },
+    visible: {
+      opacity: 1,
+      transition: {
+        staggerChildren: 0.12,
+      },
+    },
+  }
+
+  const itemVariants = {
+    hidden: { opacity: 0, y: 30 },
+    visible: {
+      opacity: 1,
+      y: 0,
+      transition: { duration: 1.0, ease: 'easeOut' },
+    },
+  }
+
+  const headerContent = (
+    <div className="mx-auto max-w-screen-sm mb-8 lg:mb-12">
+      {_useReact ? (
+        <motion.h2
+          initial={{ opacity: 0, y: -20 }}
+          whileInView={{ opacity: 1, y: 0 }}
+          viewport={{ once: true }}
+          transition={{ duration: 1.0 }}
+          className="mb-4 text-3xl md:text-4xl tracking-tight font-extrabold text-neutral-high"
+          data-inline-path="title"
+        >
+          {title}
+        </motion.h2>
+      ) : (
+        <h2
+          className="mb-4 text-3xl md:text-4xl tracking-tight font-extrabold text-neutral-high"
+          data-inline-path="title"
+        >
+          {title}
+        </h2>
+      )}
+      {subtitle &&
+        (_useReact ? (
+          <motion.p
+            initial={{ opacity: 0 }}
+            whileInView={{ opacity: 1 }}
+            viewport={{ once: true }}
+            transition={{ duration: 1.0, delay: 0.25 }}
+            className="mb-8 font-light text-neutral-medium sm:text-lg"
+            data-inline-path="subtitle"
+          >
+            {subtitle}
+          </motion.p>
+        ) : (
+          <p
+            className="mb-8 font-light text-neutral-medium sm:text-lg"
+            data-inline-path="subtitle"
+          >
+            {subtitle}
+          </p>
+        ))}
+      {enabled && (
+        <div className="mt-2">
+          <button
+            type="button"
+            className="inline-flex items-center gap-2 text-xs text-neutral-low underline underline-offset-2"
+            data-inline-type="post-reference"
+            data-inline-path="testimonials"
+            data-inline-multi="true"
+            data-inline-post-type="testimonial"
+            aria-label="Edit testimonials"
+          >
+            <FontAwesomeIcon icon="pencil" className="w-3 h-3" />
+            Edit testimonials ({items.length})
+          </button>
+        </div>
+      )}
+    </div>
+  )
+
+  const gridContent = (
+    <div className="grid gap-6 mb-8 lg:mb-12 lg:grid-cols-2">
+      {items.map((t) => {
+        const teaser = (
+          <TestimonialTeaser
+            key={t.id}
+            id={t.id}
+            quote={t.quote}
+            authorName={t.authorName}
+            authorTitle={t.authorTitle}
+            imageUrl={t.imageUrl}
+          />
+        )
+        return _useReact ? (
+          <motion.div key={t.id} variants={itemVariants}>
+            {teaser}
+          </motion.div>
+        ) : (
+          teaser
+        )
+      })}
+    </div>
+  )
+
   if (loading && items.length === 0) {
     return (
       <section className="bg-backdrop-low py-8 lg:py-16" data-module="testimonial-list">
@@ -129,51 +235,20 @@ export default function TestimonialList({
   return (
     <section className="bg-backdrop-low py-8 lg:py-16" data-module="testimonial-list">
       <div className="container mx-auto px-4 lg:px-6 text-center">
-        <div className="mx-auto max-w-screen-sm mb-8 lg:mb-12">
-          <h2
-            className="mb-4 text-3xl md:text-4xl tracking-tight font-extrabold text-neutral-high"
-            data-inline-path="title"
-          >
-            {title}
-          </h2>
-          {subtitle && (
-            <p
-              className="mb-8 font-light text-neutral-medium sm:text-lg"
-              data-inline-path="subtitle"
-            >
-              {subtitle}
-            </p>
-          )}
-          {enabled && (
-            <div className="mt-2">
-              <button
-                type="button"
-                className="inline-flex items-center gap-2 text-xs text-neutral-low underline underline-offset-2"
-                data-inline-type="post-reference"
-                data-inline-path="testimonials"
-                data-inline-multi="true"
-                data-inline-post-type="testimonial"
-                aria-label="Edit testimonials"
-              >
-                <FontAwesomeIcon icon="pencil" className="w-3 h-3" />
-                Edit testimonials ({items.length})
-              </button>
-            </div>
-          )}
-        </div>
+        {headerContent}
 
-        <div className="grid gap-6 mb-8 lg:mb-12 lg:grid-cols-2">
-          {items.map((t) => (
-            <TestimonialTeaser
-              key={t.id}
-              id={t.id}
-              quote={t.quote}
-              authorName={t.authorName}
-              authorTitle={t.authorTitle}
-              imageUrl={t.imageUrl}
-            />
-          ))}
-        </div>
+        {_useReact ? (
+          <motion.div
+            initial="hidden"
+            whileInView="visible"
+            viewport={{ once: true, margin: '-50px' }}
+            variants={containerVariants}
+          >
+            {gridContent}
+          </motion.div>
+        ) : (
+          gridContent
+        )}
 
         <div className="text-center">
           <a
@@ -187,3 +262,4 @@ export default function TestimonialList({
     </section>
   )
 }
+

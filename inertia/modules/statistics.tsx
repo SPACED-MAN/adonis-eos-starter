@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState } from 'react'
+import { motion, useSpring, useTransform, animate } from 'framer-motion'
 
 interface StatItem {
   value: number
@@ -9,48 +10,56 @@ interface StatItem {
 interface StatisticsProps {
   stats: StatItem[]
   backgroundColor?: string
+  _useReact?: boolean
 }
 
-function useCountUp(target: number, shouldStart: boolean, durationMs = 1200) {
-  const [value, setValue] = useState(0)
-  const frameRef = useRef<number | null>(null)
+function Counter({
+  value,
+  shouldStart,
+  suffix,
+}: {
+  value: number
+  shouldStart: boolean
+  suffix?: string | null
+}) {
+  const count = useSpring(0, {
+    stiffness: 100,
+    damping: 30,
+    restDelta: 0.001,
+  })
 
   useEffect(() => {
-    if (!shouldStart) return
-    if (target <= 0) {
-      setValue(target)
-      return
+    if (shouldStart) {
+      count.set(value)
     }
+  }, [shouldStart, value, count])
 
-    const start = performance.now()
+  const display = useTransform(count, (latest) => {
+    const v = Math.round(latest)
+    if (value >= 1_000_000_000) return `${Math.round(v / 1_000_000_000)}B`
+    if (value >= 1_000_000) return `${Math.round(v / 1_000_000)}M`
+    if (value >= 1_000) return `${Math.round(v / 1_000)}K`
+    return v.toLocaleString()
+  })
 
-    const step = (timestamp: number) => {
-      const progress = Math.min((timestamp - start) / durationMs, 1)
-      const eased = 1 - Math.pow(1 - progress, 3) // ease-out
-      const next = Math.round(target * eased)
-      setValue(next)
-      if (progress < 1) {
-        frameRef.current = requestAnimationFrame(step)
-      }
-    }
-
-    frameRef.current = requestAnimationFrame(step)
-    return () => {
-      if (frameRef.current != null) cancelAnimationFrame(frameRef.current)
-    }
-  }, [target, shouldStart, durationMs])
-
-  return value
+  return (
+    <motion.dt className="mb-2 text-3xl md:text-4xl font-extrabold">
+      <motion.span>{display}</motion.span>
+      {suffix ? suffix : ''}
+    </motion.dt>
+  )
 }
 
 export default function Statistics({
   stats,
   backgroundColor = 'bg-backdrop-low',
+  _useReact,
 }: StatisticsProps) {
   const [hasEntered, setHasEntered] = useState(false)
   const sectionRef = useRef<HTMLElement | null>(null)
 
   useEffect(() => {
+    if (!_useReact) return
     const el = sectionRef.current
     if (!el) return
 
@@ -71,41 +80,87 @@ export default function Statistics({
 
     observer.observe(el)
     return () => observer.disconnect()
-  }, [])
+  }, [_useReact])
 
   const safeStats = Array.isArray(stats) ? stats.slice(0, 12) : []
 
-  return (
-    <section
-      ref={sectionRef}
-      className={`${backgroundColor} py-12 lg:py-16`}
-      data-module="statistics"
-    >
-      <div className="max-w-screen-xl px-4 mx-auto text-center">
-        <dl className="grid max-w-screen-md gap-8 mx-auto text-neutral-high sm:grid-cols-3">
-          {safeStats.map((stat, idx) => {
-            const animatedValue = useCountUp(stat.value || 0, hasEntered)
-            const formatted =
-              stat.value >= 1_000_000_000
-                ? `${Math.round(animatedValue / 1_000_000_000)}B`
-                : stat.value >= 1_000_000
-                  ? `${Math.round(animatedValue / 1_000_000)}M`
-                  : stat.value >= 1_000
-                    ? `${Math.round(animatedValue / 1_000)}K`
-                    : animatedValue.toLocaleString()
+  const containerVariants = {
+    hidden: { opacity: 0 },
+    visible: {
+      opacity: 1,
+      transition: {
+        staggerChildren: 0.12,
+      },
+    },
+  }
 
-            return (
-              <div key={idx} className="flex flex-col items-center justify-center">
+  const itemVariants = {
+    hidden: { opacity: 0, scale: 0.9, y: 30 },
+    visible: {
+      opacity: 1,
+      scale: 1,
+      y: 0,
+      transition: { duration: 1.0, ease: 'easeOut' },
+    },
+  }
+
+  const formatStatic = (val: number) => {
+    if (val >= 1_000_000_000) return `${Math.round(val / 1_000_000_000)}B`
+    if (val >= 1_000_000) return `${Math.round(val / 1_000_000)}M`
+    if (val >= 1_000) return `${Math.round(val / 1_000)}K`
+    return val.toLocaleString()
+  }
+
+  const content = (
+    <div className="max-w-screen-xl px-4 mx-auto text-center">
+      <dl className="grid max-w-screen-md gap-8 mx-auto text-neutral-high sm:grid-cols-3">
+        {safeStats.map((stat, idx) => {
+          const item = (
+            <div key={idx} className="flex flex-col items-center justify-center">
+              {_useReact ? (
+                <Counter value={stat.value} shouldStart={hasEntered} suffix={stat.suffix} />
+              ) : (
                 <dt className="mb-2 text-3xl md:text-4xl font-extrabold">
-                  {formatted}
+                  {formatStatic(stat.value)}
                   {stat.suffix ? stat.suffix : ''}
                 </dt>
-                <dd className="font-light text-neutral-medium">{stat.label}</dd>
-              </div>
-            )
-          })}
-        </dl>
-      </div>
+              )}
+              <dd className="font-light text-neutral-medium">{stat.label}</dd>
+            </div>
+          )
+
+          return _useReact ? (
+            <motion.div key={idx} variants={itemVariants}>
+              {item}
+            </motion.div>
+          ) : (
+            <div key={idx}>{item}</div>
+          )
+        })}
+      </dl>
+    </div>
+  )
+
+  if (_useReact) {
+    return (
+      <motion.section
+        ref={sectionRef}
+        initial="hidden"
+        whileInView="visible"
+        viewport={{ once: true, margin: '-100px' }}
+        variants={containerVariants}
+        className={`${backgroundColor} py-12 lg:py-16`}
+        data-module="statistics"
+      >
+        {content}
+      </motion.section>
+    )
+  }
+
+  return (
+    <section ref={sectionRef} className={`${backgroundColor} py-12 lg:py-16`} data-module="statistics">
+      {content}
     </section>
   )
 }
+

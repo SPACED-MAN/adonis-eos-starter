@@ -257,8 +257,13 @@ class ModuleRenderer {
     const isPreview = !!context.isPreview
 
     // Determine rendering mode (default to 'static' if not implemented)
-    const renderingMode: 'static' | 'react' =
+    let renderingMode: 'static' | 'react' | 'hybrid' =
       typeof module.getRenderingMode === 'function' ? module.getRenderingMode() : 'static'
+
+    // Resolve hybrid mode
+    if (renderingMode === 'hybrid') {
+      renderingMode = data.fields?._useReact === true ? 'react' : 'static'
+    }
 
     // Allow modules to opt out or refine caching behavior
     const cacheAllowedByModule =

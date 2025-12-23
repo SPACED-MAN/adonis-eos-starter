@@ -73,7 +73,7 @@ class ModuleRegistry {
    *
    * @returns Array of module configurations
    */
-  getAllConfigs(): Array<ModuleConfig & { renderingMode: 'static' | 'react' }> {
+  getAllConfigs(): Array<ModuleConfig & { renderingMode: 'static' | 'react' | 'hybrid' }> {
     return Array.from(this.modules.values()).map((module) => {
       const config = module.getConfig()
       const renderingMode =
@@ -122,6 +122,7 @@ class ModuleRegistry {
     fieldSchema: any[]
     defaultValues: Record<string, any>
     allowedPostTypes?: string[]
+    renderingMode: 'static' | 'react' | 'hybrid'
     aiGuidance?: {
       useWhen: string[]
       avoidWhen?: string[]
@@ -131,6 +132,20 @@ class ModuleRegistry {
   } {
     const module = this.get(type)
     const config = module.getConfig()
+    const renderingMode = (module as any).getRenderingMode?.() ?? 'static'
+
+    const fieldSchema = [...(config.fieldSchema || [])]
+
+    // If hybrid, inject the toggle field
+    if (renderingMode === 'hybrid') {
+      fieldSchema.push({
+        slug: '_useReact',
+        label: 'Add interactivity',
+        type: 'boolean',
+        description:
+          'Enabling this will add some interactivity to the module (e.g. motion). Interactivity varies between module. NOTE: This can have a small impact on performance.',
+      })
+    }
 
     return {
       type: config.type,
@@ -139,9 +154,10 @@ class ModuleRegistry {
       icon: config.icon,
       allowedScopes: config.allowedScopes,
       lockable: config.lockable,
-      fieldSchema: config.fieldSchema || [],
+      fieldSchema,
       defaultValues: config.defaultValues || {},
       allowedPostTypes: config.allowedPostTypes,
+      renderingMode,
       aiGuidance: (config as any).aiGuidance,
     }
   }

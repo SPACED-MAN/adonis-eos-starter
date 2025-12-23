@@ -9,11 +9,11 @@ import type { ModuleConfig } from '#types/module_types'
  */
 export default class ProseModule extends BaseModule {
   /**
-   * Rendering mode: Static (pure SSR for max performance)
-   * Prose is read-only content - no interactivity needed
+   * Prose modules can be hybrid to support optional animations
+   * (e.g. fade-in on scroll) via Framer Motion.
    */
   getRenderingMode() {
-    return 'static' as const
+    return 'hybrid' as const
   }
 
   /**

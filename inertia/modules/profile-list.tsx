@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react'
+import { motion } from 'framer-motion'
 import { useInlineEditor, useInlineValue } from '../components/inline-edit/InlineEditorContext'
 import { FontAwesomeIcon } from '../site/lib/icons'
 import { pickMediaVariantUrl } from '../lib/media'
@@ -10,6 +11,7 @@ interface ProfileListProps {
   // IDs of Profile posts selected via post-reference field; if empty, show all profiles.
   profiles?: string[] | null
   __moduleId?: string
+  _useReact?: boolean
 }
 
 type ProfileSummary = {
@@ -27,6 +29,7 @@ export default function ProfileList({
   subtitle: initialSubtitle,
   profiles: initialProfiles,
   __moduleId,
+  _useReact,
 }: ProfileListProps) {
   const [items, setItems] = useState<ProfileSummary[]>([])
   const [loading, setLoading] = useState(true)
@@ -105,6 +108,111 @@ export default function ProfileList({
     }
   }, [JSON.stringify(profiles ?? [])])
 
+  const containerVariants = {
+    hidden: { opacity: 0 },
+    visible: {
+      opacity: 1,
+      transition: {
+        staggerChildren: 0.12,
+      },
+    },
+  }
+
+  const itemVariants = {
+    hidden: { opacity: 0, scale: 0.95, y: 30 },
+    visible: {
+      opacity: 1,
+      scale: 1,
+      y: 0,
+      transition: { duration: 1.0, ease: 'easeOut' },
+    },
+  }
+
+  const headerContent = (
+    <div className="mx-auto max-w-screen-sm text-center mb-8 lg:mb-16">
+      {_useReact ? (
+        <motion.h2
+          initial={{ opacity: 0, y: -10 }}
+          whileInView={{ opacity: 1, y: 0 }}
+          viewport={{ once: true }}
+          transition={{ duration: 1.0 }}
+          className="mb-4 text-4xl tracking-tight font-extrabold text-neutral-high"
+          data-inline-path="title"
+        >
+          {title}
+        </motion.h2>
+      ) : (
+        <h2
+          className="mb-4 text-4xl tracking-tight font-extrabold text-neutral-high"
+          data-inline-path="title"
+        >
+          {title}
+        </h2>
+      )}
+      {subtitle &&
+        (_useReact ? (
+          <motion.p
+            initial={{ opacity: 0 }}
+            whileInView={{ opacity: 1 }}
+            viewport={{ once: true }}
+            transition={{ duration: 1.0, delay: 0.25 }}
+            className="font-light text-neutral-medium lg:mb-4 sm:text-xl"
+            data-inline-path="subtitle"
+          >
+            {subtitle}
+          </motion.p>
+        ) : (
+          <p
+            className="font-light text-neutral-medium lg:mb-4 sm:text-xl"
+            data-inline-path="subtitle"
+          >
+            {subtitle}
+          </p>
+        ))}
+      {enabled && (
+        <div className="mt-2">
+          <button
+            type="button"
+            className="inline-flex items-center gap-2 text-xs text-neutral-low underline underline-offset-2"
+            data-inline-type="post-reference"
+            data-inline-path="profiles"
+            data-inline-multi="true"
+            data-inline-post-type="profile"
+            aria-label="Edit profiles"
+          >
+            <FontAwesomeIcon icon="pencil" className="w-3 h-3" />
+            Edit profiles ({items.length})
+          </button>
+        </div>
+      )}
+    </div>
+  )
+
+  const profilesGrid = (
+    <div className="grid gap-8 mb-6 lg:mb-16 md:grid-cols-2">
+      {items.map((p) => {
+        const teaser = (
+          <ProfileTeaser
+            key={p.id}
+            id={p.id}
+            name={p.name}
+            role={p.role}
+            bio={p.bio}
+            imageUrl={p.imageUrl}
+            url={`/posts/${encodeURIComponent(p.slug)}`}
+          />
+        )
+        return _useReact ? (
+          <motion.div key={p.id} variants={itemVariants}>
+            {teaser}
+          </motion.div>
+        ) : (
+          teaser
+        )
+      })}
+    </div>
+  )
+
   if (loading && items.length === 0) {
     return (
       <section className="bg-backdrop-low py-12 lg:py-16" data-module="profile-list">
@@ -128,52 +236,21 @@ export default function ProfileList({
   return (
     <section className="bg-backdrop-low py-12 lg:py-16" data-module="profile-list">
       <div className="container mx-auto px-4 sm:px-6 lg:px-8">
-        <div className="mx-auto max-w-screen-sm text-center mb-8 lg:mb-16">
-          <h2
-            className="mb-4 text-4xl tracking-tight font-extrabold text-neutral-high"
-            data-inline-path="title"
+        {headerContent}
+        {_useReact ? (
+          <motion.div
+            initial="hidden"
+            whileInView="visible"
+            viewport={{ once: true, margin: '-50px' }}
+            variants={containerVariants}
           >
-            {title}
-          </h2>
-          {subtitle && (
-            <p
-              className="font-light text-neutral-medium lg:mb-4 sm:text-xl"
-              data-inline-path="subtitle"
-            >
-              {subtitle}
-            </p>
-          )}
-          {enabled && (
-            <div className="mt-2">
-              <button
-                type="button"
-                className="inline-flex items-center gap-2 text-xs text-neutral-low underline underline-offset-2"
-                data-inline-type="post-reference"
-                data-inline-path="profiles"
-                data-inline-multi="true"
-                data-inline-post-type="profile"
-                aria-label="Edit profiles"
-              >
-                <FontAwesomeIcon icon="pencil" className="w-3 h-3" />
-                Edit profiles ({items.length})
-              </button>
-            </div>
-          )}
-        </div>
-        <div className="grid gap-8 mb-6 lg:mb-16 md:grid-cols-2">
-          {items.map((p) => (
-            <ProfileTeaser
-              key={p.id}
-              id={p.id}
-              name={p.name}
-              role={p.role}
-              bio={p.bio}
-              imageUrl={p.imageUrl}
-              url={`/posts/${encodeURIComponent(p.slug)}`}
-            />
-          ))}
-        </div>
+            {profilesGrid}
+          </motion.div>
+        ) : (
+          profilesGrid
+        )}
       </div>
     </section>
   )
 }
+

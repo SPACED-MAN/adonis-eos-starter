@@ -9,11 +9,11 @@ import type { ModuleConfig } from '#types/module_types'
  */
 export default class HeroWithMediaModule extends BaseModule {
   /**
-   * Rendering mode: React (SSR + hydration)
-   * Uses a dedicated React component in inertia/modules/hero-with-media.tsx
+   * Hero with media supports animations. We use 'hybrid' mode
+   * to allow optional interactivity.
    */
   getRenderingMode() {
-    return 'react' as const
+    return 'hybrid' as const
   }
 
   /**

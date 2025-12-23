@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react'
+import { motion } from 'framer-motion'
 import { useInlineEditor, useInlineValue } from '../components/inline-edit/InlineEditorContext'
 import { FontAwesomeIcon } from '../site/lib/icons'
 import { pickMediaVariantUrl } from '../lib/media'
@@ -10,6 +11,7 @@ interface BlogListProps {
   // IDs of Blog posts selected via post-reference field; if empty, show all.
   posts?: string[] | null
   __moduleId?: string
+  _useReact?: boolean
 }
 
 type BlogSummary = {
@@ -27,6 +29,7 @@ export default function BlogList({
   subtitle: initialSubtitle,
   posts: initialPosts,
   __moduleId,
+  _useReact,
 }: BlogListProps) {
   const [items, setItems] = useState<BlogSummary[]>([])
   const [loading, setLoading] = useState(true)
@@ -109,6 +112,107 @@ export default function BlogList({
     }
   }, [JSON.stringify(posts ?? [])])
 
+  const containerVariants = {
+    hidden: { opacity: 0 },
+    visible: {
+      opacity: 1,
+      transition: {
+        staggerChildren: 0.12,
+      },
+    },
+  }
+
+  const itemVariants = {
+    hidden: { opacity: 0, y: 30 },
+    visible: {
+      opacity: 1,
+      y: 0,
+      transition: { duration: 1.0, ease: 'easeOut' },
+    },
+  }
+
+  const headerContent = (
+    <div className="mx-auto max-w-screen-sm text-center mb-8 lg:mb-16">
+      {_useReact ? (
+        <motion.h2
+          initial={{ opacity: 0, y: -20 }}
+          whileInView={{ opacity: 1, y: 0 }}
+          viewport={{ once: true }}
+          transition={{ duration: 1.0 }}
+          className="mb-4 text-3xl lg:text-4xl tracking-tight font-extrabold text-neutral-high"
+          data-inline-path="title"
+        >
+          {title}
+        </motion.h2>
+      ) : (
+        <h2
+          className="mb-4 text-3xl lg:text-4xl tracking-tight font-extrabold text-neutral-high"
+          data-inline-path="title"
+        >
+          {title}
+        </h2>
+      )}
+      {subtitle &&
+        (_useReact ? (
+          <motion.p
+            initial={{ opacity: 0 }}
+            whileInView={{ opacity: 1 }}
+            viewport={{ once: true }}
+            transition={{ duration: 1.0, delay: 0.25 }}
+            className="font-light text-neutral-medium sm:text-xl"
+            data-inline-path="subtitle"
+          >
+            {subtitle}
+          </motion.p>
+        ) : (
+          <p className="font-light text-neutral-medium sm:text-xl" data-inline-path="subtitle">
+            {subtitle}
+          </p>
+        ))}
+      {enabled && (
+        <div className="mt-3 flex justify-center">
+          <button
+            type="button"
+            className="inline-flex items-center gap-2 text-xs text-neutral-low underline underline-offset-2"
+            data-inline-type="post-reference"
+            data-inline-path="posts"
+            data-inline-multi="true"
+            data-inline-post-type="blog"
+            aria-label="Edit posts"
+          >
+            <FontAwesomeIcon icon="pencil" className="w-3 h-3" />
+            Edit posts ({items.length})
+          </button>
+        </div>
+      )}
+    </div>
+  )
+
+  const gridContent = (
+    <div className="grid gap-8 md:grid-cols-2 lg:grid-cols-3">
+      {items.map((p) => {
+        const teaser = (
+          <BlogTeaser
+            key={p.id}
+            id={p.id}
+            title={p.title}
+            excerpt={p.excerpt}
+            updatedAt={p.updatedAt}
+            imageUrl={p.imageUrl}
+            url={`/posts/${encodeURIComponent(p.slug)}`}
+          />
+        )
+        return _useReact ? (
+          <motion.div key={p.id} variants={itemVariants}>
+            {teaser}
+          </motion.div>
+        ) : (
+          teaser
+        )
+      })}
+    </div>
+  )
+
   if (loading && items.length === 0) {
     return (
       <section className="bg-backdrop-low py-12 lg:py-16" data-module="blog-list">
@@ -132,49 +236,21 @@ export default function BlogList({
   return (
     <section className="bg-backdrop-low py-12 lg:py-16" data-module="blog-list">
       <div className="container mx-auto px-4 sm:px-6 lg:px-8">
-        <div className="mx-auto max-w-screen-sm text-center mb-8 lg:mb-16">
-          <h2
-            className="mb-4 text-3xl lg:text-4xl tracking-tight font-extrabold text-neutral-high"
-            data-inline-path="title"
+        {headerContent}
+        {_useReact ? (
+          <motion.div
+            initial="hidden"
+            whileInView="visible"
+            viewport={{ once: true, margin: '-50px' }}
+            variants={containerVariants}
           >
-            {title}
-          </h2>
-          {subtitle && (
-            <p className="font-light text-neutral-medium sm:text-xl" data-inline-path="subtitle">
-              {subtitle}
-            </p>
-          )}
-          {enabled && (
-            <div className="mt-3 flex justify-center">
-              <button
-                type="button"
-                className="inline-flex items-center gap-2 text-xs text-neutral-low underline underline-offset-2"
-                data-inline-type="post-reference"
-                data-inline-path="posts"
-                data-inline-multi="true"
-                data-inline-post-type="blog"
-                aria-label="Edit posts"
-              >
-                <FontAwesomeIcon icon="pencil" className="w-3 h-3" />
-                Edit posts ({items.length})
-              </button>
-            </div>
-          )}
-        </div>
-        <div className="grid gap-8 md:grid-cols-2 lg:grid-cols-3">
-          {items.map((p) => (
-            <BlogTeaser
-              key={p.id}
-              id={p.id}
-              title={p.title}
-              excerpt={p.excerpt}
-              updatedAt={p.updatedAt}
-              imageUrl={p.imageUrl}
-              url={`/posts/${encodeURIComponent(p.slug)}`}
-            />
-          ))}
-        </div>
+            {gridContent}
+          </motion.div>
+        ) : (
+          gridContent
+        )}
       </div>
     </section>
   )
 }
+
