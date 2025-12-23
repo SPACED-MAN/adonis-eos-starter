@@ -1566,18 +1566,6 @@ export const ModuleEditorInline = memo(function ModuleEditorInline({
             })
           )}
         </fieldset>
-
-        <div className="flex items-center justify-end gap-2 border-t border-line-low pt-4">
-          <button
-            type="button"
-            className="px-3 py-1.5 text-xs rounded border border-line-medium text-neutral-high hover:bg-backdrop-medium"
-            onClick={saveNow}
-            disabled={processing || moduleItem.scope === 'global'}
-            title={moduleLabel ? `Apply changes to ${moduleLabel}` : 'Apply changes'}
-          >
-            Apply
-          </button>
-        </div>
       </div>
     </div>
   )
