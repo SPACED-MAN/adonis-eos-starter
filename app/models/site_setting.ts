@@ -30,10 +30,34 @@ export default class SiteSetting extends BaseModel {
   @column({ columnName: 'is_maintenance_mode' })
   declare isMaintenanceMode: boolean
 
-  @column({ columnName: 'profile_roles_enabled' })
+  @column({
+    columnName: 'profile_roles_enabled',
+    prepare: (value) => (value ? JSON.stringify(value) : value),
+    consume: (value) => {
+      if (!value) return []
+      if (typeof value === 'object') return value
+      try {
+        return JSON.parse(value)
+      } catch {
+        return value
+      }
+    },
+  })
   declare profileRolesEnabled: string[]
 
-  @column({ columnName: 'social_settings' })
+  @column({
+    columnName: 'social_settings',
+    prepare: (value) => (value ? JSON.stringify(value) : value),
+    consume: (value) => {
+      if (!value) return null
+      if (typeof value === 'object') return value
+      try {
+        return JSON.parse(value)
+      } catch {
+        return value
+      }
+    },
+  })
   declare socialSettings: any | null
 
   @column.dateTime({ autoCreate: true, columnName: 'created_at' })

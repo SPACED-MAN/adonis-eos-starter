@@ -30,12 +30,11 @@ class SiteCustomFieldsService {
         const cfg = fieldTypeRegistry.get(type)
         const parsed = cfg.valueSchema.safeParse(value ?? null)
         if (!parsed.success) {
-          throw new Error(
-            `Invalid value for field "${slug}": ${parsed.error.issues[0]?.message || 'invalid'}`
-          )
+          console.error(`[SiteCustomFieldsService] Validation failed for "${slug}":`, parsed.error.format())
+          continue
         }
       } catch (e) {
-        // skip invalid entries
+        console.error(`[SiteCustomFieldsService] Error processing "${slug}":`, e)
         continue
       }
       const existing = await SiteCustomFieldValueModel.query().where('fieldSlug', slug).first()

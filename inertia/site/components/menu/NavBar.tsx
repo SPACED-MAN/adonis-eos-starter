@@ -8,6 +8,7 @@ export function NavBar({
   logoLightUrl,
   logoDarkUrl,
   currentUser,
+  showSearch = true,
 }: {
   primaryNodes: TreeNode[]
   menuMeta?: Record<string, any> | null
@@ -15,6 +16,7 @@ export function NavBar({
   logoLightUrl?: string
   logoDarkUrl?: string
   currentUser?: any
+  showSearch?: boolean
 }) {
   return (
     <header className="border-b border-line-low bg-backdrop/80 backdrop-blur">
@@ -40,20 +42,22 @@ export function NavBar({
         </a>
         <div className="flex-1 flex items-center justify-end gap-6">
           {/* Public search (GET -> /search) */}
-          <form action="/search" method="get" className="hidden lg:flex items-center gap-2">
-            <input
-              type="search"
-              name="q"
-              placeholder="Search…"
-              className="w-64 rounded-md border border-line-medium bg-backdrop px-3 py-2 text-sm text-neutral-high placeholder:text-neutral-low outline-none focus:ring-2 focus:ring-standout-medium/30 focus:border-standout-medium/40"
-            />
-            <button
-              type="submit"
-              className="inline-flex items-center rounded-md border border-line-medium bg-backdrop px-3 py-2 text-sm font-medium text-neutral-high hover:bg-backdrop-medium hover:text-standout-high"
-            >
-              Search
-            </button>
-          </form>
+          {showSearch && (
+            <form action="/search" method="get" className="hidden lg:flex items-center gap-2">
+              <input
+                type="search"
+                name="q"
+                placeholder="Search…"
+                className="w-64 rounded-md border border-line-medium bg-backdrop px-3 py-2 text-sm text-neutral-high placeholder:text-neutral-low outline-none focus:ring-2 focus:ring-standout-medium/30 focus:border-standout-medium/40"
+              />
+              <button
+                type="submit"
+                className="inline-flex items-center rounded-md border border-line-medium bg-backdrop px-3 py-2 text-sm font-medium text-neutral-high hover:bg-backdrop-medium hover:text-standout-high"
+              >
+                Search
+              </button>
+            </form>
+          )}
           <nav className="hidden md:flex items-center gap-6">
             {primaryNodes.map((n) => (
               <NavItem key={n.id} node={n} menuMeta={menuMeta} />

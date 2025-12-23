@@ -6,11 +6,11 @@ const richtextField: FieldTypeConfig = {
   type: 'richtext',
   label: 'Rich Text',
   icon: 'lucide:align-left',
-  scope: ['post', 'post-type'],
+  scope: ['site', 'post', 'post-type'],
   configSchema: z.object({
     required: z.boolean().optional(),
   }),
-  valueSchema: z.string().nullable(),
+  valueSchema: z.union([z.string(), z.record(z.any()), z.array(z.any())]).nullable(),
   adminComponent: 'admin/fields/RichTextField',
 }
 

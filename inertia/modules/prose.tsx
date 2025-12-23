@@ -124,10 +124,8 @@ function escapeHtml(text: string): string {
 
 /**
  * Basic Lexical JSON to HTML renderer
- * Note: In production, this should be done server-side for true static rendering.
- * For now, this is a client-side fallback.
  */
-function renderLexicalToHtml(json: LexicalJSON): string {
+export function renderLexicalToHtml(json: LexicalJSON): string {
   if (!json || !(json as any).root || !(json as any).root.children) {
     return '<p>Empty content</p>'
   }

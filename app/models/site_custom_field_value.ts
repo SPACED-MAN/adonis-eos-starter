@@ -13,7 +13,18 @@ export default class SiteCustomFieldValue extends BaseModel {
   @column({ columnName: 'field_slug' })
   declare fieldSlug: string
 
-  @column()
+  @column({
+    prepare: (value) => (value !== null && value !== undefined ? JSON.stringify(value) : null),
+    consume: (value) => {
+      if (value === null || value === undefined) return null
+      if (typeof value === 'object') return value
+      try {
+        return JSON.parse(value)
+      } catch {
+        return value
+      }
+    },
+  })
   declare value: any
 
   @column.dateTime({ autoCreate: true, columnName: 'created_at' })

@@ -3,6 +3,8 @@ import type { MenuItem, TreeNode } from './menu/types'
 import { NavBar } from './menu/NavBar'
 import { usePage } from '@inertiajs/react'
 import { pickMediaVariantUrl, type MediaVariant } from '../../lib/media'
+import { AnnouncementBanner } from './AnnouncementBanner'
+import { CookieConsent } from './CookieConsent'
 
 function buildTree(items: MenuItem[]): TreeNode[] {
   const idToNode = new Map<string, TreeNode>()
@@ -27,6 +29,7 @@ export function SiteHeader() {
   const [logoBaseUrl, setLogoBaseUrl] = useState<string | null>(null)
   const [logoVariants, setLogoVariants] = useState<MediaVariant[] | null>(null)
   const [logoDarkSourceUrl, setLogoDarkSourceUrl] = useState<string | null>(null)
+  const [showSearch, setShowSearch] = useState<boolean>(true)
 
   const page = usePage()
   const currentUser = (page.props as any)?.currentUser
@@ -57,6 +60,12 @@ export function SiteHeader() {
         if (data?.siteTitle) {
           setSiteTitle(String(data.siteTitle))
         }
+        
+        const customFields = data?.customFields || {}
+        if ('show_search' in customFields) {
+          setShowSearch(customFields.show_search !== false && customFields.show_search !== 'false')
+        }
+
         const logoMediaId: string | null = data?.logoMediaId || null
 
         if (logoMediaId) {
@@ -95,13 +104,18 @@ export function SiteHeader() {
       : logoBaseUrl
 
   return (
-    <NavBar
-      primaryNodes={primaryNodes}
-      menuMeta={menuMeta || undefined}
-      menuName={siteTitle}
-      logoLightUrl={resolvedLogoUrl || undefined}
-      logoDarkUrl={undefined}
-      currentUser={currentUser || undefined}
-    />
+    <>
+      <AnnouncementBanner />
+      <CookieConsent />
+      <NavBar
+        primaryNodes={primaryNodes}
+        menuMeta={menuMeta || undefined}
+        menuName={siteTitle}
+        logoLightUrl={resolvedLogoUrl || undefined}
+        logoDarkUrl={undefined}
+        currentUser={currentUser || undefined}
+        showSearch={showSearch}
+      />
+    </>
   )
 }

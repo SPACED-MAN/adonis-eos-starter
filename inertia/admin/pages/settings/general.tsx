@@ -329,7 +329,7 @@ export default function GeneralSettings() {
           <div>
             <label className="block text-sm font-medium text-neutral-medium mb-1">Site Title</label>
             <Input
-              value={form.siteTitle}
+              value={form.siteTitle || ''}
               onChange={(e) => setForm({ ...form, siteTitle: e.target.value })}
               placeholder="Site Title"
             />
@@ -424,7 +424,7 @@ export default function GeneralSettings() {
                       
                       <div className="flex-1 w-full sm:w-auto">
                         <Input
-                          value={profile.url}
+                          value={profile.url || ''}
                           onChange={(e) => {
                             const next = [...(form.socialSettings?.profiles || [])]
                             next[idx] = { ...next[idx], url: e.target.value }
@@ -452,7 +452,7 @@ export default function GeneralSettings() {
 
                       <div className="w-24">
                         <Input
-                          value={profile.icon}
+                          value={profile.icon || ''}
                           onChange={(e) => {
                             const next = [...(form.socialSettings?.profiles || [])]
                             next[idx] = { ...next[idx], icon: e.target.value }
@@ -484,7 +484,7 @@ export default function GeneralSettings() {
                       <div className="flex items-center gap-4">
                         <div className="w-20">
                           <Input
-                            value={share.icon}
+                            value={share.icon || ''}
                             onChange={(e) => {
                               const next = [...(form.socialSettings?.sharing || [])]
                               next[idx] = { ...next[idx], icon: e.target.value }
