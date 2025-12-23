@@ -3,10 +3,13 @@ import { ThemeToggle } from '../../components/ThemeToggle'
 import type { MenuItem } from './menu/types'
 import { MenuItemLink } from './menu/MenuItemLink'
 import { FontAwesomeIcon, getIconProp } from '../lib/icons'
+import { pickMediaVariantUrl, type MediaVariant } from '../../lib/media'
 
 export function SiteFooter() {
   const [items, setItems] = useState<MenuItem[]>([])
   const [siteTitle, setSiteTitle] = useState<string>('Site')
+  const [description, setDescription] = useState<string | null>(null)
+  const [logoUrl, setLogoUrl] = useState<string | null>(null)
   const [socialProfiles, setSocialProfiles] = useState<Array<{ network: string; label: string; icon: string; url: string; enabled: boolean }>>([])
 
   useEffect(() => {
@@ -36,8 +39,37 @@ export function SiteFooter() {
         if (data?.siteTitle) {
           setSiteTitle(String(data.siteTitle))
         }
+        if (data?.defaultMetaDescription) {
+          setDescription(String(data.defaultMetaDescription))
+        }
         if (data?.socialSettings?.profiles) {
           setSocialProfiles(data.socialSettings.profiles.filter((p: any) => p.enabled && p.url))
+        }
+
+        const logoMediaId: string | null = data?.logoMediaId || null
+        if (logoMediaId) {
+          try {
+            const resLogo = await fetch(`/public/media/${encodeURIComponent(logoMediaId)}`, {
+              credentials: 'same-origin',
+            })
+            const jm = await resLogo.json().catch(() => ({}))
+            const media = jm?.data as any
+            if (media && media.url) {
+              const meta = (media as any).metadata || {}
+              const variants: MediaVariant[] = Array.isArray(meta?.variants)
+                ? (meta.variants as MediaVariant[])
+                : []
+              const darkSourceUrl =
+                typeof meta.darkSourceUrl === 'string' ? (meta.darkSourceUrl as string) : undefined
+              
+              const resolved = pickMediaVariantUrl(media.url, variants, undefined, {
+                darkSourceUrl,
+              })
+              setLogoUrl(resolved)
+            }
+          } catch {
+            // ignore logo load errors
+          }
         }
       } catch {
         // ignore
@@ -53,17 +85,22 @@ export function SiteFooter() {
             href="/"
             className="flex items-center justify-center text-2xl font-semibold text-neutral-high gap-2"
           >
-            {/* Simple gradient logo inspired by Flowbite */}
-            <span className="inline-flex h-8 w-8 items-center justify-center rounded-lg bg-gradient-to-br from-primary to-standout text-on-standout">
-              <span className="text-sm font-bold">AE</span>
-            </span>
-            <span>{siteTitle}</span>
+            {logoUrl ? (
+              <img
+                src={logoUrl}
+                alt={siteTitle}
+                className="h-8 w-auto"
+              />
+            ) : (
+              <span>{siteTitle}</span>
+            )}
           </a>
         </div>
-        <p className="my-4 text-sm text-neutral-medium max-w-xl mx-auto">
-          Build and manage rich marketing pages with reusable content blocks, media, and
-          navigation—powered by the Adonis EOS starter.
-        </p>
+        {description && (
+          <p className="my-4 text-sm text-neutral-medium max-w-xl mx-auto">
+            {description}
+          </p>
+        )}
         
         {socialProfiles.length > 0 && (
           <div className="flex justify-center items-center gap-4 mb-6">
