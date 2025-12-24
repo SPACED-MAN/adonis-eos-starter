@@ -20,11 +20,11 @@ export function SidebarProvider({ children }: { children: React.ReactNode }) {
       } else {
         document.body.style.paddingLeft = ''
       }
-    } catch {}
+    } catch { }
     return () => {
       try {
         document.body.style.paddingLeft = ''
-      } catch {}
+      } catch { }
     }
   }, [open])
   return <SidebarContext.Provider value={{ open, setOpen }}>{children}</SidebarContext.Provider>
@@ -93,7 +93,15 @@ export function SidebarContent({
   className?: string
 }) {
   return (
-    <div id="admin-sidebar" className={cn('h-full overflow-y-auto', className)}>
+    <div
+      id="admin-sidebar"
+      className={cn(
+        'h-full overflow-y-auto',
+        '[scrollbar-width:thin] [scrollbar-color:var(--color-line-low)_transparent]',
+        '[&::-webkit-scrollbar]:w-1 [&::-webkit-scrollbar-track]:bg-transparent [&::-webkit-scrollbar-thumb]:bg-line-low [&::-webkit-scrollbar-thumb]:rounded-full hover:[&::-webkit-scrollbar-thumb]:bg-line-medium',
+        className
+      )}
+    >
       {children}
     </div>
   )
