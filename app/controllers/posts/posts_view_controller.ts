@@ -58,6 +58,27 @@ export default class PostsViewController extends BasePostsController {
             : null
       const draftModules = (draftToUse as any)?.modules
 
+      // Resolve featured image asset for fallback logic in modules
+      // Respect the active view mode (draft vs published)
+      let activeFeaturedImageId = post.featuredImageId
+      if (draftToUse && (draftToUse as any).featuredImageId !== undefined) {
+        activeFeaturedImageId = (draftToUse as any).featuredImageId
+      }
+
+      let featuredImageAsset: any = null
+      if (activeFeaturedImageId) {
+        const asset = await db.from('media_assets').where('id', activeFeaturedImageId).first()
+        if (asset) {
+          featuredImageAsset = {
+            id: asset.id,
+            url: asset.url,
+            mimeType: asset.mime_type,
+            altText: asset.alt_text,
+            metadata: asset.metadata || {},
+          }
+        }
+      }
+
       const editorModules = modulesEnabled
         ? postModules
           .map((pm) => {
@@ -68,16 +89,40 @@ export default class PostsViewController extends BasePostsController {
               ? draftModules.find((dm: any) => dm.id === pm.id)
               : null
 
+            const props = coerceJsonObject(mi?.props)
+            const overrides = coerceJsonObject(pm.overrides)
+
+            // Fallback logic for Hero with Media in the editor
+            const applyHeroFallback = (p: any) => {
+              if (
+                (mi?.type === 'hero-with-media' || mi?.type === 'HeroWithMedia') &&
+                featuredImageAsset
+              ) {
+                const uuidRegex = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i
+                const hasNoUsableImage =
+                  !p.image ||
+                  p.image === '' ||
+                  (typeof p.image === 'string' && uuidRegex.test(p.image))
+
+                if (hasNoUsableImage) {
+                  return { ...p, image: featuredImageAsset }
+                }
+              }
+              return p
+            }
+
             return {
               id: pm.id,
               moduleInstanceId: pm.moduleId,
               type: mi?.type,
               scope: mi?.scope,
-              props: coerceJsonObject(mi?.props),
+              props: applyHeroFallback(props),
               reviewProps: (() => {
-                if (draftModule && draftModule.props && mi?.scope === 'post') return draftModule.props
+                if (draftModule && draftModule.props && mi?.scope === 'post')
+                  return applyHeroFallback(draftModule.props)
                 const obj = coerceJsonObject((mi as any)?.reviewProps || (mi as any)?.review_props)
-                return Object.keys(obj).length > 0 ? obj : null
+                const hasContent = Object.keys(obj).length > 0
+                return hasContent ? applyHeroFallback(obj) : null
               })(),
               aiReviewProps: (() => {
                 if (
@@ -86,16 +131,18 @@ export default class PostsViewController extends BasePostsController {
                   mi?.scope === 'post' &&
                   viewParam === 'ai-review'
                 )
-                  return draftModule.props
+                  return applyHeroFallback(draftModule.props)
                 const obj = coerceJsonObject((mi as any)?.aiReviewProps || (mi as any)?.ai_review_props)
-                return Object.keys(obj).length > 0 ? obj : null
+                const hasContent = Object.keys(obj).length > 0
+                return hasContent ? applyHeroFallback(obj) : null
               })(),
-              overrides: coerceJsonObject(pm.overrides),
+              overrides: applyHeroFallback(overrides),
               reviewOverrides: (() => {
                 if (draftModule && draftModule.overrides && mi?.scope !== 'post')
-                  return draftModule.overrides
+                  return applyHeroFallback(draftModule.overrides)
                 const obj = coerceJsonObject((pm as any).reviewOverrides || (pm as any).review_overrides)
-                return Object.keys(obj).length > 0 ? obj : null
+                const hasContent = Object.keys(obj).length > 0
+                return hasContent ? applyHeroFallback(obj) : null
               })(),
               aiReviewOverrides: (() => {
                 if (
@@ -104,11 +151,12 @@ export default class PostsViewController extends BasePostsController {
                   mi?.scope !== 'post' &&
                   viewParam === 'ai-review'
                 )
-                  return draftModule.overrides
+                  return applyHeroFallback(draftModule.overrides)
                 const obj = coerceJsonObject(
                   (pm as any).aiReviewOverrides || (pm as any).ai_review_overrides
                 )
-                return Object.keys(obj).length > 0 ? obj : null
+                const hasContent = Object.keys(obj).length > 0
+                return hasContent ? applyHeroFallback(obj) : null
               })(),
               reviewAdded: (pm as any).reviewAdded || false,
               reviewDeleted: (pm as any).reviewDeleted || false,
@@ -128,8 +176,6 @@ export default class PostsViewController extends BasePostsController {
                   return pm.adminLabel
                 }
                 // Priority 3: Legacy label from JSON props (local) or overrides (global)
-                const props = coerceJsonObject(mi?.props)
-                const overrides = coerceJsonObject(pm.overrides)
                 return (props as any)?._adminLabel || (overrides as any)?._adminLabel || null
               })(),
             }
@@ -345,6 +391,7 @@ export default class PostsViewController extends BasePostsController {
           robotsJson: post.robotsJson,
           jsonldOverrides: post.jsonldOverrides,
           featuredImageId: (post as any).featuredImageId || (post as any).featured_image_id || null,
+          featuredImageAsset, // Pass the resolved asset object
           createdAt: post.createdAt.toISO(),
           updatedAt: post.updatedAt.toISO(),
           publicPath,

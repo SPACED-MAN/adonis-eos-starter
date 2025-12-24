@@ -54,6 +54,7 @@ export interface PostRenderData {
   metaDescription: string | null
   status: string
   author: AuthorData | null
+  featuredImageId?: string | null
   reviewDraft?: Record<string, unknown> | null
   aiReviewDraft?: Record<string, unknown> | null
 }
@@ -143,23 +144,36 @@ class PostRenderingService {
       wantReview?: boolean
       reviewDraft?: Record<string, unknown> | null
       draftMode?: 'review' | 'ai-review' | 'auto'
+      featuredImageId?: string | null
     } = {}
-  ): Promise<
-    Array<{
+  ): Promise<{
+    modules: Array<{
       id: string
       type: string
       componentName: string
-      renderingMode: 'static' | 'react'
+      renderingMode: 'static' | 'react' | 'hybrid'
       props: Record<string, unknown>
       html?: string
+      sourceProps?: Record<string, unknown> | null
+      sourceOverrides?: Record<string, unknown> | null
       reviewProps?: Record<string, unknown> | null
       aiReviewProps?: Record<string, unknown> | null
       overrides?: Record<string, unknown> | null
       reviewOverrides?: Record<string, unknown> | null
       aiReviewOverrides?: Record<string, unknown> | null
+      reviewAdded?: boolean
+      reviewDeleted?: boolean
+      aiReviewAdded?: boolean
+      aiReviewDeleted?: boolean
     }>
-  > {
-    let { wantReview = false, reviewDraft = null, draftMode = 'review' } = options
+    resolvedMedia: Map<string, any>
+  }> {
+    let {
+      wantReview = false,
+      reviewDraft = null,
+      draftMode = 'review',
+      featuredImageId = null,
+    } = options
 
     // If not in review mode, check if we need to fall back to AI Review content
     if (!wantReview) {
@@ -268,6 +282,11 @@ class PostRenderingService {
     const allPostIds = new Set<string>()
     const allMediaIds = new Set<string>()
 
+    const uuidRegex = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i
+    if (featuredImageId && uuidRegex.test(featuredImageId)) {
+      allMediaIds.add(featuredImageId.toLowerCase())
+    }
+
     const extractPostIds = (obj: any) => {
       if (!obj || typeof obj !== 'object') return
       if (obj.kind === 'post' && obj.postId) allPostIds.add(String(obj.postId))
@@ -281,12 +300,24 @@ class PostRenderingService {
       this.extractMediaIdsFromProps(fieldSchema, s.mergedProps, allMediaIds)
 
       // Also extract from source/review props and overrides
-      if (s.pm.props) this.extractMediaIdsFromProps(fieldSchema, s.pm.props, allMediaIds)
-      if (s.pm.overrides) this.extractMediaIdsFromProps(fieldSchema, s.pm.overrides, allMediaIds)
-      if (s.pm.reviewProps) this.extractMediaIdsFromProps(fieldSchema, s.pm.reviewProps, allMediaIds)
-      if (s.pm.reviewOverrides) this.extractMediaIdsFromProps(fieldSchema, s.pm.reviewOverrides, allMediaIds)
-      if (s.pm.aiReviewProps) this.extractMediaIdsFromProps(fieldSchema, s.pm.aiReviewProps, allMediaIds)
-      if (s.pm.aiReviewOverrides) this.extractMediaIdsFromProps(fieldSchema, s.pm.aiReviewOverrides, allMediaIds)
+      if (s.pm.props) {
+        this.extractMediaIdsFromProps(fieldSchema, s.pm.props, allMediaIds)
+      }
+      if (s.pm.overrides) {
+        this.extractMediaIdsFromProps(fieldSchema, s.pm.overrides, allMediaIds)
+      }
+      if (s.pm.reviewProps) {
+        this.extractMediaIdsFromProps(fieldSchema, s.pm.reviewProps, allMediaIds)
+      }
+      if (s.pm.reviewOverrides) {
+        this.extractMediaIdsFromProps(fieldSchema, s.pm.reviewOverrides, allMediaIds)
+      }
+      if (s.pm.aiReviewProps) {
+        this.extractMediaIdsFromProps(fieldSchema, s.pm.aiReviewProps, allMediaIds)
+      }
+      if (s.pm.aiReviewOverrides) {
+        this.extractMediaIdsFromProps(fieldSchema, s.pm.aiReviewOverrides, allMediaIds)
+      }
     })
 
     const [resolvedPaths, resolvedMedia] = await Promise.all([
@@ -294,7 +325,9 @@ class PostRenderingService {
       this.resolveMediaAssets(Array.from(allMediaIds)),
     ])
 
-    console.log(`[PostRenderingService] Resolved ${resolvedMedia.size}/${allMediaIds.size} media assets`)
+    console.log(
+      `[PostRenderingService] Resolved ${resolvedMedia.size}/${allMediaIds.size} media assets`
+    )
     if (allMediaIds.size > 0) {
       console.log(`[PostRenderingService] IDs attempted:`, Array.from(allMediaIds))
       console.log(`[PostRenderingService] IDs successful:`, Array.from(resolvedMedia.keys()))
@@ -315,10 +348,34 @@ class PostRenderingService {
       return out
     }
 
-    return moduleStates.map(({ pm, mergedProps, module }) => {
+    const renderedModules = moduleStates.map(({ pm, mergedProps, module }) => {
       const fieldSchema = module.getConfig().fieldSchema || []
       const propsWithPosts = injectResolved(mergedProps)
-      const finalProps = this.injectResolvedMedia(fieldSchema, propsWithPosts, resolvedMedia)
+      let finalProps = this.injectResolvedMedia(fieldSchema, propsWithPosts, resolvedMedia)
+
+      // Helper to apply Hero fallback to a prop set
+      const applyHeroFallback = (props: any) => {
+        const uuidRegex = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i
+        const hasNoUsableImage =
+          !props.image ||
+          (typeof props.image === 'string' && uuidRegex.test(props.image)) ||
+          (typeof props.image === 'object' && !props.image.url)
+
+        if (
+          (pm.type === 'hero-with-media' || pm.type === 'HeroWithMedia') &&
+          hasNoUsableImage &&
+          featuredImageId
+        ) {
+          const fallbackAsset = resolvedMedia.get(featuredImageId.toLowerCase())
+          if (fallbackAsset) {
+            return { ...props, image: fallbackAsset }
+          }
+        }
+        return props
+      }
+
+      // Apply fallback logic to finalProps
+      finalProps = applyHeroFallback(finalProps)
 
       const componentName = module.getComponentName()
 
@@ -329,24 +386,68 @@ class PostRenderingService {
       }
 
       // Resolve media in all prop/override sets so InlineEditorContext sees resolved objects
-      const sourcePropsResolved = pm.props
-        ? this.injectResolvedMedia(fieldSchema, injectResolved(pm.props), resolvedMedia)
-        : null
-      const sourceOverridesResolved = pm.overrides
+      // Note: we include defaultProps here so the Inline Editor has the full set of values
+      const defaultProps = module.getConfig().defaultValues || {}
+
+      let sourcePropsResolved = this.injectResolvedMedia(
+        fieldSchema,
+        injectResolved({ ...defaultProps, ...(pm.props || {}) }),
+        resolvedMedia
+      )
+      if (sourcePropsResolved) {
+        sourcePropsResolved = applyHeroFallback(sourcePropsResolved)
+      }
+
+      let sourceOverridesResolved = pm.overrides
         ? this.injectResolvedMedia(fieldSchema, injectResolved(pm.overrides), resolvedMedia)
         : null
-      const reviewPropsResolved = (pm as any).reviewProps
-        ? this.injectResolvedMedia(fieldSchema, injectResolved((pm as any).reviewProps), resolvedMedia)
-        : null
-      const reviewOverridesResolved = (pm as any).reviewOverrides
-        ? this.injectResolvedMedia(fieldSchema, injectResolved((pm as any).reviewOverrides), resolvedMedia)
-        : null
-      const aiReviewPropsResolved = (pm as any).aiReviewProps
-        ? this.injectResolvedMedia(fieldSchema, injectResolved((pm as any).aiReviewProps), resolvedMedia)
-        : null
-      const aiReviewOverridesResolved = (pm as any).aiReviewOverrides
-        ? this.injectResolvedMedia(fieldSchema, injectResolved((pm as any).aiReviewOverrides), resolvedMedia)
-        : null
+      if (sourceOverridesResolved) {
+        sourceOverridesResolved = applyHeroFallback(sourceOverridesResolved)
+      }
+
+      let reviewPropsResolved = (pm as any).reviewProps
+        ? this.injectResolvedMedia(
+          fieldSchema,
+          injectResolved({ ...defaultProps, ...(pm as any).reviewProps }),
+          resolvedMedia
+        )
+        : sourcePropsResolved
+      if (reviewPropsResolved) {
+        reviewPropsResolved = applyHeroFallback(reviewPropsResolved)
+      }
+
+      let reviewOverridesResolved = (pm as any).reviewOverrides
+        ? this.injectResolvedMedia(
+          fieldSchema,
+          injectResolved((pm as any).reviewOverrides),
+          resolvedMedia
+        )
+        : sourceOverridesResolved
+      if (reviewOverridesResolved) {
+        reviewOverridesResolved = applyHeroFallback(reviewOverridesResolved)
+      }
+
+      let aiReviewPropsResolved = (pm as any).aiReviewProps
+        ? this.injectResolvedMedia(
+          fieldSchema,
+          injectResolved({ ...defaultProps, ...(pm as any).aiReviewProps }),
+          resolvedMedia
+        )
+        : reviewPropsResolved || sourcePropsResolved
+      if (aiReviewPropsResolved) {
+        aiReviewPropsResolved = applyHeroFallback(aiReviewPropsResolved)
+      }
+
+      let aiReviewOverridesResolved = (pm as any).aiReviewOverrides
+        ? this.injectResolvedMedia(
+          fieldSchema,
+          injectResolved((pm as any).aiReviewOverrides),
+          resolvedMedia
+        )
+        : reviewOverridesResolved || sourceOverridesResolved
+      if (aiReviewOverridesResolved) {
+        aiReviewOverridesResolved = applyHeroFallback(aiReviewOverridesResolved)
+      }
 
       return {
         id: pm.id,
@@ -370,6 +471,8 @@ class PostRenderingService {
         aiReviewDeleted: pm.aiReviewDeleted || false,
       }
     })
+
+    return { modules: renderedModules, resolvedMedia }
   }
 
   /**
@@ -531,10 +634,13 @@ class PostRenderingService {
       }
     }
 
-    const jsonLd = jsonLdGraph.length === 1 ? jsonLdGraph[0] : {
-      '@context': 'https://schema.org',
-      '@graph': jsonLdGraph
-    }
+    const jsonLd =
+      jsonLdGraph.length === 1
+        ? jsonLdGraph[0]
+        : {
+          '@context': 'https://schema.org',
+          '@graph': jsonLdGraph,
+        }
 
     return {
       canonical,
@@ -581,6 +687,9 @@ class PostRenderingService {
         : post.metaDescription,
       status: post.status,
       author: null, // To be filled by caller
+      featuredImageId: useReview
+        ? ((reviewDraft as any).featuredImageId ?? post.featuredImageId)
+        : post.featuredImageId,
       reviewDraft: (post as any).reviewDraft || (post as any).review_draft || null,
       aiReviewDraft: (post as any).aiReviewDraft || (post as any).ai_review_draft || null,
     }
@@ -650,7 +759,7 @@ class PostRenderingService {
 
     // Load modules
     const modulesRaw = await this.loadPostModules(post.id, { includeReviewFields: true })
-    const modules = await this.buildModulesForView(modulesRaw, {
+    const { modules, resolvedMedia } = await this.buildModulesForView(modulesRaw, {
       wantReview,
       reviewDraft:
         draftMode === 'ai-review'
@@ -659,6 +768,7 @@ class PostRenderingService {
             ? (reviewDraft as any) || (aiReviewDraft as any)
             : (reviewDraft as any),
       draftMode: draftMode === 'auto' ? (reviewDraft ? 'review' : 'ai-review') : draftMode,
+      featuredImageId: postData.featuredImageId,
     })
 
     // Resolve tokens in post data (title, excerpt, meta fields)
@@ -674,6 +784,12 @@ class PostRenderingService {
       ...m,
       props: tokenService.resolveRecursive(m.props, tokenContext),
       overrides: tokenService.resolveRecursive(m.overrides, tokenContext),
+      sourceProps: tokenService.resolveRecursive(m.sourceProps, tokenContext),
+      sourceOverrides: tokenService.resolveRecursive(m.sourceOverrides, tokenContext),
+      reviewProps: tokenService.resolveRecursive(m.reviewProps, tokenContext),
+      reviewOverrides: tokenService.resolveRecursive(m.reviewOverrides, tokenContext),
+      aiReviewProps: tokenService.resolveRecursive(m.aiReviewProps, tokenContext),
+      aiReviewOverrides: tokenService.resolveRecursive(m.aiReviewOverrides, tokenContext),
     }))
 
     // Build SEO
