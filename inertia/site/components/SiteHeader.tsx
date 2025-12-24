@@ -19,7 +19,11 @@ export function SiteHeader() {
 
   const menuMeta = primaryMenu?.meta ?? null
   const siteTitle = siteSettings?.siteTitle || ''
-  const showSearch = siteSettings?.customFields?.show_search !== false && siteSettings?.customFields?.show_search !== 'false'
+  const showSearch =
+    siteSettings?.customFields?.show_search !== false &&
+    siteSettings?.customFields?.show_search !== 'false' &&
+    menuMeta?.showSearch !== false &&
+    menuMeta?.showSearch !== 'false'
 
   const logoMedia = useMemo(() => {
     const logo = siteSettings?.logoMedia

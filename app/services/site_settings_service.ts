@@ -1,4 +1,5 @@
 import SiteSetting from '#models/site_setting'
+import siteCustomFieldsService from '#services/site_custom_fields_service'
 
 type SiteSettings = {
   siteTitle: string
@@ -23,6 +24,7 @@ type SiteSettings = {
       enabled: boolean
     }>
   } | null
+  customFields?: Record<string, any>
 }
 
 class SiteSettingsService {
@@ -36,6 +38,7 @@ class SiteSettingsService {
       return this.cache
     }
     const row = await SiteSetting.query().first()
+    const customFields = await siteCustomFieldsService.getValues()
     const settings: SiteSettings = {
       siteTitle: row?.siteTitle || 'EOS',
       defaultMetaDescription: row?.defaultMetaDescription || null,
@@ -45,6 +48,7 @@ class SiteSettingsService {
       isMaintenanceMode: !!row?.isMaintenanceMode,
       profileRolesEnabled: Array.isArray(row?.profileRolesEnabled) ? row.profileRolesEnabled : [],
       socialSettings: row?.socialSettings || { profiles: [], sharing: [] },
+      customFields,
     }
     this.cache = settings
     this.lastLoadedAt = now
