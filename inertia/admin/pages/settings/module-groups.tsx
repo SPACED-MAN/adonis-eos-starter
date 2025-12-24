@@ -14,17 +14,17 @@ import {
 type ModuleGroup = {
   id: string
   name: string
-  post_type: string
+  postType: string
   description: string | null
   locked: boolean
-  is_default: boolean
-  updated_at: string
+  isDefault: boolean
+  updatedAt: string
 }
 type ModuleGroupModule = {
   id: string
   type: string
-  default_props: any
-  order_index: number
+  defaultProps: any
+  orderIndex: number
   locked: boolean
 }
 
@@ -104,7 +104,7 @@ export default function ModuleGroupsSettingsPage() {
       // Load registry for the module group's post type
       const t = moduleGroups.find((x) => x.id === selectedId)
       const url = t
-        ? `/api/modules/registry?post_type=${encodeURIComponent(t.post_type)}`
+        ? `/api/modules/registry?post_type=${encodeURIComponent(t.postType)}`
         : '/api/modules/registry'
       fetch(url, { credentials: 'same-origin' })
         .then((r) => r.json())
@@ -240,13 +240,13 @@ export default function ModuleGroupsSettingsPage() {
                     >
                       <div className="flex items-center justify-between gap-2">
                         <div className="text-neutral-high font-medium">{t.name}</div>
-                        {t.is_default && (
+                        {t.isDefault && (
                           <span className="text-[10px] bg-standout-medium text-on-standout px-1.5 py-0.5 rounded uppercase font-bold">
                             Default
                           </span>
                         )}
                       </div>
-                      <div className="text-xs text-neutral-low">{labelize(t.post_type)}</div>
+                      <div className="text-xs text-neutral-low">{labelize(t.postType)}</div>
                     </button>
                   ))
                 )}
@@ -263,12 +263,12 @@ export default function ModuleGroupsSettingsPage() {
                     <div>
                       <div className="text-neutral-high font-semibold">{selected.name}</div>
                         <div className="text-xs text-neutral-low">
-                          {labelize(selected.post_type)}
+                          {labelize(selected.postType)}
                         </div>
                       </div>
                       <label className="flex items-center gap-2 text-sm text-neutral-high cursor-pointer">
                         <Checkbox
-                          checked={selected.is_default}
+                          checked={selected.isDefault}
                           onCheckedChange={(checked) =>
                             updateModuleGroup(selected.id, { isDefault: !!checked } as any)
                           }
@@ -328,7 +328,7 @@ export default function ModuleGroupsSettingsPage() {
                         <div key={m.id} className="p-3 flex items-center justify-between">
                           <div>
                             <div className="text-neutral-high">{m.type}</div>
-                            <div className="text-xs text-neutral-low">Order: {m.order_index}</div>
+                            <div className="text-xs text-neutral-low">Order: {m.orderIndex}</div>
                           </div>
                           <button
                             className="px-3 py-1.5 text-xs rounded border border-line-low hover:bg-backdrop-medium text-neutral-medium"

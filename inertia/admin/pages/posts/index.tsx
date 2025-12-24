@@ -90,7 +90,7 @@ export default function PostsIndexPage({}: PostsIndexProps) {
   const [createStep, setCreateStep] = useState<'type' | 'template'>('type')
   const [selectedPostType, setSelectedPostType] = useState<string | null>(null)
   const [availableTemplates, setAvailableTemplates] = useState<
-    Array<{ id: string; name: string; is_default: boolean }>
+    Array<{ id: string; name: string; isDefault: boolean }>
   >([])
   const [fetchingTemplates, setFetchingTemplates] = useState(false)
   const [sortBy, setSortBy] = useState<
@@ -1444,8 +1444,8 @@ export default function PostsIndexPage({}: PostsIndexProps) {
                       }}
                     >
                       <span>
-                        {labelize(tmpl.is_default ? tmpl.name.replace(/[-_ ]?default$/i, '') : tmpl.name)}
-                        {tmpl.is_default && (
+                        {labelize(tmpl.isDefault ? tmpl.name.replace(/[-_ ]?default$/i, '') : tmpl.name)}
+                        {tmpl.isDefault && (
                           <span className="ml-1.5 text-neutral-low text-xs">(default)</span>
                         )}
                       </span>

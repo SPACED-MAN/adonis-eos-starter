@@ -61,20 +61,20 @@ type GlobalModuleItem = {
 type ModuleGroup = {
   id: string
   name: string
-  post_type: string
+  postType: string
   description?: string | null
-  is_default?: boolean
+  isDefault?: boolean
   locked?: boolean
-  updated_at?: string
+  updatedAt?: string
 }
 type ModuleGroupModule = {
   id: string
   type: string
-  default_props: any
-  order_index: number
+  defaultProps: any
+  orderIndex: number
   locked: boolean
   scope?: 'post' | 'global'
-  global_slug?: string | null
+  globalSlug?: string | null
 }
 
 function labelize(type: string): string {
@@ -90,7 +90,7 @@ function labelize(type: string): string {
 function formatGroupName(g: ModuleGroup | null): string {
   if (!g || !g.name) return ''
   let name = g.name
-  let isDef = !!g.is_default
+  let isDef = !!g.isDefault
 
   if (name.endsWith('-default')) {
     name = name.replace('-default', '')
@@ -226,8 +226,8 @@ export default function GlobalModulesIndex() {
     const query = groupsQuery.trim().toLowerCase()
     return groups.filter((g) => {
       const matchesQ =
-        !query || g.name.toLowerCase().includes(query) || g.post_type.toLowerCase().includes(query)
-      const matchesType = !groupTypeFilter || g.post_type === groupTypeFilter
+        !query || g.name.toLowerCase().includes(query) || g.postType.toLowerCase().includes(query)
+      const matchesType = !groupTypeFilter || g.postType === groupTypeFilter
       return matchesQ && matchesType
     })
   }, [groups, groupsQuery, groupTypeFilter])
@@ -382,7 +382,7 @@ export default function GlobalModulesIndex() {
         fetch(`/api/module-groups/${encodeURIComponent(group.id)}/modules`, {
           credentials: 'same-origin',
         }),
-        fetch(`/api/modules/registry?post_type=${encodeURIComponent(group.post_type)}`, {
+        fetch(`/api/modules/registry?post_type=${encodeURIComponent(group.postType)}`, {
           credentials: 'same-origin',
         }),
         fetch('/api/modules/global', { credentials: 'same-origin' }),
@@ -396,10 +396,10 @@ export default function GlobalModulesIndex() {
       setGroupDirty(false)
       const regList = Array.isArray(regJson?.data)
         ? regJson.data.map((m: any) => ({
-            type: m.type,
-            name: m.name || m.type,
-            renderingMode: m.renderingMode,
-          }))
+          type: m.type,
+          name: m.name || m.type,
+          renderingMode: m.renderingMode,
+        }))
         : []
       setGroupRegistry(regList)
       // keep existing globals list for labels; reuse loaded globals
@@ -435,7 +435,7 @@ export default function GlobalModulesIndex() {
   }
 
   const groupOrdered = useMemo(
-    () => groupDraft.slice().sort((a, b) => a.order_index - b.order_index),
+    () => groupDraft.slice().sort((a, b) => a.orderIndex - b.orderIndex),
     [groupDraft]
   )
   const groupOrderedIds = useMemo(() => groupOrdered.map((m) => m.id), [groupOrdered])
@@ -459,7 +459,7 @@ export default function GlobalModulesIndex() {
     const next = current.slice()
     const [moved] = next.splice(oldIndex, 1)
     next.splice(newIndex, 0, moved)
-    setGroupDraft(next.map((m, idx) => ({ ...m, order_index: idx })))
+    setGroupDraft(next.map((m, idx) => ({ ...m, orderIndex: idx })))
     setGroupDirty(true)
   }
 
@@ -469,7 +469,10 @@ export default function GlobalModulesIndex() {
   }
 
   function removeGroupModule(id: string) {
-    setGroupDraft((prev) => prev.filter((m) => m.id !== id))
+    setGroupDraft((prev) => {
+      const next = prev.filter((m) => m.id !== id)
+      return next.map((m, idx) => ({ ...m, orderIndex: idx }))
+    })
     setGroupDirty(true)
   }
 
@@ -479,16 +482,18 @@ export default function GlobalModulesIndex() {
     globalSlug?: string | null
   ) {
     const tempId = `temp-${Date.now()}-${Math.random().toString(36).slice(2)}`
-    const next: ModuleGroupModule = {
-      id: tempId,
-      type,
-      default_props: {},
-      order_index: groupDraft.length,
-      locked: false,
-      scope,
-      global_slug: scope === 'global' ? globalSlug || null : null,
-    }
-    setGroupDraft((prev) => [...prev, next])
+    setGroupDraft((prev) => {
+      const next: ModuleGroupModule = {
+        id: tempId,
+        type,
+        defaultProps: {},
+        orderIndex: prev.length,
+        locked: false,
+        scope,
+        globalSlug: scope === 'global' ? globalSlug || null : null,
+      }
+      return [...prev, next]
+    })
     setGroupDirty(true)
   }
 
@@ -504,11 +509,11 @@ export default function GlobalModulesIndex() {
         const base = baselineById.get(m.id)
         if (!base) return false
         return (
-          base.order_index !== m.order_index ||
+          base.orderIndex !== m.orderIndex ||
           base.locked !== m.locked ||
-          JSON.stringify(base.default_props || {}) !== JSON.stringify(m.default_props || {}) ||
+          JSON.stringify(base.defaultProps || {}) !== JSON.stringify(m.defaultProps || {}) ||
           base.scope !== m.scope ||
-          base.global_slug !== m.global_slug
+          base.globalSlug !== m.globalSlug
         )
       })
 
@@ -534,10 +539,11 @@ export default function GlobalModulesIndex() {
             credentials: 'same-origin',
             body: JSON.stringify({
               type: m.type,
-              defaultProps: m.default_props || {},
+              defaultProps: m.defaultProps || {},
               locked: !!m.locked,
               scope: m.scope || 'post',
-              globalSlug: m.scope === 'global' ? m.global_slug || null : null,
+              globalSlug: m.scope === 'global' ? m.globalSlug || null : null,
+              orderIndex: m.orderIndex,
             }),
           })
         )
@@ -554,8 +560,8 @@ export default function GlobalModulesIndex() {
             },
             credentials: 'same-origin',
             body: JSON.stringify({
-              orderIndex: m.order_index,
-              defaultProps: m.default_props || {},
+              orderIndex: m.orderIndex,
+              defaultProps: m.defaultProps || {},
               locked: !!m.locked,
             }),
           })
@@ -583,21 +589,19 @@ export default function GlobalModulesIndex() {
           <nav className="flex gap-4">
             <button
               onClick={() => setActiveTab('globals')}
-              className={`px-4 py-2 border-b-2 font-medium text-sm transition-colors ${
-                activeTab === 'globals'
-                  ? 'border-standout-medium text-standout-high'
-                  : 'border-transparent text-neutral-medium hover:text-neutral-high'
-              }`}
+              className={`px-4 py-2 border-b-2 font-medium text-sm transition-colors ${activeTab === 'globals'
+                ? 'border-standout-medium text-standout-high'
+                : 'border-transparent text-neutral-medium hover:text-neutral-high'
+                }`}
             >
               Globals
             </button>
             <button
               onClick={() => setActiveTab('groups')}
-              className={`px-4 py-2 border-b-2 font-medium text-sm transition-colors ${
-                activeTab === 'groups'
-                  ? 'border-standout-medium text-standout-high'
-                  : 'border-transparent text-neutral-medium hover:text-neutral-high'
-              }`}
+              className={`px-4 py-2 border-b-2 font-medium text-sm transition-colors ${activeTab === 'groups'
+                ? 'border-standout-medium text-standout-high'
+                : 'border-transparent text-neutral-medium hover:text-neutral-high'
+                }`}
             >
               Groups
             </button>
@@ -662,14 +666,14 @@ export default function GlobalModulesIndex() {
                     </TableRow>
                   </TableHeader>
                   <TableBody>
-                      {globals.length === 0 ? (
+                    {globals.length === 0 ? (
                       <TableRow>
                         <TableCell colSpan={6} className="text-xs text-neutral-low">
-                            {loading ? 'Loading…' : 'No global modules.'}
+                          {loading ? 'Loading…' : 'No global modules.'}
                         </TableCell>
                       </TableRow>
-                      ) : (
-                        globals.map((m) => (
+                    ) : (
+                      globals.map((m) => (
                         <TableRow key={m.id}>
                           <TableCell>{(m as any).label || '-'}</TableCell>
                           <TableCell>{m.globalSlug || '-'}</TableCell>
@@ -677,26 +681,26 @@ export default function GlobalModulesIndex() {
                           <TableCell>{new Date(m.updatedAt).toLocaleString()}</TableCell>
                           <TableCell>{m.usageCount}</TableCell>
                           <TableCell>
-                              <div className="flex items-center justify-end gap-2">
-                                <button
-                                  className="px-2 py-1 text-xs border border-line-medium rounded hover:bg-backdrop-medium"
-                                  onClick={() => setEditing(m)}
-                                >
-                                  Edit
-                                </button>
-                                <button
-                                  className="px-2 py-1 text-xs border border-line-medium rounded hover:bg-backdrop-medium disabled:opacity-50"
-                                  disabled={m.usageCount > 0}
-                                  onClick={() => deleteGlobal(m.id)}
+                            <div className="flex items-center justify-end gap-2">
+                              <button
+                                className="px-2 py-1 text-xs border border-line-medium rounded hover:bg-backdrop-medium"
+                                onClick={() => setEditing(m)}
+                              >
+                                Edit
+                              </button>
+                              <button
+                                className="px-2 py-1 text-xs border border-line-medium rounded hover:bg-backdrop-medium disabled:opacity-50"
+                                disabled={m.usageCount > 0}
+                                onClick={() => deleteGlobal(m.id)}
                                 title={m.usageCount > 0 ? 'Cannot delete while referenced' : 'Delete'}
-                                >
-                                  Delete
-                                </button>
-                              </div>
+                              >
+                                Delete
+                              </button>
+                            </div>
                           </TableCell>
                         </TableRow>
-                        ))
-                      )}
+                      ))
+                    )}
                   </TableBody>
                 </Table>
               </section>
@@ -898,10 +902,10 @@ export default function GlobalModulesIndex() {
                             </>
                           )}
                         </div>
-                        <div className="text-xs text-neutral-low">{labelize(g.post_type)}</div>
+                        <div className="text-xs text-neutral-low">{labelize(g.postType)}</div>
                       </div>
                       <div className="col-span-5 text-xs text-neutral-low">
-                        {g.updated_at ? new Date(g.updated_at).toLocaleString() : ''}
+                        {g.updatedAt ? new Date(g.updatedAt).toLocaleString() : ''}
                       </div>
                       <div className="col-span-2 text-right">
                         <button
@@ -964,7 +968,7 @@ export default function GlobalModulesIndex() {
                         )}
                       </div>
                       <p className="text-xs text-neutral-low">
-                        {labelize(selectedGroup.post_type)}
+                        {labelize(selectedGroup.postType)}
                       </p>
                     </div>
                     <div className="flex items-center gap-2">
@@ -987,7 +991,7 @@ export default function GlobalModulesIndex() {
                         </button>
                       )}
                       <ModulePicker
-                        postType={selectedGroup.post_type}
+                        postType={selectedGroup.postType}
                         buttonLabel="Add module"
                         onAdd={async ({ type, scope, globalSlug }) => {
                           await addGroupModule(
@@ -1030,36 +1034,36 @@ export default function GlobalModulesIndex() {
                                     <div>
                                       <div className="text-sm font-medium text-neutral-high flex items-center gap-1">
                                         {m.scope === 'global'
-                                          ? slugToLabel.get(String(m.global_slug || '')) ||
-                                            String(m.global_slug || '')
+                                          ? slugToLabel.get(String(m.globalSlug || '')) ||
+                                          String(m.globalSlug || '')
                                           : groupRegistry.find((r) => r.type === m.type)?.name ||
-                                            m.type}
+                                          m.type}
                                       </div>
                                       <div className="text-xs text-neutral-low">
                                         {m.scope === 'global' ? (
-                                          <>Global · {String(m.global_slug || '')}</>
+                                          <>Global · {String(m.globalSlug || '')}</>
                                         ) : (
                                           m.type
                                         )}{' '}
-                                        · Order: {m.order_index} {m.locked ? '• Locked' : ''}
+                                        · Order: {m.orderIndex} {m.locked ? '• Locked' : ''}
                                       </div>
                                     </div>
                                   </div>
                                   <div className="flex items-center gap-2">
                                     {groupRegistry.find((r) => r.type === m.type)?.renderingMode ===
                                       'react' && (
-                                      <span
-                                        className="inline-flex items-center rounded border border-line-medium bg-backdrop-low px-2 py-1 text-xs text-neutral-high"
-                                        title="React module (client-side interactivity)"
-                                        aria-label="React module"
-                                      >
-                                        <FontAwesomeIcon
-                                          icon={faReact}
-                                          className="mr-1 text-sky-400"
-                                        />
-                                        React
-                                      </span>
-                                    )}
+                                        <span
+                                          className="inline-flex items-center rounded border border-line-medium bg-backdrop-low px-2 py-1 text-xs text-neutral-high"
+                                          title="React module (client-side interactivity)"
+                                          aria-label="React module"
+                                        >
+                                          <FontAwesomeIcon
+                                            icon={faReact}
+                                            className="mr-1 text-sky-400"
+                                          />
+                                          React
+                                        </span>
+                                      )}
                                     {m.scope === 'global' && (
                                       <span
                                         className="inline-flex items-center rounded border border-line-medium bg-backdrop-low px-2 py-1 text-xs text-neutral-high"

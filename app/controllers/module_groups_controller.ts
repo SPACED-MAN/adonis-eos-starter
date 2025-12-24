@@ -143,20 +143,26 @@ export default class ModuleGroupsController {
       locked = false,
       scope = 'post',
       globalSlug = null,
-    } = request.only(['type', 'defaultProps', 'locked', 'scope', 'globalSlug'])
+      orderIndex,
+    } = request.only(['type', 'defaultProps', 'locked', 'scope', 'globalSlug', 'orderIndex'])
     if (!type) return response.badRequest({ error: 'type is required' })
-    const maxOrder = await ModuleGroupModule.query()
-      .where('moduleGroupId', id)
-      .max('orderIndex', 'maxOrder')
-      .first()
-    const nextOrder = ((maxOrder as any)?.$extras?.maxOrder || 0) + 1
+
+    let finalOrderIndex = Number(orderIndex)
+    if (isNaN(finalOrderIndex)) {
+      const maxOrder = await ModuleGroupModule.query()
+        .where('moduleGroupId', id)
+        .max('orderIndex', 'maxOrder')
+        .first()
+      finalOrderIndex = ((maxOrder as any)?.$extras?.maxOrder || 0) + 1
+    }
+
     const row = await ModuleGroupModule.create({
       moduleGroupId: id,
       type,
       defaultProps: defaultProps || {},
       scope: String(scope || 'post'),
       globalSlug: globalSlug ? String(globalSlug) : null,
-      orderIndex: nextOrder,
+      orderIndex: finalOrderIndex,
       locked: !!locked,
     })
     return response.created({ data: row })
