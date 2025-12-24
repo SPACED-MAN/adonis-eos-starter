@@ -60,122 +60,130 @@ const FORMAT_CODE = 16
  * @returns HTML string
  */
 export function renderLexicalToHtml(lexicalJson: any): string {
-  if (!lexicalJson || !lexicalJson.root) {
+  if (!lexicalJson) {
     return ''
   }
 
-  return renderNode(lexicalJson.root)
+  let data: any
+  if (typeof lexicalJson === 'string') {
+    try {
+      data = JSON.parse(lexicalJson)
+    } catch {
+      return lexicalJson // Treat as raw HTML/text
+    }
+  } else {
+    data = lexicalJson
+  }
+
+  if (!data || !data.root) {
+    return typeof lexicalJson === 'string' ? lexicalJson : ''
+  }
+
+  return renderNode(data.root)
 }
 
 /**
  * Render a single Lexical node
  */
-function renderNode(node: LexicalNode): string {
+function renderNode(node: LexicalNode, isInsideCode = false): string {
   switch (node.type) {
     case 'root':
-      return renderChildren(node as ElementNode)
+      return renderChildren(node as ElementNode, isInsideCode)
 
-    case 'paragraph':
-      return renderParagraph(node as ElementNode)
+    case 'paragraph': {
+      const content = renderChildren(node as ElementNode, isInsideCode)
+      if (isInsideCode) return content
+      return content ? `<p>${content}</p>` : '<p><br></p>'
+    }
 
-    case 'heading':
-      return renderHeading(node as ElementNode & { tag: string })
+    case 'heading': {
+      const tag = (node as any).tag || 'h2'
+      const content = renderChildren(node as ElementNode, isInsideCode)
+      if (isInsideCode) return content
+      return `<${tag}>${content}</${tag}>`
+    }
 
-    case 'list':
-      return renderList(node as ElementNode & { listType: 'bullet' | 'number'; tag: string })
+    case 'list': {
+      const listType = (node as any).listType === 'number' ? 'ol' : 'ul'
+      const content = renderChildren(node as ElementNode, isInsideCode)
+      if (isInsideCode) return content
+      return `<${listType}>${content}</${listType}>`
+    }
 
-    case 'listitem':
-      return renderListItem(node as ElementNode)
+    case 'listitem': {
+      const content = renderChildren(node as ElementNode, isInsideCode)
+      if (isInsideCode) return content
+      return `<li>${content}</li>`
+    }
 
-    case 'quote':
-      return renderQuote(node as ElementNode)
+    case 'quote': {
+      const content = renderChildren(node as ElementNode, isInsideCode)
+      if (isInsideCode) return content
+      return `<blockquote>${content}</blockquote>`
+    }
 
     case 'link':
-      return renderLink(node as LinkNode)
+      return renderLink(node as LinkNode, isInsideCode)
 
     case 'text':
-      return renderText(node as TextNode)
+      return renderText(node as TextNode, isInsideCode)
+
+    case 'code': {
+      // Code block handler
+      const children = (node as any).children || []
+      const codeContent = children.map((c: any) => renderNode(c, true)).join('')
+      const language = (node as any).language || 'text'
+      return `<pre><code class="language-${escapeHtml(language)}">${escapeHtml(
+        codeContent
+      )}</code></pre>`
+    }
 
     case 'linebreak':
-      return '<br>'
+      return isInsideCode ? '\n' : '<br>'
+
+    case 'horizontalrule':
+      return isInsideCode ? '' : '<hr>'
 
     default:
       // Unknown node type, render children if present
-      return renderChildren(node as ElementNode)
+      return renderChildren(node as ElementNode, isInsideCode)
   }
 }
 
 /**
  * Render children nodes
  */
-function renderChildren(node: ElementNode): string {
+function renderChildren(node: ElementNode, isInsideCode = false): string {
   if (!node.children || node.children.length === 0) {
     return ''
   }
 
-  return node.children.map((child) => renderNode(child)).join('')
-}
-
-/**
- * Render paragraph
- */
-function renderParagraph(node: ElementNode): string {
-  const content = renderChildren(node)
-  return content ? `<p>${content}</p>` : '<p><br></p>'
-}
-
-/**
- * Render heading
- */
-function renderHeading(node: ElementNode & { tag: string }): string {
-  const tag = node.tag || 'h2'
-  const content = renderChildren(node)
-  return `<${tag}>${content}</${tag}>`
-}
-
-/**
- * Render list
- */
-function renderList(node: ElementNode & { listType: 'bullet' | 'number'; tag: string }): string {
-  const tag = node.listType === 'number' ? 'ol' : 'ul'
-  const content = renderChildren(node)
-  return `<${tag}>${content}</${tag}>`
-}
-
-/**
- * Render list item
- */
-function renderListItem(node: ElementNode): string {
-  const content = renderChildren(node)
-  return `<li>${content}</li>`
-}
-
-/**
- * Render blockquote
- */
-function renderQuote(node: ElementNode): string {
-  const content = renderChildren(node)
-  return `<blockquote>${content}</blockquote>`
+  return node.children.map((child) => renderNode(child, isInsideCode)).join('')
 }
 
 /**
  * Render link
  */
-function renderLink(node: LinkNode): string {
+function renderLink(node: LinkNode, isInsideCode = false): string {
   const url = escapeHtml(node.url || '#')
   const title = node.title ? ` title="${escapeHtml(node.title)}"` : ''
   const rel = node.rel ? ` rel="${escapeHtml(node.rel)}"` : ''
   const target = node.target ? ` target="${escapeHtml(node.target)}"` : ''
-  const content = renderChildren(node)
+  const content = renderChildren(node, isInsideCode)
 
+  if (isInsideCode) return content
   return `<a href="${url}"${title}${rel}${target}>${content}</a>`
 }
 
 /**
  * Render text with formatting
  */
-function renderText(node: TextNode): string {
-  let text = escapeHtml(node.text)
+function renderText(node: TextNode, isInsideCode = false): string {
+  let text = node.text || ''
+
+  if (isInsideCode) return text
+
+  text = escapeHtml(text)
   const format = node.format || 0
 
   // Apply formatting based on bitmask

@@ -62,6 +62,8 @@ export interface PostRenderData {
 /**
  * Full page data for rendering
  */
+import { coerceJsonObject } from '../helpers/jsonb.js'
+
 export interface PageRenderData {
   post: PostRenderData
   modules: Array<{
@@ -117,16 +119,26 @@ class PostRenderingService {
         id: row.id,
         type: module?.type || 'unknown',
         scope: module?.scope || 'post',
-        props: (module as any)?.props || {},
-        overrides: row.overrides || null,
-        reviewProps: includeReviewFields ? (module as any)?.reviewProps || null : null,
-        reviewOverrides: includeReviewFields ? row.reviewOverrides || null : null,
-        aiReviewProps: includeReviewFields ? (module as any)?.aiReviewProps || null : null,
-        aiReviewOverrides: includeReviewFields ? (row as any).aiReviewOverrides || null : null,
+        props: coerceJsonObject((module as any)?.props),
+        overrides: coerceJsonObject(row.overrides),
+        reviewProps:
+          includeReviewFields && (module as any)?.reviewProps
+            ? coerceJsonObject((module as any).reviewProps)
+            : null,
+        reviewOverrides:
+          includeReviewFields && row.reviewOverrides ? coerceJsonObject(row.reviewOverrides) : null,
+        aiReviewProps:
+          includeReviewFields && (module as any)?.aiReviewProps
+            ? coerceJsonObject((module as any).aiReviewProps)
+            : null,
+        aiReviewOverrides:
+          includeReviewFields && (row as any).aiReviewOverrides
+            ? coerceJsonObject((row as any).aiReviewOverrides)
+            : null,
         locked: row.locked,
         orderIndex: row.orderIndex,
-        globalSlug: (module as any)?.globalSlug || null,
-        globalLabel: (module as any)?.globalLabel || null,
+        globalSlug: module?.globalSlug || (module as any)?.global_slug || null,
+        globalLabel: module?.globalLabel || (module as any)?.global_label || null,
         reviewAdded: includeReviewFields ? row.reviewAdded || false : false,
         reviewDeleted: includeReviewFields ? row.reviewDeleted || false : false,
         aiReviewAdded: includeReviewFields ? (row as any).aiReviewAdded || false : false,
@@ -240,36 +252,88 @@ class PostRenderingService {
 
       if (useReviewDraft) {
         if (draftModuleState) {
-          const baseProps = draftModuleState.props || {}
-          const overrides = draftModuleState.overrides || {}
-          mergedProps = { ...defaultProps, ...(baseProps as any), ...(overrides as any) }
-        } else if (isLocal) {
-          const baseProps = (pm as any).reviewProps || pm.props || {}
-          const overrides = (pm as any).overrides || {}
+          const baseProps = coerceJsonObject(draftModuleState.props)
+          const overrides = coerceJsonObject(draftModuleState.overrides)
           mergedProps = { ...defaultProps, ...(baseProps as any), ...(overrides as any) }
         } else {
-          const baseProps = pm.props || {}
-          const overrides = (pm as any).reviewOverrides || (pm as any).overrides || {}
-          mergedProps = { ...defaultProps, ...(baseProps as any), ...(overrides as any) }
+          // If the module instance itself has review props (global or local), use them.
+          // Note: for global modules, these are stored on the moduleInstance.
+          const reviewProps = (pm as any).reviewProps
+          const hasReviewProps = reviewProps && Object.keys(reviewProps).length > 0
+          const baseProps = hasReviewProps ? reviewProps : pm.props || {}
+
+          const reviewOverrides = (pm as any).reviewOverrides
+          const hasReviewOverrides = reviewOverrides && Object.keys(reviewOverrides).length > 0
+          const overrides = hasReviewOverrides ? reviewOverrides : (pm as any).overrides || {}
+
+          // For global modules, we want to prioritize the global props (baseProps)
+          // and only apply overrides if they are actually DIFFERENT from the baseProps
+          // or are not part of the defaultProps.
+          if (pm.scope === 'global') {
+            const filteredOverrides: Record<string, any> = {}
+            Object.keys(overrides).forEach((key) => {
+              if (
+                overrides[key] !== undefined &&
+                overrides[key] !== null &&
+                overrides[key] !== defaultProps[key]
+              ) {
+                filteredOverrides[key] = overrides[key]
+              }
+            })
+            mergedProps = { ...defaultProps, ...(baseProps as any), ...filteredOverrides }
+          } else {
+            mergedProps = { ...defaultProps, ...(baseProps as any), ...(overrides as any) }
+          }
         }
       } else if (useAiReviewDraft) {
         if (draftModuleState) {
-          const baseProps = draftModuleState.props || {}
-          const overrides = draftModuleState.overrides || {}
-          mergedProps = { ...defaultProps, ...(baseProps as any), ...(overrides as any) }
-        } else if (isLocal) {
-          const baseProps = (pm as any).aiReviewProps || pm.props || {}
-          const overrides = (pm as any).overrides || {}
+          const baseProps = coerceJsonObject(draftModuleState.props)
+          const overrides = coerceJsonObject(draftModuleState.overrides)
           mergedProps = { ...defaultProps, ...(baseProps as any), ...(overrides as any) }
         } else {
-          const baseProps = pm.props || {}
-          const overrides = (pm as any).aiReviewOverrides || (pm as any).overrides || {}
-          mergedProps = { ...defaultProps, ...(baseProps as any), ...(overrides as any) }
+          const aiReviewProps = (pm as any).aiReviewProps
+          const hasAiReviewProps = aiReviewProps && Object.keys(aiReviewProps).length > 0
+          const baseProps = hasAiReviewProps ? aiReviewProps : pm.props || {}
+
+          const aiReviewOverrides = (pm as any).aiReviewOverrides
+          const hasAiReviewOverrides = aiReviewOverrides && Object.keys(aiReviewOverrides).length > 0
+          const overrides = hasAiReviewOverrides ? aiReviewOverrides : (pm as any).overrides || {}
+
+          if (pm.scope === 'global') {
+            const filteredOverrides: Record<string, any> = {}
+            Object.keys(overrides).forEach((key) => {
+              if (
+                overrides[key] !== undefined &&
+                overrides[key] !== null &&
+                overrides[key] !== defaultProps[key]
+              ) {
+                filteredOverrides[key] = overrides[key]
+              }
+            })
+            mergedProps = { ...defaultProps, ...(baseProps as any), ...filteredOverrides }
+          } else {
+            mergedProps = { ...defaultProps, ...(baseProps as any), ...(overrides as any) }
+          }
         }
       } else {
         const baseProps = pm.props || {}
         const overrides = (pm as any).overrides || {}
-        mergedProps = { ...defaultProps, ...(baseProps as any), ...(overrides as any) }
+
+        if (pm.scope === 'global') {
+          const filteredOverrides: Record<string, any> = {}
+          Object.keys(overrides).forEach((key) => {
+            if (
+              overrides[key] !== undefined &&
+              overrides[key] !== null &&
+              overrides[key] !== defaultProps[key]
+            ) {
+              filteredOverrides[key] = overrides[key]
+            }
+          })
+          mergedProps = { ...defaultProps, ...(baseProps as any), ...filteredOverrides }
+        } else {
+          mergedProps = { ...defaultProps, ...(baseProps as any), ...(overrides as any) }
+        }
       }
 
       return { pm, mergedProps, module }
@@ -377,6 +441,22 @@ class PostRenderingService {
       // Note: we include defaultProps here so the Inline Editor has the full set of values
       const defaultProps = module.getConfig().defaultValues || {}
 
+      // Helper to filter overrides for global modules
+      const filterOverrides = (overrides: Record<string, any> | null | undefined) => {
+        if (!overrides || pm.scope !== 'global') return overrides
+        const filtered: Record<string, any> = {}
+        Object.keys(overrides).forEach((key) => {
+          if (
+            overrides[key] !== undefined &&
+            overrides[key] !== null &&
+            overrides[key] !== defaultProps[key]
+          ) {
+            filtered[key] = overrides[key]
+          }
+        })
+        return Object.keys(filtered).length > 0 ? filtered : null
+      }
+
       let sourcePropsResolved = this.injectResolvedMedia(
         fieldSchema,
         injectResolved({ ...defaultProps, ...(pm.props || {}) }),
@@ -386,53 +466,58 @@ class PostRenderingService {
         sourcePropsResolved = applyHeroFallback(sourcePropsResolved)
       }
 
-      let sourceOverridesResolved = pm.overrides
-        ? this.injectResolvedMedia(fieldSchema, injectResolved(pm.overrides), resolvedMedia)
-        : null
+      let sourceOverridesResolved =
+        pm.overrides && Object.keys(pm.overrides).length > 0
+          ? this.injectResolvedMedia(fieldSchema, injectResolved(filterOverrides(pm.overrides)), resolvedMedia)
+          : null
       if (sourceOverridesResolved) {
         sourceOverridesResolved = applyHeroFallback(sourceOverridesResolved)
       }
 
-      let reviewPropsResolved = (pm as any).reviewProps
-        ? this.injectResolvedMedia(
-          fieldSchema,
-          injectResolved({ ...defaultProps, ...(pm as any).reviewProps }),
-          resolvedMedia
-        )
-        : sourcePropsResolved
+      let reviewPropsResolved =
+        (pm as any).reviewProps && Object.keys((pm as any).reviewProps).length > 0
+          ? this.injectResolvedMedia(
+            fieldSchema,
+            injectResolved({ ...defaultProps, ...(pm as any).reviewProps }),
+            resolvedMedia
+          )
+          : sourcePropsResolved
       if (reviewPropsResolved) {
         reviewPropsResolved = applyHeroFallback(reviewPropsResolved)
       }
 
-      let reviewOverridesResolved = (pm as any).reviewOverrides
-        ? this.injectResolvedMedia(
-          fieldSchema,
-          injectResolved((pm as any).reviewOverrides),
-          resolvedMedia
-        )
-        : sourceOverridesResolved
+      let reviewOverridesResolved =
+        (pm as any).reviewOverrides && Object.keys((pm as any).reviewOverrides).length > 0
+          ? this.injectResolvedMedia(
+            fieldSchema,
+            injectResolved(filterOverrides((pm as any).reviewOverrides)),
+            resolvedMedia
+          )
+          : sourceOverridesResolved
       if (reviewOverridesResolved) {
         reviewOverridesResolved = applyHeroFallback(reviewOverridesResolved)
       }
 
-      let aiReviewPropsResolved = (pm as any).aiReviewProps
-        ? this.injectResolvedMedia(
-          fieldSchema,
-          injectResolved({ ...defaultProps, ...(pm as any).aiReviewProps }),
-          resolvedMedia
-        )
-        : reviewPropsResolved || sourcePropsResolved
+      let aiReviewPropsResolved =
+        (pm as any).aiReviewProps && Object.keys((pm as any).aiReviewProps).length > 0
+          ? this.injectResolvedMedia(
+            fieldSchema,
+            injectResolved({ ...defaultProps, ...(pm as any).aiReviewProps }),
+            resolvedMedia
+          )
+          : reviewPropsResolved || sourcePropsResolved
       if (aiReviewPropsResolved) {
         aiReviewPropsResolved = applyHeroFallback(aiReviewPropsResolved)
       }
 
-      let aiReviewOverridesResolved = (pm as any).aiReviewOverrides
-        ? this.injectResolvedMedia(
-          fieldSchema,
-          injectResolved((pm as any).aiReviewOverrides),
-          resolvedMedia
-        )
-        : reviewOverridesResolved || sourceOverridesResolved
+      let aiReviewOverridesResolved =
+        (pm as any).aiReviewOverrides && Object.keys((pm as any).aiReviewOverrides).length > 0
+          ? this.injectResolvedMedia(
+            fieldSchema,
+            injectResolved(filterOverrides((pm as any).aiReviewOverrides)),
+            resolvedMedia
+          )
+          : reviewOverridesResolved || sourceOverridesResolved
       if (aiReviewOverridesResolved) {
         aiReviewOverridesResolved = applyHeroFallback(aiReviewOverridesResolved)
       }
@@ -441,8 +526,8 @@ class PostRenderingService {
         id: pm.id,
         type: pm.type,
         scope: pm.scope || 'post',
-        globalSlug: (pm as any)?.globalSlug || null,
-        globalLabel: (pm as any)?.globalLabel || null,
+        globalSlug: pm.globalSlug || null,
+        globalLabel: pm.globalLabel || null,
         componentName,
         renderingMode,
         props: finalProps,

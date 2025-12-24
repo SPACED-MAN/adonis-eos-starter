@@ -31,6 +31,7 @@ export default class PostsModulesController extends BasePostsController {
         moduleType: payload.moduleType,
         scope: payload.scope || 'local',
         props: payload.props || {},
+        overrides: payload.overrides || null,
         globalSlug: payload.globalSlug ?? null,
         orderIndex: payload.orderIndex,
         locked: payload.locked || false,

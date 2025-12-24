@@ -33,6 +33,7 @@ export default class extends BaseSeeder {
         description:
           'Default module group for documentation pages with breadcrumb and reading progress',
         locked: false, // Allow adding custom modules
+        is_default: true,
         created_at: now,
         updated_at: now,
       })

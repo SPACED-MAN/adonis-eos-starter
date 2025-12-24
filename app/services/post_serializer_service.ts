@@ -12,7 +12,7 @@ type CanonicalModule = {
   postModuleId: string // Unique ID for updating this module instance on the post
   moduleInstanceId: string // The underlying instance ID
   type: string
-  scope: 'local' | 'global'
+  scope: 'local' | 'global' | 'post'
   orderIndex: number
   locked?: boolean
   props?: Record<string, any> | null

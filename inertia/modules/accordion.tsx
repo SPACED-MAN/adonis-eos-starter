@@ -12,7 +12,7 @@ import { useState } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
 import { FontAwesomeIcon } from '../site/lib/icons'
 import { useInlineValue } from '../components/inline-edit/InlineEditorContext'
-import { renderLexicalToHtml } from './prose'
+import { renderLexicalToHtml } from '../utils/lexical'
 
 interface AccordionItem {
   title: string

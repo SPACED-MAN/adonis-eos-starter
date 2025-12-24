@@ -38,6 +38,7 @@ import { CSS } from '@dnd-kit/utilities'
 import { Globe } from 'lucide-react'
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome'
 import { faReact } from '@fortawesome/free-brands-svg-icons'
+import { faPencil } from '@fortawesome/free-solid-svg-icons'
 import {
   Table,
   TableBody,
@@ -62,6 +63,7 @@ type ModuleGroup = {
   name: string
   post_type: string
   description?: string | null
+  is_default?: boolean
   locked?: boolean
   updated_at?: string
 }
@@ -83,6 +85,20 @@ function labelize(type: string): string {
     .filter(Boolean)
     .map((w) => w.charAt(0).toUpperCase() + w.slice(1))
     .join(' ')
+}
+
+function formatGroupName(g: ModuleGroup | null): string {
+  if (!g || !g.name) return ''
+  let name = g.name
+  let isDef = !!g.is_default
+
+  if (name.endsWith('-default')) {
+    name = name.replace('-default', '')
+    isDef = true
+  }
+
+  const base = labelize(name)
+  return isDef ? `${base} (default)` : base
 }
 
 export default function GlobalModulesIndex() {
@@ -121,6 +137,8 @@ export default function GlobalModulesIndex() {
     Array<{ type: string; name: string; renderingMode?: 'static' | 'react' }>
   >([])
   const [pendingEditSlug, setPendingEditSlug] = useState<string | null>(null)
+  const [editingGroupNameId, setEditingGroupNameId] = useState<string | null>(null)
+  const [editGroupNameValue, setEditGroupNameValue] = useState('')
   const sensors = useSensors(useSensor(PointerSensor))
 
   const xsrfToken: string | undefined = (() => {
@@ -323,6 +341,36 @@ export default function GlobalModulesIndex() {
       }
     } catch {
       toast.error('Failed to delete module group')
+    }
+  }
+
+  async function saveGroupName(id: string, newName: string) {
+    if (!newName.trim()) return
+    try {
+      const res = await fetch(`/api/module-groups/${encodeURIComponent(id)}`, {
+        method: 'PUT',
+        headers: {
+          'Accept': 'application/json',
+          'Content-Type': 'application/json',
+          ...(xsrfToken ? { 'X-XSRF-TOKEN': xsrfToken } : {}),
+        },
+        credentials: 'same-origin',
+        body: JSON.stringify({ name: newName.trim() }),
+      })
+      if (res.ok) {
+        toast.success('Name updated')
+        if (selectedGroup?.id === id) {
+          setSelectedGroup((prev) => (prev ? { ...prev, name: newName.trim() } : null))
+        }
+        await loadGroups()
+      } else {
+        const j = await res.json().catch(() => ({}))
+        toast.error(j?.error || 'Failed to update name')
+      }
+    } catch {
+      toast.error('Failed to update name')
+    } finally {
+      setEditingGroupNameId(null)
     }
   }
 
@@ -817,7 +865,39 @@ export default function GlobalModulesIndex() {
                   groupFiltered.map((g) => (
                     <div key={g.id} className="px-6 py-3 grid grid-cols-12 items-center gap-2">
                       <div className="col-span-5">
-                        <div className="text-sm text-neutral-high font-medium">{g.name}</div>
+                        <div className="flex items-center gap-2 group/label">
+                          {editingGroupNameId === g.id ? (
+                            <Input
+                              autoFocus
+                              value={editGroupNameValue}
+                              onChange={(e) => setEditGroupNameValue(e.target.value)}
+                              onBlur={() => saveGroupName(g.id, editGroupNameValue)}
+                              onKeyDown={(e) => {
+                                if (e.key === 'Enter') saveGroupName(g.id, editGroupNameValue)
+                                if (e.key === 'Escape') setEditingGroupNameId(null)
+                              }}
+                              className="h-7 text-sm py-1"
+                            />
+                          ) : (
+                            <>
+                              <div className="text-sm text-neutral-high font-medium">
+                                {formatGroupName(g)}
+                              </div>
+                              <button
+                                type="button"
+                                onClick={(e) => {
+                                  e.stopPropagation()
+                                  setEditingGroupNameId(g.id)
+                                  setEditGroupNameValue(g.name)
+                                }}
+                                className="opacity-40 group-hover/label:opacity-100 p-1 rounded-md hover:bg-backdrop-medium text-neutral-low hover:text-neutral-high transition-all"
+                                title="Edit name"
+                              >
+                                <FontAwesomeIcon icon={faPencil} className="w-3 h-3" />
+                              </button>
+                            </>
+                          )}
+                        </div>
                         <div className="text-xs text-neutral-low">{labelize(g.post_type)}</div>
                       </div>
                       <div className="col-span-5 text-xs text-neutral-low">
@@ -850,9 +930,39 @@ export default function GlobalModulesIndex() {
                 <div className="border border-line-low rounded bg-backdrop-low p-6 space-y-4">
                   <div className="flex items-center justify-between">
                     <div>
-                      <h3 className="text-lg font-semibold text-neutral-high">
-                        {selectedGroup.name}
-                      </h3>
+                      <div className="flex items-center gap-2 group/label">
+                        {editingGroupNameId === selectedGroup.id ? (
+                          <Input
+                            autoFocus
+                            value={editGroupNameValue}
+                            onChange={(e) => setEditGroupNameValue(e.target.value)}
+                            onBlur={() => saveGroupName(selectedGroup.id, editGroupNameValue)}
+                            onKeyDown={(e) => {
+                              if (e.key === 'Enter')
+                                saveGroupName(selectedGroup.id, editGroupNameValue)
+                              if (e.key === 'Escape') setEditingGroupNameId(null)
+                            }}
+                            className="h-8 text-lg font-semibold py-1"
+                          />
+                        ) : (
+                          <>
+                            <h3 className="text-lg font-semibold text-neutral-high">
+                              {formatGroupName(selectedGroup)}
+                            </h3>
+                            <button
+                              type="button"
+                              onClick={() => {
+                                setEditingGroupNameId(selectedGroup.id)
+                                setEditGroupNameValue(selectedGroup.name)
+                              }}
+                              className="opacity-40 group-hover/label:opacity-100 p-1 rounded-md hover:bg-backdrop-medium text-neutral-low hover:text-neutral-high transition-all"
+                              title="Edit name"
+                            >
+                              <FontAwesomeIcon icon={faPencil} className="w-3.5 h-3.5" />
+                            </button>
+                          </>
+                        )}
+                      </div>
                       <p className="text-xs text-neutral-low">
                         {labelize(selectedGroup.post_type)}
                       </p>
@@ -1011,6 +1121,7 @@ export default function GlobalModulesIndex() {
           }
           processing={false}
           onClose={() => setEditing(null)}
+          allowGlobalEditing={true}
           onSave={async (_overrides, edited) => {
             try {
               const res = await fetch(`/api/modules/global/${encodeURIComponent(editing.id)}`, {

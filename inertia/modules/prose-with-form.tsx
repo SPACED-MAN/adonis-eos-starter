@@ -1,24 +1,41 @@
 import { motion } from 'framer-motion'
 import FormModule from './form'
+import { useInlineValue } from '../components/inline-edit/InlineEditorContext'
+
+import { renderLexicalToHtml } from '../utils/lexical'
+
+interface LexicalJSON {
+  root: {
+    type: string
+    children: any[]
+  }
+}
 
 interface ProseWithFormProps {
-  title: string
-  body?: string | null
+  heading: string
+  content?: LexicalJSON | string | null
   formSlug: string
   layout?: 'form-right' | 'form-left'
   backgroundColor?: string
+  __moduleId?: string
   _useReact?: boolean
 }
 
 export default function ProseWithForm({
-  title,
-  body,
+  heading,
+  content: initialContent,
   formSlug,
   layout = 'form-right',
   backgroundColor = 'bg-backdrop-low',
+  __moduleId,
   _useReact,
 }: ProseWithFormProps) {
+  const headingValue = useInlineValue(__moduleId, 'heading', heading)
+  const contentValue = useInlineValue(__moduleId, 'content', initialContent)
+
   const isFormRight = layout === 'form-right'
+
+  const contentHtml = renderLexicalToHtml(contentValue)
 
   const containerVariants = {
     hidden: { opacity: 0 },
@@ -50,10 +67,21 @@ export default function ProseWithForm({
 
   const proseBlock = (
     <div className="space-y-4">
-      <h2 className="text-3xl sm:text-4xl font-extrabold tracking-tight text-neutral-high">
-        {title}
+      <h2
+        className="text-3xl sm:text-4xl font-extrabold tracking-tight text-neutral-high"
+        data-inline-path="heading"
+      >
+        {headingValue}
       </h2>
-      {body && <p className="text-base md:text-lg font-normal text-neutral-medium">{body}</p>}
+      {contentValue && (
+        <div
+          className="prose prose-sm md:prose-base text-neutral-medium max-w-none"
+          suppressHydrationWarning
+          data-inline-type="richtext"
+          data-inline-path="content"
+          dangerouslySetInnerHTML={{ __html: contentHtml }}
+        />
+      )}
     </div>
   )
 
@@ -122,4 +150,3 @@ export default function ProseWithForm({
     </section>
   )
 }
-

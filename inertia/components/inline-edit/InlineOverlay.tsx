@@ -65,9 +65,15 @@ export function InlineOverlay() {
     fallbackCheck?: (moduleId: string) => boolean
   ): boolean {
     const mod = el?.closest('[data-inline-module]') as HTMLElement | null
-    const moduleId = mod?.dataset.inlineModule
-    const domFlag = mod?.dataset.inlineScope === 'global' || !!mod?.dataset.inlineGlobalSlug
+    if (!mod) return false
+
+    const moduleId = mod.dataset.inlineModule
+    const scope = mod.dataset.inlineScope
+    const slug = mod.dataset.inlineGlobalSlug
+
+    const domFlag = scope === 'global' || scope === 'static' || !!slug
     if (domFlag) return true
+
     if (moduleId && fallbackCheck) return fallbackCheck(moduleId)
     return false
   }

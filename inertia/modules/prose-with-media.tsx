@@ -5,6 +5,8 @@ import { useInlineValue } from '../components/inline-edit/InlineEditorContext'
 import { resolveLink } from '../utils/resolve_link'
 import { MediaRenderer } from '../components/MediaRenderer'
 
+import { renderLexicalToHtml } from '../utils/lexical'
+
 interface LexicalJSON {
   root: {
     type: string
@@ -48,7 +50,7 @@ export default function ProseWithMedia({
   }
 
   const hasCta = Boolean(primaryCta && primaryCta.label && primaryCta.url)
-  const bodyHtml = bodyValue ? lexicalContentToHtml(bodyValue) : ''
+  const bodyHtml = renderLexicalToHtml(bodyValue)
 
   const containerVariants: Variants = {
     hidden: { opacity: 0 },
@@ -216,84 +218,4 @@ export default function ProseWithMedia({
       </div>
     </section>
   )
-}
-
-/**
- * Convert Lexical JSON to HTML for rendering.
- */
-function lexicalContentToHtml(content: LexicalJSON): string {
-  if (content === undefined || content === null) return '<p>Empty content</p>'
-  return renderLexicalToHtml(content)
-}
-
-function escapeHtml(text: string): string {
-  return text
-    .replace(/&/g, '&amp;')
-    .replace(/</g, '&lt;')
-    .replace(/>/g, '&gt;')
-    .replace(/"/g, '&quot;')
-    .replace(/'/g, '&#039;')
-}
-
-function renderLexicalToHtml(json: LexicalJSON): string {
-  if (!json || !(json as any).root || !(json as any).root.children) {
-    return '<p>Empty content</p>'
-  }
-
-  const renderNode = (node: any): string => {
-    switch (node.type) {
-      case 'paragraph': {
-        const pContent = node.children?.map(renderNode).join('') || ''
-        return `<p>${pContent}</p>`
-      }
-      case 'heading': {
-        let level = node.tag || 'h2'
-        if (level === 'h1') level = 'h2'
-        const hContent = node.children?.map(renderNode).join('') || ''
-        return `<${level}>${hContent}</${level}>`
-      }
-      case 'list': {
-        const listTag = node.listType === 'number' ? 'ol' : 'ul'
-        const listContent = node.children?.map(renderNode).join('') || ''
-        return `<${listTag}>${listContent}</${listTag}>`
-      }
-      case 'listitem': {
-        const liContent = node.children?.map(renderNode).join('') || ''
-        return `<li>${liContent}</li>`
-      }
-      case 'text': {
-        let text = escapeHtml(node.text || '')
-        if (node.format) {
-          if (node.format & 1) text = `<strong>${text}</strong>`
-          if (node.format & 2) text = `<em>${text}</em>`
-          if (node.format & 16) text = `<code>${text}</code>`
-        }
-        return text
-      }
-      case 'code': {
-        const codeContent = node.children?.map(renderNode).join('') || ''
-        const language = node.language || 'text'
-        return `<pre><code class="language-${escapeHtml(language)}">${escapeHtml(
-          codeContent
-        )}</code></pre>`
-      }
-      case 'horizontalrule':
-        return '<hr />'
-      case 'linebreak':
-        return '<br />'
-      case 'quote': {
-        const quoteContent = node.children?.map(renderNode).join('') || ''
-        return `<blockquote>${quoteContent}</blockquote>`
-      }
-      case 'link': {
-        const url = escapeHtml(node.url || '#')
-        const linkContent = node.children?.map(renderNode).join('') || ''
-        return `<a href="${url}">${linkContent}</a>`
-      }
-      default:
-        return node.children?.map(renderNode).join('') || ''
-    }
-  }
-
-  return (json as any).root.children.map(renderNode).join('')
 }

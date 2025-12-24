@@ -1,13 +1,15 @@
+import { useMemo } from 'react'
 import { motion, type Variants } from 'framer-motion'
 import type { Button } from './types'
 import { useInlineValue } from '../components/inline-edit/InlineEditorContext'
 import { MediaRenderer } from '../components/MediaRenderer'
-import { renderLexicalToHtml } from './prose'
+import { renderLexicalToHtml } from '../utils/lexical'
 import { resolveLink } from '../utils/resolve_link'
 
 interface CtaProps {
   title: string
-  content?: any // Lexical JSON
+  prose?: any // Lexical JSON
+  content?: any // Legacy field slug
   image?: {
     id: string
     url: string
@@ -22,28 +24,75 @@ interface CtaProps {
   _useReact?: boolean
 }
 
-export default function Cta({
-  title: initialTitle,
-  content: initialContent,
-  image: initialImage,
-  ctas: initialCtas = [],
-  variant: initialVariant = 'centered',
-  backgroundColor: initialBackground = 'bg-backdrop-low',
-  __moduleId,
-  _useReact,
-}: CtaProps) {
-  const title = useInlineValue(__moduleId, 'title', initialTitle)
-  const richContent = useInlineValue(__moduleId, 'content', initialContent)
+export default function Cta(props: CtaProps) {
+  const {
+    title: initialTitle,
+    prose: initialProse,
+    content: initialContent,
+    image: initialImage,
+    ctas: initialCtas = [],
+    variant: initialVariant = 'centered',
+    backgroundColor: initialBackground = 'bg-backdrop-low',
+    __moduleId,
+    _useReact,
+  } = props
+
+  const title = useInlineValue(__moduleId, 'title', initialTitle) || initialTitle || 'Ready to get started?'
+  const richProse = useInlineValue(__moduleId, 'prose', initialProse)
+  const legacyContent = useInlineValue(__moduleId, 'content', initialContent)
   const image = useInlineValue(__moduleId, 'image', initialImage)
-  const ctas = useInlineValue(__moduleId, 'ctas', initialCtas)
-  const variant = useInlineValue(__moduleId, 'variant', initialVariant)
-  const backgroundColor = useInlineValue(__moduleId, 'backgroundColor', initialBackground)
+  const ctas = useInlineValue(__moduleId, 'ctas', initialCtas) || initialCtas
+  const variant = useInlineValue(__moduleId, 'variant', initialVariant) || initialVariant || 'centered'
+  const backgroundColor = useInlineValue(__moduleId, 'backgroundColor', initialBackground) || initialBackground || 'bg-backdrop-low'
 
   const isDarkBg = backgroundColor === 'bg-standout-medium'
   const textColor = isDarkBg ? 'text-on-standout' : 'text-neutral-high'
   const subtextColor = isDarkBg ? 'text-on-standout/80' : 'text-neutral-medium'
 
-  const htmlContent = richContent ? renderLexicalToHtml(richContent) : null
+  const htmlProse = useMemo(() => {
+    const hasRichContent = (val: any) => {
+      if (!val) return false
+      if (typeof val === 'string') return val.trim().length > 0
+      if (typeof val !== 'object') return false
+
+      // Lexical JSON structure check: must have children and not just an empty paragraph
+      const children = val.root?.children || val.children
+      if (!children || !Array.isArray(children) || children.length === 0) return false
+
+      if (
+        children.length === 1 &&
+        children[0].type === 'paragraph' &&
+        (!children[0].children ||
+          children[0].children.length === 0 ||
+          (children[0].children.length === 1 &&
+            children[0].children[0].type === 'text' &&
+            !children[0].children[0].text))
+      ) {
+        return false
+      }
+      return true
+    }
+
+    // Try new 'prose' field first, then legacy 'content' field, then default to null
+    const proseToRender = hasRichContent(richProse) ? richProse : (hasRichContent(legacyContent) ? legacyContent : null)
+
+    if (!proseToRender) return null
+
+    if (typeof proseToRender === 'string') {
+      const trimmed = proseToRender.trim()
+      if (!trimmed) return null
+      if (trimmed.startsWith('{') || trimmed.startsWith('[')) {
+        try {
+          const parsed = JSON.parse(trimmed)
+          return renderLexicalToHtml(parsed)
+        } catch {
+          return trimmed
+        }
+      }
+      return trimmed
+    }
+    return renderLexicalToHtml(proseToRender)
+  }, [richProse, legacyContent])
 
   const containerVariants: Variants = {
     hidden: { opacity: 0 },
@@ -78,12 +127,12 @@ export default function Cta({
 
     return (
       <div
-        className={`flex flex-wrap items-center gap-4 ${variant === 'centered' ? 'justify-center' : 'justify-start'
+        className={`flex flex-wrap items-center gap-4 ${variant === 'split-left' || variant === 'split-right' ? 'justify-start' : 'justify-center'
           }`}
         data-inline-type="repeater"
         data-inline-path="ctas"
       >
-        {ctas.map((cta, idx) => (
+        {ctas.map((cta: Button, idx: number) => (
           <ButtonComponent
             key={`${cta.label}-${idx}`}
             {...cta}
@@ -97,7 +146,7 @@ export default function Cta({
   }
 
   const textBlock = (
-    <div className={`space-y-6 ${variant === 'centered' ? 'text-center' : 'text-left'}`}>
+    <div className={`space-y-6 ${variant === 'split-left' || variant === 'split-right' ? 'text-left' : 'text-center'}`}>
       <h2
         className={`text-3xl font-extrabold tracking-tight sm:text-4xl ${textColor}`}
         data-inline-path="title"
@@ -105,12 +154,12 @@ export default function Cta({
         {title}
       </h2>
 
-      {htmlContent && (
+      {htmlProse && (
         <div
           className={`prose max-w-none ${isDarkBg ? 'prose-invert' : ''} ${subtextColor}`}
           data-inline-type="richtext"
-          data-inline-path="content"
-          dangerouslySetInnerHTML={{ __html: htmlContent }}
+          data-inline-path="prose"
+          dangerouslySetInnerHTML={{ __html: htmlProse }}
         />
       )}
 
@@ -120,7 +169,7 @@ export default function Cta({
 
   const imageBlock = image ? (
     <div
-      className="w-full relative rounded-2xl overflow-hidden shadow-xl aspect-video"
+      className="w-full relative overflow-hidden aspect-video"
       data-inline-type="media"
       data-inline-path="image"
     >
@@ -128,27 +177,15 @@ export default function Cta({
         image={image}
         alt={(typeof image === 'object' ? image.altText : null) || ''}
         playMode={typeof image === 'object' ? image.metadata?.playMode : 'autoplay'}
+        objectFit="contain"
+        className="w-full h-full object-contain"
       />
     </div>
   ) : null
 
-  const content = (
+  const renderedContent = (
     <div className="container mx-auto px-4 sm:px-6 lg:px-8">
-      {variant === 'centered' ? (
-        <div className="max-w-3xl mx-auto">
-          {_useReact ? (
-            <motion.div variants={itemVariants}>
-              {textBlock}
-              {image && <div className="mt-10">{imageBlock}</div>}
-            </motion.div>
-          ) : (
-            <>
-              {textBlock}
-              {image && <div className="mt-10">{imageBlock}</div>}
-            </>
-          )}
-        </div>
-      ) : (
+      {variant === 'split-left' || variant === 'split-right' ? (
         <div className="grid lg:grid-cols-2 gap-12 items-center">
           {variant === 'split-left' && (
             <>
@@ -187,6 +224,21 @@ export default function Cta({
             </>
           )}
         </div>
+      ) : (
+        /* Default to centered if unknown or explicit centered */
+        <div className="max-w-3xl mx-auto">
+          {_useReact ? (
+            <motion.div variants={itemVariants}>
+              {textBlock}
+              {image && <div className="mt-10">{imageBlock}</div>}
+            </motion.div>
+          ) : (
+            <>
+              {textBlock}
+              {image && <div className="mt-10">{imageBlock}</div>}
+            </>
+          )}
+        </div>
       )}
     </div>
   )
@@ -201,14 +253,18 @@ export default function Cta({
         className={`${backgroundColor} py-16 lg:py-24 overflow-hidden`}
         data-module="cta"
       >
-        {content}
+        {renderedContent}
       </motion.section>
     )
   }
 
   return (
-    <section className={`${backgroundColor} py-16 lg:py-24`} data-module="cta">
-      {content}
+    <section
+      className={`${backgroundColor} py-16 lg:py-24`}
+      data-module="cta"
+      data-inline-path="backgroundColor"
+    >
+      {renderedContent}
     </section>
   )
 }
@@ -279,4 +335,3 @@ function ButtonComponent({
     </a>
   )
 }
-

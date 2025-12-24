@@ -3,7 +3,6 @@ import { createPortal } from 'react-dom'
 import { toast } from 'sonner'
 import { LexicalEditor } from '../LexicalEditor'
 import { Popover, PopoverTrigger, PopoverContent } from '~/components/ui/popover'
-import { cn } from '~/components/ui/utils'
 import { Checkbox } from '~/components/ui/checkbox'
 import { Slider } from '~/components/ui/slider'
 import { Calendar } from '~/components/ui/calendar'
@@ -15,26 +14,92 @@ import {
   SelectContent,
   SelectItem,
 } from '~/components/ui/select'
-import { FormField, FormLabel } from '~/components/forms/field'
+import { FormField } from '~/components/forms/field'
 import { LabelWithDescription } from '~/components/forms/LabelWithDescription'
-import {
-  Tooltip,
-  TooltipContent,
-  TooltipProvider,
-  TooltipTrigger,
-} from '~/components/ui/tooltip'
 import { LinkField, type LinkFieldValue } from '~/components/forms/LinkField'
 import { MediaPickerModal } from '../media/MediaPickerModal'
 import { MediaRenderer } from '../../../components/MediaRenderer'
-import { useMediaUrl } from '../../../utils/useMediaUrl'
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome'
-import { faWandMagicSparkles, faCircleInfo } from '@fortawesome/free-solid-svg-icons'
+import { faWandMagicSparkles } from '@fortawesome/free-solid-svg-icons'
 import { iconOptions, iconMap } from '../ui/iconOptions'
 import { AgentModal, type Agent } from '../agents/AgentModal'
-import { useHasPermission } from '~/utils/permissions'
 import { CustomFieldDefinition } from '~/types/custom_field'
-
+import { type MediaVariant } from '~/lib/media'
 import { TokenField } from '../ui/TokenField'
+
+// Utilities for object manipulation
+function getByPath(obj: any, path: string): any {
+  if (!path) return undefined
+  const parts = path.split('.')
+  let curr = obj
+  for (const p of parts) {
+    if (curr === null || curr === undefined) return undefined
+    curr = curr[p]
+  }
+  return curr
+}
+
+function setByPath(obj: any, path: string, value: any) {
+  if (!path) return
+  const parts = path.split('.')
+  let curr = obj
+  for (let i = 0; i < parts.length - 1; i++) {
+    const p = parts[i]
+    if (curr[p] === undefined || curr[p] === null || typeof curr[p] !== 'object') {
+      curr[p] = {}
+    }
+    curr = curr[p]
+  }
+  curr[parts[parts.length - 1]] = value
+}
+
+function isPlainObject(val: any): val is Record<string, any> {
+  return val !== null && typeof val === 'object' && !Array.isArray(val)
+}
+
+function mergeFields(props: Record<string, any>, overrides: Record<string, any> | null): Record<string, any> {
+  const next = JSON.parse(JSON.stringify(props || {}))
+  if (!overrides) return next
+  Object.keys(overrides).forEach((key) => {
+    const val = overrides[key]
+    if (isPlainObject(val) && isPlainObject(next[key])) {
+      next[key] = mergeFields(next[key], val)
+    } else {
+      next[key] = val
+    }
+  })
+  return next
+}
+
+function diffOverrides(base: Record<string, any>, edited: Record<string, any>): Record<string, any> | null {
+  const overrides: Record<string, any> = {}
+  let changed = false
+  Object.keys(edited).forEach((key) => {
+    const b = base[key]
+    const e = edited[key]
+    if (isPlainObject(e) && (isPlainObject(b) || b === undefined)) {
+      const sub = diffOverrides(b || {}, e)
+      if (sub) {
+        overrides[key] = sub
+        changed = true
+      }
+    } else if (JSON.stringify(b) !== JSON.stringify(e)) {
+      overrides[key] = e
+      changed = true
+    }
+  })
+  return changed ? overrides : null
+}
+
+function getLabel(path: string[], field: CustomFieldDefinition): string {
+  if (field.label) return field.label
+  const last = path[path.length - 1]
+  if (!last) return ''
+  return last
+    .replace(/([A-Z])/g, ' $1')
+    .replace(/^./, (str) => str.toUpperCase())
+    .trim()
+}
 
 export interface ModuleListItem {
   id: string
@@ -49,7 +114,6 @@ export interface ModuleListItem {
   adminLabel?: string | null
 }
 
-// Cache module schemas by type to avoid N identical fetches when rendering multiple editors.
 const moduleSchemaCache = new Map<
   string,
   { schema: CustomFieldDefinition[] | null; label: string | null }
@@ -99,1652 +163,75 @@ type EditorFieldCtx = {
   setDraft: React.Dispatch<React.SetStateAction<Record<string, any>>>
   fieldComponents: Record<string, any>
   supportedFieldTypes: Set<string>
-  pascalFromType: (t: string) => string
-  setByPath: (obj: Record<string, any>, path: string, value: any) => void
+  pascalFromType: (t?: string | null) => string
+  setByPath: (obj: any, path: string, value: any) => void
   getLabel: (path: string[], field: CustomFieldDefinition) => string
   syncFormToDraft: () => Record<string, any>
-  getByPath: (obj: Record<string, any>, path: string) => any
-  // NOTE: Inline editors use a <div> container; modal editor uses a <form>.
-  // Both support querySelectorAll and (optionally) scrollTop.
-  formRef: React.RefObject<HTMLElement | null>
+  getByPath: (obj: any, path: string) => any
+  formRef: React.RefObject<HTMLFormElement | HTMLDivElement | null>
   postId?: string
   moduleInstanceId?: string
   moduleType?: string
+  moduleItem?: ModuleListItem | null
   fieldAgents: Agent[]
   setSelectedFieldAgent: (agent: Agent | null) => void
   setAgentModalOpen: (open: boolean) => void
   setAgentFieldKey: (key: string) => void
   setAgentFieldType: (type: string) => void
   viewMode?: 'source' | 'review' | 'ai-review'
-  customFields?: Array<{ slug: string; label: string }>
+  customFields: Array<{ slug: string; label: string }>
   onDirty?: () => void
+  pendingInputValueRef?: React.MutableRefObject<{ name: string; value: string; rootId: string; cursorPos: number } | null>
 }
-
-function setByPath(obj: Record<string, any>, path: string | string[], value: any) {
-  const parts = typeof path === 'string' ? path.split('.') : path
-  let target: any = obj
-
-  for (let i = 0; i < parts.length - 1; i++) {
-    const key = parts[i]
-    const nextKey = parts[i + 1]
-    const nextIsIndex = /^\d+$/.test(nextKey)
-
-    if (Array.isArray(target[key])) {
-      target = target[key]
-      continue
-    }
-
-    if (
-      !Object.prototype.hasOwnProperty.call(target, key) ||
-      (!isPlainObject(target[key]) && !Array.isArray(target[key]))
-    ) {
-      target[key] = nextIsIndex ? [] : {}
-    }
-
-    target = target[key]
-  }
-
-  const last = parts[parts.length - 1]
-  if (Array.isArray(target) && /^\d+$/.test(last)) {
-    target[Number(last)] = value
-  } else {
-    target[last] = value
-  }
-}
-
-function getByPath(obj: Record<string, any>, path: string | string[]): any {
-  const parts = typeof path === 'string' ? path.split('.') : path
-  let target: any = obj
-  for (const part of parts) {
-    if (target === null || target === undefined) return undefined
-    target = target[part]
-  }
-  return target
-}
-
-function humanizeKey(raw: string): string {
-  if (!raw) return ''
-  let s = String(raw)
-  s = s.replace(/[_-]+/g, ' ')
-  s = s.replace(/([a-z0-9])([A-Z])/g, '$1 $2')
-  s = s.trim()
-  if (!s) return ''
-  const words = s.split(/\s+/).map((w) => {
-    const lower = w.toLowerCase()
-    if (lower === 'cta') return 'CTA'
-    if (lower === 'id') return 'ID'
-    return lower.charAt(0).toUpperCase() + lower.slice(1)
-  })
-  return words.join(' ')
-}
-
-function getLabel(path: string[], field: CustomFieldDefinition): string {
-  const explicit = field.label
-  if (explicit) return explicit as string
-  const key = path[path.length - 1] || ''
-  return humanizeKey(key)
-}
-
-function isPlainObject(value: unknown): value is Record<string, any> {
-  return !!value && typeof value === 'object' && !Array.isArray(value)
-}
-
-const AgentTrigger = memo(({
-  agents,
-  onSelect,
-  className = "",
-}: {
-  agents: Agent[]
-  onSelect: (agent: Agent) => void
-  className?: string
-}) => {
-  if (agents.length === 0) return null
-
-  const buttonClass = cn(
-    "opacity-0 group-hover:opacity-100 transition-opacity p-1.5 rounded hover:bg-backdrop-medium text-primary",
-    className
-  )
-
-  if (agents.length === 1) {
-    const agent = agents[0]
-    return (
-      <TooltipProvider>
-        <Tooltip>
-          <TooltipTrigger asChild>
-            <button
-              type="button"
-              onClick={() => onSelect(agent)}
-              className={buttonClass}
-              title={`AI Assistant: ${agent.name}`}
-            >
-              <FontAwesomeIcon icon={faWandMagicSparkles} className="text-sm" />
-            </button>
-          </TooltipTrigger>
-          <TooltipContent side="top">
-            <p>AI Assistant: {agent.name}</p>
-          </TooltipContent>
-        </Tooltip>
-      </TooltipProvider>
-    )
-  }
-
-  return (
-    <Popover>
-      <PopoverTrigger asChild>
-        <button type="button" className={buttonClass}>
-          <FontAwesomeIcon icon={faWandMagicSparkles} className="text-sm" />
-        </button>
-      </PopoverTrigger>
-      <PopoverContent
-        align="end"
-        className="w-56 p-2 bg-backdrop-high border-line-medium shadow-xl rounded-xl z-[60]"
-      >
-        <div className="px-2 py-1.5 border-b border-line-low mb-1">
-          <h4 className="text-[10px] font-bold text-neutral-low uppercase tracking-widest">
-            Select AI Agent
-          </h4>
-        </div>
-        <div className="space-y-0.5">
-          {agents.map((agent) => (
-            <button
-              key={agent.id}
-              onClick={() => onSelect(agent)}
-              className="w-full flex items-center gap-2.5 px-2.5 py-2 rounded-lg hover:bg-backdrop-medium text-left transition-colors"
-            >
-              <div className="w-6 h-6 rounded bg-standout-medium/10 flex items-center justify-center text-standout-medium">
-                <FontAwesomeIcon icon={faWandMagicSparkles} className="text-[10px]" />
-              </div>
-              <span className="text-xs font-medium text-neutral-high">{agent.name}</span>
-            </button>
-          ))}
-        </div>
-      </PopoverContent>
-    </Popover>
-  )
-})
-
-function mergeFields(
-  base: Record<string, any>,
-  overrides: Record<string, any> | null
-): Record<string, any> {
-  if (!overrides) return base
-  const result: Record<string, any> = { ...base }
-  for (const key of Object.keys(overrides)) {
-    const overrideVal = overrides[key]
-    const baseVal = base[key]
-    if (isPlainObject(overrideVal) && isPlainObject(baseVal)) {
-      result[key] = mergeFields(baseVal, overrideVal)
-    } else {
-      result[key] = overrideVal
-    }
-  }
-  return result
-}
-
-function diffOverrides(
-  base: Record<string, any>,
-  edited: Record<string, any>,
-  depth = 0
-): Record<string, any> | null {
-  // Depth limit to prevent infinite loops on circular refs (though we sanitize them)
-  if (depth > 10) return edited
-
-  const out: Record<string, any> = {}
-  let changed = false
-
-  const allKeys = new Set([...Object.keys(base), ...Object.keys(edited)])
-
-  for (const key of allKeys) {
-    const b = base[key]
-    const e = edited[key]
-
-    // Fast check for reference equality
-    if (b === e) continue
-
-    if (isPlainObject(b) && isPlainObject(e)) {
-      // For very large objects (e.g. rich text > 100KB), deep diffing is slow.
-      // If it changed at all (ref check failed), just send it as-is if it's too big.
-      const sizeB = JSON.stringify(b).length
-      if (sizeB > 102400) {
-        if (JSON.stringify(b) !== JSON.stringify(e)) {
-          out[key] = e
-          changed = true
-        }
-        continue
-      }
-
-      const child = diffOverrides(b, e, depth + 1)
-      if (child && Object.keys(child).length) {
-        out[key] = child
-        changed = true
-      }
-    } else if (Array.isArray(b) || Array.isArray(e)) {
-      // Optimized array comparison: skip stringify for simple cases
-      if (!Array.isArray(b) || !Array.isArray(e) || b.length !== e.length) {
-        out[key] = e
-        changed = true
-      } else {
-        // Quick check for primitive arrays
-        let arrayMatch = true
-        for (let i = 0; i < b.length; i++) {
-          if (b[i] !== e[i]) {
-            arrayMatch = false
-            break
-          }
-        }
-        if (!arrayMatch) {
-          // If primitives didn't match, fallback to JSON check
-          if (JSON.stringify(b) !== JSON.stringify(e)) {
-            out[key] = e
-            changed = true
-          }
-        }
-      }
-    } else {
-      // Primitive mismatch
-      out[key] = e
-      changed = true
-    }
-  }
-  return changed ? out : null
-}
-
-export function ModuleEditorPanel({
-  open,
-  moduleItem,
-  onClose,
-  onSave,
-  processing = false,
-  postId,
-  moduleInstanceId,
-  viewMode,
-  customFields = [],
-}: {
-  open: boolean
-  moduleItem: ModuleListItem | null
-  onClose: () => void
-  onSave: (
-    overrides: Record<string, any> | null,
-    edited: Record<string, any>
-  ) => Promise<void> | void
-  processing?: boolean
-  postId?: string
-  moduleInstanceId?: string
-  viewMode?: 'source' | 'review' | 'ai-review'
-  customFields?: Array<{ slug: string; label: string }>
-}) {
-  const merged = useMemo(
-    () => (moduleItem ? mergeFields(moduleItem.props || {}, moduleItem.overrides || null) : {}),
-    [moduleItem]
-  )
-  const [draft, setDraft] = useState<Record<string, any>>(merged)
-  const [schema, setSchema] = useState<CustomFieldDefinition[] | null>(() => {
-    const cached = moduleItem ? moduleSchemaCache.get(moduleItem.type) : null
-    return cached ? cached.schema : null
-  })
-  const [moduleLabel, setModuleLabel] = useState<string | null>(() => {
-    const cached = moduleItem ? moduleSchemaCache.get(moduleItem.type) : null
-    return cached ? cached.label : null
-  })
-  const formRef = useRef<HTMLFormElement | null>(null)
-  const [fieldAgents, setFieldAgents] = useState<Agent[]>([])
-  const [selectedFieldAgent, setSelectedFieldAgent] = useState<Agent | null>(null)
-  const [agentModalOpen, setAgentModalOpen] = useState(false)
-  const [agentFieldKey, setAgentFieldKey] = useState<string>('')
-  const [agentFieldType, setAgentFieldType] = useState<string>('')
-  const hasFieldPermission = useHasPermission('agents.field')
-
-  const fieldComponents = useMemo(() => {
-    const modules = import.meta.glob('../../fields/*.tsx', { eager: true }) as Record<
-      string,
-      { default: any }
-    >
-    const map: Record<string, any> = {}
-    Object.entries(modules).forEach(([p, mod]) => {
-      const nm = p
-        .split('/')
-        .pop()
-        ?.replace(/\.\w+$/, '')
-      if (nm && mod?.default) map[nm] = mod.default
-    })
-    return map
-  }, [])
-
-  const pascalFromType = (t?: string | null) => {
-    if (!t || typeof t !== 'string') return ''
-    return t
-      .split(/[-_]/g)
-      .map((s) => s.charAt(0).toUpperCase() + s.slice(1))
-      .join('')
-  }
-
-  const supportedFieldTypes = useMemo(
-    () =>
-      new Set([
-        'text',
-        'textarea',
-        'number',
-        'select',
-        'multiselect',
-        'boolean',
-        'url',
-        'link',
-        'file',
-        'taxonomy',
-        'form-reference',
-        'post-reference',
-        'richtext',
-        'slider',
-      ]),
-    []
-  )
-
-  const latestDraft = useRef(draft)
-  useEffect(() => {
-    latestDraft.current = draft
-  }, [draft])
-
-  const isMountedRef = useRef(false)
-  useEffect(() => {
-    isMountedRef.current = true
-    return () => {
-      isMountedRef.current = false
-    }
-  }, [])
-
-  const fallbackDraftKeys = useMemo(
-    () => Object.keys(draft || {}).filter((k) => k !== 'type' && k !== 'properties'),
-    [draft]
-  )
-
-  const isNoFieldModule = moduleItem?.type === 'reading-progress'
-
-  // Load field-scoped agents
-  useEffect(() => {
-    if (!open || !hasFieldPermission) {
-      setFieldAgents([])
-      return
-    }
-    let alive = true
-      ; (async () => {
-        try {
-          const res = await fetch('/api/agents?scope=field', { credentials: 'same-origin' })
-          const json = await res.json().catch(() => ({}))
-          const list: Agent[] = Array.isArray(json?.data) ? json.data : []
-          if (alive) {
-            setFieldAgents(list)
-          }
-        } catch (error) {
-          console.error('Failed to load field-scoped agents:', error)
-          if (alive) setFieldAgents([])
-        }
-      })()
-    return () => {
-      alive = false
-    }
-  }, [open, hasFieldPermission])
-
-  const syncFormToDraft = useCallback((): Record<string, any> => {
-    // Avoid slow JSON stringify/parse for cloning the draft
-    const edited = { ...(latestDraft.current || {}) }
-    const form = formRef.current
-    if (form) {
-      const elements = form.querySelectorAll<
-        HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement
-      >('input[name], textarea[name], select[name]')
-      elements.forEach((el) => {
-        const name = el.getAttribute('name')!
-        if ((el as HTMLInputElement).type === 'checkbox') {
-          setByPath(edited, name, (el as HTMLInputElement).checked)
-        } else if ((el as HTMLInputElement).type === 'number') {
-          const val = (el as HTMLInputElement).value
-          setByPath(edited, name, val === '' ? 0 : Number(val))
-        } else if (
-          (el as HTMLInputElement).dataset &&
-          (el as HTMLInputElement).dataset.json === '1'
-        ) {
-          const val = (el as HTMLInputElement).value
-          try {
-            setByPath(edited, name, val ? JSON.parse(val) : null)
-          } catch {
-            setByPath(edited, name, val)
-          }
-        } else if (
-          (el as HTMLInputElement).dataset &&
-          (el as HTMLInputElement).dataset.bool === '1'
-        ) {
-          const val = (el as HTMLInputElement).value
-          setByPath(edited, name, val === 'true')
-        } else if (
-          (el as HTMLInputElement).dataset &&
-          (el as HTMLInputElement).dataset.number === '1'
-        ) {
-          const val = (el as HTMLInputElement).value
-          setByPath(edited, name, val === '' ? 0 : Number(val))
-        } else if ((el as HTMLSelectElement).multiple) {
-          const vals = Array.from((el as HTMLSelectElement).selectedOptions).map((o) => o.value)
-          setByPath(edited, name, vals)
-        } else {
-          setByPath(edited, name, (el as HTMLInputElement).value)
-        }
-      })
-    }
-    return edited
-  }, [])
-
-  useEffect(() => {
-    if (!open || !moduleItem) return
-    
-    // Update draft when module data changes (e.g., from agent updates or reload)
-    const newDraft = mergeFields(moduleItem.props || {}, moduleItem.overrides || null)
-    
-    // Compare with current draft - only update if actually different to avoid unnecessary re-renders
-    setDraft((prev) => {
-      const prevStr = JSON.stringify(prev || {})
-      const newStr = JSON.stringify(newDraft)
-      if (prevStr === newStr) {
-        return prev // No change, keep existing draft
-      }
-      return newDraft
-    })
-    setModuleLabel(null)
-  }, [open, moduleItem?.id, JSON.stringify(moduleItem?.props), JSON.stringify(moduleItem?.overrides)])
-
-  // Load module schema (if available)
-  useEffect(() => {
-    let alive = true
-      ; (async () => {
-        if (!open || !moduleItem) return
-        try {
-          const cached = moduleSchemaCache.get(moduleItem.type)
-          if (cached) {
-            if (alive) {
-              setModuleLabel(cached.label || moduleItem.type)
-              setSchema(cached.schema)
-            }
-            return
-          }
-          const res = await fetch(`/api/modules/${encodeURIComponent(moduleItem.type)}/schema`, {
-            credentials: 'same-origin',
-          })
-          const json = await res.json().catch(() => null)
-          const ps =
-            json?.data?.propsSchema ||
-            json?.propsSchema ||
-            (json?.data?.schema ? json?.data?.schema?.propsSchema : null) ||
-            null
-          const friendlyName: string | null =
-            (json?.data && (json.data.name as string | undefined)) ||
-            (json && (json.name as string | undefined)) ||
-            null
-          if (alive) {
-            setModuleLabel(friendlyName || moduleItem.type)
-          }
-          if (ps && typeof ps === 'object') {
-            const fields: CustomFieldDefinition[] = Object.keys(ps).map((k) => {
-              const def = (ps as any)[k] || {}
-              return { slug: k, ...(def || {}) }
-            })
-            if (alive) setSchema(fields)
-            moduleSchemaCache.set(moduleItem.type, { schema: fields, label: friendlyName || moduleItem.type })
-          } else {
-            if (alive) setSchema(null)
-            moduleSchemaCache.set(moduleItem.type, { schema: null, label: friendlyName || moduleItem.type })
-          }
-        } catch {
-          if (alive) setSchema(null)
-        }
-      })()
-    return () => {
-      alive = false
-    }
-  }, [open, moduleItem?.type])
-
-  const ctx: EditorFieldCtx = useMemo(
-    () => ({
-      latestDraft,
-      setDraft,
-      fieldComponents,
-      supportedFieldTypes,
-      pascalFromType,
-      setByPath,
-      getLabel,
-      syncFormToDraft,
-      getByPath,
-      formRef,
-      postId,
-      moduleInstanceId,
-      moduleType: moduleItem?.type,
-      fieldAgents,
-      setSelectedFieldAgent,
-      setAgentModalOpen,
-      setAgentFieldKey,
-      setAgentFieldType,
-      viewMode,
-      customFields,
-      onDirty: undefined,
-    }),
-    [
-      setDraft,
-      fieldComponents,
-      supportedFieldTypes,
-      pascalFromType,
-      syncFormToDraft,
-      postId,
-      moduleInstanceId,
-      moduleItem?.type,
-      fieldAgents,
-      setSelectedFieldAgent,
-      setAgentModalOpen,
-      setAgentFieldKey,
-      setAgentFieldType,
-      viewMode,
-      customFields,
-    ]
-  )
-
-  const collectEdited = useCallback(() => {
-    if (!moduleItem) return { overrides: null, edited: {} }
-    const base = moduleItem?.props || {}
-    const edited = JSON.parse(JSON.stringify(merged))
-    const form = formRef.current
-    if (form) {
-      const elements = form.querySelectorAll<
-        HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement
-      >('input[name], textarea[name], select[name]')
-      elements.forEach((el) => {
-        const name = el.getAttribute('name')!
-        if ((el as HTMLInputElement).type === 'checkbox') {
-          setByPath(edited, name, (el as HTMLInputElement).checked)
-        } else if ((el as HTMLInputElement).type === 'number') {
-          const val = (el as HTMLInputElement).value
-          setByPath(edited, name, val === '' ? 0 : Number(val))
-        } else if (
-          (el as HTMLInputElement).dataset &&
-          (el as HTMLInputElement).dataset.json === '1'
-        ) {
-          const val = (el as HTMLInputElement).value
-          try {
-            setByPath(edited, name, val ? JSON.parse(val) : null)
-          } catch {
-            setByPath(edited, name, val)
-          }
-        } else if (
-          (el as HTMLInputElement).dataset &&
-          (el as HTMLInputElement).dataset.bool === '1'
-        ) {
-          const val = (el as HTMLInputElement).value
-          setByPath(edited, name, val === 'true')
-        } else if (
-          (el as HTMLInputElement).dataset &&
-          (el as HTMLInputElement).dataset.number === '1'
-        ) {
-          const val = (el as HTMLInputElement).value
-          setByPath(edited, name, val === '' ? 0 : Number(val))
-        } else if ((el as HTMLSelectElement).multiple) {
-          const vals = Array.from((el as HTMLSelectElement).selectedOptions).map((o) => o.value)
-          setByPath(edited, name, vals)
-        } else {
-          setByPath(edited, name, (el as HTMLInputElement).value)
-        }
-      })
-    }
-    const overrides = diffOverrides(base, edited)
-    return { overrides, edited }
-  }, [merged, moduleItem])
-
-  const saveAndClose = useCallback(async () => {
-    const { overrides, edited } = collectEdited()
-    await onSave(overrides, edited)
-    onClose()
-  }, [collectEdited, onSave, onClose])
-
-  // Auto-save when clicking outside (backdrop) - preserve changes
-  const handleBackdropClick = useCallback(async () => {
-    const { overrides, edited } = collectEdited()
-    await onSave(overrides, edited)
-    onClose()
-  }, [collectEdited, onSave, onClose])
-
-  // Keep hooks order stable; render null late.
-  if (!open || !moduleItem) return null
-
-  return createPortal(
-    <div
-      className="fixed inset-0 z-40"
-      onMouseDown={(e) => {
-        // prevent outside dnd or other handlers from stealing focus
-        e.stopPropagation()
-      }}
-    >
-      <div className="absolute inset-0 bg-black/40" onClick={handleBackdropClick} />
-      <div
-        className="absolute right-0 top-0 h-full w-full max-w-2xl bg-backdrop-low border-l border-line-low shadow-xl flex flex-col"
-        role="dialog"
-        aria-modal="true"
-      >
-        <div className="px-5 py-4 border-b border-line-low flex items-center justify-between">
-          <h3 className="text-sm font-semibold text-neutral-high">
-            Module Custom Fields — {moduleLabel || moduleItem.type}
-          </h3>
-        </div>
-        {moduleItem.scope === 'global' && (
-          <div className="px-5 py-3 bg-amber-500/10 border-b border-amber-500/20 text-xs text-amber-500 flex items-center justify-between">
-            <span>Global modules are shared across posts and must be edited in the global settings.</span>
-            <a
-              href={`/admin/modules?tab=globals&editSlug=${moduleItem.globalSlug}`}
-              className="font-semibold underline hover:text-amber-400"
-            >
-              Edit Global Module
-            </a>
-          </div>
-        )}
-        <form
-          ref={formRef}
-          className="p-5 grid grid-cols-1 gap-5 overflow-auto"
-          onSubmit={(e) => {
-            e.preventDefault()
-          }}
-        >
-          <fieldset disabled={processing || moduleItem.scope === 'global'} className="contents">
-            {schema && schema.length > 0 ? (
-              (() => {
-                const groups: Record<string, CustomFieldDefinition[]> = {}
-                schema.forEach((f) => {
-                  const cat = f.category || 'General'
-                  if (!groups[cat]) groups[cat] = []
-                  groups[cat].push(f)
-                })
-
-                return Object.entries(groups).map(([category, fields]) => (
-                  <div key={category} className="mb-8 space-y-4">
-                    {category !== 'General' && (
-                      <h4 className="text-[11px] font-bold text-neutral-medium uppercase tracking-wider border-b border-line-low pb-2 mb-4">
-                        {category}
-                      </h4>
-                    )}
-                    <div className="space-y-4">
-                      {fields.map((f) => (
-                        <FieldBySchemaInternal
-                          key={f.slug}
-                          path={[f.slug]}
-                          field={f}
-                          value={draft ? draft[f.slug] : undefined}
-                          rootId={moduleItem.id}
-                          ctx={ctx}
-                        />
-                      ))}
-                    </div>
-                  </div>
-                ))
-              })()
-            ) : isNoFieldModule || fallbackDraftKeys.length === 0 ? (
-              <p className="text-sm text-neutral-low">No editable fields.</p>
-            ) : (
-              fallbackDraftKeys.map((key) => {
-                const rawVal = draft[key]
-                // Heuristic: always treat 'content' as rich text
-                if (key === 'content') {
-                  let initial: any = undefined
-                  if (isPlainObject(rawVal)) {
-                    initial = rawVal
-                  } else if (typeof rawVal === 'string') {
-                    try {
-                      const parsed = JSON.parse(rawVal)
-                      initial = parsed
-                    } catch {
-                      initial = undefined
-                    }
-                  }
-                  return (
-                    <div key={key}>
-                      <label className="block text-sm font-medium text-neutral-medium mb-1">
-                        {key}
-                      </label>
-                      {(fieldComponents as Record<string, any>)['RichtextField'] ? (
-                        (fieldComponents as Record<string, any>)['RichtextField']({
-                          editorKey: `${moduleItem.id}:${key}`,
-                          value: initial,
-                          onChange: (json: any) => {
-                            const hidden =
-                              (formRef.current?.querySelector(
-                                `input[type="hidden"][name="${key}"]`
-                              ) as HTMLInputElement) || null
-                            if (hidden) {
-                              try {
-                                hidden.value = JSON.stringify(json)
-                              } catch {
-                                /* ignore */
-                              }
-                            }
-                            const next = JSON.parse(JSON.stringify(draft))
-                            setByPath(next, key, json)
-                            setDraft(next)
-                            ctx.onDirty?.()
-                          },
-                        })
-                      ) : (
-                        <LexicalEditor
-                          editorKey={`${moduleItem.id}:${key}`}
-                          value={initial}
-                          onChange={(json) => {
-                            const hidden =
-                              (formRef.current?.querySelector(
-                                `input[type="hidden"][name="${key}"]`
-                              ) as HTMLInputElement) || null
-                            if (hidden) {
-                              try {
-                                hidden.value = JSON.stringify(json)
-                              } catch {
-                                /* ignore */
-                              }
-                            }
-                            const next = JSON.parse(JSON.stringify(draft))
-                            setByPath(next, key, json)
-                            setDraft(next)
-                            ctx.onDirty?.()
-                          }}
-                        />
-                      )}
-                      <input
-                        type="hidden"
-                        name={key}
-                        data-json="1"
-                        defaultValue={
-                          isPlainObject(rawVal)
-                            ? JSON.stringify(rawVal)
-                            : typeof rawVal === 'string'
-                              ? rawVal
-                              : ''
-                        }
-                      />
-                    </div>
-                  )
-                }
-                const val = rawVal
-                if (isPlainObject(val) || Array.isArray(val)) {
-                  return (
-                    <div key={key}>
-                      <label className="block text-sm font-medium text-neutral-medium mb-1">
-                        {key}
-                      </label>
-                      <textarea
-                        className="w-full px-3 py-2 min-h-[140px] border border-border rounded-lg bg-backdrop-low text-neutral-high font-mono text-xs focus:ring-1 ring-ring focus:border-transparent"
-                        defaultValue={JSON.stringify(val, null, 2)}
-                        onBlur={(e) => {
-                          try {
-                            const parsed = JSON.parse(e.target.value || 'null')
-                            const next = JSON.parse(JSON.stringify(draft))
-                            setByPath(next, key, parsed)
-                            setDraft(next)
-                          } catch {
-                            toast.error('Invalid JSON')
-                          }
-                        }}
-                      />
-                      <p className="text-xs text-neutral-low mt-1">Edit JSON directly.</p>
-                    </div>
-                  )
-                }
-                return (
-                  <FieldPrimitiveInternal
-                    key={key}
-                    path={[key]}
-                    field={
-                      {
-                        name: key,
-                        type:
-                          typeof val === 'number'
-                            ? 'number'
-                            : typeof val === 'boolean'
-                              ? 'boolean'
-                              : 'text',
-                      } as any
-                    }
-                    value={val}
-                    rootId={moduleItem.id}
-                    ctx={ctx}
-                  />
-                )
-              })
-            )}
-          </fieldset>
-          <div className="flex items-center justify-end gap-2 border-t border-line-low pt-4">
-            <button
-              type="button"
-              className="px-3 py-1.5 text-xs rounded border border-line-medium text-neutral-high hover:bg-backdrop-medium"
-              onClick={onClose}
-              disabled={processing}
-            >
-              Cancel
-            </button>
-            <button
-              type="button"
-              className="px-3 py-1.5 text-xs rounded bg-standout-medium text-on-standout disabled:opacity-60"
-              onClick={saveAndClose}
-              disabled={processing || moduleItem.scope === 'global'}
-            >
-              Done
-            </button>
-          </div>
-        </form>
-      </div>
-      {selectedFieldAgent && (
-        <AgentModal
-          open={agentModalOpen}
-          onOpenChange={setAgentModalOpen}
-          agent={selectedFieldAgent}
-          contextId={postId}
-          context={{
-            scope: 'field',
-            fieldKey: agentFieldKey,
-            fieldType: agentFieldType,
-            moduleInstanceId: moduleInstanceId,
-          }}
-          scope="field"
-          fieldKey={agentFieldKey}
-          fieldType={agentFieldType}
-          viewMode={viewMode}
-          onSuccess={() => {
-            // Note: AgentModal now performs background router.reload
-          }}
-        />
-      )}
-    </div>,
-    document.body
-  )
-}
-
-export const ModuleEditorInline = memo(function ModuleEditorInline({
-  moduleItem,
-  onSave,
-  onDirty,
-  processing = false,
-  postId,
-  moduleInstanceId,
-  viewMode,
-  fieldAgents = [],
-  autoSaveOnBlur = true,
-  registerFlush,
-  className = '',
-  customFields = [],
-}: {
-  moduleItem: ModuleListItem
-  onSave: (overrides: Record<string, any> | null, edited: Record<string, any>) => Promise<void> | void
-  // Called once when the user changes any field in this module (used to enable the page-level Save button)
-  onDirty?: () => void
-  processing?: boolean
-  postId?: string
-  moduleInstanceId?: string
-  viewMode?: 'source' | 'review' | 'ai-review'
-  fieldAgents?: Agent[]
-  autoSaveOnBlur?: boolean
-  registerFlush?: (flush: (() => Promise<void>) | null) => void
-  className?: string
-  customFields?: Array<{ slug: string; label: string }>
-}) {
-  const merged = useMemo(
-    () => (moduleItem ? mergeFields(moduleItem.props || {}, moduleItem.overrides || null) : {}),
-    [moduleItem]
-  )
-  const [draft, setDraft] = useState<Record<string, any>>(merged)
-  const [schema, setSchema] = useState<CustomFieldDefinition[] | null>(() => {
-    const cached = moduleItem ? moduleSchemaCache.get(moduleItem.type) : null
-    return cached ? cached.schema : null
-  })
-  const [moduleLabel, setModuleLabel] = useState<string | null>(() => {
-    const cached = moduleItem ? moduleSchemaCache.get(moduleItem.type) : null
-    return cached ? cached.label : null
-  })
-  const [selectedFieldAgent, setSelectedFieldAgent] = useState<Agent | null>(null)
-  const [agentModalOpen, setAgentModalOpen] = useState(false)
-  const [agentFieldKey, setAgentFieldKey] = useState<string>('')
-  const [agentFieldType, setAgentFieldType] = useState<string>('')
-  // IMPORTANT: do not render a nested <form> inside the post editor's <form>.
-  const formRef = useRef<HTMLDivElement | null>(null)
-
-  const fieldComponents = useMemo(() => {
-    const modules = import.meta.glob('../../fields/*.tsx', { eager: true }) as Record<
-      string,
-      { default: any }
-    >
-    const map: Record<string, any> = {}
-    Object.entries(modules).forEach(([p, mod]) => {
-      const nm = p
-        .split('/')
-        .pop()
-        ?.replace(/\.\w+$/, '')
-      if (nm && mod?.default) map[nm] = mod.default
-    })
-    return map
-  }, [])
-
-  const pascalFromType = (t?: string | null) => {
-    if (!t || typeof t !== 'string') return ''
-    return t
-      .split(/[-_]/g)
-      .map((s) => s.charAt(0).toUpperCase() + s.slice(1))
-      .join('')
-  }
-
-  const supportedFieldTypes = useMemo(
-    () =>
-      new Set([
-        'text',
-        'textarea',
-        'number',
-        'select',
-        'multiselect',
-        'boolean',
-        'url',
-        'link',
-        'file',
-        'taxonomy',
-        'form-reference',
-        'post-reference',
-        'richtext',
-        'slider',
-      ]),
-    []
-  )
-
-  const latestDraft = useRef(draft)
-  useEffect(() => {
-    latestDraft.current = draft
-  }, [draft])
-
-  const isMountedRef = useRef(false)
-  useEffect(() => {
-    isMountedRef.current = true
-    return () => {
-      isMountedRef.current = false
-    }
-  }, [])
-
-  const fallbackDraftKeys = useMemo(
-    () => Object.keys(draft || {}).filter((k) => k !== 'type' && k !== 'properties'),
-    [draft]
-  )
-
-  const isNoFieldModule = moduleItem?.type === 'reading-progress'
-
-  const syncFormToDraft = useCallback((): Record<string, any> => {
-    // Avoid slow JSON stringify/parse for cloning the draft
-    const edited = { ...(latestDraft.current || {}) }
-    const form = formRef.current
-    if (form) {
-      const elements = form.querySelectorAll<
-        HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement
-      >('input[name], textarea[name], select[name]')
-      elements.forEach((el) => {
-        const name = el.getAttribute('name')!
-        if ((el as HTMLInputElement).type === 'checkbox') {
-          setByPath(edited, name, (el as HTMLInputElement).checked)
-        } else if ((el as HTMLInputElement).type === 'number') {
-          const val = (el as HTMLInputElement).value
-          setByPath(edited, name, val === '' ? 0 : Number(val))
-        } else if (
-          (el as HTMLInputElement).dataset &&
-          (el as HTMLInputElement).dataset.json === '1'
-        ) {
-          const val = (el as HTMLInputElement).value
-          try {
-            setByPath(edited, name, val ? JSON.parse(val) : null)
-          } catch {
-            setByPath(edited, name, val)
-          }
-        } else if (
-          (el as HTMLInputElement).dataset &&
-          (el as HTMLInputElement).dataset.bool === '1'
-        ) {
-          const val = (el as HTMLInputElement).value
-          setByPath(edited, name, val === 'true')
-        } else if (
-          (el as HTMLInputElement).dataset &&
-          (el as HTMLInputElement).dataset.number === '1'
-        ) {
-          const val = (el as HTMLInputElement).value
-          setByPath(edited, name, val === '' ? 0 : Number(val))
-        } else if ((el as HTMLSelectElement).multiple) {
-          const vals = Array.from((el as HTMLSelectElement).selectedOptions).map((o) => o.value)
-          setByPath(edited, name, vals)
-        } else {
-          setByPath(edited, name, (el as HTMLInputElement).value)
-        }
-      })
-    }
-    return edited
-  }, [])
-
-  useEffect(() => {
-    const currentId = moduleItem?.id
-    const prevId = prevModuleItemIdRef.current
-
-    const pendingRef = pendingInputValueRef.current
-    const hasPendingForThisModule = pendingRef && pendingRef.rootId === currentId
-
-    // Check if we have pending input value (unsaved changes) for THIS module - if so, NEVER reset
-    // This prevents losing edits when parent re-renders after onDirty
-    // This check must happen BEFORE the ID check, because we want to preserve edits even if props change
-    if (hasPendingForThisModule) {
-      // Still update the ref so we don't keep checking
-      if (currentId !== prevId) {
-        prevModuleItemIdRef.current = currentId
-      }
-      return
-    }
-
-    // Only reset draft if ID actually changed OR if props/overrides changed AND we don't have pending edits
-    const newDraft = mergeFields(moduleItem.props || {}, moduleItem.overrides || null)
-
-    // Compare with current draft - only reset if actually different
-    // This prevents unnecessary resets when parent re-renders with same data
-    setDraft((prev) => {
-      const prevStr = JSON.stringify(prev || {})
-      const newStr = JSON.stringify(newDraft)
-      if (prevStr === newStr) {
-        return prev // No change, keep existing draft
-      }
-      return newDraft
-    })
-    setModuleLabel(null)
-    prevModuleItemIdRef.current = currentId
-  }, [moduleItem?.id, JSON.stringify(moduleItem?.props), JSON.stringify(moduleItem?.overrides)]) // Sync when props/overrides change (e.g. from agent)
-
-  useEffect(() => {
-    let alive = true
-      ; (async () => {
-        if (!moduleItem) return
-        try {
-          const cached = moduleSchemaCache.get(moduleItem.type)
-          if (cached) {
-            if (alive) {
-              setModuleLabel(cached.label || moduleItem.type)
-              setSchema(cached.schema)
-            }
-            return
-          }
-          const res = await fetch(`/api/modules/${encodeURIComponent(moduleItem.type)}/schema`, {
-            credentials: 'same-origin',
-          })
-          const json = await res.json().catch(() => null)
-          const ps =
-            json?.data?.propsSchema ||
-            json?.propsSchema ||
-            (json?.data?.schema ? json?.data?.schema?.propsSchema : null) ||
-            null
-          const friendlyName: string | null =
-            (json?.data && (json.data.name as string | undefined)) ||
-            (json && (json.name as string | undefined)) ||
-            null
-          if (alive) setModuleLabel(friendlyName || moduleItem.type)
-          if (ps && typeof ps === 'object') {
-            const fields: CustomFieldDefinition[] = Object.keys(ps).map((k) => {
-              const def = (ps as any)[k] || {}
-              return { slug: k, ...(def || {}) }
-            })
-            if (alive) setSchema(fields)
-            moduleSchemaCache.set(moduleItem.type, { schema: fields, label: friendlyName || moduleItem.type })
-          } else {
-            if (alive) setSchema(null)
-            moduleSchemaCache.set(moduleItem.type, { schema: null, label: friendlyName || moduleItem.type })
-          }
-        } catch {
-          if (alive) setSchema(null)
-        }
-      })()
-    return () => {
-      alive = false
-    }
-  }, [moduleItem?.type])
-
-  const ctx = useMemo(
-    () => ({
-      latestDraft,
-      setDraft,
-      fieldComponents,
-      supportedFieldTypes,
-      pascalFromType,
-      setByPath,
-      getLabel,
-      syncFormToDraft,
-      getByPath,
-      formRef,
-      postId,
-      moduleInstanceId,
-      moduleType: moduleItem?.type,
-      fieldAgents,
-      setSelectedFieldAgent,
-      setAgentModalOpen,
-      setAgentFieldKey,
-      setAgentFieldType,
-      viewMode,
-      customFields,
-      onDirty: () => {
-        if (isMountedRef.current && onDirty) onDirty()
-      },
-    }),
-    [
-      setDraft,
-      fieldComponents,
-      supportedFieldTypes,
-      syncFormToDraft,
-      postId,
-      moduleInstanceId,
-      moduleItem?.type,
-      fieldAgents,
-      setSelectedFieldAgent,
-      setAgentModalOpen,
-      setAgentFieldKey,
-      setAgentFieldType,
-      viewMode,
-      customFields,
-      onDirty,
-    ]
-  )
-
-  const collectEdited = useCallback(() => {
-    const base = moduleItem?.props || {}
-    // Avoid slow JSON stringify/parse for cloning the merged baseline
-    const edited = { ...(merged || {}) }
-    const form = formRef.current
-    if (form) {
-      const elements = form.querySelectorAll<
-        HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement
-      >('input[name], textarea[name], select[name]')
-      elements.forEach((el) => {
-        const name = el.getAttribute('name')!
-        if ((el as HTMLInputElement).type === 'checkbox') {
-          setByPath(edited, name, (el as HTMLInputElement).checked)
-        } else if ((el as HTMLInputElement).type === 'number') {
-          const val = (el as HTMLInputElement).value
-          setByPath(edited, name, val === '' ? 0 : Number(val))
-        } else if (
-          (el as HTMLInputElement).dataset &&
-          (el as HTMLInputElement).dataset.json === '1'
-        ) {
-          const val = (el as HTMLInputElement).value
-          try {
-            setByPath(edited, name, val ? JSON.parse(val) : null)
-          } catch {
-            setByPath(edited, name, val)
-          }
-        } else if (
-          (el as HTMLInputElement).dataset &&
-          (el as HTMLInputElement).dataset.bool === '1'
-        ) {
-          const val = (el as HTMLInputElement).value
-          setByPath(edited, name, val === 'true')
-        } else if (
-          (el as HTMLInputElement).dataset &&
-          (el as HTMLInputElement).dataset.number === '1'
-        ) {
-          const val = (el as HTMLInputElement).value
-          setByPath(edited, name, val === '' ? 0 : Number(val))
-        } else if ((el as HTMLSelectElement).multiple) {
-          const vals = Array.from((el as HTMLSelectElement).selectedOptions).map((o) => o.value)
-          setByPath(edited, name, vals)
-        } else {
-          setByPath(edited, name, (el as HTMLInputElement).value)
-        }
-      })
-    }
-    const overrides = diffOverrides(base, edited)
-    return { overrides, edited }
-  }, [merged, moduleItem])
-
-  const saveNow = useCallback(async () => {
-    const { overrides, edited } = collectEdited()
-    await onSave(overrides, edited)
-  }, [collectEdited, onSave])
-
-  useEffect(() => {
-    if (!registerFlush) return
-    registerFlush(saveNow)
-    return () => {
-      registerFlush(null)
-    }
-  }, [registerFlush, saveNow])
-
-  const autosaveTimer = useRef<number | null>(null)
-  const signalDirtyTimeoutRef = useRef<number | null>(null)
-  // Store the current input value in a ref to preserve it across re-renders
-  const pendingInputValueRef = useRef<{ name: string; value: string; rootId: string; cursorPos: number } | null>(null)
-  // Track the previous moduleItem.id to detect actual ID changes
-  const prevModuleItemIdRef = useRef<string | undefined>(moduleItem?.id)
-
-  useEffect(() => {
-    return () => {
-      if (autosaveTimer.current) {
-        window.clearTimeout(autosaveTimer.current)
-        autosaveTimer.current = null
-      }
-      if (signalDirtyTimeoutRef.current) {
-        window.clearTimeout(signalDirtyTimeoutRef.current)
-        signalDirtyTimeoutRef.current = null
-      }
-    }
-  }, [])
-
-  // Track the last draft value we restored to prevent infinite loops
-  const lastRestoredDraftRef = useRef<{ name: string; value: string } | null>(null)
-
-  // Restore input value and draft after re-renders to prevent first character loss
-  // This runs synchronously after DOM mutations but before paint, ensuring we catch any value resets
-  useLayoutEffect(() => {
-    if (pendingInputValueRef.current) {
-      const { name, value, rootId, cursorPos } = pendingInputValueRef.current
-      const el = formRef.current?.querySelector(
-        `[name="${name}"][data-root-id="${rootId}"]`
-      ) as HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement | null
-
-      // Restore input value if it was reset
-      if (el && el.value !== value) {
-        el.value = value
-        if (el instanceof HTMLInputElement || el instanceof HTMLTextAreaElement) {
-          el.setSelectionRange(cursorPos, cursorPos)
-        }
-      }
-
-      // Restore draft if it was reset (this happens after onDirty triggers parent re-renders)
-      const currentDraftValue = draft ? draft[name] : undefined
-      const lastRestored = lastRestoredDraftRef.current
-      const alreadyRestored = lastRestored?.name === name && lastRestored?.value === value
-
-      if (currentDraftValue !== value && !alreadyRestored) {
-        setDraft((prev) => {
-          const next = { ...(prev || {}) }
-          setByPath(next, name, value)
-          return next
-        })
-        lastRestoredDraftRef.current = { name, value }
-
-        // Also restore the input value
-        if (el && el.value !== value) {
-          el.value = value
-          if (el instanceof HTMLInputElement || el instanceof HTMLTextAreaElement) {
-            el.setSelectionRange(cursorPos, cursorPos)
-          }
-        }
-      } else if (currentDraftValue === value && lastRestored?.name === name) {
-        // Draft matches, clear the restoration tracking
-        lastRestoredDraftRef.current = null
-      }
-
-      // Keep ref active for 1 second to handle all re-render cascades after onDirty
-      // Only clear if draft matches and has been stable
-      const timeoutId = window.setTimeout(() => {
-        if (pendingInputValueRef.current?.name === name) {
-          const finalDraftValue = draft ? draft[name] : undefined
-          if (finalDraftValue === value) {
-            pendingInputValueRef.current = null
-            lastRestoredDraftRef.current = null
-          }
-        }
-      }, 1000)
-
-      return () => window.clearTimeout(timeoutId)
-    }
-  }, [draft])
-
-  // Synchronize DOM elements with draft when draft changes externally (e.g. from agent or reload)
-  // This ensures that programmatic updates are reflected in the UI without a full refresh.
-  useLayoutEffect(() => {
-    if (!formRef.current) return
-
-    // Skip if we're currently restoring a value from a user edit
-    if (pendingInputValueRef.current) return
-
-    const elements = formRef.current.querySelectorAll<
-      HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement
-    >('input[name], textarea[name], select[name]')
-
-    elements.forEach((el) => {
-      // Don't touch the element if it's currently focused (the user is typing)
-      if (document.activeElement === el) return
-
-      const name = el.getAttribute('name')
-      if (!name) return
-
-      const val = getByPath(draft, name)
-      const isJson = el.dataset.json === '1'
-      const isBool = el.dataset.bool === '1'
-
-      let stringifiedDraftVal = ''
-      if (isJson) {
-        stringifiedDraftVal = isPlainObject(val) || Array.isArray(val) ? JSON.stringify(val) : String(val ?? '')
-      } else if (isBool) {
-        stringifiedDraftVal = val === true ? 'true' : 'false'
-      } else {
-        stringifiedDraftVal = String(val ?? '')
-      }
-
-      if (el instanceof HTMLInputElement && el.type === 'checkbox') {
-        if (el.checked !== !!val) {
-          el.checked = !!val
-        }
-      } else if (el.value !== stringifiedDraftVal) {
-        el.value = stringifiedDraftVal
-        // Trigger a change event so any local listeners know the value changed
-        el.dispatchEvent(new Event('change', { bubbles: true }))
-      }
-    })
-  }, [draft])
-
-  return (
-    <div className={className}>
-      {moduleItem.scope === 'global' && (
-        <div className="mb-4 p-3 bg-amber-500/10 border border-amber-500/20 rounded text-xs text-amber-500 flex items-center justify-between">
-          <span>Global module (shared) - edit in settings.</span>
-          <a
-            href={`/admin/modules?tab=globals&editSlug=${moduleItem.globalSlug}`}
-            className="font-semibold underline hover:text-amber-400"
-          >
-            Edit Global
-          </a>
-        </div>
-      )}
-      <div
-        ref={formRef}
-        className="grid grid-cols-1 gap-5"
-        onChangeCapture={(e) => {
-          // Keep local draft in sync while typing so parent rerenders don't "wipe" in-progress edits.
-          // IMPORTANT: do NOT call onSave here (that would churn parent state and steal focus).
-          try {
-            // Use the event target, not document.activeElement. Focus can temporarily move during the first edit,
-            // and using activeElement can miss the correct input (causing the first character to be lost).
-            const el = e.target as
-              | HTMLInputElement
-              | HTMLTextAreaElement
-              | HTMLSelectElement
-              | null
-            const name = el?.getAttribute?.('name') || ''
-            const rootId = el?.getAttribute?.('data-root-id') || ''
-            if (!name) return
-
-            // Capture the current input value IMMEDIATELY to preserve it across re-renders
-            // This must happen before any state updates that might trigger re-renders
-            const currentValue = (el as HTMLInputElement | HTMLTextAreaElement).value || ''
-
-            // Prevent processing if this is a programmatic change (not user input)
-            // Check if the value matches what we already have stored
-            const storedValue = pendingInputValueRef.current?.name === name &&
-              pendingInputValueRef.current?.rootId === rootId
-              ? pendingInputValueRef.current.value
-              : null
-            if (storedValue !== null && currentValue === storedValue) {
-              return
-            }
-
-            const cursorPos = el instanceof HTMLInputElement || el instanceof HTMLTextAreaElement
-              ? el.selectionStart ?? currentValue.length
-              : currentValue.length
-
-            // Store the value in a ref that persists across re-renders
-            // This is the last line of defense against value loss
-            if (rootId) {
-              pendingInputValueRef.current = { name, value: currentValue, rootId, cursorPos }
-            }
-
-            // Update draft state - let React batch naturally for better performance during fast typing.
-            // The pendingInputValueRef + useLayoutEffect still provide safety if a re-render resets the DOM.
-            setDraft((prev) => {
-              const next = { ...(prev || {}) }
-              // Match syncFormToDraft coercions, but only for the changed field for performance.
-              if ((el as HTMLInputElement).type === 'checkbox') {
-                setByPath(next, name, (el as HTMLInputElement).checked)
-              } else if ((el as HTMLInputElement).type === 'number') {
-                const val = (el as HTMLInputElement).value
-                setByPath(next, name, val === '' ? 0 : Number(val))
-              } else if ((el as HTMLInputElement).dataset && (el as HTMLInputElement).dataset.json === '1') {
-                const val = (el as HTMLInputElement).value
-                try {
-                  setByPath(next, name, val ? JSON.parse(val) : null)
-                } catch {
-                  setByPath(next, name, val)
-                }
-              } else if ((el as HTMLInputElement).dataset && (el as HTMLInputElement).dataset.bool === '1') {
-                const val = (el as HTMLInputElement).value
-                setByPath(next, name, val === 'true')
-              } else if ((el as HTMLInputElement).dataset && (el as HTMLInputElement).dataset.number === '1') {
-                const val = (el as HTMLInputElement).value
-                setByPath(next, name, val === '' ? 0 : Number(val))
-              } else if ((el as HTMLSelectElement).multiple) {
-                const vals = Array.from((el as HTMLSelectElement).selectedOptions).map((o) => o.value)
-                setByPath(next, name, vals)
-              } else {
-                // Use the captured value to ensure we have the latest
-                setByPath(next, name, currentValue)
-              }
-              return next
-            })
-
-            // Signal dirty with a longer delay to avoid parent re-renders while the user is still typing.
-            // A 400ms delay ensures that for fast typing, the parent re-render happens after the word is done.
-              if (onDirty) {
-              if (signalDirtyTimeoutRef.current) window.clearTimeout(signalDirtyTimeoutRef.current)
-                signalDirtyTimeoutRef.current = window.setTimeout(() => {
-                  signalDirtyTimeoutRef.current = null
-                  onDirty()
-                }, 400)
-            }
-          } catch {
-            /* ignore */
-          }
-        }}
-        onBlurCapture={() => {
-          if (!autoSaveOnBlur) return
-          if (autosaveTimer.current) window.clearTimeout(autosaveTimer.current)
-          autosaveTimer.current = window.setTimeout(() => {
-            saveNow()
-          }, 250)
-        }}
-      >
-        <fieldset disabled={processing || moduleItem.scope === 'global'} className={moduleItem.scope === 'global' ? 'opacity-60' : ''}>
-          {schema && schema.length > 0 ? (
-            (() => {
-              const groups: Record<string, CustomFieldDefinition[]> = {}
-              schema.forEach((f) => {
-                const cat = f.category || 'General'
-                if (!groups[cat]) groups[cat] = []
-                groups[cat].push(f)
-              })
-
-              return Object.entries(groups).map(([category, fields]) => (
-                <div key={category} className="mb-8 space-y-4">
-                  {category !== 'General' && (
-                    <h4 className="text-[11px] font-bold text-neutral-medium uppercase tracking-wider border-b border-line-low pb-2 mb-4">
-                      {category}
-                    </h4>
-                  )}
-                  <div className="space-y-4">
-                    {fields.map((f) => {
-                      const fieldName = f.slug
-                      const pendingRef = pendingInputValueRef.current
-                      const hasPendingValue =
-                        pendingRef?.name === fieldName && pendingRef?.rootId === moduleItem.id
-                      const pendingValue = hasPendingValue && pendingRef ? pendingRef.value : null
-                      const draftValue = draft ? draft[fieldName] : undefined
-                      const valueToUse = pendingValue !== null ? pendingValue : draftValue
-
-                      return (
-                        <FieldBySchemaInternal
-                          key={fieldName}
-                          path={[fieldName]}
-                          field={f}
-                          value={valueToUse}
-                          rootId={moduleItem.id}
-                          ctx={ctx}
-                        />
-                      )
-                    })}
-                  </div>
-                </div>
-              ))
-            })()
-          ) : isNoFieldModule || fallbackDraftKeys.length === 0 ? (
-            <p className="text-sm text-neutral-low">No editable fields.</p>
-          ) : (
-            fallbackDraftKeys.map((key) => {
-              const rawVal = draft[key]
-              if (key === 'content') {
-                let initial: any = undefined
-                if (isPlainObject(rawVal)) {
-                  initial = rawVal
-                } else if (typeof rawVal === 'string') {
-                  try {
-                    const parsed = JSON.parse(rawVal)
-                    initial = parsed
-                  } catch {
-                    initial = undefined
-                  }
-                }
-                return (
-                  <div key={key}>
-                    <label className="block text-sm font-medium text-neutral-medium mb-1">{key}</label>
-                    {(fieldComponents as Record<string, any>)['RichtextField'] ? (
-                      (fieldComponents as Record<string, any>)['RichtextField']({
-                        editorKey: `${moduleItem.id}:${key}`,
-                        value: initial,
-                        onChange: (json: any) => {
-                          const hidden =
-                            (formRef.current?.querySelector(
-                              `input[type="hidden"][name="${key}"]`
-                            ) as HTMLInputElement) || null
-                          if (hidden) {
-                            try {
-                              hidden.value = JSON.stringify(json)
-                              hidden.dispatchEvent(new Event('input', { bubbles: true }))
-                              hidden.dispatchEvent(new Event('change', { bubbles: true }))
-                            } catch {
-                              /* ignore */
-                            }
-                          }
-                          const next = JSON.parse(JSON.stringify(draft))
-                          setByPath(next, key, json)
-                          setDraft(next)
-                          ctx.onDirty?.()
-                        },
-                      })
-                    ) : (
-                      <LexicalEditor
-                        editorKey={`${moduleItem.id}:${key}`}
-                        value={initial}
-                        onChange={(json) => {
-                          const hidden =
-                            (formRef.current?.querySelector(
-                              `input[type="hidden"][name="${key}"]`
-                            ) as HTMLInputElement) || null
-                          if (hidden) {
-                            try {
-                              hidden.value = JSON.stringify(json)
-                              hidden.dispatchEvent(new Event('input', { bubbles: true }))
-                              hidden.dispatchEvent(new Event('change', { bubbles: true }))
-                            } catch {
-                              /* ignore */
-                            }
-                          }
-                          const next = JSON.parse(JSON.stringify(draft))
-                          setByPath(next, key, json)
-                          setDraft(next)
-                          ctx.onDirty?.()
-                        }}
-                      />
-                    )}
-                    <input
-                      type="hidden"
-                      name={key}
-                      data-json="1"
-                      defaultValue={
-                        isPlainObject(rawVal)
-                          ? JSON.stringify(rawVal)
-                          : typeof rawVal === 'string'
-                            ? rawVal
-                            : ''
-                      }
-                    />
-                  </div>
-                )
-              }
-              const val = rawVal
-              if (isPlainObject(val) || Array.isArray(val)) {
-                return (
-                  <div key={key}>
-                    <label className="block text-sm font-medium text-neutral-medium mb-1">{key}</label>
-                    <textarea
-                      className="w-full px-3 py-2 min-h-[140px] border border-border rounded-lg bg-backdrop-low text-neutral-high font-mono text-xs focus:ring-1 ring-ring focus:border-transparent"
-                      defaultValue={JSON.stringify(val, null, 2)}
-                      onBlur={(e) => {
-                        try {
-                          const parsed = JSON.parse(e.target.value || 'null')
-                          const next = JSON.parse(JSON.stringify(draft))
-                          setByPath(next, key, parsed)
-                          setDraft(next)
-                        } catch {
-                          toast.error('Invalid JSON')
-                        }
-                      }}
-                    />
-                    <p className="text-xs text-neutral-low mt-1">Edit JSON directly.</p>
-                  </div>
-                )
-              }
-              return (
-                <FieldPrimitiveInternal
-                  key={key}
-                  path={[key]}
-                  field={
-                    {
-                      name: key,
-                      type:
-                        typeof val === 'number'
-                          ? 'number'
-                          : typeof val === 'boolean'
-                            ? 'boolean'
-                            : 'text',
-                    } as any
-                  }
-                  value={val}
-                  rootId={moduleItem.id}
-                  ctx={ctx}
-                />
-              )
-            })
-          )}
-        </fieldset>
-      </div>
-      {selectedFieldAgent && (
-        <AgentModal
-          open={agentModalOpen}
-          onOpenChange={setAgentModalOpen}
-          agent={selectedFieldAgent}
-          contextId={postId}
-          context={{
-            scope: 'field',
-            fieldKey: agentFieldKey,
-            fieldType: agentFieldType,
-            moduleInstanceId: moduleInstanceId,
-          }}
-          scope="field"
-          fieldKey={agentFieldKey}
-          fieldType={agentFieldType}
-          viewMode={viewMode}
-          onSuccess={() => {
-            setAgentModalOpen(false)
-            setSelectedFieldAgent(null)
-          }}
-        />
-      )}
-    </div>
-  )
-})
 
 // --------------------------------------------------------------------------
-// Global cache for media metadata to avoid N fetches for the same ID across modules
+// Global cache for media metadata
 // --------------------------------------------------------------------------
 const mediaMetadataCache = new Map<string, any>()
 const mediaMetadataLoading = new Map<string, Promise<any>>()
 const mediaMetadata404 = new Set<string>()
+
+const AgentTrigger = ({ agents, onSelect }: { agents: Agent[]; onSelect: (a: Agent) => void }) => {
+  if (agents.length === 0) return null
+  if (agents.length === 1) {
+    return (
+      <button
+        type="button"
+        onClick={() => onSelect(agents[0])}
+        className="text-neutral-low hover:text-standout-medium transition-colors"
+        title={`Run AI Agent: ${agents[0].name}`}
+      >
+        <FontAwesomeIcon icon={faWandMagicSparkles} size="sm" />
+      </button>
+    )
+  }
+  return (
+    <Popover>
+      <PopoverTrigger asChild>
+        <button
+          type="button"
+          className="text-neutral-low hover:text-standout-medium transition-colors"
+        >
+          <FontAwesomeIcon icon={faWandMagicSparkles} size="sm" />
+        </button>
+      </PopoverTrigger>
+      <PopoverContent className="w-48 p-2">
+        <div className="text-[10px] font-bold text-neutral-medium uppercase mb-2 px-2">
+          Run AI Agent
+        </div>
+        {agents.map((agent) => (
+          <button
+            key={agent.id}
+            onClick={() => onSelect(agent)}
+            className="w-full text-left px-2 py-1.5 text-xs rounded hover:bg-backdrop-medium text-neutral-high transition-colors"
+          >
+            {agent.name}
+          </button>
+        ))}
+      </PopoverContent>
+    </Popover>
+  )
+}
 
 const DateFieldInternal = memo(({
   name,
@@ -1812,7 +299,7 @@ const DateFieldInternal = memo(({
               const val = d || null
               setSelected(val)
               const next = { ...(ctx.latestDraft.current || {}) }
-              ctx.setByPath(next, name, formatDate(val))
+              setByPath(next, name, formatDate(val))
               ctx.setDraft(next)
               ctx.onDirty?.()
               if (hiddenRef.current) {
@@ -1889,7 +376,7 @@ const SliderFieldInternal = memo(({
           const n = Array.isArray(v) ? (v[0] ?? min) : min
           setVal(n)
           const next = { ...(ctx.latestDraft.current || {}) }
-          ctx.setByPath(next, name, n)
+          setByPath(next, name, n)
           ctx.setDraft(next)
           ctx.onDirty?.()
           if (hiddenRef.current) {
@@ -1945,7 +432,6 @@ const MediaFieldInternal = memo(({
   const [selectedFieldAgent, setSelectedFieldAgent] = useState<Agent | null>(null)
   const [preSelectedMediaId, setPreSelectedMediaId] = useState<string | null>(null)
   const hiddenRef = useRef<HTMLInputElement | null>(null)
-  const displayRef = useRef<HTMLInputElement | null>(null)
   const currentVal = typeof value === 'string' ? value : (value?.id || '')
   const [preview, setPreview] = useState<ModalMediaItem | null>(null)
 
@@ -2022,7 +508,6 @@ const MediaFieldInternal = memo(({
             setPreview(item)
             setMediaData(mData)
             setLocalPlayMode(playMode)
-            // Trigger a re-render of the editor so showIf conditions can re-evaluate
             ctx.setDraft((prev) => ({ ...prev }))
           }
         } catch {
@@ -2058,14 +543,12 @@ const MediaFieldInternal = memo(({
       })
       if (!res.ok) throw new Error('Failed to update')
 
-      // Update cache
       const cached = mediaMetadataCache.get(preview.id)
       if (cached) {
         cached.mediaData.playMode = val
         mediaMetadataCache.set(preview.id, cached)
       }
       toast.success('Video play mode saved')
-      // Trigger a re-render
       ctx.setDraft((prev) => ({ ...prev }))
       if (ctx.onDirty) ctx.onDirty()
     } catch {
@@ -2081,35 +564,19 @@ const MediaFieldInternal = memo(({
     }
     ctx.setDraft((prev) => {
       const next = { ...(prev || {}) }
-      ctx.setByPath(next, name, storeAsId ? m.id : m.url)
+      setByPath(next, name, storeAsId ? m.id : m.url)
       return next
     })
     if (ctx.onDirty) ctx.onDirty()
     setPreview(m)
-    if (m.mimeType) {
-      const meta = (m as any).metadata || {}
-      const playMode = meta.playMode || 'autoplay'
-      setMediaData({
-        baseUrl: m.url,
-        mimeType: m.mimeType,
-        variants: meta.variants || [],
-        darkSourceUrl: meta.darkSourceUrl,
-        playMode,
-      })
-      setLocalPlayMode(playMode)
-    } else {
-      setMediaData(null)
-    }
   }
-
-  const fieldKey = ctx.moduleType && ctx.postId ? `module.${ctx.moduleType}.${name}` : undefined
 
   return (
     <FormField className="group">
       <div className="flex items-center justify-between">
         <LabelWithDescription
           label={label}
-          description={(field as any)?.description}
+          description={field.description}
           hideLabel={hideLabel}
         />
         <AgentTrigger
@@ -2120,57 +587,50 @@ const MediaFieldInternal = memo(({
           }}
         />
       </div>
-      <div className="flex items-start gap-3">
-        <div className="min-w-[72px]">
-          {preview || mediaData ? (
-            <div className="w-[72px] h-[72px] border border-line-medium rounded overflow-hidden bg-backdrop-medium">
+      <div className="flex flex-col gap-3">
+        <div className="flex flex-wrap items-center gap-4 bg-backdrop-medium p-3 rounded-lg border border-line-low min-h-[100px]">
+          <div className="relative w-20 h-20 rounded bg-backdrop-low border border-line-low overflow-hidden flex items-center justify-center">
+            {preview ? (
               <MediaRenderer
-                image={mediaData || preview}
-                variant="thumb"
-                alt={preview?.alt || preview?.originalFilename || ''}
+                image={storeAsId ? { id: preview.id, url: preview.url, mimeType: preview.mimeType } : preview.url}
                 className="w-full h-full object-cover"
-                controls={false}
-                autoPlay={false}
               />
-            </div>
-          ) : (
-            <div className="w-[72px] h-[72px] border border-dashed border-line-high rounded flex items-center justify-center text-[10px] text-neutral-medium">
-              No media
-            </div>
-          )}
-        </div>
-        <div className="flex-1">
-          {storeAsId ? (
-            <>
-              <input type="hidden" name={name} defaultValue={currentVal} ref={hiddenRef} />
-              <input type="text" defaultValue={currentVal} ref={displayRef} className="hidden" readOnly />
-            </>
-          ) : (
-            <Input
-              type="text"
-              name={name}
-              defaultValue={value ?? ''}
-              ref={displayRef}
-              placeholder={field.placeholder || 'https://...'}
-            />
-          )}
-          <div className="mt-2 flex items-center gap-2">
-            <button
-              type="button"
-              className="px-2 py-1 text-xs border border-line-medium rounded hover:bg-backdrop-medium text-neutral-medium"
-              onClick={() => setModalOpen(true)}
-            >
-              {preview ? 'Change' : 'Choose'}
-            </button>
-            {preview && (
+            ) : (
+              <span className="text-[10px] text-neutral-low text-center p-1">No media</span>
+            )}
+          </div>
+          <div className="flex flex-col gap-2 flex-1 min-w-[120px]">
+            <div className="flex items-center gap-2">
               <button
                 type="button"
-                className="px-2 py-1 text-xs border border-line-medium rounded hover:bg-backdrop-medium text-neutral-medium"
-                onClick={() => applySelection({ id: '', url: '', originalFilename: '', alt: '' })}
+                className="px-3 py-1.5 text-[11px] font-semibold rounded bg-standout-medium text-on-standout hover:bg-standout-high transition-colors"
+                onClick={() => setModalOpen(true)}
               >
-                Clear
+                {preview ? 'Change Media' : 'Select Media'}
               </button>
-            )}
+              {preview && (
+                <button
+                  type="button"
+                  className="px-3 py-1.5 text-[11px] font-semibold rounded border border-line-medium text-neutral-high hover:bg-backdrop-medium transition-colors"
+                  onClick={() => {
+                    if (hiddenRef.current) {
+                      hiddenRef.current.value = ''
+                      hiddenRef.current.dispatchEvent(new Event('input', { bubbles: true }))
+                      hiddenRef.current.dispatchEvent(new Event('change', { bubbles: true }))
+                    }
+                    ctx.setDraft((prev) => {
+                      const next = { ...(prev || {}) }
+                      setByPath(next, name, null)
+                      return next
+                    })
+                    if (ctx.onDirty) ctx.onDirty()
+                    setPreview(null)
+                  }}
+                >
+                  Remove
+                </button>
+              )}
+            </div>
             {preview && (
               <div className="text-[11px] text-neutral-low truncate max-w-[240px]">
                 {(preview.alt || preview.originalFilename || '').toString()}
@@ -2207,11 +667,8 @@ const MediaFieldInternal = memo(({
         </div>
         <MediaPickerModal
           open={modalOpen}
-          onOpenChange={(open) => {
-            setModalOpen(open)
-            if (!open) setPreSelectedMediaId(null)
-          }}
-          initialSelectedId={storeAsId ? preSelectedMediaId || currentVal || undefined : undefined}
+          onOpenChange={setModalOpen}
+          initialSelectedId={preSelectedMediaId || currentVal || undefined}
           onSelect={(m) => {
             applySelection(m as ModalMediaItem)
             setPreSelectedMediaId(null)
@@ -2225,12 +682,12 @@ const MediaFieldInternal = memo(({
             contextId={ctx.postId}
             context={{
               scope: 'field',
-              fieldKey,
+              fieldKey: name,
               fieldType: 'media',
               moduleInstanceId: ctx.moduleInstanceId,
             }}
             scope="field"
-            fieldKey={fieldKey}
+            fieldKey={name}
             fieldType="media"
             viewMode={ctx.viewMode}
             onSuccess={(response) => {
@@ -2246,6 +703,13 @@ const MediaFieldInternal = memo(({
           />
         )}
       </div>
+      <input
+        type="hidden"
+        name={name}
+        ref={hiddenRef}
+        defaultValue={currentVal}
+        data-root-id={ctx.moduleItem?.id || ''}
+      />
     </FormField>
   )
 })
@@ -2327,7 +791,7 @@ const IconFieldInternal = memo(({
                   }
                   ctx.setDraft((prev) => {
                     const next = { ...(prev || {}) }
-                    ctx.setByPath(next, name, iconItem.name)
+                    setByPath(next, name, iconItem.name)
                     return next
                   })
                   ctx.onDirty?.()
@@ -2368,15 +832,12 @@ const PostReferenceFieldInternal = memo(({
   ctx: EditorFieldCtx
   matchingAgents?: Agent[]
 }) => {
-  const type = "post-reference"
-  // Normalize allowed types from field (support singular postType or plural postTypes)
   const allowedTypes: string[] = Array.isArray(field.postTypes)
     ? field.postTypes
     : field.postType
       ? [String(field.postType)]
       : []
 
-  // Normalize allowMultiple from field (support multiple or allowMultiple)
   const allowMultiple = field.allowMultiple !== false && field.multiple !== false
 
   const [options, setOptions] = useState<Array<{ label: string; value: string }>>([])
@@ -2394,7 +855,7 @@ const PostReferenceFieldInternal = memo(({
         hiddenRef.current.dispatchEvent(new Event('change', { bubbles: true }))
 
         const next = { ...(ctx.latestDraft.current || {}) }
-        ctx.setByPath(next, name, allowMultiple ? vals : (vals[0] ?? null))
+        setByPath(next, name, allowMultiple ? vals : (vals[0] ?? null))
         ctx.setDraft(next)
         ctx.onDirty?.()
       }
@@ -2406,7 +867,6 @@ const PostReferenceFieldInternal = memo(({
       ; (async () => {
         try {
           const params = new URLSearchParams()
-          // In the admin, we usually want to be able to refer to any post that isn't archived/deleted
           params.set('limit', '100')
           params.set('sortBy', 'updated_at')
           params.set('sortOrder', 'desc')
@@ -2503,6 +963,7 @@ const FormReferenceFieldInternal = memo(({
   value,
   rootId,
   hideLabel,
+  field,
   ctx,
   matchingAgents = [],
 }: {
@@ -2511,10 +972,10 @@ const FormReferenceFieldInternal = memo(({
   value: any
   rootId: string
   hideLabel: boolean
+  field: any
   ctx: EditorFieldCtx
   matchingAgents?: Agent[]
 }) => {
-  const type = "form-reference"
   const [options, setOptions] = useState<Array<{ label: string; value: string }>>([])
   const initial = typeof value === 'string' ? value : ''
   const [current, setCurrent] = useState<string>(initial)
@@ -2537,12 +998,12 @@ const FormReferenceFieldInternal = memo(({
   useEffect(() => {
     if (hiddenRef.current) {
       if (hiddenRef.current.value !== (current || '')) {
-      hiddenRef.current.value = current || ''
-      hiddenRef.current.dispatchEvent(new Event('input', { bubbles: true }))
-      hiddenRef.current.dispatchEvent(new Event('change', { bubbles: true }))
-        
+        hiddenRef.current.value = current || ''
+        hiddenRef.current.dispatchEvent(new Event('input', { bubbles: true }))
+        hiddenRef.current.dispatchEvent(new Event('change', { bubbles: true }))
+
         const next = { ...(ctx.latestDraft.current || {}) }
-        ctx.setByPath(next, name, current || null)
+        setByPath(next, name, current || null)
         ctx.setDraft(next)
         ctx.onDirty?.()
       }
@@ -2561,6 +1022,8 @@ const FormReferenceFieldInternal = memo(({
           agents={matchingAgents}
           onSelect={(agent) => {
             ctx.setSelectedFieldAgent(agent)
+            ctx.setAgentFieldKey(name)
+            ctx.setAgentFieldType('form-reference')
             ctx.setAgentModalOpen(true)
           }}
         />
@@ -2647,9 +1110,9 @@ const SelectFieldInternal = memo(({
               hiddenRef.current.value = val ?? ''
               hiddenRef.current.dispatchEvent(new Event('input', { bubbles: true }))
               hiddenRef.current.dispatchEvent(new Event('change', { bubbles: true }))
-              
+
               const next = { ...(ctx.latestDraft.current || {}) }
-              ctx.setByPath(next, name, val || null)
+              setByPath(next, name, val || null)
               ctx.setDraft(next)
               ctx.onDirty?.()
             }
@@ -2671,21 +1134,23 @@ const SelectFieldInternal = memo(({
     const initial = Array.isArray(value) ? value : []
     const [vals, setVals] = useState<string[]>(initial)
     const hiddenRef = useRef<HTMLInputElement | null>(null)
+
     useEffect(() => {
       if (hiddenRef.current) {
-      const nextVal = JSON.stringify(vals)
-      if (hiddenRef.current.value !== nextVal) {
-        hiddenRef.current.value = nextVal
-        hiddenRef.current.dispatchEvent(new Event('input', { bubbles: true }))
-        hiddenRef.current.dispatchEvent(new Event('change', { bubbles: true }))
-        
-        const next = { ...(ctx.latestDraft.current || {}) }
-        ctx.setByPath(next, name, vals)
-        ctx.setDraft(next)
-        ctx.onDirty?.()
-      }
+        const nextVal = JSON.stringify(vals)
+        if (hiddenRef.current.value !== nextVal) {
+          hiddenRef.current.value = nextVal
+          hiddenRef.current.dispatchEvent(new Event('input', { bubbles: true }))
+          hiddenRef.current.dispatchEvent(new Event('change', { bubbles: true }))
+
+          const next = { ...(ctx.latestDraft.current || {}) }
+          setByPath(next, name, vals)
+          ctx.setDraft(next)
+          ctx.onDirty?.()
+        }
       }
     }, [vals])
+
     return (
       <FormField className="group">
         <div className="flex items-center justify-between">
@@ -2704,59 +1169,25 @@ const SelectFieldInternal = memo(({
             }}
           />
         </div>
-        {vals.length > 0 && (
-          <div className="flex flex-wrap gap-2 mb-2">
-            {vals.map((v) => (
-              <button
-                key={v}
-                type="button"
-                className="inline-flex items-center gap-1 rounded-full bg-backdrop-low border border-border px-3 py-1 text-sm text-neutral-high hover:bg-backdrop-medium"
-                onClick={() => setVals((prev) => prev.filter((x) => x !== v))}
-              >
-                <span>{dynamicOptions.find((o) => o.value === v)?.label ?? v}</span>
-                <span className="text-neutral-low">✕</span>
-              </button>
-            ))}
-          </div>
-        )}
-        <Popover>
-          <PopoverTrigger asChild>
-            <button
-              type="button"
-              className="w-full text-left px-3 py-2 border border-border rounded-lg bg-backdrop-low text-neutral-high hover:bg-backdrop-medium"
-            >
-              {vals.length === 0 ? 'Select options' : 'Edit selection'}
-            </button>
-          </PopoverTrigger>
-          <PopoverContent className="w-64">
-            <div className="space-y-2">
-              {dynamicOptions.map((opt) => (
-                <label key={opt.value} className="flex items-center gap-2 cursor-pointer hover:bg-backdrop-medium p-1 rounded">
-                  <Checkbox
-                    checked={vals.includes(opt.value)}
-                    onCheckedChange={(c) => {
-                      setVals((prev) => {
-                        const next = new Set(prev)
-                        if (c) next.add(opt.value)
-                        else next.delete(opt.value)
-                        return Array.from(next)
-                      })
-                    }}
-                  />
-                  <span className="text-sm">{opt.label ?? opt.value}</span>
-                </label>
-              ))}
-            </div>
-          </PopoverContent>
-        </Popover>
-        <input
-          type="hidden"
-          name={name}
-          defaultValue={JSON.stringify(initial)}
-          ref={hiddenRef}
-          data-json="1"
-          data-root-id={rootId}
-        />
+        <div className="space-y-2 border border-border rounded-lg p-3 bg-backdrop-low">
+          {dynamicOptions.map((opt) => (
+            <label key={opt.value} className="flex items-center gap-2 cursor-pointer hover:bg-backdrop-medium p-1 rounded">
+              <Checkbox
+                checked={vals.includes(opt.value)}
+                onCheckedChange={(c) => {
+                  setVals((prev) => {
+                    const next = new Set(prev)
+                    if (c) next.add(opt.value)
+                    else next.delete(opt.value)
+                    return Array.from(next)
+                  })
+                }}
+              />
+              <span className="text-sm">{opt.label ?? opt.value}</span>
+            </label>
+          ))}
+        </div>
+        <input type="hidden" name={name} defaultValue={JSON.stringify(initial)} ref={hiddenRef} data-json="1" data-root-id={rootId} />
       </FormField>
     )
   }
@@ -2777,53 +1208,47 @@ const BooleanFieldInternal = memo(({
   ctx: EditorFieldCtx
   matchingAgents?: Agent[]
 }) => {
-  const type = "boolean"
+  const initial = !!value
+  const [checked, setChecked] = useState(initial)
   const hiddenRef = useRef<HTMLInputElement | null>(null)
-  const checked = !!value
-
-  useEffect(() => {
-    if (hiddenRef.current) {
-      hiddenRef.current.value = checked ? 'true' : 'false'
-    }
-  }, [checked])
 
   return (
-    <div className="flex items-center gap-2 group">
+    <FormField className="flex items-center gap-3">
       <Checkbox
         checked={checked}
         onCheckedChange={(c) => {
+          const v = !!c
+          setChecked(v)
+          const next = { ...(ctx.latestDraft.current || {}) }
+          setByPath(next, name, v)
+          ctx.setDraft(next)
+          ctx.onDirty?.()
           if (hiddenRef.current) {
-            hiddenRef.current.value = c ? 'true' : 'false'
+            hiddenRef.current.value = v ? 'true' : 'false'
             hiddenRef.current.dispatchEvent(new Event('input', { bubbles: true }))
             hiddenRef.current.dispatchEvent(new Event('change', { bubbles: true }))
           }
-          ctx.setDraft((prev) => {
-            const next = { ...(prev || {}) }
-            ctx.setByPath(next, name, !!c)
-            return next
-          })
         }}
-        id={`${rootId}:${name}`}
       />
-      <label htmlFor={`${rootId}:${name}`} className="text-sm text-neutral-high cursor-pointer">
-        {label}
-      </label>
+      <LabelWithDescription label={label} />
       <AgentTrigger
         agents={matchingAgents}
         onSelect={(agent) => {
           ctx.setSelectedFieldAgent(agent)
+          ctx.setAgentFieldKey(name)
+          ctx.setAgentFieldType('boolean')
           ctx.setAgentModalOpen(true)
         }}
       />
       <input
-        ref={hiddenRef}
         type="hidden"
         name={name}
-        defaultValue={checked ? 'true' : 'false'}
+        ref={hiddenRef}
+        defaultValue={initial ? 'true' : 'false'}
         data-bool="1"
         data-root-id={rootId}
       />
-    </div>
+    </FormField>
   )
 })
 
@@ -2842,7 +1267,7 @@ const FieldPrimitiveInternal = memo(({
 }) => {
   const name = path.join('.')
   const hideLabel = (field as any).hideLabel === true
-  const label = hideLabel ? '' : ctx.getLabel(path, field)
+  const label = hideLabel ? '' : getLabel(path, field)
   const type = (field as any).type as string
 
   const matchingAgents = useMemo(() => {
@@ -2867,7 +1292,7 @@ const FieldPrimitiveInternal = memo(({
     const handleChange = (val: any) => {
       try {
         const next = { ...(ctx.latestDraft.current || {}) }
-        ctx.setByPath(next, name, val)
+        setByPath(next, name, val)
         ctx.setDraft(next)
         ctx.onDirty?.()
       } catch { }
@@ -2898,7 +1323,6 @@ const FieldPrimitiveInternal = memo(({
       max: _max,
       step: _step,
       unit: _u,
-      // Standard schema props that might leak
       aiGuidance: _aig,
       defaultValue: _dv,
       description: _desc,
@@ -2910,23 +1334,19 @@ const FieldPrimitiveInternal = memo(({
       onChange: handleChange,
       ...domSafeCfg,
     }
-    // Ensure visible controls are uniquely targetable for focus restoration (multiple modules can share field names).
     props.name = name
     props['data-root-id'] = rootId
     if (type === 'richtext') props.editorKey = `${rootId}:${name}`
-    if (type === 'select') props.options = Array.isArray(cfg.options) ? cfg.options : []
-    if (type === 'multiselect') {
+    if (type === 'select' || type === 'multiselect') {
       props.options = Array.isArray(cfg.options) ? cfg.options : []
-      props.multiple = true
+      if (type === 'multiselect') props.multiple = true
     }
     if (type === 'taxonomy') props.taxonomySlug = cfg.taxonomySlug
-
-    const description = cfg.description
 
     return (
       <FormField className="group">
         <div className="flex items-center justify-between">
-          <LabelWithDescription label={label} description={description} hideLabel={hideLabel} />
+          <LabelWithDescription label={label} description={cfg.description} hideLabel={hideLabel} />
           <AgentTrigger
             agents={matchingAgents}
             onSelect={(agent) => {
@@ -2949,12 +1369,11 @@ const FieldPrimitiveInternal = memo(({
               : typeof value === 'object'
                 ? JSON.stringify(value)
                 : typeof value === 'boolean'
-                  ? value
-                    ? 'true'
-                    : 'false'
+                  ? value ? 'true' : 'false'
                   : String(value)
           }
           data-bool={type === 'boolean' ? '1' : undefined}
+          data-json={isPlainObject(value) || Array.isArray(value) ? '1' : undefined}
         />
       </FormField>
     )
@@ -2963,43 +1382,45 @@ const FieldPrimitiveInternal = memo(({
   const rendered = maybeRenderComponent()
   if (rendered) return rendered
 
-  if (type === 'date') {
+  if (type === 'date') return <DateFieldInternal name={name} label={label} rootId={rootId} hideLabel={hideLabel} initial={typeof value === 'string' ? value : ''} ctx={ctx} field={field} matchingAgents={matchingAgents} />
+  if (type === 'slider') return <SliderFieldInternal name={name} label={label} value={value} rootId={rootId} hideLabel={hideLabel} field={field} ctx={ctx} matchingAgents={matchingAgents} />
+  if (type === 'media') return <MediaFieldInternal name={name} label={label} value={value} hideLabel={hideLabel} field={field} ctx={ctx} matchingAgents={matchingAgents} />
+  if (type === 'icon') return <IconFieldInternal name={name} label={label} value={value} rootId={rootId} hideLabel={hideLabel} ctx={ctx} field={field} matchingAgents={matchingAgents} />
+  if (type === 'post-reference') return <PostReferenceFieldInternal name={name} label={label} value={value} rootId={rootId} hideLabel={hideLabel} field={field} ctx={ctx} matchingAgents={matchingAgents} />
+  if (type === 'form-reference') return <FormReferenceFieldInternal name={name} label={label} value={value} rootId={rootId} hideLabel={hideLabel} field={field} ctx={ctx} matchingAgents={matchingAgents} />
+  if (type === 'select' || type === 'multiselect') return <SelectFieldInternal name={name} label={label} value={value} rootId={rootId} hideLabel={hideLabel} field={field} type={type} ctx={ctx} matchingAgents={matchingAgents} />
+  if (type === 'boolean') return <BooleanFieldInternal name={name} label={label} value={value} rootId={rootId} ctx={ctx} matchingAgents={matchingAgents} />
+
+  if (type === 'link') {
+    const initial: LinkFieldValue = (value as any) ?? null
+    const hiddenRef = useRef<HTMLInputElement | null>(null)
     return (
-      <DateFieldInternal
-        name={name}
-        label={label}
-        rootId={rootId}
-        hideLabel={hideLabel}
-        initial={typeof value === 'string' ? value : ''}
-        ctx={ctx}
-        field={field}
-        matchingAgents={matchingAgents}
-      />
+      <>
+        <LinkField
+          label={label}
+          value={value}
+          onChange={(val: LinkFieldValue) => {
+            if (hiddenRef.current) {
+              hiddenRef.current.value = val ? JSON.stringify(val) : ''
+              hiddenRef.current.dispatchEvent(new Event('input', { bubbles: true }))
+              hiddenRef.current.dispatchEvent(new Event('change', { bubbles: true }))
+            }
+            const next = { ...(ctx.latestDraft.current || {}) }
+            setByPath(next, name, val)
+            ctx.setDraft(next)
+            ctx.onDirty?.()
+          }}
+        />
+        <input type="hidden" name={name} defaultValue={initial ? JSON.stringify(initial) : ''} ref={hiddenRef} data-json="1" data-root-id={rootId} />
+      </>
     )
   }
-  if (type === 'slider') {
-    return (
-      <SliderFieldInternal
-        name={name}
-        label={label}
-        value={value}
-        rootId={rootId}
-        hideLabel={hideLabel}
-        field={field}
-        ctx={ctx}
-        matchingAgents={matchingAgents}
-      />
-    )
-  }
+
   if (type === 'textarea') {
     return (
       <FormField className="group">
         <div className="flex items-center justify-between">
-          <LabelWithDescription
-            label={label}
-            description={(field as any).description}
-            hideLabel={hideLabel}
-          />
+          <LabelWithDescription label={label} description={field.description} hideLabel={hideLabel} />
           <AgentTrigger
             agents={matchingAgents}
             onSelect={(agent) => {
@@ -3016,7 +1437,7 @@ const FieldPrimitiveInternal = memo(({
           value={value ?? ''}
           onChange={(val) => {
             const next = { ...(ctx.latestDraft.current || {}) }
-            ctx.setByPath(next, name, val)
+            setByPath(next, name, val)
             ctx.setDraft(next)
             ctx.onDirty?.()
           }}
@@ -3026,139 +1447,17 @@ const FieldPrimitiveInternal = memo(({
       </FormField>
     )
   }
-  if (type === 'media') {
-    return (
-      <MediaFieldInternal
-        name={name}
-        label={label}
-        value={value}
-        hideLabel={hideLabel}
-        field={field}
-        ctx={ctx}
-        matchingAgents={matchingAgents}
-      />
-    )
-  }
-  if (type === 'icon') {
-    return (
-      <IconFieldInternal
-        name={name}
-        label={label}
-        value={value}
-        rootId={rootId}
-        hideLabel={hideLabel}
-        ctx={ctx}
-        field={field}
-        matchingAgents={matchingAgents}
-      />
-    )
-  }
-  if (type === 'number') {
-    return (
-      <FormField>
-        <LabelWithDescription
-          label={label}
-          description={(field as any).description}
-          hideLabel={hideLabel}
-        />
-        <Input type="number" name={name} defaultValue={value ?? 0} data-root-id={rootId} />
-      </FormField>
-    )
-  }
-  if (type === 'post-reference') {
-    return (
-      <PostReferenceFieldInternal
-        name={name}
-        label={label}
-        value={value}
-        rootId={rootId}
-        hideLabel={hideLabel}
-        field={field}
-        ctx={ctx}
-        matchingAgents={matchingAgents}
-      />
-    )
-  }
-  if (type === 'form-reference') {
-    return (
-      <FormReferenceFieldInternal
-        name={name}
-        label={label}
-        value={value}
-        rootId={rootId}
-        hideLabel={hideLabel}
-        ctx={ctx}
-        matchingAgents={matchingAgents}
-      />
-    )
-  }
-  if (type === 'select' || type === 'multiselect') {
-    return (
-      <SelectFieldInternal
-        name={name}
-        label={label}
-        value={value}
-        rootId={rootId}
-        hideLabel={hideLabel}
-        field={field}
-        type={type}
-        ctx={ctx}
-        matchingAgents={matchingAgents}
-      />
-    )
-  }
-  if (type === 'link') {
-    const initial: LinkFieldValue = (value as any) ?? null
-    const hiddenRef = useRef<HTMLInputElement | null>(null)
-    return (
-      <>
-        <LinkField
-          label={label}
-          value={value}
-          onChange={(val: LinkFieldValue) => {
-            if (hiddenRef.current) {
-              hiddenRef.current.value = val ? JSON.stringify(val) : ''
-              hiddenRef.current.dispatchEvent(new Event('input', { bubbles: true }))
-              hiddenRef.current.dispatchEvent(new Event('change', { bubbles: true }))
-            }
-          }}
-        />
-        <input
-          type="hidden"
-          name={name}
-          defaultValue={initial ? JSON.stringify(initial) : ''}
-          ref={hiddenRef}
-          data-json="1"
-          data-root-id={rootId}
-        />
-      </>
-    )
-  }
-  if (type === 'boolean') {
-    return (
-      <BooleanFieldInternal
-        name={name}
-        label={label}
-        value={value}
-        rootId={rootId}
-        ctx={ctx}
-        matchingAgents={matchingAgents}
-      />
-    )
-  }
-  // text, url fallback to text input
+
   return (
     <FormField className="group">
       <div className="flex items-center justify-between">
-        <LabelWithDescription
-          label={label}
-          description={(field as any)?.description}
-          hideLabel={hideLabel}
-        />
+        <LabelWithDescription label={label} description={field.description} hideLabel={hideLabel} />
         <AgentTrigger
           agents={matchingAgents}
           onSelect={(agent) => {
             ctx.setSelectedFieldAgent(agent)
+            ctx.setAgentFieldKey(name)
+            ctx.setAgentFieldType(type)
             ctx.setAgentModalOpen(true)
           }}
         />
@@ -3170,8 +1469,9 @@ const FieldPrimitiveInternal = memo(({
         value={value ?? ''}
         onChange={(val) => {
           const next = { ...(ctx.latestDraft.current || {}) }
-          ctx.setByPath(next, name, val)
+          setByPath(next, name, val)
           ctx.setDraft(next)
+          ctx.onDirty?.()
         }}
         data-root-id={rootId}
         customFields={ctx.customFields}
@@ -3196,16 +1496,11 @@ const FieldBySchemaInternal = memo(({
   const showIf = (field as any).showIf
   if (showIf && typeof showIf === 'object') {
     const depPath = showIf.field
-    const depValue = ctx.getByPath(ctx.latestDraft.current, depPath)
+    const depValue = getByPath(ctx.latestDraft.current, depPath)
 
     if (showIf.isVideo === true) {
       const cached = mediaMetadataCache.get(depValue)
-      const isVideo =
-        cached?.mediaData?.mimeType?.startsWith('video/') ||
-        (typeof depValue === 'string' &&
-          (depValue.toLowerCase().endsWith('.mp4') ||
-            depValue.toLowerCase().endsWith('.webm') ||
-            depValue.toLowerCase().endsWith('.ogg')))
+      const isVideo = cached?.mediaData?.mimeType?.startsWith('video/') || (typeof depValue === 'string' && (depValue.toLowerCase().endsWith('.mp4') || depValue.toLowerCase().endsWith('.webm') || depValue.toLowerCase().endsWith('.ogg')))
       if (!isVideo) return null
     } else if (showIf.equals !== undefined) {
       if (depValue !== showIf.equals) return null
@@ -3216,20 +1511,15 @@ const FieldBySchemaInternal = memo(({
 
   const type = (field as any).type as string
   const name = path.join('.')
-  const label = ctx.getLabel(path, field)
+  const label = getLabel(path, field)
+
   if (type === 'object') {
-    // Support both `fields: CustomFieldDefinition[]` and `properties: { [key]: schema }`
     const rawFields: any = (field as any).fields
     let objectFields: CustomFieldDefinition[] | null = null
-
-    if (Array.isArray(rawFields)) {
-      objectFields = rawFields as CustomFieldDefinition[]
-    } else if ((field as any).properties && typeof (field as any).properties === 'object') {
+    if (Array.isArray(rawFields)) objectFields = rawFields
+    else if ((field as any).properties && typeof (field as any).properties === 'object') {
       const props = (field as any).properties as Record<string, any>
-      objectFields = Object.keys(props).map((propName) => {
-        const def = props[propName] || {}
-        return { slug: propName, ...(def as any) } as CustomFieldDefinition
-      })
+      objectFields = Object.keys(props).map((k) => ({ slug: k, ...(props[k] || {}) }))
     }
 
     if (objectFields && objectFields.length > 0) {
@@ -3238,202 +1528,684 @@ const FieldBySchemaInternal = memo(({
           <legend className="px-1 text-xs font-medium text-neutral-low">{label}</legend>
           <div className="grid grid-cols-1 gap-4">
             {objectFields.map((f) => (
-              <FieldBySchemaInternal
-                key={`${name}.${f.slug}`}
-                path={[...path, f.slug]}
-                field={f}
-                value={value ? value[f.slug] : undefined}
-                rootId={rootId}
-                ctx={ctx}
-              />
+              <FieldBySchemaInternal key={`${name}.${f.slug}`} path={[...path, f.slug]} field={f} value={value ? value[f.slug] : undefined} rootId={rootId} ctx={ctx} />
             ))}
           </div>
         </fieldset>
       )
     }
   }
+
   if (type === 'repeater' || type === 'array') {
     const items: any[] = Array.isArray(value) ? value : []
     const rawItemSchema: CustomFieldDefinition | undefined = (field as any).item
     const rawItemsDef: any = (field as any).items
-
     let itemSchema: CustomFieldDefinition | undefined = rawItemSchema
-
-    // Support "array + items.properties" shape from backend by mapping to a repeater item schema
     if (!itemSchema && rawItemsDef) {
-      const itemsType = (rawItemsDef as any).type
-      const props = (rawItemsDef as any).properties
-      if (itemsType === 'object' && props && typeof props === 'object') {
-        const fields: CustomFieldDefinition[] = Object.keys(props).map((propName) => {
-          const def = (props as any)[propName] || {}
-          return { slug: propName, ...(def || {}) }
-        })
+      if (rawItemsDef.type === 'object' && rawItemsDef.properties) {
+        const fields = Object.keys(rawItemsDef.properties).map(k => ({ slug: k, ...(rawItemsDef.properties[k] || {}) }))
         itemSchema = { slug: 'item', type: 'object', fields } as any
       } else {
         itemSchema = { slug: 'item', ...(rawItemsDef || {}) } as any
       }
     }
+
     return (
       <fieldset className="border border-line-low rounded-lg mt-4 p-3">
         <legend className="px-1 text-xs font-medium text-neutral-low">{label}</legend>
         <div className="space-y-3">
-          {items.length === 0 && (
-            <p className="text-xs text-neutral-low">No items. Click “Add Item”.</p>
-          )}
+          {items.length === 0 && <p className="text-xs text-neutral-low">No items. Click “Add Item”.</p>}
           {items.map((it, idx) => (
             <div key={`${name}.${idx}`} className="border border-line-low rounded p-3 space-y-2">
               <div className="flex items-center justify-end gap-2">
-                <button
-                  type="button"
-                  className="px-2 py-1 text-xs border border-line-medium rounded hover:bg-backdrop-medium text-neutral-medium"
-                  onMouseDown={(e) => e.preventDefault()}
-                  onClick={() => {
-                    const scroller = ctx.formRef.current
-                    const prevScrollTop = scroller ? scroller.scrollTop : 0
-                    const next = ctx.syncFormToDraft()
-                    const currentValue = ctx.getByPath(next, name)
-                    const arr = Array.isArray(currentValue) ? [...currentValue] : []
-                    arr.splice(idx, 1)
-                    ctx.setByPath(next, name, arr)
-                    ctx.setDraft(next)
-                    ctx.onDirty?.()
-                    requestAnimationFrame(() => {
-                      if (scroller) scroller.scrollTop = prevScrollTop
-                    })
-                  }}
-                >
-                  Remove
-                </button>
-                <button
-                  type="button"
-                  className="px-2 py-1 text-xs border border-line-medium rounded hover:bg-backdrop-medium text-neutral-medium"
-                  onMouseDown={(e) => e.preventDefault()}
-                  onClick={() => {
-                    if (idx === 0) return
-                    const scroller = ctx.formRef.current
-                    const prevScrollTop = scroller ? scroller.scrollTop : 0
-                    const next = ctx.syncFormToDraft()
-                    const currentValue = ctx.getByPath(next, name)
-                    const arr = Array.isArray(currentValue) ? [...currentValue] : []
-                    const [moved] = arr.splice(idx, 1)
-                    arr.splice(idx - 1, 0, moved)
-                    ctx.setByPath(next, name, arr)
-                    ctx.setDraft(next)
-                    ctx.onDirty?.()
-                    requestAnimationFrame(() => {
-                      if (scroller) scroller.scrollTop = prevScrollTop
-                    })
-                  }}
-                >
-                  Up
-                </button>
-                <button
-                  type="button"
-                  className="px-2 py-1 text-xs border border-line-medium rounded hover:bg-backdrop-medium text-neutral-medium"
-                  onMouseDown={(e) => e.preventDefault()}
-                  onClick={() => {
-                    if (idx >= items.length - 1) return
-                    const scroller = ctx.formRef.current
-                    const prevScrollTop = scroller ? scroller.scrollTop : 0
-                    const next = ctx.syncFormToDraft()
-                    const currentValue = ctx.getByPath(next, name)
-                    const arr = Array.isArray(currentValue) ? [...currentValue] : []
-                    const [moved] = arr.splice(idx, 1)
-                    arr.splice(idx + 1, 0, moved)
-                    ctx.setByPath(next, name, arr)
-                    ctx.setDraft(next)
-                    ctx.onDirty?.()
-                    requestAnimationFrame(() => {
-                      if (scroller) scroller.scrollTop = prevScrollTop
-                    })
-                  }}
-                >
-                  Down
-                </button>
+                <button type="button" className="px-2 py-1 text-xs border border-line-medium rounded hover:bg-backdrop-medium" onClick={() => {
+                  const next = ctx.syncFormToDraft()
+                  const arr = [...(getByPath(next, name) || [])]
+                  arr.splice(idx, 1)
+                  setByPath(next, name, arr)
+                  ctx.setDraft(next)
+                  ctx.onDirty?.()
+                }}>Remove</button>
+                <button type="button" className="px-2 py-1 text-xs border border-line-medium rounded hover:bg-backdrop-medium" disabled={idx === 0} onClick={() => {
+                  const next = ctx.syncFormToDraft()
+                  const arr = [...(getByPath(next, name) || [])]
+                  const [moved] = arr.splice(idx, 1)
+                  arr.splice(idx - 1, 0, moved)
+                  setByPath(next, name, arr)
+                  ctx.setDraft(next)
+                  ctx.onDirty?.()
+                }}>Up</button>
+                <button type="button" className="px-2 py-1 text-xs border border-line-medium rounded hover:bg-backdrop-medium" disabled={idx >= items.length - 1} onClick={() => {
+                  const next = ctx.syncFormToDraft()
+                  const arr = [...(getByPath(next, name) || [])]
+                  const [moved] = arr.splice(idx, 1)
+                  arr.splice(idx + 1, 0, moved)
+                  setByPath(next, name, arr)
+                  ctx.setDraft(next)
+                  ctx.onDirty?.()
+                }}>Down</button>
               </div>
               {itemSchema ? (
-                <>
-                  {(itemSchema as any).type === 'object' &&
-                    Array.isArray((itemSchema as any).fields) ? (
-                    <>
-                      {((itemSchema as any).fields as CustomFieldDefinition[]).map((f) => (
-                        <FieldBySchemaInternal
-                          key={`${name}.${idx}.${f.slug}`}
-                          path={[...path, String(idx), f.slug]}
-                          field={f}
-                          value={it ? it[f.slug] : undefined}
-                          rootId={rootId}
-                          ctx={ctx}
-                        />
-                      ))}
-                    </>
-                  ) : (
-                    <FieldBySchemaInternal
-                      path={[...path, String(idx)]}
-                      field={{ ...itemSchema, slug: String(idx), hideLabel: true } as any}
-                      value={it}
-                      rootId={rootId}
-                      ctx={ctx}
-                    />
-                  )}
-                </>
+                <FieldBySchemaInternal path={[...path, String(idx)]} field={{ ...itemSchema, slug: String(idx), hideLabel: true } as any} value={it} rootId={rootId} ctx={ctx} />
               ) : (
-                <FieldPrimitiveInternal
-                  path={[...path, String(idx)]}
-                  field={{ name: String(idx), type: 'text', hideLabel: true } as any}
-                  value={it}
-                  rootId={rootId}
-                  ctx={ctx}
-                />
+                <FieldPrimitiveInternal path={[...path, String(idx)]} field={{ name: String(idx), type: 'text', hideLabel: true } as any} value={it} rootId={rootId} ctx={ctx} />
               )}
             </div>
           ))}
-          <button
-            type="button"
-            className="px-3 py-1 text-xs border border-line-medium rounded hover:bg-backdrop-medium text-neutral-medium"
-            onMouseDown={(e) => e.preventDefault()}
-            onClick={() => {
-              const scroller = ctx.formRef.current
-              const prevScrollTop = scroller ? scroller.scrollTop : 0
-              const next = ctx.syncFormToDraft()
-              const currentValue = ctx.getByPath(next, name)
-              const arr = Array.isArray(currentValue) ? [...currentValue] : []
-              // Create an empty item based on schema
-              let empty: any = ''
-              if (itemSchema) {
-                const t = (itemSchema as any).type
-                if (t === 'object' && Array.isArray((itemSchema as any).fields)) {
-                  empty = {}
-                    ; (itemSchema as any).fields.forEach((f: any) => {
-                      empty[f.slug] = f.type === 'number' ? 0 : f.type === 'boolean' ? false : ''
-                    })
-                } else if (t === 'number') {
-                  empty = 0
-                } else if (t === 'boolean') {
-                  empty = false
-                } else if (t === 'multiselect') {
-                  empty = []
-                } else {
-                  empty = ''
-                }
-              }
-              arr.push(empty)
-              ctx.setByPath(next, name, arr)
-              ctx.setDraft(next)
-              ctx.onDirty?.()
-              requestAnimationFrame(() => {
-                if (scroller) scroller.scrollTop = prevScrollTop
-              })
-            }}
-          >
-            Add Item
-          </button>
+          <button type="button" className="px-3 py-1 text-xs border border-line-medium rounded hover:bg-backdrop-medium" onClick={() => {
+            const next = ctx.syncFormToDraft()
+            const arr = [...(getByPath(next, name) || [])]
+            let empty: any = ''
+            if (itemSchema) {
+              const t = (itemSchema as any).type
+              if (t === 'object') {
+                empty = {}
+                  ; ((itemSchema as any).fields || []).forEach((f: any) => {
+                    empty[f.slug] = f.type === 'number' ? 0 : f.type === 'boolean' ? false : ''
+                  })
+              } else if (t === 'number') empty = 0
+              else if (t === 'boolean') empty = false
+              else if (t === 'multiselect') empty = []
+            }
+            arr.push(empty)
+            setByPath(next, name, arr)
+            ctx.setDraft(next)
+            ctx.onDirty?.()
+          }}>Add Item</button>
         </div>
       </fieldset>
     )
   }
-  // primitive field types
+
+  return <FieldPrimitiveInternal path={path} field={field} value={value} rootId={rootId} ctx={ctx} />
+})
+
+const ModuleFieldsRenderer = memo(({
+  schema,
+  draft,
+  moduleItem,
+  ctx,
+  isNoFieldModule,
+  fallbackDraftKeys,
+}: {
+  schema: CustomFieldDefinition[] | null
+  draft: Record<string, any>
+  moduleItem: ModuleListItem
+  ctx: EditorFieldCtx
+  isNoFieldModule: boolean
+  fallbackDraftKeys: string[]
+}) => {
+  if (schema && schema.length > 0) {
+    const groups: Record<string, CustomFieldDefinition[]> = {}
+    schema.forEach((f) => {
+      const cat = f.category || 'General'
+      if (!groups[cat]) groups[cat] = []
+      groups[cat].push(f)
+    })
+
+    return (
+      <>
+        {Object.entries(groups).map(([category, fields]) => (
+          <div key={category} className="mb-8 space-y-4">
+            {category !== 'General' && (
+              <h4 className="text-[11px] font-bold text-neutral-medium uppercase tracking-wider border-b border-line-low pb-2 mb-4">
+                {category}
+              </h4>
+            )}
+            <div className="space-y-4">
+              {fields.map((f) => {
+                const fieldName = f.slug
+                const pendingRef = ctx.pendingInputValueRef?.current
+                const hasPendingValue = pendingRef?.name === fieldName && pendingRef?.rootId === moduleItem.id
+                const pendingValue = hasPendingValue && pendingRef ? pendingRef.value : null
+                const draftValue = draft ? draft[fieldName] : undefined
+                const valueToUse = pendingValue !== null ? pendingValue : draftValue
+
+                return <FieldBySchemaInternal key={fieldName} path={[fieldName]} field={f} value={valueToUse} rootId={moduleItem.id} ctx={ctx} />
+              })}
+            </div>
+          </div>
+        ))}
+      </>
+    )
+  }
+
+  if (isNoFieldModule || (fallbackDraftKeys && fallbackDraftKeys.length === 0)) {
+    return <p className="text-sm text-neutral-low">No editable fields.</p>
+  }
+
   return (
-    <FieldPrimitiveInternal path={path} field={field} value={value} rootId={rootId} ctx={ctx} />
+    <>
+      {fallbackDraftKeys.map((key) => {
+        const rawVal = draft[key]
+        if (key === 'content') {
+          let initial: any = undefined
+          if (isPlainObject(rawVal)) initial = rawVal
+          else if (typeof rawVal === 'string') {
+            try { initial = JSON.parse(rawVal) } catch { initial = undefined }
+          }
+          return (
+            <div key={key}>
+              <label className="block text-sm font-medium text-neutral-medium mb-1">{key}</label>
+              {(ctx.fieldComponents as Record<string, any>)['RichtextField'] ? (
+                (ctx.fieldComponents as Record<string, any>)['RichtextField']({
+                  editorKey: `${moduleItem.id}:${key}`,
+                  value: initial,
+                  onChange: (json: any) => {
+                    const next = JSON.parse(JSON.stringify(draft))
+                    setByPath(next, key, json)
+                    ctx.setDraft(next)
+                    ctx.onDirty?.()
+                  },
+                })
+              ) : (
+                <LexicalEditor
+                  editorKey={`${moduleItem.id}:${key}`}
+                  value={initial}
+                  onChange={(json) => {
+                    const next = JSON.parse(JSON.stringify(draft))
+                    setByPath(next, key, json)
+                    ctx.setDraft(next)
+                    ctx.onDirty?.()
+                  }}
+                />
+              )}
+            </div>
+          )
+        }
+        if (isPlainObject(rawVal) || Array.isArray(rawVal)) {
+          return (
+            <div key={key}>
+              <label className="block text-sm font-medium text-neutral-medium mb-1">{key}</label>
+              <textarea
+                className="w-full px-3 py-2 min-h-[140px] border border-border rounded-lg bg-backdrop-low text-neutral-high font-mono text-xs"
+                defaultValue={JSON.stringify(rawVal, null, 2)}
+                onBlur={(e) => {
+                  try {
+                    const parsed = JSON.parse(e.target.value || 'null')
+                    const next = JSON.parse(JSON.stringify(draft))
+                    setByPath(next, key, parsed)
+                    ctx.setDraft(next)
+                    ctx.onDirty?.()
+                  } catch { toast.error('Invalid JSON') }
+                }}
+              />
+            </div>
+          )
+        }
+        return (
+          <FieldPrimitiveInternal
+            key={key}
+            path={[key]}
+            field={{ name: key, type: typeof rawVal === 'number' ? 'number' : typeof rawVal === 'boolean' ? 'boolean' : 'text' } as any}
+            value={rawVal}
+            rootId={moduleItem.id}
+            ctx={ctx}
+          />
+        )
+      })}
+    </>
+  )
+})
+
+export function ModuleEditorPanel({
+  open,
+  moduleItem,
+  onClose,
+  onSave,
+  processing = false,
+  postId,
+  moduleInstanceId,
+  viewMode,
+  customFields = [],
+  allowGlobalEditing = false,
+}: {
+  open: boolean
+  moduleItem: ModuleListItem | null
+  onClose: () => void
+  onSave: (overrides: Record<string, any> | null, edited: Record<string, any>) => Promise<void> | void
+  processing?: boolean
+  postId?: string
+  moduleInstanceId?: string
+  viewMode?: 'source' | 'review' | 'ai-review'
+  customFields?: Array<{ slug: string; label: string }>
+  allowGlobalEditing?: boolean
+}) {
+  const merged = useMemo(() => (moduleItem ? mergeFields(moduleItem.props || {}, moduleItem.overrides || null) : {}), [moduleItem])
+  const [draft, setDraft] = useState<Record<string, any>>(merged)
+  const [schema, setSchema] = useState<CustomFieldDefinition[] | null>(() => {
+    const cached = moduleItem ? moduleSchemaCache.get(moduleItem.type) : null
+    return cached ? cached.schema : null
+  })
+
+  // Merge default values into draft if it's a global module being edited directly
+  useEffect(() => {
+    if (allowGlobalEditing && schema && schema.length > 0) {
+      setDraft(prev => {
+        const next = { ...prev }
+        let changed = false
+        schema.forEach(field => {
+          if (next[field.slug] === undefined && field.default !== undefined) {
+            next[field.slug] = field.default
+            changed = true
+          }
+        })
+        return changed ? next : prev
+      })
+    }
+  }, [allowGlobalEditing, schema])
+  const [moduleLabel, setModuleLabel] = useState<string | null>(() => {
+    const cached = moduleItem ? moduleSchemaCache.get(moduleItem.type) : null
+    return cached ? cached.label : null
+  })
+
+  const formRef = useRef<HTMLFormElement | null>(null)
+  const [selectedFieldAgent, setSelectedFieldAgent] = useState<Agent | null>(null)
+  const [agentModalOpen, setAgentModalOpen] = useState(false)
+  const [agentFieldKey, setAgentFieldKey] = useState<string>('')
+  const [agentFieldType, setAgentFieldType] = useState<string>('')
+  const fieldAgents = useMemo(() => [], []) // Placeholder
+
+  const fieldComponents = useMemo(() => {
+    const modules = import.meta.glob('../../fields/*.tsx', { eager: true }) as Record<string, { default: any }>
+    const map: Record<string, any> = {}
+    Object.entries(modules).forEach(([p, mod]) => {
+      const nm = p.split('/').pop()?.replace(/\.\w+$/, '')
+      if (nm && mod?.default) map[nm] = mod.default
+    })
+    return map
+  }, [])
+
+  const pascalFromType = useCallback((t?: string | null) => {
+    if (!t || typeof t !== 'string') return ''
+    return t.split(/[-_]/g).map((s) => s.charAt(0).toUpperCase() + s.slice(1)).join('')
+  }, [])
+
+  const supportedFieldTypes = useMemo(() => new Set(['text', 'textarea', 'number', 'select', 'multiselect', 'boolean', 'url', 'link', 'file', 'taxonomy', 'form-reference', 'post-reference', 'richtext', 'slider']), [])
+
+  const latestDraft = useRef(draft)
+  useEffect(() => { latestDraft.current = draft }, [draft])
+  const pendingInputValueRef = useRef<{ name: string; value: string; rootId: string; cursorPos: number } | null>(null)
+  const lastRestoredDraftRef = useRef<{ name: string; value: string } | null>(null)
+
+  const syncFormToDraft = useCallback(() => {
+    const edited = { ...(latestDraft.current || {}) }
+    if (formRef.current) {
+      const els = formRef.current.querySelectorAll<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>('input[name], textarea[name], select[name]')
+      els.forEach((el) => {
+        const name = el.getAttribute('name')!
+        if ((el as HTMLInputElement).type === 'checkbox') setByPath(edited, name, (el as HTMLInputElement).checked)
+        else if ((el as HTMLInputElement).type === 'number') setByPath(edited, name, el.value === '' ? 0 : Number(el.value))
+        else if (el.dataset.json === '1') {
+          try { setByPath(edited, name, el.value ? JSON.parse(el.value) : null) } catch { setByPath(edited, name, el.value) }
+        } else if (el.dataset.bool === '1') setByPath(edited, name, el.value === 'true')
+        else setByPath(edited, name, el.value)
+      })
+    }
+    return edited
+  }, [])
+
+  useLayoutEffect(() => {
+    if (pendingInputValueRef.current) {
+      const { name, value, rootId, cursorPos } = pendingInputValueRef.current
+      const el = formRef.current?.querySelector(`[name="${name}"][data-root-id="${rootId}"]`) as HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement | null
+      if (el && el.value !== value) {
+        el.value = value
+        if (el instanceof HTMLInputElement || el instanceof HTMLTextAreaElement) el.setSelectionRange(cursorPos, cursorPos)
+      }
+      const currentDraftValue = draft ? draft[name] : undefined
+      const lastRestored = lastRestoredDraftRef.current
+      const alreadyRestored = lastRestored?.name === name && lastRestored?.value === value
+      if (currentDraftValue !== value && !alreadyRestored) {
+        setDraft((prev) => {
+          const next = { ...(prev || {}) }
+          setByPath(next, name, value)
+          return next
+        })
+        lastRestoredDraftRef.current = { name, value }
+      } else if (currentDraftValue === value && lastRestored?.name === name) {
+        lastRestoredDraftRef.current = null
+      }
+      const timeoutId = window.setTimeout(() => {
+        if (pendingInputValueRef.current?.name === name && (draft ? draft[name] : undefined) === value) {
+          pendingInputValueRef.current = null
+          lastRestoredDraftRef.current = null
+        }
+      }, 1000)
+      return () => window.clearTimeout(timeoutId)
+    }
+  }, [draft])
+
+  useEffect(() => {
+    if (!open || !moduleItem) return
+    let alive = true
+      ; (async () => {
+        try {
+          const cached = moduleSchemaCache.get(moduleItem.type)
+          if (cached) {
+            if (alive) {
+              setModuleLabel(cached.label || moduleItem.type)
+              setSchema(cached.schema)
+            }
+            return
+          }
+          const res = await fetch(`/api/modules/${encodeURIComponent(moduleItem.type)}/schema`, { credentials: 'same-origin' })
+          const json = await res.json().catch(() => null)
+          const ps = json?.data?.fieldSchema || json?.fieldSchema || json?.data?.propsSchema || json?.propsSchema || (json?.data?.schema ? json?.data?.schema?.fieldSchema || json?.data?.schema?.propsSchema : null) || null
+          const friendlyName = (json?.data && json.data.name) || json?.name || null
+          if (alive) setModuleLabel(friendlyName || moduleItem.type)
+          if (ps && typeof ps === 'object') {
+            const fields: CustomFieldDefinition[] = Object.keys(ps).map((k) => ({ slug: k, ...(ps[k] || {}) }))
+            if (alive) setSchema(fields)
+            moduleSchemaCache.set(moduleItem.type, { schema: fields, label: friendlyName || moduleItem.type })
+          } else {
+            if (alive) setSchema(null)
+            moduleSchemaCache.set(moduleItem.type, { schema: null, label: friendlyName || moduleItem.type })
+          }
+        } catch { if (alive) setSchema(null) }
+      })()
+    return () => { alive = false }
+  }, [open, moduleItem?.type])
+
+  const ctx: EditorFieldCtx = useMemo(() => ({
+    latestDraft, setDraft, fieldComponents, supportedFieldTypes, pascalFromType, setByPath, getLabel, syncFormToDraft, getByPath, formRef, postId, moduleInstanceId, moduleType: moduleItem?.type, moduleItem, fieldAgents, setSelectedFieldAgent, setAgentModalOpen, setAgentFieldKey, setAgentFieldType, viewMode, customFields, pendingInputValueRef, onDirty: () => { }
+  }), [fieldComponents, supportedFieldTypes, pascalFromType, postId, moduleInstanceId, moduleItem, fieldAgents, viewMode, customFields])
+
+  const saveAndClose = async () => {
+    const base = moduleItem?.props || {}
+    const edited = syncFormToDraft()
+    const overrides = diffOverrides(base, edited)
+    await onSave(overrides, edited)
+    onClose()
+  }
+
+  if (!open || !moduleItem) return null
+
+  const isNoFieldModule = moduleItem.type === 'reading-progress'
+  const fallbackDraftKeys = Object.keys(draft || {}).filter(k => k !== 'type' && k !== 'properties')
+
+  // Debug log to see why global module fields might be visible
+  console.log('[ModuleEditorPanel] Rendering:', {
+    type: moduleItem.type,
+    scope: moduleItem.scope,
+    globalSlug: moduleItem.globalSlug,
+    allowGlobalEditing,
+    shouldHideFields: (moduleItem.scope === 'global' || moduleItem.scope === 'static' || !!moduleItem.globalSlug) && !allowGlobalEditing
+  })
+
+  return createPortal(
+    <div className="fixed inset-0 z-40 flex items-center justify-center p-4 sm:p-6">
+      <div className="absolute inset-0 bg-black/40" onClick={onClose} />
+      <div className="absolute right-0 top-0 h-full w-full max-w-2xl bg-backdrop-low border-l border-line-low shadow-xl flex flex-col" role="dialog" aria-modal="true">
+        <div className="px-5 py-4 border-b border-line-low flex items-center justify-between">
+          <h3 className="text-sm font-semibold text-neutral-high">Module Custom Fields — {moduleLabel || moduleItem.type}</h3>
+        </div>
+        {moduleItem.scope === 'global' && !allowGlobalEditing && (
+          <div className="px-5 py-3 bg-amber-500/10 border-b border-amber-500/20 text-xs text-amber-500 flex items-center justify-between">
+            <span>Global modules are shared across posts and must be edited in the global settings.</span>
+            <a href={`/admin/modules?tab=globals&editSlug=${moduleItem.globalSlug}`} className="font-semibold underline hover:text-amber-400">Edit Global Module</a>
+          </div>
+        )}
+        <form
+          ref={formRef}
+          className="p-5 grid grid-cols-1 gap-5 overflow-auto"
+          onSubmit={(e) => e.preventDefault()}
+          onChangeCapture={(e) => {
+            try {
+              const el = e.target as HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement | null
+              const name = el?.getAttribute?.('name') || ''
+              const rootId = el?.getAttribute?.('data-root-id') || moduleItem?.id || ''
+              if (!name) return
+              const currentValue = (el as HTMLInputElement | HTMLTextAreaElement).value || ''
+              const storedValue = pendingInputValueRef.current?.name === name && pendingInputValueRef.current?.rootId === rootId ? pendingInputValueRef.current.value : null
+              if (storedValue !== null && currentValue === storedValue) return
+              const cursorPos = el instanceof HTMLInputElement || el instanceof HTMLTextAreaElement ? el.selectionStart ?? currentValue.length : currentValue.length
+              if (rootId) pendingInputValueRef.current = { name, value: currentValue, rootId, cursorPos }
+              setDraft((prev) => {
+                const next = { ...(prev || {}) }
+                if ((el as HTMLInputElement).type === 'checkbox') setByPath(next, name, (el as HTMLInputElement).checked)
+                else if ((el as HTMLInputElement).type === 'number') setByPath(next, name, (el as HTMLInputElement).value === '' ? 0 : Number((el as HTMLInputElement).value))
+                else if ((el as HTMLInputElement).dataset?.json === '1') {
+                  try { setByPath(next, name, currentValue ? JSON.parse(currentValue) : null) } catch { setByPath(next, name, currentValue) }
+                } else if ((el as HTMLInputElement).dataset?.bool === '1') setByPath(next, name, currentValue === 'true')
+                else setByPath(next, name, currentValue)
+                return next
+              })
+            } catch { }
+          }}
+        >
+          {(moduleItem.scope === 'global' || moduleItem.scope === 'static' || !!moduleItem.globalSlug) && !allowGlobalEditing ? (
+            <div className="py-12 text-center space-y-4">
+              <div className="text-neutral-low mb-2">
+                <FontAwesomeIcon icon={faWandMagicSparkles} className="text-4xl opacity-20" />
+              </div>
+              <p className="text-sm text-neutral-medium max-w-xs mx-auto">
+                This is a {moduleItem.scope || 'global'} module. To edit its fields, please go to the Global Modules settings.
+              </p>
+              {moduleItem.globalSlug && (
+                <a
+                  href={`/admin/modules?tab=globals&editSlug=${moduleItem.globalSlug}`}
+                  className="inline-flex items-center gap-2 px-4 py-2 bg-standout-medium text-on-standout rounded-lg text-sm font-semibold hover:bg-standout-high transition-colors"
+                >
+                  Edit Global Module
+                </a>
+              )}
+            </div>
+          ) : (
+            <fieldset disabled={processing} className="contents">
+              <ModuleFieldsRenderer schema={schema} draft={draft} moduleItem={moduleItem} ctx={ctx} isNoFieldModule={isNoFieldModule} fallbackDraftKeys={fallbackDraftKeys} />
+            </fieldset>
+          )}
+          <div className="flex items-center justify-end gap-2 border-t border-line-low pt-4 mt-auto">
+            <button type="button" className="px-3 py-1.5 text-xs rounded border border-line-medium text-neutral-high hover:bg-backdrop-medium" onClick={onClose}>Cancel</button>
+            <button type="button" className="px-3 py-1.5 text-xs rounded bg-standout-medium text-on-standout disabled:opacity-60" onClick={saveAndClose} disabled={processing || (moduleItem.scope !== 'post' && !allowGlobalEditing)}>Done</button>
+          </div>
+        </form>
+      </div>
+      {selectedFieldAgent && (
+        <AgentModal open={agentModalOpen} onOpenChange={setAgentModalOpen} agent={selectedFieldAgent} contextId={postId} context={{ scope: 'field', fieldKey: agentFieldKey, fieldType: agentFieldType, moduleInstanceId }} scope="field" fieldKey={agentFieldKey} fieldType={agentFieldType} viewMode={viewMode} />
+      )}
+    </div>,
+    document.body
+  )
+}
+
+export const ModuleEditorInline = memo(function ModuleEditorInline({
+  moduleItem, onSave, onDirty, processing = false, postId, moduleInstanceId, viewMode, fieldAgents = [], autoSaveOnBlur = true, registerFlush, className = '', customFields = []
+}: {
+  moduleItem: ModuleListItem; onSave: (overrides: Record<string, any> | null, edited: Record<string, any>) => Promise<void> | void; onDirty?: () => void; processing?: boolean; postId?: string; moduleInstanceId?: string; viewMode?: 'source' | 'review' | 'ai-review'; fieldAgents?: Agent[]; autoSaveOnBlur?: boolean; registerFlush?: (flush: (() => Promise<void>) | null) => void; className?: string; customFields?: Array<{ slug: string; label: string }>
+}) {
+  const merged = useMemo(() => (moduleItem ? mergeFields(moduleItem.props || {}, moduleItem.overrides || null) : {}), [moduleItem])
+  const [draft, setDraft] = useState<Record<string, any>>(merged)
+  const [schema, setSchema] = useState<CustomFieldDefinition[] | null>(() => {
+    const cached = moduleItem ? moduleSchemaCache.get(moduleItem.type) : null
+    return cached ? cached.schema : null
+  })
+
+  const formRef = useRef<HTMLDivElement | null>(null)
+  const [selectedFieldAgent, setSelectedFieldAgent] = useState<Agent | null>(null)
+  const [agentModalOpen, setAgentModalOpen] = useState(false)
+  const [agentFieldKey, setAgentFieldKey] = useState<string>('')
+  const [agentFieldType, setAgentFieldType] = useState<string>('')
+  const pendingInputValueRef = useRef<{ name: string; value: string; rootId: string; cursorPos: number } | null>(null)
+  const lastRestoredDraftRef = useRef<{ name: string; value: string } | null>(null)
+
+  const fieldComponents = useMemo(() => {
+    const modules = import.meta.glob('../../fields/*.tsx', { eager: true }) as Record<string, { default: any }>
+    const map: Record<string, any> = {}
+    Object.entries(modules).forEach(([p, mod]) => {
+      const nm = p.split('/').pop()?.replace(/\.\w+$/, '')
+      if (nm && mod?.default) map[nm] = mod.default
+    })
+    return map
+  }, [])
+
+  const pascalFromType = useCallback((t?: string | null) => {
+    if (!t || typeof t !== 'string') return ''
+    return t.split(/[-_]/g).map((s) => s.charAt(0).toUpperCase() + s.slice(1)).join('')
+  }, [])
+
+  const supportedFieldTypes = useMemo(() => new Set(['text', 'textarea', 'number', 'select', 'multiselect', 'boolean', 'url', 'link', 'file', 'taxonomy', 'form-reference', 'post-reference', 'richtext', 'slider']), [])
+
+  const latestDraft = useRef(draft)
+  useEffect(() => { latestDraft.current = draft }, [draft])
+
+  const syncFormToDraft = useCallback(() => {
+    const edited = { ...(latestDraft.current || {}) }
+    if (formRef.current) {
+      const els = formRef.current.querySelectorAll<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>('input[name], textarea[name], select[name]')
+      els.forEach((el) => {
+        const name = el.getAttribute('name')!
+        if ((el as HTMLInputElement).type === 'checkbox') setByPath(edited, name, (el as HTMLInputElement).checked)
+        else if ((el as HTMLInputElement).type === 'number') setByPath(edited, name, el.value === '' ? 0 : Number(el.value))
+        else if (el.dataset.json === '1') {
+          try { setByPath(edited, name, el.value ? JSON.parse(el.value) : null) } catch { setByPath(edited, name, el.value) }
+        } else if (el.dataset.bool === '1') setByPath(edited, name, el.value === 'true')
+        else setByPath(edited, name, el.value)
+      })
+    }
+    return edited
+  }, [])
+
+  useLayoutEffect(() => {
+    if (pendingInputValueRef.current) {
+      const { name, value, rootId, cursorPos } = pendingInputValueRef.current
+      const el = formRef.current?.querySelector(`[name="${name}"][data-root-id="${rootId}"]`) as HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement | null
+      if (el && el.value !== value) {
+        el.value = value
+        if (el instanceof HTMLInputElement || el instanceof HTMLTextAreaElement) el.setSelectionRange(cursorPos, cursorPos)
+      }
+      const currentDraftValue = draft ? draft[name] : undefined
+      const lastRestored = lastRestoredDraftRef.current
+      const alreadyRestored = lastRestored?.name === name && lastRestored?.value === value
+      if (currentDraftValue !== value && !alreadyRestored) {
+        setDraft((prev) => {
+          const next = { ...(prev || {}) }
+          setByPath(next, name, value)
+          return next
+        })
+        lastRestoredDraftRef.current = { name, value }
+      } else if (currentDraftValue === value && lastRestored?.name === name) {
+        lastRestoredDraftRef.current = null
+      }
+      const timeoutId = window.setTimeout(() => {
+        if (pendingInputValueRef.current?.name === name && (draft ? draft[name] : undefined) === value) {
+          pendingInputValueRef.current = null
+          lastRestoredDraftRef.current = null
+        }
+      }, 1000)
+      return () => window.clearTimeout(timeoutId)
+    }
+  }, [draft])
+
+  useEffect(() => {
+    if (!moduleItem) return
+    let alive = true
+      ; (async () => {
+        try {
+          const cached = moduleSchemaCache.get(moduleItem.type)
+          if (cached) {
+            if (alive) {
+              setSchema(cached.schema)
+            }
+            return
+          }
+          const res = await fetch(`/api/modules/${encodeURIComponent(moduleItem.type)}/schema`, { credentials: 'same-origin' })
+          const json = await res.json().catch(() => null)
+          const ps = json?.data?.fieldSchema || json?.fieldSchema || json?.data?.propsSchema || json?.propsSchema || (json?.data?.schema ? json?.data?.schema?.fieldSchema || json?.data?.schema?.propsSchema : null) || null
+          const friendlyName = (json?.data && json.data.name) || json?.name || null
+          if (ps && typeof ps === 'object') {
+            const fields: CustomFieldDefinition[] = Object.keys(ps).map((k) => ({ slug: k, ...(ps[k] || {}) }))
+            if (alive) setSchema(fields)
+            moduleSchemaCache.set(moduleItem.type, { schema: fields, label: friendlyName || moduleItem.type })
+          } else {
+            if (alive) setSchema(null)
+            moduleSchemaCache.set(moduleItem.type, { schema: null, label: friendlyName || moduleItem.type })
+          }
+        } catch { if (alive) setSchema(null) }
+      })()
+    return () => { alive = false }
+  }, [moduleItem?.type])
+
+  const ctx: EditorFieldCtx = useMemo(() => ({
+    latestDraft, setDraft, fieldComponents, supportedFieldTypes, pascalFromType, setByPath, getLabel, syncFormToDraft, getByPath, formRef, postId, moduleInstanceId, moduleType: moduleItem?.type, moduleItem, fieldAgents, setSelectedFieldAgent, setAgentModalOpen, setAgentFieldKey, setAgentFieldType, viewMode, customFields, onDirty, pendingInputValueRef
+  }), [fieldComponents, supportedFieldTypes, pascalFromType, syncFormToDraft, postId, moduleInstanceId, moduleItem, fieldAgents, viewMode, customFields, onDirty])
+
+  const saveNow = useCallback(async () => {
+    const base = moduleItem?.props || {}
+    const edited = syncFormToDraft()
+    const overrides = diffOverrides(base, edited)
+    await onSave(overrides, edited)
+  }, [moduleItem, syncFormToDraft, onSave])
+
+  useEffect(() => {
+    if (registerFlush) registerFlush(saveNow)
+    return () => { if (registerFlush) registerFlush(null) }
+  }, [registerFlush, saveNow])
+
+  const isNoFieldModule = moduleItem.type === 'reading-progress'
+  const fallbackDraftKeys = Object.keys(draft || {}).filter(k => k !== 'type' && k !== 'properties')
+
+  // Debug log to see why global module fields might be visible
+  console.log('[ModuleEditorInline] Rendering:', {
+    type: moduleItem.type,
+    scope: moduleItem.scope,
+    globalSlug: moduleItem.globalSlug,
+    shouldHideFields: (moduleItem.scope === 'global' || moduleItem.scope === 'static' || !!moduleItem.globalSlug)
+  })
+
+  return (
+    <div className={className}>
+      {moduleItem.scope === 'global' && (
+        <div className="mb-4 p-3 bg-amber-500/10 border border-amber-500/20 rounded text-xs text-amber-500 flex items-center justify-between">
+          <span>Global module (shared) - edit in settings.</span>
+          <a href={`/admin/modules?tab=globals&editSlug=${moduleItem.globalSlug}`} className="font-semibold underline hover:text-amber-400">Edit Global</a>
+        </div>
+      )}
+      <div
+        ref={formRef}
+        className="grid grid-cols-1 gap-5"
+        onChangeCapture={(e) => {
+          try {
+            const el = e.target as HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement | null
+            const name = el?.getAttribute?.('name') || ''
+            const rootId = el?.getAttribute?.('data-root-id') || moduleItem?.id || ''
+            if (!name) return
+            const currentValue = (el as HTMLInputElement | HTMLTextAreaElement).value || ''
+            const storedValue = pendingInputValueRef.current?.name === name && pendingInputValueRef.current?.rootId === rootId ? pendingInputValueRef.current.value : null
+            if (storedValue !== null && currentValue === storedValue) return
+            const cursorPos = el instanceof HTMLInputElement || el instanceof HTMLTextAreaElement ? el.selectionStart ?? currentValue.length : currentValue.length
+            if (rootId) pendingInputValueRef.current = { name, value: currentValue, rootId, cursorPos }
+            setDraft((prev) => {
+              const next = { ...(prev || {}) }
+              if ((el as HTMLInputElement).type === 'checkbox') setByPath(next, name, (el as HTMLInputElement).checked)
+              else if ((el as HTMLInputElement).type === 'number') setByPath(next, name, (el as HTMLInputElement).value === '' ? 0 : Number((el as HTMLInputElement).value))
+              else if ((el as HTMLInputElement).dataset?.json === '1') {
+                try { setByPath(next, name, currentValue ? JSON.parse(currentValue) : null) } catch { setByPath(next, name, currentValue) }
+              } else if ((el as HTMLInputElement).dataset?.bool === '1') setByPath(next, name, currentValue === 'true')
+              else setByPath(next, name, currentValue)
+              return next
+            })
+            if (onDirty) onDirty()
+          } catch { }
+        }}
+        onBlurCapture={() => { if (autoSaveOnBlur) saveNow() }}
+      >
+        {(moduleItem.scope === 'global' || moduleItem.scope === 'static' || !!moduleItem.globalSlug) ? (
+          <div className="py-8 text-center bg-amber-500/5 rounded-lg border border-dashed border-amber-500/20">
+            <p className="text-sm text-neutral-medium italic">
+              {(moduleItem.scope || 'global').charAt(0).toUpperCase() + (moduleItem.scope || 'global').slice(1)} module fields are hidden in the post editor.
+            </p>
+          </div>
+        ) : (
+          <fieldset disabled={processing}>
+            <ModuleFieldsRenderer schema={schema} draft={draft} moduleItem={moduleItem} ctx={ctx} isNoFieldModule={isNoFieldModule} fallbackDraftKeys={fallbackDraftKeys} />
+          </fieldset>
+        )}
+      </div>
+      {selectedFieldAgent && (
+        <AgentModal open={agentModalOpen} onOpenChange={setAgentModalOpen} agent={selectedFieldAgent} contextId={postId} context={{ scope: 'field', fieldKey: agentFieldKey, fieldType: agentFieldType, moduleInstanceId }} scope="field" fieldKey={agentFieldKey} fieldType={agentFieldType} viewMode={viewMode} />
+      )}
+    </div>
   )
 })

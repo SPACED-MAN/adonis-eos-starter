@@ -1,5 +1,5 @@
 import { useMemo, useState } from 'react'
-import { renderLexicalToHtml } from '../../modules/prose'
+import { renderLexicalToHtml } from '../../utils/lexical'
 import { usePage } from '@inertiajs/react'
 
 export function AnnouncementBanner() {

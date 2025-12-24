@@ -2,6 +2,7 @@ import { useEffect, useMemo, useState } from 'react'
 import { Head } from '@inertiajs/react'
 import { AdminHeader } from '../../components/AdminHeader'
 import { AdminFooter } from '../../components/AdminFooter'
+import { Checkbox } from '~/components/ui/checkbox'
 import {
   Select,
   SelectContent,
@@ -16,6 +17,7 @@ type ModuleGroup = {
   post_type: string
   description: string | null
   locked: boolean
+  is_default: boolean
   updated_at: string
 }
 type ModuleGroupModule = {
@@ -49,9 +51,10 @@ export default function ModuleGroupsSettingsPage() {
   const [creating, setCreating] = useState(false)
   const [isCreateOpen, setIsCreateOpen] = useState(false)
   const [postTypes, setPostTypes] = useState<string[]>([])
-  const [createForm, setCreateForm] = useState<{ name: string; postType: string }>({
+  const [createForm, setCreateForm] = useState<{ name: string; postType: string; isDefault: boolean }>({
     name: '',
     postType: '',
+    isDefault: false,
   })
   const [registry, setRegistry] = useState<Array<{ type: string; name: string }>>([])
   const selected = useMemo(
@@ -118,6 +121,7 @@ export default function ModuleGroupsSettingsPage() {
   async function submitCreateModuleGroup() {
     const name = createForm.name.trim()
     const postType = createForm.postType.trim()
+    const isDefault = createForm.isDefault
     if (!name || !postType) return
     setCreating(true)
     try {
@@ -129,17 +133,39 @@ export default function ModuleGroupsSettingsPage() {
           ...(getXsrfToken() ? { 'X-XSRF-TOKEN': getXsrfToken()! } : {}),
         },
         credentials: 'same-origin',
-        body: JSON.stringify({ name, postType }),
+        body: JSON.stringify({ name, postType, isDefault }),
       })
       if (res.ok) {
         await loadModuleGroups()
         setIsCreateOpen(false)
-        setCreateForm({ name: '', postType: postTypes[0] || '' })
+        setCreateForm({ name: '', postType: postTypes[0] || '', isDefault: false })
       } else {
         alert('Failed to create module group')
       }
     } finally {
       setCreating(false)
+    }
+  }
+
+  async function updateModuleGroup(id: string, patch: Partial<ModuleGroup>) {
+    try {
+      const res = await fetch(`/api/module-groups/${encodeURIComponent(id)}`, {
+        method: 'PUT',
+        headers: {
+          'Accept': 'application/json',
+          'Content-Type': 'application/json',
+          ...(getXsrfToken() ? { 'X-XSRF-TOKEN': getXsrfToken()! } : {}),
+        },
+        credentials: 'same-origin',
+        body: JSON.stringify(patch),
+      })
+      if (res.ok) {
+        await loadModuleGroups()
+      } else {
+        alert('Failed to update module group')
+      }
+    } catch {
+      alert('Error updating module group')
     }
   }
 
@@ -212,7 +238,14 @@ export default function ModuleGroupsSettingsPage() {
                       className={`w-full text-left p-3 hover:bg-backdrop-medium ${selectedId === t.id ? 'bg-backdrop-medium' : ''}`}
                       onClick={() => setSelectedId(t.id)}
                     >
-                      <div className="text-neutral-high">{t.name}</div>
+                      <div className="flex items-center justify-between gap-2">
+                        <div className="text-neutral-high font-medium">{t.name}</div>
+                        {t.is_default && (
+                          <span className="text-[10px] bg-standout-medium text-on-standout px-1.5 py-0.5 rounded uppercase font-bold">
+                            Default
+                          </span>
+                        )}
+                      </div>
                       <div className="text-xs text-neutral-low">{labelize(t.post_type)}</div>
                     </button>
                   ))
@@ -226,9 +259,22 @@ export default function ModuleGroupsSettingsPage() {
               ) : (
                 <>
                   <div className="flex items-center justify-between mb-3">
+                    <div className="flex items-center gap-4">
                     <div>
                       <div className="text-neutral-high font-semibold">{selected.name}</div>
-                      <div className="text-xs text-neutral-low">{labelize(selected.post_type)}</div>
+                        <div className="text-xs text-neutral-low">
+                          {labelize(selected.post_type)}
+                        </div>
+                      </div>
+                      <label className="flex items-center gap-2 text-sm text-neutral-high cursor-pointer">
+                        <Checkbox
+                          checked={selected.is_default}
+                          onCheckedChange={(checked) =>
+                            updateModuleGroup(selected.id, { isDefault: !!checked } as any)
+                          }
+                        />
+                        <span>Default Template</span>
+                      </label>
                     </div>
                     <div className="relative">
                       <button
@@ -346,6 +392,17 @@ export default function ModuleGroupsSettingsPage() {
                     ))}
                   </SelectContent>
                 </Select>
+              </div>
+              <div>
+                <label className="flex items-center gap-2 text-sm text-neutral-medium cursor-pointer">
+                  <Checkbox
+                    checked={createForm.isDefault}
+                    onCheckedChange={(checked) =>
+                      setCreateForm((f) => ({ ...f, isDefault: !!checked }))
+                    }
+                  />
+                  <span>Set as default template for this post type</span>
+                </label>
               </div>
               <div className="flex items-center justify-end gap-2 pt-2">
                 <button

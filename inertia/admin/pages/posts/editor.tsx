@@ -61,6 +61,7 @@ import {
   faWandMagicSparkles,
   faPencil,
   faTrash,
+  faClone,
   faChevronDown,
   faSpinner,
   faLink,
@@ -117,6 +118,7 @@ const InlineModuleEditor = function InlineModuleEditor({
     locked: boolean
     orderIndex: number
     globalSlug?: string | null
+    globalLabel?: string | null
     adminLabel?: string | null
   }
   postId: string
@@ -210,6 +212,7 @@ interface EditorProps {
     locked: boolean
     orderIndex: number
     globalSlug?: string | null
+    globalLabel?: string | null
     adminLabel?: string | null
   }[]
   translations: { id: string; locale: string }[]
@@ -280,6 +283,7 @@ function ModuleRowBase({
   setPendingRemoved,
   setPendingReviewRemoved,
   setModules,
+  onDuplicate,
   registerModuleFlush,
   stageModuleEdits,
   markModuleDirty,
@@ -300,6 +304,7 @@ function ModuleRowBase({
   setPendingRemoved: React.Dispatch<React.SetStateAction<Set<string>>>
   setPendingReviewRemoved: React.Dispatch<React.SetStateAction<Set<string>>>
   setModules: React.Dispatch<React.SetStateAction<any[]>>
+  onDuplicate: (m: any) => void
   registerModuleFlush: (moduleId: string, flush: (() => Promise<void>) | null) => void
   stageModuleEdits: (moduleId: string, overrides: Record<string, any> | null, edited: Record<string, any>, adminLabel?: string | null) => void
   markModuleDirty: (mode: 'source' | 'review' | 'ai-review', moduleId: string) => void
@@ -316,13 +321,25 @@ function ModuleRowBase({
     setLocalLabel(m.adminLabel || '')
   }, [m.adminLabel])
 
-  const moduleName = m.scope === 'global'
+  const isLocal = m.scope === 'post' || m.scope === 'local'
+  const moduleName = !isLocal
     ? globalSlugToLabel.get(String((m as any).globalSlug || '')) ||
     (m as any).globalLabel ||
     (m as any).globalSlug ||
     moduleRegistry[m.type]?.name ||
     m.type
     : moduleRegistry[m.type]?.name || m.type
+
+  if (!isLocal) {
+    console.log('[PostEditor] Global Module Name:', {
+      id: m.id,
+      scope: m.scope,
+      globalSlug: (m as any).globalSlug,
+      globalLabel: (m as any).globalLabel,
+      calculatedName: moduleName,
+      fromMap: globalSlugToLabel.get(String((m as any).globalSlug || ''))
+    })
+  }
 
   const saveLabel = async () => {
     const label = localLabel.trim() || null
@@ -433,15 +450,25 @@ function ModuleRowBase({
                 }
                 return null
               })()}
-              {m.scope === 'global' && (
+              {(m.scope === 'global' || m.scope === 'static') && (
                 <span
                   className="inline-flex items-center rounded-full border border-amber-500/20 bg-amber-500/5 px-2 py-0.5 text-[10px] font-bold text-amber-500 uppercase tracking-tight"
-                  title="Global module"
+                  title={`${m.scope.charAt(0).toUpperCase() + m.scope.slice(1)} module`}
                 >
                   <FontAwesomeIcon icon={faGlobe} className="w-3 h-3 mr-1" />
-                  Global
+                  {m.scope === 'static' ? 'Static' : 'Global'}
                 </span>
               )}
+
+              <button
+                className="p-2 rounded-lg text-neutral-low hover:text-standout-high hover:bg-backdrop-medium transition-all"
+                disabled={isLocked}
+                onClick={() => onDuplicate(m)}
+                type="button"
+                title="Duplicate module"
+              >
+                <FontAwesomeIcon icon={faClone} className="w-4 h-4" />
+              </button>
 
               <button
                 className="p-2 rounded-lg text-neutral-low hover:text-red-500 hover:bg-red-500/10 transition-all"
@@ -778,6 +805,8 @@ export default function Editor({
       globalSlug?: string | null
       orderIndex: number
       adminLabel?: string | null
+      props?: Record<string, any>
+      overrides?: Record<string, any> | null
     }>
   >([])
   // Track structural changes that need to be published
@@ -1495,8 +1524,11 @@ export default function Editor({
               : []
             const gMap = new Map<string, string>()
             gList.forEach((g) => {
-              if (g.globalSlug) gMap.set(g.globalSlug, (g as any).label || g.globalSlug)
+              if (g.globalSlug) {
+                gMap.set(g.globalSlug, (g as any).label || g.globalSlug)
+              }
             })
+            console.log('[PostEditor] Global labels loaded:', Array.from(gMap.entries()))
             if (!cancelled) setGlobalSlugToLabel(gMap)
           } catch {
             /* ignore */
@@ -2120,6 +2152,8 @@ export default function Editor({
           orderIndex: pm.orderIndex,
           locked: false,
           adminLabel: finalLabel,
+          props: pm.props || {},
+          overrides: pm.overrides || null,
           mode,
         }),
       })
@@ -2206,6 +2240,8 @@ export default function Editor({
         globalSlug: payload.globalSlug || null,
         orderIndex: nextOrderIndex,
         adminLabel: null,
+        props: {},
+        overrides: null,
       },
     ])
 
@@ -2215,6 +2251,8 @@ export default function Editor({
       moduleInstanceId: tempId,
       type: payload.type,
       scope: payload.scope === 'post' ? 'local' : 'global',
+      globalSlug: payload.globalSlug || null,
+      globalLabel: payload.globalSlug ? globalSlugToLabel.get(payload.globalSlug) || null : null,
       props: {},
       overrides: null,
       locked: false,
@@ -2223,6 +2261,78 @@ export default function Editor({
 
     setModules((prev) => [...prev, newModule])
     setHasStructuralChanges(true)
+  }
+
+  async function handleDuplicateModule(m: EditorProps['modules'][0]) {
+    if (!modulesEnabled) return
+
+    // If there are pending edits, flush them first so the clone has the latest content
+    const flush = moduleFlushFns.current[m.id]
+    if (flush) await flush()
+
+    const tempId = `temp-${Date.now()}-${Math.random().toString(36).substring(2, 9)}`
+
+    // Create a deep clone of the module data
+    // We clone the raw module from the state to preserve unsaved edits (props, reviewProps, etc.)
+    const clonedModule: EditorProps['modules'][0] = JSON.parse(JSON.stringify(m))
+
+    // Assign new IDs
+    clonedModule.id = tempId
+    clonedModule.moduleInstanceId = tempId
+
+    // Important: if we're cloning in Review or AI Review mode, the backend expects 
+    // the change to be staged appropriately.
+    if (viewMode === 'review') {
+      clonedModule.reviewAdded = true
+    } else if (viewMode === 'ai-review') {
+      (clonedModule as any).aiReviewAdded = true
+    }
+
+    // Add to pending new modules for structural save
+    setPendingNewModules((prev) => [
+      ...prev,
+      {
+        tempId,
+        type: clonedModule.type,
+        scope:
+          clonedModule.scope === 'post'
+            ? 'local'
+            : (clonedModule.scope as 'local' | 'global'),
+        globalSlug: clonedModule.globalSlug || null,
+        orderIndex: clonedModule.orderIndex + 1, // Place it underneath
+        adminLabel: clonedModule.adminLabel || null,
+        props: clonedModule.props,
+        overrides: clonedModule.overrides,
+      },
+    ])
+
+    // Insert into modules list and update order indices
+    setModules((prev) => {
+      const index = prev.findIndex((pm) => pm.id === m.id)
+      const next = [...prev]
+      if (index === -1) {
+        next.push(clonedModule)
+      } else {
+        next.splice(index + 1, 0, clonedModule)
+      }
+
+      // Re-normalize orderIndex for all modules to ensure consistency
+      return next.map((pm, idx) => ({
+        ...pm,
+        scope: pm.scope === 'post' ? 'local' : pm.scope,
+        orderIndex: idx,
+      }))
+    })
+
+    setHasStructuralChanges(true)
+    toast.success('Module duplicated')
+
+    // Open the accordion for the new module
+    setModulesAccordionOpen((prev) => {
+      const next = new Set(prev)
+      next.add(tempId)
+      return next
+    })
   }
 
   function onDragEnd(event: DragEndEvent) {
@@ -2638,7 +2748,7 @@ export default function Editor({
   return (
     <div className="min-h-screen bg-backdrop-medium">
       <AdminHeader
-        title={`Edit ${post.type ? humanizeSlug(post.type) : 'Post'}${post.abVariation ? ` (Var ${post.abVariation})` : ''}`}
+        title={`Edit ${post.type ? humanizeSlug(post.type) : 'Post'}${post.abVariation && abVariations.length > 1 ? ` (Var ${post.abVariation})` : ''}`}
       />
 
       {/* Main Content */}
@@ -3034,6 +3144,7 @@ export default function Editor({
                                 setPendingRemoved={setPendingRemoved}
                                 setPendingReviewRemoved={setPendingReviewRemoved}
                                 setModules={setModules}
+                                onDuplicate={handleDuplicateModule}
                                 registerModuleFlush={registerModuleFlush}
                                 stageModuleEdits={stageModuleEdits}
                                 markModuleDirty={markModuleDirty}
@@ -3060,6 +3171,7 @@ export default function Editor({
                                 setPendingRemoved={setPendingRemoved}
                                 setPendingReviewRemoved={setPendingReviewRemoved}
                                 setModules={setModules}
+                                onDuplicate={handleDuplicateModule}
                                 registerModuleFlush={registerModuleFlush}
                                 stageModuleEdits={stageModuleEdits}
                                 markModuleDirty={markModuleDirty}
@@ -3103,7 +3215,7 @@ export default function Editor({
                   <label className="block text-[11px] font-bold text-neutral-medium uppercase tracking-wider mt-2 mb-1.5 ml-1">
                     <div className="flex items-center justify-between">
                       <span>Slug *</span>
-                      {post.abVariation && (
+                      {post.abVariation && abVariations.length > 1 && (
                         <span className="text-[9px] text-standout-medium normal-case font-normal">
                           Note: Variations share the primary post's public URL.
                         </span>
@@ -3254,7 +3366,7 @@ export default function Editor({
                       <label className="block text-[10px] font-bold text-neutral-low uppercase tracking-widest">
                         A/B Variation
                       </label>
-                      {post.abVariation && (
+                      {post.abVariation && abVariations.length > 1 && (
                         <button
                           type="button"
                           onClick={async () => {
@@ -3317,8 +3429,8 @@ export default function Editor({
                                 router.visit(`/admin/posts/${v.id}/edit`)
                               }}
                               className={`w-full py-1.5 px-2 text-[11px] font-bold rounded-lg transition-all flex flex-col items-center ${v.id === post.id
-                                  ? 'bg-backdrop-low text-neutral-high shadow-sm'
-                                  : 'text-neutral-low hover:text-neutral-medium hover:bg-backdrop-medium/20'
+                                ? 'bg-backdrop-low text-neutral-high shadow-sm'
+                                : 'text-neutral-low hover:text-neutral-medium hover:bg-backdrop-medium/20'
                                 }`}
                             >
                               <span>Var {v.variation}</span>

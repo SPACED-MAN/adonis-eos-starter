@@ -15,10 +15,11 @@ type DraftPatch = Record<string, any> // path -> value
 
 function getAtPath(obj: any, path: string, fallback?: any) {
   if (!obj) return fallback
-  const parts = path.split('.').filter(Boolean)
+  // Handle array notation like "ctas[0].label"
+  const parts = path.replace(/\[(\d+)\]/g, '.$1').split('.').filter(Boolean)
   let cur = obj
   for (const p of parts) {
-    if (cur && Object.prototype.hasOwnProperty.call(cur, p)) {
+    if (cur && (Object.prototype.hasOwnProperty.call(cur, p) || (Array.isArray(cur) && p in cur))) {
       cur = cur[p]
     } else {
       return fallback

@@ -94,8 +94,9 @@ export const updatePostValidator = vine.compile(
 export const addModuleValidator = vine.compile(
   vine.object({
     moduleType: vine.string().trim().minLength(1).maxLength(50),
-    scope: vine.enum(['local', 'global']).optional(),
+    scope: vine.enum(['local', 'global', 'post']).optional(),
     props: vine.any().optional(),
+    overrides: vine.any().optional(),
     globalSlug: vine.string().trim().maxLength(100).nullable().optional(),
     orderIndex: vine.number().min(0).optional(),
     locked: vine.boolean().optional(),

@@ -110,28 +110,36 @@ export default class CreatePost {
     // Resolve default module group when none provided
     let effectiveModuleGroupId: string | null = moduleGroupId
     if (moduleGroupsEnabled && !effectiveModuleGroupId) {
-      const defaultName = uiConfig.moduleGroup?.name || `${type}-default`
+      // 1. Try explicit is_default
       const defaultGroup = await db
         .from('module_groups')
-        .where({ post_type: type, name: defaultName })
+        .where({ post_type: type, is_default: true })
         .first()
+
       if (defaultGroup) {
         effectiveModuleGroupId = (defaultGroup as any).id as string
       } else {
-        // Fallbacks:
-        // 1) If there is exactly one module group for this post type, use it.
-        // 2) If there are multiple (common in seeded/dev DBs), choose the most recently updated.
-        const candidates = await db
+        // 2. Try legacy default name
+        const defaultName = uiConfig.moduleGroup?.name || `${type}-default`
+        const legacyDefault = await db
+          .from('module_groups')
+          .where({ post_type: type, name: defaultName })
+          .first()
+
+        if (legacyDefault) {
+          effectiveModuleGroupId = (legacyDefault as any).id as string
+        } else {
+          // 3. Fallbacks: use most recently updated
+          const candidate = await db
           .from('module_groups')
           .where({ post_type: type })
           .orderBy('updated_at', 'desc')
           .select('id')
+            .first()
 
-        if (Array.isArray(candidates) && candidates.length >= 1) {
-          effectiveModuleGroupId =
-            candidates.length === 1
-              ? ((candidates[0] as any).id as string)
-              : ((candidates[0] as any).id as string)
+          if (candidate) {
+            effectiveModuleGroupId = (candidate as any).id as string
+          }
         }
       }
     }

@@ -20,19 +20,19 @@ export default class ProseWithFormModule extends BaseModule {
       lockable: true,
       fieldSchema: [
         {
-          slug: 'title',
+          slug: 'heading',
           type: 'text',
-          label: 'Title',
+          label: 'Heading',
           required: true,
           description: 'Main heading text',
           translatable: true,
         },
         {
-          slug: 'body',
-          type: 'textarea',
-          label: 'Body',
+          slug: 'content',
+          type: 'richtext',
+          label: 'Content',
           required: false,
-          description: 'Supporting prose-style paragraph below the title',
+          description: 'Supporting prose-style content below the heading',
           translatable: true,
         },
         {
@@ -54,8 +54,34 @@ export default class ProseWithFormModule extends BaseModule {
         },
       ],
       defaultValues: {
-        title: "Let's talk about your next project.",
-        body: 'Use this section to tell a short story about how your team partners with customers, and include a simple form for follow-up.',
+        heading: "Let's talk about your next project.",
+        content: {
+          root: {
+            type: 'root',
+            format: '',
+            indent: 0,
+            version: 1,
+            children: [
+              {
+                type: 'paragraph',
+                format: '',
+                indent: 0,
+                version: 1,
+                children: [
+                  {
+                    detail: 0,
+                    format: 0,
+                    mode: 'normal',
+                    style: '',
+                    text: 'Use this section to tell a short story about how your team partners with customers, and include a simple form for follow-up.',
+                    type: 'text',
+                    version: 1,
+                  },
+                ],
+              },
+            ],
+          },
+        },
         formSlug: 'contact',
         layout: 'form-right',
       },

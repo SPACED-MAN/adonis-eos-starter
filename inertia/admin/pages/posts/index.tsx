@@ -87,6 +87,12 @@ export default function PostsIndexPage({}: PostsIndexProps) {
   const [terms, setTerms] = useState<TermNode[]>([])
   const [termId, setTermId] = useState<string>('')
   const [isCreateOpen, setIsCreateOpen] = useState(false)
+  const [createStep, setCreateStep] = useState<'type' | 'template'>('type')
+  const [selectedPostType, setSelectedPostType] = useState<string | null>(null)
+  const [availableTemplates, setAvailableTemplates] = useState<
+    Array<{ id: string; name: string; is_default: boolean }>
+  >([])
+  const [fetchingTemplates, setFetchingTemplates] = useState(false)
   const [sortBy, setSortBy] = useState<
     'title' | 'status' | 'locale' | 'updated_at' | 'created_at' | 'order_index'
   >('updated_at')
@@ -293,7 +299,7 @@ export default function PostsIndexPage({}: PostsIndexProps) {
       .join(' ')
   }
 
-  async function createNew(typeArg?: string) {
+  async function createNew(typeArg?: string, templateId?: string) {
     const type = typeArg || postType || (postTypes[0] || '').toString()
     if (!type) {
       alert('Select a post type first')
@@ -315,6 +321,7 @@ export default function PostsIndexPage({}: PostsIndexProps) {
         slug,
         title,
         status: 'draft',
+        moduleGroupId: templateId || null,
       }),
     })
     if (res.ok) {
@@ -326,6 +333,32 @@ export default function PostsIndexPage({}: PostsIndexProps) {
       }
     }
     alert('Failed to create post')
+  }
+
+  async function handleTypeSelect(type: string) {
+    setSelectedPostType(type)
+    setFetchingTemplates(true)
+    try {
+      const res = await fetch(`/api/module-groups?postType=${encodeURIComponent(type)}`, {
+        credentials: 'same-origin',
+      })
+      const json = await res.json().catch(() => ({}))
+      const templates = Array.isArray(json?.data) ? json.data : []
+      if (templates.length > 1) {
+        setAvailableTemplates(templates)
+        setCreateStep('template')
+      } else {
+        // Just one or zero templates - use default creation logic
+        createNew(type)
+        setIsCreateOpen(false)
+      }
+    } catch (err) {
+      console.error('Failed to fetch templates', err)
+      createNew(type)
+      setIsCreateOpen(false)
+    } finally {
+      setFetchingTemplates(false)
+    }
   }
 
   function toggleSelect(id: string) {
@@ -1349,18 +1382,34 @@ export default function PostsIndexPage({}: PostsIndexProps) {
       {/* Create New Modal */}
       {isCreateOpen && (
         <div className="fixed inset-0 z-50 flex items-center justify-center">
-          <div className="absolute inset-0 bg-black/50" onClick={() => setIsCreateOpen(false)} />
+          <div
+            className="absolute inset-0 bg-black/50"
+            onClick={() => {
+              setIsCreateOpen(false)
+              setCreateStep('type')
+              setSelectedPostType(null)
+            }}
+          />
           <div className="relative z-10 w-full max-w-md rounded-lg border border-line-low bg-backdrop-input p-6 shadow-xl">
             <div className="flex items-center justify-between mb-4">
-              <h3 className="text-base font-semibold text-neutral-high">Create New Post</h3>
+              <h3 className="text-base font-semibold text-neutral-high">
+                {createStep === 'type' ? 'Create New Post' : 'Select Template'}
+              </h3>
               <button
                 className="text-neutral-medium hover:text-neutral-high"
-                onClick={() => setIsCreateOpen(false)}
+                onClick={() => {
+                  setIsCreateOpen(false)
+                  setCreateStep('type')
+                  setSelectedPostType(null)
+                }}
                 aria-label="Close"
               >
                 ✕
               </button>
             </div>
+
+            {createStep === 'type' ? (
+              <>
             <p className="text-sm text-neutral-medium mb-3">Choose a post type:</p>
             <div className="grid grid-cols-1 gap-2 max-h-64 overflow-auto">
               {postTypes.length === 0 && (
@@ -1369,16 +1418,60 @@ export default function PostsIndexPage({}: PostsIndexProps) {
               {postTypes.map((t) => (
                 <button
                   key={t}
-                  className="w-full text-left px-3 py-2 rounded border border-line-low bg-backdrop-input hover:bg-backdrop-medium text-neutral-high"
-                  onClick={() => {
-                    setIsCreateOpen(false)
-                    createNew(t)
-                  }}
-                >
-                  {labelize(t)}
-                </button>
-              ))}
-            </div>
+                      disabled={fetchingTemplates}
+                      className="w-full text-left px-3 py-2 rounded border border-line-low bg-backdrop-input hover:bg-backdrop-medium text-neutral-high disabled:opacity-50"
+                      onClick={() => handleTypeSelect(t)}
+                    >
+                      {labelize(t)}
+                    </button>
+                  ))}
+                </div>
+              </>
+            ) : (
+              <>
+                <p className="text-sm text-neutral-medium mb-3">
+                  Select a template for your new {selectedPostType ? labelize(selectedPostType) : 'post'}:
+                </p>
+                <div className="grid grid-cols-1 gap-2 max-h-64 overflow-auto">
+                  {availableTemplates.map((tmpl) => (
+                    <button
+                      key={tmpl.id}
+                      className="w-full text-left px-3 py-2 rounded border border-line-low bg-backdrop-input hover:bg-backdrop-medium text-neutral-high flex items-center justify-between"
+                      onClick={() => {
+                        setIsCreateOpen(false)
+                        createNew(selectedPostType!, tmpl.id)
+                        setCreateStep('type')
+                      }}
+                    >
+                      <span>
+                        {labelize(tmpl.is_default ? tmpl.name.replace(/[-_ ]?default$/i, '') : tmpl.name)}
+                        {tmpl.is_default && (
+                          <span className="ml-1.5 text-neutral-low text-xs">(default)</span>
+                        )}
+                      </span>
+                    </button>
+                  ))}
+                  <button
+                    className="w-full text-left px-3 py-2 rounded border border-line-dashed bg-transparent hover:bg-backdrop-medium text-neutral-medium italic"
+                    onClick={() => {
+                      setIsCreateOpen(false)
+                      createNew(selectedPostType!)
+                      setCreateStep('type')
+                    }}
+                  >
+                    No template (blank post)
+                  </button>
+                </div>
+                <div className="mt-4 flex justify-start">
+                  <button
+                    className="text-xs text-neutral-low hover:underline"
+                    onClick={() => setCreateStep('type')}
+                  >
+                    ← Back to post types
+                  </button>
+                </div>
+              </>
+            )}
           </div>
         </div>
       )}

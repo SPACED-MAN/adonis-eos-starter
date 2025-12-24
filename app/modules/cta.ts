@@ -9,147 +9,132 @@ import type { ModuleConfig } from '#types/module_types'
  * and a list of action buttons.
  */
 export default class CtaModule extends BaseModule {
-  /**
-   * CTA supports hybrid rendering for animations.
-   */
-  getRenderingMode() {
-    return 'hybrid' as const
-  }
+	/**
+	 * CTA supports hybrid rendering for animations.
+	 */
+	getRenderingMode() {
+		return 'hybrid' as const
+	}
 
-  /**
-   * Module configuration
-   */
-  getConfig(): ModuleConfig {
-    return {
-      type: 'cta',
-      name: 'Call to Action',
-      description: 'Engaging call-to-action block with heading, text, media, and multiple buttons',
-      icon: 'megaphone',
-      allowedScopes: ['local', 'global'],
-      lockable: true,
-      aiGuidance: {
-        layoutRoles: ['cta', 'bottom-bar', 'signup'],
-        useWhen: [
-          'You want to prompt the user to take a specific action (sign up, buy, contact).',
-          'You need a high-visibility block to highlight a single offer or message.',
-        ],
-        avoidWhen: [
-          'You need to present a long list of options; use a features or list module instead.',
-          'You are at the very top of a page; prefer a Hero module for the primary fold.',
-        ],
-        compositionNotes:
-          'Typically placed near the bottom of a page or after a persuasive prose section.',
-      },
-      fieldSchema: [
-        {
-          slug: 'title',
-          type: 'text',
-          label: 'Heading',
-          required: true,
-          description: 'The main attention-grabbing headline',
-          translatable: true,
-        },
-        {
-          slug: 'content',
-          type: 'richtext',
-          label: 'Prose',
-          required: false,
-          description: 'Supporting description text (Lexical JSON)',
-          translatable: true,
-        },
-        {
-          slug: 'image',
-          type: 'media',
-          label: 'Supporting Media',
-          accept: 'image/*,video/*',
-          config: { storeAs: 'id' },
-          description: 'Optional image or video to accompany the message',
-        },
-        {
-          slug: 'ctas',
-          type: 'repeater',
-          label: 'Buttons',
-          description: 'One or more call-to-action buttons',
-          item: {
-            slug: 'cta',
-            type: 'object',
-            label: 'Button',
-            fields: [
-              {
-                slug: 'label',
-                type: 'text',
-                label: 'Label',
-                required: true,
-                translatable: true,
-              },
-              {
-                slug: 'url',
-                type: 'link',
-                label: 'Destination',
-                required: true,
-              },
-              {
-                slug: 'style',
-                type: 'select',
-                label: 'Style',
-                options: [
-                  { label: 'Primary', value: 'primary' },
-                  { label: 'Secondary', value: 'secondary' },
-                  { label: 'Outline', value: 'outline' },
-                ],
-              },
-            ],
-          },
-        },
-        {
-          slug: 'variant',
-          type: 'select',
-          label: 'Layout Variant',
-          options: [
-            { label: 'Centered', value: 'centered' },
-            { label: 'Split (Image Left)', value: 'split-left' },
-            { label: 'Split (Image Right)', value: 'split-right' },
-          ],
-        },
-        {
-          slug: 'backgroundColor',
-          type: 'select',
-          label: 'Background',
-          options: [
-            { label: 'Transparent', value: 'bg-transparent' },
-            { label: 'Low Contrast', value: 'bg-backdrop-low' },
-            { label: 'Medium Contrast', value: 'bg-backdrop-medium' },
-            { label: 'Standout (Brand)', value: 'bg-standout-medium' },
-          ],
-        },
-      ],
-      defaultValues: {
-        title: 'Ready to get started?',
-        content: {
-          root: {
-            type: 'root',
-            children: [
-              {
-                type: 'paragraph',
-                children: [
-                  {
-                    type: 'text',
-                    text: 'Join thousands of developers building amazing applications with our platform.',
-                  },
-                ],
-              },
-            ],
-          },
-        },
-        ctas: [
-          { label: 'Get Started', url: '#', style: 'primary' },
-          { label: 'View Documentation', url: '#', style: 'outline' },
-        ],
-        variant: 'centered',
-        backgroundColor: 'bg-backdrop-low',
-      },
-      allowedPostTypes: [],
-    }
-  }
+	/**
+	 * Module configuration
+	 */
+	getConfig(): ModuleConfig {
+		return {
+			type: 'cta',
+			name: 'Call to Action',
+			description: 'Engaging call-to-action block with heading, text, media, and multiple buttons',
+			icon: 'megaphone',
+			allowedScopes: ['local', 'global'],
+			lockable: true,
+			aiGuidance: {
+				layoutRoles: ['cta', 'bottom-bar', 'signup'],
+				useWhen: [
+					'You want to prompt the user to take a specific action (sign up, buy, contact).',
+					'You need a high-visibility block to highlight a single offer or message.',
+				],
+				avoidWhen: [
+					'You need to present a long list of options; use a features or list module instead.',
+					'You are at the very top of a page; prefer a Hero module for the primary fold.',
+				],
+				compositionNotes:
+					'Typically placed near the bottom of a page or after a persuasive prose section.',
+			},
+			fieldSchema: [
+				{
+					slug: 'title',
+					type: 'text',
+					label: 'Heading',
+					required: true,
+					description: 'The main attention-grabbing headline',
+					translatable: true,
+				},
+				{
+					slug: 'prose',
+					type: 'richtext',
+					label: 'Prose',
+					required: false,
+					description: 'Supporting description text (Lexical JSON)',
+					translatable: true,
+				},
+				{
+					slug: 'image',
+					type: 'media',
+					label: 'Supporting Media',
+					accept: 'image/*,video/*',
+					config: { storeAs: 'id' },
+					description: 'Optional image or video to accompany the message',
+				},
+				{
+					slug: 'ctas',
+					type: 'repeater',
+					label: 'Buttons',
+					description: 'One or more call-to-action buttons',
+					item: {
+						slug: 'cta',
+						type: 'object',
+						label: 'Button',
+						fields: [
+							{
+								slug: 'label',
+								type: 'text',
+								label: 'Label',
+								required: true,
+								translatable: true,
+							},
+							{
+								slug: 'url',
+								type: 'link',
+								label: 'Destination',
+								required: true,
+							},
+							{
+								slug: 'style',
+								type: 'select',
+								label: 'Style',
+								options: [
+									{ label: 'Primary', value: 'primary' },
+									{ label: 'Secondary', value: 'secondary' },
+									{ label: 'Outline', value: 'outline' },
+								],
+							},
+						],
+					},
+				},
+				{
+					slug: 'variant',
+					type: 'select',
+					label: 'Layout Variant',
+					options: [
+						{ label: 'Centered', value: 'centered' },
+						{ label: 'Split (Image Left)', value: 'split-left' },
+						{ label: 'Split (Image Right)', value: 'split-right' },
+					],
+				},
+				{
+					slug: 'backgroundColor',
+					type: 'select',
+					label: 'Background',
+					options: [
+						{ label: 'Transparent', value: 'bg-transparent' },
+						{ label: 'Low Contrast', value: 'bg-backdrop-low' },
+						{ label: 'Medium Contrast', value: 'bg-backdrop-medium' },
+						{ label: 'Standout (Brand)', value: 'bg-standout-medium' },
+					],
+				},
+			],
+			defaultValues: {
+				title: 'Ready to get started?',
+				prose: null,
+				ctas: [
+					{ label: 'Get Started', url: '#', style: 'primary' },
+					{ label: 'View Documentation', url: '#', style: 'outline' },
+				],
+				variant: 'centered',
+				backgroundColor: 'bg-backdrop-low',
+			},
+			allowedPostTypes: [],
+		}
+	}
 }
 

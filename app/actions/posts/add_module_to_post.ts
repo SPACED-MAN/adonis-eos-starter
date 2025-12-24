@@ -9,8 +9,9 @@ import { coerceJsonObject } from '../../helpers/jsonb.js'
 type AddModuleToPostParams = {
   postId: string
   moduleType: string
-  scope: 'local' | 'global'
+  scope: 'local' | 'global' | 'post'
   props?: Record<string, any>
+  overrides?: Record<string, any> | null
   globalSlug?: string | null
   orderIndex?: number
   locked?: boolean
@@ -35,6 +36,7 @@ export default class AddModuleToPost {
     moduleType,
     scope,
     props = {},
+    overrides = null,
     globalSlug = null,
     orderIndex,
     locked = false,
@@ -78,7 +80,8 @@ export default class AddModuleToPost {
     }
 
     // Normalize scope for database (DB uses 'post' instead of 'local')
-    const dbScope: 'post' | 'global' = scope === 'local' ? 'post' : 'global'
+    const dbScope: 'post' | 'global' =
+      scope === 'local' || scope === 'post' ? 'post' : 'global'
 
     // Use transaction
     const result = await db.transaction(async (trx) => {
@@ -112,6 +115,7 @@ export default class AddModuleToPost {
               scope: 'global',
               type: moduleType,
               global_slug: globalSlug,
+              global_label: adminLabel || globalSlug,
               props: initialProps,
               created_at: new Date(),
               updated_at: new Date(),
@@ -178,8 +182,9 @@ export default class AddModuleToPost {
           order_index: finalOrderIndex,
           // Only set Source label on publish-mode creation; review/ai-review labels live in draft snapshots.
           admin_label: mode === 'review' || mode === 'ai-review' ? null : adminLabel,
-          overrides: null,
-          ai_review_overrides: null,
+          overrides: mode === 'publish' ? overrides : null,
+          review_overrides: mode === 'review' ? overrides : null,
+          ai_review_overrides: mode === 'ai-review' ? overrides : null,
           review_added: mode === 'review' ? true : false,
           ai_review_added: mode === 'ai-review' ? true : false,
           ai_review_deleted: false,

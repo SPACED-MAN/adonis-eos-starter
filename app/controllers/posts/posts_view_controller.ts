@@ -115,7 +115,7 @@ export default class PostsViewController extends BasePostsController {
               id: pm.id,
               moduleInstanceId: pm.moduleId,
               type: mi?.type,
-              scope: mi?.scope,
+              scope: mi?.scope === 'post' ? 'local' : mi?.scope,
               props: applyHeroFallback(props),
               reviewProps: (() => {
                 if (draftModule && draftModule.props && mi?.scope === 'post')
@@ -164,8 +164,8 @@ export default class PostsViewController extends BasePostsController {
               aiReviewDeleted: (pm as any).aiReviewDeleted || (pm as any).ai_review_deleted || false,
               locked: pm.locked,
               orderIndex: pm.orderIndex,
-              globalSlug: mi?.globalSlug || null,
-              globalLabel: mi?.globalLabel || null,
+              globalSlug: mi?.globalSlug || (mi as any)?.global_slug || null,
+              globalLabel: mi?.globalLabel || (mi as any)?.global_label || null,
               adminLabel: (() => {
                 // Priority 1: Label from the draft snapshot (Review/AI Review)
                 if ((draftModule as any)?.adminLabel !== undefined) {

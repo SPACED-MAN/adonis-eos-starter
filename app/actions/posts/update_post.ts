@@ -65,7 +65,7 @@ export default class UpdatePost {
         .replace(/[^a-z0-9]+/g, '-')
         .replace(/^-+|-+$/g, '')
         .replace(/-+/g, '-')
-      
+
       if (newSlug.includes('/')) {
         newSlug = newSlug.replace(/^\/+/, '').split('/').pop() || newSlug
       }

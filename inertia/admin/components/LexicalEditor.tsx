@@ -8,18 +8,17 @@ import { ListPlugin } from '@lexical/react/LexicalListPlugin'
 import { LinkPlugin } from '@lexical/react/LexicalLinkPlugin'
 import { useLexicalComposerContext } from '@lexical/react/LexicalComposerContext'
 import { LexicalErrorBoundary } from '@lexical/react/LexicalErrorBoundary'
-import { HeadingNode, QuoteNode, $createParagraphNode } from '@lexical/rich-text'
+import { HeadingNode, QuoteNode } from '@lexical/rich-text'
 import { ListItemNode, ListNode } from '@lexical/list'
 import { LinkNode, AutoLinkNode } from '@lexical/link'
 import { CodeNode } from '@lexical/code'
 import { HorizontalRuleNode } from '@lexical/react/LexicalHorizontalRuleNode'
-import { FORMAT_TEXT_COMMAND, $getSelection, $isRangeSelection } from 'lexical'
+import { FORMAT_TEXT_COMMAND, $getSelection, $isRangeSelection, $createParagraphNode } from 'lexical'
 import { $setBlocksType } from '@lexical/selection'
 import { $createHeadingNode } from '@lexical/rich-text'
 import {
   INSERT_UNORDERED_LIST_COMMAND,
   INSERT_ORDERED_LIST_COMMAND,
-  REMOVE_LIST_COMMAND,
 } from '@lexical/list'
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome'
 import {
@@ -32,6 +31,7 @@ import {
   faHeading,
   faCode,
   faMinus,
+  faTerminal,
 } from '@fortawesome/free-solid-svg-icons'
 import { $createCodeNode } from '@lexical/code'
 import { $insertNodes, $createTextNode } from 'lexical'
@@ -43,15 +43,54 @@ function InitialContentPlugin({ initialValue }: { initialValue: any }) {
     try {
       let candidate: any = initialValue
       if (!candidate) return
+
       if (typeof candidate === 'string') {
-        try {
-          candidate = JSON.parse(candidate)
-        } catch {
-          return
+        const trimmed = candidate.trim()
+        if (trimmed.startsWith('{') || trimmed.startsWith('[')) {
+          try {
+            candidate = JSON.parse(trimmed)
+          } catch {
+            // Not JSON, treat as plain text below
+          }
+        }
+
+        // If it's still a string, wrap it in a paragraph
+        if (typeof candidate === 'string') {
+          candidate = {
+            root: {
+              type: 'root',
+              direction: 'ltr',
+              format: '',
+              indent: 0,
+              version: 1,
+              children: [
+                {
+                  type: 'paragraph',
+                  direction: 'ltr',
+                  format: '',
+                  indent: 0,
+                  version: 1,
+                  children: [
+                    {
+                      type: 'text',
+                      text: candidate,
+                      detail: 0,
+                      format: 0,
+                      mode: 'normal',
+                      style: '',
+                      version: 1,
+                    },
+                  ],
+                },
+              ],
+            },
+          }
         }
       }
+
       if (typeof candidate !== 'object') return
       if (!candidate.root || !Array.isArray(candidate.root.children)) return
+
       // normalize nodes to include minimal required fields for Lexical
       const normalizeNode = (node: any): any => {
         if (!node || typeof node !== 'object' || typeof node.type !== 'string') return null
@@ -156,7 +195,7 @@ export function LexicalEditor({
     []
   )
 
-  function onError(error: Error) {
+  function onError() {
     // Error in Lexical editor
   }
 
@@ -216,7 +255,7 @@ function Toolbar({ customFields }: { customFields?: Array<{ slug: string; label:
     editor.update(() => {
       const selection = $getSelection()
       const tokenText = `{${tokenName}}`
-      
+
       if (selection) {
         // Insert token at cursor position, replacing any selected text
         selection.insertText(tokenText)
@@ -229,11 +268,27 @@ function Toolbar({ customFields }: { customFields?: Array<{ slug: string; label:
     })
   }
 
+  const setBlock = (type: 'paragraph' | 'h2' | 'h3' | 'code') => {
+    editor.update(() => {
+      const selection = $getSelection()
+      if ($isRangeSelection(selection)) {
+        if (type === 'paragraph') {
+          $setBlocksType(selection, () => $createParagraphNode())
+        } else if (type === 'h2' || type === 'h3') {
+          $setBlocksType(selection, () => $createHeadingNode(type))
+        } else if (type === 'code') {
+          $setBlocksType(selection, () => $createCodeNode())
+        }
+      }
+    })
+  }
+
   return (
     <div className="flex items-center gap-1 border-b border-line-low bg-backdrop-medium px-2 py-1">
       <button
         type="button"
         className="px-2 py-1 text-xs rounded border border-line-low hover:bg-backdrop-low"
+        title="Bold"
         onClick={() => editor.dispatchCommand(FORMAT_TEXT_COMMAND, 'bold')}
       >
         <FontAwesomeIcon icon={faBold} />
@@ -241,6 +296,7 @@ function Toolbar({ customFields }: { customFields?: Array<{ slug: string; label:
       <button
         type="button"
         className="px-2 py-1 text-xs rounded border border-line-low hover:bg-backdrop-low"
+        title="Italic"
         onClick={() => editor.dispatchCommand(FORMAT_TEXT_COMMAND, 'italic')}
       >
         <FontAwesomeIcon icon={faItalic} />
@@ -248,22 +304,33 @@ function Toolbar({ customFields }: { customFields?: Array<{ slug: string; label:
       <button
         type="button"
         className="px-2 py-1 text-xs rounded border border-line-low hover:bg-backdrop-low"
+        title="Underline"
         onClick={() => editor.dispatchCommand(FORMAT_TEXT_COMMAND, 'underline')}
       >
         <FontAwesomeIcon icon={faUnderline} />
+      </button>
+      <button
+        type="button"
+        className="px-2 py-1 text-xs rounded border border-line-low hover:bg-backdrop-low"
+        title="Inline Code"
+        onClick={() => editor.dispatchCommand(FORMAT_TEXT_COMMAND, 'code')}
+      >
+        <FontAwesomeIcon icon={faCode} />
       </button>
       <div className="mx-2 h-4 w-px bg-line" />
       <button
         type="button"
         className="px-2 py-1 text-xs rounded border border-line-low hover:bg-backdrop-low"
-        onClick={() =>
-          editor.update(() => {
-            const selection = $getSelection()
-            if ($isRangeSelection(selection)) {
-              $setBlocksType(selection, () => $createHeadingNode('h2'))
-            }
-          })
-        }
+        title="Paragraph"
+        onClick={() => setBlock('paragraph')}
+      >
+        <FontAwesomeIcon icon={faParagraph} />
+      </button>
+      <button
+        type="button"
+        className="px-2 py-1 text-xs rounded border border-line-low hover:bg-backdrop-low"
+        title="Heading 2"
+        onClick={() => setBlock('h2')}
       >
         <FontAwesomeIcon icon={faHeading} className="mr-1" />
         H2
@@ -271,14 +338,8 @@ function Toolbar({ customFields }: { customFields?: Array<{ slug: string; label:
       <button
         type="button"
         className="px-2 py-1 text-xs rounded border border-line-low hover:bg-backdrop-low"
-        onClick={() =>
-          editor.update(() => {
-            const selection = $getSelection()
-            if ($isRangeSelection(selection)) {
-              $setBlocksType(selection, () => $createHeadingNode('h3'))
-            }
-          })
-        }
+        title="Heading 3"
+        onClick={() => setBlock('h3')}
       >
         <FontAwesomeIcon icon={faHeading} className="mr-1" />
         H3
@@ -288,6 +349,7 @@ function Toolbar({ customFields }: { customFields?: Array<{ slug: string; label:
         type="button"
         className="px-2 py-1 text-xs rounded border border-line-low hover:bg-backdrop-low"
         onClick={() => editor.dispatchCommand(INSERT_UNORDERED_LIST_COMMAND, undefined)}
+        title="Bullet List"
       >
         <FontAwesomeIcon icon={faListUl} />
       </button>
@@ -295,32 +357,18 @@ function Toolbar({ customFields }: { customFields?: Array<{ slug: string; label:
         type="button"
         className="px-2 py-1 text-xs rounded border border-line-low hover:bg-backdrop-low"
         onClick={() => editor.dispatchCommand(INSERT_ORDERED_LIST_COMMAND, undefined)}
+        title="Numbered List"
       >
         <FontAwesomeIcon icon={faListOl} />
-      </button>
-      <button
-        type="button"
-        className="px-2 py-1 text-xs rounded border border-line-low hover:bg-backdrop-low"
-        onClick={() => editor.dispatchCommand(REMOVE_LIST_COMMAND, undefined)}
-      >
-        <FontAwesomeIcon icon={faParagraph} />
       </button>
       <div className="mx-2 h-4 w-px bg-line" />
       <button
         type="button"
         className="px-2 py-1 text-xs rounded border border-line-low hover:bg-backdrop-low"
         title="Code Block"
-        onClick={() =>
-          editor.update(() => {
-            const selection = $getSelection()
-            if ($isRangeSelection(selection)) {
-              const codeNode = $createCodeNode()
-              $insertNodes([codeNode])
-            }
-          })
-        }
+        onClick={() => setBlock('code')}
       >
-        <FontAwesomeIcon icon={faCode} />
+        <FontAwesomeIcon icon={faTerminal} />
       </button>
       <button
         type="button"

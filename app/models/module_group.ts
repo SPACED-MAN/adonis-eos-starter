@@ -21,6 +21,9 @@ export default class ModuleGroup extends BaseModel {
   @column()
   declare description: string | null
 
+  @column({ columnName: 'is_default' })
+  declare isDefault: boolean
+
   @column()
   declare locked: boolean
 

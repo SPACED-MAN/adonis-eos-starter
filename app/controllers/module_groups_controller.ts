@@ -1,4 +1,5 @@
 import type { HttpContext } from '@adonisjs/core/http'
+import db from '@adonisjs/lucid/services/db'
 import ModuleGroup from '#models/module_group'
 import ModuleGroupModule from '#models/module_group_module'
 import roleRegistry from '#services/role_registry'
@@ -35,13 +36,27 @@ export default class ModuleGroupsController {
       postType,
       description = null,
       locked = false,
-    } = request.only(['name', 'postType', 'description', 'locked'])
+      isDefault = false,
+    } = request.only(['name', 'postType', 'description', 'locked', 'isDefault'])
     if (!name || !postType) return response.badRequest({ error: 'name and postType are required' })
-    const row = await ModuleGroup.create({
+
+    // Use transaction to ensure single default per post type
+    const row = await db.transaction(async (trx) => {
+      if (isDefault) {
+        await ModuleGroup.query({ client: trx })
+          .where('postType', postType)
+          .update({ isDefault: false })
+      }
+      return await ModuleGroup.create(
+        {
       name,
       postType,
       description,
       locked: !!locked,
+          isDefault: !!isDefault,
+        },
+        { client: trx }
+      )
     })
     return response.created({ data: row })
   }
@@ -55,14 +70,31 @@ export default class ModuleGroupsController {
       return response.forbidden({ error: 'Not allowed to edit module groups' })
     }
     const { id } = params
-    const payload = request.only(['name', 'postType', 'description', 'locked'])
+    const payload = request.only(['name', 'postType', 'description', 'locked', 'isDefault'])
     const row = await ModuleGroup.find(id)
     if (!row) return response.notFound({ error: 'Module group not found' })
+
+    await db.transaction(async (trx) => {
+      row.useTransaction(trx)
     if (payload.name !== undefined) row.name = payload.name
     if (payload.postType !== undefined) row.postType = payload.postType
     if (payload.description !== undefined) row.description = payload.description
     if (payload.locked !== undefined) row.locked = !!payload.locked
+
+      if (payload.isDefault !== undefined) {
+        const isDefault = !!payload.isDefault
+        if (isDefault) {
+          // Unset others for the same post type
+          await ModuleGroup.query({ client: trx })
+            .where('postType', row.postType)
+            .whereNot('id', row.id)
+            .update({ isDefault: false })
+        }
+        row.isDefault = isDefault
+      }
     await row.save()
+    })
+
     return response.ok({ data: row })
   }
 

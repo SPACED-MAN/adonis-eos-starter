@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from 'react'
-import { renderLexicalToHtml } from '../../modules/prose'
+import { renderLexicalToHtml } from '../../utils/lexical'
 import { usePage } from '@inertiajs/react'
 
 const CONSENT_KEY = 'eos_cookie_consent'
