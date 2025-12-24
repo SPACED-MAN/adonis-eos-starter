@@ -323,22 +323,100 @@ class UrlPatternService {
       .whereIn('id', uniqueIds)
       .select('id', 'parent_id', 'type', 'locale', 'slug', 'created_at')
 
-    // Prepare a map for quick lookup
-    const rowMap = new Map<string, any>()
-    rows.forEach((r) => rowMap.set(String(r.id), r))
+    if (rows.length === 0) return results
 
-    // For hierarchical paths, we still need parent slugs.
-    // To be truly efficient, we should fetch the entire hierarchy for all posts in one go,
-    // but for now, we'll use our optimized getParentPathForPost (which uses a recursive CTE).
-    // Even with CTE, doing it in a loop is still N queries.
-    // TODO: Optimize further by fetching all ancestors for all uniqueIds in a single query.
+    // 1. Identify all needed patterns (postType + locale combinations)
+    const patternsNeeded = new Set<string>()
+    rows.forEach((r) => patternsNeeded.add(`${r.type}:${r.locale}`))
 
-    await Promise.all(
-      rows.map(async (row) => {
-        const path = await this.buildPostPathForRow(row)
-        results.set(String(row.id), path)
+    // 2. Fetch all patterns in one go
+    const patterns = await UrlPattern.query()
+      .whereIn(
+        'post_type',
+        Array.from(new Set(rows.map((r) => r.type)))
+      )
+      .whereIn(
+        'locale',
+        Array.from(new Set(rows.map((r) => r.locale)))
+      )
+      .where('is_default', true)
+
+    const patternMap = new Map<string, string>()
+    patterns.forEach((p) => patternMap.set(`${p.postType}:${p.locale}`, p.pattern))
+
+    // 3. Resolve hierarchical paths for all posts using recursive CTE if supported
+    // For simplicity and cross-DB compatibility, we'll fetch all ancestors for the current set
+    // and build the paths in memory.
+    const allAncestorIds = new Set<string>()
+    rows.forEach((r) => {
+      if (r.parentId) allAncestorIds.add(String(r.parentId))
+    })
+
+    // Prepare a map of all posts we've seen so far
+    const allKnownPosts = new Map<string, any>()
+    rows.forEach((r) => allKnownPosts.set(String(r.id), r))
+
+    // Recursively fetch parents until we have them all
+    let currentLevelIds = Array.from(allAncestorIds).filter((id) => !allKnownPosts.has(id))
+    while (currentLevelIds.length > 0) {
+      const parentRows = await Post.query()
+        .whereIn('id', currentLevelIds)
+        .select('id', 'parent_id', 'slug', 'type', 'locale')
+
+      if (parentRows.length === 0) break
+
+      const nextLevelIds = new Set<string>()
+      parentRows.forEach((pr) => {
+        allKnownPosts.set(String(pr.id), pr)
+        if (pr.parentId && !allKnownPosts.has(String(pr.parentId))) {
+          nextLevelIds.add(String(pr.parentId))
+        }
       })
-    )
+      currentLevelIds = Array.from(nextLevelIds)
+    }
+
+    // Helper to get hierarchical path from memory
+    const getPathFromMemory = (post: any): string => {
+      const type = post.type
+      const locale = post.locale
+      const chain: string[] = []
+      let curr = post
+      const guard = new Set<string>()
+
+      while (curr && curr.parentId) {
+        if (guard.has(String(curr.id))) break
+        guard.add(String(curr.id))
+
+        const parent = allKnownPosts.get(String(curr.parentId))
+        if (!parent || parent.type !== type || parent.locale !== locale) break
+        if (parent.slug) chain.unshift(parent.slug)
+        curr = parent
+      }
+
+      const parentPath = chain.join('/')
+      const slug = String(post.slug)
+      return parentPath ? `${parentPath}/${slug}` : slug
+    }
+
+    // 4. Build final paths
+    rows.forEach((row) => {
+      const pattern = patternMap.get(`${row.type}:${row.locale}`) || '/{locale}/posts/{slug}'
+      const d = row.createdAt?.toJSDate() || new Date(row.createdAt || Date.now())
+      const yyyy = String(d.getUTCFullYear())
+      const mm = String(d.getUTCMonth() + 1).padStart(2, '0')
+      const dd = String(d.getUTCDate()).padStart(2, '0')
+
+      const path = getPathFromMemory(row)
+      const fullPath = this.replaceTokens(pattern, {
+        slug: row.slug,
+        path,
+        locale: row.locale,
+        yyyy,
+        mm,
+        dd,
+      })
+      results.set(String(row.id), fullPath)
+    })
 
     return results
   }

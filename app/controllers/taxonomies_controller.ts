@@ -2,12 +2,17 @@ import type { HttpContext } from '@adonisjs/core/http'
 import db from '@adonisjs/lucid/services/db'
 import taxonomyService from '#services/taxonomy_service'
 import taxonomyCustomFieldsService from '#services/taxonomy_custom_fields_service'
+import roleRegistry from '#services/role_registry'
 
 export default class TaxonomiesController {
   /**
    * GET /api/taxonomies
    */
-  async list({ response }: HttpContext) {
+  async list({ response, auth }: HttpContext) {
+    const role = (auth.use('web').user as any)?.role
+    if (!roleRegistry.hasPermission(role, 'taxonomies.view')) {
+      return response.forbidden({ error: 'Not allowed to view taxonomies' })
+    }
     const taxonomies = await taxonomyService.listTaxonomies()
     const data = taxonomies.map((t) => {
       const cfg = taxonomyService.getConfig(t.slug)
@@ -22,7 +27,11 @@ export default class TaxonomiesController {
   /**
    * GET /api/taxonomies/:slug/terms
    */
-  async termsBySlug({ params, response }: HttpContext) {
+  async termsBySlug({ params, response, auth }: HttpContext) {
+    const role = (auth.use('web').user as any)?.role
+    if (!roleRegistry.hasPermission(role, 'taxonomies.view')) {
+      return response.forbidden({ error: 'Not allowed to view taxonomy terms' })
+    }
     const { slug } = params
     const tree = await taxonomyService.getTermsTreeBySlug(String(slug))
     
@@ -45,7 +54,11 @@ export default class TaxonomiesController {
    * List posts assigned to a taxonomy term (does not include descendants by default)
    * Optional query: includeDescendants=1
    */
-  async postsForTerm({ params, request, response }: HttpContext) {
+  async postsForTerm({ params, request, response, auth }: HttpContext) {
+    const role = (auth.use('web').user as any)?.role
+    if (!roleRegistry.hasPermission(role, 'taxonomies.view')) {
+      return response.forbidden({ error: 'Not allowed to view taxonomy posts' })
+    }
     const { id } = params
     const includeDescendants = String(request.input('includeDescendants', '0')).trim() === '1'
     const termIds: string[] = [String(id)]
@@ -78,7 +91,11 @@ export default class TaxonomiesController {
    * POST /api/taxonomies/:slug/terms
    * Body: { name: string, slug?: string, parentId?: string | null }
    */
-  async createTerm({ params, request, response }: HttpContext) {
+  async createTerm({ params, request, response, auth }: HttpContext) {
+    const role = (auth.use('web').user as any)?.role
+    if (!roleRegistry.hasPermission(role, 'taxonomies.edit')) {
+      return response.forbidden({ error: 'Not allowed to create taxonomy terms' })
+    }
     const { slug } = params
     const tax = await taxonomyService.getTaxonomyBySlug(String(slug))
     if (!tax) return response.notFound({ error: 'Taxonomy not found' })
@@ -146,7 +163,11 @@ export default class TaxonomiesController {
    * PATCH /api/taxonomy-terms/:id
    * Body: { name?, slug?, parentId?, orderIndex? }
    */
-  async updateTerm({ params, request, response }: HttpContext) {
+  async updateTerm({ params, request, response, auth }: HttpContext) {
+    const role = (auth.use('web').user as any)?.role
+    if (!roleRegistry.hasPermission(role, 'taxonomies.edit')) {
+      return response.forbidden({ error: 'Not allowed to edit taxonomy terms' })
+    }
     const { id } = params
     const term = await db.from('taxonomy_terms').where('id', id).first()
     if (!term) return response.notFound({ error: 'Term not found' })
@@ -195,7 +216,11 @@ export default class TaxonomiesController {
   /**
    * DELETE /api/taxonomy-terms/:id
    */
-  async destroyTerm({ params, response }: HttpContext) {
+  async destroyTerm({ params, response, auth }: HttpContext) {
+    const role = (auth.use('web').user as any)?.role
+    if (!roleRegistry.hasPermission(role, 'taxonomies.delete')) {
+      return response.forbidden({ error: 'Not allowed to delete taxonomy terms' })
+    }
     const { id } = params
     await db.from('taxonomy_terms').where('id', id).delete()
     return response.noContent()

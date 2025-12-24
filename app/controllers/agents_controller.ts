@@ -655,9 +655,6 @@ export default class AgentsController {
                 })
 
                 if (matchingModules.length === 0) {
-                  console.warn(
-                    `Module not found: type=${suggestedModule.type}, orderIndex=${suggestedModule.orderIndex}`
-                  )
                   continue
                 }
 

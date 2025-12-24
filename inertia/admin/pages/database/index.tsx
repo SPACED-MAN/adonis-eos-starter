@@ -568,31 +568,42 @@ export default function DatabaseIndex() {
       <Head title="Database" />
       <AdminHeader title="Database" />
       <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-        <div className="bg-backdrop-low rounded-lg shadow border border-line-low p-6 space-y-6">
-          <div className="flex gap-3">
+        <div className="border-b border-line-low mb-6">
+          <nav className="flex gap-4">
             <button
-              type="button"
-              className={`px-3 py-2 rounded text-sm font-semibold border ${activeTab === 'export' ? 'bg-standout-medium text-on-standout border-standout-medium' : 'bg-backdrop-medium text-neutral-dark border-line-medium'}`}
               onClick={() => setActiveTab('export')}
+              className={`px-4 py-2 border-b-2 font-medium text-sm transition-colors ${
+                activeTab === 'export'
+                  ? 'border-standout-medium text-standout-high'
+                  : 'border-transparent text-neutral-medium hover:text-neutral-high'
+              }`}
             >
               Export/Import
             </button>
             <button
-              type="button"
-              className={`px-3 py-2 rounded text-sm font-semibold border ${activeTab === 'optimize' ? 'bg-standout-medium text-on-standout border-standout-medium' : 'bg-backdrop-medium text-neutral-dark border-line-medium'}`}
               onClick={() => setActiveTab('optimize')}
+              className={`px-4 py-2 border-b-2 font-medium text-sm transition-colors ${
+                activeTab === 'optimize'
+                  ? 'border-standout-medium text-standout-high'
+                  : 'border-transparent text-neutral-medium hover:text-neutral-high'
+              }`}
             >
               Optimize
             </button>
             <button
-              type="button"
-              className={`px-3 py-2 rounded text-sm font-semibold border ${activeTab === 'search-replace' ? 'bg-standout-medium text-on-standout border-standout-medium' : 'bg-backdrop-medium text-neutral-dark border-line-medium'}`}
               onClick={() => setActiveTab('search-replace')}
+              className={`px-4 py-2 border-b-2 font-medium text-sm transition-colors ${
+                activeTab === 'search-replace'
+                  ? 'border-standout-medium text-standout-high'
+                  : 'border-transparent text-neutral-medium hover:text-neutral-high'
+              }`}
             >
               Find and Replace
             </button>
-          </div>
+          </nav>
+        </div>
 
+        <div className="bg-backdrop-low rounded-lg shadow border border-line-low p-6 space-y-6">
           {activeTab === 'export' && (
             <>
               <div className="mb-6">

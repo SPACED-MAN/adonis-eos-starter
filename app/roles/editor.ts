@@ -32,9 +32,6 @@ const editorRole: RoleDefinition = {
     'forms.view',
     'forms.edit',
     'forms.submissions.export',
-    // Globals
-    'globals.view',
-    'globals.edit',
     // Agents
     'agents.view',
     'agents.dropdown',

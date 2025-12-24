@@ -531,24 +531,32 @@ export default function GlobalModulesIndex() {
     <div className="min-h-screen bg-backdrop-medium">
       <AdminHeader title="Modules" />
       <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-        <div className="bg-backdrop-low rounded-lg shadow border border-line-low p-6 space-y-6">
-          <div className="flex gap-3">
+        <div className="border-b border-line-low mb-6">
+          <nav className="flex gap-4">
             <button
-              type="button"
-              className={`px-3 py-2 rounded text-sm font-semibold border ${activeTab === 'globals' ? 'bg-standout-medium text-on-standout border-standout-medium' : 'bg-backdrop-medium text-neutral-dark border-line-medium'}`}
               onClick={() => setActiveTab('globals')}
+              className={`px-4 py-2 border-b-2 font-medium text-sm transition-colors ${
+                activeTab === 'globals'
+                  ? 'border-standout-medium text-standout-high'
+                  : 'border-transparent text-neutral-medium hover:text-neutral-high'
+              }`}
             >
               Globals
             </button>
             <button
-              type="button"
-              className={`px-3 py-2 rounded text-sm font-semibold border ${activeTab === 'groups' ? 'bg-standout-medium text-on-standout border-standout-medium' : 'bg-backdrop-medium text-neutral-dark border-line-medium'}`}
               onClick={() => setActiveTab('groups')}
+              className={`px-4 py-2 border-b-2 font-medium text-sm transition-colors ${
+                activeTab === 'groups'
+                  ? 'border-standout-medium text-standout-high'
+                  : 'border-transparent text-neutral-medium hover:text-neutral-high'
+              }`}
             >
               Groups
             </button>
-          </div>
+          </nav>
+        </div>
 
+        <div className="bg-backdrop-low rounded-lg shadow border border-line-low p-6 space-y-6">
           {activeTab === 'globals' && (
             <>
               <div className="flex items-end gap-3">

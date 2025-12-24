@@ -275,19 +275,21 @@ export default class PostsListController extends BasePostsController {
       .where('status', 'published')
       .select('id', 'title', 'slug', 'type', 'locale', 'canonical_url')
 
-    const items = await Promise.all(
-      posts.map(async (p) => {
-        const url = p.canonicalUrl || (await (await import('#services/url_pattern_service')).default.buildPostPathForPost(p.id))
-        return {
-          id: p.id,
-          title: p.title,
-          slug: p.slug,
-          type: p.type,
-          locale: p.locale,
-          url,
-        }
-      })
-    )
+    const postIdsForUrl = posts.filter((p) => !p.canonicalUrl).map((p) => p.id)
+    const urlPatternService = (await import('#services/url_pattern_service')).default
+    const resolvedPaths = await urlPatternService.buildPostPaths(postIdsForUrl)
+
+    const items = posts.map((p) => {
+      const url = p.canonicalUrl || resolvedPaths.get(String(p.id)) || '/'
+      return {
+        id: p.id,
+        title: p.title,
+        slug: p.slug,
+        type: p.type,
+        locale: p.locale,
+        url,
+      }
+    })
 
     return response.ok({ data: items })
   }

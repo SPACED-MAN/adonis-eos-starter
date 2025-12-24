@@ -62,7 +62,7 @@ export default function SeoSettingsPage() {
     <>
       <Head title="SEO Settings" />
       <AdminHeader title="SEO Settings" description="Manage XML sitemap." />
-      <main className="container mx-auto px-4 pb-16 space-y-6">
+      <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
         <section className="rounded-lg border border-line-low bg-backdrop-low">
           <div className="px-4 py-3 border-b border-line-low">
             <div className="text-sm font-semibold text-neutral-high">XML Sitemap</div>

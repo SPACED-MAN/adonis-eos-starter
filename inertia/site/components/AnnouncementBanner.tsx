@@ -1,55 +1,49 @@
-import { useEffect, useState } from 'react'
+import { useMemo, useState } from 'react'
 import { renderLexicalToHtml } from '../../modules/prose'
+import { usePage } from '@inertiajs/react'
 
 export function AnnouncementBanner() {
-  const [announcement, setAnnouncement] = useState<string | null>(null)
+  const { props } = usePage<any>()
+  const siteSettings = props.siteSettings
   const [isVisible, setIsVisible] = useState(true)
 
-  useEffect(() => {
-    ;(async () => {
-      try {
-        const res = await fetch('/api/site-settings', { credentials: 'same-origin' })
-        const j = await res.json().catch(() => ({}))
-        const data = j?.data || j
-        const customFields = data?.customFields || {}
-        const content = customFields['announcement']
+  const announcementHtml = useMemo(() => {
+    const customFields = siteSettings?.customFields || {}
+    const content = customFields['announcement']
 
-        if (content) {
-          let html = ''
-          if (typeof content === 'string') {
-            const trimmed = content.trim()
-            if (trimmed.startsWith('{') || trimmed.startsWith('[')) {
-              try {
-                html = renderLexicalToHtml(JSON.parse(trimmed))
-              } catch {
-                html = content
-              }
-            } else {
-              html = content
-            }
-          } else {
-            html = renderLexicalToHtml(content)
+    if (content) {
+      let html = ''
+      if (typeof content === 'string') {
+        const trimmed = content.trim()
+        if (trimmed.startsWith('{') || trimmed.startsWith('[')) {
+          try {
+            html = renderLexicalToHtml(JSON.parse(trimmed))
+          } catch {
+            html = content
           }
-
-          // Check if it's just an empty paragraph
-          if (html && html !== '<p>Empty content</p>' && html !== '<p><br></p>') {
-            setAnnouncement(html)
-          }
+        } else {
+          html = content
         }
-      } catch {
-        // ignore
+      } else {
+        html = renderLexicalToHtml(content)
       }
-    })()
-  }, [])
 
-  if (!announcement || !isVisible) return null
+      // Check if it's just an empty paragraph
+      if (html && html !== '<p>Empty content</p>' && html !== '<p><br></p>') {
+        return html
+      }
+    }
+    return null
+  }, [siteSettings])
+
+  if (!announcementHtml || !isVisible) return null
 
   return (
     <div className="bg-standout-medium text-on-standout py-2 px-4 relative z-[60]">
       <div className="container mx-auto flex items-center justify-between gap-4">
         <div 
           className="flex-1 text-sm font-medium text-center prose prose-sm prose-invert max-w-none announcement-content"
-          dangerouslySetInnerHTML={{ __html: announcement }}
+          dangerouslySetInnerHTML={{ __html: announcementHtml }}
         />
         <button 
           onClick={() => setIsVisible(false)}

@@ -16,9 +16,15 @@ export default class UsersController {
   /**
    * POST /api/users (admin)
    */
-  async store({ request, response }: HttpContext) {
+  async store({ request, response, auth }: HttpContext) {
     const { email, password, role, username, fullName } =
       await request.validateUsing(createUserValidator)
+
+    // Non-admins cannot create Administrator accounts
+    const me = auth.use('web').user as any
+    if (me.role !== 'admin' && role === 'admin') {
+      return response.forbidden({ error: 'Not allowed to create Administrator accounts' })
+    }
 
     // Uniqueness checks
     const emailExists = await db.from('users').where('email', email).first()
@@ -158,9 +164,26 @@ export default class UsersController {
   /**
    * PATCH /api/users/:id (admin) - update name/email/role
    */
-  async update({ params, request, response }: HttpContext) {
+  async update({ params, request, response, auth }: HttpContext) {
     const { id } = params
     const { email, role, username, fullName } = await request.validateUsing(updateUserValidator)
+
+    const row = await db.from('users').where('id', id).first()
+    if (!row) return response.notFound({ error: 'User not found' })
+
+    const me = auth.use('web').user as any
+    const isSuperAdmin = me.role === 'admin'
+
+    // Non-admins cannot modify Administrator accounts or promote anyone to admin
+    if (!isSuperAdmin) {
+      if ((row as any).role === 'admin') {
+        return response.forbidden({ error: 'Not allowed to modify Administrator accounts' })
+      }
+      if (role === 'admin') {
+        return response.forbidden({ error: 'Not allowed to promote users to Administrator' })
+      }
+    }
+
     // Unique email check when changing
     if (email !== undefined) {
       const existing = await db
@@ -223,9 +246,19 @@ export default class UsersController {
   /**
    * PATCH /api/users/:id/password (admin)
    */
-  async resetPassword({ params, request, response }: HttpContext) {
+  async resetPassword({ params, request, response, auth }: HttpContext) {
     const { id } = params
     const { password } = await request.validateUsing(resetPasswordValidator)
+
+    const row = await db.from('users').where('id', id).first()
+    if (!row) return response.notFound({ error: 'User not found' })
+
+    // Non-admins cannot reset passwords for Administrator accounts
+    const me = auth.use('web').user as any
+    if (me.role !== 'admin' && (row as any).role === 'admin') {
+      return response.forbidden({ error: 'Not allowed to reset passwords for Administrator accounts' })
+    }
+
     const hashed = await hash.make(password)
     const now = new Date()
     const count = await db
@@ -260,6 +293,13 @@ export default class UsersController {
     }
     const row = await db.from('users').where('id', id).first()
     if (!row) return response.notFound({ error: 'User not found' })
+
+    // Non-admins cannot delete Administrator accounts
+    const me = auth.use('web').user as any
+    if (me.role !== 'admin' && (row as any).role === 'admin') {
+      return response.forbidden({ error: 'Not allowed to delete Administrator accounts' })
+    }
+
     await db.from('users').where('id', id).delete()
     try {
       await activityLogService.log({

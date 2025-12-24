@@ -229,9 +229,6 @@ class PostRenderingService {
       })()
 
       const module = moduleRegistry.get(pm.type)
-      if (!module) {
-        console.warn(`[PostRenderingService] Module not found in registry: ${pm.type}`)
-      }
       const defaultProps = (module?.getConfig?.().defaultValues || {}) as Record<string, unknown>
 
       const draftModulesArray = (reviewDraft as any)?.modules || []
@@ -347,7 +344,6 @@ class PostRenderingService {
 
       // Helper to apply Hero fallback to a prop set
       const applyHeroFallback = (props: any) => {
-        const uuidRegex = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i
         const hasNoUsableImage =
           !props.image ||
           (typeof props.image === 'string' && uuidRegex.test(props.image)) ||
@@ -751,7 +747,7 @@ class PostRenderingService {
 
     // Load modules
     const modulesRaw = await this.loadPostModules(post.id, { includeReviewFields: true })
-    const { modules, resolvedMedia } = await this.buildModulesForView(modulesRaw, {
+    const { modules } = await this.buildModulesForView(modulesRaw, {
       wantReview,
       reviewDraft:
         draftMode === 'ai-review'
@@ -861,8 +857,6 @@ class PostRenderingService {
           const asset = resolvedMedia.get(id.toLowerCase())
           if (asset) {
             out[field.slug] = asset
-          } else if (/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(id)) {
-            console.warn(`[PostRenderingService] Failed to resolve media ID: ${id}`)
           }
         }
       } else if (field.type === 'object' && field.fields) {
@@ -877,9 +871,6 @@ class PostRenderingService {
               if (typeof id === 'string') {
                 const asset = resolvedMedia.get(id.toLowerCase())
                 if (asset) return asset
-                if (/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(id)) {
-                  console.warn(`[PostRenderingService] Failed to resolve media ID in repeater: ${id}`)
-                }
               }
               return item
             }
@@ -894,7 +885,7 @@ class PostRenderingService {
   /**
    * Batch resolve media IDs to asset objects
    */
-  private async resolveMediaAssets(ids: string[]): Promise<Map<string, any>> {
+  async resolveMediaAssets(ids: string[]): Promise<Map<string, any>> {
     const map = new Map<string, any>()
     const uuidRegex = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i
     const uniqueIds = Array.from(new Set(ids.filter((id) => id && uuidRegex.test(id))))
@@ -964,12 +955,15 @@ class PostRenderingService {
     }
 
     // Convert ancestors to breadcrumb items
+    const ancestorIds = ancestors.map((a) => a.id)
+    const resolvedPaths = await urlPatternService.buildPostPaths(ancestorIds)
+
     for (let i = 0; i < ancestors.length; i++) {
       const ancestor = ancestors[i]
       const isLast = i === ancestors.length - 1
 
       // Get the URL for this post
-      const url = await urlPatternService.buildPostPathForPost(ancestor.id)
+      const url = resolvedPaths.get(String(ancestor.id))
 
       trail.push({
         label: ancestor.title,

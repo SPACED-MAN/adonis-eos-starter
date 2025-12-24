@@ -152,7 +152,7 @@ export default class PostsModulesController extends BasePostsController {
     } catch (error) {
       if (error instanceof DeletePostModuleException) {
         return this.handleActionException(response, error)
-      }
+    }
       throw error
     }
   }

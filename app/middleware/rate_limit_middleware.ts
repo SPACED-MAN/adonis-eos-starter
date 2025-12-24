@@ -110,6 +110,20 @@ export default class RateLimitMiddleware {
         ctx.response.header('X-RateLimit-Reset', String(Math.ceil((now + windowMs) / 1000)))
         ctx.response.header('Retry-After', String(Math.max(1, retryAfter)))
 
+        const acceptsHtml = ctx.request.accepts(['html', 'json']) === 'html'
+        const isInertia = !!ctx.request.header('x-inertia')
+
+        if (acceptsHtml || isInertia) {
+          // If it's an Inertia request, we must use inertia.render or it will break the SPA.
+          // If it's a direct browser request, inertia.render will also work (it will render the full HTML).
+          const inertia = (ctx as any).inertia
+          if (inertia) {
+            return inertia.render('admin/errors/too_many_requests', {
+              retryAfter: Math.max(1, retryAfter),
+            })
+          }
+        }
+
         return ctx.response.status(429).json({
           error: 'Too many requests. Please try again later.',
           retryAfter: Math.max(1, retryAfter),

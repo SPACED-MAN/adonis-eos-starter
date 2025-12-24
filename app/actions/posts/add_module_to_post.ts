@@ -104,7 +104,7 @@ export default class AddModuleToPost {
               ? moduleConfig.defaultValues || {}
               : props
           )
-
+          
           const [newGlobal] = await trx
             .table('module_instances')
             .insert({

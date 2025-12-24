@@ -328,145 +328,9 @@ export default function GeneralSettings() {
             </div>
           </div>
 
-          <div className="border-t border-line-low pt-6">
-            <h3 className="text-base font-semibold text-neutral-high mb-4">Maintenance Mode</h3>
-            <div className="bg-amber-50 dark:bg-amber-950/20 border border-amber-200 dark:border-amber-900/50 rounded-lg p-4">
-              <div className="flex items-start gap-3">
-                <Checkbox
-                  id="maintenance-mode"
-                  checked={form.isMaintenanceMode}
-                  onCheckedChange={(checked) =>
-                    setForm({ ...form, isMaintenanceMode: checked === true })
-                  }
-                  className="mt-1"
-                />
-                <div>
-                  <label
-                    htmlFor="maintenance-mode"
-                    className="text-sm font-semibold text-amber-900 dark:text-amber-200 cursor-pointer"
-                  >
-                    Enable Maintenance Mode
-                  </label>
-                  <p className="text-xs text-amber-800/70 dark:text-amber-400/70 mt-1">
-                    When enabled, public visitors will see a maintenance page. 
-                    Administrators and Editors can still access the site and admin panel.
-                  </p>
-                </div>
-              </div>
-            </div>
-          </div>
-          <div className="border-t border-line-low pt-6">
-            <h3 className="text-base font-semibold text-neutral-high mb-4">Social Networks</h3>
-            
-            <div className="space-y-8">
-              {/* Social Profiles */}
-              <div>
-                <h4 className="text-sm font-medium text-neutral-medium mb-3">Social Profiles</h4>
-                <div className="space-y-4">
-                  {form.socialSettings?.profiles.map((profile, idx) => (
-                    <div key={profile.network} className="flex flex-col sm:flex-row items-start sm:items-center gap-4 p-4 border border-line-low rounded-lg bg-backdrop-medium/30">
-                      <div className="flex items-center gap-3 min-w-[120px]">
-                        <div className="w-8 h-8 rounded bg-backdrop-high flex items-center justify-center text-neutral-medium">
-                          <FontAwesomeIcon icon={getIconProp(profile.icon)} />
-                        </div>
-                        <span className="text-sm font-medium text-neutral-high">{profile.label}</span>
-                      </div>
-                      
-                      <div className="flex-1 w-full sm:w-auto">
-                        <Input
-                          value={profile.url || ''}
-                          onChange={(e) => {
-                            const next = [...(form.socialSettings?.profiles || [])]
-                            next[idx] = { ...next[idx], url: e.target.value }
-                            setForm({ ...form, socialSettings: { ...form.socialSettings!, profiles: next } })
-                          }}
-                          placeholder="https://..."
-                          className="h-8 text-xs"
-                        />
-                      </div>
-
-                      <div className="flex items-center gap-2 min-w-[100px]">
-                        <Checkbox
-                          id={`profile-enable-${profile.network}`}
-                          checked={profile.enabled}
-                          onCheckedChange={(checked) => {
-                            const next = [...(form.socialSettings?.profiles || [])]
-                            next[idx] = { ...next[idx], enabled: checked === true }
-                            setForm({ ...form, socialSettings: { ...form.socialSettings!, profiles: next } })
-                          }}
-                        />
-                        <label htmlFor={`profile-enable-${profile.network}`} className="text-xs text-neutral-medium cursor-pointer">
-                          Enabled
-                        </label>
-                      </div>
-
-                      <div className="w-24">
-                        <Input
-                          value={profile.icon || ''}
-                          onChange={(e) => {
-                            const next = [...(form.socialSettings?.profiles || [])]
-                            next[idx] = { ...next[idx], icon: e.target.value }
-                            setForm({ ...form, socialSettings: { ...form.socialSettings!, profiles: next } })
-                          }}
-                          placeholder="Icon name"
-                          className="h-8 text-[10px] font-mono"
-                          title="FontAwesome icon name"
-                        />
-                      </div>
-                    </div>
-                  ))}
-                </div>
-              </div>
-
-              {/* Social Sharing */}
-              <div>
-                <h4 className="text-sm font-medium text-neutral-medium mb-3">Social Sharing</h4>
-                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-                  {form.socialSettings?.sharing.map((share, idx) => (
-                    <div key={share.network} className="flex items-center justify-between p-3 border border-line-low rounded-lg bg-backdrop-medium/30">
-                      <div className="flex items-center gap-3">
-                        <div className="w-8 h-8 rounded bg-backdrop-high flex items-center justify-center text-neutral-medium">
-                          <FontAwesomeIcon icon={getIconProp(share.icon)} />
-                        </div>
-                        <span className="text-xs font-medium text-neutral-high">{share.label}</span>
-                      </div>
-                      
-                      <div className="flex items-center gap-4">
-                        <div className="w-20">
-                          <Input
-                            value={share.icon || ''}
-                            onChange={(e) => {
-                              const next = [...(form.socialSettings?.sharing || [])]
-                              next[idx] = { ...next[idx], icon: e.target.value }
-                              setForm({ ...form, socialSettings: { ...form.socialSettings!, sharing: next } })
-                            }}
-                            placeholder="Icon"
-                            className="h-7 text-[10px] font-mono px-2"
-                          />
-                        </div>
-                        <Checkbox
-                          id={`share-enable-${share.network}`}
-                          checked={share.enabled}
-                          onCheckedChange={(checked) => {
-                            const next = [...(form.socialSettings?.sharing || [])]
-                            next[idx] = { ...next[idx], enabled: checked === true }
-                            setForm({ ...form, socialSettings: { ...form.socialSettings!, sharing: next } })
-                          }}
-                        />
-                      </div>
-                    </div>
-                  ))}
-                </div>
-                <p className="text-xs text-neutral-low mt-2">
-                  Icons for sharing are FontAwesome icons. Some networks (email, copy link) have special handling.
-                </p>
-              </div>
-            </div>
-          </div>
-
           {/* Site Custom Fields */}
           {Array.isArray(form.customFieldDefs) && form.customFieldDefs.length > 0 && (
-            <div className="border-t border-line-low pt-6">
+          <div className="border-t border-line-low pt-6">
               <h3 className="text-base font-semibold text-neutral-high mb-6">Site Fields</h3>
               <CustomFieldRenderer
                 definitions={form.customFieldDefs}
@@ -483,37 +347,171 @@ export default function GeneralSettings() {
               />
             </div>
           )}
-          {/* Profiles enablement */}
-          <div>
-            <label className="block text-sm font-medium text-neutral-medium mb-2">
-              Enable Profiles for Roles
-            </label>
-            <div className="flex flex-wrap gap-3">
-              {['admin', 'editor', 'translator'].map((r) => {
-                const checked = form.profileRolesEnabled.includes(r)
-                return (
-                  <label
-                    key={r}
-                    className="inline-flex items-center gap-2 text-sm text-neutral-high"
-                  >
-                    <input
-                      type="checkbox"
-                      checked={checked}
-                      onChange={(e) => {
-                        const next = new Set(form.profileRolesEnabled)
-                        if (e.target.checked) next.add(r)
-                        else next.delete(r)
-                        setForm({ ...form, profileRolesEnabled: Array.from(next) })
-                      }}
-                    />
-                    <span className="capitalize">{r}</span>
-                  </label>
-                )
-              })}
+
+          <div className="border-t border-line-low pt-6">
+            <h3 className="text-base font-semibold text-neutral-high mb-4">Social Networks</h3>
+            
+            <div className="space-y-8">
+              {/* Social Profiles */}
+              <div>
+                <h4 className="text-sm font-medium text-neutral-medium mb-3">Social Profiles</h4>
+                <div className="space-y-4">
+                  {form.socialSettings?.profiles.map((profile, idx) => (
+                    <div
+                      key={profile.network}
+                      className="flex flex-col sm:flex-row items-start sm:items-center gap-4 p-4 border border-line-low rounded-lg bg-backdrop-medium/30"
+                    >
+                      <div className="flex items-center gap-3 min-w-[120px]">
+                        <div className="w-8 h-8 rounded bg-backdrop-high flex items-center justify-center text-neutral-medium">
+                          <FontAwesomeIcon icon={getIconProp(profile.icon)} />
+                        </div>
+                        <span className="text-sm font-medium text-neutral-high">
+                          {profile.label}
+                        </span>
+                      </div>
+                      
+                      <div className="flex-1 w-full sm:w-auto">
+                        <Input
+                          value={profile.url || ''}
+                          onChange={(e) => {
+                            const next = [...(form.socialSettings?.profiles || [])]
+                            next[idx] = { ...next[idx], url: e.target.value }
+                            setForm({
+                              ...form,
+                              socialSettings: { ...form.socialSettings!, profiles: next },
+                            })
+                          }}
+                          placeholder="https://..."
+                          className="h-8 text-xs"
+                        />
+                      </div>
+
+                      <div className="flex items-center gap-2 min-w-[100px]">
+                        <Checkbox
+                          id={`profile-enable-${profile.network}`}
+                          checked={profile.enabled}
+                          onCheckedChange={(checked) => {
+                            const next = [...(form.socialSettings?.profiles || [])]
+                            next[idx] = { ...next[idx], enabled: checked === true }
+                            setForm({
+                              ...form,
+                              socialSettings: { ...form.socialSettings!, profiles: next },
+                            })
+                          }}
+                        />
+                        <label
+                          htmlFor={`profile-enable-${profile.network}`}
+                          className="text-xs text-neutral-medium cursor-pointer"
+                        >
+                          Enabled
+                        </label>
+                      </div>
+
+                      <div className="w-24">
+                        <Input
+                          value={profile.icon || ''}
+                          onChange={(e) => {
+                            const next = [...(form.socialSettings?.profiles || [])]
+                            next[idx] = { ...next[idx], icon: e.target.value }
+                            setForm({
+                              ...form,
+                              socialSettings: { ...form.socialSettings!, profiles: next },
+                            })
+                          }}
+                          placeholder="Icon name"
+                          className="h-8 text-[10px] font-mono"
+                          title="FontAwesome icon name"
+                        />
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+
+              {/* Social Sharing */}
+              <div>
+                <h4 className="text-sm font-medium text-neutral-medium mb-3">Social Sharing</h4>
+                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+                  {form.socialSettings?.sharing.map((share, idx) => (
+                    <div
+                      key={share.network}
+                      className="flex items-center justify-between p-3 border border-line-low rounded-lg bg-backdrop-medium/30"
+                    >
+                      <div className="flex items-center gap-3">
+                        <div className="w-8 h-8 rounded bg-backdrop-high flex items-center justify-center text-neutral-medium">
+                          <FontAwesomeIcon icon={getIconProp(share.icon)} />
+                        </div>
+                        <span className="text-xs font-medium text-neutral-high">
+                          {share.label}
+                        </span>
+                      </div>
+                      
+                      <div className="flex items-center gap-4">
+                        <div className="w-20">
+                          <Input
+                            value={share.icon || ''}
+                            onChange={(e) => {
+                              const next = [...(form.socialSettings?.sharing || [])]
+                              next[idx] = { ...next[idx], icon: e.target.value }
+                              setForm({
+                                ...form,
+                                socialSettings: { ...form.socialSettings!, sharing: next },
+                              })
+                            }}
+                            placeholder="Icon"
+                            className="h-7 text-[10px] font-mono px-2"
+                          />
+                        </div>
+                        <Checkbox
+                          id={`share-enable-${share.network}`}
+                          checked={share.enabled}
+                          onCheckedChange={(checked) => {
+                            const next = [...(form.socialSettings?.sharing || [])]
+                            next[idx] = { ...next[idx], enabled: checked === true }
+                            setForm({
+                              ...form,
+                              socialSettings: { ...form.socialSettings!, sharing: next },
+                            })
+                          }}
+                        />
+                      </div>
+                    </div>
+                  ))}
+                </div>
+                <p className="text-xs text-neutral-low mt-2">
+                  Icons for sharing are FontAwesome icons. Some networks (email, copy link) have
+                  special handling.
+                </p>
+              </div>
             </div>
-            <p className="text-xs text-neutral-low mt-1">
-              Turning a role off will archive existing Profile posts for users with that role.
-            </p>
+          </div>
+
+            <div className="border-t border-line-low pt-6">
+            <h3 className="text-base font-semibold text-neutral-high mb-4">Maintenance Mode</h3>
+            <div className="bg-amber-50 dark:bg-amber-950/20 border border-amber-200 dark:border-amber-900/50 rounded-lg p-4">
+              <div className="flex items-start gap-3">
+                <Checkbox
+                  id="maintenance-mode"
+                  checked={form.isMaintenanceMode}
+                  onCheckedChange={(checked) =>
+                    setForm({ ...form, isMaintenanceMode: checked === true })
+                  }
+                  className="mt-1"
+                />
+          <div>
+                  <label
+                    htmlFor="maintenance-mode"
+                    className="text-sm font-semibold text-amber-900 dark:text-amber-200 cursor-pointer"
+                  >
+                    Enable Maintenance Mode
+                  </label>
+                  <p className="text-xs text-amber-800/70 dark:text-amber-400/70 mt-1">
+                    When enabled, public visitors will see a maintenance page. Administrators and
+                    Editors can still access the site and admin panel.
+                  </p>
+                </div>
+              </div>
+            </div>
           </div>
           <div className="flex items-center gap-2">
             <button

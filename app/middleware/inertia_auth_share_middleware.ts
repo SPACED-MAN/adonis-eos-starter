@@ -7,6 +7,9 @@ import localeService from '#services/locale_service'
 import agentRegistry from '#services/agent_registry'
 import workflowRegistry from '#services/workflow_registry'
 import moduleRegistry from '#services/module_registry'
+import siteSettingsService from '#services/site_settings_service'
+import menuService from '#services/menu_service'
+import postRenderingService from '#services/post_rendering_service'
 
 export default class InertiaAuthShareMiddleware {
   async handle(ctx: HttpContext, next: () => Promise<void>) {
@@ -38,12 +41,38 @@ export default class InertiaAuthShareMiddleware {
         description: r.description || null,
       }))
 
+      // Site settings and primary menu for SSR header
+      const siteSettings = await siteSettingsService.get()
+      const locale = ctx.request.header('accept-language')?.split(',')[0]?.split('-')[0] || 'en'
+      const primaryMenu = await menuService.getBySlug('primary', locale)
+
+      // Pre-resolve media for site settings if not already done by service
+      const siteMediaIds = new Set<string>()
+      if (siteSettings.logoMediaId) siteMediaIds.add(siteSettings.logoMediaId)
+      if (siteSettings.faviconMediaId) siteMediaIds.add(siteSettings.faviconMediaId)
+      if (siteSettings.defaultOgMediaId) siteMediaIds.add(siteSettings.defaultOgMediaId)
+
+      const resolvedMedia = await postRenderingService.resolveMediaAssets(Array.from(siteMediaIds))
+
+      const siteSettingsWithMedia = {
+        ...siteSettings,
+        logoMedia: siteSettings.logoMediaId ? resolvedMedia.get(siteSettings.logoMediaId) : null,
+        faviconMedia: siteSettings.faviconMediaId
+          ? resolvedMedia.get(siteSettings.faviconMediaId)
+          : null,
+        defaultOgMedia: siteSettings.defaultOgMediaId
+          ? resolvedMedia.get(siteSettings.defaultOgMediaId)
+          : null,
+      }
+
       inertia.share({
         currentUser: sharedUser,
         auth: { user: sharedUser },
         isAdmin: !!(sharedUser && sharedUser.role === 'admin'),
         permissions, // Share permissions array with frontend
         roles, // Share role definitions with frontend
+        siteSettings: siteSettingsWithMedia,
+        primaryMenu,
         features: {
           forms: formRegistry.list().length > 0,
           taxonomies: taxonomyRegistry.list().length > 0,

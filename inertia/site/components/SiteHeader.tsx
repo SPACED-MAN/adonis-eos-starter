@@ -1,104 +1,47 @@
-import { useEffect, useState } from 'react'
-import type { MenuItem, TreeNode } from './menu/types'
+import { useMemo } from 'react'
+import type { TreeNode } from './menu/types'
 import { NavBar } from './menu/NavBar'
 import { usePage } from '@inertiajs/react'
 import { type MediaVariant } from '../../lib/media'
 import { AnnouncementBanner } from './AnnouncementBanner'
 import { CookieConsent } from './CookieConsent'
 
-function buildTree(items: MenuItem[]): TreeNode[] {
-  const idToNode = new Map<string, TreeNode>()
-  const roots: TreeNode[] = []
-  items.forEach((it) => idToNode.set(it.id, { ...it, children: [] }))
-  items.forEach((it) => {
-    const node = idToNode.get(it.id)!
-    if (it.parentId && idToNode.has(it.parentId)) idToNode.get(it.parentId)!.children.push(node)
-    else roots.push(node)
-  })
-  const sortChildren = (arr: TreeNode[]) => {
-    arr.forEach((n) => sortChildren(n.children))
-  }
-  sortChildren(roots)
-  return roots
-}
-
 export function SiteHeader() {
-  const [primaryNodes, setPrimaryNodes] = useState<TreeNode[]>([])
-  const [menuMeta, setMenuMeta] = useState<Record<string, any> | null>(null)
-  const [siteTitle, setSiteTitle] = useState<string>('')
-  const [logoBaseUrl, setLogoBaseUrl] = useState<string | null>(null)
-  const [logoVariants, setLogoVariants] = useState<MediaVariant[] | null>(null)
-  const [logoDarkSourceUrl, setLogoDarkSourceUrl] = useState<string | null>(null)
-  const [showSearch, setShowSearch] = useState<boolean>(true)
+  const { props } = usePage<any>()
+  const currentUser = props.currentUser
+  const siteSettings = props.siteSettings
+  const primaryMenu = props.primaryMenu
 
-  const page = usePage()
-  const currentUser = (page.props as any)?.currentUser
+  const primaryNodes = useMemo(() => {
+    if (!primaryMenu?.tree) return []
+    return primaryMenu.tree as TreeNode[]
+  }, [primaryMenu])
 
-  useEffect(() => {
-    ; (async () => {
-      try {
-        // Primary menu
-        const res = await fetch('/api/menus/by-slug/primary?locale=en', {
-          credentials: 'same-origin',
-        })
-        const j = await res.json().catch(() => ({}))
-        const items: MenuItem[] = Array.isArray(j?.data?.items) ? j.data.items : []
-        setPrimaryNodes(buildTree(items))
-        setMenuMeta((j?.data?.meta as any) ?? null)
-      } catch {
-        setPrimaryNodes([])
+  const menuMeta = primaryMenu?.meta ?? null
+  const siteTitle = siteSettings?.siteTitle || ''
+  const showSearch = siteSettings?.customFields?.show_search !== false && siteSettings?.customFields?.show_search !== 'false'
+
+  const logoMedia = useMemo(() => {
+    const logo = siteSettings?.logoMedia
+    if (!logo) return undefined
+
+    if (typeof logo === 'object' && logo.url) {
+      const meta = logo.metadata || {}
+      return {
+        url: String(logo.url),
+        metadata: {
+          variants: (Array.isArray(meta?.variants) ? meta.variants : []) as MediaVariant[],
+          darkSourceUrl: typeof meta.darkSourceUrl === 'string' ? (meta.darkSourceUrl as string) : null,
+        },
       }
-    })()
-  }, [])
-
-  useEffect(() => {
-    ; (async () => {
-      try {
-        const res = await fetch('/api/site-settings', { credentials: 'same-origin' })
-        const j = await res.json().catch(() => ({}))
-        const data: any = j?.data || j
-        if (data?.siteTitle) {
-          setSiteTitle(String(data.siteTitle))
-        }
-
-        const customFields = data?.customFields || {}
-        if ('show_search' in customFields) {
-          setShowSearch(customFields.show_search !== false && customFields.show_search !== 'false')
-        }
-
-        // Logo media is now pre-resolved on the server and passed directly
-        if (data?.logoMedia) {
-          if (typeof data.logoMedia === 'object' && data.logoMedia.url) {
-            const meta = data.logoMedia.metadata || {}
-            const variants: MediaVariant[] = Array.isArray(meta?.variants)
-              ? (meta.variants as MediaVariant[])
-              : []
-            const darkSourceUrl =
-              typeof meta.darkSourceUrl === 'string' ? (meta.darkSourceUrl as string) : null
-            setLogoBaseUrl(String(data.logoMedia.url))
-            setLogoVariants(variants)
-            setLogoDarkSourceUrl(darkSourceUrl)
-          } else if (typeof data.logoMedia === 'string') {
-            setLogoBaseUrl(data.logoMedia)
-            setLogoVariants([])
-            setLogoDarkSourceUrl(null)
-          }
-        }
-      } catch {
-        // ignore
+    } else if (typeof logo === 'string') {
+      return {
+        url: logo,
+        metadata: { variants: [], darkSourceUrl: null },
       }
-    })()
-  }, [])
-
-  const logoMedia = logoBaseUrl
-    ? {
-      url: logoBaseUrl,
-      metadata: {
-        variants: logoVariants || [],
-        darkSourceUrl: logoDarkSourceUrl,
-      },
     }
-    : null
+    return undefined
+  }, [siteSettings?.logoMedia])
 
   return (
     <>
@@ -108,7 +51,7 @@ export function SiteHeader() {
         primaryNodes={primaryNodes}
         menuMeta={menuMeta || undefined}
         menuName={siteTitle}
-        logo={logoMedia || undefined}
+        logo={logoMedia}
         currentUser={currentUser || undefined}
         showSearch={showSearch}
       />

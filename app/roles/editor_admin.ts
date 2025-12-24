@@ -7,7 +7,9 @@ const editorAdminRole: RoleDefinition = {
     'Senior editor with full content management capabilities. Can publish posts, approve reviews, and manage all content, media, menus, and forms. Cannot manage users or system settings.',
   permissions: [
     'admin.access',
+    'admin.users.manage',
     'admin.settings.view',
+    'admin.settings.update',
     // Content - Full permissions including publish and approve
     'posts.create',
     'posts.edit',
@@ -30,6 +32,10 @@ const editorAdminRole: RoleDefinition = {
     'menus.view',
     'menus.edit',
     'menus.delete',
+    // Taxonomies - Full permissions
+    'taxonomies.view',
+    'taxonomies.edit',
+    'taxonomies.delete',
     // Forms - Full permissions
     'forms.view',
     'forms.edit',

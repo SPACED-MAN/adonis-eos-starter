@@ -200,8 +200,6 @@ const AgentTrigger = memo(({
 }) => {
   if (agents.length === 0) return null
 
-  // console.log('[AgentTrigger] agents:', agents.length, agents.map(a => a.name))
-
   const buttonClass = cn(
     "opacity-0 group-hover:opacity-100 transition-opacity p-1.5 rounded hover:bg-backdrop-medium text-primary",
     className

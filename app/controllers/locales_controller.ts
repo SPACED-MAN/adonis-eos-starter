@@ -2,6 +2,7 @@ import type { HttpContext } from '@adonisjs/core/http'
 import localeService from '#services/locale_service'
 import db from '@adonisjs/lucid/services/db'
 import { updateLocaleValidator } from '#validators/locale'
+import roleRegistry from '#services/role_registry'
 
 /**
  * Controller for managing locales
@@ -11,7 +12,11 @@ export default class LocalesController {
    * GET /api/locales
    * List all configured locales
    */
-  async index({ response }: HttpContext) {
+  async index({ response, auth }: HttpContext) {
+    const role = (auth.use('web').user as any)?.role
+    if (!roleRegistry.hasPermission(role, 'admin.settings.view')) {
+      return response.forbidden({ error: 'Not allowed to view locales' })
+    }
     await localeService.ensureFromEnv()
     const rows = await db.from('locales').select('*').orderBy('code', 'asc')
     const defaultLocale = rows.find((r) => r.is_default)?.code
@@ -29,7 +34,11 @@ export default class LocalesController {
    * GET /api/locales/:locale
    * Get information about a specific locale
    */
-  async show({ params, response }: HttpContext) {
+  async show({ params, response, auth }: HttpContext) {
+    const role = (auth.use('web').user as any)?.role
+    if (!roleRegistry.hasPermission(role, 'admin.settings.view')) {
+      return response.forbidden({ error: 'Not allowed to view locale details' })
+    }
     const { locale } = params
     const row = await db.from('locales').where('code', locale.toLowerCase()).first()
     if (!row) {
@@ -44,7 +53,11 @@ export default class LocalesController {
    * PATCH /api/locales/:locale
    * Body: { isEnabled?: boolean, isDefault?: boolean }
    */
-  async update({ params, request, response }: HttpContext) {
+  async update({ params, request, response, auth }: HttpContext) {
+    const role = (auth.use('web').user as any)?.role
+    if (!roleRegistry.hasPermission(role, 'admin.settings.update')) {
+      return response.forbidden({ error: 'Not allowed to update locales' })
+    }
     const { locale } = params
     const { isEnabled, isDefault } = await request.validateUsing(updateLocaleValidator)
     const code = String(locale).toLowerCase()
@@ -84,7 +97,11 @@ export default class LocalesController {
    * DELETE /api/locales/:locale
    * Deletes the locale and cascades posts (via FK)
    */
-  async destroy({ params, response }: HttpContext) {
+  async destroy({ params, response, auth }: HttpContext) {
+    const role = (auth.use('web').user as any)?.role
+    if (!roleRegistry.hasPermission(role, 'admin.settings.update')) {
+      return response.forbidden({ error: 'Not allowed to delete locales' })
+    }
     const { locale } = params
     const code = String(locale).toLowerCase()
     const row = await db.from('locales').where('code', code).first()

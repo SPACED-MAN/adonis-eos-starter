@@ -292,40 +292,59 @@ export default class PostsViewController extends BasePostsController {
         valuesBySlug = new Map(vals.map((v: any) => [String(v.fieldSlug), v.value]))
       }
 
-      // For link fields with post references, resolve the URL dynamically using postId
-      // This ensures links work even if the slug changes (like menus do)
-      const customFields = await Promise.all(
-        fields.map(async (f: any) => {
-          const rawValue = valuesBySlug.get(String(f.slug)) ?? null
-          let resolvedValue = rawValue
+      // 1. Identify all needed post references for batch resolution
+      const postRefIds = new Set<string>()
+      fields.forEach((f: any) => {
+        const rawValue = valuesBySlug.get(String(f.slug))
+        if (
+          f.type === 'link' &&
+          rawValue &&
+          typeof rawValue === 'object' &&
+          rawValue.kind === 'post' &&
+          rawValue.postId
+        ) {
+          postRefIds.add(String(rawValue.postId))
+        }
+      })
 
-          // Resolve post references in link field values by adding the resolved URL
-          // We keep the postId so links work even if slug changes
-          if (f.type === 'link' && rawValue && typeof rawValue === 'object' && rawValue.kind === 'post' && rawValue.postId) {
-            try {
-              const url = await urlPatternService.buildPostPathForPost(rawValue.postId)
-              // Add the resolved URL while keeping the postId for future resolution
-              resolvedValue = {
-                ...rawValue,
-                url, // Add resolved URL from server
-              }
-            } catch (error) {
-              // If resolution fails, keep the original value
-              console.warn(`Failed to resolve post reference for ${rawValue.postId}:`, error)
+      // 2. Batch resolve all URLs
+      const resolvedUrls =
+        postRefIds.size > 0
+          ? await urlPatternService.buildPostPaths(Array.from(postRefIds))
+          : new Map<string, string>()
+
+      // 3. Build custom fields with resolved values
+      const customFields = fields.map((f: any) => {
+        const rawValue = valuesBySlug.get(String(f.slug)) ?? null
+        let resolvedValue = rawValue
+
+        // Resolve post references in link field values by adding the resolved URL
+        if (
+          f.type === 'link' &&
+          rawValue &&
+          typeof rawValue === 'object' &&
+          rawValue.kind === 'post' &&
+          rawValue.postId
+        ) {
+          const url = resolvedUrls.get(String(rawValue.postId))
+          if (url) {
+            resolvedValue = {
+              ...rawValue,
+              url,
             }
           }
+        }
 
-          return {
-            id: f.slug,
-            slug: f.slug,
-            label: f.label,
-            fieldType: f.type,
-            config: f.config || {},
-            translatable: !!f.translatable,
-            value: resolvedValue,
-          }
-        })
-      )
+        return {
+          id: f.slug,
+          slug: f.slug,
+          label: f.label,
+          fieldType: f.type,
+          config: f.config || {},
+          translatable: !!f.translatable,
+          value: resolvedValue,
+        }
+      })
 
       // Load taxonomies (by slug) configured for this post type
       const taxonomySlugs = Array.isArray((uiCfg as any).taxonomies)

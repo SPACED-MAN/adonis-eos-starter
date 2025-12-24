@@ -1,12 +1,17 @@
 import type { HttpContext } from '@adonisjs/core/http'
 import db from '@adonisjs/lucid/services/db'
 import UrlRedirect from '#models/url_redirect'
+import roleRegistry from '#services/role_registry'
 
 export default class UrlRedirectsController {
   /**
    * GET /api/redirects
    */
-  async index({ request, response }: HttpContext) {
+  async index({ request, response, auth }: HttpContext) {
+    const role = (auth.use('web').user as any)?.role
+    if (!roleRegistry.hasPermission(role, 'admin.settings.view')) {
+      return response.forbidden({ error: 'Not allowed to view redirects' })
+    }
     const type = String(request.input('type', '')).trim()
     const query = UrlRedirect.query().orderBy('createdAt', 'desc')
     if (type) {
@@ -34,7 +39,11 @@ export default class UrlRedirectsController {
    * POST /api/redirects
    * Body: { fromPath: string, toPath: string, httpStatus?: number, locale?: string | null }
    */
-  async store({ request, response }: HttpContext) {
+  async store({ request, response, auth }: HttpContext) {
+    const role = (auth.use('web').user as any)?.role
+    if (!roleRegistry.hasPermission(role, 'admin.settings.update')) {
+      return response.forbidden({ error: 'Not allowed to create redirects' })
+    }
     const {
       fromPath,
       toPath,
@@ -57,7 +66,11 @@ export default class UrlRedirectsController {
    * PUT /api/redirects/:id
    * Body: { fromPath?, toPath?, httpStatus?, locale? }
    */
-  async update({ params, request, response }: HttpContext) {
+  async update({ params, request, response, auth }: HttpContext) {
+    const role = (auth.use('web').user as any)?.role
+    if (!roleRegistry.hasPermission(role, 'admin.settings.update')) {
+      return response.forbidden({ error: 'Not allowed to update redirects' })
+    }
     const { id } = params
     const payload = request.only(['fromPath', 'toPath', 'httpStatus', 'locale'])
     const rec = await UrlRedirect.find(id)
@@ -75,7 +88,11 @@ export default class UrlRedirectsController {
   /**
    * DELETE /api/redirects/:id
    */
-  async destroy({ params, response }: HttpContext) {
+  async destroy({ params, response, auth }: HttpContext) {
+    const role = (auth.use('web').user as any)?.role
+    if (!roleRegistry.hasPermission(role, 'admin.settings.update')) {
+      return response.forbidden({ error: 'Not allowed to delete redirects' })
+    }
     const { id } = params
     const deleted = await UrlRedirect.query().where('id', id).delete()
     if (!deleted) {
@@ -88,7 +105,11 @@ export default class UrlRedirectsController {
    * GET /api/redirect-settings/:postType
    * Get redirect settings for a specific post type
    */
-  async getSettings({ params, response }: HttpContext) {
+  async getSettings({ params, response, auth }: HttpContext) {
+    const role = (auth.use('web').user as any)?.role
+    if (!roleRegistry.hasPermission(role, 'admin.settings.view')) {
+      return response.forbidden({ error: 'Not allowed to view redirect settings' })
+    }
     const { postType } = params
     const settings = await db.from('post_type_settings').where('post_type', postType).first()
 
@@ -115,7 +136,11 @@ export default class UrlRedirectsController {
    * Update redirect settings for a specific post type
    * Body: { autoRedirectOnSlugChange: boolean }
    */
-  async updateSettings({ params, request, response }: HttpContext) {
+  async updateSettings({ params, request, response, auth }: HttpContext) {
+    const role = (auth.use('web').user as any)?.role
+    if (!roleRegistry.hasPermission(role, 'admin.settings.update')) {
+      return response.forbidden({ error: 'Not allowed to update redirect settings' })
+    }
     const { postType } = params
     const { autoRedirectOnSlugChange } = request.only(['autoRedirectOnSlugChange'])
 

@@ -1,70 +1,61 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import { renderLexicalToHtml } from '../../modules/prose'
+import { usePage } from '@inertiajs/react'
 
 const CONSENT_KEY = 'eos_cookie_consent'
 
 export function CookieConsent() {
-  const [enabled, setEnabled] = useState(false)
-  const [messageHtml, setMessageHtml] = useState<string | null>(null)
-  const [buttonText, setButtonText] = useState('Accept')
-  const [isVisible, setIsVisible] = useState(false)
+  const { props } = usePage<any>()
+  const siteSettings = props.siteSettings
+  const [isConsented, setIsConsented] = useState(true) // Default to true until we check localStorage
 
   useEffect(() => {
-    // Check if already consented
     const hasConsented = localStorage.getItem(CONSENT_KEY)
-    if (hasConsented) return
-
-    ;(async () => {
-      try {
-        const res = await fetch('/api/site-settings', { credentials: 'same-origin' })
-        const j = await res.json().catch(() => ({}))
-        const data = j?.data || j
-        const customFields = data?.customFields || {}
-
-        const isEnabled = customFields['cookie_consent_enabled'] === true || customFields['cookie_consent_enabled'] === 'true'
-        const rawMessage = customFields['cookie_consent_message']
-        const rawButtonText = customFields['cookie_consent_button_text']
-
-        if (isEnabled) {
-          setEnabled(true)
-          setButtonText(rawButtonText || 'Accept')
-
-          if (rawMessage) {
-            let html = ''
-            if (typeof rawMessage === 'string') {
-              const trimmed = rawMessage.trim()
-              if (trimmed.startsWith('{') || trimmed.startsWith('[')) {
-                try {
-                  html = renderLexicalToHtml(JSON.parse(trimmed))
-                } catch {
-                  html = rawMessage
-                }
-              } else {
-                html = rawMessage
-              }
-            } else {
-              html = renderLexicalToHtml(rawMessage)
-            }
-            setMessageHtml(html)
-          } else {
-            // Default message if none provided
-            setMessageHtml('<p>We use cookies to improve your experience on our site.</p>')
-          }
-          
-          setIsVisible(true)
-        }
-      } catch {
-        // ignore
-      }
-    })()
+    if (!hasConsented) {
+      setIsConsented(false)
+    }
   }, [])
+
+  const config = useMemo(() => {
+    const customFields = siteSettings?.customFields || {}
+    const isEnabled = customFields['cookie_consent_enabled'] === true || customFields['cookie_consent_enabled'] === 'true'
+    const rawMessage = customFields['cookie_consent_message']
+    const rawButtonText = customFields['cookie_consent_button_text']
+
+    if (!isEnabled) return null
+
+    let html = ''
+    if (rawMessage) {
+      if (typeof rawMessage === 'string') {
+        const trimmed = rawMessage.trim()
+        if (trimmed.startsWith('{') || trimmed.startsWith('[')) {
+          try {
+            html = renderLexicalToHtml(JSON.parse(trimmed))
+          } catch {
+            html = rawMessage
+          }
+        } else {
+          html = rawMessage
+        }
+      } else {
+        html = renderLexicalToHtml(rawMessage)
+      }
+    } else {
+      html = '<p>We use cookies to improve your experience on our site.</p>'
+    }
+
+    return {
+      messageHtml: html,
+      buttonText: rawButtonText || 'Accept'
+    }
+  }, [siteSettings])
 
   const handleAccept = () => {
     localStorage.setItem(CONSENT_KEY, 'true')
-    setIsVisible(false)
+    setIsConsented(true)
   }
 
-  if (!enabled || !isVisible) return null
+  if (!config || isConsented) return null
 
   return (
     <div className="fixed bottom-0 left-0 right-0 z-[100] p-4 pointer-events-none">
@@ -73,7 +64,7 @@ export function CookieConsent() {
           <div className="flex-1">
             <div 
               className="text-sm text-neutral-medium prose prose-sm max-w-none cookie-consent-content"
-              dangerouslySetInnerHTML={{ __html: messageHtml || '' }}
+              dangerouslySetInnerHTML={{ __html: config.messageHtml }}
             />
           </div>
           <div className="flex items-center gap-3 shrink-0">
@@ -81,7 +72,7 @@ export function CookieConsent() {
               onClick={handleAccept}
               className="px-6 py-2.5 bg-standout-medium text-on-standout text-sm font-semibold rounded-lg hover:bg-standout-high transition-colors shadow-sm"
             >
-              {buttonText}
+              {config.buttonText}
             </button>
           </div>
         </div>

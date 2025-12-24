@@ -128,11 +128,12 @@ export default function UserEdit() {
           ...(getXsrf() ? { 'X-XSRF-TOKEN': getXsrf()! } : {}),
         },
         credentials: 'same-origin',
-        body: JSON.stringify({ email, username, role }),
+        body: JSON.stringify({ email, username: username || null, role }),
       })
       if (!res.ok) {
         const j = await res.json().catch(() => ({}))
-        toast.error(j?.error || 'Failed to save')
+        const msg = j?.errors ? j.errors[0]?.message : j?.error || 'Failed to save'
+        toast.error(msg)
         return
       }
       toast.success('User saved')

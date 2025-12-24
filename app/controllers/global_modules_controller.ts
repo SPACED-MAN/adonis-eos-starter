@@ -8,7 +8,11 @@ export default class GlobalModulesController {
    * GET /api/modules/static
    * Query: q?, type?
    */
-  async index({ request, response, route }: HttpContext) {
+  async index({ request, response, route, auth }: HttpContext) {
+    const role = (auth.use('web').user as any)?.role
+    if (!roleRegistry.hasPermission(role, 'globals.view')) {
+      return response.forbidden({ error: 'Not allowed to view global modules' })
+    }
     const scope: 'global' | 'static' = (route?.pattern || '').includes('/static')
       ? 'static'
       : 'global'

@@ -14,7 +14,6 @@ import {
   faImage,
   faFileLines,
   faCubes,
-  faLayerGroup,
   faBars,
   faGear,
   faRoute,
@@ -40,9 +39,6 @@ export function AdminSidebar() {
     ((page.props as any)?.auth?.user?.role as string | undefined) ??
     ((page.props as any)?.currentUser?.role as string | undefined)
   const isAdmin = role === 'admin'
-  const canAccessUsers = useHasPermission('admin.users.manage')
-  const canAccessSettings = useHasPermission('admin.settings.view')
-  const canAccessDatabase = useHasPermission('admin.database.export')
   const canAccessMedia = useHasPermission('media.view')
   const canAccessPosts = useHasPermission('posts.edit')
   const canAccessTaxonomies = useHasPermission('taxonomies.view')
@@ -50,6 +46,9 @@ export function AdminSidebar() {
   const canAccessForms = useHasPermission('forms.view')
   const canAccessAgents = useHasPermission('agents.view')
   const canAccessWorkflows = useHasPermission('workflows.view')
+  const canAccessGlobals = useHasPermission('globals.view')
+  const canAccessUsers = useHasPermission('admin.users.manage')
+  const canAccessSettings = useHasPermission('admin.settings.view')
 
   const features = (page.props as any)?.features || {
     forms: true,
@@ -71,16 +70,16 @@ export function AdminSidebar() {
   const [avatarUrl, setAvatarUrl] = useState<string | null>(null)
   useEffect(() => {
     let alive = true
-    ;(async () => {
-      try {
-        const res = await fetch('/api/profile/status', { credentials: 'same-origin' })
-        const j = await res.json().catch(() => ({}))
-        const u = j?.data?.profileThumbUrl
-        if (alive && typeof u === 'string' && u) setAvatarUrl(u)
-      } catch {
-        /* ignore */
-      }
-    })()
+      ; (async () => {
+        try {
+          const res = await fetch('/api/profile/status', { credentials: 'same-origin' })
+          const j = await res.json().catch(() => ({}))
+          const u = j?.data?.profileThumbUrl
+          if (alive && typeof u === 'string' && u) setAvatarUrl(u)
+        } catch {
+          /* ignore */
+        }
+      })()
     return () => {
       alive = false
     }
@@ -132,7 +131,7 @@ export function AdminSidebar() {
               </span>
             </SidebarMenuItem>
           )}
-          {canAccessSettings && features.modules && (
+          {canAccessGlobals && features.modules && (
             <SidebarMenuItem href={adminPath('modules')} active={isActive(adminPath('modules'))}>
               <span className="inline-flex items-center gap-2">
                 <FontAwesomeIcon icon={faCubes} className="w-4 h-4" /> <span>Modules</span>
@@ -164,55 +163,61 @@ export function AdminSidebar() {
             </SidebarMenuItem>
           )}
         </SidebarGroup>
-        {isAdmin && (
+        {(isAdmin || canAccessSettings || canAccessUsers) && (
           <SidebarGroup title="Settings">
-            <SidebarMenuItem
-              href={adminPath('settings/general')}
-              active={isActive(adminPath('settings/general'))}
-            >
-              <span className="inline-flex items-center gap-2">
-                <FontAwesomeIcon icon={faGear} className="w-4 h-4" /> <span>Site Settings</span>
-              </span>
-            </SidebarMenuItem>
-            <SidebarMenuItem
-              href={adminPath('settings/url-patterns')}
-              active={isActive(adminPath('settings/url-patterns'))}
-            >
-              <span className="inline-flex items-center gap-2">
-                <FontAwesomeIcon icon={faRoute} className="w-4 h-4" /> <span>URL Patterns</span>
-              </span>
-            </SidebarMenuItem>
-            <SidebarMenuItem
-              href={adminPath('settings/redirects')}
-              active={isActive(adminPath('settings/redirects'))}
-            >
-              <span className="inline-flex items-center gap-2">
-                <FontAwesomeIcon icon={faRightLeft} className="w-4 h-4" /> <span>Redirects</span>
-              </span>
-            </SidebarMenuItem>
-            <SidebarMenuItem
-              href={adminPath('settings/seo')}
-              active={isActive(adminPath('settings/seo'))}
-            >
-              <span className="inline-flex items-center gap-2">
-                <FontAwesomeIcon icon={faMagnifyingGlass} className="w-4 h-4" /> <span>SEO</span>
-              </span>
-            </SidebarMenuItem>
-            {features.locales && (
-              <SidebarMenuItem
-                href={adminPath('settings/locales')}
-                active={isActive(adminPath('settings/locales'))}
-              >
+            {(isAdmin || canAccessSettings) && (
+              <>
+                <SidebarMenuItem
+                  href={adminPath('settings/general')}
+                  active={isActive(adminPath('settings/general'))}
+                >
+                  <span className="inline-flex items-center gap-2">
+                    <FontAwesomeIcon icon={faGear} className="w-4 h-4" /> <span>Site Settings</span>
+                  </span>
+                </SidebarMenuItem>
+                <SidebarMenuItem
+                  href={adminPath('settings/url-patterns')}
+                  active={isActive(adminPath('settings/url-patterns'))}
+                >
+                  <span className="inline-flex items-center gap-2">
+                    <FontAwesomeIcon icon={faRoute} className="w-4 h-4" /> <span>URL Patterns</span>
+                  </span>
+                </SidebarMenuItem>
+                <SidebarMenuItem
+                  href={adminPath('settings/redirects')}
+                  active={isActive(adminPath('settings/redirects'))}
+                >
+                  <span className="inline-flex items-center gap-2">
+                    <FontAwesomeIcon icon={faRightLeft} className="w-4 h-4" /> <span>Redirects</span>
+                  </span>
+                </SidebarMenuItem>
+                <SidebarMenuItem
+                  href={adminPath('settings/seo')}
+                  active={isActive(adminPath('settings/seo'))}
+                >
+                  <span className="inline-flex items-center gap-2">
+                    <FontAwesomeIcon icon={faMagnifyingGlass} className="w-4 h-4" /> <span>SEO</span>
+                  </span>
+                </SidebarMenuItem>
+                {features.locales && (
+                  <SidebarMenuItem
+                    href={adminPath('settings/locales')}
+                    active={isActive(adminPath('settings/locales'))}
+                  >
+                    <span className="inline-flex items-center gap-2">
+                      <FontAwesomeIcon icon={faLanguage} className="w-4 h-4" /> <span>Locales</span>
+                    </span>
+                  </SidebarMenuItem>
+                )}
+              </>
+            )}
+            {canAccessUsers && (
+              <SidebarMenuItem href={adminPath('users')} active={isActive(adminPath('users'))}>
                 <span className="inline-flex items-center gap-2">
-                  <FontAwesomeIcon icon={faLanguage} className="w-4 h-4" /> <span>Locales</span>
+                  <FontAwesomeIcon icon={faUsers} className="w-4 h-4" /> <span>Users</span>
                 </span>
               </SidebarMenuItem>
             )}
-            <SidebarMenuItem href={adminPath('users')} active={isActive(adminPath('users'))}>
-              <span className="inline-flex items-center gap-2">
-                <FontAwesomeIcon icon={faUsers} className="w-4 h-4" /> <span>User Management</span>
-              </span>
-            </SidebarMenuItem>
           </SidebarGroup>
         )}
         {isAdmin && (

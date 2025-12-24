@@ -11,6 +11,7 @@ import router from '@adonisjs/core/services/router'
 import { middleware } from '#start/kernel'
 import '#start/taxonomies'
 import { adminPath } from '#services/admin_path_service'
+import roleRegistry from '#services/role_registry'
 
 const SitemapController = () => import('#controllers/sitemap_controller')
 const RobotsController = () => import('#controllers/robots_controller')
@@ -182,16 +183,12 @@ router
 const UrlRedirectsController = () => import('#controllers/url_redirects_controller')
 router
   .group(() => {
-    router.get('/redirects', [UrlRedirectsController, 'index']).use(middleware.admin())
-    router.post('/redirects', [UrlRedirectsController, 'store']).use(middleware.admin())
-    router.put('/redirects/:id', [UrlRedirectsController, 'update']).use(middleware.admin())
-    router.delete('/redirects/:id', [UrlRedirectsController, 'destroy']).use(middleware.admin())
-    router
-      .get('/redirect-settings/:postType', [UrlRedirectsController, 'getSettings'])
-      .use(middleware.admin())
-    router
-      .post('/redirect-settings/:postType', [UrlRedirectsController, 'updateSettings'])
-      .use(middleware.admin())
+    router.get('/redirects', [UrlRedirectsController, 'index'])
+    router.post('/redirects', [UrlRedirectsController, 'store'])
+    router.put('/redirects/:id', [UrlRedirectsController, 'update'])
+    router.delete('/redirects/:id', [UrlRedirectsController, 'destroy'])
+    router.get('/redirect-settings/:postType', [UrlRedirectsController, 'getSettings'])
+    router.post('/redirect-settings/:postType', [UrlRedirectsController, 'updateSettings'])
   })
   .prefix('/api')
   .use(middleware.auth())
@@ -226,22 +223,14 @@ router
 
 router
   .group(() => {
-    router.get('/module-groups', [ModuleGroupsController, 'index']).use(middleware.admin())
-    router.post('/module-groups', [ModuleGroupsController, 'store']).use(middleware.admin())
-    router.put('/module-groups/:id', [ModuleGroupsController, 'update']).use(middleware.admin())
-    router.delete('/module-groups/:id', [ModuleGroupsController, 'destroy']).use(middleware.admin())
-    router
-      .get('/module-groups/:id/modules', [ModuleGroupsController, 'listModules'])
-      .use(middleware.admin())
-    router
-      .post('/module-groups/:id/modules', [ModuleGroupsController, 'addModule'])
-      .use(middleware.admin())
-    router
-      .put('/module-groups/modules/:moduleId', [ModuleGroupsController, 'updateModule'])
-      .use(middleware.admin())
-    router
-      .delete('/module-groups/modules/:moduleId', [ModuleGroupsController, 'deleteModule'])
-      .use(middleware.admin())
+    router.get('/module-groups', [ModuleGroupsController, 'index'])
+    router.post('/module-groups', [ModuleGroupsController, 'store'])
+    router.put('/module-groups/:id', [ModuleGroupsController, 'update'])
+    router.delete('/module-groups/:id', [ModuleGroupsController, 'destroy'])
+    router.get('/module-groups/:id/modules', [ModuleGroupsController, 'listModules'])
+    router.post('/module-groups/:id/modules', [ModuleGroupsController, 'addModule'])
+    router.put('/module-groups/modules/:moduleId', [ModuleGroupsController, 'updateModule'])
+    router.delete('/module-groups/modules/:moduleId', [ModuleGroupsController, 'deleteModule'])
   })
   .prefix('/api')
   .use(middleware.auth())
@@ -304,11 +293,11 @@ router
     router.get('/workflows/:id', [WorkflowsController, 'show']).use(middleware.admin())
     router.post('/workflows/:id/trigger', [WorkflowsController, 'trigger']).use(middleware.admin())
     // Users (admin)
-    router.post('/users', [UsersController, 'store']).use(middleware.admin())
-    router.get('/users', [UsersController, 'index']).use(middleware.admin())
-    router.patch('/users/:id', [UsersController, 'update']).use(middleware.admin())
-    router.patch('/users/:id/password', [UsersController, 'resetPassword']).use(middleware.admin())
-    router.delete('/users/:id', [UsersController, 'destroy']).use(middleware.admin())
+    router.post('/users', [UsersController, 'store'])
+    router.get('/users', [UsersController, 'index'])
+    router.patch('/users/:id', [UsersController, 'update'])
+    router.patch('/users/:id/password', [UsersController, 'resetPassword'])
+    router.delete('/users/:id', [UsersController, 'destroy'])
     // Profiles (self) - place before param route to avoid ':id' capturing 'me'
     router.get('/profile/status', [UsersController, 'profileStatus'])
     router.post('/users/me/profile', [UsersController, 'createMyProfile'])
@@ -355,13 +344,11 @@ router
       .use(middleware.admin())
     router.get('/menu-templates', [MenusController, 'templates']).use(middleware.admin())
     // Global/Static modules
-    router.get('/modules/global', [GlobalModulesController, 'index']).use(middleware.admin())
-    router.post('/modules/global', [GlobalModulesController, 'create']).use(middleware.admin())
-    router.put('/modules/global/:id', [GlobalModulesController, 'update']).use(middleware.admin())
-    router
-      .delete('/modules/global/:id', [GlobalModulesController, 'destroy'])
-      .use(middleware.admin())
-    router.get('/modules/static', [GlobalModulesController, 'index']).use(middleware.admin())
+    router.get('/modules/global', [GlobalModulesController, 'index'])
+    router.post('/modules/global', [GlobalModulesController, 'create'])
+    router.put('/modules/global/:id', [GlobalModulesController, 'update'])
+    router.delete('/modules/global/:id', [GlobalModulesController, 'destroy'])
+    router.get('/modules/static', [GlobalModulesController, 'index'])
     // Forms definitions
     router.get('/forms-definitions', [FormsAdminController, 'listDefinitions'])
     // Form submissions
@@ -453,32 +440,44 @@ router.get('/preview/:id', [PostsViewController, 'preview'])
  * Admin Settings Pages
  */
 router
-  .get(adminPath('settings/url-patterns'), async ({ inertia }) => {
+  .get(adminPath('settings/url-patterns'), async ({ inertia, auth, response }) => {
+    const user = auth.use('web').user
+    if (!roleRegistry.hasPermission((user as any)?.role, 'admin.settings.view')) {
+      return response.redirect(adminPath('forbidden'))
+    }
     return inertia.render('admin/settings/url-patterns')
   })
   .use(middleware.auth())
-  .use(middleware.admin())
 
 router
-  .get(adminPath('settings/redirects'), async ({ inertia }) => {
+  .get(adminPath('settings/redirects'), async ({ inertia, auth, response }) => {
+    const user = auth.use('web').user
+    if (!roleRegistry.hasPermission((user as any)?.role, 'admin.settings.view')) {
+      return response.redirect(adminPath('forbidden'))
+    }
     return inertia.render('admin/settings/redirects')
   })
   .use(middleware.auth())
-  .use(middleware.admin())
 
 router
-  .get(adminPath('settings/locales'), async ({ inertia }) => {
+  .get(adminPath('settings/locales'), async ({ inertia, auth, response }) => {
+    const user = auth.use('web').user
+    if (!roleRegistry.hasPermission((user as any)?.role, 'admin.settings.view')) {
+      return response.redirect(adminPath('forbidden'))
+    }
     return inertia.render('admin/settings/locales')
   })
   .use(middleware.auth())
-  .use(middleware.admin())
 
 router
-  .get(adminPath('settings/module-groups'), async ({ inertia }) => {
+  .get(adminPath('settings/module-groups'), async ({ inertia, auth, response }) => {
+    const user = auth.use('web').user
+    if (!roleRegistry.hasPermission((user as any)?.role, 'admin.settings.view')) {
+      return response.redirect(adminPath('forbidden'))
+    }
     return inertia.render('admin/settings/module-groups')
   })
   .use(middleware.auth())
-  .use(middleware.admin())
 
 // Admin Media Library (editors allowed)
 router
@@ -503,11 +502,14 @@ router
 
 // Admin Global/Static Module Manager
 router
-  .get(adminPath('modules'), async ({ inertia }) => {
+  .get(adminPath('modules'), async ({ inertia, auth, response }) => {
+    const user = auth.use('web').user
+    if (!roleRegistry.hasPermission((user as any)?.role, 'globals.view')) {
+      return response.redirect(adminPath('forbidden'))
+    }
     return inertia.render('admin/modules/index')
   })
   .use(middleware.auth())
-  .use(middleware.admin())
 
 // Admin Agents
 router
@@ -544,18 +546,24 @@ router
 
 // Admin Users (stub)
 router
-  .get(adminPath('users'), async ({ inertia }) => {
+  .get(adminPath('users'), async ({ inertia, auth, response }) => {
+    const user = auth.use('web').user
+    if (!roleRegistry.hasPermission((user as any)?.role, 'admin.users.manage')) {
+      return response.redirect(adminPath('forbidden'))
+    }
     return inertia.render('admin/users/index')
   })
   .use(middleware.auth())
-  .use(middleware.admin())
 
 router
-  .get(adminPath('users/:id/edit'), async ({ params, inertia }) => {
+  .get(adminPath('users/:id/edit'), async ({ params, inertia, auth, response }) => {
+    const user = auth.use('web').user
+    if (!roleRegistry.hasPermission((user as any)?.role, 'admin.users.manage')) {
+      return response.redirect(adminPath('forbidden'))
+    }
     return inertia.render('admin/users/edit', { id: params.id })
   })
   .use(middleware.auth())
-  .use(middleware.admin())
 
 // Admin Security Center
 router
@@ -612,18 +620,24 @@ router
 
 // Admin General Settings
 router
-  .get(adminPath('settings/general'), async ({ inertia }) => {
+  .get(adminPath('settings/general'), async ({ inertia, auth, response }) => {
+    const user = auth.use('web').user
+    if (!roleRegistry.hasPermission((user as any)?.role, 'admin.settings.view')) {
+      return response.redirect(adminPath('forbidden'))
+    }
     return inertia.render('admin/settings/general')
   })
   .use(middleware.auth())
-  .use(middleware.admin())
 
 router
-  .get(adminPath('settings/seo'), async ({ inertia }) => {
+  .get(adminPath('settings/seo'), async ({ inertia, auth, response }) => {
+    const user = auth.use('web').user
+    if (!roleRegistry.hasPermission((user as any)?.role, 'admin.settings.view')) {
+      return response.redirect(adminPath('forbidden'))
+    }
     return inertia.render('admin/settings/seo')
   })
   .use(middleware.auth())
-  .use(middleware.admin())
 /**
  * Protected content access
  */

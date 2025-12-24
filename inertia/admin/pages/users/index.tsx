@@ -44,7 +44,10 @@ type UserRow = {
 
 export default function UsersIndex() {
   const page = usePage()
+  const me = (page.props as any)?.auth?.user
+  const isSuperAdmin = me?.role === 'admin'
   const availableRoles = (page.props as any)?.roles || []
+  const [activeTab, setActiveTab] = useState('list')
   const [loading, setLoading] = useState(false)
   const [rows, setRows] = useState<UserRow[]>([])
   const [filter, setFilter] = useState('')
@@ -56,6 +59,11 @@ export default function UsersIndex() {
   const [createPassword, setCreatePassword] = useState('')
   const [createRole, setCreateRole] = useState<string>('')
   const [creating, setCreating] = useState(false)
+
+  // Profile settings state
+  const [profileSettingsLoading, setProfileSettingsLoading] = useState(false)
+  const [profileSettingsSaving, setProfileSettingsSaving] = useState(false)
+  const [profileRolesEnabled, setProfileRolesEnabled] = useState<string[]>([])
 
   // Helper to get role label from role name
   function getRoleLabel(roleName: string): string {
@@ -75,9 +83,48 @@ export default function UsersIndex() {
     }
   }
 
+  async function loadProfileSettings() {
+    setProfileSettingsLoading(true)
+    try {
+      const res = await fetch('/api/site-settings', { credentials: 'same-origin' })
+      const json = await res.json().catch(() => ({}))
+      setProfileRolesEnabled(Array.isArray(json?.data?.profileRolesEnabled) ? json.data.profileRolesEnabled : [])
+    } finally {
+      setProfileSettingsLoading(false)
+    }
+  }
+
   useEffect(() => {
+    if (activeTab === 'list') {
     load()
-  }, [])
+    } else if (activeTab === 'profiles') {
+      loadProfileSettings()
+    }
+  }, [activeTab])
+
+  async function saveProfileSettings() {
+    setProfileSettingsSaving(true)
+    try {
+      const res = await fetch('/api/site-settings', {
+        method: 'PATCH',
+        headers: {
+          'Accept': 'application/json',
+          'Content-Type': 'application/json',
+          ...(getXsrf() ? { 'X-XSRF-TOKEN': getXsrf()! } : {}),
+        },
+        credentials: 'same-origin',
+        body: JSON.stringify({ profileRolesEnabled }),
+      })
+      if (res.ok) {
+        toast.success('Profile settings saved')
+      } else {
+        const j = await res.json().catch(() => ({}))
+        toast.error(j?.error || 'Failed to save settings')
+      }
+    } finally {
+      setProfileSettingsSaving(false)
+    }
+  }
 
   function filteredRows() {
     const q = filter.trim().toLowerCase()
@@ -102,11 +149,15 @@ export default function UsersIndex() {
           ...(getXsrf() ? { 'X-XSRF-TOKEN': getXsrf()! } : {}),
         },
         credentials: 'same-origin',
-        body: JSON.stringify(patch),
+        body: JSON.stringify({
+          ...patch,
+          username: patch.username !== undefined ? patch.username || null : undefined,
+        }),
       })
       if (!res.ok) {
         const j = await res.json().catch(() => ({}))
-        toast.error(j?.error || 'Failed to save user')
+        const msg = j?.errors ? j.errors[0]?.message : j?.error || 'Failed to save user'
+        toast.error(msg)
         return
       }
       await load()
@@ -170,11 +221,12 @@ export default function UsersIndex() {
           ...(getXsrf() ? { 'X-XSRF-TOKEN': getXsrf()! } : {}),
         },
         credentials: 'same-origin',
-        body: JSON.stringify({ email, password, role }),
+        body: JSON.stringify({ email, password, role, username: null }),
       })
       const j = await res.json().catch(() => ({}))
       if (!res.ok) {
-        toast.error(j?.error || 'Failed to create user')
+        const msg = j?.errors ? j.errors[0]?.message : j?.error || 'Failed to create user'
+        toast.error(msg)
         return
       }
       toast.success('User created')
@@ -190,8 +242,34 @@ export default function UsersIndex() {
 
   return (
     <div className="min-h-screen bg-backdrop-medium">
-      <AdminHeader title="User Management" />
+      <AdminHeader title="Users" />
       <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+        <div className="border-b border-line-low mb-6">
+          <nav className="flex gap-4">
+            <button
+              onClick={() => setActiveTab('list')}
+              className={`px-4 py-2 border-b-2 font-medium text-sm transition-colors ${
+                activeTab === 'list'
+                  ? 'border-standout-medium text-standout-high'
+                  : 'border-transparent text-neutral-medium hover:text-neutral-high'
+              }`}
+            >
+              User List
+            </button>
+            <button
+              onClick={() => setActiveTab('profiles')}
+              className={`px-4 py-2 border-b-2 font-medium text-sm transition-colors ${
+                activeTab === 'profiles'
+                  ? 'border-standout-medium text-standout-high'
+                  : 'border-transparent text-neutral-medium hover:text-neutral-high'
+              }`}
+            >
+              Profiles
+            </button>
+          </nav>
+        </div>
+
+        {activeTab === 'list' && (
         <div className="bg-backdrop-low rounded-lg border border-line-low p-6">
           <div className="flex items-center justify-between mb-4">
             <Input
@@ -290,12 +368,19 @@ export default function UsersIndex() {
               </TableRow>
             </TableHeader>
             <TableBody>
-                {filteredRows().map((u) => (
+                {filteredRows().map((u) => {
+                  const isUserAdmin = u.role === 'admin'
+                  const canModifyUser = isSuperAdmin || !isUserAdmin
+                  const canDeleteUser =
+                    isSuperAdmin || (!isUserAdmin && String(me?.id) !== String(u.id))
+
+                  return (
                 <TableRow key={u.id}>
                   <TableCell>{u.email}</TableCell>
                   <TableCell>
                       <Input
                         defaultValue={u.username || ''}
+                          disabled={!canModifyUser}
                         onBlur={(e) => {
                           const val = e.target.value
                           if (val !== (u.username || '')) saveRow(u.id, { username: val })
@@ -305,12 +390,18 @@ export default function UsersIndex() {
                       />
                   </TableCell>
                   <TableCell>
-                    <Select defaultValue={u.role} onValueChange={(val) => saveRow(u.id, { role: val as Role })}>
+                        <Select
+                          defaultValue={u.role}
+                          disabled={!canModifyUser}
+                          onValueChange={(val) => saveRow(u.id, { role: val as Role })}
+                        >
                         <SelectTrigger className="w-[160px]">
                           <SelectValue />
                         </SelectTrigger>
                         <SelectContent>
-                          {availableRoles.map((r: any) => (
+                            {availableRoles
+                              .filter((r: any) => isSuperAdmin || r.name !== 'admin')
+                              .map((r: any) => (
                             <SelectItem key={r.name} value={r.name}>
                               {r.label}
                             </SelectItem>
@@ -319,6 +410,8 @@ export default function UsersIndex() {
                       </Select>
                   </TableCell>
                   <TableCell className="text-right">
+                        {canModifyUser && (
+                          <>
                       <a
                         href={`/admin/users/${u.id}/edit`}
                         className="px-2 py-1 text-xs border border-line-medium rounded hover:bg-backdrop-medium text-neutral-medium mr-2"
@@ -329,14 +422,19 @@ export default function UsersIndex() {
                         className="px-2 py-1 text-xs border border-line-medium rounded hover:bg-backdrop-medium text-neutral-high mr-2"
                         onClick={async () => {
                           try {
-                          const res = await fetch(`/api/users/${encodeURIComponent(u.id)}/profile`, {
+                                  const res = await fetch(
+                                    `/api/users/${encodeURIComponent(u.id)}/profile`,
+                                    {
                             credentials: 'same-origin',
-                          })
+                                    }
+                                  )
                             const j = await res.json().catch(() => ({}))
                             let pid: string | null = j?.id || null
                             if (!pid) {
                               const csrf = getXsrf()
-                            const createRes = await fetch(`/api/users/${encodeURIComponent(u.id)}/profile`, {
+                                    const createRes = await fetch(
+                                      `/api/users/${encodeURIComponent(u.id)}/profile`,
+                                      {
                                   method: 'POST',
                                   headers: {
                                     'Accept': 'application/json',
@@ -344,7 +442,8 @@ export default function UsersIndex() {
                                     ...(csrf ? { 'X-XSRF-TOKEN': csrf } : {}),
                                   },
                                   credentials: 'same-origin',
-                            })
+                                      }
+                                    )
                               const cj = await createRes.json().catch(() => ({}))
                               if (!createRes.ok) {
                                 toast.error(cj?.error || 'Failed to create profile')
@@ -398,6 +497,9 @@ export default function UsersIndex() {
                           Reset Password
                         </button>
                       )}
+                          </>
+                        )}
+                        {canDeleteUser && (
                       <AlertDialog>
                         <AlertDialogTrigger asChild>
                           <button className="ml-2 px-2 py-1 text-xs border border-[#ef4444] text-[#ef4444] rounded hover:bg-[rgba(239,68,68,0.1)]">
@@ -408,7 +510,8 @@ export default function UsersIndex() {
                           <AlertDialogHeader>
                             <AlertDialogTitle>Delete user?</AlertDialogTitle>
                             <AlertDialogDescription>
-                            This action cannot be undone. The account for {u.email} will be permanently removed.
+                                  This action cannot be undone. The account for {u.email} will be
+                                  permanently removed.
                             </AlertDialogDescription>
                           </AlertDialogHeader>
                           <AlertDialogFooter>
@@ -417,11 +520,14 @@ export default function UsersIndex() {
                               onClick={async () => {
                                 try {
                                   const csrf = getXsrf()
-                                const res = await fetch(`/api/users/${encodeURIComponent(u.id)}`, {
+                                      const res = await fetch(
+                                        `/api/users/${encodeURIComponent(u.id)}`,
+                                        {
                                       method: 'DELETE',
                                       headers: { ...(csrf ? { 'X-XSRF-TOKEN': csrf } : {}) },
                                       credentials: 'same-origin',
-                                })
+                                        }
+                                      )
                                   if (!res.ok) {
                                     const j = await res.json().catch(() => ({}))
                                     toast.error(j?.error || 'Failed to delete user')
@@ -439,9 +545,11 @@ export default function UsersIndex() {
                           </AlertDialogFooter>
                         </AlertDialogContent>
                       </AlertDialog>
+                        )}
                   </TableCell>
                 </TableRow>
-                ))}
+                  )
+                })}
                 {filteredRows().length === 0 && (
                 <TableRow>
                   <TableCell colSpan={4} className="py-8 text-center text-neutral-low">
@@ -452,6 +560,61 @@ export default function UsersIndex() {
             </TableBody>
           </Table>
         </div>
+        )}
+
+        {activeTab === 'profiles' && (
+          <div className="bg-backdrop-low rounded-lg border border-line-low p-6">
+            <h3 className="text-base font-semibold text-neutral-high mb-4">Profile Settings</h3>
+            {profileSettingsLoading ? (
+              <p className="text-sm text-neutral-low">Loading…</p>
+            ) : (
+              <div className="space-y-6">
+                <div>
+                  <label className="block text-sm font-medium text-neutral-medium mb-2">
+                    Enable Profiles for Roles
+                  </label>
+                  <div className="flex flex-wrap gap-3">
+                    {availableRoles.map((r: any) => {
+                      const checked = profileRolesEnabled.includes(r.name)
+                      return (
+                        <label
+                          key={r.name}
+                          className="inline-flex items-center gap-2 text-sm text-neutral-high cursor-pointer"
+                        >
+                          <input
+                            type="checkbox"
+                            checked={checked}
+                            className="rounded border-line-medium text-standout-medium focus:ring-standout-medium"
+                            onChange={(e) => {
+                              const next = new Set(profileRolesEnabled)
+                              if (e.target.checked) next.add(r.name)
+                              else next.delete(r.name)
+                              setProfileRolesEnabled(Array.from(next))
+                            }}
+                          />
+                          <span>{r.label}</span>
+                        </label>
+                      )
+                    })}
+                  </div>
+                  <p className="text-xs text-neutral-low mt-2">
+                    Turning a role off will archive existing Profile posts for users with that role.
+                  </p>
+                </div>
+                <div className="flex items-center gap-2">
+                  <button
+                    type="button"
+                    className={`px-3 py-2 text-sm rounded ${profileSettingsSaving ? 'opacity-60' : 'bg-standout-medium text-on-standout'}`}
+                    disabled={profileSettingsSaving}
+                    onClick={saveProfileSettings}
+                  >
+                    {profileSettingsSaving ? 'Saving…' : 'Save Profile Settings'}
+                  </button>
+                </div>
+              </div>
+            )}
+          </div>
+        )}
       </main>
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <AdminFooter />

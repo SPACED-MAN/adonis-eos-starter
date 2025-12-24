@@ -3,6 +3,7 @@ import menuTemplates from '#services/menu_template_registry'
 import db from '@adonisjs/lucid/services/db'
 import { randomUUID } from 'node:crypto'
 import roleRegistry from '#services/role_registry'
+import menuService from '#services/menu_service'
 import {
   createMenuValidator,
   updateMenuValidator,
@@ -10,102 +11,6 @@ import {
   updateMenuItemValidator,
   reorderMenuItemsValidator,
 } from '#validators/menu'
-
-function buildTree(items: any[]): any[] {
-  const idToNode = new Map<string, any>()
-  const roots: any[] = []
-  for (const it of items) {
-    idToNode.set(String(it.id), { ...it, children: [] })
-  }
-  for (const it of items) {
-    const node = idToNode.get(String(it.id))
-    const pid = it.parentId ?? null
-    if (pid && idToNode.has(String(pid))) {
-      idToNode.get(String(pid)).children.push(node)
-    } else {
-      roots.push(node)
-    }
-  }
-  const sortChildren = (arr: any[]) => {
-    arr.sort((a, b) => (a.orderIndex ?? 0) - (b.orderIndex ?? 0))
-    for (const n of arr) sortChildren(n.children || [])
-  }
-  sortChildren(roots)
-  return roots
-}
-
-async function expandDynamicMenuItems(items: any[], locale: string): Promise<any[]> {
-  const hierarchyService = (await import('#services/hierarchy_service')).default
-  const urlPatternService = (await import('#services/url_pattern_service')).default
-
-  const expanded: any[] = []
-
-  for (const item of items) {
-    // If not dynamic, keep as-is
-    if (item.type !== 'dynamic') {
-      expanded.push(item)
-      continue
-    }
-
-    // Dynamic item: fetch posts and expand
-    const dynamicPostType = item.dynamicPostType
-    const dynamicParentId = item.dynamicParentId
-    // const dynamicDepthLimit = item.dynamicDepthLimit || 1 // Unused for now
-
-    if (!dynamicPostType) {
-      // Invalid dynamic item, skip
-      continue
-    }
-
-    // Fetch hierarchical posts
-    let posts: any[]
-
-    if (dynamicParentId) {
-      // Fetch children of specific parent
-      posts = await db
-        .from('posts')
-        .where('type', dynamicPostType)
-        .where('locale', locale)
-        .where('status', 'published')
-        .where('parent_id', dynamicParentId)
-        .select('id', 'title', 'slug', 'parent_id', 'order_index')
-        .orderBy('order_index', 'asc')
-    } else {
-      // Fetch all posts of this type (with hierarchy if applicable)
-      posts = await hierarchyService.getPostsHierarchical({
-        type: dynamicPostType,
-        locale,
-        status: 'published',
-        fields: ['id', 'title', 'slug', 'parent_id', 'order_index'],
-      })
-    }
-
-    // Convert posts to menu items
-    for (const post of posts) {
-      // Use hierarchical path for posts with parents
-      const url = await urlPatternService.buildPostPathForPost(post.id)
-
-      expanded.push({
-        id: `dynamic-${item.id}-${post.id}`,
-        parentId: item.parentId,
-        orderIndex: expanded.length,
-        locale: item.locale,
-        label: post.title,
-        type: 'post',
-        postId: post.id,
-        customUrl: url,
-        anchor: null,
-        target: null,
-        rel: null,
-        kind: 'item',
-        depth: post.depth || 0,
-        isDynamic: true,
-      })
-    }
-  }
-
-  return expanded
-}
 
 export default class MenusController {
   async index({ response }: HttpContext) {
@@ -186,6 +91,29 @@ export default class MenusController {
       'dynamic_parent_id as dynamicParentId',
       'dynamic_depth_limit as dynamicDepthLimit'
     )
+
+    // Using private methods of menuService via any for now or I should expose them.
+    // Actually getBySlug is enough for public, but for admin show we might need more info.
+    // Let's just keep the admin show logic as is or move buildTree to a utility.
+    // For now I'll just leave this one since it's admin-only and not the cause of flicker.
+    const buildTree = (items: any[]) => {
+      const idToNode = new Map<string, any>()
+      const roots: any[] = []
+      for (const it of items) idToNode.set(String(it.id), { ...it, children: [] })
+      for (const it of items) {
+        const node = idToNode.get(String(it.id))
+        const pid = it.parentId ?? null
+        if (pid && idToNode.has(String(pid))) idToNode.get(String(pid)).children.push(node)
+        else roots.push(node)
+      }
+      const sortChildren = (arr: any[]) => {
+        arr.sort((a, b) => (a.orderIndex ?? 0) - (b.orderIndex ?? 0))
+        for (const n of arr) sortChildren(n.children || [])
+      }
+      sortChildren(roots)
+      return roots
+    }
+
     return response.ok({
       data: {
         id: menu.id,
@@ -325,47 +253,10 @@ export default class MenusController {
    */
   async bySlug({ params, request, response }: HttpContext) {
     const slug = String(params.slug || '').trim()
-    const menu = await db.from('menus').where('slug', slug).first()
-    if (!menu) return response.notFound({ error: 'Menu not found' })
-    const locale = String(request.input('locale', (menu as any).locale || 'en') || 'en')
-    const q = db
-      .from('menu_items')
-      .where('menu_id', (menu as any).id)
-      .orderBy('order_index', 'asc')
-    if (locale) q.andWhere('locale', locale)
-    const rows = await q.select(
-      'id',
-      'parent_id as parentId',
-      'order_index as orderIndex',
-      'locale',
-      'label',
-      'type',
-      'post_id as postId',
-      'custom_url as customUrl',
-      'anchor',
-      'target',
-      'rel',
-      'kind',
-      'dynamic_post_type as dynamicPostType',
-      'dynamic_parent_id as dynamicParentId',
-      'dynamic_depth_limit as dynamicDepthLimit'
-    )
-
-    // Expand dynamic menu items
-    const expandedRows = await expandDynamicMenuItems(rows, locale)
-
-    return response.ok({
-      data: {
-        id: (menu as any).id,
-        name: (menu as any).name,
-        slug: (menu as any).slug,
-        locale: (menu as any).locale,
-        template: (menu as any).template || null,
-        meta: (menu as any).meta_json || {},
-        items: expandedRows,
-        tree: buildTree(expandedRows),
-      },
-    })
+    const locale = String(request.input('locale', 'en') || 'en')
+    const data = await menuService.getBySlug(slug, locale)
+    if (!data) return response.notFound({ error: 'Menu not found' })
+    return response.ok({ data })
   }
 
   async updateItem({ params, request, response, auth }: HttpContext) {
