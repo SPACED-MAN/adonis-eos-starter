@@ -45,6 +45,8 @@ class InternalAgentExecutor {
 
       // 5. Handle multi-turn tool execution if MCP is enabled
       let lastCreatedPostId: string | null = null
+      const allToolResults: any[] = []
+
       if (agent.internal.useMCP) {
         let currentTurn = 1
         const maxTurns = 10 // Increased from 6 to 10 for complex workflows
@@ -62,6 +64,7 @@ class InternalAgentExecutor {
           if (parsed?.tool_calls && Array.isArray(parsed.tool_calls) && parsed.tool_calls.length > 0) {
             // Execute tools for this turn
             const toolResults = await this.executeTools(agent, parsed.tool_calls)
+            allToolResults.push(...toolResults)
 
             // Check if any tool was create_post_ai_review or create_translation_ai_review
             const creationTool = toolResults.find(
@@ -134,6 +137,13 @@ RESPOND WITH YOUR NEXT TOOL CALLS IN JSON FORMAT.`
       try {
         const jsonStr = this.extractJSON(finalContent)
         parsedResult = JSON.parse(jsonStr)
+
+        // Inject all tool results from all turns into the final data
+        // This allows the controller to see generated media IDs from Turn 1 or 2
+        // even if the agent didn't repeat them in the final JSON.
+        if (allToolResults.length > 0) {
+          parsedResult.toolResults = allToolResults
+        }
 
         // If the AI returned just a post object directly, wrap it
         if (parsedResult.title || parsedResult.slug || parsedResult.excerpt) {
@@ -238,7 +248,7 @@ RESPOND WITH YOUR NEXT TOOL CALLS IN JSON FORMAT.`
 
     for (const toolCall of toolCalls) {
       const tool = toolCall.tool || toolCall.tool_name
-      const params = toolCall.params || toolCall.arguments
+      let params = toolCall.params || toolCall.arguments
       if (!tool || !params) continue
 
       try {
@@ -250,6 +260,46 @@ RESPOND WITH YOUR NEXT TOOL CALLS IN JSON FORMAT.`
               error: `Tool '${tool}' is not in the allowed list`,
             })
             continue
+          }
+        }
+
+        // Automatic placeholder replacement for tool parameters
+        // This allows agents to use results from previous tool calls in the SAME turn.
+        // E.g. generate_image followed by update_post_module_ai_review with the new media ID.
+        if (results.length > 0) {
+          // Collect ALL generated media IDs from this turn
+          const generatedMediaMap = new Map<string, string>()
+          results.forEach((r, idx) => {
+            if (
+              (r.tool === 'generate_image' || r.tool_name === 'generate_image') &&
+              r.success &&
+              r.result?.mediaId
+            ) {
+              generatedMediaMap.set(`GENERATED_IMAGE_ID_${idx}`, r.result.mediaId)
+              // Also support the generic one for the most recent image
+              generatedMediaMap.set('GENERATED_IMAGE_ID', r.result.mediaId)
+              generatedMediaMap.set('mediaId from generate_image result', r.result.mediaId)
+            }
+          })
+
+          if (generatedMediaMap.size > 0) {
+            const replaceId = (obj: any): any => {
+              if (typeof obj === 'string') {
+                let out = obj
+                generatedMediaMap.forEach((mediaId, placeholder) => {
+                  out = out.replace(new RegExp(placeholder, 'g'), mediaId)
+                })
+                return out
+              } else if (Array.isArray(obj)) {
+                return obj.map(replaceId)
+              } else if (obj && typeof obj === 'object') {
+                const out: any = {}
+                for (const k in obj) out[k] = replaceId(obj[k])
+                return out
+              }
+              return obj
+            }
+            params = replaceId(params)
           }
         }
 

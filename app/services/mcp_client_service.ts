@@ -10,6 +10,7 @@ import AddModuleToPost from '#actions/posts/add_module_to_post'
 import SaveReviewDraft from '#actions/posts/save_review_draft'
 import PostSerializerService from '#services/post_serializer_service'
 import postTypeConfigService from '#services/post_type_config_service'
+import postTypeRegistry from '#services/post_type_registry'
 import Post from '#models/post'
 import RevisionService from '#services/revision_service'
 import moduleRegistry from '#services/module_registry'
@@ -62,15 +63,15 @@ class MCPClientService {
       { name: 'get_module_schema', description: 'Get a module schema' },
       { name: 'list_posts', description: 'List posts' },
       { name: 'get_post_context', description: 'Get full post context for editing' },
-      { name: 'create_post_ai_review', description: 'Create a new post and stage into AI review' },
-      { name: 'save_post_ai_review', description: 'Save AI edits for a post' },
-      { name: 'add_module_to_post_ai_review', description: 'Add a module to a post' },
-      { name: 'update_post_module_ai_review', description: 'Update a post module' },
-      { name: 'remove_post_module_ai_review', description: 'Remove a post module' },
+      { name: 'create_post_ai_review', description: 'Create a new post and stage into AI review. Params: { type, slug, title, excerpt, featuredImageId, contentMarkdown, locale, moduleGroupName, moduleEdits }' },
+      { name: 'save_post_ai_review', description: 'Save AI edits for a post. Params: { postId, patch: { title, slug, excerpt, featuredImageId, metaTitle, metaDescription, ... } }' },
+      { name: 'add_module_to_post_ai_review', description: 'Add a module to a post. Params: { postId, moduleType, scope, props, orderIndex }' },
+      { name: 'update_post_module_ai_review', description: 'Update a post module. Params: { postModuleId, overrides, locked, orderIndex }' },
+      { name: 'remove_post_module_ai_review', description: 'Remove a post module. Params: { postModuleId }' },
       {
         name: 'create_translation_ai_review',
         description:
-          'Create a translation post for a base post and initialize AI Review content (optionally cloning module structure).',
+          'Create a translation post for a base post and initialize AI Review content (optionally cloning module structure). Params: { postId, locale, slug, title, featuredImageId, ... }',
       },
       {
         name: 'create_translations_ai_review_bulk',
@@ -92,6 +93,57 @@ class MCPClientService {
   }
 
   /**
+   * Automatically convert string values in richtext fields to Lexical JSON
+   * and flatten media objects to strings for ID-only media fields.
+   */
+  private async autoConvertFields(
+    postModuleId: string,
+    overrides: Record<string, any>
+  ): Promise<void> {
+    if (!overrides || typeof overrides !== 'object') return
+
+    try {
+      const pm = await db.from('post_modules').where('id', postModuleId).first()
+      if (!pm) return
+      const mi = await db.from('module_instances').where('id', pm.module_id).first()
+      if (!mi || !moduleRegistry.has(mi.type)) return
+
+      const schema = moduleRegistry.getSchema(mi.type)
+      const richTextFields = schema.fieldSchema
+        .filter((f: any) => f.type === 'richtext')
+        .map((f: any) => f.slug)
+      
+      const mediaFieldsWithIdStorage = schema.fieldSchema
+        .filter((f: any) => f.type === 'media' && f.config?.storeAs === 'id')
+        .map((f: any) => f.slug)
+
+      for (const key of Object.keys(overrides)) {
+        // RichText handling
+        if (richTextFields.includes(key)) {
+          const val = overrides[key]
+          if (typeof val === 'string' && val.trim() !== '') {
+            const trimmed = val.trim()
+            const looksJson = trimmed.startsWith('{') || trimmed.startsWith('[')
+            if (!looksJson) {
+              overrides[key] = markdownToLexical(val, { skipFirstH1: false })
+            }
+          }
+        }
+
+        // Media ID flattening
+        if (mediaFieldsWithIdStorage.includes(key)) {
+          const val = overrides[key]
+          if (val && typeof val === 'object' && val.id) {
+            overrides[key] = String(val.id)
+          }
+        }
+      }
+    } catch (error) {
+      console.error('Failed to auto-convert fields:', error)
+    }
+  }
+
+  /**
    * Call an MCP tool
    * For internal agents, this directly calls the underlying actions/tools
    */
@@ -100,6 +152,11 @@ class MCPClientService {
     // This avoids the overhead of HTTP/SSE communication
 
     switch (toolName) {
+      case 'list_post_types': {
+        const types = postTypeRegistry.list()
+        return { success: true, postTypes: types }
+      }
+
       case 'get_post_type_config': {
         const { postType } = params
         if (!postType) throw new Error('get_post_type_config requires "postType"')
@@ -175,6 +232,7 @@ class MCPClientService {
           slug,
           title,
           excerpt,
+          featuredImageId,
           contentMarkdown,
           moduleGroupId,
           moduleGroupName,
@@ -209,7 +267,7 @@ class MCPClientService {
               slug: finalSlug,
               title,
               status: 'draft' as any,
-              excerpt: excerpt ?? null,
+              excerpt: null, // Don't set excerpt in approved fields when seeding into AI review
               metaTitle: null,
               metaDescription: null,
               moduleGroupId: resolvedModuleGroupId,
@@ -255,6 +313,7 @@ class MCPClientService {
           title,
           status: 'draft',
           excerpt: excerpt ?? null,
+          featuredImageId: featuredImageId ?? null,
           savedAt: new Date().toISOString(),
           savedBy,
         }
@@ -298,7 +357,7 @@ class MCPClientService {
           editsToApply.push(...moduleEdits)
         }
 
-        // Handle contentMarkdown - convert to Lexical and populate first prose module
+        // Handle contentMarkdown - convert to Lexical and populate seeded modules intelligently
         const mdTop = String(contentMarkdown || '').trim()
         if (mdTop) {
           // Check if there's already a prose content edit
@@ -309,7 +368,8 @@ class MCPClientService {
               const hasContentOverride =
                 !!(edit as any)?.overrides &&
                 typeof (edit as any).overrides === 'object' &&
-                (edit as any).overrides.content !== undefined
+                ((edit as any).overrides.content !== undefined ||
+                  (edit as any).overrides.body !== undefined)
 
               if (!hasContentMarkdown && !hasContentOverride) continue
 
@@ -318,37 +378,42 @@ class MCPClientService {
                 const m = (seededModules as any[]).find(
                   (x: any) => String(x.postModuleId) === explicitId
                 )
-                if (String(m?.type || '') === 'prose') return true
+                if (
+                  String(m?.type || '') === 'prose' ||
+                  String(m?.type || '') === 'prose-with-media'
+                )
+                  return true
                 continue
               }
 
               const t = String((edit as any)?.type || '').trim()
-              if (t === 'prose') return true
+              if (t === 'prose' || t === 'prose-with-media') return true
             }
             return false
           })()
 
           if (!hasProseContentEdit) {
-            // Find first prose module and add contentMarkdown edit
-            const firstProse = (seededModules as any[]).find((m: any) => String(m.type) === 'prose')
-            if (firstProse) {
+            // Find first prose OR prose-with-media module and add contentMarkdown edit
+            const firstContentModule = (seededModules as any[]).find(
+              (m: any) => String(m.type) === 'prose' || String(m.type) === 'prose-with-media'
+            )
+            if (firstContentModule) {
               editsToApply.push({
-                postModuleId: String((firstProse as any).postModuleId),
+                postModuleId: String((firstContentModule as any).postModuleId),
                 contentMarkdown: mdTop,
               })
             } else {
               appliedEdits.push({
                 ok: false,
                 error:
-                  'contentMarkdown was provided but no seeded prose module exists to populate.',
+                  'contentMarkdown was provided but no seeded content module exists to populate.',
               })
             }
           }
 
-          // Auto-populate hero and prose-with-media modules from markdown
+          // Auto-populate hero module from metadata
           const mdH1 = this.extractMarkdownH1(mdTop)
           const mdParas = this.extractMarkdownParagraphs(mdTop)
-          const mdH2s = this.extractMarkdownH2s(mdTop)
 
           const alreadyEditsModule = (postModuleId: string) =>
             editsToApply.some((e) => String((e as any)?.postModuleId || '').trim() === postModuleId)
@@ -365,27 +430,6 @@ class MCPClientService {
                 overrides: {
                   ...(heroTitle ? { title: heroTitle } : {}),
                   ...(heroSubtitle ? { subtitle: heroSubtitle } : {}),
-                },
-              })
-            }
-          }
-
-          // Auto-populate prose-with-media module
-          const firstProseWithMedia = (seededModules as any[]).find(
-            (m: any) => String(m.type) === 'prose-with-media'
-          )
-          if (
-            firstProseWithMedia &&
-            !alreadyEditsModule(String(firstProseWithMedia.postModuleId))
-          ) {
-            const pwmTitle = (mdH2s[0] || '').trim()
-            const pwmBody = (mdParas[0] || '').trim()
-            if (pwmTitle || pwmBody) {
-              editsToApply.push({
-                postModuleId: String(firstProseWithMedia.postModuleId),
-                overrides: {
-                  ...(pwmTitle ? { title: pwmTitle } : {}),
-                  ...(pwmBody ? { body: pwmBody } : {}),
                 },
               })
             }
@@ -420,29 +464,45 @@ class MCPClientService {
               const targetMeta = (seededModules as any[]).find(
                 (m: any) => String(m.postModuleId) === targetId
               )
-              const isProse = String(targetMeta?.type || (edit as any)?.type || '') === 'prose'
+              if (!targetMeta) {
+                appliedEdits.push({
+                  ok: false,
+                  postModuleId: targetId,
+                  error: 'Target module meta not found',
+                })
+                continue
+              }
 
               let overrides =
                 (edit as any)?.overrides === undefined
                   ? undefined
                   : ((edit as any)?.overrides as any)
 
-              // Handle contentMarkdown for prose modules
+              // Handle contentMarkdown for ANY module with a richtext field
               const md = String((edit as any)?.contentMarkdown || '').trim()
               if (md) {
-                if (!isProse) {
-                  appliedEdits.push({
-                    ok: false,
-                    postModuleId: targetId,
-                    error: 'contentMarkdown is only supported for prose modules.',
-                  })
-                  continue
+                if (moduleRegistry.has(targetMeta.type)) {
+                  const schema = moduleRegistry.getSchema(targetMeta.type)
+                  const firstRichText = schema.fieldSchema.find((f: any) => f.type === 'richtext')
+                  if (!firstRichText) {
+                    appliedEdits.push({
+                      ok: false,
+                      postModuleId: targetId,
+                      error: `contentMarkdown is not supported for module type ${targetMeta.type} (no richtext field found).`,
+                    })
+                    continue
+                  }
+                  const lexical = markdownToLexical(md, { skipFirstH1: false })
+                  overrides = {
+                    ...(overrides && typeof overrides === 'object' ? overrides : {}),
+                    [firstRichText.slug]: lexical,
+                  }
                 }
-                const lexical = markdownToLexical(md, { skipFirstH1: false })
-                overrides = {
-                  ...(overrides && typeof overrides === 'object' ? overrides : {}),
-                  content: lexical,
-                }
+              }
+
+              // Automatic Markdown-to-Lexical conversion for ANY other richtext overrides
+              if (overrides && typeof overrides === 'object') {
+                await this.autoConvertFields(targetId, overrides)
               }
 
               await UpdatePostModule.handle({
@@ -547,47 +607,28 @@ class MCPClientService {
       }
 
       case 'update_post_module_ai_review': {
-        const { postModuleId, locked, orderIndex } = params
+        let { postModuleId, locked, orderIndex, moduleInstanceId } = params
         let overrides = params.overrides || params.props // Accept both overrides and props
 
+        // If postModuleId is missing but moduleInstanceId is provided, try to resolve it
+        if (!postModuleId && moduleInstanceId) {
+          const pm = await db
+            .from('post_modules')
+            .where('module_id', moduleInstanceId)
+            .select('id')
+            .first()
+          if (pm) postModuleId = String(pm.id)
+        }
+
         if (!postModuleId) {
-          throw new Error('update_post_module_ai_review requires "postModuleId"')
+          throw new Error(
+            'update_post_module_ai_review requires "postModuleId" (or a valid "moduleInstanceId")'
+          )
         }
 
         // Automatic Markdown-to-Lexical conversion for RichText fields
         if (overrides && typeof overrides === 'object') {
-          try {
-            // Find the module instance to get its type
-            const pm = await db.from('post_modules').where('id', postModuleId).first()
-            if (pm) {
-              const mi = await db.from('module_instances').where('id', pm.module_id).first()
-              if (mi && moduleRegistry.has(mi.type)) {
-                const schema = moduleRegistry.getSchema(mi.type)
-                const richTextFields = schema.fieldSchema
-                  .filter((f: any) => f.type === 'richtext')
-                  .map((f: any) => f.slug)
-
-                for (const key of Object.keys(overrides)) {
-                  if (richTextFields.includes(key)) {
-                    const val = overrides[key]
-                    if (typeof val === 'string' && val.trim() !== '') {
-                      // If it's a string, it's likely Markdown or plain text from an AI agent
-                      // Check if it's already JSON
-                      const trimmed = val.trim()
-                      const looksJson = trimmed.startsWith('{') || trimmed.startsWith('[')
-                      if (!looksJson) {
-                        // Convert to Lexical JSON
-                        overrides[key] = markdownToLexical(val, { skipFirstH1: false })
-                      }
-                    }
-                  }
-                }
-              }
-            }
-          } catch (error) {
-            console.error('Failed to auto-convert Markdown to Lexical:', error)
-            // Continue anyway with raw overrides
-          }
+          await this.autoConvertFields(postModuleId, overrides)
         }
 
         await UpdatePostModule.handle({
@@ -605,9 +646,22 @@ class MCPClientService {
       }
 
       case 'remove_post_module_ai_review': {
-        const { postModuleId } = params
+        let { postModuleId, moduleInstanceId } = params
+
+        // Resolve postModuleId from moduleInstanceId if needed
+        if (!postModuleId && moduleInstanceId) {
+          const pm = await db
+            .from('post_modules')
+            .where('module_id', moduleInstanceId)
+            .select('id')
+            .first()
+          if (pm) postModuleId = String(pm.id)
+        }
+
         if (!postModuleId) {
-          throw new Error('remove_post_module_ai_review requires "postModuleId"')
+          throw new Error(
+            'remove_post_module_ai_review requires "postModuleId" (or a valid "moduleInstanceId")'
+          )
         }
 
         await db.from('post_modules').where('id', postModuleId).update({ ai_review_deleted: true })
@@ -629,6 +683,7 @@ class MCPClientService {
           title,
           metaTitle,
           metaDescription,
+          featuredImageId,
         } = params
 
         if (!postId || !locale) {
@@ -643,8 +698,8 @@ class MCPClientService {
           locale,
           slug,
           title,
-          metaTitle: metaTitle ?? null,
-          metaDescription: metaDescription ?? null,
+          metaTitle: null, // Don't set in approved fields when seeding into AI review
+          metaDescription: null, // Don't set in approved fields when seeding into AI review
         })
 
         // Load base post info for drafting context
@@ -675,6 +730,7 @@ class MCPClientService {
           slug: (translation as any).slug,
           title: (translation as any).title,
           status: (translation as any).status,
+          featuredImageId: featuredImageId !== undefined ? (featuredImageId ?? null) : basePayload.featuredImageId,
           savedAt: new Date().toISOString(),
           savedBy: agentLabel,
           translation: {

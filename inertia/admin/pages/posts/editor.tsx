@@ -989,19 +989,6 @@ export default function Editor({
   )
   const [activeId, setActiveId] = useState<string | null>(null)
 
-  const hasSourceBaseline = useMemo(() => {
-    // "Source" exists if:
-    // 1. There is at least one module not introduced via Review/AI Review, OR
-    // 2. The post has approved content (post itself exists with approved fields)
-    // This ensures Source tab shows even when all modules have aiReviewProps but post has source content
-    const hasSourceModules = (modules || []).some(
-      (m) => !m.reviewAdded && !(m as any).aiReviewAdded
-    )
-    // Post has source content if it exists (has id, title, etc.) - this is always true for existing posts
-    const hasSourcePost = !!post?.id
-    return hasSourceModules || hasSourcePost
-  }, [modules, post])
-
   const hasReviewBaseline = useMemo(() => {
     // Check post-level review draft
     if (reviewDraft) return true
@@ -1026,6 +1013,42 @@ export default function Editor({
     )
   }, [aiReviewDraft, modules])
 
+  const hasSourceBaseline = useMemo(() => {
+    // "Source" exists if:
+    // 1. There is at least one module not introduced via Review/AI Review, OR
+    // 2. The post has approved content (post itself exists with approved fields)
+    const hasSourceModules = (modules || []).some(
+      (m) => !m.reviewAdded && !(m as any).aiReviewAdded
+    )
+
+    // Check if the main post record has meaningful approved content beyond just title/slug
+    const hasApprovedFields = !!(
+      (post.excerpt && post.excerpt.trim() !== '') ||
+      (post.metaTitle && post.metaTitle.trim() !== '') ||
+      (post.metaDescription && post.metaDescription.trim() !== '') ||
+      post.featuredImageId ||
+      (initialCustomFields && initialCustomFields.some((f: any) => f.value !== null && f.value !== ''))
+    )
+
+    // Optimization: If a post was created via an agent into AI Review mode, 
+    // it starts with NO source modules and its post fields are just skeletons.
+    // In this case, we hide the 'Source' tab to avoid confusion and land 
+    // the user directly on the meaningful content in 'AI Review'.
+    if (
+      modulesEnabled &&
+      !hasSourceModules &&
+      !hasApprovedFields &&
+      (hasReviewBaseline || hasAiReviewBaseline) &&
+      post.status === 'draft'
+    ) {
+      return false
+    }
+
+    // Post has source content if it exists (has id, title, etc.) - this is always true for existing posts
+    const hasSourcePost = !!post?.id
+    return hasSourceModules || hasSourcePost
+  }, [modules, post, hasReviewBaseline, hasAiReviewBaseline, modulesEnabled, initialCustomFields])
+
   const initialViewMode: 'source' | 'review' | 'ai-review' = useMemo(() => {
     // Check URL parameter first to preserve view mode across reloads
     if (typeof window !== 'undefined') {
@@ -1035,9 +1058,10 @@ export default function Editor({
         return viewParam as 'source' | 'review' | 'ai-review'
       }
     }
-    // Fallback to baseline-based logic
+    // Fallback to baseline-based logic: land on most "active" draft version if source is skeleton
+    if (hasAiReviewBaseline && !hasSourceBaseline) return 'ai-review'
+    if (hasReviewBaseline && !hasSourceBaseline) return 'review'
     if (hasReviewBaseline) return 'review'
-    if (!hasSourceBaseline && hasAiReviewBaseline) return 'ai-review'
     return 'source'
   }, [hasReviewBaseline, hasSourceBaseline, hasAiReviewBaseline])
 

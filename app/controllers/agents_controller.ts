@@ -198,11 +198,14 @@ export default class AgentsController {
         // Build execution context
         const executionContext: AgentExecutionContext = {
           agent,
-          scope: 'dropdown',
+          scope: scope as any,
           userId: (auth.use('web').user as any)?.id,
           data: {
             postId: id,
             post: canonical,
+            fieldKey,
+            fieldType,
+            ...ctx,
           },
         }
 
@@ -724,8 +727,13 @@ export default class AgentsController {
                     const richTextFields = schema.fieldSchema
                       .filter((f: any) => f.type === 'richtext')
                       .map((f: any) => f.slug)
+                    
+                    const mediaFieldsWithIdStorage = schema.fieldSchema
+                      .filter((f: any) => f.type === 'media' && f.config?.storeAs === 'id')
+                      .map((f: any) => f.slug)
 
                     for (const key of Object.keys(propsToApply)) {
+                      // RichText handling
                       if (richTextFields.includes(key)) {
                         const val = propsToApply[key]
                         if (typeof val === 'string' && val.trim() !== '') {
@@ -734,6 +742,14 @@ export default class AgentsController {
                           if (!looksJson) {
                             propsToApply[key] = markdownToLexical(val, { skipFirstH1: false })
                           }
+                        }
+                      }
+                      
+                      // Media ID flattening: if agent provides { id: "uuid" } but field wants string
+                      if (mediaFieldsWithIdStorage.includes(key)) {
+                        const val = propsToApply[key]
+                        if (val && typeof val === 'object' && val.id) {
+                          propsToApply[key] = String(val.id)
                         }
                       }
                     }

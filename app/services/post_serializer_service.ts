@@ -10,6 +10,7 @@ import { coerceJsonObject } from '../helpers/jsonb.js'
 
 type CanonicalModule = {
   postModuleId: string // Unique ID for updating this module instance on the post
+  moduleInstanceId: string // The underlying instance ID
   type: string
   scope: 'local' | 'global'
   orderIndex: number
@@ -320,6 +321,8 @@ export default class PostSerializerService {
         }
 
         return {
+          postModuleId: row.postModuleId,
+          moduleInstanceId: row.moduleInstanceId,
           type: row.type,
           scope: row.scope === 'post' ? 'local' : 'global',
           orderIndex: row.orderIndex,

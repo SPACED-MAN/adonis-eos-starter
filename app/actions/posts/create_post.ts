@@ -5,6 +5,7 @@ import LocaleService from '#services/locale_service'
 import { randomUUID } from 'node:crypto'
 import siteSettingsService from '#services/site_settings_service'
 import postTypeConfigService from '#services/post_type_config_service'
+import postTypeRegistry from '#services/post_type_registry'
 import moduleRegistry from '#services/module_registry'
 import { existsSync } from 'node:fs'
 import { join } from 'node:path'
@@ -53,26 +54,16 @@ export default class CreatePost {
     seedMode = 'approved',
     userId,
   }: CreatePostParams): Promise<Post> {
-    // Enforce: post types must be defined in code (app/post_types/*)
-    try {
-      const appRoot = process.cwd()
-      const tsPath = join(appRoot, 'app', 'post_types', `${type}.ts`)
-      const jsPath = join(appRoot, 'app', 'post_types', `${type}.js`)
-      const hasConfig = existsSync(tsPath) || existsSync(jsPath)
-      if (!hasConfig) {
-        // Allow if service provides built-in defaults (e.g., profile), else reject
-        const ui = postTypeConfigService.getUiConfig(type)
-        const isBuiltIn = type === 'profile'
-        if (!isBuiltIn && !ui) {
-          throw new CreatePostException(
-            `Unknown post type: ${type}. Create app/post_types/${type}.ts first.`,
-            400,
-            { type }
-          )
-        }
-      }
-    } catch {
-      // If any unexpected error, still proceed; controller endpoints and UI use configured list
+    // Enforce: post types must be defined in code (app/post_types/* or registered in PostTypeRegistry)
+    const isRegistered = postTypeRegistry.has(type)
+    const isBuiltIn = type === 'profile'
+    
+    if (!isRegistered && !isBuiltIn) {
+      throw new CreatePostException(
+        `Unknown post type: ${type}. Available types: ${postTypeRegistry.list().join(', ')}`,
+        400,
+        { type }
+      )
     }
     // Profiles governance: one profile per user and role-based enablement
     if (type === 'profile') {
