@@ -44,6 +44,9 @@ const sessionConfig = defineConfig({
    */
   stores: {
     cookie: stores.cookie(),
+    redis: stores.redis({
+      connection: 'main',
+    }),
   },
 })
 
