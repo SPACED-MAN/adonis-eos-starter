@@ -1,4 +1,5 @@
 import Post from '#models/post'
+import { DateTime } from 'luxon'
 import urlPatternService from '#services/url_pattern_service'
 import postTypeConfigService from '#services/post_type_config_service'
 import ApplyPostTaxonomyAssignments from '#actions/posts/apply_post_taxonomy_assignments'
@@ -163,13 +164,12 @@ export default class UpdatePost {
     }
 
     // Handle timestamps and status-related side effects
-    const now = new Date()
     if (status === 'published') {
-      post.publishedAt = now
+      post.publishedAt = DateTime.now()
       post.scheduledAt = null
     } else if (status === 'scheduled' && scheduledAt) {
-      const ts = new Date(scheduledAt)
-      if (!Number.isNaN(ts.getTime())) {
+      const ts = DateTime.fromISO(scheduledAt)
+      if (ts.isValid) {
         post.scheduledAt = ts
       }
     } else if (status === 'draft') {
