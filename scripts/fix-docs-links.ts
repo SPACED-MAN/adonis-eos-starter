@@ -17,6 +17,7 @@ const slugToFileMap: Record<string, { file: string; dir: string }> = {
   media: { file: '04-media.md', dir: 'editors' },
   translations: { file: '05-translations.md', dir: 'editors' },
   'modules-guide': { file: '06-modules-guide.md', dir: 'editors' },
+  'seo-and-ab-testing': { file: '07-seo-and-ab-testing.md', dir: 'editors' },
   
   // Developers
   developers: { file: '00-getting-started.md', dir: 'developers' },
@@ -24,14 +25,13 @@ const slugToFileMap: Record<string, { file: string; dir: string }> = {
   theming: { file: '02-theming.md', dir: 'developers' },
   'building-modules': { file: '03-building-modules.md', dir: 'developers' },
   'api-reference': { file: '04-api-reference.md', dir: 'developers' },
-  webhooks: { file: '05-webhooks.md', dir: 'developers' },
+  'automation-and-integrations': { file: '05-automation-and-integrations.md', dir: 'developers' },
   'seo-and-routing': { file: '06-seo-and-routing.md', dir: 'developers' },
   internationalization: { file: '07-internationalization.md', dir: 'developers' },
   taxonomies: { file: '08-taxonomies.md', dir: 'developers' },
   'ai-agents': { file: '09-ai-agents.md', dir: 'developers' },
   mcp: { file: '10-mcp.md', dir: 'developers' },
-  workflows: { file: '11-workflows.md', dir: 'developers' },
-  'export-import': { file: '12-export-import.md', dir: 'developers' },
+  'cli-and-operations': { file: '12-cli-and-operations.md', dir: 'developers' },
   'review-workflow-developers': { file: '13-review-workflow.md', dir: 'developers' },
   'media-pipeline': { file: '14-media-pipeline.md', dir: 'developers' },
   'preview-system': { file: '15-preview-system.md', dir: 'developers' },
@@ -40,7 +40,8 @@ const slugToFileMap: Record<string, { file: string; dir: string }> = {
   'rbac-and-permissions': { file: '18-rbac-and-permissions.md', dir: 'developers' },
   deployment: { file: '19-deployment.md', dir: 'developers' },
   'update-philosophy': { file: '20-update-philosophy.md', dir: 'developers' },
-  'cli-commands': { file: '21-cli-commands.md', dir: 'developers' },
+  'advanced-customization': { file: '22-advanced-customization.md', dir: 'developers' },
+  'user-interaction': { file: '24-user-interaction.md', dir: 'developers' },
 }
 
 /**

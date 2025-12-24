@@ -691,4 +691,4 @@ After deployment:
 
 ---
 
-**Related:** [Getting Started](00-getting-started.md) | [Configuration](/docs/for-developers/configuration)
+**Related:** [Getting Started](00-getting-started.md)

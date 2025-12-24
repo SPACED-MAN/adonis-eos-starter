@@ -37,7 +37,7 @@
   --color-standout-low: var(--color-violet-800);
   --color-standout-medium: var(--color-violet-500);
   --color-standout-high: var(--color-violet-400);
-  --color-on-standout: var(--color-black);
+  --color-on-standout: var(--color-white);
 
   --color-neutral-low: var(--color-zinc-400);
   --color-neutral-medium: var(--color-zinc-300);
@@ -85,7 +85,7 @@
   --color-standout-low: var(--color-violet-800);
   --color-standout-medium: var(--color-violet-500);
   --color-standout-high: var(--color-violet-400);
-  --color-on-standout: var(--color-black);
+  --color-on-standout: var(--color-white);
 
   --color-neutral-low: var(--color-zinc-400);
   --color-neutral-medium: var(--color-zinc-300);

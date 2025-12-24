@@ -217,7 +217,7 @@ Always fill in:
 - Featured image
 - Proper heading hierarchy
 
-See the [SEO](07-seo.md) for detailed best practices.
+See the [SEO & A/B Testing](07-seo-and-ab-testing.md) for detailed best practices.
 
 ### 8. Accessibility
 

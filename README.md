@@ -48,16 +48,16 @@ npm install
 
 If you're new to using the CMS, start here:
 
-👉 **[For Editors](/docs/for-editors)** - Learn how to create and manage content
+👉 **[For Editors](docs/editors/00-quick-start.md)** - Learn how to create and manage content
 
 **Editor Documentation:**
 
-- [Content Management](/docs/for-editors/content-management) - Creating and editing posts
-- [Working with Modules](/docs/for-editors/modules-guide) - Understanding content blocks
-- [Review Workflow](/docs/for-editors/review-workflow) - Collaboration and approval
-- [Managing Media](/docs/for-editors/media) - Uploading and organizing images
-- [Translations](/docs/for-editors/translations) - Multi-language content
-- [Roles & Permissions](/docs/for-editors/roles-permissions) - Understanding your access level
+- [Content Management](docs/editors/01-content-management.md) - Creating and editing posts
+- [Working with Modules](docs/editors/06-modules-guide.md) - Understanding content blocks
+- [Review Workflow](docs/editors/03-review-workflow.md) - Collaboration and approval
+- [Managing Media](docs/editors/04-media.md) - Uploading and organizing images
+- [Translations](docs/editors/05-translations.md) - Multi-language content
+- [Roles & Permissions](docs/editors/02-roles-permissions.md) - Understanding your access level
 
 ### For Developers
 
@@ -94,18 +94,18 @@ Visit `http://localhost:3333/admin` and log in with:
 
 > **⚠️ Security Note:** Change these default passwords immediately in production!
 
-👉 **[For Developers](/docs/for-developers)** - Complete setup and configuration
+👉 **[For Developers](docs/developers/00-getting-started.md)** - Complete setup and configuration
 
 **Developer Documentation:**
 
-- [API Reference](/docs/for-developers/api-reference) - RESTful endpoints
-- [Building Modules](/docs/for-developers/building-modules) - Creating custom content components
-- [Content Management Overview](/docs/for-developers/content-management-overview) - Understanding the content model
-- [Theming System](/docs/for-developers/theming) - Customizing design and colors
-- [URL Patterns & Routing](/docs/for-developers/routing) - Dynamic URL generation
-- [AI Agents](/docs/for-developers/ai-agents) - Automated workflows and integrations
-- [Internationalization](/docs/for-developers/internationalization) - i18n implementation
-- [Deployment Guide](/docs/for-developers/deployment) - Production setup and best practices
+- [API Reference](docs/developers/04-api-reference.md) - RESTful endpoints
+- [Building Modules](docs/developers/03-building-modules.md) - Creating custom content components
+- [Content Management Overview](docs/developers/01-content-management-overview.md) - Understanding the content model
+- [Theming System](docs/developers/02-theming.md) - Customizing design and colors
+- [URL Patterns & Routing](docs/developers/06-seo-and-routing.md) - Dynamic URL generation
+- [AI Agents](docs/developers/09-ai-agents.md) - Automated workflows and integrations
+- [Internationalization](docs/developers/07-internationalization.md) - i18n implementation
+- [Deployment Guide](docs/developers/19-deployment.md) - Production setup and best practices
 
 ## Project Structure
 
@@ -191,7 +191,7 @@ Centralized theme configuration with separate admin and site themes, automatic d
 
 ## Development
 
-For detailed development workflows, testing strategies, and advanced topics, see the **[Developer Documentation](/docs/for-developers)**.
+For detailed development workflows, testing strategies, and advanced topics, see the **[Developer Documentation](docs/00-index.md)**.
 
 **Quick Commands:**
 
@@ -203,7 +203,7 @@ node ace make:agent seo    # Create AI agent
 
 ## Deployment
 
-For production deployment guides, environment configuration, and hosting recommendations, see the **[Deployment Guide](/docs/for-developers/deployment)**.
+For production deployment guides, environment configuration, and hosting recommendations, see the **[Deployment Guide](docs/developers/19-deployment.md)**.
 
 **Quick Deploy:**
 
@@ -258,4 +258,4 @@ Licensed under the Apache License, Version 2.0. See the [LICENSE](LICENSE) file 
 
 ---
 
-**Documentation:** [/docs](/docs) | **Admin Panel:** [/admin](/admin)
+**Documentation:** [docs/00-index.md](docs/00-index.md) | **Admin Panel:** [/admin](/admin)
