@@ -32,6 +32,11 @@ export default function ProseWithForm({
 }: ProseWithFormProps) {
   const headingValue = useInlineValue(__moduleId, 'heading', heading)
   const contentValue = useInlineValue(__moduleId, 'content', initialContent)
+  const bg = useInlineValue(__moduleId, 'backgroundColor', backgroundColor) || backgroundColor
+
+  const isDarkBg = bg === 'bg-neutral-high'
+  const textColor = isDarkBg ? 'text-backdrop-low' : 'text-neutral-high'
+  const subtextColor = isDarkBg ? 'text-backdrop-low/80' : 'text-neutral-medium'
 
   const isFormRight = layout === 'form-right'
 
@@ -68,14 +73,14 @@ export default function ProseWithForm({
   const proseBlock = (
     <div className="space-y-4">
       <h2
-        className="text-3xl sm:text-4xl font-extrabold tracking-tight text-neutral-high"
+        className={`text-3xl sm:text-4xl font-extrabold tracking-tight ${textColor}`}
         data-inline-path="heading"
       >
         {headingValue}
       </h2>
       {contentValue && (
         <div
-          className="prose prose-sm md:prose-base text-neutral-medium max-w-none"
+          className={`prose prose-sm md:prose-base ${isDarkBg ? 'prose-invert' : ''} ${subtextColor} max-w-none`}
           suppressHydrationWarning
           data-inline-type="richtext"
           data-inline-path="content"
@@ -87,7 +92,7 @@ export default function ProseWithForm({
 
   const formBlock = (
     <div className="mt-6 md:mt-0">
-      <FormModule title={null} subtitle={null} formSlug={formSlug} />
+      <FormModule title={null} subtitle={null} formSlug={formSlug} backgroundColor="bg-transparent" />
     </div>
   )
 
@@ -132,7 +137,7 @@ export default function ProseWithForm({
         whileInView="visible"
         viewport={{ once: true, margin: '-100px' }}
         variants={containerVariants}
-        className={`${backgroundColor} py-12 sm:py-16 overflow-hidden`}
+        className={`${bg} py-12 sm:py-16 overflow-hidden`}
         data-module="prose-with-form"
       >
         <div className="container mx-auto px-4 sm:px-6 lg:px-8">
@@ -143,7 +148,11 @@ export default function ProseWithForm({
   }
 
   return (
-    <section className={`${backgroundColor} py-12 sm:py-16`} data-module="prose-with-form">
+    <section
+      className={`${bg} py-12 sm:py-16`}
+      data-module="prose-with-form"
+      data-inline-path="backgroundColor"
+    >
       <div className="container mx-auto px-4 sm:px-6 lg:px-8">
         {content}
       </div>

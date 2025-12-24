@@ -35,9 +35,11 @@ function getLinkTarget(
 function CalloutButtons({
   callouts,
   _useReact,
+  isDarkBg,
 }: {
   callouts: CalloutButton[]
   _useReact?: boolean
+  isDarkBg?: boolean
 }) {
   const [resolvedLinks, setResolvedLinks] = useState<Map<number, string>>(new Map())
 
@@ -125,7 +127,11 @@ function CalloutButtons({
         href={href}
         target={linkTarget}
         rel={linkTarget === '_blank' ? 'noopener noreferrer' : undefined}
-        className="inline-flex justify-center items-center py-3 px-5 text-sm sm:text-base font-medium text-center text-on-standout rounded-lg bg-standout-medium hover:bg-standout-medium/90 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:ring-standout-medium transition-all active:scale-95"
+        className={`inline-flex justify-center items-center py-3 px-5 text-sm sm:text-base font-medium text-center rounded-lg focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:ring-standout-medium transition-all active:scale-95 ${
+          isDarkBg
+            ? 'bg-backdrop-low text-neutral-high hover:bg-backdrop-low/90'
+            : 'text-on-standout bg-standout-medium hover:bg-standout-medium/90'
+        }`}
         data-inline-type="object"
         data-inline-path={`callouts.${index}`}
         data-inline-label={`Callout ${index + 1}`}
@@ -188,7 +194,11 @@ export default function HeroWithCallout({
   const title = useInlineValue(__moduleId, 'title', initialTitle)
   const subtitle = useInlineValue(__moduleId, 'subtitle', initialSubtitle)
   const callouts = useInlineValue(__moduleId, 'callouts', initialCallouts)
-  const bg = useInlineValue(__moduleId, 'backgroundColor', backgroundColor)
+  const bg = useInlineValue(__moduleId, 'backgroundColor', backgroundColor) || backgroundColor
+
+  const isDarkBg = bg === 'bg-neutral-high'
+  const textColor = isDarkBg ? 'text-backdrop-low' : 'text-neutral-high'
+  const subtextColor = isDarkBg ? 'text-backdrop-low/80' : 'text-neutral-medium'
 
   const content = (
     <div className="max-w-5xl mx-auto px-4 sm:px-6 lg:px-12 text-center">
@@ -198,14 +208,14 @@ export default function HeroWithCallout({
           whileInView={{ opacity: 1, y: 0 }}
           viewport={{ once: true }}
           transition={{ duration: 0.8, ease: 'easeOut' }}
-          className="mb-4 text-4xl font-extrabold tracking-tight leading-tight text-neutral-high md:text-5xl lg:text-6xl"
+          className={`mb-4 text-4xl font-extrabold tracking-tight leading-tight ${textColor} md:text-5xl lg:text-6xl`}
           data-inline-path="title"
         >
           {title}
         </motion.h1>
       ) : (
         <h1
-          className="mb-4 text-4xl font-extrabold tracking-tight leading-tight text-neutral-high md:text-5xl lg:text-6xl"
+          className={`mb-4 text-4xl font-extrabold tracking-tight leading-tight ${textColor} md:text-5xl lg:text-6xl`}
           data-inline-path="title"
         >
           {title}
@@ -219,14 +229,14 @@ export default function HeroWithCallout({
             whileInView={{ opacity: 1 }}
             viewport={{ once: true }}
             transition={{ duration: 0.8, delay: 0.2 }}
-            className="mb-8 text-lg font-normal text-neutral-medium lg:text-xl sm:px-4"
+            className={`mb-8 text-lg font-normal ${subtextColor} lg:text-xl sm:px-4`}
             data-inline-path="subtitle"
           >
             {subtitle}
           </motion.p>
         ) : (
           <p
-            className="mb-8 text-lg font-normal text-neutral-medium lg:text-xl sm:px-4"
+            className={`mb-8 text-lg font-normal ${subtextColor} lg:text-xl sm:px-4`}
             data-inline-path="subtitle"
           >
             {subtitle}
@@ -234,7 +244,7 @@ export default function HeroWithCallout({
         ))}
 
       {callouts && callouts.length > 0 && (
-        <CalloutButtons callouts={callouts} _useReact={_useReact} />
+        <CalloutButtons callouts={callouts} _useReact={_useReact} isDarkBg={isDarkBg} />
       )}
     </div>
   )

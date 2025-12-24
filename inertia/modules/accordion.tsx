@@ -9,7 +9,7 @@
  */
 
 import { useState } from 'react'
-import { motion, AnimatePresence } from 'framer-motion'
+import { motion, AnimatePresence, type Variants } from 'framer-motion'
 import { FontAwesomeIcon } from '../site/lib/icons'
 import { useInlineValue } from '../components/inline-edit/InlineEditorContext'
 import { renderLexicalToHtml } from '../utils/lexical'
@@ -23,6 +23,7 @@ interface AccordionProps {
   items: AccordionItem[]
   allowMultiple?: boolean
   defaultOpenIndex?: number
+  backgroundColor?: string
   __moduleId?: string
   _useReact?: boolean
 }
@@ -48,10 +49,19 @@ export default function Accordion({
   items: initialItems,
   allowMultiple = false,
   defaultOpenIndex,
+  backgroundColor = 'bg-transparent',
   __moduleId,
   _useReact,
 }: AccordionProps) {
   const items = useInlineValue(__moduleId, 'items', initialItems) || []
+  const bg = useInlineValue(__moduleId, 'backgroundColor', backgroundColor) || backgroundColor
+
+  const isDarkBg = bg === 'bg-neutral-high'
+  const textColor = isDarkBg ? 'text-backdrop-low' : 'text-neutral-high'
+  const subtextColor = isDarkBg ? 'text-backdrop-low/80' : 'text-neutral-medium'
+  const itemBg = isDarkBg ? 'bg-backdrop-low/10' : 'bg-backdrop-low'
+  const itemBorder = isDarkBg ? 'border-backdrop-low/20' : 'border-border'
+
   const [openIndices, setOpenIndices] = useState<Set<number>>(
     new Set(defaultOpenIndex !== undefined ? [defaultOpenIndex] : [])
   )
@@ -83,7 +93,7 @@ export default function Accordion({
     },
   }
 
-  const itemVariants = {
+  const itemVariants: Variants = {
     hidden: { opacity: 0, y: 20 },
     visible: {
       opacity: 1,
@@ -94,29 +104,28 @@ export default function Accordion({
 
   const content = (
     <div className="space-y-2">
-      {items.map((item, index) => {
+      {items.map((item: AccordionItem, index: number) => {
         const isOpen = openIndices.has(index)
         const htmlContent = renderContent(item.content)
 
         const accordionItem = (
-          <div key={index} className="border border-border rounded-lg overflow-hidden">
+          <div key={index} className={`border ${itemBorder} rounded-lg overflow-hidden`}>
             {/* Header */}
             <button
               onClick={() => toggleItem(index)}
-              className="w-full flex items-center justify-between p-4 text-left bg-backdrop-low hover:bg-backdrop-medium transition-colors"
+              className={`w-full flex items-center justify-between p-4 text-left ${itemBg} hover:opacity-90 transition-opacity`}
               aria-expanded={isOpen}
             >
               <span
-                className="font-semibold text-neutral-high"
+                className={`font-semibold ${textColor}`}
                 data-inline-path={`items.${index}.title`}
               >
                 {item.title}
               </span>
               <FontAwesomeIcon
                 icon="chevron-down"
-                className={`w-5 h-5 text-neutral-low transition-transform ${
-                  isOpen ? 'rotate-180' : ''
-                }`}
+                className={`w-5 h-5 ${subtextColor} transition-transform ${isOpen ? 'rotate-180' : ''
+                  }`}
               />
             </button>
 
@@ -130,9 +139,9 @@ export default function Accordion({
                   transition={{ duration: 0.3, ease: 'easeInOut' }}
                   className="overflow-hidden"
                 >
-                  <div className="p-4 bg-backdrop-low border-t border-border">
+                  <div className={`p-4 ${itemBg} border-t ${itemBorder}`}>
                     <div
-                      className="text-neutral-medium prose max-w-none"
+                      className={`${subtextColor} prose max-w-none ${isDarkBg ? 'prose-invert' : ''}`}
                       data-inline-type="richtext"
                       data-inline-path={`items.${index}.content`}
                       dangerouslySetInnerHTML={{ __html: htmlContent }}
@@ -157,25 +166,35 @@ export default function Accordion({
 
   if (_useReact) {
     return (
-      <motion.div
-        initial="hidden"
-        whileInView="visible"
-        viewport={{ once: true, margin: '-50px' }}
-        variants={containerVariants}
-        className="accordion-module max-w-3xl mx-auto px-4 sm:px-6 lg:px-8 py-8"
+      <section
+        className={`${bg} py-12 lg:py-16`}
         data-module="accordion"
+        data-inline-path="backgroundColor"
       >
-        {content}
-      </motion.div>
+        <div className="container mx-auto px-4 sm:px-6 lg:px-8 max-w-3xl">
+          <motion.div
+            initial="hidden"
+            whileInView="visible"
+            viewport={{ once: true, margin: '-50px' }}
+            variants={containerVariants}
+            className="accordion-module"
+          >
+            {content}
+          </motion.div>
+        </div>
+      </section>
     )
   }
 
   return (
-    <div
-      className="accordion-module max-w-3xl mx-auto px-4 sm:px-6 lg:px-8 py-8"
+    <section
+      className={`${bg} py-12 lg:py-16`}
       data-module="accordion"
+      data-inline-path="backgroundColor"
     >
-      {content}
-    </div>
+      <div className="container mx-auto px-4 sm:px-6 lg:px-8 max-w-3xl">
+        <div className="accordion-module">{content}</div>
+      </div>
+    </section>
   )
 }

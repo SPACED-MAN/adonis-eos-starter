@@ -34,10 +34,15 @@ export default function Blockquote({
   const avatar = useInlineValue(__moduleId, 'avatar', initialAvatar)
   const bg = useInlineValue(__moduleId, 'backgroundColor', backgroundColor)
 
+  const isDarkBg = bg === 'bg-neutral-high'
+  const textColor = isDarkBg ? 'text-backdrop-low' : 'text-neutral-high'
+  const subtextColor = isDarkBg ? 'text-backdrop-low/80' : 'text-neutral-medium'
+  const quoteIconColor = isDarkBg ? 'text-backdrop-low/40' : 'text-neutral-low'
+
   const content = (
     <div className="max-w-7xl px-4 mx-auto text-center">
       <figure className="max-w-3xl mx-auto">
-        <div className="mx-auto mb-6 flex items-center justify-center text-neutral-low">
+        <div className={`mx-auto mb-6 flex items-center justify-center ${quoteIconColor}`}>
           {_useReact ? (
             <motion.div
               initial={{ rotate: -15, scale: 0.8 }}
@@ -58,7 +63,7 @@ export default function Blockquote({
               whileInView={{ opacity: 1, scale: 1 }}
               viewport={{ once: true }}
               transition={{ duration: 1.0, delay: 0.25 }}
-              className="text-2xl md:text-3xl font-medium text-neutral-high"
+              className={`text-2xl md:text-3xl font-medium ${textColor}`}
               data-inline-path="quote"
               data-inline-type="textarea"
             >
@@ -66,7 +71,7 @@ export default function Blockquote({
             </motion.p>
           ) : (
             <p
-              className="text-2xl md:text-3xl font-medium text-neutral-high"
+              className={`text-2xl md:text-3xl font-medium ${textColor}`}
               data-inline-path="quote"
               data-inline-type="textarea"
             >
@@ -88,13 +93,13 @@ export default function Blockquote({
               />
             </div>
           )}
-          <div className="flex items-center divide-x-2 divide-neutral-low/60">
-            <div className="pr-3 font-medium text-neutral-high" data-inline-path="authorName">
+          <div className={`flex items-center divide-x-2 ${isDarkBg ? 'divide-backdrop-low/20' : 'divide-neutral-low/60'}`}>
+            <div className={`pr-3 font-medium ${textColor}`} data-inline-path="authorName">
               {authorName}
             </div>
             {authorTitle && (
               <div
-                className="pl-3 text-sm font-light text-neutral-medium"
+                className={`pl-3 text-sm font-light ${subtextColor}`}
                 data-inline-path="authorTitle"
               >
                 {authorTitle}

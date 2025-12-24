@@ -10,6 +10,7 @@
 
 import { useState } from 'react'
 import { motion, AnimatePresence, type Variants } from 'framer-motion'
+import { useInlineValue } from '../components/inline-edit/InlineEditorContext'
 import { MediaRenderer } from '../components/MediaRenderer'
 import type { MediaObject } from '../utils/useMediaUrl'
 
@@ -26,6 +27,8 @@ interface GalleryProps {
   }>
   layout?: 'grid' | 'masonry'
   columns?: number
+  backgroundColor?: string
+  __moduleId?: string
   _useReact?: boolean
 }
 
@@ -33,10 +36,13 @@ export default function Gallery({
   images = [],
   layout = 'grid',
   columns = 3,
+  backgroundColor: initialBackground = 'bg-transparent',
+  __moduleId,
   _useReact,
 }: GalleryProps) {
   const [lightboxOpen, setLightboxOpen] = useState(false)
   const [currentIndex, setCurrentIndex] = useState(0)
+  const bg = useInlineValue(__moduleId, 'backgroundColor', initialBackground) || initialBackground
 
   const openLightbox = (index: number) => {
     setCurrentIndex(index)
@@ -143,20 +149,26 @@ export default function Gallery({
   )
 
   return (
-    <div className="gallery-module py-8" data-module="gallery">
-      {/* Gallery Grid */}
-      {_useReact ? (
-        <motion.div
-          initial="hidden"
-          whileInView="visible"
-          viewport={{ once: true, margin: '-100px' }}
-          variants={containerVariants}
-        >
-          {gridContent}
-        </motion.div>
-      ) : (
-        gridContent
-      )}
+    <section
+      className={`${bg} py-12 lg:py-16`}
+      data-module="gallery"
+      data-inline-path="backgroundColor"
+    >
+      <div className="container mx-auto px-4 sm:px-6 lg:px-8">
+        {/* Gallery Grid */}
+        {_useReact ? (
+          <motion.div
+            initial="hidden"
+            whileInView="visible"
+            viewport={{ once: true, margin: '-100px' }}
+            variants={containerVariants}
+          >
+            {gridContent}
+          </motion.div>
+        ) : (
+          gridContent
+        )}
+      </div>
 
       {/* Lightbox */}
       <AnimatePresence>
@@ -261,6 +273,6 @@ export default function Gallery({
           </motion.div>
         )}
       </AnimatePresence>
-    </div>
+    </section>
   )
 }

@@ -18,6 +18,11 @@ export default function Hero({
 }: HeroProps) {
   const title = useInlineValue(__moduleId, 'title', initialTitle)
   const subtitle = useInlineValue(__moduleId, 'subtitle', initialSubtitle)
+  const bg = useInlineValue(__moduleId, 'backgroundColor', backgroundColor) || backgroundColor
+
+  const isDarkBg = bg === 'bg-neutral-high'
+  const textColor = isDarkBg ? 'text-backdrop-low' : 'text-neutral-high'
+  const subtextColor = isDarkBg ? 'text-backdrop-low/80' : 'text-neutral-medium'
 
   const containerVariants = {
     hidden: { opacity: 0, y: 30 },
@@ -45,14 +50,14 @@ export default function Hero({
       {_useReact ? (
         <motion.h1
           variants={itemVariants}
-          className="mb-4 text-4xl font-extrabold tracking-tight leading-tight text-neutral-high md:text-5xl lg:text-6xl"
+          className={`mb-4 text-4xl font-extrabold tracking-tight leading-tight ${textColor} md:text-5xl lg:text-6xl`}
           data-inline-path="title"
         >
           {title}
         </motion.h1>
       ) : (
         <h1
-          className="mb-4 text-4xl font-extrabold tracking-tight leading-tight text-neutral-high md:text-5xl lg:text-6xl"
+          className={`mb-4 text-4xl font-extrabold tracking-tight leading-tight ${textColor} md:text-5xl lg:text-6xl`}
           data-inline-path="title"
         >
           {title}
@@ -63,14 +68,14 @@ export default function Hero({
         (_useReact ? (
           <motion.p
             variants={itemVariants}
-            className="mb-8 text-lg font-normal text-neutral-medium lg:text-xl sm:px-4"
+            className={`mb-8 text-lg font-normal ${subtextColor} lg:text-xl sm:px-4`}
             data-inline-path="subtitle"
           >
             {subtitle}
           </motion.p>
         ) : (
           <p
-            className="mb-8 text-lg font-normal text-neutral-medium lg:text-xl sm:px-4"
+            className={`mb-8 text-lg font-normal ${subtextColor} lg:text-xl sm:px-4`}
             data-inline-path="subtitle"
           >
             {subtitle}
@@ -86,7 +91,7 @@ export default function Hero({
         whileInView="visible"
         viewport={{ once: true, margin: '-100px' }}
         variants={containerVariants}
-        className={`${backgroundColor} py-12 lg:py-16`}
+        className={`${bg} py-12 lg:py-16`}
         data-module="hero"
       >
         {content}
@@ -95,7 +100,7 @@ export default function Hero({
   }
 
   return (
-    <section className={`${backgroundColor} py-12 lg:py-16`} data-module="hero">
+    <section className={`${bg} py-12 lg:py-16`} data-module="hero">
       {content}
     </section>
   )

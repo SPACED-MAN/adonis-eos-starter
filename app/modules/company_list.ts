@@ -1,5 +1,6 @@
 import BaseModule from '#modules/base'
 import type { ModuleConfig } from '#types/module_types'
+import { backgroundColorField } from './shared_fields.js'
 
 export default class CompanyListModule extends BaseModule {
   /**
@@ -34,23 +35,25 @@ export default class CompanyListModule extends BaseModule {
           description: 'Optional short paragraph describing the customers or partners displayed.',
           translatable: true,
         },
-        {
-          slug: 'companies',
-          type: 'post-reference',
-          required: false,
-          description:
-            'Optional list of specific Companies to feature. If empty, all company posts will be shown.',
-          config: {
-            postTypes: ['company'],
-            allowMultiple: true,
-          },
-        },
-      ],
-      defaultValues: {
-        title: 'You’ll be in good company',
-        subtitle: 'Logos and names of customers or partners, managed via the Company post type.',
-        companies: [],
-      },
+				{
+					slug: 'companies',
+					type: 'post-reference',
+					required: false,
+					description:
+						'Optional list of specific Companies to feature. If empty, all company posts will be shown.',
+					config: {
+						postTypes: ['company'],
+						allowMultiple: true,
+					},
+				},
+				backgroundColorField,
+			],
+			defaultValues: {
+				title: 'You’ll be in good company',
+				subtitle: 'Logos and names of customers or partners, managed via the Company post type.',
+				companies: [],
+				backgroundColor: 'bg-backdrop-low',
+			},
       allowedPostTypes: ['page', 'blog'],
     }
   }

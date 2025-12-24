@@ -10,6 +10,7 @@ interface CompanyListProps {
   subtitle?: string | null
   // IDs of Company posts selected via post-reference field; if empty, show all.
   companies?: string[] | null
+  backgroundColor?: string
   __moduleId?: string
   _useReact?: boolean
 }
@@ -26,6 +27,7 @@ export default function CompanyList({
   title: initialTitle,
   subtitle: initialSubtitle,
   companies: initialCompanies,
+  backgroundColor: initialBackground = 'bg-backdrop-low',
   __moduleId,
   _useReact,
 }: CompanyListProps) {
@@ -35,6 +37,11 @@ export default function CompanyList({
   const title = useInlineValue(__moduleId, 'title', initialTitle)
   const subtitle = useInlineValue(__moduleId, 'subtitle', initialSubtitle)
   const companies = useInlineValue(__moduleId, 'companies', initialCompanies)
+  const bg = useInlineValue(__moduleId, 'backgroundColor', initialBackground) || initialBackground
+
+  const isDarkBg = bg === 'bg-neutral-high'
+  const textColor = isDarkBg ? 'text-backdrop-low' : 'text-neutral-high'
+  const subtextColor = isDarkBg ? 'text-backdrop-low/80' : 'text-neutral-medium'
 
   useEffect(() => {
     let cancelled = false
@@ -108,14 +115,14 @@ export default function CompanyList({
           whileInView={{ opacity: 1, y: 0 }}
           viewport={{ once: true }}
           transition={{ duration: 0.8 }}
-          className="mb-8 lg:mb-16 text-3xl md:text-4xl font-extrabold tracking-tight leading-tight text-center text-neutral-high"
+          className={`mb-8 lg:mb-16 text-3xl md:text-4xl font-extrabold tracking-tight leading-tight text-center ${textColor}`}
           data-inline-path="title"
         >
           {title}
         </motion.h2>
       ) : (
         <h2
-          className="mb-8 lg:mb-16 text-3xl md:text-4xl font-extrabold tracking-tight leading-tight text-center text-neutral-high"
+          className={`mb-8 lg:mb-16 text-3xl md:text-4xl font-extrabold tracking-tight leading-tight text-center ${textColor}`}
           data-inline-path="title"
         >
           {title}
@@ -128,14 +135,14 @@ export default function CompanyList({
             whileInView={{ opacity: 1 }}
             viewport={{ once: true }}
             transition={{ duration: 0.8, delay: 0.2 }}
-            className="max-w-2xl mx-auto mb-10 text-center font-light text-neutral-medium sm:text-xl"
+            className={`max-w-2xl mx-auto mb-10 text-center font-light ${subtextColor} sm:text-xl`}
             data-inline-path="subtitle"
           >
             {subtitle}
           </motion.p>
         ) : (
           <p
-            className="max-w-2xl mx-auto mb-10 text-center font-light text-neutral-medium sm:text-xl"
+            className={`max-w-2xl mx-auto mb-10 text-center font-light ${subtextColor} sm:text-xl`}
             data-inline-path="subtitle"
           >
             {subtitle}
@@ -161,7 +168,9 @@ export default function CompanyList({
   )
 
   const gridContent = (
-    <div className="grid grid-cols-2 gap-8 text-neutral-medium sm:gap-12 md:grid-cols-3 lg:grid-cols-6">
+    <div
+      className={`grid grid-cols-2 gap-8 ${subtextColor} sm:gap-12 md:grid-cols-3 lg:grid-cols-6`}
+    >
       {items.map((c) => {
         const teaser = (
           <CompanyTeaser
@@ -188,13 +197,19 @@ export default function CompanyList({
 
   if (loading && items.length === 0) {
     return (
-      <section className="bg-backdrop-low py-8 lg:py-16" data-module="company-list">
+      <section
+        className={`${bg} py-8 lg:py-16`}
+        data-module="company-list"
+        data-inline-path="backgroundColor"
+      >
         <div className="container mx-auto px-4 lg:px-6">
-          <h2 className="mb-4 lg:mb-8 text-3xl md:text-4xl font-extrabold tracking-tight text-center text-neutral-high">
+          <h2
+            className={`mb-4 lg:mb-8 text-3xl md:text-4xl font-extrabold tracking-tight text-center ${textColor}`}
+          >
             {title}
           </h2>
           {subtitle && (
-            <p className="max-w-2xl mx-auto text-center font-light text-neutral-medium sm:text-xl">
+            <p className={`max-w-2xl mx-auto text-center font-light ${subtextColor} sm:text-xl`}>
               {subtitle}
             </p>
           )}
@@ -209,7 +224,11 @@ export default function CompanyList({
   }
 
   return (
-    <section className="bg-backdrop-low py-8 lg:py-16" data-module="company-list">
+    <section
+      className={`${bg} py-8 lg:py-16`}
+      data-module="company-list"
+      data-inline-path="backgroundColor"
+    >
       <div className="container mx-auto px-4 lg:px-6">
         {headerContent}
         {_useReact ? (

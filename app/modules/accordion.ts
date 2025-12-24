@@ -1,5 +1,6 @@
 import BaseModule from '#modules/base'
 import type { ModuleConfig } from '#types/module_types'
+import { backgroundColorField } from './shared_fields.js'
 
 export default class AccordionModule extends BaseModule {
   getRenderingMode() {
@@ -48,6 +49,7 @@ export default class AccordionModule extends BaseModule {
           required: false,
           description: 'Whether multiple items can be open at the same time',
         },
+        backgroundColorField,
       ],
       defaultValues: {
         items: [
@@ -57,6 +59,7 @@ export default class AccordionModule extends BaseModule {
           },
         ],
         allowMultiple: false,
+        backgroundColor: 'bg-transparent',
       },
       allowedPostTypes: [],
     }

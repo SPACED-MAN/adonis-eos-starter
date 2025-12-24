@@ -28,6 +28,12 @@ export default function FeaturesList({
   const title = useInlineValue(__moduleId, 'title', initialTitle)
   const subtitle = useInlineValue(__moduleId, 'subtitle', initialSubtitle)
   const features = useInlineValue(__moduleId, 'features', initialFeatures)
+  const bg = useInlineValue(__moduleId, 'backgroundColor', backgroundColor) || backgroundColor
+
+  const isDarkBg = bg === 'bg-neutral-high'
+  const textColor = isDarkBg ? 'text-backdrop-low' : 'text-neutral-high'
+  const subtextColor = isDarkBg ? 'text-backdrop-low/80' : 'text-neutral-medium'
+  const iconBg = isDarkBg ? 'bg-backdrop-low/10 text-backdrop-low' : 'bg-standout-medium/10 text-standout-medium'
 
   const safeFeatures = Array.isArray(features) ? features.slice(0, 24) : []
 
@@ -61,14 +67,14 @@ export default function FeaturesList({
           whileInView={{ opacity: 1, x: 0 }}
           viewport={{ once: true }}
           transition={{ duration: 1.0 }}
-          className="mb-4 text-3xl sm:text-4xl font-extrabold tracking-tight text-neutral-high"
+          className={`mb-4 text-3xl sm:text-4xl font-extrabold tracking-tight ${textColor}`}
           data-inline-path="title"
         >
           {title}
         </motion.h2>
       ) : (
         <h2
-          className="mb-4 text-3xl sm:text-4xl font-extrabold tracking-tight text-neutral-high"
+          className={`mb-4 text-3xl sm:text-4xl font-extrabold tracking-tight ${textColor}`}
           data-inline-path="title"
         >
           {title}
@@ -81,13 +87,13 @@ export default function FeaturesList({
             whileInView={{ opacity: 1, x: 0 }}
             viewport={{ once: true }}
             transition={{ duration: 1.0, delay: 0.15 }}
-            className="text-neutral-medium text-base sm:text-lg"
+            className={`${subtextColor} text-base sm:text-lg`}
             data-inline-path="subtitle"
           >
             {subtitle}
           </motion.p>
         ) : (
-          <p className="text-neutral-medium text-base sm:text-lg" data-inline-path="subtitle">
+          <p className={`${subtextColor} text-base sm:text-lg`} data-inline-path="subtitle">
             {subtitle}
           </p>
         ))}
@@ -122,18 +128,18 @@ export default function FeaturesList({
             ])}
           >
             {feature.icon && (
-              <div className="flex justify-center items-center mb-4 w-10 h-10 lg:w-12 lg:h-12 rounded-full bg-standout-medium/10 text-standout-medium">
+              <div className={`flex justify-center items-center mb-4 w-10 h-10 lg:w-12 lg:h-12 rounded-full ${iconBg}`}>
                 <FontAwesomeIcon icon={feature.icon as any} className="text-base lg:text-lg" />
               </div>
             )}
             <h3
-              className="mb-2 text-lg sm:text-xl font-semibold text-neutral-high"
+              className={`mb-2 text-lg sm:text-xl font-semibold ${textColor}`}
               data-inline-path={`features.${idx}.title`}
             >
               {feature.title}
             </h3>
             <p
-              className="text-sm sm:text-base text-neutral-medium"
+              className={`text-sm sm:text-base ${subtextColor}`}
               data-inline-path={`features.${idx}.body`}
             >
               {feature.body}
@@ -153,7 +159,7 @@ export default function FeaturesList({
   )
 
   return (
-    <section className={`${backgroundColor} py-12 sm:py-16`} data-module="features-list">
+    <section className={`${bg} py-12 sm:py-16`} data-module="features-list">
       <div className="container mx-auto px-4 sm:px-6 lg:px-8">
         {headerContent}
         {_useReact ? (

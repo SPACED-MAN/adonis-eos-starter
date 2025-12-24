@@ -8,6 +8,7 @@
 export type ModuleScope = 'local' | 'global'
 
 import type { CustomFieldDefinition } from './custom_field.js'
+export type { CustomFieldDefinition }
 
 /**
  * Module configuration metadata

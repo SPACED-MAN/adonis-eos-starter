@@ -45,9 +45,13 @@ export default function Cta(props: CtaProps) {
   const variant = useInlineValue(__moduleId, 'variant', initialVariant) || initialVariant || 'centered'
   const backgroundColor = useInlineValue(__moduleId, 'backgroundColor', initialBackground) || initialBackground || 'bg-backdrop-low'
 
-  const isDarkBg = backgroundColor === 'bg-standout-medium'
-  const textColor = isDarkBg ? 'text-on-standout' : 'text-neutral-high'
-  const subtextColor = isDarkBg ? 'text-on-standout/80' : 'text-neutral-medium'
+  const isDarkBg = backgroundColor === 'bg-neutral-high'
+  const textColor = backgroundColor === 'bg-neutral-high'
+    ? 'text-backdrop-low'
+    : 'text-neutral-high'
+  const subtextColor = backgroundColor === 'bg-neutral-high'
+    ? 'text-backdrop-low/80'
+    : 'text-neutral-medium'
 
   const htmlProse = useMemo(() => {
     const hasRichContent = (val: any) => {

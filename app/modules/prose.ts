@@ -1,5 +1,6 @@
 import BaseModule from '#modules/base'
 import type { ModuleConfig } from '#types/module_types'
+import { backgroundColorField } from './shared_fields.js'
 
 /**
  * Prose Module
@@ -61,6 +62,7 @@ export default class ProseModule extends BaseModule {
             { label: 'Justify', value: 'justify' },
           ],
         },
+        backgroundColorField,
         // Note: Other visual classes (font size, colors, padding) remain fixed in code for consistency.
       ],
       defaultValues: {
@@ -81,6 +83,7 @@ export default class ProseModule extends BaseModule {
           },
         },
         textAlign: 'left',
+        backgroundColor: 'bg-transparent',
       },
       allowedPostTypes: [], // Available for all post types
     }

@@ -1,5 +1,6 @@
 import BaseModule from '#modules/base'
 import type { ModuleConfig } from '#types/module_types'
+import { backgroundColorField } from './shared_fields.js'
 
 export default class ShareModule extends BaseModule {
   /**
@@ -50,17 +51,7 @@ export default class ShareModule extends BaseModule {
           ],
           default: 'py-8',
         },
-        {
-          slug: 'backgroundColor',
-          type: 'select',
-          label: 'Background Color',
-          options: [
-            { label: 'Transparent', value: 'bg-transparent' },
-            { label: 'Low', value: 'bg-backdrop-low' },
-            { label: 'Medium', value: 'bg-backdrop-medium' },
-          ],
-          default: 'bg-transparent',
-        },
+        backgroundColorField,
       ],
       defaultValues: {
         title: 'Share:',

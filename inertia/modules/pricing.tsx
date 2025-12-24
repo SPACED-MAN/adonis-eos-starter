@@ -29,6 +29,7 @@ interface PricingProps {
   title: string
   subtitle?: string | null
   plans: PricingPlan[]
+  backgroundColor?: string
   __moduleId?: string
   _useReact?: boolean
 }
@@ -37,12 +38,18 @@ export default function Pricing({
   title: initialTitle,
   subtitle: initialSubtitle,
   plans: initialPlans,
+  backgroundColor = 'bg-backdrop-low',
   __moduleId,
   _useReact,
 }: PricingProps) {
   const title = useInlineValue(__moduleId, 'title', initialTitle)
   const subtitle = useInlineValue(__moduleId, 'subtitle', initialSubtitle)
   const plans = useInlineValue(__moduleId, 'plans', initialPlans)
+  const bg = useInlineValue(__moduleId, 'backgroundColor', backgroundColor) || backgroundColor
+
+  const isDarkBg = bg === 'bg-neutral-high'
+  const textColor = isDarkBg ? 'text-backdrop-low' : 'text-neutral-high'
+  const subtextColor = isDarkBg ? 'text-backdrop-low/80' : 'text-neutral-medium'
 
   const safePlans = Array.isArray(plans) ? plans.slice(0, 3) : []
 
@@ -80,14 +87,14 @@ export default function Pricing({
           whileInView={{ opacity: 1, y: 0 }}
           viewport={{ once: true }}
           transition={{ duration: 1.0 }}
-          className="mb-4 text-3xl sm:text-4xl font-extrabold tracking-tight text-neutral-high"
+          className={`mb-4 text-3xl sm:text-4xl font-extrabold tracking-tight ${textColor}`}
           data-inline-path="title"
         >
           {title}
         </motion.h2>
       ) : (
         <h2
-          className="mb-4 text-3xl sm:text-4xl font-extrabold tracking-tight text-neutral-high"
+          className={`mb-4 text-3xl sm:text-4xl font-extrabold tracking-tight ${textColor}`}
           data-inline-path="title"
         >
           {title}
@@ -100,13 +107,13 @@ export default function Pricing({
             whileInView={{ opacity: 1 }}
             viewport={{ once: true }}
             transition={{ duration: 1.0, delay: 0.25 }}
-            className="text-neutral-medium text-base sm:text-lg"
+            className={`${subtextColor} text-base sm:text-lg`}
             data-inline-path="subtitle"
           >
             {subtitle}
           </motion.p>
         ) : (
-          <p className="text-neutral-medium text-base sm:text-lg" data-inline-path="subtitle">
+          <p className={`${subtextColor} text-base sm:text-lg`} data-inline-path="subtitle">
             {subtitle}
           </p>
         ))}
@@ -123,7 +130,7 @@ export default function Pricing({
 
         const planCard = (
           <div
-            className={`flex flex-col h-full p-6 mx-auto max-w-lg text-center bg-backdrop-low rounded-lg border border-line-low shadow-sm xl:p-8 ${
+            className={`flex flex-col h-full p-6 mx-auto max-w-lg text-center ${isDarkBg ? 'bg-backdrop-low/10' : 'bg-backdrop-low'} rounded-lg border border-line-low shadow-sm xl:p-8 ${
               isPrimary ? 'ring-2 ring-standout-medium shadow-md' : ''
             }`}
             data-inline-type="object"
@@ -140,20 +147,20 @@ export default function Pricing({
               { name: 'primary', type: 'boolean', label: 'Highlight' },
             ])}
           >
-            <h3 className="mb-4 text-2xl font-semibold text-neutral-high">
+            <h3 className={`mb-4 text-2xl font-semibold ${textColor}`}>
               <span data-inline-path={`plans.${idx}.name`}>{plan.name}</span>
             </h3>
             {plan.description && (
-              <p className="font-light text-sm sm:text-base text-neutral-medium">
+              <p className={`font-light text-sm sm:text-base ${subtextColor}`}>
                 <span data-inline-path={`plans.${idx}.description`}>{plan.description}</span>
               </p>
             )}
             <div className="flex justify-center items-baseline my-8">
-              <span className="mr-2 text-4xl sm:text-5xl font-extrabold text-neutral-high">
+              <span className={`mr-2 text-4xl sm:text-5xl font-extrabold ${textColor}`}>
                 $<span data-inline-path={`plans.${idx}.price`}>{plan.price}</span>
               </span>
               {plan.period && (
-                <span className="text-sm sm:text-base text-neutral-medium">
+                <span className={`text-sm sm:text-base ${subtextColor}`}>
                   <span data-inline-path={`plans.${idx}.period`}>{plan.period}</span>
                 </span>
               )}
@@ -163,12 +170,12 @@ export default function Pricing({
                 {plan.features!.map((f: string, fi: number) => (
                   <li key={fi} className="flex items-start space-x-3">
                     <span
-                      className="mt-0.5 inline-flex h-5 w-5 items-center justify-center rounded-full bg-success/10 text-success"
+                      className={`mt-0.5 inline-flex h-5 w-5 items-center justify-center rounded-full ${isDarkBg ? 'bg-success/20 text-success' : 'bg-success/10 text-success'}`}
                       aria-hidden="true"
                     >
                       <FontAwesomeIcon icon="check" className="h-3.5 w-3.5" />
                     </span>
-                    <span className="text-sm sm:text-base text-neutral-high">{f}</span>
+                    <span className={`text-sm sm:text-base ${textColor}`}>{f}</span>
                   </li>
                 ))}
               </ul>
@@ -202,7 +209,7 @@ export default function Pricing({
   )
 
   return (
-    <section className="bg-backdrop-low py-12 sm:py-16" data-module="pricing">
+    <section className={`${bg} py-12 sm:py-16`} data-module="pricing">
       <div className="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8">
         {headerContent}
         {_useReact ? (

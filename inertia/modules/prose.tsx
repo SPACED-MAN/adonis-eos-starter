@@ -41,7 +41,8 @@ export default function Prose({
   const maxWidth = useInlineValue(__moduleId, 'maxWidth', initialMaxWidth)
   const fontSize = useInlineValue(__moduleId, 'fontSize', initialFontSize)
   const backgroundColor = useInlineValue(__moduleId, 'backgroundColor', initialBackground)
-  const textColor = useInlineValue(__moduleId, 'textColor', initialTextColor)
+  const isDarkBg = backgroundColor === 'bg-neutral-high'
+  const textColor = useInlineValue(__moduleId, 'textColor', initialTextColor) || (isDarkBg ? 'text-backdrop-low' : initialTextColor)
   const textAlign = useInlineValue(__moduleId, 'textAlign', initialTextAlign)
   const padding = useInlineValue(__moduleId, 'padding', initialPadding)
 
@@ -72,7 +73,7 @@ export default function Prose({
     <div className="container mx-auto px-4 sm:px-6 lg:px-8">
       <div className={`w-full ${maxWidth}`}>
         <div
-          className={`prose max-w-none ${fontSize} ${textColor} ${textAlign === 'center'
+          className={`prose max-w-none ${isDarkBg ? 'prose-invert' : ''} ${fontSize} ${textColor} ${textAlign === 'center'
             ? 'text-center'
             : textAlign === 'right'
               ? 'text-right'

@@ -1,5 +1,6 @@
 import { useEffect, useState, FormEvent } from 'react'
 import { motion } from 'framer-motion'
+import { useInlineValue } from '../components/inline-edit/InlineEditorContext'
 
 type FormFieldType =
   | 'text'
@@ -46,7 +47,8 @@ export default function FormModule({
   __postId,
   backgroundColor = 'bg-backdrop-low',
   _useReact,
-}: FormModuleProps) {
+  __moduleId,
+}: FormModuleProps & { __moduleId?: string }) {
   const [definition, setDefinition] = useState<FormDefinition | null>(null)
   const [values, setValues] = useState<Record<string, any>>({})
   const [errors, setErrors] = useState<Record<string, string>>({})
@@ -54,6 +56,13 @@ export default function FormModule({
   const [submitting, setSubmitting] = useState(false)
   const [submitted, setSubmitted] = useState(false)
   const [successTextOverride, setSuccessTextOverride] = useState<string | null>(null)
+
+  const bg = useInlineValue(__moduleId, 'backgroundColor', backgroundColor) || backgroundColor
+  const isDarkBg = bg === 'bg-neutral-high'
+  const textColor = isDarkBg ? 'text-backdrop-low' : 'text-neutral-high'
+  const subtextColor = isDarkBg ? 'text-backdrop-low/80' : 'text-neutral-medium'
+  const inputBg = isDarkBg ? 'bg-backdrop-low/10 text-backdrop-low border-backdrop-low/20 placeholder:text-backdrop-low/40' : 'bg-backdrop-input text-neutral-high border-line-low'
+  const labelColor = isDarkBg ? 'text-backdrop-low' : 'text-neutral-high'
 
   const visibleTitle = title || definition?.title || ''
 
@@ -112,9 +121,9 @@ export default function FormModule({
 
   if (loading) {
     return (
-      <section className={`${backgroundColor} py-8 lg:py-16`} data-module="form">
+      <section className={`${bg} py-8 lg:py-16`} data-module="form">
         <div className="container mx-auto px-4 sm:px-6 lg:px-8">
-          <p className="text-sm text-neutral-low">Loading form...</p>
+          <p className={`text-sm ${subtextColor}`}>Loading form...</p>
         </div>
       </section>
     )
@@ -200,7 +209,7 @@ export default function FormModule({
     const fieldContent = (
       <div className="space-y-1">
         {!isCheckbox && (
-          <label htmlFor={fieldId} className="block text-sm font-medium text-neutral-high">
+          <label htmlFor={fieldId} className={`block text-sm font-medium ${labelColor}`}>
             {field.label}
             {field.required && <span className="text-danger ml-0.5">*</span>}
           </label>
@@ -212,7 +221,7 @@ export default function FormModule({
               return (
                 <textarea
                   id={fieldId}
-                  className="block w-full rounded-md border border-line-low bg-backdrop-input px-3 py-2 text-sm text-neutral-high focus:outline-none focus:ring-2 focus:ring-standout-medium/40 transition-all"
+                  className={`block w-full rounded-md border ${inputBg} px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-standout-medium/40 transition-all`}
                   rows={4}
                   placeholder={field.placeholder}
                   value={rawValue ?? ''}
@@ -228,11 +237,11 @@ export default function FormModule({
                   <input
                     id={fieldId}
                     type="checkbox"
-                    className="h-4 w-4 rounded border-line-low bg-backdrop-input text-standout-medium focus:ring-standout-medium/50"
+                    className={`h-4 w-4 rounded border-line-low ${isDarkBg ? 'bg-backdrop-low/10 text-backdrop-low' : 'bg-backdrop-input text-standout-medium'} focus:ring-standout-medium/50`}
                     checked={Boolean(rawValue)}
                     onChange={(e) => handleChange(field.slug, e.target.checked)}
                   />
-                  <label htmlFor={fieldId} className="text-sm text-neutral-medium">
+                  <label htmlFor={fieldId} className={`text-sm ${subtextColor}`}>
                     {field.label}
                     {field.required && <span className="text-danger ml-0.5">*</span>}
                   </label>
@@ -243,7 +252,7 @@ export default function FormModule({
               return (
                 <select
                   id={fieldId}
-                  className="block w-full rounded-md border border-line-low bg-backdrop-input px-3 py-2 text-sm text-neutral-high focus:outline-none focus:ring-2 focus:ring-standout-medium/40 transition-all"
+                  className={`block w-full rounded-md border ${inputBg} px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-standout-medium/40 transition-all`}
                   value={rawValue ?? ''}
                   onChange={(e) => handleChange(field.slug, e.target.value)}
                   required={field.required}
@@ -259,7 +268,7 @@ export default function FormModule({
 
             case 'multiselect':
               return (
-                <div className="space-y-2 p-3 border border-line-low rounded-md bg-backdrop-input/50">
+                <div className={`space-y-2 p-3 border ${isDarkBg ? 'border-backdrop-low/20 bg-backdrop-low/5' : 'border-line-low bg-backdrop-input/50'} rounded-md`}>
                   {(field.options || []).map((opt) => {
                     const optId = `${fieldId}-${opt.value}`
                     const isChecked = Array.isArray(rawValue) && rawValue.includes(String(opt.value))
@@ -268,11 +277,11 @@ export default function FormModule({
                         <input
                           id={optId}
                           type="checkbox"
-                          className="h-4 w-4 rounded border-line-low bg-backdrop-input text-standout-medium focus:ring-standout-medium/50"
+                          className={`h-4 w-4 rounded border-line-low ${isDarkBg ? 'bg-backdrop-low/10 text-backdrop-low' : 'bg-backdrop-input text-standout-medium'} focus:ring-standout-medium/50`}
                           checked={isChecked}
                           onChange={(e) => handleMultiselectChange(field.slug, String(opt.value), e.target.checked)}
                         />
-                        <label htmlFor={optId} className="text-sm text-neutral-medium cursor-pointer">
+                        <label htmlFor={optId} className={`text-sm ${subtextColor} cursor-pointer`}>
                           {opt.label}
                         </label>
                       </div>
@@ -291,7 +300,7 @@ export default function FormModule({
                 <input
                   id={fieldId}
                   type={field.type === 'boolean' ? 'checkbox' : field.type === 'multiselect' ? 'text' : field.type}
-                  className="block w-full rounded-md border border-line-low bg-backdrop-input px-3 py-2 text-sm text-neutral-high focus:outline-none focus:ring-2 focus:ring-standout-medium/40 transition-all"
+                  className={`block w-full rounded-md border ${inputBg} px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-standout-medium/40 transition-all`}
                   placeholder={field.placeholder}
                   value={rawValue ?? ''}
                   onChange={(e) => handleChange(field.slug, e.target.value)}
@@ -321,11 +330,11 @@ export default function FormModule({
           {(visibleTitle || subtitle) && (
             <div className="mb-6">
               {visibleTitle && (
-                <h2 className="text-2xl sm:text-3xl font-extrabold tracking-tight text-neutral-high mb-2">
+                <h2 className={`text-2xl sm:text-3xl font-extrabold tracking-tight ${textColor} mb-2`}>
                   {visibleTitle}
                 </h2>
               )}
-              {subtitle && <p className="text-sm sm:text-base text-neutral-medium">{subtitle}</p>}
+              {subtitle && <p className={`text-sm sm:text-base ${subtextColor}`}>{subtitle}</p>}
             </div>
           )}
         </motion.div>
@@ -334,11 +343,11 @@ export default function FormModule({
           {(visibleTitle || subtitle) && (
             <div className="mb-6">
               {visibleTitle && (
-                <h2 className="text-2xl sm:text-3xl font-extrabold tracking-tight text-neutral-high mb-2">
+                <h2 className={`text-2xl sm:text-3xl font-extrabold tracking-tight ${textColor} mb-2`}>
                   {visibleTitle}
                 </h2>
               )}
-              {subtitle && <p className="text-sm sm:text-base text-neutral-medium">{subtitle}</p>}
+              {subtitle && <p className={`text-sm sm:text-base ${subtextColor}`}>{subtitle}</p>}
             </div>
           )}
         </>
@@ -370,7 +379,7 @@ export default function FormModule({
             <button
               type="submit"
               disabled={submitting}
-              className="inline-flex items-center px-5 py-2.5 rounded-md bg-standout-medium text-on-standout text-sm font-medium hover:bg-standout-medium/90 disabled:opacity-60 focus:outline-none focus:ring-2 focus:ring-standout-medium/40 transition-all active:scale-95"
+              className={`inline-flex items-center px-5 py-2.5 rounded-md ${isDarkBg ? 'bg-backdrop-low text-neutral-high' : 'bg-standout-medium text-on-standout'} text-sm font-medium hover:bg-standout-medium/90 disabled:opacity-60 focus:outline-none focus:ring-2 focus:ring-standout-medium/40 transition-all active:scale-95`}
             >
               {submitting ? 'Sending...' : 'Submit'}
             </button>
@@ -383,7 +392,7 @@ export default function FormModule({
             <button
               type="submit"
               disabled={submitting}
-              className="inline-flex items-center px-5 py-2.5 rounded-md bg-standout-medium text-on-standout text-sm font-medium hover:bg-standout-medium/90 disabled:opacity-60 focus:outline-none focus:ring-2 focus:ring-standout-medium/40 transition-all active:scale-95"
+              className={`inline-flex items-center px-5 py-2.5 rounded-md ${isDarkBg ? 'bg-backdrop-low text-neutral-high' : 'bg-standout-medium text-on-standout'} text-sm font-medium hover:bg-standout-medium/90 disabled:opacity-60 focus:outline-none focus:ring-2 focus:ring-standout-medium/40 transition-all active:scale-95`}
             >
               {submitting ? 'Sending...' : 'Submit'}
             </button>
@@ -394,7 +403,11 @@ export default function FormModule({
   )
 
   return (
-    <section className={`${backgroundColor} py-8 lg:py-16`} data-module="form">
+    <section
+      className={`${bg} py-8 lg:py-16`}
+      data-module="form"
+      data-inline-path="backgroundColor"
+    >
       <div className="container mx-auto px-4 sm:px-6 lg:px-8 max-w-xl">
         {formBody}
       </div>

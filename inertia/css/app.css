@@ -21,7 +21,7 @@
 
   --color-backdrop-low: var(--color-zinc-50);
   --color-backdrop-medium: var(--color-zinc-100);
-  --color-backdrop-high: var(--color-zinc-400);
+  --color-backdrop-high: var(--color-zinc-300);
   --color-backdrop-input: var(--color-zinc-100);
 
   --color-line-low: var(--color-zinc-400);
@@ -69,7 +69,7 @@
 
   --color-backdrop-low: var(--color-zinc-50);
   --color-backdrop-medium: var(--color-zinc-100);
-  --color-backdrop-high: var(--color-zinc-400);
+  --color-backdrop-high: var(--color-zinc-300);
   --color-backdrop-input: var(--color-zinc-100);
 
   --color-line-low: var(--color-zinc-400);
@@ -275,135 +275,160 @@
   body {
     @apply bg-background text-foreground;
   }
+}
 
-  /* Prose (Typography) Customization */
-  .prose {
-    --tw-prose-body: var(--color-neutral-high);
-    --tw-prose-headings: var(--color-neutral-high);
-    --tw-prose-links: var(--color-standout-high);
-    --tw-prose-bold: var(--color-neutral-high);
-    --tw-prose-bullets: var(--color-neutral-medium);
-    --tw-prose-quotes: var(--color-neutral-medium);
-    --tw-prose-code: var(--color-neutral-high);
-    --tw-prose-hr: var(--color-line-low);
+/* Prose (Typography) Customization - Defined outside layers to ensure they override plugin defaults */
+.prose,
+[class*='prose-'] {
+  --tw-prose-body: var(--color-neutral-high);
+  --tw-prose-headings: var(--color-neutral-high);
+  --tw-prose-links: var(--color-standout-high);
+  --tw-prose-bold: var(--color-neutral-high);
+  --tw-prose-bullets: var(--color-neutral-medium);
+  --tw-prose-quotes: var(--color-neutral-medium);
+  --tw-prose-code: var(--color-neutral-high);
+  --tw-prose-hr: var(--color-line-low);
 
-    max-width: none;
-  }
+  max-width: none !important;
+}
 
-  .prose h1 {
-    display: none !important;
-    /* Hero has the H1 */
-  }
+.prose h1,
+[class*='prose-'] h1 {
+  display: none !important;
+  /* Hero has the H1 */
+}
 
-  .prose h1,
-  .prose h2,
-  .prose h3,
-  .prose h4,
-  .prose h5,
-  .prose h6 {
-    color: var(--color-neutral-high) !important;
-  }
+.prose h1,
+.prose h2,
+.prose h3,
+.prose h4,
+.prose h5,
+.prose h6,
+[class*='prose-'] h1,
+[class*='prose-'] h2,
+[class*='prose-'] h3,
+[class*='prose-'] h4,
+[class*='prose-'] h5,
+[class*='prose-'] h6 {
+  color: var(--color-neutral-high) !important;
+}
 
-  .prose h2 {
-    font-size: 1.875rem;
-    font-weight: 600;
-    margin-top: 2rem;
-    margin-bottom: 1rem;
-    line-height: 2.25rem;
-    color: var(--color-neutral-high) !important;
-  }
+.prose h2,
+[class*='prose-'] h2 {
+  font-size: 2.25rem !important;
+  font-weight: 500 !important;
+  margin-top: 2.5rem !important;
+  margin-bottom: 1.25rem !important;
+  line-height: 2.5rem !important;
+  color: var(--color-neutral-high) !important;
+}
 
-  .prose h3 {
-    font-size: 1.5rem;
-    font-weight: 600;
-    margin-top: 1.5rem;
-    margin-bottom: 0.75rem;
-    line-height: 2rem;
-    color: var(--color-neutral-high) !important;
-  }
+.prose h3,
+[class*='prose-'] h3 {
+  font-size: 1.5rem !important;
+  font-weight: 600 !important;
+  margin-top: 1.5rem !important;
+  margin-bottom: 0.75rem !important;
+  line-height: 2rem !important;
+  color: var(--color-neutral-high) !important;
+}
 
-  .prose p {
-    margin-top: 1rem;
-    margin-bottom: 1rem;
-    line-height: 1.75rem;
-  }
+.prose p,
+[class*='prose-'] p {
+  margin-top: 1rem !important;
+  margin-bottom: 1rem !important;
+  line-height: 1.75rem !important;
+}
 
-  .prose ul {
-    list-style-type: disc;
-    padding-left: 1.5rem;
-    margin-top: 1rem;
-    margin-bottom: 1rem;
-  }
+.prose ul,
+[class*='prose-'] ul {
+  list-style-type: disc !important;
+  padding-left: 1.5rem !important;
+  margin-top: 1rem !important;
+  margin-bottom: 1rem !important;
+}
 
-  .prose ol {
-    list-style-type: decimal;
-    padding-left: 1.5rem;
-    margin-top: 1rem;
-    margin-bottom: 1rem;
-  }
+.prose ol,
+[class*='prose-'] ol {
+  list-style-type: decimal !important;
+  padding-left: 1.5rem !important;
+  margin-top: 1rem !important;
+  margin-bottom: 1rem !important;
+}
 
-  .prose li {
-    margin-top: 0.5rem;
-    margin-bottom: 0.5rem;
-  }
+.prose li,
+[class*='prose-'] li {
+  margin-top: 0.5rem !important;
+  margin-bottom: 0.5rem !important;
+}
 
-  .prose code {
-    background-color: var(--color-backdrop-medium);
-    padding: 0.125rem 0.25rem;
-    border-radius: 0.25rem;
-    font-weight: 400;
-    font-family: ui-monospace, monospace;
-    color: var(--color-neutral-high) !important;
-  }
+.prose code,
+[class*='prose-'] code {
+  background-color: var(--color-backdrop-medium) !important;
+  padding: 0.125rem 0.25rem !important;
+  border-radius: 0.25rem !important;
+  font-weight: 400 !important;
+  font-family: ui-monospace, monospace !important;
+  color: var(--color-neutral-high) !important;
+}
 
-  .prose code::before,
-  .prose code::after {
-    content: '';
-  }
+.prose code::before,
+.prose code::after,
+[class*='prose-'] code::before,
+[class*='prose-'] code::after {
+  content: '' !important;
+}
 
-  .prose pre {
-    background-color: var(--color-backdrop-medium);
-    border: 1px solid var(--color-line-low);
-    border-radius: 0.5rem;
-    padding: 1rem;
-    overflow-x: auto;
-    margin-top: 1rem;
-    margin-bottom: 1rem;
-  }
+.prose pre,
+[class*='prose-'] pre {
+  background-color: var(--color-backdrop-medium) !important;
+  border: 1px solid var(--color-line-low) !important;
+  border-radius: 0.5rem !important;
+  padding: 1rem !important;
+  overflow-x: auto !important;
+  margin-top: 1rem !important;
+  margin-bottom: 1rem !important;
+}
 
-  .prose pre code {
-    background-color: transparent;
-    padding: 0;
-    border-radius: 0;
-    font-size: 0.875rem;
-    line-height: 1.5;
-  }
+.prose pre code,
+[class*='prose-'] pre code {
+  background-color: transparent !important;
+  padding: 0 !important;
+  border-radius: 0 !important;
+  font-size: 0.875rem !important;
+  line-height: 1.5 !important;
+}
 
-  .prose hr {
-    border: none;
-    border-top: 1px solid var(--color-line-low);
-    margin-top: 2rem;
-    margin-bottom: 2rem;
-  }
+.prose hr,
+[class*='prose-'] hr {
+  border: none !important;
+  border-top: 1px solid var(--color-line-low) !important;
+  margin-top: 2rem !important;
+  margin-bottom: 2rem !important;
+}
 
-  .prose strong,
-  .prose b {
-    font-weight: 600;
-    color: var(--color-neutral-high) !important;
-  }
+.prose strong,
+.prose b,
+[class*='prose-'] strong,
+[class*='prose-'] b {
+  font-weight: 600 !important;
+  color: var(--color-neutral-high) !important;
+}
 
-  .prose a {
-    color: var(--color-standout-high) !important;
-    text-decoration: underline;
-  }
+.prose a,
+[class*='prose-'] a {
+  color: var(--color-standout-high) !important;
+  text-decoration: underline !important;
+}
 
-  .prose a:hover {
-    opacity: 0.8;
-  }
+.prose a:hover,
+[class*='prose-'] a:hover {
+  opacity: 0.8 !important;
+}
 
-  /* Blockquote tweaks (light mode) */
-  .prose blockquote {
-    color: var(--color-neutral-high);
-    border-left-color: var(--color-line-medium);
-  }
+/* Blockquote tweaks (light mode) */
+.prose blockquote,
+[class*='prose-'] blockquote {
+  color: var(--color-neutral-high) !important;
+  border-left-color: var(--color-line-medium) !important;
 }

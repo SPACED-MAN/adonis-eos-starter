@@ -1,6 +1,8 @@
 import BaseModule from '#modules/base'
 import type { ModuleConfig } from '#types/module_types'
 
+import { backgroundColorField } from './shared_fields.js'
+
 /**
  * CTA (Call to Action) Module
  *
@@ -111,17 +113,7 @@ export default class CtaModule extends BaseModule {
 						{ label: 'Split (Image Right)', value: 'split-right' },
 					],
 				},
-				{
-					slug: 'backgroundColor',
-					type: 'select',
-					label: 'Background',
-					options: [
-						{ label: 'Transparent', value: 'bg-transparent' },
-						{ label: 'Low Contrast', value: 'bg-backdrop-low' },
-						{ label: 'Medium Contrast', value: 'bg-backdrop-medium' },
-						{ label: 'Standout (Brand)', value: 'bg-standout-medium' },
-					],
-				},
+				backgroundColorField,
 			],
 			defaultValues: {
 				title: 'Ready to get started?',

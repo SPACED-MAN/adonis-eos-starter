@@ -40,6 +40,13 @@ export default function FeaturesListExpanded({
   const subtitle = useInlineValue(__moduleId, 'subtitle', initialSubtitle)
   const features = useInlineValue(__moduleId, 'features', initialFeatures)
   const cta = useInlineValue(__moduleId, 'cta', initialCta)
+  const bg = useInlineValue(__moduleId, 'backgroundColor', backgroundColor) || backgroundColor
+
+  const isDarkBg = bg === 'bg-neutral-high'
+  const textColor = isDarkBg ? 'text-backdrop-low' : 'text-neutral-high'
+  const subtextColor = isDarkBg ? 'text-backdrop-low/80' : 'text-neutral-medium'
+  const iconBg = isDarkBg ? 'bg-backdrop-low/10 text-backdrop-low' : 'bg-standout-medium/10 text-standout-medium'
+  const lineStyle = isDarkBg ? 'border-backdrop-low/10' : 'border-line-low'
 
   const safeFeatures = Array.isArray(features) ? features.slice(0, 12) : []
 
@@ -72,14 +79,14 @@ export default function FeaturesListExpanded({
           whileInView={{ opacity: 1, y: 0 }}
           viewport={{ once: true }}
           transition={{ duration: 0.8 }}
-          className="text-3xl sm:text-4xl font-extrabold tracking-tight text-neutral-high mb-4"
+          className={`text-3xl sm:text-4xl font-extrabold tracking-tight ${textColor} mb-4`}
           data-inline-path="title"
         >
           {title}
         </motion.h2>
       ) : (
         <h2
-          className="text-3xl sm:text-4xl font-extrabold tracking-tight text-neutral-high mb-4"
+          className={`text-3xl sm:text-4xl font-extrabold tracking-tight ${textColor} mb-4`}
           data-inline-path="title"
         >
           {title}
@@ -92,13 +99,13 @@ export default function FeaturesListExpanded({
             whileInView={{ opacity: 1 }}
             viewport={{ once: true }}
             transition={{ duration: 0.8, delay: 0.2 }}
-            className="text-neutral-medium text-base sm:text-lg"
+            className={`${subtextColor} text-base sm:text-lg`}
             data-inline-path="subtitle"
           >
             {subtitle}
           </motion.p>
         ) : (
-          <p className="text-neutral-medium text-base sm:text-lg" data-inline-path="subtitle">
+          <p className={`${subtextColor} text-base sm:text-lg`} data-inline-path="subtitle">
             {subtitle}
           </p>
         ))}
@@ -111,7 +118,7 @@ export default function FeaturesListExpanded({
         const isEven = idx % 2 === 0
         const featureItem = (
           <div
-            className={`flex items-center lg:w-3/5 mx-auto border-b border-line-low pb-10 mb-10 sm:flex-row flex-col ${
+            className={`flex items-center lg:w-3/5 mx-auto border-b ${lineStyle} pb-10 mb-10 sm:flex-row flex-col ${
               !isEven ? 'sm:flex-row-reverse' : ''
             }`}
             data-inline-type="object"
@@ -139,7 +146,7 @@ export default function FeaturesListExpanded({
               <div
                 className={`sm:w-32 sm:h-32 h-16 w-16 ${
                   isEven ? 'sm:mr-10' : 'sm:ml-10'
-                } inline-flex items-center justify-center rounded-full bg-standout-medium/10 text-standout-medium shrink-0`}
+                } inline-flex items-center justify-center rounded-full ${iconBg} shrink-0`}
               >
                 <FontAwesomeIcon icon={feature.icon as any} size="2x" />
               </div>
@@ -147,13 +154,13 @@ export default function FeaturesListExpanded({
 
             <div className="grow sm:text-left text-center mt-6 sm:mt-0">
               <h3
-                className="text-neutral-high text-lg sm:text-xl font-semibold mb-2"
+                className={`${textColor} text-lg sm:text-xl font-semibold mb-2`}
                 data-inline-path={`features.${idx}.title`}
               >
                 {feature.title}
               </h3>
               <p
-                className="leading-relaxed text-sm sm:text-base text-neutral-medium"
+                className={`leading-relaxed text-sm sm:text-base ${subtextColor}`}
                 data-inline-path={`features.${idx}.body`}
               >
                 {feature.body}
@@ -174,7 +181,7 @@ export default function FeaturesListExpanded({
   )
 
   return (
-    <section className={`${backgroundColor} py-12 sm:py-16`} data-module="features-list-expanded">
+    <section className={`${bg} py-12 sm:py-16`} data-module="features-list-expanded">
       <div className="container mx-auto px-4 sm:px-6 lg:px-8">
         {headerContent}
 
@@ -200,6 +207,7 @@ export default function FeaturesListExpanded({
             rel={cta?.rel}
             inlinePath="cta"
             _useReact={_useReact}
+            isDarkBg={isDarkBg}
           />
         )}
       </div>
@@ -215,12 +223,13 @@ function SectionButton({
   rel,
   inlinePath,
   _useReact,
-}: Button & { inlinePath?: string; _useReact?: boolean }) {
+  isDarkBg,
+}: Button & { inlinePath?: string; _useReact?: boolean; isDarkBg?: boolean }) {
   const styleClasses =
     {
-      primary: 'bg-standout-medium text-on-standout',
-      secondary: 'bg-backdrop-medium hover:bg-backdrop-high text-neutral-high',
-      outline: 'border border-line-low hover:bg-backdrop-medium text-neutral-high',
+      primary: isDarkBg ? 'bg-backdrop-low text-neutral-high' : 'bg-standout-medium text-on-standout',
+      secondary: isDarkBg ? 'bg-backdrop-low/10 text-backdrop-low hover:bg-backdrop-low/20' : 'bg-backdrop-medium hover:bg-backdrop-high text-neutral-high',
+      outline: isDarkBg ? 'border border-backdrop-low text-backdrop-low hover:bg-backdrop-low/10' : 'border border-line-low hover:bg-backdrop-medium text-neutral-high',
     }[style] || 'bg-standout-medium text-on-standout'
 
   const { href, target: finalTarget } = resolveHrefAndTarget(url, target)

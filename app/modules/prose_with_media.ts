@@ -1,5 +1,6 @@
 import BaseModule from '#modules/base'
 import type { ModuleConfig } from '#types/module_types'
+import { backgroundColorField } from './shared_fields.js'
 
 export default class ProseWithMediaModule extends BaseModule {
   /**
@@ -71,6 +72,7 @@ export default class ProseWithMediaModule extends BaseModule {
             },
           ],
         },
+        backgroundColorField,
       ],
       defaultValues: {
         title: "Let's create more tools and ideas that bring us together.",
@@ -96,6 +98,7 @@ export default class ProseWithMediaModule extends BaseModule {
           label: 'Get started',
           url: '#',
         },
+        backgroundColor: 'bg-backdrop-low',
       },
       allowedPostTypes: [],
     }

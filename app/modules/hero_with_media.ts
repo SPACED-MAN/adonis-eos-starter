@@ -1,5 +1,6 @@
 import BaseModule from '#modules/base'
 import type { ModuleConfig } from '#types/module_types'
+import { backgroundColorField } from './shared_fields.js'
 
 /**
  * Hero with Media Module
@@ -120,7 +121,7 @@ export default class HeroWithMediaModule extends BaseModule {
             },
           ],
         },
-        // Note: Background classes are fixed in code to avoid exposing Tailwind to editors
+        backgroundColorField,
       ],
       defaultValues: {
         title: 'Payments tool for software companies',
@@ -138,6 +139,7 @@ export default class HeroWithMediaModule extends BaseModule {
           url: '#',
           style: 'outline',
         },
+        backgroundColor: 'bg-backdrop-low',
       },
       allowedPostTypes: [], // Available for all post types
     }

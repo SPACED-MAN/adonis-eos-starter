@@ -50,11 +50,11 @@ export default {
               display: 'none',
             },
             'h2': {
-              fontSize: '1.875rem',
-              fontWeight: '600',
-              marginTop: '2rem',
-              marginBottom: '1rem',
-              lineHeight: '2.25rem',
+              fontSize: '2.25rem',
+              fontWeight: '500',
+              marginTop: '2.5rem',
+              marginBottom: '1.25rem',
+              lineHeight: '2.5rem',
             },
             'h3': {
               fontSize: '1.5rem',

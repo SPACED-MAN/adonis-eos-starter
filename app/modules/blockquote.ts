@@ -1,5 +1,6 @@
 import BaseModule from '#modules/base'
 import type { ModuleConfig } from '#types/module_types'
+import { backgroundColorField } from './shared_fields.js'
 
 export default class BlockquoteModule extends BaseModule {
   /**
@@ -49,12 +50,7 @@ export default class BlockquoteModule extends BaseModule {
           required: false,
           description: 'Optional avatar image for the quoted person (stored as media ID)',
         },
-        {
-          slug: 'backgroundColor',
-          type: 'text',
-          required: false,
-          description: 'Optional background utility class for the section',
-        },
+        backgroundColorField,
       ],
       defaultValues: {
         quote:

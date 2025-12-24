@@ -1,5 +1,6 @@
 import BaseModule from '#modules/base'
 import type { ModuleConfig } from '#types/module_types'
+import { backgroundColorField } from './shared_fields.js'
 
 export default class BlogListModule extends BaseModule {
   /**
@@ -34,24 +35,26 @@ export default class BlogListModule extends BaseModule {
           description: 'Optional short paragraph describing the blog or content theme.',
           translatable: true,
         },
-        {
-          slug: 'posts',
-          type: 'post-reference',
-          required: false,
-          description:
-            'Optional list of specific blog posts to feature. If empty, all published blog posts will be shown.',
-          config: {
-            postTypes: ['blog'],
-            allowMultiple: true,
-          },
-        },
-      ],
-      defaultValues: {
-        title: 'Our Blog',
-        subtitle:
-          'Insights, stories, and updates from the team. Blog posts are pulled from the Blog post type so they stay in sync.',
-        posts: [],
-      },
+				{
+					slug: 'posts',
+					type: 'post-reference',
+					required: false,
+					description:
+						'Optional list of specific blog posts to feature. If empty, all published blog posts will be shown.',
+					config: {
+						postTypes: ['blog'],
+						allowMultiple: true,
+					},
+				},
+				backgroundColorField,
+			],
+			defaultValues: {
+				title: 'Our Blog',
+				subtitle:
+					'Insights, stories, and updates from the team. Blog posts are pulled from the Blog post type so they stay in sync.',
+				posts: [],
+				backgroundColor: 'bg-backdrop-low',
+			},
       allowedPostTypes: ['page', 'blog'],
     }
   }

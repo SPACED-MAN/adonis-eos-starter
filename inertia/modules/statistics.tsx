@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState } from 'react'
 import { motion, useSpring, useTransform, animate } from 'framer-motion'
+import { useInlineValue } from '../components/inline-edit/InlineEditorContext'
 
 interface StatItem {
   value: number
@@ -54,9 +55,15 @@ export default function Statistics({
   stats,
   backgroundColor = 'bg-backdrop-low',
   _useReact,
-}: StatisticsProps) {
+  __moduleId,
+}: StatisticsProps & { __moduleId?: string }) {
   const [hasEntered, setHasEntered] = useState(false)
   const sectionRef = useRef<HTMLElement | null>(null)
+  const bg = useInlineValue(__moduleId, 'backgroundColor', backgroundColor) || backgroundColor
+
+  const isDarkBg = bg === 'bg-neutral-high'
+  const textColor = isDarkBg ? 'text-backdrop-low' : 'text-neutral-high'
+  const subtextColor = isDarkBg ? 'text-backdrop-low/80' : 'text-neutral-medium'
 
   useEffect(() => {
     if (!_useReact) return
@@ -113,7 +120,7 @@ export default function Statistics({
 
   const content = (
     <div className="max-w-screen-xl px-4 mx-auto text-center">
-      <dl className="grid max-w-screen-md gap-8 mx-auto text-neutral-high sm:grid-cols-3">
+      <dl className={`grid max-w-screen-md gap-8 mx-auto ${textColor} sm:grid-cols-3`}>
         {safeStats.map((stat, idx) => {
           const item = (
             <div key={idx} className="flex flex-col items-center justify-center">
@@ -125,7 +132,7 @@ export default function Statistics({
                   {stat.suffix ? stat.suffix : ''}
                 </dt>
               )}
-              <dd className="font-light text-neutral-medium">{stat.label}</dd>
+              <dd className={`font-light ${subtextColor}`}>{stat.label}</dd>
             </div>
           )
 
@@ -149,7 +156,7 @@ export default function Statistics({
         whileInView="visible"
         viewport={{ once: true, margin: '-100px' }}
         variants={containerVariants}
-        className={`${backgroundColor} py-12 lg:py-16`}
+        className={`${bg} py-12 lg:py-16`}
         data-module="statistics"
       >
         {content}
@@ -158,7 +165,7 @@ export default function Statistics({
   }
 
   return (
-    <section ref={sectionRef} className={`${backgroundColor} py-12 lg:py-16`} data-module="statistics">
+    <section ref={sectionRef} className={`${bg} py-12 lg:py-16`} data-module="statistics">
       {content}
     </section>
   )

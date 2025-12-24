@@ -43,6 +43,11 @@ export default function HeroWithMedia({
   const imageValue = useInlineValue(__moduleId, 'image', image)
   const titleValue = useInlineValue(__moduleId, 'title', title)
   const subtitleValue = useInlineValue(__moduleId, 'subtitle', subtitle)
+  const bg = useInlineValue(__moduleId, 'backgroundColor', backgroundColor) || backgroundColor
+
+  const isDarkBg = bg === 'bg-neutral-high'
+  const textColor = isDarkBg ? 'text-backdrop-low' : 'text-neutral-high'
+  const subtextColor = isDarkBg ? 'text-backdrop-low/80' : 'text-neutral-medium'
 
   const hasCtas = Boolean(primaryCta || secondaryCta)
 
@@ -110,14 +115,14 @@ export default function HeroWithMedia({
       {_useReact ? (
         <motion.h1
           variants={textVariants}
-          className="max-w-2xl text-4xl font-extrabold tracking-tight leading-tight sm:text-5xl xl:text-6xl text-neutral-high"
+          className={`max-w-2xl text-4xl font-extrabold tracking-tight leading-tight sm:text-5xl xl:text-6xl ${textColor}`}
           data-inline-path="title"
         >
           {titleValue}
         </motion.h1>
       ) : (
         <h1
-          className="max-w-2xl text-4xl font-extrabold tracking-tight leading-tight sm:text-5xl xl:text-6xl text-neutral-high"
+          className={`max-w-2xl text-4xl font-extrabold tracking-tight leading-tight sm:text-5xl xl:text-6xl ${textColor}`}
           data-inline-path="title"
         >
           {titleValue}
@@ -128,14 +133,14 @@ export default function HeroWithMedia({
         (_useReact ? (
           <motion.p
             variants={textVariants}
-            className="max-w-2xl text-lg lg:text-xl font-light text-neutral-medium"
+            className={`max-w-2xl text-lg lg:text-xl font-light ${subtextColor}`}
             data-inline-path="subtitle"
           >
             {subtitleValue}
           </motion.p>
         ) : (
           <p
-            className="max-w-2xl text-lg lg:text-xl font-light text-neutral-medium"
+            className={`max-w-2xl text-lg lg:text-xl font-light ${subtextColor}`}
             data-inline-path="subtitle"
           >
             {subtitleValue}
@@ -153,6 +158,7 @@ export default function HeroWithMedia({
                     moduleId={__moduleId}
                     inlineObjectPath="primaryCta"
                     inlineObjectLabel="Primary CTA"
+                    isDarkBg={isDarkBg}
                   />
                 </motion.div>
               )}
@@ -163,6 +169,7 @@ export default function HeroWithMedia({
                     moduleId={__moduleId}
                     inlineObjectPath="secondaryCta"
                     inlineObjectLabel="Secondary CTA"
+                    isDarkBg={isDarkBg}
                   />
                 </motion.div>
               )}
@@ -175,6 +182,7 @@ export default function HeroWithMedia({
                   moduleId={__moduleId}
                   inlineObjectPath="primaryCta"
                   inlineObjectLabel="Primary CTA"
+                  isDarkBg={isDarkBg}
                 />
               )}
               {secondaryCta && (
@@ -183,6 +191,7 @@ export default function HeroWithMedia({
                   moduleId={__moduleId}
                   inlineObjectPath="secondaryCta"
                   inlineObjectLabel="Secondary CTA"
+                  isDarkBg={isDarkBg}
                 />
               )}
             </>
@@ -199,7 +208,7 @@ export default function HeroWithMedia({
         whileInView="visible"
         viewport={{ once: true, margin: '-100px' }}
         variants={containerVariants}
-        className={`${backgroundColor} py-12 lg:py-16 overflow-hidden`}
+        className={`${bg} py-12 lg:py-16 overflow-hidden`}
         data-module="hero-with-media"
       >
         <div className="container mx-auto px-4 sm:px-6 lg:px-8">
@@ -214,7 +223,7 @@ export default function HeroWithMedia({
   }
 
   return (
-    <section className={`${backgroundColor} py-12 lg:py-16`} data-module="hero-with-media">
+    <section className={`${bg} py-12 lg:py-16`} data-module="hero-with-media">
       <div className="container mx-auto px-4 sm:px-6 lg:px-8">
         <div className="grid lg:grid-cols-12 gap-8 items-center">
           {imagePosition === 'left' && imageBlock}
@@ -246,6 +255,7 @@ interface ButtonComponentProps extends Button {
   moduleId?: string
   inlineObjectPath?: string
   inlineObjectLabel?: string
+  isDarkBg?: boolean
 }
 
 function ButtonComponent({
@@ -257,6 +267,7 @@ function ButtonComponent({
   moduleId,
   inlineObjectPath,
   inlineObjectLabel,
+  isDarkBg,
 }: ButtonComponentProps) {
   // Use inline values so edits reflect immediately
   const obj = useInlineValue(moduleId, inlineObjectPath || '', {
@@ -269,9 +280,15 @@ function ButtonComponent({
   const style: 'primary' | 'secondary' | 'outline' = obj?.style ?? initialStyle
 
   const styleMap = {
-    primary: 'bg-standout-medium text-on-standout',
-    secondary: 'bg-backdrop-medium hover:bg-backdrop-high text-neutral-high',
-    outline: 'border border-line-low hover:bg-backdrop-medium text-neutral-high',
+    primary: isDarkBg
+      ? 'bg-backdrop-low text-neutral-high hover:bg-backdrop-low/90'
+      : 'bg-standout-medium text-on-standout',
+    secondary: isDarkBg
+      ? 'bg-backdrop-low/10 text-backdrop-low hover:bg-backdrop-low/20'
+      : 'bg-backdrop-medium hover:bg-backdrop-high text-neutral-high',
+    outline: isDarkBg
+      ? 'border border-backdrop-low text-backdrop-low hover:bg-backdrop-low/10'
+      : 'border border-line-low hover:bg-backdrop-medium text-neutral-high',
   }
   const styleClasses = styleMap[style] || styleMap.primary
 

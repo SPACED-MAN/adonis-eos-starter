@@ -44,6 +44,11 @@ export default function ProseWithMedia({
   const titleValue = useInlineValue(__moduleId, 'title', title)
   const bodyValue = useInlineValue(__moduleId, 'body', body)
   const imageValue = useInlineValue(__moduleId, 'image', image)
+  const bg = useInlineValue(__moduleId, 'backgroundColor', backgroundColor) || backgroundColor
+
+  const isDarkBg = bg === 'bg-neutral-high'
+  const textColor = isDarkBg ? 'text-backdrop-low' : 'text-neutral-high'
+  const subtextColor = isDarkBg ? 'text-backdrop-low/80' : 'text-neutral-medium'
 
   function resolveButtonHref(url: string | LinkValue): string | undefined {
     return resolveLink(url).href
@@ -104,14 +109,14 @@ export default function ProseWithMedia({
       {_useReact ? (
         <motion.h2
           variants={textVariants}
-          className="mb-4 text-3xl sm:text-4xl font-extrabold tracking-tight text-neutral-high"
+          className={`mb-4 text-3xl sm:text-4xl font-extrabold tracking-tight ${textColor}`}
           data-inline-path="title"
         >
           {titleValue}
         </motion.h2>
       ) : (
         <h2
-          className="mb-4 text-3xl sm:text-4xl font-extrabold tracking-tight text-neutral-high"
+          className={`mb-4 text-3xl sm:text-4xl font-extrabold tracking-tight ${textColor}`}
           data-inline-path="title"
         >
           {titleValue}
@@ -122,7 +127,7 @@ export default function ProseWithMedia({
           {_useReact ? (
             <motion.div
               variants={textVariants}
-              className="mb-6 prose prose-sm md:prose-base text-neutral-medium"
+              className={`mb-6 prose prose-sm md:prose-base ${isDarkBg ? 'prose-invert' : ''} ${subtextColor}`}
               suppressHydrationWarning
               data-inline-type="richtext"
               data-inline-path="body"
@@ -131,7 +136,7 @@ export default function ProseWithMedia({
             />
           ) : (
             <div
-              className="mb-6 prose prose-sm md:prose-base text-neutral-medium"
+              className={`mb-6 prose prose-sm md:prose-base ${isDarkBg ? 'prose-invert' : ''} ${subtextColor}`}
               suppressHydrationWarning
               data-inline-type="richtext"
               data-inline-path="body"
@@ -160,7 +165,11 @@ export default function ProseWithMedia({
               href={href}
               target={linkTarget}
               rel={linkTarget === '_blank' ? 'noopener noreferrer' : undefined}
-              className="inline-flex items-center text-on-standout bg-standout-medium hover:bg-standout-medium/90 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:ring-standout-medium font-medium rounded-lg text-sm px-5 py-2.5 transition-all active:scale-95"
+              className={`inline-flex items-center font-medium rounded-lg text-sm px-5 py-2.5 transition-all active:scale-95 ${
+                isDarkBg
+                  ? 'bg-backdrop-low text-neutral-high hover:bg-backdrop-low/90'
+                  : 'text-on-standout bg-standout-medium hover:bg-standout-medium/90'
+              } focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:ring-standout-medium`}
             >
               {primaryCta.label}
               <FontAwesomeIcon icon="arrow-right" className="ml-2 -mr-1 text-sm" />
@@ -201,7 +210,7 @@ export default function ProseWithMedia({
         whileInView="visible"
         viewport={{ once: true, margin: '-100px' }}
         variants={containerVariants}
-        className={`${backgroundColor} py-12 sm:py-16 overflow-hidden`}
+        className={`${bg} py-12 sm:py-16 overflow-hidden`}
         data-module="prose-with-media"
       >
         <div className="container mx-auto px-4 sm:px-6 lg:px-8">
@@ -212,7 +221,7 @@ export default function ProseWithMedia({
   }
 
   return (
-    <section className={`${backgroundColor} py-12 sm:py-16`} data-module="prose-with-media">
+    <section className={`${bg} py-12 sm:py-16`} data-module="prose-with-media">
       <div className="container mx-auto px-4 sm:px-6 lg:px-8">
         {content}
       </div>

@@ -10,6 +10,7 @@ interface TestimonialListProps {
   subtitle?: string | null
   // IDs of Testimonial posts selected via post-reference field; if empty, show all.
   testimonials?: string[] | null
+  backgroundColor?: string
   __moduleId?: string
   _useReact?: boolean
 }
@@ -26,6 +27,7 @@ export default function TestimonialList({
   title: initialTitle,
   subtitle: initialSubtitle,
   testimonials: initialTestimonials,
+  backgroundColor = 'bg-backdrop-low',
   __moduleId,
   _useReact,
 }: TestimonialListProps) {
@@ -35,6 +37,11 @@ export default function TestimonialList({
   const title = useInlineValue(__moduleId, 'title', initialTitle)
   const subtitle = useInlineValue(__moduleId, 'subtitle', initialSubtitle)
   const testimonials = useInlineValue(__moduleId, 'testimonials', initialTestimonials)
+  const bg = useInlineValue(__moduleId, 'backgroundColor', backgroundColor) || backgroundColor
+
+  const isDarkBg = bg === 'bg-neutral-high'
+  const textColor = isDarkBg ? 'text-backdrop-low' : 'text-neutral-high'
+  const subtextColor = isDarkBg ? 'text-backdrop-low/80' : 'text-neutral-medium'
 
   useEffect(() => {
     let cancelled = false
@@ -107,14 +114,14 @@ export default function TestimonialList({
           whileInView={{ opacity: 1, y: 0 }}
           viewport={{ once: true }}
           transition={{ duration: 1.0 }}
-          className="mb-4 text-3xl md:text-4xl tracking-tight font-extrabold text-neutral-high"
+          className={`mb-4 text-3xl md:text-4xl tracking-tight font-extrabold ${textColor}`}
           data-inline-path="title"
         >
           {title}
         </motion.h2>
       ) : (
         <h2
-          className="mb-4 text-3xl md:text-4xl tracking-tight font-extrabold text-neutral-high"
+          className={`mb-4 text-3xl md:text-4xl tracking-tight font-extrabold ${textColor}`}
           data-inline-path="title"
         >
           {title}
@@ -127,14 +134,14 @@ export default function TestimonialList({
             whileInView={{ opacity: 1 }}
             viewport={{ once: true }}
             transition={{ duration: 1.0, delay: 0.25 }}
-            className="mb-8 font-light text-neutral-medium sm:text-lg"
+            className={`mb-8 font-light ${subtextColor} sm:text-lg`}
             data-inline-path="subtitle"
           >
             {subtitle}
           </motion.p>
         ) : (
           <p
-            className="mb-8 font-light text-neutral-medium sm:text-lg"
+            className={`mb-8 font-light ${subtextColor} sm:text-lg`}
             data-inline-path="subtitle"
           >
             {subtitle}
@@ -185,14 +192,14 @@ export default function TestimonialList({
 
   if (loading && items.length === 0) {
     return (
-      <section className="bg-backdrop-low py-8 lg:py-16" data-module="testimonial-list">
+      <section className={`${bg} py-8 lg:py-16`} data-module="testimonial-list">
         <div className="container mx-auto px-4 lg:px-6">
           <div className="mx-auto max-w-screen-sm text-center mb-8">
-            <h2 className="mb-4 text-3xl md:text-4xl font-extrabold tracking-tight text-neutral-high">
+            <h2 className={`mb-4 text-3xl md:text-4xl font-extrabold tracking-tight ${textColor}`}>
               {title}
             </h2>
-            {subtitle && <p className="font-light text-neutral-medium sm:text-lg">{subtitle}</p>}
-            <p className="mt-4 text-xs text-neutral-low">Loading testimonials…</p>
+            {subtitle && <p className={`font-light ${subtextColor} sm:text-lg`}>{subtitle}</p>}
+            <p className={`mt-4 text-xs ${subtextColor} opacity-60`}>Loading testimonials…</p>
           </div>
         </div>
       </section>
@@ -204,7 +211,7 @@ export default function TestimonialList({
   }
 
   return (
-    <section className="bg-backdrop-low py-8 lg:py-16" data-module="testimonial-list">
+    <section className={`${bg} py-8 lg:py-16`} data-module="testimonial-list">
       <div className="container mx-auto px-4 lg:px-6 text-center">
         {headerContent}
 
@@ -224,7 +231,7 @@ export default function TestimonialList({
         <div className="text-center">
           <a
             href="#"
-            className="inline-flex items-center justify-center py-2.5 px-5 text-sm font-medium text-neutral-high bg-backdrop-high border border-line-low rounded-lg hover:bg-backdrop-medium focus:outline-none focus:ring-2 focus:ring-standout-medium/40"
+            className={`inline-flex items-center justify-center py-2.5 px-5 text-sm font-medium ${isDarkBg ? 'bg-backdrop-low text-neutral-high' : 'text-neutral-high bg-backdrop-high'} border border-line-low rounded-lg hover:bg-backdrop-medium focus:outline-none focus:ring-2 focus:ring-standout-medium/40`}
           >
             Show more…
           </a>

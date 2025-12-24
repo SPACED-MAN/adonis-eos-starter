@@ -1,5 +1,6 @@
 import BaseModule from '#modules/base'
 import type { ModuleConfig } from '#types/module_types'
+import { backgroundColorField } from './shared_fields.js'
 
 export default class FormModule extends BaseModule {
   /**
@@ -54,11 +55,13 @@ export default class FormModule extends BaseModule {
           required: true,
           description: 'Form to render (e.g., contact). Choose from Forms defined in the admin.',
         },
+        backgroundColorField,
       ],
       defaultValues: {
         title: 'Contact us',
         subtitle: 'Fill out the form and our team will get back to you shortly.',
         formSlug: 'contact',
+        backgroundColor: 'bg-backdrop-low',
       },
       allowedPostTypes: ['page', 'blog'],
     }

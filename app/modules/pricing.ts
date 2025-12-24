@@ -1,5 +1,6 @@
 import BaseModule from '#modules/base'
 import type { ModuleConfig } from '#types/module_types'
+import { backgroundColorField } from './shared_fields.js'
 
 export default class PricingModule extends BaseModule {
   /**
@@ -102,60 +103,62 @@ export default class PricingModule extends BaseModule {
               },
             ],
           },
-        },
-      ],
-      defaultValues: {
-        title: 'Designed for business teams like yours',
-        subtitle:
-          'We focus on markets where technology, innovation, and capital can unlock long-term value and drive economic growth.',
-        plans: [
-          {
-            name: 'Starter',
-            description: 'Best option for personal use & for your next project.',
-            price: '29',
-            period: '/month',
-            features: [
-              'Individual configuration',
-              'No setup, or hidden fees',
-              'Team size: 1 developer',
-              'Premium support: 6 months',
-              'Free updates: 6 months',
-            ],
-            primary: false,
-            ctaLabel: 'Get started',
-          },
-          {
-            name: 'Company',
-            description: 'Relevant for multiple users, extended & premium support.',
-            price: '99',
-            period: '/month',
-            features: [
-              'Individual configuration',
-              'No setup, or hidden fees',
-              'Team size: 10 developers',
-              'Premium support: 24 months',
-              'Free updates: 24 months',
-            ],
-            primary: true,
-            ctaLabel: 'Get started',
-          },
-          {
-            name: 'Enterprise',
-            description: 'Best for large scale uses and extended redistribution rights.',
-            price: '499',
-            period: '/month',
-            features: [
-              'Individual configuration',
-              'No setup, or hidden fees',
-              'Team size: 100+ developers',
-              'Premium support: 36 months',
-              'Free updates: 36 months',
-            ],
-            primary: false,
-            ctaLabel: 'Get started',
-          },
-        ],
-      },
+				},
+				backgroundColorField,
+			],
+			defaultValues: {
+				title: 'Designed for business teams like yours',
+				subtitle:
+					'We focus on markets where technology, innovation, and capital can unlock long-term value and drive economic growth.',
+				plans: [
+					{
+						name: 'Starter',
+						description: 'Best option for personal use & for your next project.',
+						price: '29',
+						period: '/month',
+						features: [
+							'Individual configuration',
+							'No setup, or hidden fees',
+							'Team size: 1 developer',
+							'Premium support: 6 months',
+							'Free updates: 6 months',
+						],
+						primary: false,
+						ctaLabel: 'Get started',
+					},
+					{
+						name: 'Company',
+						description: 'Relevant for multiple users, extended & premium support.',
+						price: '99',
+						period: '/month',
+						features: [
+							'Individual configuration',
+							'No setup, or hidden fees',
+							'Team size: 10 developers',
+							'Premium support: 24 months',
+							'Free updates: 24 months',
+						],
+						primary: true,
+						ctaLabel: 'Get started',
+					},
+					{
+						name: 'Enterprise',
+						description: 'Best for large scale uses and extended redistribution rights.',
+						price: '499',
+						period: '/month',
+						features: [
+							'Individual configuration',
+							'No setup, or hidden fees',
+							'Team size: 100+ developers',
+							'Premium support: 36 months',
+							'Free updates: 36 months',
+						],
+						primary: false,
+						ctaLabel: 'Get started',
+					},
+				],
+				backgroundColor: 'bg-backdrop-low',
+			},
       allowedPostTypes: [],
     }
   }

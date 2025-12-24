@@ -10,6 +10,7 @@ interface ProfileListProps {
   subtitle?: string | null
   // IDs of Profile posts selected via post-reference field; if empty, show all profiles.
   profiles?: string[] | null
+  backgroundColor?: string
   __moduleId?: string
   _useReact?: boolean
 }
@@ -27,6 +28,7 @@ export default function ProfileList({
   title: initialTitle,
   subtitle: initialSubtitle,
   profiles: initialProfiles,
+  backgroundColor: initialBackground = 'bg-backdrop-low',
   __moduleId,
   _useReact,
 }: ProfileListProps) {
@@ -36,6 +38,11 @@ export default function ProfileList({
   const title = useInlineValue(__moduleId, 'title', initialTitle)
   const subtitle = useInlineValue(__moduleId, 'subtitle', initialSubtitle)
   const profiles = useInlineValue(__moduleId, 'profiles', initialProfiles)
+  const bg = useInlineValue(__moduleId, 'backgroundColor', initialBackground) || initialBackground
+
+  const isDarkBg = bg === 'bg-neutral-high'
+  const textColor = isDarkBg ? 'text-backdrop-low' : 'text-neutral-high'
+  const subtextColor = isDarkBg ? 'text-backdrop-low/80' : 'text-neutral-medium'
 
   useEffect(() => {
     let cancelled = false
@@ -110,14 +117,14 @@ export default function ProfileList({
           whileInView={{ opacity: 1, y: 0 }}
           viewport={{ once: true }}
           transition={{ duration: 1.0 }}
-          className="mb-4 text-4xl tracking-tight font-extrabold text-neutral-high"
+          className={`mb-4 text-4xl tracking-tight font-extrabold ${textColor}`}
           data-inline-path="title"
         >
           {title}
         </motion.h2>
       ) : (
         <h2
-          className="mb-4 text-4xl tracking-tight font-extrabold text-neutral-high"
+          className={`mb-4 text-4xl tracking-tight font-extrabold ${textColor}`}
           data-inline-path="title"
         >
           {title}
@@ -130,14 +137,14 @@ export default function ProfileList({
             whileInView={{ opacity: 1 }}
             viewport={{ once: true }}
             transition={{ duration: 1.0, delay: 0.25 }}
-            className="font-light text-neutral-medium lg:mb-4 sm:text-xl"
+            className={`font-light ${subtextColor} lg:mb-4 sm:text-xl`}
             data-inline-path="subtitle"
           >
             {subtitle}
           </motion.p>
         ) : (
           <p
-            className="font-light text-neutral-medium lg:mb-4 sm:text-xl"
+            className={`font-light ${subtextColor} lg:mb-4 sm:text-xl`}
             data-inline-path="subtitle"
           >
             {subtitle}
@@ -189,14 +196,18 @@ export default function ProfileList({
 
   if (loading && items.length === 0) {
     return (
-      <section className="bg-backdrop-low py-12 lg:py-16" data-module="profile-list">
+      <section
+        className={`${bg} py-12 lg:py-16`}
+        data-module="profile-list"
+        data-inline-path="backgroundColor"
+      >
         <div className="container mx-auto px-4 sm:px-6 lg:px-8">
           <div className="max-w-screen-sm mx-auto text-center mb-8">
-            <h2 className="mb-2 text-3xl font-extrabold tracking-tight text-neutral-high">
+            <h2 className={`mb-2 text-3xl font-extrabold tracking-tight ${textColor}`}>
               {title}
             </h2>
-            {subtitle && <p className="text-sm text-neutral-medium">{subtitle}</p>}
-            <p className="mt-4 text-xs text-neutral-low">Loading profiles…</p>
+            {subtitle && <p className={`text-sm ${subtextColor}`}>{subtitle}</p>}
+            <p className={`mt-4 text-xs ${subtextColor} opacity-60`}>Loading profiles…</p>
           </div>
         </div>
       </section>
@@ -208,7 +219,11 @@ export default function ProfileList({
   }
 
   return (
-    <section className="bg-backdrop-low py-12 lg:py-16" data-module="profile-list">
+    <section
+      className={`${bg} py-12 lg:py-16`}
+      data-module="profile-list"
+      data-inline-path="backgroundColor"
+    >
       <div className="container mx-auto px-4 sm:px-6 lg:px-8">
         {headerContent}
         {_useReact ? (

@@ -10,6 +10,7 @@ interface BlogListProps {
   subtitle?: string | null
   // IDs of Blog posts selected via post-reference field; if empty, show all.
   posts?: string[] | null
+  backgroundColor?: string
   __moduleId?: string
   _useReact?: boolean
 }
@@ -27,6 +28,7 @@ export default function BlogList({
   title: initialTitle,
   subtitle: initialSubtitle,
   posts: initialPosts,
+  backgroundColor = 'bg-backdrop-low',
   __moduleId,
   _useReact,
 }: BlogListProps) {
@@ -36,6 +38,11 @@ export default function BlogList({
   const title = useInlineValue(__moduleId, 'title', initialTitle)
   const subtitle = useInlineValue(__moduleId, 'subtitle', initialSubtitle)
   const posts = useInlineValue(__moduleId, 'posts', initialPosts)
+  const bg = useInlineValue(__moduleId, 'backgroundColor', backgroundColor) || backgroundColor
+
+  const isDarkBg = bg === 'bg-neutral-high'
+  const textColor = isDarkBg ? 'text-backdrop-low' : 'text-neutral-high'
+  const subtextColor = isDarkBg ? 'text-backdrop-low/80' : 'text-neutral-medium'
 
   useEffect(() => {
     let cancelled = false
@@ -107,14 +114,14 @@ export default function BlogList({
           whileInView={{ opacity: 1, y: 0 }}
           viewport={{ once: true }}
           transition={{ duration: 1.0 }}
-          className="mb-4 text-3xl lg:text-4xl tracking-tight font-extrabold text-neutral-high"
+          className={`mb-4 text-3xl lg:text-4xl tracking-tight font-extrabold ${textColor}`}
           data-inline-path="title"
         >
           {title}
         </motion.h2>
       ) : (
         <h2
-          className="mb-4 text-3xl lg:text-4xl tracking-tight font-extrabold text-neutral-high"
+          className={`mb-4 text-3xl lg:text-4xl tracking-tight font-extrabold ${textColor}`}
           data-inline-path="title"
         >
           {title}
@@ -127,13 +134,13 @@ export default function BlogList({
             whileInView={{ opacity: 1 }}
             viewport={{ once: true }}
             transition={{ duration: 1.0, delay: 0.25 }}
-            className="font-light text-neutral-medium sm:text-xl"
+            className={`font-light ${subtextColor} sm:text-xl`}
             data-inline-path="subtitle"
           >
             {subtitle}
           </motion.p>
         ) : (
-          <p className="font-light text-neutral-medium sm:text-xl" data-inline-path="subtitle">
+          <p className={`font-light ${subtextColor} sm:text-xl`} data-inline-path="subtitle">
             {subtitle}
           </p>
         ))}
@@ -183,14 +190,18 @@ export default function BlogList({
 
   if (loading && items.length === 0) {
     return (
-      <section className="bg-backdrop-low py-12 lg:py-16" data-module="blog-list">
+      <section
+        className={`${bg} py-12 lg:py-16`}
+        data-module="blog-list"
+        data-inline-path="backgroundColor"
+      >
         <div className="container mx-auto px-4 sm:px-6 lg:px-8">
           <div className="max-w-screen-sm mx-auto text-center mb-8">
-            <h2 className="mb-2 text-3xl lg:text-4xl font-extrabold tracking-tight text-neutral-high">
+            <h2 className={`mb-2 text-3xl lg:text-4xl font-extrabold tracking-tight ${textColor}`}>
               {title}
             </h2>
-            {subtitle && <p className="text-sm text-neutral-medium">{subtitle}</p>}
-            <p className="mt-4 text-xs text-neutral-low">Loading blog posts…</p>
+            {subtitle && <p className={`text-sm ${subtextColor}`}>{subtitle}</p>}
+            <p className={`mt-4 text-xs ${subtextColor} opacity-60`}>Loading blog posts…</p>
           </div>
         </div>
       </section>
@@ -202,7 +213,11 @@ export default function BlogList({
   }
 
   return (
-    <section className="bg-backdrop-low py-12 lg:py-16" data-module="blog-list">
+    <section
+      className={`${bg} py-12 lg:py-16`}
+      data-module="blog-list"
+      data-inline-path="backgroundColor"
+    >
       <div className="container mx-auto px-4 sm:px-6 lg:px-8">
         {headerContent}
         {_useReact ? (

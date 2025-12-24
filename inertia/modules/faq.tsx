@@ -25,6 +25,7 @@ interface FaqProps {
   title: string
   subtitle?: string | null
   items: FaqItem[]
+  backgroundColor?: string
   __moduleId?: string
   _useReact?: boolean
 }
@@ -33,12 +34,18 @@ export default function Faq({
   title: initialTitle,
   subtitle: initialSubtitle,
   items: initialItems,
+  backgroundColor = 'bg-backdrop-low',
   __moduleId,
   _useReact,
 }: FaqProps) {
   const title = useInlineValue(__moduleId, 'title', initialTitle)
   const subtitle = useInlineValue(__moduleId, 'subtitle', initialSubtitle)
   const items = useInlineValue(__moduleId, 'items', initialItems)
+  const bg = useInlineValue(__moduleId, 'backgroundColor', backgroundColor) || backgroundColor
+
+  const isDarkBg = bg === 'bg-neutral-high'
+  const textColor = isDarkBg ? 'text-backdrop-low' : 'text-neutral-high'
+  const subtextColor = isDarkBg ? 'text-backdrop-low/80' : 'text-neutral-medium'
 
   const safeItems = Array.isArray(items) ? items.filter(Boolean) : []
   if (safeItems.length === 0) return null
@@ -75,7 +82,7 @@ export default function Faq({
     const content = (
       <div className="mb-8 last:mb-0 h-full">
         <h3
-          className="flex items-start mb-3 text-base sm:text-lg font-semibold text-neutral-high"
+          className={`flex items-start mb-3 text-base sm:text-lg font-semibold ${textColor}`}
           data-inline-type="object"
           data-inline-path={`items.${idx}`}
           data-inline-fields={JSON.stringify([
@@ -86,7 +93,7 @@ export default function Faq({
           ])}
         >
           <span
-            className="mt-0.5 mr-3 inline-flex h-8 w-8 items-center justify-center rounded-full bg-backdrop-medium text-neutral-medium shrink-0"
+            className={`mt-0.5 mr-3 inline-flex h-8 w-8 items-center justify-center rounded-full ${isDarkBg ? 'bg-backdrop-low/20 text-backdrop-low' : 'bg-backdrop-medium text-neutral-medium'} shrink-0`}
             aria-hidden="true"
           >
             <FontAwesomeIcon icon="circle-question" className="text-base sm:text-lg" />
@@ -94,7 +101,7 @@ export default function Faq({
           <span data-inline-path={`items.${idx}.question`}>{item.question}</span>
         </h3>
         <p
-          className="text-sm sm:text-base text-neutral-medium ml-11"
+          className={`text-sm sm:text-base ${subtextColor} ml-11`}
           data-inline-path={`items.${idx}.answer`}
         >
           {item.answer}
@@ -105,7 +112,7 @@ export default function Faq({
                 href={link.href}
                 target={link.target}
                 rel={link.target === '_blank' ? 'noopener noreferrer' : undefined}
-                className="font-medium text-standout-high hover:underline"
+                className={`font-medium ${isDarkBg ? 'text-backdrop-low hover:underline' : 'text-standout-high hover:underline'}`}
                 data-inline-type="link"
                 data-inline-path={`items.${idx}.linkUrl`}
               >
@@ -136,14 +143,14 @@ export default function Faq({
           whileInView={{ opacity: 1, x: 0 }}
           viewport={{ once: true }}
           transition={{ duration: 1.0 }}
-          className="mb-4 text-3xl sm:text-4xl font-extrabold tracking-tight text-neutral-high"
+          className={`mb-4 text-3xl sm:text-4xl font-extrabold tracking-tight ${textColor}`}
           data-inline-path="title"
         >
           {title}
         </motion.h2>
       ) : (
         <h2
-          className="mb-4 text-3xl sm:text-4xl font-extrabold tracking-tight text-neutral-high"
+          className={`mb-4 text-3xl sm:text-4xl font-extrabold tracking-tight ${textColor}`}
           data-inline-path="title"
         >
           {title}
@@ -156,13 +163,13 @@ export default function Faq({
             whileInView={{ opacity: 1, x: 0 }}
             viewport={{ once: true }}
             transition={{ duration: 1.0, delay: 0.15 }}
-            className="text-neutral-medium text-base sm:text-lg"
+            className={`${subtextColor} text-base sm:text-lg`}
             data-inline-path="subtitle"
           >
             {subtitle}
           </motion.p>
         ) : (
-          <p className="text-neutral-medium text-base sm:text-lg" data-inline-path="subtitle">
+          <p className={`${subtextColor} text-base sm:text-lg`} data-inline-path="subtitle">
             {subtitle}
           </p>
         ))}
@@ -170,14 +177,14 @@ export default function Faq({
   )
 
   const columnsContent = (
-    <div className="grid gap-10 border-t border-line-low pt-8 md:grid-cols-2 md:gap-12">
+    <div className={`grid gap-10 border-t ${isDarkBg ? 'border-line-low/20' : 'border-line-low'} pt-8 md:grid-cols-2 md:gap-12`}>
       <div>{left.map((item, idx) => renderItem(item, idx))}</div>
       <div>{right.map((item, idx) => renderItem(item, midpoint + idx))}</div>
     </div>
   )
 
   return (
-    <section className="bg-backdrop-low py-12 sm:py-16" data-module="faq">
+    <section className={`${bg} py-12 sm:py-16`} data-module="faq">
       <div className="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8">
         {headerContent}
         {_useReact ? (
