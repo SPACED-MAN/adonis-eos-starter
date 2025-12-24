@@ -59,7 +59,7 @@ export const siteSearchQueryValidator = vine.compile(
 )
 
 /**
- * Activity logs query validator (legacy - uses same as audit logs)
+ * Activity logs query validator
  */
 export const activityLogsQueryValidator = auditLogsQueryValidator
 

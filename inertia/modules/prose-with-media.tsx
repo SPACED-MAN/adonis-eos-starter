@@ -14,8 +14,7 @@ interface LexicalJSON {
 
 interface ProseWithMediaProps {
   title: string
-  // Lexical JSON or legacy string (plain text / HTML / JSON string)
-  body?: LexicalJSON | string | null
+  body?: LexicalJSON | null
   image?: {
     id: string
     url: string
@@ -222,23 +221,8 @@ export default function ProseWithMedia({
 /**
  * Convert Lexical JSON to HTML for rendering.
  */
-function lexicalContentToHtml(content: LexicalJSON | string): string {
+function lexicalContentToHtml(content: LexicalJSON): string {
   if (content === undefined || content === null) return '<p>Empty content</p>'
-  if (typeof content === 'string') {
-    const trimmed = content.trim()
-    const looksJson = trimmed.startsWith('{') || trimmed.startsWith('[')
-    if (looksJson) {
-      try {
-        const parsed = JSON.parse(trimmed)
-        return renderLexicalToHtml(parsed)
-      } catch {
-        // Fall back to treating the string as already-rendered HTML or plain text
-        return trimmed
-      }
-    }
-    // Fall back to treating the string as already-rendered HTML or plain text
-    return trimmed
-  }
   return renderLexicalToHtml(content)
 }
 

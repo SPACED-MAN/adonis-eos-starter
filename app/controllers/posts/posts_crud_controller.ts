@@ -241,23 +241,8 @@ export default class PostsCrudController extends BasePostsController {
         taxonomyTermIds: Array.isArray((payload as any).taxonomyTermIds)
           ? ((payload as any).taxonomyTermIds as string[])
           : undefined,
+        scheduledAt: (payload as any).scheduledAt,
       })
-
-      // Handle timestamps
-      const now = new Date()
-      if (payload.status === 'published') {
-        await db
-          .from('posts')
-          .where('id', id)
-          .update({ published_at: now, scheduled_at: null, updated_at: now })
-      } else if (payload.status === 'scheduled' && payload.scheduledAt) {
-        const ts = new Date(payload.scheduledAt)
-        if (!isNaN(ts.getTime())) {
-          await db.from('posts').where('id', id).update({ scheduled_at: ts, updated_at: now })
-        }
-      } else if (payload.status === 'draft') {
-        await db.from('posts').where('id', id).update({ scheduled_at: null, updated_at: now })
-      }
 
       // Update custom fields
       const customFields = payload.customFields || request.input('customFields')

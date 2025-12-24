@@ -325,14 +325,6 @@ class PostRenderingService {
       this.resolveMediaAssets(Array.from(allMediaIds)),
     ])
 
-    console.log(
-      `[PostRenderingService] Resolved ${resolvedMedia.size}/${allMediaIds.size} media assets`
-    )
-    if (allMediaIds.size > 0) {
-      console.log(`[PostRenderingService] IDs attempted:`, Array.from(allMediaIds))
-      console.log(`[PostRenderingService] IDs successful:`, Array.from(resolvedMedia.keys()))
-    }
-
     const injectResolved = (obj: any): any => {
       if (!obj || typeof obj !== 'object') return obj
       if (obj.kind === 'post' && obj.postId) {

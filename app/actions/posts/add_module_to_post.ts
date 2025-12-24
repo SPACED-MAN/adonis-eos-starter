@@ -104,10 +104,6 @@ export default class AddModuleToPost {
               ? moduleConfig.defaultValues || {}
               : props
           )
-          
-          if (adminLabel !== undefined && initialProps._adminLabel !== undefined) {
-            delete initialProps._adminLabel
-          }
 
           const [newGlobal] = await trx
             .table('module_instances')
@@ -134,10 +130,6 @@ export default class AddModuleToPost {
             ? moduleConfig.defaultValues || {}
             : props
         )
-
-        if (adminLabel !== undefined && initialProps._adminLabel !== undefined) {
-          delete initialProps._adminLabel
-        }
 
         const [newInstance] = await trx
           .table('module_instances')

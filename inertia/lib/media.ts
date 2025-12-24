@@ -44,7 +44,6 @@ export function pickMediaVariantUrl(
       const darkName = `${desiredVariant}-dark`
       const exact = allVariants.find((v) => v.name === darkName)
       if (exact?.url) {
-        console.log(`[pickMediaVariantUrl] Dark: picked exact variant: ${darkName}`)
         return exact.url
       }
     }
@@ -53,13 +52,11 @@ export function pickMediaVariantUrl(
     const darkVariants = allVariants.filter((v) => String(v.name || '').endsWith('-dark'))
     const largestDark = pickLargest(darkVariants)
     if (largestDark) {
-      console.log(`[pickMediaVariantUrl] Dark: picked largest dark variant`)
       return largestDark
     }
 
     // 3. Try darkSourceUrl
     if (darkSourceUrl) {
-      console.log(`[pickMediaVariantUrl] Dark: falling back to darkSourceUrl: ${darkSourceUrl}`)
       return darkSourceUrl
     }
 
@@ -67,7 +64,6 @@ export function pickMediaVariantUrl(
     if (desiredVariant) {
       const exact = allVariants.find((v) => v.name === desiredVariant)
       if (exact?.url) {
-        console.log(`[pickMediaVariantUrl] Dark: falling back to light variant of desired name: ${desiredVariant}`)
         return exact.url
       }
     }
@@ -75,12 +71,10 @@ export function pickMediaVariantUrl(
     // 5. Fallback to any variant (largest)
     const largestAny = pickLargest(allVariants)
     if (largestAny) {
-      console.log(`[pickMediaVariantUrl] Dark: falling back to largest available variant (light)`)
       return largestAny
     }
 
     // 6. Final fallback
-    console.log(`[pickMediaVariantUrl] Dark: falling back to baseUrl: ${baseUrl}`)
     return baseUrl
   } else {
     // Light mode:

@@ -16,16 +16,8 @@ export default class PromotePostModules {
       if (Array.isArray(draftModules)) {
         for (const dm of draftModules) {
           const isLocal = dm.scope === 'post' || dm.scope === 'local'
-          const nextAdminLabel =
-            dm.adminLabel !== undefined
-              ? dm.adminLabel
-              : dm.props && dm.props._adminLabel !== undefined
-                ? dm.props._adminLabel
-                : dm.overrides && dm.overrides._adminLabel !== undefined
-                  ? dm.overrides._adminLabel
-                  : undefined
+          const nextAdminLabel = dm.adminLabel
           if (isLocal) {
-            // Note: Removed "robust ID lookup" for legacy drafts as requested
             const miId = dm.moduleInstanceId
             if (miId) {
               await trx

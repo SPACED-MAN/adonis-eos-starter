@@ -1,6 +1,7 @@
 import type { HttpContext } from '@adonisjs/core/http'
 import AddModuleToPost, { AddModuleToPostException } from '#actions/posts/add_module_to_post'
 import UpdatePostModule, { UpdatePostModuleException } from '#actions/posts/update_post_module'
+import DeletePostModule, { DeletePostModuleException } from '#actions/posts/delete_post_module'
 import db from '@adonisjs/lucid/services/db'
 import BasePostsController from './base_posts_controller.js'
 import { addModuleValidator, updateModuleValidator } from '#validators/post'
@@ -133,42 +134,26 @@ export default class PostsModulesController extends BasePostsController {
    * DELETE /api/post-modules/:id
    * Remove a module from a post
    */
-  async destroy({ params, response }: HttpContext) {
+  async destroy({ params, request, response }: HttpContext) {
     const { id } = params
+    const mode = request.input('mode') || 'publish'
 
     if (!isUuid(id)) {
       return this.response.badRequest(response, 'Invalid module id')
     }
 
-    const row = await db.from('post_modules').where('id', id).first()
-    if (!row) {
-      return this.response.notFound(response, 'Post module not found')
-    }
-
-    // Disallow module operations when modules are disabled for the post type
     try {
-      const postRow = await db
-        .from('posts')
-        .where('id', (row as any).post_id)
-        .first()
-      if (postRow) {
-        const cfg = postTypeConfigService.getUiConfig((postRow as any).type)
-        const modulesEnabled = cfg.modulesEnabled !== false && cfg.urlPatterns.length > 0
-        if (!modulesEnabled) {
-          return this.response.badRequest(response, 'Modules are disabled for this post type')
-        }
+      await DeletePostModule.handle({
+        postModuleId: id,
+        mode: mode as any,
+      })
+
+      return this.response.noContent(response)
+    } catch (error) {
+      if (error instanceof DeletePostModuleException) {
+        return this.handleActionException(response, error)
       }
-    } catch {
-      /* ignore and proceed */
+      throw error
     }
-
-    // Check if locked
-    if (row.locked) {
-      return this.response.badRequest(response, 'Cannot delete a locked module')
-    }
-
-    await db.from('post_modules').where('id', id).delete()
-
-    return this.response.noContent(response)
   }
 }

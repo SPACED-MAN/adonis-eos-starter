@@ -22,7 +22,6 @@ export function ThemeProvider({
     const root = document.documentElement
     const checkDark = () => {
       const dark = root.classList.contains('dark')
-      console.log('[ThemeContext] checkDark:', dark, 'current state:', isDark)
       setIsDark(dark)
     }
     

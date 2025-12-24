@@ -13,7 +13,7 @@ Perfect for non-technical users who create and manage content:
 - [Using the Review System](editors/03-review-workflow.md) - Collaboration and approval
 - [Managing Media](editors/04-media.md) - Uploading and organizing images
 - [Translations](editors/05-translations.md) - Multi-language content
-- [SEO](editors/07-seo.md) - Optimizing for search and conversion
+- [SEO & A/B Testing](editors/07-seo-and-ab-testing.md) - Optimizing for search and conversion
 
 ## For Developers
 
@@ -35,15 +35,13 @@ Technical documentation for developers and system administrators:
 
 - [API Reference](developers/04-api-reference.md) - RESTful endpoints
 - [AI Agents](developers/09-ai-agents.md) - AI-powered content enhancement
-- [Workflows](developers/10-workflows.md) - Event-driven automation and webhook integrations
-- [MCP (Model Context Protocol)](developers/10-mcp.md) - Connect external AI tools (Cursor, n8n) to CMS context + safe write tools
-- [Override Pages](developers/22-override-pages.md) - Render one-off site pages for specific post type + slug
-- [Template Tokens](developers/23-template-tokens.md) - `{title}` / `{custom.*}` / `{settings.*}` token substitution
+- [Automation & Integrations](developers/05-automation-and-integrations.md) - Workflows and Webhooks
+- [MCP (Model Context Protocol)](developers/10-mcp.md) - Connect external AI tools (Cursor, n8n) to CMS context
+- [Advanced Customization](developers/22-advanced-customization.md) - Override pages and Template tokens
+- [User Interaction](developers/24-user-interaction.md) - Forms and Email configuration
 - [Deployment Guide](developers/19-deployment.md) - Production deployment strategies
 - [Update Philosophy](developers/20-update-philosophy.md) - How to approach upgrades and maintenance
-- [Export/Import](developers/12-export-import.md) - Database export/import pipeline (dev seeding + production promotion)
-- [CLI Commands](developers/21-cli-commands.md) - Code-first makers (post types, modules, roles, menus, taxonomies)
-- [Email Configuration](developers/25-email-configuration.md) - SMTP/Resend setup and password reset flow
+- [CLI & Operations](developers/12-cli-and-operations.md) - Artifact scaffolding and Database pipeline
 
 <!-- Coming Soon:
 - Post Types - Defining custom content types

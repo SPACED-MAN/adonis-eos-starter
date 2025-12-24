@@ -135,11 +135,6 @@ export default class UpdatePostModule {
         // Deep-merge overrides
         const mergedProps = UpdatePostModule.deepMerge(baseProps, overrides || {})
 
-        // Clean up old _adminLabel from JSON props if we're using the new column
-        if (adminLabel !== undefined && (mergedProps as any)._adminLabel !== undefined) {
-          delete (mergedProps as any)._adminLabel
-        }
-
         if (mode === 'ai-review') {
           mi.aiReviewProps = mergedProps
         } else if (mode === 'review') {
@@ -159,11 +154,7 @@ export default class UpdatePostModule {
         }
       } else {
         // Global: edit overrides on join table
-        let finalOverrides = overrides
-        if (adminLabel !== undefined && finalOverrides && (finalOverrides as any)._adminLabel !== undefined) {
-          finalOverrides = { ...finalOverrides }
-          delete (finalOverrides as any)._adminLabel
-        }
+        const finalOverrides = overrides
 
         if (mode === 'ai-review') {
           postModule.aiReviewOverrides = finalOverrides

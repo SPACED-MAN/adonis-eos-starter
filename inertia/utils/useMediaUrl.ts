@@ -46,14 +46,6 @@ export function useMediaUrl(
           darkSourceUrl: image.metadata?.darkSourceUrl || (image as any).darkSourceUrl,
           isDark,
         })
-        console.log('[useMediaUrl] resolved object:', {
-          id: image.id,
-          url,
-          darkSourceUrl: image.metadata?.darkSourceUrl || (image as any).darkSourceUrl,
-          isDark,
-          variant,
-          resolved
-        })
       }
     }
 

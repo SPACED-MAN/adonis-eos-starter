@@ -30,7 +30,7 @@ const slugToFileMap: Record<string, { file: string; dir: string }> = {
   taxonomies: { file: '08-taxonomies.md', dir: 'developers' },
   'ai-agents': { file: '09-ai-agents.md', dir: 'developers' },
   mcp: { file: '10-mcp.md', dir: 'developers' },
-  workflows: { file: '10-workflows.md', dir: 'developers' },
+  workflows: { file: '11-workflows.md', dir: 'developers' },
   'export-import': { file: '12-export-import.md', dir: 'developers' },
   'review-workflow-developers': { file: '13-review-workflow.md', dir: 'developers' },
   'media-pipeline': { file: '14-media-pipeline.md', dir: 'developers' },

@@ -64,6 +64,10 @@ export default class extends BaseSchema {
       table.jsonb('review_draft').nullable()
       table.jsonb('ai_review_draft').nullable()
 
+      // A/B testing fields
+      table.string('ab_variation', 10).nullable()
+      table.uuid('ab_group_id').nullable()
+
       // Publishing timestamps
       table.timestamp('published_at').nullable()
       table.timestamp('scheduled_at').nullable()
@@ -94,6 +98,8 @@ export default class extends BaseSchema {
       table.index(['translation_of_id', 'locale'], 'idx_posts_translation_locale')
       // Index for hierarchy queries
       table.index(['parent_id', 'order_index'], 'idx_posts_parent_order')
+      // Index for A/B testing
+      table.index(['ab_group_id'], 'idx_posts_ab_group')
     })
     // GIN indexes for JSONB fields (guarded to avoid errors if table creation failed)
     await this.schema.raw(`

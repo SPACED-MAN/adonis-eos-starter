@@ -11,7 +11,7 @@ Agents are file-based definitions that can:
 - Process and enhance content automatically using AI
 - Use MCP tools to interact with the CMS
 
-**Note**: Agents are now **internal-only** (AI-powered). For webhook-based automation (n8n, Slack notifications, etc.), use the [Workflows system](10-workflows.md).
+**Note**: Agents are now **internal-only** (AI-powered). For webhook-based automation (n8n, Slack notifications, etc.), use the [Workflows system](11-workflows.md).
 
 ## Agent Types
 
@@ -378,7 +378,7 @@ This creates `app/agents/seo_optimizer.ts`.
 
 ### 2. Define Agent Configuration
 
-Agents are now internal-only (AI-powered). For webhook-based automation, see the [Workflows documentation](10-workflows.md).
+Agents are now internal-only (AI-powered). For webhook-based automation, see the [Workflows documentation](11-workflows.md).
 
 ```typescript
 import type { AgentDefinition } from '#types/agent_types'
@@ -903,4 +903,4 @@ export default SeoAgent
 
 ---
 
-**Related**: [Workflows](10-workflows.md) | [MCP (Model Context Protocol)](10-mcp.md) | [API Reference](04-api-reference.md)
+**Related**: [Workflows](11-workflows.md) | [MCP (Model Context Protocol)](10-mcp.md) | [API Reference](04-api-reference.md)

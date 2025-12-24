@@ -123,7 +123,7 @@ const InlineModuleEditor = function InlineModuleEditor({
   viewMode: 'source' | 'review' | 'ai-review'
   fieldAgents: Agent[]
   registerFlush: (moduleId: string, flush: (() => Promise<void>) | null) => void
-  onStage: (moduleId: string, overrides: Record<string, any> | null, edited: Record<string, any>) => void
+  onStage: (moduleId: string, overrides: Record<string, any> | null, edited: Record<string, any>, adminLabel?: string | null) => void
   onMarkDirty: (mode: 'source' | 'review' | 'ai-review', moduleId: string) => void
   customFields?: Array<{ slug: string; label: string }>
 }) {
@@ -301,7 +301,7 @@ function ModuleRowBase({
   setPendingReviewRemoved: React.Dispatch<React.SetStateAction<Set<string>>>
   setModules: React.Dispatch<React.SetStateAction<any[]>>
   registerModuleFlush: (moduleId: string, flush: (() => Promise<void>) | null) => void
-  stageModuleEdits: (moduleId: string, overrides: Record<string, any> | null, edited: Record<string, any>) => void
+  stageModuleEdits: (moduleId: string, overrides: Record<string, any> | null, edited: Record<string, any>, adminLabel?: string | null) => void
   markModuleDirty: (mode: 'source' | 'review' | 'ai-review', moduleId: string) => void
   postId: string
   customFields?: Array<{ slug: string; label: string }>
@@ -330,13 +330,10 @@ function ModuleRowBase({
     if (label === m.adminLabel) return
 
     // Stage label like any other field: it should NOT persist until the user hits Save/Publish/Approve.
-    // We store it in the module's staged JSON as `_adminLabel` so it flows through existing draft snapshots,
-    // and also mirror it into `m.adminLabel` in local state so the editor header reflects the change immediately.
+    // Mirror it into `m.adminLabel` in local state so the editor header reflects the change immediately.
     setModules((prev) => prev.map((pm) => (pm.id === m.id ? { ...pm, adminLabel: label } : pm)))
 
-    const nextProps = { ...(m.props || {}), _adminLabel: label }
-    const nextOverrides = { ...(m.overrides || {}), _adminLabel: label }
-    stageModuleEdits(m.id, nextOverrides, nextProps)
+    stageModuleEdits(m.id, m.overrides || null, m.props || {}, label)
     markModuleDirty(viewMode, m.id)
     toast.success('Module label staged (unsaved)')
   }
@@ -767,7 +764,7 @@ export default function Editor({
   )
   // Track pending module edits per active version, so switching versions doesn't overwrite drafts.
   const pendingModulesByModeRef = useRef<
-    Record<ViewMode, Record<string, { overrides: Record<string, any> | null; edited: Record<string, any> }>>
+    Record<ViewMode, Record<string, { overrides: Record<string, any> | null; edited: Record<string, any>; adminLabel?: string | null }>>
   >({ source: {}, review: {}, 'ai-review': {} })
   const [pendingRemoved, setPendingRemoved] = useState<Set<string>>(new Set())
   const [pendingReviewRemoved, setPendingReviewRemoved] = useState<Set<string>>(new Set())
@@ -885,9 +882,9 @@ export default function Editor({
       status: d.status || '',
       parentId: String(d.parentId || '').trim() || '',
       orderIndex: Number(d.orderIndex || 0),
-    metaTitle: String(d.metaTitle || '').trim() || '',
-    metaDescription: String(d.metaDescription || '').trim() || '',
-    canonicalUrl: String(d.canonicalUrl || '').trim() || '',
+      metaTitle: String(d.metaTitle || '').trim() || '',
+      metaDescription: String(d.metaDescription || '').trim() || '',
+      canonicalUrl: String(d.canonicalUrl || '').trim() || '',
       // Normalize JSON strings by parsing and re-stringifying without whitespace
       robotsJson: (() => {
         const val = d.robotsJson || ''
@@ -1194,14 +1191,7 @@ export default function Editor({
           }
         }
 
-        const adminLabel =
-          pending && (pending.edited as any)?._adminLabel !== undefined
-            ? (pending.edited as any)._adminLabel
-            : pending && (pending.overrides as any)?._adminLabel !== undefined
-              ? (pending.overrides as any)._adminLabel
-              : (m as any).adminLabel !== undefined && (m as any).adminLabel !== null
-                ? (m as any).adminLabel
-                : (finalOverrides as any)?._adminLabel ?? (finalProps as any)?._adminLabel ?? null
+        const adminLabel = pending?.adminLabel ?? m.adminLabel ?? null
 
         return {
           ...m,
@@ -1215,14 +1205,14 @@ export default function Editor({
     if (target === 'review') {
       const created = await createPendingNewModules('review')
       await commitPendingModules('review', created, viewMode)
-      
+
       // Remap temp IDs to real IDs in the snapshot
       const idMap = new Map(created.map(c => [c.tempId, c.postModuleId]))
       const modulesWithRealIds = modules.map(m => ({
         ...m,
         id: idMap.get(m.id) || m.id
       }))
-      
+
       const reviewSnapshot = buildDraftSnapshot('review', modulesWithRealIds)
       await saveForReview(reviewSnapshot)
       return
@@ -1231,14 +1221,14 @@ export default function Editor({
     if (target === 'ai-review') {
       const created = await createPendingNewModules('ai-review')
       await commitPendingModules('ai-review', created, viewMode)
-      
+
       // Remap temp IDs to real IDs in the snapshot
       const idMap = new Map(created.map(c => [c.tempId, c.postModuleId]))
       const modulesWithRealIds = modules.map(m => ({
         ...m,
         id: idMap.get(m.id) || m.id
       }))
-      
+
       const aiReviewSnapshot = buildDraftSnapshot('ai-review', modulesWithRealIds)
       await saveForAiReview(aiReviewSnapshot)
       return
@@ -1256,7 +1246,7 @@ export default function Editor({
           ...m,
           id: idMap.get(m.id) || m.id
         }))
-        
+
         const persistedModules = modulesWithRealIds.filter((m) => !m.id.startsWith('temp-'))
         await persistOrder(persistedModules, 'publish')
       }
@@ -1402,7 +1392,7 @@ export default function Editor({
           : viewMode === 'ai-review' && aiReviewInitialRef.current
             ? aiReviewInitialRef.current
             : initialDataRef.current
-      
+
       const pickedData = pickForm(data)
       const pickedBaseline = pickForm(baseline as any)
       const fieldsChanged = JSON.stringify(pickedData) !== JSON.stringify(pickedBaseline)
@@ -2113,11 +2103,7 @@ export default function Editor({
 
     const creates = pendingNewModules.map(async (pm) => {
       const pending = pendingModulesByModeRef.current[refMode]?.[pm.tempId]
-      const labelFromPending =
-        (pending?.edited as any)?._adminLabel !== undefined
-          ? (pending?.edited as any)._adminLabel
-          : (pending?.overrides as any)?._adminLabel
-      const finalLabel = labelFromPending !== undefined ? labelFromPending : pm.adminLabel
+      const finalLabel = pending?.adminLabel !== undefined ? pending.adminLabel : pm.adminLabel
 
       const res = await fetch(`/api/posts/${post.id}/modules`, {
         method: 'POST',
@@ -2318,12 +2304,7 @@ export default function Editor({
         }
       }
 
-	      // Prefer DB-backed/admin state label first, then fall back to legacy _adminLabel stored in JSON.
-	      // Note: keep null/empty-string semantics intact; do NOT use `||` here.
-	      const adminLabel =
-	        m.adminLabel !== undefined && m.adminLabel !== null
-	          ? m.adminLabel
-	          : (currentOverrides as any)?._adminLabel ?? (currentProps as any)?._adminLabel ?? null
+      const adminLabel = m.adminLabel ?? null
 
       return {
         ...m,
@@ -2428,53 +2409,46 @@ export default function Editor({
   }, [sortedModuleIds.join('|')])
 
   const stageModuleEdits = useCallback(
-    (moduleId: string, overrides: Record<string, any> | null, edited: Record<string, any>) => {
-      // Check if there are any effective changes (including _adminLabel in edited or overrides)
-      const hasAdminLabel = (edited as any)?._adminLabel !== undefined || (overrides as any)?._adminLabel !== undefined
+    (moduleId: string, overrides: Record<string, any> | null, edited: Record<string, any>, adminLabel?: string | null) => {
       const isEmptyOverrides =
         overrides == null || (typeof overrides === 'object' && Object.keys(overrides).length === 0)
       const isEmptyEdited =
         edited == null || (typeof edited === 'object' && Object.keys(edited).length === 0)
-      // If both are empty AND there's no adminLabel, don't mark this module as pending.
-      // This prevents "Save" being enabled when nothing actually changed.
-      if (isEmptyOverrides && isEmptyEdited && !hasAdminLabel) {
-	        // If we already have a staged label for this module, do not clear it just because
-	        // a later flush/stage call computed an empty diff (common when label was edited
-	        // outside the ModuleEditorPanel form fields).
-	        const existing = (pendingModulesByModeRef.current[viewMode] || {})[moduleId]
-	        const existingHasLabel =
-	          !!existing &&
-	          (((existing.edited as any)?._adminLabel !== undefined) ||
-	            ((existing.overrides as any)?._adminLabel !== undefined))
-	        const incomingHasLabel =
-	          (edited as any)?._adminLabel !== undefined || (overrides as any)?._adminLabel !== undefined
-	        if (existingHasLabel && !incomingHasLabel) {
-	          return
-	        }
 
-        // If user changed something and then reverted back, clear any "unstaged dirty" marker for this module.
-        setUnstagedDirtyModulesByMode((prev) => {
-          const bucket = prev[viewMode] || {}
-          if (!bucket[moduleId]) return prev
-          const nextBucket = { ...bucket }
-          delete nextBucket[moduleId]
-          return { ...prev, [viewMode]: nextBucket }
-        })
-        // Clear union pending entry for this viewMode/moduleId if it exists
-        const unionKey = `${viewMode}:${moduleId}`
-        setPendingModules((prev) => {
-          if (!prev[unionKey]) return prev
-          const next = { ...prev }
-          delete next[unionKey]
-          return next
-        })
-        // Clear per-mode bucket entry if it exists
-        const nextBucket = { ...(pendingModulesByModeRef.current[viewMode] || {}) }
-        if (nextBucket[moduleId]) {
-          delete nextBucket[moduleId]
-          pendingModulesByModeRef.current[viewMode] = nextBucket
+      const currentModule = modules.find((mod) => mod.id === moduleId)
+      const finalAdminLabel = adminLabel !== undefined ? adminLabel : currentModule?.adminLabel
+      const labelChanged = finalAdminLabel !== currentModule?.adminLabel
+
+      // If both are empty AND label hasn't changed, don't mark this module as pending.
+      if (isEmptyOverrides && isEmptyEdited && !labelChanged) {
+        const existing = (pendingModulesByModeRef.current[viewMode] || {})[moduleId]
+        if (existing) {
+          // If we already had something staged, we keep it unless this is an explicit "clear"
+        } else {
+          // If user changed something and then reverted back, clear any "unstaged dirty" marker for this module.
+          setUnstagedDirtyModulesByMode((prev) => {
+            const bucket = prev[viewMode] || {}
+            if (!bucket[moduleId]) return prev
+            const nextBucket = { ...bucket }
+            delete nextBucket[moduleId]
+            return { ...prev, [viewMode]: nextBucket }
+          })
+          // Clear union pending entry for this viewMode/moduleId if it exists
+          const unionKey = `${viewMode}:${moduleId}`
+          setPendingModules((prev) => {
+            if (!prev[unionKey]) return prev
+            const next = { ...prev }
+            delete next[unionKey]
+            return next
+          })
+          // Clear per-mode bucket entry if it exists
+          const nextBucket = { ...(pendingModulesByModeRef.current[viewMode] || {}) }
+          if (nextBucket[moduleId]) {
+            delete nextBucket[moduleId]
+            pendingModulesByModeRef.current[viewMode] = nextBucket
+          }
+          return
         }
-        return
       }
 
       // This module is now staged, so it no longer counts as "unstaged dirty".
@@ -2486,60 +2460,35 @@ export default function Editor({
         return { ...prev, [viewMode]: nextBucket }
       })
 
-      // Ensure we preserve the admin label if it's already set but missing from this update.
-      // This prevents the label from being lost when editing other module fields.
-      const currentModule = modules.find((mod) => mod.id === moduleId)
-      const preservedLabel = currentModule?.adminLabel
-      const isLocal = currentModule?.scope === 'post' || currentModule?.scope === 'local'
-
-      const mergedEdited = { ...edited }
-      // If _adminLabel is explicitly set in edited, use it (even if null to clear).
-      // Otherwise, preserve existing label if available.
-      if (!('_adminLabel' in mergedEdited) && isLocal && preservedLabel !== undefined && preservedLabel !== null) {
-        mergedEdited._adminLabel = preservedLabel
-      }
-
-      const mergedOverrides = overrides ? { ...overrides } : null
-      // If _adminLabel is explicitly set in overrides, use it (even if null to clear).
-      // Otherwise, preserve existing label if available.
-      if (mergedOverrides && !('_adminLabel' in mergedOverrides) && !isLocal && preservedLabel !== undefined && preservedLabel !== null) {
-        mergedOverrides._adminLabel = preservedLabel
-      }
-
       // Update per-mode ref immediately so save flows can commit even before React state flushes.
       pendingModulesByModeRef.current[viewMode] = {
         ...pendingModulesByModeRef.current[viewMode],
-        [moduleId]: { overrides: mergedOverrides, edited: mergedEdited },
+        [moduleId]: { overrides: overrides, edited: edited, adminLabel: finalAdminLabel },
       }
       // Also keep a union map for isDirty + UI (keyed by mode so multiple versions can coexist).
       const unionKey = `${viewMode}:${moduleId}`
-      setPendingModules((prev) => ({ ...prev, [unionKey]: { overrides: mergedOverrides, edited: mergedEdited } }))
+      setPendingModules((prev) => ({ ...prev, [unionKey]: { overrides: overrides, edited: edited, adminLabel: finalAdminLabel } }))
       setModules((prev) =>
         prev.map((m) => {
           if (m.id !== moduleId) return m
-          const nextLabel =
-            mergedEdited && '_adminLabel' in mergedEdited
-              ? mergedEdited._adminLabel
-              : mergedOverrides && '_adminLabel' in mergedOverrides
-                ? mergedOverrides._adminLabel
-                : m.adminLabel
+          const nextLabel = finalAdminLabel
           if (viewMode === 'review') {
             if (m.scope === 'post') {
-              return { ...m, reviewProps: mergedEdited, overrides: null, adminLabel: nextLabel }
+              return { ...m, reviewProps: edited, overrides: null, adminLabel: nextLabel }
             } else {
-              return { ...m, reviewOverrides: mergedOverrides, adminLabel: nextLabel }
+              return { ...m, reviewOverrides: overrides, adminLabel: nextLabel }
             }
           } else if (viewMode === 'ai-review') {
             if (m.scope === 'post') {
-              return { ...m, aiReviewProps: mergedEdited, overrides: null, adminLabel: nextLabel }
+              return { ...m, aiReviewProps: edited, overrides: null, adminLabel: nextLabel }
             } else {
-              return { ...m, aiReviewOverrides: mergedOverrides, adminLabel: nextLabel }
+              return { ...m, aiReviewOverrides: overrides, adminLabel: nextLabel }
             }
           } else {
             if (m.scope === 'post') {
-              return { ...m, props: mergedEdited, overrides: null, adminLabel: nextLabel }
+              return { ...m, props: edited, overrides: null, adminLabel: nextLabel }
             } else {
-              return { ...m, overrides: mergedOverrides, adminLabel: nextLabel }
+              return { ...m, overrides: overrides, adminLabel: nextLabel }
             }
           }
         })
@@ -2581,7 +2530,7 @@ export default function Editor({
         return resolved ? ([resolved, payload] as const) : null
       })
       .filter(Boolean) as Array<
-        readonly [string, { overrides: Record<string, any> | null; edited: Record<string, any> }]
+        readonly [string, { overrides: Record<string, any> | null; edited: Record<string, any>; adminLabel?: string | null }]
       >
 
     const findModule = (id: string) => {
@@ -2603,19 +2552,7 @@ export default function Editor({
         const module = findModule(id)
         const isLocal = module?.scope === 'post' || module?.scope === 'local'
         const overridesToSend = isLocal ? payload.edited : payload.overrides
-        // Extract adminLabel: check both edited and overrides, prioritizing edited for local modules
-        // null means "clear the label", undefined means "don't change it"
-        let adminLabel: string | null | undefined = undefined
-        
-        // Check edited first (for local modules, this is where _adminLabel should be)
-        if ((payload.edited as any)?._adminLabel !== undefined) {
-          adminLabel = (payload.edited as any)._adminLabel
-        }
-        // Check overrides second (for global modules, this is where _adminLabel should be)
-        // Only use overrides if edited doesn't have it (to handle edge cases)
-        if (adminLabel === undefined && (payload.overrides as any)?._adminLabel !== undefined) {
-          adminLabel = (payload.overrides as any)._adminLabel
-        }
+        const adminLabel = payload.adminLabel
 
         // Build request body - only include adminLabel if it's explicitly set (not undefined)
         const body: any = { overrides: overridesToSend, mode }
@@ -3009,9 +2946,9 @@ export default function Editor({
                     }))}
                     values={(() => {
                       const vals: Record<string, any> = {}
-                      ;(data.customFields as any[])?.forEach((v) => {
-                        vals[v.slug] = v.value
-                      })
+                        ; (data.customFields as any[])?.forEach((v) => {
+                          vals[v.slug] = v.value
+                        })
                       return vals
                     })()}
                     onChange={(slug, val) => {
@@ -3315,8 +3252,8 @@ export default function Editor({
                   <div className="space-y-3">
                     <div className="flex items-center justify-between ml-1">
                       <label className="block text-[10px] font-bold text-neutral-low uppercase tracking-widest">
-                      A/B Variation
-                    </label>
+                        A/B Variation
+                      </label>
                       {post.abVariation && (
                         <button
                           type="button"
@@ -3357,15 +3294,15 @@ export default function Editor({
                         // Ensure unique variations and sort them
                         const uniqueVarsMap = new Map<string, any>()
 
-                        // Process the abVariations list
-                        ;(abVariations || []).forEach((v) => {
-                          const vLabel = String(v.variation || '').trim().toUpperCase()
-                          const existing = uniqueVarsMap.get(vLabel)
-                          // Keep existing, but if current post is in the list, it should win
-                          if (!existing || v.id === post.id) {
-                            uniqueVarsMap.set(vLabel, { ...v, variation: vLabel })
-                          }
-                        })
+                          // Process the abVariations list
+                          ; (abVariations || []).forEach((v) => {
+                            const vLabel = String(v.variation || '').trim().toUpperCase()
+                            const existing = uniqueVarsMap.get(vLabel)
+                            // Keep existing, but if current post is in the list, it should win
+                            if (!existing || v.id === post.id) {
+                              uniqueVarsMap.set(vLabel, { ...v, variation: vLabel })
+                            }
+                          })
 
                         const finalVars = Array.from(uniqueVarsMap.values()).sort((a, b) =>
                           a.variation.localeCompare(b.variation)
@@ -3379,11 +3316,10 @@ export default function Editor({
                                 if (v.id === post.id) return
                                 router.visit(`/admin/posts/${v.id}/edit`)
                               }}
-                              className={`w-full py-1.5 px-2 text-[11px] font-bold rounded-lg transition-all flex flex-col items-center ${
-                                v.id === post.id
+                              className={`w-full py-1.5 px-2 text-[11px] font-bold rounded-lg transition-all flex flex-col items-center ${v.id === post.id
                                   ? 'bg-backdrop-low text-neutral-high shadow-sm'
                                   : 'text-neutral-low hover:text-neutral-medium hover:bg-backdrop-medium/20'
-                              }`}
+                                }`}
                             >
                               <span>Var {v.variation}</span>
                               {abStats?.[v.variation] && (
@@ -4921,9 +4857,9 @@ export default function Editor({
                   } else {
                     toast.error(j.error || 'Failed to create variation')
                   }
-        } catch {
+                } catch {
                   toast.error('Failed to create variation')
-        }
+                }
               }}
             >
               Create Variation
@@ -4968,7 +4904,7 @@ export default function Editor({
                     }
                   } else {
                     toast.error(j.error || 'Failed to delete variation')
-                            }
+                  }
                 } catch {
                   toast.error('Failed to delete variation')
                 }

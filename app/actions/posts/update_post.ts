@@ -19,6 +19,7 @@ type UpdatePostParams = {
   jsonldOverrides?: Record<string, any> | null
   featuredImageId?: string | null
   taxonomyTermIds?: string[]
+  scheduledAt?: string | null
 }
 
 export class UpdatePostException extends Error {
@@ -48,6 +49,7 @@ export default class UpdatePost {
     jsonldOverrides,
     featuredImageId,
     taxonomyTermIds,
+    scheduledAt,
   }: UpdatePostParams): Promise<Post> {
     // Find the post
     const post = await Post.find(postId)
@@ -158,6 +160,20 @@ export default class UpdatePost {
     if (featuredImageId !== undefined) {
       // Normalize: empty string => null
       post.featuredImageId = featuredImageId === '' ? null : featuredImageId
+    }
+
+    // Handle timestamps and status-related side effects
+    const now = new Date()
+    if (status === 'published') {
+      post.publishedAt = now
+      post.scheduledAt = null
+    } else if (status === 'scheduled' && scheduledAt) {
+      const ts = new Date(scheduledAt)
+      if (!Number.isNaN(ts.getTime())) {
+        post.scheduledAt = ts
+      }
+    } else if (status === 'draft') {
+      post.scheduledAt = null
     }
 
     await post.save()

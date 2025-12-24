@@ -108,22 +108,6 @@ class AgentRegistry {
   }
 
   /**
-   * @deprecated External agents have been moved to the Workflows system.
-   * Use workflowRegistry.getWebhookUrl() instead.
-   */
-  getWebhookUrl(_agentId: string): string | null {
-    return null
-  }
-
-  /**
-   * @deprecated External agents have been moved to the Workflows system.
-   * Use workflowRegistry.getTimeout() instead.
-   */
-  getTimeout(_agentId: string): number {
-    return 30000
-  }
-
-  /**
    * Check if an agent is available in a specific scope
    */
   isAvailableInScope(agentId: string, scope: AgentScope, formSlug?: string): boolean {

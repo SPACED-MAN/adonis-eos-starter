@@ -40,6 +40,8 @@ export default class extends BaseSchema {
       // Lock control (template-enforced)
       table.boolean('locked').notNullable().defaultTo(false)
 
+      table.text('admin_label').nullable()
+
       table.timestamp('created_at').notNullable()
       table.timestamp('updated_at').notNullable()
 

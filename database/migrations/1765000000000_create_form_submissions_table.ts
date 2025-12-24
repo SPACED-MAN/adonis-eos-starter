@@ -10,6 +10,11 @@ export default class CreateFormSubmissionsTable extends BaseSchema {
       table.jsonb('payload').notNullable()
       table.string('ip_address').nullable()
       table.string('user_agent').nullable()
+
+      table.uuid('ab_group_id').nullable().index()
+      table.string('ab_variation', 10).nullable()
+      table.uuid('origin_post_id').nullable().index()
+
       table.timestamps(true, true)
 
       table.index(['form_slug', 'created_at'], 'idx_form_submissions_form_slug_created_at')

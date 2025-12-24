@@ -17,6 +17,10 @@ export default class extends BaseSchema {
         .jsonb('profile_roles_enabled')
         .notNullable()
         .defaultTo(this.db.rawQuery(`'[]'::jsonb`).knexQuery)
+
+      table.boolean('is_maintenance_mode').defaultTo(false)
+      table.jsonb('social_settings').nullable()
+
       table.timestamp('created_at', { useTz: true }).notNullable().defaultTo(this.now())
       table.timestamp('updated_at', { useTz: true }).notNullable().defaultTo(this.now())
     })

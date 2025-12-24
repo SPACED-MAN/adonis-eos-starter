@@ -172,11 +172,7 @@ export default class PostsViewController extends BasePostsController {
                   return (draftModule as any).adminLabel
                 }
                 // Priority 2: Label from the dedicated database column
-                if (pm.adminLabel !== null && pm.adminLabel !== undefined) {
-                  return pm.adminLabel
-                }
-                // Priority 3: Legacy label from JSON props (local) or overrides (global)
-                return (props as any)?._adminLabel || (overrides as any)?._adminLabel || null
+                return pm.adminLabel ?? null
               })(),
             }
           })

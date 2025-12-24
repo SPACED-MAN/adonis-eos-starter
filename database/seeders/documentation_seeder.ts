@@ -439,14 +439,6 @@ export default class extends BaseSeeder {
       return href
     }
 
-    // Fix legacy "for-developers" links to "developers"
-    if (href.startsWith('/docs/for-developers')) {
-      href = href.replace('/docs/for-developers', '/docs/developers')
-    }
-    if (href.startsWith('/docs/for-editors')) {
-      href = href.replace('/docs/for-editors', '/docs/editors')
-    }
-
     // Handle paths starting with /docs/
     if (href.startsWith('/docs/')) {
       // Extract the path parts
@@ -567,10 +559,6 @@ export default class extends BaseSeeder {
 
     // Handle absolute paths that already point to docs (e.g., /docs/developers/ai-agents)
     if (href.startsWith('/docs/')) {
-      // Fix legacy "for-developers" links to "developers"
-      if (href.startsWith('/docs/for-developers')) {
-        return href.replace('/docs/for-developers', '/docs/developers')
-      }
       return href
     }
 
@@ -721,6 +709,7 @@ export default class extends BaseSeeder {
         'media',
         'translations',
         'roles-permissions',
+        'seo-and-ab-testing',
       ],
       // Group all developer guides under "Developers" (ordered)
       developers: [
@@ -728,14 +717,13 @@ export default class extends BaseSeeder {
         'theming',
         'building-modules',
         'api-reference',
-        'webhooks',
+        'automation-and-integrations',
         'seo-and-routing',
         'internationalization',
         'taxonomies',
         'ai-agents',
-        'workflows',
         'mcp',
-        'export-import',
+        'cli-and-operations',
         'review-workflow-developers',
         'media-pipeline',
         'preview-system',
@@ -744,7 +732,8 @@ export default class extends BaseSeeder {
         'rbac-and-permissions',
         'deployment',
         'update-philosophy',
-        'cli-commands',
+        'advanced-customization',
+        'user-interaction',
       ],
     }
 
@@ -833,12 +822,6 @@ export default class extends BaseSeeder {
       // Skip reference-only pages (handled elsewhere or consolidated)
       if (baseSlug === 'index' || baseSlug === 'overview' || baseSlug === 'sitemap') {
         console.log(`   ⏭️  Skipping ${baseSlug} page (handled separately)\n`)
-        continue
-      }
-
-      // Skip duplicate MCP file (11-mcp.md is a duplicate of 10-mcp.md)
-      if (file === '11-mcp.md') {
-        console.log(`   ⏭️  Skipping duplicate ${file} (using 10-mcp.md instead)\n`)
         continue
       }
 

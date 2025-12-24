@@ -426,10 +426,6 @@ export default class AgentsController {
           redirectPostId = lastCreatedPostId
         }
 
-        if (process.env.NODE_ENV === 'development') {
-          console.log(`[Agent Redirect] Current ID: ${id}, Last Created: ${lastCreatedPostId}, Suggestion Redirect: ${suggestions.redirectPostId}, Final Redirect: ${redirectPostId}`)
-        }
-
         // Safety check: if we are redirecting to a DIFFERENT post, we should
         // strictly ignore any "post" or "modules" keys returned in the final JSON.
         // These are almost certainly accidental side-effects of the LLM's context
@@ -727,7 +723,7 @@ export default class AgentsController {
                     const richTextFields = schema.fieldSchema
                       .filter((f: any) => f.type === 'richtext')
                       .map((f: any) => f.slug)
-                    
+
                     const mediaFieldsWithIdStorage = schema.fieldSchema
                       .filter((f: any) => f.type === 'media' && f.config?.storeAs === 'id')
                       .map((f: any) => f.slug)
@@ -744,7 +740,7 @@ export default class AgentsController {
                           }
                         }
                       }
-                      
+
                       // Media ID flattening: if agent provides { id: "uuid" } but field wants string
                       if (mediaFieldsWithIdStorage.includes(key)) {
                         const val = propsToApply[key]

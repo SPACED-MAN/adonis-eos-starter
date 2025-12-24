@@ -25,11 +25,6 @@ export type AgentScope =
   | 'form.submit' // Triggers on form submission
 
 /**
- * @deprecated External agents have been moved to the Workflows system.
- * Use workflows for webhook-based automation instead.
- */
-
-/**
  * AI Provider type
  */
 export type AIProvider = 'openai' | 'anthropic' | 'google' | 'nanobanana'

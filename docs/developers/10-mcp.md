@@ -23,7 +23,7 @@ There are three complementary AI/automation integration mechanisms in Adonis EOS
   - Event-driven automation system for webhook-based integrations.
   - Used for n8n workflows, Slack notifications, and other external service triggers.
   - Triggered automatically on events (post.published, form.submit, etc.).
-  - See [Workflows documentation](10-workflows.md) for details.
+  - See [Workflows documentation](11-workflows.md) for details.
 
 - **MCP Server (this document)**:
   - Used by external LLM runtimes (Cursor, n8n AI Agent, custom services) to **read context** and perform **safe writes**.
