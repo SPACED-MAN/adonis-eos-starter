@@ -55,6 +55,7 @@ export default await Env.create(new URL('../', import.meta.url), {
   REDIS_HOST: Env.schema.string({ format: 'host' }),
   REDIS_PORT: Env.schema.number(),
   REDIS_PASSWORD: Env.schema.string.optional(),
+  REDIS_CACHE_ENABLED: Env.schema.boolean.optional(),
 
   /*
   |----------------------------------------------------------
@@ -155,6 +156,7 @@ export default await Env.create(new URL('../', import.meta.url), {
   |----------------------------------------------------------
   */
   STORAGE_DRIVER: Env.schema.string.optional(),
+  STORAGE_LOCAL_ROOT: Env.schema.string.optional(),
   R2_ACCOUNT_ID: Env.schema.string.optional(),
   R2_ENDPOINT: Env.schema.string.optional(),
   R2_BUCKET: Env.schema.string.optional(),

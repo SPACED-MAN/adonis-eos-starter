@@ -2,6 +2,7 @@ import type { ModuleRenderContext, ModuleRenderResult } from '#types/module_type
 import moduleRegistry from '#services/module_registry'
 import db from '@adonisjs/lucid/services/db'
 import redis from '@adonisjs/redis/services/main'
+import cmsConfig from '#config/cms'
 
 /**
  * Rendered page result
@@ -271,8 +272,9 @@ class ModuleRenderer {
         ? module.isCacheEnabled(data, context)
         : renderingMode === 'static' && !isPreview
 
-    // Only cache static modules and non-preview renders
-    const shouldAttemptCache = cacheAllowedByModule && renderingMode === 'static' && !isPreview
+    // Only cache static modules and non-preview renders, if global cache is enabled
+    const shouldAttemptCache =
+      cmsConfig.cache.enabled && cacheAllowedByModule && renderingMode === 'static' && !isPreview
 
     let cacheKey: string | null = null
 

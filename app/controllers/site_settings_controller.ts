@@ -86,6 +86,9 @@ export default class SiteSettingsController {
     if (customFields && typeof customFields === 'object') {
       await siteCustomFieldsService.upsertValues(customFields)
     }
+    // Clear site settings cache after updating custom fields
+    siteSettingsService.clearCache()
+
     // If some roles were disabled, archive their existing Profiles
     try {
       const prevSet = new Set<string>(current.profileRolesEnabled || [])

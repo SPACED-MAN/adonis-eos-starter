@@ -4,6 +4,7 @@ import urlPatternService from '#services/url_pattern_service'
 import postTypeConfigService from '#services/post_type_config_service'
 import ApplyPostTaxonomyAssignments from '#actions/posts/apply_post_taxonomy_assignments'
 import db from '@adonisjs/lucid/services/db'
+import { TransactionClientContract } from '@adonisjs/lucid/types/database'
 
 type UpdatePostParams = {
   postId: string
@@ -35,29 +36,36 @@ export class UpdatePostException extends Error {
 }
 
 export default class UpdatePost {
-  static async handle({
-    postId,
-    slug,
-    title,
-    status,
-    excerpt,
-    parentId,
-    orderIndex,
-    metaTitle,
-    metaDescription,
-    canonicalUrl,
-    robotsJson,
-    jsonldOverrides,
-    featuredImageId,
-    taxonomyTermIds,
-    scheduledAt,
-  }: UpdatePostParams): Promise<Post> {
+  static async handle(
+    {
+      postId,
+      slug,
+      title,
+      status,
+      excerpt,
+      parentId,
+      orderIndex,
+      metaTitle,
+      metaDescription,
+      canonicalUrl,
+      robotsJson,
+      jsonldOverrides,
+      featuredImageId,
+      taxonomyTermIds,
+      scheduledAt,
+    }: UpdatePostParams,
+    trx?: TransactionClientContract
+  ): Promise<Post> {
     // Find the post
-    const post = await Post.find(postId)
+    const query = Post.query()
+    if (trx) query.useTransaction(trx)
+    const post = await query.where('id', postId).first()
 
     if (!post) {
       throw new UpdatePostException('Post not found', 404, { postId })
     }
+    
+    if (trx) post.useTransaction(trx)
 
     // If slug is being changed, normalize and check uniqueness
     if (slug) {

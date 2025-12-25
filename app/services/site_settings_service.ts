@@ -55,19 +55,24 @@ class SiteSettingsService {
     return settings
   }
 
+  clearCache() {
+    this.cache = null
+    this.lastLoadedAt = 0
+  }
+
   async upsert(payload: Partial<SiteSettings>): Promise<SiteSettings> {
     const currentRow = await SiteSetting.query().first()
     const current: SiteSettings = currentRow
       ? {
-          siteTitle: currentRow.siteTitle,
-          defaultMetaDescription: currentRow.defaultMetaDescription,
-          faviconMediaId: currentRow.faviconMediaId,
-          defaultOgMediaId: currentRow.defaultOgMediaId,
-          logoMediaId: currentRow.logoMediaId,
-          isMaintenanceMode: !!currentRow.isMaintenanceMode,
-          profileRolesEnabled: currentRow.profileRolesEnabled || [],
-          socialSettings: currentRow.socialSettings || { profiles: [], sharing: [] },
-        }
+        siteTitle: currentRow.siteTitle,
+        defaultMetaDescription: currentRow.defaultMetaDescription,
+        faviconMediaId: currentRow.faviconMediaId,
+        defaultOgMediaId: currentRow.defaultOgMediaId,
+        logoMediaId: currentRow.logoMediaId,
+        isMaintenanceMode: !!currentRow.isMaintenanceMode,
+        profileRolesEnabled: currentRow.profileRolesEnabled || [],
+        socialSettings: currentRow.socialSettings || { profiles: [], sharing: [] },
+      }
       : await this.get()
 
     const next: SiteSettings = {
@@ -110,9 +115,8 @@ class SiteSettingsService {
         socialSettings: next.socialSettings,
       })
     }
-    this.cache = next
-    this.lastLoadedAt = Date.now()
-    return next
+    this.clearCache()
+    return await this.get()
   }
 }
 

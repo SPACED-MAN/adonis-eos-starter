@@ -1,5 +1,6 @@
 import Post from '#models/post'
 import RevisionService from '#services/revision_service'
+import PostSnapshotService from '#services/post_snapshot_service'
 
 type SaveReviewDraftParams = {
   postId: string
@@ -17,34 +18,20 @@ export default class SaveReviewDraft {
     userEmail,
     mode,
   }: SaveReviewDraftParams): Promise<void> {
-    const draftPayload: Record<string, any> = {
-      slug: payload.slug,
-      title: payload.title,
-      status: payload.status,
-      excerpt: payload.excerpt,
-      parentId: payload.parentId,
-      orderIndex: payload.orderIndex,
-      metaTitle: payload.metaTitle,
-      metaDescription: payload.metaDescription,
-      canonicalUrl: payload.canonicalUrl,
-      robotsJson: payload.robotsJson,
-      jsonldOverrides: payload.jsonldOverrides,
-      featuredImageId: payload.featuredImageId,
-      customFields: payload.customFields,
-      modules: payload.modules,
-      taxonomyTermIds: Array.isArray(payload.taxonomyTermIds)
-        ? (payload.taxonomyTermIds as string[])
-        : undefined,
-      savedAt: new Date().toISOString(),
-      savedBy: userEmail || (mode === 'ai-review' ? 'AI Agent' : null),
+    // 1. Create a canonical snapshot from the payload
+    const snapshot = PostSnapshotService.fromPayload(payload)
+    
+    // 2. Add extra metadata for the draft
+    if (snapshot.post) {
+      (snapshot.post as any).savedBy = userEmail || (mode === 'ai-review' ? 'AI Agent' : 'User');
+      (snapshot.post as any).savedAt = new Date().toISOString();
     }
 
-    const updateField = mode === 'review' ? 'review_draft' : 'ai_review_draft'
-    await Post.query()
-      .where('id', postId)
-      .update({ [updateField]: draftPayload } as any)
+    // 3. Apply the snapshot using the centralized service
+    // This handles BOTH the JSON column and the granular database columns.
+    await PostSnapshotService.apply(postId, snapshot, mode)
 
-    // Capture version snapshot
+    // 4. Record revision (captures the snapshot we just applied)
     await RevisionService.recordActiveVersionsSnapshot({
       postId,
       mode,

@@ -3,6 +3,7 @@ import ReactDOMServer from 'react-dom/server'
 import { createInertiaApp } from '@inertiajs/react'
 import redis from '@adonisjs/redis/services/main'
 import crypto from 'node:crypto'
+import cmsConfig from '#config/cms'
 import { ThemeProvider } from '../utils/ThemeContext'
 
 export default async function render(page: any) {
@@ -22,7 +23,8 @@ export default async function render(page: any) {
     .digest('hex')}`
 
   // Check cache first
-  if (!isAdminPage) {
+  const cacheEnabled = cmsConfig.cache.enabled
+  if (!isAdminPage && cacheEnabled) {
     const cached = await redis.get(cacheKey)
     if (cached) {
       return cached
@@ -72,8 +74,11 @@ export default async function render(page: any) {
       },
     })
 
-    // Cache the rendered HTML for 1 hour
-    await redis.setex(cacheKey, 3600, html)
+    // Cache the rendered HTML if enabled
+    if (cacheEnabled) {
+      const ttl = cmsConfig.cache.ssrTtl || 3600
+      await redis.setex(cacheKey, ttl, html)
+    }
 
     return html
   } catch (err) {

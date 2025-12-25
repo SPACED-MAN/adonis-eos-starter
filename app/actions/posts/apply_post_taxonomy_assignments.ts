@@ -1,6 +1,7 @@
 import db from '@adonisjs/lucid/services/db'
 import postTypeConfigService from '#services/post_type_config_service'
 import { randomUUID } from 'node:crypto'
+import { TransactionClientContract } from '@adonisjs/lucid/types/database'
 
 export interface ApplyPostTaxonomyAssignmentsParams {
   postId: string
@@ -13,7 +14,10 @@ export default class ApplyPostTaxonomyAssignments {
    * Replace taxonomy term assignments for a post.
    * Scoped to taxonomies enabled for the post type.
    */
-  static async handle({ postId, postType, termIds }: ApplyPostTaxonomyAssignmentsParams): Promise<void> {
+  static async handle(
+    { postId, postType, termIds }: ApplyPostTaxonomyAssignmentsParams,
+    parentTrx?: TransactionClientContract
+  ): Promise<void> {
     const uiCfg = postTypeConfigService.getUiConfig(postType)
     const allowedTaxonomySlugs = Array.isArray((uiCfg as any).taxonomies)
       ? (uiCfg as any).taxonomies
@@ -24,7 +28,7 @@ export default class ApplyPostTaxonomyAssignments {
     // Normalize and dedupe IDs
     const normalizedTermIds = Array.from(new Set(termIds.map((x) => String(x)).filter(Boolean)))
 
-    await db.transaction(async (trx) => {
+    const runInTransaction = async (trx: TransactionClientContract) => {
       // 1. Resolve requested terms -> taxonomy slug and filter to allowed taxonomies
       const rows = normalizedTermIds.length
         ? await trx
@@ -67,7 +71,13 @@ export default class ApplyPostTaxonomyAssignments {
       }))
 
       await trx.table('post_taxonomy_terms').insert(insertRows)
-    })
+    }
+
+    if (parentTrx) {
+      await runInTransaction(parentTrx)
+    } else {
+      await db.transaction(runInTransaction)
+    }
   }
 }
 

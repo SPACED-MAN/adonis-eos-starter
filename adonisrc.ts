@@ -72,6 +72,7 @@ export default defineConfig({
   preloads: [
     () => import('#start/routes'),
     () => import('#start/kernel'),
+    () => import('#start/cache'),
     () => import('#start/modules'),
     () => import('#start/post_types'), // Register post types and sync URL patterns from config
     () => import('#start/url_patterns'), // Ensure defaults exist for any missing patterns

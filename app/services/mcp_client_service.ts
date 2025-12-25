@@ -102,6 +102,13 @@ class MCPClientService {
   ): Promise<void> {
     if (!overrides || typeof overrides !== 'object') return
 
+    // Validate UUID format for postModuleId
+    const uuidRegex = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i
+    if (!uuidRegex.test(postModuleId)) {
+      console.warn(`[MCPClientService.autoConvertFields] Skipping auto-conversion: invalid UUID for postModuleId: "${postModuleId}"`)
+      return
+    }
+
     try {
       const pm = await db.from('post_modules').where('id', postModuleId).first()
       if (!pm) return
@@ -109,35 +116,47 @@ class MCPClientService {
       if (!mi || !moduleRegistry.has(mi.type)) return
 
       const schema = moduleRegistry.getSchema(mi.type)
-      const richTextFields = schema.fieldSchema
-        .filter((f: any) => f.type === 'richtext')
-        .map((f: any) => f.slug)
-      
-      const mediaFieldsWithIdStorage = schema.fieldSchema
-        .filter((f: any) => f.type === 'media' && f.config?.storeAs === 'id')
-        .map((f: any) => f.slug)
 
-      for (const key of Object.keys(overrides)) {
-        // RichText handling
-        if (richTextFields.includes(key)) {
-          const val = overrides[key]
-          if (typeof val === 'string' && val.trim() !== '') {
-            const trimmed = val.trim()
-            const looksJson = trimmed.startsWith('{') || trimmed.startsWith('[')
-            if (!looksJson) {
-              overrides[key] = markdownToLexical(val, { skipFirstH1: false })
+      const processObject = (obj: any, currentSchema: any[]) => {
+        if (!obj || typeof obj !== 'object') return
+
+        for (const key of Object.keys(obj)) {
+          const field = currentSchema.find((f) => f.slug === key)
+          if (!field) continue
+
+          // RichText handling
+          if (field.type === 'richtext') {
+            const val = obj[key]
+            if (typeof val === 'string' && val.trim() !== '') {
+              const trimmed = val.trim()
+              const looksJson = trimmed.startsWith('{') || trimmed.startsWith('[')
+              if (!looksJson) {
+                obj[key] = markdownToLexical(val, { skipFirstH1: false })
+              }
             }
           }
-        }
 
-        // Media ID flattening
-        if (mediaFieldsWithIdStorage.includes(key)) {
-          const val = overrides[key]
-          if (val && typeof val === 'object' && val.id) {
-            overrides[key] = String(val.id)
+          // Media ID flattening
+          if (field.type === 'media' && field.config?.storeAs === 'id') {
+            const val = obj[key]
+            if (val && typeof val === 'object' && val.id) {
+              obj[key] = String(val.id)
+            }
+          }
+
+          // Nested objects
+          if (field.type === 'object' && field.fields) {
+            processObject(obj[key], field.fields)
+          }
+
+          // Repeaters
+          if (field.type === 'repeater' && field.item?.fields && Array.isArray(obj[key])) {
+            obj[key].forEach((item: any) => processObject(item, field.item.fields))
           }
         }
       }
+
+      processObject(overrides, schema.fieldSchema)
     } catch (error) {
       console.error('Failed to auto-convert fields:', error)
     }
@@ -167,7 +186,7 @@ class MCPClientService {
       case 'list_modules': {
         const { postType } = params
         const modules = postType
-          ? await moduleRegistry.getAllowedForPostType(postType)
+          ? moduleRegistry.getAllowedForPostType(postType)
           : moduleRegistry.getAll()
 
         return {
@@ -583,9 +602,59 @@ class MCPClientService {
       }
 
       case 'add_module_to_post_ai_review': {
-        const { postId, moduleType, scope = 'local', props = {}, orderIndex, globalSlug } = params
+        const { postId, moduleType, scope = 'local', orderIndex, globalSlug } = params
+        let props = params.props || params.overrides || {} // Accept both props and overrides
         if (!postId || !moduleType) {
           throw new Error('add_module_to_post_ai_review requires "postId" and "moduleType"')
+        }
+
+        // Automatic conversion for richtext/media fields before adding
+        if (props && typeof props === 'object' && Object.keys(props).length > 0) {
+          if (moduleRegistry.has(moduleType)) {
+            const schema = moduleRegistry.getSchema(moduleType)
+            const richTextFields = schema.fieldSchema
+              .filter((f: any) => f.type === 'richtext')
+              .map((f: any) => f.slug)
+
+            const mediaFieldsWithIdStorage = schema.fieldSchema
+              .filter((f: any) => f.type === 'media' && f.config?.storeAs === 'id')
+              .map((f: any) => f.slug)
+
+            // Recursive helper to process fields at any depth
+            const processFields = (obj: any, path: string[] = []) => {
+              if (!obj || typeof obj !== 'object' || Array.isArray(obj)) return
+
+              for (const key of Object.keys(obj)) {
+                const fullPath = [...path, key].join('.')
+                const val = obj[key]
+
+                // RichText handling (convert Markdown to Lexical)
+                if (richTextFields.includes(fullPath)) {
+                  if (typeof val === 'string' && val.trim() !== '') {
+                    const trimmed = val.trim()
+                    const looksJson = trimmed.startsWith('{') || trimmed.startsWith('[')
+                    if (!looksJson) {
+                      obj[key] = markdownToLexical(val, { skipFirstH1: false })
+                    }
+                  }
+                }
+
+                // Media ID flattening: if agent provides { id: "uuid" } but field wants string
+                if (mediaFieldsWithIdStorage.includes(fullPath)) {
+                  if (val && typeof val === 'object' && val.id) {
+                    obj[key] = String(val.id)
+                  }
+                }
+
+                // Recurse into nested objects
+                if (val && typeof val === 'object' && !Array.isArray(val)) {
+                  processFields(val, [...path, key])
+                }
+              }
+            }
+
+            processFields(props)
+          }
         }
 
         const result = await AddModuleToPost.handle({
@@ -600,18 +669,45 @@ class MCPClientService {
 
         return {
           success: true,
-          postModuleId: result.postModuleId,
+          postModuleId: result.postModule.id,
           moduleInstanceId: result.moduleInstanceId,
           message: 'Module added to AI review draft',
         }
       }
 
       case 'update_post_module_ai_review': {
-        let { postModuleId, locked, orderIndex, moduleInstanceId } = params
-        let overrides = params.overrides || params.props // Accept both overrides and props
+        let { postModuleId, locked, orderIndex, moduleInstanceId, postId } = params
+        let overrides = params.overrides
+        if ((overrides === undefined || overrides === null || (typeof overrides === 'object' && Object.keys(overrides).length === 0)) && params.props) {
+          overrides = params.props
+        }
 
-        // If postModuleId is missing but moduleInstanceId is provided, try to resolve it
-        if (!postModuleId && moduleInstanceId) {
+        const uuidRegex = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i
+        
+        // If postModuleId is missing or not a UUID, but we have postId and type, try to resolve it
+        if ((!postModuleId || !uuidRegex.test(postModuleId)) && postId) {
+          const type = params.moduleType || params.type || postModuleId // Use postModuleId as type if it's not a UUID
+          if (type && uuidRegex.test(postId)) {
+            const query = db
+              .from('post_modules')
+              .join('module_instances', 'post_modules.module_id', 'module_instances.id')
+              .where('post_modules.post_id', postId)
+              .where('module_instances.type', type)
+              .select('post_modules.id')
+            
+            if (orderIndex !== undefined) {
+              query.where('post_modules.order_index', orderIndex)
+            }
+            
+            const found = await query.first()
+            if (found) {
+              postModuleId = String(found.id)
+            }
+          }
+        }
+
+        // If postModuleId is still missing but moduleInstanceId is provided, try to resolve it
+        if ((!postModuleId || !uuidRegex.test(postModuleId)) && moduleInstanceId && uuidRegex.test(moduleInstanceId)) {
           const pm = await db
             .from('post_modules')
             .where('module_id', moduleInstanceId)
@@ -620,9 +716,9 @@ class MCPClientService {
           if (pm) postModuleId = String(pm.id)
         }
 
-        if (!postModuleId) {
+        if (!postModuleId || !uuidRegex.test(postModuleId)) {
           throw new Error(
-            'update_post_module_ai_review requires "postModuleId" (or a valid "moduleInstanceId")'
+            `update_post_module_ai_review requires a valid "postModuleId" (UUID). Received: "${postModuleId}"`
           )
         }
 
@@ -646,10 +742,27 @@ class MCPClientService {
       }
 
       case 'remove_post_module_ai_review': {
-        let { postModuleId, moduleInstanceId } = params
+        let { postModuleId, moduleInstanceId, postId, type } = params
+
+        const uuidRegex = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i
+
+        // Resolve postModuleId from type/postId if needed
+        if ((!postModuleId || !uuidRegex.test(postModuleId)) && postId && (type || postModuleId)) {
+          const moduleType = type || postModuleId
+          if (uuidRegex.test(postId)) {
+            const pm = await db
+              .from('post_modules')
+              .join('module_instances', 'post_modules.module_id', 'module_instances.id')
+              .where('post_modules.post_id', postId)
+              .where('module_instances.type', moduleType)
+              .select('post_modules.id')
+              .first()
+            if (pm) postModuleId = String(pm.id)
+          }
+        }
 
         // Resolve postModuleId from moduleInstanceId if needed
-        if (!postModuleId && moduleInstanceId) {
+        if ((!postModuleId || !uuidRegex.test(postModuleId)) && moduleInstanceId && uuidRegex.test(moduleInstanceId)) {
           const pm = await db
             .from('post_modules')
             .where('module_id', moduleInstanceId)
@@ -658,9 +771,9 @@ class MCPClientService {
           if (pm) postModuleId = String(pm.id)
         }
 
-        if (!postModuleId) {
+        if (!postModuleId || !uuidRegex.test(postModuleId)) {
           throw new Error(
-            'remove_post_module_ai_review requires "postModuleId" (or a valid "moduleInstanceId")'
+            `remove_post_module_ai_review requires a valid "postModuleId" (UUID). Received: "${postModuleId}"`
           )
         }
 
@@ -870,7 +983,7 @@ class MCPClientService {
 
         // Get all allowed modules for this post type
         const allModules = postType
-          ? await moduleRegistry.getAllowedForPostType(postType)
+          ? moduleRegistry.getAllowedForPostType(postType)
           : moduleRegistry.getAll()
 
         const suggestions: any[] = []
@@ -1038,8 +1151,7 @@ class MCPClientService {
               errorJson,
             })
             throw new Error(
-              `DALL-E API error: ${dalleResponse.status} ${dalleResponse.statusText}. ${
-                errorJson?.error?.message || errorText.substring(0, 200)
+              `DALL-E API error: ${dalleResponse.status} ${dalleResponse.statusText}. ${errorJson?.error?.message || errorText.substring(0, 200)
               }`
             )
           }

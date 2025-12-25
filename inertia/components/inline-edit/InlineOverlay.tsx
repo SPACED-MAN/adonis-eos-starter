@@ -3,17 +3,12 @@ import { createPortal } from 'react-dom'
 import { createRoot } from 'react-dom/client'
 import {
   faCheck,
-  faLink,
   faChevronDown,
-  faList,
-  faCheckCircle,
-  faCalendar,
   faCircleQuestion,
   faArrowUp,
   faArrowDown,
   faTrash,
   faPlus,
-  faSave,
   faCircleExclamation,
 } from '@fortawesome/free-solid-svg-icons'
 import { MediaPickerModal } from '../../admin/components/media/MediaPickerModal'
@@ -196,6 +191,13 @@ export function InlineOverlay() {
 
     textNodes.forEach((el) => {
       if (isGlobalModuleDom(el, isGlobalModule)) return
+
+      // DEFENSE: If no explicit type, only treat as text if it doesn't have complex HTML children.
+      // This prevents containers with data-inline-path="someProp" from being wiped.
+      if (!el.dataset.inlineType && el.children.length > 0) {
+        return
+      }
+
       const path = el.dataset.inlinePath
       const moduleId = resolveModuleId(el)
       if (!path || !moduleId) return
@@ -543,11 +545,6 @@ function FieldDialogContent({ pop, onClose, getValue, setValue }: DialogContentP
     return current
   })
 
-  const commit = (value: any) => {
-    setValue(moduleId, path, value)
-    onClose()
-  }
-
   const labelStyle = "block text-[11px] font-bold text-neutral-medium uppercase tracking-wider mt-2 mb-1.5 ml-1"
   const inputStyle = "w-full border border-line-medium rounded-xl px-4 py-2.5 bg-backdrop-low text-neutral-high text-sm focus:ring-2 focus:ring-standout-medium/20 focus:border-standout-medium outline-none transition-all shadow-sm"
   const selectStyle = "w-full border border-line-medium rounded-xl px-4 py-2.5 bg-backdrop-low text-neutral-high text-sm focus:ring-2 focus:ring-standout-medium/20 focus:border-standout-medium outline-none transition-all shadow-sm appearance-none"
@@ -562,18 +559,14 @@ function FieldDialogContent({ pop, onClose, getValue, setValue }: DialogContentP
             <div className="border border-line-medium rounded-xl bg-backdrop-low overflow-hidden shadow-sm">
               <LexicalEditor
                 value={draft ?? ''}
-                onChange={(val) => setDraft(val)}
+                onChange={(val) => {
+                  setDraft(val)
+                  setValue(moduleId, path, val)
+                }}
                 placeholder="Start typing…"
                 editorKey={`${moduleId}-${path}-richtext`}
               />
             </div>
-            <button
-              className={buttonStyle}
-              onClick={() => commit(draft)}
-            >
-              <FontAwesomeIcon icon={faCheck} className="w-4 h-4" />
-              Save Changes
-            </button>
           </div>
         )
       }
@@ -599,16 +592,12 @@ function FieldDialogContent({ pop, onClose, getValue, setValue }: DialogContentP
               <LinkField
                 label="Destination"
                 value={draft}
-                onChange={(val: LinkFieldValue) => setDraft(val)}
+                onChange={(val: LinkFieldValue) => {
+                  setDraft(val)
+                  setValue(moduleId, path, val)
+                }}
               />
             </div>
-            <button
-              className={buttonStyle}
-              onClick={() => commit(draft)}
-            >
-              <FontAwesomeIcon icon={faLink} className="w-4 h-4" />
-              Save Link
-            </button>
           </div>
         )
       }
@@ -630,7 +619,10 @@ function FieldDialogContent({ pop, onClose, getValue, setValue }: DialogContentP
                         ? 'border-standout-medium bg-standout-medium/10 shadow-sm ring-1 ring-standout-medium/20'
                         : 'border-line-low bg-backdrop-low/50'
                         }`}
-                      onClick={() => setDraft(val)}
+                      onClick={() => {
+                        setDraft(val)
+                        setValue(moduleId, path, val)
+                      }}
                       title={o.label}
                     >
                       <FontAwesomeIcon icon={icon as any} className="w-6 h-6" />
@@ -641,13 +633,6 @@ function FieldDialogContent({ pop, onClose, getValue, setValue }: DialogContentP
                   )
                 })}
               </div>
-              <button
-                className={buttonStyle}
-                onClick={() => commit(draft || '')}
-              >
-                <FontAwesomeIcon icon={faCheck} className="w-4 h-4" />
-                Save Icon
-              </button>
             </div>
           )
         }
@@ -659,7 +644,11 @@ function FieldDialogContent({ pop, onClose, getValue, setValue }: DialogContentP
                 <select
                   className={selectStyle}
                   value={draft ?? ''}
-                  onChange={(e) => setDraft(e.target.value)}
+                  onChange={(e) => {
+                    const val = e.target.value
+                    setDraft(val)
+                    setValue(moduleId, path, val)
+                  }}
                 >
                   <option value="">-- Select --</option>
                   {opts.map((o: any) => {
@@ -676,13 +665,6 @@ function FieldDialogContent({ pop, onClose, getValue, setValue }: DialogContentP
                 </div>
               </div>
             </div>
-            <button
-              className={buttonStyle}
-              onClick={() => commit(draft || '')}
-            >
-              <FontAwesomeIcon icon={faCheck} className="w-4 h-4" />
-              Save Selection
-            </button>
           </div>
         )
       }
@@ -694,17 +676,14 @@ function FieldDialogContent({ pop, onClose, getValue, setValue }: DialogContentP
               <textarea
                 className={`${inputStyle} min-h-[160px] resize-vertical`}
                 value={draft ?? ''}
-                onChange={(e) => setDraft(e.target.value)}
+                onChange={(e) => {
+                  const val = e.target.value
+                  setDraft(val)
+                  setValue(moduleId, path, val)
+                }}
                 placeholder="Start typing..."
               />
             </div>
-            <button
-              className={buttonStyle}
-              onClick={() => commit(draft ?? '')}
-            >
-              <FontAwesomeIcon icon={faCheck} className="w-4 h-4" />
-              Save Text
-            </button>
           </div>
         )
       }
@@ -721,17 +700,14 @@ function FieldDialogContent({ pop, onClose, getValue, setValue }: DialogContentP
               <textarea
                 className={`${inputStyle} min-h-[180px] resize-vertical font-mono text-xs`}
                 value={asArray.join('\n')}
-                onChange={(e) => setDraft(e.target.value.split('\n'))}
+                onChange={(e) => {
+                  const val = e.target.value.split('\n')
+                  setDraft(val)
+                  setValue(moduleId, path, val)
+                }}
                 placeholder="Item 1&#10;Item 2..."
               />
             </div>
-            <button
-              className={buttonStyle}
-              onClick={() => commit(asArray)}
-            >
-              <FontAwesomeIcon icon={faList} className="w-4 h-4" />
-              Save List
-            </button>
           </div>
         )
       }
@@ -762,6 +738,7 @@ function FieldDialogContent({ pop, onClose, getValue, setValue }: DialogContentP
                             ? current.filter((v) => v !== o.value)
                             : [...current, o.value]
                           setDraft(next)
+                          setValue(moduleId, path, next)
                         }}
                       />
                       <span className="text-sm font-medium">{o.label}</span>
@@ -770,13 +747,6 @@ function FieldDialogContent({ pop, onClose, getValue, setValue }: DialogContentP
                 })}
               </div>
             </div>
-            <button
-              className={buttonStyle}
-              onClick={() => commit(current)}
-            >
-              <FontAwesomeIcon icon={faCheckCircle} className="w-4 h-4" />
-              Save Selection
-            </button>
           </div>
         )
       }
@@ -790,16 +760,13 @@ function FieldDialogContent({ pop, onClose, getValue, setValue }: DialogContentP
                 type="number"
                 className={inputStyle}
                 value={draft ?? ''}
-                onChange={(e) => setDraft(e.target.value === '' ? null : Number(e.target.value))}
+                onChange={(e) => {
+                  const val = e.target.value === '' ? null : Number(e.target.value)
+                  setDraft(val)
+                  setValue(moduleId, path, val)
+                }}
               />
             </div>
-            <button
-              className={buttonStyle}
-              onClick={() => commit(draft === '' ? null : draft)}
-            >
-              <FontAwesomeIcon icon={faCheck} className="w-4 h-4" />
-              Save Value
-            </button>
           </div>
         )
       }
@@ -813,18 +780,15 @@ function FieldDialogContent({ pop, onClose, getValue, setValue }: DialogContentP
                   type="checkbox"
                   className="w-5 h-5 rounded border-line-high text-standout-medium focus:ring-standout-medium/20"
                   checked={checked}
-                  onChange={(e) => setDraft(e.target.checked)}
+                  onChange={(e) => {
+                    const val = e.target.checked
+                    setDraft(val)
+                    setValue(moduleId, path, val)
+                  }}
                 />
                 <span className="text-sm font-semibold text-neutral-high uppercase tracking-wider">Enabled</span>
               </label>
             </div>
-            <button
-              className={buttonStyle}
-              onClick={() => commit(!!draft)}
-            >
-              <FontAwesomeIcon icon={faCheck} className="w-4 h-4" />
-              Save Toggle
-            </button>
           </div>
         )
       }
@@ -837,16 +801,13 @@ function FieldDialogContent({ pop, onClose, getValue, setValue }: DialogContentP
                 type="date"
                 className={inputStyle}
                 value={draft ?? ''}
-                onChange={(e) => setDraft(e.target.value || null)}
+                onChange={(e) => {
+                  const val = e.target.value || null
+                  setDraft(val)
+                  setValue(moduleId, path, val)
+                }}
               />
             </div>
-            <button
-              className={buttonStyle}
-              onClick={() => commit(draft || null)}
-            >
-              <FontAwesomeIcon icon={faCalendar} className="w-4 h-4" />
-              Save Date
-            </button>
           </div>
         )
       }
@@ -861,7 +822,11 @@ function FieldDialogContent({ pop, onClose, getValue, setValue }: DialogContentP
         }
         const obj = draft && typeof draft === 'object' ? draft : {}
         const updateField = (fieldName: string, value: any) => {
-          setDraft((prev: any) => ({ ...(prev || {}), [fieldName]: value }))
+          setDraft((prev: any) => {
+            const next = { ...(prev || {}), [fieldName]: value }
+            setValue(moduleId, path, next)
+            return next
+          })
         }
         return (
           <div className="space-y-6">
@@ -1067,13 +1032,6 @@ function FieldDialogContent({ pop, onClose, getValue, setValue }: DialogContentP
                 }
               })}
             </div>
-            <button
-              className={buttonStyle}
-              onClick={() => commit(obj)}
-            >
-              <FontAwesomeIcon icon={faSave} className="w-4 h-4" />
-              Save Field Group
-            </button>
           </div>
         )
       }

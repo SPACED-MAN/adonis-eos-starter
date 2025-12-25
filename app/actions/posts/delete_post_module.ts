@@ -1,5 +1,6 @@
 import db from '@adonisjs/lucid/services/db'
 import postTypeConfigService from '#services/post_type_config_service'
+import PostSnapshotService from '#services/post_snapshot_service'
 
 type DeletePostModuleParams = {
   postModuleId: string
@@ -55,6 +56,11 @@ export default class DeletePostModule {
         .update({ ai_review_deleted: true, updated_at: new Date() })
     } else {
       await db.from('post_modules').where('id', postModuleId).delete()
+    }
+
+    // Refresh atomic draft if in a draft mode to keep JSON consistent with granular columns
+    if (mode === 'review' || mode === 'ai-review') {
+      await PostSnapshotService.refreshAtomicDraft(row.post_id, mode)
     }
   }
 }

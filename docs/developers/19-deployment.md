@@ -119,6 +119,8 @@ MEDIA_DARK_SATURATION=0.75            # Dark mode image saturation (0-2.0, defau
 
 # Storage Configuration
 STORAGE_DRIVER=local                  # 'local' or 'r2' (default: 'local')
+STORAGE_LOCAL_ROOT=                   # Optional: absolute path to local storage root (defaults to project 'public' directory)
+
 # Cloudflare R2 (required when STORAGE_DRIVER=r2)
 R2_ACCOUNT_ID=                        # Cloudflare R2 account ID
 R2_ENDPOINT=                          # R2 endpoint URL (auto-generated if account ID provided)
@@ -200,6 +202,47 @@ The `.env` file should be placed in the **project root directory** (same level a
 - Use `.env.example` as a template for documentation
 - In production, prefer platform environment variables over `.env` files when possible
 - Rotate secrets regularly, especially `APP_KEY` and password hashes
+
+## Media Storage Options
+
+Adonis EOS supports two primary storage strategies for media uploads and their derivatives. Choosing the right one depends on your deployment architecture.
+
+### 1. Local Storage (Default)
+
+Suitable for single-server deployments or environments with persistent shared volumes.
+
+- **Configuration**: Set `STORAGE_DRIVER=local`.
+- **Root Directory**: By default, files are stored in the project's `public/` directory (specifically under `public/uploads`).
+- **Custom Root**: Use `STORAGE_LOCAL_ROOT` to specify an absolute path outside the project directory. This is highly recommended for Docker or cloud-hosting (like DigitalOcean Droplets or AWS EC2) where you should mount a persistent volume.
+- **Pros**: Zero cost, low latency, easy to back up with the server.
+- **Cons**: Does not scale horizontally across multiple servers without a shared network filesystem (NFS/EFS).
+
+**Example (Persistent Volume):**
+```env
+STORAGE_DRIVER=local
+STORAGE_LOCAL_ROOT=/mnt/storage/adonis-eos
+```
+*Note: If using a custom root, ensure your web server (Nginx/Caddy) is configured to serve static files from that location, or that it is symlinked into `public/`.*
+
+### 2. Cloudflare R2 (S3-Compatible)
+
+Recommended for horizontal scaling, serverless environments, or when you want to offload storage and bandwidth to a CDN.
+
+- **Configuration**: Set `STORAGE_DRIVER=r2`.
+- **Required Variables**: `R2_ACCOUNT_ID`, `R2_BUCKET`, `R2_ACCESS_KEY_ID`, `R2_SECRET_ACCESS_KEY`.
+- **Public Access**: Use `R2_PUBLIC_BASE_URL` to point to your R2 custom domain or worker-based CDN.
+- **Pros**: Highly available, scales infinitely, built-in CDN integration, lower egress costs than AWS S3.
+- **Cons**: Requires external service configuration, slight latency increase for uploads.
+
+**Example:**
+```env
+STORAGE_DRIVER=r2
+R2_ACCOUNT_ID=your_account_id
+R2_BUCKET=my-cms-assets
+R2_ACCESS_KEY_ID=...
+R2_SECRET_ACCESS_KEY=...
+R2_PUBLIC_BASE_URL=https://assets.yourdomain.com
+```
 
 ## Database Setup
 

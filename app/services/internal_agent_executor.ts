@@ -468,15 +468,16 @@ Only include fields that you are actually changing.`,
         // Show all modules with their type, orderIndex, and key props
         payload.modules.forEach((m: any, idx: number) => {
           const moduleInfo: any = {
+            postModuleId: m.postModuleId,
             type: m.type,
             orderIndex: m.orderIndex || idx,
             props: m.props || {},
           }
-          parts.push(`\n${idx + 1}. ${m.type} (orderIndex: ${moduleInfo.orderIndex}):`)
+          parts.push(`\n${idx + 1}. ${m.type} (postModuleId: "${m.postModuleId}", orderIndex: ${moduleInfo.orderIndex}):`)
           parts.push(JSON.stringify(moduleInfo.props, null, 2))
         })
         parts.push(
-          `\n\nIMPORTANT: If asked to update "all modules" or "all copy", you MUST include ALL ${payload.modules.length} modules in your response array, not just the first one!`
+          `\n\nIMPORTANT: If asked to update "all modules" or "all copy", you MUST include entries for all relevant modules in your response array. Use "postModuleId" to ensure your changes apply to the correct instance.`
         )
       }
       if (payload.openEndedContext) {

@@ -18,6 +18,7 @@ type CanonicalModule = {
   props?: Record<string, any> | null
   overrides?: Record<string, any> | null
   globalSlug?: string | null
+  adminLabel?: string | null
 }
 
 export type CanonicalPost = {
@@ -39,6 +40,7 @@ export type CanonicalPost = {
     jsonldOverrides?: Record<string, any> | null
     featuredImageId?: string | null
     customFields?: Array<{ slug: string; value: any }>
+    taxonomyTermIds?: string[]
   }
   modules: CanonicalModule[]
   translations?: Array<{ id: string; locale: string }>
@@ -53,7 +55,8 @@ export default class PostSerializerService {
    */
   static async serialize(
     postId: string,
-    mode: 'source' | 'review' | 'ai-review' = 'source'
+    mode: 'source' | 'review' | 'ai-review' = 'source',
+    options: { bypassAtomicDraft?: boolean } = {}
   ): Promise<CanonicalPost> {
     const post = await Post.query().where('id', postId).first()
     if (!post) {
@@ -69,6 +72,7 @@ export default class PostSerializerService {
         'post_modules.order_index as orderIndex',
         'post_modules.overrides',
         'post_modules.locked',
+        'post_modules.admin_label',
         'module_instances.id as moduleInstanceId',
         'module_instances.type',
         'module_instances.scope',
@@ -190,6 +194,9 @@ export default class PostSerializerService {
           ...(reviewDraft.featuredImageId !== undefined
             ? { featuredImageId: reviewDraft.featuredImageId ?? null }
             : {}),
+          ...(reviewDraft.taxonomyTermIds !== undefined
+            ? { taxonomyTermIds: reviewDraft.taxonomyTermIds }
+            : {}),
         }
       }
     } else if (mode === 'ai-review') {
@@ -223,6 +230,9 @@ export default class PostSerializerService {
             ...(reviewDraft.featuredImageId !== undefined
               ? { featuredImageId: reviewDraft.featuredImageId ?? null }
               : {}),
+            ...(reviewDraft.taxonomyTermIds !== undefined
+              ? { taxonomyTermIds: reviewDraft.taxonomyTermIds }
+              : {}),
           }
         }
         // Then merge ai_review_draft on top
@@ -251,6 +261,9 @@ export default class PostSerializerService {
             : {}),
           ...(aiReviewDraft.featuredImageId !== undefined
             ? { featuredImageId: aiReviewDraft.featuredImageId ?? null }
+            : {}),
+          ...(aiReviewDraft.taxonomyTermIds !== undefined
+            ? { taxonomyTermIds: aiReviewDraft.taxonomyTermIds }
             : {}),
         }
       } else {
@@ -281,9 +294,21 @@ export default class PostSerializerService {
             ...(reviewDraft.featuredImageId !== undefined
               ? { featuredImageId: reviewDraft.featuredImageId ?? null }
               : {}),
+            ...(reviewDraft.taxonomyTermIds !== undefined
+              ? { taxonomyTermIds: reviewDraft.taxonomyTermIds }
+              : {}),
           }
         }
       }
+    }
+
+    let taxonomyTermIds: string[] = []
+    if (mode === 'source') {
+      const assigned = await db
+        .from('post_taxonomy_terms')
+        .where('post_id', postId)
+        .select('taxonomy_term_id as termId')
+      taxonomyTermIds = assigned.map((r: any) => String(r.termId))
     }
 
     const canonical: CanonicalPost = {
@@ -305,19 +330,36 @@ export default class PostSerializerService {
         jsonldOverrides: postFields.jsonldOverrides ?? null,
         featuredImageId: postFields.featuredImageId ?? null,
         customFields,
-      },
+        taxonomyTermIds: postFields.taxonomyTermIds || taxonomyTermIds,
+      } as any,
       modules: moduleRows.map((row: any) => {
         // Get base props (handle both JSON string and object)
         const baseProps = coerceJsonObject(row.props)
         let effectiveProps = { ...baseProps }
+        let effectiveOverrides = row.overrides ? coerceJsonObject(row.overrides) : null
 
         // Merge with review or ai-review props based on mode
-        if (mode === 'review' && row.review_props) {
-          const reviewProps = coerceJsonObject(row.review_props)
-          effectiveProps = { ...effectiveProps, ...reviewProps }
-        } else if (mode === 'ai-review' && row.ai_review_props) {
-          const aiReviewProps = coerceJsonObject(row.ai_review_props)
-          effectiveProps = { ...effectiveProps, ...aiReviewProps }
+        if (mode === 'review') {
+          if (row.review_props) {
+            effectiveProps = { ...effectiveProps, ...coerceJsonObject(row.review_props) }
+          }
+          if (row.review_overrides) {
+            effectiveOverrides = { ...coerceJsonObject(effectiveOverrides), ...coerceJsonObject(row.review_overrides) }
+          }
+        } else if (mode === 'ai-review') {
+          // If AI review, include review changes first, then AI changes
+          if (row.review_props) {
+            effectiveProps = { ...effectiveProps, ...coerceJsonObject(row.review_props) }
+          }
+          if (row.review_overrides) {
+            effectiveOverrides = { ...coerceJsonObject(effectiveOverrides), ...coerceJsonObject(row.review_overrides) }
+          }
+          if (row.ai_review_props) {
+            effectiveProps = { ...effectiveProps, ...coerceJsonObject(row.ai_review_props) }
+          }
+          if (row.ai_review_overrides) {
+            effectiveOverrides = { ...coerceJsonObject(effectiveOverrides), ...coerceJsonObject(row.ai_review_overrides) }
+          }
         }
 
         return {
@@ -326,14 +368,82 @@ export default class PostSerializerService {
           type: row.type,
           scope: row.scope === 'post' ? 'local' : 'global',
           orderIndex: row.orderIndex,
-          locked: row.locked,
+          locked: !!row.locked,
           props: effectiveProps,
-          overrides: row.overrides ?? null,
+          overrides: effectiveOverrides,
           globalSlug: row.globalSlug ?? null,
+          adminLabel: row.admin_label ?? row.adminLabel ?? null,
         }
       }),
       translations: family.map((f: any) => ({ id: f.id, locale: f.locale })),
     }
+
+    // ATOMIC DRAFT ENHANCEMENT:
+    // If we are in review/ai-review mode and there's a draft with 'modules' list,
+    // we should use that list to determine which modules exist and their state.
+    // NOTE: We skip this if options.bypassAtomicDraft is true (used when refreshing the draft from DB).
+    const currentDraft =
+      !options.bypassAtomicDraft && mode === 'review'
+        ? (post as any).reviewDraft
+        : !options.bypassAtomicDraft && mode === 'ai-review'
+          ? (post as any).aiReviewDraft
+          : null
+
+    if (currentDraft?.modules && Array.isArray(currentDraft.modules)) {
+      // Use the modules list from the draft as the definitive list for ORDER and EXISTENCE.
+      // However, we still want the latest PROPS/OVERRIDES from the granular database columns 
+      // (moduleRows) because they might have been updated individually via the API.
+      const rowMap = new Map(moduleRows.map((r: any) => [r.postModuleId, r]))
+
+      canonical.modules = currentDraft.modules.map((dm: any) => {
+        const row = rowMap.get(dm.postModuleId || dm.id)
+
+        // If we found a matching DB row, use its granularly-stored props/overrides
+        if (row) {
+          const baseProps = coerceJsonObject(row.props)
+          let effectiveProps = { ...baseProps }
+          let effectiveOverrides = row.overrides ? coerceJsonObject(row.overrides) : null
+
+          if (mode === 'review') {
+            if (row.review_props) effectiveProps = { ...effectiveProps, ...coerceJsonObject(row.review_props) }
+            if (row.review_overrides) effectiveOverrides = { ...coerceJsonObject(effectiveOverrides), ...coerceJsonObject(row.review_overrides) }
+          } else if (mode === 'ai-review') {
+            if (row.review_props) effectiveProps = { ...effectiveProps, ...coerceJsonObject(row.review_props) }
+            if (row.review_overrides) effectiveOverrides = { ...coerceJsonObject(effectiveOverrides), ...coerceJsonObject(row.review_overrides) }
+            if (row.ai_review_props) effectiveProps = { ...effectiveProps, ...coerceJsonObject(row.ai_review_props) }
+            if (row.ai_review_overrides) effectiveOverrides = { ...coerceJsonObject(effectiveOverrides), ...coerceJsonObject(row.ai_review_overrides) }
+          }
+
+          return {
+            postModuleId: row.postModuleId,
+            moduleInstanceId: row.moduleInstanceId,
+            type: row.type,
+            scope: row.scope === 'post' ? 'local' : 'global',
+            orderIndex: dm.orderIndex ?? row.orderIndex, // Prefer draft order if present
+            locked: dm.locked ?? !!row.locked,
+            props: effectiveProps,
+            overrides: effectiveOverrides,
+            globalSlug: row.globalSlug ?? null,
+            adminLabel: dm.adminLabel ?? row.admin_label ?? row.adminLabel ?? null,
+          }
+        }
+
+        // Fallback to draft data if DB row is gone (shouldn't happen for existing modules)
+        return {
+          postModuleId: dm.postModuleId || dm.id,
+          moduleInstanceId: dm.moduleInstanceId || dm.moduleId,
+          type: dm.type,
+          scope: dm.scope,
+          orderIndex: dm.orderIndex,
+          locked: !!dm.locked,
+          props: dm.props,
+          overrides: dm.overrides,
+          globalSlug: dm.globalSlug,
+          adminLabel: dm.adminLabel,
+        }
+      })
+    }
+
     return canonical
   }
 

@@ -10,6 +10,7 @@ type RejectReviewDraftParams = {
 
 export default class RejectReviewDraft {
   static async handle({ postId, userId, mode }: RejectReviewDraftParams): Promise<void> {
+    console.log(`[RejectReviewDraft] Rejecting ${mode} for post ${postId}`)
     await RevisionService.recordActiveVersionsSnapshot({
       postId,
       mode,
@@ -29,23 +30,28 @@ export default class RejectReviewDraft {
       .where('id', postId)
       .update({ [updateField]: null } as any)
 
-    // 2. Clear staged module props
-    await db
-      .from('module_instances')
-      .where('scope', 'post')
-      .andWhereIn('id', db.from('post_modules').where('post_id', postId).select('module_id'))
-      .update({ [propsField]: null, updated_at: now } as any)
+    // 3. Handle module-level rejections
+    await db.transaction(async (trx) => {
+      // 3a. Delete modules that were ADDED in this draft mode
+      const deletedCount = await trx.from('post_modules').where('post_id', postId).andWhere(addedField, true).delete()
+      console.log(`[RejectReviewDraft] Deleted ${deletedCount} modules added in ${mode}`)
 
-    // 3. Clear staged module flags/overrides
-    await db
-      .from('post_modules')
-      .where('post_id', postId)
-      .update({
-        [overridesField]: null,
-        [addedField]: false,
-        [deletedField]: false,
-        updated_at: now,
-      } as any)
+      // 3b. Clear overrides and reset deletion flags for remaining modules
+      await trx
+        .from('post_modules')
+        .where('post_id', postId)
+        .update({
+          [overridesField]: null,
+          [deletedField]: false,
+          updated_at: now,
+        } as any)
+
+      // 3c. Clear staged props in module_instances for modules linked to this post
+      await trx
+        .from('module_instances')
+        .whereIn('id', trx.from('post_modules').where('post_id', postId).select('module_id'))
+        .update({ [propsField]: null, updated_at: now } as any)
+    })
   }
 }
 

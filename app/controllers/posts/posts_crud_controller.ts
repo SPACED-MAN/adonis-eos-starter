@@ -17,6 +17,7 @@ import RevisionService from '#services/revision_service'
 import postTypeConfigService from '#services/post_type_config_service'
 import webhookService from '#services/webhook_service'
 import roleRegistry from '#services/role_registry'
+import { coerceJsonObject } from '../../helpers/jsonb.js'
 import BasePostsController from './base_posts_controller.js'
 import {
   createPostValidator,
@@ -119,37 +120,53 @@ export default class PostsCrudController extends BasePostsController {
       | undefined
 
     try {
-      // Approvals don't need the full update payload; validate as little as possible.
-      // This avoids 422s caused by empty-string fields (canonicalUrl/featuredImageId) when the
-      // user is only trying to approve a draft.
       const requestedMode = String(request.input('mode') || '').toLowerCase()
+      console.log(`[PostsCrudController.update] ID: ${id}, Mode: ${requestedMode}`)
+
       if (
         requestedMode === 'approve' ||
         requestedMode === 'approve-ai-review' ||
         requestedMode === 'reject-review' ||
         requestedMode === 'reject-ai-review'
       ) {
+        console.log(`[PostsCrudController.update] Routing to decision: ${requestedMode}`)
         const currentPost = await Post.findOrFail(id)
         const postType = currentPost.type
+
         if (requestedMode === 'approve') {
           if (!roleRegistry.hasPermission(role, 'posts.review.approve', postType)) {
+            console.log(`[PostsCrudController.update] Permission denied for approve`)
             return this.response.forbidden(response, 'Not allowed to approve review')
           }
           return this.approveReviewDraft(id, auth, response)
         }
-        if (!roleRegistry.hasPermission(role, 'posts.ai-review.approve', postType)) {
-          return this.response.forbidden(response, 'Not allowed to approve AI review')
-        }
+
         if (requestedMode === 'approve-ai-review') {
+          if (!roleRegistry.hasPermission(role, 'posts.ai-review.approve', postType)) {
+            console.log(`[PostsCrudController.update] Permission denied for approve-ai-review`)
+            return this.response.forbidden(response, 'Not allowed to approve AI review')
+          }
           return this.approveAiReviewDraft(id, auth, response)
         }
+
+        if (requestedMode === 'reject-review') {
+          if (!roleRegistry.hasPermission(role, 'posts.review.approve', postType)) {
+            console.log(`[PostsCrudController.update] Permission denied for reject-review`)
+            return this.response.forbidden(response, 'Not allowed to reject review')
+          }
+          return this.rejectReviewDraft(id, auth, response)
+        }
+
         if (requestedMode === 'reject-ai-review') {
+          if (!roleRegistry.hasPermission(role, 'posts.ai-review.approve', postType)) {
+            console.log(`[PostsCrudController.update] Permission denied for reject-ai-review`)
+            return this.response.forbidden(response, 'Not allowed to reject AI review')
+          }
           return this.rejectAiReviewDraft(id, auth, response)
         }
-        // reject-review
-        return this.rejectReviewDraft(id, auth, response)
       }
 
+      console.log(`[PostsCrudController.update] Standard update path`)
       const payload = await request.validateUsing(updatePostValidator)
       const saveMode = String(payload.mode || 'publish').toLowerCase()
       const currentPost = await Post.findOrFail(id)
@@ -690,9 +707,10 @@ export default class PostsCrudController extends BasePostsController {
     response: HttpContext['response']
   ) {
     const current = await Post.findOrFail(id)
+    const rd = coerceJsonObject(current.reviewDraft)
 
     // Check if there are any Review changes (post-level or module-level)
-    const hasPostDraft = !!current.reviewDraft
+    const hasPostDraft = Object.keys(rd).length > 0
     const hasModuleChanges = await db
       .from('module_instances')
       .whereIn('id', db.from('post_modules').where('post_id', id).select('module_id'))
@@ -701,18 +719,27 @@ export default class PostsCrudController extends BasePostsController {
     const hasJoinChanges = await db
       .from('post_modules')
       .where('post_id', id)
-      .where((q) => q.whereNotNull('review_overrides').orWhere('review_added', true).orWhere('review_deleted', true))
+      .where((q) =>
+        q
+          .whereNotNull('review_overrides')
+          .orWhere('review_added', true)
+          .orWhere('review_deleted', true)
+      )
       .first()
 
-    if (!hasPostDraft && !hasModuleChanges && !hasJoinChanges) {
-      return this.response.badRequest(response, 'No review draft to approve')
+    // Relaxed check: if the column exists in DB, we'll try to promote.
+    // We only block if we are CERTAIN there is nothing.
+    const hasAnyDraftData = hasPostDraft || !!hasModuleChanges || !!hasJoinChanges
+
+    if (!hasAnyDraftData) {
+      return response.ok({ message: 'No review changes found to promote', promoted: false })
     }
 
     await ApproveReviewDraft.handle({
       postId: id,
       userId: auth.user!.id,
     })
-    return response.ok({ message: 'Review promoted to Source' })
+    return response.ok({ message: 'Review promoted to Source', promoted: true })
   }
 
   private async saveAiReviewDraft(
@@ -737,9 +764,10 @@ export default class PostsCrudController extends BasePostsController {
     response: HttpContext['response']
   ) {
     const current = await Post.findOrFail(id)
-    
+    const ard = coerceJsonObject(current.aiReviewDraft)
+
     // Check if there are any AI Review changes (post-level or module-level)
-    const hasPostDraft = !!current.aiReviewDraft
+    const hasPostDraft = Object.keys(ard).length > 0
     const hasModuleChanges = await db
       .from('module_instances')
       .whereIn('id', db.from('post_modules').where('post_id', id).select('module_id'))
@@ -748,11 +776,20 @@ export default class PostsCrudController extends BasePostsController {
     const hasJoinChanges = await db
       .from('post_modules')
       .where('post_id', id)
-      .where((q) => q.whereNotNull('ai_review_overrides').orWhere('ai_review_added', true).orWhere('ai_review_deleted', true))
+      .where((q) =>
+        q
+          .whereNotNull('ai_review_overrides')
+          .orWhere('ai_review_added', true)
+          .orWhere('ai_review_deleted', true)
+      )
       .first()
 
-    if (!hasPostDraft && !hasModuleChanges && !hasJoinChanges) {
-      return this.response.badRequest(response, 'No AI review draft to approve')
+    // Relaxed check: if the column exists in DB, we'll try to promote.
+    // We only block if we are CERTAIN there is nothing.
+    const hasAnyDraftData = hasPostDraft || !!hasModuleChanges || !!hasJoinChanges
+
+    if (!hasAnyDraftData) {
+      return response.ok({ message: 'No AI review changes found to promote', promoted: false })
     }
 
     await PromoteAiReviewToReview.handle({
@@ -761,7 +798,7 @@ export default class PostsCrudController extends BasePostsController {
       userEmail: (auth.use('web').user as any)?.email || null,
     })
 
-    return response.ok({ message: 'AI Review promoted to Review' })
+    return response.ok({ message: 'AI Review promoted to Review', promoted: true })
   }
 
   private async rejectReviewDraft(

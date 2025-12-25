@@ -55,6 +55,12 @@ image: { type: 'media', storeAs: 'id' }
 
 This means editors store a **media asset id** in props; renderers resolve it through the media API/service.
 
+## Storage Configuration
+
+The media pipeline supports local and S3-compatible (specifically Cloudflare R2) storage. This is controlled by the `STORAGE_DRIVER` environment variable.
+
+For detailed configuration instructions, see the [Deployment Guide: Media Storage Options](19-deployment.md#media-storage-options).
+
 ## Operational notes
 
 - If you add new derivative specs, consider a backfill job to regenerate variants for existing assets.

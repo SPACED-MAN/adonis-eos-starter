@@ -44,7 +44,12 @@ const CONTENT_TYPE_TABLES: Record<ContentType, string[]> = {
   modules: ['module_instances', 'module_scopes'],
   forms: ['forms', 'form_submissions'],
   menus: ['menus', 'menu_items'],
-  categories: ['taxonomies', 'taxonomy_terms', 'post_taxonomy_terms'],
+  categories: [
+    'taxonomies',
+    'taxonomy_terms',
+    'post_taxonomy_terms',
+    'taxonomy_term_custom_field_values',
+  ],
   module_groups: [
     'module_groups',
     'module_group_modules',
@@ -55,6 +60,10 @@ const CONTENT_TYPE_TABLES: Record<ContentType, string[]> = {
     // Webhooks (automation configuration + delivery history)
     'webhooks',
     'webhook_deliveries',
+    // Workflows & Agents
+    'workflow_executions',
+    'agent_executions',
+    'activity_logs',
   ],
 }
 
@@ -84,6 +93,13 @@ export interface ExportOptions {
  * Handles exporting the entire database to a portable JSON format
  */
 class DatabaseExportService {
+  /**
+   * Get tables associated with content types
+   */
+  getContentTypeTables(): Record<ContentType, string[]> {
+    return CONTENT_TYPE_TABLES
+  }
+
   /**
    * Export the database to a JSON structure with optional content filtering
    * @param options Export options
@@ -115,8 +131,17 @@ class DatabaseExportService {
     // Export each table
     for (const tableName of tables) {
       try {
-        let rows = await db.from(tableName).select('*')
+        const query = db.from(tableName).select('*')
 
+        // Sort by common columns if they exist to ensure deterministic export
+        const columns = await this.getTableColumns(tableName)
+        if (columns.includes('created_at')) {
+          query.orderBy('created_at', 'asc')
+        } else if (columns.includes('id')) {
+          query.orderBy('id', 'asc')
+        }
+
+        let rows = await query
         console.log(`   📦 ${tableName}: ${rows.length} rows`)
         totalRows += rows.length
 
@@ -148,6 +173,29 @@ class DatabaseExportService {
       },
       tables: tableData,
     }
+  }
+
+  /**
+   * Get column names for a table
+   */
+  private async getTableColumns(tableName: string): Promise<string[]> {
+    const connectionName = dbConfig.connection
+    const dialectName = dbConfig.connections[connectionName].client
+
+    if (dialectName === 'postgres' || dialectName === 'pg') {
+      const result = await db.rawQuery(
+        `SELECT column_name FROM information_schema.columns WHERE table_name = ? AND table_schema = 'public'`,
+        [tableName]
+      )
+      return result.rows.map((row: any) => row.column_name)
+    } else if (dialectName === 'mysql' || dialectName === 'mysql2') {
+      const result = await db.rawQuery(`DESCRIBE ??`, [tableName])
+      return result[0].map((row: any) => row.Field)
+    } else if (dialectName === 'sqlite' || dialectName === 'better-sqlite3') {
+      const result = await db.rawQuery(`PRAGMA table_info(??)`, [tableName])
+      return result.map((row: any) => row.name)
+    }
+    return []
   }
 
   /**

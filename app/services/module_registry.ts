@@ -184,6 +184,31 @@ class ModuleRegistry {
   count(): number {
     return this.modules.size
   }
+
+  /**
+   * Get all module instances
+   *
+   * @returns Array of module instances
+   */
+  getAll(): BaseModule[] {
+    return Array.from(this.modules.values())
+  }
+
+  /**
+   * Get module instances allowed for a specific post type
+   *
+   * @param postType - Post type to filter by
+   * @returns Array of module instances
+   */
+  getAllowedForPostType(postType: string): BaseModule[] {
+    return this.getAll().filter((module) => {
+      const config = module.getConfig()
+      if (!config.allowedPostTypes || config.allowedPostTypes.length === 0) {
+        return true
+      }
+      return config.allowedPostTypes.includes(postType)
+    })
+  }
 }
 
 // Export singleton instance

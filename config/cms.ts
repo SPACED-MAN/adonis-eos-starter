@@ -54,6 +54,8 @@ const cmsConfig = {
    * Cache settings
    */
   cache: {
+    /** Enable Redis caching globally */
+    enabled: env.get('REDIS_CACHE_ENABLED') ?? false,
     /** SSR cache TTL in seconds */
     ssrTtl: env.get('CMS_SSR_CACHE_TTL') ?? 3600,
     /** Public page cache control max-age */

@@ -266,7 +266,15 @@ export default function Cta(props: CtaProps) {
     <section
       className={`${backgroundColor} py-16 lg:py-24`}
       data-module="cta"
+      data-inline-type="select"
       data-inline-path="backgroundColor"
+      data-inline-options={JSON.stringify([
+        { label: 'Transparent', value: 'bg-transparent' },
+        { label: 'Low', value: 'bg-backdrop-low' },
+        { label: 'Medium', value: 'bg-backdrop-medium' },
+        { label: 'High', value: 'bg-backdrop-high' },
+        { label: 'Dark', value: 'bg-neutral-high' },
+      ])}
     >
       {renderedContent}
     </section>

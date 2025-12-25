@@ -125,7 +125,7 @@ export default function PostsIndexPage({}: PostsIndexProps) {
     return match ? decodeURIComponent(match[1]) : undefined
   })()
 
-  async function fetchPosts() {
+  async function fetchPosts(resetSelection = true) {
     setLoading(true)
     try {
       const params = new URLSearchParams()
@@ -173,8 +173,10 @@ export default function PostsIndexPage({}: PostsIndexProps) {
       const metaTotal = (json as any)?.meta?.total
       setTotal(typeof metaTotal === 'number' ? metaTotal : Number(metaTotal || 0))
       // Reset selection when list changes
-      setSelected(new Set())
-      setSelectAll(false)
+      if (resetSelection) {
+        setSelected(new Set())
+        setSelectAll(false)
+      }
     } finally {
       setLoading(false)
     }
@@ -396,7 +398,7 @@ export default function PostsIndexPage({}: PostsIndexProps) {
       body: JSON.stringify({ action, ids }),
     })
     if (res.ok) {
-      await fetchPosts()
+      await fetchPosts(action === 'delete')
     } else {
       const err = await res.json().catch(() => ({}))
       alert(err?.error || 'Bulk action failed')
@@ -700,7 +702,7 @@ export default function PostsIndexPage({}: PostsIndexProps) {
           items: newItems,
         }),
       })
-      await fetchPosts()
+      await fetchPosts(false)
     } catch {
       // ignore
     }

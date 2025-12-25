@@ -227,7 +227,15 @@ export default function CompanyList({
     <section
       className={`${bg} py-8 lg:py-16`}
       data-module="company-list"
+      data-inline-type="select"
       data-inline-path="backgroundColor"
+      data-inline-options={JSON.stringify([
+        { label: 'Transparent', value: 'bg-transparent' },
+        { label: 'Low', value: 'bg-backdrop-low' },
+        { label: 'Medium', value: 'bg-backdrop-medium' },
+        { label: 'High', value: 'bg-backdrop-high' },
+        { label: 'Dark', value: 'bg-neutral-high' },
+      ])}
     >
       <div className="container mx-auto px-4 lg:px-6">
         {headerContent}

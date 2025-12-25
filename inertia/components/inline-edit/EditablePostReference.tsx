@@ -258,7 +258,7 @@ export function EditablePostReference({
                   className="px-3 py-1.5 rounded bg-standout-medium text-on-standout text-sm"
                   onClick={() => setOpen(false)}
                 >
-                  Done
+                  Close
                 </button>
               </div>
             )}

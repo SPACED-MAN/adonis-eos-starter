@@ -1,8 +1,17 @@
 import type { HttpContext } from '@adonisjs/core/http'
+import cmsConfig from '#config/cms'
 
 export default class CacheControlMiddleware {
   public async handle(ctx: HttpContext, next: () => Promise<void>) {
     await next()
+
+    // Skip if cache is disabled globally
+    if (!cmsConfig.cache.enabled) {
+      ctx.response.header('Cache-Control', 'no-store, no-cache, must-revalidate, proxy-revalidate')
+      ctx.response.header('Pragma', 'no-cache')
+      ctx.response.header('Expires', '0')
+      return
+    }
 
     // Skip admin and non-GET
     if (ctx.request.url().startsWith('/admin') || !['GET', 'HEAD'].includes(ctx.request.method())) {

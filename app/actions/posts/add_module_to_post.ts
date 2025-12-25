@@ -5,6 +5,8 @@ import moduleRegistry from '#services/module_registry'
 import postTypeConfigService from '#services/post_type_config_service'
 import { randomUUID } from 'node:crypto'
 import { coerceJsonObject } from '../../helpers/jsonb.js'
+import { TransactionClientContract } from '@adonisjs/lucid/types/database'
+import PostSnapshotService from '#services/post_snapshot_service'
 
 type AddModuleToPostParams = {
   postId: string
@@ -31,21 +33,26 @@ export class AddModuleToPostException extends Error {
 }
 
 export default class AddModuleToPost {
-  static async handle({
-    postId,
-    moduleType,
-    scope,
-    props = {},
-    overrides = null,
-    globalSlug = null,
-    orderIndex,
-    locked = false,
-    adminLabel,
-    mode,
-  }: AddModuleToPostParams) {
+  static async handle(
+    {
+      postId,
+      moduleType,
+      scope,
+      props = {},
+      overrides = null,
+      globalSlug = null,
+      orderIndex,
+      locked = false,
+      adminLabel,
+      mode,
+    }: AddModuleToPostParams,
+    parentTrx?: TransactionClientContract
+  ) {
     // Note: module labels are staged in drafts and promoted to Source on approval.
     // Find the post
-    const post = await Post.find(postId)
+    const query = Post.query()
+    if (parentTrx) query.useTransaction(parentTrx)
+    const post = await query.where('id', postId).first()
 
     if (!post) {
       throw new AddModuleToPostException('Post not found', 404, { postId })
@@ -84,7 +91,7 @@ export default class AddModuleToPost {
       scope === 'local' || scope === 'post' ? 'post' : 'global'
 
     // Use transaction
-    const result = await db.transaction(async (trx) => {
+    const runInTransaction = async (trx: TransactionClientContract) => {
       let moduleInstanceId: string
 
       if (dbScope === 'global' && globalSlug) {
@@ -107,7 +114,7 @@ export default class AddModuleToPost {
               ? moduleConfig.defaultValues || {}
               : props
           )
-          
+
           const [newGlobal] = await trx
             .table('module_instances')
             .insert({
@@ -132,8 +139,11 @@ export default class AddModuleToPost {
             props === undefined ||
             (typeof props === 'object' && Object.keys(props).length === 0)
             ? moduleConfig.defaultValues || {}
-            : props
+            : { ...(moduleConfig.defaultValues || {}), ...coerceJsonObject(props) }
         )
+
+        // Important: ensure we don't save empty objects if we have defaults
+        const propsToSave = Object.keys(initialProps).length > 0 ? initialProps : (moduleConfig.defaultValues || {})
 
         const [newInstance] = await trx
           .table('module_instances')
@@ -142,11 +152,11 @@ export default class AddModuleToPost {
             scope: dbScope,
             type: moduleType,
             global_slug: null,
-            props: initialProps,
+            props: propsToSave,
             // For Review/AI review, stage changes without affecting the "approved" props later.
             // This also ensures the UI can show the staged content immediately.
-            review_props: mode === 'review' ? initialProps : null,
-            ai_review_props: mode === 'ai-review' ? initialProps : null,
+            review_props: mode === 'review' ? propsToSave : null,
+            ai_review_props: mode === 'ai-review' ? propsToSave : null,
             created_at: new Date(),
             updated_at: new Date(),
           })
@@ -199,7 +209,14 @@ export default class AddModuleToPost {
         postModule,
         moduleInstanceId,
       }
-    })
+    }
+
+    const result = await (parentTrx ? runInTransaction(parentTrx) : db.transaction(runInTransaction))
+
+    // Refresh atomic draft if in a draft mode to keep JSON consistent with granular columns
+    if (mode === 'review' || mode === 'ai-review') {
+      await PostSnapshotService.refreshAtomicDraft(postId, mode)
+    }
 
     return result
   }

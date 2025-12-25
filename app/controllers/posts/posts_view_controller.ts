@@ -12,6 +12,7 @@ import BasePostsController from './base_posts_controller.js'
 import PostModule from '#models/post_module'
 import ModuleInstance from '#models/module_instance'
 import PostCustomFieldValue from '#models/post_custom_field_value'
+import moduleRegistry from '#services/module_registry'
 import Taxonomy from '#models/taxonomy'
 import TaxonomyTerm from '#models/taxonomy_term'
 import ModuleGroupModule from '#models/module_group_module'
@@ -48,21 +49,42 @@ export default class PostsViewController extends BasePostsController {
           .preload('moduleInstance')
         : []
 
-      // Atomic Draft support: if we're in review/ai-review mode and the draft has modules, use them
-      const viewParam = request.input('view', '').toLowerCase()
-      const draftToUse =
-        viewParam === 'ai-review'
-          ? coerceJsonObject(post.aiReviewDraft)
-          : viewParam === 'review'
-            ? coerceJsonObject(post.reviewDraft)
-            : null
-      const draftModules = (draftToUse as any)?.modules
+      // Helper to check if a draft has meaningful content (not just metadata)
+      const hasMeaningfulContent = (draft: any) => {
+        const obj = coerceJsonObject(draft)
+        const keys = Object.keys(obj).filter(k => k !== 'savedAt' && k !== 'savedBy')
+        return keys.length > 0
+      }
+
+      // Determine view mode for the editor
+      const viewParam = (request.input('view', '') as string).toLowerCase()
+      let activeViewMode: 'source' | 'review' | 'ai-review' = 'source'
+
+      const hasRd = hasMeaningfulContent(post.reviewDraft)
+      const hasArd = hasMeaningfulContent(post.aiReviewDraft)
+
+      if (viewParam === 'review' && hasRd) activeViewMode = 'review'
+      else if (viewParam === 'ai-review' && hasArd) activeViewMode = 'ai-review'
+      // If no view param (or invalid requested view), fall back to best available draft
+      else if (hasRd) activeViewMode = 'review'
+      else if (hasArd) activeViewMode = 'ai-review'
+      else activeViewMode = 'source'
+
+      // Determine active drafts for baseline mapping
+      const rd = coerceJsonObject(post.reviewDraft)
+      const ard = coerceJsonObject(post.aiReviewDraft)
+      const rdModules = Array.isArray(rd.modules) ? rd.modules : []
+      const ardModules = Array.isArray(ard.modules) ? ard.modules : []
+
+      // Determine the specific draft modules to use for the CURRENT tab's primary props
+      const currentDraftModules = activeViewMode === 'ai-review' ? ardModules : (activeViewMode === 'review' ? rdModules : [])
 
       // Resolve featured image asset for fallback logic in modules
       // Respect the active view mode (draft vs published)
       let activeFeaturedImageId = post.featuredImageId
-      if (draftToUse && (draftToUse as any).featuredImageId !== undefined) {
-        activeFeaturedImageId = (draftToUse as any).featuredImageId
+      const currentDraft = activeViewMode === 'ai-review' ? ard : (activeViewMode === 'review' ? rd : null)
+      if (currentDraft && (currentDraft as any).featuredImageId !== undefined) {
+        activeFeaturedImageId = (currentDraft as any).featuredImageId
       }
 
       let featuredImageAsset: any = null
@@ -79,112 +101,74 @@ export default class PostsViewController extends BasePostsController {
         }
       }
 
+      // 3. Modules logic (KISS approach: use versioned props)
       const editorModules = modulesEnabled
-        ? postModules
-          .map((pm) => {
-            const mi = pm.moduleInstance as any as ModuleInstance
+        ? postModules.map((pm) => {
+          const mi = pm.moduleInstance as any as ModuleInstance
+          const moduleConfig = moduleRegistry.has(mi?.type) ? moduleRegistry.get(mi?.type).getConfig() : null
+          const defaultProps = moduleConfig?.defaultValues || {}
 
-            // Check if this specific module has a newer version in the atomic draft
-            const draftModule = Array.isArray(draftModules)
-              ? draftModules.find((dm: any) => dm.id === pm.id)
-              : null
+          // Get atomic draft versions of this module if they exist
+          const rdModule = rdModules.find((dm: any) => (dm.id === pm.id || dm.postModuleId === pm.id))
+          const ardModule = ardModules.find((dm: any) => (dm.id === pm.id || dm.postModuleId === pm.id))
+          const currentDraftModule = currentDraftModules.find((dm: any) => (dm.id === pm.id || dm.postModuleId === pm.id))
 
-            const props = coerceJsonObject(mi?.props)
-            const overrides = coerceJsonObject(pm.overrides)
+          const isLocal = mi?.scope === 'post' || mi?.scope === 'local'
 
-            // Fallback logic for Hero with Media in the editor
-            const applyHeroFallback = (p: any) => {
-              if (
-                (mi?.type === 'hero-with-media' || mi?.type === 'HeroWithMedia') &&
-                featuredImageAsset
-              ) {
-                const uuidRegex = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i
-                const hasNoUsableImage =
-                  !p.image ||
-                  p.image === '' ||
-                  (typeof p.image === 'string' && uuidRegex.test(p.image))
-
-                if (hasNoUsableImage) {
-                  return { ...p, image: featuredImageAsset }
-                }
+          // Helper to merge defaults and resolve hero fallbacks
+          const prepareProps = (p: any) => {
+            const merged = { ...defaultProps, ...coerceJsonObject(p) }
+            // Special fallback for hero-with-media using featured image
+            if ((mi?.type === 'hero-with-media' || mi?.type === 'HeroWithMedia') && featuredImageAsset) {
+              const uuidRegex = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i
+              if (!merged.image || merged.image === '' || (typeof merged.image === 'string' && uuidRegex.test(merged.image))) {
+                merged.image = featuredImageAsset
               }
-              return p
             }
+            return merged
+          }
 
-            return {
-              id: pm.id,
-              moduleInstanceId: pm.moduleId,
-              type: mi?.type,
-              scope: mi?.scope === 'post' ? 'local' : mi?.scope,
-              props: applyHeroFallback(props),
-              reviewProps: (() => {
-                if (draftModule && draftModule.props && mi?.scope === 'post')
-                  return applyHeroFallback(draftModule.props)
-                const obj = coerceJsonObject((mi as any)?.reviewProps || (mi as any)?.review_props)
-                const hasContent = Object.keys(obj).length > 0
-                return hasContent ? applyHeroFallback(obj) : null
-              })(),
-              aiReviewProps: (() => {
-                if (
-                  draftModule &&
-                  draftModule.props &&
-                  mi?.scope === 'post' &&
-                  viewParam === 'ai-review'
-                )
-                  return applyHeroFallback(draftModule.props)
-                const obj = coerceJsonObject((mi as any)?.aiReviewProps || (mi as any)?.ai_review_props)
-                const hasContent = Object.keys(obj).length > 0
-                return hasContent ? applyHeroFallback(obj) : null
-              })(),
-              overrides: applyHeroFallback(overrides),
-              reviewOverrides: (() => {
-                if (draftModule && draftModule.overrides && mi?.scope !== 'post')
-                  return applyHeroFallback(draftModule.overrides)
-                const obj = coerceJsonObject((pm as any).reviewOverrides || (pm as any).review_overrides)
-                const hasContent = Object.keys(obj).length > 0
-                return hasContent ? applyHeroFallback(obj) : null
-              })(),
-              aiReviewOverrides: (() => {
-                if (
-                  draftModule &&
-                  draftModule.overrides &&
-                  mi?.scope !== 'post' &&
-                  viewParam === 'ai-review'
-                )
-                  return applyHeroFallback(draftModule.overrides)
-                const obj = coerceJsonObject(
-                  (pm as any).aiReviewOverrides || (pm as any).ai_review_overrides
-                )
-                const hasContent = Object.keys(obj).length > 0
-                return hasContent ? applyHeroFallback(obj) : null
-              })(),
-              reviewAdded: (pm as any).reviewAdded || false,
-              reviewDeleted: (pm as any).reviewDeleted || false,
-              aiReviewAdded: (pm as any).aiReviewAdded || (pm as any).ai_review_added || false,
-              aiReviewDeleted: (pm as any).aiReviewDeleted || (pm as any).ai_review_deleted || false,
-              locked: pm.locked,
-              orderIndex: pm.orderIndex,
-              globalSlug: mi?.globalSlug || (mi as any)?.global_slug || null,
-              globalLabel: mi?.globalLabel || (mi as any)?.global_label || null,
-              adminLabel: (() => {
-                // Priority 1: Label from the draft snapshot (Review/AI Review)
-                if ((draftModule as any)?.adminLabel !== undefined) {
-                  return (draftModule as any).adminLabel
-                }
-                // Priority 2: Label from the dedicated database column
-                return pm.adminLabel ?? null
-              })(),
-            }
-          })
+          // Resolve props for each mode
+          const sourceProps = isLocal ? coerceJsonObject(mi?.props) : {}
+          const reviewProps = isLocal ? (rdModule?.props || coerceJsonObject(mi?.reviewProps ?? (mi as any)?.review_props)) : {}
+          const aiReviewProps = isLocal ? (ardModule?.props || coerceJsonObject(mi?.aiReviewProps ?? (mi as any)?.ai_review_props)) : {}
+
+          // Resolve overrides for each mode (global modules only)
+          const sourceOverrides = !isLocal ? coerceJsonObject(pm.overrides) : null
+          const reviewOverrides = !isLocal ? (rdModule?.overrides || coerceJsonObject((pm as any).reviewOverrides ?? (pm as any).review_overrides)) : null
+          const aiReviewOverrides = !isLocal ? (ardModule?.overrides || coerceJsonObject((pm as any).aiReviewOverrides ?? (pm as any).ai_review_overrides)) : null
+
+          return {
+            id: pm.id,
+            moduleInstanceId: pm.moduleId,
+            type: mi?.type,
+            scope: mi?.scope === 'post' ? 'local' : mi?.scope,
+            props: prepareProps(sourceProps),
+            reviewProps: Object.keys(reviewProps).length > 0 ? prepareProps(reviewProps) : null,
+            aiReviewProps: Object.keys(aiReviewProps).length > 0 ? prepareProps(aiReviewProps) : null,
+            overrides: sourceOverrides ? prepareProps(sourceOverrides) : null,
+            reviewOverrides: reviewOverrides && Object.keys(reviewOverrides).length > 0 ? prepareProps(reviewOverrides) : null,
+            aiReviewOverrides: aiReviewOverrides && Object.keys(aiReviewOverrides).length > 0 ? prepareProps(aiReviewOverrides) : null,
+            reviewAdded: !!((pm as any).reviewAdded || (pm as any).review_added),
+            reviewDeleted: !!((pm as any).reviewDeleted || (pm as any).review_deleted),
+            aiReviewAdded: !!((pm as any).aiReviewAdded || (pm as any).ai_review_added),
+            aiReviewDeleted: !!((pm as any).aiReviewDeleted || (pm as any).ai_review_deleted),
+            locked: pm.locked,
+            orderIndex: pm.orderIndex,
+            globalSlug: mi?.globalSlug || (mi as any)?.global_slug || null,
+            globalLabel: mi?.globalLabel || (mi as any)?.global_label || null,
+            adminLabel: currentDraftModule?.adminLabel ?? pm.adminLabel ?? null,
+          }
+        })
           .sort((a, b) => {
             // If in Review/AI Review mode, respect the order in the draft snapshot if it exists
             if (
-              (viewParam === 'review' || viewParam === 'ai-review') &&
-              Array.isArray(draftModules) &&
-              draftModules.length > 0
+              (activeViewMode === 'review' || activeViewMode === 'ai-review') &&
+              Array.isArray(currentDraftModules) &&
+              currentDraftModules.length > 0
             ) {
-              const idxA = draftModules.findIndex((dm: any) => dm.id === a.id)
-              const idxB = draftModules.findIndex((dm: any) => dm.id === b.id)
+              const idxA = currentDraftModules.findIndex((dm: any) => (dm.id === a.id || dm.postModuleId === a.id))
+              const idxB = currentDraftModules.findIndex((dm: any) => (dm.id === b.id || dm.postModuleId === b.id))
               if (idxA >= 0 && idxB >= 0) return idxA - idxB
               if (idxA >= 0) return -1
               if (idxB >= 0) return 1
@@ -280,12 +264,17 @@ export default class PostsViewController extends BasePostsController {
       // Load author
       const author = await postRenderingService.loadAuthor(post.authorId)
 
-      // Load custom fields
+      // 2. Load custom fields (Draft-aware)
       const fields = Array.isArray(uiCfg.fields) ? uiCfg.fields : []
       const slugs = fields.map((f: any) => String(f.slug))
 
       let valuesBySlug = new Map<string, any>()
-      if (slugs.length > 0) {
+      const draftCustomFields = (currentDraft as any)?.customFields
+      if (Array.isArray(draftCustomFields)) {
+        // Prefer values from the draft snapshot
+        valuesBySlug = new Map(draftCustomFields.map((cf: any) => [String(cf.slug), cf.value]))
+      } else if (slugs.length > 0) {
+        // Fall back to database values
         const vals = await PostCustomFieldValue.query()
           .where('post_id', post.id)
           .whereIn('field_slug', slugs)
@@ -346,7 +335,7 @@ export default class PostsViewController extends BasePostsController {
         }
       })
 
-      // Load taxonomies (by slug) configured for this post type
+      // 4. Load taxonomies (Draft-aware)
       const taxonomySlugs = Array.isArray((uiCfg as any).taxonomies)
         ? (uiCfg as any).taxonomies
         : []
@@ -380,14 +369,21 @@ export default class PostsViewController extends BasePostsController {
           })
         )
 
-        const assignedTerms = await TaxonomyTerm.query()
-          .join('post_taxonomy_terms as ptt', 'ptt.taxonomy_term_id', 'taxonomy_terms.id')
-          .join('taxonomies as t', 'taxonomy_terms.taxonomy_id', 't.id')
-          .where('ptt.post_id', post.id)
-          .whereIn('t.slug', taxonomySlugs)
-          .select('ptt.taxonomy_term_id as termId')
+        const draftTaxonomyIds = (currentDraft as any)?.taxonomyTermIds
+        if (Array.isArray(draftTaxonomyIds)) {
+          // Prefer IDs from the draft snapshot
+          selectedTaxonomyTermIds = draftTaxonomyIds.map((id: any) => String(id))
+        } else {
+          // Fall back to database assignments
+          const assignedTerms = await TaxonomyTerm.query()
+            .join('post_taxonomy_terms as ptt', 'ptt.taxonomy_term_id', 'taxonomy_terms.id')
+            .join('taxonomies as t', 'taxonomy_terms.taxonomy_id', 't.id')
+            .where('ptt.post_id', post.id)
+            .whereIn('t.slug', taxonomySlugs)
+            .select('ptt.taxonomy_term_id as termId')
 
-        selectedTaxonomyTermIds = assignedTerms.map((r: any) => String(r.termId))
+          selectedTaxonomyTermIds = assignedTerms.map((r: any) => String(r.termId))
+        }
       }
 
       return inertia.render('admin/posts/editor', {
@@ -414,8 +410,8 @@ export default class PostsViewController extends BasePostsController {
           abVariation: post.abVariation || (post.abGroupId || variations.length > 0 ? 'A' : null),
           abGroupId: post.abGroupId,
         },
-        reviewDraft: post.reviewDraft || null,
-        aiReviewDraft: post.aiReviewDraft || null,
+        reviewDraft: hasRd ? rd : null,
+        aiReviewDraft: hasArd ? ard : null,
         modules: editorModules,
         translations,
         customFields,
@@ -463,12 +459,14 @@ export default class PostsViewController extends BasePostsController {
 
     const protocol = postRenderingService.getProtocolFromRequest(request)
     const host = postRenderingService.getHostFromRequest(request)
+    const viewParam = String(request.input('view', '')).toLowerCase()
 
     const pageData = await postRenderingService.buildPageData(post, {
       protocol,
       host,
       wantReview: true, // Always show latest draft version in preview
-      draftMode: 'auto', // Prefer reviewDraft; otherwise fall back to AI Review
+      draftMode:
+        viewParam === 'ai-review' ? 'ai-review' : viewParam === 'review' ? 'review' : 'auto',
     })
 
     // Get post-type-specific additional props (delegated to service)
@@ -530,7 +528,8 @@ export default class PostsViewController extends BasePostsController {
     }
 
     const viewParam = String(request.input('view', '')).toLowerCase()
-    const wantReview = viewParam === 'review' && Boolean(request.header('cookie'))
+    const wantReview =
+      (viewParam === 'review' || viewParam === 'ai-review') && Boolean(request.header('cookie'))
 
     let isAbSwapped = false
     try {
@@ -674,6 +673,8 @@ export default class PostsViewController extends BasePostsController {
         protocol,
         host,
         wantReview,
+        draftMode:
+          viewParam === 'ai-review' ? 'ai-review' : viewParam === 'review' ? 'review' : 'auto',
       })
 
       // Get post-type-specific additional props (delegated to service)

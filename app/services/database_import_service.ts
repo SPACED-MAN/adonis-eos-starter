@@ -177,6 +177,7 @@ class DatabaseImportService {
     const {
       strategy = 'merge',
       tables: tablesToImport,
+      contentTypes: contentTypesToImport,
       disableForeignKeyChecks = true,
       preserveIds = true,
     } = options
@@ -189,8 +190,11 @@ class DatabaseImportService {
     console.log(`   Strategy: ${strategy} (effective: ${effectiveStrategy})`)
     console.log(`   Preserve IDs: ${preserveIds}`)
     console.log(`   Disable FK checks: ${disableForeignKeyChecks}`)
+    if (contentTypesToImport) {
+      console.log(`   Filter by content types: ${contentTypesToImport.join(', ')}`)
+    }
 
-    // Validate export data
+    // ... existing validation code ...
     const validation = this.validateExportData(exportData)
     if (!validation.valid) {
       console.error('❌ Export data validation failed:', validation.error)
@@ -228,9 +232,34 @@ class DatabaseImportService {
     }
     console.log(`📊 Export contains ${tables.length} tables:`, tables.join(', '))
 
-    const tablesToProcess = tablesToImport
-      ? tables.filter((t) => tablesToImport.includes(t))
-      : tables
+    // Calculate which tables to actually process
+    let tablesToProcess = tablesToImport ? tables.filter((t) => tablesToImport.includes(t)) : tables
+
+    // Further filter by content types if requested
+    if (contentTypesToImport && contentTypesToImport.length > 0) {
+      const databaseExportService = (await import('#services/database_export_service')).default
+      const contentTypeTablesMap = databaseExportService.getContentTypeTables()
+
+      const allowedTables = new Set<string>()
+      // Always allow essential tables if they are in the export
+      const essentialTables = [
+        'users',
+        'user_profiles',
+        'site_settings',
+        'site_custom_field_values',
+        'locales',
+        'post_type_settings',
+      ]
+      essentialTables.forEach((t) => allowedTables.add(t))
+
+      for (const ct of contentTypesToImport) {
+        const typeTables = contentTypeTablesMap[ct as any] || []
+        typeTables.forEach((t: string) => allowedTables.add(t))
+      }
+
+      tablesToProcess = tablesToProcess.filter((t) => allowedTables.has(t))
+      console.log(`   🎯 Filtered to ${tablesToProcess.length} tables based on content types`)
+    }
 
     console.log(`📋 Processing ${tablesToProcess.length} tables`)
 
@@ -318,6 +347,14 @@ class DatabaseImportService {
           ) {
             console.log('   🔀 Sorting posts by dependencies (parent/translation first)...')
             sortedRows = this.sortPostsByDependencies(rows)
+          } else if (
+            (tableName === 'menu_items' || tableName === 'taxonomy_terms') &&
+            (effectiveStrategy === 'overwrite' ||
+              effectiveStrategy === 'replace' ||
+              effectiveStrategy === 'merge')
+          ) {
+            console.log(`   🔀 Sorting ${tableName} by hierarchy (parent first)...`)
+            sortedRows = this.sortRowsByHierarchy(rows)
           }
 
           // For post_modules: ensure post-scoped module instances are not reused; clone when duplicated
@@ -757,6 +794,49 @@ class DatabaseImportService {
 
       if (!added) {
         // Break cycles: push the remaining as-is
+        sorted.push(...remaining)
+        break
+      }
+    }
+
+    return sorted
+  }
+
+  /**
+   * Sort rows by hierarchy (parent_id) to ensure parents are inserted before children
+   */
+  private sortRowsByHierarchy(rows: any[]): any[] {
+    const sorted: any[] = []
+    const remaining = [...rows]
+    const processedIds = new Set<string>()
+
+    // First pass: add rows with no parent_id
+    for (let i = remaining.length - 1; i >= 0; i--) {
+      const row = remaining[i]
+      if (!row.parent_id || row.parent_id === null) {
+        sorted.push(row)
+        if (row.id) processedIds.add(String(row.id))
+        remaining.splice(i, 1)
+      }
+    }
+
+    let safety = remaining.length * 3 + 10
+    while (remaining.length > 0 && safety > 0) {
+      safety--
+      let added = false
+
+      for (let i = remaining.length - 1; i >= 0; i--) {
+        const row = remaining[i]
+        if (processedIds.has(String(row.parent_id))) {
+          sorted.push(row)
+          if (row.id) processedIds.add(String(row.id))
+          remaining.splice(i, 1)
+          added = true
+        }
+      }
+
+      if (!added) {
+        // Break cycles or missing parents: push the remaining as-is
         sorted.push(...remaining)
         break
       }

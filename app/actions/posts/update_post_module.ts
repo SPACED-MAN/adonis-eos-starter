@@ -2,6 +2,7 @@ import PostModule from '#models/post_module'
 import postTypeConfigService from '#services/post_type_config_service'
 import { coerceJsonObject } from '../../helpers/jsonb.js'
 import db from '@adonisjs/lucid/services/db'
+import PostSnapshotService from '#services/post_snapshot_service'
 
 type UpdatePostModuleParams = {
   postModuleId: string
@@ -103,10 +104,9 @@ export default class UpdatePostModule {
       }
     }
 
-    // IMPORTANT:
-    // - Source label (post_modules.admin_label) should ONLY change on publish/source saves.
-    // - Review/AI Review label changes must stay in the draft snapshot until promoted.
-    if (adminLabel !== undefined && mode !== 'review' && mode !== 'ai-review') {
+    // Updated label logic: Always update the granular label column if provided.
+    // This ensures consistency during draft refreshes.
+    if (adminLabel !== undefined) {
       postModule.adminLabel = adminLabel
     }
 
@@ -171,6 +171,11 @@ export default class UpdatePostModule {
     }
 
     await postModule.save()
+
+    // Refresh atomic draft if in a draft mode to keep JSON consistent with granular columns
+    if (mode === 'review' || mode === 'ai-review') {
+      await PostSnapshotService.refreshAtomicDraft(postModule.postId, mode)
+    }
 
     return postModule
   }

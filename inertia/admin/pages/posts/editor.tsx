@@ -98,6 +98,31 @@ type TaxonomyTermNode = {
   children?: TaxonomyTermNode[]
 }
 
+// Helper for merging props
+const deepMerge = (base: any, override: any) => {
+  if (!override || typeof override !== 'object' || Array.isArray(override)) return override
+  if (!base || typeof base !== 'object' || Array.isArray(base)) return override
+
+  const out = { ...base }
+  Object.keys(override).forEach((key) => {
+    const bVal = base[key]
+    const oVal = override[key]
+    if (
+      bVal &&
+      typeof bVal === 'object' &&
+      !Array.isArray(bVal) &&
+      oVal &&
+      typeof oVal === 'object' &&
+      !Array.isArray(oVal)
+    ) {
+      out[key] = deepMerge(bVal, oVal)
+    } else {
+      out[key] = oVal
+    }
+  })
+  return out
+}
+
 const InlineModuleEditor = function InlineModuleEditor({
   module,
   postId,
@@ -114,7 +139,11 @@ const InlineModuleEditor = function InlineModuleEditor({
     type: string
     scope: string
     props: Record<string, any>
+    reviewProps?: Record<string, any> | null
+    aiReviewProps?: Record<string, any> | null
     overrides?: Record<string, any> | null
+    reviewOverrides?: Record<string, any> | null
+    aiReviewOverrides?: Record<string, any> | null
     locked: boolean
     orderIndex: number
     globalSlug?: string | null
@@ -140,6 +169,32 @@ const InlineModuleEditor = function InlineModuleEditor({
     [registerFlush, module.id]
   )
 
+  // Resolve the "effective" props and overrides for the current view mode
+  // so the Inline Editor shows the correct staged version.
+  const effectiveProps = useMemo(() => {
+    let merged = module.props || {}
+    // Hierarchy: Source -> Review -> AI Review
+    if (module.reviewProps && (viewMode === 'review' || viewMode === 'ai-review')) {
+      merged = deepMerge(merged, module.reviewProps)
+    }
+    if (module.aiReviewProps && viewMode === 'ai-review') {
+      merged = deepMerge(merged, module.aiReviewProps)
+    }
+    return merged
+  }, [viewMode, module.props, module.reviewProps, module.aiReviewProps])
+
+  const effectiveOverrides = useMemo(() => {
+    let merged = module.overrides || null
+    // Hierarchy: Source -> Review -> AI Review
+    if (module.reviewOverrides && (viewMode === 'review' || viewMode === 'ai-review')) {
+      merged = deepMerge(merged || {}, module.reviewOverrides)
+    }
+    if (module.aiReviewOverrides && viewMode === 'ai-review') {
+      merged = deepMerge(merged || {}, module.aiReviewOverrides)
+    }
+    return merged
+  }, [viewMode, module.overrides, module.reviewOverrides, module.aiReviewOverrides])
+
   return (
     <ModuleEditorInline
       moduleItem={{
@@ -147,8 +202,8 @@ const InlineModuleEditor = function InlineModuleEditor({
         moduleInstanceId: module.moduleInstanceId,
         type: module.type,
         scope: module.scope,
-        props: module.props || {},
-        overrides: module.overrides || null,
+        props: effectiveProps,
+        overrides: effectiveOverrides,
         locked: module.locked,
         orderIndex: module.orderIndex,
         globalSlug: (module as any).globalSlug || null,
@@ -290,6 +345,7 @@ function ModuleRowBase({
   postId,
   customFields = [],
   isOverlay = false,
+  lastUpdateKey = 0,
 }: {
   m: any
   viewMode: 'source' | 'review' | 'ai-review'
@@ -311,6 +367,7 @@ function ModuleRowBase({
   postId: string
   customFields?: Array<{ slug: string; label: string }>
   isOverlay?: boolean
+  lastUpdateKey?: number
 }) {
   const isOpen = modulesAccordionOpen.has(m.id) && !isOverlay
   const isLocked = m.locked
@@ -329,17 +386,6 @@ function ModuleRowBase({
     moduleRegistry[m.type]?.name ||
     m.type
     : moduleRegistry[m.type]?.name || m.type
-
-  if (!isLocal) {
-    console.log('[PostEditor] Global Module Name:', {
-      id: m.id,
-      scope: m.scope,
-      globalSlug: (m as any).globalSlug,
-      globalLabel: (m as any).globalLabel,
-      calculatedName: moduleName,
-      fromMap: globalSlugToLabel.get(String((m as any).globalSlug || ''))
-    })
-  }
 
   const saveLabel = async () => {
     const label = localLabel.trim() || null
@@ -542,6 +588,7 @@ function ModuleRowBase({
                 </div>
               ) : (
                 <InlineModuleEditor
+                  key={`${m.id}:${viewMode}:${lastUpdateKey}`}
                   module={m}
                   postId={postId}
                   viewMode={viewMode}
@@ -905,6 +952,8 @@ export default function Editor({
   const pickForm = (d: any) => {
     if (!d) return {}
     return {
+      type: post.type,
+      locale: post.locale,
       title: d.title || '',
       slug: d.slug || '',
       excerpt: d.excerpt || '',
@@ -1016,28 +1065,18 @@ export default function Editor({
   const [activeId, setActiveId] = useState<string | null>(null)
 
   const hasReviewBaseline = useMemo(() => {
-    // Check post-level review draft
-    if (reviewDraft) return true
-    // Also check if any modules have review-related data
-    return (modules || []).some(
-      (m) =>
-        (m.reviewProps && Object.keys(m.reviewProps).length > 0) ||
-        (m.reviewOverrides && Object.keys(m.reviewOverrides).length > 0) ||
-        m.reviewAdded === true
-    )
-  }, [reviewDraft, modules])
+    // A draft exists if it has actual content (beyond metadata)
+    if (!reviewDraft) return false
+    const keys = Object.keys(reviewDraft).filter(k => k !== 'savedAt' && k !== 'savedBy')
+    return keys.length > 0
+  }, [reviewDraft])
 
   const hasAiReviewBaseline = useMemo(() => {
-    // Check post-level AI review draft
-    if (aiReviewDraft) return true
-    // Also check if any modules have AI review-related data
-    return (modules || []).some(
-      (m) =>
-        ((m as any).aiReviewProps && Object.keys((m as any).aiReviewProps).length > 0) ||
-        ((m as any).aiReviewOverrides && Object.keys((m as any).aiReviewOverrides).length > 0) ||
-        (m as any).aiReviewAdded === true
-    )
-  }, [aiReviewDraft, modules])
+    // A draft exists if it has actual content (beyond metadata)
+    if (!aiReviewDraft) return false
+    const keys = Object.keys(aiReviewDraft).filter(k => k !== 'savedAt' && k !== 'savedBy')
+    return keys.length > 0
+  }, [aiReviewDraft])
 
   const hasSourceBaseline = useMemo(() => {
     // "Source" exists if:
@@ -1131,6 +1170,8 @@ export default function Editor({
   } | null>(null)
   const [variationDeleteConfirmOpen, setVariationDeleteConfirmOpen] = useState(false)
   const [postDeleteConfirmOpen, setPostDeleteConfirmOpen] = useState(false)
+  const [isSaving, setIsSaving] = useState(false)
+  const [lastUpdateKey, setLastUpdateKey] = useState(0)
   const [pendingVariationToDelete, setPendingVariationToDelete] = useState<{
     id: string
     variation: string
@@ -1179,92 +1220,123 @@ export default function Editor({
   }, [viewMode, hasReviewBaseline, hasAiReviewBaseline, canApproveReview, canApproveAiReview])
 
   async function executeSave(target: 'source' | 'review' | 'ai-review') {
-    // Automatically clean slug to match strict validator: /^[a-z0-9]+(?:-[a-z0-9]+)*$/
-    const cleanedSlug = data.slug
-      .toLowerCase()
-      .trim()
-      .replace(/[^a-z0-9]+/g, '-')
-      .replace(/^-+|-+$/g, '')
-      .replace(/-+/g, '-')
-
-    if (cleanedSlug !== data.slug) {
-      setData('slug', cleanedSlug)
-    }
-
-    // Critical: ensure inline module editors have staged their latest values before we commit/publish.
-    await flushAllModuleEdits()
-
-    const buildDraftSnapshot = (snapshotTarget: 'review' | 'ai-review', modulesList?: any[]) => {
-      // Use the provided list or raw modules array.
-      const list = modulesList || modules
-      return list.map((m) => {
-        const pending = pendingModulesByModeRef.current[viewMode][m.id]
-        const isLocal = m.scope === 'post' || m.scope === 'local'
-
-        // Start with the baseline for the target mode
-        let finalProps = isLocal ? (m.reviewProps ?? m.props ?? {}) : {}
-        let finalOverrides = !isLocal ? (m.reviewOverrides ?? m.overrides ?? null) : null
-
-        if (snapshotTarget === 'ai-review') {
-          finalProps = isLocal ? (m.aiReviewProps ?? m.reviewProps ?? m.props ?? {}) : {}
-          finalOverrides = !isLocal ? (m.aiReviewOverrides ?? m.reviewOverrides ?? m.overrides ?? null) : null
-        }
-
-        // If we have unsaved edits from the current session (regardless of mode), 
-        // they MUST be injected into the snapshot to ensure "Save edits to X" captures them.
-        if (pending) {
-          if (isLocal) {
-            finalProps = pending.edited
-          } else {
-            finalOverrides = pending.overrides
-          }
-        }
-
-        const adminLabel = pending?.adminLabel ?? m.adminLabel ?? null
-
-        return {
-          ...m,
-          props: finalProps,
-          overrides: finalOverrides,
-          adminLabel,
-        }
-      })
-    }
-
-    if (target === 'review') {
-      const created = await createPendingNewModules('review')
-      await commitPendingModules('review', created, viewMode)
-
-      // Remap temp IDs to real IDs in the snapshot
-      const idMap = new Map(created.map(c => [c.tempId, c.postModuleId]))
-      const modulesWithRealIds = modules.map(m => ({
-        ...m,
-        id: idMap.get(m.id) || m.id
-      }))
-
-      const reviewSnapshot = buildDraftSnapshot('review', modulesWithRealIds)
-      await saveForReview(reviewSnapshot)
-      return
-    }
-
-    if (target === 'ai-review') {
-      const created = await createPendingNewModules('ai-review')
-      await commitPendingModules('ai-review', created, viewMode)
-
-      // Remap temp IDs to real IDs in the snapshot
-      const idMap = new Map(created.map(c => [c.tempId, c.postModuleId]))
-      const modulesWithRealIds = modules.map(m => ({
-        ...m,
-        id: idMap.get(m.id) || m.id
-      }))
-
-      const aiReviewSnapshot = buildDraftSnapshot('ai-review', modulesWithRealIds)
-      await saveForAiReview(aiReviewSnapshot)
-      return
-    }
-
-    // Save to Source (existing flow)
+    if (isSaving) return
+    setIsSaving(true)
     try {
+      // Automatically clean slug to match strict validator: /^[a-z0-9]+(?:-[a-z0-9]+)*$/
+      const cleanedSlug = data.slug
+        .toLowerCase()
+        .trim()
+        .replace(/[^a-z0-9]+/g, '-')
+        .replace(/^-+|-+$/g, '')
+        .replace(/-+/g, '-')
+
+      if (cleanedSlug !== data.slug) {
+        setData('slug', cleanedSlug)
+      }
+
+      // Critical: ensure inline module editors have staged their latest values before we commit/publish.
+      await flushAllModuleEdits()
+
+      const buildDraftSnapshot = (snapshotTarget: 'review' | 'ai-review', modulesList?: any[]) => {
+        // Use the provided list or raw modules array.
+        const list = modulesList || modules
+        return list.map((m) => {
+          const pending = pendingModulesByModeRef.current[viewMode][m.id]
+          const isLocal = m.scope === 'post' || m.scope === 'local'
+
+          // Start with what the user is CURRENTLY seeing in the editor (the active version)
+          let finalProps = isLocal ? m.props : {}
+          let finalOverrides = !isLocal ? m.overrides : null
+
+          if (viewMode === 'review') {
+            finalProps = isLocal ? (m.reviewProps ?? m.props) : {}
+            finalOverrides = !isLocal ? (m.reviewOverrides ?? m.overrides) : null
+          } else if (viewMode === 'ai-review') {
+            finalProps = isLocal ? (m.aiReviewProps ?? m.reviewProps ?? m.props) : {}
+            finalOverrides = !isLocal ? (m.aiReviewOverrides ?? m.reviewOverrides ?? m.overrides) : null
+          }
+
+          // If we have unsaved edits from the current session, they MUST be injected
+          if (pending) {
+            if (isLocal) {
+              finalProps = pending.edited
+            } else {
+              finalOverrides = pending.overrides
+            }
+          }
+
+          const adminLabel = pending?.adminLabel ?? m.adminLabel ?? null
+
+          return {
+            ...m,
+            props: finalProps,
+            overrides: finalOverrides,
+            adminLabel,
+          }
+        })
+      }
+
+      // Critical: build snapshots BEFORE clearing any pending refs or performing async commits.
+      const idMap = new Map()
+      const modulesWithRealIds = modules.map(m => ({
+        ...m,
+        id: idMap.get(m.id) || m.id
+      }))
+
+      // snapshotTarget depends on where we are saving to.
+      // snapshotSourceMode is where the DATA is currently coming from (viewMode).
+      const reviewSnapshot = target === 'review' ? buildDraftSnapshot('review', modulesWithRealIds) : null
+      const aiReviewSnapshot = target === 'ai-review' ? buildDraftSnapshot('ai-review', modulesWithRealIds) : null
+
+      if (target === 'review' && reviewSnapshot) {
+        const created = await createPendingNewModules('review')
+        // Only commit pending modules if we are not about to overwrite them with a full snapshot save
+        // Actually, for KISS and robustness, we always commit them to ensure granular columns are up to date.
+        await commitPendingModules('review', created, viewMode)
+
+        // Re-inject the real IDs into the snapshot if any were created
+        const pmIdMap = new Map(created.map(c => [c.tempId, c.postModuleId]))
+        const miIdMap = new Map(created.map(c => [c.tempId, c.moduleInstanceId]))
+
+        const finalSnapshot = reviewSnapshot.map(m => {
+          const realPmId = pmIdMap.get(m.id) || m.postModuleId || m.id
+          const realMiId = miIdMap.get(m.id) || m.moduleInstanceId
+          return {
+            ...m,
+            id: realPmId,
+            postModuleId: realPmId,
+            moduleInstanceId: realMiId
+          }
+        })
+
+        await saveForReview(finalSnapshot)
+        return
+      }
+
+      if (target === 'ai-review' && aiReviewSnapshot) {
+        const created = await createPendingNewModules('ai-review')
+        await commitPendingModules('ai-review', created, viewMode)
+
+        const pmIdMap = new Map(created.map(c => [c.tempId, c.postModuleId]))
+        const miIdMap = new Map(created.map(c => [c.tempId, c.moduleInstanceId]))
+
+        const finalSnapshot = aiReviewSnapshot.map(m => {
+          const realPmId = pmIdMap.get(m.id) || m.postModuleId || m.id
+          const realMiId = miIdMap.get(m.id) || m.moduleInstanceId
+          return {
+            ...m,
+            id: realPmId,
+            postModuleId: realPmId,
+            moduleInstanceId: realMiId
+          }
+        })
+
+        await saveForAiReview(finalSnapshot)
+        return
+      }
+
+      // Save to Source (existing flow)
       const created = await createPendingNewModules('publish')
       await commitPendingModules('publish', created, viewMode)
       if (hasStructuralChanges) {
@@ -1304,8 +1376,6 @@ export default function Editor({
       }
 
       // Use fetch directly to have full control over the request.
-      // NOTE: We force an absolute URL + manual redirect handling because a redirect (often due to CSRF/auth)
-      // can cause the browser to follow to `/admin/posts/:id/edit` and then "PUT" that URL (404).
       const apiUrl =
         typeof window !== 'undefined'
           ? new URL(`/api/posts/${post.id}`, window.location.origin).toString()
@@ -1333,8 +1403,6 @@ export default function Editor({
         currentUrl.searchParams.set('view', 'source')
         window.location.href = currentUrl.toString()
       } else {
-        // If the response is a redirect, fetch will return an opaqueredirect when redirect='manual'.
-        // This often indicates an auth/CSRF issue.
         if ((res as any).type === 'opaqueredirect' || (res.status >= 300 && res.status < 400)) {
           console.error('Save got redirected', { status: res.status, type: (res as any).type })
           toast.error('Failed to save (redirect). Check CSRF/auth.')
@@ -1353,12 +1421,6 @@ export default function Editor({
           })()
           : null
 
-        console.error('Save failed:', {
-          status: res.status,
-          contentType,
-          body: errorJson ?? bodyText,
-        })
-
         const msg =
           (errorJson as any)?.message ||
           ((errorJson as any)?.errors?.[0]?.message as string | undefined) ||
@@ -1368,6 +1430,8 @@ export default function Editor({
     } catch (error) {
       console.error('Save error:', error)
       toast.error('Failed to save')
+    } finally {
+      setIsSaving(false)
     }
   }
 
@@ -1383,15 +1447,23 @@ export default function Editor({
       body: JSON.stringify({ mode }),
     })
     if (res.ok) {
-      toast.success(
-        mode === 'approve-ai-review' ? 'AI Review promoted to Review' : 'Review promoted to Source'
-      )
-      window.location.reload()
+      const data = await res.json().catch(() => null)
+      if (data?.promoted === false) {
+        toast.info(data.message || 'No changes were found to promote.')
+        // Force reload anyway to stay in sync with server state
+        window.location.reload()
+      } else {
+        toast.success(
+          data?.message ||
+          (mode === 'approve-ai-review' ? 'AI Review promoted to Review' : 'Review promoted to Source')
+        )
+        window.location.reload()
+      }
       return
     }
     const err = await res.json().catch(() => null)
     console.error('Approve failed:', res.status, err)
-    toast.error(err?.errors ? 'Failed (validation)' : 'Failed')
+    toast.error(err?.error || err?.message || (err?.errors ? 'Failed (validation)' : 'Failed'))
   }
 
   async function executeDelete() {
@@ -1447,7 +1519,8 @@ export default function Editor({
         removalsPendingReview ||
         removalsPendingAiReview ||
         newModulesPending ||
-        structuralChanges
+        structuralChanges ||
+        isSaving
       )
     } catch {
       return true
@@ -1477,6 +1550,7 @@ export default function Editor({
   // Useful after adding modules or reloading the page
   useEffect(() => {
     setModules(modulesEnabled ? initialModules || [] : [])
+    setLastUpdateKey((prev) => prev + 1)
   }, [initialModules, modulesEnabled])
 
   // Load module registry for display names
@@ -1785,6 +1859,9 @@ export default function Editor({
       toast.success('Saved for review')
       reviewInitialRef.current = pickForm(data)
       setPendingReviewRemoved(new Set())
+      // Clear any "dirty" markers for this mode; after a successful save, the UI should be clean.
+      setUnstagedDirtyModulesByMode((prev) => ({ ...prev, review: {} }))
+      setHasStructuralChanges(false)
 
       // Redirect to Review tab if we're not already there
       const url = new URL(window.location.href)
@@ -1828,6 +1905,9 @@ export default function Editor({
       toast.success('Saved for AI review')
       aiReviewInitialRef.current = pickForm(data)
       setPendingAiReviewRemoved(new Set())
+      // Clear any "dirty" markers for this mode; after a successful save, the UI should be clean.
+      setUnstagedDirtyModulesByMode((prev) => ({ ...prev, 'ai-review': {} }))
+      setHasStructuralChanges(false)
 
       // Redirect to AI Review tab if we're not already there
       const url = new URL(window.location.href)
@@ -2435,6 +2515,10 @@ export default function Editor({
       // Review draft removed/absent; fall back safely.
       setViewMode(hasAiReviewBaseline ? 'ai-review' : hasSourceBaseline ? 'source' : 'ai-review')
     }
+    if (!hasAiReviewBaseline && viewMode === 'ai-review') {
+      // AI Review draft removed/absent; fall back safely.
+      setViewMode(hasReviewBaseline ? 'review' : hasSourceBaseline ? 'source' : 'review')
+    }
   }, [hasSourceBaseline, hasAiReviewBaseline, hasReviewBaseline, viewMode])
 
   const activeModule = useMemo(() => {
@@ -2766,8 +2850,8 @@ export default function Editor({
                     onClick={() => {
                       const base = (post as any).publicPath || `/posts/${post.slug}`
                       const target =
-                        viewMode === 'review'
-                          ? `${base}${base.includes('?') ? '&' : '?'}view=review`
+                        viewMode !== 'source'
+                          ? `${base}${base.includes('?') ? '&' : '?'}view=${viewMode}`
                           : base
                       window.open(target, '_blank')
                     }}
@@ -3150,6 +3234,7 @@ export default function Editor({
                                 markModuleDirty={markModuleDirty}
                                 postId={post.id}
                                 customFields={initialCustomFields || []}
+                                lastUpdateKey={lastUpdateKey}
                               />
                             ))}
                           </ul>
@@ -3178,6 +3263,7 @@ export default function Editor({
                                 postId={post.id}
                                 customFields={initialCustomFields || []}
                                 isOverlay={true}
+                                lastUpdateKey={lastUpdateKey}
                               />
                             </div>
                           ) : null}
@@ -3648,7 +3734,99 @@ export default function Editor({
                     {selectedAgent && (
                       <button
                         type="button"
-                        onClick={() => setAgentPromptOpen(true)}
+                        onClick={() => {
+                          const a = agents.find((x) => x.id === selectedAgent)
+                          const promptEnabled = a?.openEndedContext?.enabled === true
+                          if (promptEnabled) {
+                            setAgentPromptOpen(true)
+                            return
+                          }
+                          // No prompt required: run immediately, but still show response in dialog
+                          ; (async () => {
+                            // Open dialog FIRST to ensure it's open before setting running state
+                            setAgentPromptOpen(true)
+                            // Use requestAnimationFrame to ensure dialog state is set before preventing close
+                            await new Promise((resolve) => requestAnimationFrame(resolve))
+                            setRunningAgent(true)
+                            setAgentResponse(null)
+                            try {
+                              const csrf = (() => {
+                                if (typeof document === 'undefined') return undefined
+                                const m = document.cookie.match(/(?:^|; )XSRF-TOKEN=([^;]+)/)
+                                return m ? decodeURIComponent(m[1]) : undefined
+                              })()
+                              const res = await fetch(
+                                `/api/posts/${post.id}/agents/${encodeURIComponent(selectedAgent)}/run`,
+                                {
+                                  method: 'POST',
+                                  headers: {
+                                    'Accept': 'application/json',
+                                    'Content-Type': 'application/json',
+                                    ...(csrf ? { 'X-XSRF-TOKEN': csrf } : {}),
+                                  },
+                                  credentials: 'same-origin',
+                                  body: JSON.stringify({ context: { locale: selectedLocale } }),
+                                }
+                              )
+                              const j = await res.json().catch(() => ({}))
+                              if (res.ok) {
+                                // Show response in dialog
+                                setAgentResponse({
+                                  rawResponse: j.rawResponse,
+                                  applied: j.applied || [],
+                                  message: j.message,
+                                })
+                                toast.success('Assistant completed successfully')
+
+                                // Refresh agent history to show the new execution
+                                try {
+                                  const historyRes = await fetch(
+                                    `/api/posts/${post.id}/agents/${encodeURIComponent(selectedAgent)}/history`,
+                                    {
+                                      headers: { Accept: 'application/json' },
+                                      credentials: 'same-origin',
+                                    }
+                                  )
+                                  if (historyRes.ok) {
+                                    const historyJson = await historyRes.json().catch(() => null)
+                                    if (historyJson?.data) {
+                                      setAgentHistory(
+                                        Array.isArray(historyJson.data) ? historyJson.data : []
+                                      )
+                                    }
+                                  }
+                                } catch {
+                                  // Ignore history refresh errors
+                                }
+
+                                // Refresh page data to load updated aiReviewDraft
+                                setTimeout(() => {
+                                  try {
+                                    router.reload({ only: ['aiReviewDraft', 'post'] })
+                                  } catch (reloadError) {
+                                    console.warn(
+                                      'Page reload failed (non-critical):',
+                                      reloadError
+                                    )
+                                  }
+                                }, 100)
+                              } else {
+                                toast.error(j?.error || 'Assistant run failed')
+                                setAgentResponse({
+                                  message: `Error: ${j?.error || 'Assistant run failed'}`,
+                                })
+                              }
+                            } catch (error: any) {
+                              console.error('Assistant execution error:', error)
+                              toast.error('Assistant run failed')
+                              setAgentResponse({
+                                message: `Error: ${error?.message || 'Assistant run failed'}`,
+                              })
+                            } finally {
+                              setRunningAgent(false)
+                            }
+                          })()
+                        }}
                         className="w-full py-2.5 text-xs font-bold uppercase tracking-wider rounded-xl bg-neutral-high text-backdrop-low hover:bg-neutral-low transition-all shadow-sm"
                       >
                         Run Assistant
@@ -3938,13 +4116,13 @@ export default function Editor({
                                     (agent as any)?.type === 'internal' ? 'ai-review' : 'review'
 
                                   // Check for redirection if a new post/translation was created
-                                  if (agentResponse.redirectPostId && agentResponse.redirectPostId !== post.id) {
+                                  if ((agentResponse as any).redirectPostId && (agentResponse as any).redirectPostId !== post.id) {
                                     setAgentPromptOpen(false)
                                     setAgentResponse(null)
                                     setAgentOpenEndedContext('')
                                     // Use window.location for a hard redirect if router.visit feels stuck,
                                     // but router.visit is preferred for Inertia.
-                                    router.visit(`/admin/posts/${agentResponse.redirectPostId}/edit?view=${targetMode}`)
+                                    router.visit(`/admin/posts/${(agentResponse as any).redirectPostId}/edit?view=${targetMode}`)
                                     return
                                   }
 
@@ -4031,7 +4209,7 @@ export default function Editor({
                                         applied: j.applied || [],
                                         message: j.message,
                                       })
-                                      toast.success('Agent completed successfully')
+                                      toast.success('Assistant completed successfully')
 
                                       // Refresh agent history to show the new execution
                                       try {
@@ -4075,130 +4253,29 @@ export default function Editor({
                                         }
                                       }, 100)
                                     } else {
-                                      toast.error(j?.error || 'Agent run failed')
+                                      toast.error(j?.error || 'Assistant run failed')
                                       setAgentResponse({
-                                        message: `Error: ${j?.error || 'Agent run failed'}`,
+                                        message: `Error: ${j?.error || 'Assistant run failed'}`,
                                       })
                                     }
                                   } catch (error: any) {
-                                    console.error('Agent execution error:', error)
-                                    toast.error('Agent run failed')
+                                    console.error('Assistant execution error:', error)
+                                    toast.error('Assistant run failed')
                                     setAgentResponse({
-                                      message: `Error: ${error?.message || 'Agent run failed'}`,
+                                      message: `Error: ${error?.message || 'Assistant run failed'}`,
                                     })
                                   } finally {
                                     setRunningAgent(false)
                                   }
                                 }}
                               >
-                                {runningAgent ? 'Running...' : 'Run Agent'}
+                                {runningAgent ? 'Running...' : 'Run Assistant'}
                               </AlertDialogAction>
                             </>
                           )}
                         </AlertDialogFooter>
                       </AlertDialogContent>
                     </AlertDialog>
-
-                    <button
-                      className="mt-2 w-full h-8 px-3 text-xs rounded-lg bg-standout-medium text-on-standout font-medium disabled:opacity-50"
-                      disabled={runningAgent}
-                      onClick={() => {
-                        const a = agents.find((x) => x.id === selectedAgent)
-                        const enabled = a?.openEndedContext?.enabled === true
-                        if (enabled) {
-                          setAgentPromptOpen(true)
-                          return
-                        }
-                        // No prompt required: run immediately, but still show response in dialog
-                        ; (async () => {
-                          // Open dialog FIRST to ensure it's open before setting running state
-                          setAgentPromptOpen(true)
-                          // Use requestAnimationFrame to ensure dialog state is set before preventing close
-                          await new Promise((resolve) => requestAnimationFrame(resolve))
-                          setRunningAgent(true)
-                          setAgentResponse(null)
-                          try {
-                            const csrf = (() => {
-                              if (typeof document === 'undefined') return undefined
-                              const m = document.cookie.match(/(?:^|; )XSRF-TOKEN=([^;]+)/)
-                              return m ? decodeURIComponent(m[1]) : undefined
-                            })()
-                            const res = await fetch(
-                              `/api/posts/${post.id}/agents/${encodeURIComponent(selectedAgent)}/run`,
-                              {
-                                method: 'POST',
-                                headers: {
-                                  'Accept': 'application/json',
-                                  'Content-Type': 'application/json',
-                                  ...(csrf ? { 'X-XSRF-TOKEN': csrf } : {}),
-                                },
-                                credentials: 'same-origin',
-                                body: JSON.stringify({ context: { locale: selectedLocale } }),
-                              }
-                            )
-                            const j = await res.json().catch(() => ({}))
-                            if (res.ok) {
-                              // Show response in dialog
-                              setAgentResponse({
-                                rawResponse: j.rawResponse,
-                                applied: j.applied || [],
-                                message: j.message,
-                              })
-                              toast.success('Agent completed successfully')
-
-                              // Refresh agent history to show the new execution
-                              try {
-                                const historyRes = await fetch(
-                                  `/api/posts/${post.id}/agents/${encodeURIComponent(selectedAgent)}/history`,
-                                  {
-                                    headers: { Accept: 'application/json' },
-                                    credentials: 'same-origin',
-                                  }
-                                )
-                                if (historyRes.ok) {
-                                  const historyJson = await historyRes.json().catch(() => null)
-                                  if (historyJson?.data) {
-                                    setAgentHistory(
-                                      Array.isArray(historyJson.data) ? historyJson.data : []
-                                    )
-                                  }
-                                }
-                              } catch {
-                                // Ignore history refresh errors
-                              }
-
-                              // Refresh page data to load updated aiReviewDraft
-                              setTimeout(() => {
-                                try {
-                                  router.reload({ only: ['aiReviewDraft', 'post'] })
-                                } catch (reloadError) {
-                                  console.warn(
-                                    'Page reload failed (non-critical):',
-                                    reloadError
-                                  )
-                                }
-                              }, 100)
-                            } else {
-                              toast.error(j?.error || 'Agent run failed')
-                              setAgentResponse({
-                                message: `Error: ${j?.error || 'Agent run failed'}`,
-                              })
-                            }
-                          } catch (error: any) {
-                            console.error('Agent execution error:', error)
-                            toast.error('Agent run failed')
-                            setAgentResponse({
-                              message: `Error: ${error?.message || 'Agent run failed'}`,
-                            })
-                          } finally {
-                            setRunningAgent(false)
-                          }
-                        })()
-                      }}
-                      type="button"
-                    >
-                      {runningAgent ? 'Running...' : 'Run Agent'}
-                    </button>
                   </>
                 )}
 
@@ -4320,9 +4397,9 @@ export default function Editor({
                       </Select>
                       <button
                         type="button"
-                        className={`h-8 px-3 text-xs rounded-lg disabled:opacity-50 ${!isDirty || processing ? 'border border-border text-neutral-medium' : 'bg-standout-medium text-on-standout font-medium'}`}
+                        className={`h-8 px-3 text-xs rounded-lg disabled:opacity-50 ${!isDirty || processing || isSaving ? 'border border-border text-neutral-medium' : 'bg-standout-medium text-on-standout font-medium'}`}
                         disabled={
-                          !isDirty || processing || (saveTarget === 'review' && !canSaveForReview)
+                          !isDirty || processing || isSaving || (saveTarget === 'review' && !canSaveForReview)
                         }
                         onClick={async () => {
                           // Destructive confirmation when saving to Review that already exists.
@@ -4354,13 +4431,13 @@ export default function Editor({
                   <div className="space-y-2">
                     <button
                       type="button"
-                      className={`h-8 px-3 text-xs rounded-lg disabled:opacity-50 ${!isDirty || processing ? 'border border-border text-neutral-medium' : 'bg-standout-medium text-on-standout font-medium'}`}
-                      disabled={!isDirty || processing || !canSaveForReview}
+                      className={`h-8 px-3 text-xs rounded-lg disabled:opacity-50 ${!isDirty || processing || isSaving ? 'border border-border text-neutral-medium' : 'bg-standout-medium text-on-standout font-medium'}`}
+                      disabled={!isDirty || processing || isSaving || !canSaveForReview}
                       onClick={async () => {
                         await executeSave('review')
                       }}
                     >
-                      Save
+                      {isSaving ? 'Saving...' : 'Save'}
                     </button>
                     {!canSaveForReview && (
                       <p className="text-xs text-neutral-low">
@@ -4376,13 +4453,13 @@ export default function Editor({
                     <p className="text-xs text-neutral-low">AI Review is AI-generated.</p>
                     <button
                       type="button"
-                      className={`h-8 px-3 text-xs rounded-lg disabled:opacity-50 ${!isDirty || processing ? 'border border-border text-neutral-medium' : 'bg-standout-medium text-on-standout font-medium'}`}
-                      disabled={!isDirty || processing}
+                      className={`h-8 px-3 text-xs rounded-lg disabled:opacity-50 ${!isDirty || processing || isSaving ? 'border border-border text-neutral-medium' : 'bg-standout-medium text-on-standout font-medium'}`}
+                      disabled={!isDirty || processing || isSaving}
                       onClick={async () => {
                         await executeSave('ai-review')
                       }}
                     >
-                      Save
+                      {isSaving ? 'Saving...' : 'Save'}
                     </button>
                   </div>
                 )}
@@ -4504,17 +4581,23 @@ export default function Editor({
                                   body: JSON.stringify({ mode }),
                                 })
                                 if (res.ok) {
+                                  const data = await res.json().catch(() => null)
                                   toast.success(
-                                    mode === 'reject-ai-review'
+                                    data?.message ||
+                                    (mode === 'reject-ai-review'
                                       ? 'AI Review discarded'
-                                      : 'Review discarded'
+                                      : 'Review discarded')
                                   )
                                   setRejectConfirmOpen(false)
                                   window.location.reload()
                                 } else {
                                   const err = await res.json().catch(() => null)
                                   console.error('Reject failed:', res.status, err)
-                                  toast.error(err?.errors ? 'Failed (validation)' : 'Failed')
+                                  toast.error(
+                                    err?.error ||
+                                    err?.message ||
+                                    (err?.errors ? 'Failed (validation)' : 'Failed')
+                                  )
                                 }
                               }}
                             >

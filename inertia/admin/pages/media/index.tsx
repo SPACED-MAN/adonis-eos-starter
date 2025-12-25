@@ -282,8 +282,6 @@ export default function MediaIndex() {
         error: (e) => String(e.message || e),
       }
     )
-    setSelectedIds(new Set())
-    setSelectAll(false)
     setBulkKey((k) => k + 1)
     await load()
   }
@@ -343,8 +341,6 @@ export default function MediaIndex() {
     }
 
     toast.success(`Generated ${lightCount} light and ${darkCount} dark variant sets`)
-    setSelectedIds(new Set())
-    setSelectAll(false)
     setBulkKey((k) => k + 1)
     await load()
   }
@@ -395,8 +391,6 @@ export default function MediaIndex() {
     }
 
     toast.success(`Regenerated all variants for ${count} items`)
-    setSelectedIds(new Set())
-    setSelectAll(false)
     setBulkKey((k) => k + 1)
     await load()
   }
@@ -1890,7 +1884,7 @@ export default function MediaIndex() {
                       <div className="p-4 bg-backdrop-medium/40 border border-line-low rounded-2xl space-y-4 shadow-inner">
                         <div className="text-[11px] font-bold text-neutral-high flex items-center gap-2">
                           <FontAwesomeIcon icon={faExchangeAlt} className="w-3.5 h-3.5" />
-                          Replace Asset Source
+                          {editTheme === 'dark' ? 'Upload Dark Version' : 'Replace Asset Source'}
                         </div>
                         <div className="space-y-3">
                           <input
@@ -1907,7 +1901,7 @@ export default function MediaIndex() {
                           >
                             <FontAwesomeIcon icon={faCloudUploadAlt} className="w-6 h-6 mb-1 text-neutral-low" />
                             <span className="text-[10px] font-semibold text-neutral-medium text-center">
-                              {replaceFile ? replaceFile.name : 'Click to choose new file'}
+                              {replaceFile ? replaceFile.name : (editTheme === 'dark' ? 'Click to choose dark version' : 'Click to choose new file')}
                             </span>
                           </label>
                           <button
@@ -1932,11 +1926,31 @@ export default function MediaIndex() {
                                   }
                                 )
                                 if (res.ok) {
+                                  // SOC2/Security: Also save any pending metadata changes automatically
+                                  // as user expects "Confirm" to be the final action for this asset.
+                                  await fetch(`/api/media/${encodeURIComponent(viewing.id)}`, {
+                                    method: 'PATCH',
+                                    headers: {
+                                      'Accept': 'application/json',
+                                      'Content-Type': 'application/json',
+                                      ...(xsrfFromCookie ? { 'X-XSRF-TOKEN': xsrfFromCookie } : {}),
+                                    },
+                                    credentials: 'same-origin',
+                                    body: JSON.stringify({
+                                      altText: isMediaVideo(viewing) ? undefined : editAlt,
+                                      title: editTitle,
+                                      description: editDescription,
+                                      playMode: isMediaVideo(viewing) ? editPlayMode : undefined,
+                                      categories: editCategories,
+                                    }),
+                                  })
+
                                   toast.success(
-                                    isMediaVideo(viewing) ? 'Video replaced' : 'Image replaced'
+                                    editTheme === 'dark' ? 'Dark version saved' : 'Asset replaced and saved'
                                   )
                                   await load()
                                   setReplaceFile(null)
+                                  setViewing(null) // Close modal
                                 } else {
                                   toast.error('Replacement failed')
                                 }
@@ -1945,7 +1959,7 @@ export default function MediaIndex() {
                               }
                             }}
                           >
-                            {replaceUploading ? 'Uploading...' : 'Confirm Replacement'}
+                            {replaceUploading ? 'Uploading...' : (editTheme === 'dark' ? 'Confirm Dark Version' : 'Confirm Replacement')}
                           </button>
                         </div>
                       </div>

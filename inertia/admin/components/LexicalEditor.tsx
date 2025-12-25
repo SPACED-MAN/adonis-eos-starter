@@ -1,4 +1,4 @@
-import { useEffect, useMemo } from 'react'
+import { useEffect, useMemo, useRef } from 'react'
 import { LexicalComposer } from '@lexical/react/LexicalComposer'
 import { RichTextPlugin } from '@lexical/react/LexicalRichTextPlugin'
 import { ContentEditable } from '@lexical/react/LexicalContentEditable'
@@ -37,9 +37,18 @@ import { $createCodeNode } from '@lexical/code'
 import { $insertNodes, $createTextNode } from 'lexical'
 import { TokenPicker } from './ui/TokenPicker'
 
-function InitialContentPlugin({ initialValue }: { initialValue: any }) {
+function InitialContentPlugin({ initialValue, editorKey }: { initialValue: any; editorKey?: string }) {
   const [editor] = useLexicalComposerContext()
+  
+  // Use a ref to track if we've already initialized for this specific editorKey
+  // to avoid infinite loops if initialValue is not stable.
+  const initializedKeyRef = useRef<string | null>(null)
+
   useEffect(() => {
+    // Only run if the key has changed or we haven't initialized yet
+    if (initializedKeyRef.current === editorKey && editorKey !== undefined) return
+    initializedKeyRef.current = editorKey || 'default'
+
     try {
       let candidate: any = initialValue
       if (!candidate) return
@@ -150,9 +159,7 @@ function InitialContentPlugin({ initialValue }: { initialValue: any }) {
     } catch {
       // ignore invalid initial state
     }
-    // run only once on mount
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [])
+  }, [editor, initialValue, editorKey])
   return null
 }
 
@@ -229,7 +236,7 @@ export function LexicalEditor({
           placeholder={<div className="p-3 text-neutral-low">{placeholder}</div>}
           ErrorBoundary={LexicalErrorBoundary}
         />
-        <InitialContentPlugin initialValue={value} />
+        <InitialContentPlugin initialValue={value} editorKey={editorKey} />
         <HistoryPlugin />
         <ListPlugin />
         <LinkPlugin />

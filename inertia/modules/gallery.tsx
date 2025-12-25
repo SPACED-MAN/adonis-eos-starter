@@ -107,7 +107,7 @@ export default function Gallery({
         // item.url will be the media object if resolved, or a string if not.
         const media = (typeof item.url === 'object' && item.url !== null ? item.url : null) as MediaObject | null
         const imageSource = media || (item.url as string)
-        
+
         const caption = media?.title || media?.caption || item.caption
         const hasCaption = !!caption?.trim()
         const effectiveAlt = media?.altText || item.alt || item.altText || ''
@@ -152,7 +152,15 @@ export default function Gallery({
     <section
       className={`${bg} py-12 lg:py-16`}
       data-module="gallery"
+      data-inline-type="select"
       data-inline-path="backgroundColor"
+      data-inline-options={JSON.stringify([
+        { label: 'Transparent', value: 'bg-transparent' },
+        { label: 'Low', value: 'bg-backdrop-low' },
+        { label: 'Medium', value: 'bg-backdrop-medium' },
+        { label: 'High', value: 'bg-backdrop-high' },
+        { label: 'Dark', value: 'bg-neutral-high' },
+      ])}
     >
       <div className="container mx-auto px-4 sm:px-6 lg:px-8">
         {/* Gallery Grid */}
@@ -220,7 +228,7 @@ export default function Gallery({
                 const item = images[currentIndex]
                 const media = (typeof item.url === 'object' && item.url !== null ? item.url : null) as MediaObject | null
                 const imageSource = media || (item.url as string)
-                
+
                 const caption = media?.title || media?.caption || item.caption
                 const hasCaption = !!caption?.trim()
                 const effectiveAlt = media?.altText || item.alt || item.altText || ''

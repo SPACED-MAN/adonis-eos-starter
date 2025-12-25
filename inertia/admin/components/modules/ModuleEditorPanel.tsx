@@ -1336,7 +1336,7 @@ const FieldPrimitiveInternal = memo(({
     }
     props.name = name
     props['data-root-id'] = rootId
-    if (type === 'richtext') props.editorKey = `${rootId}:${name}`
+    if (type === 'richtext') props.editorKey = `${rootId}:${name}:${ctx.viewMode || 'source'}`
     if (type === 'select' || type === 'multiselect') {
       props.options = Array.isArray(cfg.options) ? cfg.options : []
       if (type === 'multiselect') props.multiple = true
@@ -1679,17 +1679,19 @@ const ModuleFieldsRenderer = memo(({
       {fallbackDraftKeys.map((key) => {
         const rawVal = draft[key]
         if (key === 'content') {
-          let initial: any = undefined
-          if (isPlainObject(rawVal)) initial = rawVal
-          else if (typeof rawVal === 'string') {
-            try { initial = JSON.parse(rawVal) } catch { initial = undefined }
+          let initial: any = rawVal
+          if (typeof rawVal === 'string') {
+            const trimmed = rawVal.trim()
+            if (trimmed.startsWith('{') || trimmed.startsWith('[')) {
+              try { initial = JSON.parse(trimmed) } catch { /* ignore, keep as string */ }
+            }
           }
           return (
             <div key={key}>
               <label className="block text-sm font-medium text-neutral-medium mb-1">{key}</label>
               {(ctx.fieldComponents as Record<string, any>)['RichtextField'] ? (
                 (ctx.fieldComponents as Record<string, any>)['RichtextField']({
-                  editorKey: `${moduleItem.id}:${key}`,
+                  editorKey: `${moduleItem.id}:${key}:${ctx.viewMode || 'source'}`,
                   value: initial,
                   onChange: (json: any) => {
                     const next = JSON.parse(JSON.stringify(draft))
@@ -1700,7 +1702,7 @@ const ModuleFieldsRenderer = memo(({
                 })
               ) : (
                 <LexicalEditor
-                  editorKey={`${moduleItem.id}:${key}`}
+                  editorKey={`${moduleItem.id}:${key}:${ctx.viewMode || 'source'}`}
                   value={initial}
                   onChange={(json) => {
                     const next = JSON.parse(JSON.stringify(draft))
@@ -1911,7 +1913,8 @@ export function ModuleEditorPanel({
     latestDraft, setDraft, fieldComponents, supportedFieldTypes, pascalFromType, setByPath, getLabel, syncFormToDraft, getByPath, formRef, postId, moduleInstanceId, moduleType: moduleItem?.type, moduleItem, fieldAgents, setSelectedFieldAgent, setAgentModalOpen, setAgentFieldKey, setAgentFieldType, viewMode, customFields, pendingInputValueRef, onDirty: () => { }
   }), [fieldComponents, supportedFieldTypes, pascalFromType, postId, moduleInstanceId, moduleItem, fieldAgents, viewMode, customFields])
 
-  const saveAndClose = async () => {
+  const handleClose = async () => {
+    // Automatically save current draft state before closing
     const base = moduleItem?.props || {}
     const edited = syncFormToDraft()
     const overrides = diffOverrides(base, edited)
@@ -1935,7 +1938,7 @@ export function ModuleEditorPanel({
 
   return createPortal(
     <div className="fixed inset-0 z-40 flex items-center justify-center p-4 sm:p-6">
-      <div className="absolute inset-0 bg-black/40" onClick={onClose} />
+      <div className="absolute inset-0 bg-black/40" onClick={handleClose} />
       <div className="absolute right-0 top-0 h-full w-full max-w-2xl bg-backdrop-low border-l border-line-low shadow-xl flex flex-col" role="dialog" aria-modal="true">
         <div className="px-5 py-4 border-b border-line-low flex items-center justify-between">
           <h3 className="text-sm font-semibold text-neutral-high">Module Custom Fields — {moduleLabel || moduleItem.type}</h3>
@@ -1997,8 +2000,7 @@ export function ModuleEditorPanel({
             </fieldset>
           )}
           <div className="flex items-center justify-end gap-2 border-t border-line-low pt-4 mt-auto">
-            <button type="button" className="px-3 py-1.5 text-xs rounded border border-line-medium text-neutral-high hover:bg-backdrop-medium" onClick={onClose}>Cancel</button>
-            <button type="button" className="px-3 py-1.5 text-xs rounded bg-standout-medium text-on-standout disabled:opacity-60" onClick={saveAndClose} disabled={processing || (moduleItem.scope !== 'post' && !allowGlobalEditing)}>Done</button>
+            <button type="button" className="px-3 py-1.5 text-xs rounded bg-standout-medium text-on-standout disabled:opacity-60" onClick={handleClose} disabled={processing || (moduleItem.scope !== 'post' && !allowGlobalEditing)}>Close</button>
           </div>
         </form>
       </div>
@@ -2017,6 +2019,38 @@ export const ModuleEditorInline = memo(function ModuleEditorInline({
 }) {
   const merged = useMemo(() => (moduleItem ? mergeFields(moduleItem.props || {}, moduleItem.overrides || null) : {}), [moduleItem])
   const [draft, setDraft] = useState<Record<string, any>>(merged)
+  // Suppress "dirty" signals during initial hydration and when we're syncing incoming props -> draft.
+  // Without this, some field components will fire programmatic change events (isTrusted=false) on mount
+  // or after a rehydrate, which incorrectly enables the page-level Save button.
+  const suppressDirtyRef = useRef(true)
+  useEffect(() => {
+    // After first paint, allow dirty tracking.
+    const id = setTimeout(() => {
+      suppressDirtyRef.current = false
+    }, 0)
+    return () => clearTimeout(id)
+  }, [])
+
+  const safeOnDirty = useCallback(() => {
+    if (suppressDirtyRef.current) return
+    onDirty?.()
+  }, [onDirty])
+
+  // If the incoming merged props change AND we are not locally edited, sync draft to match.
+  // This keeps the editor aligned after reloads/saves without stomping in-progress typing.
+  useEffect(() => {
+    // If the user has unsaved local edits, do not overwrite.
+    const locallyEdited = JSON.stringify(draft || {}) !== JSON.stringify(merged || {})
+    if (locallyEdited) return
+
+    suppressDirtyRef.current = true
+    setDraft(merged)
+    const id = setTimeout(() => {
+      suppressDirtyRef.current = false
+    }, 0)
+    return () => clearTimeout(id)
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [moduleItem?.id, viewMode, merged])
   const [schema, setSchema] = useState<CustomFieldDefinition[] | null>(() => {
     const cached = moduleItem ? moduleSchemaCache.get(moduleItem.type) : null
     return cached ? cached.schema : null
@@ -2128,7 +2162,7 @@ export const ModuleEditorInline = memo(function ModuleEditorInline({
   }, [moduleItem?.type])
 
   const ctx: EditorFieldCtx = useMemo(() => ({
-    latestDraft, setDraft, fieldComponents, supportedFieldTypes, pascalFromType, setByPath, getLabel, syncFormToDraft, getByPath, formRef, postId, moduleInstanceId, moduleType: moduleItem?.type, moduleItem, fieldAgents, setSelectedFieldAgent, setAgentModalOpen, setAgentFieldKey, setAgentFieldType, viewMode, customFields, onDirty, pendingInputValueRef
+    latestDraft, setDraft, fieldComponents, supportedFieldTypes, pascalFromType, setByPath, getLabel, syncFormToDraft, getByPath, formRef, postId, moduleInstanceId, moduleType: moduleItem?.type, moduleItem, fieldAgents, setSelectedFieldAgent, setAgentModalOpen, setAgentFieldKey, setAgentFieldType, viewMode, customFields, onDirty: safeOnDirty, pendingInputValueRef
   }), [fieldComponents, supportedFieldTypes, pascalFromType, syncFormToDraft, postId, moduleInstanceId, moduleItem, fieldAgents, viewMode, customFields, onDirty])
 
   const saveNow = useCallback(async () => {
@@ -2145,14 +2179,6 @@ export const ModuleEditorInline = memo(function ModuleEditorInline({
 
   const isNoFieldModule = moduleItem.type === 'reading-progress'
   const fallbackDraftKeys = Object.keys(draft || {}).filter(k => k !== 'type' && k !== 'properties')
-
-  // Debug log to see why global module fields might be visible
-  console.log('[ModuleEditorInline] Rendering:', {
-    type: moduleItem.type,
-    scope: moduleItem.scope,
-    globalSlug: moduleItem.globalSlug,
-    shouldHideFields: (moduleItem.scope === 'global' || moduleItem.scope === 'static' || !!moduleItem.globalSlug)
-  })
 
   return (
     <div className={className}>
@@ -2186,7 +2212,14 @@ export const ModuleEditorInline = memo(function ModuleEditorInline({
               else setByPath(next, name, currentValue)
               return next
             })
-            if (onDirty) onDirty()
+            // Only consider real user-originated events as "dirty". Programmatic events from hydration
+            // (isTrusted=false) should not enable the page-level Save button.
+            const trusted =
+              (e as any)?.isTrusted ??
+              (e as any)?.nativeEvent?.isTrusted ??
+              (e as any)?.nativeEvent?.detail?.isTrusted ??
+              false
+            if (trusted) safeOnDirty()
           } catch { }
         }}
         onBlurCapture={() => { if (autoSaveOnBlur) saveNow() }}

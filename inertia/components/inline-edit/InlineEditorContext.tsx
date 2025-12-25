@@ -28,6 +28,26 @@ function getAtPath(obj: any, path: string, fallback?: any) {
   return cur === undefined ? fallback : cur
 }
 
+/**
+ * Set value at path (supports array notation)
+ */
+function setAtPath(obj: any, path: string, value: any) {
+  if (!obj || typeof obj !== 'object') return
+  const parts = path.replace(/\[(\d+)\]/g, '.$1').split('.').filter(Boolean)
+  let cur = obj
+  for (let i = 0; i < parts.length - 1; i++) {
+    const p = parts[i]
+    const nextPart = parts[i + 1]
+    const isNextNumeric = /^\d+$/.test(nextPart)
+    if (!cur[p] || typeof cur[p] !== 'object') {
+      cur[p] = isNextNumeric ? [] : {}
+    }
+    cur = cur[p]
+  }
+  const lastPart = parts[parts.length - 1]
+  cur[lastPart] = value
+}
+
 type InlineEditorContextValue = {
   enabled: boolean
   canEdit: boolean
@@ -231,15 +251,54 @@ export function InlineEditorProvider({
   const getValue = useCallback(
     (moduleId: string, path: string, fallback: any) => {
       const patch = drafts[moduleId] || {}
-      let val: any
+
+      // 1. Exact match wins
       if (Object.prototype.hasOwnProperty.call(patch, path)) {
-        val = patch[path]
-      } else {
-        val = getModeValue(moduleId, path, mode, fallback)
+        return patch[path]
       }
 
-      // If the editor is NOT enabled, we should resolve tokens in the value.
-      // If it IS enabled, we show raw tokens so they can be edited.
+      // 2. Check if a parent of this path is in drafts (e.g. path is "ctas[0].label", drafts has "ctas")
+      const parentPaths = Object.keys(patch).filter(
+        (p) => path.startsWith(p + '.') || path.startsWith(p + '[')
+      )
+      if (parentPaths.length > 0) {
+        parentPaths.sort((a, b) => b.length - a.length)
+        const parentPath = parentPaths[0]
+        const parentValue = patch[parentPath]
+        const relativePath = path.slice(parentPath.length)
+        return getAtPath(parentValue, relativePath, fallback)
+      }
+
+      // 3. Get base value
+      let val = getModeValue(moduleId, path, mode, fallback)
+
+      // 4. Apply child patches (e.g. path is "ctas", drafts has "ctas[0].label")
+      // Normalize path for prefix check
+      const prefix = path === '' ? '' : path.endsWith('.') || path.endsWith(']') ? path : path + '.'
+      const childPatches = Object.entries(patch).filter(
+        ([p]) => p.startsWith(prefix) || p.startsWith(path + '[')
+      )
+
+      if (childPatches.length > 0) {
+        try {
+          // Clone base to avoid mutating context
+          val =
+            val === null || val === undefined
+              ? childPatches[0][0].slice(path.length).startsWith('[')
+                ? []
+                : {}
+              : JSON.parse(JSON.stringify(val))
+
+          for (const [p, patchVal] of childPatches) {
+            const relativePath = p.slice(path.length)
+            setAtPath(val, relativePath, patchVal)
+          }
+        } catch (e) {
+          console.warn('Failed to apply child patches to deep value:', e)
+        }
+      }
+
+      // 5. Resolve tokens if disabled
       if (!enabled && val && (typeof val === 'string' || typeof val === 'object')) {
         const tokenContext = {
           post,
@@ -697,6 +756,11 @@ export function InlineEditorProvider({
       // on success, clear drafts/dirties
       setDrafts({})
       setDirtyModules(new Set())
+
+      // Quick fix: refresh the page so server-side rendered content (meta tags, etc.) reflects the update
+      if (typeof window !== 'undefined') {
+        window.location.reload()
+      }
     },
     [canEdit, dirtyModules, drafts, enabled, mode, postId, safeJsonClone]
   )

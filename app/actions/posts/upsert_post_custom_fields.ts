@@ -1,5 +1,6 @@
 import PostCustomFieldValue from '#models/post_custom_field_value'
 import db from '@adonisjs/lucid/services/db'
+import { TransactionClientContract } from '@adonisjs/lucid/types/database'
 
 export interface UpsertPostCustomFieldsParams {
   postId: string
@@ -11,7 +12,10 @@ export default class UpsertPostCustomFields {
    * Bulk upsert custom fields for a post.
    * Uses Lucid models to ensure hooks and proper JSON serialization.
    */
-  static async handle({ postId, customFields }: UpsertPostCustomFieldsParams): Promise<void> {
+  static async handle(
+    { postId, customFields }: UpsertPostCustomFieldsParams,
+    parentTrx?: TransactionClientContract
+  ): Promise<void> {
     if (!customFields || !Array.isArray(customFields) || customFields.length === 0) return
 
     const entries = customFields
@@ -23,7 +27,7 @@ export default class UpsertPostCustomFields {
 
     if (entries.length === 0) return
 
-    await db.transaction(async (trx) => {
+    const runInTransaction = async (trx: TransactionClientContract) => {
       for (const entry of entries) {
         // Use updateOrCreate for cleaner logic
         // This handles the ON CONFLICT internally and runs prepare/consume hooks
@@ -33,7 +37,13 @@ export default class UpsertPostCustomFields {
           { client: trx }
         )
       }
-    })
+    }
+
+    if (parentTrx) {
+      await runInTransaction(parentTrx)
+    } else {
+      await db.transaction(runInTransaction)
+    }
   }
 }
 

@@ -30,13 +30,17 @@ function inferContentType(filePathOrKey: string): string {
 }
 
 class LocalDriver {
+  private getRoot(): string {
+    return process.env.STORAGE_LOCAL_ROOT || path.join(process.cwd(), 'public')
+  }
+
   async put(
     key: string,
     data: Buffer | Uint8Array | string,
     _contentType?: string
   ): Promise<string> {
     const rel = key.replace(/^\/+/, '')
-    const dest = path.join(process.cwd(), 'public', rel)
+    const dest = path.join(this.getRoot(), rel)
     await fs.mkdir(path.dirname(dest), { recursive: true })
     await fs.writeFile(dest, data as any)
     return `/${rel}`
@@ -49,7 +53,7 @@ class LocalDriver {
   ): Promise<string> {
     // Already in public, nothing to do; ensure directory exists in case of move
     const rel = publicUrlPath.replace(/^\/+/, '')
-    const dest = path.join(process.cwd(), 'public', rel)
+    const dest = path.join(this.getRoot(), rel)
     await fs.mkdir(path.dirname(dest), { recursive: true })
     if (path.resolve(dest) !== path.resolve(absPath)) {
       try {
@@ -63,7 +67,7 @@ class LocalDriver {
 
   async deleteByUrl(publicUrlPath: string): Promise<void> {
     const rel = publicUrlPath.replace(/^\/+/, '')
-    const dest = path.join(process.cwd(), 'public', rel)
+    const dest = path.join(this.getRoot(), rel)
     try {
       await fs.unlink(dest)
     } catch {

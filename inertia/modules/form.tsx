@@ -71,29 +71,29 @@ export default function FormModule({
     setLoading(true)
     setSubmitted(false)
     setErrors({})
-    ;(async () => {
-      try {
-        const res = await fetch(`/api/forms/${encodeURIComponent(formSlug)}`, {
-          credentials: 'same-origin',
-          headers: { Accept: 'application/json' },
-        })
-        if (!res.ok) {
-          throw new Error('Failed to load form')
+      ; (async () => {
+        try {
+          const res = await fetch(`/api/forms/${encodeURIComponent(formSlug)}`, {
+            credentials: 'same-origin',
+            headers: { Accept: 'application/json' },
+          })
+          if (!res.ok) {
+            throw new Error('Failed to load form')
+          }
+          const j = await res.json().catch(() => null)
+          if (!cancelled) {
+            const def: FormDefinition | null = j?.data ?? null
+            setDefinition(def)
+            setValues({})
+          }
+        } catch {
+          if (!cancelled) {
+            setDefinition(null)
+          }
+        } finally {
+          if (!cancelled) setLoading(false)
         }
-        const j = await res.json().catch(() => null)
-        if (!cancelled) {
-          const def: FormDefinition | null = j?.data ?? null
-          setDefinition(def)
-          setValues({})
-        }
-      } catch {
-        if (!cancelled) {
-          setDefinition(null)
-        }
-      } finally {
-        if (!cancelled) setLoading(false)
-      }
-    })()
+      })()
 
     return () => {
       cancelled = true
@@ -406,7 +406,15 @@ export default function FormModule({
     <section
       className={`${bg} py-8 lg:py-16`}
       data-module="form"
+      data-inline-type="select"
       data-inline-path="backgroundColor"
+      data-inline-options={JSON.stringify([
+        { label: 'Transparent', value: 'bg-transparent' },
+        { label: 'Low', value: 'bg-backdrop-low' },
+        { label: 'Medium', value: 'bg-backdrop-medium' },
+        { label: 'High', value: 'bg-backdrop-high' },
+        { label: 'Dark', value: 'bg-neutral-high' },
+      ])}
     >
       <div className="container mx-auto px-4 sm:px-6 lg:px-8 max-w-xl">
         {formBody}
