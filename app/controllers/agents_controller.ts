@@ -136,7 +136,8 @@ export default class AgentsController {
     // Extract scope from request context
     const requestContext = request.input('context') || {}
     const scope =
-      (requestContext.scope as 'dropdown' | 'global' | 'field' | undefined) || 'dropdown'
+      (requestContext.scope as 'dropdown' | 'global' | 'field' | 'posts.bulk' | undefined) ||
+      'dropdown'
     const fieldKey = requestContext.fieldKey as string | undefined
     const fieldType = requestContext.fieldType as string | undefined
 
@@ -147,424 +148,15 @@ export default class AgentsController {
     }
 
     try {
-      await Post.findOrFail(id)
-      // Get view mode from context (defaults to 'source' for backward compatibility)
-      const ctx = (request.input('context') as Record<string, unknown> | undefined) || {}
-      const viewMode = (ctx.viewMode as 'source' | 'review' | 'ai-review') || 'source'
-      const canonical = await PostSerializerService.serialize(id, viewMode)
-      const openEnded = request.input('openEndedContext')
-      const openEndedContext =
-        typeof openEnded === 'string' && openEnded.trim() ? openEnded.trim() : undefined
-
-      // Server-side enforcement: only allow openEndedContext if the agent explicitly opts in
-      if (openEndedContext) {
-        const enabled = agent.openEndedContext?.enabled === true
-        if (!enabled) {
-          return response.badRequest({ error: 'This agent does not accept open-ended context' })
-        }
-        const max = agent.openEndedContext?.maxChars
-        if (
-          typeof max === 'number' &&
-          Number.isFinite(max) &&
-          max > 0 &&
-          openEndedContext.length > max
-        ) {
-          return response.badRequest({
-            error: `Open-ended context exceeds maxChars (${max})`,
-          })
-        }
-      }
-
-      const payload = new AgentPostPayloadDto(canonical, {
-        ...ctx,
-        ...(openEndedContext ? { openEndedContext } : {}),
+      const result = await this._runAgentForPost(id, agent, auth, {
+        scope: scope as any,
+        fieldKey,
+        fieldType,
+        context: requestContext,
+        openEndedContext: request.input('openEndedContext'),
       })
 
-      let suggestions: any = {}
-
-      // Agents are now internal-only (AI-powered)
-      // For webhook-based automation, use Workflows
-      if (agent.type !== 'internal') {
-        return response.badRequest({
-          error:
-            'Only internal (AI-powered) agents are supported. For webhook-based automation, use Workflows.',
-        })
-      }
-
-      if (agent.type === 'internal') {
-        if (!agent.internal) {
-          return response.badRequest({ error: 'Internal agent missing configuration' })
-        }
-
-        // Build execution context
-        const executionContext: AgentExecutionContext = {
-          agent,
-          scope: scope as any,
-          userId: (auth.use('web').user as any)?.id,
-          data: {
-            postId: id,
-            post: canonical,
-            fieldKey,
-            fieldType,
-            ...ctx,
-          },
-        }
-
-        // Execute internal agent
-        const result = await internalAgentExecutor.execute(agent, executionContext, payload)
-
-        if (!result.success) {
-          const errorMessage = result.error?.message || 'Internal agent execution failed'
-          console.error('Internal agent execution failed:', {
-            agentId,
-            error: errorMessage,
-            stack: result.error?.stack,
-          })
-          return response.badRequest({
-            error: errorMessage,
-            details: process.env.NODE_ENV === 'development' ? result.error?.stack : undefined,
-          })
-        }
-
-        // Extract suggestions from result
-        // Internal agents can return suggestions in the same format as external agents
-        suggestions = result.data || {}
-
-        // Store raw response and summary for later use (before we enter nested blocks)
-        const rawResponse = (result as any).rawResponse
-        const summary = (result as any).summary
-        const lastCreatedPostId = (result as any).lastCreatedPostId
-
-        // Extract generated mediaId from tool results (if image was generated)
-        let generatedMediaId: string | undefined = undefined
-        let imageGenerationFailed = false
-        if (suggestions.toolResults && Array.isArray(suggestions.toolResults)) {
-          const generateImageResult = suggestions.toolResults.find(
-            (r: any) => r.tool === 'generate_image' || r.tool_name === 'generate_image'
-          )
-          if (generateImageResult) {
-            if (generateImageResult.success && generateImageResult.result?.mediaId) {
-              generatedMediaId = generateImageResult.result.mediaId
-            } else {
-              // Image generation failed - mark it so we can clean up placeholders
-              imageGenerationFailed = true
-            }
-          }
-        }
-
-
-        // Get current post and extract suggested post
-        const current = await Post.findOrFail(id)
-        const suggestedPost: any = (suggestions && suggestions.post) || {}
-        const suggestedModules: any[] = Array.isArray(suggestions?.modules)
-          ? suggestions.modules
-          : []
-
-        // For field-scoped agents, automatically place generated media in the target field
-        if (scope === 'field' && fieldKey && generatedMediaId) {
-          // Handle post-level fields (e.g., post.featuredImageId)
-          if (fieldKey === 'post.featuredImageId') {
-            suggestedPost.featuredImageId = generatedMediaId
-          }
-          // Handle module-level fields (e.g., module.hero-with-media.image)
-          else if (fieldKey.startsWith('module.')) {
-            const fieldKeyParts = fieldKey.split('.')
-            if (fieldKeyParts.length >= 3) {
-              const moduleType = fieldKeyParts[1]
-              const fieldName = fieldKeyParts.slice(2).join('.') // Handle nested fields like "image.id"
-
-              // Get moduleInstanceId from context if available
-              const contextModuleInstanceId = (requestContext as any).moduleInstanceId
-
-              // Find or create module update entry
-              let moduleUpdate = suggestedModules.find((m: any) => {
-                if (m.type !== moduleType) return false
-                if (contextModuleInstanceId && m.moduleInstanceId !== contextModuleInstanceId)
-                  return false
-                return true
-              })
-
-              if (!moduleUpdate) {
-                // Create new module update entry
-                moduleUpdate = {
-                  type: moduleType,
-                  props: {},
-                }
-                if (contextModuleInstanceId) {
-                  moduleUpdate.moduleInstanceId = contextModuleInstanceId
-                }
-                suggestedModules.push(moduleUpdate)
-              }
-
-              // Set the field value (handle nested paths like "image.id")
-              const fieldParts = fieldName.split('.')
-              let currentProps: any = moduleUpdate.props
-              for (let i = 0; i < fieldParts.length - 1; i++) {
-                if (!currentProps[fieldParts[i]]) {
-                  currentProps[fieldParts[i]] = {}
-                }
-                currentProps = currentProps[fieldParts[i]]
-              }
-              currentProps[fieldParts[fieldParts.length - 1]] = generatedMediaId
-
-              // Also set alt text and description if available from tool result
-              const generateImageResult = suggestions.toolResults?.find(
-                (r: any) =>
-                  (r.tool === 'generate_image' || r.tool_name === 'generate_image') && r.success
-              )
-              if (generateImageResult?.result?.altText) {
-                const altField = fieldName.replace(/\.id$/, '.alt').replace(/\.id$/, '')
-                const altParts = altField.split('.')
-                let altCurrent: any = moduleUpdate.props
-                for (let i = 0; i < altParts.length - 1; i++) {
-                  if (!altCurrent[altParts[i]]) {
-                    altCurrent[altParts[i]] = {}
-                  }
-                  altCurrent = altCurrent[altParts[i]]
-                }
-                altCurrent[altParts[altParts.length - 1]] = generateImageResult.result.altText
-              }
-
-              if (generateImageResult?.result?.description) {
-                const descField = fieldName.replace(/\.id$/, '.description').replace(/\.id$/, '')
-                const descParts = descField.split('.')
-                let descCurrent: any = moduleUpdate.props
-                for (let i = 0; i < descParts.length - 1; i++) {
-                  if (!descCurrent[descParts[i]]) {
-                    descCurrent[descParts[i]] = {}
-                  }
-                  descCurrent = descCurrent[descParts[i]]
-                }
-                descCurrent[descParts[descParts.length - 1]] =
-                  generateImageResult.result.description
-              }
-
-            }
-          }
-        }
-
-        // Replace any placeholder strings with actual mediaId if we have one, or remove them if generation failed
-        if (generatedMediaId || imageGenerationFailed) {
-          const replacePlaceholders = (obj: any): any => {
-            if (typeof obj === 'string') {
-              // Replace common placeholder patterns (case-insensitive, flexible matching)
-              const placeholderPatterns = [
-                /mediaId\s+from\s+generate_image\s+result/i,
-                /<mediaId\s+from\s+generate_image\s+result>/i,
-                /GENERATED_IMAGE_ID/i,
-                /<GENERATED_IMAGE_ID>/i,
-                /CALL_TOOL_generate_image_\d+\.mediaId/i,
-                /\{\{tool_code\.generate_image_\d+\}\}/i, // {{tool_code.generate_image_0}}
-                /\{\{tool\.generate_image\.\d+\.mediaId\}\}/i, // {{tool.generate_image.0.mediaId}}
-                // Also check for exact string matches
-                'mediaId from generate_image result',
-                '<mediaId from generate_image result>',
-              ]
-              for (const pattern of placeholderPatterns) {
-                if (
-                  typeof pattern === 'string' &&
-                  obj.toLowerCase().includes(pattern.toLowerCase())
-                ) {
-                  if (imageGenerationFailed) {
-                    return null // Remove the field if generation failed
-                  } else {
-                    return generatedMediaId
-                  }
-                } else if (pattern instanceof RegExp && pattern.test(obj)) {
-                  if (imageGenerationFailed) {
-                    return null // Remove the field if generation failed
-                  } else {
-                    return generatedMediaId
-                  }
-                }
-              }
-              return obj
-            } else if (Array.isArray(obj)) {
-              return obj.map(replacePlaceholders).filter((item) => item !== null)
-            } else if (obj && typeof obj === 'object') {
-              const replacedObj: any = {}
-              for (const key in obj) {
-                const replaced = replacePlaceholders(obj[key])
-                // Only include the key if the value is not null (when generation failed)
-                if (replaced !== null) {
-                  replacedObj[key] = replaced
-                }
-              }
-              return replacedObj
-            }
-            return obj
-          }
-
-          // Replace placeholders in suggestedPost and suggestedModules
-          const beforePost = JSON.stringify(suggestedPost)
-          Object.keys(suggestedPost).forEach((key) => {
-            const replaced = replacePlaceholders(suggestedPost[key])
-            if (replaced === null) {
-              // Remove the field if generation failed
-              delete suggestedPost[key]
-            } else {
-              suggestedPost[key] = replaced
-            }
-          })
-          const afterPost = JSON.stringify(suggestedPost)
-          if (beforePost !== afterPost) {
-          }
-
-          suggestedModules.forEach((module, index) => {
-            const before = JSON.stringify(module)
-            suggestedModules[index] = replacePlaceholders(module)
-            const after = JSON.stringify(suggestedModules[index])
-            if (before !== after) {
-            }
-          })
-        } else {
-        }
-
-
-        // Determine if we should redirect (e.g. for new translations)
-        let redirectPostId = suggestions.redirectPostId
-        if (!redirectPostId && lastCreatedPostId && lastCreatedPostId !== id) {
-          redirectPostId = lastCreatedPostId
-        }
-
-        // Safety check: if we are redirecting to a DIFFERENT post, we should
-        // strictly ignore any "post" or "modules" keys returned in the final JSON.
-        // These are almost certainly accidental side-effects of the LLM's context
-        // and would overwrite the source language (e.g. EN) with translated copy.
-        const isRedirecting = !!(redirectPostId && redirectPostId !== id)
-        const finalSuggestedPost = isRedirecting ? {} : (suggestions.post || {})
-        const finalSuggestedModules = isRedirecting
-          ? []
-          : (Array.isArray(suggestions?.modules) ? suggestions.modules : []).filter(
-            (m: any) =>
-              (m.props && Object.keys(m.props).length > 0) ||
-              (m.overrides && Object.keys(m.overrides).length > 0)
-          )
-
-        const targetViewMode = scope === 'field' ? viewMode : 'ai-review'
-        const snapshot = await PostSerializerService.serialize(id, viewMode)
-        const applied: string[] = []
-
-        // 1. Apply post changes
-        if (finalSuggestedPost && Object.keys(finalSuggestedPost).length > 0) {
-          for (const key of Object.keys(finalSuggestedPost)) {
-            if (finalSuggestedPost[key] !== undefined) {
-              (snapshot.post as any)[key] = finalSuggestedPost[key]
-              applied.push(`post.${key}`)
-            }
-          }
-        }
-
-        // 2. Apply module changes
-        if (finalSuggestedModules.length > 0) {
-          for (const suggestedModule of finalSuggestedModules) {
-            // Find ALL matching modules if no specific ID or index is provided, 
-            // otherwise find the specific instance.
-            const matches = snapshot.modules.filter(m => {
-              // 1. Direct ID match (most specific)
-              if (suggestedModule.postModuleId && m.postModuleId === suggestedModule.postModuleId) return true
-              if (suggestedModule.moduleInstanceId && m.moduleInstanceId === suggestedModule.moduleInstanceId) return true
-
-              // 2. Type + Index match (specific instance)
-              if (suggestedModule.type && m.type === suggestedModule.type) {
-                if (suggestedModule.orderIndex !== undefined) {
-                  return m.orderIndex === suggestedModule.orderIndex
-                }
-                // 3. Type only match (applies to ALL modules of this type if no ID/index provided)
-                // This matches the instructions provided to the AI.
-                return true
-              }
-              return false
-            })
-
-            for (const matchingModule of matches) {
-              const isGlobal = matchingModule.scope === 'global'
-
-              if (suggestedModule.props) {
-                // For global modules, AI suggestions for "props" should be treated as "overrides"
-                // because that's where per-post changes are stored.
-                if (isGlobal) {
-                  matchingModule.overrides = { ...coerceJsonObject(matchingModule.overrides), ...suggestedModule.props }
-                } else {
-                  matchingModule.props = { ...coerceJsonObject(matchingModule.props), ...suggestedModule.props }
-                }
-              }
-
-              if (suggestedModule.overrides) {
-                matchingModule.overrides = { ...coerceJsonObject(matchingModule.overrides), ...suggestedModule.overrides }
-              }
-              let label = matchingModule.type
-              try {
-                if (moduleRegistry.has(matchingModule.type)) label = moduleRegistry.getSchema(matchingModule.type).name
-              } catch {}
-              applied.push(`${label} [${matchingModule.orderIndex}]`)
-            }
-          }
-        }
-
-        if (applied.length > 0) {
-          await PostSnapshotService.apply(id, snapshot, targetViewMode)
-          await RevisionService.record({
-            postId: id,
-            mode: targetViewMode === 'source' ? 'approved' : targetViewMode,
-            snapshot: snapshot as any,
-            userId: (auth.use('web').user as any)?.id,
-          })
-        }
-
-        // For internal agents, include the raw AI response for preview
-        const responseData: any = {
-          message: applied.length > 0 ? 'Suggestions saved to AI review draft' : (isRedirecting ? 'Translation complete. View the new post to see changes.' : 'Agent completed successfully'),
-          applied,
-          suggestions,
-        }
-
-        // Include redirect post ID if one was determined
-        if (isRedirecting) {
-          responseData.redirectPostId = redirectPostId
-        }
-
-        // Include raw response and summary if available (for UI preview)
-        if (rawResponse) {
-          responseData.rawResponse = rawResponse
-        }
-        if (summary) {
-          responseData.summary = summary
-        }
-        // Include generated mediaId if an image was generated (for opening media picker)
-        if (generatedMediaId) {
-          responseData.generatedMediaId = generatedMediaId
-        }
-
-        // Save execution history
-        try {
-          const execution = await agentExecutionService.saveExecution({
-            postId: id,
-            agentId,
-            viewMode,
-            userId: (auth.use('web').user as any)?.id ?? null,
-            request: openEndedContext ?? null,
-            response: {
-              rawResponse,
-              summary,
-              applied,
-            },
-            context: ctx,
-            scope: scope || 'dropdown',
-          })
-          // Log to activity log
-          await agentExecutionService.logToActivityLog(execution, auth)
-        } catch (historyError: any) {
-          // Don't fail the request if history saving fails, but log it
-          console.error('Failed to save agent execution history:', {
-            agentId,
-            postId: id,
-            error: historyError?.message,
-          })
-        }
-
-        return response.ok(responseData)
-      }
+      return response.ok(result)
     } catch (e: any) {
       console.error('Agent execution error:', {
         agentId,
@@ -577,6 +169,372 @@ export default class AgentsController {
         details: process.env.NODE_ENV === 'development' ? e?.stack : undefined,
       })
     }
+  }
+
+  /**
+   * POST /api/posts/bulk-agents/:agentId/run
+   * Run an agent on a list of posts
+   * Body: { ids: string[], context?: any, openEndedContext?: string }
+   */
+  async runBulk({ params, request, response, auth }: HttpContext) {
+    const role = (auth.use('web').user as any)?.role as
+      | 'admin'
+      | 'editor'
+      | 'translator'
+      | undefined
+    if (!roleRegistry.hasPermission(role, 'agents.edit')) {
+      return response.forbidden({ error: 'Not allowed to run agents' })
+    }
+    const { agentId } = params
+    const agent = agentRegistry.get(agentId)
+    if (!agent) return response.notFound({ error: 'Agent not found' })
+
+    const { ids, context: requestContext = {}, openEndedContext } = request.only([
+      'ids',
+      'context',
+      'openEndedContext',
+    ])
+    if (!Array.isArray(ids) || ids.length === 0) {
+      return response.badRequest({ error: 'Post IDs are required' })
+    }
+
+    // Check scope
+    const availableAgents = agentRegistry.listByScope('posts.bulk')
+    if (!availableAgents.some((a) => a.id === agentId)) {
+      return response.forbidden({ error: `Agent not available for posts.bulk scope` })
+    }
+
+    const results = []
+    for (const id of ids) {
+      try {
+        const result = await this._runAgentForPost(id, agent, auth, {
+          scope: 'posts.bulk',
+          context: requestContext,
+          openEndedContext,
+        })
+        results.push({ id, success: true, result })
+      } catch (e: any) {
+        results.push({ id, success: false, error: e.message })
+      }
+    }
+
+    return response.ok({
+      message: `Executed agent on ${ids.length} posts`,
+      results,
+    })
+  }
+
+  /**
+   * Internal helper to execute an agent on a specific post
+   */
+  private async _runAgentForPost(
+    id: string,
+    agent: any,
+    auth: HttpContext['auth'],
+    options: {
+      scope: AgentScope
+      viewMode?: 'source' | 'review' | 'ai-review'
+      openEndedContext?: string
+      context?: Record<string, any>
+      fieldKey?: string
+      fieldType?: string
+    }
+  ) {
+    const { scope, fieldKey, fieldType, context: ctx = {}, openEndedContext: rawOpenEnded } = options
+
+    await Post.findOrFail(id)
+    const viewMode = (options.viewMode || ctx.viewMode || 'source') as
+      | 'source'
+      | 'review'
+      | 'ai-review'
+    const canonical = await PostSerializerService.serialize(id, viewMode)
+    const openEndedContext =
+      typeof rawOpenEnded === 'string' && rawOpenEnded.trim() ? rawOpenEnded.trim() : undefined
+
+    // Server-side enforcement: only allow openEndedContext if the agent explicitly opts in
+    if (openEndedContext) {
+      const enabled = agent.openEndedContext?.enabled === true
+      if (!enabled) {
+        throw new Error('This agent does not accept open-ended context')
+      }
+      const max = agent.openEndedContext?.maxChars
+      if (
+        typeof max === 'number' &&
+        Number.isFinite(max) &&
+        max > 0 &&
+        openEndedContext.length > max
+      ) {
+        throw new Error(`Open-ended context exceeds maxChars (${max})`)
+      }
+    }
+
+    const payload = new AgentPostPayloadDto(canonical, {
+      ...ctx,
+      ...(openEndedContext ? { openEndedContext } : {}),
+    })
+
+    // Agents are now internal-only (AI-powered)
+    if (agent.type !== 'internal') {
+      throw new Error(
+        'Only internal (AI-powered) agents are supported. For webhook-based automation, use Workflows.'
+      )
+    }
+
+    if (!agent.internal) {
+      throw new Error('Internal agent missing configuration')
+    }
+
+    // Build execution context
+    const executionContext: AgentExecutionContext = {
+      agent,
+      scope: scope as any,
+      userId: (auth.use('web').user as any)?.id,
+      data: {
+        postId: id,
+        post: canonical,
+        fieldKey,
+        fieldType,
+        ...ctx,
+      },
+    }
+
+    // Execute internal agent
+    const result = await internalAgentExecutor.execute(agent, executionContext, payload)
+
+    if (!result.success) {
+      throw result.error || new Error('Internal agent execution failed')
+    }
+
+    const suggestions = result.data || {}
+    const rawResponse = (result as any).rawResponse
+    const summary = (result as any).summary
+    const lastCreatedPostId = (result as any).lastCreatedPostId
+
+    // Extract generated mediaId from tool results (if image was generated)
+    let generatedMediaId: string | undefined = undefined
+    let imageGenerationFailed = false
+    if (suggestions.toolResults && Array.isArray(suggestions.toolResults)) {
+      const generateImageResult = suggestions.toolResults.find(
+        (r: any) => r.tool === 'generate_image' || r.tool_name === 'generate_image'
+      )
+      if (generateImageResult) {
+        if (generateImageResult.success && generateImageResult.result?.mediaId) {
+          generatedMediaId = generateImageResult.result.mediaId
+        } else {
+          imageGenerationFailed = true
+        }
+      }
+    }
+
+    const suggestedPost: any = (suggestions && suggestions.post) || {}
+    const suggestedModules: any[] = Array.isArray(suggestions?.modules) ? suggestions.modules : []
+
+    // For field-scoped agents, automatically place generated media in the target field
+    if (scope === 'field' && fieldKey && generatedMediaId) {
+      if (fieldKey === 'post.featuredImageId') {
+        suggestedPost.featuredImageId = generatedMediaId
+      } else if (fieldKey.startsWith('module.')) {
+        const fieldKeyParts = fieldKey.split('.')
+        if (fieldKeyParts.length >= 3) {
+          const moduleType = fieldKeyParts[1]
+          const fieldName = fieldKeyParts.slice(2).join('.')
+          const contextModuleInstanceId = (ctx as any).moduleInstanceId
+
+          let moduleUpdate = suggestedModules.find((m: any) => {
+            if (m.type !== moduleType) return false
+            if (contextModuleInstanceId && m.moduleInstanceId !== contextModuleInstanceId)
+              return false
+            return true
+          })
+
+          if (!moduleUpdate) {
+            moduleUpdate = { type: moduleType, props: {} }
+            if (contextModuleInstanceId) moduleUpdate.moduleInstanceId = contextModuleInstanceId
+            suggestedModules.push(moduleUpdate)
+          }
+
+          const fieldParts = fieldName.split('.')
+          let currentProps: any = moduleUpdate.props
+          for (let i = 0; i < fieldParts.length - 1; i++) {
+            if (!currentProps[fieldParts[i]]) currentProps[fieldParts[i]] = {}
+            currentProps = currentProps[fieldParts[i]]
+          }
+          currentProps[fieldParts[fieldParts.length - 1]] = generatedMediaId
+        }
+      }
+    }
+
+    // Replace placeholders
+    if (generatedMediaId || imageGenerationFailed) {
+      const replacePlaceholders = (obj: any): any => {
+        if (typeof obj === 'string') {
+          const placeholderPatterns = [
+            /mediaId\s+from\s+generate_image\s+result/i,
+            /<mediaId\s+from\s+generate_image\s+result>/i,
+            /GENERATED_IMAGE_ID/i,
+            /<GENERATED_IMAGE_ID>/i,
+            /CALL_TOOL_generate_image_\d+\.mediaId/i,
+            /\{\{tool_code\.generate_image_\d+\}\}/i,
+            /\{\{tool\.generate_image\.\d+\.mediaId\}\}/i,
+            'mediaId from generate_image result',
+            '<mediaId from generate_image result>',
+          ]
+          for (const pattern of placeholderPatterns) {
+            if (
+              (typeof pattern === 'string' && obj.toLowerCase().includes(pattern.toLowerCase())) ||
+              (pattern instanceof RegExp && pattern.test(obj))
+            ) {
+              return imageGenerationFailed ? null : generatedMediaId
+            }
+          }
+          return obj
+        } else if (Array.isArray(obj)) {
+          return obj.map(replacePlaceholders).filter((item) => item !== null)
+        } else if (obj && typeof obj === 'object') {
+          const replacedObj: any = {}
+          for (const key in obj) {
+            const replaced = replacePlaceholders(obj[key])
+            if (replaced !== null) replacedObj[key] = replaced
+          }
+          return replacedObj
+        }
+        return obj
+      }
+
+      Object.keys(suggestedPost).forEach((key) => {
+        const replaced = replacePlaceholders(suggestedPost[key])
+        if (replaced === null) delete suggestedPost[key]
+        else suggestedPost[key] = replaced
+      })
+
+      suggestedModules.forEach((module, index) => {
+        suggestedModules[index] = replacePlaceholders(module)
+      })
+    }
+
+    let redirectPostId = suggestions.redirectPostId
+    if (!redirectPostId && lastCreatedPostId && lastCreatedPostId !== id) {
+      redirectPostId = lastCreatedPostId
+    }
+
+    const isRedirecting = !!(redirectPostId && redirectPostId !== id)
+    const finalSuggestedPost = isRedirecting ? {} : (suggestions.post || {})
+    const finalSuggestedModules = isRedirecting
+      ? []
+      : (Array.isArray(suggestions?.modules) ? suggestions.modules : []).filter(
+          (m: any) =>
+            (m.props && Object.keys(m.props).length > 0) ||
+            (m.overrides && Object.keys(m.overrides).length > 0)
+        )
+
+    const targetViewMode = scope === 'field' ? viewMode : 'ai-review'
+    const snapshot = await PostSerializerService.serialize(id, viewMode)
+    const applied: string[] = []
+
+    if (finalSuggestedPost && Object.keys(finalSuggestedPost).length > 0) {
+      for (const key of Object.keys(finalSuggestedPost)) {
+        if (finalSuggestedPost[key] !== undefined) {
+          ;(snapshot.post as any)[key] = finalSuggestedPost[key]
+          applied.push(`post.${key}`)
+        }
+      }
+    }
+
+    if (finalSuggestedModules.length > 0) {
+      for (const suggestedModule of finalSuggestedModules) {
+        const matches = snapshot.modules.filter((m) => {
+          if (suggestedModule.postModuleId && m.postModuleId === suggestedModule.postModuleId)
+            return true
+          if (suggestedModule.moduleInstanceId && m.moduleInstanceId === suggestedModule.moduleInstanceId)
+            return true
+          if (suggestedModule.type && m.type === suggestedModule.type) {
+            if (suggestedModule.orderIndex !== undefined) {
+              return m.orderIndex === suggestedModule.orderIndex
+            }
+            return true
+          }
+          return false
+        })
+
+        for (const matchingModule of matches) {
+          const isGlobal = matchingModule.scope === 'global'
+          if (suggestedModule.props) {
+            if (isGlobal) {
+              matchingModule.overrides = {
+                ...coerceJsonObject(matchingModule.overrides),
+                ...suggestedModule.props,
+              }
+            } else {
+              matchingModule.props = {
+                ...coerceJsonObject(matchingModule.props),
+                ...suggestedModule.props,
+              }
+            }
+          }
+          if (suggestedModule.overrides) {
+            matchingModule.overrides = {
+              ...coerceJsonObject(matchingModule.overrides),
+              ...suggestedModule.overrides,
+            }
+          }
+          let label = matchingModule.type
+          try {
+            if (moduleRegistry.has(matchingModule.type))
+              label = moduleRegistry.getSchema(matchingModule.type).name
+          } catch {}
+          applied.push(`${label} [${matchingModule.orderIndex}]`)
+        }
+      }
+    }
+
+    if (applied.length > 0) {
+      await PostSnapshotService.apply(id, snapshot, targetViewMode)
+      await RevisionService.record({
+        postId: id,
+        mode: targetViewMode === 'source' ? 'approved' : targetViewMode,
+        snapshot: snapshot as any,
+        userId: (auth.use('web').user as any)?.id,
+      })
+    }
+
+    const responseData: any = {
+      message:
+        applied.length > 0
+          ? 'Suggestions saved to AI review draft'
+          : isRedirecting
+            ? 'Translation complete. View the new post to see changes.'
+            : 'Agent completed successfully',
+      applied,
+      suggestions,
+    }
+
+    if (isRedirecting) responseData.redirectPostId = redirectPostId
+    if (rawResponse) responseData.rawResponse = rawResponse
+    if (summary) responseData.summary = summary
+    if (generatedMediaId) responseData.generatedMediaId = generatedMediaId
+
+    // Save execution history
+    try {
+      const execution = await agentExecutionService.saveExecution({
+        postId: id,
+        agentId: agent.id,
+        viewMode,
+        userId: (auth.use('web').user as any)?.id ?? null,
+        request: openEndedContext ?? null,
+        response: { rawResponse, summary, applied },
+        context: ctx,
+        scope: scope || 'dropdown',
+      })
+      await agentExecutionService.logToActivityLog(execution, auth)
+    } catch (historyError: any) {
+      console.error('Failed to save agent execution history:', {
+        agentId: agent.id,
+        postId: id,
+        error: historyError?.message,
+      })
+    }
+
+    return responseData
   }
 
   /**

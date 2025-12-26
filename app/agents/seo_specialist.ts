@@ -98,6 +98,11 @@ CRITICAL: You must respond with a JSON object ONLY. No conversational text.`,
       scope: 'global',
       order: 1,
       enabled: false,
+    },
+    {
+      scope: 'posts.bulk',
+      order: 1,
+      enabled: true,
     }
   ],
 

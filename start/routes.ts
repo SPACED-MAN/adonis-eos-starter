@@ -281,6 +281,9 @@ router
     router
       .post('/posts/:id/agents/:agentId/run', [AgentsController, 'runForPost'])
       .use(middleware.admin())
+    router
+      .post('/posts/bulk-agents/:agentId/run', [AgentsController, 'runBulk'])
+      .use(middleware.admin())
     router.post('/agents/:agentId/run', [AgentsController, 'runGlobal']).use(middleware.admin())
     router
       .get('/agents/:agentId/history', [AgentsController, 'getGlobalHistory'])

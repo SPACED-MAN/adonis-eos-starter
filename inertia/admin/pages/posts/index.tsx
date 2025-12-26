@@ -47,6 +47,7 @@ import {
 } from '@dnd-kit/core'
 import { SortableContext, useSortable, verticalListSortingStrategy } from '@dnd-kit/sortable'
 import { CSS } from '@dnd-kit/utilities'
+import { BulkAgentModal } from '../../components/agents/BulkAgentModal'
 
 interface PostsIndexProps {}
 
@@ -112,6 +113,9 @@ export default function PostsIndexPage({}: PostsIndexProps) {
   const [dndMode, setDndMode] = useState(false)
   const [reorderParentId, setReorderParentId] = useState<string | null>(null)
   const [reorderScopeAlertOpen, setReorderScopeAlertOpen] = useState<boolean>(false)
+  const [bulkAgents, setBulkAgents] = useState<any[]>([])
+  const [selectedAgent, setSelectedAgent] = useState<any | null>(null)
+  const [isAgentModalOpen, setIsAgentModalOpen] = useState(false)
   const sensors = useSensors(useSensor(PointerSensor, { activationConstraint: { distance: 5 } }))
   const INDENT_PX = 40
   const [dragActiveId, setDragActiveId] = useState<string | null>(null)
@@ -182,6 +186,16 @@ export default function PostsIndexPage({}: PostsIndexProps) {
       setLoading(false)
     }
   }
+
+  // Load bulk agents
+  useEffect(() => {
+    fetch('/api/agents?scope=posts.bulk', { credentials: 'same-origin' })
+      .then((r) => r.json())
+      .then((json) => {
+        setBulkAgents(Array.isArray(json?.data) ? json.data : [])
+      })
+      .catch(() => setBulkAgents([]))
+  }, [])
 
   // On first load (no locale filter), default to site's default locale
   useEffect(() => {
@@ -872,8 +886,19 @@ export default function PostsIndexPage({}: PostsIndexProps) {
                       | 'delete'
                       | 'duplicate'
                       | 'regeneratePermalinks'
+                      | string
                   ) => {
-                    setPendingBulkAction(val)
+                    if (val.startsWith('agent:')) {
+                      const agentId = val.split(':')[1]
+                      const agent = bulkAgents.find((a) => a.id === agentId)
+                      if (agent) {
+                        setSelectedAgent(agent)
+                        setIsAgentModalOpen(true)
+                      }
+                      return
+                    }
+
+                    setPendingBulkAction(val as any)
                     if (val === 'delete') {
                       setConfirmBulkDelete(true)
                     } else {
@@ -893,6 +918,19 @@ export default function PostsIndexPage({}: PostsIndexProps) {
                       <SelectItem value="regeneratePermalinks">Regenerate permalinks</SelectItem>
                     )}
                     {canDelete && <SelectItem value="delete">Delete (archived only)</SelectItem>}
+
+                    {bulkAgents.length > 0 && (
+                      <>
+                        <div className="px-2 py-1.5 text-xs font-semibold text-neutral-medium border-t border-line-low mt-1">
+                          Run Agent
+                        </div>
+                        {bulkAgents.map((agent) => (
+                          <SelectItem key={agent.id} value={`agent:${agent.id}`}>
+                            {agent.name}
+                          </SelectItem>
+                        ))}
+                      </>
+                    )}
                   </SelectContent>
                 </Select>
               </div>
@@ -1021,6 +1059,14 @@ export default function PostsIndexPage({}: PostsIndexProps) {
                 </AlertDialogFooter>
               </AlertDialogContent>
             </AlertDialog>
+
+            <BulkAgentModal
+              open={isAgentModalOpen}
+              onOpenChange={setIsAgentModalOpen}
+              agent={selectedAgent}
+              postIds={Array.from(selected)}
+              onSuccess={() => fetchPosts(false)}
+            />
           </div>
 
           <Table>

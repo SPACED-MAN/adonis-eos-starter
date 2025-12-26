@@ -483,12 +483,14 @@ Agents can be triggered in different contexts:
 - **`field`** - Per-field AI button (e.g. translate a single field, generate image suggestions for a specific module prop)
   - Can be filtered by `fieldTypes` (e.g., `['media']`) to only appear for specific field types
   - Can be filtered by `fieldKeys` to only appear for specific field paths
+- **`posts.bulk`** - Manual execution from the "Bulk actions" dropdown on the posts index page
 - **`post.publish`** - Auto-trigger when publishing
-- **`post.approve`** - Trigger when approving changes
-- **`post.review.save`** - Trigger when saving for review
-- **`post.review.approve`** - Trigger when approving review
-- **`post.ai-review.save`** - Trigger when saving AI review
-- **`post.ai-review.approve`** - Trigger when approving AI review
+- **`post.approve`** - Trigger when approving changes (Source mode)
+- **`post.review.save`** - Trigger when saving for human review
+- **`post.review.approve`** - Trigger when approving human review draft
+- **`post.ai-review.save`** - Trigger when an agent saves suggestions to AI review
+- **`post.ai-review.approve`** - Trigger when an AI review draft is approved
+- **`post.create-translation`** - Trigger when a new translation post is created
 - **`form.submit`** - Trigger on form submission
 
 ### Global Scope
@@ -808,7 +810,6 @@ GET /api/agents
 Returns agents with `dropdown` scope.
 
 ### Run Agent
-
 ```http
 POST /api/posts/:id/agents/:agentId/run
 Content-Type: application/json
@@ -817,6 +818,17 @@ Content-Type: application/json
   "context": {
     "note": "Custom context data"
   }
+}
+```
+
+### Run Bulk Agent
+```http
+POST /api/posts/bulk-agents/:agentId/run
+Content-Type: application/json
+
+{
+  "ids": ["post-uuid-1", "post-uuid-2"],
+  "openEndedContext": "Optimize all selected posts for SEO"
 }
 ```
 

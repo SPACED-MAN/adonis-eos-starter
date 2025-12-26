@@ -24,6 +24,7 @@ export type AgentScope =
   | 'post.ai-review.approve' // Triggers when approving AI review
   | 'post.create-translation' // Triggers when a translation is created
   | 'form.submit' // Triggers on form submission
+  | 'posts.bulk' // Shows up in the "Bulk Actions" dropdown on the posts index page
 
 /**
  * AI Provider type
