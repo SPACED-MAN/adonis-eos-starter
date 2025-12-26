@@ -1,8 +1,18 @@
 import { useEffect, useMemo, useState } from 'react'
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome'
-import { faWrench, faXmark, faHighlighter } from '@fortawesome/free-solid-svg-icons'
+import { faWrench, faXmark, faHighlighter, faGlobe } from '@fortawesome/free-solid-svg-icons'
 import { router } from '@inertiajs/react'
 import { DevTools } from '../../admin/components/DevTools'
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '~/components/ui/select'
+
+import { Tooltip, TooltipContent, TooltipTrigger } from '~/components/ui/tooltip'
+
 type InlineBridge = {
   enabled: boolean
   canEdit: boolean
@@ -86,8 +96,9 @@ export function SiteAdminBar({ initialProps }: { initialProps?: any }) {
 
   const currentUser = (props as any)?.currentUser
   const post = (props as any)?.post
+  const translations = (props as any)?.translations || []
   const devToolsData = (props as any)?.devTools
-  
+
   const isAdmin = !!(currentUser && currentUser.role === 'admin')
   const isAuthenticated =
     !!currentUser && ['admin', 'editor', 'translator'].includes(String(currentUser.role || ''))
@@ -102,28 +113,62 @@ export function SiteAdminBar({ initialProps }: { initialProps?: any }) {
         className="fixed z-50 flex items-center gap-2 pointer-events-auto"
         style={{ bottom: '16px', right: '16px' }}
       >
-        {/* Variations (Moved to left with a gap) */}
+        {/* Locale Dropdown */}
+        {translations.length > 1 && (
+          <Select
+            value={post?.id}
+            onValueChange={(targetId) => {
+              if (targetId === post?.id) return
+              const target = translations.find((t: any) => t.id === targetId)
+              if (target?.path) {
+                window.location.href = target.path
+              }
+            }}
+          >
+            <SelectTrigger className="h-9 w-20 gap-2 px-2 border-line-medium bg-backdrop-high shadow text-xs font-bold text-neutral-high min-w-[80px]">
+              <div className="flex items-center gap-1.5">
+                <FontAwesomeIcon icon={faGlobe} className="text-neutral-medium size-3" />
+                <SelectValue placeholder={(post?.locale || 'en').toUpperCase()}>
+                  {(post?.locale || 'en').toUpperCase()}
+                </SelectValue>
+              </div>
+            </SelectTrigger>
+            <SelectContent align="end">
+              {translations.map((t: any) => (
+                <SelectItem key={t.id} value={t.id}>
+                  {t.locale.toUpperCase()}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+        )}
+
+        {/* Variations */}
         {inline.abVariations.length > 1 && (
-          <div className="inline-flex overflow-hidden rounded-md border border-line-medium bg-backdrop-high shadow bg-backdrop-medium/20">
+          <div className="h-9 inline-flex overflow-hidden rounded-md border bg-backdrop-high shadow bg-backdrop-medium/20">
             {inline.abVariations.map((v) => (
-              <button
-                key={v.id}
-                type="button"
-                className={`px-3 py-2 text-[10px] font-bold transition-all ${
-                  v.id === post?.id
-                    ? 'bg-standout-medium text-on-standout shadow-inner'
-                    : 'text-neutral-high hover:bg-backdrop-medium'
-                } ${v.id !== inline.abVariations[inline.abVariations.length - 1].id ? 'border-r border-line-medium' : ''}`}
-                onClick={() => {
-                  if (v.id === post?.id) return
-                  const url = new URL(window.location.href)
-                  url.searchParams.set('variation_id', v.id)
-                  window.location.href = url.toString()
-                }}
-                title={`Switch to Variation ${v.variation}`}
-              >
-                Var {v.variation}
-              </button>
+              <Tooltip key={v.id}>
+                <TooltipTrigger asChild>
+                  <button
+                    type="button"
+                    className={`px-3 py-2 text-[10px] font-bold transition-all ${v.id === post?.id
+                      ? 'bg-standout-medium text-on-standout shadow-inner'
+                      : 'text-neutral-high hover:bg-backdrop-medium'
+                      } ${v.id !== inline.abVariations[inline.abVariations.length - 1].id ? 'border-r border-line-medium' : ''}`}
+                    onClick={() => {
+                      if (v.id === post?.id) return
+                      const url = new URL(window.location.href)
+                      url.searchParams.set('variation_id', v.id)
+                      window.location.href = url.toString()
+                    }}
+                  >
+                    Var {v.variation}
+                  </button>
+                </TooltipTrigger>
+                <TooltipContent>
+                  <p>Switch to Variation {v.variation}</p>
+                </TooltipContent>
+              </Tooltip>
             ))}
           </div>
         )}
@@ -165,15 +210,21 @@ export function SiteAdminBar({ initialProps }: { initialProps?: any }) {
             {inline.enabled ? 'Edits On' : 'Edits Off'}
           </button>
           {inline.enabled && (inline.mode === 'review' || inline.mode === 'ai-review') && (
-            <button
-              type="button"
-              className={`px-3 py-2 text-xs font-medium border-r border-line-medium ${inline.showDiffs ? 'bg-standout-medium text-on-standout' : 'text-neutral-high hover:bg-backdrop-medium'}`}
-              onClick={() => inline.toggleShowDiffs()}
-              title={`Highlight changes (${inline.mode === 'review' ? 'vs Source' : 'vs Review'})`}
-              aria-label={`Highlight changes (${inline.mode === 'review' ? 'vs Source' : 'vs Review'})`}
-            >
-              <FontAwesomeIcon icon={faHighlighter} />
-            </button>
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <button
+                  type="button"
+                  className={`px-3 py-2 text-xs font-medium border-r border-line-medium ${inline.showDiffs ? 'bg-standout-medium text-on-standout' : 'text-neutral-high hover:bg-backdrop-medium'}`}
+                  onClick={() => inline.toggleShowDiffs()}
+                  aria-label={`Highlight changes (${inline.mode === 'review' ? 'vs Source' : 'vs Review'})`}
+                >
+                  <FontAwesomeIcon icon={faHighlighter} />
+                </button>
+              </TooltipTrigger>
+              <TooltipContent>
+                <p>Highlight changes ({inline.mode === 'review' ? 'vs Source' : 'vs Review'})</p>
+              </TooltipContent>
+            </Tooltip>
           )}
           <button
             aria-label="Admin tools"
@@ -228,7 +279,7 @@ export function SiteAdminBar({ initialProps }: { initialProps?: any }) {
               <FontAwesomeIcon icon={faXmark} />
             </button>
           </div>
-          
+
           <div className="flex-1 overflow-auto">
             <div className="p-3 space-y-3 text-sm border-b border-line-low">
               <div className="flex items-center justify-between">

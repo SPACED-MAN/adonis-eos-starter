@@ -275,6 +275,18 @@
   body {
     @apply bg-background text-foreground;
   }
+
+  button,
+  a,
+  [role='button'] {
+    cursor: pointer;
+  }
+
+  button:disabled,
+  a:disabled,
+  [disabled] {
+    cursor: not-allowed;
+  }
 }
 
 /* Prose (Typography) Customization - Defined outside layers to ensure they override plugin defaults */

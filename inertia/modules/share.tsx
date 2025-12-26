@@ -1,3 +1,4 @@
+import { useState, useEffect } from 'react'
 import { usePage } from '@inertiajs/react'
 import { FontAwesomeIcon, getIconProp } from '../site/lib/icons'
 import { toast } from 'sonner'
@@ -55,7 +56,10 @@ export default function Share({
 
   if (enabledNetworks.length === 0) return null
 
-  const currentUrl = typeof window !== 'undefined' ? window.location.href : ''
+  const [currentUrl, setCurrentUrl] = useState('')
+  useEffect(() => {
+    setCurrentUrl(window.location.href)
+  }, [])
   const encodedUrl = encodeURIComponent(currentUrl)
   const encodedTitle = encodeURIComponent(post?.title || '')
 

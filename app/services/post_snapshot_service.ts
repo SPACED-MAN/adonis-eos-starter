@@ -104,7 +104,7 @@ export default class PostSnapshotService {
 				postModuleId: m.postModuleId || m.id,
 				moduleInstanceId: m.moduleInstanceId || m.moduleId,
 				type: m.type,
-				scope: m.scope === 'local' ? 'local' : (m.scope === 'post' ? 'local' : 'global'),
+				scope: m.scope === 'local' ? 'post' : m.scope,
 				orderIndex: m.orderIndex,
 				locked: !!m.locked,
 				props: m.props,
@@ -122,12 +122,9 @@ export default class PostSnapshotService {
 		const PostSerializerService = (await import('#services/post_serializer_service')).default
 
 		// 1. Serialize the current state for the requested mode
-		// We pass bypassAtomicDraft=true if we were to have such an option, but for now
-		// serialize() will merge what's in the DB with the current draft.
-		// Actually, we want the database to be the source of truth for the props, 
-		// but we still want to respect the draft's module ordering if it exists.
-		// Our updated serialize() method handles this automatically.
-		const snapshot = await PostSerializerService.serialize(postId, mode)
+		// We pass bypassAtomicDraft=true to ensure we read the latest granular changes from the database
+		// instead of reading the stale draft JSON we're about to replace.
+		const snapshot = await PostSerializerService.serialize(postId, mode, { bypassAtomicDraft: true })
 
 		// 2. Apply the snapshot back to the draft column (this only updates the JSONB column)
 		const column = mode === 'review' ? 'review_draft' : 'ai_review_draft'
@@ -298,7 +295,7 @@ export default class PostSnapshotService {
 				// Only update granular columns if we have valid UUIDs. 
 				// New modules created during this save cycle will have their props set by AddModuleToPost.
 				if (m.moduleInstanceId && uuidRegex.test(m.moduleInstanceId)) {
-					if (m.scope === 'local' || m.scope === 'post') {
+					if (m.scope === 'post' || m.scope === 'local') {
 						await trx.from('module_instances')
 							.where('id', m.moduleInstanceId)
 							.update({ [propsCol]: m.props, updated_at: new Date() })

@@ -2,6 +2,7 @@ import React, { createContext, useContext, useEffect, useState } from 'react'
 import { cn } from '~/components/ui/utils'
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome'
 import { faBarsProgress } from '@fortawesome/free-solid-svg-icons'
+import { Tooltip, TooltipContent, TooltipTrigger } from '~/components/ui/tooltip'
 
 type SidebarContextValue = {
   open: boolean
@@ -70,18 +71,25 @@ export function SidebarTrigger({
 }) {
   const { open, setOpen } = useSidebar()
   return (
-    <button
-      type="button"
-      aria-expanded={open}
-      aria-controls="admin-sidebar"
-      onClick={() => setOpen(!open)}
-      className={cn(
-        'inline-flex items-center rounded p-2 hover:bg-backdrop-medium text-standout-medium',
-        className
-      )}
-    >
-      {children ?? <FontAwesomeIcon icon={faBarsProgress} className="w-14 h-14" size="lg" />}
-    </button>
+    <Tooltip>
+      <TooltipTrigger asChild>
+        <button
+          type="button"
+          aria-expanded={open}
+          aria-controls="admin-sidebar"
+          onClick={() => setOpen(!open)}
+          className={cn(
+            'inline-flex items-center rounded p-2 hover:bg-backdrop-medium text-standout-medium',
+            className
+          )}
+        >
+          {children ?? <FontAwesomeIcon icon={faBarsProgress} className="w-14 h-14" size="lg" />}
+        </button>
+      </TooltipTrigger>
+      <TooltipContent side="right">
+        <p>{open ? 'Collapse Sidebar' : 'Expand Sidebar'}</p>
+      </TooltipContent>
+    </Tooltip>
   )
 }
 

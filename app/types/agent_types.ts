@@ -22,6 +22,7 @@ export type AgentScope =
   | 'post.review.approve' // Triggers when approving review draft
   | 'post.ai-review.save' // Triggers when saving AI review
   | 'post.ai-review.approve' // Triggers when approving AI review
+  | 'post.create-translation' // Triggers when a translation is created
   | 'form.submit' // Triggers on form submission
 
 /**

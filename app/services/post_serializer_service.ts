@@ -86,8 +86,9 @@ export default class PostSerializerService {
     // Family translations list
     const baseId = (post as any).translationOfId || post.id
     const family = await Post.query()
-      .where('translationOfId', baseId)
-      .orWhere('id', baseId)
+      .where((q) => {
+        q.where('translationOfId', baseId).orWhere('id', baseId)
+      })
       .select('id', 'locale')
 
     // Custom fields (slug:value) by slug from values table
@@ -366,7 +367,7 @@ export default class PostSerializerService {
           postModuleId: row.postModuleId,
           moduleInstanceId: row.moduleInstanceId,
           type: row.type,
-          scope: row.scope === 'post' ? 'local' : 'global',
+          scope: row.scope,
           orderIndex: row.orderIndex,
           locked: !!row.locked,
           props: effectiveProps,
@@ -418,7 +419,7 @@ export default class PostSerializerService {
             postModuleId: row.postModuleId,
             moduleInstanceId: row.moduleInstanceId,
             type: row.type,
-            scope: row.scope === 'post' ? 'local' : 'global',
+            scope: row.scope,
             orderIndex: dm.orderIndex ?? row.orderIndex, // Prefer draft order if present
             locked: dm.locked ?? !!row.locked,
             props: effectiveProps,
@@ -433,7 +434,7 @@ export default class PostSerializerService {
           postModuleId: dm.postModuleId || dm.id,
           moduleInstanceId: dm.moduleInstanceId || dm.moduleId,
           type: dm.type,
-          scope: dm.scope,
+          scope: dm.scope === 'local' ? 'post' : dm.scope,
           orderIndex: dm.orderIndex,
           locked: !!dm.locked,
           props: dm.props,

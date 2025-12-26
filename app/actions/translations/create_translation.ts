@@ -1,6 +1,13 @@
 import Post from '#models/post'
+import PostModule from '#models/post_module'
+import ModuleInstance from '#models/module_instance'
+import PostCustomFieldValue from '#models/post_custom_field_value'
 import localeService from '#services/locale_service'
 import postTypeConfigService from '#services/post_type_config_service'
+import agentTriggerService from '#services/agent_trigger_service'
+import db from '@adonisjs/lucid/services/db'
+import { randomUUID } from 'node:crypto'
+import { DateTime } from 'luxon'
 
 /**
  * Parameters for creating a translation
@@ -63,13 +70,24 @@ export default class CreateTranslation {
     await this.checkDuplicateTranslation(basePost, locale)
 
     // Step 4: Create the translation
-    return this.createTranslation(basePost, {
+    const translation = await this.createTranslation(basePost, {
       locale,
       slug,
       title,
       metaTitle,
       metaDescription,
     })
+
+    // Step 5: Trigger automatic agents for translation creation
+    // We await this to ensure the translation is ready (or at least agents have started their work)
+    // before returning to the UI. This keeps the loading indicator active.
+    await agentTriggerService.runAgentsForScope('post.create-translation', translation.id, {
+      userId: basePost.userId,
+      sourcePostId: basePost.id,
+      targetLocale: locale,
+    })
+
+    return translation
   }
 
   /**
@@ -156,24 +174,87 @@ export default class CreateTranslation {
     const moduleGroupsEnabled =
       uiConfig.moduleGroupsEnabled !== false && uiConfig.urlPatterns.length > 0
 
-    return Post.create({
-      type: basePost.type,
-      slug: generatedSlug,
-      title: generatedTitle,
-      status: 'draft',
-      locale: data.locale,
-      translationOfId: basePost.id,
-      moduleGroupId: moduleGroupsEnabled ? (basePost as any).moduleGroupId : null,
-      userId: basePost.userId,
-      metaTitle: data.metaTitle || null,
-      metaDescription: data.metaDescription || null,
-      canonicalUrl: null,
-      robotsJson: basePost.robotsJson,
-      jsonldOverrides: null,
-      publishedAt: null,
-      scheduledAt: null,
-      abVariation: basePost.abVariation,
-      abGroupId: basePost.abGroupId,
+    return await db.transaction(async (trx) => {
+      const translation = await Post.create(
+        {
+          type: basePost.type,
+          slug: generatedSlug,
+          title: generatedTitle,
+          status: 'draft',
+          locale: data.locale,
+          translationOfId: basePost.id,
+          moduleGroupId: moduleGroupsEnabled ? (basePost as any).moduleGroupId : null,
+          userId: basePost.userId,
+          metaTitle: data.metaTitle || null,
+          metaDescription: data.metaDescription || null,
+          canonicalUrl: null,
+          robotsJson: basePost.robotsJson,
+          jsonldOverrides: null,
+          publishedAt: null,
+          scheduledAt: null,
+          abVariation: basePost.abVariation,
+          abGroupId: basePost.abGroupId,
+        },
+        { client: trx }
+      )
+
+      // 1. Clone modules (cloning local modules; reusing global)
+      const modules = await PostModule.query({ client: trx })
+        .where('postId', basePost.id)
+        .orderBy('orderIndex', 'asc')
+        .preload('moduleInstance')
+
+      for (const pm of modules) {
+        const mi = pm.moduleInstance as any as ModuleInstance
+        let targetModuleId = mi?.id
+
+        if (String(mi?.scope) === 'post') {
+          const createdMi = await ModuleInstance.create(
+            {
+              id: randomUUID(),
+              scope: 'post',
+              type: String(mi.type),
+              globalSlug: null,
+              props: mi.props ?? {},
+            },
+            { client: trx }
+          )
+          targetModuleId = createdMi.id
+        }
+
+        await PostModule.create(
+          {
+            id: randomUUID(),
+            postId: translation.id,
+            moduleId: targetModuleId!,
+            orderIndex: Number(pm.orderIndex ?? 0),
+            overrides: pm.overrides ?? null,
+            locked: !!pm.locked,
+            adminLabel: pm.adminLabel ?? null,
+          },
+          { client: trx }
+        )
+      }
+
+      // 2. Clone custom field values
+      const cfValues = await PostCustomFieldValue.query({ client: trx }).where(
+        'postId',
+        basePost.id
+      )
+      if (Array.isArray(cfValues) && cfValues.length) {
+        const now = DateTime.now()
+        const rows = cfValues.map((r) => ({
+          id: randomUUID(),
+          postId: translation.id,
+          fieldSlug: r.fieldSlug,
+          value: r.value,
+          createdAt: now,
+          updatedAt: now,
+        }))
+        await PostCustomFieldValue.createMany(rows, { client: trx })
+      }
+
+      return translation
     })
   }
 }

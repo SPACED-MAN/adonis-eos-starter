@@ -90,18 +90,26 @@ export function MediaThumb({ mediaId, onChange, onClear, onDirty, fallbackUrl }:
   return (
     <div className="border border-line-low rounded p-2 bg-backdrop-low space-y-2">
       <div className="flex items-center gap-3">
-        <div className="w-16 h-16 bg-backdrop-medium rounded overflow-hidden flex items-center justify-center shrink-0">
+        <div className="w-16 h-16 bg-backdrop-low dark:bg-backdrop-medium rounded border border-line-low overflow-hidden flex items-center justify-center shrink-0 relative">
+          {/* Subtle checkerboard for transparency awareness */}
+          <div
+            className="absolute inset-0 opacity-[0.03] dark:opacity-[0.05] pointer-events-none"
+            style={{
+              backgroundImage: `url("data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAABAAAAAQCAYAAAAf8/9hAAAAMUlEQVQ4T2NkYGAQYcAP3uAnRowBoEMBAQQWBgZAiM0E0DAAwiAsQD8LYYByDMc8EBIAVScG6S+69Z0AAAAASUVORK5CYII=")`,
+              backgroundSize: '8px 8px'
+            }}
+          />
           {mediaData || fallbackUrl ? (
             <MediaRenderer
               image={mediaData}
               url={!mediaData ? fallbackUrl : undefined}
               variant="thumb"
-              className="w-full h-full object-cover"
+              className="w-full h-full object-cover relative z-10"
               controls={false}
               autoPlay={false}
             />
           ) : (
-            <span className="text-xs text-neutral-medium">No media</span>
+            <span className="text-xs text-neutral-medium relative z-10">No media</span>
           )}
         </div>
         <div className="flex items-center gap-2">

@@ -18,6 +18,7 @@ import { LexicalEditor } from '../../admin/components/LexicalEditor'
 import { FontAwesomeIcon } from '../../site/lib/icons'
 import { iconOptions } from '../../admin/components/ui/iconOptions'
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '../ui/dialog'
+import { Tooltip, TooltipContent, TooltipTrigger } from '~/components/ui/tooltip'
 import { EditablePostReference } from './EditablePostReference'
 
 type HandlerCleanup = () => void
@@ -484,7 +485,10 @@ export function InlineOverlay() {
         open={enabled && !!dialogState}
         onOpenChange={(open) => !open && setDialogState(null)}
       >
-        <DialogContent className="sm:max-w-[560px] max-h-[90vh] overflow-y-auto p-0 border-none bg-transparent shadow-none">
+        <DialogContent 
+          className="sm:max-w-[560px] max-h-[90vh] overflow-y-auto p-0 border-none bg-transparent shadow-none"
+          aria-describedby={undefined}
+        >
           {dialogState && (
             <div className="bg-backdrop-low rounded-2xl border border-line-low shadow-2xl overflow-hidden flex flex-col">
               <DialogHeader className="px-6 py-4 border-b border-line-low bg-backdrop-low">
@@ -538,12 +542,22 @@ function formatPathLabel(path: string): string {
 
 function FieldDialogContent({ pop, onClose, getValue, setValue }: DialogContentProps) {
   const { moduleId, path, type, options, multi, fields } = pop
+  const currentValFromCtx = getValue(moduleId, path, null)
+
   const [draft, setDraft] = useState<any>(() => {
-    const current = getValue(moduleId, path, null)
-    if (multi && Array.isArray(current)) return current
-    if (type === 'object' && (!current || typeof current !== 'object')) return {}
-    return current
+    if (multi && Array.isArray(currentValFromCtx)) return currentValFromCtx
+    if (type === 'object' && (!currentValFromCtx || typeof currentValFromCtx !== 'object')) return {}
+    return currentValFromCtx
   })
+
+  // Keep local draft in sync with context (essential for first-edit reactivity and external updates)
+  useEffect(() => {
+    const isObject = type === 'object'
+    const normalizedCtx = isObject && (!currentValFromCtx || typeof currentValFromCtx !== 'object') ? {} : currentValFromCtx
+    if (JSON.stringify(normalizedCtx) !== JSON.stringify(draft)) {
+      setDraft(normalizedCtx)
+    }
+  }, [currentValFromCtx, type])
 
   const labelStyle = "block text-[11px] font-bold text-neutral-medium uppercase tracking-wider mt-2 mb-1.5 ml-1"
   const inputStyle = "w-full border border-line-medium rounded-xl px-4 py-2.5 bg-backdrop-low text-neutral-high text-sm focus:ring-2 focus:ring-standout-medium/20 focus:border-standout-medium outline-none transition-all shadow-sm"
@@ -612,24 +626,30 @@ function FieldDialogContent({ pop, onClose, getValue, setValue }: DialogContentP
                   const val = o.name ?? o.value
                   const icon = o.icon ?? val
                   return (
-                    <button
-                      key={val}
-                      type="button"
-                      className={`p-3 border rounded-xl hover:bg-backdrop-medium flex flex-col items-center gap-2 transition-all ${draft === val
-                        ? 'border-standout-medium bg-standout-medium/10 shadow-sm ring-1 ring-standout-medium/20'
-                        : 'border-line-low bg-backdrop-low/50'
-                        }`}
-                      onClick={() => {
-                        setDraft(val)
-                        setValue(moduleId, path, val)
-                      }}
-                      title={o.label}
-                    >
-                      <FontAwesomeIcon icon={icon as any} className="w-6 h-6" />
-                      <span className="text-[10px] font-medium text-neutral-medium truncate w-full text-center">
-                        {o.label}
-                      </span>
-                    </button>
+                    <Tooltip key={val}>
+                      <TooltipTrigger asChild>
+                        <button
+                          type="button"
+                          className={`p-3 border rounded-xl hover:bg-backdrop-medium flex flex-col items-center gap-2 transition-all ${
+                            draft === val
+                              ? 'border-standout-medium bg-standout-medium/10 shadow-sm ring-1 ring-standout-medium/20'
+                              : 'border-line-low bg-backdrop-low/50'
+                          }`}
+                          onClick={() => {
+                            setDraft(val)
+                            setValue(moduleId, path, val)
+                          }}
+                        >
+                          <FontAwesomeIcon icon={icon as any} className="w-6 h-6" />
+                          <span className="text-[10px] font-medium text-neutral-medium truncate w-full text-center">
+                            {o.label}
+                          </span>
+                        </button>
+                      </TooltipTrigger>
+                      <TooltipContent>
+                        <p>{o.label}</p>
+                      </TooltipContent>
+                    </Tooltip>
                   )
                 })}
               </div>
@@ -822,11 +842,9 @@ function FieldDialogContent({ pop, onClose, getValue, setValue }: DialogContentP
         }
         const obj = draft && typeof draft === 'object' ? draft : {}
         const updateField = (fieldName: string, value: any) => {
-          setDraft((prev: any) => {
-            const next = { ...(prev || {}), [fieldName]: value }
-            setValue(moduleId, path, next)
-            return next
-          })
+          const next = { ...(draft || {}), [fieldName]: value }
+          setDraft(next)
+          setValue(moduleId, path, next)
         }
         return (
           <div className="space-y-6">
@@ -951,30 +969,53 @@ function FieldDialogContent({ pop, onClose, getValue, setValue }: DialogContentP
                                 onChange={(e) => updateItem(i, e.target.value)}
                               />
                               <div className="flex gap-1 opacity-0 group-hover/item:opacity-100 transition-opacity">
-                                <button
-                                  type="button"
-                                  className="w-8 h-8 flex items-center justify-center border border-line-medium rounded-lg bg-backdrop-low hover:bg-backdrop-medium text-neutral-medium hover:text-neutral-high transition-colors shadow-sm"
-                                  onClick={() => moveItem(i, -1)}
-                                  aria-label="Move up"
-                                >
-                                  <FontAwesomeIcon icon={faArrowUp} className="w-4 h-4" />
-                                </button>
-                                <button
-                                  type="button"
-                                  className="w-8 h-8 flex items-center justify-center border border-line-medium rounded-lg bg-backdrop-low hover:bg-backdrop-medium text-neutral-medium hover:text-neutral-high transition-colors shadow-sm"
-                                  onClick={() => moveItem(i, 1)}
-                                  aria-label="Move down"
-                                >
-                                  <FontAwesomeIcon icon={faArrowDown} className="w-4 h-4" />
-                                </button>
-                                <button
-                                  type="button"
-                                  className="w-8 h-8 flex items-center justify-center border border-line-medium rounded-lg bg-backdrop-low hover:bg-red-500/10 text-neutral-low hover:text-red-500 transition-colors shadow-sm"
-                                  onClick={() => removeItem(i)}
-                                  aria-label="Remove"
-                                >
-                                  <FontAwesomeIcon icon={faTrash} className="w-4 h-4" />
-                                </button>
+                                <Tooltip>
+                                  <TooltipTrigger asChild>
+                                    <button
+                                      type="button"
+                                      className="w-8 h-8 flex items-center justify-center border border-line-medium rounded-lg bg-backdrop-low hover:bg-backdrop-medium text-neutral-medium hover:text-neutral-high transition-colors shadow-sm"
+                                      onClick={() => moveItem(i, -1)}
+                                      aria-label="Move up"
+                                    >
+                                      <FontAwesomeIcon icon={faArrowUp} className="w-4 h-4" />
+                                    </button>
+                                  </TooltipTrigger>
+                                  <TooltipContent>
+                                    <p>Move up</p>
+                                  </TooltipContent>
+                                </Tooltip>
+
+                                <Tooltip>
+                                  <TooltipTrigger asChild>
+                                    <button
+                                      type="button"
+                                      className="w-8 h-8 flex items-center justify-center border border-line-medium rounded-lg bg-backdrop-low hover:bg-backdrop-medium text-neutral-medium hover:text-neutral-high transition-colors shadow-sm"
+                                      onClick={() => moveItem(i, 1)}
+                                      aria-label="Move down"
+                                    >
+                                      <FontAwesomeIcon icon={faArrowDown} className="w-4 h-4" />
+                                    </button>
+                                  </TooltipTrigger>
+                                  <TooltipContent>
+                                    <p>Move down</p>
+                                  </TooltipContent>
+                                </Tooltip>
+
+                                <Tooltip>
+                                  <TooltipTrigger asChild>
+                                    <button
+                                      type="button"
+                                      className="w-8 h-8 flex items-center justify-center border border-line-medium rounded-lg bg-backdrop-low hover:bg-red-500/10 text-neutral-low hover:text-red-500 transition-colors shadow-sm"
+                                      onClick={() => removeItem(i)}
+                                      aria-label="Remove"
+                                    >
+                                      <FontAwesomeIcon icon={faTrash} className="w-4 h-4" />
+                                    </button>
+                                  </TooltipTrigger>
+                                  <TooltipContent>
+                                    <p>Remove</p>
+                                  </TooltipContent>
+                                </Tooltip>
                               </div>
                             </div>
                           ))}

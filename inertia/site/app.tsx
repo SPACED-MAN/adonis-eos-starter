@@ -7,6 +7,7 @@ import { createInertiaApp } from '@inertiajs/react'
 import { resolvePageComponent } from '@adonisjs/inertia/helpers'
 import { SiteAdminBar } from './components/SiteAdminBar'
 import { ThemeProvider } from '../utils/ThemeContext'
+import { TooltipProvider } from '~/components/ui/tooltip'
 
 let appName = import.meta.env.VITE_APP_NAME || 'EOS'
 
@@ -37,8 +38,10 @@ createInertiaApp({
     hydrateRoot(
       el,
       <ThemeProvider initialIsDark={initialIsDark}>
-        <App {...props} />
-        <SiteAdminBar initialProps={props.initialPage.props} />
+        <TooltipProvider>
+          <App {...props} />
+          <SiteAdminBar initialProps={props.initialPage.props} />
+        </TooltipProvider>
       </ThemeProvider>
     )
   },

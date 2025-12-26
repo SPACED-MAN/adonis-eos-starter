@@ -212,7 +212,7 @@ export function EditablePostReference({
         </div>
       )}
       <Dialog open={open} onOpenChange={setOpen}>
-        <DialogContent className="sm:max-w-[520px]">
+        <DialogContent className="sm:max-w-[520px]" aria-describedby={undefined}>
           <DialogHeader>
             <DialogTitle>{label || 'Select posts'}</DialogTitle>
           </DialogHeader>

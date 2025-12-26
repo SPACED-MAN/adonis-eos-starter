@@ -10,6 +10,7 @@ type UrlPatternData = {
   locale: string
   pattern: string
   isDefault: boolean
+  aggregatePostId: string | null
   createdAt: Date
   updatedAt: Date
 }
@@ -44,6 +45,7 @@ class UrlPatternService {
       locale: rec.locale,
       pattern: rec.pattern,
       isDefault: rec.isDefault,
+      aggregatePostId: rec.aggregatePostId,
       createdAt: rec.createdAt.toJSDate(),
       updatedAt: rec.updatedAt.toJSDate(),
     }
@@ -507,12 +509,13 @@ class UrlPatternService {
 
   async updatePattern(
     id: string,
-    data: { pattern: string; isDefault?: boolean }
+    data: { pattern: string; isDefault?: boolean; aggregatePostId?: string | null }
   ): Promise<UrlPatternData> {
     const rec = await UrlPattern.findOrFail(id)
     rec.merge({
       pattern: data.pattern,
       isDefault: data.isDefault ?? true,
+      aggregatePostId: data.aggregatePostId !== undefined ? data.aggregatePostId : rec.aggregatePostId,
     })
     await rec.save()
     return {
@@ -521,6 +524,7 @@ class UrlPatternService {
       locale: rec.locale,
       pattern: rec.pattern,
       isDefault: rec.isDefault,
+      aggregatePostId: rec.aggregatePostId,
       createdAt: rec.createdAt.toJSDate(),
       updatedAt: rec.updatedAt.toJSDate(),
     }
@@ -544,6 +548,7 @@ class UrlPatternService {
       locale: rec.locale,
       pattern: rec.pattern,
       isDefault: rec.isDefault,
+      aggregatePostId: rec.aggregatePostId,
       createdAt: rec.createdAt.toJSDate(),
       updatedAt: rec.updatedAt.toJSDate(),
     }

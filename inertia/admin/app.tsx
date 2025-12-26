@@ -7,6 +7,7 @@ import { createInertiaApp } from '@inertiajs/react'
 import { resolvePageComponent } from '@adonisjs/inertia/helpers'
 import { Toaster } from '../components/ui/sonner'
 import { ThemeProvider } from '../utils/ThemeContext'
+import { TooltipProvider } from '~/components/ui/tooltip'
 
 let appName = import.meta.env.VITE_APP_NAME || 'EOS'
 
@@ -38,8 +39,10 @@ createInertiaApp({
     const hasSSRContent = el.hasChildNodes()
     const app = (
       <ThemeProvider initialIsDark={initialIsDark}>
-        <App {...props} />
-        <Toaster />
+        <TooltipProvider>
+          <App {...props} />
+          <Toaster />
+        </TooltipProvider>
       </ThemeProvider>
     )
     if (hasSSRContent) {

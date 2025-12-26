@@ -2,6 +2,7 @@ import type { TreeNode } from './types'
 import { NavItem } from './NavItem'
 import { MediaRenderer } from '../../../components/MediaRenderer'
 import { type MediaObject } from '../../../utils/useMediaUrl'
+import { LocaleSwitcher } from '../LocaleSwitcher'
 
 export function NavBar({
   primaryNodes,
@@ -64,23 +65,27 @@ export function NavBar({
             ))}
           </nav>
 
-          {/* Auth-aware login/logout shortcut */}
-          <div className="hidden md:flex items-center">
-            {currentUser ? (
-              <a
-                href="/admin"
-                className="inline-flex items-center rounded-md border border-line-high bg-backdrop px-4 py-3 text-xs sm:text-sm font-medium text-neutral-high hover:bg-backdrop-medium hover:text-standout-high min-h-[48px]"
-              >
-                Dashboard
-              </a>
-            ) : (
-              <a
-                href="/admin/login"
-                className="inline-flex items-center rounded-md border border-line-high bg-backdrop px-4 py-3 text-xs sm:text-sm font-medium text-neutral-high hover:bg-backdrop-medium hover:text-standout-high min-h-[48px]"
-              >
-                Login
-              </a>
-            )}
+          <div className="flex items-center gap-4">
+            <LocaleSwitcher />
+
+            {/* Auth-aware login/logout shortcut */}
+            <div className="hidden md:flex items-center">
+              {currentUser ? (
+                <a
+                  href="/admin"
+                  className="inline-flex items-center rounded-md border border-line-high bg-backdrop px-4 py-3 text-xs sm:text-sm font-medium text-neutral-high hover:bg-backdrop-medium hover:text-standout-high min-h-[48px]"
+                >
+                  Dashboard
+                </a>
+              ) : (
+                <a
+                  href="/admin/login"
+                  className="inline-flex items-center rounded-md border border-line-high bg-backdrop px-4 py-3 text-xs sm:text-sm font-medium text-neutral-high hover:bg-backdrop-medium hover:text-standout-high min-h-[48px]"
+                >
+                  Login
+                </a>
+              )}
+            </div>
           </div>
         </div>
       </div>

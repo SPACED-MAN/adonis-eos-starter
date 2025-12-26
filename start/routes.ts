@@ -345,6 +345,7 @@ router
     router.get('/menu-templates', [MenusController, 'templates']).use(middleware.admin())
     // Global/Static modules
     router.get('/modules/global', [GlobalModulesController, 'index'])
+    router.get('/modules/global/:id/usage', [GlobalModulesController, 'usage'])
     router.post('/modules/global', [GlobalModulesController, 'create'])
     router.put('/modules/global/:id', [GlobalModulesController, 'update'])
     router.delete('/modules/global/:id', [GlobalModulesController, 'destroy'])

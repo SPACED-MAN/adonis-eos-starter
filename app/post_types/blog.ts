@@ -7,7 +7,7 @@ export default {
   hierarchyEnabled: true,
 
   // Custom fields attached to this post type (definitions only; values are stored per post)
-  fields: [{ slug: 'subtitle', label: 'Subtitle', type: 'text' }],
+  fields: [],
 
   // Featured image enabled
   featuredImage: {

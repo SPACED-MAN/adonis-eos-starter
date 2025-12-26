@@ -156,12 +156,20 @@ export function MediaPickerModal({
                     className={`group border rounded overflow-hidden ${selectedId === m.id ? 'border-standout-medium' : 'border-line-low'} bg-backdrop-low`}
                     title={m.originalFilename || m.id}
                   >
-                    <div className="aspect-square flex items-center justify-center bg-backdrop-medium">
+                    <div className="aspect-square flex items-center justify-center bg-backdrop-low dark:bg-backdrop-medium relative overflow-hidden">
+                      {/* Subtle checkerboard for transparency awareness */}
+                      <div
+                        className="absolute inset-0 opacity-[0.03] dark:opacity-[0.05] pointer-events-none"
+                        style={{
+                          backgroundImage: `url("data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAABAAAAAQCAYAAAAf8/9hAAAAMUlEQVQ4T2NkYGAQYcAP3uAnRowBoEMBAQQWBgZAiM0E0DAAwiAsQD8LYYByDMc8EBIAVScG6S+69Z0AAAAASUVORK5CYII=")`,
+                          backgroundSize: '8px 8px',
+                        }}
+                      />
                       <MediaRenderer
                         image={m}
                         variant="thumb"
                         alt={m.originalFilename || ''}
-                        className="w-full h-full object-cover"
+                        className="w-full h-full object-cover relative z-10"
                         controls={false}
                         autoPlay={false}
                       />

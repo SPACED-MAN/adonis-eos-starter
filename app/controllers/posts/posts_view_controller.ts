@@ -553,80 +553,93 @@ export default class PostsViewController extends BasePostsController {
       }
 
       // A/B Testing Logic: if enabled, we may swap this post for another variation in the same group
-      if (uiConfig.abTesting?.enabled && post.status === 'published') {
+      if (uiConfig.abTesting?.enabled) {
         const abGroupId = post.abGroupId || post.id
-        const publishedVariations = await Post.query()
-          .where('abGroupId', abGroupId)
-          .where('locale', locale)
-          .where('status', 'published')
-          .select('id', 'ab_variation')
+        const cookieName = `ab_group_${abGroupId}`
 
-        if (publishedVariations.length > 1) {
-          const cookieName = `ab_group_${abGroupId}`
-          let chosenVariation = request.cookie(cookieName)
+        // 1. Admin override: allow forcing a variation via query param for editing (even if draft)
+        const forcedVariationId = request.input('variation_id')
+        const forcedVariationLabel = request.input('variation')
 
-          // Admin override: allow forcing a variation via query param for editing
-          const forcedVariationId = request.input('variation_id')
-          const forcedVariationLabel = request.input('variation')
+        if (isAuthenticated && (forcedVariationId || forcedVariationLabel)) {
+          const match = await Post.query()
+            .where('abGroupId', abGroupId)
+            .where('locale', locale)
+            .where((q) => {
+              if (forcedVariationId) q.where('id', forcedVariationId)
+              else q.where('abVariation', forcedVariationLabel)
+            })
+            .first()
 
-          if (isAuthenticated && (forcedVariationId || forcedVariationLabel)) {
-            const match = publishedVariations.find(
-              (v) => v.id === forcedVariationId || v.abVariation === forcedVariationLabel
-            )
-            if (match) {
-              chosenVariation = match.abVariation
-              // Also update cookie so the choice sticks during the session
-              response.cookie(cookieName, chosenVariation, { maxAge: '1h', path: '/' })
-            }
-          }
-
-          // If no variation chosen yet or chosen variation is no longer available, pick one
-          const variationLabels = publishedVariations.map((v) => v.abVariation).filter(Boolean)
-
-          if (!chosenVariation || !variationLabels.includes(chosenVariation)) {
-            const variationsFromConfig = uiConfig.abTesting.variations || []
-            if (variationsFromConfig.length > 0) {
-              // Weighted random choice
-              const totalWeight = variationsFromConfig.reduce((sum, v) => sum + (v.weight || 1), 0)
-              let random = Math.random() * totalWeight
-              for (const v of variationsFromConfig) {
-                random -= v.weight || 1
-                if (random <= 0) {
-                  chosenVariation = v.value
-                  break
-                }
-              }
-            } else {
-              // Simple random choice from available published variations
-              const idx = Math.floor(Math.random() * publishedVariations.length)
-              chosenVariation = publishedVariations[idx].abVariation
-            }
-
-            // Persist choice if strategy is cookie
-            if (uiConfig.abTesting.strategy === 'cookie' || !uiConfig.abTesting.strategy) {
-              response.cookie(cookieName, chosenVariation, { maxAge: '30d', path: '/' })
-            }
-          }
-
-          // Swap post if the chosen variation is different from the matched one
-          const match = publishedVariations.find((v) => v.abVariation === chosenVariation)
           if (match && match.id !== post.id) {
-            post = await Post.findOrFail(match.id)
+            post = match
+            isAbSwapped = true
+            // Also update cookie so the choice sticks during the session
+            response.cookie(cookieName, post.abVariation || 'A', { maxAge: '1h', path: '/' })
+          } else if (match && match.id === post.id) {
+            // Already on the right post, but mark as swapped to skip public logic
             isAbSwapped = true
           }
+        }
 
-          // Track A/B view
-          try {
-            const abGroupId = post.abGroupId || post.id
-            await db.table('post_variation_views').insert({
-              id: (await import('node:crypto')).randomUUID(),
-              post_id: post.id,
-              ab_group_id: abGroupId,
-              ab_variation: chosenVariation,
-              created_at: new Date(),
-            })
-          } catch (e) {
-            console.error('[AB] Failed to track variation view:', e)
+        // 2. Public A/B logic: only for published posts
+        if (!isAbSwapped && post.status === 'published') {
+          const publishedVariations = await Post.query()
+            .where('abGroupId', abGroupId)
+            .where('locale', locale)
+            .where('status', 'published')
+            .select('id', 'ab_variation')
+
+          if (publishedVariations.length > 1) {
+            let chosenVariation = request.cookie(cookieName)
+
+            // If no variation chosen yet or chosen variation is no longer available, pick one
+            const variationLabels = publishedVariations.map((v) => v.abVariation).filter(Boolean)
+
+            if (!chosenVariation || !variationLabels.includes(chosenVariation)) {
+              const variationsFromConfig = uiConfig.abTesting.variations || []
+              if (variationsFromConfig.length > 0) {
+                // Weighted random choice
+                const totalWeight = variationsFromConfig.reduce((sum, v) => sum + (v.weight || 1), 0)
+                let random = Math.random() * totalWeight
+                for (const v of variationsFromConfig) {
+                  random -= v.weight || 1
+                  if (random <= 0) {
+                    chosenVariation = v.value
+                    break
+                  }
+                }
+              } else {
+                // Simple random choice from available published variations
+                const idx = Math.floor(Math.random() * publishedVariations.length)
+                chosenVariation = publishedVariations[idx].abVariation
+              }
+
+              // Persist choice if strategy is cookie
+              if (uiConfig.abTesting.strategy === 'cookie' || !uiConfig.abTesting.strategy) {
+                response.cookie(cookieName, chosenVariation, { maxAge: '30d', path: '/' })
+              }
+            }
+
+            // Swap post if the chosen variation is different from the matched one
+            const match = publishedVariations.find((v) => v.abVariation === chosenVariation)
+            if (match && match.id !== post.id) {
+              post = await Post.findOrFail(match.id)
+              isAbSwapped = true
+            }
+
+            // Track A/B view
+            try {
+              await db.table('post_variation_views').insert({
+                id: (await import('node:crypto')).randomUUID(),
+                post_id: post.id,
+                ab_group_id: abGroupId,
+                ab_variation: chosenVariation || post.abVariation || 'A',
+                created_at: new Date(),
+              })
+            } catch (e) {
+              console.error('[AB] Failed to track variation view:', e)
+            }
           }
         }
       }
@@ -708,6 +721,17 @@ export default class PostsViewController extends BasePostsController {
 
       const overrideComponent = getSiteInertiaOverrideForPost(post.type, post.slug)
 
+      // Load translations for the locale switcher in SiteAdminBar
+      const originalPost = await post.getOriginal()
+      const family = await originalPost.getAllTranslations()
+      const translations = await Promise.all(
+        family.map(async (t) => ({
+          id: t.id,
+          locale: t.locale,
+          path: await urlPatternService.buildPostPathForPost(t.id),
+        }))
+      )
+
       return inertia.render(overrideComponent || 'site/post', {
         post: pageData.post,
         hasReviewDraft: pageData.hasReviewDraft,
@@ -718,6 +742,7 @@ export default class PostsViewController extends BasePostsController {
         breadcrumbTrail: pageData.breadcrumbTrail,
         inertiaOverride: overrideComponent ? { key: `${post.type}:${post.slug}` } : null,
         abVariations,
+        translations,
         ...additionalProps,
       })
     } catch (error) {

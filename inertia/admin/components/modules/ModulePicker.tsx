@@ -13,6 +13,7 @@ import {
 import { getXsrf } from '~/utils/xsrf'
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome'
 import { faReact } from '@fortawesome/free-brands-svg-icons'
+import { Tooltip, TooltipContent, TooltipTrigger } from '~/components/ui/tooltip'
 
 type ModuleConfig = {
   type: string
@@ -231,14 +232,20 @@ export function ModulePicker({
                           <div className="text-sm font-medium text-neutral-high flex items-center gap-2">
                             <span>{m.name || m.type}</span>
                             {isReact && (
-                              <span
-                                className="inline-flex items-center rounded border border-line-medium bg-backdrop-low px-1.5 py-0.5 text-[10px] text-neutral-high"
-                                title="React module (client-side interactivity)"
-                                aria-label="React module"
-                              >
-                                <FontAwesomeIcon icon={faReact} className="mr-1 text-sky-400" />
-                                React
-                              </span>
+                              <Tooltip>
+                                <TooltipTrigger asChild>
+                                  <span
+                                    className="inline-flex items-center rounded border border-line-medium bg-backdrop-low px-1.5 py-0.5 text-[10px] text-neutral-high cursor-help"
+                                    aria-label="React module"
+                                  >
+                                    <FontAwesomeIcon icon={faReact} className="mr-1 text-sky-400" />
+                                    React
+                                  </span>
+                                </TooltipTrigger>
+                                <TooltipContent>
+                                  <p>React module (client-side interactivity)</p>
+                                </TooltipContent>
+                              </Tooltip>
                             )}
                           </div>
                           {m.description && (

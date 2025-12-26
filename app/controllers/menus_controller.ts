@@ -499,13 +499,21 @@ export default class MenusController {
     let postTranslationMap = new Map<string, Map<string, { id: string; title: string }>>()
 
     if (sourcePostIds.length > 0) {
-      const sourcePosts = await db.from('posts').whereIn('id', sourcePostIds).select('id', 'translation_of_id', 'type')
-      const familyIds = Array.from(new Set(sourcePosts.map((p) => (p as any).translation_of_id || (p as any).id)))
-      
+      const sourcePosts = await db
+        .from('posts')
+        .whereIn('id', sourcePostIds)
+        .whereNull('deleted_at')
+        .select('id', 'translation_of_id', 'type')
+      const familyIds = Array.from(
+        new Set(sourcePosts.map((p) => (p as any).translation_of_id || (p as any).id))
+      )
+
       const allRelated = await db
         .from('posts')
-        .whereIn('translation_of_id', familyIds)
-        .orWhereIn('id', familyIds)
+        .whereNull('deleted_at')
+        .andWhere((q) => {
+          q.whereIn('translation_of_id', familyIds).orWhereIn('id', familyIds)
+        })
         .select('id', 'translation_of_id', 'locale', 'title')
 
       for (const srcId of sourcePostIds) {

@@ -12,5 +12,8 @@ export default {
     label: 'Profile image',
   },
   moduleGroup: { name: 'profile-default', description: 'Default Profile Module Group' },
-  urlPatterns: [],
+  // Enable modules for profiles
+  modulesEnabled: true,
+  // URL patterns
+  urlPatterns: [{ locale: 'en', pattern: '/profile/{slug}', isDefault: true }],
 } as const

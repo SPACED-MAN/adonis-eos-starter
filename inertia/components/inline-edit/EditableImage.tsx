@@ -1,6 +1,7 @@
 import { useState } from 'react'
 import { MediaPickerModal } from '../../admin/components/media/MediaPickerModal'
 import { useInlineEditor } from './InlineEditorContext'
+import { Tooltip, TooltipContent, TooltipTrigger } from '~/components/ui/tooltip'
 
 type EditableImageProps = {
   children: (opts: { open: () => void }) => JSX.Element
@@ -29,15 +30,21 @@ export function EditableImage({ children, path, moduleId, postId, title }: Edita
     <>
       <div className="relative group">
         {children({ open: () => setOpen(true) })}
-        <button
-          type="button"
-          aria-label="Edit media"
-          title={title || 'Edit media'}
-          onClick={() => setOpen(true)}
-          className="absolute top-2 right-2 inline-flex items-center justify-center rounded-full bg-backdrop-high/90 border border-line-medium text-neutral-high p-2 shadow hover:bg-backdrop-medium opacity-0 group-hover:opacity-100 transition-opacity"
-        >
-          ✏️
-        </button>
+        <Tooltip>
+          <TooltipTrigger asChild>
+            <button
+              type="button"
+              aria-label="Edit media"
+              onClick={() => setOpen(true)}
+              className="absolute top-2 right-2 inline-flex items-center justify-center rounded-full bg-backdrop-high/90 border border-line-medium text-neutral-high p-2 shadow hover:bg-backdrop-medium opacity-0 group-hover:opacity-100 transition-opacity"
+            >
+              ✏️
+            </button>
+          </TooltipTrigger>
+          <TooltipContent>
+            <p>{title || 'Edit media'}</p>
+          </TooltipContent>
+        </Tooltip>
       </div>
       <MediaPickerModal
         open={open}

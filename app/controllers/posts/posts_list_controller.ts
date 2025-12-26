@@ -215,8 +215,9 @@ export default class PostsListController extends BasePostsController {
       if (withTranslations && rows.length > 0) {
         const baseIds = Array.from(new Set(rows.map((p) => p.translationOfId || p.id)))
         const familyPosts = await Post.query()
-          .whereIn('translation_of_id', baseIds)
-          .orWhereIn('id', baseIds)
+          .where((builder) => {
+            builder.whereIn('translation_of_id', baseIds).orWhereIn('id', baseIds)
+          })
           .select('id', 'translation_of_id', 'locale') // Optimized select
 
         baseIdToLocales = new Map()

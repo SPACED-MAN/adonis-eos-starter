@@ -24,6 +24,7 @@ import {
   SelectValue,
 } from '~/components/ui/select'
 import { Badge } from '~/components/ui/badge'
+import { Tooltip, TooltipContent, TooltipTrigger } from '~/components/ui/tooltip'
 import {
   AlertDialog,
   AlertDialogAction,
@@ -1137,25 +1138,32 @@ export default function PostsIndexPage({}: PostsIndexProps) {
                                 )}
                                 {/* Show intent arrow on the dragged item to indicate it will become a child on drop */}
                                 {hierarchical && dragActiveId === post.id && willNest && (
-                                  <span
-                                    className="mr-2 text-neutral-medium"
-                                    aria-hidden="true"
-                                    title="Will nest on drop"
-                                  >
-                                    <FontAwesomeIcon
-                                      icon={faTurnUp}
-                                      rotation={90}
-                                      className="inline-block"
-                                      size="sm"
-                                    />
-                                  </span>
+                                  <Tooltip>
+                                    <TooltipTrigger asChild>
+                                      <span className="mr-2 text-neutral-medium" aria-hidden="true">
+                                        <FontAwesomeIcon
+                                          icon={faTurnUp}
+                                          rotation={90}
+                                          className="inline-block"
+                                          size="sm"
+                                        />
+                                      </span>
+                                    </TooltipTrigger>
+                                    <TooltipContent>
+                                      <p>Will nest on drop</p>
+                                    </TooltipContent>
+                                  </Tooltip>
                                 )}
-                                <span
-                                  className="text-sm font-medium text-neutral-high"
-                                  title={post.slug}
-                                >
-                                  {post.title}
-                                </span>
+                                <Tooltip>
+                                  <TooltipTrigger asChild>
+                                    <span className="text-sm font-medium text-neutral-high cursor-help">
+                                      {post.title}
+                                    </span>
+                                  </TooltipTrigger>
+                                  <TooltipContent>
+                                    <p>{post.slug}</p>
+                                  </TooltipContent>
+                                </Tooltip>
                               </div>
                             </TableCell>
                             <TableCell>
@@ -1178,17 +1186,20 @@ export default function PostsIndexPage({}: PostsIndexProps) {
                                 ).map((loc) => {
                                   const exists = (post.familyLocales || [post.locale]).includes(loc)
                                   return (
-                                    <Badge
-                                      key={`${post.id}-${loc}`}
-                                      variant={exists ? 'default' : 'outline'}
-                                      title={
-                                        exists
-                                          ? `Has ${loc.toUpperCase()}`
-                                          : `Missing ${loc.toUpperCase()}`
-                                      }
-                                    >
-                                      {loc.toUpperCase()}
-                                    </Badge>
+                                    <Tooltip key={`${post.id}-${loc}`}>
+                                      <TooltipTrigger asChild>
+                                        <Badge variant={exists ? 'default' : 'outline'}>
+                                          {loc.toUpperCase()}
+                                        </Badge>
+                                      </TooltipTrigger>
+                                      <TooltipContent>
+                                        <p>
+                                          {exists
+                                            ? `Has ${loc.toUpperCase()}`
+                                            : `Missing ${loc.toUpperCase()}`}
+                                        </p>
+                                      </TooltipContent>
+                                    </Tooltip>
                                   )
                                 })}
                               </div>

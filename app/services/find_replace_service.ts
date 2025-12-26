@@ -6,6 +6,7 @@ export interface FindReplaceOptions {
   replace: string
   tables: string[]
   dryRun: boolean
+  caseSensitive?: boolean
 }
 
 export interface ReplaceResult {
@@ -98,7 +99,7 @@ class FindReplaceService {
     totalMatches: number
     totalReplacements: number
   }> {
-    const { search, replace, tables, dryRun } = options
+    const { search, replace, tables, dryRun, caseSensitive = true } = options
     const summary: ReplaceResult[] = []
     let totalMatches = 0
     let totalReplacements = 0
@@ -110,15 +111,36 @@ class FindReplaceService {
     const searchableTables = await this.getSearchableTables()
     const targetTables = searchableTables.filter((t) => tables.includes(t.name))
 
+    const dialectName = dbConfig.connections[dbConfig.connection].client
+    const isPostgres = dialectName === 'postgres' || dialectName === 'pg'
+    const isSqlite = dialectName === 'sqlite' || dialectName === 'better-sqlite3'
+
+    // Set SQLite case sensitivity if needed
+    if (isSqlite && caseSensitive) {
+      await db.rawQuery('PRAGMA case_sensitive_like = ON')
+    } else if (isSqlite) {
+      await db.rawQuery('PRAGMA case_sensitive_like = OFF')
+    }
+
     for (const table of targetTables) {
       for (const column of table.columns) {
         try {
           // Count matches first
-          const countResult = await db
-            .from(table.name)
-            .whereRaw(`CAST(?? AS TEXT) LIKE ?`, [column, `%${search}%`])
-            .count('* as count')
-            .first()
+          let countResult
+          if (isPostgres) {
+            const operator = caseSensitive ? 'LIKE' : 'ILIKE'
+            countResult = await db
+              .from(table.name)
+              .whereRaw(`CAST(?? AS TEXT) ${operator} ?`, [column, `%${search}%`])
+              .count('* as count')
+              .first()
+          } else {
+            countResult = await db
+              .from(table.name)
+              .whereRaw(`CAST(?? AS TEXT) LIKE ?`, [column, `%${search}%`])
+              .count('* as count')
+              .first()
+          }
           
           const matches = Number(countResult?.count || 0)
           
@@ -126,22 +148,30 @@ class FindReplaceService {
             totalMatches += matches
             
             if (!dryRun) {
-              const dialectName = dbConfig.connections[dbConfig.connection].client
-              const isPostgres = dialectName === 'postgres' || dialectName === 'pg'
-              const isSqlite = dialectName === 'sqlite' || dialectName === 'better-sqlite3'
-
               let affected = 0
               if (isPostgres) {
                 const castType = this.getColumnTypeForCast(table.name, column)
                 // Use rawQuery to avoid Lucid's serialization of Raw objects in .update()
-                // We use manual quoting for identifiers to be safe across different Lucid/Knex versions
-                const result = await db.rawQuery(
-                  `UPDATE "${table.name}" 
-                   SET "${column}" = REPLACE(CAST("${column}" AS TEXT), ?, ?)::${castType} 
-                   WHERE CAST("${column}" AS TEXT) LIKE ?`,
-                  [search, replace, `%${search}%`]
-                )
-                affected = result.rowCount || 0
+                if (caseSensitive) {
+                  const result = await db.rawQuery(
+                    `UPDATE "${table.name}" 
+                     SET "${column}" = REPLACE(CAST("${column}" AS TEXT), ?, ?)::${castType} 
+                     WHERE CAST("${column}" AS TEXT) LIKE ?`,
+                    [search, replace, `%${search}%`]
+                  )
+                  affected = result.rowCount || 0
+                } else {
+                  // Case-insensitive replace in PG using regexp_replace
+                  // Escape search string for regex
+                  const escapedSearch = search.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')
+                  const result = await db.rawQuery(
+                    `UPDATE "${table.name}" 
+                     SET "${column}" = regexp_replace(CAST("${column}" AS TEXT), ?, ?, 'gi')::${castType} 
+                     WHERE CAST("${column}" AS TEXT) ILIKE ?`,
+                    [escapedSearch, replace, `%${search}%`]
+                  )
+                  affected = result.rowCount || 0
+                }
               } else if (isSqlite) {
                 const result = await db.rawQuery(
                   `UPDATE "${table.name}" 
@@ -163,6 +193,11 @@ class FindReplaceService {
           console.error(`Error in find/replace for ${table.name}.${column}:`, error)
         }
       }
+    }
+
+    // Reset SQLite case sensitivity to default
+    if (isSqlite && caseSensitive) {
+      await db.rawQuery('PRAGMA case_sensitive_like = OFF')
     }
 
     return {

@@ -16,7 +16,10 @@ type PromoteAiReviewToReviewParams = {
 export default class PromoteAiReviewToReview {
   static async handle({ postId, userId }: PromoteAiReviewToReviewParams): Promise<void> {
     // 1. Get the current AI Review snapshot
-    const snapshot = await PostSerializerService.serialize(postId, 'ai-review')
+    // We bypass the atomic draft to ensure we get the latest granular changes from the database
+    const snapshot = await PostSerializerService.serialize(postId, 'ai-review', {
+      bypassAtomicDraft: true,
+    })
 
     // 2. Apply snapshot to Review mode
     await PostSnapshotService.apply(postId, snapshot, 'review')

@@ -4,6 +4,7 @@ import {
   PopoverContent,
   PopoverTrigger,
 } from '~/components/ui/popover'
+import { Tooltip, TooltipContent, TooltipTrigger } from '~/components/ui/tooltip'
 import { TokenService, type TokenDefinition } from '../../../lib/tokens'
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome'
 import { faCube, faPuzzlePiece, faTags } from '@fortawesome/free-solid-svg-icons'
@@ -41,17 +42,23 @@ export function TokenPicker({ onSelect, customFields, trigger }: TokenPickerProp
 
   return (
     <Popover>
-      <PopoverTrigger asChild>
-        {trigger || (
-          <button
-            type="button"
-            className="flex items-center justify-center h-8 w-8 rounded-md border border-line-medium bg-backdrop-low text-neutral-medium hover:bg-backdrop-medium hover:text-neutral-high transition-colors"
-            title="Insert Variable"
-          >
-            <span className="text-sm font-mono">{'{ }'}</span>
-          </button>
-        )}
-      </PopoverTrigger>
+      <Tooltip>
+        <TooltipTrigger asChild>
+          <PopoverTrigger asChild>
+            {trigger || (
+              <button
+                type="button"
+                className="flex items-center justify-center h-6.5 w-6.5 rounded-md border border-line-medium bg-backdrop-low text-neutral-medium hover:bg-backdrop-medium hover:text-neutral-high transition-colors"
+              >
+                <span className="pr-0.5 text-xs font-mono tracking-[-.15em]">{'{ }'}</span>
+              </button>
+            )}
+          </PopoverTrigger>
+        </TooltipTrigger>
+        <TooltipContent>
+          <p>Insert Variable</p>
+        </TooltipContent>
+      </Tooltip>
       <PopoverContent className="w-64 p-0 shadow-xl border-line-low bg-backdrop-high" align="end">
         <div className="flex flex-col max-h-80">
           <div className="px-3 py-2 border-b border-line-low bg-backdrop-medium">

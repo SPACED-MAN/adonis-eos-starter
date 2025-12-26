@@ -104,7 +104,7 @@ export const MediaRenderer = forwardRef<HTMLImageElement | HTMLVideoElement, Med
             </div>
 
             <Dialog open={isModalOpen} onOpenChange={setIsModalOpen}>
-              <DialogContent className="max-w-4xl p-0 overflow-hidden bg-black border-none">
+              <DialogContent className="max-w-4xl p-0 overflow-hidden bg-black border-none" aria-describedby={undefined}>
                 <DialogTitle className="sr-only">Video Player</DialogTitle>
                 <video
                   src={resolvedUrl}

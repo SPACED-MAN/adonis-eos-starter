@@ -24,6 +24,9 @@ export default class UrlPattern extends BaseModel {
   @column({ columnName: 'is_default' })
   declare isDefault: boolean
 
+  @column({ columnName: 'aggregate_post_id' })
+  declare aggregatePostId: string | null
+
   @column.dateTime({ autoCreate: true, columnName: 'created_at' })
   declare createdAt: DateTime
 

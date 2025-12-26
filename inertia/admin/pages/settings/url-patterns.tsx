@@ -4,6 +4,13 @@ import { AdminHeader } from '../../components/AdminHeader'
 import { AdminFooter } from '../../components/AdminFooter'
 import { toast } from 'sonner'
 import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '~/components/ui/select'
+import {
   AlertDialog,
   AlertDialogContent,
   AlertDialogDescription,
@@ -20,8 +27,15 @@ type Pattern = {
   locale: string
   pattern: string
   isDefault: boolean
+  aggregatePostId: string | null
   createdAt: string
   updatedAt: string
+}
+
+type PageOption = {
+  id: string
+  title: string
+  locale: string
 }
 
 function getXsrfToken(): string | undefined {
@@ -35,27 +49,49 @@ export default function UrlPatternsPage() {
   const [loading, setLoading] = useState(false)
   const [savingKey, setSavingKey] = useState<string | null>(null)
   const [drafts, setDrafts] = useState<Record<string, string>>({})
+  const [aggregateDrafts, setAggregateDrafts] = useState<Record<string, string | null>>({})
+  const [pages, setPages] = useState<PageOption[]>([])
+  const [defaultLocale, setDefaultLocale] = useState<string>('en')
   const [alertOpen, setAlertOpen] = useState(false)
   const [alertMessage, setAlertMessage] = useState('')
 
   useEffect(() => {
     let mounted = true
     setLoading(true)
-    fetch('/api/url-patterns', { credentials: 'same-origin' })
-      .then((r) => r.json())
-      .then((json) => {
+
+    const fetchPatterns = fetch('/api/url-patterns', { credentials: 'same-origin' }).then((r) =>
+      r.json()
+    )
+    const fetchPages = fetch('/api/posts?type=page&limit=500', { credentials: 'same-origin' }).then(
+      (r) => r.json()
+    )
+    const fetchLocales = fetch('/api/locales', { credentials: 'same-origin' }).then((r) => r.json())
+
+    Promise.all([fetchPatterns, fetchPages, fetchLocales])
+      .then(([patternsJson, pagesJson, localesJson]) => {
         if (!mounted) return
-        const list: Pattern[] = json?.data ?? []
+        const list: Pattern[] = patternsJson?.data ?? []
         setPatterns(list)
+        setPages(pagesJson?.data ?? [])
+        
+        const defLoc = localesJson?.data?.find((l: any) => l.isDefault)?.code || 'en'
+        setDefaultLocale(defLoc)
+
         const nextDrafts: Record<string, string> = {}
+        const nextAggregates: Record<string, string | null> = {}
         for (const p of list) {
           if (p.isDefault) {
-            nextDrafts[`${p.postType}:${p.locale}`] = p.pattern
+            const key = `${p.postType}:${p.locale}`
+            nextDrafts[key] = p.pattern
+            // Shared per post type
+            nextAggregates[p.postType] = p.aggregatePostId
           }
         }
         setDrafts(nextDrafts)
+        setAggregateDrafts(nextAggregates)
       })
       .finally(() => setLoading(false))
+
     return () => {
       mounted = false
     }
@@ -81,6 +117,7 @@ export default function UrlPatternsPage() {
   async function save(postType: string, locale: string) {
     const key = `${postType}:${locale}`
     const pattern = drafts[key]
+    const aggregatePostId = aggregateDrafts[postType] ?? null
     if (!pattern) return
     setSavingKey(key)
     try {
@@ -92,7 +129,7 @@ export default function UrlPatternsPage() {
           ...(getXsrfToken() ? { 'X-XSRF-TOKEN': getXsrfToken()! } : {}),
         },
         credentials: 'same-origin',
-        body: JSON.stringify({ postType, pattern, isDefault: true }),
+        body: JSON.stringify({ postType, pattern, isDefault: true, aggregatePostId }),
       })
       if (!res.ok) {
         const err = await res.json().catch(() => ({}))
@@ -103,14 +140,15 @@ export default function UrlPatternsPage() {
       // Update local list
       setPatterns((prev) => {
         const next = prev.slice()
-        const idx = next.findIndex(
-          (p) => p.postType === postType && p.locale === locale && p.isDefault
-        )
-        if (idx >= 0) {
-          next[idx] = json.data
-        } else {
-          next.push(json.data)
-        }
+        // Update all patterns for this postType since aggregatePostId is shared
+        next.forEach((p, idx) => {
+          if (p.postType === postType) {
+            next[idx] = { ...p, aggregatePostId: json.data.aggregatePostId }
+            if (p.locale === locale && p.isDefault) {
+              next[idx] = json.data
+            }
+          }
+        })
         return next
       })
       toast.success('Pattern saved successfully')
@@ -170,20 +208,53 @@ export default function UrlPatternsPage() {
                 {Array.from(groups.entries()).map(([postType, list]) => {
                   const locales = Array.from(new Set(list.map((p) => p.locale))).sort()
                   return (
-                    <section key={postType}>
-                      <h3 className="text-base font-semibold text-neutral-high mb-3">{postType}</h3>
-                      <div className="space-y-3">
+                    <section key={postType} className="border-b border-line-low pb-8 last:border-0">
+                      <div className="flex items-center justify-between mb-4">
+                        <h3 className="text-base font-semibold text-neutral-high uppercase tracking-wider">
+                          {postType}
+                        </h3>
+                        <div className="flex items-center gap-3">
+                          <span className="text-xs font-bold text-neutral-medium uppercase">
+                            Aggregate Page:
+                          </span>
+                          <Select
+                            value={aggregateDrafts[postType] || 'none'}
+                            onValueChange={(val) =>
+                              setAggregateDrafts((d) => ({
+                                ...d,
+                                [postType]: val === 'none' ? null : val,
+                              }))
+                            }
+                          >
+                            <SelectTrigger className="h-9 text-sm w-[300px] bg-backdrop-low">
+                              <SelectValue placeholder="Select an aggregate page..." />
+                            </SelectTrigger>
+                            <SelectContent>
+                              <SelectItem value="none">None</SelectItem>
+                              {pages
+                                .filter((p) => p.locale === defaultLocale)
+                                .map((page) => (
+                                  <SelectItem key={page.id} value={page.id}>
+                                    {page.title}
+                                  </SelectItem>
+                                ))}
+                            </SelectContent>
+                          </Select>
+                        </div>
+                      </div>
+
+                      <div className="space-y-4 pl-4">
                         {locales.map((loc) => {
                           const key = `${postType}:${loc}`
                           const current = list.find((p) => p.locale === loc && p.isDefault)
                           return (
                             <div key={key} className="flex items-center gap-3">
-                              <div className="w-24 text-sm text-neutral-low">
+                              <div className="w-24 text-sm font-bold text-neutral-medium">
                                 {loc.toUpperCase()}
                               </div>
                               <input
                                 type="text"
-                                className="flex-1 px-3 py-2 border border-border rounded bg-backdrop-low text-neutral-high"
+                                className="flex-1 px-3 py-2 border border-border rounded bg-backdrop-low text-neutral-high font-mono text-sm"
                                 placeholder="/posts/{slug}"
                                 value={drafts[key] ?? current?.pattern ?? ''}
                                 onChange={(e) =>
@@ -192,11 +263,11 @@ export default function UrlPatternsPage() {
                               />
                               <button
                                 type="button"
-                                className="px-3 py-2 text-sm rounded bg-standout-medium text-on-standout disabled:opacity-50"
+                                className="px-4 py-2 text-sm font-semibold rounded bg-standout-medium text-on-standout disabled:opacity-50 min-w-[100px] transition-all hover:opacity-90"
                                 disabled={savingKey === key}
                                 onClick={() => save(postType, loc)}
                               >
-                                {savingKey === key ? 'Saving…' : 'Save'}
+                                {savingKey === key ? 'Saving…' : 'Save Pattern'}
                               </button>
                             </div>
                           )

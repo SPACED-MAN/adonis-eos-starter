@@ -10,6 +10,7 @@ type PostTypeUiConfig = {
   /**
    * Whether modules should be available for this post type.
    * Defaults to true when permalinks are enabled AND urlPatterns exist.
+   * Can be explicitly set to true or false in app/post_types/*.ts
    */
   modulesEnabled?: boolean
   /**
@@ -107,10 +108,10 @@ class PostTypeConfigService {
           : { enabled: false, label: 'Featured Image' },
       abTesting: cfg.abTesting
         ? {
-            enabled: !!cfg.abTesting.enabled,
-            strategy: cfg.abTesting.strategy || 'cookie',
-            variations: Array.isArray(cfg.abTesting.variations) ? cfg.abTesting.variations : [],
-          }
+          enabled: !!cfg.abTesting.enabled,
+          strategy: cfg.abTesting.strategy || 'cookie',
+          variations: Array.isArray(cfg.abTesting.variations) ? cfg.abTesting.variations : [],
+        }
         : base.abTesting,
     }
     if (!isDev) cache.set(postType, full)

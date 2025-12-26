@@ -178,7 +178,7 @@ export function InlineEditorProvider({
   }, [modules])
 
   // seed lookup for original props/overrides across modes
-  const [base, setBase] = useState<
+  const base = useMemo<
     Record<
       string,
       {
@@ -207,7 +207,7 @@ export function InlineEditorProvider({
       }
     })
     return out
-  })
+  }, [modules])
 
   const getModeValue = useCallback(
     (moduleId: string, path: string, targetMode: Mode, fallback: any) => {
@@ -265,6 +265,7 @@ export function InlineEditorProvider({
         parentPaths.sort((a, b) => b.length - a.length)
         const parentPath = parentPaths[0]
         const parentValue = patch[parentPath]
+        // If path is "ctas[0].label" and parentPath is "ctas", relative is "[0].label"
         const relativePath = path.slice(parentPath.length)
         return getAtPath(parentValue, relativePath, fallback)
       }
@@ -273,21 +274,27 @@ export function InlineEditorProvider({
       let val = getModeValue(moduleId, path, mode, fallback)
 
       // 4. Apply child patches (e.g. path is "ctas", drafts has "ctas[0].label")
-      // Normalize path for prefix check
-      const prefix = path === '' ? '' : path.endsWith('.') || path.endsWith(']') ? path : path + '.'
-      const childPatches = Object.entries(patch).filter(
-        ([p]) => p.startsWith(prefix) || p.startsWith(path + '[')
-      )
+      // Normalize path for prefix check: "plans" -> "plans.", "plans[0]" -> "plans[0]."
+      const childPatches = Object.entries(patch).filter(([p]) => {
+        if (p === path) return false
+        return p.startsWith(path + '.') || p.startsWith(path + '[')
+      })
 
       if (childPatches.length > 0) {
         try {
           // Clone base to avoid mutating context
-          val =
-            val === null || val === undefined
-              ? childPatches[0][0].slice(path.length).startsWith('[')
-                ? []
-                : {}
-              : JSON.parse(JSON.stringify(val))
+          if (val === null || val === undefined) {
+            // Guess type from first patch
+            const firstP = childPatches[0][0]
+            const remaining = firstP.slice(path.length)
+            // Robust check for array vs object:
+            // "plans[0]" -> starts with "["
+            // "plans.0" -> starts with "." followed by digits
+            const isArray = remaining.startsWith('[') || /^\.\d+/.test(remaining)
+            val = isArray ? [] : {}
+          } else {
+            val = JSON.parse(JSON.stringify(val))
+          }
 
           for (const [p, patchVal] of childPatches) {
             const relativePath = p.slice(path.length)
@@ -338,8 +345,8 @@ export function InlineEditorProvider({
   const setValue = useCallback(
     (moduleId: string, path: string, value: any) => {
       const meta = moduleMeta.get(moduleId)
-      if (meta?.scope === 'global' || meta?.scope === 'static' || meta?.globalSlug) {
-        // Global/static modules are view-only in inline editor
+      if (meta?.scope === 'static') {
+        // Static modules are view-only in inline editor
         return
       }
 
@@ -357,16 +364,6 @@ export function InlineEditorProvider({
           return copy
         })
         return
-      }
-
-      // Fallback: if DOM marks this module as global/static, block
-      if (typeof document !== 'undefined') {
-        const el = document.querySelector<HTMLElement>(`[data-inline-module="${moduleId}"]`)
-        if (el) {
-          const scope = el.dataset.inlineScope
-          const slug = el.dataset.inlineGlobalSlug
-          if (scope === 'global' || scope === 'static' || slug) return
-        }
       }
       // Aggressively sanitize value BEFORE storing in drafts to prevent DOM elements
       // and circular refs from ever entering state
@@ -722,35 +719,9 @@ export function InlineEditorProvider({
             return
           }
           // Apply to base cache so UI reflects without refresh
-          setBase((prev) => {
-            const mod = prev[moduleId] || {
-              props: {},
-              reviewProps: {},
-              aiReviewProps: {},
-              overrides: {},
-              reviewOverrides: {},
-              aiReviewOverrides: {},
-            }
-            const clone = { ...mod }
-            const target =
-              saveMode === 'source'
-                ? 'props'
-                : saveMode === 'review'
-                  ? 'reviewProps'
-                  : 'aiReviewProps'
-            const baseTarget = (clone as any)[target]
-            const nextObj = baseTarget && typeof baseTarget === 'object' ? { ...baseTarget } : {}
-            const parts = path.split('.').filter(Boolean)
-            let cur = nextObj
-            for (let i = 0; i < parts.length - 1; i++) {
-              const p = parts[i]!
-              if (!cur[p] || typeof cur[p] !== 'object') cur[p] = {}
-              cur = cur[p]
-            }
-            cur[parts[parts.length - 1]!] = finalValue
-              ; (clone as any)[target] = nextObj
-            return { ...prev, [moduleId]: clone }
-          })
+          // NOTE: We no longer manually update 'base' here because it's now a useMemo 
+          // derived from the 'modules' prop. The window.location.reload() below 
+          // will fetch the fresh server-side state.
         }
       }
       // on success, clear drafts/dirties

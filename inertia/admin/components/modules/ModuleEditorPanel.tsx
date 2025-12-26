@@ -2,6 +2,7 @@ import React, { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useSta
 import { createPortal } from 'react-dom'
 import { toast } from 'sonner'
 import { LexicalEditor } from '../LexicalEditor'
+import { Tooltip, TooltipContent, TooltipTrigger } from '~/components/ui/tooltip'
 import { Popover, PopoverTrigger, PopoverContent } from '~/components/ui/popover'
 import { Checkbox } from '~/components/ui/checkbox'
 import { Slider } from '~/components/ui/slider'
@@ -195,26 +196,39 @@ const AgentTrigger = ({ agents, onSelect }: { agents: Agent[]; onSelect: (a: Age
   if (agents.length === 0) return null
   if (agents.length === 1) {
     return (
-      <button
-        type="button"
-        onClick={() => onSelect(agents[0])}
-        className="text-neutral-low hover:text-standout-medium transition-colors"
-        title={`Run AI Agent: ${agents[0].name}`}
-      >
-        <FontAwesomeIcon icon={faWandMagicSparkles} size="sm" />
-      </button>
+      <Tooltip>
+        <TooltipTrigger asChild>
+          <button
+            type="button"
+            onClick={() => onSelect(agents[0])}
+            className="text-neutral-low hover:text-standout-medium transition-colors"
+          >
+            <FontAwesomeIcon icon={faWandMagicSparkles} size="sm" />
+          </button>
+        </TooltipTrigger>
+        <TooltipContent side="left">
+          <p>Run AI Agent: {agents[0].name}</p>
+        </TooltipContent>
+      </Tooltip>
     )
   }
   return (
     <Popover>
-      <PopoverTrigger asChild>
-        <button
-          type="button"
-          className="text-neutral-low hover:text-standout-medium transition-colors"
-        >
-          <FontAwesomeIcon icon={faWandMagicSparkles} size="sm" />
-        </button>
-      </PopoverTrigger>
+      <Tooltip>
+        <TooltipTrigger asChild>
+          <PopoverTrigger asChild>
+            <button
+              type="button"
+              className="text-neutral-low hover:text-standout-medium transition-colors"
+            >
+              <FontAwesomeIcon icon={faWandMagicSparkles} size="sm" />
+            </button>
+          </PopoverTrigger>
+        </TooltipTrigger>
+        <TooltipContent side="left">
+          <p>Run AI Agent</p>
+        </TooltipContent>
+      </Tooltip>
       <PopoverContent className="w-48 p-2">
         <div className="text-[10px] font-bold text-neutral-medium uppercase mb-2 px-2">
           Run AI Agent
@@ -425,6 +439,7 @@ const MediaFieldInternal = memo(({
     mimeType?: string
     originalFilename?: string
     alt?: string | null
+    metadata?: any
   }
   const storeAsId = field.storeAs === 'id' || field.store === 'id' || field.config?.storeAs === 'id' || field.config?.store === 'id'
   const [modalOpen, setModalOpen] = useState(false)
@@ -494,6 +509,7 @@ const MediaFieldInternal = memo(({
             mimeType: j.data.mimeType,
             originalFilename: j.data.originalFilename,
             alt: j.data.alt,
+            metadata: j.data.metadata,
           }
           const meta = j.data.metadata || {}
           const variants: MediaVariant[] = Array.isArray(meta?.variants) ? meta.variants : []
@@ -568,7 +584,14 @@ const MediaFieldInternal = memo(({
       return next
     })
     if (ctx.onDirty) ctx.onDirty()
-    setPreview(m)
+    setPreview({
+      id: m.id,
+      url: m.url,
+      mimeType: m.mimeType,
+      originalFilename: m.originalFilename,
+      alt: m.alt,
+      metadata: m.metadata,
+    })
   }
 
   return (
@@ -589,14 +612,23 @@ const MediaFieldInternal = memo(({
       </div>
       <div className="flex flex-col gap-3">
         <div className="flex flex-wrap items-center gap-4 bg-backdrop-medium p-3 rounded-lg border border-line-low min-h-[100px]">
-          <div className="relative w-20 h-20 rounded bg-backdrop-low border border-line-low overflow-hidden flex items-center justify-center">
+          <div className="relative w-20 h-20 rounded bg-backdrop-low dark:bg-backdrop-medium border border-line-low overflow-hidden flex items-center justify-center">
+            {/* Subtle checkerboard for transparency awareness */}
+            <div
+              className="absolute inset-0 opacity-[0.03] dark:opacity-[0.05] pointer-events-none"
+              style={{
+                backgroundImage: `url("data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAABAAAAAQCAYAAAAf8/9hAAAAMUlEQVQ4T2NkYGAQYcAP3uAnRowBoEMBAQQWBgZAiM0E0DAAwiAsQD8LYYByDMc8EBIAVScG6S+69Z0AAAAASUVORK5CYII=")`,
+                backgroundSize: '8px 8px',
+              }}
+            />
             {preview ? (
               <MediaRenderer
-                image={storeAsId ? { id: preview.id, url: preview.url, mimeType: preview.mimeType } : preview.url}
-                className="w-full h-full object-cover"
+                image={preview}
+                alt={preview.alt}
+                className="w-full h-full object-cover relative z-10"
               />
             ) : (
-              <span className="text-[10px] text-neutral-low text-center p-1">No media</span>
+              <span className="text-[10px] text-neutral-low text-center p-1 relative z-10">No media</span>
             )}
           </div>
           <div className="flex flex-col gap-2 flex-1 min-w-[120px]">
@@ -775,35 +807,41 @@ const IconFieldInternal = memo(({
         <PopoverContent className="w-96">
           <div className="grid grid-cols-4 gap-2 max-h-96 overflow-auto">
             {iconOptions.map((iconItem) => (
-              <button
-                key={iconItem.name}
-                type="button"
-                className={`p-3 border rounded-lg hover:bg-backdrop-medium flex flex-col items-center gap-1 ${selectedIcon === iconItem.name
-                  ? 'border-standout-medium bg-standout-medium/10'
-                  : 'border-line-low'
-                  }`}
-                onClick={() => {
-                  setSelectedIcon(iconItem.name)
-                  if (hiddenRef.current) {
-                    hiddenRef.current.value = iconItem.name
-                    hiddenRef.current.dispatchEvent(new Event('input', { bubbles: true }))
-                    hiddenRef.current.dispatchEvent(new Event('change', { bubbles: true }))
-                  }
-                  ctx.setDraft((prev) => {
-                    const next = { ...(prev || {}) }
-                    setByPath(next, name, iconItem.name)
-                    return next
-                  })
-                  ctx.onDirty?.()
-                  setPickerOpen(false)
-                }}
-                title={iconItem.label}
-              >
-                <FontAwesomeIcon icon={iconItem.icon} className="w-6 h-6" />
-                <span className="text-[10px] text-neutral-low truncate w-full text-center">
-                  {iconItem.label}
-                </span>
-              </button>
+              <Tooltip key={iconItem.name}>
+                <TooltipTrigger asChild>
+                  <button
+                    type="button"
+                    className={`p-3 border rounded-lg hover:bg-backdrop-medium flex flex-col items-center gap-1 ${
+                      selectedIcon === iconItem.name
+                        ? 'border-standout-medium bg-standout-medium/10'
+                        : 'border-line-low'
+                    }`}
+                    onClick={() => {
+                      setSelectedIcon(iconItem.name)
+                      if (hiddenRef.current) {
+                        hiddenRef.current.value = iconItem.name
+                        hiddenRef.current.dispatchEvent(new Event('input', { bubbles: true }))
+                        hiddenRef.current.dispatchEvent(new Event('change', { bubbles: true }))
+                      }
+                      ctx.setDraft((prev) => {
+                        const next = { ...(prev || {}) }
+                        setByPath(next, name, iconItem.name)
+                        return next
+                      })
+                      ctx.onDirty?.()
+                      setPickerOpen(false)
+                    }}
+                  >
+                    <FontAwesomeIcon icon={iconItem.icon} className="w-6 h-6" />
+                    <span className="text-[10px] text-neutral-low truncate w-full text-center">
+                      {iconItem.label}
+                    </span>
+                  </button>
+                </TooltipTrigger>
+                <TooltipContent>
+                  <p>{iconItem.label}</p>
+                </TooltipContent>
+              </Tooltip>
             ))}
           </div>
         </PopoverContent>

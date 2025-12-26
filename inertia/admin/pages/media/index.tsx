@@ -51,6 +51,7 @@ import {
   TableHeader,
   TableRow,
 } from '../../../components/ui/table'
+import { Tooltip, TooltipContent, TooltipTrigger } from '~/components/ui/tooltip'
 import { MediaRenderer } from '../../../components/MediaRenderer'
 
 type Variant = { name: string; url: string; width?: number; height?: number; size?: number }
@@ -953,20 +954,33 @@ export default function MediaIndex() {
               </Select>
             </div>
             <div className="ml-auto flex items-center gap-2">
-              <button
-                className={`px-2 py-1.5 text-sm border border-line-low rounded inline-flex items-center gap-1 ${viewMode === 'gallery' ? 'bg-backdrop-medium' : ''}`}
-                onClick={() => setViewMode('gallery')}
-                title="Gallery view"
-              >
-                <LayoutGrid className="w-4 h-4" /> Gallery
-              </button>
-              <button
-                className={`px-2 py-1.5 text-sm border border-line-low rounded inline-flex items-center gap-1 ${viewMode === 'table' ? 'bg-backdrop-medium' : ''}`}
-                onClick={() => setViewMode('table')}
-                title="List view"
-              >
-                <ListOrdered className="w-4 h-4" /> List
-              </button>
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <button
+                    className={`px-2 py-1.5 text-sm border border-line-low rounded inline-flex items-center gap-1 ${viewMode === 'gallery' ? 'bg-backdrop-medium' : ''}`}
+                    onClick={() => setViewMode('gallery')}
+                  >
+                    <LayoutGrid className="w-4 h-4" /> Gallery
+                  </button>
+                </TooltipTrigger>
+                <TooltipContent>
+                  <p>Gallery view</p>
+                </TooltipContent>
+              </Tooltip>
+
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <button
+                    className={`px-2 py-1.5 text-sm border border-line-low rounded inline-flex items-center gap-1 ${viewMode === 'table' ? 'bg-backdrop-medium' : ''}`}
+                    onClick={() => setViewMode('table')}
+                  >
+                    <ListOrdered className="w-4 h-4" /> List
+                  </button>
+                </TooltipTrigger>
+                <TooltipContent>
+                  <p>List view</p>
+                </TooltipContent>
+              </Tooltip>
             </div>
           </div>
           <div className="mt-4">
@@ -1004,9 +1018,10 @@ export default function MediaIndex() {
                               image={m}
                               variant="thumb"
                               alt={m.altText || m.originalFilename}
-                              className="w-full h-full object-cover"
+                              className="w-full h-full object-contain"
                               controls={false}
                               autoPlay={false}
+                              objectFit="contain"
                             />
                           </div>
                           <div className="mt-2">
@@ -1024,81 +1039,108 @@ export default function MediaIndex() {
                             </div>
                           </div>
                           <div className="mt-2 flex items-center gap-2 flex-wrap">
-                            <button
-                              className="px-3 py-1.5 text-sm border border-line-low rounded hover:bg-backdrop-medium inline-flex items-center gap-1"
-                              onClick={() => {
-                                setViewing(m)
-                                setSelectedVariantName('original')
-                                setEditTheme('light')
-                                setCropping(false)
-                                setFocalMode(false)
-                                setCropSel(null)
-                                setFocalDot(null)
-                                setReplaceFile(null)
-                              }}
-                              aria-label="Edit"
-                              title="Edit"
-                            >
-                              <Pencil className="w-4 h-4" />
-                            </button>
+                            <Tooltip>
+                              <TooltipTrigger asChild>
+                                <button
+                                  className="px-3 py-1.5 text-sm border border-line-low rounded hover:bg-backdrop-medium inline-flex items-center gap-1"
+                                  onClick={() => {
+                                    setViewing(m)
+                                    setSelectedVariantName('original')
+                                    setEditTheme('light')
+                                    setCropping(false)
+                                    setFocalMode(false)
+                                    setCropSel(null)
+                                    setFocalDot(null)
+                                    setReplaceFile(null)
+                                  }}
+                                  aria-label="Edit"
+                                >
+                                  <Pencil className="w-4 h-4" />
+                                </button>
+                              </TooltipTrigger>
+                              <TooltipContent>
+                                <p>Edit</p>
+                              </TooltipContent>
+                            </Tooltip>
+
                             {isImage && (
-                              <button
-                                className="px-3 py-1.5 text-sm border border-line-low rounded hover:bg-backdrop-medium inline-flex items-center gap-1"
-                                onClick={async () => {
-                                  await toast.promise(
-                                    fetch(`/api/media/${encodeURIComponent(m.id)}/optimize`, {
-                                      method: 'POST',
-                                      headers: {
-                                        'Accept': 'application/json',
-                                        'Content-Type': 'application/json',
-                                        ...(xsrfFromCookie
-                                          ? { 'X-XSRF-TOKEN': xsrfFromCookie }
-                                          : {}),
-                                      },
-                                      credentials: 'same-origin',
-                                    }).then(async (r) => {
-                                      if (!r.ok) {
-                                        const j = await r.json().catch(() => ({}))
-                                        throw new Error(j?.error || 'Optimize failed')
-                                      }
-                                    }),
-                                    {
-                                      loading: 'Optimizing…',
-                                      success: 'Optimized',
-                                      error: (e) => String(e.message || e),
-                                    }
-                                  )
-                                  await load()
-                                }}
-                                aria-label="Optimize"
-                                title="Optimize (WebP)"
-                              >
-                                <Wand2 className="w-4 h-4" />
-                              </button>
+                              <Tooltip>
+                                <TooltipTrigger asChild>
+                                  <button
+                                    className="px-3 py-1.5 text-sm border border-line-low rounded hover:bg-backdrop-medium inline-flex items-center gap-1"
+                                    onClick={async () => {
+                                      await toast.promise(
+                                        fetch(`/api/media/${encodeURIComponent(m.id)}/optimize`, {
+                                          method: 'POST',
+                                          headers: {
+                                            Accept: 'application/json',
+                                            'Content-Type': 'application/json',
+                                            ...(xsrfFromCookie
+                                              ? { 'X-XSRF-TOKEN': xsrfFromCookie }
+                                              : {}),
+                                          },
+                                          credentials: 'same-origin',
+                                        }).then(async (r) => {
+                                          if (!r.ok) {
+                                            const j = await r.json().catch(() => ({}))
+                                            throw new Error(j?.error || 'Optimize failed')
+                                          }
+                                        }),
+                                        {
+                                          loading: 'Optimizing…',
+                                          success: 'Optimized',
+                                          error: (e) => String(e.message || e),
+                                        }
+                                      )
+                                      await load()
+                                    }}
+                                    aria-label="Optimize"
+                                  >
+                                    <Wand2 className="w-4 h-4" />
+                                  </button>
+                                </TooltipTrigger>
+                                <TooltipContent>
+                                  <p>Optimize (WebP)</p>
+                                </TooltipContent>
+                              </Tooltip>
                             )}
-                            <button
-                              className="px-3 py-1.5 text-sm border border-line-low rounded hover:bg-backdrop-medium inline-flex items-center gap-1"
-                              onClick={() => {
-                                setUsageFor(m)
-                                fetchWhereUsed(m.id)
-                              }}
-                              aria-label="Usage"
-                              title="Usage"
-                            >
-                              <BarChart3 className="w-4 h-4" />
-                            </button>
+
+                            <Tooltip>
+                              <TooltipTrigger asChild>
+                                <button
+                                  className="px-3 py-1.5 text-sm border border-line-low rounded hover:bg-backdrop-medium inline-flex items-center gap-1"
+                                  onClick={() => {
+                                    setUsageFor(m)
+                                    fetchWhereUsed(m.id)
+                                  }}
+                                  aria-label="Usage"
+                                >
+                                  <BarChart3 className="w-4 h-4" />
+                                </button>
+                              </TooltipTrigger>
+                              <TooltipContent>
+                                <p>Usage</p>
+                              </TooltipContent>
+                            </Tooltip>
+
                             {/* Replace is now handled inside the integrated editor modal */}
                             {isAdmin && (
                               <AlertDialog>
-                                <AlertDialogTrigger asChild>
-                                  <button
-                                    className="px-3 py-1.5 text-sm border border-line-low rounded hover:bg-backdrop-medium text-danger inline-flex items-center gap-1"
-                                    aria-label="Delete"
-                                    title="Delete"
-                                  >
-                                    <Trash2 className="w-4 h-4" />
-                                  </button>
-                                </AlertDialogTrigger>
+                                <Tooltip>
+                                  <TooltipTrigger asChild>
+                                    <AlertDialogTrigger asChild>
+                                      <button
+                                        className="px-3 py-1.5 text-sm border border-line-low rounded hover:bg-backdrop-medium text-danger inline-flex items-center gap-1"
+                                        aria-label="Delete"
+                                      >
+                                        <Trash2 className="w-4 h-4" />
+                                      </button>
+                                    </AlertDialogTrigger>
+                                  </TooltipTrigger>
+                                  <TooltipContent>
+                                    <p>Delete</p>
+                                  </TooltipContent>
+                                </Tooltip>
                                 <AlertDialogContent>
                                   <AlertDialogHeader>
                                     <AlertDialogTitle>Delete this media?</AlertDialogTitle>

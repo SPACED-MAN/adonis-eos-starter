@@ -36,6 +36,8 @@ import {
 import { $createCodeNode } from '@lexical/code'
 import { $insertNodes, $createTextNode } from 'lexical'
 import { TokenPicker } from './ui/TokenPicker'
+import { Tooltip, TooltipContent, TooltipTrigger } from '~/components/ui/tooltip'
+import { IconProp } from '@fortawesome/fontawesome-svg-core'
 
 function InitialContentPlugin({ initialValue, editorKey }: { initialValue: any; editorKey?: string }) {
   const [editor] = useLexicalComposerContext()
@@ -255,6 +257,38 @@ export function LexicalEditor({
   )
 }
 
+function ToolbarButton({
+  title,
+  onClick,
+  icon,
+  children,
+  className,
+}: {
+  title: string
+  onClick: () => void
+  icon?: IconProp
+  children?: React.ReactNode
+  className?: string
+}) {
+  return (
+    <Tooltip>
+      <TooltipTrigger asChild>
+        <button
+          type="button"
+          className={`px-2 py-1 text-xs rounded border border-line-low hover:bg-backdrop-low ${className || ''}`}
+          onClick={onClick}
+        >
+          {icon && <FontAwesomeIcon icon={icon} className={children ? 'mr-1' : ''} />}
+          {children}
+        </button>
+      </TooltipTrigger>
+      <TooltipContent>
+        <p>{title}</p>
+      </TooltipContent>
+    </Tooltip>
+  )
+}
+
 function Toolbar({ customFields }: { customFields?: Array<{ slug: string; label: string }> }) {
   const [editor] = useLexicalComposerContext()
 
@@ -292,104 +326,57 @@ function Toolbar({ customFields }: { customFields?: Array<{ slug: string; label:
 
   return (
     <div className="flex items-center gap-1 border-b border-line-low bg-backdrop-medium px-2 py-1">
-      <button
-        type="button"
-        className="px-2 py-1 text-xs rounded border border-line-low hover:bg-backdrop-low"
+      <ToolbarButton
         title="Bold"
+        icon={faBold}
         onClick={() => editor.dispatchCommand(FORMAT_TEXT_COMMAND, 'bold')}
-      >
-        <FontAwesomeIcon icon={faBold} />
-      </button>
-      <button
-        type="button"
-        className="px-2 py-1 text-xs rounded border border-line-low hover:bg-backdrop-low"
+      />
+      <ToolbarButton
         title="Italic"
+        icon={faItalic}
         onClick={() => editor.dispatchCommand(FORMAT_TEXT_COMMAND, 'italic')}
-      >
-        <FontAwesomeIcon icon={faItalic} />
-      </button>
-      <button
-        type="button"
-        className="px-2 py-1 text-xs rounded border border-line-low hover:bg-backdrop-low"
+      />
+      <ToolbarButton
         title="Underline"
+        icon={faUnderline}
         onClick={() => editor.dispatchCommand(FORMAT_TEXT_COMMAND, 'underline')}
-      >
-        <FontAwesomeIcon icon={faUnderline} />
-      </button>
-      <button
-        type="button"
-        className="px-2 py-1 text-xs rounded border border-line-low hover:bg-backdrop-low"
+      />
+      <ToolbarButton
         title="Inline Code"
+        icon={faCode}
         onClick={() => editor.dispatchCommand(FORMAT_TEXT_COMMAND, 'code')}
-      >
-        <FontAwesomeIcon icon={faCode} />
-      </button>
+      />
       <div className="mx-2 h-4 w-px bg-line" />
-      <button
-        type="button"
-        className="px-2 py-1 text-xs rounded border border-line-low hover:bg-backdrop-low"
-        title="Paragraph"
-        onClick={() => setBlock('paragraph')}
-      >
-        <FontAwesomeIcon icon={faParagraph} />
-      </button>
-      <button
-        type="button"
-        className="px-2 py-1 text-xs rounded border border-line-low hover:bg-backdrop-low"
-        title="Heading 2"
-        onClick={() => setBlock('h2')}
-      >
-        <FontAwesomeIcon icon={faHeading} className="mr-1" />
+      <ToolbarButton title="Paragraph" icon={faParagraph} onClick={() => setBlock('paragraph')} />
+      <ToolbarButton title="Heading 2" icon={faHeading} onClick={() => setBlock('h2')}>
         H2
-      </button>
-      <button
-        type="button"
-        className="px-2 py-1 text-xs rounded border border-line-low hover:bg-backdrop-low"
-        title="Heading 3"
-        onClick={() => setBlock('h3')}
-      >
-        <FontAwesomeIcon icon={faHeading} className="mr-1" />
+      </ToolbarButton>
+      <ToolbarButton title="Heading 3" icon={faHeading} onClick={() => setBlock('h3')}>
         H3
-      </button>
+      </ToolbarButton>
       <div className="mx-2 h-4 w-px bg-line" />
-      <button
-        type="button"
-        className="px-2 py-1 text-xs rounded border border-line-low hover:bg-backdrop-low"
-        onClick={() => editor.dispatchCommand(INSERT_UNORDERED_LIST_COMMAND, undefined)}
+      <ToolbarButton
         title="Bullet List"
-      >
-        <FontAwesomeIcon icon={faListUl} />
-      </button>
-      <button
-        type="button"
-        className="px-2 py-1 text-xs rounded border border-line-low hover:bg-backdrop-low"
-        onClick={() => editor.dispatchCommand(INSERT_ORDERED_LIST_COMMAND, undefined)}
+        icon={faListUl}
+        onClick={() => editor.dispatchCommand(INSERT_UNORDERED_LIST_COMMAND, undefined)}
+      />
+      <ToolbarButton
         title="Numbered List"
-      >
-        <FontAwesomeIcon icon={faListOl} />
-      </button>
+        icon={faListOl}
+        onClick={() => editor.dispatchCommand(INSERT_ORDERED_LIST_COMMAND, undefined)}
+      />
       <div className="mx-2 h-4 w-px bg-line" />
-      <button
-        type="button"
-        className="px-2 py-1 text-xs rounded border border-line-low hover:bg-backdrop-low"
-        title="Code Block"
-        onClick={() => setBlock('code')}
-      >
-        <FontAwesomeIcon icon={faTerminal} />
-      </button>
-      <button
-        type="button"
-        className="px-2 py-1 text-xs rounded border border-line-low hover:bg-backdrop-low"
+      <ToolbarButton title="Code Block" icon={faTerminal} onClick={() => setBlock('code')} />
+      <ToolbarButton
         title="Horizontal Rule"
+        icon={faMinus}
         onClick={() =>
           editor.update(() => {
             const hrNode = new HorizontalRuleNode()
             $insertNodes([hrNode])
           })
         }
-      >
-        <FontAwesomeIcon icon={faMinus} />
-      </button>
+      />
       <div className="mx-2 h-4 w-px bg-line" />
       <TokenPicker onSelect={handleTokenSelect} customFields={customFields} />
     </div>

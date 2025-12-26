@@ -185,4 +185,25 @@ export default class GlobalModulesController {
     if (!deleted) return response.notFound({ error: 'Global module not found' })
     return response.noContent()
   }
+
+  /**
+   * GET /api/modules/global/:id/usage
+   * Returns a list of posts using this global module
+   */
+  async usage({ params, response, auth }: HttpContext) {
+    const role = (auth.use('web').user as any)?.role
+    if (!roleRegistry.hasPermission(role, 'globals.view')) {
+      return response.forbidden({ error: 'Not allowed to view global modules' })
+    }
+    const { id } = params
+
+    const usageRows = await db
+      .from('post_modules')
+      .join('posts', 'post_modules.post_id', 'posts.id')
+      .where('post_modules.module_id', id)
+      .select('posts.id', 'posts.title', 'posts.slug', 'posts.type', 'posts.locale', 'posts.status')
+      .distinct('posts.id')
+
+    return response.ok({ data: usageRows })
+  }
 }

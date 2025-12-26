@@ -33,15 +33,16 @@ export default class UrlPatternsController {
   /**
    * PUT /api/url-patterns/:locale
    * Upsert the default pattern for a given postType + locale
-   * Body: { postType: string, pattern: string, isDefault?: boolean }
+   * Body: { postType: string, pattern: string, isDefault?: boolean, aggregatePostId?: string }
    */
   async upsert({ params, request, response }: HttpContext) {
-    const { locale } = params
+    const { locale: currentLocale } = params
     const {
       postType,
       pattern,
       isDefault = true,
-    } = request.only(['postType', 'pattern', 'isDefault'])
+      aggregatePostId = undefined, // Use undefined to know if it was provided
+    } = request.only(['postType', 'pattern', 'isDefault', 'aggregatePostId'])
 
     if (!postType || typeof postType !== 'string') {
       return response.badRequest({ error: 'postType is required' })
@@ -53,14 +54,43 @@ export default class UrlPatternsController {
       return response.badRequest({ error: 'pattern must include {slug} or {path} token' })
     }
 
-    // Upsert default pattern (or non-default if explicitly requested)
-    const existing = isDefault ? await UrlPatternService.getDefaultPattern(postType, locale) : null
-    if (existing) {
-      const updated = await UrlPatternService.updatePattern(existing.id, { pattern, isDefault })
-      return response.ok({ data: updated, message: 'URL pattern updated' })
-    } else {
-      const created = await UrlPatternService.createPattern(postType, locale, pattern, isDefault)
-      return response.ok({ data: created, message: 'URL pattern created' })
+    // If aggregatePostId is provided, we want to normalize it to the base translation
+    // and apply it to ALL locales for this post type.
+    let baseAggregateId = aggregatePostId
+    if (aggregatePostId) {
+      const Post = (await import('#models/post')).default
+      const aggPost = await Post.find(aggregatePostId)
+      if (aggPost) {
+        baseAggregateId = aggPost.translationOfId || aggPost.id
+      }
     }
+
+    // Update or create the specific pattern for this locale
+    const existing = isDefault
+      ? await UrlPatternService.getDefaultPattern(postType, currentLocale)
+      : null
+    let result
+    if (existing) {
+      result = await UrlPatternService.updatePattern(existing.id, {
+        pattern,
+        isDefault,
+        aggregatePostId: baseAggregateId !== undefined ? baseAggregateId : undefined,
+      })
+    } else {
+      result = await UrlPatternService.createPattern(postType, currentLocale, pattern, isDefault)
+      if (baseAggregateId !== undefined) {
+        await UrlPatternService.updatePattern(result.id, { pattern, isDefault, aggregatePostId: baseAggregateId })
+      }
+    }
+
+    // Apply the aggregatePostId to ALL other locales for this post type
+    if (baseAggregateId !== undefined) {
+      const UrlPattern = (await import('#models/url_pattern')).default
+      await UrlPattern.query()
+        .where('post_type', postType)
+        .update({ aggregate_post_id: baseAggregateId })
+    }
+
+    return response.ok({ data: result, message: 'URL pattern updated' })
   }
 }

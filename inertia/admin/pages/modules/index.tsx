@@ -2,7 +2,8 @@ import { useEffect, useMemo, useState } from 'react'
 import { AdminHeader } from '../../components/AdminHeader'
 import { AdminFooter } from '../../components/AdminFooter'
 import { toast } from 'sonner'
-import { usePage } from '@inertiajs/react'
+import { usePage, Link } from '@inertiajs/react'
+import { useAdminPath } from '~/utils/adminPath'
 import { FormField, FormLabel } from '../../../components/forms/field'
 import { Input } from '../../../components/ui/input'
 import {
@@ -47,6 +48,7 @@ import {
   TableHeader,
   TableRow,
 } from '../../../components/ui/table'
+import { Tooltip, TooltipContent, TooltipTrigger } from '~/components/ui/tooltip'
 
 type GlobalModuleItem = {
   id: string
@@ -103,6 +105,7 @@ function formatGroupName(g: ModuleGroup | null): string {
 
 export default function GlobalModulesIndex() {
   const page = usePage<{ isAdmin?: boolean }>()
+  const adminPath = useAdminPath()
   const isAdmin = !!page.props?.isAdmin
   const [activeTab, setActiveTab] = useState<'globals' | 'groups'>('globals')
   const [loading, setLoading] = useState<boolean>(false)
@@ -139,6 +142,10 @@ export default function GlobalModulesIndex() {
   const [pendingEditSlug, setPendingEditSlug] = useState<string | null>(null)
   const [editingGroupNameId, setEditingGroupNameId] = useState<string | null>(null)
   const [editGroupNameValue, setEditGroupNameValue] = useState('')
+  const [usagePopupOpen, setUsagePopupOpen] = useState(false)
+  const [usageLoading, setUsageLoading] = useState(false)
+  const [usageData, setUsageData] = useState<any[]>([])
+  const [selectedModuleForUsage, setSelectedModuleForUsage] = useState<GlobalModuleItem | null>(null)
   const sensors = useSensors(useSensor(PointerSensor))
 
   const xsrfToken: string | undefined = (() => {
@@ -231,6 +238,27 @@ export default function GlobalModulesIndex() {
       return matchesQ && matchesType
     })
   }, [groups, groupsQuery, groupTypeFilter])
+
+  async function loadUsage(m: GlobalModuleItem) {
+    setSelectedModuleForUsage(m)
+    setUsagePopupOpen(true)
+    setUsageLoading(true)
+    try {
+      const res = await fetch(`/api/modules/global/${encodeURIComponent(m.id)}/usage`, {
+        credentials: 'same-origin',
+      })
+      if (res.ok) {
+        const json = await res.json()
+        setUsageData(json.data || [])
+      } else {
+        toast.error('Failed to load usage data')
+      }
+    } catch {
+      toast.error('Failed to load usage data')
+    } finally {
+      setUsageLoading(false)
+    }
+  }
 
   async function createGlobal() {
     if (!newType || !newSlug) {
@@ -679,7 +707,19 @@ export default function GlobalModulesIndex() {
                           <TableCell>{m.globalSlug || '-'}</TableCell>
                           <TableCell>{m.type}</TableCell>
                           <TableCell>{new Date(m.updatedAt).toLocaleString()}</TableCell>
-                          <TableCell>{m.usageCount}</TableCell>
+                          <TableCell>
+                            <button
+                              type="button"
+                              onClick={() => loadUsage(m)}
+                              className={`text-xs font-semibold px-2 py-1 rounded transition-colors ${
+                                m.usageCount > 0
+                                  ? 'bg-standout-medium/10 text-standout-high hover:bg-standout-medium/20'
+                                  : 'text-neutral-low'
+                              }`}
+                            >
+                              {m.usageCount}
+                            </button>
+                          </TableCell>
                           <TableCell>
                             <div className="flex items-center justify-end gap-2">
                               <button
@@ -688,14 +728,24 @@ export default function GlobalModulesIndex() {
                               >
                                 Edit
                               </button>
-                              <button
-                                className="px-2 py-1 text-xs border border-line-medium rounded hover:bg-backdrop-medium disabled:opacity-50"
-                                disabled={m.usageCount > 0}
-                                onClick={() => deleteGlobal(m.id)}
-                                title={m.usageCount > 0 ? 'Cannot delete while referenced' : 'Delete'}
-                              >
-                                Delete
-                              </button>
+                              <Tooltip>
+                                <TooltipTrigger asChild>
+                                  <button
+                                    className="px-2 py-1 text-xs border border-line-medium rounded hover:bg-backdrop-medium disabled:opacity-50"
+                                    disabled={m.usageCount > 0}
+                                    onClick={() => deleteGlobal(m.id)}
+                                  >
+                                    Delete
+                                  </button>
+                                </TooltipTrigger>
+                                <TooltipContent>
+                                  <p>
+                                    {m.usageCount > 0
+                                      ? 'Cannot delete while referenced'
+                                      : 'Delete global module'}
+                                  </p>
+                                </TooltipContent>
+                              </Tooltip>
                             </div>
                           </TableCell>
                         </TableRow>
@@ -887,18 +937,24 @@ export default function GlobalModulesIndex() {
                               <div className="text-sm text-neutral-high font-medium">
                                 {formatGroupName(g)}
                               </div>
-                              <button
-                                type="button"
-                                onClick={(e) => {
-                                  e.stopPropagation()
-                                  setEditingGroupNameId(g.id)
-                                  setEditGroupNameValue(g.name)
-                                }}
-                                className="opacity-40 group-hover/label:opacity-100 p-1 rounded-md hover:bg-backdrop-medium text-neutral-low hover:text-neutral-high transition-all"
-                                title="Edit name"
-                              >
-                                <FontAwesomeIcon icon={faPencil} className="w-3 h-3" />
-                              </button>
+                              <Tooltip>
+                                <TooltipTrigger asChild>
+                                  <button
+                                    type="button"
+                                    onClick={(e) => {
+                                      e.stopPropagation()
+                                      setEditingGroupNameId(g.id)
+                                      setEditGroupNameValue(g.name)
+                                    }}
+                                    className="opacity-40 group-hover/label:opacity-100 p-1 rounded-md hover:bg-backdrop-medium text-neutral-low hover:text-neutral-high transition-all"
+                                  >
+                                    <FontAwesomeIcon icon={faPencil} className="w-3 h-3" />
+                                  </button>
+                                </TooltipTrigger>
+                                <TooltipContent>
+                                  <p>Edit name</p>
+                                </TooltipContent>
+                              </Tooltip>
                             </>
                           )}
                         </div>
@@ -953,17 +1009,23 @@ export default function GlobalModulesIndex() {
                             <h3 className="text-lg font-semibold text-neutral-high">
                               {formatGroupName(selectedGroup)}
                             </h3>
-                            <button
-                              type="button"
-                              onClick={() => {
-                                setEditingGroupNameId(selectedGroup.id)
-                                setEditGroupNameValue(selectedGroup.name)
-                              }}
-                              className="opacity-40 group-hover/label:opacity-100 p-1 rounded-md hover:bg-backdrop-medium text-neutral-low hover:text-neutral-high transition-all"
-                              title="Edit name"
-                            >
-                              <FontAwesomeIcon icon={faPencil} className="w-3.5 h-3.5" />
-                            </button>
+                            <Tooltip>
+                              <TooltipTrigger asChild>
+                                <button
+                                  type="button"
+                                  onClick={() => {
+                                    setEditingGroupNameId(selectedGroup.id)
+                                    setEditGroupNameValue(selectedGroup.name)
+                                  }}
+                                  className="opacity-40 group-hover/label:opacity-100 p-1 rounded-md hover:bg-backdrop-medium text-neutral-low hover:text-neutral-high transition-all"
+                                >
+                                  <FontAwesomeIcon icon={faPencil} className="w-3.5 h-3.5" />
+                                </button>
+                              </TooltipTrigger>
+                              <TooltipContent>
+                                <p>Edit name</p>
+                              </TooltipContent>
+                            </Tooltip>
                           </>
                         )}
                       </div>
@@ -1035,9 +1097,8 @@ export default function GlobalModulesIndex() {
                                       <div className="text-sm font-medium text-neutral-high flex items-center gap-1">
                                         {m.scope === 'global'
                                           ? slugToLabel.get(String(m.globalSlug || '')) ||
-                                          String(m.globalSlug || '')
-                                          : groupRegistry.find((r) => r.type === m.type)?.name ||
-                                          m.type}
+                                            String(m.globalSlug || '')
+                                          : groupRegistry.find((r) => r.type === m.type)?.name || m.type}
                                       </div>
                                       <div className="text-xs text-neutral-low">
                                         {m.scope === 'global' ? (
@@ -1052,26 +1113,38 @@ export default function GlobalModulesIndex() {
                                   <div className="flex items-center gap-2">
                                     {groupRegistry.find((r) => r.type === m.type)?.renderingMode ===
                                       'react' && (
-                                        <span
-                                          className="inline-flex items-center rounded border border-line-medium bg-backdrop-low px-2 py-1 text-xs text-neutral-high"
-                                          title="React module (client-side interactivity)"
-                                          aria-label="React module"
-                                        >
-                                          <FontAwesomeIcon
-                                            icon={faReact}
-                                            className="mr-1 text-sky-400"
-                                          />
-                                          React
-                                        </span>
-                                      )}
+                                      <Tooltip>
+                                        <TooltipTrigger asChild>
+                                          <span
+                                            className="inline-flex items-center rounded border border-line-medium bg-backdrop-low px-2 py-1 text-xs text-neutral-high cursor-help"
+                                            aria-label="React module"
+                                          >
+                                            <FontAwesomeIcon
+                                              icon={faReact}
+                                              className="mr-1 text-sky-400"
+                                            />
+                                            React
+                                          </span>
+                                        </TooltipTrigger>
+                                        <TooltipContent>
+                                          <p>React module (client-side interactivity)</p>
+                                        </TooltipContent>
+                                      </Tooltip>
+                                    )}
                                     {m.scope === 'global' && (
-                                      <span
-                                        className="inline-flex items-center rounded border border-line-medium bg-backdrop-low px-2 py-1 text-xs text-neutral-high"
-                                        title="Global module"
-                                        aria-label="Global module"
-                                      >
-                                        <Globe size={14} />
-                                      </span>
+                                      <Tooltip>
+                                        <TooltipTrigger asChild>
+                                          <span
+                                            className="inline-flex items-center rounded border border-line-medium bg-backdrop-low px-2 py-1 text-xs text-neutral-high cursor-help"
+                                            aria-label="Global module"
+                                          >
+                                            <Globe size={14} />
+                                          </span>
+                                        </TooltipTrigger>
+                                        <TooltipContent>
+                                          <p>Global module</p>
+                                        </TooltipContent>
+                                      </Tooltip>
                                     )}
                                     <button
                                       className="text-xs px-2 py-1 rounded border border-line-low bg-backdrop-input text-neutral-high hover:bg-backdrop-medium"
@@ -1152,6 +1225,74 @@ export default function GlobalModulesIndex() {
           }}
         />
       )}
+
+      <AlertDialog open={usagePopupOpen} onOpenChange={setUsagePopupOpen}>
+        <AlertDialogContent className="max-w-2xl">
+          <AlertDialogHeader>
+            <AlertDialogTitle className="flex items-center justify-between">
+              <span>Module Usage</span>
+              {selectedModuleForUsage && (
+                <span className="text-sm font-normal text-neutral-low">
+                  {selectedModuleForUsage.globalSlug || selectedModuleForUsage.type}
+                </span>
+              )}
+            </AlertDialogTitle>
+            <AlertDialogDescription>
+              List of all posts using this global module.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+
+          <div className="max-h-[60vh] overflow-y-auto">
+            {usageLoading ? (
+              <div className="flex justify-center py-8">
+                <FontAwesomeIcon icon={faReact} spin className="text-2xl text-neutral-low" />
+              </div>
+            ) : usageData.length === 0 ? (
+              <div className="text-center py-8 text-neutral-low italic">
+                No posts are currently using this module.
+              </div>
+            ) : (
+              <div className="divide-y divide-line-low border border-line-low rounded-lg overflow-hidden">
+                {usageData.map((post) => (
+                  <div
+                    key={post.id}
+                    className="px-4 py-3 flex items-center justify-between hover:bg-backdrop-medium transition-colors"
+                  >
+                    <div>
+                      <div className="text-sm font-medium text-neutral-high">{post.title}</div>
+                      <div className="text-[10px] text-neutral-low flex items-center gap-2">
+                        <span className="uppercase tracking-wider font-bold">{post.type}</span>
+                        <span>•</span>
+                        <span>{post.locale.toUpperCase()}</span>
+                        <span>•</span>
+                        <span
+                          className={`px-1.5 py-0.5 rounded-full text-[9px] font-bold uppercase ${
+                            post.status === 'published'
+                              ? 'bg-green-100 text-green-700'
+                              : 'bg-yellow-100 text-yellow-700'
+                          }`}
+                        >
+                          {post.status}
+                        </span>
+                      </div>
+                    </div>
+                    <Link
+                      href={adminPath(`posts/${post.id}/edit`)}
+                      className="text-xs font-semibold text-standout-high hover:underline"
+                    >
+                      Edit Post
+                    </Link>
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+
+          <AlertDialogFooter>
+            <AlertDialogAction onClick={() => setUsagePopupOpen(false)}>Close</AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   )
 }

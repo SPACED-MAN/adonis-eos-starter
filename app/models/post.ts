@@ -285,13 +285,15 @@ export default class Post extends BaseModel {
   async getAllTranslations(): Promise<Post[]> {
     // If this is a translation, get siblings
     if (this.isTranslation()) {
-      return Post.query()
-        .where('translationOfId', this.translationOfId!)
-        .orWhere('id', this.translationOfId!)
+      return Post.query().where((builder) => {
+        builder.where('translationOfId', this.translationOfId!).orWhere('id', this.translationOfId!)
+      })
     }
 
     // If this is original, get all translations
-    return Post.query().where('translationOfId', this.id).orWhere('id', this.id)
+    return Post.query().where((builder) => {
+      builder.where('translationOfId', this.id).orWhere('id', this.id)
+    })
   }
 
   /**
@@ -300,7 +302,12 @@ export default class Post extends BaseModel {
   async getTranslation(locale: string): Promise<Post | null> {
     const baseId = this.translationOfId || this.id
 
-    return Post.query().where('translationOfId', baseId).where('locale', locale).first()
+    return Post.query()
+      .where((builder) => {
+        builder.where('translationOfId', baseId).orWhere('id', baseId)
+      })
+      .where('locale', locale)
+      .first()
   }
 
   /**

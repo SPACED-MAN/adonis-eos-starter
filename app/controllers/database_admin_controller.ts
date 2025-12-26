@@ -463,6 +463,7 @@ export default class DatabaseAdminController {
       const replace = request.input('replace')
       const tables = request.input('tables')
       const dryRun = request.input('dryRun', true) !== false
+      const caseSensitive = request.input('caseSensitive', true) === true
 
       if (!search) {
         return response.badRequest({ error: 'Search string is required' })
@@ -477,6 +478,7 @@ export default class DatabaseAdminController {
         replace,
         tables,
         dryRun,
+        caseSensitive,
       })
 
       return response.ok({

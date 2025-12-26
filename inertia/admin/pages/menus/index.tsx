@@ -47,6 +47,7 @@ import { faTurnUp } from '@fortawesome/free-solid-svg-icons'
 import { SortableContext, useSortable, verticalListSortingStrategy } from '@dnd-kit/sortable'
 import { CSS } from '@dnd-kit/utilities'
 import { Pencil, Trash2 } from 'lucide-react'
+import { Tooltip, TooltipContent, TooltipTrigger } from '~/components/ui/tooltip'
 
 type Menu = {
   id: string
@@ -1047,20 +1048,23 @@ export default function MenusIndex() {
                                       style={{ paddingLeft: level * 12 }}
                                     >
                                       {level > 0 ||
-                                        (dragActiveId === item.id && willNest) ||
-                                        nestFlashId === item.id ? (
-                                        <span
-                                          className="mr-2 text-neutral-medium"
-                                          aria-hidden="true"
-                                          title="Will nest on drop"
-                                        >
-                                          <FontAwesomeIcon
-                                            icon={faTurnUp}
-                                            rotation={90}
-                                            className="inline-block"
-                                            size="sm"
-                                          />
-                                        </span>
+                                      (dragActiveId === item.id && willNest) ||
+                                      nestFlashId === item.id ? (
+                                        <Tooltip>
+                                          <TooltipTrigger asChild>
+                                            <span className="mr-2 text-neutral-medium" aria-hidden="true">
+                                              <FontAwesomeIcon
+                                                icon={faTurnUp}
+                                                rotation={90}
+                                                className="inline-block"
+                                                size="sm"
+                                              />
+                                            </span>
+                                          </TooltipTrigger>
+                                          <TooltipContent>
+                                            <p>Will nest on drop</p>
+                                          </TooltipContent>
+                                        </Tooltip>
                                       ) : null}
                                       <span className="text-sm text-neutral-high">
                                         {item.label}
@@ -1086,53 +1090,66 @@ export default function MenusIndex() {
                                   </TableCell>
                                   <TableCell className="text-right">
                                     <div className="inline-flex items-center gap-2">
-                                      <button
-                                        className="inline-flex items-center gap-1 px-2 py-1 text-xs border border-line-medium rounded hover:bg-backdrop-medium"
-                                        onClick={() => {
-                                          setEditingItem(item)
-                                          setEditLabel(item.label)
-                                          const k = (item as any).kind as
-                                            | 'item'
-                                            | 'section'
-                                            | undefined
-                                          setEditType(k === 'section' ? 'section' : item.type)
-                                          setEditCustomUrl(item.customUrl || '')
-                                          setEditSelectedPostId(item.postId || '')
-                                          setEditSelectedPostTitle('') // can be filled after search
-                                          setEditExtra(item.anchor || '')
-                                          setEditTarget(item.target || 'default')
-                                          setEditDynamicPostType(item.dynamicPostType || '')
-                                          setEditDynamicParentId(item.dynamicParentId || '')
-                                          setEditDynamicDepthLimit(item.dynamicDepthLimit || 1)
-                                          const relSet = new Set(
-                                            String(item.rel || '')
-                                              .split(/\s+/)
-                                              .filter(Boolean)
-                                          )
-                                          setEditRelOptions({
-                                            nofollow: relSet.has('nofollow'),
-                                            noopener: relSet.has('noopener'),
-                                            noreferrer: relSet.has('noreferrer'),
-                                            external: relSet.has('external'),
-                                          })
-                                          setEditOpen(true)
-                                        }}
-                                        title="Edit"
-                                      >
-                                        <Pencil size={14} />
-                                        Edit
-                                      </button>
-                                      <button
-                                        className="inline-flex items-center gap-1 px-2 py-1 text-xs border border-line-medium rounded hover:bg-backdrop-medium text-red-600"
-                                        onClick={() => {
-                                          setDeletingItem(item)
-                                          setDeleteOpen(true)
-                                        }}
-                                        title="Remove"
-                                      >
-                                        <Trash2 size={14} />
-                                        Remove
-                                      </button>
+                                      <Tooltip>
+                                        <TooltipTrigger asChild>
+                                          <button
+                                            className="inline-flex items-center gap-1 px-2 py-1 text-xs border border-line-medium rounded hover:bg-backdrop-medium"
+                                            onClick={() => {
+                                              setEditingItem(item)
+                                              setEditLabel(item.label)
+                                              const k = (item as any).kind as
+                                                | 'item'
+                                                | 'section'
+                                                | undefined
+                                              setEditType(k === 'section' ? 'section' : item.type)
+                                              setEditCustomUrl(item.customUrl || '')
+                                              setEditSelectedPostId(item.postId || '')
+                                              setEditSelectedPostTitle('') // can be filled after search
+                                              setEditExtra(item.anchor || '')
+                                              setEditTarget(item.target || 'default')
+                                              setEditDynamicPostType(item.dynamicPostType || '')
+                                              setEditDynamicParentId(item.dynamicParentId || '')
+                                              setEditDynamicDepthLimit(item.dynamicDepthLimit || 1)
+                                              const relSet = new Set(
+                                                String(item.rel || '')
+                                                  .split(/\s+/)
+                                                  .filter(Boolean)
+                                              )
+                                              setEditRelOptions({
+                                                nofollow: relSet.has('nofollow'),
+                                                noopener: relSet.has('noopener'),
+                                                noreferrer: relSet.has('noreferrer'),
+                                                external: relSet.has('external'),
+                                              })
+                                              setEditOpen(true)
+                                            }}
+                                          >
+                                            <Pencil size={14} />
+                                            Edit
+                                          </button>
+                                        </TooltipTrigger>
+                                        <TooltipContent>
+                                          <p>Edit</p>
+                                        </TooltipContent>
+                                      </Tooltip>
+
+                                      <Tooltip>
+                                        <TooltipTrigger asChild>
+                                          <button
+                                            className="inline-flex items-center gap-1 px-2 py-1 text-xs border border-line-medium rounded hover:bg-backdrop-medium text-red-600"
+                                            onClick={() => {
+                                              setDeletingItem(item)
+                                              setDeleteOpen(true)
+                                            }}
+                                          >
+                                            <Trash2 size={14} />
+                                            Remove
+                                          </button>
+                                        </TooltipTrigger>
+                                        <TooltipContent>
+                                          <p>Remove</p>
+                                        </TooltipContent>
+                                      </Tooltip>
                                     </div>
                                   </TableCell>
                                 </SortableRow>

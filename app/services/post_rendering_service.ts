@@ -1039,6 +1039,29 @@ class PostRenderingService {
       depth++
     }
 
+    // Check for aggregate page for this post type
+    const pattern = await urlPatternService.getDefaultPattern(post.type, post.locale)
+    if (pattern?.aggregatePostId) {
+      // Load aggregate post - we need to find the variation for the current locale
+      const Post = (await import('#models/post')).default
+      const aggPostBase = await Post.find(pattern.aggregatePostId)
+      
+      if (aggPostBase) {
+        // Try to find translation for the current locale
+        const aggPostVariation = await aggPostBase.getTranslation(post.locale)
+        const finalAggPost = aggPostVariation || (aggPostBase.locale === post.locale ? aggPostBase : null)
+
+        if (finalAggPost && !ancestors.some((a) => a.id === finalAggPost.id)) {
+          // Prepend aggregate page to ancestors
+          ancestors.unshift({
+            id: finalAggPost.id,
+            title: finalAggPost.title || 'Untitled',
+            parentId: null,
+          })
+        }
+      }
+    }
+
     // Convert ancestors to breadcrumb items
     const ancestorIds = ancestors.map((a) => a.id)
     const resolvedPaths = await urlPatternService.buildPostPaths(ancestorIds)

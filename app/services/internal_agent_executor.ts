@@ -451,6 +451,14 @@ Only include fields that you are actually changing.`,
       case 'post.review.save':
         parts.push('Post has been saved for review.')
         break
+      case 'post.create-translation':
+        parts.push('A new translation has been created for this post.')
+        parts.push(`Translation Post ID: ${context.data?.postId || 'unknown'}`)
+        parts.push(`Target locale: ${context.data?.targetLocale || 'unknown'}`)
+        parts.push(
+          'Your task is to translate all content into the target locale. Use tool calls to update the fields and modules of this translation post.'
+        )
+        break
       case 'field':
         parts.push(`Field-level execution for: ${context.data?.fieldKey || 'unknown'}`)
         break

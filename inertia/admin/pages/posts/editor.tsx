@@ -65,12 +65,13 @@ import {
   faChevronDown,
   faSpinner,
   faLink,
+  faBrain,
 } from '@fortawesome/free-solid-svg-icons'
 import { getXsrf } from '~/utils/xsrf'
 import { LinkField, type LinkFieldValue } from '~/components/forms/LinkField'
 import { useHasPermission } from '~/utils/permissions'
 import { useMediaUrl } from '../../../utils/useMediaUrl'
-import { MediaRenderer } from '../../../components/MediaRenderer'
+import { MediaThumb } from '../../components/media/MediaThumb'
 import { AgentModal, type Agent } from '../../components/agents/AgentModal'
 // Field components are auto-discovered via Vite glob below
 
@@ -227,6 +228,8 @@ const InlineModuleEditor = function InlineModuleEditor({
 import { CustomFieldRenderer } from '../../components/CustomFieldRenderer'
 import type { CustomFieldDefinition } from '~/types/custom_field'
 
+import { Tooltip, TooltipContent, TooltipTrigger } from '~/components/ui/tooltip'
+
 interface EditorProps {
   post: {
     id: string
@@ -290,6 +293,11 @@ interface EditorProps {
     featuredImage?: {
       enabled: boolean
       label?: string
+    }
+    abTesting?: {
+      enabled: boolean
+      strategy?: 'cookie' | 'query'
+      variations?: Array<{ value: string; weight: number }>
     }
   }
   taxonomies?: Array<{ slug: string; name: string; terms: TaxonomyTermNode[] }>
@@ -455,14 +463,20 @@ function ModuleRowBase({
                         </span>
                       )}
 
-                      <button
-                        type="button"
-                        onClick={() => setIsEditingLabel(true)}
-                        className="opacity-40 group-hover/label:opacity-100 p-1 rounded-md hover:bg-backdrop-medium text-neutral-low hover:text-neutral-high transition-all"
-                        title="Edit label"
-                      >
-                        <FontAwesomeIcon icon={faPencil} className="w-3.5 h-3.5" />
-                      </button>
+                      <Tooltip>
+                        <TooltipTrigger asChild>
+                          <button
+                            type="button"
+                            onClick={() => setIsEditingLabel(true)}
+                            className="opacity-40 group-hover/label:opacity-100 p-1 rounded-md hover:bg-backdrop-medium text-neutral-low hover:text-neutral-high transition-all"
+                          >
+                            <FontAwesomeIcon icon={faPencil} className="w-3.5 h-3.5" size="xs" />
+                          </button>
+                        </TooltipTrigger>
+                        <TooltipContent>
+                          <p>Edit label</p>
+                        </TooltipContent>
+                      </Tooltip>
                     </>
                   )}
                 </div>
@@ -485,66 +499,90 @@ function ModuleRowBase({
 
                 if (isReact) {
                   return (
-                    <span
-                      className="inline-flex items-center rounded-full border border-sky-500/20 bg-sky-500/5 px-2 py-0.5 text-[10px] font-bold text-sky-500 uppercase tracking-tight"
-                      title={mode === 'hybrid' ? 'React enabled via hybrid mode' : 'React module'}
-                    >
-                      <FontAwesomeIcon icon={faReact} className="mr-1" />
-                      React
-                    </span>
+                    <Tooltip>
+                      <TooltipTrigger asChild>
+                        <span className="inline-flex items-center rounded-full border border-sky-500/20 bg-sky-500/5 px-2 py-0.5 text-[10px] font-bold text-sky-500 uppercase tracking-tight cursor-help">
+                          <FontAwesomeIcon icon={faReact} className="mr-1" />
+                          React
+                        </span>
+                      </TooltipTrigger>
+                      <TooltipContent>
+                        <p>
+                          {mode === 'hybrid'
+                            ? 'React enabled via hybrid mode'
+                            : 'React module (client-side interactivity)'}
+                        </p>
+                      </TooltipContent>
+                    </Tooltip>
                   )
                 }
                 return null
               })()}
               {(m.scope === 'global' || m.scope === 'static') && (
-                <span
-                  className="inline-flex items-center rounded-full border border-amber-500/20 bg-amber-500/5 px-2 py-0.5 text-[10px] font-bold text-amber-500 uppercase tracking-tight"
-                  title={`${m.scope.charAt(0).toUpperCase() + m.scope.slice(1)} module`}
-                >
-                  <FontAwesomeIcon icon={faGlobe} className="w-3 h-3 mr-1" />
-                  {m.scope === 'static' ? 'Static' : 'Global'}
-                </span>
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                    <span className="inline-flex items-center rounded-full border border-amber-500/20 bg-amber-500/5 px-2 py-0.5 text-[10px] font-bold text-amber-500 uppercase tracking-tight cursor-help">
+                      <FontAwesomeIcon icon={faGlobe} className="w-3 h-3 mr-1" />
+                      {m.scope === 'static' ? 'Static' : 'Global'}
+                    </span>
+                  </TooltipTrigger>
+                  <TooltipContent>
+                    <p>{m.scope.charAt(0).toUpperCase() + m.scope.slice(1)} module</p>
+                  </TooltipContent>
+                </Tooltip>
               )}
 
-              <button
-                className="p-2 rounded-lg text-neutral-low hover:text-standout-high hover:bg-backdrop-medium transition-all"
-                disabled={isLocked}
-                onClick={() => onDuplicate(m)}
-                type="button"
-                title="Duplicate module"
-              >
-                <FontAwesomeIcon icon={faClone} className="w-4 h-4" />
-              </button>
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <button
+                    className="p-2 rounded-lg text-neutral-low hover:text-standout-high hover:bg-backdrop-medium transition-all"
+                    disabled={isLocked}
+                    onClick={() => onDuplicate(m)}
+                    type="button"
+                  >
+                    <FontAwesomeIcon icon={faClone} className="w-4 h-4" />
+                  </button>
+                </TooltipTrigger>
+                <TooltipContent>
+                  <p>Duplicate module</p>
+                </TooltipContent>
+              </Tooltip>
 
-              <button
-                className="p-2 rounded-lg text-neutral-low hover:text-red-500 hover:bg-red-500/10 transition-all"
-                disabled={isLocked}
-                onClick={async () => {
-                  if (isLocked) {
-                    toast.error('Locked modules cannot be removed')
-                    return
-                  }
-                  if (viewMode === 'review') {
-                    setPendingReviewRemoved((prev) => {
-                      const next = new Set(prev)
-                      next.add(m.id)
-                      return next
-                    })
-                  } else {
-                    setPendingRemoved((prev) => {
-                      const next = new Set(prev)
-                      next.add(m.id)
-                      return next
-                    })
-                    setModules((prev) => prev.filter((pm) => pm.id !== m.id))
-                  }
-                  toast.success('Module marked for removal')
-                }}
-                type="button"
-                title="Remove module"
-              >
-                <FontAwesomeIcon icon={faTrash} className="w-4 h-4" />
-              </button>
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <button
+                    className="p-2 rounded-lg text-neutral-low hover:text-red-500 hover:bg-red-500/10 transition-all"
+                    disabled={isLocked}
+                    onClick={async () => {
+                      if (isLocked) {
+                        toast.error('Locked modules cannot be removed')
+                        return
+                      }
+                      if (viewMode === 'review') {
+                        setPendingReviewRemoved((prev) => {
+                          const next = new Set(prev)
+                          next.add(m.id)
+                          return next
+                        })
+                      } else {
+                        setPendingRemoved((prev) => {
+                          const next = new Set(prev)
+                          next.add(m.id)
+                          return next
+                        })
+                        setModules((prev) => prev.filter((pm) => pm.id !== m.id))
+                      }
+                      toast.success('Module marked for removal')
+                    }}
+                    type="button"
+                  >
+                    <FontAwesomeIcon icon={faTrash} className="w-4 h-4" />
+                  </button>
+                </TooltipTrigger>
+                <TooltipContent>
+                  <p>Remove module</p>
+                </TooltipContent>
+              </Tooltip>
 
               <button
                 type="button"
@@ -1172,6 +1210,8 @@ export default function Editor({
   const [postDeleteConfirmOpen, setPostDeleteConfirmOpen] = useState(false)
   const [isSaving, setIsSaving] = useState(false)
   const [lastUpdateKey, setLastUpdateKey] = useState(0)
+  const [isCreatingTranslation, setIsCreatingTranslation] = useState(false)
+  const [isCreatingVariation, setIsCreatingVariation] = useState(false)
   const [pendingVariationToDelete, setPendingVariationToDelete] = useState<{
     id: string
     variation: string
@@ -2028,6 +2068,10 @@ export default function Editor({
   const [openMediaForField, setOpenMediaForField] = useState<string | null>(null)
   // Field-scoped agents for Featured Image
   const [featuredImageFieldAgents, setFeaturedImageFieldAgents] = useState<Agent[]>([])
+  const [translationAgents, setTranslationAgents] = useState<Agent[]>([])
+  const [publishAgents, setPublishAgents] = useState<Agent[]>([])
+  const [reviewSaveAgents, setReviewSaveAgents] = useState<Agent[]>([])
+  const [aiReviewSaveAgents, setAiReviewSaveAgents] = useState<Agent[]>([])
   const [featuredImageAgentModalOpen, setFeaturedImageAgentModalOpen] = useState(false)
   const [selectedFeaturedImageAgent, setSelectedFeaturedImageAgent] = useState<Agent | null>(null)
   // Debug removed
@@ -2108,6 +2152,90 @@ export default function Editor({
           if (alive) setFeaturedImageFieldAgents(agents)
         } catch {
           if (alive) setFeaturedImageFieldAgents([])
+        }
+      })()
+    return () => {
+      alive = false
+    }
+  }, [])
+
+  // Load agents for Create Translation scope
+  useEffect(() => {
+    let alive = true
+      ; (async () => {
+        try {
+          const res = await fetch(
+            `/api/agents?scope=post.create-translation`,
+            { credentials: 'same-origin' }
+          )
+          const json = await res.json().catch(() => ({}))
+          const agents: Agent[] = Array.isArray(json?.data) ? json.data : []
+          if (alive) setTranslationAgents(agents)
+        } catch {
+          if (alive) setTranslationAgents([])
+        }
+      })()
+    return () => {
+      alive = false
+    }
+  }, [])
+
+  // Load agents for post.publish scope
+  useEffect(() => {
+    let alive = true
+      ; (async () => {
+        try {
+          const res = await fetch(
+            `/api/agents?scope=post.publish`,
+            { credentials: 'same-origin' }
+          )
+          const json = await res.json().catch(() => ({}))
+          const agents: Agent[] = Array.isArray(json?.data) ? json.data : []
+          if (alive) setPublishAgents(agents)
+        } catch {
+          if (alive) setPublishAgents([])
+        }
+      })()
+    return () => {
+      alive = false
+    }
+  }, [])
+
+  // Load agents for post.review.save scope
+  useEffect(() => {
+    let alive = true
+      ; (async () => {
+        try {
+          const res = await fetch(
+            `/api/agents?scope=post.review.save`,
+            { credentials: 'same-origin' }
+          )
+          const json = await res.json().catch(() => ({}))
+          const agents: Agent[] = Array.isArray(json?.data) ? json.data : []
+          if (alive) setReviewSaveAgents(agents)
+        } catch {
+          if (alive) setReviewSaveAgents([])
+        }
+      })()
+    return () => {
+      alive = false
+    }
+  }, [])
+
+  // Load agents for post.ai-review.save scope
+  useEffect(() => {
+    let alive = true
+      ; (async () => {
+        try {
+          const res = await fetch(
+            `/api/agents?scope=post.ai-review.save`,
+            { credentials: 'same-origin' }
+          )
+          const json = await res.json().catch(() => ({}))
+          const agents: Agent[] = Array.isArray(json?.data) ? json.data : []
+          if (alive) setAiReviewSaveAgents(agents)
+        } catch {
+          if (alive) setAiReviewSaveAgents([])
         }
       })()
     return () => {
@@ -2845,21 +2973,27 @@ export default function Editor({
               <div className="flex items-start justify-between gap-3 mb-8">
                 <h2 className="text-xl font-bold text-neutral-high tracking-tight">Content</h2>
                 {uiConfig?.hasPermalinks !== false && (
-                  <button
-                    className="px-3 py-1.5 text-[11px] font-bold uppercase tracking-wider border border-line-medium rounded-lg hover:bg-backdrop-medium text-neutral-medium transition-all"
-                    onClick={() => {
-                      const base = (post as any).publicPath || `/posts/${post.slug}`
-                      const target =
-                        viewMode !== 'source'
-                          ? `${base}${base.includes('?') ? '&' : '?'}view=${viewMode}`
-                          : base
-                      window.open(target, '_blank')
-                    }}
-                    type="button"
-                    title="Open the current view in a new tab"
-                  >
-                    View on Site
-                  </button>
+                  <Tooltip>
+                    <TooltipTrigger asChild>
+                      <button
+                        className="px-3 py-1.5 text-[11px] font-bold uppercase tracking-wider border border-line-medium rounded-lg hover:bg-backdrop-medium text-neutral-medium transition-all"
+                        onClick={() => {
+                          const base = (post as any).publicPath || `/posts/${post.slug}`
+                          const target =
+                            viewMode !== 'source'
+                              ? `${base}${base.includes('?') ? '&' : '?'}view=${viewMode}`
+                              : base
+                          window.open(target, '_blank')
+                        }}
+                        type="button"
+                      >
+                        View on Site
+                      </button>
+                    </TooltipTrigger>
+                    <TooltipContent>
+                      <p>Open the current view in a new tab</p>
+                    </TooltipContent>
+                  </Tooltip>
                 )}
               </div>
 
@@ -2918,25 +3052,14 @@ export default function Editor({
                         {featuredImageFieldAgents.length > 0 && hasFieldPermission && (
                           <div className="flex items-center">
                             {featuredImageFieldAgents.length === 1 ? (
-                              <button
-                                type="button"
-                                onClick={() => {
-                                  setSelectedFeaturedImageAgent(featuredImageFieldAgents[0])
-                                  setFeaturedImageAgentModalOpen(true)
-                                }}
-                                className="opacity-0 group-hover:opacity-100 transition-opacity p-1.5 hover:bg-backdrop-medium rounded-lg"
-                                title={`AI Assistant: ${featuredImageFieldAgents[0].name}`}
-                              >
-                                <FontAwesomeIcon
-                                  icon={faWandMagicSparkles}
-                                  className="text-neutral-medium hover:text-standout-medium transition-colors"
-                                />
-                              </button>
-                            ) : (
-                              <Popover>
-                                <PopoverTrigger asChild>
+                              <Tooltip>
+                                <TooltipTrigger asChild>
                                   <button
                                     type="button"
+                                    onClick={() => {
+                                      setSelectedFeaturedImageAgent(featuredImageFieldAgents[0])
+                                      setFeaturedImageAgentModalOpen(true)
+                                    }}
                                     className="opacity-0 group-hover:opacity-100 transition-opacity p-1.5 hover:bg-backdrop-medium rounded-lg"
                                   >
                                     <FontAwesomeIcon
@@ -2944,8 +3067,35 @@ export default function Editor({
                                       className="text-neutral-medium hover:text-standout-medium transition-colors"
                                     />
                                   </button>
-                                </PopoverTrigger>
-                                <PopoverContent align="end" className="w-56 p-2 bg-backdrop-high border-line-medium shadow-xl rounded-xl">
+                                </TooltipTrigger>
+                                <TooltipContent>
+                                  <p>AI Assistant: {featuredImageFieldAgents[0].name}</p>
+                                </TooltipContent>
+                              </Tooltip>
+                            ) : (
+                              <Popover>
+                                <Tooltip>
+                                  <TooltipTrigger asChild>
+                                    <PopoverTrigger asChild>
+                                      <button
+                                        type="button"
+                                        className="opacity-0 group-hover:opacity-100 transition-opacity p-1.5 hover:bg-backdrop-medium rounded-lg"
+                                      >
+                                        <FontAwesomeIcon
+                                          icon={faWandMagicSparkles}
+                                          className="text-neutral-medium hover:text-standout-medium transition-colors"
+                                        />
+                                      </button>
+                                    </PopoverTrigger>
+                                  </TooltipTrigger>
+                                  <TooltipContent>
+                                    <p>AI Assistants</p>
+                                  </TooltipContent>
+                                </Tooltip>
+                                <PopoverContent
+                                  align="end"
+                                  className="w-56 p-2 bg-backdrop-high border-line-medium shadow-xl rounded-xl"
+                                >
                                   <div className="px-2 py-1.5 border-b border-line-low mb-1">
                                     <h4 className="text-[10px] font-bold text-neutral-low uppercase tracking-widest">Select AI Agent</h4>
                                   </div>
@@ -3269,8 +3419,8 @@ export default function Editor({
                           ) : null}
                         </DragOverlay>
                       </DndContext>
-                      {modules.length > 3 && (
-                        <div className="flex justify-center mt-4">
+                      {modules.length >= 3 && (
+                        <div className="flex justify-end mt-4">
                           <ModulePicker
                             postId={post.id}
                             postType={post.type}
@@ -3445,6 +3595,98 @@ export default function Editor({
               <h3 className="text-[11px] font-bold text-neutral-medium uppercase tracking-wider mb-6 ml-1">Actions</h3>
 
               <div className="space-y-8">
+                {/* Locale Switcher */}
+                <div className="space-y-3">
+                  <label className="block text-[10px] font-bold text-neutral-low uppercase tracking-widest ml-1">
+                    Locale
+                  </label>
+                  <div className="flex flex-col gap-2">
+                    <Select
+                      defaultValue={selectedLocale}
+                      onValueChange={(nextLocale) => {
+                        setSelectedLocale(nextLocale)
+                        if (nextLocale === post.locale) return
+                        const target = translations?.find((t) => t.locale === nextLocale)
+                        if (target) {
+                          window.location.href = `/admin/posts/${target.id}/edit`
+                        }
+                      }}
+                    >
+                      <SelectTrigger className="w-full h-10 text-sm font-medium border-line-medium rounded-xl">
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {availableLocales.map((loc) => {
+                          const exists = translationsSet.has(loc)
+                          const label = exists
+                            ? `${loc.toUpperCase()}`
+                            : `${loc.toUpperCase()} (missing)`
+                          return (
+                            <SelectItem key={loc} value={loc} className="text-sm">
+                              {label}
+                            </SelectItem>
+                          )
+                        })}
+                      </SelectContent>
+                    </Select>
+
+                    {selectedLocale !== post.locale && !translationsSet.has(selectedLocale) && (
+                      <button
+                        type="button"
+                        className="w-full py-2 text-xs font-bold uppercase tracking-wider rounded-xl border border-standout-medium/30 text-standout-medium hover:bg-standout-medium/5 transition-all flex items-center justify-center gap-2"
+                        onClick={async () => {
+                          const toCreate = selectedLocale
+                          setIsCreatingTranslation(true)
+                          try {
+                            const res = await fetch(`/api/posts/${post.id}/translations`, {
+                              method: 'POST',
+                              headers: {
+                                'Accept': 'application/json',
+                                'Content-Type': 'application/json',
+                                ...xsrfHeader(),
+                              },
+                              credentials: 'same-origin',
+                              body: JSON.stringify({ locale: toCreate }),
+                            })
+                            const j = await res.json().catch(() => ({}))
+                            if (!res.ok) {
+                              throw new Error(j?.error || 'Failed to create translation')
+                            }
+
+                            toast.success(
+                              translationAgents.length > 0
+                                ? 'Translation created and content generated'
+                                : 'Translation created successfully'
+                            )
+
+                            const newId = j?.data?.id
+                            if (newId) {
+                              // Navigate to the new translation
+                              // We use view=ai-review because the agent likely put content there
+                              setTimeout(() => {
+                                window.location.href = `/admin/posts/${newId}/edit${translationAgents.length > 0 ? '?view=ai-review' : ''}`
+                              }, 500)
+                            } else {
+                              setTimeout(() => {
+                                window.location.reload()
+                              }, 1000)
+                            }
+                          } catch (err: any) {
+                            toast.error(err.message || 'Failed to create translation')
+                          } finally {
+                            setIsCreatingTranslation(false)
+                          }
+                        }}
+                      >
+                        {translationAgents.length > 0 && (
+                          <FontAwesomeIcon icon={faBrain} className="text-[10px] animate-pulse" />
+                        )}
+                        Create Translation
+                      </button>
+                    )}
+                  </div>
+                </div>
+
                 {/* A/B Variation toggle */}
                 {uiConfig.abTesting?.enabled && (
                   <div className="space-y-3">
@@ -3527,21 +3769,28 @@ export default function Editor({
                               )}
                             </button>
                             {abVariations.length > 1 && v.id !== post.id && (
-                              <div
-                                onClick={(e) => {
-                                  e.preventDefault()
-                                  e.stopPropagation()
-                                  setPendingVariationToDelete(v)
-                                  setVariationDeleteConfirmOpen(true)
-                                }}
-                                className="absolute -top-1.5 -right-1.5 bg-backdrop-medium text-neutral-low hover:text-standout-medium rounded-full w-5 h-5 flex items-center justify-center border border-line-medium transition-all z-30 shadow-sm opacity-60 group-hover/var:opacity-100 cursor-pointer"
-                                title="Delete variation"
-                              >
-                                <FontAwesomeIcon
-                                  icon={faTrash}
-                                  className="w-[9px] h-[9px] pointer-events-none"
-                                />
-                              </div>
+                              <Tooltip>
+                                <TooltipTrigger asChild>
+                                  <div
+                                    onClick={(e) => {
+                                      e.preventDefault()
+                                      e.stopPropagation()
+                                      setPendingVariationToDelete(v)
+                                      setVariationDeleteConfirmOpen(true)
+                                    }}
+                                    className="absolute top-0 right-0 text-neutral-medium hover:text-red-500 bg-backdrop-low hover:bg-red-500/10 w-5 h-5 flex items-center justify-center border transition-all z-30 opacity-60 group-hover/var:opacity-100 cursor-pointer"
+                                  >
+                                    <FontAwesomeIcon
+                                      icon={faTrash}
+                                      className="w-2 h-2 pointer-events-none"
+                                      size={'xs'}
+                                    />
+                                  </div>
+                                </TooltipTrigger>
+                                <TooltipContent>
+                                  <p>Delete variation</p>
+                                </TooltipContent>
+                              </Tooltip>
                             )}
                           </div>
                         ))
@@ -3630,74 +3879,6 @@ export default function Editor({
                         className={`flex-1 py-1.5 text-[11px] font-bold rounded-lg transition-all ${viewMode === 'ai-review' ? 'bg-backdrop-low text-neutral-high shadow-sm' : 'text-neutral-low hover:text-neutral-medium'}`}
                       >
                         AI Review
-                      </button>
-                    )}
-                  </div>
-                </div>
-
-                {/* Locale Switcher */}
-                <div className="space-y-3">
-                  <label className="block text-[10px] font-bold text-neutral-low uppercase tracking-widest ml-1">
-                    Locale
-                  </label>
-                  <div className="flex flex-col gap-2">
-                    <Select
-                      defaultValue={selectedLocale}
-                      onValueChange={(nextLocale) => {
-                        setSelectedLocale(nextLocale)
-                        if (nextLocale === post.locale) return
-                        const target = translations?.find((t) => t.locale === nextLocale)
-                        if (target) {
-                          window.location.href = `/admin/posts/${target.id}/edit`
-                        }
-                      }}
-                    >
-                      <SelectTrigger className="w-full h-10 text-sm font-medium border-line-medium rounded-xl">
-                        <SelectValue />
-                      </SelectTrigger>
-                      <SelectContent>
-                        {availableLocales.map((loc) => {
-                          const exists = translationsSet.has(loc)
-                          const label = exists
-                            ? `${loc.toUpperCase()}`
-                            : `${loc.toUpperCase()} (missing)`
-                          return (
-                            <SelectItem key={loc} value={loc} className="text-sm">
-                              {label}
-                            </SelectItem>
-                          )
-                        })}
-                      </SelectContent>
-                    </Select>
-
-                    {selectedLocale !== post.locale && !translationsSet.has(selectedLocale) && (
-                      <button
-                        type="button"
-                        className="w-full py-2 text-xs font-bold uppercase tracking-wider rounded-xl border border-standout-medium/30 text-standout-medium hover:bg-standout-medium/5 transition-all"
-                        onClick={async () => {
-                          const toCreate = selectedLocale
-                          const res = await fetch(`/api/posts/${post.id}/translations`, {
-                            method: 'POST',
-                            headers: {
-                              'Accept': 'application/json',
-                              'Content-Type': 'application/json',
-                              ...xsrfHeader(),
-                            },
-                            credentials: 'same-origin',
-                            body: JSON.stringify({ locale: toCreate }),
-                          })
-                          if (res.redirected) {
-                            window.location.href = res.url
-                            return
-                          }
-                          if (res.ok) {
-                            window.location.reload()
-                          } else {
-                            toast.error('Failed to create translation')
-                          }
-                        }}
-                      >
-                        Create Translation
                       </button>
                     )}
                   </div>
@@ -4279,6 +4460,54 @@ export default function Editor({
                   </>
                 )}
 
+                {/* Translation Creation Loading Modal */}
+                <AlertDialog open={isCreatingTranslation} onOpenChange={() => { }}>
+                  <AlertDialogContent className="max-w-md">
+                    <AlertDialogHeader>
+                      <AlertDialogTitle>
+                        {translationAgents.length > 0 ? 'Translating Content' : 'Creating Translation'}
+                      </AlertDialogTitle>
+                      <AlertDialogDescription>
+                        {translationAgents.length > 0
+                          ? 'Please wait while our AI agent generates the translation for you.'
+                          : 'Please wait while the new translation instance is being created.'}
+                      </AlertDialogDescription>
+                    </AlertDialogHeader>
+                    <div className="mt-3 space-y-4">
+                      <div className="flex items-center gap-3">
+                        <Spinner className="size-5 text-primary" />
+                        <div className="text-sm font-medium">
+                          {translationAgents.length > 0 ? 'AI agent is working...' : 'Creating...'}
+                        </div>
+                      </div>
+                      <div className="text-xs text-neutral-medium">
+                        This may take a few moments depending on the amount of content.
+                      </div>
+                    </div>
+                  </AlertDialogContent>
+                </AlertDialog>
+
+                {/* Variation Creation Loading Modal */}
+                <AlertDialog open={isCreatingVariation} onOpenChange={() => { }}>
+                  <AlertDialogContent className="max-w-md">
+                    <AlertDialogHeader>
+                      <AlertDialogTitle>Creating Variation</AlertDialogTitle>
+                      <AlertDialogDescription>
+                        Please wait while the new variation is being created for all locales.
+                      </AlertDialogDescription>
+                    </AlertDialogHeader>
+                    <div className="mt-3 space-y-4">
+                      <div className="flex items-center gap-3">
+                        <Spinner className="size-5 text-primary" />
+                        <div className="text-sm font-medium">Cloning structure...</div>
+                      </div>
+                      <div className="text-xs text-neutral-medium">
+                        This clones all modules and custom fields across your translation family.
+                      </div>
+                    </div>
+                  </AlertDialogContent>
+                </AlertDialog>
+
                 {/* Status (Source only) */}
                 {viewMode === 'source' && (
                   <div>
@@ -4397,7 +4626,7 @@ export default function Editor({
                       </Select>
                       <button
                         type="button"
-                        className={`h-8 px-3 text-xs rounded-lg disabled:opacity-50 ${!isDirty || processing || isSaving ? 'border border-border text-neutral-medium' : 'bg-standout-medium text-on-standout font-medium'}`}
+                        className={`h-8 px-3 text-xs rounded-lg disabled:opacity-50 flex items-center justify-center gap-1.5 ${!isDirty || processing || isSaving ? 'border border-border text-neutral-medium' : 'bg-standout-medium text-on-standout font-medium'}`}
                         disabled={
                           !isDirty || processing || isSaving || (saveTarget === 'review' && !canSaveForReview)
                         }
@@ -4411,6 +4640,12 @@ export default function Editor({
                           await executeSave(saveTarget)
                         }}
                       >
+                        {(saveTarget === 'source' && data.status === 'published' && publishAgents.length > 0) && (
+                          <FontAwesomeIcon icon={faBrain} className="text-[10px] animate-pulse" />
+                        )}
+                        {(saveTarget === 'review' && reviewSaveAgents.length > 0) && (
+                          <FontAwesomeIcon icon={faBrain} className="text-[10px] animate-pulse" />
+                        )}
                         {saveTarget === 'source'
                           ? data.status === 'published'
                             ? 'Publish'
@@ -4431,12 +4666,15 @@ export default function Editor({
                   <div className="space-y-2">
                     <button
                       type="button"
-                      className={`h-8 px-3 text-xs rounded-lg disabled:opacity-50 ${!isDirty || processing || isSaving ? 'border border-border text-neutral-medium' : 'bg-standout-medium text-on-standout font-medium'}`}
+                      className={`h-8 px-3 text-xs rounded-lg disabled:opacity-50 flex items-center justify-center gap-1.5 ${!isDirty || processing || isSaving ? 'border border-border text-neutral-medium' : 'bg-standout-medium text-on-standout font-medium'}`}
                       disabled={!isDirty || processing || isSaving || !canSaveForReview}
                       onClick={async () => {
                         await executeSave('review')
                       }}
                     >
+                      {reviewSaveAgents.length > 0 && (
+                        <FontAwesomeIcon icon={faBrain} className="text-[10px] animate-pulse" />
+                      )}
                       {isSaving ? 'Saving...' : 'Save'}
                     </button>
                     {!canSaveForReview && (
@@ -4453,12 +4691,15 @@ export default function Editor({
                     <p className="text-xs text-neutral-low">AI Review is AI-generated.</p>
                     <button
                       type="button"
-                      className={`h-8 px-3 text-xs rounded-lg disabled:opacity-50 ${!isDirty || processing || isSaving ? 'border border-border text-neutral-medium' : 'bg-standout-medium text-on-standout font-medium'}`}
+                      className={`h-8 px-3 text-xs rounded-lg disabled:opacity-50 flex items-center justify-center gap-1.5 ${!isDirty || processing || isSaving ? 'border border-border text-neutral-medium' : 'bg-standout-medium text-on-standout font-medium'}`}
                       disabled={!isDirty || processing || isSaving}
                       onClick={async () => {
                         await executeSave('ai-review')
                       }}
                     >
+                      {aiReviewSaveAgents.length > 0 && (
+                        <FontAwesomeIcon icon={faBrain} className="text-[10px] animate-pulse" />
+                      )}
                       {isSaving ? 'Saving...' : 'Save'}
                     </button>
                   </div>
@@ -5035,6 +5276,7 @@ export default function Editor({
               onClick={async () => {
                 if (!pendingVariationToCreate) return
                 setVariationCreateConfirmOpen(false)
+                setIsCreatingVariation(true)
                 try {
                   const res = await fetch(`/api/posts/${post.id}/variations`, {
                     method: 'POST',
@@ -5048,12 +5290,15 @@ export default function Editor({
                   })
                   const j = await res.json()
                   if (j.id) {
+                    toast.success(j.message || `Variation ${pendingVariationToCreate.value} created for all locales`)
                     window.location.href = `/admin/posts/${j.id}/edit`
                   } else {
                     toast.error(j.error || 'Failed to create variation')
                   }
                 } catch {
                   toast.error('Failed to create variation')
+                } finally {
+                  setIsCreatingVariation(false)
                 }
               }}
             >
@@ -5133,85 +5378,6 @@ export default function Editor({
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
-    </div>
-  )
-}
-
-function MediaThumb({
-  mediaId,
-  onChange,
-  onClear,
-}: {
-  mediaId: string | null
-  onChange: () => void
-  onClear: () => void
-}) {
-  const [mediaData, setMediaData] = useState<any | null>(null)
-
-  // Fetch media data when mediaId changes
-  useEffect(() => {
-    let alive = true
-    async function load() {
-      if (!mediaId) {
-        if (alive) {
-          setMediaData(null)
-        }
-        return
-      }
-      try {
-        const res = await fetch(`/api/media/${encodeURIComponent(mediaId)}`, {
-          credentials: 'same-origin',
-        })
-        const j = await res.json().catch(() => ({}))
-        const data = j?.data
-        if (alive) {
-          setMediaData(data || null)
-        }
-      } catch (err) {
-        console.error('MediaThumb: Failed to load media', err)
-        if (alive) {
-          setMediaData(null)
-        }
-      }
-    }
-    load()
-    return () => {
-      alive = false
-    }
-  }, [mediaId])
-
-  return (
-    <div className="border border-line-low rounded p-2 bg-backdrop-low flex items-center gap-3">
-      <div className="w-16 h-16 bg-backdrop-medium rounded overflow-hidden flex items-center justify-center">
-        {mediaData ? (
-          <MediaRenderer
-            image={mediaData}
-            variant="thumb"
-            alt=""
-            className="w-full h-full object-cover"
-          />
-        ) : (
-          <span className="text-xs text-neutral-medium">No image</span>
-        )}
-      </div>
-      <div className="flex items-center gap-2">
-        <button
-          type="button"
-          className="px-2 py-1 text-xs border border-line-medium rounded hover:bg-backdrop-medium text-neutral-medium"
-          onClick={onChange}
-        >
-          {mediaId ? 'Change' : 'Choose'}
-        </button>
-        {mediaId && (
-          <button
-            type="button"
-            className="px-2 py-1 text-xs border border-line-medium rounded hover:bg-backdrop-medium text-neutral-medium"
-            onClick={onClear}
-          >
-            Remove
-          </button>
-        )}
-      </div>
     </div>
   )
 }

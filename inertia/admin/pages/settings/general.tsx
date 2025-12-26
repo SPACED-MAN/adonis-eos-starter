@@ -9,6 +9,7 @@ import { MediaPickerModal } from '../../components/media/MediaPickerModal'
 import { useMediaUrl } from '../../../utils/useMediaUrl'
 import { MediaRenderer } from '../../../components/MediaRenderer'
 import { CustomFieldRenderer } from '../../components/CustomFieldRenderer'
+import { Tooltip, TooltipContent, TooltipTrigger } from '~/components/ui/tooltip'
 import type { CustomFieldDefinition } from '~/types/custom_field'
 import { FontAwesomeIcon, getIconProp } from '~/site/lib/icons'
 
@@ -221,12 +222,20 @@ export default function GeneralSettings() {
         <div className="flex items-start gap-3">
           <div className="min-w-[72px]">
             {mediaData ? (
-              <div className="w-[72px] h-[72px] border border-line-medium rounded overflow-hidden bg-backdrop-medium">
+              <div className="w-[72px] h-[72px] border border-line-medium rounded overflow-hidden bg-backdrop-low dark:bg-backdrop-medium relative flex items-center justify-center">
+                {/* Subtle checkerboard for transparency awareness */}
+                <div
+                  className="absolute inset-0 opacity-[0.03] dark:opacity-[0.05] pointer-events-none"
+                  style={{
+                    backgroundImage: `url("data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAABAAAAAQCAYAAAAf8/9hAAAAMUlEQVQ4T2NkYGAQYcAP3uAnRowBoEMBAQQWBgZAiM0E0DAAwiAsQD8LYYByDMc8EBIAVScG6S+69Z0AAAAASUVORK5CYII=")`,
+                    backgroundSize: '8px 8px',
+                  }}
+                />
                 <MediaRenderer
                   image={mediaData}
                   variant="thumb"
                   alt={previewAlt}
-                  className="w-full h-full object-cover"
+                  className="w-full h-full object-cover relative z-10"
                 />
               </div>
             ) : (
@@ -408,20 +417,26 @@ export default function GeneralSettings() {
                       </div>
 
                       <div className="w-24">
-                        <Input
-                          value={profile.icon || ''}
-                          onChange={(e) => {
-                            const next = [...(form.socialSettings?.profiles || [])]
-                            next[idx] = { ...next[idx], icon: e.target.value }
-                            setForm({
-                              ...form,
-                              socialSettings: { ...form.socialSettings!, profiles: next },
-                            })
-                          }}
-                          placeholder="Icon name"
-                          className="h-8 text-[10px] font-mono"
-                          title="FontAwesome icon name"
-                        />
+                        <Tooltip>
+                          <TooltipTrigger asChild>
+                            <Input
+                              value={profile.icon || ''}
+                              onChange={(e) => {
+                                const next = [...(form.socialSettings?.profiles || [])]
+                                next[idx] = { ...next[idx], icon: e.target.value }
+                                setForm({
+                                  ...form,
+                                  socialSettings: { ...form.socialSettings!, profiles: next },
+                                })
+                              }}
+                              placeholder="Icon name"
+                              className="h-8 text-[10px] font-mono"
+                            />
+                          </TooltipTrigger>
+                          <TooltipContent>
+                            <p>FontAwesome icon name</p>
+                          </TooltipContent>
+                        </Tooltip>
                       </div>
                     </div>
                   ))}
@@ -448,19 +463,26 @@ export default function GeneralSettings() {
                       
                       <div className="flex items-center gap-4">
                         <div className="w-20">
-                          <Input
-                            value={share.icon || ''}
-                            onChange={(e) => {
-                              const next = [...(form.socialSettings?.sharing || [])]
-                              next[idx] = { ...next[idx], icon: e.target.value }
-                              setForm({
-                                ...form,
-                                socialSettings: { ...form.socialSettings!, sharing: next },
-                              })
-                            }}
-                            placeholder="Icon"
-                            className="h-7 text-[10px] font-mono px-2"
-                          />
+                          <Tooltip>
+                            <TooltipTrigger asChild>
+                              <Input
+                                value={share.icon || ''}
+                                onChange={(e) => {
+                                  const next = [...(form.socialSettings?.sharing || [])]
+                                  next[idx] = { ...next[idx], icon: e.target.value }
+                                  setForm({
+                                    ...form,
+                                    socialSettings: { ...form.socialSettings!, sharing: next },
+                                  })
+                                }}
+                                placeholder="Icon"
+                                className="h-7 text-[10px] font-mono px-2"
+                              />
+                            </TooltipTrigger>
+                            <TooltipContent>
+                              <p>FontAwesome icon name</p>
+                            </TooltipContent>
+                          </Tooltip>
                         </div>
                         <Checkbox
                           id={`share-enable-${share.network}`}

@@ -194,6 +194,7 @@ export default function DatabaseIndex() {
   const [frReplace, setFrReplace] = useState('')
   const [frSelectedTables, setFrReplaceSelectedTables] = useState<string[]>([])
   const [frDryRun, setFrDryRun] = useState(true)
+  const [frCaseSensitive, setFrCaseSensitive] = useState(true)
   const [frLoadingTables, setFrLoadingTables] = useState(false)
   const [frRunning, setFrRunning] = useState(false)
   const [frTables, setFrTables] = useState<Array<{ name: string; columns: string[] }>>([])
@@ -293,6 +294,7 @@ export default function DatabaseIndex() {
           replace: frReplace,
           tables: frSelectedTables,
           dryRun: frDryRun,
+          caseSensitive: frCaseSensitive,
         }),
       })
 
@@ -1143,6 +1145,27 @@ export default function DatabaseIndex() {
                       The string that will replace the searched string.
                     </p>
                   </div>
+                </div>
+
+                <div className="flex items-center gap-6 mb-6 p-4 bg-backdrop-high rounded-lg border border-line-medium">
+                  <div className="flex items-center gap-2">
+                    <input
+                      type="checkbox"
+                      id="frCaseSensitive"
+                      checked={frCaseSensitive}
+                      onChange={(e) => setFrCaseSensitive(e.target.checked)}
+                      className="rounded text-standout-medium focus:ring-standout-medium h-4 w-4"
+                    />
+                    <label
+                      htmlFor="frCaseSensitive"
+                      className="text-sm font-semibold text-neutral-dark cursor-pointer"
+                    >
+                      Case Sensitive
+                    </label>
+                  </div>
+                  <p className="text-xs text-neutral-medium">
+                    When enabled, "Foo" will not match "foo". Default is case-sensitive.
+                  </p>
                 </div>
 
                 <div className="mb-6">

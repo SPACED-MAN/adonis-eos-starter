@@ -203,14 +203,14 @@ All modules share these actions:
 
 ⚠️ **Warning**: Be careful editing global modules—changes appear everywhere they're used!
 
-## Module Groups / Blueprints (if available)
+## Module Groups (Templates)
 
-Some systems let you save module combinations as reusable groups:
+Module groups allow you to save a pre-defined set of modules that can be used to quickly seed new posts. This is perfect for maintaining consistency across similar pages.
 
-1. Build a page with modules
-2. Save as a module group
-3. Reuse the structure for new posts
-4. Customize content as needed
+1. Go to **"Module Groups"** in the sidebar
+2. Create a new module group for a specific post type
+3. Add modules and configure their default properties
+4. When creating a new post, select the module group to auto-populate it with those modules
 
 ## Best Practices
 
