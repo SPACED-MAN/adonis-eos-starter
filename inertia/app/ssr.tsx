@@ -5,6 +5,7 @@ import redis from '@adonisjs/redis/services/main'
 import crypto from 'node:crypto'
 import cmsConfig from '#config/cms'
 import { ThemeProvider } from '../utils/ThemeContext'
+import { TooltipProvider } from '../components/ui/tooltip'
 
 export default async function render(page: any) {
   const componentName = String(page?.component ?? '')
@@ -68,7 +69,9 @@ export default async function render(page: any) {
         const initialIsDark = (props as any)?.isDark
         return (
           <ThemeProvider initialIsDark={initialIsDark}>
-            <App {...props} />
+            <TooltipProvider>
+              <App {...props} />
+            </TooltipProvider>
           </ThemeProvider>
         )
       },

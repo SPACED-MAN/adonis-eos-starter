@@ -96,6 +96,7 @@ export default function PostTypeDefault({
   return (
     <>
       <Head title={post.metaTitle || post.title}>
+        {/* ... existing head content ... */}
         {seo?.canonical && <link rel="canonical" href={seo.canonical} />}
         {seo?.alternates?.map((alt) => (
           <link key={alt.locale} rel="alternate" hrefLang={alt.locale} href={alt.href} />
@@ -121,67 +122,54 @@ export default function PostTypeDefault({
           />
         )}
       </Head>
-      {isAuthenticated ? (
-        <InlineEditorProvider
-          postId={post.id}
-          post={post}
-          customFields={customFields}
-          abVariations={abVariations}
-          modules={modules.map((m) => ({
-            id: m.id,
-            scope: m.scope,
-            globalSlug: m.globalSlug,
-            globalLabel: m.globalLabel,
-            props: m.props,
-            sourceProps: m.sourceProps,
-            sourceOverrides: m.sourceOverrides,
-            reviewProps: m.reviewProps,
-            aiReviewProps: m.aiReviewProps,
-            overrides: m.overrides,
-            reviewOverrides: m.reviewOverrides,
-            aiReviewOverrides: m.aiReviewOverrides,
-            aiReviewAdded: (m as any).aiReviewAdded,
-          }))}
-        >
-          <SiteHeader />
-          <main className="overflow-x-hidden">
-            {modules.map((module) => {
-              const Component = getModuleComponent(module.type)
-              if (!Component) return null
-              return (
-                <section
-                  key={module.id}
-                  className="container mx-auto px-4 sm:px-6 lg:px-8 py-8"
-                  data-inline-module={module.id}
-                  data-inline-scope={module.scope || 'local'}
-                  data-inline-global-slug={module.globalSlug || undefined}
-                  data-inline-global-label={module.globalLabel || undefined}
-                >
-                  <Component {...module.props} __postId={post.id} __moduleId={module.id} />
-                </section>
-              )
-            })}
-          </main>
-          <SiteFooter />
-          <InlineOverlay />
-        </InlineEditorProvider>
-      ) : (
-        <>
-          <SiteHeader />
-          <main className="overflow-x-hidden">
-            {modules.map((module) => {
-              const Component = getModuleComponent(module.type)
-              if (!Component) return null
-              return (
-                <section key={module.id} className="container mx-auto px-4 sm:px-6 lg:px-8 py-8">
-                  <Component {...module.props} __postId={post.id} __moduleId={module.id} />
-                </section>
-              )
-            })}
-          </main>
-          <SiteFooter />
-        </>
-      )}
+
+      <InlineEditorProvider
+        postId={post.id}
+        post={post}
+        customFields={customFields}
+        abVariations={abVariations}
+        modules={modules.map((m) => ({
+          id: m.id,
+          scope: m.scope,
+          globalSlug: m.globalSlug,
+          globalLabel: m.globalLabel,
+          props: m.props,
+          sourceProps: m.sourceProps,
+          sourceOverrides: m.sourceOverrides,
+          reviewProps: m.reviewProps,
+          aiReviewProps: m.aiReviewProps,
+          overrides: m.overrides,
+          reviewOverrides: m.reviewOverrides,
+          aiReviewOverrides: m.aiReviewOverrides,
+          aiReviewAdded: (m as any).aiReviewAdded,
+        }))}
+      >
+        <SiteHeader />
+        <main className="overflow-x-hidden">
+          {modules.map((module) => {
+            const Component = getModuleComponent(module.type)
+            if (!Component) return null
+            return (
+              <section
+                key={module.id}
+                className="container mx-auto px-4 sm:px-6 lg:px-8 py-8"
+                {...(isAuthenticated
+                  ? {
+                    'data-inline-module': module.id,
+                    'data-inline-scope': module.scope || 'local',
+                    'data-inline-global-slug': module.globalSlug || undefined,
+                    'data-inline-global-label': module.globalLabel || undefined,
+                  }
+                  : {})}
+              >
+                <Component {...module.props} __postId={post.id} __moduleId={module.id} />
+              </section>
+            )
+          })}
+        </main>
+        <SiteFooter />
+        {isAuthenticated && <InlineOverlay />}
+      </InlineEditorProvider>
     </>
   )
 }

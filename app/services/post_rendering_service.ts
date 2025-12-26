@@ -38,6 +38,8 @@ export interface AuthorData {
   id: number
   email: string
   fullName: string | null
+  profileUrl?: string | null
+  customFields?: Record<string, any>
 }
 
 /**
@@ -551,20 +553,58 @@ class PostRenderingService {
   /**
    * Load author data for a post
    */
-  async loadAuthor(authorId: number | null | undefined): Promise<AuthorData | null> {
+  async loadAuthor(
+    authorId: number | null | undefined,
+    options: { locale?: string; protocol?: string; host?: string } = {}
+  ): Promise<AuthorData | null> {
     if (!authorId) return null
+
+    const { locale, protocol = 'https', host = 'localhost' } = options
 
     try {
       const row = await db.from('users').where('id', authorId).first()
       if (row) {
-        return {
+        const author: AuthorData = {
           id: Number(row.id),
           email: row.email,
           fullName: row.full_name ?? null,
+          customFields: {},
         }
+
+        // Try to find a profile post for this user
+        // We look for a post of type 'profile' where author_id is this user
+        const profilePost = await Post.query()
+          .where('type', 'profile')
+          .where('authorId', authorId)
+          .where('status', 'published')
+          .if(locale, (q) => q.where('locale', locale!))
+          .first()
+
+        if (profilePost) {
+          // Resolve profile URL
+          author.profileUrl = await urlPatternService.buildPostUrlForPost(
+            profilePost.id,
+            protocol,
+            host
+          )
+
+          // Load custom fields for the profile
+          const cfRows = await db
+            .from('post_custom_field_values')
+            .where('post_id', profilePost.id)
+            .select('field_slug', 'value')
+
+          cfRows.forEach((cf) => {
+            if (author.customFields) {
+              author.customFields[cf.field_slug] = cf.value
+            }
+          })
+        }
+
+        return author
       }
-    } catch {
-      // Ignore errors
+    } catch (e) {
+      console.error('[PostRenderingService] Failed to load author:', e)
     }
     return null
   }
@@ -815,7 +855,11 @@ class PostRenderingService {
 
     // Load author
     const authorId = (post as any).authorId || (post as any).author_id
-    const author = await this.loadAuthor(authorId)
+    const author = await this.loadAuthor(authorId, {
+      locale: post.locale,
+      protocol: options.protocol,
+      host: options.host,
+    })
 
     // Resolve post fields (handles drafts and fallback logic)
     const postData = this.resolvePostFields(post, {
@@ -826,6 +870,7 @@ class PostRenderingService {
 
     const tokenContext = {
       post, // Use raw model (published/base values) for initial token resolution
+      author,
       siteSettings: siteSettingsWithMedia,
       customFields,
     }

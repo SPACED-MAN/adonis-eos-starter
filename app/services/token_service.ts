@@ -5,6 +5,7 @@
 
 export interface TokenContext {
   post?: any
+  author?: any
   siteSettings?: any
   customFields?: Record<string, any>
   [key: string]: any
@@ -67,13 +68,31 @@ export class TokenService {
       'metaTitle',
       'metaDescription',
       'canonicalUrl',
+      'publishedAt',
+      'updatedAt',
     ]
 
     // 1. Check for post fields directly
     if (context.post) {
       // Handle both plain objects and Lucid models
       const post = context.post
-      const postValue = typeof post.toObject === 'function' ? post.toObject()[normalizedName] : post[normalizedName]
+      let postValue =
+        typeof post.toObject === 'function' ? post.toObject()[normalizedName] : post[normalizedName]
+      
+      // Special handling for dates
+      if (postValue && (normalizedName === 'publishedAt' || normalizedName === 'updatedAt')) {
+        try {
+          // If it's a Luxon object or Date, format it
+          if (typeof postValue.toFormat === 'function') {
+            postValue = postValue.toFormat('yyyy-MM-dd HH:mm')
+          } else if (postValue instanceof Date) {
+            postValue = postValue.toISOString()
+          }
+        } catch {
+          // Fallback to original value
+        }
+      }
+
       if (postValue !== undefined && postValue !== null) {
         // Prevent self-referencing tokens
         const strVal = String(postValue)
@@ -87,7 +106,30 @@ export class TokenService {
       }
     }
 
-    // 2. Check for custom fields (e.g. {custom.my_field})
+    // 2. Author tokens
+    if (tokenName.startsWith('author.')) {
+      if (!context.author) return ''
+      const subKey = tokenName.replace('author.', '')
+
+      if (subKey === 'name') return context.author.fullName || context.author.email
+      if (subKey === 'email') return context.author.email
+      if (subKey === 'link') {
+        const name = context.author.fullName || context.author.email
+        if (context.author.profileUrl) {
+          return `<a href="${context.author.profileUrl}">${name}</a>`
+        }
+        return name
+      }
+      if (subKey === 'profileUrl') return context.author.profileUrl || ''
+
+      // Author custom fields (e.g. {author.custom.bio})
+      if (subKey.startsWith('custom.')) {
+        const cfSlug = subKey.replace('custom.', '')
+        return context.author.customFields?.[cfSlug] || ''
+      }
+    }
+
+    // 3. Check for custom fields (e.g. {custom.my_field})
     if (tokenName.startsWith('custom.')) {
       const slug = tokenName.replace('custom.', '')
       if (context.customFields && context.customFields[slug] !== undefined) {
@@ -100,11 +142,11 @@ export class TokenService {
       }
     }
 
-    // 3. System tokens
+    // 4. System tokens
     if (tokenName === 'now') return new Date().toISOString()
     if (tokenName === 'year') return new Date().getFullYear().toString()
 
-    // 4. Site settings (e.g. {settings.siteName})
+    // 5. Site settings (e.g. {settings.siteName})
     if (tokenName.startsWith('settings.')) {
       const key = tokenName.replace('settings.', '')
       if (context.siteSettings && context.siteSettings[key] !== undefined) {

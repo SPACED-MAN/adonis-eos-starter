@@ -136,10 +136,10 @@ class FindReplaceService {
               .first()
           } else {
             countResult = await db
-              .from(table.name)
-              .whereRaw(`CAST(?? AS TEXT) LIKE ?`, [column, `%${search}%`])
-              .count('* as count')
-              .first()
+            .from(table.name)
+            .whereRaw(`CAST(?? AS TEXT) LIKE ?`, [column, `%${search}%`])
+            .count('* as count')
+            .first()
           }
           
           const matches = Number(countResult?.count || 0)
@@ -153,13 +153,13 @@ class FindReplaceService {
                 const castType = this.getColumnTypeForCast(table.name, column)
                 // Use rawQuery to avoid Lucid's serialization of Raw objects in .update()
                 if (caseSensitive) {
-                  const result = await db.rawQuery(
-                    `UPDATE "${table.name}" 
-                     SET "${column}" = REPLACE(CAST("${column}" AS TEXT), ?, ?)::${castType} 
-                     WHERE CAST("${column}" AS TEXT) LIKE ?`,
-                    [search, replace, `%${search}%`]
-                  )
-                  affected = result.rowCount || 0
+                const result = await db.rawQuery(
+                  `UPDATE "${table.name}" 
+                   SET "${column}" = REPLACE(CAST("${column}" AS TEXT), ?, ?)::${castType} 
+                   WHERE CAST("${column}" AS TEXT) LIKE ?`,
+                  [search, replace, `%${search}%`]
+                )
+                affected = result.rowCount || 0
                 } else {
                   // Case-insensitive replace in PG using regexp_replace
                   // Escape search string for regex

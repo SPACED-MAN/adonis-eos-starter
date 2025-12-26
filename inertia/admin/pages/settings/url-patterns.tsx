@@ -145,9 +145,9 @@ export default function UrlPatternsPage() {
           if (p.postType === postType) {
             next[idx] = { ...p, aggregatePostId: json.data.aggregatePostId }
             if (p.locale === locale && p.isDefault) {
-              next[idx] = json.data
+          next[idx] = json.data
             }
-          }
+        }
         })
         return next
       })

@@ -98,11 +98,6 @@ CRITICAL: You must respond with a JSON object ONLY. No conversational text.`,
       scope: 'global',
       order: 1,
       enabled: false,
-    },
-    {
-      scope: 'post.publish', // Run automatically when a post is published
-      order: 1,
-      enabled: true,
     }
   ],
 

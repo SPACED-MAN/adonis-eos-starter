@@ -120,14 +120,18 @@ export function InlineEditorProvider({
   const permissions: string[] = (page.props as any)?.permissions || []
   const canEdit = permissions.includes('posts.edit')
   const [enabled, setEnabled] = useState(false)
-  const [mode, setMode] = useState<Mode>(() => {
+  const [mode, setMode] = useState<Mode>('source')
+
+  // Initialize mode from URL on mount
+  useEffect(() => {
     if (typeof window !== 'undefined') {
       const params = new URLSearchParams(window.location.search)
       const v = params.get('view')
-      if (v === 'review' || v === 'ai-review' || v === 'source') return v as Mode
+      if (v === 'review' || v === 'ai-review' || v === 'source') {
+        setMode(v as Mode)
+      }
     }
-    return 'source'
-  })
+  }, [])
 
   // Update mode if URL changes (e.g. via browser back/forward)
   useEffect(() => {

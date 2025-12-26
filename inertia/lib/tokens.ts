@@ -7,7 +7,7 @@ export interface TokenDefinition {
   name: string
   label: string
   description?: string
-  category: 'post' | 'system' | 'custom' | 'settings'
+  category: 'post' | 'system' | 'custom' | 'settings' | 'author'
 }
 
 export const SYSTEM_TOKENS: TokenDefinition[] = [
@@ -17,6 +17,14 @@ export const SYSTEM_TOKENS: TokenDefinition[] = [
   { name: 'locale', label: 'Locale', category: 'post', description: 'The current language/locale code (e.g. en, es)' },
   { name: 'type', label: 'Post Type', category: 'post', description: 'The content type slug (e.g. page, blog)' },
   { name: 'id', label: 'Post ID', category: 'post', description: 'The unique UUID of the post' },
+  { name: 'publishedAt', label: 'Published Date', category: 'post', description: 'The date the post was published' },
+  { name: 'updatedAt', label: 'Updated Date', category: 'post', description: 'The date the post was last updated' },
+  { name: 'author.name', label: 'Author Name', category: 'author', description: 'Full name or email of the author' },
+  { name: 'author.link', label: 'Author Link', category: 'author', description: 'Linked author name (if profile exists)' },
+  { name: 'author.email', label: 'Author Email', category: 'author', description: 'Email address of the author' },
+  { name: 'author.custom.first_name', label: 'Author First Name', category: 'author', description: 'First name from author profile' },
+  { name: 'author.custom.last_name', label: 'Author Last Name', category: 'author', description: 'Last name from author profile' },
+  { name: 'author.custom.bio', label: 'Author Bio', category: 'author', description: 'Bio from author profile' },
   { name: 'now', label: 'Current Date', category: 'system', description: 'The current date and time' },
   { name: 'year', label: 'Current Year', category: 'system', description: 'The current year (e.g. 2025)' },
   { name: 'settings.siteTitle', label: 'Site Title', category: 'settings', description: 'Global site title' },
@@ -80,6 +88,8 @@ export class TokenService {
       'metaTitle',
       'metaDescription',
       'canonicalUrl',
+      'publishedAt',
+      'updatedAt',
     ]
 
     // 1. Check for post fields directly
@@ -98,7 +108,30 @@ export class TokenService {
       }
     }
 
-    // 2. Check for custom fields (e.g. {custom.my_field})
+    // 2. Author tokens
+    if (tokenName.startsWith('author.')) {
+      if (!context.author) return ''
+      const subKey = tokenName.replace('author.', '')
+
+      if (subKey === 'name') return context.author.fullName || context.author.email
+      if (subKey === 'email') return context.author.email
+      if (subKey === 'link') {
+        const name = context.author.fullName || context.author.email
+        if (context.author.profileUrl) {
+          return `<a href="${context.author.profileUrl}">${name}</a>`
+        }
+        return name
+      }
+      if (subKey === 'profileUrl') return context.author.profileUrl || ''
+
+      // Author custom fields (e.g. {author.custom.bio})
+      if (subKey.startsWith('custom.')) {
+        const cfSlug = subKey.replace('custom.', '')
+        return context.author.customFields?.[cfSlug] || ''
+      }
+    }
+
+    // 3. Check for custom fields (e.g. {custom.my_field})
     if (tokenName.startsWith('custom.')) {
       const slug = tokenName.replace('custom.', '')
       if (context.customFields && context.customFields[slug] !== undefined) {

@@ -31,6 +31,7 @@ export function TokenPicker({ onSelect, customFields, trigger }: TokenPickerProp
     system: faCube,
     custom: faPuzzlePiece,
     settings: faCube,
+    author: faCube, // Using faCube for author for now, or I could use faUser if available
   }
 
   const categoryLabels = {
@@ -38,6 +39,7 @@ export function TokenPicker({ onSelect, customFields, trigger }: TokenPickerProp
     system: 'System',
     custom: 'Custom Fields',
     settings: 'Site Settings',
+    author: 'Author Info',
   }
 
   return (
