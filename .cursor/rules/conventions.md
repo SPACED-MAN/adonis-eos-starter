@@ -1,8 +1,11 @@
 # Code Conventions & Standards
 
-## Core Principle
+## Core Principles
 
-**Follow official framework documentation and established conventions.**
+1. **Follow Framework Conventions** - Always reference official AdonisJS v6, React, and Tailwind documentation.
+2. **KISS (Keep It Simple, Stupid)** - Prefer simple, readable solutions over clever, complex ones. Avoid over-engineering.
+3. **YAGNI (You Ain't Gonna Need It)** - Don't implement features or abstractions until they are actually needed.
+4. **DRY (Don't Repeat Yourself)** - See [DRY & Reuse](./dry-reuse.md) for detailed guidelines.
 
 ## Framework Documentation Priority
 
@@ -17,6 +20,13 @@
 
 **Official docs:** https://docs.adonisjs.com/guides/introduction
 
+### React & Frontend
+
+- ✅ Use ShadCN components for Admin UI
+- ✅ Follow Tailwind CSS utility-first patterns
+- ✅ Prefer functional components and hooks
+- ✅ Use Inertia.js conventions for data fetching and navigation
+
 ## When Proposing Solutions
 
 1. **Check official docs first** - Is there a recommended way to do this?
@@ -30,16 +40,17 @@
 Ask yourself:
 
 1. "Does this follow the official documentation?"
-2. "Am I breaking any established conventions?"
-3. "Is there a built-in way to do this?"
-4. "Does this fit the existing architecture?"
-5. "Do I need to write tests for this?" (Answer: Yes!)
+2. "Is this the simplest solution possible (KISS)?"
+3. "Do I actually need this abstraction right now (YAGNI)?"
+4. "Is there a built-in way to do this?"
+5. "Does this fit the existing architecture?"
 
 **When in doubt, check the official docs!**
 
 ## Related Guidelines
 
-- **Actions:** See `.cursor/rules/actions.md` for action-based controller patterns
-- **Testing:** See `.cursor/rules/testing.md` for comprehensive testing guidelines
-- **Documentation:** See `.cursor/rules/documentation.md` for documentation standards
-- **UI Components:** See `.cursor/rules/ui-components.md` for component patterns
+- **Actions:** See `./actions.md` for action-based controller patterns
+- **Testing:** See `./testing.md` for comprehensive testing guidelines
+- **Documentation:** See `./documentation.md` for documentation standards
+- **UI Components:** See `./ui-components.md` for component patterns
+- **DRY & Reuse:** See `./dry-reuse.md` for code reuse principles

@@ -2,7 +2,7 @@
 
 ## Core Principle
 
-**Write tests using AdonisJS + Japa conventions. Tests are mandatory for new features.**
+**Write tests using AdonisJS + Japa conventions. Tests are mandatory for new features and critical flows.**
 
 ## Testing Framework
 
@@ -262,29 +262,33 @@ const response = await client.get('/api/protected').loginAs(user)
 response.assertStatus(200)
 ```
 
-## Coverage & Quality
+## Quality & Automation
 
-### Test Coverage Goals
+- **Mandatory for PRs:** CI should run `node ace test` on each PR to `main`.
+- **Idempotency:** Ensure tests are idempotent and clean up any data they create. Use transactions (`db.beginGlobalTransaction()`) for unit tests and truncate (`testUtils.db().truncate()`) for functional tests.
+- **Coverage Goals:**
+  - Models: 100% of public methods
+  - Services: 100% of business logic
+  - Controllers: All API endpoints
+  - Helpers: All utility functions
 
-- **Models:** 100% of public methods
-- **Services:** 100% of business logic
-- **Controllers:** All API endpoints
-- **Helpers:** All utility functions
+## What to Test
 
-### What to Test
+✅ **Critical Flows & Security:**
+- Core services (e.g., `ActivityLogService`)
+- Critical flows (e.g., scheduling auto-publish, code-first config behaviors)
+- RBAC-sensitive operations (e.g., destructive routes, restricted fields)
+- Authentication/authorization logic
 
-✅ **DO Test:**
-
+✅ **Data & Logic:**
 - Model methods and relationships
 - Service business logic
 - API endpoints (success and error cases)
 - Validation rules
-- Authentication/authorization
 - Helper functions
 - Query scopes
 
 ❌ **DON'T Test:**
-
 - Framework internals
 - Third-party libraries
 - Simple getters/setters

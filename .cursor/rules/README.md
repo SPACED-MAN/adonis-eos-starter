@@ -14,58 +14,62 @@ This directory contains coding guidelines and conventions for the Adonis EOS pro
 
 2. **[conventions.md](./conventions.md)** - Core coding standards and framework conventions
    - AdonisJS patterns and best practices
-   - When to check official documentation
-   - Project architecture guidelines
+   - **KISS** & **YAGNI** principles
+   - Framework documentation priority
 
-3. **[actions.md](./actions.md)** - Action-based controller patterns
+3. **[dry-reuse.md](./dry-reuse.md)** - **⭐ DRY** - Code and UI reuse principles
+   - Single source of truth
+   - Shared component patterns
+   - Logic reuse via Actions
+
+4. **[actions.md](./actions.md)** - Action-based controller patterns
    - Single-responsibility action classes
    - Avoiding fat controllers
    - Dependency injection patterns
    - When to use actions vs services
 
-4. **[testing.md](./testing.md)** - Comprehensive testing guidelines
+5. **[testing.md](./testing.md)** - Comprehensive testing guidelines
    - Unit and functional test patterns
    - Test organization and structure
    - Database testing strategies
-   - Common testing patterns
+   - CI/CD automation requirements
 
-5. **[modules.md](./modules.md)** - Module system development guide
+6. **[modules.md](./modules.md)** - Module system development guide
    - Creating content modules
    - Module architecture and rationale
    - SSR rendering patterns
    - i18n support in modules
-   - Testing modules
+   - [Module Catalog](./module_catalog.md) requirements
 
-6. **[theming.md](./theming.md)** - **⭐ DESIGN SYSTEM** - Theming and color palette
+7. **[theming.md](./theming.md)** - **⭐ DESIGN SYSTEM** - Theming and color palette
    - Centralized theme configuration
    - Semantic color tokens
    - Admin vs Site themes
    - Dark/light mode support
    - Migration guide
 
-7. **[documentation.md](./documentation.md)** - Documentation standards
+8. **[documentation.md](./documentation.md)** - Documentation standards
    - Code documentation requirements
    - README and API documentation
    - Comment guidelines
 
-8. **[ui-components.md](./ui-components.md)** - UI/UX patterns
+9. **[ui-components.md](./ui-components.md)** - UI/UX patterns
    - Sonner toast notifications
    - Component structure
    - Styling conventions
    - Accessibility guidelines
 
-9. **[separation-of-concerns.md](./separation-of-concerns.md)** - **⭐ ARCHITECTURE** - Separation of concerns
-   - Post-type-specific logic delegation
-   - URL pattern handling
-   - Controller/service boundaries
-   - Preventing hardcoded patterns
+10. **[separation-of-concerns.md](./separation-of-concerns.md)** - **⭐ ARCHITECTURE** - Separation of concerns
+    - Post-type-specific logic delegation
+    - URL pattern handling
+    - Controller/service boundaries
+    - Preventing hardcoded patterns
 
-10. **[seeding.md](./seeding.md)** - **⭐ DATA INTEGRITY** - Database seeding best practices
-
-- Use actions/APIs, not direct inserts
-- Respect module schemas
-- Template-based seeding
-- AI agent compatibility
+11. **[seeding.md](./seeding.md)** - **⭐ DATA INTEGRITY** - Database seeding best practices
+    - Use actions/APIs, not direct inserts
+    - Respect module schemas
+    - Template-based seeding
+    - AI agent compatibility
 
 ## Actions Quick Start
 

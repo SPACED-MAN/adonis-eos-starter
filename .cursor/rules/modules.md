@@ -614,9 +614,11 @@ console.log(module.validate(props)) // See validation result
 
 ## Related Guidelines
 
-- [Testing Guide](.cursor/rules/testing.md) - Testing strategies
-- [Conventions](.cursor/rules/conventions.md) - Code style
-- [Actions](.cursor/rules/actions.md) - Business logic patterns
+- [Testing Guide](./testing.md) - Testing strategies
+- [Conventions](./conventions.md) - Code style
+- [Actions](./actions.md) - Business logic patterns
+- [DRY & Reuse](./dry-reuse.md) - Code and UI reuse principles
+- [Module Catalog](./module_catalog.md) - Visual QA helper page
 
 ---
 

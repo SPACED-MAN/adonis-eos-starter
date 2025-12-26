@@ -241,7 +241,7 @@ Seeders should use the same endpoints/actions that AI agents use:
 ## Related Rules
 
 - See `.cursor/rules/separation-of-concerns.md` for URL pattern handling
-- See `.cursor/rules/dry.md` for avoiding duplication
+- See `.cursor/rules/dry-reuse.md` for avoiding duplication
 - See `.cursor/rules/modules.md` for module development
 
 ---
