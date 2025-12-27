@@ -1,8 +1,14 @@
-import { useEffect, useMemo, useState } from 'react'
+import { useEffect, useMemo, useState, useCallback } from 'react'
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome'
-import { faWrench, faXmark, faHighlighter, faGlobe } from '@fortawesome/free-solid-svg-icons'
+import { faWrench, faXmark, faHighlighter, faGlobe, faMessage } from '@fortawesome/free-solid-svg-icons'
 import { router } from '@inertiajs/react'
 import { DevTools } from '../../admin/components/DevTools'
+import { FeedbackPanel } from '~/components/FeedbackPanel'
+import { FeedbackMarkers } from '~/components/FeedbackMarkers'
+import {
+  Sheet,
+  SheetContent,
+} from '~/components/ui/sheet'
 import {
   Select,
   SelectContent,
@@ -103,11 +109,167 @@ export function SiteAdminBar({ initialProps }: { initialProps?: any }) {
   const isAuthenticated =
     !!currentUser && ['admin', 'editor', 'translator'].includes(String(currentUser.role || ''))
   const [open, setOpen] = useState(false)
+  const [feedbackOpen, setFeedbackOpen] = useState(false)
+  const [selectedFeedbackId, setSelectedFeedbackId] = useState<string | null>(null)
+  const [contextMenu, setContextMenu] = useState<{ x: number, y: number, selector: string } | null>(null)
+  const [feedbacks, setFeedbacks] = useState<any[]>([])
 
-  if (!isAuthenticated) return null
+  const fetchFeedbacks = useCallback(async () => {
+    if (!post?.id) return
+    try {
+      const mode = inline.mode === 'source' ? 'approved' : inline.mode
+      const res = await fetch(`/api/feedbacks?postId=${post.id}&mode=${mode}`, {
+        headers: { Accept: 'application/json' },
+      })
+      if (res.ok) {
+        const data = await res.json()
+        setFeedbacks(data)
+      }
+    } catch (error) {
+      console.error('Failed to fetch feedbacks', error)
+    }
+  }, [post?.id, inline.mode])
 
-  return !mounted ? null : (
+  useEffect(() => {
+    if (isAuthenticated && post?.id) {
+      fetchFeedbacks()
+    }
+    const handler = () => fetchFeedbacks()
+    window.addEventListener('feedback:created', handler)
+    return () => window.removeEventListener('feedback:created', handler)
+  }, [isAuthenticated, fetchFeedbacks, inline.mode, post?.id])
+
+  useEffect(() => {
+    if (!isAuthenticated) return
+
+    const handleContextMenu = (e: MouseEvent) => {
+      // Don't show if clicking on admin UI elements
+      const target = e.target as HTMLElement
+      if (target.closest('.z-50') || target.closest('.admin-ui')) return
+
+      e.preventDefault()
+      
+      const moduleEl = target.closest('[data-inline-module]') as HTMLElement
+      const fieldEl = target.closest('[data-inline-path]') as HTMLElement
+      
+      let selector = ''
+      if (fieldEl) {
+        const moduleId = moduleEl?.dataset.inlineModule
+        const path = fieldEl.dataset.inlinePath
+        
+        // If the same element has both, don't use a space
+        if (fieldEl === moduleEl) {
+          selector = `[data-inline-module="${moduleId}"][data-inline-path="${path}"]`
+        } else {
+          selector = `[data-inline-module="${moduleId}"] [data-inline-path="${path}"]`
+        }
+      } else if (moduleEl) {
+        const moduleId = moduleEl.dataset.inlineModule
+        selector = `[data-inline-module="${moduleId}"]`
+      } else {
+        selector = target.tagName.toLowerCase()
+        if (target.id) {
+          selector += `#${CSS.escape(target.id)}`
+        } else if (target.className && typeof target.className === 'string') {
+          const classes = target.className
+            .split(/\s+/)
+            .filter(c => c && !c.includes(':') && !c.includes('[') && !c.includes('/'))
+            .map(c => `.${CSS.escape(c)}`)
+            .join('')
+          selector += classes
+        }
+      }
+
+      setContextMenu({
+        x: e.clientX,
+        y: e.clientY,
+        selector
+      })
+    }
+
+    const handleClick = () => setContextMenu(null)
+
+    document.addEventListener('contextmenu', handleContextMenu)
+    document.addEventListener('click', handleClick)
+    return () => {
+      document.removeEventListener('contextmenu', handleContextMenu)
+      document.removeEventListener('click', handleClick)
+    }
+  }, [isAuthenticated])
+
+  useEffect(() => {
+    if (!mounted) return
+    const url = new URL(window.location.href)
+    const feedbackId = url.searchParams.get('feedback_id')
+    const inlineMode = url.searchParams.get('inline_mode')
+
+    if (feedbackId) {
+      setSelectedFeedbackId(feedbackId)
+      setFeedbackOpen(true)
+      
+      // Clean up URL without reload
+      url.searchParams.delete('feedback_id')
+      if (inlineMode) url.searchParams.delete('inline_mode')
+      window.history.replaceState({}, '', url.toString())
+    }
+
+    if (inlineMode && (inlineMode === 'review' || inlineMode === 'ai-review')) {
+      inline.setMode(inlineMode)
+    }
+  }, [mounted, inline.setMode])
+
+  // Auto-scroll to feedback on page when selected via URL or clicking dot
+  useEffect(() => {
+    if (!selectedFeedbackId || feedbacks.length === 0) return
+
+    const f = feedbacks.find(fb => fb.id === selectedFeedbackId)
+    if (!f) return
+
+    let context = f.context
+    if (typeof context === 'string') {
+      try { context = JSON.parse(context) } catch (e) { }
+    }
+    
+    if (!context?.selector) return
+
+    // Use a small delay and multiple attempts to ensure DOM is ready
+    let attempts = 0
+    const tryScroll = () => {
+      const el = document.querySelector(context.selector)
+      if (el) {
+        const rect = el.getBoundingClientRect()
+        const isInViewport = rect.top >= 0 && rect.bottom <= window.innerHeight
+        
+        if (!isInViewport) {
+          el.scrollIntoView({ behavior: 'smooth', block: 'center' })
+        }
+        
+        el.classList.add('ring-2', 'ring-standout-medium', 'ring-offset-2')
+        setTimeout(() => {
+          el.classList.remove('ring-2', 'ring-standout-medium', 'ring-offset-2')
+        }, 3000)
+      } else if (attempts < 5) {
+        attempts++
+        setTimeout(tryScroll, 200)
+      }
+    }
+
+    tryScroll()
+  }, [selectedFeedbackId, feedbacks])
+
+  if (!mounted) return null
+
+  return (
     <>
+      <FeedbackMarkers 
+        feedbacks={feedbacks} 
+        onMarkerClick={(f) => {
+          setSelectedFeedbackId(f.id)
+          setFeedbackOpen(true)
+        }} 
+        visible={true}
+        activeId={selectedFeedbackId}
+      />
       {/* Unified bottom bar */}
       <div
         className="fixed z-50 flex items-center gap-2 pointer-events-auto"
@@ -227,6 +389,13 @@ export function SiteAdminBar({ initialProps }: { initialProps?: any }) {
             </Tooltip>
           )}
           <button
+            aria-label="Feedback"
+            onClick={() => setFeedbackOpen(true)}
+            className={`px-3 py-2 text-xs font-medium border-r border-line-medium ${feedbackOpen ? 'bg-standout-medium text-on-standout' : 'text-neutral-high hover:bg-backdrop-medium'}`}
+          >
+            <FontAwesomeIcon icon={faMessage} />
+          </button>
+          <button
             aria-label="Admin tools"
             onClick={() => setOpen((v) => !v)}
             className="px-3 py-2 text-xs font-medium text-neutral-high hover:bg-backdrop-medium"
@@ -312,6 +481,64 @@ export function SiteAdminBar({ initialProps }: { initialProps?: any }) {
           </div>
         </div>
       )}
+
+      {/* Context Menu */}
+      {contextMenu && (
+        <div
+          className="fixed z-[100] bg-backdrop-high border border-line-medium shadow-xl rounded-lg overflow-hidden py-1 min-w-[160px]"
+          style={{ top: contextMenu.y, left: contextMenu.x }}
+        >
+          <button
+            onClick={() => {
+              setFeedbackOpen(true)
+              // Don't clear contextMenu here, clear it when the dialog closes
+            }}
+            className="w-full text-left px-4 py-2 text-[11px] font-bold hover:bg-backdrop-medium text-neutral-high flex items-center gap-2 uppercase tracking-wider"
+          >
+            <FontAwesomeIcon icon={faMessage} className="text-standout-medium" />
+            Add Feedback here
+          </button>
+        </div>
+      )}
+
+      {/* Feedback Sidebar/Panel */}
+      <Sheet open={feedbackOpen} onOpenChange={(v) => {
+        setFeedbackOpen(v)
+        if (!v) {
+          setContextMenu(null)
+          setSelectedFeedbackId(null)
+          fetchFeedbacks()
+        }
+      }} modal={false}>
+        <SheetContent hideOverlay side="right" className="sm:max-w-[425px] h-full p-0 overflow-hidden flex flex-col border-l border-line-low shadow-2xl bg-backdrop-high/95 backdrop-blur-md pointer-events-auto">
+          <FeedbackPanel
+            postId={post?.id}
+            mode={inline.mode === 'source' ? 'approved' : inline.mode}
+            initialContext={contextMenu ? { selector: contextMenu.selector } : null}
+            highlightId={selectedFeedbackId}
+            onSelect={(id) => setSelectedFeedbackId(id)}
+            onClose={() => {
+              setFeedbackOpen(false)
+              setContextMenu(null)
+              setSelectedFeedbackId(null)
+            }}
+            onJumpToSpot={(ctx, fbId) => {
+              if (ctx.selector) {
+                const el = document.querySelector(ctx.selector)
+                if (el) {
+                  el.scrollIntoView({ behavior: 'smooth', block: 'center' })
+                  el.classList.add('ring-2', 'ring-standout-medium', 'ring-offset-2')
+                  setTimeout(() => {
+                    el.classList.remove('ring-2', 'ring-standout-medium', 'ring-offset-2')
+                  }, 3000)
+                }
+              }
+              if (fbId) setSelectedFeedbackId(fbId)
+              // Don't close the sheet when jumping to spot, so the user can still see other feedback
+            }}
+          />
+        </SheetContent>
+      </Sheet>
     </>
   )
 }

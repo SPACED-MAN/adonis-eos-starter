@@ -66,6 +66,9 @@ import {
   faSpinner,
   faLink,
   faBrain,
+  faLocationArrow,
+  faCheck,
+  faMessage,
 } from '@fortawesome/free-solid-svg-icons'
 import { getXsrf } from '~/utils/xsrf'
 import { LinkField, type LinkFieldValue } from '~/components/forms/LinkField'
@@ -73,6 +76,8 @@ import { useHasPermission } from '~/utils/permissions'
 import { useMediaUrl } from '../../../utils/useMediaUrl'
 import { MediaThumb } from '../../components/media/MediaThumb'
 import { AgentModal, type Agent } from '../../components/agents/AgentModal'
+import { FeedbackPanel } from '~/components/FeedbackPanel'
+import { FeedbackMarkers } from '~/components/FeedbackMarkers'
 // Field components are auto-discovered via Vite glob below
 
 const flattenTerms = (
@@ -2044,6 +2049,8 @@ export default function Editor({
     }>
   >([])
   const [loadingRevisions, setLoadingRevisions] = useState(false)
+  const [feedbacks, setFeedbacks] = useState<any[]>([])
+  const [selectedFeedbackId, setSelectedFeedbackId] = useState<string | null>(null)
   // Agents
   const [agents, setAgents] = useState<
     Array<{
@@ -2121,6 +2128,25 @@ export default function Editor({
     }
     loadRevisions()
 
+    async function fetchFeedbacks() {
+      try {
+        const res = await fetch(`/api/feedbacks?postId=${post.id}&mode=${viewMode === 'source' ? 'approved' : viewMode}`, {
+          headers: { Accept: 'application/json' },
+          credentials: 'same-origin',
+        })
+        if (res.ok) {
+          const json = await res.json().catch(() => [])
+          if (alive) setFeedbacks(json)
+        }
+      } catch (err) {
+        console.error('Failed to fetch feedbacks', err)
+      }
+    }
+    fetchFeedbacks()
+
+    const feedbackHandler = () => fetchFeedbacks()
+    window.addEventListener('feedback:created', feedbackHandler)
+
     // Load AB Stats
     if (uiConfig.abTesting?.enabled) {
       fetch(`/api/posts/${post.id}/ab-stats`, { credentials: 'same-origin' })
@@ -2133,8 +2159,9 @@ export default function Editor({
 
     return () => {
       alive = false
+      window.removeEventListener('feedback:created', feedbackHandler)
     }
-  }, [post.id, uiConfig.abTesting?.enabled])
+  }, [post.id, viewMode, uiConfig.abTesting?.enabled])
 
   // Load agents
   useEffect(() => {
@@ -2985,6 +3012,14 @@ export default function Editor({
 
   return (
     <div className="min-h-screen bg-backdrop-medium">
+      <FeedbackMarkers
+        feedbacks={feedbacks}
+        activeId={selectedFeedbackId}
+        onMarkerClick={(f) => {
+          setSelectedFeedbackId(f.id)
+          // Could scroll to feedback in sidebar
+        }}
+      />
       <AdminHeader
         title={`Edit ${post.type ? humanizeSlug(post.type) : 'Post'}${post.abVariation && abVariations.length > 1 ? ` (Var ${post.abVariation})` : ''}`}
       />
@@ -5255,6 +5290,30 @@ export default function Editor({
                   ))}
                 </ul>
               )}
+            </div>
+
+            {/* Feedback */}
+            <div className="bg-backdrop-low rounded-lg shadow border border-border overflow-hidden">
+              <FeedbackPanel
+                postId={post.id}
+                mode={viewMode === 'source' ? 'approved' : viewMode}
+                highlightId={selectedFeedbackId}
+                onSelect={(id) => setSelectedFeedbackId(id)}
+                onJumpToSpot={(ctx, fbId) => {
+                  if (ctx.selector) {
+                    const url = new URL(post.publicPath, window.location.origin)
+                    url.searchParams.set('feedback_id', fbId)
+                    // If we're in a specific variation or mode, pass that along
+                    if (post.abVariation) {
+                      url.searchParams.set('variation_id', post.id)
+                    }
+                    if (viewMode !== 'source') {
+                      url.searchParams.set('inline_mode', viewMode)
+                    }
+                    window.location.href = url.toString()
+                  }
+                }}
+              />
             </div>
 
             {/* Import / Export (Admin only) */}

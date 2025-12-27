@@ -14,6 +14,7 @@ Perfect for non-technical users who create and manage content:
 - [Managing Media](editors/04-media.md) - Uploading and organizing images
 - [Translations](editors/05-translations.md) - Multi-language content
 - [SEO & A/B Testing](editors/07-seo-and-ab-testing.md) - Optimizing for search and conversion
+- [Providing Feedback](editors/08-feedback.md) - Collaborative review and bug tracking
 
 ## For Developers
 

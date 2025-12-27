@@ -268,6 +268,13 @@ router
     router.post('/posts/:id/revisions/:revId/revert', [PostsRevisionsController, 'revert'])
     router.post('/posts/:id/revisions/:revId/compare', [PostsRevisionsController, 'compare'])
 
+    // Feedback
+    const FeedbacksController = () => import('#controllers/feedbacks_controller')
+    router.get('/feedbacks', [FeedbacksController, 'index'])
+    router.post('/feedbacks', [FeedbacksController, 'store'])
+    router.patch('/feedbacks/:id', [FeedbacksController, 'update'])
+    router.delete('/feedbacks/:id', [FeedbacksController, 'destroy'])
+
     // Export/Import
     router.get('/posts/:id/export', [PostsExportController, 'exportJson'])
     router.post('/posts/import', [PostsExportController, 'importCreate'])

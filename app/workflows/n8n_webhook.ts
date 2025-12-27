@@ -43,6 +43,11 @@ const N8nWebhookWorkflow: WorkflowDefinition = {
       order: 10,
       enabled: true,
     },
+    {
+      trigger: 'feedback.created',
+      order: 10,
+      enabled: true,
+    },
   ],
 
   userAccount: {

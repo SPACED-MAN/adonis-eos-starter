@@ -20,6 +20,7 @@ export type WorkflowTrigger =
   | 'agent.completed' // AI agent execution completes
   | 'workflow.completed' // Another workflow completes
   | 'manual' // Manual trigger only (via UI)
+  | 'feedback.created' // Feedback is created
 
 /**
  * Configuration for webhook-based workflows

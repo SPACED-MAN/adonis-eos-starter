@@ -35,12 +35,15 @@ createInertiaApp({
 
     const initialIsDark = (props.initialPage?.props as any)?.isDark
 
+    const currentUser = (props.initialPage?.props as any)?.currentUser
+    const isAuthenticated = !!currentUser && ['admin', 'editor', 'translator'].includes(String(currentUser.role || ''))
+
     hydrateRoot(
       el,
       <ThemeProvider initialIsDark={initialIsDark}>
         <TooltipProvider>
           <App {...props} />
-          <SiteAdminBar initialProps={props.initialPage.props} />
+          {isAuthenticated && <SiteAdminBar initialProps={props.initialPage.props} />}
         </TooltipProvider>
       </ThemeProvider>
     )
