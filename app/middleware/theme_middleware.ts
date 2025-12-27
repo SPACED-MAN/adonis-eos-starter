@@ -14,4 +14,3 @@ export default class ThemeMiddleware {
     return next()
   }
 }
-

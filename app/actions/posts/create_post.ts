@@ -67,7 +67,7 @@ export default class CreatePost {
     // Enforce: post types must be defined in code (app/post_types/* or registered in PostTypeRegistry)
     const isRegistered = postTypeRegistry.has(type)
     const isBuiltIn = type === 'profile'
-    
+
     if (!isRegistered && !isBuiltIn) {
       throw new CreatePostException(
         `Unknown post type: ${type}. Available types: ${postTypeRegistry.list().join(', ')}`,
@@ -141,10 +141,10 @@ export default class CreatePost {
         } else {
           // 3. Fallbacks: use most recently updated
           const candidate = await db
-          .from('module_groups')
-          .where({ post_type: type })
-          .orderBy('updated_at', 'desc')
-          .select('id')
+            .from('module_groups')
+            .where({ post_type: type })
+            .orderBy('updated_at', 'desc')
+            .select('id')
             .first()
 
           if (candidate) {

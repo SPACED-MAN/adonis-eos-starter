@@ -43,7 +43,11 @@ export default class FormsController {
     let abVariation: string | null = null
 
     if (originPostId) {
-      const post = await db.from('posts').where('id', originPostId).select('ab_group_id', 'id').first()
+      const post = await db
+        .from('posts')
+        .where('id', originPostId)
+        .select('ab_group_id', 'id')
+        .first()
       if (post) {
         abGroupId = post.ab_group_id || post.id
         const cookieName = `ab_group_${abGroupId}`

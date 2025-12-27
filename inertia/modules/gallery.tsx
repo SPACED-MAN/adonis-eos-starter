@@ -105,7 +105,9 @@ export default function Gallery({
       {images.map((item, idx) => {
         // EOS resolves the media ID to a full object. Because the field slug was 'url',
         // item.url will be the media object if resolved, or a string if not.
-        const media = (typeof item.url === 'object' && item.url !== null ? item.url : null) as MediaObject | null
+        const media = (
+          typeof item.url === 'object' && item.url !== null ? item.url : null
+        ) as MediaObject | null
         const imageSource = media || (item.url as string)
 
         const caption = media?.title || media?.caption || item.caption
@@ -226,7 +228,9 @@ export default function Gallery({
             >
               {(() => {
                 const item = images[currentIndex]
-                const media = (typeof item.url === 'object' && item.url !== null ? item.url : null) as MediaObject | null
+                const media = (
+                  typeof item.url === 'object' && item.url !== null ? item.url : null
+                ) as MediaObject | null
                 const imageSource = media || (item.url as string)
 
                 const caption = media?.title || media?.caption || item.caption
@@ -234,12 +238,9 @@ export default function Gallery({
                 const effectiveAlt = media?.altText || item.alt || item.altText || ''
                 const altMatchesCaption = hasCaption && effectiveAlt.trim() === caption?.trim()
                 const altText = altMatchesCaption
-                  ? `Image ${currentIndex + 1}${hasCaption ? `: ${caption.substring(0, 50)}` : ''
-                  }`
+                  ? `Image ${currentIndex + 1}${hasCaption ? `: ${caption.substring(0, 50)}` : ''}`
                   : effectiveAlt ||
-                  (hasCaption
-                    ? `Image ${currentIndex + 1}`
-                    : `Gallery image ${currentIndex + 1}`)
+                    (hasCaption ? `Image ${currentIndex + 1}` : `Gallery image ${currentIndex + 1}`)
 
                 return (
                   <>
@@ -251,9 +252,7 @@ export default function Gallery({
                       key={currentIndex}
                     />
                     {hasCaption && (
-                      <p className="text-center text-white mt-6 max-w-2xl px-4 italic">
-                        {caption}
-                      </p>
+                      <p className="text-center text-white mt-6 max-w-2xl px-4 italic">{caption}</p>
                     )}
                   </>
                 )

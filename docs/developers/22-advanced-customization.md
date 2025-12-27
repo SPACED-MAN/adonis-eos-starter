@@ -9,6 +9,7 @@ For one-off experiences and dynamic content injection, Adonis EOS provides **Ove
 Override pages allow you to render a dedicated **Inertia page component** for a specific CMS post (by `type` + `slug`) instead of the generic `site/post` renderer.
 
 ### Use Cases
+
 - Campaign landing pages with unique layouts.
 - Custom interactive tools (calculators, configurators).
 - Complex data visualizations.
@@ -29,6 +30,7 @@ export function getSiteInertiaOverrideForPost(postType: string, slug: string) {
 ```
 
 ### Site Chrome
+
 Override pages should still import and use `SiteHeader` and `SiteFooter` to maintain brand consistency.
 
 ---
@@ -38,23 +40,26 @@ Override pages should still import and use `SiteHeader` and `SiteFooter` to main
 Tokens allow you to inject dynamic data into strings using the `{token}` syntax. These are resolved on the server during the rendering phase.
 
 ### Usage
+
 Tokens can be used in:
+
 - Post titles, excerpts, and meta fields.
 - Module props and overrides.
 - SEO fields.
 
 ### Available Tokens
 
-| Token Category | Examples |
-| :--- | :--- |
-| **Post Data** | `{title}`, `{slug}`, `{excerpt}`, `{id}`, `{locale}` |
-| **Custom Fields** | `{custom.field_slug}` |
+| Token Category    | Examples                                                    |
+| :---------------- | :---------------------------------------------------------- |
+| **Post Data**     | `{title}`, `{slug}`, `{excerpt}`, `{id}`, `{locale}`        |
+| **Custom Fields** | `{custom.field_slug}`                                       |
 | **Site Settings** | `{settings.siteTitle}`, `{settings.defaultMetaDescription}` |
-| **System** | `{now}` (ISO timestamp), `{year}` |
+| **System**        | `{now}` (ISO timestamp), `{year}`                           |
 
 ### Resolution Logic
+
 Server-side resolution happens in `app/services/post_rendering_service.ts` using `TokenService`. Tokens that cannot be resolved are left as-is in the final output.
 
 ### Admin UI Support
-In the CMS Editor, fields that support tokens often use the `TokenField` component, which includes a visual picker for easy insertion.
 
+In the CMS Editor, fields that support tokens often use the `TokenField` component, which includes a visual picker for easy insertion.

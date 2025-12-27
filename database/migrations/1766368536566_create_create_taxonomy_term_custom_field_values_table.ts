@@ -6,7 +6,12 @@ export default class extends BaseSchema {
   async up() {
     this.schema.createTable(this.tableName, (table) => {
       table.uuid('id').primary().defaultTo(this.db.rawQuery('gen_random_uuid()').knexQuery)
-      table.uuid('term_id').notNullable().references('id').inTable('taxonomy_terms').onDelete('CASCADE')
+      table
+        .uuid('term_id')
+        .notNullable()
+        .references('id')
+        .inTable('taxonomy_terms')
+        .onDelete('CASCADE')
       table.string('field_slug').notNullable()
       table.jsonb('value').nullable()
 

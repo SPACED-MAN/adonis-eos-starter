@@ -13,7 +13,7 @@ Perfect for non-technical users who create and manage content:
 - [Using the Review System](editors/03-review-workflow.md) - Collaboration and approval
 - [Managing Media](editors/04-media.md) - Uploading and organizing images
 - [Translations](editors/05-translations.md) - Multi-language content
-- [SEO & A/B Testing](editors/07-seo-and-ab-testing.md) - Optimizing for search and conversion
+- [SEO & Analytics](editors/07-seo-and-ab-testing.md) - Optimizing for search, behavior tracking, and conversion
 - [Providing Feedback](editors/08-feedback.md) - Collaborative review and bug tracking
 
 ## For Developers
@@ -29,7 +29,7 @@ Technical documentation for developers and system administrators:
 
 - [Theming System](developers/02-theming.md) - Customizing colors and design
 - [Building Modules](developers/03-building-modules.md) - Creating content components
-- [SEO & Routing](developers/06-seo-and-routing.md) - URL patterns, redirects, sitemap, and SEO
+- [SEO, Routing & Analytics](developers/06-seo-and-routing.md) - URL patterns, redirects, sitemap, SEO, and native analytics
 - [Internationalization (i18n)](developers/07-internationalization.md) - Multi-language content
 
 ### Advanced Features

@@ -88,7 +88,8 @@ CRITICAL: You must respond with a JSON object ONLY. No conversational text.`,
     designStyle: 'clear and descriptive',
     colorPalette: 'neutral',
     designTreatments: ['focus on accessibility'],
-    notes: 'Alt text and descriptions should accurately describe the visual content for screen readers.',
+    notes:
+      'Alt text and descriptions should accurately describe the visual content for screen readers.',
   },
 
   scopes: [
@@ -106,7 +107,7 @@ CRITICAL: You must respond with a JSON object ONLY. No conversational text.`,
       scope: 'posts.bulk',
       order: 1,
       enabled: true,
-    }
+    },
   ],
 
   openEndedContext: {
@@ -122,4 +123,3 @@ CRITICAL: You must respond with a JSON object ONLY. No conversational text.`,
 }
 
 export default SeoSpecialistAgent
-

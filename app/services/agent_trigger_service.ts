@@ -63,4 +63,3 @@ class AgentTriggerService {
 
 const agentTriggerService = new AgentTriggerService()
 export default agentTriggerService
-

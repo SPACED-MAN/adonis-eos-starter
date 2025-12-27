@@ -79,7 +79,8 @@ export default class SecurityController {
     // Note: With cookie-based sessions, we can't revoke other sessions
     // This would require Redis/DB session store
     return response.ok({
-      message: 'Other sessions cannot be revoked with cookie-based sessions. Consider using Redis session store.',
+      message:
+        'Other sessions cannot be revoked with cookie-based sessions. Consider using Redis session store.',
     })
   }
 
@@ -106,8 +107,19 @@ export default class SecurityController {
    * Get audit logs with filters
    */
   async auditLogs({ request, response }: HttpContext) {
-    const { userId, action, entityType, limit, offset, page, q: searchQ, startDate, endDate, sortBy, sortOrder } =
-      await request.validateUsing(auditLogsQueryValidator)
+    const {
+      userId,
+      action,
+      entityType,
+      limit,
+      offset,
+      page,
+      q: searchQ,
+      startDate,
+      endDate,
+      sortBy,
+      sortOrder,
+    } = await request.validateUsing(auditLogsQueryValidator)
 
     const effectiveLimit = limit || 50
     const effectiveOffset = offset || (page ? (page - 1) * effectiveLimit : 0)
@@ -163,12 +175,12 @@ export default class SecurityController {
           .whereILike('action', `%${searchQ}%`)
           .orWhereILike('entity_type', `%${searchQ}%`)
           .orWhereILike('entity_id', `%${searchQ}%`)
-          // Note: totalQuery doesn't have the join for email, we need to add it if we want to search email in total
+        // Note: totalQuery doesn't have the join for email, we need to add it if we want to search email in total
       })
     }
 
     const rows = await q.limit(effectiveLimit).offset(effectiveOffset)
-    
+
     // For total count with join if searching email
     let total: any
     if (searchQ) {
@@ -208,7 +220,8 @@ export default class SecurityController {
       dbTls: {
         label: 'Database TLS Enabled',
         status: env.get('DB_SSL') === true ? 'pass' : 'fail',
-        message: env.get('DB_SSL') === true ? 'Database connections use TLS' : 'Database TLS not enabled',
+        message:
+          env.get('DB_SSL') === true ? 'Database connections use TLS' : 'Database TLS not enabled',
         recommendation: env.get('DB_SSL') !== true ? 'Set DB_SSL=true in production' : null,
       },
       corsConfigured: {
@@ -238,9 +251,10 @@ export default class SecurityController {
       webhookAllowlist: {
         label: 'Webhook Allowlist Configured',
         status: (cmsConfig.webhooks as any)?.allowedHosts?.length > 0 ? 'pass' : 'warn',
-        message: (cmsConfig.webhooks as any)?.allowedHosts?.length > 0
-          ? 'Webhook destination allowlist configured'
-          : 'Webhook allowlist not configured (allows any destination)',
+        message:
+          (cmsConfig.webhooks as any)?.allowedHosts?.length > 0
+            ? 'Webhook destination allowlist configured'
+            : 'Webhook allowlist not configured (allows any destination)',
         recommendation:
           (cmsConfig.webhooks as any)?.allowedHosts?.length === 0
             ? 'Set CMS_WEBHOOK_ALLOWED_HOSTS to restrict webhook destinations'
@@ -351,4 +365,3 @@ export default class SecurityController {
     })
   }
 }
-

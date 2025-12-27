@@ -34,7 +34,7 @@ export default function ResetPassword() {
         className="w-full max-w-sm p-6 rounded-xl border border-border bg-backdrop-low shadow-sm space-y-4"
       >
         <h1 className="text-xl font-semibold text-neutral-high">Reset Password</h1>
-        
+
         <p className="text-sm text-neutral-medium leading-relaxed">
           Please enter your new password below.
         </p>
@@ -64,7 +64,9 @@ export default function ResetPassword() {
         </div>
 
         <div className="space-y-2">
-          <label className="block text-sm font-medium text-neutral-medium">Confirm New Password</label>
+          <label className="block text-sm font-medium text-neutral-medium">
+            Confirm New Password
+          </label>
           <input
             type="password"
             className="w-full border border-border rounded px-3 py-2 bg-backdrop-low text-neutral-high placeholder:text-placeholder focus:outline-none focus:ring-1 ring-(--ring) focus:border-transparent"
@@ -83,8 +85,8 @@ export default function ResetPassword() {
         </button>
 
         <div className="pt-2 text-center">
-          <Link 
-            href={adminPath('login')} 
+          <Link
+            href={adminPath('login')}
             className="text-sm text-neutral-medium hover:text-neutral-high underline transition-colors"
           >
             Back to login
@@ -94,4 +96,3 @@ export default function ResetPassword() {
     </div>
   )
 }
-

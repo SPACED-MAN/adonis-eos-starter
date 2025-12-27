@@ -21,7 +21,7 @@ export interface MediaObject {
 /**
  * Hook to seamlessly resolve a media URL based on the current theme.
  * Handles picking the best variant (e.g. thumb, wide) and dark mode version.
- * 
+ *
  * @param image The media object or string URL
  * @param variant Optional desired variant name (e.g. 'thumb', 'wide')
  * @returns The resolved URL string
@@ -42,10 +42,15 @@ export function useMediaUrl(
     } else if (typeof image === 'object' && image !== null) {
       const url = image.url || (image as any).baseUrl
       if (url) {
-        resolved = pickMediaVariantUrl(url, image.metadata?.variants || (image as any).variants || [], variant, {
-          darkSourceUrl: image.metadata?.darkSourceUrl || (image as any).darkSourceUrl,
-          isDark,
-        })
+        resolved = pickMediaVariantUrl(
+          url,
+          image.metadata?.variants || (image as any).variants || [],
+          variant,
+          {
+            darkSourceUrl: image.metadata?.darkSourceUrl || (image as any).darkSourceUrl,
+            isDark,
+          }
+        )
       }
     }
 
@@ -57,4 +62,3 @@ export function useMediaUrl(
     return resolved
   }, [image, variant, isDark])
 }
-

@@ -7,10 +7,10 @@ import env from '#start/env'
 export default class DevToolsMiddleware {
   async handle(ctx: HttpContext, next: NextFn) {
     const { auth, inertia, session } = ctx
-    
+
     // Check if enabled via .env or if in development mode
     const isEnabled = env.get('ENABLE_DEV_TOOLS') ?? !app.inProduction
-    
+
     // If not enabled at all, skip everything immediately
     if (!isEnabled) {
       return next()
@@ -22,14 +22,14 @@ export default class DevToolsMiddleware {
         await auth.use('web').check()
       } catch {}
     }
-    
+
     const user = auth.use('web').user
     const isAdmin = user && user.role === 'admin'
-    
+
     // Terminal logs are for everyone in dev, but UI is admin-only
     // Actually, let's keep the terminal logs strictly to dev mode or if explicitly enabled
     // and UI strictly to admins.
-    
+
     const startTime = process.hrtime()
     const queries: any[] = []
 
@@ -65,7 +65,7 @@ export default class DevToolsMiddleware {
     } finally {
       // @ts-ignore - access private emitter for dev tools
       db.emitter.off('db:query', queryListener)
-      
+
       const endTime = process.hrtime(startTime)
       const durationMs = (endTime[0] * 1000 + endTime[1] / 1000000).toFixed(2)
       const memoryUsage = (process.memoryUsage().heapUsed / 1024 / 1024).toFixed(2)
@@ -84,24 +84,29 @@ export default class DevToolsMiddleware {
       // Log to terminal if enabled
       // SOC2/Security: never log SQL to terminal in production; use admin-only UI (session) instead.
       if (isEnabled && !app.inProduction) {
-        const color = queries.length > 20 ? '\x1b[31m' : queries.length > 10 ? '\x1b[33m' : '\x1b[32m'
+        const color =
+          queries.length > 20 ? '\x1b[31m' : queries.length > 10 ? '\x1b[33m' : '\x1b[32m'
         const reset = '\x1b[0m'
         const bold = '\x1b[1m'
         const dim = '\x1b[2m'
-        
+
         const summary = [
           `${bold}${color}[DevTools]${reset} ${ctx.request.method()} ${ctx.request.url()}`,
           `${dim}|${reset} Time: ${bold}${durationMs}ms${reset}`,
           `${dim}|${reset} Mem: ${bold}${memoryUsage}MB${reset}`,
-          `${dim}|${reset} Q: ${color}${bold}${queries.length}${reset} ${dim}(${devToolsData.totalQueryDuration}ms)${reset}`
+          `${dim}|${reset} Q: ${color}${bold}${queries.length}${reset} ${dim}(${devToolsData.totalQueryDuration}ms)${reset}`,
         ].join(' ')
 
         console.log(summary)
-        
+
         // Log slow queries (> 10ms) only if they exist
-        queries.filter(q => q.duration > 10).forEach(q => {
-          console.log(`  ${dim}└─${reset} \x1b[33mSlow Query (${q.duration.toFixed(2)}ms):${reset} ${dim}${q.sql}${reset}`)
-        })
+        queries
+          .filter((q) => q.duration > 10)
+          .forEach((q) => {
+            console.log(
+              `  ${dim}└─${reset} \x1b[33mSlow Query (${q.duration.toFixed(2)}ms):${reset} ${dim}${q.sql}${reset}`
+            )
+          })
       }
 
       // Store in session for the next request's UI if admin
@@ -111,4 +116,3 @@ export default class DevToolsMiddleware {
     }
   }
 }
-

@@ -275,12 +275,14 @@ response.assertStatus(200)
 ## What to Test
 
 ✅ **Critical Flows & Security:**
+
 - Core services (e.g., `ActivityLogService`)
 - Critical flows (e.g., scheduling auto-publish, code-first config behaviors)
 - RBAC-sensitive operations (e.g., destructive routes, restricted fields)
 - Authentication/authorization logic
 
 ✅ **Data & Logic:**
+
 - Model methods and relationships
 - Service business logic
 - API endpoints (success and error cases)
@@ -289,6 +291,7 @@ response.assertStatus(200)
 - Query scopes
 
 ❌ **DON'T Test:**
+
 - Framework internals
 - Third-party libraries
 - Simple getters/setters

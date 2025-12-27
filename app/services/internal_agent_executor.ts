@@ -1,6 +1,10 @@
 import type { AgentDefinition, AgentExecutionContext, AIProvider } from '#types/agent_types'
 import aiProviderService from '#services/ai_provider_service'
-import type { AIProviderConfig, AICompletionOptions, AIMessage } from '#services/ai_provider_service'
+import type {
+  AIProviderConfig,
+  AICompletionOptions,
+  AIMessage,
+} from '#services/ai_provider_service'
 import mcpClientService from '#services/mcp_client_service'
 import reactionExecutorService from '#services/reaction_executor_service'
 
@@ -61,7 +65,11 @@ class InternalAgentExecutor {
             break
           }
 
-          if (parsed?.tool_calls && Array.isArray(parsed.tool_calls) && parsed.tool_calls.length > 0) {
+          if (
+            parsed?.tool_calls &&
+            Array.isArray(parsed.tool_calls) &&
+            parsed.tool_calls.length > 0
+          ) {
             // Execute tools for this turn
             const toolResults = await this.executeTools(agent, parsed.tool_calls)
             allToolResults.push(...toolResults)
@@ -123,7 +131,9 @@ RESPOND WITH YOUR NEXT TOOL CALLS IN JSON FORMAT.`
           try {
             const lastJson = JSON.parse(this.extractJSON(finalContent))
             if (lastJson.tool_calls) {
-              lastJson.summary = (lastJson.summary || '') + ' (Note: Reached maximum execution turns. Some tasks may be incomplete.)'
+              lastJson.summary =
+                (lastJson.summary || '') +
+                ' (Note: Reached maximum execution turns. Some tasks may be incomplete.)'
               finalContent = JSON.stringify(lastJson)
             }
           } catch {
@@ -232,7 +242,8 @@ RESPOND WITH YOUR NEXT TOOL CALLS IN JSON FORMAT.`
    * Extract JSON string from raw text (handles markdown code blocks)
    */
   private extractJSON(text: string): string {
-    const jsonMatch = text.match(/```(?:json)?\s*(\{[\s\S]*\})\s*```/) || text.match(/(\{[\s\S]*\})/)
+    const jsonMatch =
+      text.match(/```(?:json)?\s*(\{[\s\S]*\})\s*```/) || text.match(/(\{[\s\S]*\})/)
 
     if (jsonMatch) {
       return jsonMatch[1]
@@ -481,14 +492,18 @@ Only include fields that you are actually changing.`,
             orderIndex: m.orderIndex || idx,
             props: m.props || {},
           }
-          parts.push(`\n${idx + 1}. ${m.type} (postModuleId: "${m.postModuleId}", orderIndex: ${moduleInfo.orderIndex}):`)
+          parts.push(
+            `\n${idx + 1}. ${m.type} (postModuleId: "${m.postModuleId}", orderIndex: ${moduleInfo.orderIndex}):`
+          )
           parts.push(JSON.stringify(moduleInfo.props, null, 2))
         })
         parts.push(
           `\n\nIMPORTANT: If asked to update "all modules" or "all copy", you MUST include entries for all relevant modules in your response array. Use "postModuleId" to ensure your changes apply to the correct instance.`
         )
         const hasProse = payload.modules.some((m: any) =>
-          String(m.type || '').toLowerCase().includes('prose')
+          String(m.type || '')
+            .toLowerCase()
+            .includes('prose')
         )
         if (hasProse) {
           parts.push(

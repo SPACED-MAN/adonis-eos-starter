@@ -74,7 +74,7 @@ export default function UrlPatternsPage() {
         const list: Pattern[] = patternsJson?.data ?? []
         setPatterns(list)
         setPages(pagesJson?.data ?? [])
-        
+
         const defLoc = localesJson?.data?.find((l: any) => l.isDefault)?.code || 'en'
         setDefaultLocale(defLoc)
 

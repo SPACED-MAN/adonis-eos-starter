@@ -55,4 +55,3 @@ export default class FeedbacksController {
     return response.noContent()
   }
 }
-

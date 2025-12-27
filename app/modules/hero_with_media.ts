@@ -51,7 +51,8 @@ export default class HeroWithMediaModule extends BaseModule {
           label: 'Hero Media',
           accept: 'image/*,video/*',
           config: { storeAs: 'id' },
-          description: 'Hero image or video (stored as media ID, resolved via the media API). Alt text is pulled from the media library.',
+          description:
+            'Hero image or video (stored as media ID, resolved via the media API). Alt text is pulled from the media library.',
         },
         {
           slug: 'imagePosition',

@@ -64,7 +64,7 @@ export default class CreateVariation {
           variation,
           userId,
           trx,
-          isOriginalMember ? null : (newOriginalVariation?.id || null)
+          isOriginalMember ? null : newOriginalVariation?.id || null
         )
 
         if (isOriginalMember) {
@@ -188,4 +188,3 @@ export default class CreateVariation {
     return newPost
   }
 }
-

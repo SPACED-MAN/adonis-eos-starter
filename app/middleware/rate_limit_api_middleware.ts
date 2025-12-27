@@ -6,11 +6,9 @@ import RateLimitMiddleware from '#middleware/rate_limit_middleware'
  * Rate limiting tuned for API endpoints.
  */
 export default class RateLimitApiMiddleware {
-	private delegate = RateLimitMiddleware.api()
+  private delegate = RateLimitMiddleware.api()
 
-	async handle(ctx: HttpContext, next: NextFn) {
-		return this.delegate.handle(ctx, next)
-	}
+  async handle(ctx: HttpContext, next: NextFn) {
+    return this.delegate.handle(ctx, next)
+  }
 }
-
-

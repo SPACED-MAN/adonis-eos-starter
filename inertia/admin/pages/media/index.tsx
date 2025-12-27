@@ -73,10 +73,7 @@ type MediaItem = {
 
 const isMediaVideo = (m: any) => {
   if (!m) return false
-  return (
-    m.mimeType?.startsWith('video/') ||
-    /\.(mp4|webm|ogg)$/i.test(m.url || '')
-  )
+  return m.mimeType?.startsWith('video/') || /\.(mp4|webm|ogg)$/i.test(m.url || '')
 }
 
 type PageProps = {
@@ -531,7 +528,7 @@ export default function MediaIndex() {
             const arr = Array.isArray(j?.data) ? j.data : []
             if (arr.length > 0) duplicateId = arr[0].id
           }
-        } catch { }
+        } catch {}
 
         if (duplicateId) {
           // ShadCN dialog prompt
@@ -1078,7 +1075,7 @@ export default function MediaIndex() {
                                         fetch(`/api/media/${encodeURIComponent(m.id)}/optimize`, {
                                           method: 'POST',
                                           headers: {
-                                            Accept: 'application/json',
+                                            'Accept': 'application/json',
                                             'Content-Type': 'application/json',
                                             ...(xsrfFromCookie
                                               ? { 'X-XSRF-TOKEN': xsrfFromCookie }
@@ -1299,7 +1296,10 @@ export default function MediaIndex() {
                                       aria-label="Optimize"
                                       title="Optimize (WebP)"
                                     >
-                                      <FontAwesomeIcon icon={faTruckArrowRight} className="w-4 h-4" />
+                                      <FontAwesomeIcon
+                                        icon={faTruckArrowRight}
+                                        className="w-4 h-4"
+                                      />
                                     </button>
                                   )}
                                   <button
@@ -1503,7 +1503,10 @@ export default function MediaIndex() {
                       : viewing.altText || viewing.originalFilename}
                   </div>
                   <div className="text-[10px] text-neutral-medium uppercase tracking-wider font-semibold flex items-center gap-2">
-                    <FontAwesomeIcon icon={isMediaVideo(viewing) ? faVideo : faImage} className="w-4 h-4" />
+                    <FontAwesomeIcon
+                      icon={isMediaVideo(viewing) ? faVideo : faImage}
+                      className="w-4 h-4"
+                    />
                     {isMediaVideo(viewing) ? 'Video Asset' : 'Image Asset'} • {viewing.id}
                   </div>
                 </div>
@@ -1530,10 +1533,11 @@ export default function MediaIndex() {
                     <div className="mb-6 flex items-center justify-center w-full">
                       <div className="inline-flex items-center p-1 bg-backdrop-medium rounded-xl border border-line-low shadow-sm">
                         <button
-                          className={`px-5 py-2 text-xs font-bold rounded-lg transition-all ${editTheme === 'light'
-                            ? 'bg-backdrop-low text-neutral-high shadow-sm ring-1 ring-black/5'
-                            : 'text-neutral-medium hover:text-neutral-high'
-                            }`}
+                          className={`px-5 py-2 text-xs font-bold rounded-lg transition-all ${
+                            editTheme === 'light'
+                              ? 'bg-backdrop-low text-neutral-high shadow-sm ring-1 ring-black/5'
+                              : 'text-neutral-medium hover:text-neutral-high'
+                          }`}
                           onClick={() => {
                             setEditTheme('light')
                             setSelectedVariantName('original')
@@ -1542,10 +1546,11 @@ export default function MediaIndex() {
                           Light Mode
                         </button>
                         <button
-                          className={`px-5 py-2 text-xs font-bold rounded-lg transition-all ${editTheme === 'dark'
-                            ? 'bg-backdrop-low text-neutral-high shadow-sm ring-1 ring-black/5'
-                            : 'text-neutral-medium hover:text-neutral-high'
-                            }`}
+                          className={`px-5 py-2 text-xs font-bold rounded-lg transition-all ${
+                            editTheme === 'dark'
+                              ? 'bg-backdrop-low text-neutral-high shadow-sm ring-1 ring-black/5'
+                              : 'text-neutral-medium hover:text-neutral-high'
+                          }`}
                           onClick={() => {
                             setEditTheme('dark')
                             const variants: any[] = Array.isArray(
@@ -1760,8 +1765,7 @@ export default function MediaIndex() {
                                                     body: JSON.stringify({ theme: 'dark' }),
                                                   }
                                                 ).then((r) => {
-                                                  if (!r.ok)
-                                                    throw new Error('Dark variants failed')
+                                                  if (!r.ok) throw new Error('Dark variants failed')
                                                   return r
                                                 }),
                                                 {
@@ -1946,9 +1950,16 @@ export default function MediaIndex() {
                             htmlFor="replace-file-input"
                             className="flex flex-col items-center justify-center p-4 border-2 border-dashed border-line-medium rounded-xl cursor-pointer hover:bg-backdrop-medium hover:border-neutral-low transition-all"
                           >
-                            <FontAwesomeIcon icon={faCloudUploadAlt} className="w-6 h-6 mb-1 text-neutral-low" />
+                            <FontAwesomeIcon
+                              icon={faCloudUploadAlt}
+                              className="w-6 h-6 mb-1 text-neutral-low"
+                            />
                             <span className="text-[10px] font-semibold text-neutral-medium text-center">
-                              {replaceFile ? replaceFile.name : (editTheme === 'dark' ? 'Click to choose dark version' : 'Click to choose new file')}
+                              {replaceFile
+                                ? replaceFile.name
+                                : editTheme === 'dark'
+                                  ? 'Click to choose dark version'
+                                  : 'Click to choose new file'}
                             </span>
                           </label>
                           <button
@@ -1993,7 +2004,9 @@ export default function MediaIndex() {
                                   })
 
                                   toast.success(
-                                    editTheme === 'dark' ? 'Dark version saved' : 'Asset replaced and saved'
+                                    editTheme === 'dark'
+                                      ? 'Dark version saved'
+                                      : 'Asset replaced and saved'
                                   )
                                   await load()
                                   setReplaceFile(null)
@@ -2006,7 +2019,11 @@ export default function MediaIndex() {
                               }
                             }}
                           >
-                            {replaceUploading ? 'Uploading...' : (editTheme === 'dark' ? 'Confirm Dark Version' : 'Confirm Replacement')}
+                            {replaceUploading
+                              ? 'Uploading...'
+                              : editTheme === 'dark'
+                                ? 'Confirm Dark Version'
+                                : 'Confirm Replacement'}
                           </button>
                         </div>
                       </div>
@@ -2037,9 +2054,7 @@ export default function MediaIndex() {
                                     headers: {
                                       'Accept': 'application/json',
                                       'Content-Type': 'application/json',
-                                      ...(xsrfFromCookie
-                                        ? { 'X-XSRF-TOKEN': xsrfFromCookie }
-                                        : {}),
+                                      ...(xsrfFromCookie ? { 'X-XSRF-TOKEN': xsrfFromCookie } : {}),
                                     },
                                     credentials: 'same-origin',
                                     body: JSON.stringify({ filename: newFilename }),

@@ -218,11 +218,13 @@ Suitable for single-server deployments or environments with persistent shared vo
 - **Cons**: Does not scale horizontally across multiple servers without a shared network filesystem (NFS/EFS).
 
 **Example (Persistent Volume):**
+
 ```env
 STORAGE_DRIVER=local
 STORAGE_LOCAL_ROOT=/mnt/storage/adonis-eos
 ```
-*Note: If using a custom root, ensure your web server (Nginx/Caddy) is configured to serve static files from that location, or that it is symlinked into `public/`.*
+
+_Note: If using a custom root, ensure your web server (Nginx/Caddy) is configured to serve static files from that location, or that it is symlinked into `public/`._
 
 ### 2. Cloudflare R2 (S3-Compatible)
 
@@ -235,6 +237,7 @@ Recommended for horizontal scaling, serverless environments, or when you want to
 - **Cons**: Requires external service configuration, slight latency increase for uploads.
 
 **Example:**
+
 ```env
 STORAGE_DRIVER=r2
 R2_ACCOUNT_ID=your_account_id

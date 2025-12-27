@@ -174,4 +174,3 @@ class MenuService {
 
 const menuService = new MenuService()
 export default menuService
-

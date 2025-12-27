@@ -10,7 +10,7 @@ export default class extends BaseSchema {
       table.uuid('ab_group_id').nullable().index()
       table.string('ab_variation', 10).nullable()
       table.timestamp('created_at', { useTz: true }).notNullable()
-      
+
       table.index(['post_id', 'created_at'])
       table.index(['ab_group_id', 'created_at'])
     })

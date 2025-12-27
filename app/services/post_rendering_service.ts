@@ -303,7 +303,8 @@ class PostRenderingService {
           const baseProps = hasAiReviewProps ? aiReviewProps : pm.props || {}
 
           const aiReviewOverrides = (pm as any).aiReviewOverrides
-          const hasAiReviewOverrides = aiReviewOverrides && Object.keys(aiReviewOverrides).length > 0
+          const hasAiReviewOverrides =
+            aiReviewOverrides && Object.keys(aiReviewOverrides).length > 0
           const overrides = hasAiReviewOverrides ? aiReviewOverrides : (pm as any).overrides || {}
 
           if (pm.scope === 'global') {
@@ -475,7 +476,11 @@ class PostRenderingService {
 
       let sourceOverridesResolved =
         pm.overrides && Object.keys(pm.overrides).length > 0
-          ? this.injectResolvedMedia(fieldSchema, injectResolved(filterOverrides(pm.overrides)), resolvedMedia)
+          ? this.injectResolvedMedia(
+              fieldSchema,
+              injectResolved(filterOverrides(pm.overrides)),
+              resolvedMedia
+            )
           : null
       if (sourceOverridesResolved) {
         sourceOverridesResolved = applyHeroFallback(sourceOverridesResolved)
@@ -484,10 +489,10 @@ class PostRenderingService {
       let reviewPropsResolved =
         (pm as any).reviewProps && Object.keys((pm as any).reviewProps).length > 0
           ? this.injectResolvedMedia(
-            fieldSchema,
-            injectResolved({ ...defaultProps, ...(pm as any).reviewProps }),
-            resolvedMedia
-          )
+              fieldSchema,
+              injectResolved({ ...defaultProps, ...(pm as any).reviewProps }),
+              resolvedMedia
+            )
           : sourcePropsResolved
       if (reviewPropsResolved) {
         reviewPropsResolved = applyHeroFallback(reviewPropsResolved)
@@ -496,10 +501,10 @@ class PostRenderingService {
       let reviewOverridesResolved =
         (pm as any).reviewOverrides && Object.keys((pm as any).reviewOverrides).length > 0
           ? this.injectResolvedMedia(
-            fieldSchema,
-            injectResolved(filterOverrides((pm as any).reviewOverrides)),
-            resolvedMedia
-          )
+              fieldSchema,
+              injectResolved(filterOverrides((pm as any).reviewOverrides)),
+              resolvedMedia
+            )
           : sourceOverridesResolved
       if (reviewOverridesResolved) {
         reviewOverridesResolved = applyHeroFallback(reviewOverridesResolved)
@@ -508,10 +513,10 @@ class PostRenderingService {
       let aiReviewPropsResolved =
         (pm as any).aiReviewProps && Object.keys((pm as any).aiReviewProps).length > 0
           ? this.injectResolvedMedia(
-            fieldSchema,
-            injectResolved({ ...defaultProps, ...(pm as any).aiReviewProps }),
-            resolvedMedia
-          )
+              fieldSchema,
+              injectResolved({ ...defaultProps, ...(pm as any).aiReviewProps }),
+              resolvedMedia
+            )
           : reviewPropsResolved || sourcePropsResolved
       if (aiReviewPropsResolved) {
         aiReviewPropsResolved = applyHeroFallback(aiReviewPropsResolved)
@@ -520,10 +525,10 @@ class PostRenderingService {
       let aiReviewOverridesResolved =
         (pm as any).aiReviewOverrides && Object.keys((pm as any).aiReviewOverrides).length > 0
           ? this.injectResolvedMedia(
-            fieldSchema,
-            injectResolved(filterOverrides((pm as any).aiReviewOverrides)),
-            resolvedMedia
-          )
+              fieldSchema,
+              injectResolved(filterOverrides((pm as any).aiReviewOverrides)),
+              resolvedMedia
+            )
           : reviewOverridesResolved || sourceOverridesResolved
       if (aiReviewOverridesResolved) {
         aiReviewOverridesResolved = applyHeroFallback(aiReviewOverridesResolved)
@@ -647,10 +652,14 @@ class PostRenderingService {
     )
 
     // Build robots directive
-    const robotsConfig = { ...(post.robotsJson || DEFAULT_ROBOTS[post.status] || DEFAULT_ROBOTS.draft) }
+    const robotsConfig = {
+      ...(post.robotsJson || DEFAULT_ROBOTS[post.status] || DEFAULT_ROBOTS.draft),
+    }
     if (useReview) {
-      if ((reviewDraft as any).noindex !== undefined) robotsConfig.index = !(reviewDraft as any).noindex
-      if ((reviewDraft as any).nofollow !== undefined) robotsConfig.follow = !(reviewDraft as any).nofollow
+      if ((reviewDraft as any).noindex !== undefined)
+        robotsConfig.index = !(reviewDraft as any).noindex
+      if ((reviewDraft as any).nofollow !== undefined)
+        robotsConfig.follow = !(reviewDraft as any).nofollow
     } else {
       if (post.noindex) robotsConfig.index = false
       if (post.nofollow) robotsConfig.follow = false
@@ -671,13 +680,16 @@ class PostRenderingService {
     // Social (OG/Twitter)
     const socialTitle = useReview
       ? ((reviewDraft as any).socialTitle ?? title)
-      : (post.socialTitle || title)
+      : post.socialTitle || title
     const socialDescription = useReview
       ? ((reviewDraft as any).socialDescription ?? description)
-      : (post.socialDescription || description)
+      : post.socialDescription || description
     const socialImageId = useReview
-      ? ((reviewDraft as any).socialImageId ?? (reviewDraft as any).featuredImageId ?? post.socialImageId ?? post.featuredImageId)
-      : (post.socialImageId || post.featuredImageId)
+      ? ((reviewDraft as any).socialImageId ??
+        (reviewDraft as any).featuredImageId ??
+        post.socialImageId ??
+        post.featuredImageId)
+      : post.socialImageId || post.featuredImageId
 
     let socialImageUrl: string | undefined
     if (socialImageId) {
@@ -700,16 +712,19 @@ class PostRenderingService {
         .select('field_slug', 'value')
       const fields = new Map(fieldRows.map((r) => [r.field_slug, r.value]))
 
-      if (fields.has('address')) schemaExtras.address = { '@type': 'PostalAddress', 'streetAddress': fields.get('address') }
+      if (fields.has('address'))
+        schemaExtras.address = { '@type': 'PostalAddress', 'streetAddress': fields.get('address') }
       if (fields.has('phone')) schemaExtras.telephone = fields.get('phone')
       if (fields.has('openingHours')) schemaExtras.openingHours = fields.get('openingHours')
       if (fields.has('geo')) {
-        const coords = String(fields.get('geo')).split(',').map(s => s.trim())
+        const coords = String(fields.get('geo'))
+          .split(',')
+          .map((s) => s.trim())
         if (coords.length === 2) {
           schemaExtras.geo = {
             '@type': 'GeoCoordinates',
             'latitude': coords[0],
-            'longitude': coords[1]
+            'longitude': coords[1],
           }
         }
       }
@@ -722,13 +737,13 @@ class PostRenderingService {
       'inLanguage': post.locale,
       'mainEntityOfPage': canonical,
       ...(description && { description }),
-      ...schemaExtras
+      ...schemaExtras,
     }
 
     // Collect ItemList from modules (e.g. Company List)
     const jsonLdGraph: any[] = [{ ...defaultJsonLd, ...(post.jsonldOverrides || {}) }]
 
-    const companyListModules = modules.filter(m => m.type === 'company-list')
+    const companyListModules = modules.filter((m) => m.type === 'company-list')
     if (companyListModules.length > 0) {
       const allCompanyIds = new Set<string>()
       let fetchAll = false
@@ -757,9 +772,13 @@ class PostRenderingService {
           const itemList: any = {
             '@type': 'ItemList',
             'itemListElement': companies.map((c, idx) => {
-              const fields = new Map(c.customFieldValues.map(v => [v.fieldSlug, v.value]))
+              const fields = new Map(c.customFieldValues.map((v) => [v.fieldSlug, v.value]))
               const cExtras: Record<string, any> = {}
-              if (fields.has('address')) cExtras.address = { '@type': 'PostalAddress', 'streetAddress': fields.get('address') }
+              if (fields.has('address'))
+                cExtras.address = {
+                  '@type': 'PostalAddress',
+                  'streetAddress': fields.get('address'),
+                }
               if (fields.has('phone')) cExtras.telephone = fields.get('phone')
 
               return {
@@ -768,10 +787,10 @@ class PostRenderingService {
                 'item': {
                   '@type': 'LocalBusiness',
                   'name': c.title,
-                  ...cExtras
-                }
+                  ...cExtras,
+                },
               }
-            })
+            }),
           }
           jsonLdGraph.push(itemList)
         }
@@ -782,9 +801,9 @@ class PostRenderingService {
       jsonLdGraph.length === 1
         ? jsonLdGraph[0]
         : {
-          '@context': 'https://schema.org',
-          '@graph': jsonLdGraph,
-        }
+            '@context': 'https://schema.org',
+            '@graph': jsonLdGraph,
+          }
 
     return {
       canonical,
@@ -1138,11 +1157,12 @@ class PostRenderingService {
       // Load aggregate post - we need to find the variation for the current locale
       const Post = (await import('#models/post')).default
       const aggPostBase = await Post.find(pattern.aggregatePostId)
-      
+
       if (aggPostBase) {
         // Try to find translation for the current locale
         const aggPostVariation = await aggPostBase.getTranslation(post.locale)
-        const finalAggPost = aggPostVariation || (aggPostBase.locale === post.locale ? aggPostBase : null)
+        const finalAggPost =
+          aggPostVariation || (aggPostBase.locale === post.locale ? aggPostBase : null)
 
         if (finalAggPost && !ancestors.some((a) => a.id === finalAggPost.id)) {
           // Prepend aggregate page to ancestors

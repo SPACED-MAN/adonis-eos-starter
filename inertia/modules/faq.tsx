@@ -177,7 +177,9 @@ export default function Faq({
   )
 
   const columnsContent = (
-    <div className={`grid gap-10 border-t ${isDarkBg ? 'border-line-low/20' : 'border-line-low'} pt-8 md:grid-cols-2 md:gap-12`}>
+    <div
+      className={`grid gap-10 border-t ${isDarkBg ? 'border-line-low/20' : 'border-line-low'} pt-8 md:grid-cols-2 md:gap-12`}
+    >
       <div>{left.map((item, idx) => renderItem(item, idx))}</div>
       <div>{right.map((item, idx) => renderItem(item, midpoint + idx))}</div>
     </div>
@@ -203,4 +205,3 @@ export default function Faq({
     </section>
   )
 }
-

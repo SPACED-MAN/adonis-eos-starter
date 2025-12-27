@@ -37,13 +37,19 @@ export default function CompanyTeaser({ title, image, url, customFields }: Compa
           <div className="text-[10px] text-neutral-medium space-y-1 mt-2 border-t border-neutral-low/5 pt-2">
             {address && (
               <div className="flex items-start justify-center gap-1.5 px-2">
-                <FontAwesomeIcon icon="location-dot" className="w-2.5 h-2.5 mt-0.5 flex-shrink-0 text-neutral-low" />
+                <FontAwesomeIcon
+                  icon="location-dot"
+                  className="w-2.5 h-2.5 mt-0.5 flex-shrink-0 text-neutral-low"
+                />
                 <span className="line-clamp-2">{address}</span>
               </div>
             )}
             {phone && (
               <div className="flex items-center justify-center gap-1.5 px-2">
-                <FontAwesomeIcon icon="phone" className="w-2.5 h-2.5 flex-shrink-0 text-neutral-low" />
+                <FontAwesomeIcon
+                  icon="phone"
+                  className="w-2.5 h-2.5 flex-shrink-0 text-neutral-low"
+                />
                 <span>{phone}</span>
               </div>
             )}

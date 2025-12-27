@@ -14,13 +14,11 @@ export default function ProfileTeaser({ name, role, bio, image, url }: ProfileTe
   return (
     <article className="items-center bg-backdrop-medium shadow sm:flex border border-line-low">
       {image && (
-        <a href={url} className="p-1 sm:shrink-0 block w-full sm:w-44 h-44 sm:h-full max-h-60 overflow-hidden">
-          <MediaRenderer
-            image={image}
-            variant="thumb"
-            loading="lazy"
-            decoding="async"
-          />
+        <a
+          href={url}
+          className="p-1 sm:shrink-0 block w-full sm:w-44 h-44 sm:h-full max-h-60 overflow-hidden"
+        >
+          <MediaRenderer image={image} variant="thumb" loading="lazy" decoding="async" />
         </a>
       )}
       <div className="p-5">

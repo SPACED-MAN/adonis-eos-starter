@@ -650,8 +650,8 @@ export default function DatabaseIndex() {
                     <div className="flex-1">
                       <div className="text-sm font-medium text-neutral-dark">Export all tables</div>
                       <p className="text-xs text-neutral-medium">
-                        Exports every table in the database (excluding system schema tables). Use this for
-                        full backups. Content type selection is ignored while enabled.
+                        Exports every table in the database (excluding system schema tables). Use
+                        this for full backups. Content type selection is ignored while enabled.
                       </p>
                     </div>
                   </label>
@@ -1026,34 +1026,34 @@ export default function DatabaseIndex() {
                         </TableRow>
                       </TableHeader>
                       <TableBody>
-                          {getStatusRows(importResult, resultFilter).map((row, i) => (
+                        {getStatusRows(importResult, resultFilter).map((row, i) => (
                           <TableRow key={i}>
                             <TableCell className="font-mono text-xs text-neutral-dark">
-                                {row.table}
+                              {row.table}
                             </TableCell>
                             <TableCell>
-                                <span
-                                  className={`px-2 py-1 text-xs font-semibold rounded ${
-                                    row.status === 'skipped'
-                                      ? 'bg-amber-100 text-amber-800'
-                                      : 'bg-rose-100 text-rose-800'
-                                  }`}
-                                >
-                                  {row.status === 'skipped' ? 'Skipped' : 'Error'}
-                                </span>
+                              <span
+                                className={`px-2 py-1 text-xs font-semibold rounded ${
+                                  row.status === 'skipped'
+                                    ? 'bg-amber-100 text-amber-800'
+                                    : 'bg-rose-100 text-rose-800'
+                                }`}
+                              >
+                                {row.status === 'skipped' ? 'Skipped' : 'Error'}
+                              </span>
                             </TableCell>
                             <TableCell className="text-neutral-medium">
-                                {row.message ? row.message : '—'}
+                              {row.message ? row.message : '—'}
                             </TableCell>
                           </TableRow>
-                          ))}
-                          {getStatusRows(importResult, resultFilter).length === 0 && (
+                        ))}
+                        {getStatusRows(importResult, resultFilter).length === 0 && (
                           <TableRow>
                             <TableCell colSpan={3} className="text-neutral-medium text-center">
-                                No rows match your filter.
+                              No rows match your filter.
                             </TableCell>
                           </TableRow>
-                          )}
+                        )}
                       </TableBody>
                     </Table>
 
@@ -1170,9 +1170,7 @@ export default function DatabaseIndex() {
 
                 <div className="mb-6">
                   <div className="flex items-center justify-between mb-2">
-                    <label className="text-sm font-semibold text-neutral-dark">
-                      Select Tables
-                    </label>
+                    <label className="text-sm font-semibold text-neutral-dark">Select Tables</label>
                     <div className="flex gap-3">
                       <button
                         type="button"
@@ -1284,7 +1282,10 @@ export default function DatabaseIndex() {
                       </>
                     ) : (
                       <>
-                        <FontAwesomeIcon icon={frDryRun ? faSearch : faExchangeAlt} className="mr-2" />
+                        <FontAwesomeIcon
+                          icon={frDryRun ? faSearch : faExchangeAlt}
+                          className="mr-2"
+                        />
                         {frDryRun ? 'Dry Run' : 'Execute Replace'}
                       </>
                     )}
@@ -1828,14 +1829,19 @@ export default function DatabaseIndex() {
                 </div>
               </div>
               <div>
-                <div className="text-[10px] font-bold uppercase text-neutral-low mb-1"> Replacing with</div>
+                <div className="text-[10px] font-bold uppercase text-neutral-low mb-1">
+                  {' '}
+                  Replacing with
+                </div>
                 <div className="font-mono text-xs bg-backdrop p-2 rounded border border-line-low break-all">
                   {frReplace || <span className="italic opacity-50">(empty string)</span>}
                 </div>
               </div>
             </div>
             <div>
-              <div className="text-[10px] font-bold uppercase text-neutral-low mb-1">Target Tables</div>
+              <div className="text-[10px] font-bold uppercase text-neutral-low mb-1">
+                Target Tables
+              </div>
               <div className="text-xs">
                 {frSelectedTables.length === frTables.length
                   ? 'All tables'
@@ -1843,7 +1849,8 @@ export default function DatabaseIndex() {
               </div>
             </div>
             <div className="p-3 bg-rose-50 border border-rose-100 rounded text-rose-800 text-xs font-semibold">
-              Warning: It is highly recommended to perform a Dry Run and have a full database backup before proceeding.
+              Warning: It is highly recommended to perform a Dry Run and have a full database backup
+              before proceeding.
             </div>
           </div>
           <AlertDialogFooter>

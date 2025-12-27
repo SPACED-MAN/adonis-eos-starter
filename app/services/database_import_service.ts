@@ -528,7 +528,7 @@ class DatabaseImportService {
                 // Ensure JSONB fields are properly handled by Knex (pre-cast for Postgres)
                 const rowForInsert =
                   dbConfig.connections[dbConfig.connection].client === 'pg' ||
-                    dbConfig.connections[dbConfig.connection].client === 'postgres'
+                  dbConfig.connections[dbConfig.connection].client === 'postgres'
                     ? this.prepareRowForPostgres(trx, tableName, processedRow)
                     : processedRow
                 try {

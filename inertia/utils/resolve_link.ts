@@ -77,5 +77,3 @@ export async function resolvePostLink(
     return { href: undefined, target: target || '_self' }
   }
 }
-
-

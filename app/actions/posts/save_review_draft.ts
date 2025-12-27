@@ -20,11 +20,11 @@ export default class SaveReviewDraft {
   }: SaveReviewDraftParams): Promise<void> {
     // 1. Create a canonical snapshot from the payload
     const snapshot = PostSnapshotService.fromPayload(payload)
-    
+
     // 2. Add extra metadata for the draft
     if (snapshot.post) {
-      (snapshot.post as any).savedBy = userEmail || (mode === 'ai-review' ? 'AI Agent' : 'User');
-      (snapshot.post as any).savedAt = new Date().toISOString();
+      ;(snapshot.post as any).savedBy = userEmail || (mode === 'ai-review' ? 'AI Agent' : 'User')
+      ;(snapshot.post as any).savedAt = new Date().toISOString()
     }
 
     // 3. Apply the snapshot using the centralized service
@@ -40,4 +40,3 @@ export default class SaveReviewDraft {
     })
   }
 }
-

@@ -93,7 +93,9 @@ export default function Blockquote({
               />
             </div>
           )}
-          <div className={`flex items-center divide-x-2 ${isDarkBg ? 'divide-backdrop-low/20' : 'divide-neutral-low/60'}`}>
+          <div
+            className={`flex items-center divide-x-2 ${isDarkBg ? 'divide-backdrop-low/20' : 'divide-neutral-low/60'}`}
+          >
             <div className={`pr-3 font-medium ${textColor}`} data-inline-path="authorName">
               {authorName}
             </div>

@@ -13,7 +13,11 @@ import app from '@adonisjs/core/services/app'
  * Example: CORS_ORIGINS=https://example.com,https://www.example.com
  */
 const corsOrigins = env.get('CORS_ORIGINS', '')
-  ? env.get('CORS_ORIGINS', '').split(',').map((o) => o.trim()).filter(Boolean)
+  ? env
+      .get('CORS_ORIGINS', '')
+      .split(',')
+      .map((o) => o.trim())
+      .filter(Boolean)
   : []
 
 /**

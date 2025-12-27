@@ -88,7 +88,9 @@ export default function UsersIndex() {
     try {
       const res = await fetch('/api/site-settings', { credentials: 'same-origin' })
       const json = await res.json().catch(() => ({}))
-      setProfileRolesEnabled(Array.isArray(json?.data?.profileRolesEnabled) ? json.data.profileRolesEnabled : [])
+      setProfileRolesEnabled(
+        Array.isArray(json?.data?.profileRolesEnabled) ? json.data.profileRolesEnabled : []
+      )
     } finally {
       setProfileSettingsLoading(false)
     }
@@ -96,7 +98,7 @@ export default function UsersIndex() {
 
   useEffect(() => {
     if (activeTab === 'list') {
-    load()
+      load()
     } else if (activeTab === 'profiles') {
       loadProfileSettings()
     }
@@ -270,104 +272,104 @@ export default function UsersIndex() {
         </div>
 
         {activeTab === 'list' && (
-        <div className="bg-backdrop-low rounded-lg border border-line-low p-6">
-          <div className="flex items-center justify-between mb-4">
-            <Input
-              value={filter}
-              onChange={(e) => setFilter(e.target.value)}
-              placeholder="Filter by email, name, role…"
-              className="max-w-sm"
-            />
-            <div className="flex items-center gap-2">
-              {loading && <span className="text-xs text-neutral-low">Loading…</span>}
-              <AlertDialog open={createOpen} onOpenChange={setCreateOpen}>
-                <AlertDialogTrigger asChild>
-                  <button
-                    className="px-3 py-2 text-sm rounded bg-standout-medium text-on-standout hover:opacity-90"
-                    type="button"
-                  >
-                    Add user
-                  </button>
-                </AlertDialogTrigger>
-                <AlertDialogContent>
-                  <AlertDialogHeader>
-                    <AlertDialogTitle>Add new user</AlertDialogTitle>
-                  </AlertDialogHeader>
-                  <div className="space-y-3">
-                    <div className="space-y-1">
-                      <label className="text-sm text-neutral-medium" htmlFor="create-email">
-                        Email
-                      </label>
-                      <Input
-                        id="create-email"
-                        value={createEmail}
-                        onChange={(e) => setCreateEmail(e.target.value)}
-                        placeholder="user@example.com"
-                        type="email"
-                      />
-                    </div>
-                    <div className="space-y-1">
-                      <label className="text-sm text-neutral-medium" htmlFor="create-password">
-                        Password
-                      </label>
-                      <Input
-                        id="create-password"
-                        value={createPassword}
-                        onChange={(e) => setCreatePassword(e.target.value)}
-                        placeholder="At least 8 characters"
-                        type="password"
-                      />
-                    </div>
-                    <div className="space-y-1">
-                      <label className="text-sm text-neutral-medium" htmlFor="create-role">
-                        Role
-                      </label>
-                      <Select value={createRole} onValueChange={setCreateRole}>
-                        <SelectTrigger id="create-role">
-                          <SelectValue placeholder="Select role" />
-                        </SelectTrigger>
-                        <SelectContent>
-                          {availableRoles.map((r: any) => (
-                            <SelectItem key={r.name} value={r.name}>
-                              {r.label}
-                            </SelectItem>
-                          ))}
-                        </SelectContent>
-                      </Select>
-                    </div>
-                  </div>
-                  <AlertDialogFooter>
+          <div className="bg-backdrop-low rounded-lg border border-line-low p-6">
+            <div className="flex items-center justify-between mb-4">
+              <Input
+                value={filter}
+                onChange={(e) => setFilter(e.target.value)}
+                placeholder="Filter by email, name, role…"
+                className="max-w-sm"
+              />
+              <div className="flex items-center gap-2">
+                {loading && <span className="text-xs text-neutral-low">Loading…</span>}
+                <AlertDialog open={createOpen} onOpenChange={setCreateOpen}>
+                  <AlertDialogTrigger asChild>
                     <button
+                      className="px-3 py-2 text-sm rounded bg-standout-medium text-on-standout hover:opacity-90"
                       type="button"
-                      className="px-3 py-2 text-sm rounded border border-line-medium hover:bg-backdrop-medium text-neutral-medium"
-                      onClick={() => setCreateOpen(false)}
-                      disabled={creating}
                     >
-                      Cancel
+                      Add user
                     </button>
-                    <button
-                      type="button"
-                      className="px-3 py-2 text-sm rounded bg-standout-medium text-on-standout hover:opacity-90 disabled:opacity-50"
-                      onClick={createUser}
-                      disabled={creating}
-                    >
-                      {creating ? 'Creating…' : 'Create'}
-                    </button>
-                  </AlertDialogFooter>
-                </AlertDialogContent>
-              </AlertDialog>
+                  </AlertDialogTrigger>
+                  <AlertDialogContent>
+                    <AlertDialogHeader>
+                      <AlertDialogTitle>Add new user</AlertDialogTitle>
+                    </AlertDialogHeader>
+                    <div className="space-y-3">
+                      <div className="space-y-1">
+                        <label className="text-sm text-neutral-medium" htmlFor="create-email">
+                          Email
+                        </label>
+                        <Input
+                          id="create-email"
+                          value={createEmail}
+                          onChange={(e) => setCreateEmail(e.target.value)}
+                          placeholder="user@example.com"
+                          type="email"
+                        />
+                      </div>
+                      <div className="space-y-1">
+                        <label className="text-sm text-neutral-medium" htmlFor="create-password">
+                          Password
+                        </label>
+                        <Input
+                          id="create-password"
+                          value={createPassword}
+                          onChange={(e) => setCreatePassword(e.target.value)}
+                          placeholder="At least 8 characters"
+                          type="password"
+                        />
+                      </div>
+                      <div className="space-y-1">
+                        <label className="text-sm text-neutral-medium" htmlFor="create-role">
+                          Role
+                        </label>
+                        <Select value={createRole} onValueChange={setCreateRole}>
+                          <SelectTrigger id="create-role">
+                            <SelectValue placeholder="Select role" />
+                          </SelectTrigger>
+                          <SelectContent>
+                            {availableRoles.map((r: any) => (
+                              <SelectItem key={r.name} value={r.name}>
+                                {r.label}
+                              </SelectItem>
+                            ))}
+                          </SelectContent>
+                        </Select>
+                      </div>
+                    </div>
+                    <AlertDialogFooter>
+                      <button
+                        type="button"
+                        className="px-3 py-2 text-sm rounded border border-line-medium hover:bg-backdrop-medium text-neutral-medium"
+                        onClick={() => setCreateOpen(false)}
+                        disabled={creating}
+                      >
+                        Cancel
+                      </button>
+                      <button
+                        type="button"
+                        className="px-3 py-2 text-sm rounded bg-standout-medium text-on-standout hover:opacity-90 disabled:opacity-50"
+                        onClick={createUser}
+                        disabled={creating}
+                      >
+                        {creating ? 'Creating…' : 'Create'}
+                      </button>
+                    </AlertDialogFooter>
+                  </AlertDialogContent>
+                </AlertDialog>
+              </div>
             </div>
-          </div>
-          <Table>
-            <TableHeader>
-              <TableRow>
-                <TableHead>Email</TableHead>
-                <TableHead>Username</TableHead>
-                <TableHead>Role</TableHead>
-                <TableHead className="text-right">Actions</TableHead>
-              </TableRow>
-            </TableHeader>
-            <TableBody>
+            <Table>
+              <TableHeader>
+                <TableRow>
+                  <TableHead>Email</TableHead>
+                  <TableHead>Username</TableHead>
+                  <TableHead>Role</TableHead>
+                  <TableHead className="text-right">Actions</TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
                 {filteredRows().map((u) => {
                   const isUserAdmin = u.role === 'admin'
                   const canModifyUser = isSuperAdmin || !isUserAdmin
@@ -375,191 +377,191 @@ export default function UsersIndex() {
                     isSuperAdmin || (!isUserAdmin && String(me?.id) !== String(u.id))
 
                   return (
-                <TableRow key={u.id}>
-                  <TableCell>{u.email}</TableCell>
-                  <TableCell>
-                      <Input
-                        defaultValue={u.username || ''}
+                    <TableRow key={u.id}>
+                      <TableCell>{u.email}</TableCell>
+                      <TableCell>
+                        <Input
+                          defaultValue={u.username || ''}
                           disabled={!canModifyUser}
-                        onBlur={(e) => {
-                          const val = e.target.value
-                          if (val !== (u.username || '')) saveRow(u.id, { username: val })
-                        }}
-                        placeholder="Username"
-                        className="max-w-xs"
-                      />
-                  </TableCell>
-                  <TableCell>
+                          onBlur={(e) => {
+                            const val = e.target.value
+                            if (val !== (u.username || '')) saveRow(u.id, { username: val })
+                          }}
+                          placeholder="Username"
+                          className="max-w-xs"
+                        />
+                      </TableCell>
+                      <TableCell>
                         <Select
                           defaultValue={u.role}
                           disabled={!canModifyUser}
                           onValueChange={(val) => saveRow(u.id, { role: val as Role })}
                         >
-                        <SelectTrigger className="w-[160px]">
-                          <SelectValue />
-                        </SelectTrigger>
-                        <SelectContent>
+                          <SelectTrigger className="w-[160px]">
+                            <SelectValue />
+                          </SelectTrigger>
+                          <SelectContent>
                             {availableRoles
                               .filter((r: any) => isSuperAdmin || r.name !== 'admin')
                               .map((r: any) => (
-                            <SelectItem key={r.name} value={r.name}>
-                              {r.label}
-                            </SelectItem>
-                          ))}
-                        </SelectContent>
-                      </Select>
-                  </TableCell>
-                  <TableCell className="text-right">
+                                <SelectItem key={r.name} value={r.name}>
+                                  {r.label}
+                                </SelectItem>
+                              ))}
+                          </SelectContent>
+                        </Select>
+                      </TableCell>
+                      <TableCell className="text-right">
                         {canModifyUser && (
                           <>
-                      <a
-                        href={`/admin/users/${u.id}/edit`}
-                        className="px-2 py-1 text-xs border border-line-medium rounded hover:bg-backdrop-medium text-neutral-medium mr-2"
-                      >
-                        Edit
-                      </a>
-                      <button
-                        className="px-2 py-1 text-xs border border-line-medium rounded hover:bg-backdrop-medium text-neutral-high mr-2"
-                        onClick={async () => {
-                          try {
+                            <a
+                              href={`/admin/users/${u.id}/edit`}
+                              className="px-2 py-1 text-xs border border-line-medium rounded hover:bg-backdrop-medium text-neutral-medium mr-2"
+                            >
+                              Edit
+                            </a>
+                            <button
+                              className="px-2 py-1 text-xs border border-line-medium rounded hover:bg-backdrop-medium text-neutral-high mr-2"
+                              onClick={async () => {
+                                try {
                                   const res = await fetch(
                                     `/api/users/${encodeURIComponent(u.id)}/profile`,
                                     {
-                            credentials: 'same-origin',
+                                      credentials: 'same-origin',
                                     }
                                   )
-                            const j = await res.json().catch(() => ({}))
-                            let pid: string | null = j?.id || null
-                            if (!pid) {
-                              const csrf = getXsrf()
+                                  const j = await res.json().catch(() => ({}))
+                                  let pid: string | null = j?.id || null
+                                  if (!pid) {
+                                    const csrf = getXsrf()
                                     const createRes = await fetch(
                                       `/api/users/${encodeURIComponent(u.id)}/profile`,
                                       {
-                                  method: 'POST',
-                                  headers: {
-                                    'Accept': 'application/json',
-                                    'Content-Type': 'application/json',
-                                    ...(csrf ? { 'X-XSRF-TOKEN': csrf } : {}),
-                                  },
-                                  credentials: 'same-origin',
+                                        method: 'POST',
+                                        headers: {
+                                          'Accept': 'application/json',
+                                          'Content-Type': 'application/json',
+                                          ...(csrf ? { 'X-XSRF-TOKEN': csrf } : {}),
+                                        },
+                                        credentials: 'same-origin',
                                       }
                                     )
-                              const cj = await createRes.json().catch(() => ({}))
-                              if (!createRes.ok) {
-                                toast.error(cj?.error || 'Failed to create profile')
-                                return
-                              }
-                              pid = cj?.id || null
-                            }
-                            if (pid) window.location.href = `/admin/posts/${pid}/edit`
-                          } catch {
-                            toast.error('Failed to open profile')
-                          }
-                        }}
-                      >
-                        Edit Details
-                      </button>
-                      {pwdFor === u.id ? (
-                        <div className="inline-flex items-center gap-2">
-                          <Input
-                            type="password"
-                            value={pwd}
-                            onChange={(e) => setPwd(e.target.value)}
-                            placeholder="New password"
-                            className="w-[200px]"
-                          />
-                          <button
-                            className="px-2 py-1 text-xs border border-line-medium rounded hover:bg-backdrop-medium text-neutral-high"
-                            disabled={!!saving[u.id]}
-                            onClick={() => {
-                              resetPassword(u.id, pwd)
-                              setPwdFor(null)
-                              setPwd('')
-                            }}
-                          >
-                            Save
-                          </button>
-                          <button
-                            className="px-2 py-1 text-xs border border-line-medium rounded hover:bg-backdrop-medium text-neutral-medium"
-                            onClick={() => {
-                              setPwdFor(null)
-                              setPwd('')
-                            }}
-                          >
-                            Cancel
-                          </button>
-                        </div>
-                      ) : (
-                        <button
-                          className="px-2 py-1 text-xs border border-line-medium rounded hover:bg-backdrop-medium text-neutral-medium"
-                          onClick={() => setPwdFor(u.id)}
-                        >
-                          Reset Password
-                        </button>
-                      )}
-                          </>
-                        )}
-                        {canDeleteUser && (
-                      <AlertDialog>
-                        <AlertDialogTrigger asChild>
-                          <button className="ml-2 px-2 py-1 text-xs border border-[#ef4444] text-[#ef4444] rounded hover:bg-[rgba(239,68,68,0.1)]">
-                            Delete
-                          </button>
-                        </AlertDialogTrigger>
-                        <AlertDialogContent>
-                          <AlertDialogHeader>
-                            <AlertDialogTitle>Delete user?</AlertDialogTitle>
-                            <AlertDialogDescription>
-                                  This action cannot be undone. The account for {u.email} will be
-                                  permanently removed.
-                            </AlertDialogDescription>
-                          </AlertDialogHeader>
-                          <AlertDialogFooter>
-                            <AlertDialogCancel>Cancel</AlertDialogCancel>
-                            <AlertDialogAction
-                              onClick={async () => {
-                                try {
-                                  const csrf = getXsrf()
-                                      const res = await fetch(
-                                        `/api/users/${encodeURIComponent(u.id)}`,
-                                        {
-                                      method: 'DELETE',
-                                      headers: { ...(csrf ? { 'X-XSRF-TOKEN': csrf } : {}) },
-                                      credentials: 'same-origin',
-                                        }
-                                      )
-                                  if (!res.ok) {
-                                    const j = await res.json().catch(() => ({}))
-                                    toast.error(j?.error || 'Failed to delete user')
-                                    return
+                                    const cj = await createRes.json().catch(() => ({}))
+                                    if (!createRes.ok) {
+                                      toast.error(cj?.error || 'Failed to create profile')
+                                      return
+                                    }
+                                    pid = cj?.id || null
                                   }
-                                  toast.success('User deleted')
-                                  await load()
+                                  if (pid) window.location.href = `/admin/posts/${pid}/edit`
                                 } catch {
-                                  toast.error('Failed to delete user')
+                                  toast.error('Failed to open profile')
                                 }
                               }}
                             >
-                              Confirm
-                            </AlertDialogAction>
-                          </AlertDialogFooter>
-                        </AlertDialogContent>
-                      </AlertDialog>
+                              Edit Details
+                            </button>
+                            {pwdFor === u.id ? (
+                              <div className="inline-flex items-center gap-2">
+                                <Input
+                                  type="password"
+                                  value={pwd}
+                                  onChange={(e) => setPwd(e.target.value)}
+                                  placeholder="New password"
+                                  className="w-[200px]"
+                                />
+                                <button
+                                  className="px-2 py-1 text-xs border border-line-medium rounded hover:bg-backdrop-medium text-neutral-high"
+                                  disabled={!!saving[u.id]}
+                                  onClick={() => {
+                                    resetPassword(u.id, pwd)
+                                    setPwdFor(null)
+                                    setPwd('')
+                                  }}
+                                >
+                                  Save
+                                </button>
+                                <button
+                                  className="px-2 py-1 text-xs border border-line-medium rounded hover:bg-backdrop-medium text-neutral-medium"
+                                  onClick={() => {
+                                    setPwdFor(null)
+                                    setPwd('')
+                                  }}
+                                >
+                                  Cancel
+                                </button>
+                              </div>
+                            ) : (
+                              <button
+                                className="px-2 py-1 text-xs border border-line-medium rounded hover:bg-backdrop-medium text-neutral-medium"
+                                onClick={() => setPwdFor(u.id)}
+                              >
+                                Reset Password
+                              </button>
+                            )}
+                          </>
                         )}
-                  </TableCell>
-                </TableRow>
+                        {canDeleteUser && (
+                          <AlertDialog>
+                            <AlertDialogTrigger asChild>
+                              <button className="ml-2 px-2 py-1 text-xs border border-[#ef4444] text-[#ef4444] rounded hover:bg-[rgba(239,68,68,0.1)]">
+                                Delete
+                              </button>
+                            </AlertDialogTrigger>
+                            <AlertDialogContent>
+                              <AlertDialogHeader>
+                                <AlertDialogTitle>Delete user?</AlertDialogTitle>
+                                <AlertDialogDescription>
+                                  This action cannot be undone. The account for {u.email} will be
+                                  permanently removed.
+                                </AlertDialogDescription>
+                              </AlertDialogHeader>
+                              <AlertDialogFooter>
+                                <AlertDialogCancel>Cancel</AlertDialogCancel>
+                                <AlertDialogAction
+                                  onClick={async () => {
+                                    try {
+                                      const csrf = getXsrf()
+                                      const res = await fetch(
+                                        `/api/users/${encodeURIComponent(u.id)}`,
+                                        {
+                                          method: 'DELETE',
+                                          headers: { ...(csrf ? { 'X-XSRF-TOKEN': csrf } : {}) },
+                                          credentials: 'same-origin',
+                                        }
+                                      )
+                                      if (!res.ok) {
+                                        const j = await res.json().catch(() => ({}))
+                                        toast.error(j?.error || 'Failed to delete user')
+                                        return
+                                      }
+                                      toast.success('User deleted')
+                                      await load()
+                                    } catch {
+                                      toast.error('Failed to delete user')
+                                    }
+                                  }}
+                                >
+                                  Confirm
+                                </AlertDialogAction>
+                              </AlertDialogFooter>
+                            </AlertDialogContent>
+                          </AlertDialog>
+                        )}
+                      </TableCell>
+                    </TableRow>
                   )
                 })}
                 {filteredRows().length === 0 && (
-                <TableRow>
-                  <TableCell colSpan={4} className="py-8 text-center text-neutral-low">
+                  <TableRow>
+                    <TableCell colSpan={4} className="py-8 text-center text-neutral-low">
                       No users found.
-                  </TableCell>
-                </TableRow>
+                    </TableCell>
+                  </TableRow>
                 )}
-            </TableBody>
-          </Table>
-        </div>
+              </TableBody>
+            </Table>
+          </div>
         )}
 
         {activeTab === 'profiles' && (

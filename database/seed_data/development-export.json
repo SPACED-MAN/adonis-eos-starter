@@ -4,15 +4,7 @@
     "exportedAt": "2025-12-24T09:10:19.617+00:00",
     "databaseType": "pg",
     "tableCount": 28,
-    "contentTypes": [
-      "media",
-      "posts",
-      "modules",
-      "forms",
-      "menus",
-      "categories",
-      "module_groups"
-    ],
+    "contentTypes": ["media", "posts", "modules", "forms", "menus", "categories", "module_groups"],
     "preserveIds": true
   },
   "tables": {
@@ -2097,10 +2089,7 @@
         "post_id": null,
         "global_slug": null,
         "props": {
-          "tags": [
-            "alpha",
-            "beta"
-          ],
+          "tags": ["alpha", "beta"],
           "count": "3",
           "image": "9dec21ab-074a-42be-a4af-5cbdfaa4ff9f",
           "items": [
@@ -5106,10 +5095,7 @@
                 "aiReviewDeleted": false
               },
               "props": {
-                "tags": [
-                  "alpha",
-                  "beta"
-                ],
+                "tags": ["alpha", "beta"],
                 "count": "3",
                 "image": "9dec21ab-074a-42be-a4af-5cbdfaa4ff9f",
                 "items": [
@@ -6452,10 +6438,7 @@
                 "aiReviewDeleted": false
               },
               "props": {
-                "tags": [
-                  "alpha",
-                  "beta"
-                ],
+                "tags": ["alpha", "beta"],
                 "count": "3",
                 "image": "9dec21ab-074a-42be-a4af-5cbdfaa4ff9f",
                 "items": [
@@ -8030,10 +8013,7 @@
                 "aiReviewDeleted": false
               },
               "props": {
-                "tags": [
-                  "alpha",
-                  "beta"
-                ],
+                "tags": ["alpha", "beta"],
                 "count": "3",
                 "image": "9dec21ab-074a-42be-a4af-5cbdfaa4ff9f",
                 "items": [
@@ -9376,10 +9356,7 @@
                 "aiReviewDeleted": false
               },
               "props": {
-                "tags": [
-                  "alpha",
-                  "beta"
-                ],
+                "tags": ["alpha", "beta"],
                 "count": "3",
                 "image": "9dec21ab-074a-42be-a4af-5cbdfaa4ff9f",
                 "items": [
@@ -10731,10 +10708,7 @@
                 "aiReviewDeleted": false
               },
               "props": {
-                "tags": [
-                  "alpha",
-                  "beta"
-                ],
+                "tags": ["alpha", "beta"],
                 "count": "3",
                 "image": "9dec21ab-074a-42be-a4af-5cbdfaa4ff9f",
                 "items": [
@@ -12310,10 +12284,7 @@
                 "aiReviewDeleted": false
               },
               "props": {
-                "tags": [
-                  "alpha",
-                  "beta"
-                ],
+                "tags": ["alpha", "beta"],
                 "count": "3",
                 "image": "9dec21ab-074a-42be-a4af-5cbdfaa4ff9f",
                 "items": [
@@ -13716,10 +13687,7 @@
                 "aiReviewDeleted": false
               },
               "props": {
-                "tags": [
-                  "alpha",
-                  "beta"
-                ],
+                "tags": ["alpha", "beta"],
                 "count": "3",
                 "image": "9dec21ab-074a-42be-a4af-5cbdfaa4ff9f",
                 "items": [
@@ -15072,10 +15040,7 @@
                 "aiReviewDeleted": false
               },
               "props": {
-                "tags": [
-                  "alpha",
-                  "beta"
-                ],
+                "tags": ["alpha", "beta"],
                 "count": "3",
                 "image": "9dec21ab-074a-42be-a4af-5cbdfaa4ff9f",
                 "items": [
@@ -16651,10 +16616,7 @@
                 "aiReviewDeleted": false
               },
               "props": {
-                "tags": [
-                  "alpha",
-                  "beta"
-                ],
+                "tags": ["alpha", "beta"],
                 "count": "3",
                 "image": "9dec21ab-074a-42be-a4af-5cbdfaa4ff9f",
                 "items": [
@@ -18064,10 +18026,7 @@
                 "aiReviewDeleted": false
               },
               "props": {
-                "tags": [
-                  "alpha",
-                  "beta"
-                ],
+                "tags": ["alpha", "beta"],
                 "count": "3",
                 "image": "9dec21ab-074a-42be-a4af-5cbdfaa4ff9f",
                 "items": [
@@ -19420,10 +19379,7 @@
                 "aiReviewDeleted": false
               },
               "props": {
-                "tags": [
-                  "alpha",
-                  "beta"
-                ],
+                "tags": ["alpha", "beta"],
                 "count": "3",
                 "image": "9dec21ab-074a-42be-a4af-5cbdfaa4ff9f",
                 "items": [
@@ -20999,10 +20955,7 @@
                 "aiReviewDeleted": false
               },
               "props": {
-                "tags": [
-                  "alpha",
-                  "beta"
-                ],
+                "tags": ["alpha", "beta"],
                 "count": "3",
                 "image": "9dec21ab-074a-42be-a4af-5cbdfaa4ff9f",
                 "items": [
@@ -22355,10 +22308,7 @@
                 "aiReviewDeleted": false
               },
               "props": {
-                "tags": [
-                  "alpha",
-                  "beta"
-                ],
+                "tags": ["alpha", "beta"],
                 "count": "3",
                 "image": "9dec21ab-074a-42be-a4af-5cbdfaa4ff9f",
                 "items": [
@@ -23711,10 +23661,7 @@
                 "aiReviewDeleted": false
               },
               "props": {
-                "tags": [
-                  "alpha",
-                  "beta"
-                ],
+                "tags": ["alpha", "beta"],
                 "count": "3",
                 "image": "9dec21ab-074a-42be-a4af-5cbdfaa4ff9f",
                 "items": [
@@ -25290,10 +25237,7 @@
                 "aiReviewDeleted": false
               },
               "props": {
-                "tags": [
-                  "alpha",
-                  "beta"
-                ],
+                "tags": ["alpha", "beta"],
                 "count": "3",
                 "image": "9dec21ab-074a-42be-a4af-5cbdfaa4ff9f",
                 "items": [
@@ -32889,10 +32833,7 @@
                 "aiReviewDeleted": false
               },
               "props": {
-                "tags": [
-                  "alpha",
-                  "beta"
-                ],
+                "tags": ["alpha", "beta"],
                 "count": "3",
                 "image": "9dec21ab-074a-42be-a4af-5cbdfaa4ff9f",
                 "items": [
@@ -34498,10 +34439,7 @@
                 "aiReviewDeleted": false
               },
               "props": {
-                "tags": [
-                  "alpha",
-                  "beta"
-                ],
+                "tags": ["alpha", "beta"],
                 "count": "3",
                 "image": "9dec21ab-074a-42be-a4af-5cbdfaa4ff9f",
                 "items": [
@@ -37049,10 +36987,7 @@
                 "aiReviewDeleted": false
               },
               "props": {
-                "tags": [
-                  "alpha",
-                  "beta"
-                ],
+                "tags": ["alpha", "beta"],
                 "count": "3",
                 "image": "9dec21ab-074a-42be-a4af-5cbdfaa4ff9f",
                 "items": [
@@ -38658,10 +38593,7 @@
                 "aiReviewDeleted": false
               },
               "props": {
-                "tags": [
-                  "alpha",
-                  "beta"
-                ],
+                "tags": ["alpha", "beta"],
                 "count": "3",
                 "image": "9dec21ab-074a-42be-a4af-5cbdfaa4ff9f",
                 "items": [
@@ -42123,10 +42055,7 @@
                 "aiReviewDeleted": false
               },
               "props": {
-                "tags": [
-                  "alpha",
-                  "beta"
-                ],
+                "tags": ["alpha", "beta"],
                 "count": "3",
                 "image": "9dec21ab-074a-42be-a4af-5cbdfaa4ff9f",
                 "items": [

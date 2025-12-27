@@ -52,7 +52,9 @@ export default function Share({
   const isDarkBg = bg === 'bg-neutral-high'
   const textColor = isDarkBg ? 'text-backdrop-low' : 'text-neutral-high'
   const subtextColor = isDarkBg ? 'text-backdrop-low/80' : 'text-neutral-medium'
-  const iconBg = isDarkBg ? 'bg-backdrop-low/10 border-backdrop-low/20 text-backdrop-low' : 'bg-backdrop-low border-line-low text-neutral-medium'
+  const iconBg = isDarkBg
+    ? 'bg-backdrop-low/10 border-backdrop-low/20 text-backdrop-low'
+    : 'bg-backdrop-low border-line-low text-neutral-medium'
 
   if (enabledNetworks.length === 0) return null
 
@@ -99,7 +101,11 @@ export default function Share({
 
   const containerClass = `w-full ${padding} ${bg}`
   const alignmentClass =
-    alignment === 'center' ? 'justify-center' : alignment === 'right' ? 'justify-end' : 'justify-start'
+    alignment === 'center'
+      ? 'justify-center'
+      : alignment === 'right'
+        ? 'justify-end'
+        : 'justify-start'
 
   const content = (
     <div className={`flex flex-wrap items-center ${alignmentClass} gap-4`}>
@@ -108,7 +114,7 @@ export default function Share({
           {title}
         </span>
       )}
-      
+
       <div className="flex flex-wrap items-center gap-2">
         {enabledNetworks.map((n, idx) => {
           const item = (
@@ -119,9 +125,9 @@ export default function Share({
               className={`inline-flex items-center justify-center w-10 h-10 rounded-full ${iconBg} border hover:text-standout-high hover:border-standout-medium hover:shadow-sm transition-all duration-200 group`}
               title={`Share on ${n.label}`}
             >
-              <FontAwesomeIcon 
-                icon={getIconProp(n.icon)} 
-                className="w-4 h-4 transition-transform group-hover:scale-110" 
+              <FontAwesomeIcon
+                icon={getIconProp(n.icon)}
+                className="w-4 h-4 transition-transform group-hover:scale-110"
               />
             </a>
           )
@@ -148,9 +154,7 @@ export default function Share({
 
   return (
     <section className={containerClass} data-module="share">
-      <div className="container mx-auto px-4 sm:px-6 lg:px-8">
-        {content}
-      </div>
+      <div className="container mx-auto px-4 sm:px-6 lg:px-8">{content}</div>
     </section>
   )
 }

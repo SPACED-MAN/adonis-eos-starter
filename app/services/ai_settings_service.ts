@@ -51,4 +51,3 @@ class AISettingsService {
 
 const aiSettingsService = new AISettingsService()
 export default aiSettingsService
-

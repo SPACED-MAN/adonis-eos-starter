@@ -53,7 +53,7 @@ function getXsrf(): string | undefined {
 
 export default function AgentsIndex() {
   const [activeTab, setActiveTab] = useState<'overview' | 'settings'>('overview')
-  
+
   // Agents State
   const [agents, setAgents] = useState<Agent[]>([])
   const [agentsLoading, setAgentsLoading] = useState(true)
@@ -136,7 +136,7 @@ export default function AgentsIndex() {
   return (
     <div className="min-h-screen bg-backdrop-medium">
       <AdminHeader title="Agents" />
-      
+
       <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
         <div className="mb-6 flex border-b border-line-low">
           <button
@@ -185,7 +185,10 @@ export default function AgentsIndex() {
               <TableBody>
                 {agentsLoading ? (
                   <TableRow>
-                    <TableCell colSpan={5} className="text-center py-8 text-neutral-low animate-pulse">
+                    <TableCell
+                      colSpan={5}
+                      className="text-center py-8 text-neutral-low animate-pulse"
+                    >
                       Loading agents...
                     </TableCell>
                   </TableRow>
@@ -200,7 +203,9 @@ export default function AgentsIndex() {
                     <TableRow key={agent.id}>
                       <TableCell className="font-medium">{agent.name}</TableCell>
                       <TableCell className="capitalize">{agent.type}</TableCell>
-                      <TableCell className="max-w-md text-sm text-neutral-medium">{agent.description}</TableCell>
+                      <TableCell className="max-w-md text-sm text-neutral-medium">
+                        {agent.description}
+                      </TableCell>
                       <TableCell>
                         <div className="flex flex-wrap gap-1">
                           {agent.scopes.map((s) => (
@@ -235,16 +240,23 @@ export default function AgentsIndex() {
             <section>
               <h3 className="text-lg font-semibold mb-4">Reasoning (Text) Defaults</h3>
               <p className="text-sm text-neutral-medium mb-6">
-                Global fallback for agents that do not specify a text provider/model in their config file.
+                Global fallback for agents that do not specify a text provider/model in their config
+                file.
               </p>
               <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                 <div className="space-y-2">
-                  <label className="text-sm font-medium text-neutral-medium">Default Provider</label>
+                  <label className="text-sm font-medium text-neutral-medium">
+                    Default Provider
+                  </label>
                   <Select
                     value={settings.defaultTextProvider || ''}
                     onValueChange={(val) => {
                       const firstModel = models[val]?.[0] || ''
-                      setSettings({ ...settings, defaultTextProvider: val, defaultTextModel: firstModel })
+                      setSettings({
+                        ...settings,
+                        defaultTextProvider: val,
+                        defaultTextModel: firstModel,
+                      })
                     }}
                   >
                     <SelectTrigger className="w-full">
@@ -286,16 +298,23 @@ export default function AgentsIndex() {
             <section>
               <h3 className="text-lg font-semibold mb-4">Media (Generation) Defaults</h3>
               <p className="text-sm text-neutral-medium mb-6">
-                Global fallback for agents that do not specify a media provider/model in their config file.
+                Global fallback for agents that do not specify a media provider/model in their
+                config file.
               </p>
               <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                 <div className="space-y-2">
-                  <label className="text-sm font-medium text-neutral-medium">Default Provider</label>
+                  <label className="text-sm font-medium text-neutral-medium">
+                    Default Provider
+                  </label>
                   <Select
                     value={settings.defaultMediaProvider || ''}
                     onValueChange={(val) => {
                       const firstModel = models[val]?.[0] || ''
-                      setSettings({ ...settings, defaultMediaProvider: val, defaultMediaModel: firstModel })
+                      setSettings({
+                        ...settings,
+                        defaultMediaProvider: val,
+                        defaultMediaModel: firstModel,
+                      })
                     }}
                   >
                     <SelectTrigger className="w-full">
@@ -336,8 +355,8 @@ export default function AgentsIndex() {
               <button
                 type="button"
                 className={`px-4 py-2 text-sm font-semibold rounded-lg transition-all ${
-                  saving 
-                    ? 'bg-standout-medium/50 text-on-standout/50 cursor-not-allowed' 
+                  saving
+                    ? 'bg-standout-medium/50 text-on-standout/50 cursor-not-allowed'
                     : 'bg-standout-medium text-on-standout hover:bg-standout-high active:scale-95 shadow-sm hover:shadow-md'
                 }`}
                 disabled={saving}
@@ -345,7 +364,11 @@ export default function AgentsIndex() {
               >
                 {saving ? 'Saving…' : 'Save AI Settings'}
               </button>
-              {settingsLoading && <span className="text-xs text-neutral-low animate-pulse">Fetching available models…</span>}
+              {settingsLoading && (
+                <span className="text-xs text-neutral-low animate-pulse">
+                  Fetching available models…
+                </span>
+              )}
             </div>
           </div>
         )}

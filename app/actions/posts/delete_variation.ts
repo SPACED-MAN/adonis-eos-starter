@@ -10,7 +10,10 @@ export default class DeleteVariation {
   /**
    * Deletes a variation and cleans up the A/B test group if necessary.
    */
-  static async handle({ postId, userId }: DeleteVariationParams): Promise<{ message: string; remainingPostId?: string }> {
+  static async handle({
+    postId,
+    userId,
+  }: DeleteVariationParams): Promise<{ message: string; remainingPostId?: string }> {
     const postToDelete = await Post.findOrFail(postId)
     const abGroupId = postToDelete.abGroupId
 
@@ -55,7 +58,10 @@ export default class DeleteVariation {
           lastPost.abGroupId = null
           lastPost.abVariation = null
           await lastPost.save()
-          return { message: 'Variation deleted. A/B test ended as only one variation remains.', remainingPostId: lastPost.id }
+          return {
+            message: 'Variation deleted. A/B test ended as only one variation remains.',
+            remainingPostId: lastPost.id,
+          }
         }
       }
 
@@ -65,11 +71,17 @@ export default class DeleteVariation {
           .where('abGroupId', abGroupId)
           .whereNull('deleted_at')
           .first()
-        
+
         if (newPrimary) {
           // Re-assign all variations to this new primary ID
-          await trx.from('posts').where('ab_group_id', abGroupId).update({ ab_group_id: newPrimary.id })
-          return { message: 'Variation deleted. New primary assigned.', remainingPostId: newPrimary.id }
+          await trx
+            .from('posts')
+            .where('ab_group_id', abGroupId)
+            .update({ ab_group_id: newPrimary.id })
+          return {
+            message: 'Variation deleted. New primary assigned.',
+            remainingPostId: newPrimary.id,
+          }
         }
       }
 
@@ -77,4 +89,3 @@ export default class DeleteVariation {
     })
   }
 }
-

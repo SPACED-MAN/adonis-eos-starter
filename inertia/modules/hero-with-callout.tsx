@@ -54,7 +54,11 @@ function CalloutButtons({
 
           // Normalize the URL - handle stringified JSON objects
           let urlValue = callout.url
-          if (typeof urlValue === 'string' && urlValue.startsWith('{') && urlValue.includes('"kind"')) {
+          if (
+            typeof urlValue === 'string' &&
+            urlValue.startsWith('{') &&
+            urlValue.includes('"kind"')
+          ) {
             try {
               urlValue = JSON.parse(urlValue)
             } catch {
@@ -71,7 +75,12 @@ function CalloutButtons({
           }
 
           // If href is undefined and it's a post reference, fetch it from the API
-          if (typeof urlValue === 'object' && urlValue !== null && urlValue.kind === 'post' && urlValue.postId) {
+          if (
+            typeof urlValue === 'object' &&
+            urlValue !== null &&
+            urlValue.kind === 'post' &&
+            urlValue.postId
+          ) {
             try {
               const asyncResolved = await resolvePostLink(urlValue.postId, urlValue.target)
               if (asyncResolved.href && typeof asyncResolved.href === 'string') {
@@ -80,7 +89,12 @@ function CalloutButtons({
             } catch (error) {
               console.error(`Error resolving post link for postId: ${urlValue.postId}`, error)
             }
-          } else if (typeof urlValue === 'object' && urlValue !== null && urlValue.kind === 'url' && typeof urlValue.url === 'string') {
+          } else if (
+            typeof urlValue === 'object' &&
+            urlValue !== null &&
+            urlValue.kind === 'url' &&
+            typeof urlValue.url === 'string'
+          ) {
             newResolved.set(index, urlValue.url)
           } else if (typeof urlValue === 'string' && !urlValue.startsWith('{')) {
             newResolved.set(index, urlValue)
@@ -270,4 +284,3 @@ export default function HeroWithCallout({
     </section>
   )
 }
-

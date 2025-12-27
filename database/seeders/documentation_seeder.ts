@@ -21,9 +21,9 @@ export default class extends BaseSeeder {
   ): Promise<any> {
     // Store context for link transformation
     if (context) {
-      ; (this as any).currentFile = context.currentFile
-        ; (this as any).allFiles = context.allFiles
-        ; (this as any).postIdsBySlug = context.postIdsBySlug
+      ;(this as any).currentFile = context.currentFile
+      ;(this as any).allFiles = context.allFiles
+      ;(this as any).postIdsBySlug = context.postIdsBySlug
     }
 
     // Parse markdown tokens
@@ -321,11 +321,11 @@ export default class extends BaseSeeder {
           const originalHref = token.href
           const transformedHref = (this as any).transformLinkUrl
             ? (this as any).transformLinkUrl(
-              originalHref,
-              (this as any).currentFile,
-              (this as any).allFiles,
-              (this as any).postIdsBySlug
-            )
+                originalHref,
+                (this as any).currentFile,
+                (this as any).allFiles,
+                (this as any).postIdsBySlug
+              )
             : originalHref
 
           children.push({
@@ -684,7 +684,7 @@ export default class extends BaseSeeder {
       for (const file of editorFiles.filter((f) => f.endsWith('.md'))) {
         allFiles.push({ file, path: join(editorsPath, file), dir: 'editors' })
       }
-    } catch { }
+    } catch {}
 
     // Read from docs/developers/
     try {
@@ -693,7 +693,7 @@ export default class extends BaseSeeder {
       for (const file of developerFiles.filter((f) => f.endsWith('.md'))) {
         allFiles.push({ file, path: join(developersPath, file), dir: 'developers' })
       }
-    } catch { }
+    } catch {}
 
     // Sort by directory (root first) then by filename
     allFiles.sort((a, b) => {

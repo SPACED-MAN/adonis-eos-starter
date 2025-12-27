@@ -49,4 +49,3 @@ export default class AISettingsController {
     return response.ok({ data: updated })
   }
 }
-

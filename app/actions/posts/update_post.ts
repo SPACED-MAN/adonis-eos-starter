@@ -74,12 +74,13 @@ export default class UpdatePost {
     if (!post) {
       throw new UpdatePostException('Post not found', 404, { postId })
     }
-    
+
     if (trx) post.useTransaction(trx)
 
     // If slug is being changed, normalize and check uniqueness
     if (slug) {
-      let newSlug = slug.toLowerCase()
+      let newSlug = slug
+        .toLowerCase()
         .replace(/[^a-z0-9]+/g, '-')
         .replace(/^-+|-+$/g, '')
         .replace(/-+/g, '-')

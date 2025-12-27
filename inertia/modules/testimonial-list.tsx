@@ -45,43 +45,43 @@ export default function TestimonialList({
 
   useEffect(() => {
     let cancelled = false
-      ; (async () => {
-        try {
-          const params = new URLSearchParams()
-          params.set('status', 'published')
-          params.set('limit', '8')
-          const ids = Array.isArray(testimonials) ? testimonials.filter(Boolean) : []
-          if (ids.length > 0) {
-            params.set('ids', ids.join(','))
-          }
-          const res = await fetch(`/api/testimonials?${params.toString()}`, {
-            credentials: 'same-origin',
-            headers: { Accept: 'application/json' },
-          })
-          if (!res.ok) {
-            throw new Error('Failed to load testimonials')
-          }
-          const j = await res.json().catch(() => null)
-          const list: any[] = Array.isArray(j?.data) ? j.data : []
-          if (cancelled) return
-
-          const mapped: TestimonialSummary[] = list.map((t: any) => {
-            return {
-              id: String(t.id),
-              authorName: String(t.authorName || 'Anonymous'),
-              authorTitle: t.authorTitle ?? null,
-              quote: t.quote ?? null,
-              image: t.image ?? null,
-            }
-          })
-
-          setItems(mapped)
-        } catch {
-          if (!cancelled) setItems([])
-        } finally {
-          if (!cancelled) setLoading(false)
+    ;(async () => {
+      try {
+        const params = new URLSearchParams()
+        params.set('status', 'published')
+        params.set('limit', '8')
+        const ids = Array.isArray(testimonials) ? testimonials.filter(Boolean) : []
+        if (ids.length > 0) {
+          params.set('ids', ids.join(','))
         }
-      })()
+        const res = await fetch(`/api/testimonials?${params.toString()}`, {
+          credentials: 'same-origin',
+          headers: { Accept: 'application/json' },
+        })
+        if (!res.ok) {
+          throw new Error('Failed to load testimonials')
+        }
+        const j = await res.json().catch(() => null)
+        const list: any[] = Array.isArray(j?.data) ? j.data : []
+        if (cancelled) return
+
+        const mapped: TestimonialSummary[] = list.map((t: any) => {
+          return {
+            id: String(t.id),
+            authorName: String(t.authorName || 'Anonymous'),
+            authorTitle: t.authorTitle ?? null,
+            quote: t.quote ?? null,
+            image: t.image ?? null,
+          }
+        })
+
+        setItems(mapped)
+      } catch {
+        if (!cancelled) setItems([])
+      } finally {
+        if (!cancelled) setLoading(false)
+      }
+    })()
     return () => {
       cancelled = true
     }
@@ -140,10 +140,7 @@ export default function TestimonialList({
             {subtitle}
           </motion.p>
         ) : (
-          <p
-            className={`mb-8 font-light ${subtextColor} sm:text-lg`}
-            data-inline-path="subtitle"
-          >
+          <p className={`mb-8 font-light ${subtextColor} sm:text-lg`} data-inline-path="subtitle">
             {subtitle}
           </p>
         ))}

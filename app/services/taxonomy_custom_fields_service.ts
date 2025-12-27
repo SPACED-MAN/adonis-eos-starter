@@ -22,7 +22,11 @@ class TaxonomyCustomFieldsService {
     return out
   }
 
-  async upsertValues(termId: string, taxonomySlug: string, values: Record<string, any>): Promise<void> {
+  async upsertValues(
+    termId: string,
+    taxonomySlug: string,
+    values: Record<string, any>
+  ): Promise<void> {
     const defs = this.listDefinitions(taxonomySlug)
     const defsBySlug = new Map<string, CustomFieldDefinition>()
     defs.forEach((d) => defsBySlug.set(d.slug, d))
@@ -66,4 +70,3 @@ class TaxonomyCustomFieldsService {
 }
 
 export default new TaxonomyCustomFieldsService()
-

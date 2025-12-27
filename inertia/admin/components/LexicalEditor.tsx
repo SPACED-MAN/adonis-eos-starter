@@ -13,13 +13,15 @@ import { ListItemNode, ListNode } from '@lexical/list'
 import { LinkNode, AutoLinkNode } from '@lexical/link'
 import { CodeNode } from '@lexical/code'
 import { HorizontalRuleNode } from '@lexical/react/LexicalHorizontalRuleNode'
-import { FORMAT_TEXT_COMMAND, $getSelection, $isRangeSelection, $createParagraphNode } from 'lexical'
+import {
+  FORMAT_TEXT_COMMAND,
+  $getSelection,
+  $isRangeSelection,
+  $createParagraphNode,
+} from 'lexical'
 import { $setBlocksType } from '@lexical/selection'
 import { $createHeadingNode } from '@lexical/rich-text'
-import {
-  INSERT_UNORDERED_LIST_COMMAND,
-  INSERT_ORDERED_LIST_COMMAND,
-} from '@lexical/list'
+import { INSERT_UNORDERED_LIST_COMMAND, INSERT_ORDERED_LIST_COMMAND } from '@lexical/list'
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome'
 import {
   faBold,
@@ -39,9 +41,15 @@ import { TokenPicker } from './ui/TokenPicker'
 import { Tooltip, TooltipContent, TooltipTrigger } from '~/components/ui/tooltip'
 import { IconProp } from '@fortawesome/fontawesome-svg-core'
 
-function InitialContentPlugin({ initialValue, editorKey }: { initialValue: any; editorKey?: string }) {
+function InitialContentPlugin({
+  initialValue,
+  editorKey,
+}: {
+  initialValue: any
+  editorKey?: string
+}) {
   const [editor] = useLexicalComposerContext()
-  
+
   // Use a ref to track if we've already initialized for this specific editorKey
   // to avoid infinite loops if initialValue is not stable.
   const initializedKeyRef = useRef<string | null>(null)

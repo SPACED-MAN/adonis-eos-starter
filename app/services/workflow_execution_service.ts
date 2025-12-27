@@ -1,7 +1,4 @@
-import type {
-  WorkflowDefinition,
-  WorkflowTrigger,
-} from '#types/workflow_types'
+import type { WorkflowDefinition, WorkflowTrigger } from '#types/workflow_types'
 import workflowRegistry from '#services/workflow_registry'
 import db from '@adonisjs/lucid/services/db'
 

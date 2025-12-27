@@ -1,8 +1,20 @@
 import React, { useState, useEffect, useCallback } from 'react'
 import { createPortal } from 'react-dom'
 
-export function FeedbackMarkers({ feedbacks = [], onMarkerClick, visible = true, activeId = null }: { feedbacks: any[], onMarkerClick: (f: any) => void, visible?: boolean, activeId?: string | null }) {
-  const [markers, setMarkers] = useState<Array<{ id: string, x: number, y: number, feedback: any }>>([])
+export function FeedbackMarkers({
+  feedbacks = [],
+  onMarkerClick,
+  visible = true,
+  activeId = null,
+}: {
+  feedbacks: any[]
+  onMarkerClick: (f: any) => void
+  visible?: boolean
+  activeId?: string | null
+}) {
+  const [markers, setMarkers] = useState<
+    Array<{ id: string; x: number; y: number; feedback: any }>
+  >([])
   const [mounted, setMounted] = useState(false)
 
   useEffect(() => {
@@ -15,9 +27,9 @@ export function FeedbackMarkers({ feedbacks = [], onMarkerClick, visible = true,
       return
     }
 
-    const nextMarkers: Array<{ id: string, x: number, y: number, feedback: any }> = []
+    const nextMarkers: Array<{ id: string; x: number; y: number; feedback: any }> = []
 
-    feedbacks.forEach(f => {
+    feedbacks.forEach((f) => {
       // Handle both stringified and parsed context
       let context = f.context
       if (typeof context === 'string') {
@@ -33,14 +45,14 @@ export function FeedbackMarkers({ feedbacks = [], onMarkerClick, visible = true,
           const el = document.querySelector(context.selector)
           if (el) {
             const rect = el.getBoundingClientRect()
-            
+
             // Only show if element is actually visible in the DOM
             if (rect.width > 0 || rect.height > 0) {
               nextMarkers.push({
                 id: f.id,
-                x: rect.left + (rect.width / 2),
-                y: rect.top + (rect.height / 2),
-                feedback: f
+                x: rect.left + rect.width / 2,
+                y: rect.top + rect.height / 2,
+                feedback: f,
               })
             }
           }
@@ -49,7 +61,7 @@ export function FeedbackMarkers({ feedbacks = [], onMarkerClick, visible = true,
         }
       }
     })
-    
+
     setMarkers(nextMarkers)
   }, [feedbacks, visible])
 
@@ -57,14 +69,14 @@ export function FeedbackMarkers({ feedbacks = [], onMarkerClick, visible = true,
     if (!visible) return
 
     updateMarkers()
-    
+
     // Listen for scroll and resize
     window.addEventListener('resize', updateMarkers, { passive: true })
     window.addEventListener('scroll', updateMarkers, { passive: true })
-    
+
     // Periodic refresh for dynamic content
     const interval = setInterval(updateMarkers, 2000)
-    
+
     return () => {
       window.removeEventListener('resize', updateMarkers)
       window.removeEventListener('scroll', updateMarkers)
@@ -76,7 +88,10 @@ export function FeedbackMarkers({ feedbacks = [], onMarkerClick, visible = true,
 
   // Render markers into portal
   return createPortal(
-    <div id="feedback-markers-portal" style={{ position: 'fixed', top: 0, left: 0, zIndex: 46, pointerEvents: 'none' }}>
+    <div
+      id="feedback-markers-portal"
+      style={{ position: 'fixed', top: 0, left: 0, zIndex: 46, pointerEvents: 'none' }}
+    >
       <style>{`
         @keyframes feedback-pulse-ring {
           0% { transform: scale(0.5); opacity: 1; }
@@ -130,14 +145,14 @@ export function FeedbackMarkers({ feedbacks = [], onMarkerClick, visible = true,
           transform: scale(1.1);
         }
       `}</style>
-      {markers.map(m => (
+      {markers.map((m) => (
         <div
           key={m.id}
           className={`feedback-marker-container ${activeId === m.id ? 'is-active' : ''}`}
-          style={{ 
-            top: `${m.y}px`, 
+          style={{
+            top: `${m.y}px`,
             left: `${m.x}px`,
-            transform: 'translate(-50%, -50%)'
+            transform: 'translate(-50%, -50%)',
           }}
           onClick={(e) => {
             e.stopPropagation()
@@ -145,7 +160,10 @@ export function FeedbackMarkers({ feedbacks = [], onMarkerClick, visible = true,
           }}
         >
           <div className="feedback-marker-pulse" />
-          <div className="feedback-marker-dot" title={`Feedback: ${m.feedback.content.substring(0, 50)}...`} />
+          <div
+            className="feedback-marker-dot"
+            title={`Feedback: ${m.feedback.content.substring(0, 50)}...`}
+          />
         </div>
       ))}
     </div>,

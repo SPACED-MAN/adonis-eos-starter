@@ -1,17 +1,52 @@
-# SEO & Routing
+# SEO, Routing & Analytics
 
-Configure SEO settings, URL patterns, and redirects for optimal search engine visibility and user experience.
+Configure SEO settings, URL patterns, redirects, and track user engagement with native analytics.
 
 ## Overview
 
-Adonis EOS provides comprehensive SEO and routing features:
+Adonis EOS provides comprehensive SEO, routing, and native analytics features:
 
-- **URL Patterns**: Custom URL structures per post type and locale
-- **Redirects**: 301/302 redirects for moved content
-- **SEO Meta Tags**: Automatic generation of meta tags, Open Graph, Twitter Cards
-- **Structured Data**: JSON-LD for rich search results
-- **Canonical URLs**: Prevent duplicate content issues
-- **Hreflang Tags**: Multi-language content support
+- **URL Patterns**: Custom URL structures per post type and locale.
+- **Redirects**: 301/302 redirects for moved content.
+- **SEO Meta Tags**: Automatic generation of meta tags, Open Graph, Twitter Cards.
+- **Structured Data**: JSON-LD for rich search results.
+- **Native Analytics**: Privacy-focused, high-performance tracking for views and clicks.
+- **Interaction Heatmaps**: Visual overlays of user click data.
+- **XML Sitemap**: Automatic generation of search engine sitemaps.
+
+---
+
+## Native Analytics & Heatmaps
+
+Adonis EOS includes a built-in analytics engine designed for high performance and minimal client-side impact.
+
+### Technical Implementation
+
+- **Tracking Utility**: A lightweight JavaScript utility (`inertia/site/utils/analytics.ts`) tracks page views and clicks.
+- **Performance**:
+    - Uses the **Beacon API** (`navigator.sendBeacon`) for non-blocking data transmission.
+    - Falls back to `fetch` with `keepalive: true` when `sendBeacon` is unavailable.
+    - **Event Batching**: Click events are batched (default: 5 events or every 10 seconds) to reduce network requests.
+- **Exclusion Logic**: Authenticated administrative users (admin, editor, translator) are automatically excluded from tracking to ensure data accuracy.
+- **SPA Integration**: Listens to Inertia.js router events (`router.on('success')`) to accurately track page views in a Single Page Application environment.
+
+### Data Storage
+
+Analytics events are stored in the `analytics_events` table:
+- `event_type`: 'view' or 'click'.
+- `post_id`: Associated content ID (nullable for global events).
+- `x`, `y`: Coordinates for click events (relative to document).
+- `viewport_width`: Captured to help normalize heatmap data.
+- `metadata`: JSONB field for additional context (e.g., URL path, CSS selector of clicked element).
+
+### Heatmap Visualization
+
+Heatmaps are rendered in the admin panel using a canvas overlay:
+1. The target post is loaded in an iframe.
+2. Interaction data (x/y coordinates) is fetched for that specific post.
+3. A transparent canvas is layered over the iframe, and a radial gradient is drawn for each interaction point to create the "heatmap" effect.
+
+---
 
 ## URL Patterns
 

@@ -37,21 +37,24 @@ export default function Cta(props: CtaProps) {
     _useReact,
   } = props
 
-  const title = useInlineValue(__moduleId, 'title', initialTitle) || initialTitle || 'Ready to get started?'
+  const title =
+    useInlineValue(__moduleId, 'title', initialTitle) || initialTitle || 'Ready to get started?'
   const richProse = useInlineValue(__moduleId, 'prose', initialProse)
   const legacyContent = useInlineValue(__moduleId, 'content', initialContent)
   const image = useInlineValue(__moduleId, 'image', initialImage)
   const ctas = useInlineValue(__moduleId, 'ctas', initialCtas) || initialCtas
-  const variant = useInlineValue(__moduleId, 'variant', initialVariant) || initialVariant || 'centered'
-  const backgroundColor = useInlineValue(__moduleId, 'backgroundColor', initialBackground) || initialBackground || 'bg-backdrop-low'
+  const variant =
+    useInlineValue(__moduleId, 'variant', initialVariant) || initialVariant || 'centered'
+  const backgroundColor =
+    useInlineValue(__moduleId, 'backgroundColor', initialBackground) ||
+    initialBackground ||
+    'bg-backdrop-low'
 
   const isDarkBg = backgroundColor === 'bg-neutral-high'
-  const textColor = backgroundColor === 'bg-neutral-high'
-    ? 'text-backdrop-low'
-    : 'text-neutral-high'
-  const subtextColor = backgroundColor === 'bg-neutral-high'
-    ? 'text-backdrop-low/80'
-    : 'text-neutral-medium'
+  const textColor =
+    backgroundColor === 'bg-neutral-high' ? 'text-backdrop-low' : 'text-neutral-high'
+  const subtextColor =
+    backgroundColor === 'bg-neutral-high' ? 'text-backdrop-low/80' : 'text-neutral-medium'
 
   const htmlProse = useMemo(() => {
     const hasRichContent = (val: any) => {
@@ -78,7 +81,11 @@ export default function Cta(props: CtaProps) {
     }
 
     // Try new 'prose' field first, then legacy 'content' field, then default to null
-    const proseToRender = hasRichContent(richProse) ? richProse : (hasRichContent(legacyContent) ? legacyContent : null)
+    const proseToRender = hasRichContent(richProse)
+      ? richProse
+      : hasRichContent(legacyContent)
+        ? legacyContent
+        : null
 
     if (!proseToRender) return null
 
@@ -131,8 +138,9 @@ export default function Cta(props: CtaProps) {
 
     return (
       <div
-        className={`flex flex-wrap items-center gap-4 ${variant === 'split-left' || variant === 'split-right' ? 'justify-start' : 'justify-center'
-          }`}
+        className={`flex flex-wrap items-center gap-4 ${
+          variant === 'split-left' || variant === 'split-right' ? 'justify-start' : 'justify-center'
+        }`}
         data-inline-type="repeater"
         data-inline-path="ctas"
       >
@@ -150,7 +158,9 @@ export default function Cta(props: CtaProps) {
   }
 
   const textBlock = (
-    <div className={`space-y-6 ${variant === 'split-left' || variant === 'split-right' ? 'text-left' : 'text-center'}`}>
+    <div
+      className={`space-y-6 ${variant === 'split-left' || variant === 'split-right' ? 'text-left' : 'text-center'}`}
+    >
       <h2
         className={`text-3xl font-extrabold tracking-tight sm:text-4xl ${textColor}`}
         data-inline-path="title"

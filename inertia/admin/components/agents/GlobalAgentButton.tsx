@@ -24,16 +24,16 @@ export function GlobalAgentButton() {
   useEffect(() => {
     if (!hasGlobalPermission) return
     let alive = true
-      ; (async () => {
-        try {
-          const res = await fetch('/api/agents?scope=global', { credentials: 'same-origin' })
-          const json = await res.json().catch(() => ({}))
-          const list: Agent[] = Array.isArray(json?.data) ? json.data : []
-          if (alive) setAgents(list)
-        } catch {
-          if (alive) setAgents([])
-        }
-      })()
+    ;(async () => {
+      try {
+        const res = await fetch('/api/agents?scope=global', { credentials: 'same-origin' })
+        const json = await res.json().catch(() => ({}))
+        const list: Agent[] = Array.isArray(json?.data) ? json.data : []
+        if (alive) setAgents(list)
+      } catch {
+        if (alive) setAgents([])
+      }
+    })()
     return () => {
       alive = false
     }
@@ -63,9 +63,7 @@ export function GlobalAgentButton() {
         {agents.length === 1 ? (
           <Tooltip>
             <TooltipTrigger asChild>
-              <div onClick={() => handleAgentClick(agents[0])}>
-                {trigger}
-              </div>
+              <div onClick={() => handleAgentClick(agents[0])}>{trigger}</div>
             </TooltipTrigger>
             <TooltipContent side="left">
               <p>AI Assistant ({agents[0].name})</p>
@@ -75,17 +73,21 @@ export function GlobalAgentButton() {
           <Popover open={popoverOpen} onOpenChange={setPopoverOpen}>
             <Tooltip>
               <TooltipTrigger asChild>
-                <PopoverTrigger asChild>
-                  {trigger}
-                </PopoverTrigger>
+                <PopoverTrigger asChild>{trigger}</PopoverTrigger>
               </TooltipTrigger>
               <TooltipContent side="left">
                 <p>AI Assistants</p>
               </TooltipContent>
             </Tooltip>
-            <PopoverContent side="top" align="end" className="w-64 p-2 mb-2 bg-backdrop-high border-line-medium shadow-2xl rounded-2xl overflow-hidden">
+            <PopoverContent
+              side="top"
+              align="end"
+              className="w-64 p-2 mb-2 bg-backdrop-high border-line-medium shadow-2xl rounded-2xl overflow-hidden"
+            >
               <div className="px-3 py-2 border-b border-line-low mb-1">
-                <h3 className="text-[10px] font-bold text-neutral-low uppercase tracking-widest">Select AI Assistant</h3>
+                <h3 className="text-[10px] font-bold text-neutral-low uppercase tracking-widest">
+                  Select AI Assistant
+                </h3>
               </div>
               <div className="space-y-1">
                 {agents.map((agent) => (
@@ -98,7 +100,9 @@ export function GlobalAgentButton() {
                       <FontAwesomeIcon icon={faBrain} className="text-sm" />
                     </div>
                     <div className="flex-1 min-w-0">
-                      <div className="text-sm font-semibold text-neutral-high leading-tight">{agent.name}</div>
+                      <div className="text-sm font-semibold text-neutral-high leading-tight">
+                        {agent.name}
+                      </div>
                       {agent.description && (
                         <div className="text-[11px] text-neutral-low line-clamp-2 mt-1 leading-snug">
                           {agent.description}

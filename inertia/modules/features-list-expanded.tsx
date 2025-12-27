@@ -45,7 +45,9 @@ export default function FeaturesListExpanded({
   const isDarkBg = bg === 'bg-neutral-high'
   const textColor = isDarkBg ? 'text-backdrop-low' : 'text-neutral-high'
   const subtextColor = isDarkBg ? 'text-backdrop-low/80' : 'text-neutral-medium'
-  const iconBg = isDarkBg ? 'bg-backdrop-low/10 text-backdrop-low' : 'bg-standout-medium/10 text-standout-medium'
+  const iconBg = isDarkBg
+    ? 'bg-backdrop-low/10 text-backdrop-low'
+    : 'bg-standout-medium/10 text-standout-medium'
   const lineStyle = isDarkBg ? 'border-backdrop-low/10' : 'border-line-low'
 
   const safeFeatures = Array.isArray(features) ? features.slice(0, 12) : []
@@ -170,7 +172,11 @@ export default function FeaturesListExpanded({
         )
 
         return _useReact ? (
-          <motion.div key={idx} variants={itemVariants(isEven)} viewport={{ once: true, margin: '-50px' }}>
+          <motion.div
+            key={idx}
+            variants={itemVariants(isEven)}
+            viewport={{ once: true, margin: '-50px' }}
+          >
             {featureItem}
           </motion.div>
         ) : (
@@ -227,9 +233,15 @@ function SectionButton({
 }: Button & { inlinePath?: string; _useReact?: boolean; isDarkBg?: boolean }) {
   const styleClasses =
     {
-      primary: isDarkBg ? 'bg-backdrop-low text-neutral-high' : 'bg-standout-medium text-on-standout',
-      secondary: isDarkBg ? 'bg-backdrop-low/10 text-backdrop-low hover:bg-backdrop-low/20' : 'bg-backdrop-medium hover:bg-backdrop-high text-neutral-high',
-      outline: isDarkBg ? 'border border-backdrop-low text-backdrop-low hover:bg-backdrop-low/10' : 'border border-line-low hover:bg-backdrop-medium text-neutral-high',
+      primary: isDarkBg
+        ? 'bg-backdrop-low text-neutral-high'
+        : 'bg-standout-medium text-on-standout',
+      secondary: isDarkBg
+        ? 'bg-backdrop-low/10 text-backdrop-low hover:bg-backdrop-low/20'
+        : 'bg-backdrop-medium hover:bg-backdrop-high text-neutral-high',
+      outline: isDarkBg
+        ? 'border border-backdrop-low text-backdrop-low hover:bg-backdrop-low/10'
+        : 'border border-line-low hover:bg-backdrop-medium text-neutral-high',
     }[style] || 'bg-standout-medium text-on-standout'
 
   const { href, target: finalTarget } = resolveHrefAndTarget(url, target)
@@ -265,4 +277,3 @@ function SectionButton({
     </div>
   )
 }
-

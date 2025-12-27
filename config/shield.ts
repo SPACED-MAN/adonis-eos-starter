@@ -25,11 +25,11 @@ const shieldConfig = defineConfig({
         // Add CDN domains if using external script CDN
         ...(env.get('CSP_CDN_DOMAINS', '')
           ? env
-            .get('CSP_CDN_DOMAINS', '')
-            .split(',')
-            .map((d) => d.trim())
-            .filter(Boolean)
-            .map((d) => (d.startsWith('http') ? d : `https://${d}`))
+              .get('CSP_CDN_DOMAINS', '')
+              .split(',')
+              .map((d) => d.trim())
+              .filter(Boolean)
+              .map((d) => (d.startsWith('http') ? d : `https://${d}`))
           : []),
       ],
       styleSrc: [
@@ -38,11 +38,11 @@ const shieldConfig = defineConfig({
         'https://fonts.bunny.net', // Web fonts
         ...(env.get('CSP_CDN_DOMAINS', '')
           ? env
-            .get('CSP_CDN_DOMAINS', '')
-            .split(',')
-            .map((d) => d.trim())
-            .filter(Boolean)
-            .map((d) => (d.startsWith('http') ? d : `https://${d}`))
+              .get('CSP_CDN_DOMAINS', '')
+              .split(',')
+              .map((d) => d.trim())
+              .filter(Boolean)
+              .map((d) => (d.startsWith('http') ? d : `https://${d}`))
           : []),
       ],
       fontSrc: [
@@ -54,16 +54,14 @@ const shieldConfig = defineConfig({
         "'self'",
         'data:', // For data URI images
         'blob:', // For blob URIs (media uploads)
-        ...(env.get('R2_PUBLIC_BASE_URL')
-          ? [new URL(env.get('R2_PUBLIC_BASE_URL')!).origin]
-          : []),
+        ...(env.get('R2_PUBLIC_BASE_URL') ? [new URL(env.get('R2_PUBLIC_BASE_URL')!).origin] : []),
         ...(env.get('CSP_CDN_DOMAINS', '')
           ? env
-            .get('CSP_CDN_DOMAINS', '')
-            .split(',')
-            .map((d) => d.trim())
-            .filter(Boolean)
-            .map((d) => (d.startsWith('http') ? d : `https://${d}`))
+              .get('CSP_CDN_DOMAINS', '')
+              .split(',')
+              .map((d) => d.trim())
+              .filter(Boolean)
+              .map((d) => (d.startsWith('http') ? d : `https://${d}`))
           : []),
       ],
       connectSrc: [
@@ -86,7 +84,7 @@ const shieldConfig = defineConfig({
    */
   csrf: {
     enabled: !isTest,
-    exceptRoutes: ['/api/forms/:slug'],
+    exceptRoutes: ['/api/forms/:slug', '/api/public/analytics/track'],
     enableXsrfCookie: true,
     methods: ['POST', 'PUT', 'PATCH', 'DELETE'],
   },

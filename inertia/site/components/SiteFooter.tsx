@@ -11,12 +11,14 @@ export function SiteFooter() {
   const [siteTitle, setSiteTitle] = useState<string>('Site')
   const [description, setDescription] = useState<string | null>(null)
   const [logoMedia, setLogoMedia] = useState<any | null>(null)
-  const [socialProfiles, setSocialProfiles] = useState<Array<{ network: string; label: string; icon: string; url: string; enabled: boolean }>>([])
+  const [socialProfiles, setSocialProfiles] = useState<
+    Array<{ network: string; label: string; icon: string; url: string; enabled: boolean }>
+  >([])
 
   const logoUrl = useMediaUrl(logoMedia)
 
   useEffect(() => {
-    ; (async () => {
+    ;(async () => {
       try {
         const res = await fetch('/api/menus/by-slug/footer?locale=en', {
           credentials: 'same-origin',
@@ -34,7 +36,7 @@ export function SiteFooter() {
   }, [])
 
   useEffect(() => {
-    ; (async () => {
+    ;(async () => {
       try {
         const res = await fetch('/api/site-settings', { credentials: 'same-origin' })
         const j = await res.json().catch(() => ({}))
@@ -68,20 +70,14 @@ export function SiteFooter() {
             className="flex items-center justify-center text-2xl font-semibold text-neutral-high gap-2"
           >
             {logoUrl ? (
-              <img
-                src={logoUrl}
-                alt={siteTitle}
-                className="h-8 w-auto"
-              />
+              <img src={logoUrl} alt={siteTitle} className="h-8 w-auto" />
             ) : (
               <span>{siteTitle}</span>
             )}
           </a>
         </div>
         {description && (
-          <p className="my-4 text-sm text-neutral-medium max-w-xl mx-auto">
-            {description}
-          </p>
+          <p className="my-4 text-sm text-neutral-medium max-w-xl mx-auto">{description}</p>
         )}
 
         {socialProfiles.length > 0 && (

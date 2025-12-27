@@ -6,12 +6,12 @@ interface ThemeContextType {
 
 const ThemeContext = createContext<ThemeContextType>({ isDark: false })
 
-export function ThemeProvider({ 
-  children, 
-  initialIsDark 
-}: { 
-  children: React.ReactNode,
-  initialIsDark?: boolean 
+export function ThemeProvider({
+  children,
+  initialIsDark,
+}: {
+  children: React.ReactNode
+  initialIsDark?: boolean
 }) {
   const [isDark, setIsDark] = useState<boolean>(initialIsDark ?? false)
 
@@ -24,7 +24,7 @@ export function ThemeProvider({
       const dark = root.classList.contains('dark')
       setIsDark(dark)
     }
-    
+
     // Always check the document on mount to ensure we are in sync with the DOM
     checkDark()
 
@@ -41,15 +41,9 @@ export function ThemeProvider({
     return () => observer.disconnect()
   }, [initialIsDark])
 
-  return (
-    <ThemeContext.Provider value={{ isDark }}>
-      {children}
-    </ThemeContext.Provider>
-  )
+  return <ThemeContext.Provider value={{ isDark }}>{children}</ThemeContext.Provider>
 }
 
 export function useTheme() {
   return useContext(ThemeContext)
 }
-
-

@@ -34,7 +34,7 @@ export default class TaxonomiesController {
     }
     const { slug } = params
     const tree = await taxonomyService.getTermsTreeBySlug(String(slug))
-    
+
     // Enrich with custom field values
     const walk = async (nodes: any[]) => {
       for (const node of nodes) {

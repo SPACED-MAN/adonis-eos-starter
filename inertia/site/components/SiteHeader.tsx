@@ -35,7 +35,8 @@ export function SiteHeader() {
         url: String(logo.url),
         metadata: {
           variants: (Array.isArray(meta?.variants) ? meta.variants : []) as MediaVariant[],
-          darkSourceUrl: typeof meta.darkSourceUrl === 'string' ? (meta.darkSourceUrl as string) : null,
+          darkSourceUrl:
+            typeof meta.darkSourceUrl === 'string' ? (meta.darkSourceUrl as string) : null,
         },
       }
     } else if (typeof logo === 'string') {

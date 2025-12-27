@@ -93,14 +93,14 @@ export default function GeneralSettings() {
         const res = await fetch('/api/site-settings', { credentials: 'same-origin' })
         const j = await res.json().catch(() => ({}))
         if (!alive) return
-        
+
         // Merge fetched social settings with defaults to ensure all networks are present
         const fetchedSocial = j?.data?.socialSettings || {}
-        const mergedProfiles = defaultProfiles.map(def => {
+        const mergedProfiles = defaultProfiles.map((def) => {
           const found = (fetchedSocial.profiles || []).find((p: any) => p.network === def.network)
           return found ? { ...def, ...found } : def
         })
-        const mergedSharing = defaultSharing.map(def => {
+        const mergedSharing = defaultSharing.map((def) => {
           const found = (fetchedSocial.sharing || []).find((s: any) => s.network === def.network)
           return found ? { ...def, ...found } : def
         })
@@ -339,7 +339,7 @@ export default function GeneralSettings() {
 
           {/* Site Custom Fields */}
           {Array.isArray(form.customFieldDefs) && form.customFieldDefs.length > 0 && (
-          <div className="border-t border-line-low pt-6">
+            <div className="border-t border-line-low pt-6">
               <h3 className="text-base font-semibold text-neutral-high mb-6">Site Fields</h3>
               <CustomFieldRenderer
                 definitions={form.customFieldDefs}
@@ -359,7 +359,7 @@ export default function GeneralSettings() {
 
           <div className="border-t border-line-low pt-6">
             <h3 className="text-base font-semibold text-neutral-high mb-4">Social Networks</h3>
-            
+
             <div className="space-y-8">
               {/* Social Profiles */}
               <div>
@@ -378,7 +378,7 @@ export default function GeneralSettings() {
                           {profile.label}
                         </span>
                       </div>
-                      
+
                       <div className="flex-1 w-full sm:w-auto">
                         <Input
                           value={profile.url || ''}
@@ -456,11 +456,9 @@ export default function GeneralSettings() {
                         <div className="w-8 h-8 rounded bg-backdrop-high flex items-center justify-center text-neutral-medium">
                           <FontAwesomeIcon icon={getIconProp(share.icon)} />
                         </div>
-                        <span className="text-xs font-medium text-neutral-high">
-                          {share.label}
-                        </span>
+                        <span className="text-xs font-medium text-neutral-high">{share.label}</span>
                       </div>
-                      
+
                       <div className="flex items-center gap-4">
                         <div className="w-20">
                           <Tooltip>
@@ -508,7 +506,7 @@ export default function GeneralSettings() {
             </div>
           </div>
 
-            <div className="border-t border-line-low pt-6">
+          <div className="border-t border-line-low pt-6">
             <h3 className="text-base font-semibold text-neutral-high mb-4">Maintenance Mode</h3>
             <div className="bg-amber-50 dark:bg-amber-950/20 border border-amber-200 dark:border-amber-900/50 rounded-lg p-4">
               <div className="flex items-start gap-3">
@@ -520,7 +518,7 @@ export default function GeneralSettings() {
                   }
                   className="mt-1"
                 />
-          <div>
+                <div>
                   <label
                     htmlFor="maintenance-mode"
                     className="text-sm font-semibold text-amber-900 dark:text-amber-200 cursor-pointer"

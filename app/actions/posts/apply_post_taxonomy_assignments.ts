@@ -22,7 +22,7 @@ export default class ApplyPostTaxonomyAssignments {
     const allowedTaxonomySlugs = Array.isArray((uiCfg as any).taxonomies)
       ? (uiCfg as any).taxonomies
       : []
-    
+
     if (allowedTaxonomySlugs.length === 0) return
 
     // Normalize and dedupe IDs
@@ -51,10 +51,7 @@ export default class ApplyPostTaxonomyAssignments {
         .where('post_id', postId)
         .whereIn(
           'taxonomy_term_id',
-          trx
-            .from('taxonomy_terms')
-            .whereIn('taxonomy_id', allowedTaxonomyIdsQuery)
-            .select('id')
+          trx.from('taxonomy_terms').whereIn('taxonomy_id', allowedTaxonomyIdsQuery).select('id')
         )
         .delete()
 
@@ -80,4 +77,3 @@ export default class ApplyPostTaxonomyAssignments {
     }
   }
 }
-

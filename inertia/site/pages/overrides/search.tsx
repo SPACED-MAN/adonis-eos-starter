@@ -35,7 +35,11 @@ export default function SearchPage(props: {
             Search published content{props.locale ? ` (${props.locale})` : ''}.
           </p>
 
-          <form method="get" action="/search" className="mt-6 grid grid-cols-1 sm:grid-cols-5 gap-3">
+          <form
+            method="get"
+            action="/search"
+            className="mt-6 grid grid-cols-1 sm:grid-cols-5 gap-3"
+          >
             <input type="hidden" name="locale" value={props.locale} />
             <div className="sm:col-span-3">
               <label className="block text-xs font-medium text-neutral-medium mb-1">Query</label>
@@ -47,7 +51,9 @@ export default function SearchPage(props: {
               />
             </div>
             <div className="sm:col-span-2">
-              <label className="block text-xs font-medium text-neutral-medium mb-1">Post type</label>
+              <label className="block text-xs font-medium text-neutral-medium mb-1">
+                Post type
+              </label>
               <select
                 name="type"
                 defaultValue={type}
@@ -96,10 +102,16 @@ export default function SearchPage(props: {
               ) : (
                 <ul className="space-y-3">
                   {props.results.map((r) => (
-                    <li key={r.id} className="rounded-lg border border-line-low bg-backdrop px-4 py-4">
+                    <li
+                      key={r.id}
+                      className="rounded-lg border border-line-low bg-backdrop px-4 py-4"
+                    >
                       <div className="flex items-start justify-between gap-3">
                         <div className="min-w-0">
-                          <a href={r.url} className="text-base font-medium text-neutral-high hover:underline">
+                          <a
+                            href={r.url}
+                            className="text-base font-medium text-neutral-high hover:underline"
+                          >
                             {r.title}
                           </a>
                           <div className="mt-1 text-xs text-neutral-low">
@@ -108,7 +120,9 @@ export default function SearchPage(props: {
                             <span className="font-mono">{r.slug}</span>
                           </div>
                           {r.excerpt && (
-                            <p className="mt-2 text-sm text-neutral-medium line-clamp-3">{r.excerpt}</p>
+                            <p className="mt-2 text-sm text-neutral-medium line-clamp-3">
+                              {r.excerpt}
+                            </p>
                           )}
                         </div>
                         <div className="shrink-0 text-[11px] text-neutral-low whitespace-nowrap">
@@ -127,5 +141,3 @@ export default function SearchPage(props: {
     </>
   )
 }
-
-

@@ -49,10 +49,10 @@ export default class ModuleGroupsController {
       }
       return await ModuleGroup.create(
         {
-      name,
-      postType,
-      description,
-      locked: !!locked,
+          name,
+          postType,
+          description,
+          locked: !!locked,
           isDefault: !!isDefault,
         },
         { client: trx }
@@ -76,10 +76,10 @@ export default class ModuleGroupsController {
 
     await db.transaction(async (trx) => {
       row.useTransaction(trx)
-    if (payload.name !== undefined) row.name = payload.name
-    if (payload.postType !== undefined) row.postType = payload.postType
-    if (payload.description !== undefined) row.description = payload.description
-    if (payload.locked !== undefined) row.locked = !!payload.locked
+      if (payload.name !== undefined) row.name = payload.name
+      if (payload.postType !== undefined) row.postType = payload.postType
+      if (payload.description !== undefined) row.description = payload.description
+      if (payload.locked !== undefined) row.locked = !!payload.locked
 
       if (payload.isDefault !== undefined) {
         const isDefault = !!payload.isDefault
@@ -92,7 +92,7 @@ export default class ModuleGroupsController {
         }
         row.isDefault = isDefault
       }
-    await row.save()
+      await row.save()
     })
 
     return response.ok({ data: row })

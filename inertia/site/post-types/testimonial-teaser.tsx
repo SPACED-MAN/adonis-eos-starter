@@ -23,12 +23,7 @@ export default function TestimonialTeaser({
       <figcaption className="flex justify-center items-center space-x-4">
         {image && (
           <div className="w-14 h-14 rounded-full overflow-hidden shrink-0">
-            <MediaRenderer
-              image={image}
-              variant="thumb"
-              loading="lazy"
-              decoding="async"
-            />
+            <MediaRenderer image={image} variant="thumb" loading="lazy" decoding="async" />
           </div>
         )}
         <div className="space-y-0.5 font-medium text-left">

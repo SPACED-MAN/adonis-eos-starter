@@ -19,7 +19,8 @@ export default function PostCustomPostReferenceField({ label, value, onChange, c
       : []
 
   // Normalize allowMultiple from config (support multiple or allowMultiple)
-  const allowMultiple = (config as any)?.allowMultiple !== false && (config as any)?.multiple !== false
+  const allowMultiple =
+    (config as any)?.allowMultiple !== false && (config as any)?.multiple !== false
 
   const initialVals: string[] = (() => {
     // If it's already an array, use it
@@ -47,7 +48,7 @@ export default function PostCustomPostReferenceField({ label, value, onChange, c
   const isMounted = useRef(false)
   useEffect(() => {
     if (isMounted.current) {
-    onChange(allowMultiple ? vals : (vals[0] ?? null))
+      onChange(allowMultiple ? vals : (vals[0] ?? null))
     } else {
       isMounted.current = true
     }

@@ -165,9 +165,8 @@ class UrlPatternService {
       if (p.isDefault && p.aggregatePostId) {
         // Extract base path from pattern by removing everything from the first token onwards
         const firstTokenIndex = p.pattern.indexOf('{')
-        const basePath = firstTokenIndex !== -1
-          ? p.pattern.substring(0, firstTokenIndex).replace(/\/$/, '')
-          : null
+        const basePath =
+          firstTokenIndex !== -1 ? p.pattern.substring(0, firstTokenIndex).replace(/\/$/, '') : null
 
         if (basePath && basePath !== '' && basePath !== '/' && normalizedPath === basePath) {
           // Found an aggregate page match!
@@ -180,7 +179,7 @@ class UrlPatternService {
               locale: aggPost.locale,
               slug: aggPost.slug,
               usesPath: false,
-              aggregatePostId: aggPost.id
+              aggregatePostId: aggPost.id,
             }
           }
         }
@@ -363,14 +362,8 @@ class UrlPatternService {
 
     // 2. Fetch all patterns in one go
     const patterns = await UrlPattern.query()
-      .whereIn(
-        'post_type',
-        Array.from(new Set(rows.map((r) => r.type)))
-      )
-      .whereIn(
-        'locale',
-        Array.from(new Set(rows.map((r) => r.locale)))
-      )
+      .whereIn('post_type', Array.from(new Set(rows.map((r) => r.type))))
+      .whereIn('locale', Array.from(new Set(rows.map((r) => r.locale))))
       .where('is_default', true)
 
     const patternMap = new Map<string, string>()
@@ -545,7 +538,8 @@ class UrlPatternService {
     rec.merge({
       pattern: data.pattern,
       isDefault: data.isDefault ?? true,
-      aggregatePostId: data.aggregatePostId !== undefined ? data.aggregatePostId : rec.aggregatePostId,
+      aggregatePostId:
+        data.aggregatePostId !== undefined ? data.aggregatePostId : rec.aggregatePostId,
     })
     await rec.save()
     return {

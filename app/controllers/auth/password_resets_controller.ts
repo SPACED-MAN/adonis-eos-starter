@@ -47,7 +47,10 @@ export default class PasswordResetsController {
     }
 
     // Always show success message to prevent user enumeration
-    session.flash('success', 'If an account exists with that email, we have sent password reset instructions.')
+    session.flash(
+      'success',
+      'If an account exists with that email, we have sent password reset instructions.'
+    )
     return response.redirect().back()
   }
 
@@ -117,4 +120,3 @@ export default class PasswordResetsController {
     return response.redirect().toPath('/admin/login')
   }
 }
-

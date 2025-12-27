@@ -41,17 +41,22 @@ export function AnnouncementBanner() {
   return (
     <div className="bg-standout-medium text-on-standout py-2 px-4 relative z-[60]">
       <div className="container mx-auto flex items-center justify-between gap-4">
-        <div 
+        <div
           className="flex-1 text-sm font-medium text-center prose prose-sm prose-invert max-w-none announcement-content"
           dangerouslySetInnerHTML={{ __html: announcementHtml }}
         />
-        <button 
+        <button
           onClick={() => setIsVisible(false)}
           className="text-on-standout/80 hover:text-on-standout transition-colors p-1"
           aria-label="Close announcement"
         >
           <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+            <path
+              strokeLinecap="round"
+              strokeLinejoin="round"
+              strokeWidth={2}
+              d="M6 18L18 6M6 6l12 12"
+            />
           </svg>
         </button>
       </div>
@@ -62,4 +67,3 @@ export function AnnouncementBanner() {
     </div>
   )
 }
-

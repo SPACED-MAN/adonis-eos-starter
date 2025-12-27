@@ -39,8 +39,10 @@ export default class SiteSettingsController {
     const data = {
       ...s,
       logoMedia: (s.logoMediaId && resolvedMedia.get(s.logoMediaId)) || s.logoMediaId || null,
-      faviconMedia: (s.faviconMediaId && resolvedMedia.get(s.faviconMediaId)) || s.faviconMediaId || null,
-      defaultOgMedia: (s.defaultOgMediaId && resolvedMedia.get(s.defaultOgMediaId)) || s.defaultOgMediaId || null,
+      faviconMedia:
+        (s.faviconMediaId && resolvedMedia.get(s.faviconMediaId)) || s.faviconMediaId || null,
+      defaultOgMedia:
+        (s.defaultOgMediaId && resolvedMedia.get(s.defaultOgMediaId)) || s.defaultOgMediaId || null,
       customFieldDefs: defs,
       customFields: vals,
     }

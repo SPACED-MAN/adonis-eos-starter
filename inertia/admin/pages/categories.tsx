@@ -84,7 +84,7 @@ export default function CategoriesPage() {
   const sensors = useSensors(useSensor(PointerSensor, { activationConstraint: { distance: 4 } }))
 
   useEffect(() => {
-    ; (async () => {
+    ;(async () => {
       try {
         const res = await fetch('/api/taxonomies', { credentials: 'same-origin' })
         const json = await res.json().catch(() => ({}))
@@ -447,8 +447,12 @@ export default function CategoriesPage() {
                     <Table>
                       <TableHeader>
                         <TableRow className="hover:bg-transparent">
-                          <TableHead className="text-[10px] font-bold uppercase tracking-wider">Title</TableHead>
-                          <TableHead className="text-[10px] font-bold uppercase tracking-wider text-right">Type</TableHead>
+                          <TableHead className="text-[10px] font-bold uppercase tracking-wider">
+                            Title
+                          </TableHead>
+                          <TableHead className="text-[10px] font-bold uppercase tracking-wider text-right">
+                            Type
+                          </TableHead>
                         </TableRow>
                       </TableHeader>
                       <TableBody>
@@ -521,12 +525,7 @@ function SortableTermRow({
         style={{ paddingLeft: level * 12 }}
         onClick={onSelect}
       >
-        <DragHandle
-          className="mr-2"
-          {...listeners}
-          {...attributes}
-          aria-label="Drag to reorder"
-        />
+        <DragHandle className="mr-2" {...listeners} {...attributes} aria-label="Drag to reorder" />
         <span>{term.name}</span>
       </div>
       <div className="flex items-center gap-2">

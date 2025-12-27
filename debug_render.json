@@ -1,1 +1,269 @@
-{"post":{"id":"f47c5655-edac-422c-8a66-2887915aeb0e","type":"page","locale":"en","slug":"home","title":"Home","excerpt":null,"metaTitle":"Adonis EOS - Node.js-first CMS starter","metaDescription":"Adonis EOS is a Node.js-first CMS starter built on AdonisJS, Inertia, and React. Model content with modules, keep everything in your TypeScript codebase, and ship fast with a modern editorial experience.","status":"published","author":{"id":1,"email":"admin@example.com","fullName":"Admin User"},"reviewDraft":null,"aiReviewDraft":null},"modules":[{"id":"a1ecc027-0e9e-4092-ae6e-b08cded1b3b4","type":"hero-with-media","scope":"post","globalSlug":null,"globalLabel":null,"componentName":"hero-with-media","renderingMode":"static","props":{"title":"TEST","subtitle":"Test","image":"/uploads/logo-eos.svg","imagePosition":"right","primaryCta":{"url":null,"label":null,"style":null},"secondaryCta":{"url":null,"label":null,"style":null},"imageAlt":null,"_useReact":false},"sourceProps":{"image":"/uploads/logo-eos.svg","title":"TEST","imageAlt":null,"subtitle":"Test","_useReact":false,"primaryCta":{"url":null,"label":null,"style":null},"secondaryCta":{"url":null,"label":null,"style":null},"imagePosition":"right"},"sourceOverrides":null,"reviewProps":null,"aiReviewProps":null,"overrides":null,"reviewOverrides":null,"aiReviewOverrides":null,"reviewAdded":false,"reviewDeleted":false,"aiReviewAdded":false,"aiReviewDeleted":false},{"id":"6c4f193c-2de0-48bc-a002-40752d2d5cd9","type":"hero-with-callout","scope":"post","globalSlug":null,"globalLabel":null,"componentName":"hero-with-callout","renderingMode":"static","props":{"title":"A Node.js-first CMS starter for product teams","subtitle":"Adonis EOS is an AdonisJS + Inertia + React starter that treats content modeling, modules, and performance as first-class concerns. It feels like a modern page builder, but lives entirely in your Node.js stack.","callouts":[{"url":"{\"kind\":\"post\",\"postId\":\"346578f8-e4df-47e7-966b-e2b947a18010\",\"postType\":\"documentation\",\"slug\":\"overview\",\"locale\":\"en\"}","label":"Learn More"},{"url":"{\"kind\":\"post\",\"postId\":\"8ef48a22-d132-4752-ba56-d56c60bed36d\",\"postType\":\"documentation\",\"slug\":\"editors\",\"locale\":\"en\"}","label":"For Editors"},{"url":"{\"kind\":\"post\",\"postId\":\"0cb5c589-8664-464c-812a-cc8beb0afeaa\",\"postType\":\"documentation\",\"slug\":\"developers\",\"locale\":\"en\"}","label":"For Developers"}],"_useReact":false,"backgroundColor":"bg-backdrop-low"},"sourceProps":{"title":"A Node.js-first CMS starter for product teams","callouts":[{"url":"{\"kind\":\"post\",\"postId\":\"346578f8-e4df-47e7-966b-e2b947a18010\",\"postType\":\"documentation\",\"slug\":\"overview\",\"locale\":\"en\"}","label":"Learn More"},{"url":"{\"kind\":\"post\",\"postId\":\"8ef48a22-d132-4752-ba56-d56c60bed36d\",\"postType\":\"documentation\",\"slug\":\"editors\",\"locale\":\"en\"}","label":"For Editors"},{"url":"{\"kind\":\"post\",\"postId\":\"0cb5c589-8664-464c-812a-cc8beb0afeaa\",\"postType\":\"documentation\",\"slug\":\"developers\",\"locale\":\"en\"}","label":"For Developers"}],"subtitle":"Adonis EOS is an AdonisJS + Inertia + React starter that treats content modeling, modules, and performance as first-class concerns. It feels like a modern page builder, but lives entirely in your Node.js stack.","_useReact":false,"backgroundColor":"bg-backdrop-low"},"sourceOverrides":null,"reviewProps":null,"aiReviewProps":null,"overrides":null,"reviewOverrides":null,"aiReviewOverrides":null,"reviewAdded":false,"reviewDeleted":false,"aiReviewAdded":false,"aiReviewDeleted":false},{"id":"40aae0c8-e4ed-4604-a1a4-16c7778e264b","type":"features-list","scope":"post","globalSlug":null,"globalLabel":null,"componentName":"features-list","renderingMode":"static","props":{"title":"Why Adonis EOS?","subtitle":"Built for modern Node.js development with everything you need out of the box","features":[{"body":null,"icon":"cube","title":"Modular Architecture","description":"Build pages with reusable, composable modules. Create custom modules with our intuitive API and node ace commands."},{"body":null,"icon":"language","title":"Multi-Language Support","description":"Built-in internationalization with locale-specific content, URL patterns, and translation workflows."},{"body":null,"icon":"users","title":"Role-Based Access Control","description":"Fine-grained permissions system with customizable roles for admins, editors, and translators."},{"body":null,"icon":"code-branch","title":"Content Workflows","description":"Review drafts, AI-assisted content, and approval workflows to ensure quality before publishing."},{"body":null,"icon":"palette","title":"Fully Customizable","description":"Tailwind CSS theming, custom post types, taxonomies, and extensible module system."},{"body":null,"icon":"bolt","title":"Developer Friendly","description":"Built on AdonisJS with TypeScript, Inertia.js, and React. Clean API, great DX, and comprehensive documentation."}],"_useReact":false,"backgroundColor":"bg-backdrop"},"sourceProps":{"title":"Why Adonis EOS?","features":[{"body":null,"icon":"cube","title":"Modular Architecture","description":"Build pages with reusable, composable modules. Create custom modules with our intuitive API and node ace commands."},{"body":null,"icon":"language","title":"Multi-Language Support","description":"Built-in internationalization with locale-specific content, URL patterns, and translation workflows."},{"body":null,"icon":"users","title":"Role-Based Access Control","description":"Fine-grained permissions system with customizable roles for admins, editors, and translators."},{"body":null,"icon":"code-branch","title":"Content Workflows","description":"Review drafts, AI-assisted content, and approval workflows to ensure quality before publishing."},{"body":null,"icon":"palette","title":"Fully Customizable","description":"Tailwind CSS theming, custom post types, taxonomies, and extensible module system."},{"body":null,"icon":"bolt","title":"Developer Friendly","description":"Built on AdonisJS with TypeScript, Inertia.js, and React. Clean API, great DX, and comprehensive documentation."}],"subtitle":"Built for modern Node.js development with everything you need out of the box","_useReact":false,"backgroundColor":"bg-backdrop"},"sourceOverrides":null,"reviewProps":null,"aiReviewProps":null,"overrides":null,"reviewOverrides":null,"aiReviewOverrides":null,"reviewAdded":false,"reviewDeleted":false,"aiReviewAdded":false,"aiReviewDeleted":false}],"seo":{"canonical":"http://localhost/home","alternates":[{"locale":"en","href":"http://localhost/home"}],"robots":"index,follow","jsonLd":{"@context":"https://schema.org","@type":"BlogPosting","headline":"Adonis EOS - Node.js-first CMS starter","inLanguage":"en","mainEntityOfPage":"http://localhost/home","description":"Adonis EOS is a Node.js-first CMS starter built on AdonisJS, Inertia, and React. Model content with modules, keep everything in your TypeScript codebase, and ship fast with a modern editorial experience."},"og":{"title":"Adonis EOS - Node.js-first CMS starter","description":"Adonis EOS is a Node.js-first CMS starter built on AdonisJS, Inertia, and React. Model content with modules, keep everything in your TypeScript codebase, and ship fast with a modern editorial experience.","url":"http://localhost/home","type":"article"},"twitter":{"card":"summary_large_image","title":"Adonis EOS - Node.js-first CMS starter","description":"Adonis EOS is a Node.js-first CMS starter built on AdonisJS, Inertia, and React. Model content with modules, keep everything in your TypeScript codebase, and ship fast with a modern editorial experience."}},"siteSettings":{"siteTitle":"EOS","defaultMetaDescription":null,"faviconMediaId":null,"defaultOgMediaId":null,"logoMediaId":"709544c7-6545-4c48-b6d4-8fd683b2a1f0","isMaintenanceMode":false,"profileRolesEnabled":[],"socialSettings":{"profiles":[],"sharing":[]},"logoMedia":{"id":"709544c7-6545-4c48-b6d4-8fd683b2a1f0","url":"/uploads/logo-eos.svg","mimeType":"image/svg+xml","altText":"logo eos","metadata":{"darkSourceUrl":"/uploads/logo-eos-dark.svg"}},"faviconMedia":null,"defaultOgMedia":null},"customFields":{},"hasReviewDraft":false,"breadcrumbTrail":[{"label":"Home","url":"/home","current":true}]}
+{
+  "post": {
+    "id": "f47c5655-edac-422c-8a66-2887915aeb0e",
+    "type": "page",
+    "locale": "en",
+    "slug": "home",
+    "title": "Home",
+    "excerpt": null,
+    "metaTitle": "Adonis EOS - Node.js-first CMS starter",
+    "metaDescription": "Adonis EOS is a Node.js-first CMS starter built on AdonisJS, Inertia, and React. Model content with modules, keep everything in your TypeScript codebase, and ship fast with a modern editorial experience.",
+    "status": "published",
+    "author": { "id": 1, "email": "admin@example.com", "fullName": "Admin User" },
+    "reviewDraft": null,
+    "aiReviewDraft": null
+  },
+  "modules": [
+    {
+      "id": "a1ecc027-0e9e-4092-ae6e-b08cded1b3b4",
+      "type": "hero-with-media",
+      "scope": "post",
+      "globalSlug": null,
+      "globalLabel": null,
+      "componentName": "hero-with-media",
+      "renderingMode": "static",
+      "props": {
+        "title": "TEST",
+        "subtitle": "Test",
+        "image": "/uploads/logo-eos.svg",
+        "imagePosition": "right",
+        "primaryCta": { "url": null, "label": null, "style": null },
+        "secondaryCta": { "url": null, "label": null, "style": null },
+        "imageAlt": null,
+        "_useReact": false
+      },
+      "sourceProps": {
+        "image": "/uploads/logo-eos.svg",
+        "title": "TEST",
+        "imageAlt": null,
+        "subtitle": "Test",
+        "_useReact": false,
+        "primaryCta": { "url": null, "label": null, "style": null },
+        "secondaryCta": { "url": null, "label": null, "style": null },
+        "imagePosition": "right"
+      },
+      "sourceOverrides": null,
+      "reviewProps": null,
+      "aiReviewProps": null,
+      "overrides": null,
+      "reviewOverrides": null,
+      "aiReviewOverrides": null,
+      "reviewAdded": false,
+      "reviewDeleted": false,
+      "aiReviewAdded": false,
+      "aiReviewDeleted": false
+    },
+    {
+      "id": "6c4f193c-2de0-48bc-a002-40752d2d5cd9",
+      "type": "hero-with-callout",
+      "scope": "post",
+      "globalSlug": null,
+      "globalLabel": null,
+      "componentName": "hero-with-callout",
+      "renderingMode": "static",
+      "props": {
+        "title": "A Node.js-first CMS starter for product teams",
+        "subtitle": "Adonis EOS is an AdonisJS + Inertia + React starter that treats content modeling, modules, and performance as first-class concerns. It feels like a modern page builder, but lives entirely in your Node.js stack.",
+        "callouts": [
+          {
+            "url": "{\"kind\":\"post\",\"postId\":\"346578f8-e4df-47e7-966b-e2b947a18010\",\"postType\":\"documentation\",\"slug\":\"overview\",\"locale\":\"en\"}",
+            "label": "Learn More"
+          },
+          {
+            "url": "{\"kind\":\"post\",\"postId\":\"8ef48a22-d132-4752-ba56-d56c60bed36d\",\"postType\":\"documentation\",\"slug\":\"editors\",\"locale\":\"en\"}",
+            "label": "For Editors"
+          },
+          {
+            "url": "{\"kind\":\"post\",\"postId\":\"0cb5c589-8664-464c-812a-cc8beb0afeaa\",\"postType\":\"documentation\",\"slug\":\"developers\",\"locale\":\"en\"}",
+            "label": "For Developers"
+          }
+        ],
+        "_useReact": false,
+        "backgroundColor": "bg-backdrop-low"
+      },
+      "sourceProps": {
+        "title": "A Node.js-first CMS starter for product teams",
+        "callouts": [
+          {
+            "url": "{\"kind\":\"post\",\"postId\":\"346578f8-e4df-47e7-966b-e2b947a18010\",\"postType\":\"documentation\",\"slug\":\"overview\",\"locale\":\"en\"}",
+            "label": "Learn More"
+          },
+          {
+            "url": "{\"kind\":\"post\",\"postId\":\"8ef48a22-d132-4752-ba56-d56c60bed36d\",\"postType\":\"documentation\",\"slug\":\"editors\",\"locale\":\"en\"}",
+            "label": "For Editors"
+          },
+          {
+            "url": "{\"kind\":\"post\",\"postId\":\"0cb5c589-8664-464c-812a-cc8beb0afeaa\",\"postType\":\"documentation\",\"slug\":\"developers\",\"locale\":\"en\"}",
+            "label": "For Developers"
+          }
+        ],
+        "subtitle": "Adonis EOS is an AdonisJS + Inertia + React starter that treats content modeling, modules, and performance as first-class concerns. It feels like a modern page builder, but lives entirely in your Node.js stack.",
+        "_useReact": false,
+        "backgroundColor": "bg-backdrop-low"
+      },
+      "sourceOverrides": null,
+      "reviewProps": null,
+      "aiReviewProps": null,
+      "overrides": null,
+      "reviewOverrides": null,
+      "aiReviewOverrides": null,
+      "reviewAdded": false,
+      "reviewDeleted": false,
+      "aiReviewAdded": false,
+      "aiReviewDeleted": false
+    },
+    {
+      "id": "40aae0c8-e4ed-4604-a1a4-16c7778e264b",
+      "type": "features-list",
+      "scope": "post",
+      "globalSlug": null,
+      "globalLabel": null,
+      "componentName": "features-list",
+      "renderingMode": "static",
+      "props": {
+        "title": "Why Adonis EOS?",
+        "subtitle": "Built for modern Node.js development with everything you need out of the box",
+        "features": [
+          {
+            "body": null,
+            "icon": "cube",
+            "title": "Modular Architecture",
+            "description": "Build pages with reusable, composable modules. Create custom modules with our intuitive API and node ace commands."
+          },
+          {
+            "body": null,
+            "icon": "language",
+            "title": "Multi-Language Support",
+            "description": "Built-in internationalization with locale-specific content, URL patterns, and translation workflows."
+          },
+          {
+            "body": null,
+            "icon": "users",
+            "title": "Role-Based Access Control",
+            "description": "Fine-grained permissions system with customizable roles for admins, editors, and translators."
+          },
+          {
+            "body": null,
+            "icon": "code-branch",
+            "title": "Content Workflows",
+            "description": "Review drafts, AI-assisted content, and approval workflows to ensure quality before publishing."
+          },
+          {
+            "body": null,
+            "icon": "palette",
+            "title": "Fully Customizable",
+            "description": "Tailwind CSS theming, custom post types, taxonomies, and extensible module system."
+          },
+          {
+            "body": null,
+            "icon": "bolt",
+            "title": "Developer Friendly",
+            "description": "Built on AdonisJS with TypeScript, Inertia.js, and React. Clean API, great DX, and comprehensive documentation."
+          }
+        ],
+        "_useReact": false,
+        "backgroundColor": "bg-backdrop"
+      },
+      "sourceProps": {
+        "title": "Why Adonis EOS?",
+        "features": [
+          {
+            "body": null,
+            "icon": "cube",
+            "title": "Modular Architecture",
+            "description": "Build pages with reusable, composable modules. Create custom modules with our intuitive API and node ace commands."
+          },
+          {
+            "body": null,
+            "icon": "language",
+            "title": "Multi-Language Support",
+            "description": "Built-in internationalization with locale-specific content, URL patterns, and translation workflows."
+          },
+          {
+            "body": null,
+            "icon": "users",
+            "title": "Role-Based Access Control",
+            "description": "Fine-grained permissions system with customizable roles for admins, editors, and translators."
+          },
+          {
+            "body": null,
+            "icon": "code-branch",
+            "title": "Content Workflows",
+            "description": "Review drafts, AI-assisted content, and approval workflows to ensure quality before publishing."
+          },
+          {
+            "body": null,
+            "icon": "palette",
+            "title": "Fully Customizable",
+            "description": "Tailwind CSS theming, custom post types, taxonomies, and extensible module system."
+          },
+          {
+            "body": null,
+            "icon": "bolt",
+            "title": "Developer Friendly",
+            "description": "Built on AdonisJS with TypeScript, Inertia.js, and React. Clean API, great DX, and comprehensive documentation."
+          }
+        ],
+        "subtitle": "Built for modern Node.js development with everything you need out of the box",
+        "_useReact": false,
+        "backgroundColor": "bg-backdrop"
+      },
+      "sourceOverrides": null,
+      "reviewProps": null,
+      "aiReviewProps": null,
+      "overrides": null,
+      "reviewOverrides": null,
+      "aiReviewOverrides": null,
+      "reviewAdded": false,
+      "reviewDeleted": false,
+      "aiReviewAdded": false,
+      "aiReviewDeleted": false
+    }
+  ],
+  "seo": {
+    "canonical": "http://localhost/home",
+    "alternates": [{ "locale": "en", "href": "http://localhost/home" }],
+    "robots": "index,follow",
+    "jsonLd": {
+      "@context": "https://schema.org",
+      "@type": "BlogPosting",
+      "headline": "Adonis EOS - Node.js-first CMS starter",
+      "inLanguage": "en",
+      "mainEntityOfPage": "http://localhost/home",
+      "description": "Adonis EOS is a Node.js-first CMS starter built on AdonisJS, Inertia, and React. Model content with modules, keep everything in your TypeScript codebase, and ship fast with a modern editorial experience."
+    },
+    "og": {
+      "title": "Adonis EOS - Node.js-first CMS starter",
+      "description": "Adonis EOS is a Node.js-first CMS starter built on AdonisJS, Inertia, and React. Model content with modules, keep everything in your TypeScript codebase, and ship fast with a modern editorial experience.",
+      "url": "http://localhost/home",
+      "type": "article"
+    },
+    "twitter": {
+      "card": "summary_large_image",
+      "title": "Adonis EOS - Node.js-first CMS starter",
+      "description": "Adonis EOS is a Node.js-first CMS starter built on AdonisJS, Inertia, and React. Model content with modules, keep everything in your TypeScript codebase, and ship fast with a modern editorial experience."
+    }
+  },
+  "siteSettings": {
+    "siteTitle": "EOS",
+    "defaultMetaDescription": null,
+    "faviconMediaId": null,
+    "defaultOgMediaId": null,
+    "logoMediaId": "709544c7-6545-4c48-b6d4-8fd683b2a1f0",
+    "isMaintenanceMode": false,
+    "profileRolesEnabled": [],
+    "socialSettings": { "profiles": [], "sharing": [] },
+    "logoMedia": {
+      "id": "709544c7-6545-4c48-b6d4-8fd683b2a1f0",
+      "url": "/uploads/logo-eos.svg",
+      "mimeType": "image/svg+xml",
+      "altText": "logo eos",
+      "metadata": { "darkSourceUrl": "/uploads/logo-eos-dark.svg" }
+    },
+    "faviconMedia": null,
+    "defaultOgMedia": null
+  },
+  "customFields": {},
+  "hasReviewDraft": false,
+  "breadcrumbTrail": [{ "label": "Home", "url": "/home", "current": true }]
+}

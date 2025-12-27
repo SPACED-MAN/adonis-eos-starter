@@ -57,7 +57,9 @@ export class TokenService {
    */
   private static getTokenValue(tokenName: string, context: TokenContext): any {
     // Handle post. prefix if present
-    const normalizedName = tokenName.startsWith('post.') ? tokenName.replace('post.', '') : tokenName
+    const normalizedName = tokenName.startsWith('post.')
+      ? tokenName.replace('post.', '')
+      : tokenName
     const postTokens = [
       'title',
       'slug',
@@ -78,7 +80,7 @@ export class TokenService {
       const post = context.post
       let postValue =
         typeof post.toObject === 'function' ? post.toObject()[normalizedName] : post[normalizedName]
-      
+
       // Special handling for dates
       if (postValue && (normalizedName === 'publishedAt' || normalizedName === 'updatedAt')) {
         try {
@@ -159,4 +161,3 @@ export class TokenService {
 }
 
 export default TokenService
-

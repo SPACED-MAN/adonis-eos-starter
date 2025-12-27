@@ -27,7 +27,7 @@ export function escapeHtml(text: string): string {
  */
 export function renderLexicalToHtml(json: LexicalJSON | string | null | undefined): string {
   if (!json) return ''
-  
+
   let data: any
   if (typeof json === 'string') {
     try {
@@ -61,7 +61,8 @@ export function renderLexicalToHtml(json: LexicalJSON | string | null | undefine
 
       case 'list': {
         const listTag = node.listType === 'number' ? 'ol' : 'ul'
-        const listContent = node.children?.map((c: any) => renderNode(c, isInsideCode)).join('') || ''
+        const listContent =
+          node.children?.map((c: any) => renderNode(c, isInsideCode)).join('') || ''
         return isInsideCode ? listContent : `<${listTag}>${listContent}</${listTag}>`
       }
 
@@ -111,13 +112,15 @@ export function renderLexicalToHtml(json: LexicalJSON | string | null | undefine
         return isInsideCode ? '\n' : '<br />'
 
       case 'quote': {
-        const quoteContent = node.children?.map((c: any) => renderNode(c, isInsideCode)).join('') || ''
+        const quoteContent =
+          node.children?.map((c: any) => renderNode(c, isInsideCode)).join('') || ''
         return isInsideCode ? quoteContent : `<blockquote>${quoteContent}</blockquote>`
       }
 
       case 'link': {
         const url = escapeHtml(node.url || '#')
-        const linkContent = node.children?.map((c: any) => renderNode(c, isInsideCode)).join('') || ''
+        const linkContent =
+          node.children?.map((c: any) => renderNode(c, isInsideCode)).join('') || ''
         return isInsideCode ? linkContent : `<a href="${url}">${linkContent}</a>`
       }
 
@@ -128,4 +131,3 @@ export function renderLexicalToHtml(json: LexicalJSON | string | null | undefine
 
   return data.root.children.map((c: any) => renderNode(c)).join('')
 }
-

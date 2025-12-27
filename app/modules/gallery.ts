@@ -62,7 +62,8 @@ export default class GalleryModule extends BaseModule {
                 label: 'Image',
                 accept: 'image/*',
                 config: { storeAs: 'id' },
-                description: 'Select an image from the media library (alt text and caption are pulled from the media record)',
+                description:
+                  'Select an image from the media library (alt text and caption are pulled from the media record)',
               },
             ],
           },

@@ -64,13 +64,15 @@ export default class CompaniesController {
       const featuredImageId = p.featuredImageId || null
       const featuredImage = p.featuredImage
 
-      const image = featuredImage ? {
-        id: featuredImage.id,
-        url: featuredImage.url,
-        mimeType: featuredImage.mimeType,
-        altText: featuredImage.altText,
-        metadata: featuredImage.metadata,
-      } : null
+      const image = featuredImage
+        ? {
+            id: featuredImage.id,
+            url: featuredImage.url,
+            mimeType: featuredImage.mimeType,
+            altText: featuredImage.altText,
+            metadata: featuredImage.metadata,
+          }
+        : null
 
       const customFields: Record<string, any> = {}
       if (p.customFieldValues) {

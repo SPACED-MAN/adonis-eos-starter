@@ -33,7 +33,9 @@ export default function FeaturesList({
   const isDarkBg = bg === 'bg-neutral-high'
   const textColor = isDarkBg ? 'text-backdrop-low' : 'text-neutral-high'
   const subtextColor = isDarkBg ? 'text-backdrop-low/80' : 'text-neutral-medium'
-  const iconBg = isDarkBg ? 'bg-backdrop-low/10 text-backdrop-low' : 'bg-standout-medium/10 text-standout-medium'
+  const iconBg = isDarkBg
+    ? 'bg-backdrop-low/10 text-backdrop-low'
+    : 'bg-standout-medium/10 text-standout-medium'
 
   const safeFeatures = Array.isArray(features) ? features.slice(0, 24) : []
 
@@ -128,7 +130,9 @@ export default function FeaturesList({
             ])}
           >
             {feature.icon && (
-              <div className={`flex justify-center items-center mb-4 w-10 h-10 lg:w-12 lg:h-12 rounded-full ${iconBg}`}>
+              <div
+                className={`flex justify-center items-center mb-4 w-10 h-10 lg:w-12 lg:h-12 rounded-full ${iconBg}`}
+              >
                 <FontAwesomeIcon icon={feature.icon as any} className="text-base lg:text-lg" />
               </div>
             )}
@@ -178,4 +182,3 @@ export default function FeaturesList({
     </section>
   )
 }
-

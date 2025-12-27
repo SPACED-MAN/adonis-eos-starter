@@ -21,11 +21,11 @@ export function SidebarProvider({ children }: { children: React.ReactNode }) {
       } else {
         document.body.style.paddingLeft = ''
       }
-    } catch { }
+    } catch {}
     return () => {
       try {
         document.body.style.paddingLeft = ''
-      } catch { }
+      } catch {}
     }
   }, [open])
   return <SidebarContext.Provider value={{ open, setOpen }}>{children}</SidebarContext.Provider>

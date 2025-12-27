@@ -16,7 +16,10 @@ type DraftPatch = Record<string, any> // path -> value
 function getAtPath(obj: any, path: string, fallback?: any) {
   if (!obj) return fallback
   // Handle array notation like "ctas[0].label"
-  const parts = path.replace(/\[(\d+)\]/g, '.$1').split('.').filter(Boolean)
+  const parts = path
+    .replace(/\[(\d+)\]/g, '.$1')
+    .split('.')
+    .filter(Boolean)
   let cur = obj
   for (const p of parts) {
     if (cur && (Object.prototype.hasOwnProperty.call(cur, p) || (Array.isArray(cur) && p in cur))) {
@@ -33,7 +36,10 @@ function getAtPath(obj: any, path: string, fallback?: any) {
  */
 function setAtPath(obj: any, path: string, value: any) {
   if (!obj || typeof obj !== 'object') return
-  const parts = path.replace(/\[(\d+)\]/g, '.$1').split('.').filter(Boolean)
+  const parts = path
+    .replace(/\[(\d+)\]/g, '.$1')
+    .split('.')
+    .filter(Boolean)
   let cur = obj
   for (let i = 0; i < parts.length - 1; i++) {
     const p = parts[i]
@@ -69,18 +75,18 @@ type InlineEditorContextValue = {
 const InlineEditorContext = createContext<InlineEditorContextValue>({
   enabled: false,
   canEdit: false,
-  toggle: () => { },
+  toggle: () => {},
   postId: undefined,
   mode: 'source',
-  setMode: () => { },
+  setMode: () => {},
   getValue: (_m, _p, f) => f,
   getModeValue: (_m, _p, _mode, f) => f,
-  setValue: () => { },
+  setValue: () => {},
   isGlobalModule: () => false,
   dirtyModules: new Set(),
-  saveAll: async () => { },
+  saveAll: async () => {},
   showDiffs: false,
-  toggleShowDiffs: () => { },
+  toggleShowDiffs: () => {},
   abVariations: [],
 })
 
@@ -665,9 +671,9 @@ export function InlineEditorProvider({
       const xsrf =
         typeof document !== 'undefined'
           ? (() => {
-            const m = document.cookie.match(/(?:^|; )XSRF-TOKEN=([^;]+)/)
-            return m ? decodeURIComponent(m[1]) : undefined
-          })()
+              const m = document.cookie.match(/(?:^|; )XSRF-TOKEN=([^;]+)/)
+              return m ? decodeURIComponent(m[1]) : undefined
+            })()
           : undefined
 
       for (const moduleId of Array.from(dirtyModules)) {
@@ -723,8 +729,8 @@ export function InlineEditorProvider({
             return
           }
           // Apply to base cache so UI reflects without refresh
-          // NOTE: We no longer manually update 'base' here because it's now a useMemo 
-          // derived from the 'modules' prop. The window.location.reload() below 
+          // NOTE: We no longer manually update 'base' here because it's now a useMemo
+          // derived from the 'modules' prop. The window.location.reload() below
           // will fetch the fresh server-side state.
         }
       }
@@ -922,7 +928,7 @@ function publishInlineBridge(state: {
   abVariations: Array<{ id: string; variation: string; status: string }>
 }) {
   if (typeof window === 'undefined') return
-    ; (window as any).__inlineBridge = state
+  ;(window as any).__inlineBridge = state
   const evt = new CustomEvent('inline:state', { detail: state })
   window.dispatchEvent(evt)
 }

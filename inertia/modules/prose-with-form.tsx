@@ -92,7 +92,12 @@ export default function ProseWithForm({
 
   const formBlock = (
     <div className="mt-6 md:mt-0">
-      <FormModule title={null} subtitle={null} formSlug={formSlug} backgroundColor="bg-transparent" />
+      <FormModule
+        title={null}
+        subtitle={null}
+        formSlug={formSlug}
+        backgroundColor="bg-transparent"
+      />
     </div>
   )
 
@@ -140,9 +145,7 @@ export default function ProseWithForm({
         className={`${bg} py-12 sm:py-16 overflow-hidden`}
         data-module="prose-with-form"
       >
-        <div className="container mx-auto px-4 sm:px-6 lg:px-8">
-          {content}
-        </div>
+        <div className="container mx-auto px-4 sm:px-6 lg:px-8">{content}</div>
       </motion.section>
     )
   }
@@ -161,9 +164,7 @@ export default function ProseWithForm({
         { label: 'Dark', value: 'bg-neutral-high' },
       ])}
     >
-      <div className="container mx-auto px-4 sm:px-6 lg:px-8">
-        {content}
-      </div>
+      <div className="container mx-auto px-4 sm:px-6 lg:px-8">{content}</div>
     </section>
   )
 }

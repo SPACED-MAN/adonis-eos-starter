@@ -1,11 +1,6 @@
 import React from 'react'
 import { FormLabel } from './field'
-import {
-  Tooltip,
-  TooltipContent,
-  TooltipProvider,
-  TooltipTrigger,
-} from '~/components/ui/tooltip'
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '~/components/ui/tooltip'
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome'
 import { faCircleInfo } from '@fortawesome/free-solid-svg-icons'
 
@@ -44,4 +39,3 @@ export const LabelWithDescription = ({
     </div>
   )
 }
-

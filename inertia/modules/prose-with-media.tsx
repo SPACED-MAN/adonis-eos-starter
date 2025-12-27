@@ -176,11 +176,7 @@ export default function ProseWithMedia({
             </a>
           )
 
-          return _useReact ? (
-            <motion.div variants={textVariants}>{btn}</motion.div>
-          ) : (
-            btn
-          )
+          return _useReact ? <motion.div variants={textVariants}>{btn}</motion.div> : btn
         })()}
     </div>
   )
@@ -213,18 +209,14 @@ export default function ProseWithMedia({
         className={`${bg} py-12 sm:py-16 overflow-hidden`}
         data-module="prose-with-media"
       >
-        <div className="container mx-auto px-4 sm:px-6 lg:px-8">
-          {content}
-        </div>
+        <div className="container mx-auto px-4 sm:px-6 lg:px-8">{content}</div>
       </motion.section>
     )
   }
 
   return (
     <section className={`${bg} py-12 sm:py-16`} data-module="prose-with-media">
-      <div className="container mx-auto px-4 sm:px-6 lg:px-8">
-        {content}
-      </div>
+      <div className="container mx-auto px-4 sm:px-6 lg:px-8">{content}</div>
     </section>
   )
 }

@@ -102,7 +102,7 @@ Visit `http://localhost:3333/admin` and log in with:
 - [Building Modules](docs/developers/03-building-modules.md) - Creating custom content components
 - [Content Management Overview](docs/developers/01-content-management-overview.md) - Understanding the content model
 - [Theming System](docs/developers/02-theming.md) - Customizing design and colors
-- [URL Patterns & Routing](docs/developers/06-seo-and-routing.md) - Dynamic URL generation
+- [URL Patterns, Routing & Analytics](docs/developers/06-seo-and-routing.md) - Dynamic URL generation and native analytics
 - [AI Agents](docs/developers/09-ai-agents.md) - Automated workflows and integrations
 - [Internationalization](docs/developers/07-internationalization.md) - i18n implementation
 - [Deployment Guide](docs/developers/19-deployment.md) - Production setup and best practices
@@ -243,6 +243,7 @@ Licensed under the Apache License, Version 2.0. See the [LICENSE](LICENSE) file 
 - ✅ Webhooks for event-driven integrations
 - ✅ Forms system with submissions and webhook triggers
 - ✅ Scheduled publishing with in-process scheduler
+- ✅ Native analytics with views, interactions, and heatmaps
 - ✅ SSR with Redis caching for performance
 - ✅ Centralized theming system
 - ✅ Soft deletes with data recovery
@@ -253,7 +254,6 @@ Licensed under the Apache License, Version 2.0. See the [LICENSE](LICENSE) file 
 **Known Limitations:**
 
 - Internal AI agents not yet implemented (external webhooks only)
-- Advanced analytics dashboard planned for future release
 - Multi-tenant support planned for enterprise version
 
 ---

@@ -244,16 +244,16 @@ function createServerInstance() {
         // Enrich with module group context from DB (editor parity)
         const moduleGroups = cfg.moduleGroupsEnabled
           ? await db
-            .from('module_groups')
-            .where('post_type', postType)
-            .orderBy('updated_at', 'desc')
-            .select('id', 'name', 'description', 'locked', 'post_type')
+              .from('module_groups')
+              .where('post_type', postType)
+              .orderBy('updated_at', 'desc')
+              .select('id', 'name', 'description', 'locked', 'post_type')
           : []
 
         const defaultName = cfg.moduleGroup?.name
         const defaultModuleGroup = cfg.moduleGroupsEnabled
           ? moduleGroups.find((g: any) => defaultName && String(g.name) === String(defaultName)) ||
-          (moduleGroups.length === 1 ? moduleGroups[0] : null)
+            (moduleGroups.length === 1 ? moduleGroups[0] : null)
           : null
 
         return jsonResult({
@@ -1638,11 +1638,11 @@ function createServerInstance() {
             type: a.type,
             openEndedContext: a.openEndedContext?.enabled
               ? {
-                enabled: true,
-                label: a.openEndedContext.label,
-                placeholder: a.openEndedContext.placeholder,
-                maxChars: a.openEndedContext.maxChars,
-              }
+                  enabled: true,
+                  label: a.openEndedContext.label,
+                  placeholder: a.openEndedContext.placeholder,
+                  maxChars: a.openEndedContext.maxChars,
+                }
               : { enabled: false },
             scopes: (a.scopes || []).map((s: any) => ({
               scope: s.scope,
@@ -1849,7 +1849,11 @@ function createServerInstance() {
           },
         }
 
-        const result = await internalAgentExecutor.execute(agent as any, executionContext, payload as any)
+        const result = await internalAgentExecutor.execute(
+          agent as any,
+          executionContext,
+          payload as any
+        )
 
         if (!result.success) {
           return errorResult('Internal agent execution failed', { message: result.error?.message })
@@ -2117,25 +2121,19 @@ function createServerInstance() {
             query
               .where((q) => {
                 q.whereRaw(`module_instances.props::text ILIKE ?`, [likeUrl])
-                  .orWhereRaw(
-                    `COALESCE(module_instances.review_props::text, '') ILIKE ?`,
-                    [likeUrl]
-                  )
-                  .orWhereRaw(
-                    `COALESCE(module_instances.ai_review_props::text, '') ILIKE ?`,
-                    [likeUrl]
-                  )
+                  .orWhereRaw(`COALESCE(module_instances.review_props::text, '') ILIKE ?`, [
+                    likeUrl,
+                  ])
+                  .orWhereRaw(`COALESCE(module_instances.ai_review_props::text, '') ILIKE ?`, [
+                    likeUrl,
+                  ])
               })
               .orWhere((q) => {
                 q.whereRaw(`module_instances.props::text ILIKE ?`, [likeId])
-                  .orWhereRaw(
-                    `COALESCE(module_instances.review_props::text, '') ILIKE ?`,
-                    [likeId]
-                  )
-                  .orWhereRaw(
-                    `COALESCE(module_instances.ai_review_props::text, '') ILIKE ?`,
-                    [likeId]
-                  )
+                  .orWhereRaw(`COALESCE(module_instances.review_props::text, '') ILIKE ?`, [likeId])
+                  .orWhereRaw(`COALESCE(module_instances.ai_review_props::text, '') ILIKE ?`, [
+                    likeId,
+                  ])
               })
           })
           .select(
@@ -2155,25 +2153,19 @@ function createServerInstance() {
             query
               .where((q) => {
                 q.whereRaw(`post_modules.overrides::text ILIKE ?`, [likeUrl])
-                  .orWhereRaw(
-                    `COALESCE(post_modules.review_overrides::text, '') ILIKE ?`,
-                    [likeUrl]
-                  )
-                  .orWhereRaw(
-                    `COALESCE(post_modules.ai_review_overrides::text, '') ILIKE ?`,
-                    [likeUrl]
-                  )
+                  .orWhereRaw(`COALESCE(post_modules.review_overrides::text, '') ILIKE ?`, [
+                    likeUrl,
+                  ])
+                  .orWhereRaw(`COALESCE(post_modules.ai_review_overrides::text, '') ILIKE ?`, [
+                    likeUrl,
+                  ])
               })
               .orWhere((q) => {
                 q.whereRaw(`post_modules.overrides::text ILIKE ?`, [likeId])
-                  .orWhereRaw(
-                    `COALESCE(post_modules.review_overrides::text, '') ILIKE ?`,
-                    [likeId]
-                  )
-                  .orWhereRaw(
-                    `COALESCE(post_modules.ai_review_overrides::text, '') ILIKE ?`,
-                    [likeId]
-                  )
+                  .orWhereRaw(`COALESCE(post_modules.review_overrides::text, '') ILIKE ?`, [likeId])
+                  .orWhereRaw(`COALESCE(post_modules.ai_review_overrides::text, '') ILIKE ?`, [
+                    likeId,
+                  ])
               })
           })
           .select('post_modules.id', 'posts.id as postId', 'posts.title as postTitle')
@@ -2640,7 +2632,7 @@ export default class McpServe extends BaseCommand {
     httpServer.listen(port, host, () => {
       const authMode =
         process.env.MCP_AUTH_TOKEN ||
-          (process.env.MCP_AUTH_HEADER_NAME && process.env.MCP_AUTH_HEADER_VALUE)
+        (process.env.MCP_AUTH_HEADER_NAME && process.env.MCP_AUTH_HEADER_VALUE)
           ? 'enabled'
           : 'disabled'
       this.logger.info(`MCP SSE server listening on http://${host}:${port}`)

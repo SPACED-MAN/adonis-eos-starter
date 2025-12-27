@@ -80,10 +80,7 @@ export default function Login() {
           <a href="/" className="underline hover:no-underline">
             Back to site
           </a>
-          <Link 
-            href={adminPath('forgot-password')} 
-            className="underline hover:no-underline"
-          >
+          <Link href={adminPath('forgot-password')} className="underline hover:no-underline">
             Forgot password?
           </Link>
         </div>

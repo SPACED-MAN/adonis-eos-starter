@@ -34,26 +34,26 @@ export default class ProfileListModule extends BaseModule {
           description: 'Short paragraph describing the team or group of profiles',
           translatable: true,
         },
-				{
-					slug: 'profiles',
-					type: 'post-reference',
-					required: false,
-					description:
-						'Optional list of specific Profiles to feature. If empty, all available Profiles will be shown.',
-					config: {
-						postTypes: ['profile'],
-						allowMultiple: true,
-					},
-				},
-				backgroundColorField,
-			],
-			defaultValues: {
-				title: 'Our Team',
-				subtitle:
-					'Meet the people behind the work. Profiles are pulled from the Profile post type so they sync automatically.',
-				profiles: [],
-				backgroundColor: 'bg-backdrop-low',
-			},
+        {
+          slug: 'profiles',
+          type: 'post-reference',
+          required: false,
+          description:
+            'Optional list of specific Profiles to feature. If empty, all available Profiles will be shown.',
+          config: {
+            postTypes: ['profile'],
+            allowMultiple: true,
+          },
+        },
+        backgroundColorField,
+      ],
+      defaultValues: {
+        title: 'Our Team',
+        subtitle:
+          'Meet the people behind the work. Profiles are pulled from the Profile post type so they sync automatically.',
+        profiles: [],
+        backgroundColor: 'bg-backdrop-low',
+      },
       allowedPostTypes: ['page', 'blog'],
     }
   }

@@ -249,53 +249,55 @@ export default function FormsIndex({ forms, submissions, meta }: FormsIndexProps
           <div className="p-6">
             {submissions.length === 0 ? (
               <div className="py-12 text-center">
-              <p className="text-sm text-neutral-medium italic">
+                <p className="text-sm text-neutral-medium italic">
                   No submissions found. Try adjusting your filters.
-              </p>
+                </p>
               </div>
             ) : (
               <>
-              <Table>
-                <TableHeader>
-                  <TableRow>
+                <Table>
+                  <TableHeader>
+                    <TableRow>
                       <TableHead className="w-10">
                         <Checkbox
-                          checked={selectedIds.size === submissions.length && submissions.length > 0}
+                          checked={
+                            selectedIds.size === submissions.length && submissions.length > 0
+                          }
                           onCheckedChange={toggleSelectAll}
                         />
                       </TableHead>
-                    <TableHead>Form</TableHead>
-                    <TableHead>Name</TableHead>
-                    <TableHead>Email</TableHead>
+                      <TableHead>Form</TableHead>
+                      <TableHead>Name</TableHead>
+                      <TableHead>Email</TableHead>
                       <TableHead>Var</TableHead>
-                    <TableHead>Submitted</TableHead>
-                    <TableHead className="text-right">Actions</TableHead>
-                  </TableRow>
-                </TableHeader>
-                <TableBody>
+                      <TableHead>Submitted</TableHead>
+                      <TableHead className="text-right">Actions</TableHead>
+                    </TableRow>
+                  </TableHeader>
+                  <TableBody>
                     {submissions.map((s) => (
-                    <TableRow 
-                      key={s.id} 
-                      className="cursor-pointer hover:bg-backdrop-medium/40"
-                      onClick={() => setSelectedSubmission(s)}
-                    >
+                      <TableRow
+                        key={s.id}
+                        className="cursor-pointer hover:bg-backdrop-medium/40"
+                        onClick={() => setSelectedSubmission(s)}
+                      >
                         <TableCell onClick={(e) => e.stopPropagation()}>
                           <Checkbox
                             checked={selectedIds.has(s.id)}
                             onCheckedChange={() => toggleSelect(s.id)}
                           />
                         </TableCell>
-                      <TableCell className="text-neutral-high">
-                        <span className="inline-flex items-center rounded-full bg-backdrop-medium px-2 py-0.5 text-xs font-mono">
-                          {s.formSlug}
-                        </span>
-                      </TableCell>
-                      <TableCell className="text-neutral-medium">
-                        {s.name || <span className="text-neutral-low">—</span>}
-                      </TableCell>
-                      <TableCell className="text-neutral-medium">
-                        {s.email || <span className="text-neutral-low">—</span>}
-                      </TableCell>
+                        <TableCell className="text-neutral-high">
+                          <span className="inline-flex items-center rounded-full bg-backdrop-medium px-2 py-0.5 text-xs font-mono">
+                            {s.formSlug}
+                          </span>
+                        </TableCell>
+                        <TableCell className="text-neutral-medium">
+                          {s.name || <span className="text-neutral-low">—</span>}
+                        </TableCell>
+                        <TableCell className="text-neutral-medium">
+                          {s.email || <span className="text-neutral-low">—</span>}
+                        </TableCell>
                         <TableCell className="text-neutral-medium">
                           {s.abVariation ? (
                             <span className="inline-flex items-center rounded-full bg-standout-medium/10 text-standout-medium px-2 py-0.5 text-xs font-bold">
@@ -305,27 +307,27 @@ export default function FormsIndex({ forms, submissions, meta }: FormsIndexProps
                             <span className="text-neutral-low">—</span>
                           )}
                         </TableCell>
-                      <TableCell className="text-neutral-medium text-xs">
-                        {s.createdAt ? (
-                          new Date(s.createdAt).toLocaleString()
-                        ) : (
-                          <span className="text-neutral-low">—</span>
-                        )}
-                      </TableCell>
-                      <TableCell className="text-right" onClick={(e) => e.stopPropagation()}>
-                        <button
-                          type="button"
-                          className="px-2 py-1 text-xs text-neutral-low hover:text-danger disabled:opacity-50"
-                          onClick={() => handleDelete(s.id)}
-                          disabled={isDeleting === s.id}
-                        >
-                          Delete
-                        </button>
-                      </TableCell>
-                    </TableRow>
-                  ))}
-                </TableBody>
-              </Table>
+                        <TableCell className="text-neutral-medium text-xs">
+                          {s.createdAt ? (
+                            new Date(s.createdAt).toLocaleString()
+                          ) : (
+                            <span className="text-neutral-low">—</span>
+                          )}
+                        </TableCell>
+                        <TableCell className="text-right" onClick={(e) => e.stopPropagation()}>
+                          <button
+                            type="button"
+                            className="px-2 py-1 text-xs text-neutral-low hover:text-danger disabled:opacity-50"
+                            onClick={() => handleDelete(s.id)}
+                            disabled={isDeleting === s.id}
+                          >
+                            Delete
+                          </button>
+                        </TableCell>
+                      </TableRow>
+                    ))}
+                  </TableBody>
+                </Table>
 
                 {/* Pagination */}
                 <div className="mt-6 flex items-center justify-between text-sm">
@@ -393,15 +395,15 @@ export default function FormsIndex({ forms, submissions, meta }: FormsIndexProps
             <div className="grid grid-cols-1 gap-4 overflow-auto max-h-[60vh] p-1">
               {selectedSubmission &&
                 Object.entries(selectedSubmission.payload).map(([key, value]) => (
-                <div key={key} className="border-b border-line-low pb-2 last:border-0">
+                  <div key={key} className="border-b border-line-low pb-2 last:border-0">
                     <div className="text-[10px] font-bold text-neutral-low uppercase tracking-wider mb-1">
                       {key}
                     </div>
-                  <div className="text-sm text-neutral-high whitespace-pre-wrap">
-                    {typeof value === 'object' ? JSON.stringify(value, null, 2) : String(value)}
+                    <div className="text-sm text-neutral-high whitespace-pre-wrap">
+                      {typeof value === 'object' ? JSON.stringify(value, null, 2) : String(value)}
+                    </div>
                   </div>
-                </div>
-              ))}
+                ))}
             </div>
             <div className="flex justify-end pt-4 border-t border-line-low">
               <button

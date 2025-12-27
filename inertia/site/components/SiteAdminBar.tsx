@@ -1,14 +1,17 @@
 import { useEffect, useMemo, useState, useCallback } from 'react'
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome'
-import { faWrench, faXmark, faHighlighter, faGlobe, faMessage } from '@fortawesome/free-solid-svg-icons'
+import {
+  faWrench,
+  faXmark,
+  faHighlighter,
+  faGlobe,
+  faMessage,
+} from '@fortawesome/free-solid-svg-icons'
 import { router } from '@inertiajs/react'
 import { DevTools } from '../../admin/components/DevTools'
 import { FeedbackPanel } from '~/components/FeedbackPanel'
 import { FeedbackMarkers } from '~/components/FeedbackMarkers'
-import {
-  Sheet,
-  SheetContent,
-} from '~/components/ui/sheet'
+import { Sheet, SheetContent } from '~/components/ui/sheet'
 import {
   Select,
   SelectContent,
@@ -39,14 +42,14 @@ export function SiteAdminBar({ initialProps }: { initialProps?: any }) {
     enabled: false,
     canEdit: false,
     mode: 'source',
-    toggle: () => { },
-    setMode: () => { },
+    toggle: () => {},
+    setMode: () => {},
     dirty: false,
-    saveAll: async () => { },
-    saveForReview: async () => { },
+    saveAll: async () => {},
+    saveForReview: async () => {},
     availableModes: { hasSource: true, hasReview: false, hasAiReview: false },
     showDiffs: false,
-    toggleShowDiffs: () => { },
+    toggleShowDiffs: () => {},
     abVariations: [],
   })
   const [mounted, setMounted] = useState(false)
@@ -111,7 +114,9 @@ export function SiteAdminBar({ initialProps }: { initialProps?: any }) {
   const [open, setOpen] = useState(false)
   const [feedbackOpen, setFeedbackOpen] = useState(false)
   const [selectedFeedbackId, setSelectedFeedbackId] = useState<string | null>(null)
-  const [contextMenu, setContextMenu] = useState<{ x: number, y: number, selector: string } | null>(null)
+  const [contextMenu, setContextMenu] = useState<{ x: number; y: number; selector: string } | null>(
+    null
+  )
   const [feedbacks, setFeedbacks] = useState<any[]>([])
 
   const fetchFeedbacks = useCallback(async () => {
@@ -148,15 +153,15 @@ export function SiteAdminBar({ initialProps }: { initialProps?: any }) {
       if (target.closest('.z-50') || target.closest('.admin-ui')) return
 
       e.preventDefault()
-      
+
       const moduleEl = target.closest('[data-inline-module]') as HTMLElement
       const fieldEl = target.closest('[data-inline-path]') as HTMLElement
-      
+
       let selector = ''
       if (fieldEl) {
         const moduleId = moduleEl?.dataset.inlineModule
         const path = fieldEl.dataset.inlinePath
-        
+
         // If the same element has both, don't use a space
         if (fieldEl === moduleEl) {
           selector = `[data-inline-module="${moduleId}"][data-inline-path="${path}"]`
@@ -173,8 +178,8 @@ export function SiteAdminBar({ initialProps }: { initialProps?: any }) {
         } else if (target.className && typeof target.className === 'string') {
           const classes = target.className
             .split(/\s+/)
-            .filter(c => c && !c.includes(':') && !c.includes('[') && !c.includes('/'))
-            .map(c => `.${CSS.escape(c)}`)
+            .filter((c) => c && !c.includes(':') && !c.includes('[') && !c.includes('/'))
+            .map((c) => `.${CSS.escape(c)}`)
             .join('')
           selector += classes
         }
@@ -183,7 +188,7 @@ export function SiteAdminBar({ initialProps }: { initialProps?: any }) {
       setContextMenu({
         x: e.clientX,
         y: e.clientY,
-        selector
+        selector,
       })
     }
 
@@ -206,7 +211,7 @@ export function SiteAdminBar({ initialProps }: { initialProps?: any }) {
     if (feedbackId) {
       setSelectedFeedbackId(feedbackId)
       setFeedbackOpen(true)
-      
+
       // Clean up URL without reload
       url.searchParams.delete('feedback_id')
       if (inlineMode) url.searchParams.delete('inline_mode')
@@ -222,14 +227,16 @@ export function SiteAdminBar({ initialProps }: { initialProps?: any }) {
   useEffect(() => {
     if (!selectedFeedbackId || feedbacks.length === 0) return
 
-    const f = feedbacks.find(fb => fb.id === selectedFeedbackId)
+    const f = feedbacks.find((fb) => fb.id === selectedFeedbackId)
     if (!f) return
 
     let context = f.context
     if (typeof context === 'string') {
-      try { context = JSON.parse(context) } catch (e) { }
+      try {
+        context = JSON.parse(context)
+      } catch (e) {}
     }
-    
+
     if (!context?.selector) return
 
     // Use a small delay and multiple attempts to ensure DOM is ready
@@ -239,11 +246,11 @@ export function SiteAdminBar({ initialProps }: { initialProps?: any }) {
       if (el) {
         const rect = el.getBoundingClientRect()
         const isInViewport = rect.top >= 0 && rect.bottom <= window.innerHeight
-        
+
         if (!isInViewport) {
           el.scrollIntoView({ behavior: 'smooth', block: 'center' })
         }
-        
+
         el.classList.add('ring-2', 'ring-standout-medium', 'ring-offset-2')
         setTimeout(() => {
           el.classList.remove('ring-2', 'ring-standout-medium', 'ring-offset-2')
@@ -261,12 +268,12 @@ export function SiteAdminBar({ initialProps }: { initialProps?: any }) {
 
   return (
     <>
-      <FeedbackMarkers 
-        feedbacks={feedbacks} 
+      <FeedbackMarkers
+        feedbacks={feedbacks}
         onMarkerClick={(f) => {
           setSelectedFeedbackId(f.id)
           setFeedbackOpen(true)
-        }} 
+        }}
         visible={true}
         activeId={selectedFeedbackId}
       />
@@ -313,10 +320,11 @@ export function SiteAdminBar({ initialProps }: { initialProps?: any }) {
                 <TooltipTrigger asChild>
                   <button
                     type="button"
-                    className={`px-3 py-2 text-[10px] font-bold transition-all ${v.id === post?.id
-                      ? 'bg-standout-medium text-on-standout shadow-inner'
-                      : 'text-neutral-high hover:bg-backdrop-medium'
-                      } ${v.id !== inline.abVariations[inline.abVariations.length - 1].id ? 'border-r border-line-medium' : ''}`}
+                    className={`px-3 py-2 text-[10px] font-bold transition-all ${
+                      v.id === post?.id
+                        ? 'bg-standout-medium text-on-standout shadow-inner'
+                        : 'text-neutral-high hover:bg-backdrop-medium'
+                    } ${v.id !== inline.abVariations[inline.abVariations.length - 1].id ? 'border-r border-line-medium' : ''}`}
                     onClick={() => {
                       if (v.id === post?.id) return
                       const url = new URL(window.location.href)
@@ -502,15 +510,23 @@ export function SiteAdminBar({ initialProps }: { initialProps?: any }) {
       )}
 
       {/* Feedback Sidebar/Panel */}
-      <Sheet open={feedbackOpen} onOpenChange={(v) => {
-        setFeedbackOpen(v)
-        if (!v) {
-          setContextMenu(null)
-          setSelectedFeedbackId(null)
-          fetchFeedbacks()
-        }
-      }} modal={false}>
-        <SheetContent hideOverlay side="right" className="sm:max-w-[425px] h-full p-0 overflow-hidden flex flex-col border-l border-line-low shadow-2xl bg-backdrop-high/95 backdrop-blur-md pointer-events-auto">
+      <Sheet
+        open={feedbackOpen}
+        onOpenChange={(v) => {
+          setFeedbackOpen(v)
+          if (!v) {
+            setContextMenu(null)
+            setSelectedFeedbackId(null)
+            fetchFeedbacks()
+          }
+        }}
+        modal={false}
+      >
+        <SheetContent
+          hideOverlay
+          side="right"
+          className="sm:max-w-[425px] h-full p-0 overflow-hidden flex flex-col border-l border-line-low shadow-2xl bg-backdrop-high/95 backdrop-blur-md pointer-events-auto"
+        >
           <FeedbackPanel
             postId={post?.id}
             mode={inline.mode === 'source' ? 'approved' : inline.mode}

@@ -101,8 +101,7 @@ const SheetTitle = React.forwardRef<
     className={cn('text-lg font-semibold text-neutral-high', className)}
     {...props}
   />
-)
-)
+))
 SheetTitle.displayName = SheetPrimitive.Title.displayName
 
 const SheetDescription = React.forwardRef<
@@ -129,4 +128,3 @@ export {
   SheetTitle,
   SheetDescription,
 }
-

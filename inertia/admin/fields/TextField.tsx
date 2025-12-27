@@ -7,9 +7,19 @@ type Props = {
   placeholder?: string
   maxLength?: number
   customFields?: Array<{ slug: string; label: string }>
-} & Omit<React.ComponentProps<typeof TokenField>, 'value' | 'onChange' | 'placeholder' | 'maxLength'>
+} & Omit<
+  React.ComponentProps<typeof TokenField>,
+  'value' | 'onChange' | 'placeholder' | 'maxLength'
+>
 
-export default function TextField({ value, onChange, placeholder, maxLength, customFields, ...rest }: Props) {
+export default function TextField({
+  value,
+  onChange,
+  placeholder,
+  maxLength,
+  customFields,
+  ...rest
+}: Props) {
   return (
     <TokenField
       type="text"

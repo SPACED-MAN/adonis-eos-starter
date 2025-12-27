@@ -15,14 +15,12 @@
  * IMPORTANT: Keep this mapping explicit so Vite can statically include the TSX pages.
  */
 export function getSiteInertiaOverrideForPost(postType: string, slug: string): string | null {
-	const key = `${String(postType || '').trim()}:${String(slug || '').trim()}`
+  const key = `${String(postType || '').trim()}:${String(slug || '').trim()}`
 
-	const overrides: Record<string, string> = {
-		// Example one-off static override page (page post type, slug: lorem-ipsum)
-		'page:lorem-ipsum': 'site/overrides/page-lorem-ipsum',
-	}
+  const overrides: Record<string, string> = {
+    // Example one-off static override page (page post type, slug: lorem-ipsum)
+    'page:lorem-ipsum': 'site/overrides/page-lorem-ipsum',
+  }
 
-	return overrides[key] || null
+  return overrides[key] || null
 }
-
-

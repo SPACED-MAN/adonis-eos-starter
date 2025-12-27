@@ -51,7 +51,7 @@ export default class FormsAdminController {
       // Common heuristic: find 'email' or 'name' in payload for easy identification in list
       const name = payload.name || payload.first_name || null
       const email = payload.email || null
-      
+
       return {
         id: String(r.id),
         formSlug: String(r.form_slug),

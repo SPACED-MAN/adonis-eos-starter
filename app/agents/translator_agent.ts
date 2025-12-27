@@ -80,7 +80,7 @@ CRITICAL: The "redirectPostId" must be the ID of the newly created translation, 
       'create_translations_ai_review_bulk',
       'save_post_ai_review',
       'update_post_module_ai_review',
-      'list_post_types'
+      'list_post_types',
     ],
   },
 
@@ -112,13 +112,14 @@ CRITICAL: The "redirectPostId" must be the ID of the newly created translation, 
       scope: 'post.create-translation',
       order: 1,
       enabled: true,
-    }
+    },
   ],
 
   openEndedContext: {
     enabled: true,
     label: 'Translation Instructions',
-    placeholder: 'Example: "Translate this post to French, keeping the technical terms in English."',
+    placeholder:
+      'Example: "Translate this post to French, keeping the technical terms in English."',
     maxChars: 5000,
   },
 
@@ -128,4 +129,3 @@ CRITICAL: The "redirectPostId" must be the ID of the newly created translation, 
 }
 
 export default TranslatorAgent
-

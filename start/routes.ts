@@ -20,18 +20,26 @@ const SiteSearchController = () => import('#controllers/site_search_controller')
 
 // Homepage - resolve from posts (slug: 'home', type: 'page')
 // This delegates to the post resolution system
-router.get('/', async ({ request, response, inertia, auth }) => {
-  const { default: PostsViewController } = await import('#controllers/posts/posts_view_controller')
-  const instance = new PostsViewController()
-  // Manually set the request path to /home so the URL pattern matching works
-  const originalUrl = request.url.bind(request)
-  request.url = () => '/home'
-  try {
-    return await (instance as any).resolve({ request, response, inertia, auth })
-  } finally {
-    request.url = originalUrl
-  }
-}).use(middleware.maintenance())
+router
+  .get('/', async ({ request, response, inertia, auth }) => {
+    const { default: PostsViewController } = await import(
+      '#controllers/posts/posts_view_controller'
+    )
+    const instance = new PostsViewController()
+    // Manually set the request path to /home so the URL pattern matching works
+    const originalUrl = request.url.bind(request)
+    request.url = () => '/home'
+    try {
+      return await (instance as any).resolve({ request, response, inertia, auth })
+    } finally {
+      request.url = originalUrl
+    }
+  })
+  .use(middleware.maintenance())
+
+// Public analytics tracking
+const AnalyticsController = () => import('#controllers/analytics_controller')
+router.post('/api/public/analytics/track', [AnalyticsController, 'track'])
 
 // Public media info (no auth)
 const MediaController = () => import('#controllers/media_controller')
@@ -440,6 +448,10 @@ router
     router.get('/security/posture', [SecurityController, 'posture'])
     router.get('/security/webhooks', [SecurityController, 'webhooks'])
     router.get('/security/login-history', [SecurityController, 'loginHistory'])
+
+    // Analytics (admin)
+    router.get('/analytics/summary', [AnalyticsController, 'getSummary'])
+    router.get('/analytics/heatmap', [AnalyticsController, 'getHeatmapData'])
   })
   .prefix('/api')
   .use(middleware.auth())

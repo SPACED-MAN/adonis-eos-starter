@@ -55,7 +55,11 @@ class FormRegistry {
 
       const files = fs.readdirSync(formsDir)
       for (const file of files) {
-        if (file === 'index.ts' || file === 'index.js' || (!file.endsWith('.ts') && !file.endsWith('.js'))) {
+        if (
+          file === 'index.ts' ||
+          file === 'index.js' ||
+          (!file.endsWith('.ts') && !file.endsWith('.js'))
+        ) {
           continue
         }
 
@@ -75,4 +79,3 @@ class FormRegistry {
 
 const formRegistry = new FormRegistry()
 export default formRegistry
-

@@ -30,6 +30,7 @@ export default contactForm
 ```
 
 ### Rendering & Submissions
+
 - **Rendering**: Use the `Form` or `Prose with Form` modules in the editor.
 - **Validation**: Automatically enforced based on the `fields` definition.
 - **Storage**: Submissions are stored in the `form_submissions` table and viewable in the Admin UI.
@@ -69,5 +70,5 @@ await mail.send(new WelcomeMail(user))
 ```
 
 ### Password Resets
-The system includes a fully functional password reset flow using the `password_reset_tokens` table and `PasswordResetsController`.
 
+The system includes a fully functional password reset flow using the `password_reset_tokens` table and `PasswordResetsController`.

@@ -8,7 +8,12 @@ export default class extends BaseSchema {
       // Social fields
       table.string('social_title', 255).nullable()
       table.text('social_description').nullable()
-      table.uuid('social_image_id').nullable().references('id').inTable('media_assets').onDelete('SET NULL')
+      table
+        .uuid('social_image_id')
+        .nullable()
+        .references('id')
+        .inTable('media_assets')
+        .onDelete('SET NULL')
 
       // Simplified robots toggles
       table.boolean('noindex').notNullable().defaultTo(false)

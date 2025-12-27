@@ -1469,14 +1469,14 @@ export default function PostsIndexPage({}: PostsIndexProps) {
 
             {createStep === 'type' ? (
               <>
-            <p className="text-sm text-neutral-medium mb-3">Choose a post type:</p>
-            <div className="grid grid-cols-1 gap-2 max-h-64 overflow-auto">
-              {postTypes.length === 0 && (
-                <div className="text-sm text-neutral-low">No post types available.</div>
-              )}
-              {postTypes.map((t) => (
-                <button
-                  key={t}
+                <p className="text-sm text-neutral-medium mb-3">Choose a post type:</p>
+                <div className="grid grid-cols-1 gap-2 max-h-64 overflow-auto">
+                  {postTypes.length === 0 && (
+                    <div className="text-sm text-neutral-low">No post types available.</div>
+                  )}
+                  {postTypes.map((t) => (
+                    <button
+                      key={t}
                       disabled={fetchingTemplates}
                       className="w-full text-left px-3 py-2 rounded border border-line-low bg-backdrop-input hover:bg-backdrop-medium text-neutral-high disabled:opacity-50"
                       onClick={() => handleTypeSelect(t)}
@@ -1489,7 +1489,8 @@ export default function PostsIndexPage({}: PostsIndexProps) {
             ) : (
               <>
                 <p className="text-sm text-neutral-medium mb-3">
-                  Select a template for your new {selectedPostType ? labelize(selectedPostType) : 'post'}:
+                  Select a template for your new{' '}
+                  {selectedPostType ? labelize(selectedPostType) : 'post'}:
                 </p>
                 <div className="grid grid-cols-1 gap-2 max-h-64 overflow-auto">
                   {availableTemplates.map((tmpl) => (
@@ -1503,7 +1504,9 @@ export default function PostsIndexPage({}: PostsIndexProps) {
                       }}
                     >
                       <span>
-                        {labelize(tmpl.isDefault ? tmpl.name.replace(/[-_ ]?default$/i, '') : tmpl.name)}
+                        {labelize(
+                          tmpl.isDefault ? tmpl.name.replace(/[-_ ]?default$/i, '') : tmpl.name
+                        )}
                         {tmpl.isDefault && (
                           <span className="ml-1.5 text-neutral-low text-xs">(default)</span>
                         )}

@@ -19,7 +19,7 @@ type Props = {
 
 export default function MediaField({ value, onChange, storeAs = 'object' }: Props) {
   const [open, setOpen] = useState(false)
-  
+
   // Resolve current ID for the thumb/picker
   const mediaId = useMemo(() => {
     if (!value) return null
@@ -33,10 +33,10 @@ export default function MediaField({ value, onChange, storeAs = 'object' }: Prop
 
   return (
     <div>
-      <MediaThumb 
-        mediaId={mediaId} 
-        onChange={() => setOpen(true)} 
-        onClear={() => onChange(null)} 
+      <MediaThumb
+        mediaId={mediaId}
+        onChange={() => setOpen(true)}
+        onClear={() => onChange(null)}
         fallbackUrl={typeof value === 'string' && !mediaId ? value : undefined}
       />
       <MediaPickerModal

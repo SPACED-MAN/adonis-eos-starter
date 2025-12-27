@@ -36,10 +36,10 @@ export default class AgentsController {
         createdAt: e.createdAt,
         user: e.user
           ? {
-            id: e.user.id,
-            email: e.user.email,
-            fullName: e.user.fullName,
-          }
+              id: e.user.id,
+              email: e.user.email,
+              fullName: e.user.fullName,
+            }
           : null,
       })),
     })
@@ -68,10 +68,10 @@ export default class AgentsController {
         createdAt: e.createdAt,
         user: e.user
           ? {
-            id: e.user.id,
-            email: e.user.email,
-            fullName: e.user.fullName,
-          }
+              id: e.user.id,
+              email: e.user.email,
+              fullName: e.user.fullName,
+            }
           : null,
       })),
     })
@@ -198,11 +198,11 @@ export default class AgentsController {
     const agent = agentRegistry.get(agentId)
     if (!agent) return response.notFound({ error: 'Agent not found' })
 
-    const { ids, context: requestContext = {}, openEndedContext } = request.only([
-      'ids',
-      'context',
-      'openEndedContext',
-    ])
+    const {
+      ids,
+      context: requestContext = {},
+      openEndedContext,
+    } = request.only(['ids', 'context', 'openEndedContext'])
     if (!Array.isArray(ids) || ids.length === 0) {
       return response.badRequest({ error: 'Post IDs are required' })
     }
@@ -249,7 +249,13 @@ export default class AgentsController {
       fieldType?: string
     }
   ) {
-    const { scope, fieldKey, fieldType, context: ctx = {}, openEndedContext: rawOpenEnded } = options
+    const {
+      scope,
+      fieldKey,
+      fieldType,
+      context: ctx = {},
+      openEndedContext: rawOpenEnded,
+    } = options
 
     await Post.findOrFail(id)
     const viewMode = (options.viewMode || ctx.viewMode || 'source') as
@@ -427,7 +433,7 @@ export default class AgentsController {
     }
 
     const isRedirecting = !!(redirectPostId && redirectPostId !== id)
-    const finalSuggestedPost = isRedirecting ? {} : (suggestions.post || {})
+    const finalSuggestedPost = isRedirecting ? {} : suggestions.post || {}
     const finalSuggestedModules = isRedirecting
       ? []
       : (Array.isArray(suggestions?.modules) ? suggestions.modules : []).filter(
@@ -454,7 +460,10 @@ export default class AgentsController {
         const matches = snapshot.modules.filter((m) => {
           if (suggestedModule.postModuleId && m.postModuleId === suggestedModule.postModuleId)
             return true
-          if (suggestedModule.moduleInstanceId && m.moduleInstanceId === suggestedModule.moduleInstanceId)
+          if (
+            suggestedModule.moduleInstanceId &&
+            m.moduleInstanceId === suggestedModule.moduleInstanceId
+          )
             return true
           if (suggestedModule.type && m.type === suggestedModule.type) {
             if (suggestedModule.orderIndex !== undefined) {

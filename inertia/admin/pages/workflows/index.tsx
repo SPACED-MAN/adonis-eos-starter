@@ -127,4 +127,3 @@ export default function WorkflowsIndex() {
     </div>
   )
 }
-

@@ -16,8 +16,8 @@ All fields are defined using the `CustomFieldDefinition` interface:
 
 ```typescript
 export interface CustomFieldDefinition {
-  slug: string      // Unique identifier (used as property name in Modules)
-  label?: string    // Display name (auto-humanized from slug if omitted)
+  slug: string // Unique identifier (used as property name in Modules)
+  label?: string // Display name (auto-humanized from slug if omitted)
   type: CustomFieldType
   category?: string // Optional grouping in admin UI
   translatable?: boolean
@@ -25,13 +25,14 @@ export interface CustomFieldDefinition {
   placeholder?: string
   options?: Array<{ label: string; value: any }>
   fields?: CustomFieldDefinition[] // For 'object' type
-  item?: CustomFieldDefinition     // For 'repeater' type
-  showIf?: {                       // Conditional visibility
+  item?: CustomFieldDefinition // For 'repeater' type
+  showIf?: {
+    // Conditional visibility
     field: string
     equals?: any
     notEquals?: any
   }
-  config?: Record<string, any>     // Type-specific configuration
+  config?: Record<string, any> // Type-specific configuration
 }
 ```
 

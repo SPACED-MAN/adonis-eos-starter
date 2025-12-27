@@ -239,7 +239,7 @@ export default function MenusIndex() {
     if (selectedMenuId) loadMenu(selectedMenuId)
   }, [selectedMenuId])
   useEffect(() => {
-    ; (async () => {
+    ;(async () => {
       try {
         const res = await fetch('/api/menu-templates', { credentials: 'same-origin' })
         const j = await res.json().catch(() => ({}))
@@ -677,49 +677,47 @@ export default function MenusIndex() {
                     </div>
                     {((menuLocale || 'en') === editingLocale ||
                       (!menuLocale && editingLocale === 'en')) && (
-                        <div className="flex items-center gap-2">
-                          <button
-                            className="px-2 py-1 text-xs border border-line-medium rounded"
-                            onClick={async () => {
-                              if (!selectedMenuId) return
-                              const targets = supportedLocales.filter(
-                                (l) => l !== editingLocale
-                              )
-                              await toast.promise(
-                                fetch(
-                                  `/api/menus/${encodeURIComponent(selectedMenuId)}/generate-variations`,
-                                  {
-                                    method: 'POST',
-                                    headers: {
-                                      'Accept': 'application/json',
-                                      'Content-Type': 'application/json',
-                                      ...(xsrfFromCookie ? { 'X-XSRF-TOKEN': xsrfFromCookie } : {}),
-                                    },
-                                    credentials: 'same-origin',
-                                    body: JSON.stringify({
-                                      fromLocale: editingLocale,
-                                      toLocales: targets,
-                                      mode: 'replace',
-                                    }),
-                                  }
-                                ).then(async (r) => {
-                                  if (!r.ok) {
-                                    const j = await r.json().catch(() => ({}))
-                                    throw new Error(j?.error || 'Build failed')
-                                  }
-                                }),
+                      <div className="flex items-center gap-2">
+                        <button
+                          className="px-2 py-1 text-xs border border-line-medium rounded"
+                          onClick={async () => {
+                            if (!selectedMenuId) return
+                            const targets = supportedLocales.filter((l) => l !== editingLocale)
+                            await toast.promise(
+                              fetch(
+                                `/api/menus/${encodeURIComponent(selectedMenuId)}/generate-variations`,
                                 {
-                                  loading: 'Building locale menus…',
-                                  success: 'Locale menus built',
-                                  error: (e) => String(e.message || e),
+                                  method: 'POST',
+                                  headers: {
+                                    'Accept': 'application/json',
+                                    'Content-Type': 'application/json',
+                                    ...(xsrfFromCookie ? { 'X-XSRF-TOKEN': xsrfFromCookie } : {}),
+                                  },
+                                  credentials: 'same-origin',
+                                  body: JSON.stringify({
+                                    fromLocale: editingLocale,
+                                    toLocales: targets,
+                                    mode: 'replace',
+                                  }),
                                 }
-                              )
-                            }}
-                          >
-                            Build Locale Menus
-                          </button>
-                        </div>
-                      )}
+                              ).then(async (r) => {
+                                if (!r.ok) {
+                                  const j = await r.json().catch(() => ({}))
+                                  throw new Error(j?.error || 'Build failed')
+                                }
+                              }),
+                              {
+                                loading: 'Building locale menus…',
+                                success: 'Locale menus built',
+                                error: (e) => String(e.message || e),
+                              }
+                            )
+                          }}
+                        >
+                          Build Locale Menus
+                        </button>
+                      </div>
+                    )}
                   </div>
                   {(() => {
                     const want = (menuTemplate || selectedMenuSlug || '').toLowerCase()
@@ -1052,7 +1050,10 @@ export default function MenusIndex() {
                                       nestFlashId === item.id ? (
                                         <Tooltip>
                                           <TooltipTrigger asChild>
-                                            <span className="mr-2 text-neutral-medium" aria-hidden="true">
+                                            <span
+                                              className="mr-2 text-neutral-medium"
+                                              aria-hidden="true"
+                                            >
                                               <FontAwesomeIcon
                                                 icon={faTurnUp}
                                                 rotation={90}
@@ -1445,7 +1446,9 @@ export default function MenusIndex() {
             <AlertDialogTitle>Remove menu item</AlertDialogTitle>
             <AlertDialogDescription>
               This will permanently remove{' '}
-              <span className="font-medium text-neutral-high">{deletingItem?.label || 'this item'}</span>
+              <span className="font-medium text-neutral-high">
+                {deletingItem?.label || 'this item'}
+              </span>
               {deletingItem ? ' and any nested children under it.' : '.'}
             </AlertDialogDescription>
           </AlertDialogHeader>
@@ -1462,14 +1465,17 @@ export default function MenusIndex() {
                 }
                 setDeleting(true)
                 try {
-                  const res = await fetch(`/api/menu-items/${encodeURIComponent(deletingItem.id)}`, {
-                    method: 'DELETE',
-                    headers: {
-                      'Accept': 'application/json',
-                      ...(xsrfFromCookie ? { 'X-XSRF-TOKEN': xsrfFromCookie } : {}),
-                    },
-                    credentials: 'same-origin',
-                  })
+                  const res = await fetch(
+                    `/api/menu-items/${encodeURIComponent(deletingItem.id)}`,
+                    {
+                      method: 'DELETE',
+                      headers: {
+                        Accept: 'application/json',
+                        ...(xsrfFromCookie ? { 'X-XSRF-TOKEN': xsrfFromCookie } : {}),
+                      },
+                      credentials: 'same-origin',
+                    }
+                  )
                   if (!res.ok && res.status !== 204) {
                     const j = await res.json().catch(() => ({}))
                     throw new Error(j?.error || 'Delete failed')

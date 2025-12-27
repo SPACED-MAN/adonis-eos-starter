@@ -30,11 +30,22 @@ import {
 } from '~/components/ui/select'
 import { RadioGroup, RadioGroupItem } from '~/components/ui/radio-group'
 import { ModulePicker } from '../../components/modules/ModulePicker'
-import { FormEvent, useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react'
+import {
+  FormEvent,
+  useCallback,
+  useEffect,
+  useLayoutEffect,
+  useMemo,
+  useRef,
+  useState,
+} from 'react'
 import { toast } from 'sonner'
 import { humanizeSlug } from '~/utils/strings'
 import type { CustomFieldType } from '~/types/custom_field'
-import { ModuleEditorInline, prefetchModuleSchemas } from '../../components/modules/ModuleEditorPanel'
+import {
+  ModuleEditorInline,
+  prefetchModuleSchemas,
+} from '../../components/modules/ModuleEditorPanel'
 import { MediaPickerModal } from '../../components/media/MediaPickerModal'
 import { Popover, PopoverTrigger, PopoverContent } from '~/components/ui/popover'
 import { Calendar } from '~/components/ui/calendar'
@@ -160,11 +171,19 @@ const InlineModuleEditor = function InlineModuleEditor({
   viewMode: 'source' | 'review' | 'ai-review'
   fieldAgents: Agent[]
   registerFlush: (moduleId: string, flush: (() => Promise<void>) | null) => void
-  onStage: (moduleId: string, overrides: Record<string, any> | null, edited: Record<string, any>, adminLabel?: string | null) => void
+  onStage: (
+    moduleId: string,
+    overrides: Record<string, any> | null,
+    edited: Record<string, any>,
+    adminLabel?: string | null
+  ) => void
   onMarkDirty: (mode: 'source' | 'review' | 'ai-review', moduleId: string) => void
   customFields?: Array<{ slug: string; label: string }>
 }) {
-  const onDirty = useCallback(() => onMarkDirty(viewMode, module.id), [onMarkDirty, viewMode, module.id])
+  const onDirty = useCallback(
+    () => onMarkDirty(viewMode, module.id),
+    [onMarkDirty, viewMode, module.id]
+  )
   const onSave = useCallback(
     (overrides: Record<string, any> | null, edited: Record<string, any>) =>
       onStage(module.id, overrides, edited),
@@ -375,7 +394,12 @@ function ModuleRowBase({
   setModules: React.Dispatch<React.SetStateAction<any[]>>
   onDuplicate: (m: any) => void
   registerModuleFlush: (moduleId: string, flush: (() => Promise<void>) | null) => void
-  stageModuleEdits: (moduleId: string, overrides: Record<string, any> | null, edited: Record<string, any>, adminLabel?: string | null) => void
+  stageModuleEdits: (
+    moduleId: string,
+    overrides: Record<string, any> | null,
+    edited: Record<string, any>,
+    adminLabel?: string | null
+  ) => void
   markModuleDirty: (mode: 'source' | 'review' | 'ai-review', moduleId: string) => void
   postId: string
   customFields?: Array<{ slug: string; label: string }>
@@ -394,10 +418,10 @@ function ModuleRowBase({
   const isLocal = m.scope === 'post' || m.scope === 'local'
   const moduleName = !isLocal
     ? globalSlugToLabel.get(String((m as any).globalSlug || '')) ||
-    (m as any).globalLabel ||
-    (m as any).globalSlug ||
-    moduleRegistry[m.type]?.name ||
-    m.type
+      (m as any).globalLabel ||
+      (m as any).globalSlug ||
+      moduleRegistry[m.type]?.name ||
+      m.type
     : moduleRegistry[m.type]?.name || m.type
 
   const saveLabel = async () => {
@@ -417,8 +441,12 @@ function ModuleRowBase({
   return (
     <SortableItem key={m.id} id={m.id} disabled={isLocked}>
       {(listeners: any) => (
-        <li className={`group bg-backdrop-low border ${isOverlay || isDraggingModules ? '' : 'transition-all duration-200'} ${isOpen ? 'border-line-medium shadow-sm rounded-xl mb-4' : 'border-line-low rounded-lg mb-2'}`}>
-          <div className={`px-4 py-3 flex items-center justify-between gap-3 ${isOpen ? 'bg-backdrop-medium/10' : ''}`}>
+        <li
+          className={`group bg-backdrop-low border ${isOverlay || isDraggingModules ? '' : 'transition-all duration-200'} ${isOpen ? 'border-line-medium shadow-sm rounded-xl mb-4' : 'border-line-low rounded-lg mb-2'}`}
+        >
+          <div
+            className={`px-4 py-3 flex items-center justify-between gap-3 ${isOpen ? 'bg-backdrop-medium/10' : ''}`}
+          >
             <div className="flex items-center gap-3 min-w-0 flex-1">
               <DragHandle
                 aria-label="Drag"
@@ -452,12 +480,14 @@ function ModuleRowBase({
                       <button
                         type="button"
                         className="text-sm font-bold text-neutral-high truncate hover:text-standout-high transition-colors text-left"
-                        onClick={() => setModulesAccordionOpen((prev) => {
-                          const next = new Set(prev)
-                          if (next.has(m.id)) next.delete(m.id)
-                          else next.add(m.id)
-                          return next
-                        })}
+                        onClick={() =>
+                          setModulesAccordionOpen((prev) => {
+                            const next = new Set(prev)
+                            if (next.has(m.id)) next.delete(m.id)
+                            else next.add(m.id)
+                            return next
+                          })
+                        }
                       >
                         {m.adminLabel || moduleName}
                       </button>
@@ -490,9 +520,7 @@ function ModuleRowBase({
                   <div className="text-[10px] font-bold text-neutral-low uppercase tracking-wider">
                     Order: {m.orderIndex}
                   </div>
-                  <div className="text-[10px] text-neutral-low/50">
-                    ID: {m.id.split('-')[0]}...
-                  </div>
+                  <div className="text-[10px] text-neutral-low/50">ID: {m.id.split('-')[0]}...</div>
                 </div>
               </div>
             </div>
@@ -500,7 +528,12 @@ function ModuleRowBase({
             <div className="flex items-center gap-2 shrink-0">
               {(() => {
                 const mode = moduleRegistry[m.type]?.renderingMode
-                const isReact = mode === 'react' || (mode === 'hybrid' && (m.props?._useReact === true || m.reviewProps?._useReact === true || m.aiReviewProps?._useReact === true))
+                const isReact =
+                  mode === 'react' ||
+                  (mode === 'hybrid' &&
+                    (m.props?._useReact === true ||
+                      m.reviewProps?._useReact === true ||
+                      m.aiReviewProps?._useReact === true))
 
                 if (isReact) {
                   return (
@@ -666,10 +699,18 @@ export default function Editor({
   fieldTypes = [],
 }: EditorProps) {
   const hasFieldPermission = useHasPermission('agents.field')
-  const initialTaxonomyIds = useMemo(() => Array.isArray(selectedTaxonomyTermIds) ? [...selectedTaxonomyTermIds].map(String).sort() : [], [selectedTaxonomyTermIds])
-  const initialCustomFieldsData = useMemo(() => Array.isArray(initialCustomFields)
-    ? initialCustomFields.map((f) => ({ fieldId: f.id, slug: f.slug, value: f.value ?? null }))
-    : [], [initialCustomFields])
+  const initialTaxonomyIds = useMemo(
+    () =>
+      Array.isArray(selectedTaxonomyTermIds) ? [...selectedTaxonomyTermIds].map(String).sort() : [],
+    [selectedTaxonomyTermIds]
+  )
+  const initialCustomFieldsData = useMemo(
+    () =>
+      Array.isArray(initialCustomFields)
+        ? initialCustomFields.map((f) => ({ fieldId: f.id, slug: f.slug, value: f.value ?? null }))
+        : [],
+    [initialCustomFields]
+  )
 
   const { data, setData, put, processing, errors } = useForm({
     title: post.title || '',
@@ -716,87 +757,91 @@ export default function Editor({
   const reviewInitialRef = useRef<null | typeof initialDataRef.current>(
     reviewDraft
       ? {
-        title: String(reviewDraft.title ?? post.title),
-        slug: String(reviewDraft.slug ?? post.slug),
-        excerpt: String(reviewDraft.excerpt ?? (post.excerpt || '')),
-        status: String(reviewDraft.status ?? post.status),
-        parentId: String((reviewDraft.parentId ?? (post as any).parentId ?? '') || ''),
-        orderIndex: Number(reviewDraft.orderIndex ?? (post as any).orderIndex ?? 0),
-        metaTitle: String(reviewDraft.metaTitle ?? (post.metaTitle || '')),
-        metaDescription: String(reviewDraft.metaDescription ?? (post.metaDescription || '')),
-        canonicalUrl: String(reviewDraft.canonicalUrl ?? (post.canonicalUrl || '')),
-        socialTitle: String(reviewDraft.socialTitle ?? (post.socialTitle || '')),
-        socialDescription: String(reviewDraft.socialDescription ?? (post.socialDescription || '')),
-        socialImageId: String(reviewDraft.socialImageId ?? (post.socialImageId || '')),
-        noindex: Boolean(reviewDraft.noindex ?? post.noindex),
-        nofollow: Boolean(reviewDraft.nofollow ?? post.nofollow),
-        robotsJson:
-          typeof reviewDraft.robotsJson === 'string'
-            ? reviewDraft.robotsJson
-            : reviewDraft.robotsJson
-              ? JSON.stringify(reviewDraft.robotsJson, null, 2)
-              : '',
-        jsonldOverrides:
-          typeof reviewDraft.jsonldOverrides === 'string'
-            ? reviewDraft.jsonldOverrides
-            : reviewDraft.jsonldOverrides
-              ? JSON.stringify(reviewDraft.jsonldOverrides, null, 2)
-              : '',
-        featuredImageId: String(reviewDraft.featuredImageId ?? (post.featuredImageId || '')),
-        customFields: Array.isArray(reviewDraft.customFields)
-          ? reviewDraft.customFields
-          : Array.isArray(initialCustomFields)
-            ? initialCustomFields.map((f) => ({
-              fieldId: f.id,
-              slug: f.slug,
-              value: f.value ?? null,
-            }))
-            : [],
-        taxonomyTermIds: selectedTaxonomyTermIds,
-      }
+          title: String(reviewDraft.title ?? post.title),
+          slug: String(reviewDraft.slug ?? post.slug),
+          excerpt: String(reviewDraft.excerpt ?? (post.excerpt || '')),
+          status: String(reviewDraft.status ?? post.status),
+          parentId: String((reviewDraft.parentId ?? (post as any).parentId ?? '') || ''),
+          orderIndex: Number(reviewDraft.orderIndex ?? (post as any).orderIndex ?? 0),
+          metaTitle: String(reviewDraft.metaTitle ?? (post.metaTitle || '')),
+          metaDescription: String(reviewDraft.metaDescription ?? (post.metaDescription || '')),
+          canonicalUrl: String(reviewDraft.canonicalUrl ?? (post.canonicalUrl || '')),
+          socialTitle: String(reviewDraft.socialTitle ?? (post.socialTitle || '')),
+          socialDescription: String(
+            reviewDraft.socialDescription ?? (post.socialDescription || '')
+          ),
+          socialImageId: String(reviewDraft.socialImageId ?? (post.socialImageId || '')),
+          noindex: Boolean(reviewDraft.noindex ?? post.noindex),
+          nofollow: Boolean(reviewDraft.nofollow ?? post.nofollow),
+          robotsJson:
+            typeof reviewDraft.robotsJson === 'string'
+              ? reviewDraft.robotsJson
+              : reviewDraft.robotsJson
+                ? JSON.stringify(reviewDraft.robotsJson, null, 2)
+                : '',
+          jsonldOverrides:
+            typeof reviewDraft.jsonldOverrides === 'string'
+              ? reviewDraft.jsonldOverrides
+              : reviewDraft.jsonldOverrides
+                ? JSON.stringify(reviewDraft.jsonldOverrides, null, 2)
+                : '',
+          featuredImageId: String(reviewDraft.featuredImageId ?? (post.featuredImageId || '')),
+          customFields: Array.isArray(reviewDraft.customFields)
+            ? reviewDraft.customFields
+            : Array.isArray(initialCustomFields)
+              ? initialCustomFields.map((f) => ({
+                  fieldId: f.id,
+                  slug: f.slug,
+                  value: f.value ?? null,
+                }))
+              : [],
+          taxonomyTermIds: selectedTaxonomyTermIds,
+        }
       : null
   )
   const aiReviewInitialRef = useRef<null | typeof initialDataRef.current>(
     aiReviewDraft
       ? {
-        title: String(aiReviewDraft.title ?? post.title),
-        slug: String(aiReviewDraft.slug ?? post.slug),
-        excerpt: String(aiReviewDraft.excerpt ?? (post.excerpt || '')),
-        status: String(aiReviewDraft.status ?? post.status),
-        parentId: String((aiReviewDraft.parentId ?? (post as any).parentId ?? '') || ''),
-        orderIndex: Number(aiReviewDraft.orderIndex ?? (post as any).orderIndex ?? 0),
-        metaTitle: String(aiReviewDraft.metaTitle ?? (post.metaTitle || '')),
-        metaDescription: String(aiReviewDraft.metaDescription ?? (post.metaDescription || '')),
-        canonicalUrl: String(aiReviewDraft.canonicalUrl ?? (post.canonicalUrl || '')),
-        socialTitle: String(aiReviewDraft.socialTitle ?? (post.socialTitle || '')),
-        socialDescription: String(aiReviewDraft.socialDescription ?? (post.socialDescription || '')),
-        socialImageId: String(aiReviewDraft.socialImageId ?? (post.socialImageId || '')),
-        noindex: Boolean(aiReviewDraft.noindex ?? post.noindex),
-        nofollow: Boolean(aiReviewDraft.nofollow ?? post.nofollow),
-        robotsJson:
-          typeof aiReviewDraft.robotsJson === 'string'
-            ? aiReviewDraft.robotsJson
-            : aiReviewDraft.robotsJson
-              ? JSON.stringify(aiReviewDraft.robotsJson, null, 2)
-              : '',
-        jsonldOverrides:
-          typeof aiReviewDraft.jsonldOverrides === 'string'
-            ? aiReviewDraft.jsonldOverrides
-            : aiReviewDraft.jsonldOverrides
-              ? JSON.stringify(aiReviewDraft.jsonldOverrides, null, 2)
-              : '',
-        featuredImageId: String(aiReviewDraft.featuredImageId ?? (post.featuredImageId || '')),
-        customFields: Array.isArray(aiReviewDraft.customFields)
-          ? aiReviewDraft.customFields
-          : Array.isArray(initialCustomFields)
-            ? initialCustomFields.map((f) => ({
-              fieldId: f.id,
-              slug: f.slug,
-              value: f.value ?? null,
-            }))
-            : [],
-        taxonomyTermIds: selectedTaxonomyTermIds,
-      }
+          title: String(aiReviewDraft.title ?? post.title),
+          slug: String(aiReviewDraft.slug ?? post.slug),
+          excerpt: String(aiReviewDraft.excerpt ?? (post.excerpt || '')),
+          status: String(aiReviewDraft.status ?? post.status),
+          parentId: String((aiReviewDraft.parentId ?? (post as any).parentId ?? '') || ''),
+          orderIndex: Number(aiReviewDraft.orderIndex ?? (post as any).orderIndex ?? 0),
+          metaTitle: String(aiReviewDraft.metaTitle ?? (post.metaTitle || '')),
+          metaDescription: String(aiReviewDraft.metaDescription ?? (post.metaDescription || '')),
+          canonicalUrl: String(aiReviewDraft.canonicalUrl ?? (post.canonicalUrl || '')),
+          socialTitle: String(aiReviewDraft.socialTitle ?? (post.socialTitle || '')),
+          socialDescription: String(
+            aiReviewDraft.socialDescription ?? (post.socialDescription || '')
+          ),
+          socialImageId: String(aiReviewDraft.socialImageId ?? (post.socialImageId || '')),
+          noindex: Boolean(aiReviewDraft.noindex ?? post.noindex),
+          nofollow: Boolean(aiReviewDraft.nofollow ?? post.nofollow),
+          robotsJson:
+            typeof aiReviewDraft.robotsJson === 'string'
+              ? aiReviewDraft.robotsJson
+              : aiReviewDraft.robotsJson
+                ? JSON.stringify(aiReviewDraft.robotsJson, null, 2)
+                : '',
+          jsonldOverrides:
+            typeof aiReviewDraft.jsonldOverrides === 'string'
+              ? aiReviewDraft.jsonldOverrides
+              : aiReviewDraft.jsonldOverrides
+                ? JSON.stringify(aiReviewDraft.jsonldOverrides, null, 2)
+                : '',
+          featuredImageId: String(aiReviewDraft.featuredImageId ?? (post.featuredImageId || '')),
+          customFields: Array.isArray(aiReviewDraft.customFields)
+            ? aiReviewDraft.customFields
+            : Array.isArray(initialCustomFields)
+              ? initialCustomFields.map((f) => ({
+                  fieldId: f.id,
+                  slug: f.slug,
+                  value: f.value ?? null,
+                }))
+              : [],
+          taxonomyTermIds: selectedTaxonomyTermIds,
+        }
       : null
   )
   type ViewMode = 'source' | 'review' | 'ai-review'
@@ -807,7 +852,7 @@ export default function Editor({
   // This enables the page-level Save button immediately after editing a module field.
   const [unstagedDirtyModulesByMode, setUnstagedDirtyModulesByMode] = useState<
     Record<ViewMode, Record<string, true>>
-  >({ source: {}, review: {}, 'ai-review': {} })
+  >({ 'source': {}, 'review': {}, 'ai-review': {} })
   const restoreScrollFocusRef = useRef<{
     scrollY: number
     activeName: string | null
@@ -821,8 +866,7 @@ export default function Editor({
     if (!restore) return
     restoreScrollFocusRef.current = null
     try {
-      const escapeAttr = (s: string) =>
-        String(s).replace(/\\/g, '\\\\').replace(/"/g, '\\"')
+      const escapeAttr = (s: string) => String(s).replace(/\\/g, '\\\\').replace(/"/g, '\\"')
       if (typeof window !== 'undefined') {
         window.scrollTo({ top: restore.scrollY })
       }
@@ -839,7 +883,7 @@ export default function Editor({
           requestAnimationFrame(() => {
             try {
               // Avoid scrolling while restoring focus (supported by modern browsers)
-              ; (el as any).focus?.({ preventScroll: true })
+              ;(el as any).focus?.({ preventScroll: true })
               if (
                 (el instanceof HTMLInputElement || el instanceof HTMLTextAreaElement) &&
                 restore.selectionStart != null &&
@@ -901,8 +945,18 @@ export default function Editor({
   )
   // Track pending module edits per active version, so switching versions doesn't overwrite drafts.
   const pendingModulesByModeRef = useRef<
-    Record<ViewMode, Record<string, { overrides: Record<string, any> | null; edited: Record<string, any>; adminLabel?: string | null }>>
-  >({ source: {}, review: {}, 'ai-review': {} })
+    Record<
+      ViewMode,
+      Record<
+        string,
+        {
+          overrides: Record<string, any> | null
+          edited: Record<string, any>
+          adminLabel?: string | null
+        }
+      >
+    >
+  >({ 'source': {}, 'review': {}, 'ai-review': {} })
   const [pendingRemoved, setPendingRemoved] = useState<Set<string>>(new Set())
   const [pendingReviewRemoved, setPendingReviewRemoved] = useState<Set<string>>(new Set())
   const [pendingAiReviewRemoved, setPendingAiReviewRemoved] = useState<Set<string>>(new Set())
@@ -930,7 +984,9 @@ export default function Editor({
 
   useEffect(() => {
     setTaxonomyTrees(taxonomies)
-    const sortedIds = Array.isArray(selectedTaxonomyTermIds) ? [...selectedTaxonomyTermIds].map(String).sort() : []
+    const sortedIds = Array.isArray(selectedTaxonomyTermIds)
+      ? [...selectedTaxonomyTermIds].map(String).sort()
+      : []
     setSelectedTaxonomyTerms(new Set(sortedIds))
   }, [taxonomies, selectedTaxonomyTermIds])
 
@@ -938,16 +994,16 @@ export default function Editor({
     () =>
       Array.isArray(taxonomyTrees)
         ? taxonomyTrees.map((t) => ({
-          slug: t.slug,
-          name: t.name,
-          hierarchical: !!(t as any).hierarchical,
-          freeTagging: !!(t as any).freeTagging,
-          maxSelections:
-            (t as any).maxSelections === null || (t as any).maxSelections === undefined
-              ? null
-              : Number((t as any).maxSelections),
-          options: flattenTerms(t.terms || []),
-        }))
+            slug: t.slug,
+            name: t.name,
+            hierarchical: !!(t as any).hierarchical,
+            freeTagging: !!(t as any).freeTagging,
+            maxSelections:
+              (t as any).maxSelections === null || (t as any).maxSelections === undefined
+                ? null
+                : Number((t as any).maxSelections),
+            options: flattenTerms(t.terms || []),
+          }))
         : [],
     [taxonomyTrees]
   )
@@ -1053,12 +1109,12 @@ export default function Editor({
       featuredImageId: String(d.featuredImageId || '').trim() || '',
       customFields: Array.isArray(d.customFields)
         ? [...d.customFields]
-          .sort((a, b) => (a.slug || '').localeCompare(b.slug || ''))
-          .map((e: any) => ({
-            fieldId: e.fieldId,
-            slug: e.slug,
-            value: e.value ?? null,
-          }))
+            .sort((a, b) => (a.slug || '').localeCompare(b.slug || ''))
+            .map((e: any) => ({
+              fieldId: e.fieldId,
+              slug: e.slug,
+              value: e.value ?? null,
+            }))
         : [],
       taxonomyTermIds: Array.isArray(d.taxonomyTermIds)
         ? [...d.taxonomyTermIds].map(String).sort()
@@ -1066,7 +1122,8 @@ export default function Editor({
     }
   }
   const modulesEnabled = uiConfig?.modulesEnabled !== false
-  const permalinksEnabled = uiConfig?.permalinksEnabled !== false && (uiConfig?.urlPatterns?.length || 0) > 0
+  const permalinksEnabled =
+    uiConfig?.permalinksEnabled !== false && (uiConfig?.urlPatterns?.length || 0) > 0
 
   // CSRF/XSRF token for fetch requests
   const page = usePage()
@@ -1136,14 +1193,14 @@ export default function Editor({
   const hasReviewBaseline = useMemo(() => {
     // A draft exists if it has actual content (beyond metadata)
     if (!reviewDraft) return false
-    const keys = Object.keys(reviewDraft).filter(k => k !== 'savedAt' && k !== 'savedBy')
+    const keys = Object.keys(reviewDraft).filter((k) => k !== 'savedAt' && k !== 'savedBy')
     return keys.length > 0
   }, [reviewDraft])
 
   const hasAiReviewBaseline = useMemo(() => {
     // A draft exists if it has actual content (beyond metadata)
     if (!aiReviewDraft) return false
-    const keys = Object.keys(aiReviewDraft).filter(k => k !== 'savedAt' && k !== 'savedBy')
+    const keys = Object.keys(aiReviewDraft).filter((k) => k !== 'savedAt' && k !== 'savedBy')
     return keys.length > 0
   }, [aiReviewDraft])
 
@@ -1161,12 +1218,13 @@ export default function Editor({
       (post.metaTitle && post.metaTitle.trim() !== '') ||
       (post.metaDescription && post.metaDescription.trim() !== '') ||
       post.featuredImageId ||
-      (initialCustomFields && initialCustomFields.some((f: any) => f.value !== null && f.value !== ''))
+      (initialCustomFields &&
+        initialCustomFields.some((f: any) => f.value !== null && f.value !== ''))
     )
 
-    // Optimization: If a post was created via an agent into AI Review mode, 
+    // Optimization: If a post was created via an agent into AI Review mode,
     // it starts with NO source modules and its post fields are just skeletons.
-    // In this case, we hide the 'Source' tab to avoid confusion and land 
+    // In this case, we hide the 'Source' tab to avoid confusion and land
     // the user directly on the meaningful content in 'AI Review'.
     if (
       modulesEnabled &&
@@ -1325,7 +1383,9 @@ export default function Editor({
             finalOverrides = !isLocal ? (m.reviewOverrides ?? m.overrides) : null
           } else if (viewMode === 'ai-review') {
             finalProps = isLocal ? (m.aiReviewProps ?? m.reviewProps ?? m.props) : {}
-            finalOverrides = !isLocal ? (m.aiReviewOverrides ?? m.reviewOverrides ?? m.overrides) : null
+            finalOverrides = !isLocal
+              ? (m.aiReviewOverrides ?? m.reviewOverrides ?? m.overrides)
+              : null
           }
 
           // If we have unsaved edits from the current session, they MUST be injected
@@ -1350,15 +1410,17 @@ export default function Editor({
 
       // Critical: build snapshots BEFORE clearing any pending refs or performing async commits.
       const idMap = new Map()
-      const modulesWithRealIds = modules.map(m => ({
+      const modulesWithRealIds = modules.map((m) => ({
         ...m,
-        id: idMap.get(m.id) || m.id
+        id: idMap.get(m.id) || m.id,
       }))
 
       // snapshotTarget depends on where we are saving to.
       // snapshotSourceMode is where the DATA is currently coming from (viewMode).
-      const reviewSnapshot = target === 'review' ? buildDraftSnapshot('review', modulesWithRealIds) : null
-      const aiReviewSnapshot = target === 'ai-review' ? buildDraftSnapshot('ai-review', modulesWithRealIds) : null
+      const reviewSnapshot =
+        target === 'review' ? buildDraftSnapshot('review', modulesWithRealIds) : null
+      const aiReviewSnapshot =
+        target === 'ai-review' ? buildDraftSnapshot('ai-review', modulesWithRealIds) : null
 
       if (target === 'review' && reviewSnapshot) {
         const created = await createPendingNewModules('review')
@@ -1367,17 +1429,17 @@ export default function Editor({
         await commitPendingModules('review', created, viewMode)
 
         // Re-inject the real IDs into the snapshot if any were created
-        const pmIdMap = new Map(created.map(c => [c.tempId, c.postModuleId]))
-        const miIdMap = new Map(created.map(c => [c.tempId, c.moduleInstanceId]))
+        const pmIdMap = new Map(created.map((c) => [c.tempId, c.postModuleId]))
+        const miIdMap = new Map(created.map((c) => [c.tempId, c.moduleInstanceId]))
 
-        const finalSnapshot = reviewSnapshot.map(m => {
+        const finalSnapshot = reviewSnapshot.map((m) => {
           const realPmId = pmIdMap.get(m.id) || m.postModuleId || m.id
           const realMiId = miIdMap.get(m.id) || m.moduleInstanceId
           return {
             ...m,
             id: realPmId,
             postModuleId: realPmId,
-            moduleInstanceId: realMiId
+            moduleInstanceId: realMiId,
           }
         })
 
@@ -1389,17 +1451,17 @@ export default function Editor({
         const created = await createPendingNewModules('ai-review')
         await commitPendingModules('ai-review', created, viewMode)
 
-        const pmIdMap = new Map(created.map(c => [c.tempId, c.postModuleId]))
-        const miIdMap = new Map(created.map(c => [c.tempId, c.moduleInstanceId]))
+        const pmIdMap = new Map(created.map((c) => [c.tempId, c.postModuleId]))
+        const miIdMap = new Map(created.map((c) => [c.tempId, c.moduleInstanceId]))
 
-        const finalSnapshot = aiReviewSnapshot.map(m => {
+        const finalSnapshot = aiReviewSnapshot.map((m) => {
           const realPmId = pmIdMap.get(m.id) || m.postModuleId || m.id
           const realMiId = miIdMap.get(m.id) || m.moduleInstanceId
           return {
             ...m,
             id: realPmId,
             postModuleId: realPmId,
-            moduleInstanceId: realMiId
+            moduleInstanceId: realMiId,
           }
         })
 
@@ -1413,10 +1475,10 @@ export default function Editor({
       if (hasStructuralChanges) {
         // Build a fresh module list using the real IDs for newly created modules.
         // This ensures persistOrder(RealID) updates the DB with the correct orderIndex.
-        const idMap = new Map(created.map(c => [c.tempId, c.postModuleId]))
-        const modulesWithRealIds = modules.map(m => ({
+        const idMap = new Map(created.map((c) => [c.tempId, c.postModuleId]))
+        const modulesWithRealIds = modules.map((m) => ({
           ...m,
-          id: idMap.get(m.id) || m.id
+          id: idMap.get(m.id) || m.id,
         }))
 
         const persistedModules = modulesWithRealIds.filter((m) => !m.id.startsWith('temp-'))
@@ -1484,12 +1546,12 @@ export default function Editor({
         const bodyText = await res.text().catch(() => '')
         const errorJson = contentType.includes('application/json')
           ? (() => {
-            try {
-              return JSON.parse(bodyText)
-            } catch {
-              return null
-            }
-          })()
+              try {
+                return JSON.parse(bodyText)
+              } catch {
+                return null
+              }
+            })()
           : null
 
         const msg =
@@ -1526,7 +1588,9 @@ export default function Editor({
       } else {
         toast.success(
           data?.message ||
-          (mode === 'approve-ai-review' ? 'AI Review promoted to Review' : 'Review promoted to Source')
+            (mode === 'approve-ai-review'
+              ? 'AI Review promoted to Review'
+              : 'Review promoted to Source')
         )
         window.location.reload()
       }
@@ -1541,7 +1605,7 @@ export default function Editor({
     const res = await fetch(`/api/posts/${post.id}`, {
       method: 'DELETE',
       headers: {
-        'Accept': 'application/json',
+        Accept: 'application/json',
         ...xsrfHeader(),
       },
       credentials: 'same-origin',
@@ -1573,8 +1637,10 @@ export default function Editor({
       const modulesPending = modulesEnabled
         ? Object.keys(pendingModules).some((k) => k.startsWith(`${viewMode}:`))
         : false
-      const removalsPendingSource = modulesEnabled && viewMode === 'source' ? pendingRemoved.size > 0 : false
-      const removalsPendingReview = modulesEnabled && viewMode === 'review' ? pendingReviewRemoved.size > 0 : false
+      const removalsPendingSource =
+        modulesEnabled && viewMode === 'source' ? pendingRemoved.size > 0 : false
+      const removalsPendingReview =
+        modulesEnabled && viewMode === 'review' ? pendingReviewRemoved.size > 0 : false
       const removalsPendingAiReview =
         modulesEnabled && viewMode === 'ai-review' ? pendingAiReviewRemoved.size > 0 : false
       const unstagedModulesDirty = modulesEnabled
@@ -1628,60 +1694,60 @@ export default function Editor({
   useEffect(() => {
     if (!modulesEnabled) return
     let cancelled = false
-      ; (async () => {
-        try {
-          const res = await fetch(
-            `/api/modules/registry?post_type=${encodeURIComponent(post.type)}`,
-            {
-              headers: { Accept: 'application/json' },
-              credentials: 'same-origin',
+    ;(async () => {
+      try {
+        const res = await fetch(
+          `/api/modules/registry?post_type=${encodeURIComponent(post.type)}`,
+          {
+            headers: { Accept: 'application/json' },
+            credentials: 'same-origin',
+          }
+        )
+        const json = await res.json().catch(() => null)
+        const list: Array<{
+          type: string
+          name?: string
+          description?: string
+          renderingMode?: 'static' | 'react'
+        }> = Array.isArray(json?.data) ? json.data : []
+        if (!cancelled) {
+          const map: Record<
+            string,
+            { name: string; description?: string; renderingMode?: 'static' | 'react' }
+          > = {}
+          list.forEach((m) => {
+            map[m.type] = {
+              name: m.name || m.type,
+              description: m.description,
+              renderingMode: m.renderingMode,
             }
-          )
-          const json = await res.json().catch(() => null)
-          const list: Array<{
-            type: string
-            name?: string
-            description?: string
-            renderingMode?: 'static' | 'react'
-          }> = Array.isArray(json?.data) ? json.data : []
-          if (!cancelled) {
-            const map: Record<
-              string,
-              { name: string; description?: string; renderingMode?: 'static' | 'react' }
-            > = {}
-            list.forEach((m) => {
-              map[m.type] = {
-                name: m.name || m.type,
-                description: m.description,
-                renderingMode: m.renderingMode,
-              }
-            })
-            setModuleRegistry(map)
-          }
-          // Load globals for slug->label mapping
-          try {
-            const gRes = await fetch('/api/modules/global', { credentials: 'same-origin' })
-            const gJson = await gRes.json().catch(() => ({}))
-            const gList: Array<{ globalSlug: string; label?: string | null }> = Array.isArray(
-              gJson?.data
-            )
-              ? gJson.data
-              : []
-            const gMap = new Map<string, string>()
-            gList.forEach((g) => {
-              if (g.globalSlug) {
-                gMap.set(g.globalSlug, (g as any).label || g.globalSlug)
-              }
-            })
-            console.log('[PostEditor] Global labels loaded:', Array.from(gMap.entries()))
-            if (!cancelled) setGlobalSlugToLabel(gMap)
-          } catch {
-            /* ignore */
-          }
-        } catch {
-          if (!cancelled) setModuleRegistry({})
+          })
+          setModuleRegistry(map)
         }
-      })()
+        // Load globals for slug->label mapping
+        try {
+          const gRes = await fetch('/api/modules/global', { credentials: 'same-origin' })
+          const gJson = await gRes.json().catch(() => ({}))
+          const gList: Array<{ globalSlug: string; label?: string | null }> = Array.isArray(
+            gJson?.data
+          )
+            ? gJson.data
+            : []
+          const gMap = new Map<string, string>()
+          gList.forEach((g) => {
+            if (g.globalSlug) {
+              gMap.set(g.globalSlug, (g as any).label || g.globalSlug)
+            }
+          })
+          console.log('[PostEditor] Global labels loaded:', Array.from(gMap.entries()))
+          if (!cancelled) setGlobalSlugToLabel(gMap)
+        } catch {
+          /* ignore */
+        }
+      } catch {
+        if (!cancelled) setModuleRegistry({})
+      }
+    })()
     return () => {
       cancelled = true
     }
@@ -1702,14 +1768,14 @@ export default function Editor({
     }
     let alive = true
     setModuleSchemasReady(false)
-      ; (async () => {
-        try {
-          const types = Array.from(new Set((modules || []).map((m) => m.type)))
-          await prefetchModuleSchemas(types)
-        } finally {
-          if (alive) setModuleSchemasReady(true)
-        }
-      })()
+    ;(async () => {
+      try {
+        const types = Array.from(new Set((modules || []).map((m) => m.type)))
+        await prefetchModuleSchemas(types)
+      } finally {
+        if (alive) setModuleSchemasReady(true)
+      }
+    })()
     return () => {
       alive = false
     }
@@ -1722,27 +1788,27 @@ export default function Editor({
       return
     }
     let mounted = true
-      ; (async () => {
-        try {
-          const res = await fetch('/api/url-patterns', { credentials: 'same-origin' })
-          const json = await res.json().catch(() => ({}))
-          const list: Array<{
-            postType: string
-            locale: string
-            pattern: string
-            isDefault: boolean
-          }> = Array.isArray(json?.data) ? json.data : []
-          const rec =
-            list.find((p) => p.postType === post.type && p.locale === post.locale && p.isDefault) ||
-            list.find((p) => p.postType === post.type && p.locale === post.locale) ||
-            null
-          if (!mounted) return
-          setPathPattern(rec?.pattern || '/{locale}/posts/{slug}')
-        } catch {
-          if (!mounted) return
-          setPathPattern('/{locale}/posts/{slug}')
-        }
-      })()
+    ;(async () => {
+      try {
+        const res = await fetch('/api/url-patterns', { credentials: 'same-origin' })
+        const json = await res.json().catch(() => ({}))
+        const list: Array<{
+          postType: string
+          locale: string
+          pattern: string
+          isDefault: boolean
+        }> = Array.isArray(json?.data) ? json.data : []
+        const rec =
+          list.find((p) => p.postType === post.type && p.locale === post.locale && p.isDefault) ||
+          list.find((p) => p.postType === post.type && p.locale === post.locale) ||
+          null
+        if (!mounted) return
+        setPathPattern(rec?.pattern || '/{locale}/posts/{slug}')
+      } catch {
+        if (!mounted) return
+        setPathPattern('/{locale}/posts/{slug}')
+      }
+    })()
     return () => {
       mounted = false
     }
@@ -1751,21 +1817,21 @@ export default function Editor({
   // Load supported locales from API (enabled locales)
   useEffect(() => {
     let mounted = true
-      ; (async () => {
-        try {
-          const res = await fetch('/api/locales', { credentials: 'same-origin' })
-          const json = await res.json().catch(() => ({}))
-          const list: Array<{ code: string; isEnabled: boolean }> = Array.isArray(json?.data)
-            ? json.data
-            : []
-          const enabled = list.filter((l) => l.isEnabled).map((l) => l.code)
-          if (!mounted) return
-          setSupportedLocales(enabled.length ? enabled : ['en'])
-        } catch {
-          if (!mounted) return
-          setSupportedLocales(['en'])
-        }
-      })()
+    ;(async () => {
+      try {
+        const res = await fetch('/api/locales', { credentials: 'same-origin' })
+        const json = await res.json().catch(() => ({}))
+        const list: Array<{ code: string; isEnabled: boolean }> = Array.isArray(json?.data)
+          ? json.data
+          : []
+        const enabled = list.filter((l) => l.isEnabled).map((l) => l.code)
+        if (!mounted) return
+        setSupportedLocales(enabled.length ? enabled : ['en'])
+      } catch {
+        if (!mounted) return
+        setSupportedLocales(['en'])
+      }
+    })()
     return () => {
       mounted = false
     }
@@ -1825,10 +1891,10 @@ export default function Editor({
           ? reviewDraft.customFields
           : Array.isArray(initialCustomFields)
             ? initialCustomFields.map((f) => ({
-              fieldId: f.id,
-              slug: f.slug,
-              value: f.value ?? null,
-            }))
+                fieldId: f.id,
+                slug: f.slug,
+                value: f.value ?? null,
+              }))
             : [],
         taxonomyTermIds: selectedTaxonomyTermIds,
       }
@@ -1871,10 +1937,10 @@ export default function Editor({
           ? aiReviewDraft.customFields
           : Array.isArray(initialCustomFields)
             ? initialCustomFields.map((f) => ({
-              fieldId: f.id,
-              slug: f.slug,
-              value: f.value ?? null,
-            }))
+                fieldId: f.id,
+                slug: f.slug,
+                value: f.value ?? null,
+              }))
             : [],
         taxonomyTermIds: selectedTaxonomyTermIds,
       }
@@ -1907,14 +1973,16 @@ export default function Editor({
       customFields: Array.isArray((data as any).customFields) ? (data as any).customFields : [],
       reviewModuleRemovals: Array.from(pendingReviewRemoved),
       // Include full module state in the draft snapshot for "dependable" JSON-based storage
-      modules: modulesOverride || modules.map((m) => {
-        const isLocal = m.scope === 'post' || m.scope === 'local'
-        return {
-          ...m,
-          props: isLocal ? (m.reviewProps ?? m.props ?? {}) : {},
-          overrides: !isLocal ? (m.reviewOverrides ?? m.overrides ?? null) : null,
-        }
-      }),
+      modules:
+        modulesOverride ||
+        modules.map((m) => {
+          const isLocal = m.scope === 'post' || m.scope === 'local'
+          return {
+            ...m,
+            props: isLocal ? (m.reviewProps ?? m.props ?? {}) : {},
+            overrides: !isLocal ? (m.reviewOverrides ?? m.overrides ?? null) : null,
+          }
+        }),
     }
     const res = await fetch(`/api/posts/${post.id}`, {
       method: 'PUT',
@@ -1953,14 +2021,18 @@ export default function Editor({
       customFields: Array.isArray((data as any).customFields) ? (data as any).customFields : [],
       aiReviewModuleRemovals: Array.from(pendingAiReviewRemoved),
       // Include full module state in the draft snapshot for "dependable" JSON-based storage
-      modules: modulesOverride || modules.map((m) => {
-        const isLocal = m.scope === 'post' || m.scope === 'local'
-        return {
-          ...m,
-          props: isLocal ? (m.aiReviewProps ?? m.reviewProps ?? m.props ?? {}) : {},
-          overrides: !isLocal ? (m.aiReviewOverrides ?? m.reviewOverrides ?? m.overrides ?? null) : null,
-        }
-      }),
+      modules:
+        modulesOverride ||
+        modules.map((m) => {
+          const isLocal = m.scope === 'post' || m.scope === 'local'
+          return {
+            ...m,
+            props: isLocal ? (m.aiReviewProps ?? m.reviewProps ?? m.props ?? {}) : {},
+            overrides: !isLocal
+              ? (m.aiReviewOverrides ?? m.reviewOverrides ?? m.overrides ?? null)
+              : null,
+          }
+        }),
     }
     const res = await fetch(`/api/posts/${post.id}`, {
       method: 'PUT',
@@ -2090,7 +2162,10 @@ export default function Editor({
     }>
   >([])
   const [loadingAgentHistory, setLoadingAgentHistory] = useState(false)
-  const [abStats, setAbStats] = useState<Record<string, { views: number; submissions: number; conversionRate: number }> | null>(null)
+  const [abStats, setAbStats] = useState<Record<
+    string,
+    { views: number; submissions: number; conversionRate: number }
+  > | null>(null)
   const agentModalContentRef = useRef<HTMLDivElement | null>(null)
   // Author management (admin)
   const [users, setUsers] = useState<Array<{ id: number; email: string; fullName: string | null }>>(
@@ -2130,10 +2205,13 @@ export default function Editor({
 
     async function fetchFeedbacks() {
       try {
-        const res = await fetch(`/api/feedbacks?postId=${post.id}&mode=${viewMode === 'source' ? 'approved' : viewMode}`, {
-          headers: { Accept: 'application/json' },
-          credentials: 'same-origin',
-        })
+        const res = await fetch(
+          `/api/feedbacks?postId=${post.id}&mode=${viewMode === 'source' ? 'approved' : viewMode}`,
+          {
+            headers: { Accept: 'application/json' },
+            credentials: 'same-origin',
+          }
+        )
         if (res.ok) {
           const json = await res.json().catch(() => [])
           if (alive) setFeedbacks(json)
@@ -2166,26 +2244,26 @@ export default function Editor({
   // Load agents
   useEffect(() => {
     let alive = true
-      ; (async () => {
-        try {
-          const res = await fetch('/api/agents', { credentials: 'same-origin' })
-          const json = await res.json().catch(() => ({}))
-          const list: Array<{
-            id: string
-            name: string
-            description?: string
-            openEndedContext?: {
-              enabled: boolean
-              label?: string
-              placeholder?: string
-              maxChars?: number
-            }
-          }> = Array.isArray(json?.data) ? json.data : []
-          if (alive) setAgents(list)
-        } catch {
-          if (alive) setAgents([])
-        }
-      })()
+    ;(async () => {
+      try {
+        const res = await fetch('/api/agents', { credentials: 'same-origin' })
+        const json = await res.json().catch(() => ({}))
+        const list: Array<{
+          id: string
+          name: string
+          description?: string
+          openEndedContext?: {
+            enabled: boolean
+            label?: string
+            placeholder?: string
+            maxChars?: number
+          }
+        }> = Array.isArray(json?.data) ? json.data : []
+        if (alive) setAgents(list)
+      } catch {
+        if (alive) setAgents([])
+      }
+    })()
     return () => {
       alive = false
     }
@@ -2194,19 +2272,19 @@ export default function Editor({
   // Load field-scoped agents for Featured Image (media field type)
   useEffect(() => {
     let alive = true
-      ; (async () => {
-        try {
-          const res = await fetch(
-            `/api/agents?scope=field&fieldType=media&fieldKey=post.featuredImageId`,
-            { credentials: 'same-origin' }
-          )
-          const json = await res.json().catch(() => ({}))
-          const agents: Agent[] = Array.isArray(json?.data) ? json.data : []
-          if (alive) setFeaturedImageFieldAgents(agents)
-        } catch {
-          if (alive) setFeaturedImageFieldAgents([])
-        }
-      })()
+    ;(async () => {
+      try {
+        const res = await fetch(
+          `/api/agents?scope=field&fieldType=media&fieldKey=post.featuredImageId`,
+          { credentials: 'same-origin' }
+        )
+        const json = await res.json().catch(() => ({}))
+        const agents: Agent[] = Array.isArray(json?.data) ? json.data : []
+        if (alive) setFeaturedImageFieldAgents(agents)
+      } catch {
+        if (alive) setFeaturedImageFieldAgents([])
+      }
+    })()
     return () => {
       alive = false
     }
@@ -2215,19 +2293,18 @@ export default function Editor({
   // Load agents for Create Translation scope
   useEffect(() => {
     let alive = true
-      ; (async () => {
-        try {
-          const res = await fetch(
-            `/api/agents?scope=post.create-translation`,
-            { credentials: 'same-origin' }
-          )
-          const json = await res.json().catch(() => ({}))
-          const agents: Agent[] = Array.isArray(json?.data) ? json.data : []
-          if (alive) setTranslationAgents(agents)
-        } catch {
-          if (alive) setTranslationAgents([])
-        }
-      })()
+    ;(async () => {
+      try {
+        const res = await fetch(`/api/agents?scope=post.create-translation`, {
+          credentials: 'same-origin',
+        })
+        const json = await res.json().catch(() => ({}))
+        const agents: Agent[] = Array.isArray(json?.data) ? json.data : []
+        if (alive) setTranslationAgents(agents)
+      } catch {
+        if (alive) setTranslationAgents([])
+      }
+    })()
     return () => {
       alive = false
     }
@@ -2236,19 +2313,16 @@ export default function Editor({
   // Load agents for post.publish scope
   useEffect(() => {
     let alive = true
-      ; (async () => {
-        try {
-          const res = await fetch(
-            `/api/agents?scope=post.publish`,
-            { credentials: 'same-origin' }
-          )
-          const json = await res.json().catch(() => ({}))
-          const agents: Agent[] = Array.isArray(json?.data) ? json.data : []
-          if (alive) setPublishAgents(agents)
-        } catch {
-          if (alive) setPublishAgents([])
-        }
-      })()
+    ;(async () => {
+      try {
+        const res = await fetch(`/api/agents?scope=post.publish`, { credentials: 'same-origin' })
+        const json = await res.json().catch(() => ({}))
+        const agents: Agent[] = Array.isArray(json?.data) ? json.data : []
+        if (alive) setPublishAgents(agents)
+      } catch {
+        if (alive) setPublishAgents([])
+      }
+    })()
     return () => {
       alive = false
     }
@@ -2257,19 +2331,18 @@ export default function Editor({
   // Load agents for post.review.save scope
   useEffect(() => {
     let alive = true
-      ; (async () => {
-        try {
-          const res = await fetch(
-            `/api/agents?scope=post.review.save`,
-            { credentials: 'same-origin' }
-          )
-          const json = await res.json().catch(() => ({}))
-          const agents: Agent[] = Array.isArray(json?.data) ? json.data : []
-          if (alive) setReviewSaveAgents(agents)
-        } catch {
-          if (alive) setReviewSaveAgents([])
-        }
-      })()
+    ;(async () => {
+      try {
+        const res = await fetch(`/api/agents?scope=post.review.save`, {
+          credentials: 'same-origin',
+        })
+        const json = await res.json().catch(() => ({}))
+        const agents: Agent[] = Array.isArray(json?.data) ? json.data : []
+        if (alive) setReviewSaveAgents(agents)
+      } catch {
+        if (alive) setReviewSaveAgents([])
+      }
+    })()
     return () => {
       alive = false
     }
@@ -2278,19 +2351,18 @@ export default function Editor({
   // Load agents for post.ai-review.save scope
   useEffect(() => {
     let alive = true
-      ; (async () => {
-        try {
-          const res = await fetch(
-            `/api/agents?scope=post.ai-review.save`,
-            { credentials: 'same-origin' }
-          )
-          const json = await res.json().catch(() => ({}))
-          const agents: Agent[] = Array.isArray(json?.data) ? json.data : []
-          if (alive) setAiReviewSaveAgents(agents)
-        } catch {
-          if (alive) setAiReviewSaveAgents([])
-        }
-      })()
+    ;(async () => {
+      try {
+        const res = await fetch(`/api/agents?scope=post.ai-review.save`, {
+          credentials: 'same-origin',
+        })
+        const json = await res.json().catch(() => ({}))
+        const agents: Agent[] = Array.isArray(json?.data) ? json.data : []
+        if (alive) setAiReviewSaveAgents(agents)
+      } catch {
+        if (alive) setAiReviewSaveAgents([])
+      }
+    })()
     return () => {
       alive = false
     }
@@ -2347,7 +2419,6 @@ export default function Editor({
     })
   )
 
-
   const orderedIds = useMemo(
     () =>
       modules
@@ -2357,7 +2428,10 @@ export default function Editor({
     [modules]
   )
 
-  async function persistOrder(next: EditorProps['modules'], mode: 'publish' | 'review' | 'ai-review' = 'publish') {
+  async function persistOrder(
+    next: EditorProps['modules'],
+    mode: 'publish' | 'review' | 'ai-review' = 'publish'
+  ) {
     if (!modulesEnabled) return
     // Always update all modules' order indices to ensure they're saved correctly
     // Don't skip based on current orderIndex since it may have been updated in local state
@@ -2423,7 +2497,7 @@ export default function Editor({
         throw new Error(`Failed to create module: ${pm.type}`)
       }
 
-      const json = await res.json().catch(() => ({} as any))
+      const json = await res.json().catch(() => ({}) as any)
       const data = (json as any)?.data ?? json
       const postModuleId = String(data?.postModuleId || data?.id || '')
       const moduleInstanceId = data?.moduleInstanceId ? String(data.moduleInstanceId) : null
@@ -2541,12 +2615,12 @@ export default function Editor({
     clonedModule.id = tempId
     clonedModule.moduleInstanceId = tempId
 
-    // Important: if we're cloning in Review or AI Review mode, the backend expects 
+    // Important: if we're cloning in Review or AI Review mode, the backend expects
     // the change to be staged appropriately.
     if (viewMode === 'review') {
       clonedModule.reviewAdded = true
     } else if (viewMode === 'ai-review') {
-      (clonedModule as any).aiReviewAdded = true
+      ;(clonedModule as any).aiReviewAdded = true
     }
 
     // Add to pending new modules for structural save
@@ -2555,10 +2629,7 @@ export default function Editor({
       {
         tempId,
         type: clonedModule.type,
-        scope:
-          clonedModule.scope === 'post'
-            ? 'local'
-            : (clonedModule.scope as 'local' | 'global'),
+        scope: clonedModule.scope === 'post' ? 'local' : (clonedModule.scope as 'local' | 'global'),
         globalSlug: clonedModule.globalSlug || null,
         orderIndex: clonedModule.orderIndex + 1, // Place it underneath
         adminLabel: clonedModule.adminLabel || null,
@@ -2735,16 +2806,16 @@ export default function Editor({
       return
     }
     let alive = true
-      ; (async () => {
-        try {
-          const res = await fetch('/api/agents?scope=field', { credentials: 'same-origin' })
-          const json = await res.json().catch(() => ({}))
-          const list: Agent[] = Array.isArray(json?.data) ? json.data : []
-          if (alive) setModuleFieldAgents(list)
-        } catch {
-          if (alive) setModuleFieldAgents([])
-        }
-      })()
+    ;(async () => {
+      try {
+        const res = await fetch('/api/agents?scope=field', { credentials: 'same-origin' })
+        const json = await res.json().catch(() => ({}))
+        const list: Agent[] = Array.isArray(json?.data) ? json.data : []
+        if (alive) setModuleFieldAgents(list)
+      } catch {
+        if (alive) setModuleFieldAgents([])
+      }
+    })()
     return () => {
       alive = false
     }
@@ -2784,7 +2855,12 @@ export default function Editor({
   }, [sortedModuleIds.join('|')])
 
   const stageModuleEdits = useCallback(
-    (moduleId: string, overrides: Record<string, any> | null, edited: Record<string, any>, adminLabel?: string | null) => {
+    (
+      moduleId: string,
+      overrides: Record<string, any> | null,
+      edited: Record<string, any>,
+      adminLabel?: string | null
+    ) => {
       const isEmptyOverrides =
         overrides == null || (typeof overrides === 'object' && Object.keys(overrides).length === 0)
       const isEmptyEdited =
@@ -2842,7 +2918,10 @@ export default function Editor({
       }
       // Also keep a union map for isDirty + UI (keyed by mode so multiple versions can coexist).
       const unionKey = `${viewMode}:${moduleId}`
-      setPendingModules((prev) => ({ ...prev, [unionKey]: { overrides: overrides, edited: edited, adminLabel: finalAdminLabel } }))
+      setPendingModules((prev) => ({
+        ...prev,
+        [unionKey]: { overrides: overrides, edited: edited, adminLabel: finalAdminLabel },
+      }))
       setModules((prev) =>
         prev.map((m) => {
           if (m.id !== moduleId) return m
@@ -2905,8 +2984,15 @@ export default function Editor({
         return resolved ? ([resolved, payload] as const) : null
       })
       .filter(Boolean) as Array<
-        readonly [string, { overrides: Record<string, any> | null; edited: Record<string, any>; adminLabel?: string | null }]
-      >
+      readonly [
+        string,
+        {
+          overrides: Record<string, any> | null
+          edited: Record<string, any>
+          adminLabel?: string | null
+        },
+      ]
+    >
 
     const findModule = (id: string) => {
       const direct = modules.find((m) => m.id === id)
@@ -2978,7 +3064,7 @@ export default function Editor({
     } else {
       // If no persisted entries, still clear temp entries since they'll be created fresh
       setPendingModules({})
-      pendingModulesByModeRef.current = { source: {}, review: {}, 'ai-review': {} }
+      pendingModulesByModeRef.current = { 'source': {}, 'review': {}, 'ai-review': {} }
     }
     // 2) Apply removals
     if (pendingRemoved.size > 0) {
@@ -3080,7 +3166,9 @@ export default function Editor({
                       }}
                       placeholder="Enter post title"
                     />
-                    {errors.title && <p className="text-sm text-red-500 mt-1.5 ml-1">{errors.title}</p>}
+                    {errors.title && (
+                      <p className="text-sm text-red-500 mt-1.5 ml-1">{errors.title}</p>
+                    )}
                   </div>
                 )}
 
@@ -3158,7 +3246,9 @@ export default function Editor({
                                   className="w-56 p-2 bg-backdrop-high border-line-medium shadow-xl rounded-xl"
                                 >
                                   <div className="px-2 py-1.5 border-b border-line-low mb-1">
-                                    <h4 className="text-[10px] font-bold text-neutral-low uppercase tracking-widest">Select AI Agent</h4>
+                                    <h4 className="text-[10px] font-bold text-neutral-low uppercase tracking-widest">
+                                      Select AI Agent
+                                    </h4>
                                   </div>
                                   <div className="space-y-0.5">
                                     {featuredImageFieldAgents.map((agent) => (
@@ -3171,9 +3261,14 @@ export default function Editor({
                                         className="w-full flex items-center gap-2.5 px-2.5 py-2 rounded-lg hover:bg-backdrop-medium text-left transition-colors"
                                       >
                                         <div className="w-6 h-6 rounded bg-standout-medium/10 flex items-center justify-center text-standout-medium">
-                                          <FontAwesomeIcon icon={faWandMagicSparkles} className="text-[10px]" />
+                                          <FontAwesomeIcon
+                                            icon={faWandMagicSparkles}
+                                            className="text-[10px]"
+                                          />
                                         </div>
-                                        <span className="text-xs font-medium text-neutral-high">{agent.name}</span>
+                                        <span className="text-xs font-medium text-neutral-high">
+                                          {agent.name}
+                                        </span>
                                       </button>
                                     ))}
                                   </div>
@@ -3233,7 +3328,9 @@ export default function Editor({
                 {/* Categories (Taxonomies) */}
                 {taxonomyOptions.length > 0 && (
                   <div className="space-y-6">
-                    <div className="text-[11px] font-bold text-neutral-medium uppercase tracking-wider mb-2 ml-1">Categories</div>
+                    <div className="text-[11px] font-bold text-neutral-medium uppercase tracking-wider mb-2 ml-1">
+                      Categories
+                    </div>
                     {taxonomyOptions.map((tax) => {
                       const selectedCount = Array.from(selectedTaxonomyTerms).filter((id) =>
                         tax.options.some((o) => o.id === id)
@@ -3247,7 +3344,9 @@ export default function Editor({
                           <div className="text-sm font-bold text-neutral-high flex items-center justify-between">
                             <span>{tax.name}</span>
                             {tax.maxSelections && (
-                              <span className="text-[10px] text-neutral-low uppercase">Limit: {tax.maxSelections}</span>
+                              <span className="text-[10px] text-neutral-low uppercase">
+                                Limit: {tax.maxSelections}
+                              </span>
                             )}
                           </div>
                           {tax.options.length === 0 ? (
@@ -3353,9 +3452,9 @@ export default function Editor({
                     }))}
                     values={(() => {
                       const vals: Record<string, any> = {}
-                        ; (data.customFields as any[])?.forEach((v) => {
-                          vals[v.slug] = v.value
-                        })
+                      ;(data.customFields as any[])?.forEach((v) => {
+                        vals[v.slug] = v.value
+                      })
                       return vals
                     })()}
                     onChange={(slug, val) => {
@@ -3382,12 +3481,16 @@ export default function Editor({
                 <div className="mt-6">
                   <div className="flex items-center justify-between mb-4">
                     <div className="flex items-center gap-4">
-                      <h3 className="text-[11px] font-bold text-neutral-medium uppercase tracking-wider">Modules</h3>
+                      <h3 className="text-[11px] font-bold text-neutral-medium uppercase tracking-wider">
+                        Modules
+                      </h3>
                       {modules.length > 0 && (
                         <div className="flex items-center gap-2">
                           <button
                             type="button"
-                            onClick={() => setModulesAccordionOpen(new Set(modules.map((m) => m.id)))}
+                            onClick={() =>
+                              setModulesAccordionOpen(new Set(modules.map((m) => m.id)))
+                            }
                             className="text-[10px] uppercase tracking-wider text-neutral-low hover:text-primary transition-colors"
                           >
                             Expand All
@@ -3406,7 +3509,13 @@ export default function Editor({
                     <ModulePicker
                       postId={post.id}
                       postType={post.type}
-                      mode={viewMode === 'review' ? 'review' : viewMode === 'ai-review' ? 'ai-review' : 'publish'}
+                      mode={
+                        viewMode === 'review'
+                          ? 'review'
+                          : viewMode === 'ai-review'
+                            ? 'ai-review'
+                            : 'publish'
+                      }
                       onAdd={handleAddModule}
                     />
                   </div>
@@ -3507,7 +3616,9 @@ export default function Editor({
             {/* SEO Card */}
             {permalinksEnabled && (
               <div className="bg-backdrop-low rounded-2xl p-8 border border-line-low shadow-sm">
-                <h2 className="text-xl font-bold text-neutral-high mb-8 tracking-tight">SEO & Meta</h2>
+                <h2 className="text-xl font-bold text-neutral-high mb-8 tracking-tight">
+                  SEO & Meta
+                </h2>
 
                 <div className="space-y-6">
                   {/* Slug */}
@@ -3550,7 +3661,9 @@ export default function Editor({
                         />
                       </div>
                     </div>
-                    {errors.slug && <p className="text-sm text-red-500 mt-1.5 ml-1">{errors.slug}</p>}
+                    {errors.slug && (
+                      <p className="text-sm text-red-500 mt-1.5 ml-1">{errors.slug}</p>
+                    )}
                     {pathPattern && (
                       <p className="mt-2 text-[10px] text-neutral-low font-mono bg-backdrop-medium/30 px-2 py-1 rounded border border-line-low/50 truncate">
                         Preview: {buildPreviewPath(data.slug)}
@@ -3571,7 +3684,9 @@ export default function Editor({
                         onChange={(e) => setData('metaTitle', e.target.value)}
                         placeholder="Custom meta title (optional)"
                       />
-                      <p className="text-[10px] text-neutral-low mt-1.5 ml-1 italic">Leave blank to use post title</p>
+                      <p className="text-[10px] text-neutral-low mt-1.5 ml-1 italic">
+                        Leave blank to use post title
+                      </p>
                     </div>
 
                     {/* Meta Description */}
@@ -3586,7 +3701,9 @@ export default function Editor({
                         rows={3}
                         placeholder="Custom meta description (optional)"
                       />
-                      <p className="text-[10px] text-neutral-low mt-1.5 ml-1 italic">Recommended: 150-160 characters</p>
+                      <p className="text-[10px] text-neutral-low mt-1.5 ml-1 italic">
+                        Recommended: 150-160 characters
+                      </p>
                     </div>
 
                     {/* Robots Toggles */}
@@ -3601,7 +3718,10 @@ export default function Editor({
                             checked={data.noindex}
                             onCheckedChange={(val) => setData('noindex', !!val)}
                           />
-                          <label htmlFor="noindex" className="text-xs font-medium text-neutral-medium cursor-pointer">
+                          <label
+                            htmlFor="noindex"
+                            className="text-xs font-medium text-neutral-medium cursor-pointer"
+                          >
                             No Index (Prevent from appearing in search results)
                           </label>
                         </div>
@@ -3611,7 +3731,10 @@ export default function Editor({
                             checked={data.nofollow}
                             onCheckedChange={(val) => setData('nofollow', !!val)}
                           />
-                          <label htmlFor="nofollow" className="text-xs font-medium text-neutral-medium cursor-pointer">
+                          <label
+                            htmlFor="nofollow"
+                            className="text-xs font-medium text-neutral-medium cursor-pointer"
+                          >
                             No Follow (Prevent search engines from following links)
                           </label>
                         </div>
@@ -3694,23 +3817,30 @@ export default function Editor({
                       <div className="grid grid-cols-1 xl:grid-cols-2 gap-8">
                         {/* Search Engine Preview */}
                         <div className="space-y-3">
-                          <span className="text-[10px] font-bold text-neutral-low uppercase tracking-widest ml-1">Google Search</span>
+                          <span className="text-[10px] font-bold text-neutral-low uppercase tracking-widest ml-1">
+                            Google Search
+                          </span>
                           <div className="bg-white dark:bg-[#202124] p-6 rounded-xl border border-line-low shadow-sm max-w-lg transition-colors">
                             <div className="text-[14px] text-[#1a0dab] dark:text-[#8ab4f8] leading-tight truncate mb-1 hover:underline cursor-pointer">
                               {data.metaTitle || data.title || 'Post Title'}
                             </div>
                             <div className="text-[12px] text-[#006621] dark:text-[#bdc1c6] truncate mb-1">
-                              {window.location.origin}{data.canonicalUrl || `/${data.slug}`}
+                              {window.location.origin}
+                              {data.canonicalUrl || `/${data.slug}`}
                             </div>
                             <div className="text-[13px] text-[#4d5156] dark:text-[#bdc1c6] line-clamp-2 leading-relaxed">
-                              {data.metaDescription || data.excerpt || 'Please provide a meta description or excerpt to see how this post will appear in search results.'}
+                              {data.metaDescription ||
+                                data.excerpt ||
+                                'Please provide a meta description or excerpt to see how this post will appear in search results.'}
                             </div>
                           </div>
                         </div>
 
                         {/* Social Media Preview (Facebook/LinkedIn style) */}
                         <div className="space-y-3">
-                          <span className="text-[10px] font-bold text-neutral-low uppercase tracking-widest ml-1">Facebook / LinkedIn</span>
+                          <span className="text-[10px] font-bold text-neutral-low uppercase tracking-widest ml-1">
+                            Facebook / LinkedIn
+                          </span>
                           <div className="bg-[#f2f3f5] dark:bg-[#242526] rounded-xl border border-line-low shadow-sm overflow-hidden max-w-lg transition-colors">
                             <div className="aspect-[1.91/1] bg-backdrop-medium relative overflow-hidden">
                               <MediaThumb
@@ -3729,7 +3859,10 @@ export default function Editor({
                                 {data.socialTitle || data.metaTitle || data.title || 'Post Title'}
                               </div>
                               <div className="text-[14px] text-neutral-medium dark:text-[#b0b3b8] line-clamp-1 leading-normal">
-                                {data.socialDescription || data.metaDescription || data.excerpt || 'Post description...'}
+                                {data.socialDescription ||
+                                  data.metaDescription ||
+                                  data.excerpt ||
+                                  'Post description...'}
                               </div>
                             </div>
                           </div>
@@ -3803,7 +3936,9 @@ export default function Editor({
           <div className="space-y-8">
             {/* Actions */}
             <div className="bg-backdrop-low rounded-2xl shadow-sm p-6 border border-line-low">
-              <h3 className="text-[11px] font-bold text-neutral-medium uppercase tracking-wider mb-6 ml-1">Actions</h3>
+              <h3 className="text-[11px] font-bold text-neutral-medium uppercase tracking-wider mb-6 ml-1">
+                Actions
+              </h3>
 
               <div className="space-y-8">
                 {/* Locale Switcher */}
@@ -3945,15 +4080,17 @@ export default function Editor({
                         // Ensure unique variations and sort them
                         const uniqueVarsMap = new Map<string, any>()
 
-                          // Process the abVariations list
-                          ; (abVariations || []).forEach((v) => {
-                            const vLabel = String(v.variation || '').trim().toUpperCase()
-                            const existing = uniqueVarsMap.get(vLabel)
-                            // Keep existing, but if current post is in the list, it should win
-                            if (!existing || v.id === post.id) {
-                              uniqueVarsMap.set(vLabel, { ...v, variation: vLabel })
-                            }
-                          })
+                        // Process the abVariations list
+                        ;(abVariations || []).forEach((v) => {
+                          const vLabel = String(v.variation || '')
+                            .trim()
+                            .toUpperCase()
+                          const existing = uniqueVarsMap.get(vLabel)
+                          // Keep existing, but if current post is in the list, it should win
+                          if (!existing || v.id === post.id) {
+                            uniqueVarsMap.set(vLabel, { ...v, variation: vLabel })
+                          }
+                        })
 
                         const finalVars = Array.from(uniqueVarsMap.values()).sort((a, b) =>
                           a.variation.localeCompare(b.variation)
@@ -3967,15 +4104,17 @@ export default function Editor({
                                 if (v.id === post.id) return
                                 router.visit(`/admin/posts/${v.id}/edit`)
                               }}
-                              className={`w-full py-1.5 px-2 text-[11px] font-bold rounded-lg transition-all flex flex-col items-center ${v.id === post.id
-                                ? 'bg-backdrop-low text-neutral-high shadow-sm'
-                                : 'text-neutral-low hover:text-neutral-medium hover:bg-backdrop-medium/20'
-                                }`}
+                              className={`w-full py-1.5 px-2 text-[11px] font-bold rounded-lg transition-all flex flex-col items-center ${
+                                v.id === post.id
+                                  ? 'bg-backdrop-low text-neutral-high shadow-sm'
+                                  : 'text-neutral-low hover:text-neutral-medium hover:bg-backdrop-medium/20'
+                              }`}
                             >
                               <span>Var {v.variation}</span>
                               {abStats?.[v.variation] && (
                                 <div className="mt-0.5 text-[9px] opacity-60 font-normal">
-                                  {abStats[v.variation].views} views · {abStats[v.variation].conversionRate.toFixed(1)}%
+                                  {abStats[v.variation].views} views ·{' '}
+                                  {abStats[v.variation].conversionRate.toFixed(1)}%
                                 </div>
                               )}
                             </button>
@@ -4012,7 +4151,9 @@ export default function Editor({
                         const configVariations = uiConfig.abTesting?.variations || []
                         const existingVariations = new Set(
                           (abVariations || []).map((v) =>
-                            String(v.variation || '').trim().toUpperCase()
+                            String(v.variation || '')
+                              .trim()
+                              .toUpperCase()
                           )
                         )
                         // If no variations explicitly set yet, A is assumed existing
@@ -4020,7 +4161,11 @@ export default function Editor({
 
                         const nextVar = configVariations.find(
                           (v) =>
-                            !existingVariations.has(String(v.value || '').trim().toUpperCase())
+                            !existingVariations.has(
+                              String(v.value || '')
+                                .trim()
+                                .toUpperCase()
+                            )
                         )
 
                         if (nextVar) {
@@ -4045,7 +4190,9 @@ export default function Editor({
 
                 {/* Active Version toggle */}
                 <div className="space-y-3">
-                  <label className="block text-[10px] font-bold text-neutral-low uppercase tracking-widest ml-1">Active Version</label>
+                  <label className="block text-[10px] font-bold text-neutral-low uppercase tracking-widest ml-1">
+                    Active Version
+                  </label>
                   <div className="flex p-1 bg-backdrop-medium/30 rounded-xl border border-line-low">
                     {hasSourceBaseline && (
                       <button
@@ -4104,7 +4251,10 @@ export default function Editor({
                     <Select value={selectedAgent} onValueChange={(val) => setSelectedAgent(val)}>
                       <SelectTrigger className="w-full h-10 text-sm font-medium border-line-medium rounded-xl">
                         <div className="flex items-center gap-2">
-                          <FontAwesomeIcon icon={faWandMagicSparkles} className="w-4 h-4 text-standout-medium" />
+                          <FontAwesomeIcon
+                            icon={faWandMagicSparkles}
+                            className="w-4 h-4 text-standout-medium"
+                          />
                           <SelectValue placeholder="Select an agent..." />
                         </div>
                       </SelectTrigger>
@@ -4134,7 +4284,7 @@ export default function Editor({
                             return
                           }
                           // No prompt required: run immediately, but still show response in dialog
-                          ; (async () => {
+                          ;(async () => {
                             // Open dialog FIRST to ensure it's open before setting running state
                             setAgentPromptOpen(true)
                             // Use requestAnimationFrame to ensure dialog state is set before preventing close
@@ -4196,10 +4346,7 @@ export default function Editor({
                                   try {
                                     router.reload({ only: ['aiReviewDraft', 'post'] })
                                   } catch (reloadError) {
-                                    console.warn(
-                                      'Page reload failed (non-critical):',
-                                      reloadError
-                                    )
+                                    console.warn('Page reload failed (non-critical):', reloadError)
                                   }
                                 }, 100)
                               } else {
@@ -4316,25 +4463,23 @@ export default function Editor({
                                             {item.response.summary ||
                                               (item.response.rawResponse
                                                 ? (() => {
-                                                  try {
-                                                    const jsonMatch =
-                                                      item.response.rawResponse?.match(
-                                                        /```(?:json)?\s*(\{[\s\S]*\})\s*```/
+                                                    try {
+                                                      const jsonMatch =
+                                                        item.response.rawResponse?.match(
+                                                          /```(?:json)?\s*(\{[\s\S]*\})\s*```/
+                                                        )
+                                                      const jsonStr = jsonMatch
+                                                        ? jsonMatch[1]
+                                                        : item.response.rawResponse
+                                                      const parsed = JSON.parse(jsonStr)
+                                                      return parsed.summary || 'Changes applied.'
+                                                    } catch {
+                                                      return (
+                                                        item.response.rawResponse ||
+                                                        'Changes applied.'
                                                       )
-                                                    const jsonStr = jsonMatch
-                                                      ? jsonMatch[1]
-                                                      : item.response.rawResponse
-                                                    const parsed = JSON.parse(jsonStr)
-                                                    return (
-                                                      parsed.summary || 'Changes applied.'
-                                                    )
-                                                  } catch {
-                                                    return (
-                                                      item.response.rawResponse ||
-                                                      'Changes applied.'
-                                                    )
-                                                  }
-                                                })()
+                                                    }
+                                                  })()
                                                 : 'Changes applied.')}
                                           </div>
                                           {item.response.applied &&
@@ -4443,10 +4588,7 @@ export default function Editor({
                                       const jsonStr = jsonMatch ? jsonMatch[1] : raw
                                       const parsed = JSON.parse(jsonStr)
                                       // If there's a summary field, use it
-                                      if (
-                                        parsed.summary &&
-                                        typeof parsed.summary === 'string'
-                                      ) {
+                                      if (parsed.summary && typeof parsed.summary === 'string') {
                                         return parsed.summary
                                       }
                                       // If no summary, return a message indicating we couldn't extract it
@@ -4462,9 +4604,7 @@ export default function Editor({
 
                             {agentResponse.applied && agentResponse.applied.length > 0 && (
                               <div className="space-y-1">
-                                <div className="text-xs text-neutral-medium">
-                                  Changes applied:
-                                </div>
+                                <div className="text-xs text-neutral-medium">Changes applied:</div>
                                 <div className="bg-success-light p-3 rounded border border-success-medium">
                                   <ul className="list-disc list-inside space-y-1 text-sm">
                                     {agentResponse.applied.map((field, i) => (
@@ -4508,13 +4648,18 @@ export default function Editor({
                                     (agent as any)?.type === 'internal' ? 'ai-review' : 'review'
 
                                   // Check for redirection if a new post/translation was created
-                                  if ((agentResponse as any).redirectPostId && (agentResponse as any).redirectPostId !== post.id) {
+                                  if (
+                                    (agentResponse as any).redirectPostId &&
+                                    (agentResponse as any).redirectPostId !== post.id
+                                  ) {
                                     setAgentPromptOpen(false)
                                     setAgentResponse(null)
                                     setAgentOpenEndedContext('')
                                     // Use window.location for a hard redirect if router.visit feels stuck,
                                     // but router.visit is preferred for Inertia.
-                                    router.visit(`/admin/posts/${(agentResponse as any).redirectPostId}/edit?view=${targetMode}`)
+                                    router.visit(
+                                      `/admin/posts/${(agentResponse as any).redirectPostId}/edit?view=${targetMode}`
+                                    )
                                     return
                                   }
 
@@ -4566,9 +4711,7 @@ export default function Editor({
                                   try {
                                     const csrf = (() => {
                                       if (typeof document === 'undefined') return undefined
-                                      const m = document.cookie.match(
-                                        /(?:^|; )XSRF-TOKEN=([^;]+)/
-                                      )
+                                      const m = document.cookie.match(/(?:^|; )XSRF-TOKEN=([^;]+)/)
                                       return m ? decodeURIComponent(m[1]) : undefined
                                     })()
 
@@ -4672,11 +4815,13 @@ export default function Editor({
                 )}
 
                 {/* Translation Creation Loading Modal */}
-                <AlertDialog open={isCreatingTranslation} onOpenChange={() => { }}>
+                <AlertDialog open={isCreatingTranslation} onOpenChange={() => {}}>
                   <AlertDialogContent className="max-w-md">
                     <AlertDialogHeader>
                       <AlertDialogTitle>
-                        {translationAgents.length > 0 ? 'Translating Content' : 'Creating Translation'}
+                        {translationAgents.length > 0
+                          ? 'Translating Content'
+                          : 'Creating Translation'}
                       </AlertDialogTitle>
                       <AlertDialogDescription>
                         {translationAgents.length > 0
@@ -4699,7 +4844,7 @@ export default function Editor({
                 </AlertDialog>
 
                 {/* Variation Creation Loading Modal */}
-                <AlertDialog open={isCreatingVariation} onOpenChange={() => { }}>
+                <AlertDialog open={isCreatingVariation} onOpenChange={() => {}}>
                   <AlertDialogContent className="max-w-md">
                     <AlertDialogHeader>
                       <AlertDialogTitle>Creating Variation</AlertDialogTitle>
@@ -4839,7 +4984,10 @@ export default function Editor({
                         type="button"
                         className={`h-8 px-3 text-xs rounded-lg disabled:opacity-50 flex items-center justify-center gap-1.5 ${!isDirty || processing || isSaving ? 'border border-border text-neutral-medium' : 'bg-standout-medium text-on-standout font-medium'}`}
                         disabled={
-                          !isDirty || processing || isSaving || (saveTarget === 'review' && !canSaveForReview)
+                          !isDirty ||
+                          processing ||
+                          isSaving ||
+                          (saveTarget === 'review' && !canSaveForReview)
                         }
                         onClick={async () => {
                           // Destructive confirmation when saving to Review that already exists.
@@ -4851,10 +4999,12 @@ export default function Editor({
                           await executeSave(saveTarget)
                         }}
                       >
-                        {(saveTarget === 'source' && data.status === 'published' && publishAgents.length > 0) && (
-                          <FontAwesomeIcon icon={faBrain} className="text-[10px] animate-pulse" />
-                        )}
-                        {(saveTarget === 'review' && reviewSaveAgents.length > 0) && (
+                        {saveTarget === 'source' &&
+                          data.status === 'published' &&
+                          publishAgents.length > 0 && (
+                            <FontAwesomeIcon icon={faBrain} className="text-[10px] animate-pulse" />
+                          )}
+                        {saveTarget === 'review' && reviewSaveAgents.length > 0 && (
                           <FontAwesomeIcon icon={faBrain} className="text-[10px] animate-pulse" />
                         )}
                         {saveTarget === 'source'
@@ -5036,9 +5186,9 @@ export default function Editor({
                                   const data = await res.json().catch(() => null)
                                   toast.success(
                                     data?.message ||
-                                    (mode === 'reject-ai-review'
-                                      ? 'AI Review discarded'
-                                      : 'Review discarded')
+                                      (mode === 'reject-ai-review'
+                                        ? 'AI Review discarded'
+                                        : 'Review discarded')
                                   )
                                   setRejectConfirmOpen(false)
                                   window.location.reload()
@@ -5047,8 +5197,8 @@ export default function Editor({
                                   console.error('Reject failed:', res.status, err)
                                   toast.error(
                                     err?.error ||
-                                    err?.message ||
-                                    (err?.errors ? 'Failed (validation)' : 'Failed')
+                                      err?.message ||
+                                      (err?.errors ? 'Failed (validation)' : 'Failed')
                                   )
                                 }
                               }}
@@ -5525,7 +5675,10 @@ export default function Editor({
                   })
                   const j = await res.json()
                   if (j.id) {
-                    toast.success(j.message || `Variation ${pendingVariationToCreate.value} created for all locales`)
+                    toast.success(
+                      j.message ||
+                        `Variation ${pendingVariationToCreate.value} created for all locales`
+                    )
                     window.location.href = `/admin/posts/${j.id}/edit`
                   } else {
                     toast.error(j.error || 'Failed to create variation')
@@ -5547,7 +5700,9 @@ export default function Editor({
       <AlertDialog open={variationDeleteConfirmOpen} onOpenChange={setVariationDeleteConfirmOpen}>
         <AlertDialogContent>
           <AlertDialogHeader>
-            <AlertDialogTitle>Delete Variation {pendingVariationToDelete?.variation}?</AlertDialogTitle>
+            <AlertDialogTitle>
+              Delete Variation {pendingVariationToDelete?.variation}?
+            </AlertDialogTitle>
             <AlertDialogDescription>
               Are you sure you want to delete this variation? This action cannot be undone.
               {pendingVariationToDelete?.id === post.id &&
@@ -5634,25 +5789,25 @@ function ParentSelect({
   const [loading, setLoading] = useState<boolean>(false)
   useEffect(() => {
     let alive = true
-      ; (async () => {
-        try {
-          setLoading(true)
-          const params = new URLSearchParams()
-          params.set('types', postType)
-          params.set('locale', locale)
-          params.set('status', 'published')
-          params.set('limit', '100')
-          const res = await fetch(`/api/posts?${params.toString()}`, { credentials: 'same-origin' })
-          const json = await res.json().catch(() => ({}))
-          const list: Array<{ id: string; title: string }> = Array.isArray(json?.data)
-            ? json.data
-            : []
-          if (!alive) return
-          setOptions(list.filter((p) => p.id !== postId))
-        } finally {
-          if (alive) setLoading(false)
-        }
-      })()
+    ;(async () => {
+      try {
+        setLoading(true)
+        const params = new URLSearchParams()
+        params.set('types', postType)
+        params.set('locale', locale)
+        params.set('status', 'published')
+        params.set('limit', '100')
+        const res = await fetch(`/api/posts?${params.toString()}`, { credentials: 'same-origin' })
+        const json = await res.json().catch(() => ({}))
+        const list: Array<{ id: string; title: string }> = Array.isArray(json?.data)
+          ? json.data
+          : []
+        if (!alive) return
+        setOptions(list.filter((p) => p.id !== postId))
+      } finally {
+        if (alive) setLoading(false)
+      }
+    })()
     return () => {
       alive = false
     }

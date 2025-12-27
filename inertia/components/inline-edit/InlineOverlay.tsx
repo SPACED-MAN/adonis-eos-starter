@@ -485,7 +485,7 @@ export function InlineOverlay() {
         open={enabled && !!dialogState}
         onOpenChange={(open) => !open && setDialogState(null)}
       >
-        <DialogContent 
+        <DialogContent
           className="sm:max-w-[560px] max-h-[90vh] overflow-y-auto p-0 border-none bg-transparent shadow-none"
           aria-describedby={undefined}
         >
@@ -546,24 +546,32 @@ function FieldDialogContent({ pop, onClose, getValue, setValue }: DialogContentP
 
   const [draft, setDraft] = useState<any>(() => {
     if (multi && Array.isArray(currentValFromCtx)) return currentValFromCtx
-    if (type === 'object' && (!currentValFromCtx || typeof currentValFromCtx !== 'object')) return {}
+    if (type === 'object' && (!currentValFromCtx || typeof currentValFromCtx !== 'object'))
+      return {}
     return currentValFromCtx
   })
 
   // Keep local draft in sync with context (essential for first-edit reactivity and external updates)
   useEffect(() => {
     const isObject = type === 'object'
-    const normalizedCtx = isObject && (!currentValFromCtx || typeof currentValFromCtx !== 'object') ? {} : currentValFromCtx
+    const normalizedCtx =
+      isObject && (!currentValFromCtx || typeof currentValFromCtx !== 'object')
+        ? {}
+        : currentValFromCtx
     if (JSON.stringify(normalizedCtx) !== JSON.stringify(draft)) {
       setDraft(normalizedCtx)
     }
   }, [currentValFromCtx, type])
 
-  const labelStyle = "block text-[11px] font-bold text-neutral-medium uppercase tracking-wider mt-2 mb-1.5 ml-1"
-  const inputStyle = "w-full border border-line-medium rounded-xl px-4 py-2.5 bg-backdrop-low text-neutral-high text-sm focus:ring-2 focus:ring-standout-medium/20 focus:border-standout-medium outline-none transition-all shadow-sm"
-  const selectStyle = "w-full border border-line-medium rounded-xl px-4 py-2.5 bg-backdrop-low text-neutral-high text-sm focus:ring-2 focus:ring-standout-medium/20 focus:border-standout-medium outline-none transition-all shadow-sm appearance-none"
-  const buttonStyle = "w-full mt-6 bg-standout-medium text-on-standout px-4 py-3 rounded-xl font-bold shadow-lg shadow-standout-medium/20 hover:bg-standout-high transition-all flex items-center justify-center gap-2"
-  const containerStyle = "p-4 bg-backdrop-medium/30 border border-line-low rounded-xl space-y-4"
+  const labelStyle =
+    'block text-[11px] font-bold text-neutral-medium uppercase tracking-wider mt-2 mb-1.5 ml-1'
+  const inputStyle =
+    'w-full border border-line-medium rounded-xl px-4 py-2.5 bg-backdrop-low text-neutral-high text-sm focus:ring-2 focus:ring-standout-medium/20 focus:border-standout-medium outline-none transition-all shadow-sm'
+  const selectStyle =
+    'w-full border border-line-medium rounded-xl px-4 py-2.5 bg-backdrop-low text-neutral-high text-sm focus:ring-2 focus:ring-standout-medium/20 focus:border-standout-medium outline-none transition-all shadow-sm appearance-none'
+  const buttonStyle =
+    'w-full mt-6 bg-standout-medium text-on-standout px-4 py-3 rounded-xl font-bold shadow-lg shadow-standout-medium/20 hover:bg-standout-high transition-all flex items-center justify-center gap-2'
+  const containerStyle = 'p-4 bg-backdrop-medium/30 border border-line-low rounded-xl space-y-4'
 
   const renderControl = () => {
     switch (type) {
@@ -744,10 +752,11 @@ function FieldDialogContent({ pop, onClose, getValue, setValue }: DialogContentP
                   return (
                     <label
                       key={o.value}
-                      className={`flex items-center gap-3 p-2.5 rounded-xl border transition-all cursor-pointer ${checked
-                        ? 'bg-standout-medium/10 border-standout-medium/30 text-neutral-high'
-                        : 'bg-backdrop-low border-line-medium text-neutral-medium hover:border-neutral-low'
-                        }`}
+                      className={`flex items-center gap-3 p-2.5 rounded-xl border transition-all cursor-pointer ${
+                        checked
+                          ? 'bg-standout-medium/10 border-standout-medium/30 text-neutral-high'
+                          : 'bg-backdrop-low border-line-medium text-neutral-medium hover:border-neutral-low'
+                      }`}
                     >
                       <input
                         type="checkbox"
@@ -806,7 +815,9 @@ function FieldDialogContent({ pop, onClose, getValue, setValue }: DialogContentP
                     setValue(moduleId, path, val)
                   }}
                 />
-                <span className="text-sm font-semibold text-neutral-high uppercase tracking-wider">Enabled</span>
+                <span className="text-sm font-semibold text-neutral-high uppercase tracking-wider">
+                  Enabled
+                </span>
               </label>
             </div>
           </div>
@@ -856,9 +867,7 @@ function FieldDialogContent({ pop, onClose, getValue, setValue }: DialogContentP
                   case 'textarea':
                     return (
                       <div key={field.name} className="space-y-1.5">
-                        <label className={labelStyle}>
-                          {field.label}
-                        </label>
+                        <label className={labelStyle}>{field.label}</label>
                         {field.type === 'textarea' ? (
                           <textarea
                             className={`${inputStyle} min-h-[100px] resize-none`}
@@ -878,7 +887,10 @@ function FieldDialogContent({ pop, onClose, getValue, setValue }: DialogContentP
                     )
                   case 'link':
                     return (
-                      <div key={field.name} className="space-y-1.5 pt-2 border-t border-line-low/50">
+                      <div
+                        key={field.name}
+                        className="space-y-1.5 pt-2 border-t border-line-low/50"
+                      >
                         <LinkField
                           label={field.label}
                           value={fieldValue}
@@ -888,10 +900,11 @@ function FieldDialogContent({ pop, onClose, getValue, setValue }: DialogContentP
                     )
                   case 'richtext':
                     return (
-                      <div key={field.name} className="space-y-1.5 pt-2 border-t border-line-low/50">
-                        <label className={labelStyle}>
-                          {field.label}
-                        </label>
+                      <div
+                        key={field.name}
+                        className="space-y-1.5 pt-2 border-t border-line-low/50"
+                      >
+                        <label className={labelStyle}>{field.label}</label>
                         <div className="border border-line-medium rounded-xl bg-backdrop-low p-2 shadow-sm">
                           <LexicalEditor
                             value={fieldValue ?? ''}
@@ -904,10 +917,11 @@ function FieldDialogContent({ pop, onClose, getValue, setValue }: DialogContentP
                     )
                   case 'select':
                     return (
-                      <div key={field.name} className="space-y-1.5 pt-2 border-t border-line-low/50">
-                        <label className={labelStyle}>
-                          {field.label}
-                        </label>
+                      <div
+                        key={field.name}
+                        className="space-y-1.5 pt-2 border-t border-line-low/50"
+                      >
+                        <label className={labelStyle}>{field.label}</label>
                         <div className="relative">
                           <select
                             className={selectStyle}
@@ -956,9 +970,7 @@ function FieldDialogContent({ pop, onClose, getValue, setValue }: DialogContentP
                     }
                     return (
                       <div key={field.name} className="space-y-3 pt-2 border-t border-line-low/50">
-                        <label className={labelStyle}>
-                          {field.label}
-                        </label>
+                        <label className={labelStyle}>{field.label}</label>
                         <div className="space-y-2">
                           {arr.map((val, i) => (
                             <div key={i} className="flex items-center gap-2 group/item">
@@ -1033,10 +1045,11 @@ function FieldDialogContent({ pop, onClose, getValue, setValue }: DialogContentP
                   }
                   case 'number':
                     return (
-                      <div key={field.name} className="space-y-1.5 pt-2 border-t border-line-low/50">
-                        <label className={labelStyle}>
-                          {field.label}
-                        </label>
+                      <div
+                        key={field.name}
+                        className="space-y-1.5 pt-2 border-t border-line-low/50"
+                      >
+                        <label className={labelStyle}>{field.label}</label>
                         <input
                           type="number"
                           className={inputStyle}
@@ -1052,7 +1065,10 @@ function FieldDialogContent({ pop, onClose, getValue, setValue }: DialogContentP
                     )
                   case 'boolean':
                     return (
-                      <div key={field.name} className="space-y-1.5 pt-2 border-t border-line-low/50">
+                      <div
+                        key={field.name}
+                        className="space-y-1.5 pt-2 border-t border-line-low/50"
+                      >
                         <label className="flex items-center gap-3 p-3 rounded-xl border border-line-medium bg-backdrop-low cursor-pointer hover:border-neutral-low transition-all">
                           <input
                             type="checkbox"
@@ -1060,13 +1076,18 @@ function FieldDialogContent({ pop, onClose, getValue, setValue }: DialogContentP
                             checked={!!fieldValue}
                             onChange={(e) => updateField(field.name, e.target.checked)}
                           />
-                          <span className="text-xs font-bold text-neutral-high uppercase tracking-wider">{field.label}</span>
+                          <span className="text-xs font-bold text-neutral-high uppercase tracking-wider">
+                            {field.label}
+                          </span>
                         </label>
                       </div>
                     )
                   default:
                     return (
-                      <div key={field.name} className="p-3 bg-red-500/5 border border-red-500/10 rounded-xl text-[10px] text-red-500 font-mono">
+                      <div
+                        key={field.name}
+                        className="p-3 bg-red-500/5 border border-red-500/10 rounded-xl text-[10px] text-red-500 font-mono"
+                      >
                         Unsupported field type: {field.type}
                       </div>
                     )
@@ -1080,8 +1101,13 @@ function FieldDialogContent({ pop, onClose, getValue, setValue }: DialogContentP
         return (
           <div className="space-y-4">
             <div className="p-8 text-center bg-backdrop-medium/20 rounded-xl border border-dashed border-line-medium">
-              <FontAwesomeIcon icon={faCircleExclamation} className="text-3xl text-neutral-low mb-2" />
-              <p className="text-sm text-neutral-medium uppercase font-bold tracking-wider">Unsupported Inline Type</p>
+              <FontAwesomeIcon
+                icon={faCircleExclamation}
+                className="text-3xl text-neutral-low mb-2"
+              />
+              <p className="text-sm text-neutral-medium uppercase font-bold tracking-wider">
+                Unsupported Inline Type
+              </p>
               <p className="text-xs text-neutral-low mt-1">{type}</p>
             </div>
             <button

@@ -35,26 +35,26 @@ export default class TestimonialListModule extends BaseModule {
           description: 'Short paragraph describing the testimonials section',
           translatable: true,
         },
-				{
-					slug: 'testimonials',
-					type: 'post-reference',
-					required: false,
-					description:
-						'Optional list of specific Testimonials to feature. If empty, all available Testimonials will be shown.',
-					config: {
-						postTypes: ['testimonial'],
-						allowMultiple: true,
-					},
-				},
-				backgroundColorField,
-			],
-			defaultValues: {
-				title: 'Testimonials',
-				subtitle:
-					'Hear from customers and partners. Testimonials are pulled from the Testimonial post type so they stay in sync.',
-				testimonials: [],
-				backgroundColor: 'bg-backdrop-low',
-			},
+        {
+          slug: 'testimonials',
+          type: 'post-reference',
+          required: false,
+          description:
+            'Optional list of specific Testimonials to feature. If empty, all available Testimonials will be shown.',
+          config: {
+            postTypes: ['testimonial'],
+            allowMultiple: true,
+          },
+        },
+        backgroundColorField,
+      ],
+      defaultValues: {
+        title: 'Testimonials',
+        subtitle:
+          'Hear from customers and partners. Testimonials are pulled from the Testimonial post type so they stay in sync.',
+        testimonials: [],
+        backgroundColor: 'bg-backdrop-low',
+      },
       // Typically used on pages and blogs
       allowedPostTypes: ['page', 'blog'],
     }

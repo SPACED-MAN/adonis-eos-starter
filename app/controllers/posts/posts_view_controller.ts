@@ -43,16 +43,16 @@ export default class PostsViewController extends BasePostsController {
       // Load post modules for editor
       let postModules = modulesEnabled
         ? await PostModule.query()
-          .where('postId', post.id)
-          .orderBy('orderIndex', 'asc')
-          .orderBy('createdAt', 'asc')
-          .preload('moduleInstance')
+            .where('postId', post.id)
+            .orderBy('orderIndex', 'asc')
+            .orderBy('createdAt', 'asc')
+            .preload('moduleInstance')
         : []
 
       // Helper to check if a draft has meaningful content (not just metadata)
       const hasMeaningfulContent = (draft: any) => {
         const obj = coerceJsonObject(draft)
-        const keys = Object.keys(obj).filter(k => k !== 'savedAt' && k !== 'savedBy')
+        const keys = Object.keys(obj).filter((k) => k !== 'savedAt' && k !== 'savedBy')
         return keys.length > 0
       }
 
@@ -77,12 +77,14 @@ export default class PostsViewController extends BasePostsController {
       const ardModules = Array.isArray(ard.modules) ? ard.modules : []
 
       // Determine the specific draft modules to use for the CURRENT tab's primary props
-      const currentDraftModules = activeViewMode === 'ai-review' ? ardModules : (activeViewMode === 'review' ? rdModules : [])
+      const currentDraftModules =
+        activeViewMode === 'ai-review' ? ardModules : activeViewMode === 'review' ? rdModules : []
 
       // Resolve featured image asset for fallback logic in modules
       // Respect the active view mode (draft vs published)
       let activeFeaturedImageId = post.featuredImageId
-      const currentDraft = activeViewMode === 'ai-review' ? ard : (activeViewMode === 'review' ? rd : null)
+      const currentDraft =
+        activeViewMode === 'ai-review' ? ard : activeViewMode === 'review' ? rd : null
       if (currentDraft && (currentDraft as any).featuredImageId !== undefined) {
         activeFeaturedImageId = (currentDraft as any).featuredImageId
       }
@@ -103,79 +105,117 @@ export default class PostsViewController extends BasePostsController {
 
       // 3. Modules logic (KISS approach: use versioned props)
       const editorModules = modulesEnabled
-        ? postModules.map((pm) => {
-          const mi = pm.moduleInstance as any as ModuleInstance
-          const moduleConfig = moduleRegistry.has(mi?.type) ? moduleRegistry.get(mi?.type).getConfig() : null
-          const defaultProps = moduleConfig?.defaultValues || {}
+        ? postModules
+            .map((pm) => {
+              const mi = pm.moduleInstance as any as ModuleInstance
+              const moduleConfig = moduleRegistry.has(mi?.type)
+                ? moduleRegistry.get(mi?.type).getConfig()
+                : null
+              const defaultProps = moduleConfig?.defaultValues || {}
 
-          // Get atomic draft versions of this module if they exist
-          const rdModule = rdModules.find((dm: any) => (dm.id === pm.id || dm.postModuleId === pm.id))
-          const ardModule = ardModules.find((dm: any) => (dm.id === pm.id || dm.postModuleId === pm.id))
-          const currentDraftModule = currentDraftModules.find((dm: any) => (dm.id === pm.id || dm.postModuleId === pm.id))
+              // Get atomic draft versions of this module if they exist
+              const rdModule = rdModules.find(
+                (dm: any) => dm.id === pm.id || dm.postModuleId === pm.id
+              )
+              const ardModule = ardModules.find(
+                (dm: any) => dm.id === pm.id || dm.postModuleId === pm.id
+              )
+              const currentDraftModule = currentDraftModules.find(
+                (dm: any) => dm.id === pm.id || dm.postModuleId === pm.id
+              )
 
-          const isLocal = mi?.scope === 'post' || mi?.scope === 'local'
+              const isLocal = mi?.scope === 'post' || mi?.scope === 'local'
 
-          // Helper to merge defaults and resolve hero fallbacks
-          const prepareProps = (p: any) => {
-            const merged = { ...defaultProps, ...coerceJsonObject(p) }
-            // Special fallback for hero-with-media using featured image
-            if ((mi?.type === 'hero-with-media' || mi?.type === 'HeroWithMedia') && featuredImageAsset) {
-              const uuidRegex = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i
-              if (!merged.image || merged.image === '' || (typeof merged.image === 'string' && uuidRegex.test(merged.image))) {
-                merged.image = featuredImageAsset
+              // Helper to merge defaults and resolve hero fallbacks
+              const prepareProps = (p: any) => {
+                const merged = { ...defaultProps, ...coerceJsonObject(p) }
+                // Special fallback for hero-with-media using featured image
+                if (
+                  (mi?.type === 'hero-with-media' || mi?.type === 'HeroWithMedia') &&
+                  featuredImageAsset
+                ) {
+                  const uuidRegex = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i
+                  if (
+                    !merged.image ||
+                    merged.image === '' ||
+                    (typeof merged.image === 'string' && uuidRegex.test(merged.image))
+                  ) {
+                    merged.image = featuredImageAsset
+                  }
+                }
+                return merged
               }
-            }
-            return merged
-          }
 
-          // Resolve props for each mode
-          const sourceProps = isLocal ? coerceJsonObject(mi?.props) : {}
-          const reviewProps = isLocal ? (rdModule?.props || coerceJsonObject(mi?.reviewProps ?? (mi as any)?.review_props)) : {}
-          const aiReviewProps = isLocal ? (ardModule?.props || coerceJsonObject(mi?.aiReviewProps ?? (mi as any)?.ai_review_props)) : {}
+              // Resolve props for each mode
+              const sourceProps = isLocal ? coerceJsonObject(mi?.props) : {}
+              const reviewProps = isLocal
+                ? rdModule?.props || coerceJsonObject(mi?.reviewProps ?? (mi as any)?.review_props)
+                : {}
+              const aiReviewProps = isLocal
+                ? ardModule?.props ||
+                  coerceJsonObject(mi?.aiReviewProps ?? (mi as any)?.ai_review_props)
+                : {}
 
-          // Resolve overrides for each mode (global modules only)
-          const sourceOverrides = !isLocal ? coerceJsonObject(pm.overrides) : null
-          const reviewOverrides = !isLocal ? (rdModule?.overrides || coerceJsonObject((pm as any).reviewOverrides ?? (pm as any).review_overrides)) : null
-          const aiReviewOverrides = !isLocal ? (ardModule?.overrides || coerceJsonObject((pm as any).aiReviewOverrides ?? (pm as any).ai_review_overrides)) : null
+              // Resolve overrides for each mode (global modules only)
+              const sourceOverrides = !isLocal ? coerceJsonObject(pm.overrides) : null
+              const reviewOverrides = !isLocal
+                ? rdModule?.overrides ||
+                  coerceJsonObject((pm as any).reviewOverrides ?? (pm as any).review_overrides)
+                : null
+              const aiReviewOverrides = !isLocal
+                ? ardModule?.overrides ||
+                  coerceJsonObject((pm as any).aiReviewOverrides ?? (pm as any).ai_review_overrides)
+                : null
 
-          return {
-            id: pm.id,
-            moduleInstanceId: pm.moduleId,
-            type: mi?.type,
-            scope: mi?.scope === 'post' ? 'local' : mi?.scope,
-            props: prepareProps(sourceProps),
-            reviewProps: Object.keys(reviewProps).length > 0 ? prepareProps(reviewProps) : null,
-            aiReviewProps: Object.keys(aiReviewProps).length > 0 ? prepareProps(aiReviewProps) : null,
-            overrides: sourceOverrides ? prepareProps(sourceOverrides) : null,
-            reviewOverrides: reviewOverrides && Object.keys(reviewOverrides).length > 0 ? prepareProps(reviewOverrides) : null,
-            aiReviewOverrides: aiReviewOverrides && Object.keys(aiReviewOverrides).length > 0 ? prepareProps(aiReviewOverrides) : null,
-            reviewAdded: !!((pm as any).reviewAdded || (pm as any).review_added),
-            reviewDeleted: !!((pm as any).reviewDeleted || (pm as any).review_deleted),
-            aiReviewAdded: !!((pm as any).aiReviewAdded || (pm as any).ai_review_added),
-            aiReviewDeleted: !!((pm as any).aiReviewDeleted || (pm as any).ai_review_deleted),
-            locked: pm.locked,
-            orderIndex: pm.orderIndex,
-            globalSlug: mi?.globalSlug || (mi as any)?.global_slug || null,
-            globalLabel: mi?.globalLabel || (mi as any)?.global_label || null,
-            adminLabel: currentDraftModule?.adminLabel ?? pm.adminLabel ?? null,
-          }
-        })
-          .sort((a, b) => {
-            // If in Review/AI Review mode, respect the order in the draft snapshot if it exists
-            if (
-              (activeViewMode === 'review' || activeViewMode === 'ai-review') &&
-              Array.isArray(currentDraftModules) &&
-              currentDraftModules.length > 0
-            ) {
-              const idxA = currentDraftModules.findIndex((dm: any) => (dm.id === a.id || dm.postModuleId === a.id))
-              const idxB = currentDraftModules.findIndex((dm: any) => (dm.id === b.id || dm.postModuleId === b.id))
-              if (idxA >= 0 && idxB >= 0) return idxA - idxB
-              if (idxA >= 0) return -1
-              if (idxB >= 0) return 1
-            }
-            // Fallback to table-based ordering (already applied by query, but keep sort for stability)
-            return (a.orderIndex ?? 0) - (b.orderIndex ?? 0)
-          })
+              return {
+                id: pm.id,
+                moduleInstanceId: pm.moduleId,
+                type: mi?.type,
+                scope: mi?.scope === 'post' ? 'local' : mi?.scope,
+                props: prepareProps(sourceProps),
+                reviewProps: Object.keys(reviewProps).length > 0 ? prepareProps(reviewProps) : null,
+                aiReviewProps:
+                  Object.keys(aiReviewProps).length > 0 ? prepareProps(aiReviewProps) : null,
+                overrides: sourceOverrides ? prepareProps(sourceOverrides) : null,
+                reviewOverrides:
+                  reviewOverrides && Object.keys(reviewOverrides).length > 0
+                    ? prepareProps(reviewOverrides)
+                    : null,
+                aiReviewOverrides:
+                  aiReviewOverrides && Object.keys(aiReviewOverrides).length > 0
+                    ? prepareProps(aiReviewOverrides)
+                    : null,
+                reviewAdded: !!((pm as any).reviewAdded || (pm as any).review_added),
+                reviewDeleted: !!((pm as any).reviewDeleted || (pm as any).review_deleted),
+                aiReviewAdded: !!((pm as any).aiReviewAdded || (pm as any).ai_review_added),
+                aiReviewDeleted: !!((pm as any).aiReviewDeleted || (pm as any).ai_review_deleted),
+                locked: pm.locked,
+                orderIndex: pm.orderIndex,
+                globalSlug: mi?.globalSlug || (mi as any)?.global_slug || null,
+                globalLabel: mi?.globalLabel || (mi as any)?.global_label || null,
+                adminLabel: currentDraftModule?.adminLabel ?? pm.adminLabel ?? null,
+              }
+            })
+            .sort((a, b) => {
+              // If in Review/AI Review mode, respect the order in the draft snapshot if it exists
+              if (
+                (activeViewMode === 'review' || activeViewMode === 'ai-review') &&
+                Array.isArray(currentDraftModules) &&
+                currentDraftModules.length > 0
+              ) {
+                const idxA = currentDraftModules.findIndex(
+                  (dm: any) => dm.id === a.id || dm.postModuleId === a.id
+                )
+                const idxB = currentDraftModules.findIndex(
+                  (dm: any) => dm.id === b.id || dm.postModuleId === b.id
+                )
+                if (idxA >= 0 && idxB >= 0) return idxA - idxB
+                if (idxA >= 0) return -1
+                if (idxB >= 0) return 1
+              }
+              // Fallback to table-based ordering (already applied by query, but keep sort for stability)
+              return (a.orderIndex ?? 0) - (b.orderIndex ?? 0)
+            })
         : []
 
       // (No debug logging)
@@ -236,7 +276,11 @@ export default class PostsViewController extends BasePostsController {
 
         variations = variationRows.map((v) => {
           // Check both the object property and the $extras bucket
-          const label = String(v.abVariation || (v as any).ab_variation || v.$extras?.ab_variation || 'A').trim().toUpperCase()
+          const label = String(
+            v.abVariation || (v as any).ab_variation || v.$extras?.ab_variation || 'A'
+          )
+            .trim()
+            .toUpperCase()
           return {
             id: String(v.id),
             variation: label,
@@ -245,12 +289,14 @@ export default class PostsViewController extends BasePostsController {
         })
 
         // Always add the current post explicitly with its correct label
-        const currentVarLabel = String(post.abVariation || (post.id === abGroupId ? 'A' : 'A')).trim().toUpperCase()
-        if (!variations.some(v => v.id === post.id)) {
+        const currentVarLabel = String(post.abVariation || (post.id === abGroupId ? 'A' : 'A'))
+          .trim()
+          .toUpperCase()
+        if (!variations.some((v) => v.id === post.id)) {
           variations.push({
             id: post.id,
             variation: currentVarLabel,
-            status: post.status
+            status: post.status,
           })
         }
 
@@ -424,7 +470,12 @@ export default class PostsViewController extends BasePostsController {
       // Log the error for debugging
       console.error('Error loading post editor:', error)
       // If it's a ModelNotFoundException (post not found), return 404
-      if (error && typeof error === 'object' && 'code' in error && error.code === 'E_ROW_NOT_FOUND') {
+      if (
+        error &&
+        typeof error === 'object' &&
+        'code' in error &&
+        error.code === 'E_ROW_NOT_FOUND'
+      ) {
         return inertia.render('admin/errors/not_found')
       }
       // For other errors, re-throw to see the actual error
@@ -600,7 +651,10 @@ export default class PostsViewController extends BasePostsController {
               const variationsFromConfig = uiConfig.abTesting.variations || []
               if (variationsFromConfig.length > 0) {
                 // Weighted random choice
-                const totalWeight = variationsFromConfig.reduce((sum, v) => sum + (v.weight || 1), 0)
+                const totalWeight = variationsFromConfig.reduce(
+                  (sum, v) => sum + (v.weight || 1),
+                  0
+                )
                 let random = Math.random() * totalWeight
                 for (const v of variationsFromConfig) {
                   random -= v.weight || 1
@@ -704,7 +758,9 @@ export default class PostsViewController extends BasePostsController {
 
         abVariations = variationRows.map((v) => ({
           id: String(v.id),
-          variation: String(v.abVariation || (v.id === abGroupId ? 'A' : 'A')).trim().toUpperCase(),
+          variation: String(v.abVariation || (v.id === abGroupId ? 'A' : 'A'))
+            .trim()
+            .toUpperCase(),
           status: String(v.status),
         }))
 
@@ -712,7 +768,9 @@ export default class PostsViewController extends BasePostsController {
         if (!abVariations.some((v) => v.id === post.id)) {
           abVariations.push({
             id: post.id,
-            variation: String(post.abVariation || 'A').trim().toUpperCase(),
+            variation: String(post.abVariation || 'A')
+              .trim()
+              .toUpperCase(),
             status: post.status,
           })
         }

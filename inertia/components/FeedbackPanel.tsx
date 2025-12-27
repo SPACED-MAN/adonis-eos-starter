@@ -1,6 +1,14 @@
 import React, { useState, useEffect, useCallback } from 'react'
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome'
-import { faMessage, faCheck, faTrash, faLocationArrow, faXmark, faPlus, faSpinner } from '@fortawesome/free-solid-svg-icons'
+import {
+  faMessage,
+  faCheck,
+  faTrash,
+  faLocationArrow,
+  faXmark,
+  faPlus,
+  faSpinner,
+} from '@fortawesome/free-solid-svg-icons'
 import { Badge } from './ui/badge'
 import { Textarea } from './ui/textarea'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from './ui/select'
@@ -47,7 +55,15 @@ interface FeedbackPanelProps {
   highlightId?: string | null
 }
 
-export function FeedbackPanel({ postId, mode, onClose, onJumpToSpot, onSelect, initialContext, highlightId }: FeedbackPanelProps) {
+export function FeedbackPanel({
+  postId,
+  mode,
+  onClose,
+  onJumpToSpot,
+  onSelect,
+  initialContext,
+  highlightId,
+}: FeedbackPanelProps) {
   const [feedbacks, setFeedbacks] = useState<Feedback[]>([])
   const [loading, setLoading] = useState(true)
   const [newFeedbackContent, setNewFeedbackContent] = useState('')
@@ -145,7 +161,9 @@ export function FeedbackPanel({ postId, mode, onClose, onJumpToSpot, onSelect, i
       })
 
       if (res.ok) {
-        setFeedbacks(prev => prev.map(f => f.id === feedback.id ? { ...f, status: newStatus } : f))
+        setFeedbacks((prev) =>
+          prev.map((f) => (f.id === feedback.id ? { ...f, status: newStatus } : f))
+        )
         toast.success(`Feedback marked as ${newStatus}`)
       }
     } catch (error) {
@@ -162,7 +180,7 @@ export function FeedbackPanel({ postId, mode, onClose, onJumpToSpot, onSelect, i
         },
       })
       if (res.ok) {
-        setFeedbacks(prev => prev.filter(f => f.id !== id))
+        setFeedbacks((prev) => prev.filter((f) => f.id !== id))
         toast.success('Feedback deleted')
       }
     } catch (error) {
@@ -187,11 +205,13 @@ export function FeedbackPanel({ postId, mode, onClose, onJumpToSpot, onSelect, i
             <FontAwesomeIcon icon={faSpinner} spin className="text-neutral-medium" />
           </div>
         ) : feedbacks.length === 0 ? (
-          <p className="text-center text-sm text-neutral-low py-8">No feedback yet for this version.</p>
+          <p className="text-center text-sm text-neutral-low py-8">
+            No feedback yet for this version.
+          </p>
         ) : (
-          feedbacks.map(f => (
-            <div 
-              key={f.id} 
+          feedbacks.map((f) => (
+            <div
+              key={f.id}
               id={`feedback-${f.id}`}
               onClick={() => {
                 if (onSelect) onSelect(f.id)
@@ -204,7 +224,10 @@ export function FeedbackPanel({ postId, mode, onClose, onJumpToSpot, onSelect, i
               <div className="flex items-start justify-between">
                 <div className="flex flex-col gap-1">
                   <div className="flex items-center gap-2">
-                    <Badge variant={f.type === 'bug' ? 'destructive' : 'secondary'} className="text-[10px] px-1 py-0 h-4">
+                    <Badge
+                      variant={f.type === 'bug' ? 'destructive' : 'secondary'}
+                      className="text-[10px] px-1 py-0 h-4"
+                    >
                       {f.type}
                     </Badge>
                     <span className="text-[10px] text-neutral-low">
@@ -269,7 +292,10 @@ export function FeedbackPanel({ postId, mode, onClose, onJumpToSpot, onSelect, i
             <div className="flex items-center gap-1.5 px-2 py-1 rounded bg-standout-medium/10 text-standout-medium text-[10px] font-bold">
               <FontAwesomeIcon icon={faLocationArrow} size="xs" />
               Linked to spot
-              <button onClick={() => setPendingContext(null)} className="ml-1 hover:text-standout-high">
+              <button
+                onClick={() => setPendingContext(null)}
+                className="ml-1 hover:text-standout-high"
+              >
                 <FontAwesomeIcon icon={faXmark} />
               </button>
             </div>
@@ -278,7 +304,7 @@ export function FeedbackPanel({ postId, mode, onClose, onJumpToSpot, onSelect, i
         <Textarea
           placeholder="Add your feedback..."
           value={newFeedbackContent}
-          onChange={e => setNewFeedbackContent(e.target.value)}
+          onChange={(e) => setNewFeedbackContent(e.target.value)}
           className="text-sm min-h-[80px] resize-none"
         />
         <button
@@ -291,7 +317,10 @@ export function FeedbackPanel({ postId, mode, onClose, onJumpToSpot, onSelect, i
         </button>
       </div>
 
-      <AlertDialog open={!!deleteConfirmId} onOpenChange={(open) => !open && setDeleteConfirmId(null)}>
+      <AlertDialog
+        open={!!deleteConfirmId}
+        onOpenChange={(open) => !open && setDeleteConfirmId(null)}
+      >
         <AlertDialogContent>
           <AlertDialogHeader>
             <AlertDialogTitle>Delete Feedback?</AlertDialogTitle>
@@ -313,4 +342,3 @@ export function FeedbackPanel({ postId, mode, onClose, onJumpToSpot, onSelect, i
     </div>
   )
 }
-

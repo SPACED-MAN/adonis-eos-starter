@@ -9,7 +9,7 @@ test.group('Post Actions - CreatePost', (group) => {
   group.each.setup(async () => {
     await testUtils.db().truncate()
 
-    // Ensure modules are registered (start/modules.ts might have already run, 
+    // Ensure modules are registered (start/modules.ts might have already run,
     // but we ensure it for unit tests that might boot partially)
     if (moduleRegistry.count() === 0) {
       const { registerAllModules } = await import('./module_test_helper.js')

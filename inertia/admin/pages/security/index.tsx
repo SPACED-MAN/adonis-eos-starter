@@ -268,7 +268,9 @@ export default function SecurityIndex() {
                 </div>
               </div>
             ) : (
-              <div className="text-center py-8 text-neutral-medium">Failed to load security posture</div>
+              <div className="text-center py-8 text-neutral-medium">
+                Failed to load security posture
+              </div>
             )}
           </div>
         )}
@@ -292,9 +294,7 @@ export default function SecurityIndex() {
                     <div className="flex-1">
                       <div className="flex items-center gap-2 mb-1">
                         <span className="font-medium text-neutral-high">{session.email}</span>
-                        {session.current && (
-                          <Badge className="bg-blue-500">Current Session</Badge>
-                        )}
+                        {session.current && <Badge className="bg-blue-500">Current Session</Badge>}
                       </div>
                       <div className="text-sm text-neutral-medium space-y-1">
                         <div>IP: {session.ip || 'N/A'}</div>
@@ -337,7 +337,9 @@ export default function SecurityIndex() {
               <div className="flex items-center justify-between mb-6">
                 <div>
                   <h2 className="text-xl font-semibold text-neutral-high mb-2">Audit Logs</h2>
-                  <p className="text-sm text-neutral-medium">View system activity and security events</p>
+                  <p className="text-sm text-neutral-medium">
+                    View system activity and security events
+                  </p>
                 </div>
                 <button
                   className="px-4 py-2 text-sm border border-line-low rounded hover:bg-backdrop-medium text-neutral-high transition-colors flex items-center gap-2"
@@ -441,7 +443,9 @@ export default function SecurityIndex() {
                   </SelectContent>
                 </Select>
 
-                {loading && <span className="text-xs text-neutral-low animate-pulse">Loading...</span>}
+                {loading && (
+                  <span className="text-xs text-neutral-low animate-pulse">Loading...</span>
+                )}
               </div>
             </div>
 
@@ -461,7 +465,9 @@ export default function SecurityIndex() {
                   {auditLogs.length === 0 ? (
                     <TableRow>
                       <TableCell colSpan={6} className="h-32 text-center text-neutral-medium">
-                        {loading ? 'Loading audit logs...' : 'No audit logs found matching your filters.'}
+                        {loading
+                          ? 'Loading audit logs...'
+                          : 'No audit logs found matching your filters.'}
                       </TableCell>
                     </TableRow>
                   ) : (
@@ -482,7 +488,9 @@ export default function SecurityIndex() {
                         </TableCell>
                         <TableCell>
                           <div className="flex flex-col">
-                            <span className="text-sm text-neutral-high">{log.userEmail || 'System'}</span>
+                            <span className="text-sm text-neutral-high">
+                              {log.userEmail || 'System'}
+                            </span>
                             {log.userId && (
                               <span className="text-xs text-neutral-low">ID: {log.userId}</span>
                             )}
@@ -491,11 +499,16 @@ export default function SecurityIndex() {
                         <TableCell>
                           {log.entityType ? (
                             <div className="flex items-center gap-1.5">
-                              <Badge variant="outline" className="text-[10px] uppercase tracking-wider font-semibold">
+                              <Badge
+                                variant="outline"
+                                className="text-[10px] uppercase tracking-wider font-semibold"
+                              >
                                 {log.entityType}
                               </Badge>
                               {log.entityId && (
-                                <span className="text-xs text-neutral-low font-mono">#{log.entityId}</span>
+                                <span className="text-xs text-neutral-low font-mono">
+                                  #{log.entityId}
+                                </span>
                               )}
                             </div>
                           ) : (
@@ -514,7 +527,9 @@ export default function SecurityIndex() {
                               <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-black/40 backdrop-blur-sm pointer-events-none">
                                 <div className="bg-backdrop-low border border-line-low rounded-lg shadow-2xl max-w-2xl w-full max-h-[80vh] overflow-hidden flex flex-col pointer-events-auto">
                                   <div className="px-4 py-3 border-b border-line-low flex items-center justify-between bg-backdrop">
-                                    <h3 className="font-semibold text-neutral-high">Log Metadata</h3>
+                                    <h3 className="font-semibold text-neutral-high">
+                                      Log Metadata
+                                    </h3>
                                     <button
                                       onClick={(e) => {
                                         const details = (e.target as HTMLElement).closest('details')
@@ -548,7 +563,8 @@ export default function SecurityIndex() {
             {total > 0 && (
               <div className="px-6 py-4 border-t border-line-low flex items-center justify-between bg-backdrop">
                 <div className="text-sm text-neutral-medium">
-                  Showing {(page - 1) * limit + 1} to {Math.min(page * limit, total)} of {total} results
+                  Showing {(page - 1) * limit + 1} to {Math.min(page * limit, total)} of {total}{' '}
+                  results
                 </div>
                 <div className="flex items-center gap-2">
                   <button

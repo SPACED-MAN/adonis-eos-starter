@@ -148,7 +148,8 @@ export default class MenusController {
     if (locale !== undefined) update.locale = locale
     if (template !== undefined) update.template = template
     if (meta !== undefined) {
-      update.meta_json = meta && typeof meta === 'object' ? JSON.stringify(meta) : JSON.stringify({})
+      update.meta_json =
+        meta && typeof meta === 'object' ? JSON.stringify(meta) : JSON.stringify({})
     }
     await db.from('menus').where('id', id).update(update)
     return response.ok({ message: 'Updated' })
@@ -221,7 +222,8 @@ export default class MenusController {
     }
     const maxRow = await maxQ.first()
     const maxIndex = Number((maxRow as any)?.max ?? 0)
-    const effectiveOrderIndex = orderIndex !== undefined ? orderIndex : (Number.isNaN(maxIndex) ? 0 : maxIndex + 1)
+    const effectiveOrderIndex =
+      orderIndex !== undefined ? orderIndex : Number.isNaN(maxIndex) ? 0 : maxIndex + 1
     const now = new Date()
     const row: any = {
       id: randomUUID(),
@@ -238,7 +240,7 @@ export default class MenusController {
       rel: rel || null,
       dynamic_post_type: type === 'dynamic' ? dynamicPostType : null,
       dynamic_parent_id: type === 'dynamic' ? dynamicParentId : null,
-      dynamic_depth_limit: type === 'dynamic' ? (dynamicDepthLimit || 1) : null,
+      dynamic_depth_limit: type === 'dynamic' ? dynamicDepthLimit || 1 : null,
       created_at: now,
       updated_at: now,
       locale: itemLocale,
@@ -495,7 +497,9 @@ export default class MenusController {
       )
 
     // Pre-fetch all source posts and their translation families to avoid N+1 queries
-    const sourcePostIds = sourceItems.filter((it) => it.type === 'post' && it.postId).map((it) => it.postId)
+    const sourcePostIds = sourceItems
+      .filter((it) => it.type === 'post' && it.postId)
+      .map((it) => it.postId)
     let postTranslationMap = new Map<string, Map<string, { id: string; title: string }>>()
 
     if (sourcePostIds.length > 0) {
@@ -520,12 +524,14 @@ export default class MenusController {
         const srcPost = sourcePosts.find((p) => String((p as any).id) === String(srcId))
         if (!srcPost) continue
         const baseId = (srcPost as any).translation_of_id || (srcPost as any).id
-        
+
         const familyMap = new Map<string, { id: string; title: string }>()
         allRelated
           .filter((p) => String((p as any).translation_of_id || (p as any).id) === String(baseId))
-          .forEach((p) => familyMap.set((p as any).locale, { id: (p as any).id, title: (p as any).title }))
-        
+          .forEach((p) =>
+            familyMap.set((p as any).locale, { id: (p as any).id, title: (p as any).title })
+          )
+
         postTranslationMap.set(String(srcId), familyMap)
       }
     }
@@ -553,7 +559,7 @@ export default class MenusController {
           for (const it of group) {
             let destPostId: string | null = null
             let destPostTitle: string | null = null
-            
+
             if (it.type === 'post' && it.postId) {
               const familyMap = postTranslationMap.get(String(it.postId))
               const translated = familyMap?.get(loc)

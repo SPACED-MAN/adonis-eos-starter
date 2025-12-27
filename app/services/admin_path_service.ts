@@ -27,7 +27,9 @@ export function getAdminPathPrefix(): string {
  */
 export function adminPath(path: string = ''): string {
   const prefix = getAdminPathPrefix()
-  const cleanPath = String(path || '').trim().replace(/^\/+/, '') // remove leading slashes
+  const cleanPath = String(path || '')
+    .trim()
+    .replace(/^\/+/, '') // remove leading slashes
   if (!cleanPath) return `/${prefix}`
   return `/${prefix}/${cleanPath}`
 }
@@ -37,8 +39,9 @@ export function adminPath(path: string = ''): string {
  * Note: API routes are already under /api, so this is mainly for consistency
  */
 export function adminApiPath(path: string = ''): string {
-  const cleanPath = String(path || '').trim().replace(/^\/+/, '') // remove leading slashes
+  const cleanPath = String(path || '')
+    .trim()
+    .replace(/^\/+/, '') // remove leading slashes
   if (!cleanPath) return '/api'
   return `/api/${cleanPath}`
 }
-

@@ -6,6 +6,7 @@ import { hydrateRoot } from 'react-dom/client'
 import { createInertiaApp } from '@inertiajs/react'
 import { resolvePageComponent } from '@adonisjs/inertia/helpers'
 import { SiteAdminBar } from './components/SiteAdminBar'
+import { initAnalytics } from './utils/analytics'
 import { ThemeProvider } from '../utils/ThemeContext'
 import { TooltipProvider } from '~/components/ui/tooltip'
 
@@ -36,7 +37,10 @@ createInertiaApp({
     const initialIsDark = (props.initialPage?.props as any)?.isDark
 
     const currentUser = (props.initialPage?.props as any)?.currentUser
-    const isAuthenticated = !!currentUser && ['admin', 'editor', 'translator'].includes(String(currentUser.role || ''))
+    const isAuthenticated =
+      !!currentUser && ['admin', 'editor', 'translator'].includes(String(currentUser.role || ''))
+
+    initAnalytics()
 
     hydrateRoot(
       el,

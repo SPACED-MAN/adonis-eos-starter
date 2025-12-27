@@ -13,7 +13,7 @@ export default class PromoteVariation {
    */
   static async handle({ postId, userId }: PromoteVariationParams): Promise<Post> {
     const winner = await Post.findOrFail(postId)
-    
+
     // If it doesn't have an abGroupId, it's not part of an A/B test
     if (!winner.abGroupId) {
       throw new Error('This post is not part of an A/B test group.')
@@ -36,7 +36,7 @@ export default class PromoteVariation {
         mainPost.updatedAt = winner.updatedAt
         mainPost.publishedAt = winner.publishedAt
         mainPost.scheduledAt = winner.scheduledAt
-        
+
         await mainPost.useTransaction(trx).save()
 
         // 2. Transfer modules
@@ -47,11 +47,17 @@ export default class PromoteVariation {
 
         // 3. Transfer custom field values
         await trx.from('post_custom_field_values').where('post_id', mainPost.id).delete()
-        await trx.from('post_custom_field_values').where('post_id', winner.id).update({ post_id: mainPost.id })
+        await trx
+          .from('post_custom_field_values')
+          .where('post_id', winner.id)
+          .update({ post_id: mainPost.id })
 
         // 4. Transfer taxonomy terms
         await trx.from('post_taxonomy_terms').where('post_id', mainPost.id).delete()
-        await trx.from('post_taxonomy_terms').where('post_id', winner.id).update({ post_id: mainPost.id })
+        await trx
+          .from('post_taxonomy_terms')
+          .where('post_id', winner.id)
+          .update({ post_id: mainPost.id })
       }
 
       // 5. Delete all other variations in the group
@@ -83,4 +89,3 @@ export default class PromoteVariation {
     })
   }
 }
-

@@ -33,11 +33,9 @@ class TaxonomyService {
     if (registeredSlugs.length === 0) {
       return []
     }
-    
-    const rows = await TaxonomyModel.query()
-      .whereIn('slug', registeredSlugs)
-      .orderBy('name', 'asc')
-    
+
+    const rows = await TaxonomyModel.query().whereIn('slug', registeredSlugs).orderBy('name', 'asc')
+
     return rows.map((r) => {
       const cfg = taxonomyRegistry.get(r.slug)
       return {

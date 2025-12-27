@@ -40,7 +40,8 @@ export default class UpdatePostModule {
 
       // Detect Lexical JSON structure: if it looks like a Lexical value, replace instead of merge.
       // Lexical objects always have a 'root' key at the top level.
-      const isLexical = (val: any) => val && typeof val === 'object' && !Array.isArray(val) && 'root' in val
+      const isLexical = (val: any) =>
+        val && typeof val === 'object' && !Array.isArray(val) && 'root' in val
 
       if (
         oVal &&

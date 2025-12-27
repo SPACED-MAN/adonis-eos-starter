@@ -6,11 +6,7 @@ import CreatePost from '#actions/posts/create_post'
 import siteSettingsService from '#services/site_settings_service'
 import PostCustomFieldValue from '#models/post_custom_field_value'
 import activityLogService from '#services/activity_log_service'
-import {
-  createUserValidator,
-  updateUserValidator,
-  resetPasswordValidator,
-} from '#validators/user'
+import { createUserValidator, updateUserValidator, resetPasswordValidator } from '#validators/user'
 
 export default class UsersController {
   /**
@@ -186,11 +182,7 @@ export default class UsersController {
 
     // Unique email check when changing
     if (email !== undefined) {
-      const existing = await db
-        .from('users')
-        .where('email', email)
-        .andWhereNot('id', id)
-        .first()
+      const existing = await db.from('users').where('email', email).andWhereNot('id', id).first()
       if (existing) {
         return response.status(409).json({ error: 'Email already in use' })
       }
@@ -256,7 +248,9 @@ export default class UsersController {
     // Non-admins cannot reset passwords for Administrator accounts
     const me = auth.use('web').user as any
     if (me.role !== 'admin' && (row as any).role === 'admin') {
-      return response.forbidden({ error: 'Not allowed to reset passwords for Administrator accounts' })
+      return response.forbidden({
+        error: 'Not allowed to reset passwords for Administrator accounts',
+      })
     }
 
     const hashed = await hash.make(password)

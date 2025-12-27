@@ -81,4 +81,3 @@ export default function TooManyRequests({ retryAfter }: TooManyRequestsProps) {
     </div>
   )
 }
-

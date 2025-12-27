@@ -20,4 +20,3 @@ export function generateCsv(headers: string[], rows: any[][]): string {
 
   return csvRows.join('\n')
 }
-

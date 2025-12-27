@@ -16,4 +16,3 @@ const taxonomy: RegisteredTaxonomyConfig = {
 }
 
 export default taxonomy
-

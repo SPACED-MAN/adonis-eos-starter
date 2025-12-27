@@ -26,27 +26,30 @@ export function TokenField({
 }: TokenFieldProps) {
   const inputRef = useRef<HTMLInputElement | HTMLTextAreaElement | null>(null)
 
-  const handleTokenSelect = useCallback((tokenName: string) => {
-    const el = inputRef.current
-    if (!el) {
-      onChange(`${value}{${tokenName}}`)
-      return
-    }
+  const handleTokenSelect = useCallback(
+    (tokenName: string) => {
+      const el = inputRef.current
+      if (!el) {
+        onChange(`${value}{${tokenName}}`)
+        return
+      }
 
-    const start = el.selectionStart || 0
-    const end = el.selectionEnd || 0
-    const token = `{${tokenName}}`
-    const newValue = value.substring(0, start) + token + value.substring(end)
-    
-    onChange(newValue)
+      const start = el.selectionStart || 0
+      const end = el.selectionEnd || 0
+      const token = `{${tokenName}}`
+      const newValue = value.substring(0, start) + token + value.substring(end)
 
-    // Set cursor after the inserted token
-    setTimeout(() => {
-      el.focus()
-      const newPos = start + token.length
-      el.setSelectionRange(newPos, newPos)
-    }, 0)
-  }, [value, onChange])
+      onChange(newValue)
+
+      // Set cursor after the inserted token
+      setTimeout(() => {
+        el.focus()
+        const newPos = start + token.length
+        el.setSelectionRange(newPos, newPos)
+      }, 0)
+    },
+    [value, onChange]
+  )
 
   const Component = type === 'textarea' ? Textarea : Input
 
@@ -59,17 +62,15 @@ export function TokenField({
         value={value}
         placeholder={placeholder}
         className={`${className} pr-10`}
-        onChange={(e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => onChange(e.target.value)}
+        onChange={(e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) =>
+          onChange(e.target.value)
+        }
       />
       <div className="absolute right-1 top-1 flex items-center h-8">
-        <TokenPicker 
-          onSelect={handleTokenSelect} 
-          customFields={customFields}
-        />
+        <TokenPicker onSelect={handleTokenSelect} customFields={customFields} />
       </div>
     </div>
   )
 }
 
 export default TokenField
-

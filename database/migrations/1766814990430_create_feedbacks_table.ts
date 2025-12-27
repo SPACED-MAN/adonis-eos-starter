@@ -14,7 +14,7 @@ export default class extends BaseSchema {
         .references('id')
         .inTable('users')
         .onDelete('SET NULL')
-      
+
       table.enum('mode', ['approved', 'review', 'ai-review']).notNullable().defaultTo('approved')
       table.text('content').notNullable()
       table.string('type', 50).notNullable().defaultTo('comment') // comment, bug, copy, feature
@@ -33,4 +33,3 @@ export default class extends BaseSchema {
     this.schema.dropTable(this.tableName)
   }
 }
-

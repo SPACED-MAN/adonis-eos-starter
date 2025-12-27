@@ -9,4 +9,3 @@ export const feedbackValidator = vine.compile(
     context: vine.any().optional(),
   })
 )
-

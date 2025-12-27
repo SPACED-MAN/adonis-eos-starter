@@ -30,7 +30,10 @@ class SiteCustomFieldsService {
         const cfg = fieldTypeRegistry.get(type)
         const parsed = cfg.valueSchema.safeParse(value ?? null)
         if (!parsed.success) {
-          console.error(`[SiteCustomFieldsService] Validation failed for "${slug}":`, parsed.error.format())
+          console.error(
+            `[SiteCustomFieldsService] Validation failed for "${slug}":`,
+            parsed.error.format()
+          )
           continue
         }
       } catch (e) {

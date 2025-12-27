@@ -145,7 +145,9 @@ export default function GlobalModulesIndex() {
   const [usagePopupOpen, setUsagePopupOpen] = useState(false)
   const [usageLoading, setUsageLoading] = useState(false)
   const [usageData, setUsageData] = useState<any[]>([])
-  const [selectedModuleForUsage, setSelectedModuleForUsage] = useState<GlobalModuleItem | null>(null)
+  const [selectedModuleForUsage, setSelectedModuleForUsage] = useState<GlobalModuleItem | null>(
+    null
+  )
   const sensors = useSensors(useSensor(PointerSensor))
 
   const xsrfToken: string | undefined = (() => {
@@ -424,10 +426,10 @@ export default function GlobalModulesIndex() {
       setGroupDirty(false)
       const regList = Array.isArray(regJson?.data)
         ? regJson.data.map((m: any) => ({
-          type: m.type,
-          name: m.name || m.type,
-          renderingMode: m.renderingMode,
-        }))
+            type: m.type,
+            name: m.name || m.type,
+            renderingMode: m.renderingMode,
+          }))
         : []
       setGroupRegistry(regList)
       // keep existing globals list for labels; reuse loaded globals
@@ -617,19 +619,21 @@ export default function GlobalModulesIndex() {
           <nav className="flex gap-4">
             <button
               onClick={() => setActiveTab('globals')}
-              className={`px-4 py-2 border-b-2 font-medium text-sm transition-colors ${activeTab === 'globals'
-                ? 'border-standout-medium text-standout-high'
-                : 'border-transparent text-neutral-medium hover:text-neutral-high'
-                }`}
+              className={`px-4 py-2 border-b-2 font-medium text-sm transition-colors ${
+                activeTab === 'globals'
+                  ? 'border-standout-medium text-standout-high'
+                  : 'border-transparent text-neutral-medium hover:text-neutral-high'
+              }`}
             >
               Globals
             </button>
             <button
               onClick={() => setActiveTab('groups')}
-              className={`px-4 py-2 border-b-2 font-medium text-sm transition-colors ${activeTab === 'groups'
-                ? 'border-standout-medium text-standout-high'
-                : 'border-transparent text-neutral-medium hover:text-neutral-high'
-                }`}
+              className={`px-4 py-2 border-b-2 font-medium text-sm transition-colors ${
+                activeTab === 'groups'
+                  ? 'border-standout-medium text-standout-high'
+                  : 'border-transparent text-neutral-medium hover:text-neutral-high'
+              }`}
             >
               Groups
             </button>
@@ -1029,9 +1033,7 @@ export default function GlobalModulesIndex() {
                           </>
                         )}
                       </div>
-                      <p className="text-xs text-neutral-low">
-                        {labelize(selectedGroup.postType)}
-                      </p>
+                      <p className="text-xs text-neutral-low">{labelize(selectedGroup.postType)}</p>
                     </div>
                     <div className="flex items-center gap-2">
                       <button
@@ -1098,7 +1100,8 @@ export default function GlobalModulesIndex() {
                                         {m.scope === 'global'
                                           ? slugToLabel.get(String(m.globalSlug || '')) ||
                                             String(m.globalSlug || '')
-                                          : groupRegistry.find((r) => r.type === m.type)?.name || m.type}
+                                          : groupRegistry.find((r) => r.type === m.type)?.name ||
+                                            m.type}
                                       </div>
                                       <div className="text-xs text-neutral-low">
                                         {m.scope === 'global' ? (

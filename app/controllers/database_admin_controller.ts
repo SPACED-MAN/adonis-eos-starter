@@ -433,7 +433,11 @@ export default class DatabaseAdminController {
    * Get list of searchable tables and their columns
    */
   async getFindReplaceTables({ response, auth }: HttpContext) {
-    const role = (auth.use('web').user as any)?.role as 'admin' | 'editor' | 'translator' | undefined
+    const role = (auth.use('web').user as any)?.role as
+      | 'admin'
+      | 'editor'
+      | 'translator'
+      | undefined
 
     if (!roleRegistry.hasPermission(role, 'admin.database.export')) {
       return response.forbidden({ error: 'Admin role required' })
@@ -452,7 +456,11 @@ export default class DatabaseAdminController {
    * Perform find and replace
    */
   async findReplace({ request, response, auth }: HttpContext) {
-    const role = (auth.use('web').user as any)?.role as 'admin' | 'editor' | 'translator' | undefined
+    const role = (auth.use('web').user as any)?.role as
+      | 'admin'
+      | 'editor'
+      | 'translator'
+      | undefined
 
     if (!roleRegistry.hasPermission(role, 'admin.database.export')) {
       return response.forbidden({ error: 'Admin role required' })

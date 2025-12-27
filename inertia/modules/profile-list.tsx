@@ -47,45 +47,45 @@ export default function ProfileList({
 
   useEffect(() => {
     let cancelled = false
-      ; (async () => {
-        try {
-          const params = new URLSearchParams()
-          params.set('status', 'published')
-          params.set('limit', '50')
-          const ids = Array.isArray(profiles) ? profiles.filter(Boolean) : []
-          if (ids.length > 0) {
-            params.set('ids', ids.join(','))
-          }
-          const res = await fetch(`/api/profiles?${params.toString()}`, {
-            credentials: 'same-origin',
-            headers: { Accept: 'application/json' },
-          })
-          if (!res.ok) {
-            throw new Error('Failed to load profiles')
-          }
-          const j = await res.json().catch(() => null)
-          const list: any[] = Array.isArray(j?.data) ? j.data : []
-          if (cancelled) return
-
-          const mapped: ProfileSummary[] = list.map((p: any) => {
-            return {
-              id: String(p.id),
-              name: String(p.name || 'Profile'),
-              role: (p as any).role ?? null,
-              bio: (p as any).bio ?? null,
-              slug: String(p.slug),
-              url: String(p.url),
-              image: p.image ?? null,
-            }
-          })
-
-          setItems(mapped)
-        } catch {
-          if (!cancelled) setItems([])
-        } finally {
-          if (!cancelled) setLoading(false)
+    ;(async () => {
+      try {
+        const params = new URLSearchParams()
+        params.set('status', 'published')
+        params.set('limit', '50')
+        const ids = Array.isArray(profiles) ? profiles.filter(Boolean) : []
+        if (ids.length > 0) {
+          params.set('ids', ids.join(','))
         }
-      })()
+        const res = await fetch(`/api/profiles?${params.toString()}`, {
+          credentials: 'same-origin',
+          headers: { Accept: 'application/json' },
+        })
+        if (!res.ok) {
+          throw new Error('Failed to load profiles')
+        }
+        const j = await res.json().catch(() => null)
+        const list: any[] = Array.isArray(j?.data) ? j.data : []
+        if (cancelled) return
+
+        const mapped: ProfileSummary[] = list.map((p: any) => {
+          return {
+            id: String(p.id),
+            name: String(p.name || 'Profile'),
+            role: (p as any).role ?? null,
+            bio: (p as any).bio ?? null,
+            slug: String(p.slug),
+            url: String(p.url),
+            image: p.image ?? null,
+          }
+        })
+
+        setItems(mapped)
+      } catch {
+        if (!cancelled) setItems([])
+      } finally {
+        if (!cancelled) setLoading(false)
+      }
+    })()
     return () => {
       cancelled = true
     }
@@ -205,9 +205,7 @@ export default function ProfileList({
       >
         <div className="container mx-auto px-4 sm:px-6 lg:px-8">
           <div className="max-w-screen-sm mx-auto text-center mb-8">
-            <h2 className={`mb-2 text-3xl font-extrabold tracking-tight ${textColor}`}>
-              {title}
-            </h2>
+            <h2 className={`mb-2 text-3xl font-extrabold tracking-tight ${textColor}`}>{title}</h2>
             {subtitle && <p className={`text-sm ${subtextColor}`}>{subtitle}</p>}
             <p className={`mt-4 text-xs ${subtextColor} opacity-60`}>Loading profiles…</p>
           </div>

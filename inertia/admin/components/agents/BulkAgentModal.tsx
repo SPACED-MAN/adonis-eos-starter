@@ -153,10 +153,7 @@ export function BulkAgentModal({
 
   return (
     <AlertDialog open={open} onOpenChange={handleOpenChange}>
-      <AlertDialogContent
-        ref={modalContentRef}
-        className="max-w-2xl max-h-[80vh] overflow-y-auto"
-      >
+      <AlertDialogContent ref={modalContentRef} className="max-w-2xl max-h-[80vh] overflow-y-auto">
         <AlertDialogHeader>
           <AlertDialogTitle>
             {agentResults ? 'Bulk Agent Results' : `Run ${agent.name} on ${postIds.length} posts`}
@@ -185,18 +182,28 @@ export function BulkAgentModal({
               <Spinner className="size-4" />
             ) : agentHistory.length > 0 ? (
               <div className="space-y-3 max-h-[300px] overflow-y-auto pr-2 border-b border-line-low pb-4 mb-4">
-                <div className="text-xs font-bold text-neutral-low uppercase tracking-wider">Recent Bulk History</div>
-                {[...agentHistory].reverse().slice(0, 5).map((item) => (
-                  <div key={item.id} className="text-xs p-2 bg-backdrop-medium rounded border border-line-low">
-                    <div className="font-medium text-neutral-high mb-1">{item.request || 'No instructions'}</div>
-                    <div className="text-neutral-medium italic">
-                      {item.response?.summary || 'Completed'}
+                <div className="text-xs font-bold text-neutral-low uppercase tracking-wider">
+                  Recent Bulk History
+                </div>
+                {[...agentHistory]
+                  .reverse()
+                  .slice(0, 5)
+                  .map((item) => (
+                    <div
+                      key={item.id}
+                      className="text-xs p-2 bg-backdrop-medium rounded border border-line-low"
+                    >
+                      <div className="font-medium text-neutral-high mb-1">
+                        {item.request || 'No instructions'}
+                      </div>
+                      <div className="text-neutral-medium italic">
+                        {item.response?.summary || 'Completed'}
+                      </div>
+                      <div className="text-[10px] text-neutral-low mt-1">
+                        {new Date(item.createdAt).toLocaleString()}
+                      </div>
                     </div>
-                    <div className="text-[10px] text-neutral-low mt-1">
-                      {new Date(item.createdAt).toLocaleString()}
-                    </div>
-                  </div>
-                ))}
+                  ))}
               </div>
             ) : null}
 

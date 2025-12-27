@@ -62,7 +62,11 @@ export default class PromotePostModules {
                 } as any)
             }
           } else {
-            const existing = await trx.from('post_modules').where('id', dm.id).select('overrides').first()
+            const existing = await trx
+              .from('post_modules')
+              .where('id', dm.id)
+              .select('overrides')
+              .first()
             const currentOverrides = coerceJsonObject(existing?.overrides)
 
             await trx
@@ -168,4 +172,3 @@ export default class PromotePostModules {
     })
   }
 }
-

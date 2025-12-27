@@ -75,7 +75,9 @@ export default function KitchenSink(props: KitchenSinkProps) {
               image={props.image}
               variant={props.imageVariant}
               alt={(typeof props.image === 'object' ? props.image.altText : null) || props.title}
-              playMode={typeof props.image === 'object' ? props.image.metadata?.playMode : 'autoplay'}
+              playMode={
+                typeof props.image === 'object' ? props.image.metadata?.playMode : 'autoplay'
+              }
             />
           </div>
         )}
@@ -143,12 +145,7 @@ export default function KitchenSink(props: KitchenSinkProps) {
             dataPath="numberField"
             type="number"
           />
-          <Info
-            label="Date Field"
-            value={props.dateField ?? ''}
-            dataPath="dateField"
-            type="date"
-          />
+          <Info label="Date Field" value={props.dateField ?? ''} dataPath="dateField" type="date" />
         </div>
 
         {props.metadata && (
@@ -183,10 +180,7 @@ export default function KitchenSink(props: KitchenSinkProps) {
             <h3 className="font-medium text-neutral-high">Items</h3>
             <ul className="list-disc pl-5">
               {props.items.map((it, idx) => (
-                <li
-                  key={idx}
-                  className={it.highlight ? 'text-standout-high' : 'text-neutral-high'}
-                >
+                <li key={idx} className={it.highlight ? 'text-standout-high' : 'text-neutral-high'}>
                   <strong
                     className={it.highlight ? 'text-standout-high' : 'text-neutral-high'}
                     data-inline-path={`items.${idx}.label`}

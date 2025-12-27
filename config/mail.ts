@@ -50,4 +50,3 @@ export default mailConfig
 declare module '@adonisjs/mail/types' {
   export interface MailersList extends InferMailers<typeof mailConfig> {}
 }
-

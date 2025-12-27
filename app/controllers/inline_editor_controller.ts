@@ -39,7 +39,6 @@ export default class InlineEditorController {
           ? 'ai-review'
           : 'source'
 
-
     if (!path) return response.badRequest({ error: 'path is required' })
 
     // Permission gate
@@ -94,7 +93,6 @@ export default class InlineEditorController {
     } catch {
       // If registry lookup fails, proceed without blocking
     }
-
 
     // Update payload based on mode and target
     if (target === 'props') {

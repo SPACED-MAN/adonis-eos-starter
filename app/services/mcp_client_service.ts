@@ -75,7 +75,8 @@ class MCPClientService {
       },
       {
         name: 'add_module_to_post_ai_review',
-        description: 'Add a module to a post. Params: { postId, moduleType, scope, props, orderIndex }',
+        description:
+          'Add a module to a post. Params: { postId, moduleType, scope, props, orderIndex }',
       },
       {
         name: 'update_post_module_ai_review',
@@ -123,7 +124,9 @@ class MCPClientService {
     // Validate UUID format for postModuleId
     const uuidRegex = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i
     if (!uuidRegex.test(postModuleId)) {
-      console.warn(`[MCPClientService.autoConvertFields] Skipping auto-conversion: invalid UUID for postModuleId: "${postModuleId}"`)
+      console.warn(
+        `[MCPClientService.autoConvertFields] Skipping auto-conversion: invalid UUID for postModuleId: "${postModuleId}"`
+      )
       return
     }
 
@@ -696,7 +699,12 @@ class MCPClientService {
       case 'update_post_module_ai_review': {
         let { postModuleId, locked, orderIndex, moduleInstanceId, postId } = params
         let overrides = params.overrides
-        if ((overrides === undefined || overrides === null || (typeof overrides === 'object' && Object.keys(overrides).length === 0)) && params.props) {
+        if (
+          (overrides === undefined ||
+            overrides === null ||
+            (typeof overrides === 'object' && Object.keys(overrides).length === 0)) &&
+          params.props
+        ) {
           overrides = params.props
         }
 
@@ -725,7 +733,11 @@ class MCPClientService {
         }
 
         // If postModuleId is still missing but moduleInstanceId is provided, try to resolve it
-        if ((!postModuleId || !uuidRegex.test(postModuleId)) && moduleInstanceId && uuidRegex.test(moduleInstanceId)) {
+        if (
+          (!postModuleId || !uuidRegex.test(postModuleId)) &&
+          moduleInstanceId &&
+          uuidRegex.test(moduleInstanceId)
+        ) {
           const pm = await db
             .from('post_modules')
             .where('module_id', moduleInstanceId)
@@ -780,7 +792,11 @@ class MCPClientService {
         }
 
         // Resolve postModuleId from moduleInstanceId if needed
-        if ((!postModuleId || !uuidRegex.test(postModuleId)) && moduleInstanceId && uuidRegex.test(moduleInstanceId)) {
+        if (
+          (!postModuleId || !uuidRegex.test(postModuleId)) &&
+          moduleInstanceId &&
+          uuidRegex.test(moduleInstanceId)
+        ) {
           const pm = await db
             .from('post_modules')
             .where('module_id', moduleInstanceId)
@@ -861,7 +877,8 @@ class MCPClientService {
           slug: (translation as any).slug,
           title: (translation as any).title,
           status: (translation as any).status,
-          featuredImageId: featuredImageId !== undefined ? (featuredImageId ?? null) : basePayload.featuredImageId,
+          featuredImageId:
+            featuredImageId !== undefined ? (featuredImageId ?? null) : basePayload.featuredImageId,
           savedAt: new Date().toISOString(),
           savedBy: agentLabel,
           translation: {
@@ -970,7 +987,9 @@ class MCPClientService {
         const { postId, locales, sourceMode = 'review', cloneModules = true, agentName } = params
 
         if (!postId || !Array.isArray(locales) || locales.length === 0) {
-          throw new Error('create_translations_ai_review_bulk requires "postId" and "locales" (array)')
+          throw new Error(
+            'create_translations_ai_review_bulk requires "postId" and "locales" (array)'
+          )
         }
 
         const results: any[] = []
@@ -1103,7 +1122,6 @@ class MCPClientService {
           mimeType: r.mime_type,
         }))
 
-
         return {
           success: true,
           count: mediaItems.length,
@@ -1139,12 +1157,13 @@ class MCPClientService {
           const { default: aiSettingsService } = await import('#services/ai_settings_service')
           const globalSettings = await aiSettingsService.get()
           providerMedia = providerMedia || (globalSettings.defaultMediaProvider as any)
-          modelMedia = modelMedia || (globalSettings.defaultMediaModel || undefined)
+          modelMedia = modelMedia || globalSettings.defaultMediaModel || undefined
         }
 
         // Default fallbacks if still undefined
         providerMedia = providerMedia || 'openai'
-        modelMedia = modelMedia || (providerMedia === 'openai' ? 'dall-e-3' : 'imagen-4.0-generate-001')
+        modelMedia =
+          modelMedia || (providerMedia === 'openai' ? 'dall-e-3' : 'imagen-4.0-generate-001')
 
         if (!apiKey) {
           const envKey = `AI_PROVIDER_${providerMedia.toUpperCase()}_API_KEY`

@@ -19,7 +19,7 @@ export function useAdminPathPrefix(): string {
 /**
  * Hook that returns a function to build admin URL paths (e.g., '/admin/posts' or '/blah/posts')
  * Must be called inside a React component (uses hook)
- * 
+ *
  * Usage:
  *   const adminPath = useAdminPath()
  *   const logoutUrl = adminPath('logout')
@@ -28,9 +28,10 @@ export function useAdminPathPrefix(): string {
 export function useAdminPath(): (path?: string) => string {
   const prefix = useAdminPathPrefix()
   return (path: string = '') => {
-    const cleanPath = String(path || '').trim().replace(/^\/+/, '') // remove leading slashes
+    const cleanPath = String(path || '')
+      .trim()
+      .replace(/^\/+/, '') // remove leading slashes
     if (!cleanPath) return `/${prefix}`
     return `/${prefix}/${cleanPath}`
   }
 }
-

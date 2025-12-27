@@ -21,7 +21,12 @@ export default class extends BaseSchema {
 
       // Dynamic menu fields
       table.string('dynamic_post_type', 50).nullable()
-      table.uuid('dynamic_parent_id').nullable().references('id').inTable('posts').onDelete('SET NULL')
+      table
+        .uuid('dynamic_parent_id')
+        .nullable()
+        .references('id')
+        .inTable('posts')
+        .onDelete('SET NULL')
       table.integer('dynamic_depth_limit').nullable().defaultTo(1)
 
       table.timestamp('created_at', { useTz: true }).defaultTo(this.now())

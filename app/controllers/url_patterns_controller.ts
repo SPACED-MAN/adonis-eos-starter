@@ -79,7 +79,11 @@ export default class UrlPatternsController {
     } else {
       result = await UrlPatternService.createPattern(postType, currentLocale, pattern, isDefault)
       if (baseAggregateId !== undefined) {
-        await UrlPatternService.updatePattern(result.id, { pattern, isDefault, aggregatePostId: baseAggregateId })
+        await UrlPatternService.updatePattern(result.id, {
+          pattern,
+          isDefault,
+          aggregatePostId: baseAggregateId,
+        })
       }
     }
 

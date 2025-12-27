@@ -77,7 +77,7 @@ export default function PostTypeDefault({
   // Track A/B variation in Google Analytics dataLayer if available
   useEffect(() => {
     if (post.abVariation && typeof window !== 'undefined' && (window as any).dataLayer) {
-      ; (window as any).dataLayer.push({
+      ;(window as any).dataLayer.push({
         event: 'ab_variation_view',
         ab_variation: post.abVariation,
         ab_group_id: post.abGroupId || post.id,
@@ -155,11 +155,11 @@ export default function PostTypeDefault({
                 className="container mx-auto px-4 sm:px-6 lg:px-8 py-8"
                 {...(isAuthenticated
                   ? {
-                    'data-inline-module': module.id,
-                    'data-inline-scope': module.scope || 'local',
-                    'data-inline-global-slug': module.globalSlug || undefined,
-                    'data-inline-global-label': module.globalLabel || undefined,
-                  }
+                      'data-inline-module': module.id,
+                      'data-inline-scope': module.scope || 'local',
+                      'data-inline-global-slug': module.globalSlug || undefined,
+                      'data-inline-global-label': module.globalLabel || undefined,
+                    }
                   : {})}
               >
                 <Component {...module.props} __postId={post.id} __moduleId={module.id} />

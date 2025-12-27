@@ -46,14 +46,19 @@ export const MediaRenderer = forwardRef<HTMLImageElement | HTMLVideoElement, Med
     ref
   ) => {
     const [isModalOpen, setIsModalOpen] = useState(false)
-    
+
     // Resolve URL seamlessly if an image object is provided, otherwise fall back to explicit url
     const resolvedUrl = useMediaUrl(image, variant) || explicitUrl
-    const mimeType = (typeof image === 'object' && image !== null ? (image as any).mimeType : null) || explicitMimeType
+    const mimeType =
+      (typeof image === 'object' && image !== null ? (image as any).mimeType : null) ||
+      explicitMimeType
 
     if (!resolvedUrl || typeof resolvedUrl !== 'string') {
       if (resolvedUrl) {
-        console.warn('[MediaRenderer] resolvedUrl is not a string:', resolvedUrl, { image, explicitUrl })
+        console.warn('[MediaRenderer] resolvedUrl is not a string:', resolvedUrl, {
+          image,
+          explicitUrl,
+        })
       }
       return null
     }
@@ -78,7 +83,10 @@ export const MediaRenderer = forwardRef<HTMLImageElement | HTMLVideoElement, Med
       if (isModalMode) {
         return (
           <>
-            <div className="relative group cursor-pointer w-full h-full" onClick={() => setIsModalOpen(true)}>
+            <div
+              className="relative group cursor-pointer w-full h-full"
+              onClick={() => setIsModalOpen(true)}
+            >
               <video
                 {...(videoProps as any)}
                 ref={ref as React.Ref<HTMLVideoElement>}
@@ -104,7 +112,10 @@ export const MediaRenderer = forwardRef<HTMLImageElement | HTMLVideoElement, Med
             </div>
 
             <Dialog open={isModalOpen} onOpenChange={setIsModalOpen}>
-              <DialogContent className="max-w-4xl p-0 overflow-hidden bg-black border-none" aria-describedby={undefined}>
+              <DialogContent
+                className="max-w-4xl p-0 overflow-hidden bg-black border-none"
+                aria-describedby={undefined}
+              >
                 <DialogTitle className="sr-only">Video Player</DialogTitle>
                 <video
                   src={resolvedUrl}

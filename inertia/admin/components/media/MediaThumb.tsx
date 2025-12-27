@@ -41,9 +41,9 @@ export function MediaThumb({
   const xsrfFromCookie =
     typeof document !== 'undefined'
       ? (() => {
-        const m = document.cookie.match(/(?:^|; )XSRF-TOKEN=([^;]+)/)
-        return m ? decodeURIComponent(m[1]) : undefined
-      })()
+          const m = document.cookie.match(/(?:^|; )XSRF-TOKEN=([^;]+)/)
+          return m ? decodeURIComponent(m[1]) : undefined
+        })()
       : undefined
 
   async function updateMediaPlayMode(val: 'autoplay' | 'inline' | 'modal') {
@@ -138,7 +138,9 @@ export function MediaThumb({
   const displayData = mediaData || fallbackMediaData
 
   return (
-    <div className={`border border-line-low rounded p-2 bg-backdrop-low space-y-2 overflow-hidden ${className || ''}`}>
+    <div
+      className={`border border-line-low rounded p-2 bg-backdrop-low space-y-2 overflow-hidden ${className || ''}`}
+    >
       <div className={`flex ${layout === 'vertical' ? 'flex-col' : 'items-center'} gap-3`}>
         <div
           className={`${size} bg-backdrop-low dark:bg-backdrop-medium rounded border border-line-low overflow-hidden flex items-center justify-center shrink-0 relative`}
@@ -165,7 +167,9 @@ export function MediaThumb({
           )}
         </div>
         {!hideActions && (
-          <div className={`flex ${layout === 'vertical' ? 'flex-row' : 'flex-col sm:flex-row'} items-center gap-2`}>
+          <div
+            className={`flex ${layout === 'vertical' ? 'flex-row' : 'flex-col sm:flex-row'} items-center gap-2`}
+          >
             <button
               type="button"
               className="px-2 py-1 text-xs border border-line-medium rounded hover:bg-backdrop-medium text-neutral-medium transition-colors"

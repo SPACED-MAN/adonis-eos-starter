@@ -51,7 +51,11 @@ export default function ModuleGroupsSettingsPage() {
   const [creating, setCreating] = useState(false)
   const [isCreateOpen, setIsCreateOpen] = useState(false)
   const [postTypes, setPostTypes] = useState<string[]>([])
-  const [createForm, setCreateForm] = useState<{ name: string; postType: string; isDefault: boolean }>({
+  const [createForm, setCreateForm] = useState<{
+    name: string
+    postType: string
+    isDefault: boolean
+  }>({
     name: '',
     postType: '',
     isDefault: false,
@@ -260,8 +264,8 @@ export default function ModuleGroupsSettingsPage() {
                 <>
                   <div className="flex items-center justify-between mb-3">
                     <div className="flex items-center gap-4">
-                    <div>
-                      <div className="text-neutral-high font-semibold">{selected.name}</div>
+                      <div>
+                        <div className="text-neutral-high font-semibold">{selected.name}</div>
                         <div className="text-xs text-neutral-low">
                           {labelize(selected.postType)}
                         </div>

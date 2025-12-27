@@ -201,18 +201,19 @@ export default class BulkPostsAction {
         throw err
     }
     const now = new Date()
-    
+
     if (action === 'publish') {
-      const PromoteAiReviewToReview = (await import('#actions/posts/promote_ai_review_to_review')).default
+      const PromoteAiReviewToReview = (await import('#actions/posts/promote_ai_review_to_review'))
+        .default
       const ApproveReviewDraft = (await import('#actions/posts/approve_review_draft')).default
       const posts = await Post.query().whereIn('id', uniqueIds)
-      
+
       for (const post of posts) {
         // Recognition: if post has AI Review draft but no manual Review draft,
         // and Source is empty or it's a new AI-generated post, promote it.
         const hasArd = post.aiReviewDraft && Object.keys(post.aiReviewDraft).length > 0
         const hasRd = post.reviewDraft && Object.keys(post.reviewDraft).length > 0
-        
+
         if (hasArd && !hasRd) {
           // Automatic promotion for AI-only content during bulk publish
           await PromoteAiReviewToReview.handle({ postId: post.id, userId: userId || post.userId })

@@ -171,7 +171,8 @@ export default class PostSerializerService {
       robotsJson: (post as any).robotsJson ?? (post as any).robots_json ?? null,
       jsonldOverrides: (post as any).jsonldOverrides ?? (post as any).jsonld_overrides ?? null,
       socialTitle: (post as any).socialTitle ?? (post as any).social_title ?? null,
-      socialDescription: (post as any).socialDescription ?? (post as any).social_description ?? null,
+      socialDescription:
+        (post as any).socialDescription ?? (post as any).social_description ?? null,
       socialImageId: (post as any).socialImageId ?? (post as any).social_image_id ?? null,
       noindex: Boolean((post as any).noindex),
       nofollow: Boolean((post as any).nofollow),
@@ -213,7 +214,9 @@ export default class PostSerializerService {
             ? { socialImageId: reviewDraft.socialImageId ?? null }
             : {}),
           ...(reviewDraft.noindex !== undefined ? { noindex: Boolean(reviewDraft.noindex) } : {}),
-          ...(reviewDraft.nofollow !== undefined ? { nofollow: Boolean(reviewDraft.nofollow) } : {}),
+          ...(reviewDraft.nofollow !== undefined
+            ? { nofollow: Boolean(reviewDraft.nofollow) }
+            : {}),
           ...(reviewDraft.featuredImageId !== undefined
             ? { featuredImageId: reviewDraft.featuredImageId ?? null }
             : {}),
@@ -304,7 +307,9 @@ export default class PostSerializerService {
           ...(aiReviewDraft.socialImageId !== undefined
             ? { socialImageId: aiReviewDraft.socialImageId ?? null }
             : {}),
-          ...(aiReviewDraft.noindex !== undefined ? { noindex: Boolean(aiReviewDraft.noindex) } : {}),
+          ...(aiReviewDraft.noindex !== undefined
+            ? { noindex: Boolean(aiReviewDraft.noindex) }
+            : {}),
           ...(aiReviewDraft.nofollow !== undefined
             ? { nofollow: Boolean(aiReviewDraft.nofollow) }
             : {}),
@@ -412,7 +417,10 @@ export default class PostSerializerService {
             effectiveProps = { ...effectiveProps, ...coerceJsonObject(row.review_props) }
           }
           if (row.review_overrides) {
-            effectiveOverrides = { ...coerceJsonObject(effectiveOverrides), ...coerceJsonObject(row.review_overrides) }
+            effectiveOverrides = {
+              ...coerceJsonObject(effectiveOverrides),
+              ...coerceJsonObject(row.review_overrides),
+            }
           }
         } else if (mode === 'ai-review') {
           // If AI review, include review changes first, then AI changes
@@ -420,13 +428,19 @@ export default class PostSerializerService {
             effectiveProps = { ...effectiveProps, ...coerceJsonObject(row.review_props) }
           }
           if (row.review_overrides) {
-            effectiveOverrides = { ...coerceJsonObject(effectiveOverrides), ...coerceJsonObject(row.review_overrides) }
+            effectiveOverrides = {
+              ...coerceJsonObject(effectiveOverrides),
+              ...coerceJsonObject(row.review_overrides),
+            }
           }
           if (row.ai_review_props) {
             effectiveProps = { ...effectiveProps, ...coerceJsonObject(row.ai_review_props) }
           }
           if (row.ai_review_overrides) {
-            effectiveOverrides = { ...coerceJsonObject(effectiveOverrides), ...coerceJsonObject(row.ai_review_overrides) }
+            effectiveOverrides = {
+              ...coerceJsonObject(effectiveOverrides),
+              ...coerceJsonObject(row.ai_review_overrides),
+            }
           }
         }
 
@@ -459,7 +473,7 @@ export default class PostSerializerService {
 
     if (currentDraft?.modules && Array.isArray(currentDraft.modules)) {
       // Use the modules list from the draft as the definitive list for ORDER and EXISTENCE.
-      // However, we still want the latest PROPS/OVERRIDES from the granular database columns 
+      // However, we still want the latest PROPS/OVERRIDES from the granular database columns
       // (moduleRows) because they might have been updated individually via the API.
       const rowMap = new Map(moduleRows.map((r: any) => [r.postModuleId, r]))
 
@@ -473,13 +487,28 @@ export default class PostSerializerService {
           let effectiveOverrides = row.overrides ? coerceJsonObject(row.overrides) : null
 
           if (mode === 'review') {
-            if (row.review_props) effectiveProps = { ...effectiveProps, ...coerceJsonObject(row.review_props) }
-            if (row.review_overrides) effectiveOverrides = { ...coerceJsonObject(effectiveOverrides), ...coerceJsonObject(row.review_overrides) }
+            if (row.review_props)
+              effectiveProps = { ...effectiveProps, ...coerceJsonObject(row.review_props) }
+            if (row.review_overrides)
+              effectiveOverrides = {
+                ...coerceJsonObject(effectiveOverrides),
+                ...coerceJsonObject(row.review_overrides),
+              }
           } else if (mode === 'ai-review') {
-            if (row.review_props) effectiveProps = { ...effectiveProps, ...coerceJsonObject(row.review_props) }
-            if (row.review_overrides) effectiveOverrides = { ...coerceJsonObject(effectiveOverrides), ...coerceJsonObject(row.review_overrides) }
-            if (row.ai_review_props) effectiveProps = { ...effectiveProps, ...coerceJsonObject(row.ai_review_props) }
-            if (row.ai_review_overrides) effectiveOverrides = { ...coerceJsonObject(effectiveOverrides), ...coerceJsonObject(row.ai_review_overrides) }
+            if (row.review_props)
+              effectiveProps = { ...effectiveProps, ...coerceJsonObject(row.review_props) }
+            if (row.review_overrides)
+              effectiveOverrides = {
+                ...coerceJsonObject(effectiveOverrides),
+                ...coerceJsonObject(row.review_overrides),
+              }
+            if (row.ai_review_props)
+              effectiveProps = { ...effectiveProps, ...coerceJsonObject(row.ai_review_props) }
+            if (row.ai_review_overrides)
+              effectiveOverrides = {
+                ...coerceJsonObject(effectiveOverrides),
+                ...coerceJsonObject(row.ai_review_overrides),
+              }
           }
 
           return {

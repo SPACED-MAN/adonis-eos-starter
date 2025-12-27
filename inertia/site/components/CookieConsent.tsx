@@ -18,7 +18,9 @@ export function CookieConsent() {
 
   const config = useMemo(() => {
     const customFields = siteSettings?.customFields || {}
-    const isEnabled = customFields['cookie_consent_enabled'] === true || customFields['cookie_consent_enabled'] === 'true'
+    const isEnabled =
+      customFields['cookie_consent_enabled'] === true ||
+      customFields['cookie_consent_enabled'] === 'true'
     const rawMessage = customFields['cookie_consent_message']
     const rawButtonText = customFields['cookie_consent_button_text']
 
@@ -46,7 +48,7 @@ export function CookieConsent() {
 
     return {
       messageHtml: html,
-      buttonText: rawButtonText || 'Accept'
+      buttonText: rawButtonText || 'Accept',
     }
   }, [siteSettings])
 
@@ -62,7 +64,7 @@ export function CookieConsent() {
       <div className="container mx-auto max-w-4xl">
         <div className="bg-backdrop-low border border-line-medium shadow-2xl rounded-xl p-6 pointer-events-auto flex flex-col md:flex-row items-center gap-6 animate-in fade-in slide-in-from-bottom-4 duration-500">
           <div className="flex-1">
-            <div 
+            <div
               className="text-sm text-neutral-medium prose prose-sm max-w-none cookie-consent-content"
               dangerouslySetInnerHTML={{ __html: config.messageHtml }}
             />
@@ -84,4 +86,3 @@ export function CookieConsent() {
     </div>
   )
 }
-

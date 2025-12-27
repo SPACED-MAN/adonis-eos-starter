@@ -41,4 +41,3 @@ export default class Feedback extends BaseModel {
   @belongsTo(() => User)
   declare user: BelongsTo<typeof User>
 }
-

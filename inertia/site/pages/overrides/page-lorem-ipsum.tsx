@@ -38,5 +38,3 @@ export default function PageLoremIpsum(props: any) {
     </>
   )
 }
-
-

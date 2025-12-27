@@ -108,10 +108,10 @@ class PostTypeConfigService {
           : { enabled: false, label: 'Featured Image' },
       abTesting: cfg.abTesting
         ? {
-          enabled: !!cfg.abTesting.enabled,
-          strategy: cfg.abTesting.strategy || 'cookie',
-          variations: Array.isArray(cfg.abTesting.variations) ? cfg.abTesting.variations : [],
-        }
+            enabled: !!cfg.abTesting.enabled,
+            strategy: cfg.abTesting.strategy || 'cookie',
+            variations: Array.isArray(cfg.abTesting.variations) ? cfg.abTesting.variations : [],
+          }
         : base.abTesting,
     }
     if (!isDev) cache.set(postType, full)

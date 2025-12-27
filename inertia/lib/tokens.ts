@@ -11,24 +11,104 @@ export interface TokenDefinition {
 }
 
 export const SYSTEM_TOKENS: TokenDefinition[] = [
-  { name: 'title', label: 'Post Title', category: 'post', description: 'The title of the post currently being edited' },
+  {
+    name: 'title',
+    label: 'Post Title',
+    category: 'post',
+    description: 'The title of the post currently being edited',
+  },
   { name: 'slug', label: 'Post Slug', category: 'post', description: 'The URL slug of the post' },
-  { name: 'excerpt', label: 'Post Excerpt', category: 'post', description: 'The summary/excerpt of the post' },
-  { name: 'locale', label: 'Locale', category: 'post', description: 'The current language/locale code (e.g. en, es)' },
-  { name: 'type', label: 'Post Type', category: 'post', description: 'The content type slug (e.g. page, blog)' },
+  {
+    name: 'excerpt',
+    label: 'Post Excerpt',
+    category: 'post',
+    description: 'The summary/excerpt of the post',
+  },
+  {
+    name: 'locale',
+    label: 'Locale',
+    category: 'post',
+    description: 'The current language/locale code (e.g. en, es)',
+  },
+  {
+    name: 'type',
+    label: 'Post Type',
+    category: 'post',
+    description: 'The content type slug (e.g. page, blog)',
+  },
   { name: 'id', label: 'Post ID', category: 'post', description: 'The unique UUID of the post' },
-  { name: 'publishedAt', label: 'Published Date', category: 'post', description: 'The date the post was published' },
-  { name: 'updatedAt', label: 'Updated Date', category: 'post', description: 'The date the post was last updated' },
-  { name: 'author.name', label: 'Author Name', category: 'author', description: 'Full name or email of the author' },
-  { name: 'author.link', label: 'Author Link', category: 'author', description: 'Linked author name (if profile exists)' },
-  { name: 'author.email', label: 'Author Email', category: 'author', description: 'Email address of the author' },
-  { name: 'author.custom.first_name', label: 'Author First Name', category: 'author', description: 'First name from author profile' },
-  { name: 'author.custom.last_name', label: 'Author Last Name', category: 'author', description: 'Last name from author profile' },
-  { name: 'author.custom.bio', label: 'Author Bio', category: 'author', description: 'Bio from author profile' },
-  { name: 'now', label: 'Current Date', category: 'system', description: 'The current date and time' },
-  { name: 'year', label: 'Current Year', category: 'system', description: 'The current year (e.g. 2025)' },
-  { name: 'settings.siteTitle', label: 'Site Title', category: 'settings', description: 'Global site title' },
-  { name: 'settings.defaultMetaDescription', label: 'Default Meta Description', category: 'settings', description: 'Global default meta description' },
+  {
+    name: 'publishedAt',
+    label: 'Published Date',
+    category: 'post',
+    description: 'The date the post was published',
+  },
+  {
+    name: 'updatedAt',
+    label: 'Updated Date',
+    category: 'post',
+    description: 'The date the post was last updated',
+  },
+  {
+    name: 'author.name',
+    label: 'Author Name',
+    category: 'author',
+    description: 'Full name or email of the author',
+  },
+  {
+    name: 'author.link',
+    label: 'Author Link',
+    category: 'author',
+    description: 'Linked author name (if profile exists)',
+  },
+  {
+    name: 'author.email',
+    label: 'Author Email',
+    category: 'author',
+    description: 'Email address of the author',
+  },
+  {
+    name: 'author.custom.first_name',
+    label: 'Author First Name',
+    category: 'author',
+    description: 'First name from author profile',
+  },
+  {
+    name: 'author.custom.last_name',
+    label: 'Author Last Name',
+    category: 'author',
+    description: 'Last name from author profile',
+  },
+  {
+    name: 'author.custom.bio',
+    label: 'Author Bio',
+    category: 'author',
+    description: 'Bio from author profile',
+  },
+  {
+    name: 'now',
+    label: 'Current Date',
+    category: 'system',
+    description: 'The current date and time',
+  },
+  {
+    name: 'year',
+    label: 'Current Year',
+    category: 'system',
+    description: 'The current year (e.g. 2025)',
+  },
+  {
+    name: 'settings.siteTitle',
+    label: 'Site Title',
+    category: 'settings',
+    description: 'Global site title',
+  },
+  {
+    name: 'settings.defaultMetaDescription',
+    label: 'Default Meta Description',
+    category: 'settings',
+    description: 'Global default meta description',
+  },
 ]
 
 export class TokenService {
@@ -77,7 +157,9 @@ export class TokenService {
    */
   private static getTokenValue(tokenName: string, context: any): any {
     // Handle post. prefix if present
-    const normalizedName = tokenName.startsWith('post.') ? tokenName.replace('post.', '') : tokenName
+    const normalizedName = tokenName.startsWith('post.')
+      ? tokenName.replace('post.', '')
+      : tokenName
     const postTokens = [
       'title',
       'slug',
@@ -166,21 +248,23 @@ export class TokenService {
     if (!text || typeof text !== 'string') return []
     const matches = text.match(/\{([^{}]+)\}/g)
     if (!matches) return []
-    return Array.from(new Set(matches.map(m => m.slice(1, -1))))
+    return Array.from(new Set(matches.map((m) => m.slice(1, -1))))
   }
 
   /**
    * Gets a list of available tokens for UI display.
    */
-  static getAvailableTokens(customFields?: Array<{ slug: string; label: string }>): TokenDefinition[] {
+  static getAvailableTokens(
+    customFields?: Array<{ slug: string; label: string }>
+  ): TokenDefinition[] {
     const list = [...SYSTEM_TOKENS]
     if (customFields) {
-      customFields.forEach(cf => {
+      customFields.forEach((cf) => {
         list.push({
           name: `custom.${cf.slug}`,
           label: `CF: ${cf.label || cf.slug}`,
           category: 'custom',
-          description: `Custom field: ${cf.slug}`
+          description: `Custom field: ${cf.slug}`,
         })
       })
     }
@@ -189,4 +273,3 @@ export class TokenService {
 }
 
 export default TokenService
-

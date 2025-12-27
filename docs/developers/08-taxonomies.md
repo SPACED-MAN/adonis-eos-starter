@@ -47,14 +47,14 @@ const taxonomy: RegisteredTaxonomyConfig = {
       slug: 'description',
       label: 'Description',
       type: 'textarea',
-      category: 'General'
+      category: 'General',
     },
     {
       slug: 'featured_image',
       label: 'Featured Image',
       type: 'media',
-      category: 'Display'
-    }
+      category: 'Display',
+    },
   ],
 }
 

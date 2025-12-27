@@ -70,16 +70,16 @@ export function AdminSidebar() {
   const [avatarUrl, setAvatarUrl] = useState<string | null>(null)
   useEffect(() => {
     let alive = true
-      ; (async () => {
-        try {
-          const res = await fetch('/api/profile/status', { credentials: 'same-origin' })
-          const j = await res.json().catch(() => ({}))
-          const u = j?.data?.profileThumbUrl
-          if (alive && typeof u === 'string' && u) setAvatarUrl(u)
-        } catch {
-          /* ignore */
-        }
-      })()
+    ;(async () => {
+      try {
+        const res = await fetch('/api/profile/status', { credentials: 'same-origin' })
+        const j = await res.json().catch(() => ({}))
+        const u = j?.data?.profileThumbUrl
+        if (alive && typeof u === 'string' && u) setAvatarUrl(u)
+      } catch {
+        /* ignore */
+      }
+    })()
     return () => {
       alive = false
     }
@@ -188,7 +188,8 @@ export function AdminSidebar() {
                   active={isActive(adminPath('settings/redirects'))}
                 >
                   <span className="inline-flex items-center gap-2">
-                    <FontAwesomeIcon icon={faRightLeft} className="w-4 h-4" /> <span>Redirects</span>
+                    <FontAwesomeIcon icon={faRightLeft} className="w-4 h-4" />{' '}
+                    <span>Redirects</span>
                   </span>
                 </SidebarMenuItem>
                 <SidebarMenuItem
@@ -196,7 +197,8 @@ export function AdminSidebar() {
                   active={isActive(adminPath('settings/seo'))}
                 >
                   <span className="inline-flex items-center gap-2">
-                    <FontAwesomeIcon icon={faMagnifyingGlass} className="w-4 h-4" /> <span>SEO</span>
+                    <FontAwesomeIcon icon={faMagnifyingGlass} className="w-4 h-4" />{' '}
+                    <span>SEO/Analytics</span>
                   </span>
                 </SidebarMenuItem>
                 {features.locales && (
@@ -230,24 +232,21 @@ export function AdminSidebar() {
               </SidebarMenuItem>
             )}
             {canAccessWorkflows && features.workflows && (
-              <SidebarMenuItem href={adminPath('workflows')} active={isActive(adminPath('workflows'))}>
+              <SidebarMenuItem
+                href={adminPath('workflows')}
+                active={isActive(adminPath('workflows'))}
+              >
                 <span className="inline-flex items-center gap-2">
                   <FontAwesomeIcon icon={faTimeline} className="w-4 h-4" /> <span>Workflows</span>
                 </span>
               </SidebarMenuItem>
             )}
-            <SidebarMenuItem
-              href={adminPath('security')}
-              active={isActive(adminPath('security'))}
-            >
+            <SidebarMenuItem href={adminPath('security')} active={isActive(adminPath('security'))}>
               <span className="inline-flex items-center gap-2">
                 <FontAwesomeIcon icon={faShield} className="w-4 h-4" /> <span>Security</span>
               </span>
             </SidebarMenuItem>
-            <SidebarMenuItem
-              href={adminPath('database')}
-              active={isActive(adminPath('database'))}
-            >
+            <SidebarMenuItem href={adminPath('database')} active={isActive(adminPath('database'))}>
               <span className="inline-flex items-center gap-2">
                 <FontAwesomeIcon icon={faDatabase} className="w-4 h-4" /> <span>Database</span>
               </span>

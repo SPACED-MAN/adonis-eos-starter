@@ -217,7 +217,8 @@ export default class MediaController {
       alt_text: effectiveAltText,
       caption,
       description: effectiveDescription,
-      categories: categories && categories.length > 0 ? categories : (db.raw('ARRAY[]::text[]') as any),
+      categories:
+        categories && categories.length > 0 ? categories : (db.raw('ARRAY[]::text[]') as any),
       metadata: metadata as any,
       created_at: now,
       updated_at: now,
@@ -231,20 +232,24 @@ export default class MediaController {
         entityId: id,
         metadata: { filename: clientName, mime, size: Number(size) },
       })
-    } catch { }
+    } catch {}
 
     // Trigger media.uploaded workflows (e.g. for AI alt text generation)
     try {
-      await workflowExecutionService.executeWorkflows('media.uploaded', {
-        id,
-        url,
-        filename: clientName,
-        mime,
-        size: Number(size),
-        altText: effectiveAltText,
-      }, {
-        userId: (auth.use('web').user as any)?.id
-      })
+      await workflowExecutionService.executeWorkflows(
+        'media.uploaded',
+        {
+          id,
+          url,
+          filename: clientName,
+          mime,
+          size: Number(size),
+          altText: effectiveAltText,
+        },
+        {
+          userId: (auth.use('web').user as any)?.id,
+        }
+      )
     } catch (e) {
       console.error('Failed to trigger media.uploaded workflows:', e)
     }
@@ -269,9 +274,8 @@ export default class MediaController {
       return response.forbidden({ error: 'Not allowed to update media' })
     }
     const { id } = params
-    const { altText, title, description, categories } = await request.validateUsing(
-      updateMediaValidator
-    )
+    const { altText, title, description, categories } =
+      await request.validateUsing(updateMediaValidator)
     const playMode = request.input('playMode')
     const now = new Date()
     const update: any = { updated_at: now }
@@ -299,7 +303,7 @@ export default class MediaController {
         entityId: id,
         metadata: { fields: Object.keys(update) },
       })
-    } catch { }
+    } catch {}
     return response.ok({ message: 'Updated' })
   }
 
@@ -326,11 +330,11 @@ export default class MediaController {
     try {
       const originalPath = path.join(publicRoot, originalUrl.replace(/^\//, ''))
       await fs.promises.unlink(originalPath)
-    } catch { }
+    } catch {}
     // Also remove from storage driver
     try {
       await storageService.deleteByUrl(originalUrl)
-    } catch { }
+    } catch {}
 
     // Delete known variants from metadata (light + dark)
     try {
@@ -342,10 +346,10 @@ export default class MediaController {
         const p = path.join(publicRoot, vUrl.replace(/^\//, ''))
         try {
           await fs.promises.unlink(p)
-        } catch { }
+        } catch {}
         try {
           await storageService.deleteByUrl(vUrl)
-        } catch { }
+        } catch {}
       }
 
       // Delete dedicated dark base if present
@@ -355,12 +359,12 @@ export default class MediaController {
         const darkPath = path.join(publicRoot, darkSourceUrl.replace(/^\//, ''))
         try {
           await fs.promises.unlink(darkPath)
-        } catch { }
+        } catch {}
         try {
           await storageService.deleteByUrl(String(darkSourceUrl))
-        } catch { }
+        } catch {}
       }
-    } catch { }
+    } catch {}
 
     // Fallback: pattern-based deletion (basename.VARIANT+ext)
     try {
@@ -377,16 +381,16 @@ export default class MediaController {
           if (isVariantPattern || isDarkBase) {
             try {
               await fs.promises.unlink(path.join(dir, f))
-            } catch { }
+            } catch {}
             try {
               await storageService.deleteByUrl(
                 path.posix.join(String(path.posix.dirname(String(row.url || ''))), f)
               )
-            } catch { }
+            } catch {}
           }
         })
       )
-    } catch { }
+    } catch {}
 
     await db.from('media_assets').where('id', id).delete()
     try {
@@ -396,7 +400,7 @@ export default class MediaController {
         entityType: 'media',
         entityId: id,
       })
-    } catch { }
+    } catch {}
     return response.noContent()
   }
 
@@ -614,7 +618,7 @@ export default class MediaController {
           entityId: id,
           metadata: { targetVariant },
         })
-      } catch { }
+      } catch {}
       return response.ok({ data: { variants: result.variants } })
     }
 
@@ -678,7 +682,7 @@ export default class MediaController {
           entityId: id,
           metadata: { cropRect: cropArgs },
         })
-      } catch { }
+      } catch {}
       return response.ok({ data: { variants: [...result.variants, cropped] } })
     }
 
@@ -713,7 +717,7 @@ export default class MediaController {
         entityId: id,
         metadata: { specs: specs || null, cropRect: cropArgs, focalPoint },
       })
-    } catch { }
+    } catch {}
     // Return the merged list and updated metadata so the client has all variants (light + dark)
     return response.ok({ data: { variants: metadata.variants, metadata } })
   }
@@ -780,7 +784,7 @@ export default class MediaController {
 
     let metadata = row.metadata || {}
     if (metadata && (metadata as any).variants && Array.isArray((metadata as any).variants)) {
-      ; (metadata as any).variants = (metadata as any).variants.map((v: any) => {
+      ;(metadata as any).variants = (metadata as any).variants.map((v: any) => {
         const found = renamedVariants.find((rv) => rv.oldUrl === v.url)
         if (found) {
           return { ...v, url: found.newUrl }
@@ -831,7 +835,7 @@ export default class MediaController {
         entityId: id,
         metadata: { oldUrl, newUrl },
       })
-    } catch { }
+    } catch {}
     return response.ok({ data: { url: newUrl } })
   }
 
@@ -1052,7 +1056,7 @@ export default class MediaController {
         entityType: 'media',
         entityId: id,
       })
-    } catch { }
+    } catch {}
     return response.ok({ message: 'Overridden' })
   }
 
@@ -1163,7 +1167,7 @@ export default class MediaController {
           entityId: id,
           metadata: { optimizedUrl: result.optimizedUrl, optimizedSize: Number(result.size || 0) },
         })
-      } catch { }
+      } catch {}
       return response.ok({
         data: { optimizedUrl: result.optimizedUrl, optimizedSize: Number(result.size || 0) },
       })
@@ -1221,7 +1225,7 @@ export default class MediaController {
         entityId: 'bulk',
         metadata: { count: success },
       })
-    } catch { }
+    } catch {}
     return response.ok({ data: { optimized: success } })
   }
 
@@ -1289,7 +1293,7 @@ export default class MediaController {
         entityId: 'bulk',
         metadata: { count: success },
       })
-    } catch { }
+    } catch {}
     return response.ok({ data: { regenerated: success } })
   }
 
@@ -1322,10 +1326,10 @@ export default class MediaController {
         // Delete original
         try {
           await fs.promises.unlink(originalPath)
-        } catch { }
+        } catch {}
         try {
           await storageService.deleteByUrl(originalUrl)
-        } catch { }
+        } catch {}
 
         // Delete variants from metadata
         try {
@@ -1337,10 +1341,10 @@ export default class MediaController {
             const p = path.join(publicRoot, vUrl.replace(/^\//, ''))
             try {
               await fs.promises.unlink(p)
-            } catch { }
+            } catch {}
             try {
               await storageService.deleteByUrl(vUrl)
-            } catch { }
+            } catch {}
           }
 
           // Delete dedicated dark base if present
@@ -1350,12 +1354,12 @@ export default class MediaController {
             const darkPath = path.join(publicRoot, darkSourceUrl.replace(/^\//, ''))
             try {
               await fs.promises.unlink(darkPath)
-            } catch { }
+            } catch {}
             try {
               await storageService.deleteByUrl(String(darkSourceUrl))
-            } catch { }
+            } catch {}
           }
-        } catch { }
+        } catch {}
 
         // Fallback pattern-based (variants and -dark base on disk + storage)
         try {
@@ -1371,15 +1375,15 @@ export default class MediaController {
               const diskPath = path.join(dir, f)
               try {
                 await fs.promises.unlink(diskPath)
-              } catch { }
+              } catch {}
               try {
                 await storageService.deleteByUrl(
                   path.posix.join(path.posix.dirname(originalUrl), f)
                 )
-              } catch { }
+              } catch {}
             }
           }
-        } catch { }
+        } catch {}
 
         await db
           .from('media_assets')
@@ -1398,7 +1402,7 @@ export default class MediaController {
         entityId: 'bulk',
         metadata: { count: deleted },
       })
-    } catch { }
+    } catch {}
     return response.ok({ data: { deleted } })
   }
 
@@ -1454,7 +1458,7 @@ export default class MediaController {
         entityId: 'bulk',
         metadata: { count: updated, add: addArr, remove: removeArr },
       })
-    } catch { }
+    } catch {}
     return response.ok({ data: { updated } })
   }
 }

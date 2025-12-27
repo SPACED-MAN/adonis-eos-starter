@@ -98,7 +98,11 @@ export default class PostsModulesController extends BasePostsController {
       })
 
       const resolvedMode =
-        payload.mode === 'review' ? 'review' : payload.mode === 'ai-review' ? 'ai-review' : 'publish'
+        payload.mode === 'review'
+          ? 'review'
+          : payload.mode === 'ai-review'
+            ? 'ai-review'
+            : 'publish'
 
       return response.ok({
         data: {
@@ -106,11 +110,12 @@ export default class PostsModulesController extends BasePostsController {
           orderIndex: (updated as any).orderIndex ?? (updated as any).order_index,
           overrides:
             resolvedMode === 'review'
-              ? (updated as any).reviewOverrides ?? (updated as any).review_overrides
+              ? ((updated as any).reviewOverrides ?? (updated as any).review_overrides)
               : resolvedMode === 'ai-review'
-                ? (updated as any).aiReviewOverrides ?? (updated as any).ai_review_overrides
+                ? ((updated as any).aiReviewOverrides ?? (updated as any).ai_review_overrides)
                 : (updated as any).overrides,
-          reviewOverrides: (updated as any).reviewOverrides ?? (updated as any).review_overrides ?? null,
+          reviewOverrides:
+            (updated as any).reviewOverrides ?? (updated as any).review_overrides ?? null,
           aiReviewOverrides:
             (updated as any).aiReviewOverrides ?? (updated as any).ai_review_overrides ?? null,
           adminLabel: (updated as any).adminLabel ?? (updated as any).admin_label ?? null,
@@ -153,7 +158,7 @@ export default class PostsModulesController extends BasePostsController {
     } catch (error) {
       if (error instanceof DeletePostModuleException) {
         return this.handleActionException(response, error)
-    }
+      }
       throw error
     }
   }

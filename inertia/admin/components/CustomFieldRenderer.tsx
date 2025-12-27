@@ -107,7 +107,10 @@ export function CustomFieldRenderer({
           <LabelWithDescription label={f.label} description={f.description} />
           <div className="space-y-4 pl-4 border-l-2 border-line-low ml-1">
             {items.map((itemVal, idx) => (
-              <div key={idx} className="relative group p-4 bg-backdrop-medium/5 rounded-lg border border-line-low">
+              <div
+                key={idx}
+                className="relative group p-4 bg-backdrop-medium/5 rounded-lg border border-line-low"
+              >
                 <button
                   type="button"
                   className="absolute top-2 right-2 p-1 text-neutral-low hover:text-danger opacity-0 group-hover:opacity-100 transition-opacity"
@@ -120,8 +123,8 @@ export function CustomFieldRenderer({
                   Remove
                 </button>
                 <CustomFieldRenderer
-                  definitions={f.item?.type === 'object' ? (f.item.fields || []) : [f.item!]}
-                  values={f.item?.type === 'object' ? (itemVal || {}) : { [f.item!.slug]: itemVal }}
+                  definitions={f.item?.type === 'object' ? f.item.fields || [] : [f.item!]}
+                  values={f.item?.type === 'object' ? itemVal || {} : { [f.item!.slug]: itemVal }}
                   onChange={(subSlug, subVal) => {
                     const nextItems = [...items]
                     if (f.item?.type === 'object') {
@@ -203,9 +206,7 @@ export function CustomFieldRenderer({
               {category}
             </h4>
           )}
-          <div className="space-y-4">
-            {fields.map(renderField).filter(Boolean)}
-          </div>
+          <div className="space-y-4">{fields.map(renderField).filter(Boolean)}</div>
         </div>
       ))}
     </div>

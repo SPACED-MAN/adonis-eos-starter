@@ -87,8 +87,7 @@ export default class AddModuleToPost {
     }
 
     // Normalize scope for database (DB uses 'post' instead of 'local')
-    const dbScope: 'post' | 'global' =
-      scope === 'local' || scope === 'post' ? 'post' : 'global'
+    const dbScope: 'post' | 'global' = scope === 'local' || scope === 'post' ? 'post' : 'global'
 
     // Use transaction
     const runInTransaction = async (trx: TransactionClientContract) => {
@@ -143,7 +142,8 @@ export default class AddModuleToPost {
         )
 
         // Important: ensure we don't save empty objects if we have defaults
-        const propsToSave = Object.keys(initialProps).length > 0 ? initialProps : (moduleConfig.defaultValues || {})
+        const propsToSave =
+          Object.keys(initialProps).length > 0 ? initialProps : moduleConfig.defaultValues || {}
 
         const [newInstance] = await trx
           .table('module_instances')
@@ -211,7 +211,9 @@ export default class AddModuleToPost {
       }
     }
 
-    const result = await (parentTrx ? runInTransaction(parentTrx) : db.transaction(runInTransaction))
+    const result = await (parentTrx
+      ? runInTransaction(parentTrx)
+      : db.transaction(runInTransaction))
 
     // Refresh atomic draft if in a draft mode to keep JSON consistent with granular columns
     if (mode === 'review' || mode === 'ai-review') {

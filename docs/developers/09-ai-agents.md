@@ -837,6 +837,7 @@ GET /api/agents
 Returns agents with `dropdown` scope.
 
 ### Run Agent
+
 ```http
 POST /api/posts/:id/agents/:agentId/run
 Content-Type: application/json
@@ -849,6 +850,7 @@ Content-Type: application/json
 ```
 
 ### Run Bulk Agent
+
 ```http
 POST /api/posts/bulk-agents/:agentId/run
 Content-Type: application/json
@@ -950,22 +952,26 @@ The model dropdowns in the settings page are populated dynamically by querying t
 To use Google's advanced models (like `gemini-2.5-pro` or `imagen-4.0`) via the Nano Banana/Google provider, you must enable billing on your Google Cloud project. Even if you stay within free tier limits for text, **image generation (Imagen) usually requires a billed account.**
 
 #### 1. Enable Billing in Google Cloud
+
 1. Go to the [Google Cloud Console Billing page](https://console.cloud.google.com/billing).
 2. Ensure you have a valid Billing Account linked to the project you are using for AI Studio.
 3. If you don't have a project, create one at [console.cloud.google.com](https://console.cloud.google.com).
 
 #### 2. Enable the Gemini API (Generative Language API)
+
 1. In the Google Cloud Console, go to **APIs & Services > Library**.
 2. Search for **"Gemini API"** or **"Generative Language API"**.
 3. Ensure the API is **Enabled** for your billed project. (The technical name in Google's backend is often `Generative Language API`, but it is frequently listed as `Gemini API` in the marketplace).
 
 #### 3. Link Google AI Studio to your Billed Project
+
 1. Go to [Google AI Studio](https://aistudio.google.com/).
 2. Click on the **Settings** (gear icon) or check your **API Keys**.
 3. When creating or viewing an API key, ensure it is associated with the Google Cloud project where you just enabled billing.
 4. If you see "Free of charge" in AI Studio, you might still need to click "Set up billing" in the AI Studio sidebar to transition to the "Pay-as-you-go" tier, which unblocks Imagen.
 
 #### 4. Verify Rate Limits
+
 Once billing is enabled, your quotas will increase. You can monitor your usage and limits at the [Google AI Studio Usage page](https://aistudio.google.com/app/usage).
 
 **Note**: Google uses the standard `AI_PROVIDER_GOOGLE_API_KEY` environment variable. Once billing is active, the "Imagen API is only accessible to billed users" error will disappear.

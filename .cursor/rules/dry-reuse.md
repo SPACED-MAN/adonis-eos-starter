@@ -26,6 +26,7 @@
 ## Pattern: The Action Pattern
 
 For complex, reusable business logic, always prefer **Action Classes**:
+
 - Co-locate logic that involves multiple steps or models.
 - Actions can be called from Controllers, Seeders, CLI commands, and other Actions.
 - See [Actions Guide](./actions.md) for more.
@@ -35,4 +36,3 @@ For complex, reusable business logic, always prefer **Action Classes**:
 - ✅ **Reuse when:** The behavior is 80%+ identical and differences can be handled with 1-2 clean props.
 - ❌ **Fork when:** The components have fundamentally different responsibilities or the conditional logic becomes a "mess of ifs".
 - ❌ **Abstract when:** You have 3+ instances of similar but not identical logic. Don't over-abstract too early (obey **YAGNI**).
-

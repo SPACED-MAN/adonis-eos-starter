@@ -62,10 +62,11 @@ If you're maintaining multiple projects based on this starter kit, you'll want t
    - Tag releases (e.g., `v0.1.1`, `v0.1.2`) for easy reference
 
 2. **In each project, sync the changes**
+
    ```bash
    # Sync latest from main branch
    npm run sync:starter
-   
+
    # Or sync a specific tagged version
    npm run sync:starter:commit v0.1.1
    ```
@@ -94,11 +95,13 @@ The sync script uses `git subtree pull` to merge changes from the starter reposi
 **Starter → Projects**: The starter repository has no visibility into projects that pull from it.
 
 **Projects → Starter**: Some linkage is visible:
+
 - The remote URL is stored in `.git/config` (visible via `git remote -v`)
 - Merge commits in git history reference the starter
 - Commit messages may mention the starter
 
 If privacy is a concern, you can remove the remote after syncing:
+
 ```bash
 git remote remove starter
 ```
@@ -108,6 +111,7 @@ git remote remove starter
 **Uncommitted changes**: The script requires a clean working directory. Commit or stash changes first.
 
 **Merge conflicts**: If conflicts occur, resolve them manually:
+
 ```bash
 # See conflicted files
 git status

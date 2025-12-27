@@ -31,7 +31,7 @@ export default function ForgotPassword() {
         className="w-full max-w-sm p-6 rounded-xl border border-border bg-backdrop-low shadow-sm space-y-4"
       >
         <h1 className="text-xl font-semibold text-neutral-high">Forgot Password</h1>
-        
+
         <p className="text-sm text-neutral-medium leading-relaxed">
           Enter your email address and we'll send you a link to reset your password.
         </p>
@@ -76,8 +76,8 @@ export default function ForgotPassword() {
         </button>
 
         <div className="pt-2 text-center">
-          <Link 
-            href={adminPath('login')} 
+          <Link
+            href={adminPath('login')}
             className="text-sm text-neutral-medium hover:text-neutral-high underline transition-colors"
           >
             Back to login
@@ -87,4 +87,3 @@ export default function ForgotPassword() {
     </div>
   )
 }
-
