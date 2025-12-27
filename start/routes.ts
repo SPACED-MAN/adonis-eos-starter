@@ -436,6 +436,7 @@ router
     router.delete('/security/sessions/:sessionId', [SecurityController, 'revokeSession'])
     router.post('/security/sessions/revoke-all', [SecurityController, 'revokeAllSessions'])
     router.get('/security/audit-logs', [SecurityController, 'auditLogs'])
+    router.get('/security/audit-logs/meta', [SecurityController, 'auditLogMeta'])
     router.get('/security/posture', [SecurityController, 'posture'])
     router.get('/security/webhooks', [SecurityController, 'webhooks'])
     router.get('/security/login-history', [SecurityController, 'loginHistory'])

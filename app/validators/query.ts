@@ -29,6 +29,10 @@ export const auditLogsQueryValidator = vine.compile(
     endDate: vine.string().optional(), // ISO date string
     limit: vine.number().min(1).max(200).optional(),
     offset: vine.number().min(0).optional(),
+    page: vine.number().min(1).optional(),
+    q: vine.string().trim().maxLength(500).optional(),
+    sortBy: vine.string().trim().optional(),
+    sortOrder: vine.enum(['asc', 'desc']).optional(),
   })
 )
 

@@ -3,6 +3,22 @@ import { Head } from '@inertiajs/react'
 import { AdminHeader } from '../../components/AdminHeader'
 import { useAdminPath } from '../../../utils/adminPath'
 import { Badge } from '../../../components/ui/badge'
+import { Input } from '../../../components/ui/input'
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '~/components/ui/select'
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from '~/components/ui/table'
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome'
 import {
   faShield,
@@ -13,6 +29,7 @@ import {
   faClock,
   faTrash,
   faDownload,
+  faSearch,
 } from '@fortawesome/free-solid-svg-icons'
 
 interface SecurityPosture {
@@ -63,13 +80,29 @@ export default function SecurityIndex() {
   const [loading, setLoading] = useState(true)
   const [activeTab, setActiveTab] = useState('posture')
 
+  // Audit filters state
+  const [q, setQ] = useState('')
+  const [actionFilter, setActionFilter] = useState('all')
+  const [entityTypeFilter, setEntityTypeFilter] = useState('all')
+  const [page, setPage] = useState(1)
+  const [limit, setLimit] = useState(20)
+  const [total, setTotal] = useState(0)
+  const [auditMeta, setAuditMeta] = useState<{ actions: string[]; entityTypes: string[] }>({
+    actions: [],
+    entityTypes: [],
+  })
+
   useEffect(() => {
     loadPosture()
     loadSessions()
+    loadAuditMeta()
+  }, [])
+
+  useEffect(() => {
     if (activeTab === 'audit') {
       loadAuditLogs()
     }
-  }, [activeTab])
+  }, [activeTab, q, actionFilter, entityTypeFilter, page, limit])
 
   async function loadPosture() {
     try {
@@ -93,13 +126,36 @@ export default function SecurityIndex() {
     }
   }
 
-  async function loadAuditLogs() {
+  async function loadAuditMeta() {
     try {
-      const res = await fetch('/api/security/audit-logs?limit=50', { credentials: 'same-origin' })
+      const res = await fetch('/api/security/audit-logs/meta', { credentials: 'same-origin' })
+      const data = await res.json()
+      setAuditMeta(data)
+    } catch (err) {
+      console.error('Failed to load audit meta', err)
+    }
+  }
+
+  async function loadAuditLogs() {
+    setLoading(true)
+    try {
+      const params = new URLSearchParams()
+      if (q) params.set('q', q)
+      if (actionFilter !== 'all') params.set('action', actionFilter)
+      if (entityTypeFilter !== 'all') params.set('entityType', entityTypeFilter)
+      params.set('page', String(page))
+      params.set('limit', String(limit))
+
+      const res = await fetch(`/api/security/audit-logs?${params.toString()}`, {
+        credentials: 'same-origin',
+      })
       const data = await res.json()
       setAuditLogs(data.data || [])
+      setTotal(data.pagination?.total || 0)
     } catch (err) {
       console.error('Failed to load audit logs', err)
+    } finally {
+      setLoading(false)
     }
   }
 
@@ -173,7 +229,7 @@ export default function SecurityIndex() {
         {/* Posture Tab */}
         {activeTab === 'posture' && (
           <div className="space-y-6">
-            {loading ? (
+            {loading && !posture ? (
               <div className="text-center py-8 text-neutral-medium">Loading...</div>
             ) : posture ? (
               <div className="bg-backdrop-low rounded-lg border border-line-low p-6">
@@ -276,78 +332,248 @@ export default function SecurityIndex() {
 
         {/* Audit Logs Tab */}
         {activeTab === 'audit' && (
-          <div className="bg-backdrop-low rounded-lg border border-line-low p-6">
-            <div className="flex items-center justify-between mb-6">
-              <div>
-                <h2 className="text-xl font-semibold text-neutral-high mb-2">Audit Logs</h2>
-                <p className="text-sm text-neutral-medium">View system activity and security events</p>
+          <div className="bg-backdrop-low rounded-lg border border-line-low overflow-hidden">
+            <div className="p-6 border-b border-line-low">
+              <div className="flex items-center justify-between mb-6">
+                <div>
+                  <h2 className="text-xl font-semibold text-neutral-high mb-2">Audit Logs</h2>
+                  <p className="text-sm text-neutral-medium">View system activity and security events</p>
+                </div>
+                <button
+                  className="px-4 py-2 text-sm border border-line-low rounded hover:bg-backdrop-medium text-neutral-high transition-colors flex items-center gap-2"
+                  onClick={async () => {
+                    try {
+                      const res = await fetch('/api/security/audit-logs?limit=1000', {
+                        credentials: 'same-origin',
+                      })
+                      const data = await res.json()
+                      const blob = new Blob([JSON.stringify(data.data, null, 2)], {
+                        type: 'application/json',
+                      })
+                      const url = URL.createObjectURL(blob)
+                      const a = document.createElement('a')
+                      a.href = url
+                      a.download = `audit-logs-${new Date().toISOString()}.json`
+                      a.click()
+                      URL.revokeObjectURL(url)
+                    } catch (err) {
+                      console.error('Failed to export audit logs', err)
+                    }
+                  }}
+                >
+                  <FontAwesomeIcon icon={faDownload} className="w-4 h-4" />
+                  Export
+                </button>
               </div>
-              <button
-                className="px-4 py-2 text-sm border border-line-low rounded hover:bg-backdrop-medium text-neutral-high transition-colors flex items-center gap-2"
-                onClick={async () => {
-                  try {
-                    const res = await fetch('/api/security/audit-logs?limit=1000', {
-                      credentials: 'same-origin',
-                    })
-                    const data = await res.json()
-                    const blob = new Blob([JSON.stringify(data.data, null, 2)], {
-                      type: 'application/json',
-                    })
-                    const url = URL.createObjectURL(blob)
-                    const a = document.createElement('a')
-                    a.href = url
-                    a.download = `audit-logs-${new Date().toISOString()}.json`
-                    a.click()
-                    URL.revokeObjectURL(url)
-                  } catch (err) {
-                    console.error('Failed to export audit logs', err)
-                  }
-                }}
-              >
-                <FontAwesomeIcon icon={faDownload} className="w-4 h-4" />
-                Export
-              </button>
+
+              {/* Filters */}
+              <div className="flex flex-wrap items-center gap-4">
+                <div className="relative max-w-sm flex-1">
+                  <Input
+                    value={q}
+                    onChange={(e) => {
+                      setQ(e.target.value)
+                      setPage(1)
+                    }}
+                    placeholder="Search logs..."
+                    className="pl-9"
+                  />
+                  <FontAwesomeIcon
+                    icon={faSearch}
+                    className="absolute left-3 top-1/2 -translate-y-1/2 text-neutral-low w-3.5 h-3.5"
+                  />
+                </div>
+
+                <Select
+                  value={actionFilter}
+                  onValueChange={(val) => {
+                    setActionFilter(val)
+                    setPage(1)
+                  }}
+                >
+                  <SelectTrigger className="w-[200px]">
+                    <SelectValue placeholder="All actions" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="all">All actions</SelectItem>
+                    {auditMeta.actions.map((action) => (
+                      <SelectItem key={action} value={action}>
+                        {action}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+
+                <Select
+                  value={entityTypeFilter}
+                  onValueChange={(val) => {
+                    setEntityTypeFilter(val)
+                    setPage(1)
+                  }}
+                >
+                  <SelectTrigger className="w-[200px]">
+                    <SelectValue placeholder="All entity types" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="all">All entity types</SelectItem>
+                    {auditMeta.entityTypes.map((type) => (
+                      <SelectItem key={type} value={type}>
+                        {type}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+
+                <Select
+                  value={String(limit)}
+                  onValueChange={(val) => {
+                    setLimit(Number(val))
+                    setPage(1)
+                  }}
+                >
+                  <SelectTrigger className="w-[120px]">
+                    <SelectValue placeholder="Per page" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="20">20 / page</SelectItem>
+                    <SelectItem value="50">50 / page</SelectItem>
+                    <SelectItem value="100">100 / page</SelectItem>
+                  </SelectContent>
+                </Select>
+
+                {loading && <span className="text-xs text-neutral-low animate-pulse">Loading...</span>}
+              </div>
             </div>
-            {auditLogs.length === 0 ? (
-              <div className="text-center py-8 text-neutral-medium">No audit logs found</div>
-            ) : (
-              <div className="space-y-4">
-                {auditLogs.map((log) => (
-                  <div
-                    key={log.id}
-                    className="p-4 border border-line-low rounded-lg bg-backdrop text-sm"
+
+            <div className="overflow-x-auto">
+              <Table>
+                <TableHeader>
+                  <TableRow>
+                    <TableHead className="w-[180px]">Timestamp</TableHead>
+                    <TableHead>Action</TableHead>
+                    <TableHead>User</TableHead>
+                    <TableHead>Entity</TableHead>
+                    <TableHead>IP Address</TableHead>
+                    <TableHead className="text-right">Details</TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {auditLogs.length === 0 ? (
+                    <TableRow>
+                      <TableCell colSpan={6} className="h-32 text-center text-neutral-medium">
+                        {loading ? 'Loading audit logs...' : 'No audit logs found matching your filters.'}
+                      </TableCell>
+                    </TableRow>
+                  ) : (
+                    auditLogs.map((log) => (
+                      <TableRow key={log.id}>
+                        <TableCell className="text-xs text-neutral-medium whitespace-nowrap">
+                          {new Date(log.createdAt).toLocaleString(undefined, {
+                            year: 'numeric',
+                            month: '2-digit',
+                            day: '2-digit',
+                            hour: '2-digit',
+                            minute: '2-digit',
+                            second: '2-digit',
+                          })}
+                        </TableCell>
+                        <TableCell>
+                          <span className="font-medium text-neutral-high">{log.action}</span>
+                        </TableCell>
+                        <TableCell>
+                          <div className="flex flex-col">
+                            <span className="text-sm text-neutral-high">{log.userEmail || 'System'}</span>
+                            {log.userId && (
+                              <span className="text-xs text-neutral-low">ID: {log.userId}</span>
+                            )}
+                          </div>
+                        </TableCell>
+                        <TableCell>
+                          {log.entityType ? (
+                            <div className="flex items-center gap-1.5">
+                              <Badge variant="outline" className="text-[10px] uppercase tracking-wider font-semibold">
+                                {log.entityType}
+                              </Badge>
+                              {log.entityId && (
+                                <span className="text-xs text-neutral-low font-mono">#{log.entityId}</span>
+                              )}
+                            </div>
+                          ) : (
+                            <span className="text-neutral-low text-xs">—</span>
+                          )}
+                        </TableCell>
+                        <TableCell className="font-mono text-xs text-neutral-medium">
+                          {log.ip || '—'}
+                        </TableCell>
+                        <TableCell className="text-right">
+                          {log.metadata && Object.keys(log.metadata).length > 0 ? (
+                            <details className="inline-block text-left">
+                              <summary className="cursor-pointer text-xs text-standout-medium hover:underline list-none">
+                                View JSON
+                              </summary>
+                              <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-black/40 backdrop-blur-sm pointer-events-none">
+                                <div className="bg-backdrop-low border border-line-low rounded-lg shadow-2xl max-w-2xl w-full max-h-[80vh] overflow-hidden flex flex-col pointer-events-auto">
+                                  <div className="px-4 py-3 border-b border-line-low flex items-center justify-between bg-backdrop">
+                                    <h3 className="font-semibold text-neutral-high">Log Metadata</h3>
+                                    <button
+                                      onClick={(e) => {
+                                        const details = (e.target as HTMLElement).closest('details')
+                                        if (details) details.open = false
+                                      }}
+                                      className="text-neutral-medium hover:text-neutral-high p-1"
+                                    >
+                                      ✕
+                                    </button>
+                                  </div>
+                                  <div className="p-4 overflow-auto bg-backdrop-low font-mono text-xs leading-relaxed">
+                                    <pre className="text-neutral-high">
+                                      {JSON.stringify(log.metadata, null, 2)}
+                                    </pre>
+                                  </div>
+                                </div>
+                              </div>
+                            </details>
+                          ) : (
+                            <span className="text-neutral-low text-xs">—</span>
+                          )}
+                        </TableCell>
+                      </TableRow>
+                    ))
+                  )}
+                </TableBody>
+              </Table>
+            </div>
+
+            {/* Pagination */}
+            {total > 0 && (
+              <div className="px-6 py-4 border-t border-line-low flex items-center justify-between bg-backdrop">
+                <div className="text-sm text-neutral-medium">
+                  Showing {(page - 1) * limit + 1} to {Math.min(page * limit, total)} of {total} results
+                </div>
+                <div className="flex items-center gap-2">
+                  <button
+                    disabled={page <= 1 || loading}
+                    onClick={() => setPage((p) => p - 1)}
+                    className="px-3 py-1.5 text-sm border border-line-low rounded bg-backdrop hover:bg-backdrop-medium text-neutral-high disabled:opacity-50 transition-colors"
                   >
-                    <div className="flex items-start justify-between mb-2">
-                      <div className="flex items-center gap-2">
-                        <span className="font-medium text-neutral-high">{log.action}</span>
-                        {log.entityType && (
-                          <Badge variant="outline">
-                            {log.entityType}
-                            {log.entityId && ` #${log.entityId}`}
-                          </Badge>
-                        )}
-                      </div>
-                      <span className="text-neutral-low text-xs">
-                        {new Date(log.createdAt).toLocaleString()}
-                      </span>
-                    </div>
-                    <div className="text-neutral-medium space-y-1">
-                      {log.userEmail && <div>User: {log.userEmail}</div>}
-                      {log.ip && <div>IP: {log.ip}</div>}
-                      {log.userAgent && <div>User Agent: {log.userAgent}</div>}
-                      {log.metadata && Object.keys(log.metadata).length > 0 && (
-                        <div className="mt-2">
-                          <details>
-                            <summary className="cursor-pointer text-neutral-high">Metadata</summary>
-                            <pre className="mt-2 text-xs bg-backdrop-low p-2 rounded overflow-auto">
-                              {JSON.stringify(log.metadata, null, 2)}
-                            </pre>
-                          </details>
-                        </div>
-                      )}
-                    </div>
+                    Previous
+                  </button>
+                  <div className="flex items-center gap-1">
+                    <span className="px-3 py-1.5 text-sm font-medium bg-standout-medium text-on-standout rounded">
+                      {page}
+                    </span>
+                    <span className="text-sm text-neutral-low px-2">
+                      of {Math.ceil(total / limit)}
+                    </span>
                   </div>
-                ))}
+                  <button
+                    disabled={page >= Math.ceil(total / limit) || loading}
+                    onClick={() => setPage((p) => p + 1)}
+                    className="px-3 py-1.5 text-sm border border-line-low rounded bg-backdrop hover:bg-backdrop-medium text-neutral-high disabled:opacity-50 transition-colors"
+                  >
+                    Next
+                  </button>
+                </div>
               </div>
             )}
           </div>

@@ -84,15 +84,33 @@ export default class SecurityController {
   }
 
   /**
+   * GET /api/security/audit-logs/meta
+   * Get unique actions and entity types for filters
+   */
+  async auditLogMeta({ response }: HttpContext) {
+    const actions = await db.from('activity_logs').distinct('action').orderBy('action', 'asc')
+    const entityTypes = await db
+      .from('activity_logs')
+      .distinct('entity_type')
+      .whereNotNull('entity_type')
+      .orderBy('entity_type', 'asc')
+
+    return response.ok({
+      actions: actions.map((a) => a.action),
+      entityTypes: entityTypes.map((e) => e.entity_type),
+    })
+  }
+
+  /**
    * GET /api/security/audit-logs
    * Get audit logs with filters
    */
   async auditLogs({ request, response }: HttpContext) {
-    const { userId, action, entityType, limit, offset, startDate, endDate } =
+    const { userId, action, entityType, limit, offset, page, q: searchQ, startDate, endDate, sortBy, sortOrder } =
       await request.validateUsing(auditLogsQueryValidator)
 
     const effectiveLimit = limit || 50
-    const effectiveOffset = offset || 0
+    const effectiveOffset = offset || (page ? (page - 1) * effectiveLimit : 0)
 
     let q = db
       .from('activity_logs')
@@ -109,9 +127,6 @@ export default class SecurityController {
         'users.email as userEmail',
         'users.id as userId'
       )
-      .orderBy('activity_logs.created_at', 'desc')
-      .limit(effectiveLimit)
-      .offset(effectiveOffset)
 
     if (userId) q = q.where('activity_logs.user_id', userId)
     if (action) q = q.where('activity_logs.action', action)
@@ -119,8 +134,60 @@ export default class SecurityController {
     if (startDate) q = q.where('activity_logs.created_at', '>=', startDate)
     if (endDate) q = q.where('activity_logs.created_at', '<=', endDate)
 
-    const rows = await q
-    const total = await db.from('activity_logs').count('* as total').first()
+    if (searchQ) {
+      q = q.where((builder) => {
+        builder
+          .whereILike('activity_logs.action', `%${searchQ}%`)
+          .orWhereILike('activity_logs.entity_type', `%${searchQ}%`)
+          .orWhereILike('activity_logs.entity_id', `%${searchQ}%`)
+          .orWhereILike('users.email', `%${searchQ}%`)
+          .orWhereILike('activity_logs.ip', `%${searchQ}%`)
+      })
+    }
+
+    // Sort
+    const effectiveSortBy = sortBy || 'activity_logs.created_at'
+    const effectiveSortOrder = sortOrder || 'desc'
+    q = q.orderBy(effectiveSortBy, effectiveSortOrder)
+
+    // Pagination
+    const totalQuery = db.from('activity_logs').count('* as total')
+    if (userId) totalQuery.where('user_id', userId)
+    if (action) totalQuery.where('action', action)
+    if (entityType) totalQuery.where('entity_type', entityType)
+    if (startDate) totalQuery.where('created_at', '>=', startDate)
+    if (endDate) totalQuery.where('created_at', '<=', endDate)
+    if (searchQ) {
+      totalQuery.where((builder) => {
+        builder
+          .whereILike('action', `%${searchQ}%`)
+          .orWhereILike('entity_type', `%${searchQ}%`)
+          .orWhereILike('entity_id', `%${searchQ}%`)
+          // Note: totalQuery doesn't have the join for email, we need to add it if we want to search email in total
+      })
+    }
+
+    const rows = await q.limit(effectiveLimit).offset(effectiveOffset)
+    
+    // For total count with join if searching email
+    let total: any
+    if (searchQ) {
+      total = await db
+        .from('activity_logs')
+        .leftJoin('users', 'users.id', 'activity_logs.user_id')
+        .where((builder) => {
+          builder
+            .whereILike('activity_logs.action', `%${searchQ}%`)
+            .orWhereILike('activity_logs.entity_type', `%${searchQ}%`)
+            .orWhereILike('activity_logs.entity_id', `%${searchQ}%`)
+            .orWhereILike('users.email', `%${searchQ}%`)
+            .orWhereILike('activity_logs.ip', `%${searchQ}%`)
+        })
+        .count('* as total')
+        .first()
+    } else {
+      total = await totalQuery.first()
+    }
 
     return response.ok({
       data: rows,
