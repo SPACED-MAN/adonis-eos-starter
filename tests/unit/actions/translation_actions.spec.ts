@@ -1,6 +1,7 @@
 import { test } from '@japa/runner'
 import testUtils from '@adonisjs/core/services/test_utils'
 import Post from '#models/post'
+import agentRegistry from '#services/agent_registry'
 import CreateTranslation, {
   CreateTranslationException,
 } from '#actions/translations/create_translation'
@@ -9,6 +10,11 @@ import DeleteTranslation, {
 } from '#actions/translations/delete_translation'
 
 test.group('CreateTranslationAction', (group) => {
+  group.setup(async () => {
+    // Prevent agents from running during tests as they call external APIs
+    agentRegistry.clear()
+  })
+
   group.each.setup(async () => {
     await testUtils.db().truncate()
   })

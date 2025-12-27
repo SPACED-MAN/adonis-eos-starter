@@ -14,10 +14,10 @@ test.group('Prose Module', () => {
     assert.isDefined(config.defaultValues?.content)
   })
 
-  test('should specify static rendering mode', ({ assert }) => {
-    const proseModule = new ProseModule()
-    assert.equal(proseModule.getRenderingMode(), 'static')
-  })
+    test('should specify hybrid rendering mode', ({ assert }) => {
+      const proseModule = new ProseModule()
+      assert.equal(proseModule.getRenderingMode(), 'hybrid')
+    })
 
   test('should get correct component name', ({ assert }) => {
     const proseModule = new ProseModule()
