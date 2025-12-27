@@ -30,7 +30,7 @@ export default class UsersController {
     if (username) {
       const usernameExists = await db
         .from('users')
-        .whereRaw('LOWER(username) = LOWER(?)', [username])
+        .whereRaw('LOWER(username) = LOWER(?)', [username as string])
         .first()
       if (usernameExists) {
         return response.status(409).json({ error: 'Username already in use' })
@@ -191,7 +191,7 @@ export default class UsersController {
     if (username !== undefined) {
       const existingU = await db
         .from('users')
-        .whereRaw('LOWER(username) = LOWER(?)', [username])
+        .whereRaw('LOWER(username) = LOWER(?)', [username as string])
         .andWhereNot('id', id)
         .first()
       if (existingU) {

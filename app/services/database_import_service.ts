@@ -253,7 +253,7 @@ class DatabaseImportService {
       essentialTables.forEach((t) => allowedTables.add(t))
 
       for (const ct of contentTypesToImport) {
-        const typeTables = contentTypeTablesMap[ct as any] || []
+        const typeTables = contentTypeTablesMap[ct as import('./database_export_service.js').ContentType] || []
         typeTables.forEach((t: string) => allowedTables.add(t))
       }
 

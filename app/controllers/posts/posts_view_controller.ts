@@ -124,7 +124,7 @@ export default class PostsViewController extends BasePostsController {
                 (dm: any) => dm.id === pm.id || dm.postModuleId === pm.id
               )
 
-              const isLocal = mi?.scope === 'post' || mi?.scope === 'local'
+              const isLocal = mi?.scope === 'post'
 
               // Helper to merge defaults and resolve hero fallbacks
               const prepareProps = (p: any) => {

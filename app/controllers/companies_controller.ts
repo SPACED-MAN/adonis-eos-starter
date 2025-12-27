@@ -61,7 +61,6 @@ export default class CompaniesController {
 
     const items = rows.map((p) => {
       const pid = String(p.id)
-      const featuredImageId = p.featuredImageId || null
       const featuredImage = p.featuredImage
 
       const image = featuredImage

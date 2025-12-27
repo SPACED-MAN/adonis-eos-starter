@@ -2,10 +2,8 @@ import type { HttpContext } from '@adonisjs/core/http'
 import AddModuleToPost, { AddModuleToPostException } from '#actions/posts/add_module_to_post'
 import UpdatePostModule, { UpdatePostModuleException } from '#actions/posts/update_post_module'
 import DeletePostModule, { DeletePostModuleException } from '#actions/posts/delete_post_module'
-import db from '@adonisjs/lucid/services/db'
 import BasePostsController from './base_posts_controller.js'
 import { addModuleValidator, updateModuleValidator } from '#validators/post'
-import postTypeConfigService from '#services/post_type_config_service'
 
 const uuidRegex = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i
 const isUuid = (val: unknown): val is string => typeof val === 'string' && uuidRegex.test(val)

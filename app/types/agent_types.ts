@@ -392,7 +392,6 @@ export interface AgentReaction {
     // For email
     to?: string | string[]
     subject?: string
-    template?: string
 
     // For MCP tool
     toolName?: string

@@ -828,8 +828,6 @@ class MCPClientService {
           agentName,
           slug,
           title,
-          metaTitle,
-          metaDescription,
           featuredImageId,
         } = params
 
@@ -1016,7 +1014,7 @@ class MCPClientService {
       }
 
       case 'suggest_modules_for_layout': {
-        const { brief, desiredLayoutRoles, postType, excludeModuleTypes } = params
+        const { desiredLayoutRoles, postType, excludeModuleTypes } = params
 
         // Get all allowed modules for this post type
         const allModules = postType
@@ -1396,15 +1394,6 @@ class MCPClientService {
       if (paras.length >= 5) break
     }
     return paras
-  }
-
-  /**
-   * Extract H2s from markdown
-   */
-  private extractMarkdownH2s(md: string): string[] {
-    const s = String(md || '')
-    const matches = [...s.matchAll(/^\s*##\s+(.+?)\s*$/gm)]
-    return matches.map((m) => this.stripMarkdownInline(m[1] || '')).filter(Boolean)
   }
 
   /**

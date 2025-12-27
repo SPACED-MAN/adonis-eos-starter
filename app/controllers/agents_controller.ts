@@ -5,13 +5,11 @@ import Post from '#models/post'
 import roleRegistry from '#services/role_registry'
 import RevisionService from '#services/revision_service'
 import PostSnapshotService from '#services/post_snapshot_service'
-import db from '@adonisjs/lucid/services/db'
 import AgentPostPayloadDto from '#dtos/agent_post_payload_dto'
 import internalAgentExecutor from '#services/internal_agent_executor'
 import type { AgentExecutionContext, AgentScope } from '#types/agent_types'
 import moduleRegistry from '#services/module_registry'
 import agentExecutionService from '#services/agent_execution_service'
-import { markdownToLexical } from '#helpers/markdown_to_lexical'
 import { coerceJsonObject } from '../helpers/jsonb.js'
 
 export default class AgentsController {

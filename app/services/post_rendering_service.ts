@@ -233,8 +233,6 @@ class PostRenderingService {
       })
 
     const moduleStates = filtered.map((pm) => {
-      const isLocal = pm.scope === 'post'
-
       const useReviewDraft = (() => {
         if (!wantReview) return false
         if (draftMode === 'ai-review') return false

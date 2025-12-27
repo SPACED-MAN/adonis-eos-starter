@@ -426,7 +426,7 @@ class UrlPatternService {
     // 4. Build final paths
     rows.forEach((row) => {
       const pattern = patternMap.get(`${row.type}:${row.locale}`) || '/{locale}/posts/{slug}'
-      const d = row.createdAt?.toJSDate() || new Date(row.createdAt || Date.now())
+      const d = row.createdAt?.toJSDate() || new Date()
       const yyyy = String(d.getUTCFullYear())
       const mm = String(d.getUTCMonth() + 1).padStart(2, '0')
       const dd = String(d.getUTCDate()).padStart(2, '0')

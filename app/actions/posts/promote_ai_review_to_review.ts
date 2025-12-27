@@ -1,7 +1,6 @@
 import RevisionService from '#services/revision_service'
 import PostSnapshotService from '#services/post_snapshot_service'
 import PostSerializerService from '#services/post_serializer_service'
-import Post from '#models/post'
 
 type PromoteAiReviewToReviewParams = {
   postId: string

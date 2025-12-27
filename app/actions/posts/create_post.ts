@@ -7,8 +7,6 @@ import siteSettingsService from '#services/site_settings_service'
 import postTypeConfigService from '#services/post_type_config_service'
 import postTypeRegistry from '#services/post_type_registry'
 import moduleRegistry from '#services/module_registry'
-import { existsSync } from 'node:fs'
-import { join } from 'node:path'
 
 type CreatePostParams = {
   type: string

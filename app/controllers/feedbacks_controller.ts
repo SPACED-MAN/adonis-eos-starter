@@ -30,6 +30,7 @@ export default class FeedbacksController {
 
     const feedback = await CreateFeedback.handle({
       ...payload,
+      type: payload.type || 'comment',
       userId: user.id,
       mode: payload.mode as 'approved' | 'review' | 'ai-review',
     })
