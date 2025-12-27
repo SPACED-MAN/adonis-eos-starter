@@ -2,7 +2,7 @@
 // This file owns the full implementation for the Posts list/admin UI.
 import { Head, Link, usePage } from '@inertiajs/react'
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome'
-import { faTurnUp } from '@fortawesome/free-solid-svg-icons'
+import { faTurnUp, faMessage } from '@fortawesome/free-solid-svg-icons'
 import { useEffect, useMemo, useState } from 'react'
 import { AdminHeader } from '../../components/AdminHeader'
 import { AdminFooter } from '../../components/AdminFooter'
@@ -72,6 +72,7 @@ export default function PostsIndexPage({}: PostsIndexProps) {
       translationOfId?: string | null
       familyLocales?: string[]
       hasReviewDraft?: boolean
+      hasFeedback?: boolean
     }>
   >([])
   const [selected, setSelected] = useState<Set<string>>(new Set())
@@ -103,6 +104,7 @@ export default function PostsIndexPage({}: PostsIndexProps) {
   const [page, setPage] = useState(1)
   const [limit, setLimit] = useState(20)
   const [total, setTotal] = useState(0)
+  const [hasFeedback, setHasFeedback] = useState(false)
   const [bulkKey, setBulkKey] = useState(0)
   const [confirmBulkDelete, setConfirmBulkDelete] = useState(false)
   const [confirmBulkAction, setConfirmBulkAction] = useState(false)
@@ -144,6 +146,7 @@ export default function PostsIndexPage({}: PostsIndexProps) {
       }
       if (postType) params.set('type', postType)
       if (locale) params.set('locale', locale)
+      if (hasFeedback) params.set('hasFeedback', '1')
       if (taxonomy && termId) {
         params.set('taxonomy', taxonomy)
         params.set('termId', termId)
@@ -225,7 +228,7 @@ export default function PostsIndexPage({}: PostsIndexProps) {
   useEffect(() => {
     fetchPosts()
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [q, status, locale, postType, taxonomy, termId, sortBy, sortOrder, page, limit, hierarchical])
+  }, [q, status, locale, postType, taxonomy, termId, sortBy, sortOrder, page, limit, hierarchical, hasFeedback])
 
   useEffect(() => {
     ;(async () => {
@@ -858,6 +861,16 @@ export default function PostsIndexPage({}: PostsIndexProps) {
                 )}
                 <label className="flex items-center gap-2 text-sm text-neutral-high">
                   <Checkbox
+                    checked={hasFeedback}
+                    onCheckedChange={(c) => {
+                      setHasFeedback(!!c)
+                      setPage(1)
+                    }}
+                  />
+                  Feedback
+                </label>
+                <label className="flex items-center gap-2 text-sm text-neutral-high">
+                  <Checkbox
                     checked={hierarchical}
                     onCheckedChange={(c) => onToggleHierarchy(!!c)}
                   />
@@ -1204,6 +1217,13 @@ export default function PostsIndexPage({}: PostsIndexProps) {
                                   <TooltipTrigger asChild>
                                     <span className="text-sm font-medium text-neutral-high cursor-help">
                                       {post.title}
+                                      {post.hasFeedback && (
+                                        <FontAwesomeIcon
+                                          icon={faMessage}
+                                          className="ml-2 text-violet-500 text-[10px]"
+                                          title="Feedback"
+                                        />
+                                      )}
                                     </span>
                                   </TooltipTrigger>
                                   <TooltipContent>
@@ -1329,6 +1349,13 @@ export default function PostsIndexPage({}: PostsIndexProps) {
                               title={post.slug}
                             >
                               {post.title}
+                              {post.hasFeedback && (
+                                <FontAwesomeIcon
+                                  icon={faMessage}
+                                  className="ml-2 text-violet-500 text-[10px]"
+                                  title="Feedback"
+                                />
+                              )}
                             </span>
                           </div>
                         </TableCell>

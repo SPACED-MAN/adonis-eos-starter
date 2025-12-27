@@ -13,6 +13,7 @@ import type { ModelQueryBuilderContract } from '@adonisjs/lucid/types/model'
 import PostCustomFieldValue from './post_custom_field_value.js'
 import User from './user.js'
 import MediaAsset from './media_asset.js'
+import Feedback from './feedback.js'
 import type { RobotsConfig, JsonLdOverrides } from '#types/seo'
 
 export default class Post extends BaseModel {
@@ -151,6 +152,11 @@ export default class Post extends BaseModel {
     foreignKey: 'postId',
   })
   declare customFieldValues: HasMany<typeof PostCustomFieldValue>
+
+  @hasMany(() => Feedback, {
+    foreignKey: 'postId',
+  })
+  declare feedbacks: HasMany<typeof Feedback>
 
   /**
    * Hook: Exclude soft-deleted records from single queries

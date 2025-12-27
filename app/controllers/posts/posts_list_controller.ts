@@ -34,6 +34,8 @@ export default class PostsListController extends BasePostsController {
 
     const inReviewParam = String(request.input('inReview', '')).trim()
     const inReview = inReviewParam === '1' || inReviewParam.toLowerCase() === 'true'
+    const hasFeedbackParam = String(request.input('hasFeedback', '')).trim()
+    const hasFeedback = hasFeedbackParam === '1' || hasFeedbackParam.toLowerCase() === 'true'
     const statusParam = request.input('status')
     const locale = String(request.input('locale', '')).trim()
     const termIdRaw = String(request.input('termId', '')).trim()
@@ -175,6 +177,9 @@ export default class PostsListController extends BasePostsController {
       if (inReview) {
         query.whereNotNull('review_draft')
       }
+      if (hasFeedback) {
+        query.has('feedbacks')
+      }
       if (locale) {
         query.where('locale', locale)
       }
@@ -204,7 +209,7 @@ export default class PostsListController extends BasePostsController {
       }
 
       // Apply sorting and paginate in one go
-      const result = await query.orderBy(sortBy, sortOrder).paginate(page, limit)
+      const result = await query.orderBy(sortBy, sortOrder).withCount('feedbacks').paginate(page, limit)
       const rows = result.all()
       const total = result.getMeta().total
 

@@ -22,6 +22,7 @@ export default class PostListItemDto extends BaseModelDto {
   declare translationOfId: string | null
   declare familyLocales?: string[]
   declare hasReviewDraft: boolean
+  declare hasFeedback?: boolean
   declare isDeleted: boolean
 
   constructor(
@@ -30,6 +31,7 @@ export default class PostListItemDto extends BaseModelDto {
       url?: string | null
       familyLocales?: string[]
       hasReviewDraft?: boolean
+      hasFeedback?: boolean
       isDeleted?: boolean
     }
   ) {
@@ -52,6 +54,7 @@ export default class PostListItemDto extends BaseModelDto {
     this.translationOfId = post.translationOfId || null
     this.familyLocales = extras?.familyLocales
     this.hasReviewDraft = extras?.hasReviewDraft ?? Boolean((post as any).reviewDraft)
+    this.hasFeedback = extras?.hasFeedback ?? (Number((post as any).$extras?.feedbacks_count) > 0)
     this.isDeleted = extras?.isDeleted ?? Boolean((post as any).deletedAt)
   }
 }
