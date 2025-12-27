@@ -54,6 +54,11 @@ export interface PostRenderData {
   excerpt: string | null
   metaTitle: string | null
   metaDescription: string | null
+  socialTitle: string | null
+  socialDescription: string | null
+  socialImageId: string | null
+  noindex: boolean
+  nofollow: boolean
   status: string
   author: AuthorData | null
   featuredImageId?: string | null
@@ -642,7 +647,14 @@ class PostRenderingService {
     )
 
     // Build robots directive
-    const robotsConfig = post.robotsJson || DEFAULT_ROBOTS[post.status] || DEFAULT_ROBOTS.draft
+    const robotsConfig = { ...(post.robotsJson || DEFAULT_ROBOTS[post.status] || DEFAULT_ROBOTS.draft) }
+    if (useReview) {
+      if ((reviewDraft as any).noindex !== undefined) robotsConfig.index = !(reviewDraft as any).noindex
+      if ((reviewDraft as any).nofollow !== undefined) robotsConfig.follow = !(reviewDraft as any).nofollow
+    } else {
+      if (post.noindex) robotsConfig.index = false
+      if (post.nofollow) robotsConfig.follow = false
+    }
     const robots = robotsConfigToString(robotsConfig)
 
     // Build JSON-LD
@@ -655,6 +667,25 @@ class PostRenderingService {
     const description = useReview
       ? ((reviewDraft as any).metaDescription ?? post.metaDescription)
       : post.metaDescription
+
+    // Social (OG/Twitter)
+    const socialTitle = useReview
+      ? ((reviewDraft as any).socialTitle ?? title)
+      : (post.socialTitle || title)
+    const socialDescription = useReview
+      ? ((reviewDraft as any).socialDescription ?? description)
+      : (post.socialDescription || description)
+    const socialImageId = useReview
+      ? ((reviewDraft as any).socialImageId ?? (reviewDraft as any).featuredImageId ?? post.socialImageId ?? post.featuredImageId)
+      : (post.socialImageId || post.featuredImageId)
+
+    let socialImageUrl: string | undefined
+    if (socialImageId) {
+      const asset = await MediaAsset.find(socialImageId)
+      if (asset) {
+        socialImageUrl = asset.url
+      }
+    }
 
     let schemaType = 'BlogPosting'
     const schemaExtras: Record<string, any> = {}
@@ -761,15 +792,17 @@ class PostRenderingService {
       robots,
       jsonLd,
       og: {
-        title,
-        description: description || undefined,
+        title: socialTitle,
+        description: socialDescription || undefined,
         url: canonical,
         type: 'article',
+        image: socialImageUrl,
       },
       twitter: {
         card: 'summary_large_image',
-        title,
-        description: description || undefined,
+        title: socialTitle,
+        description: socialDescription || undefined,
+        image: socialImageUrl,
       },
     }
   }
@@ -798,6 +831,21 @@ class PostRenderingService {
       metaDescription: useReview
         ? ((reviewDraft as any).metaDescription ?? post.metaDescription)
         : post.metaDescription,
+      socialTitle: useReview
+        ? ((reviewDraft as any).socialTitle ?? post.socialTitle)
+        : post.socialTitle,
+      socialDescription: useReview
+        ? ((reviewDraft as any).socialDescription ?? post.socialDescription)
+        : post.socialDescription,
+      socialImageId: useReview
+        ? ((reviewDraft as any).socialImageId ?? post.socialImageId)
+        : post.socialImageId,
+      noindex: useReview
+        ? Boolean((reviewDraft as any).noindex ?? post.noindex)
+        : Boolean(post.noindex),
+      nofollow: useReview
+        ? Boolean((reviewDraft as any).nofollow ?? post.nofollow)
+        : Boolean(post.nofollow),
       status: post.status,
       author: null, // To be filled by caller
       featuredImageId: useReview

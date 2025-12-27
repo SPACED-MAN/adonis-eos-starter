@@ -21,6 +21,7 @@ type ProfileSummary = {
   role?: string | null
   bio?: string | null
   slug: string
+  url: string
   image?: MediaObject | null
 }
 
@@ -73,6 +74,7 @@ export default function ProfileList({
               role: (p as any).role ?? null,
               bio: (p as any).bio ?? null,
               slug: String(p.slug),
+              url: String(p.url),
               image: p.image ?? null,
             }
           })
@@ -180,7 +182,7 @@ export default function ProfileList({
             role={p.role}
             bio={p.bio}
             image={p.image}
-            url={`/posts/${encodeURIComponent(p.slug)}`}
+            url={p.url}
           />
         )
         return _useReact ? (

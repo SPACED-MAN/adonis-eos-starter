@@ -19,6 +19,7 @@ type BlogSummary = {
   id: string
   title: string
   slug: string
+  url: string
   excerpt?: string | null
   updatedAt?: string | null
   image?: MediaObject | null
@@ -70,6 +71,7 @@ export default function BlogList({
             id: String(p.id),
             title: String(p.title || 'Untitled'),
             slug: String(p.slug),
+            url: String(p.url),
             excerpt: (p as any).excerpt ?? null,
             updatedAt: (p as any).updatedAt ?? null,
             image: p.image ?? null,
@@ -102,7 +104,7 @@ export default function BlogList({
     visible: {
       opacity: 1,
       y: 0,
-      transition: { duration: 1.0, ease: 'easeOut' },
+      transition: { duration: 1.0, ease: 'easeOut' as const },
     },
   }
 
@@ -174,7 +176,7 @@ export default function BlogList({
             excerpt={p.excerpt}
             updatedAt={p.updatedAt}
             image={p.image}
-            url={`/posts/${encodeURIComponent(p.slug)}`}
+            url={p.url}
           />
         )
         return _useReact ? (

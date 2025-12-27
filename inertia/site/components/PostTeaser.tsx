@@ -7,6 +7,7 @@ type PostTeaserProps = {
     locale: string
     slug: string
     title: string
+    url?: string
     excerpt?: string | null
     metaTitle?: string | null
     metaDescription?: string | null

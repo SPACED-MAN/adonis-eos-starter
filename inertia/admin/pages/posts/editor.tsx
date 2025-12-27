@@ -676,6 +676,11 @@ export default function Editor({
     metaTitle: post.metaTitle || '',
     metaDescription: post.metaDescription || '',
     canonicalUrl: post.canonicalUrl || '',
+    socialTitle: (post as any).socialTitle || '',
+    socialDescription: (post as any).socialDescription || '',
+    socialImageId: (post as any).socialImageId || '',
+    noindex: Boolean((post as any).noindex),
+    nofollow: Boolean((post as any).nofollow),
     robotsJson: post.robotsJson ? JSON.stringify(post.robotsJson, null, 2) : '',
     jsonldOverrides: post.jsonldOverrides ? JSON.stringify(post.jsonldOverrides, null, 2) : '',
     featuredImageId: post.featuredImageId || '',
@@ -692,6 +697,11 @@ export default function Editor({
     metaTitle: post.metaTitle || '',
     metaDescription: post.metaDescription || '',
     canonicalUrl: post.canonicalUrl || '',
+    socialTitle: (post as any).socialTitle || '',
+    socialDescription: (post as any).socialDescription || '',
+    socialImageId: (post as any).socialImageId || '',
+    noindex: Boolean((post as any).noindex),
+    nofollow: Boolean((post as any).nofollow),
     robotsJson: post.robotsJson ? JSON.stringify(post.robotsJson, null, 2) : '',
     jsonldOverrides: post.jsonldOverrides ? JSON.stringify(post.jsonldOverrides, null, 2) : '',
     featuredImageId: post.featuredImageId || '',
@@ -710,6 +720,11 @@ export default function Editor({
         metaTitle: String(reviewDraft.metaTitle ?? (post.metaTitle || '')),
         metaDescription: String(reviewDraft.metaDescription ?? (post.metaDescription || '')),
         canonicalUrl: String(reviewDraft.canonicalUrl ?? (post.canonicalUrl || '')),
+        socialTitle: String(reviewDraft.socialTitle ?? (post.socialTitle || '')),
+        socialDescription: String(reviewDraft.socialDescription ?? (post.socialDescription || '')),
+        socialImageId: String(reviewDraft.socialImageId ?? (post.socialImageId || '')),
+        noindex: Boolean(reviewDraft.noindex ?? post.noindex),
+        nofollow: Boolean(reviewDraft.nofollow ?? post.nofollow),
         robotsJson:
           typeof reviewDraft.robotsJson === 'string'
             ? reviewDraft.robotsJson
@@ -748,6 +763,11 @@ export default function Editor({
         metaTitle: String(aiReviewDraft.metaTitle ?? (post.metaTitle || '')),
         metaDescription: String(aiReviewDraft.metaDescription ?? (post.metaDescription || '')),
         canonicalUrl: String(aiReviewDraft.canonicalUrl ?? (post.canonicalUrl || '')),
+        socialTitle: String(aiReviewDraft.socialTitle ?? (post.socialTitle || '')),
+        socialDescription: String(aiReviewDraft.socialDescription ?? (post.socialDescription || '')),
+        socialImageId: String(aiReviewDraft.socialImageId ?? (post.socialImageId || '')),
+        noindex: Boolean(aiReviewDraft.noindex ?? post.noindex),
+        nofollow: Boolean(aiReviewDraft.nofollow ?? post.nofollow),
         robotsJson:
           typeof aiReviewDraft.robotsJson === 'string'
             ? aiReviewDraft.robotsJson
@@ -1001,6 +1021,11 @@ export default function Editor({
       metaTitle: String(d.metaTitle || '').trim() || '',
       metaDescription: String(d.metaDescription || '').trim() || '',
       canonicalUrl: String(d.canonicalUrl || '').trim() || '',
+      socialTitle: String(d.socialTitle || '').trim() || '',
+      socialDescription: String(d.socialDescription || '').trim() || '',
+      socialImageId: String(d.socialImageId || '').trim() || '',
+      noindex: Boolean(d.noindex),
+      nofollow: Boolean(d.nofollow),
       // Normalize JSON strings by parsing and re-stringifying without whitespace
       robotsJson: (() => {
         const val = d.robotsJson || ''
@@ -1036,6 +1061,7 @@ export default function Editor({
     }
   }
   const modulesEnabled = uiConfig?.modulesEnabled !== false
+  const permalinksEnabled = uiConfig?.permalinksEnabled !== false && (uiConfig?.urlPatterns?.length || 0) > 0
 
   // CSRF/XSRF token for fetch requests
   const page = usePage()
@@ -2972,7 +2998,7 @@ export default function Editor({
             <div className="bg-backdrop-low rounded-2xl p-8 border border-line-low shadow-sm">
               <div className="flex items-start justify-between gap-3 mb-8">
                 <h2 className="text-xl font-bold text-neutral-high tracking-tight">Content</h2>
-                {uiConfig?.hasPermalinks !== false && (
+                {permalinksEnabled && (
                   <Tooltip>
                     <TooltipTrigger asChild>
                       <button
@@ -3042,7 +3068,7 @@ export default function Editor({
 
                 {/* Featured Image (core) */}
                 {uiConfig?.featuredImage?.enabled && (
-                  <div className="group">
+                  <div className="group max-w-70">
                     <label className="block text-[11px] font-bold text-neutral-medium uppercase tracking-wider mt-2 mb-1.5 ml-1">
                       <div className="flex items-center justify-between">
                         <span className="inline-flex items-center gap-1.5">
@@ -3126,6 +3152,8 @@ export default function Editor({
                     <div className="p-1 border border-line-medium rounded-2xl bg-backdrop-medium/20">
                       <MediaThumb
                         mediaId={(data as any).featuredImageId || null}
+                        layout="vertical"
+                        size="w-full aspect-video"
                         onChange={() => setOpenMediaForField('featuredImage')}
                         onClear={() => setData('featuredImageId', '')}
                       />
@@ -3442,150 +3470,298 @@ export default function Editor({
             </div>
 
             {/* SEO Card */}
-            <div className="bg-backdrop-low rounded-2xl p-8 border border-line-low shadow-sm">
-              <h2 className="text-xl font-bold text-neutral-high mb-8 tracking-tight">SEO & Meta</h2>
+            {permalinksEnabled && (
+              <div className="bg-backdrop-low rounded-2xl p-8 border border-line-low shadow-sm">
+                <h2 className="text-xl font-bold text-neutral-high mb-8 tracking-tight">SEO & Meta</h2>
 
-              <div className="space-y-6">
-                {/* Slug */}
-                <div>
-                  <label className="block text-[11px] font-bold text-neutral-medium uppercase tracking-wider mt-2 mb-1.5 ml-1">
-                    <div className="flex items-center justify-between">
-                      <span>Slug *</span>
-                      {post.abVariation && abVariations.length > 1 && (
-                        <span className="text-[9px] text-standout-medium normal-case font-normal">
-                          Note: Variations share the primary post's public URL.
-                        </span>
-                      )}
-                    </div>
-                  </label>
-                  <div className="relative">
-                    <Input
-                      type="text"
-                      className="font-mono text-sm border-line-medium focus:ring-standout-medium/20 focus:border-standout-medium rounded-xl h-11"
-                      value={data.slug}
-                      onChange={(e) => {
-                        const v = String(e.target.value || '')
-                          .toLowerCase()
-                          .replace(/[^a-z0-9]+/g, '-')
-                          .replace(/-+/g, '-')
-                        setData('slug', v)
-                        // If user clears slug, re-enable auto; otherwise consider it manually controlled
-                        setSlugAuto(v === '')
-                      }}
-                      onBlur={() => {
-                        // Normalize fully on blur
-                        const v = slugify(String(data.slug || ''))
-                        setData('slug', v)
-                      }}
-                      placeholder="post-slug"
-                    />
-                    <div className="absolute right-3 top-1/2 -translate-y-1/2">
-                      <FontAwesomeIcon
-                        icon={faLink}
-                        className={`text-lg ${slugAuto ? 'text-standout-medium' : 'text-neutral-low opacity-20'}`}
+                <div className="space-y-6">
+                  {/* Slug */}
+                  <div>
+                    <label className="block text-[11px] font-bold text-neutral-medium uppercase tracking-wider mt-2 mb-1.5 ml-1">
+                      <div className="flex items-center justify-between">
+                        <span>Slug *</span>
+                        {post.abVariation && abVariations.length > 1 && (
+                          <span className="text-[9px] text-standout-medium normal-case font-normal">
+                            Note: Variations share the primary post's public URL.
+                          </span>
+                        )}
+                      </div>
+                    </label>
+                    <div className="relative">
+                      <Input
+                        type="text"
+                        className="font-mono text-sm border-line-medium focus:ring-standout-medium/20 focus:border-standout-medium rounded-xl h-11"
+                        value={data.slug}
+                        onChange={(e) => {
+                          const v = String(e.target.value || '')
+                            .toLowerCase()
+                            .replace(/[^a-z0-9]+/g, '-')
+                            .replace(/-+/g, '-')
+                          setData('slug', v)
+                          // If user clears slug, re-enable auto; otherwise consider it manually controlled
+                          setSlugAuto(v === '')
+                        }}
+                        onBlur={() => {
+                          // Normalize fully on blur
+                          const v = slugify(String(data.slug || ''))
+                          setData('slug', v)
+                        }}
+                        placeholder="post-slug"
                       />
+                      <div className="absolute right-3 top-1/2 -translate-y-1/2">
+                        <FontAwesomeIcon
+                          icon={faLink}
+                          className={`text-lg ${slugAuto ? 'text-standout-medium' : 'text-neutral-low opacity-20'}`}
+                        />
+                      </div>
                     </div>
-                  </div>
-                  {errors.slug && <p className="text-sm text-red-500 mt-1.5 ml-1">{errors.slug}</p>}
-                  {pathPattern && (
-                    <p className="mt-2 text-[10px] text-neutral-low font-mono bg-backdrop-medium/30 px-2 py-1 rounded border border-line-low/50 truncate">
-                      Preview: {buildPreviewPath(data.slug)}
-                    </p>
-                  )}
-                </div>
-
-                <div className="grid grid-cols-1 gap-6">
-                  {/* Meta Title */}
-                  <div>
-                    <label className="block text-[11px] font-bold text-neutral-medium uppercase tracking-wider mt-2 mb-1.5 ml-1">
-                      Meta Title
-                    </label>
-                    <Input
-                      type="text"
-                      className="border-line-medium focus:ring-standout-medium/20 focus:border-standout-medium rounded-xl h-11"
-                      value={data.metaTitle}
-                      onChange={(e) => setData('metaTitle', e.target.value)}
-                      placeholder="Custom meta title (optional)"
-                    />
-                    <p className="text-[10px] text-neutral-low mt-1.5 ml-1 italic">Leave blank to use post title</p>
+                    {errors.slug && <p className="text-sm text-red-500 mt-1.5 ml-1">{errors.slug}</p>}
+                    {pathPattern && (
+                      <p className="mt-2 text-[10px] text-neutral-low font-mono bg-backdrop-medium/30 px-2 py-1 rounded border border-line-low/50 truncate">
+                        Preview: {buildPreviewPath(data.slug)}
+                      </p>
+                    )}
                   </div>
 
-                  {/* Meta Description */}
-                  <div>
-                    <label className="block text-[11px] font-bold text-neutral-medium uppercase tracking-wider mt-2 mb-1.5 ml-1">
-                      Meta Description
-                    </label>
-                    <Textarea
-                      className="border-line-medium focus:ring-standout-medium/20 focus:border-standout-medium rounded-xl"
-                      value={data.metaDescription}
-                      onChange={(e) => setData('metaDescription', e.target.value)}
-                      rows={3}
-                      placeholder="Custom meta description (optional)"
-                    />
-                    <p className="text-[10px] text-neutral-low mt-1.5 ml-1 italic">Recommended: 150-160 characters</p>
-                  </div>
-                </div>
-
-                {/* Advanced SEO Toggle */}
-                <details className="group/advanced border-t border-line-low pt-4 mt-6">
-                  <summary className="flex items-center gap-2 text-[11px] font-bold text-neutral-low uppercase tracking-wider cursor-pointer hover:text-neutral-high transition-colors list-none">
-                    <FontAwesomeIcon
-                      icon={faChevronDown}
-                      className="group-open/advanced:rotate-180 transition-transform"
-                    />
-                    Advanced SEO Settings
-                  </summary>
-
-                  <div className="mt-6 space-y-6">
-                    {/* Canonical URL */}
+                  <div className="grid grid-cols-1 gap-6">
+                    {/* Meta Title */}
                     <div>
                       <label className="block text-[11px] font-bold text-neutral-medium uppercase tracking-wider mt-2 mb-1.5 ml-1">
-                        Canonical URL
+                        Meta Title
                       </label>
                       <Input
-                        type="url"
-                        className="border-line-medium focus:ring-standout-medium/20 focus:border-standout-medium rounded-xl h-11 text-sm"
-                        value={data.canonicalUrl}
-                        onChange={(e) => setData('canonicalUrl', e.target.value)}
-                        placeholder="https://example.com/my-post"
+                        type="text"
+                        className="border-line-medium focus:ring-standout-medium/20 focus:border-standout-medium rounded-xl h-11"
+                        value={data.metaTitle}
+                        onChange={(e) => setData('metaTitle', e.target.value)}
+                        placeholder="Custom meta title (optional)"
                       />
+                      <p className="text-[10px] text-neutral-low mt-1.5 ml-1 italic">Leave blank to use post title</p>
                     </div>
 
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                      {/* Robots JSON */}
-                      <div>
-                        <label className="block text-[11px] font-bold text-neutral-medium uppercase tracking-wider mt-2 mb-1.5 ml-1">
-                          Robots (JSON)
-                        </label>
-                        <Textarea
-                          value={data.robotsJson}
-                          onChange={(e) => setData('robotsJson', e.target.value)}
-                          rows={4}
-                          className="font-mono text-[11px] border-line-medium focus:ring-standout-medium/20 focus:border-standout-medium rounded-xl bg-backdrop-medium/10"
-                          placeholder={JSON.stringify({ index: true, follow: true }, null, 2)}
-                        />
-                      </div>
+                    {/* Meta Description */}
+                    <div>
+                      <label className="block text-[11px] font-bold text-neutral-medium uppercase tracking-wider mt-2 mb-1.5 ml-1">
+                        Meta Description
+                      </label>
+                      <Textarea
+                        className="border-line-medium focus:ring-standout-medium/20 focus:border-standout-medium rounded-xl"
+                        value={data.metaDescription}
+                        onChange={(e) => setData('metaDescription', e.target.value)}
+                        rows={3}
+                        placeholder="Custom meta description (optional)"
+                      />
+                      <p className="text-[10px] text-neutral-low mt-1.5 ml-1 italic">Recommended: 150-160 characters</p>
+                    </div>
 
-                      {/* JSON-LD Overrides */}
-                      <div>
-                        <label className="block text-[11px] font-bold text-neutral-medium uppercase tracking-wider mt-2 mb-1.5 ml-1">
-                          JSON-LD Overrides
-                        </label>
-                        <Textarea
-                          value={data.jsonldOverrides}
-                          onChange={(e) => setData('jsonldOverrides', e.target.value)}
-                          rows={4}
-                          className="font-mono text-[11px] border-line-medium focus:ring-standout-medium/20 focus:border-standout-medium rounded-xl bg-backdrop-medium/10"
-                          placeholder={JSON.stringify({ '@type': 'BlogPosting' }, null, 2)}
-                        />
+                    {/* Robots Toggles */}
+                    <div className="pt-4 border-t border-line-low">
+                      <label className="block text-[11px] font-bold text-neutral-medium uppercase tracking-wider mb-3 ml-1">
+                        Search Engine Visibility
+                      </label>
+                      <div className="flex gap-6 ml-1">
+                        <div className="flex items-center gap-2">
+                          <Checkbox
+                            id="noindex"
+                            checked={data.noindex}
+                            onCheckedChange={(val) => setData('noindex', !!val)}
+                          />
+                          <label htmlFor="noindex" className="text-xs font-medium text-neutral-medium cursor-pointer">
+                            No Index (Prevent from appearing in search results)
+                          </label>
+                        </div>
+                        <div className="flex items-center gap-2">
+                          <Checkbox
+                            id="nofollow"
+                            checked={data.nofollow}
+                            onCheckedChange={(val) => setData('nofollow', !!val)}
+                          />
+                          <label htmlFor="nofollow" className="text-xs font-medium text-neutral-medium cursor-pointer">
+                            No Follow (Prevent search engines from following links)
+                          </label>
+                        </div>
+                      </div>
+                    </div>
+
+                    {/* Social Media Preview / Settings */}
+                    <div className="pt-6 border-t border-line-low space-y-4">
+                      <label className="block text-[11px] font-bold text-neutral-medium uppercase tracking-wider mb-2 ml-1">
+                        Social Media
+                      </label>
+
+                      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                        <div className="space-y-4">
+                          <div>
+                            <label className="block text-[10px] font-bold text-neutral-low uppercase tracking-widest ml-1 mb-1.5">
+                              Social Title
+                            </label>
+                            <Input
+                              type="text"
+                              className="border-line-medium focus:ring-standout-medium/20 focus:border-standout-medium rounded-xl h-10 text-sm"
+                              value={data.socialTitle}
+                              onChange={(e) => setData('socialTitle', e.target.value)}
+                              placeholder="Social sharing title (optional)"
+                            />
+                          </div>
+                          <div>
+                            <label className="block text-[10px] font-bold text-neutral-low uppercase tracking-widest ml-1 mb-1.5">
+                              Social Description
+                            </label>
+                            <Textarea
+                              className="border-line-medium focus:ring-standout-medium/20 focus:border-standout-medium rounded-xl text-sm"
+                              value={data.socialDescription}
+                              onChange={(e) => setData('socialDescription', e.target.value)}
+                              rows={3}
+                              placeholder="Social sharing description (optional)"
+                            />
+                          </div>
+                        </div>
+
+                        <div>
+                          <label className="block text-[10px] font-bold text-neutral-low uppercase tracking-widest ml-1 mb-1.5">
+                            Social Sharing Image
+                          </label>
+                          <div className="space-y-3">
+                            <div className="p-1 border border-line-medium rounded-2xl bg-backdrop-medium/20 relative group overflow-hidden">
+                              <MediaThumb
+                                mediaId={(data as any).socialImageId || null}
+                                className="w-full border-none bg-transparent"
+                                size="aspect-[1.91/1] w-full"
+                                layout="vertical"
+                                onChange={() => setOpenMediaForField('socialImage')}
+                                onClear={() => setData('socialImageId', '')}
+                                fallbackMediaId={(data as any).featuredImageId || null}
+                              />
+                            </div>
+                            <MediaPickerModal
+                              open={openMediaForField === 'socialImage'}
+                              onOpenChange={(o) => setOpenMediaForField(o ? 'socialImage' : null)}
+                              initialSelectedId={(data as any).socialImageId || undefined}
+                              onSelect={(m) => {
+                                setData('socialImageId', m.id)
+                                setOpenMediaForField(null)
+                              }}
+                            />
+                            <p className="text-[10px] text-neutral-low italic ml-1">
+                              Recommended: 1200x630px. Defaults to Featured Image.
+                            </p>
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+
+                    {/* SEO Previews */}
+                    <div className="pt-8 border-t border-line-low space-y-6">
+                      <label className="block text-[11px] font-bold text-neutral-medium uppercase tracking-wider mb-2 ml-1">
+                        Previews
+                      </label>
+
+                      <div className="grid grid-cols-1 xl:grid-cols-2 gap-8">
+                        {/* Search Engine Preview */}
+                        <div className="space-y-3">
+                          <span className="text-[10px] font-bold text-neutral-low uppercase tracking-widest ml-1">Google Search</span>
+                          <div className="bg-white dark:bg-[#202124] p-6 rounded-xl border border-line-low shadow-sm max-w-lg transition-colors">
+                            <div className="text-[14px] text-[#1a0dab] dark:text-[#8ab4f8] leading-tight truncate mb-1 hover:underline cursor-pointer">
+                              {data.metaTitle || data.title || 'Post Title'}
+                            </div>
+                            <div className="text-[12px] text-[#006621] dark:text-[#bdc1c6] truncate mb-1">
+                              {window.location.origin}{data.canonicalUrl || `/${data.slug}`}
+                            </div>
+                            <div className="text-[13px] text-[#4d5156] dark:text-[#bdc1c6] line-clamp-2 leading-relaxed">
+                              {data.metaDescription || data.excerpt || 'Please provide a meta description or excerpt to see how this post will appear in search results.'}
+                            </div>
+                          </div>
+                        </div>
+
+                        {/* Social Media Preview (Facebook/LinkedIn style) */}
+                        <div className="space-y-3">
+                          <span className="text-[10px] font-bold text-neutral-low uppercase tracking-widest ml-1">Facebook / LinkedIn</span>
+                          <div className="bg-[#f2f3f5] dark:bg-[#242526] rounded-xl border border-line-low shadow-sm overflow-hidden max-w-lg transition-colors">
+                            <div className="aspect-[1.91/1] bg-backdrop-medium relative overflow-hidden">
+                              <MediaThumb
+                                mediaId={(data as any).socialImageId || null}
+                                fallbackMediaId={(data as any).featuredImageId || null}
+                                className="w-full h-full border-none p-0 bg-transparent rounded-none"
+                                size="w-full h-full"
+                                hideActions
+                              />
+                            </div>
+                            <div className="p-3 bg-white dark:bg-[#242526] border-t border-line-low transition-colors">
+                              <div className="text-[12px] text-neutral-low dark:text-[#b0b3b8] uppercase tracking-wider mb-1">
+                                {window.location.hostname.toUpperCase()}
+                              </div>
+                              <div className="text-[16px] font-bold text-neutral-high dark:text-[#e4e6eb] line-clamp-2 leading-tight mb-1">
+                                {data.socialTitle || data.metaTitle || data.title || 'Post Title'}
+                              </div>
+                              <div className="text-[14px] text-neutral-medium dark:text-[#b0b3b8] line-clamp-1 leading-normal">
+                                {data.socialDescription || data.metaDescription || data.excerpt || 'Post description...'}
+                              </div>
+                            </div>
+                          </div>
+                        </div>
                       </div>
                     </div>
                   </div>
-                </details>
-              </div>
-            </div>
 
-            {/* end left column */}
+                  {/* Advanced SEO Toggle */}
+                  <details className="group/advanced border-t border-line-low pt-4 mt-6">
+                    <summary className="flex items-center gap-2 text-[11px] font-bold text-neutral-low uppercase tracking-wider cursor-pointer hover:text-neutral-high transition-colors list-none">
+                      <FontAwesomeIcon
+                        icon={faChevronDown}
+                        className="group-open/advanced:rotate-180 transition-transform"
+                      />
+                      Advanced SEO Settings
+                    </summary>
+
+                    <div className="mt-6 space-y-6">
+                      {/* Canonical URL */}
+                      <div>
+                        <label className="block text-[11px] font-bold text-neutral-medium uppercase tracking-wider mt-2 mb-1.5 ml-1">
+                          Canonical URL
+                        </label>
+                        <Input
+                          type="url"
+                          className="border-line-medium focus:ring-standout-medium/20 focus:border-standout-medium rounded-xl h-11 text-sm"
+                          value={data.canonicalUrl}
+                          onChange={(e) => setData('canonicalUrl', e.target.value)}
+                          placeholder="https://example.com/my-post"
+                        />
+                      </div>
+
+                      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                        {/* Robots JSON */}
+                        <div>
+                          <label className="block text-[11px] font-bold text-neutral-medium uppercase tracking-wider mt-2 mb-1.5 ml-1">
+                            Robots (JSON)
+                          </label>
+                          <Textarea
+                            value={data.robotsJson}
+                            onChange={(e) => setData('robotsJson', e.target.value)}
+                            rows={4}
+                            className="font-mono text-[11px] border-line-medium focus:ring-standout-medium/20 focus:border-standout-medium rounded-xl bg-backdrop-medium/10"
+                            placeholder={JSON.stringify({ index: true, follow: true }, null, 2)}
+                          />
+                        </div>
+
+                        {/* JSON-LD Overrides */}
+                        <div>
+                          <label className="block text-[11px] font-bold text-neutral-medium uppercase tracking-wider mt-2 mb-1.5 ml-1">
+                            JSON-LD Overrides
+                          </label>
+                          <Textarea
+                            value={data.jsonldOverrides}
+                            onChange={(e) => setData('jsonldOverrides', e.target.value)}
+                            rows={4}
+                            className="font-mono text-[11px] border-line-medium focus:ring-standout-medium/20 focus:border-standout-medium rounded-xl bg-backdrop-medium/10"
+                            placeholder={JSON.stringify({ '@type': 'BlogPosting' }, null, 2)}
+                          />
+                        </div>
+                      </div>
+                    </div>
+                  </details>
+                </div>
+              </div>
+            )}
           </div>
 
           {/* Right Column - Sidebar */}

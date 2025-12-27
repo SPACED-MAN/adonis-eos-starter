@@ -144,6 +144,21 @@ class MenuService {
 
     const expandedRows = await this.expandDynamicMenuItems(rows, locale)
 
+    // Resolve URLs for all post-type menu items
+    const urlPatternService = (await import('#services/url_pattern_service')).default
+    const postIdsToResolve = expandedRows
+      .filter((item) => item.type === 'post' && item.postId && !item.customUrl)
+      .map((item) => String(item.postId))
+
+    if (postIdsToResolve.length > 0) {
+      const urlMap = await urlPatternService.buildPostPaths(postIdsToResolve)
+      for (const item of expandedRows) {
+        if (item.type === 'post' && item.postId && !item.customUrl) {
+          item.customUrl = urlMap.get(String(item.postId)) || `/posts/${item.postId}`
+        }
+      }
+    }
+
     return {
       id: menu.id,
       name: menu.name,

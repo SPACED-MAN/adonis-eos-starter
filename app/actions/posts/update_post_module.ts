@@ -37,17 +37,23 @@ export default class UpdatePostModule {
     for (const key of Object.keys(override)) {
       const oVal = (override as any)[key]
       const bVal = (base as any)[key]
+
+      // Detect Lexical JSON structure: if it looks like a Lexical value, replace instead of merge.
+      // Lexical objects always have a 'root' key at the top level.
+      const isLexical = (val: any) => val && typeof val === 'object' && !Array.isArray(val) && 'root' in val
+
       if (
         oVal &&
         typeof oVal === 'object' &&
         !Array.isArray(oVal) &&
         bVal &&
         typeof bVal === 'object' &&
-        !Array.isArray(bVal)
+        !Array.isArray(bVal) &&
+        !isLexical(oVal)
       ) {
         out[key] = UpdatePostModule.deepMerge(bVal, oVal)
       } else {
-        // For arrays and primitives: replace entirely
+        // For arrays, primitives, and atomic objects like Lexical trees: replace entirely
         out[key] = oVal
       }
     }

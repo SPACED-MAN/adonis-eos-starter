@@ -19,6 +19,11 @@ type CreatePostParams = {
   excerpt?: string | null
   metaTitle?: string | null
   metaDescription?: string | null
+  socialTitle?: string | null
+  socialDescription?: string | null
+  socialImageId?: string | null
+  noindex?: boolean
+  nofollow?: boolean
   moduleGroupId?: string | null
   /**
    * Controls how seeded modules are staged.
@@ -50,6 +55,11 @@ export default class CreatePost {
     excerpt = null,
     metaTitle = null,
     metaDescription = null,
+    socialTitle = null,
+    socialDescription = null,
+    socialImageId = null,
+    noindex = false,
+    nofollow = false,
     moduleGroupId = null,
     seedMode = 'approved',
     userId,
@@ -157,6 +167,11 @@ export default class CreatePost {
           excerpt,
           metaTitle,
           metaDescription,
+          socialTitle,
+          socialDescription,
+          socialImageId,
+          noindex,
+          nofollow,
           moduleGroupId: moduleGroupsEnabled ? effectiveModuleGroupId : null,
           userId,
           authorId: userId,

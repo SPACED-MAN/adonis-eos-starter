@@ -453,7 +453,6 @@ Only include fields that you are actually changing.`,
         break
       case 'post.create-translation':
         parts.push('A new translation has been created for this post.')
-        parts.push(`Translation Post ID: ${context.data?.postId || 'unknown'}`)
         parts.push(`Target locale: ${context.data?.targetLocale || 'unknown'}`)
         parts.push(
           'Your task is to translate all content into the target locale. Use tool calls to update the fields and modules of this translation post.'
@@ -469,6 +468,7 @@ Only include fields that you are actually changing.`,
     // Add payload context
     if (payload) {
       if (payload.post) {
+        parts.push(`\nTarget Post ID: ${payload.post.id}`)
         parts.push(`\nCurrent post data:\n${JSON.stringify(payload.post, null, 2)}`)
       }
       if (payload.modules) {
@@ -487,6 +487,14 @@ Only include fields that you are actually changing.`,
         parts.push(
           `\n\nIMPORTANT: If asked to update "all modules" or "all copy", you MUST include entries for all relevant modules in your response array. Use "postModuleId" to ensure your changes apply to the correct instance.`
         )
+        const hasProse = payload.modules.some((m: any) =>
+          String(m.type || '').toLowerCase().includes('prose')
+        )
+        if (hasProse) {
+          parts.push(
+            `\n\nNOTICE: This post contains "Prose" modules. When writing copy for these modules, ensure you provide a substantial amount of content (multiple paragraphs, headings, etc.) to meet user expectations for high-quality, detailed copy.`
+          )
+        }
       }
       if (payload.openEndedContext) {
         parts.push(`\n\nUser instructions: ${payload.openEndedContext}`)

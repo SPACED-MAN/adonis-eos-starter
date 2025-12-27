@@ -208,6 +208,10 @@ export default class PostsListController extends BasePostsController {
       const rows = result.all()
       const total = result.getMeta().total
 
+      // Resolve paths for all rows if requested or if it's a list view
+      const urlPatternService = (await import('#services/url_pattern_service')).default
+      const urlMap = await urlPatternService.buildPostPaths(rows.map((r) => r.id))
+
       // Optional: include translation family locales
       const withTranslations = String(request.input('withTranslations', '0')).trim() === '1'
       let baseIdToLocales: Map<string, Set<string>> | undefined
@@ -235,6 +239,7 @@ export default class PostsListController extends BasePostsController {
           : undefined
 
         return new PostListItemDto(p, {
+          url: urlMap.get(p.id) || null,
           familyLocales,
           hasReviewDraft: Boolean((p as any).reviewDraft),
           isDeleted: (p as any).deletedAt !== null,

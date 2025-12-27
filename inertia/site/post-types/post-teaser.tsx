@@ -5,6 +5,7 @@ type TeaserProps = {
     locale: string
     slug: string
     title: string
+    url?: string
     excerpt?: string | null
     metaTitle?: string | null
     metaDescription?: string | null
@@ -12,9 +13,10 @@ type TeaserProps = {
 }
 
 export default function PostTeaserDefault({ post }: TeaserProps) {
+  const url = post.url || `/posts/${post.slug}`
   return (
     <article className="border border-line-low rounded-md p-4 bg-backdrop-low">
-      <a href={`/posts/${post.slug}`} className="block hover:underline">
+      <a href={url} className="block hover:underline">
         <h3 className="text-lg font-semibold text-neutral-high">{post.title}</h3>
       </a>
       {post.excerpt && <p className="text-sm text-neutral-medium mt-1">{post.excerpt}</p>}

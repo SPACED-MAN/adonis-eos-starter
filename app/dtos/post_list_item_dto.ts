@@ -17,6 +17,7 @@ export default class PostListItemDto extends BaseModelDto {
   declare excerpt: string | null
   declare orderIndex: number
   declare parentId: string | null
+  declare url?: string | null
   declare updatedAt: string | null
   declare translationOfId: string | null
   declare familyLocales?: string[]
@@ -26,6 +27,7 @@ export default class PostListItemDto extends BaseModelDto {
   constructor(
     post?: Post,
     extras?: {
+      url?: string | null
       familyLocales?: string[]
       hasReviewDraft?: boolean
       isDeleted?: boolean
@@ -43,6 +45,7 @@ export default class PostListItemDto extends BaseModelDto {
     this.excerpt = post.excerpt ?? null
     this.orderIndex = (post as any).orderIndex ?? 0
     this.parentId = (post as any).parentId || null
+    this.url = extras?.url || (post as any).url || null
     this.updatedAt = post.updatedAt?.toISO
       ? post.updatedAt.toISO()
       : ((post as any).updatedAt ?? null)

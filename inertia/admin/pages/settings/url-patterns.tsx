@@ -48,6 +48,7 @@ export default function UrlPatternsPage() {
   const [patterns, setPatterns] = useState<Pattern[]>([])
   const [loading, setLoading] = useState(false)
   const [savingKey, setSavingKey] = useState<string | null>(null)
+  const [savingAggregate, setSavingAggregate] = useState<string | null>(null)
   const [drafts, setDrafts] = useState<Record<string, string>>({})
   const [aggregateDrafts, setAggregateDrafts] = useState<Record<string, string | null>>({})
   const [pages, setPages] = useState<PageOption[]>([])
@@ -118,7 +119,7 @@ export default function UrlPatternsPage() {
     const key = `${postType}:${locale}`
     const pattern = drafts[key]
     const aggregatePostId = aggregateDrafts[postType] ?? null
-    if (!pattern) return
+    if (pattern === undefined) return
     setSavingKey(key)
     try {
       const res = await fetch(`/api/url-patterns/${encodeURIComponent(locale)}`, {
@@ -145,9 +146,9 @@ export default function UrlPatternsPage() {
           if (p.postType === postType) {
             next[idx] = { ...p, aggregatePostId: json.data.aggregatePostId }
             if (p.locale === locale && p.isDefault) {
-          next[idx] = json.data
+              next[idx] = json.data
             }
-        }
+          }
         })
         return next
       })
@@ -155,6 +156,69 @@ export default function UrlPatternsPage() {
     } finally {
       setSavingKey(null)
     }
+  }
+
+  async function saveAggregate(postType: string) {
+    const aggregatePostId = aggregateDrafts[postType] ?? null
+    // Find the first available pattern for this post type to fulfill API requirements
+    const patternEntry = patterns.find((p) => p.postType === postType && p.isDefault)
+    if (!patternEntry) return
+
+    const key = `${postType}:aggregate`
+    setSavingAggregate(postType)
+    try {
+      const res = await fetch(`/api/url-patterns/${encodeURIComponent(patternEntry.locale)}`, {
+        method: 'PUT',
+        headers: {
+          'Accept': 'application/json',
+          'Content-Type': 'application/json',
+          ...(getXsrfToken() ? { 'X-XSRF-TOKEN': getXsrfToken()! } : {}),
+        },
+        credentials: 'same-origin',
+        body: JSON.stringify({
+          postType,
+          pattern: drafts[`${postType}:${patternEntry.locale}`] || patternEntry.pattern,
+          isDefault: true,
+          aggregatePostId,
+        }),
+      })
+      if (!res.ok) {
+        const err = await res.json().catch(() => ({}))
+        showError(err?.error || 'Failed to save aggregate page')
+        return
+      }
+      const json = await res.json()
+      // Update local list
+      setPatterns((prev) => {
+        const next = prev.slice()
+        next.forEach((p, idx) => {
+          if (p.postType === postType) {
+            next[idx] = { ...p, aggregatePostId: json.data.aggregatePostId }
+          }
+        })
+        return next
+      })
+      toast.success('Aggregate page updated')
+    } finally {
+      setSavingAggregate(null)
+    }
+  }
+
+  const isPatternDirty = (postType: string, locale: string) => {
+    const key = `${postType}:${locale}`
+    const current = patterns.find(
+      (p) => p.postType === postType && p.locale === locale && p.isDefault
+    )
+    if (!current) return false
+    return (drafts[key] ?? current.pattern) !== current.pattern
+  }
+
+  const isAggregateDirty = (postType: string) => {
+    const current = patterns.find((p) => p.postType === postType && p.isDefault)
+    const initialValue = current?.aggregatePostId ?? null
+    const currentValue = aggregateDrafts[postType] ?? null
+    // Normalize empty strings to null for comparison
+    return (currentValue || null) !== (initialValue || null)
   }
 
   return (
@@ -240,6 +304,16 @@ export default function UrlPatternsPage() {
                                 ))}
                             </SelectContent>
                           </Select>
+                          {isAggregateDirty(postType) && (
+                            <button
+                              type="button"
+                              className="px-3 py-1 text-xs font-semibold rounded bg-standout-medium text-on-standout disabled:opacity-50 transition-all hover:opacity-90"
+                              disabled={savingAggregate === postType}
+                              onClick={() => saveAggregate(postType)}
+                            >
+                              {savingAggregate === postType ? 'Saving…' : 'Save'}
+                            </button>
+                          )}
                         </div>
                       </div>
 
@@ -261,14 +335,16 @@ export default function UrlPatternsPage() {
                                   setDrafts((d) => ({ ...d, [key]: e.target.value }))
                                 }
                               />
-                              <button
-                                type="button"
-                                className="px-4 py-2 text-sm font-semibold rounded bg-standout-medium text-on-standout disabled:opacity-50 min-w-[100px] transition-all hover:opacity-90"
-                                disabled={savingKey === key}
-                                onClick={() => save(postType, loc)}
-                              >
-                                {savingKey === key ? 'Saving…' : 'Save Pattern'}
-                              </button>
+                              {isPatternDirty(postType, loc) && (
+                                <button
+                                  type="button"
+                                  className="px-4 py-2 text-sm font-semibold rounded bg-standout-medium text-on-standout disabled:opacity-50 min-w-[100px] transition-all hover:opacity-90"
+                                  disabled={savingKey === key}
+                                  onClick={() => save(postType, loc)}
+                                >
+                                  {savingKey === key ? 'Saving…' : 'Save Pattern'}
+                                </button>
+                              )}
                             </div>
                           )
                         })}

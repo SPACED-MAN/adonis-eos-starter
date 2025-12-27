@@ -37,6 +37,7 @@ All modules share these actions:
 - Use headings (H2, H3) to structure content
 - Keep paragraphs short for readability
 - Add links by selecting text and clicking the link icon
+- **AI-Powered**: When using AI agents to generate content, modules named 'Prose' will automatically receive more detailed and substantial copy (multiple paragraphs and headings) to ensure high-quality output.
 
 ---
 

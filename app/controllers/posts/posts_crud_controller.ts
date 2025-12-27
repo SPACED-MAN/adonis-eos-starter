@@ -245,6 +245,11 @@ export default class PostsCrudController extends BasePostsController {
         orderIndex: payload.orderIndex,
         metaTitle: payload.metaTitle,
         metaDescription: payload.metaDescription,
+        socialTitle: (payload as any).socialTitle,
+        socialDescription: (payload as any).socialDescription,
+        socialImageId: (payload as any).socialImageId,
+        noindex: (payload as any).noindex ?? false,
+        nofollow: (payload as any).nofollow ?? false,
         canonicalUrl: payload.canonicalUrl,
         robotsJson,
         jsonldOverrides,
@@ -409,6 +414,7 @@ export default class PostsCrudController extends BasePostsController {
         action: payload.action as any,
         ids: payload.ids,
         role,
+        userId: auth.user?.id,
       })
 
       // Log activity

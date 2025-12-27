@@ -26,6 +26,11 @@ export const createPostValidator = vine.compile(
     excerpt: vine.string().trim().maxLength(1000).nullable().optional(),
     metaTitle: vine.string().trim().maxLength(255).nullable().optional(),
     metaDescription: vine.string().trim().maxLength(500).nullable().optional(),
+    socialTitle: vine.string().trim().maxLength(255).nullable().optional(),
+    socialDescription: vine.string().trim().maxLength(1000).nullable().optional(),
+    socialImageId: vine.string().uuid().nullable().optional(),
+    noindex: vine.boolean().optional(),
+    nofollow: vine.boolean().optional(),
     moduleGroupId: vine.string().uuid().nullable().optional(),
   })
 )
@@ -51,6 +56,11 @@ export const updatePostValidator = vine.compile(
     orderIndex: vine.number().min(0).optional(),
     metaTitle: vine.string().trim().maxLength(255).nullable().optional(),
     metaDescription: vine.string().trim().maxLength(500).nullable().optional(),
+    socialTitle: vine.string().trim().maxLength(255).nullable().optional(),
+    socialDescription: vine.string().trim().maxLength(1000).nullable().optional(),
+    socialImageId: vine.string().uuid().nullable().optional(),
+    noindex: vine.boolean().optional(),
+    nofollow: vine.boolean().optional(),
     /**
      * Canonical URL can be either:
      * - absolute URL (https://example.com/path)

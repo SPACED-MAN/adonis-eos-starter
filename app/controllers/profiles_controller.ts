@@ -1,6 +1,7 @@
 import type { HttpContext } from '@adonisjs/core/http'
 import Post from '#models/post'
 import PostCustomFieldValue from '#models/post_custom_field_value'
+import urlPatternService from '#services/url_pattern_service'
 
 /**
  * ProfilesController
@@ -53,6 +54,10 @@ export default class ProfilesController {
     if (rows.length === 0) {
       return response.ok({ data: [] })
     }
+
+    // Build paths in bulk for efficiency
+    const postIds = rows.map((p) => p.id)
+    const urlMap = await urlPatternService.buildPostPaths(postIds)
 
     // Load profile custom fields (first_name, last_name, role, profile_image)
     const profileIds = rows.map((p) => p.id as string)
@@ -137,6 +142,7 @@ export default class ProfilesController {
         role,
         bio,
         slug: p.slug,
+        url: urlMap.get(pid) || `/profile/${p.slug}`,
         image,
       }
     })

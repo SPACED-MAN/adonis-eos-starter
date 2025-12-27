@@ -1,5 +1,6 @@
 import type { HttpContext } from '@adonisjs/core/http'
 import Post from '#models/post'
+import urlPatternService from '#services/url_pattern_service'
 
 /**
  * CompaniesController
@@ -54,6 +55,10 @@ export default class CompaniesController {
       return response.ok({ data: [] })
     }
 
+    // Build paths in bulk for efficiency
+    const postIds = rows.map((p) => p.id)
+    const urlMap = await urlPatternService.buildPostPaths(postIds)
+
     const items = rows.map((p) => {
       const pid = String(p.id)
       const featuredImageId = p.featuredImageId || null
@@ -78,6 +83,7 @@ export default class CompaniesController {
         id: pid,
         title: p.title || 'Company',
         slug: p.slug,
+        url: urlMap.get(pid) || `/company/${p.slug}`,
         image,
         customFields,
       }

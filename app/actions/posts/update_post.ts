@@ -19,6 +19,11 @@ type UpdatePostParams = {
   canonicalUrl?: string | null
   robotsJson?: Record<string, any> | null
   jsonldOverrides?: Record<string, any> | null
+  socialTitle?: string | null
+  socialDescription?: string | null
+  socialImageId?: string | null
+  noindex?: boolean
+  nofollow?: boolean
   featuredImageId?: string | null
   taxonomyTermIds?: string[]
   scheduledAt?: string | null
@@ -50,6 +55,11 @@ export default class UpdatePost {
       canonicalUrl,
       robotsJson,
       jsonldOverrides,
+      socialTitle,
+      socialDescription,
+      socialImageId,
+      noindex,
+      nofollow,
       featuredImageId,
       taxonomyTermIds,
       scheduledAt,
@@ -166,6 +176,13 @@ export default class UpdatePost {
     if (canonicalUrl !== undefined) post.canonicalUrl = canonicalUrl
     if (robotsJson !== undefined) post.robotsJson = robotsJson
     if (jsonldOverrides !== undefined) post.jsonldOverrides = jsonldOverrides
+    if (socialTitle !== undefined) post.socialTitle = socialTitle
+    if (socialDescription !== undefined) post.socialDescription = socialDescription
+    if (socialImageId !== undefined) {
+      post.socialImageId = socialImageId === '' ? null : socialImageId
+    }
+    if (noindex !== undefined) post.noindex = noindex
+    if (nofollow !== undefined) post.nofollow = nofollow
     if (featuredImageId !== undefined) {
       // Normalize: empty string => null
       post.featuredImageId = featuredImageId === '' ? null : featuredImageId

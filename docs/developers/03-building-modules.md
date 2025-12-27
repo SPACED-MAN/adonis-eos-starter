@@ -351,6 +351,7 @@ Prevent accidental deletion:
 5. **Accessibility** - ARIA labels, keyboard navigation
 6. **Default props** - Provide sensible defaults
 7. **Validation** - Mark required fields
+8. **Naming Conventions** - Use the word **'Prose'** in your module `type` and `name` (e.g., `prose`, `prose-with-media`, `company-prose`) if the module is intended for long-form, rich text content. The system uses this keyword to signal AI agents that a substantial amount of copy (multiple paragraphs, headings, etc.) is expected.
 
 ## Testing Modules
 

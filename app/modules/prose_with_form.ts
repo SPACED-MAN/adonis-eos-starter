@@ -15,7 +15,7 @@ export default class ProseWithFormModule extends BaseModule {
       type: 'prose-with-form',
       name: 'Prose with Form',
       description:
-        'Two-column layout pairing prose-style content with an embedded frontend form for lead capture or contact.',
+        'A two-column layout pairing prose-style content with an embedded lead capture or contact form. EXPECTATION: Provide a detailed and persuasive content description (multiple paragraphs) to encourage form submission.',
       icon: 'layout-text-sidebar',
       allowedScopes: ['local', 'global'],
       lockable: true,

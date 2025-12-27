@@ -1,5 +1,6 @@
 import type { HttpContext } from '@adonisjs/core/http'
 import Post from '#models/post'
+import urlPatternService from '#services/url_pattern_service'
 
 /**
  * BlogsController
@@ -53,6 +54,10 @@ export default class BlogsController {
       return response.ok({ data: [] })
     }
 
+    // Build paths in bulk for efficiency
+    const postIds = rows.map((p) => p.id)
+    const urlMap = await urlPatternService.buildPostPaths(postIds)
+
     const items = rows.map((p) => {
       const pid = String(p.id)
       const featuredImage = p.featuredImage
@@ -76,6 +81,7 @@ export default class BlogsController {
         id: pid,
         title: p.title || 'Blog post',
         slug: p.slug,
+        url: urlMap.get(pid) || `/blog/${p.slug}`, // Fallback if pattern matching fails
         excerpt: p.excerpt ?? null,
         updatedAt,
         image,

@@ -96,6 +96,11 @@ export default class PostSnapshotService {
 				canonicalUrl: payload.canonicalUrl,
 				robotsJson: payload.robotsJson,
 				jsonldOverrides: payload.jsonldOverrides,
+				socialTitle: payload.socialTitle,
+				socialDescription: payload.socialDescription,
+				socialImageId: payload.socialImageId,
+				noindex: payload.noindex,
+				nofollow: payload.nofollow,
 				featuredImageId: payload.featuredImageId,
 				customFields: payload.customFields,
 				taxonomyTermIds: payload.taxonomyTermIds,
@@ -187,6 +192,11 @@ export default class PostSnapshotService {
 			canonicalUrl: p.canonicalUrl ?? null,
 			robotsJson: p.robotsJson ?? null,
 			jsonldOverrides: p.jsonldOverrides ?? null,
+			socialTitle: p.socialTitle ?? null,
+			socialDescription: p.socialDescription ?? null,
+			socialImageId: p.socialImageId ?? null,
+			noindex: p.noindex ?? false,
+			nofollow: p.nofollow ?? false,
 			featuredImageId: p.featuredImageId ?? null,
 		}, trx)
 

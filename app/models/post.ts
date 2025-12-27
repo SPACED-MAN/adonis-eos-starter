@@ -71,6 +71,21 @@ export default class Post extends BaseModel {
   @column()
   declare jsonldOverrides: JsonLdOverrides | null
 
+  @column()
+  declare socialTitle: string | null
+
+  @column()
+  declare socialDescription: string | null
+
+  @column({ columnName: 'social_image_id' })
+  declare socialImageId: string | null
+
+  @column()
+  declare noindex: boolean
+
+  @column()
+  declare nofollow: boolean
+
   @column({ columnName: 'review_draft' })
   declare reviewDraft: Record<string, any> | null
 
@@ -105,6 +120,14 @@ export default class Post extends BaseModel {
     foreignKey: 'featuredImageId',
   })
   declare featuredImage: BelongsTo<typeof MediaAsset>
+
+  /**
+   * Relationship: Social Image
+   */
+  @belongsTo(() => MediaAsset, {
+    foreignKey: 'socialImageId',
+  })
+  declare socialImage: BelongsTo<typeof MediaAsset>
 
   @column.dateTime()
   declare publishedAt: DateTime | null

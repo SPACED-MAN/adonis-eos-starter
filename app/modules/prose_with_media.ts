@@ -14,7 +14,8 @@ export default class ProseWithMediaModule extends BaseModule {
     return {
       type: 'prose-with-media',
       name: 'Prose with Media Content',
-      description: 'Two-column layout pairing prose-style content with a supporting media block.',
+      description:
+        'A layout pairing narrative content with a supporting visual block. Use this for feature explainers or editorial sections. EXPECTATION: Provide a substantial amount of body copy (multiple paragraphs) to properly support the visual element.',
       icon: 'layout-text-media',
       allowedScopes: ['local', 'global'],
       lockable: true,

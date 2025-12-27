@@ -19,6 +19,7 @@ type CompanySummary = {
   id: string
   title: string
   slug: string
+  url: string
   image?: MediaObject | null
   customFields?: Record<string, any>
 }
@@ -70,6 +71,7 @@ export default function CompanyList({
               id: String(p.id),
               title: String(p.title || 'Company'),
               slug: String(p.slug),
+              url: String(p.url),
               image: p.image ?? null,
               customFields: p.customFields || {},
             }
@@ -178,7 +180,7 @@ export default function CompanyList({
             id={c.id}
             title={c.title}
             image={c.image}
-            url={`/posts/${encodeURIComponent(c.slug)}`}
+            url={c.url}
             customFields={c.customFields}
           />
         )

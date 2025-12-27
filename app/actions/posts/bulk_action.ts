@@ -12,8 +12,9 @@ export default class BulkPostsAction {
     action: 'publish' | 'draft' | 'archive' | 'delete' | 'duplicate' | 'regeneratePermalinks'
     ids: string[]
     role?: 'admin' | 'editor' | 'translator'
+    userId?: number
   }): Promise<{ message: string; count: number }> {
-    const { action, ids, role } = input
+    const { action, ids, role, userId } = input
     const uniqueIds = Array.from(new Set(ids.map((v) => String(v))))
 
     if (!authorizationService.canBulkAction(role, action)) {
@@ -200,6 +201,29 @@ export default class BulkPostsAction {
         throw err
     }
     const now = new Date()
+    
+    if (action === 'publish') {
+      const PromoteAiReviewToReview = (await import('#actions/posts/promote_ai_review_to_review')).default
+      const ApproveReviewDraft = (await import('#actions/posts/approve_review_draft')).default
+      const posts = await Post.query().whereIn('id', uniqueIds)
+      
+      for (const post of posts) {
+        // Recognition: if post has AI Review draft but no manual Review draft,
+        // and Source is empty or it's a new AI-generated post, promote it.
+        const hasArd = post.aiReviewDraft && Object.keys(post.aiReviewDraft).length > 0
+        const hasRd = post.reviewDraft && Object.keys(post.reviewDraft).length > 0
+        
+        if (hasArd && !hasRd) {
+          // Automatic promotion for AI-only content during bulk publish
+          await PromoteAiReviewToReview.handle({ postId: post.id, userId: userId || post.userId })
+          await ApproveReviewDraft.handle({ postId: post.id, userId: userId || post.userId })
+        } else if (hasRd) {
+          // If there's a manual review draft, approve it during bulk publish
+          await ApproveReviewDraft.handle({ postId: post.id, userId: userId || post.userId })
+        }
+      }
+    }
+
     await db.from('posts').whereIn('id', uniqueIds).update({ status: nextStatus, updated_at: now })
     return { message: `Updated status to ${nextStatus}`, count: uniqueIds.length }
   }

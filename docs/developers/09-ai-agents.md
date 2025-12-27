@@ -891,8 +891,9 @@ export default SeoAgent
 2. **Optimize prompts**: Clear system prompts improve results
 3. **Set appropriate limits**: Use `maxTokens` to control costs
 4. **Use MCP wisely**: Enable MCP only when agents need CMS operations
-5. **Monitor usage**: Track API costs and usage
-6. **Test reactions**: Ensure webhooks/Slack notifications work correctly
+5. **Prose Module Convention**: The system automatically detects modules with **'Prose'** in their name (e.g., `prose`, `prose-with-media`). When these modules are present, the agent is explicitly instructed to provide substantial, high-quality copy (multiple paragraphs, headings, etc.) instead of brief summaries. Use this naming convention when building modules that require significant text content.
+6. **Monitor usage**: Track API costs and usage
+7. **Test reactions**: Ensure webhooks/Slack notifications work correctly
 
 ## Troubleshooting
 

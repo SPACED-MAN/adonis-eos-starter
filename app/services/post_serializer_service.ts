@@ -27,6 +27,7 @@ export type CanonicalPost = {
     exportedAt: string
   }
   post: {
+    id: string
     type: string
     locale: string
     slug: string
@@ -38,6 +39,11 @@ export type CanonicalPost = {
     canonicalUrl?: string | null
     robotsJson?: Record<string, any> | null
     jsonldOverrides?: Record<string, any> | null
+    socialTitle?: string | null
+    socialDescription?: string | null
+    socialImageId?: string | null
+    noindex?: boolean
+    nofollow?: boolean
     featuredImageId?: string | null
     customFields?: Array<{ slug: string; value: any }>
     taxonomyTermIds?: string[]
@@ -164,6 +170,11 @@ export default class PostSerializerService {
       canonicalUrl: (post as any).canonicalUrl ?? (post as any).canonical_url ?? null,
       robotsJson: (post as any).robotsJson ?? (post as any).robots_json ?? null,
       jsonldOverrides: (post as any).jsonldOverrides ?? (post as any).jsonld_overrides ?? null,
+      socialTitle: (post as any).socialTitle ?? (post as any).social_title ?? null,
+      socialDescription: (post as any).socialDescription ?? (post as any).social_description ?? null,
+      socialImageId: (post as any).socialImageId ?? (post as any).social_image_id ?? null,
+      noindex: Boolean((post as any).noindex),
+      nofollow: Boolean((post as any).nofollow),
       featuredImageId: (post as any).featuredImageId ?? (post as any).featured_image_id ?? null,
     }
 
@@ -192,6 +203,17 @@ export default class PostSerializerService {
           ...(reviewDraft.jsonldOverrides !== undefined
             ? { jsonldOverrides: reviewDraft.jsonldOverrides ?? null }
             : {}),
+          ...(reviewDraft.socialTitle !== undefined
+            ? { socialTitle: reviewDraft.socialTitle ?? null }
+            : {}),
+          ...(reviewDraft.socialDescription !== undefined
+            ? { socialDescription: reviewDraft.socialDescription ?? null }
+            : {}),
+          ...(reviewDraft.socialImageId !== undefined
+            ? { socialImageId: reviewDraft.socialImageId ?? null }
+            : {}),
+          ...(reviewDraft.noindex !== undefined ? { noindex: Boolean(reviewDraft.noindex) } : {}),
+          ...(reviewDraft.nofollow !== undefined ? { nofollow: Boolean(reviewDraft.nofollow) } : {}),
           ...(reviewDraft.featuredImageId !== undefined
             ? { featuredImageId: reviewDraft.featuredImageId ?? null }
             : {}),
@@ -228,6 +250,19 @@ export default class PostSerializerService {
             ...(reviewDraft.jsonldOverrides !== undefined
               ? { jsonldOverrides: reviewDraft.jsonldOverrides ?? null }
               : {}),
+            ...(reviewDraft.socialTitle !== undefined
+              ? { socialTitle: reviewDraft.socialTitle ?? null }
+              : {}),
+            ...(reviewDraft.socialDescription !== undefined
+              ? { socialDescription: reviewDraft.socialDescription ?? null }
+              : {}),
+            ...(reviewDraft.socialImageId !== undefined
+              ? { socialImageId: reviewDraft.socialImageId ?? null }
+              : {}),
+            ...(reviewDraft.noindex !== undefined ? { noindex: Boolean(reviewDraft.noindex) } : {}),
+            ...(reviewDraft.nofollow !== undefined
+              ? { nofollow: Boolean(reviewDraft.nofollow) }
+              : {}),
             ...(reviewDraft.featuredImageId !== undefined
               ? { featuredImageId: reviewDraft.featuredImageId ?? null }
               : {}),
@@ -259,6 +294,19 @@ export default class PostSerializerService {
             : {}),
           ...(aiReviewDraft.jsonldOverrides !== undefined
             ? { jsonldOverrides: aiReviewDraft.jsonldOverrides ?? null }
+            : {}),
+          ...(aiReviewDraft.socialTitle !== undefined
+            ? { socialTitle: aiReviewDraft.socialTitle ?? null }
+            : {}),
+          ...(aiReviewDraft.socialDescription !== undefined
+            ? { socialDescription: aiReviewDraft.socialDescription ?? null }
+            : {}),
+          ...(aiReviewDraft.socialImageId !== undefined
+            ? { socialImageId: aiReviewDraft.socialImageId ?? null }
+            : {}),
+          ...(aiReviewDraft.noindex !== undefined ? { noindex: Boolean(aiReviewDraft.noindex) } : {}),
+          ...(aiReviewDraft.nofollow !== undefined
+            ? { nofollow: Boolean(aiReviewDraft.nofollow) }
             : {}),
           ...(aiReviewDraft.featuredImageId !== undefined
             ? { featuredImageId: aiReviewDraft.featuredImageId ?? null }
@@ -292,6 +340,19 @@ export default class PostSerializerService {
             ...(reviewDraft.jsonldOverrides !== undefined
               ? { jsonldOverrides: reviewDraft.jsonldOverrides ?? null }
               : {}),
+            ...(reviewDraft.socialTitle !== undefined
+              ? { socialTitle: reviewDraft.socialTitle ?? null }
+              : {}),
+            ...(reviewDraft.socialDescription !== undefined
+              ? { socialDescription: reviewDraft.socialDescription ?? null }
+              : {}),
+            ...(reviewDraft.socialImageId !== undefined
+              ? { socialImageId: reviewDraft.socialImageId ?? null }
+              : {}),
+            ...(reviewDraft.noindex !== undefined ? { noindex: Boolean(reviewDraft.noindex) } : {}),
+            ...(reviewDraft.nofollow !== undefined
+              ? { nofollow: Boolean(reviewDraft.nofollow) }
+              : {}),
             ...(reviewDraft.featuredImageId !== undefined
               ? { featuredImageId: reviewDraft.featuredImageId ?? null }
               : {}),
@@ -318,6 +379,7 @@ export default class PostSerializerService {
         exportedAt: new Date().toISOString(),
       },
       post: {
+        id: post.id,
         type: post.type,
         locale: post.locale,
         slug: postFields.slug,
@@ -329,6 +391,11 @@ export default class PostSerializerService {
         canonicalUrl: postFields.canonicalUrl ?? null,
         robotsJson: postFields.robotsJson ?? null,
         jsonldOverrides: postFields.jsonldOverrides ?? null,
+        socialTitle: postFields.socialTitle ?? null,
+        socialDescription: postFields.socialDescription ?? null,
+        socialImageId: postFields.socialImageId ?? null,
+        noindex: Boolean(postFields.noindex),
+        nofollow: Boolean(postFields.nofollow),
         featuredImageId: postFields.featuredImageId ?? null,
         customFields,
         taxonomyTermIds: postFields.taxonomyTermIds || taxonomyTermIds,
@@ -465,6 +532,11 @@ export default class PostSerializerService {
       excerpt: p.excerpt ?? null,
       metaTitle: p.metaTitle ?? null,
       metaDescription: p.metaDescription ?? null,
+      socialTitle: p.socialTitle ?? null,
+      socialDescription: p.socialDescription ?? null,
+      socialImageId: p.socialImageId ?? null,
+      noindex: Boolean(p.noindex),
+      nofollow: Boolean(p.nofollow),
       userId,
     })
     // add modules
@@ -520,6 +592,11 @@ export default class PostSerializerService {
       canonicalUrl: p.canonicalUrl ?? null,
       robotsJson: p.robotsJson ?? null,
       jsonldOverrides: p.jsonldOverrides ?? null,
+      socialTitle: p.socialTitle ?? null,
+      socialDescription: p.socialDescription ?? null,
+      socialImageId: p.socialImageId ?? null,
+      noindex: Boolean(p.noindex),
+      nofollow: Boolean(p.nofollow),
     })
     // Remove existing modules and recreate
     const existing = await PostModule.query().where('postId', postId).preload('moduleInstance')

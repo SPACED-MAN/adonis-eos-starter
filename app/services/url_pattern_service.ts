@@ -70,6 +70,7 @@ class UrlPatternService {
       locale: rec.locale,
       pattern: rec.pattern,
       isDefault: rec.isDefault,
+      aggregatePostId: rec.aggregatePostId,
       createdAt: rec.createdAt.toJSDate(),
       updatedAt: rec.updatedAt.toJSDate(),
     }))
@@ -129,11 +130,15 @@ class UrlPatternService {
     slug: string
     fullPath?: string
     usesPath: boolean
+    aggregatePostId?: string | null
   } | null> {
+    // Normalize path: remove trailing slash (unless it's just "/")
+    const normalizedPath = path.length > 1 && path.endsWith('/') ? path.slice(0, -1) : path
+
     const patterns = await this.getAllPatterns()
     for (const p of patterns) {
       const re = this.compilePattern(p.pattern)
-      const m = re.exec(path)
+      const m = re.exec(normalizedPath)
       if (m && m.groups) {
         const locale = (m.groups['locale'] as string) || p.locale
         let slug = m.groups['slug'] as string | undefined
@@ -152,6 +157,31 @@ class UrlPatternService {
             slug: decodeURIComponent(slug),
             fullPath: pathGroup || undefined,
             usesPath,
+          }
+        }
+      }
+
+      // Check for aggregate page base path match (e.g. "/blog" matching "/blog/{slug}")
+      if (p.isDefault && p.aggregatePostId) {
+        // Extract base path from pattern by removing everything from the first token onwards
+        const firstTokenIndex = p.pattern.indexOf('{')
+        const basePath = firstTokenIndex !== -1
+          ? p.pattern.substring(0, firstTokenIndex).replace(/\/$/, '')
+          : null
+
+        if (basePath && basePath !== '' && basePath !== '/' && normalizedPath === basePath) {
+          // Found an aggregate page match!
+          // We need to fetch the aggregate post to get its slug and type
+          const Post = (await import('#models/post')).default
+          const aggPost = await Post.find(p.aggregatePostId)
+          if (aggPost) {
+            return {
+              postType: aggPost.type,
+              locale: aggPost.locale,
+              slug: aggPost.slug,
+              usesPath: false,
+              aggregatePostId: aggPost.id
+            }
           }
         }
       }

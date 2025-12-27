@@ -24,7 +24,8 @@ export default class ProseModule extends BaseModule {
     return {
       type: 'prose',
       name: 'Prose',
-      description: 'Rich text content with formatting, links, lists, and more',
+      description:
+        'Primary rich text content module. Use this for the main body copy of a page. EXPECTATION: Provide a substantial amount of content (multiple paragraphs, headings, and lists) to ensure a high-quality user experience.',
       icon: 'text-paragraph',
       allowedScopes: ['local', 'global'],
       lockable: true,

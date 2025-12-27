@@ -63,11 +63,29 @@ class MCPClientService {
       { name: 'get_module_schema', description: 'Get a module schema' },
       { name: 'list_posts', description: 'List posts' },
       { name: 'get_post_context', description: 'Get full post context for editing' },
-      { name: 'create_post_ai_review', description: 'Create a new post and stage into AI review. Params: { type, slug, title, excerpt, featuredImageId, contentMarkdown, locale, moduleGroupName, moduleEdits }' },
-      { name: 'save_post_ai_review', description: 'Save AI edits for a post. Params: { postId, patch: { title, slug, excerpt, featuredImageId, metaTitle, metaDescription, ... } }' },
-      { name: 'add_module_to_post_ai_review', description: 'Add a module to a post. Params: { postId, moduleType, scope, props, orderIndex }' },
-      { name: 'update_post_module_ai_review', description: 'Update a post module. Params: { postModuleId, overrides, locked, orderIndex }' },
-      { name: 'remove_post_module_ai_review', description: 'Remove a post module. Params: { postModuleId }' },
+      {
+        name: 'create_post_ai_review',
+        description:
+          'Create a new post and stage into AI review. Params: { type, slug, title, excerpt, featuredImageId, contentMarkdown, locale, moduleGroupName, moduleEdits }. IMPORTANT: When writing content for "Prose" modules, provide a substantial amount of copy (multiple paragraphs, headings, and lists) to ensure a high-quality user experience.',
+      },
+      {
+        name: 'save_post_ai_review',
+        description:
+          'Save AI edits for a post. Params: { postId, patch: { title, slug, excerpt, featuredImageId, metaTitle, metaDescription, socialTitle, socialDescription, socialImageId, noindex, nofollow, ... } }',
+      },
+      {
+        name: 'add_module_to_post_ai_review',
+        description: 'Add a module to a post. Params: { postId, moduleType, scope, props, orderIndex }',
+      },
+      {
+        name: 'update_post_module_ai_review',
+        description:
+          'Update a post module. Params: { postModuleId, overrides, locked, orderIndex }. IMPORTANT: When updating "Prose" modules, ensure the content is substantial and high-quality.',
+      },
+      {
+        name: 'remove_post_module_ai_review',
+        description: 'Remove a post module. Params: { postModuleId }',
+      },
       {
         name: 'create_translation_ai_review',
         description:
@@ -683,7 +701,7 @@ class MCPClientService {
         }
 
         const uuidRegex = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i
-        
+
         // If postModuleId is missing or not a UUID, but we have postId and type, try to resolve it
         if ((!postModuleId || !uuidRegex.test(postModuleId)) && postId) {
           const type = params.moduleType || params.type || postModuleId // Use postModuleId as type if it's not a UUID
@@ -694,11 +712,11 @@ class MCPClientService {
               .where('post_modules.post_id', postId)
               .where('module_instances.type', type)
               .select('post_modules.id')
-            
+
             if (orderIndex !== undefined) {
               query.where('post_modules.order_index', orderIndex)
             }
-            
+
             const found = await query.first()
             if (found) {
               postModuleId = String(found.id)
