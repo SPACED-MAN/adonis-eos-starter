@@ -12,9 +12,9 @@ In addition, modules can include optional, structured **`aiGuidance`** (what a m
 
 There are three complementary AI/automation integration mechanisms in Adonis EOS:
 
-- **`app/agents/*` (AI Agents)**:
+  - **`app/agents/*` (AI Agents)**:
   - Used by the CMS admin UI to run "named agents" (e.g. General Assistant, Graphic Designer, Translator).
-  - Agents are **internal-only** (AI-powered) and run directly in your application.
+  - Agents run directly in your application.
   - They use MCP tools internally to interact with the CMS.
   - Their output is applied into **AI Review** (or similar staging mode) for human approval.
   - See [AI Agents documentation](09-ai-agents.md) for details.
@@ -23,7 +23,7 @@ There are three complementary AI/automation integration mechanisms in Adonis EOS
   - Event-driven automation system for webhook-based integrations.
   - Used for n8n workflows, Slack notifications, and other external service triggers.
   - Triggered automatically on events (post.published, form.submit, etc.).
-  - See [Workflows documentation](11-workflows.md) for details.
+  - See [Workflows documentation](05-automation-and-integrations.md) for details.
 
 - **MCP Server (this document)**:
   - Used by external LLM runtimes (Cursor, n8n AI Agent, custom services) to **read context** and perform **safe writes**.

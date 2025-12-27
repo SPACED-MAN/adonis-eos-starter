@@ -5,7 +5,6 @@
 
 /**
  * Type of agent service
- * Agents are now internal-only (AI-powered). For webhook-based automation, use Workflows.
  */
 export type AgentServiceType = 'internal'
 
@@ -61,12 +60,12 @@ export interface InternalAgentConfig {
   modelMedia?: string
 
   /**
-   * AI provider identifier (legacy/fallback)
+   * AI provider identifier (fallback)
    */
   provider?: AIProvider
 
   /**
-   * Model identifier (legacy/fallback)
+   * Model identifier (fallback)
    */
   model?: string
 
@@ -198,7 +197,6 @@ export interface AgentDefinition {
 
   /**
    * Agent service type
-   * Agents are now internal-only (AI-powered). For webhook-based automation, use Workflows.
    */
   type: AgentServiceType
 

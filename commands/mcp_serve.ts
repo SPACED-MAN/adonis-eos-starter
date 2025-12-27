@@ -1710,8 +1710,7 @@ function createServerInstance() {
         return errorResult('Agent not available for field scope', { agentId })
       }
 
-      // Agents are now internal-only (AI-powered)
-      // For external automation, use Workflows
+      // Validate agent type
       if (agent.type !== 'internal') {
         return errorResult('Only internal agents are supported for run_field_agent', { agentId })
       }

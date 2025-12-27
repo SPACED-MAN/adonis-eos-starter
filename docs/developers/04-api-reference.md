@@ -216,7 +216,7 @@ Returns form schema and configuration.
 ### Get Menu
 
 ```http
-GET /api/menus/:slug?locale=en
+GET /api/menus/by-slug/:slug?locale=en
 ```
 
 Returns menu structure with items.
@@ -237,6 +237,103 @@ Returns menu structure with items.
       "children": []
     }
   ]
+}
+```
+
+## Analytics API
+
+### Track Event (Public)
+
+```http
+POST /api/public/analytics/track
+Content-Type: application/json
+
+{
+  "postId": "uuid",
+  "eventType": "click",
+  "x": 150.5,
+  "y": 420.2,
+  "viewportWidth": 1200,
+  "metadata": { "button": "cta-main" }
+}
+```
+
+### Get Summary (Admin)
+
+```http
+GET /api/analytics/summary
+```
+
+### Get Heatmap (Admin)
+
+```http
+GET /api/analytics/heatmap?postId=uuid&eventType=click
+```
+
+## Feedback API
+
+### List Feedback
+
+```http
+GET /api/feedbacks?postId=uuid
+```
+
+### Submit Feedback
+
+```http
+POST /api/feedbacks
+Content-Type: application/json
+
+{
+  "postId": "uuid",
+  "category": "bug",
+  "content": "Image is not loading on mobile",
+  "x": 0.5,
+  "y": 0.8,
+  "elementSelector": "main > section > img"
+}
+```
+
+## Variations API
+
+### Create Variation
+
+```http
+POST /api/posts/:id/variations
+```
+
+### Promote Variation
+
+```http
+POST /api/posts/:id/promote-variation
+```
+
+## Global Modules API
+
+### List Global Modules
+
+```http
+GET /api/modules/global
+```
+
+### Get Static Module
+
+```http
+GET /api/modules/static?q=site-footer
+```
+
+## Database Admin API
+
+### Find and Replace
+
+```http
+POST /api/database/find-replace
+Content-Type: application/json
+
+{
+  "find": "old-brand.com",
+  "replace": "new-brand.com",
+  "tables": ["post_modules", "posts"]
 }
 ```
 

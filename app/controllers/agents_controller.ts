@@ -286,11 +286,9 @@ export default class AgentsController {
       ...(openEndedContext ? { openEndedContext } : {}),
     })
 
-    // Agents are now internal-only (AI-powered)
+    // AI-powered agents
     if (agent.type !== 'internal') {
-      throw new Error(
-        'Only internal (AI-powered) agents are supported. For webhook-based automation, use Workflows.'
-      )
+      throw new Error('Only internal (AI-powered) agents are supported.')
     }
 
     if (!agent.internal) {

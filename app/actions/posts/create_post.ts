@@ -127,15 +127,15 @@ export default class CreatePost {
       if (defaultGroup) {
         effectiveModuleGroupId = (defaultGroup as any).id as string
       } else {
-        // 2. Try legacy default name
+        // 2. Try matching by name from config
         const defaultName = uiConfig.moduleGroup?.name || `${type}-default`
-        const legacyDefault = await db
+        const groupByName = await db
           .from('module_groups')
           .where({ post_type: type, name: defaultName })
           .first()
 
-        if (legacyDefault) {
-          effectiveModuleGroupId = (legacyDefault as any).id as string
+        if (groupByName) {
+          effectiveModuleGroupId = (groupByName as any).id as string
         } else {
           // 3. Fallbacks: use most recently updated
           const candidate = await db

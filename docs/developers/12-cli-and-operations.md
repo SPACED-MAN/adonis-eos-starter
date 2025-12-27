@@ -15,6 +15,7 @@ Use these commands to scaffold new CMS artifacts following the code-first approa
 | `node ace make:post-type "Blog"` | `app/post_types/blog.ts`   |
 | `node ace make:module "Hero"`    | Backend & Frontend stubs   |
 | `node ace make:role "Publisher"` | `app/roles/publisher.ts`   |
+| `node ace make:field-type "Stars"`| `app/fields/stars.ts`      |
 | `node ace make:agent "SEO"`      | `app/agents/seo.ts`        |
 | `node ace make:taxonomy "Tags"`  | `app/taxonomies/tags.ts`   |
 | `node ace make:menu "Main"`      | Menu registration scaffold |

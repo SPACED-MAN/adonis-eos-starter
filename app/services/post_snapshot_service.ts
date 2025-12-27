@@ -344,7 +344,7 @@ export default class PostSnapshotService {
         updated_at: new Date(),
       })
 
-    // We ALSO update the granular columns for editor compatibility
+    // Update granular columns for the editor interface
     await db.transaction(async (trx) => {
       const propsCol = mode === 'review' ? 'review_props' : 'ai_review_props'
       const overridesCol = mode === 'review' ? 'review_overrides' : 'ai_review_overrides'

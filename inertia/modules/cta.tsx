@@ -9,7 +9,6 @@ import { resolveLink } from '../utils/resolve_link'
 interface CtaProps {
   title: string
   prose?: any // Lexical JSON
-  content?: any // Legacy field slug
   image?: {
     id: string
     url: string
@@ -28,7 +27,6 @@ export default function Cta(props: CtaProps) {
   const {
     title: initialTitle,
     prose: initialProse,
-    content: initialContent,
     image: initialImage,
     ctas: initialCtas = [],
     variant: initialVariant = 'centered',
@@ -40,7 +38,6 @@ export default function Cta(props: CtaProps) {
   const title =
     useInlineValue(__moduleId, 'title', initialTitle) || initialTitle || 'Ready to get started?'
   const richProse = useInlineValue(__moduleId, 'prose', initialProse)
-  const legacyContent = useInlineValue(__moduleId, 'content', initialContent)
   const image = useInlineValue(__moduleId, 'image', initialImage)
   const ctas = useInlineValue(__moduleId, 'ctas', initialCtas) || initialCtas
   const variant =
@@ -80,12 +77,8 @@ export default function Cta(props: CtaProps) {
       return true
     }
 
-    // Try new 'prose' field first, then legacy 'content' field, then default to null
-    const proseToRender = hasRichContent(richProse)
-      ? richProse
-      : hasRichContent(legacyContent)
-        ? legacyContent
-        : null
+    // Use 'prose' field
+    const proseToRender = hasRichContent(richProse) ? richProse : null
 
     if (!proseToRender) return null
 
@@ -103,7 +96,7 @@ export default function Cta(props: CtaProps) {
       return trimmed
     }
     return renderLexicalToHtml(proseToRender)
-  }, [richProse, legacyContent])
+  }, [richProse])
 
   const containerVariants: Variants = {
     hidden: { opacity: 0 },

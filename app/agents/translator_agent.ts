@@ -16,7 +16,7 @@ const TranslatorAgent: AgentDefinition = {
   internal: {
     providerText: 'openai',
     modelText: 'gpt-4o',
-    // Fallback for legacy
+    // Fallback
     provider: 'openai',
     model: 'gpt-4o',
 

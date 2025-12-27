@@ -43,17 +43,9 @@ Technical documentation for developers and system administrators:
 - [Deployment Guide](developers/19-deployment.md) - Production deployment strategies
 - [Update Philosophy](developers/20-update-philosophy.md) - How to approach upgrades and maintenance
 - [CLI & Operations](developers/12-cli-and-operations.md) - Artifact scaffolding and Database pipeline
-
-<!-- Coming Soon:
-- Post Types - Defining custom content types
-- Forms & Submissions - Frontend form handling
-- Webhooks - Event-driven integrations
-- Import/Export - Content portability
-- Database Schema - Tables and relationships
-- Services & Actions - Business logic organization
-- RBAC System - Role-based access control
-- Performance & Caching - Optimization strategies
--->
+- [Architecture: Services & Actions](developers/25-services-and-actions.md) - Business logic organization
+- [Global Modules](developers/23-global-modules.md) - Reusable content blocks across pages
+- [Analytics](developers/21-analytics.md) - Native behavior tracking and heatmaps
 
 ## What is Adonis EOS?
 

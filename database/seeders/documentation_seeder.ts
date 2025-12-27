@@ -441,7 +441,7 @@ export default class extends BaseSeeder {
 
     // Handle paths starting with /docs/
     if (href.startsWith('/docs/')) {
-      // Fix legacy "for-developers" links to "developers"
+      // Fix "for-developers" links to "developers"
       if (href.startsWith('/docs/for-developers')) {
         href = href.replace('/docs/for-developers', '/docs/developers')
       }

@@ -11,8 +11,6 @@ Agents are file-based definitions that can:
 - Process and enhance content automatically using AI
 - Use MCP tools to interact with the CMS
 
-**Note**: Agents are now **internal-only** (AI-powered). For webhook-based automation (n8n, Slack notifications, etc.), use the [Workflows system](11-workflows.md).
-
 ## Agent Types
 
 ### Internal Agents (AI-Powered)
@@ -57,7 +55,7 @@ const InternalAiAssistantAgent: AgentDefinition = {
     providerMedia: 'openai',
     modelMedia: 'dall-e-3',
 
-    // Fallback/Legacy
+    // Fallback
     provider: 'openai',
     model: 'gpt-4o',
 
@@ -161,7 +159,7 @@ internal: {
 }
 ```
 
-If `providerText`/`modelText` or `providerMedia`/`modelMedia` are missing, the system falls back to the legacy `provider`/`model` fields.
+If `providerText`/`modelText` or `providerMedia`/`modelMedia` are missing, the system falls back to the `provider`/`model` fields.
 
 ### MCP Integration
 
@@ -407,8 +405,6 @@ This creates `app/agents/seo_optimizer.ts`.
 
 ### 2. Define Agent Configuration
 
-Agents are now internal-only (AI-powered). For webhook-based automation, see the [Workflows documentation](11-workflows.md).
-
 ```typescript
 import type { AgentDefinition } from '#types/agent_types'
 
@@ -474,7 +470,7 @@ In this project, `users.email` is **required and unique** in the database schema
 So “optional email” means:
 
 - you typically **don’t provide a real email**, and
-- the system generates an internal-only email like `agent+translator@agents.local`.
+- the system generates an internal email like `agent+translator@agents.local`.
 
 ### Enabling per-agent accounts
 
@@ -791,7 +787,7 @@ Agents require specific permissions based on their scope:
 - **`agents.dropdown`** - Permission to use dropdown-scoped agents (post editor)
 - **`agents.field`** - Permission to use field-scoped agents (per-field AI buttons)
 
-The general `agents.edit` permission is also checked for backward compatibility:
+The `agents.edit` permission is also checked:
 
 ```typescript
 // Admin role with all agent permissions
@@ -901,7 +897,7 @@ export default SeoAgent
 4. Review AI suggestions in Review mode
 5. Approve or edit before publishing
 
-**Note**: For n8n-based SEO optimization workflows, use the [Workflows system](10-workflows.md) instead.
+**Note**: For n8n-based SEO optimization workflows, use the [Workflows system](05-automation-and-integrations.md) instead.
 
 ## Best Practices
 
@@ -984,4 +980,4 @@ Once billing is enabled, your quotas will increase. You can monitor your usage a
 
 ---
 
-**Related**: [Workflows](11-workflows.md) | [MCP (Model Context Protocol)](10-mcp.md) | [API Reference](04-api-reference.md)
+**Related**: [Workflows](05-automation-and-integrations.md) | [MCP (Model Context Protocol)](10-mcp.md) | [API Reference](04-api-reference.md)

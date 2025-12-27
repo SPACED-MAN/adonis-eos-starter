@@ -24,7 +24,7 @@ const GeneralAssistantAgent: AgentDefinition = {
     providerText: 'openai',
     modelText: 'gpt-4o',
 
-    // Legacy fallbacks
+    // Fallback options
     provider: 'openai',
     model: 'gpt-4o',
 

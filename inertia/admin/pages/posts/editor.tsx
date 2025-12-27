@@ -304,7 +304,7 @@ interface EditorProps {
   customFields?: Array<
     CustomFieldDefinition & {
       id: string
-      fieldType?: CustomFieldType // For compatibility with older code if any
+      fieldType?: CustomFieldType
       value?: any
     }
   >
