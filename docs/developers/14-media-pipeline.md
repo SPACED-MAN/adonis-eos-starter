@@ -61,6 +61,15 @@ The media pipeline supports local and S3-compatible (specifically Cloudflare R2)
 
 For detailed configuration instructions, see the [Deployment Guide: Media Storage Options](19-deployment.md#media-storage-options).
 
+## AI-Generated Media
+
+The media pipeline is integrated with AI agents for automated image generation:
+
+- **Tools**: Agents use the `generate_image` MCP tool to create new assets.
+- **Providers**: Supports OpenAI (DALL-E) and Google (Imagen).
+- **Staging**: Generated images are automatically downloaded, optimized, and saved to the CMS media library before being staged in the post's review draft.
+- **Config**: Providers and models are configured at the agent level (see `providerMedia` and `modelMedia` in the [AI Agents documentation](09-ai-agents.md)).
+
 ## Operational notes
 
 - If you add new derivative specs, consider a backfill job to regenerate variants for existing assets.

@@ -169,6 +169,7 @@ router
  */
 const UrlPatternsController = () => import('#controllers/url_patterns_controller')
 const SiteSettingsController = () => import('#controllers/site_settings_controller')
+const AISettingsController = () => import('#controllers/ai_settings_controller')
 router
   .group(() => {
     router.get('/url-patterns', [UrlPatternsController, 'index'])
@@ -332,6 +333,9 @@ router
     router.patch('/media/:id/rename', [MediaController, 'rename']).use(middleware.admin())
     // Site Settings
     router.patch('/site-settings', [SiteSettingsController, 'update']).use(middleware.admin())
+    // AI Settings
+    router.get('/ai-settings', [AISettingsController, 'index']).use(middleware.admin())
+    router.patch('/ai-settings', [AISettingsController, 'update']).use(middleware.admin())
     // Menus (Admin)
     router.get('/menus', [MenusController, 'index'])
     router.post('/menus', [MenusController, 'store']).use(middleware.admin())

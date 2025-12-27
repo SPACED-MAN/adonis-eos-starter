@@ -1,4 +1,4 @@
-import type { AgentDefinition, AgentExecutionContext } from '#types/agent_types'
+import type { AgentDefinition, AgentExecutionContext, AIProvider } from '#types/agent_types'
 import aiProviderService from '#services/ai_provider_service'
 import type { AIProviderConfig, AICompletionOptions, AIMessage } from '#services/ai_provider_service'
 import mcpClientService from '#services/mcp_client_service'
@@ -33,7 +33,7 @@ class InternalAgentExecutor {
       const messages = await this.buildMessages(agent, context, payload)
 
       // 2. Get AI provider configuration
-      const aiConfig = this.getAIConfig(agent.internal)
+      const aiConfig = await this.getAIConfig(agent.internal)
       aiProviderService.validateConfig(aiConfig)
 
       // 3. Get completion options
@@ -545,10 +545,47 @@ Only include fields that you are actually changing.`,
   /**
    * Get AI provider configuration from agent config
    */
-  private getAIConfig(internal: NonNullable<AgentDefinition['internal']>): AIProviderConfig {
+  private async getAIConfig(
+    internal: NonNullable<AgentDefinition['internal']>,
+    type: 'text' | 'media' = 'text'
+  ): Promise<AIProviderConfig> {
+    // Determine provider and model based on type
+    let provider: AIProvider | undefined
+    let model: string | undefined
+
+    if (type === 'media') {
+      provider = internal.providerMedia || internal.provider
+      model = internal.modelMedia || internal.model
+    } else {
+      provider = internal.providerText || internal.provider
+      model = internal.modelText || internal.model
+    }
+
+    // Fallback to global defaults if not in agent config
+    if (!provider || !model) {
+      const { default: aiSettingsService } = await import('#services/ai_settings_service')
+      const globalSettings = await aiSettingsService.get()
+
+      if (type === 'media') {
+        provider = (provider || globalSettings.defaultMediaProvider) as AIProvider
+        model = model || globalSettings.defaultMediaModel || undefined
+      } else {
+        provider = (provider || globalSettings.defaultTextProvider) as AIProvider
+        model = model || globalSettings.defaultTextModel || undefined
+      }
+    }
+
+    if (!provider) {
+      throw new Error(`AI provider not specified for ${type} generation`)
+    }
+
+    if (!model) {
+      throw new Error(`AI model not specified for ${type} generation`)
+    }
+
     // Get API key from config or environment
     let apiKey = internal.apiKey
-    const envKey = `AI_PROVIDER_${internal.provider.toUpperCase()}_API_KEY`
+    const envKey = `AI_PROVIDER_${provider.toUpperCase()}_API_KEY`
     if (!apiKey) {
       // Try environment variable
       apiKey = process.env[envKey] || ''
@@ -556,14 +593,14 @@ Only include fields that you are actually changing.`,
 
     if (!apiKey) {
       throw new Error(
-        `API key not found for provider ${internal.provider}. Set apiKey in agent config or ${envKey} environment variable.`
+        `API key not found for provider ${provider}. Set apiKey in agent config or ${envKey} environment variable.`
       )
     }
 
     return {
-      provider: internal.provider,
+      provider,
       apiKey,
-      model: internal.model,
+      model,
       baseUrl: internal.baseUrl,
       options: internal.options,
     }

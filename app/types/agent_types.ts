@@ -29,22 +29,45 @@ export type AgentScope =
 /**
  * AI Provider type
  */
-export type AIProvider = 'openai' | 'anthropic' | 'google' | 'nanobanana'
+export type AIProvider = 'openai' | 'anthropic' | 'google'
 
 /**
  * Configuration for internal (AI service-based) agents
  */
 export interface InternalAgentConfig {
   /**
-   * AI provider identifier (openai, anthropic, google)
+   * AI provider identifier for text generation (e.g., openai, anthropic, google)
+   * Fallback for 'provider' if not specified.
    */
-  provider: AIProvider
+  providerText?: AIProvider
 
   /**
-   * Model identifier (provider-specific)
-   * Examples: 'gpt-4', 'claude-3-opus-20240229', 'gemini-pro'
+   * Model identifier for text generation (provider-specific)
+   * Examples: 'gpt-4', 'claude-3-5-sonnet', 'gemini-1.5-pro'
+   * Fallback for 'model' if not specified.
    */
-  model: string
+  modelText?: string
+
+  /**
+   * AI provider identifier for media generation (e.g., openai, nanobanana)
+   */
+  providerMedia?: AIProvider
+
+  /**
+   * Model identifier for media generation (provider-specific)
+   * Examples: 'dall-e-3', 'imagen-3'
+   */
+  modelMedia?: string
+
+  /**
+   * AI provider identifier (legacy/fallback)
+   */
+  provider?: AIProvider
+
+  /**
+   * Model identifier (legacy/fallback)
+   */
+  model?: string
 
   /**
    * API key for the provider (or env var name)

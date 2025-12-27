@@ -21,14 +21,19 @@ const GeneralAssistantAgent: AgentDefinition = {
 
   internal: {
     // Provider: 'openai' | 'anthropic' | 'google' | 'nanobanana'
+    providerText: 'openai',
+    modelText: 'gpt-4o',
+
+    // Legacy fallbacks
     provider: 'openai',
+    model: 'gpt-4o',
 
     // Model identifier (provider-specific)
     // OpenAI: 'gpt-4', 'gpt-4-turbo', 'gpt-3.5-turbo', 'gpt-4o', 'gpt-4o-mini'
     // Anthropic: 'claude-3-opus-20240229', 'claude-3-sonnet-20240229', 'claude-3-haiku-20240307'
     // Google: 'gemini-pro', 'gemini-pro-vision'
     // Nano Banana: 'gemini-pro' (uses Gemini Pro API via Nano Banana service)
-    model: 'gpt-4o', // Using gpt-4o as default (more widely available)
+    // model: 'gpt-4o', // Using gpt-4o as default (more widely available)
 
     // API key (optional - will use AI_PROVIDER_OPENAI_API_KEY env var if not set)
     // apiKey: process.env.AI_PROVIDER_OPENAI_API_KEY,

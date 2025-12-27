@@ -122,8 +122,6 @@ class AIProviderService {
         return this.completeAnthropic(messages, options, config)
       case 'google':
         return this.completeGoogle(messages, options, config)
-      case 'nanobanana':
-        return this.completeNanoBanana(messages, options, config)
       default:
         throw new Error(`Unsupported AI provider: ${config.provider}`)
     }
@@ -286,7 +284,7 @@ class AIProviderService {
     // Get the model
     // Filter out maxTokens from config.options since we use maxOutputTokens for Gemini
     const {
-      maxTokens: _,
+      maxTokens: ignoredMaxTokens,
       temperature: configTemp,
       topP: configTopP,
       stop: configStop,
@@ -310,7 +308,7 @@ class AIProviderService {
     })
 
     const model = client.getGenerativeModel({
-      model: config.model,
+      model: config.model || 'gemini-2.0-flash',
       generationConfig,
     })
 
@@ -346,8 +344,108 @@ class AIProviderService {
       },
       metadata: {
         finishReason: response.candidates?.[0]?.finishReason,
-        model: config.model,
+        model: config.model || 'gemini-2.0-flash',
       },
+    }
+  }
+
+  /**
+   * List available models for a provider
+   */
+  async listModels(provider: AIProvider, apiKey?: string): Promise<string[]> {
+    if (!apiKey) {
+      // Try to get from env if not provided
+      const envKey = `AI_PROVIDER_${provider.toUpperCase()}_API_KEY`
+      apiKey = process.env[envKey]
+    }
+
+    if (!apiKey) {
+      return this.getHardcodedModels(provider)
+    }
+
+    try {
+      switch (provider) {
+        case 'google':
+          return this.listAvailableModels(apiKey)
+        case 'openai':
+          return this.listOpenAIModels(apiKey)
+        case 'anthropic':
+          return this.listAnthropicModels(apiKey)
+        default:
+          return []
+      }
+    } catch (error) {
+      console.error(`Error listing models for ${provider}:`, error)
+      return this.getHardcodedModels(provider)
+    }
+  }
+
+  /**
+   * List OpenAI models
+   */
+  private async listOpenAIModels(apiKey: string): Promise<string[]> {
+    const response = await fetch('https://api.openai.com/v1/models', {
+      headers: {
+        Authorization: `Bearer ${apiKey}`,
+      },
+    })
+    if (!response.ok) return this.getHardcodedModels('openai')
+    const data = (await response.json()) as any
+    return (data.data || [])
+      .map((m: any) => m.id)
+      .filter((id: string) => id.startsWith('gpt') || id.startsWith('dall-e'))
+      .sort()
+  }
+
+  /**
+   * List Anthropic models
+   * Note: Anthropic doesn't have a public models list API in the same way,
+   * but we can return their known latest models or try to fetch if they add one.
+   */
+  private async listAnthropicModels(_apiKey: string): Promise<string[]> {
+    // Anthropic recently added a models API, let's try it
+    try {
+      const response = await fetch('https://api.anthropic.com/v1/models', {
+        headers: {
+          'x-api-key': _apiKey,
+          'anthropic-version': '2023-06-01',
+        },
+      })
+      if (response.ok) {
+        const data = (await response.json()) as any
+        return (data.data || []).map((m: any) => m.id).sort()
+      }
+    } catch {
+      // Fallback to hardcoded
+    }
+    return this.getHardcodedModels('anthropic')
+  }
+
+  /**
+   * Fallback hardcoded models if API fails or no key
+   */
+  private getHardcodedModels(provider: AIProvider): string[] {
+    switch (provider) {
+      case 'openai':
+        return ['gpt-4o', 'gpt-4o-mini', 'gpt-4-turbo', 'gpt-3.5-turbo', 'dall-e-3', 'dall-e-2']
+      case 'anthropic':
+        return [
+          'claude-3-5-sonnet-latest',
+          'claude-3-5-haiku-latest',
+          'claude-3-opus-20240229',
+          'claude-3-sonnet-20240229',
+          'claude-3-haiku-20240307',
+        ]
+      case 'google':
+        return [
+          'gemini-2.0-flash',
+          'gemini-1.5-pro',
+          'gemini-1.5-flash',
+          'nano-banana-pro-preview',
+          'imagen-4.0-generate-001',
+        ]
+      default:
+        return []
     }
   }
 
@@ -396,113 +494,154 @@ class AIProviderService {
   }
 
   /**
-   * Complete using Nano Banana (Gemini Pro API via Nano Banana service)
-   * Nano Banana provides access to Gemini Pro API
+   * Generate an image using the specified provider
    */
-  private async completeNanoBanana(
-    messages: AIMessage[],
-    options: AICompletionOptions,
+  async generateImage(
+    prompt: string,
+    options: {
+      size?: string
+      quality?: string
+      n?: number
+      [key: string]: any
+    } = {},
     config: AIProviderConfig
-  ): Promise<AICompletionResult> {
-    // Nano Banana uses Google's Gemini API, so we can reuse the Google implementation
-    // but with a custom base URL if provided
+  ): Promise<{ imageUrl: string; revisedPrompt?: string }> {
+    switch (config.provider) {
+      case 'openai':
+        return this.generateImageOpenAI(prompt, options, config)
+      case 'google':
+        return this.generateImageGoogle(prompt, options, config)
+      default:
+        throw new Error(`Media generation not supported for provider: ${config.provider}`)
+    }
+  }
 
-    // Use GoogleGenerativeAI client but with custom base URL if needed
-    // For now, we'll use the standard Google client but this can be extended
-    // if Nano Banana has a different API structure
+  /**
+   * Generate image using OpenAI (DALL-E)
+   */
+  private async generateImageOpenAI(
+    prompt: string,
+    options: any,
+    config: AIProviderConfig
+  ): Promise<{ imageUrl: string; revisedPrompt?: string }> {
+    const client = new OpenAI({
+      apiKey: config.apiKey,
+      baseURL: config.baseUrl,
+    })
+
+    const response = await client.images.generate({
+      model: config.model || 'dall-e-3',
+      prompt: prompt,
+      n: options.n || 1,
+      size: options.size || '1024x1024',
+      quality: options.quality || 'standard',
+      ...config.options,
+    })
+
+    const image = response.data?.[0]
+    if (!image || !image.url) {
+      throw new Error('OpenAI returned no image URL')
+    }
+
+    return {
+      imageUrl: image.url,
+      revisedPrompt: image.revised_prompt,
+    }
+  }
+
+  /**
+   * Generate image using Google (Imagen or Gemini Image models)
+   */
+  private async generateImageGoogle(
+    prompt: string,
+    options: any,
+    config: AIProviderConfig
+  ): Promise<{ imageUrl: string; revisedPrompt?: string }> {
     const client = new GoogleGenerativeAI(config.apiKey)
+    const modelName = config.model || 'imagen-4.0-generate-001'
 
-    // Get the model
-    // Filter out maxTokens and other non-Gemini config options from config.options
-    // since we use maxOutputTokens for Gemini (not maxTokens)
-    const {
-      maxTokens: _,
-      temperature: configTemp,
-      topP: configTopP,
-      stop: configStop,
-      ...otherConfigOptions
-    } = config.options || {}
+    // Check if this is a Gemini-based image model (like Nano Banana or Gemini 2.0/3.0 Image)
+    // These models use generateContent instead of the :predict endpoint
+    const isGeminiBased = modelName.includes('nano-banana') || modelName.includes('gemini')
 
-    // Build generationConfig, ensuring maxTokens is never included
-    const generationConfig: any = {
-      temperature: options.temperature ?? configTemp ?? 0.7,
-      topP: options.topP ?? configTopP,
-      maxOutputTokens: options.maxTokens,
-      stopSequences: options.stop ?? configStop,
-    }
+    if (isGeminiBased) {
+      try {
+        const model = client.getGenerativeModel({ model: modelName })
+        // For Gemini-based image models, we use generateContent with the prompt
+        // and it returns image data in the parts
+        const result = await model.generateContent(prompt)
+        const response = result.response
 
-    // Only spread other options that are valid for Gemini generationConfig
-    // Filter out any remaining maxTokens references
-    Object.keys(otherConfigOptions).forEach((key) => {
-      if (key !== 'maxTokens' && key !== 'maxOutputTokens') {
-        generationConfig[key] = otherConfigOptions[key]
-      }
-    })
+        // Find the image part in the response
+        const imagePart = response.candidates?.[0]?.content?.parts?.find(
+          (part: any) => part.inlineData
+        )
 
-    const model = client.getGenerativeModel({
-      model: config.model || 'gemini-2.5-flash',
-      generationConfig,
-    })
+        if (imagePart?.inlineData?.data) {
+          return {
+            imageUrl: `data:${imagePart.inlineData.mimeType || 'image/png'};base64,${imagePart.inlineData.data}`,
+          }
+        }
 
-    // Separate system message
-    const systemMessage = messages.find((m) => m.role === 'system')
-    const conversationMessages = messages.filter((m) => m.role !== 'system')
+        // Fallback: Check if it returned a URL in the text or metadata
+        const text = response.text()
+        const urlMatch = text.match(/(https?:\/\/[^\s]+\.(?:png|jpg|jpeg|webp))/i)
+        if (urlMatch) {
+          return { imageUrl: urlMatch[0] }
+        }
 
-    // Build prompt (Gemini doesn't support system messages in the same way)
-    let prompt = ''
-    if (systemMessage) {
-      prompt += `System: ${systemMessage.content}\n\n`
-    }
-
-    // Convert messages to prompt format
-    for (const msg of conversationMessages) {
-      if (msg.role === 'user') {
-        prompt += `User: ${msg.content}\n\n`
-      } else if (msg.role === 'assistant') {
-        prompt += `Assistant: ${msg.content}\n\n`
+        throw new Error('Gemini-based image model returned no image data')
+      } catch (error: any) {
+        // If generateContent fails, we'll let it fall through to the :predict method
+        // as some early models might still use it
+        console.warn(
+          `[generateImageGoogle] generateContent failed for ${modelName}, trying predict endpoint...`,
+          error.message
+        )
       }
     }
-    prompt += 'Assistant:'
 
+    // Standard Imagen :predict endpoint
     try {
-      const result = await model.generateContent(prompt)
-      const response = result.response
-      const text = response.text()
+      const response = await fetch(
+        `https://generativelanguage.googleapis.com/v1beta/models/${modelName}:predict?key=${config.apiKey}`,
+        {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({
+            instances: [{ prompt }],
+            parameters: {
+              sampleCount: options.n || 1,
+              aspectRatio: options.aspectRatio || '1:1',
+              outputMimeType: 'image/png',
+            },
+          }),
+        }
+      )
 
-      return {
-        content: text,
-        usage: {
-          totalTokens: response.usageMetadata?.totalTokenCount,
-        },
-        metadata: {
-          finishReason: response.candidates?.[0]?.finishReason,
-          model: config.model || 'gemini-2.5-flash',
-          provider: 'nanobanana',
-        },
+      if (!response.ok) {
+        const error = await response.text()
+        throw new Error(`Google Image Generation API error: ${response.status} ${error}`)
       }
+
+      const data = (await response.json()) as any
+      const prediction = data.predictions?.[0]
+
+      if (prediction?.bytesBase64Encoded) {
+        return {
+          imageUrl: `data:image/png;base64,${prediction.bytesBase64Encoded}`,
+        }
+      }
+
+      if (prediction?.url) {
+        return { imageUrl: prediction.url }
+      }
+
+      throw new Error('Google returned no image data from predict endpoint')
     } catch (error: any) {
-      // Provide more helpful error messages for model not found errors
-      if (error?.message?.includes('404') || error?.message?.includes('not found')) {
-        const modelName = config.model || 'gemini-pro'
-        // Try to list available models to provide better error message
-        let availableModels: string[] = []
-        try {
-          availableModels = await this.listAvailableModels(config.apiKey)
-        } catch {
-          // Ignore errors when listing models
-        }
-
-        let errorMsg = `Gemini model '${modelName}' is not available. `
-        if (availableModels.length > 0) {
-          errorMsg += `Available models: ${availableModels.join(', ')}. `
-        } else {
-          errorMsg += `The model may not be supported in the current API version. `
-          errorMsg += `Common model names to try: 'gemini-pro', 'gemini-1.0-pro', 'gemini-1.5-pro', 'gemini-1.5-flash'. `
-        }
-        errorMsg += `Original error: ${error.message}`
-        throw new Error(errorMsg)
-      }
-      throw error
+      throw new Error(`Google Image Generation failed for ${modelName}: ${error.message}`)
     }
   }
 

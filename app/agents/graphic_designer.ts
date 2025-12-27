@@ -9,8 +9,8 @@ import type { AgentDefinition } from '#types/agent_types'
  * To enable:
  * 1. Set enabled: true
  * 2. Configure API keys in .env:
- *    - AI_PROVIDER_NANOBANANA_API_KEY (for text generation with Gemini)
- *    - AI_PROVIDER_OPENAI_API_KEY (for image generation with DALL-E)
+ *    - AI_PROVIDER_GOOGLE_API_KEY (for Gemini text and Imagen media generation)
+ *    - AI_PROVIDER_OPENAI_API_KEY (optional, if using DALL-E)
  * 3. Enable scopes as needed
  */
 const GraphicDesignerAgent: AgentDefinition = {
@@ -21,12 +21,17 @@ const GraphicDesignerAgent: AgentDefinition = {
   enabled: true,
 
   internal: {
-    // Using Nano Banana for Gemini Pro API access
-    provider: 'nanobanana',
-    model: 'gemini-2.5-flash', // Using available model from API (alternatives: gemini-2.5-pro, gemini-pro-latest)
+    // Reasoning model (Google Gemini 2.0 Flash)
+    // This high-speed model is the "brain" that understands design instructions.
+    providerText: 'google',
+    modelText: 'gemini-2.0-flash',
 
-    // API key (optional - will use AI_PROVIDER_NANOBANANA_API_KEY env var if not set)
-    // apiKey: process.env.AI_PROVIDER_NANOBANANA_API_KEY,
+    // Media Generation (Visual Artist)
+    // Removed explicit providerMedia/modelMedia to use global 'AI Configuration' defaults.
+    // To override, add providerMedia: 'google' | 'openai' and modelMedia: string here.
+
+    // API key (optional - will use AI_PROVIDER_GOOGLE_API_KEY env var if not set)
+    // apiKey: process.env.AI_PROVIDER_GOOGLE_API_KEY,
 
     systemPrompt: `You are a professional graphic designer AI assistant specialized in creating and enhancing visual media assets.
 
@@ -105,7 +110,8 @@ After you receive the media ID from generate_image, you MUST call update_post_mo
     tone: 'professional',
     voice: 'engaging',
     conventions: ['use active voice', 'descriptive but concise'],
-    notes: 'Metadata like alt text and descriptions should be descriptive and helpful for accessibility.',
+    notes:
+      'Metadata like alt text and descriptions should be descriptive and helpful for accessibility.',
   },
 
   scopes: [

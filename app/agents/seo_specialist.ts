@@ -14,6 +14,9 @@ const SeoSpecialistAgent: AgentDefinition = {
   enabled: true,
 
   internal: {
+    providerText: 'openai',
+    modelText: 'gpt-4o',
+    // Fallback for legacy
     provider: 'openai',
     model: 'gpt-4o',
 

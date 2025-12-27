@@ -5,7 +5,7 @@ import {
   faTrash,
   faChartBar,
   faSync,
-  faWandMagicSparkles,
+  faTruckArrowRight,
   faListOl,
   faThLarge,
   faVideo,
@@ -21,7 +21,7 @@ import { AdminHeader } from '../../components/AdminHeader'
 import { AdminFooter } from '../../components/AdminFooter'
 import { toast } from 'sonner'
 import { usePage } from '@inertiajs/react'
-import { Pencil, Trash2, BarChart3, RefreshCw, Wand2, ListOrdered, LayoutGrid } from 'lucide-react'
+import { Pencil, Trash2, BarChart3, RefreshCw, ListOrdered, LayoutGrid } from 'lucide-react'
 import {
   AlertDialog,
   AlertDialogAction,
@@ -1096,7 +1096,7 @@ export default function MediaIndex() {
                                     }}
                                     aria-label="Optimize"
                                   >
-                                    <Wand2 className="w-4 h-4" />
+                                    <FontAwesomeIcon icon={faTruckArrowRight} className="w-4 h-4" />
                                   </button>
                                 </TooltipTrigger>
                                 <TooltipContent>
@@ -1294,7 +1294,7 @@ export default function MediaIndex() {
                                       aria-label="Optimize"
                                       title="Optimize (WebP)"
                                     >
-                                      <Wand2 className="w-4 h-4" />
+                                      <FontAwesomeIcon icon={faTruckArrowRight} className="w-4 h-4" />
                                     </button>
                                   )}
                                   <button

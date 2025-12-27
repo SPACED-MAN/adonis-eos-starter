@@ -14,9 +14,12 @@ const TranslatorAgent: AgentDefinition = {
   enabled: true,
 
   internal: {
+    providerText: 'openai',
+    modelText: 'gpt-4o',
+    // Fallback for legacy
     provider: 'openai',
     model: 'gpt-4o',
-    
+
     systemPrompt: `You are a professional multi-lingual translator and content assistant.
 Your role is to help users manage content across different locales.
 

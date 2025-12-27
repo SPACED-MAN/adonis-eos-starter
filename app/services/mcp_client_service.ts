@@ -1118,72 +1118,68 @@ class MCPClientService {
           throw new Error('generate_image requires a "prompt" parameter (string)')
         }
 
-        // Get OpenAI API key from environment
-        const apiKey = process.env.AI_PROVIDER_OPENAI_API_KEY
+        // Determine provider and model from agent config if available
+        let providerMedia: any = undefined
+        let modelMedia: string | undefined = model
+        let apiKey: string | undefined
+        let baseUrl: string | undefined
+
+        if (agentId) {
+          const agentDef = agentRegistry.get(agentId)
+          if (agentDef?.internal) {
+            providerMedia = agentDef.internal.providerMedia || agentDef.internal.provider
+            modelMedia = modelMedia || agentDef.internal.modelMedia || agentDef.internal.model
+            apiKey = agentDef.internal.apiKey
+            baseUrl = agentDef.internal.baseUrl
+          }
+        }
+
+        // Fallback to global defaults if not in agent config
+        if (!providerMedia || !modelMedia) {
+          const { default: aiSettingsService } = await import('#services/ai_settings_service')
+          const globalSettings = await aiSettingsService.get()
+          providerMedia = providerMedia || (globalSettings.defaultMediaProvider as any)
+          modelMedia = modelMedia || (globalSettings.defaultMediaModel || undefined)
+        }
+
+        // Default fallbacks if still undefined
+        providerMedia = providerMedia || 'openai'
+        modelMedia = modelMedia || (providerMedia === 'openai' ? 'dall-e-3' : 'imagen-4.0-generate-001')
+
+        if (!apiKey) {
+          const envKey = `AI_PROVIDER_${providerMedia.toUpperCase()}_API_KEY`
+          apiKey = (process.env[envKey] as string | undefined) || undefined
+        }
+
         if (!apiKey) {
           throw new Error(
-            'OpenAI API key not found. Set AI_PROVIDER_OPENAI_API_KEY environment variable.'
+            `API key not found for provider ${providerMedia}. Set AI_PROVIDER_${providerMedia.toUpperCase()}_API_KEY environment variable.`
           )
         }
 
+        const aiProviderService = (await import('#services/ai_provider_service')).default
 
-        // DALL-E model options: dall-e-2 or dall-e-3 (default to dall-e-3)
-        const dalleModel = model || 'dall-e-3'
-        // Size options: 1024x1024, 1792x1024, 1024x1792 (dall-e-3) or 256x256, 512x512, 1024x1024 (dall-e-2)
-        const imageSize = size || (dalleModel === 'dall-e-3' ? '1024x1024' : '1024x1024')
-        // Quality: standard or hd (dall-e-3 only)
-        const imageQuality = quality || 'standard'
-
-
-        // Call DALL-E API
-        let imageUrl: string | null = null
-        let revisedPrompt: string | null = null
+        // Call AI Provider Service to generate image
+        let imageUrl: string
+        let revisedPrompt: string | undefined
 
         try {
-          const dalleResponse = await fetch('https://api.openai.com/v1/images/generations', {
-            method: 'POST',
-            headers: {
-              'Content-Type': 'application/json',
-              'Authorization': `Bearer ${apiKey}`,
-            },
-            body: JSON.stringify({
-              model: dalleModel,
-              prompt: prompt,
-              n: 1, // Number of images
-              size: imageSize,
-              ...(dalleModel === 'dall-e-3' && { quality: imageQuality }),
-            }),
-          })
-
-          if (!dalleResponse.ok) {
-            const errorText = await dalleResponse.text()
-            let errorJson: any = null
-            try {
-              errorJson = JSON.parse(errorText)
-            } catch {
-              // Not JSON
+          const result = await aiProviderService.generateImage(
+            prompt,
+            { size, quality },
+            {
+              provider: providerMedia,
+              apiKey,
+              model: modelMedia,
+              baseUrl,
             }
-            console.error('[generate_image] DALL-E API error', {
-              status: dalleResponse.status,
-              error: errorText.substring(0, 500),
-              errorJson,
-            })
-            throw new Error(
-              `DALL-E API error: ${dalleResponse.status} ${dalleResponse.statusText}. ${errorJson?.error?.message || errorText.substring(0, 200)
-              }`
-            )
-          }
-
-          const dalleData = (await dalleResponse.json()) as any
-          imageUrl = dalleData.data?.[0]?.url
-          revisedPrompt = dalleData.data?.[0]?.revised_prompt || null
-
-          if (!imageUrl) {
-            throw new Error('No image URL returned from DALL-E API')
-          }
-
+          )
+          imageUrl = result.imageUrl
+          revisedPrompt = result.revisedPrompt
         } catch (error: any) {
-          console.error('[generate_image] DALL-E generation failed', { error: error.message })
+          console.error(`[generate_image] ${providerMedia} generation failed`, {
+            error: error.message,
+          })
           throw error
         }
 
@@ -1192,15 +1188,24 @@ class MCPClientService {
         let mimeType: string
 
         try {
-          const imageResponse = await fetch(imageUrl)
-          if (!imageResponse.ok) {
-            throw new Error(`Failed to download generated image: ${imageResponse.statusText}`)
+          if (imageUrl.startsWith('data:')) {
+            const matches = imageUrl.match(/^data:([A-Za-z-+\/]+);base64,(.+)$/)
+            if (!matches || matches.length !== 3) {
+              throw new Error('Invalid data URI returned from AI provider')
+            }
+            mimeType = matches[1]
+            imageBuffer = Buffer.from(matches[2], 'base64')
+          } else {
+            const imageResponse = await fetch(imageUrl)
+            if (!imageResponse.ok) {
+              throw new Error(`Failed to download generated image: ${imageResponse.statusText}`)
+            }
+            imageBuffer = Buffer.from(await imageResponse.arrayBuffer())
+            mimeType = imageResponse.headers.get('content-type') || 'image/png'
           }
-          imageBuffer = Buffer.from(await imageResponse.arrayBuffer())
-          mimeType = imageResponse.headers.get('content-type') || 'image/png'
         } catch (error: any) {
-          console.error('[generate_image] Failed to download image', { error: error.message })
-          throw new Error(`Failed to download generated image: ${error.message}`)
+          console.error('[generate_image] Failed to get image data', { error: error.message })
+          throw new Error(`Failed to get generated image: ${error.message}`)
         }
 
         // Determine file extension from mime type
@@ -1274,9 +1279,10 @@ class MCPClientService {
             entityId: mediaId,
             metadata: {
               prompt,
-              model: dalleModel,
-              size: imageSize,
-              quality: imageQuality,
+              provider: providerMedia,
+              model: modelMedia,
+              size,
+              quality,
               revisedPrompt,
               generated: true,
             },
@@ -1292,7 +1298,6 @@ class MCPClientService {
           altText: alt_text || prompt.slice(0, 200),
           description: description || null,
         }
-
 
         return result
       }

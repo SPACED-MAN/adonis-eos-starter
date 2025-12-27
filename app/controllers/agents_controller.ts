@@ -79,31 +79,39 @@ export default class AgentsController {
 
   /**
    * GET /api/agents
-   * List configured agents available in a specific scope
-   * Query params: ?scope=dropdown|global|field
+   * List configured agents.
+   * Query params: ?scope=dropdown|global|field (optional, if omitted returns all)
    */
   async index({ request, response }: HttpContext) {
-    const scope = (request.input('scope') as AgentScope | undefined) || 'dropdown'
+    const scope = request.input('scope') as AgentScope | undefined
     const fieldType = request.input('fieldType') as string | undefined
     const fieldKey = request.input('fieldKey') as string | undefined
 
-    const agents = agentRegistry.listByScope(scope, undefined, fieldKey, fieldType).map((a) => ({
+    let agents: any[] = []
+
+    if (scope) {
+      agents = agentRegistry.listByScope(scope, undefined, fieldKey, fieldType)
+    } else {
+      agents = agentRegistry.list()
+    }
+
+    const mappedAgents = agents.map((a) => ({
       id: a.id,
       name: a.name,
       description: a.description,
       type: a.type || 'internal',
       openEndedContext: a.openEndedContext?.enabled
         ? {
-          enabled: true,
-          label: a.openEndedContext.label,
-          placeholder: a.openEndedContext.placeholder,
-          maxChars: a.openEndedContext.maxChars,
-        }
+            enabled: true,
+            label: a.openEndedContext.label,
+            placeholder: a.openEndedContext.placeholder,
+            maxChars: a.openEndedContext.maxChars,
+          }
         : { enabled: false },
       // Include ALL enabled scopes for the UI to display
       scopes: a.scopes
-        .filter((s) => s.enabled !== false)
-        .map((s) => ({
+        .filter((s: any) => s.enabled !== false)
+        .map((s: any) => ({
           scope: s.scope,
           order: s.order,
           enabled: s.enabled,
@@ -111,7 +119,8 @@ export default class AgentsController {
           fieldKeys: (s as any).fieldKeys,
         })),
     }))
-    return response.ok({ data: agents })
+
+    return response.ok({ data: mappedAgents })
   }
 
   /**
