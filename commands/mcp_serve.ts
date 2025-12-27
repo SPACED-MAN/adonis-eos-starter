@@ -2104,28 +2104,115 @@ function createServerInstance() {
         if (!row) return errorResult('Media not found', { id })
         const url = String((row as any).url || '')
         if (!url) return jsonResult({ data: { inModules: [], inOverrides: [] } })
-        const like = `%${url}%`
 
+        const likeUrl = `%${url}%`
+        const likeId = `%${id}%`
+
+        // 1. Modules
         const inModules = await db
           .from('module_instances')
-          .whereRaw(
-            `(props::text ILIKE ? OR review_props::text ILIKE ? OR ai_review_props::text ILIKE ?)`,
-            [like, like, like]
+          .leftJoin('post_modules', 'module_instances.id', 'post_modules.module_id')
+          .leftJoin('posts', 'post_modules.post_id', 'posts.id')
+          .where((query) => {
+            query
+              .where((q) => {
+                q.whereRaw(`module_instances.props::text ILIKE ?`, [likeUrl])
+                  .orWhereRaw(
+                    `COALESCE(module_instances.review_props::text, '') ILIKE ?`,
+                    [likeUrl]
+                  )
+                  .orWhereRaw(
+                    `COALESCE(module_instances.ai_review_props::text, '') ILIKE ?`,
+                    [likeUrl]
+                  )
+              })
+              .orWhere((q) => {
+                q.whereRaw(`module_instances.props::text ILIKE ?`, [likeId])
+                  .orWhereRaw(
+                    `COALESCE(module_instances.review_props::text, '') ILIKE ?`,
+                    [likeId]
+                  )
+                  .orWhereRaw(
+                    `COALESCE(module_instances.ai_review_props::text, '') ILIKE ?`,
+                    [likeId]
+                  )
+              })
+          })
+          .select(
+            'module_instances.id',
+            'module_instances.type',
+            'module_instances.scope',
+            'module_instances.global_slug as globalSlug',
+            'posts.id as postId',
+            'posts.title as postTitle'
           )
-          .select('id', 'type', 'scope')
 
+        // 2. Post Module Overrides
         const inOverrides = await db
           .from('post_modules')
-          .whereRaw(
-            `(overrides::text ILIKE ? OR review_overrides::text ILIKE ? OR ai_review_overrides::text ILIKE ?)`,
-            [like, like, like]
-          )
-          .select('id', 'post_id as postId')
+          .join('posts', 'post_modules.post_id', 'posts.id')
+          .where((query) => {
+            query
+              .where((q) => {
+                q.whereRaw(`post_modules.overrides::text ILIKE ?`, [likeUrl])
+                  .orWhereRaw(
+                    `COALESCE(post_modules.review_overrides::text, '') ILIKE ?`,
+                    [likeUrl]
+                  )
+                  .orWhereRaw(
+                    `COALESCE(post_modules.ai_review_overrides::text, '') ILIKE ?`,
+                    [likeUrl]
+                  )
+              })
+              .orWhere((q) => {
+                q.whereRaw(`post_modules.overrides::text ILIKE ?`, [likeId])
+                  .orWhereRaw(
+                    `COALESCE(post_modules.review_overrides::text, '') ILIKE ?`,
+                    [likeId]
+                  )
+                  .orWhereRaw(
+                    `COALESCE(post_modules.ai_review_overrides::text, '') ILIKE ?`,
+                    [likeId]
+                  )
+              })
+          })
+          .select('post_modules.id', 'posts.id as postId', 'posts.title as postTitle')
+
+        // 3. Post Fields
+        const inPosts = await db
+          .from('posts')
+          .where('featured_image_id', id)
+          .orWhereRaw(`COALESCE(review_draft::text, '') ILIKE ?`, [likeUrl])
+          .orWhereRaw(`COALESCE(ai_review_draft::text, '') ILIKE ?`, [likeUrl])
+          .orWhereRaw(`COALESCE(review_draft::text, '') ILIKE ?`, [likeId])
+          .orWhereRaw(`COALESCE(ai_review_draft::text, '') ILIKE ?`, [likeId])
+          .select('id', 'title', 'type')
+
+        // 4. Site Settings
+        const inSettings = await db
+          .from('site_settings')
+          .where('logo_media_id', id)
+          .orWhere('favicon_media_id', id)
+          .orWhere('default_og_media_id', id)
+          .select('id')
 
         return jsonResult({
           data: {
-            inModules: inModules.map((m: any) => ({ id: m.id, type: m.type, scope: m.scope })),
-            inOverrides: inOverrides.map((o: any) => ({ id: o.id, postId: o.postid || o.postId })),
+            inModules: inModules.map((m: any) => ({
+              id: m.id,
+              type: m.type,
+              scope: m.scope,
+              globalSlug: m.globalSlug,
+              postId: m.postId,
+              postTitle: m.postTitle,
+            })),
+            inOverrides: inOverrides.map((o: any) => ({
+              id: o.id,
+              postId: o.postId,
+              postTitle: o.postTitle,
+            })),
+            inPosts: inPosts.map((p: any) => ({ id: p.id, title: p.title, type: p.type })),
+            inSettings: inSettings.length > 0,
           },
         })
       } catch (e: any) {

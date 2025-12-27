@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
+import { Link, usePage } from '@inertiajs/react'
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome'
 import {
   faPencil,
@@ -20,7 +21,6 @@ import {
 import { AdminHeader } from '../../components/AdminHeader'
 import { AdminFooter } from '../../components/AdminFooter'
 import { toast } from 'sonner'
-import { usePage } from '@inertiajs/react'
 import { Pencil, Trash2, BarChart3, RefreshCw, ListOrdered, LayoutGrid } from 'lucide-react'
 import {
   AlertDialog,
@@ -97,7 +97,12 @@ export default function MediaIndex() {
   const [savingEdit, setSavingEdit] = useState<boolean>(false)
   const [sortBy, setSortBy] = useState<'created_at' | 'original_filename' | 'size'>('created_at')
   const [sortOrder, setSortOrder] = useState<'asc' | 'desc'>('desc')
-  const [whereUsed, setWhereUsed] = useState<{ inModules: any[]; inOverrides: any[] } | null>(null)
+  const [whereUsed, setWhereUsed] = useState<{
+    inModules: any[]
+    inOverrides: any[]
+    inPosts?: any[]
+    inSettings?: boolean
+  } | null>(null)
   const [renaming, setRenaming] = useState<boolean>(false)
   const [newFilename, setNewFilename] = useState<string>('')
   const [editCategories, setEditCategories] = useState<string[]>([])
@@ -2153,12 +2158,29 @@ export default function MediaIndex() {
                       <ul className="list-disc pl-5 text-neutral-medium">
                         {whereUsed.inModules.map((m: any) => (
                           <li key={m.id} className="text-xs">
-                            Module {m.type} (id: {m.id}, scope: {m.scope})
+                            {m.scope === 'global' ? (
+                              <Link
+                                href={`/admin/modules?q=${encodeURIComponent(m.globalSlug || '')}`}
+                                className="text-standout-medium hover:underline"
+                              >
+                                Global Module {m.type} ({m.globalSlug})
+                              </Link>
+                            ) : m.postId ? (
+                              <Link
+                                href={`/admin/posts/${m.postId}/edit`}
+                                className="text-standout-medium hover:underline"
+                              >
+                                Module {m.type} in "{m.postTitle || m.postId}"
+                              </Link>
+                            ) : (
+                              `Module ${m.type} (id: ${m.id}, scope: ${m.scope})`
+                            )}
                           </li>
                         ))}
                       </ul>
                     )}
                   </div>
+
                   <div>
                     <div className="font-medium">In Overrides ({whereUsed.inOverrides.length})</div>
                     {whereUsed.inOverrides.length === 0 ? (
@@ -2167,12 +2189,51 @@ export default function MediaIndex() {
                       <ul className="list-disc pl-5 text-neutral-medium">
                         {whereUsed.inOverrides.map((o: any) => (
                           <li key={o.id} className="text-xs">
-                            PostModule id: {o.id} (post: {o.postId})
+                            <Link
+                              href={`/admin/posts/${o.postId}/edit`}
+                              className="text-standout-medium hover:underline"
+                            >
+                              PostModule in "{o.postTitle || o.postId}"
+                            </Link>
                           </li>
                         ))}
                       </ul>
                     )}
                   </div>
+
+                  {whereUsed.inPosts && whereUsed.inPosts.length > 0 && (
+                    <div>
+                      <div className="font-medium">In Posts ({whereUsed.inPosts.length})</div>
+                      <ul className="list-disc pl-5 text-neutral-medium">
+                        {whereUsed.inPosts.map((p: any) => (
+                          <li key={p.id} className="text-xs">
+                            <Link
+                              href={`/admin/posts/${p.id}/edit`}
+                              className="text-standout-medium hover:underline"
+                            >
+                              {p.title || 'Untitled'} ({p.type})
+                            </Link>
+                          </li>
+                        ))}
+                      </ul>
+                    </div>
+                  )}
+
+                  {whereUsed.inSettings && (
+                    <div>
+                      <div className="font-medium">In Site Settings</div>
+                      <div className="text-xs text-neutral-medium">
+                        Used in{' '}
+                        <Link
+                          href="/admin/settings/general"
+                          className="text-standout-medium hover:underline"
+                        >
+                          Logo, Favicon, or Social OG settings
+                        </Link>
+                        .
+                      </div>
+                    </div>
+                  )}
                 </div>
               ) : (
                 <div className="text-xs text-neutral-low">Loading…</div>
