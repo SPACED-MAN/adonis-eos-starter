@@ -41,7 +41,7 @@ export default function Prose({
   const maxWidth = useInlineValue(__moduleId, 'maxWidth', initialMaxWidth)
   const fontSize = useInlineValue(__moduleId, 'fontSize', initialFontSize)
   const backgroundColor = useInlineValue(__moduleId, 'backgroundColor', initialBackground)
-  const isDarkBg = backgroundColor === 'bg-neutral-high' || backgroundColor === 'bg-backdrop-high' || backgroundColor === 'bg-standout-low'
+  const isDarkBg = backgroundColor === 'bg-neutral-high' || backgroundColor === 'bg-backdrop-high' || backgroundColor === 'bg-standout-medium'
   const textColor = isDarkBg ? 'text-on-standout' : initialTextColor
   const textAlign = useInlineValue(__moduleId, 'textAlign', initialTextAlign)
   const padding = useInlineValue(__moduleId, 'padding', initialPadding)

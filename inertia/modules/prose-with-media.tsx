@@ -46,7 +46,7 @@ export default function ProseWithMedia({
   const { value: imageValue, show: showImage, props: imageProps } = useInlineField(__moduleId, 'image', image, { type: 'media', label: 'Image' })
   const bg = useInlineValue(__moduleId, 'backgroundColor', backgroundColor) || backgroundColor
 
-  const isDarkBg = bg === 'bg-neutral-high' || bg === 'bg-backdrop-high' || bg === 'bg-standout-low'
+  const isDarkBg = bg === 'bg-neutral-high' || bg === 'bg-backdrop-high' || bg === 'bg-standout-medium'
   const textColor = isDarkBg ? 'text-on-standout' : 'text-neutral-high'
   const subtextColor = isDarkBg ? 'text-on-standout/80' : 'text-neutral-medium'
 

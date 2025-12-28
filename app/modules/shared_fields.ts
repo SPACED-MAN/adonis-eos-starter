@@ -8,7 +8,7 @@ export const BACKGROUND_COLORS = [
   { label: 'Low', value: 'bg-backdrop-low' },
   { label: 'Medium', value: 'bg-backdrop-medium' },
   { label: 'High', value: 'bg-backdrop-high' },
-  { label: 'Standout', value: 'bg-standout-low' },
+  { label: 'Standout', value: 'bg-standout-medium' },
 ] as const
 
 /**

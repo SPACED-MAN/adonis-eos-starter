@@ -46,7 +46,7 @@ export default function Callout(props: CalloutProps) {
     initialBackground ||
     'bg-backdrop-low'
 
-  const isDarkBg = backgroundColor === 'bg-neutral-high' || backgroundColor === 'bg-backdrop-high' || backgroundColor === 'bg-standout-low'
+  const isDarkBg = backgroundColor === 'bg-neutral-high' || backgroundColor === 'bg-backdrop-high' || backgroundColor === 'bg-standout-medium'
   const textColor = isDarkBg ? 'text-on-standout' : 'text-neutral-high'
   const subtextColor = isDarkBg ? 'text-on-standout/80' : 'text-neutral-medium'
 
