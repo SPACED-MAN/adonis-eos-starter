@@ -146,21 +146,19 @@ export default function AgentsIndex() {
         <div className="mb-6 flex border-b border-line-low">
           <button
             onClick={() => setActiveTab('overview')}
-            className={`px-4 py-2 text-sm font-medium transition-colors border-b-2 ${
-              activeTab === 'overview'
+            className={`px-4 py-2 text-sm font-medium transition-colors border-b-2 ${activeTab === 'overview'
                 ? 'border-standout-medium text-standout-high'
                 : 'border-transparent text-neutral-medium hover:text-neutral-high'
-            }`}
+              }`}
           >
             System Agents
           </button>
           <button
             onClick={() => setActiveTab('settings')}
-            className={`px-4 py-2 text-sm font-medium transition-colors border-b-2 ${
-              activeTab === 'settings'
+            className={`px-4 py-2 text-sm font-medium transition-colors border-b-2 ${activeTab === 'settings'
                 ? 'border-standout-medium text-standout-high'
                 : 'border-transparent text-neutral-medium hover:text-neutral-high'
-            }`}
+              }`}
           >
             AI Configuration
           </button>
@@ -417,11 +415,10 @@ export default function AgentsIndex() {
             <div className="flex items-center gap-3 pt-4 border-t border-line-low">
               <button
                 type="button"
-                className={`px-4 py-2 text-sm font-semibold rounded-lg transition-all ${
-                  saving
+                className={`px-4 py-2 text-sm font-semibold rounded-lg transition-all ${saving
                     ? 'bg-standout-medium/50 text-on-standout/50 cursor-not-allowed'
                     : 'bg-standout-medium text-on-standout hover:bg-standout-high active:scale-95 shadow-sm hover:shadow-md'
-                }`}
+                  }`}
                 disabled={saving}
                 onClick={saveSettings}
               >
