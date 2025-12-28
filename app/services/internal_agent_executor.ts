@@ -32,6 +32,7 @@ class InternalAgentExecutor {
       throw new Error('Agent is not configured as internal')
     }
 
+    const startTime = Date.now()
     try {
       // 1. Build initial messages
       const messages = await this.buildMessages(agent, context, payload)
@@ -46,6 +47,19 @@ class InternalAgentExecutor {
       // 4. First AI completion
       let aiResult = await aiProviderService.complete(messages, completionOptions, aiConfig)
       let finalContent = aiResult.content
+
+      // Track usage and model info
+      const executionMeta = {
+        model: aiResult.metadata?.model || aiConfig.model,
+        provider: aiConfig.provider,
+        totalTurns: 1,
+        durationMs: 0, // Will be set at end
+        usage: {
+          promptTokens: aiResult.usage?.promptTokens || 0,
+          completionTokens: aiResult.usage?.completionTokens || 0,
+          totalTokens: aiResult.usage?.totalTokens || 0,
+        },
+      }
 
       // 5. Handle multi-turn tool execution if MCP is enabled
       let lastCreatedPostId: string | null = null
@@ -118,6 +132,12 @@ RESPOND WITH YOUR NEXT TOOL CALLS IN JSON FORMAT.`
             aiResult = await aiProviderService.complete(messages, completionOptions, aiConfig)
             finalContent = aiResult.content
             currentTurn++
+
+            // Update meta
+            executionMeta.totalTurns = currentTurn
+            executionMeta.usage.promptTokens += aiResult.usage?.promptTokens || 0
+            executionMeta.usage.completionTokens += aiResult.usage?.completionTokens || 0
+            executionMeta.usage.totalTokens += aiResult.usage?.totalTokens || 0
           } else {
             // No more tool calls, we're done
             break
@@ -204,6 +224,8 @@ RESPOND WITH YOUR NEXT TOOL CALLS IN JSON FORMAT.`
         delete parsedResult.summary
       }
 
+      executionMeta.durationMs = Date.now() - startTime
+
       // 7. Execute reactions
       const result = {
         success: true,
@@ -211,6 +233,7 @@ RESPOND WITH YOUR NEXT TOOL CALLS IN JSON FORMAT.`
         rawResponse: finalContent,
         summary: summary || this.extractNaturalSummary(finalContent, parsedResult),
         lastCreatedPostId,
+        executionMeta,
       }
 
       if (agent.reactions && agent.reactions.length > 0) {

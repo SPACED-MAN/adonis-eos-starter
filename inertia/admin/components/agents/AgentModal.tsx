@@ -37,6 +37,18 @@ export interface Agent {
   type?: 'internal' | 'external'
 }
 
+export interface ExecutionMeta {
+  model: string
+  provider: string
+  totalTurns: number
+  durationMs: number
+  usage: {
+    promptTokens: number
+    completionTokens: number
+    totalTokens: number
+  }
+}
+
 export interface AgentHistoryItem {
   id: string
   request: string | null
@@ -44,6 +56,7 @@ export interface AgentHistoryItem {
     rawResponse?: string
     summary?: string
     applied?: string[]
+    executionMeta?: ExecutionMeta
     [key: string]: any
   } | null
   createdAt: string
@@ -57,6 +70,7 @@ export interface AgentResponse {
   message?: string
   generatedMediaId?: string // Media ID if an image was generated
   suggestions?: any
+  executionMeta?: ExecutionMeta
 }
 
 type AgentModalProps = {
@@ -209,6 +223,7 @@ export function AgentModal({
           message: j.message,
           generatedMediaId: j.generatedMediaId,
           suggestions: j.suggestions,
+          executionMeta: j.executionMeta,
         }
         setAgentResponse(response)
         toast.success('Agent completed successfully')
@@ -380,6 +395,17 @@ export function AgentModal({
                               Applied: {item.response.applied.join(', ')}
                             </div>
                           )}
+                          {item.response.executionMeta && (
+                            <div className="flex flex-wrap gap-x-2 gap-y-1 text-[9px] text-neutral-low uppercase tracking-tight font-medium pt-1 opacity-70">
+                              <span>Model: {item.response.executionMeta.model}</span>
+                              <span>•</span>
+                              <span>Turns: {item.response.executionMeta.totalTurns}</span>
+                              <span>•</span>
+                              <span>
+                                Time: {(item.response.executionMeta.durationMs / 1000).toFixed(1)}s
+                              </span>
+                            </div>
+                          )}
                         </div>
                       </div>
                     )}
@@ -469,6 +495,43 @@ export function AgentModal({
                       <li key={i}>{field}</li>
                     ))}
                   </ul>
+                </div>
+              </div>
+            )}
+
+            {agentResponse.executionMeta && (
+              <div className="pt-2 border-t border-line-low mt-4">
+                <div className="flex flex-wrap gap-x-4 gap-y-2 text-[10px] text-neutral-medium uppercase tracking-wider font-semibold">
+                  <div className="flex items-center gap-1.5">
+                    <span className="text-neutral-low">Model:</span>
+                    <span className="text-neutral-high">{agentResponse.executionMeta.model}</span>
+                  </div>
+                  <div className="flex items-center gap-1.5">
+                    <span className="text-neutral-low">Provider:</span>
+                    <span className="text-neutral-high">
+                      {agentResponse.executionMeta.provider}
+                    </span>
+                  </div>
+                  <div className="flex items-center gap-1.5">
+                    <span className="text-neutral-low">Turns:</span>
+                    <span className="text-neutral-high">
+                      {agentResponse.executionMeta.totalTurns}
+                    </span>
+                  </div>
+                  <div className="flex items-center gap-1.5">
+                    <span className="text-neutral-low">Time:</span>
+                    <span className="text-neutral-high">
+                      {(agentResponse.executionMeta.durationMs / 1000).toFixed(1)}s
+                    </span>
+                  </div>
+                  {agentResponse.executionMeta.usage?.totalTokens > 0 && (
+                    <div className="flex items-center gap-1.5">
+                      <span className="text-neutral-low">Tokens:</span>
+                      <span className="text-neutral-high">
+                        {agentResponse.executionMeta.usage.totalTokens.toLocaleString()}
+                      </span>
+                    </div>
+                  )}
                 </div>
               </div>
             )}

@@ -32,6 +32,18 @@ export interface Agent {
   }
 }
 
+export interface ExecutionMeta {
+  model: string
+  provider: string
+  totalTurns: number
+  durationMs: number
+  usage: {
+    promptTokens: number
+    completionTokens: number
+    totalTokens: number
+  }
+}
+
 export interface AgentHistoryItem {
   id: string
   request: string | null
@@ -39,6 +51,7 @@ export interface AgentHistoryItem {
     rawResponse?: string
     summary?: string
     applied?: string[]
+    executionMeta?: ExecutionMeta
     [key: string]: any
   } | null
   createdAt: string
@@ -199,6 +212,13 @@ export function BulkAgentModal({
                       <div className="text-neutral-medium italic">
                         {item.response?.summary || 'Completed'}
                       </div>
+                      {item.response?.executionMeta && (
+                        <div className="flex flex-wrap gap-x-2 gap-y-1 text-[9px] text-neutral-low uppercase tracking-tight font-medium pt-1 opacity-70">
+                          <span>Model: {item.response.executionMeta.model}</span>
+                          <span>•</span>
+                          <span>Time: {(item.response.executionMeta.durationMs / 1000).toFixed(1)}s</span>
+                        </div>
+                      )}
                       <div className="text-[10px] text-neutral-low mt-1">
                         {new Date(item.createdAt).toLocaleString()}
                       </div>
