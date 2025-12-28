@@ -93,6 +93,7 @@ class ModuleScopeService {
 
       return {
         ...config,
+        defaultValues: config.defaultValues || {},
         renderingMode,
       }
     })

@@ -1192,17 +1192,29 @@ export default function Editor({
 
   const hasReviewBaseline = useMemo(() => {
     // A draft exists if it has actual content (beyond metadata)
-    if (!reviewDraft) return false
+    const hasModuleReview = (modules || []).some(
+      (m) =>
+        (m.reviewProps && Object.keys(m.reviewProps).length > 0) ||
+        (m.reviewOverrides && Object.keys(m.reviewOverrides).length > 0) ||
+        m.reviewAdded
+    )
+    if (!reviewDraft) return hasModuleReview
     const keys = Object.keys(reviewDraft).filter((k) => k !== 'savedAt' && k !== 'savedBy')
-    return keys.length > 0
-  }, [reviewDraft])
+    return keys.length > 0 || hasModuleReview
+  }, [reviewDraft, modules])
 
   const hasAiReviewBaseline = useMemo(() => {
     // A draft exists if it has actual content (beyond metadata)
-    if (!aiReviewDraft) return false
+    const hasModuleAiReview = (modules || []).some(
+      (m) =>
+        (m.aiReviewProps && Object.keys(m.aiReviewProps).length > 0) ||
+        (m.aiReviewOverrides && Object.keys(m.aiReviewOverrides).length > 0) ||
+        m.aiReviewAdded
+    )
+    if (!aiReviewDraft) return hasModuleAiReview
     const keys = Object.keys(aiReviewDraft).filter((k) => k !== 'savedAt' && k !== 'savedBy')
-    return keys.length > 0
-  }, [aiReviewDraft])
+    return keys.length > 0 || hasModuleAiReview
+  }, [aiReviewDraft, modules])
 
   const hasSourceBaseline = useMemo(() => {
     // "Source" exists if:

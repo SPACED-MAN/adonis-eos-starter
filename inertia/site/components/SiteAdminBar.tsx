@@ -6,12 +6,21 @@ import {
   faHighlighter,
   faGlobe,
   faMessage,
+  faListUl,
+  faPencil,
 } from '@fortawesome/free-solid-svg-icons'
 import { router } from '@inertiajs/react'
 import { DevTools } from '../../admin/components/DevTools'
 import { FeedbackPanel } from '~/components/FeedbackPanel'
 import { FeedbackMarkers } from '~/components/FeedbackMarkers'
-import { Sheet, SheetContent } from '~/components/ui/sheet'
+import { ModuleOutlinePanel } from '~/components/ModuleOutlinePanel'
+import {
+  Sheet,
+  SheetContent,
+  SheetHeader,
+  SheetTitle,
+  SheetDescription,
+} from '~/components/ui/sheet'
 import {
   Select,
   SelectContent,
@@ -35,6 +44,17 @@ type InlineBridge = {
   showDiffs: boolean
   toggleShowDiffs: () => void
   abVariations: Array<{ id: string; variation: string; status: string }>
+  modules: any[]
+  reorderModules: (newModules: any[]) => void
+  addModule: (payload: {
+    type: string
+    name?: string
+    scope: 'post' | 'global'
+    globalSlug?: string | null
+  }) => void
+  removeModule: (moduleId: string) => void
+  updateModuleLabel: (moduleId: string, label: string | null) => void
+  duplicateModule: (moduleId: string) => void
 }
 
 export function SiteAdminBar({ initialProps }: { initialProps?: any }) {
@@ -51,6 +71,12 @@ export function SiteAdminBar({ initialProps }: { initialProps?: any }) {
     showDiffs: false,
     toggleShowDiffs: () => {},
     abVariations: [],
+    modules: [],
+    reorderModules: () => {},
+    addModule: () => {},
+    removeModule: () => {},
+    updateModuleLabel: () => {},
+    duplicateModule: () => {},
   })
   const [mounted, setMounted] = useState(false)
   useEffect(() => {
@@ -113,6 +139,7 @@ export function SiteAdminBar({ initialProps }: { initialProps?: any }) {
     !!currentUser && ['admin', 'editor', 'translator'].includes(String(currentUser.role || ''))
   const [open, setOpen] = useState(false)
   const [feedbackOpen, setFeedbackOpen] = useState(false)
+  const [outlineOpen, setOutlineOpen] = useState(false)
   const [selectedFeedbackId, setSelectedFeedbackId] = useState<string | null>(null)
   const [contextMenu, setContextMenu] = useState<{ x: number; y: number; selector: string } | null>(
     null
@@ -343,73 +370,109 @@ export function SiteAdminBar({ initialProps }: { initialProps?: any }) {
           </div>
         )}
 
-        <div className="inline-flex overflow-hidden rounded-md border border-line-medium bg-backdrop-high shadow">
-          {inline.availableModes.hasSource && (
-            <button
-              type="button"
-              className={`px-3 py-2 text-xs font-medium border-r border-line-medium ${inline.mode === 'source' ? 'bg-standout-medium text-on-standout' : 'text-neutral-high hover:bg-backdrop-medium'}`}
-              onClick={() => inline.setMode('source')}
-            >
-              Source
-            </button>
-          )}
-          {inline.availableModes.hasReview && (
-            <button
-              type="button"
-              className={`px-3 py-2 text-xs font-medium border-r border-line-medium ${inline.mode === 'review' ? 'bg-standout-medium text-on-standout' : 'text-neutral-high hover:bg-backdrop-medium'}`}
-              onClick={() => inline.setMode('review')}
-            >
-              Review
-            </button>
-          )}
-          {inline.availableModes.hasAiReview && (
-            <button
-              type="button"
-              className={`px-3 py-2 text-xs font-medium border-r border-line-medium ${inline.mode === 'ai-review' ? 'bg-standout-medium text-on-standout' : 'text-neutral-high hover:bg-backdrop-medium'}`}
-              onClick={() => inline.setMode('ai-review')}
-            >
-              AI Review
-            </button>
-          )}
+        <div className="flex items-center gap-4">
+          <div className="inline-flex overflow-hidden rounded-md border border-line-medium bg-backdrop-high shadow">
+            {inline.availableModes.hasSource && (
+              <button
+                type="button"
+                className={`px-3 py-2 text-xs font-medium border-r border-line-medium last:border-r-0 ${inline.mode === 'source' ? 'bg-standout-medium text-on-standout' : 'text-neutral-high hover:bg-backdrop-medium'}`}
+                onClick={() => inline.setMode('source')}
+              >
+                Source
+              </button>
+            )}
+            {inline.availableModes.hasReview && (
+              <button
+                type="button"
+                className={`px-3 py-2 text-xs font-medium border-r border-line-medium last:border-r-0 ${inline.mode === 'review' ? 'bg-standout-medium text-on-standout' : 'text-neutral-high hover:bg-backdrop-medium'}`}
+                onClick={() => inline.setMode('review')}
+              >
+                Review
+              </button>
+            )}
+            {inline.availableModes.hasAiReview && (
+              <button
+                type="button"
+                className={`px-3 py-2 text-xs font-medium border-r border-line-medium last:border-r-0 ${inline.mode === 'ai-review' ? 'bg-standout-medium text-on-standout' : 'text-neutral-high hover:bg-backdrop-medium'}`}
+                onClick={() => inline.setMode('ai-review')}
+              >
+                AI Review
+              </button>
+            )}
+          </div>
 
-          <button
-            type="button"
-            className={`px-3 py-2 text-xs font-medium border-r border-line-medium ${inline.enabled ? 'bg-standout-medium text-on-standout' : 'text-neutral-high hover:bg-backdrop-medium'}`}
-            onClick={inline.toggle}
-          >
-            {inline.enabled ? 'Edits On' : 'Edits Off'}
-          </button>
-          {inline.enabled && (inline.mode === 'review' || inline.mode === 'ai-review') && (
+          <div className="inline-flex overflow-hidden rounded-md border border-line-medium bg-backdrop-high shadow">
             <Tooltip>
               <TooltipTrigger asChild>
                 <button
                   type="button"
-                  className={`px-3 py-2 text-xs font-medium border-r border-line-medium ${inline.showDiffs ? 'bg-standout-medium text-on-standout' : 'text-neutral-high hover:bg-backdrop-medium'}`}
-                  onClick={() => inline.toggleShowDiffs()}
-                  aria-label={`Highlight changes (${inline.mode === 'review' ? 'vs Source' : 'vs Review'})`}
+                  className={`px-3 py-2 text-xs font-medium border-r border-line-medium last:border-r-0 ${inline.enabled ? 'bg-standout-medium text-on-standout' : 'text-neutral-high hover:bg-backdrop-medium'}`}
+                  onClick={inline.toggle}
+                  aria-label={inline.enabled ? 'Disable Inline Editing' : 'Enable Inline Editing'}
                 >
-                  <FontAwesomeIcon icon={faHighlighter} />
+                  <FontAwesomeIcon icon={faPencil} />
                 </button>
               </TooltipTrigger>
               <TooltipContent>
-                <p>Highlight changes ({inline.mode === 'review' ? 'vs Source' : 'vs Review'})</p>
+                <p>{inline.enabled ? 'Edits On' : 'Edits Off'}</p>
               </TooltipContent>
             </Tooltip>
-          )}
-          <button
-            aria-label="Feedback"
-            onClick={() => setFeedbackOpen(true)}
-            className={`px-3 py-2 text-xs font-medium border-r border-line-medium ${feedbackOpen ? 'bg-standout-medium text-on-standout' : 'text-neutral-high hover:bg-backdrop-medium'}`}
-          >
-            <FontAwesomeIcon icon={faMessage} />
-          </button>
-          <button
-            aria-label="Admin tools"
-            onClick={() => setOpen((v) => !v)}
-            className="px-3 py-2 text-xs font-medium text-neutral-high hover:bg-backdrop-medium"
-          >
-            <FontAwesomeIcon icon={faWrench} />
-          </button>
+          </div>
+
+          <div className="inline-flex overflow-hidden rounded-md border border-line-medium bg-backdrop-high shadow">
+            {inline.enabled && (inline.mode === 'review' || inline.mode === 'ai-review') && (
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <button
+                    type="button"
+                    className={`px-3 py-2 text-xs font-medium border-r border-line-medium ${inline.showDiffs ? 'bg-standout-medium text-on-standout' : 'text-neutral-high hover:bg-backdrop-medium'}`}
+                    onClick={() => inline.toggleShowDiffs()}
+                    aria-label={`Highlight changes (${inline.mode === 'review' ? 'vs Source' : 'vs Review'})`}
+                  >
+                    <FontAwesomeIcon icon={faHighlighter} />
+                  </button>
+                </TooltipTrigger>
+                <TooltipContent>
+                  <p>Highlight changes ({inline.mode === 'review' ? 'vs Source' : 'vs Review'})</p>
+                </TooltipContent>
+              </Tooltip>
+            )}
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <button
+                  aria-label="Outline"
+                  onClick={() => setOutlineOpen(true)}
+                  className={`px-3 py-2 text-xs font-medium border-r border-line-medium ${outlineOpen ? 'bg-standout-medium text-on-standout' : 'text-neutral-high hover:bg-backdrop-medium'}`}
+                >
+                  <FontAwesomeIcon icon={faListUl} />
+                </button>
+              </TooltipTrigger>
+              <TooltipContent>
+                <p>Page Outline</p>
+              </TooltipContent>
+            </Tooltip>
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <button
+                  aria-label="Feedback"
+                  onClick={() => setFeedbackOpen(true)}
+                  className={`px-3 py-2 text-xs font-medium border-r border-line-medium ${feedbackOpen ? 'bg-standout-medium text-on-standout' : 'text-neutral-high hover:bg-backdrop-medium'}`}
+                >
+                  <FontAwesomeIcon icon={faMessage} />
+                </button>
+              </TooltipTrigger>
+              <TooltipContent>
+                <p>Page Feedback</p>
+              </TooltipContent>
+            </Tooltip>
+            <button
+              aria-label="Admin tools"
+              onClick={() => setOpen((v) => !v)}
+              className="px-3 py-2 text-xs font-medium text-neutral-high hover:bg-backdrop-medium"
+            >
+              <FontAwesomeIcon icon={faWrench} />
+            </button>
+          </div>
         </div>
         {inline.dirty && inline.canEdit && (
           <div className="flex items-center gap-2">
@@ -527,6 +590,10 @@ export function SiteAdminBar({ initialProps }: { initialProps?: any }) {
           side="right"
           className="sm:max-w-[425px] h-full p-0 overflow-hidden flex flex-col border-l border-line-low shadow-2xl bg-backdrop-high/95 backdrop-blur-md pointer-events-auto"
         >
+          <SheetHeader className="sr-only">
+            <SheetTitle>Feedback</SheetTitle>
+            <SheetDescription>View and manage page feedback</SheetDescription>
+          </SheetHeader>
           <FeedbackPanel
             postId={post?.id}
             mode={inline.mode === 'source' ? 'approved' : inline.mode}
@@ -552,6 +619,35 @@ export function SiteAdminBar({ initialProps }: { initialProps?: any }) {
               if (fbId) setSelectedFeedbackId(fbId)
               // Don't close the sheet when jumping to spot, so the user can still see other feedback
             }}
+          />
+        </SheetContent>
+      </Sheet>
+
+      {/* Outline Sidebar/Panel */}
+      <Sheet
+        open={outlineOpen}
+        onOpenChange={(v) => setOutlineOpen(v)}
+        modal={false}
+      >
+        <SheetContent
+          hideOverlay
+          side="right"
+          className="sm:max-w-[425px] h-full p-0 overflow-hidden flex flex-col border-l border-line-low shadow-2xl bg-backdrop-high/95 backdrop-blur-md pointer-events-auto"
+        >
+          <SheetHeader className="sr-only">
+            <SheetTitle>Page Outline</SheetTitle>
+            <SheetDescription>View and reorder page modules</SheetDescription>
+          </SheetHeader>
+          <ModuleOutlinePanel
+            modules={inline.modules}
+            postType={post?.type}
+            postId={post?.id}
+            onReorder={(newModules) => inline.reorderModules(newModules)}
+            onAddModule={(payload) => inline.addModule(payload)}
+            onRemoveModule={(id) => inline.removeModule(id)}
+            onUpdateLabel={(id, label) => inline.updateModuleLabel(id, label)}
+            onDuplicateModule={(id) => inline.duplicateModule(id)}
+            onClose={() => setOutlineOpen(false)}
           />
         </SheetContent>
       </Sheet>

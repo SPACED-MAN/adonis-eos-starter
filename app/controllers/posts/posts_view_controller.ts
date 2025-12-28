@@ -194,6 +194,7 @@ export default class PostsViewController extends BasePostsController {
                 globalSlug: mi?.globalSlug || (mi as any)?.global_slug || null,
                 globalLabel: mi?.globalLabel || (mi as any)?.global_label || null,
                 adminLabel: currentDraftModule?.adminLabel ?? pm.adminLabel ?? null,
+                name: moduleConfig?.name || mi?.type || 'Unknown Module',
               }
             })
             .sort((a, b) => {

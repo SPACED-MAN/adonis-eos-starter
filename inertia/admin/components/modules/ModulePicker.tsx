@@ -1,4 +1,4 @@
-import { useEffect, useState, Suspense } from 'react'
+import { useEffect, useState, Suspense, Component, type ReactNode } from 'react'
 import { router } from '@inertiajs/react'
 import { toast } from 'sonner'
 import {
@@ -14,7 +14,7 @@ import { getXsrf } from '~/utils/xsrf'
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome'
 import { faReact } from '@fortawesome/free-brands-svg-icons'
 import { Tooltip, TooltipContent, TooltipTrigger } from '~/components/ui/tooltip'
-import Modules from '~/modules'
+import Modules from '../../../modules'
 
 type ModuleConfig = {
   type: string
@@ -27,6 +27,36 @@ type ModuleConfig = {
 }
 
 /**
+ * Simple error boundary for module previews
+ */
+class ModuleErrorBoundary extends Component<{ children: ReactNode }, { hasError: boolean }> {
+  constructor(props: { children: ReactNode }) {
+    super(props)
+    this.state = { hasError: false }
+  }
+
+  static getDerivedStateFromError() {
+    return { hasError: true }
+  }
+
+  componentDidCatch(error: any, errorInfo: any) {
+    console.warn('Module preview error:', error, errorInfo)
+  }
+
+  render() {
+    if (this.state.hasError) {
+      return (
+        <div className="w-full h-full bg-backdrop-low flex items-center justify-center text-[10px] text-neutral-low p-4 text-center">
+          Preview unavailable for this module type
+        </div>
+      )
+    }
+
+    return this.props.children
+  }
+}
+
+/**
  * Thumbnail preview of a module
  */
 function ModuleThumbnail({
@@ -36,15 +66,13 @@ function ModuleThumbnail({
   type: string
   defaultValues?: Record<string, any>
 }) {
-  // Convert kebab-case to PascalCase
-  const pascalName = type
-    .split('-')
-    .map((part) => part.charAt(0).toUpperCase() + part.slice(1))
-    .join('')
+  // Use robust lookup matching the post renderer
+  const componentKey = Object.keys(Modules).find(
+    (k) => k.toLowerCase() === type.replace(/[-_]/g, '')
+  )
+  const ModuleComponent = componentKey ? (Modules as any)[componentKey] : null
 
-  const Component = (Modules as any)[pascalName]
-
-  if (!Component) {
+  if (!ModuleComponent) {
     return (
       <div className="w-full h-full bg-backdrop-low flex items-center justify-center text-[10px] text-neutral-low border border-line-low rounded overflow-hidden">
         No Preview
@@ -55,12 +83,20 @@ function ModuleThumbnail({
   return (
     <div className="w-full h-full relative overflow-hidden bg-backdrop-low border border-line-low rounded shadow-sm">
       <div
-        className="absolute top-0 left-0 w-[1024px] origin-top-left pointer-events-none"
+        className="absolute top-0 left-0 w-[1024px] min-h-[576px] origin-top-left pointer-events-none border border-line-low"
         style={{ transform: 'scale(0.25)' }}
       >
-        <Suspense fallback={null}>
-          <Component {...(defaultValues || {})} />
-        </Suspense>
+        <ModuleErrorBoundary>
+          <Suspense
+            fallback={
+              <div className="w-full h-full flex items-center justify-center text-neutral-low animate-pulse">
+                Loading...
+              </div>
+            }
+          >
+            <ModuleComponent {...(defaultValues || {})} />
+          </Suspense>
+        </ModuleErrorBoundary>
       </div>
     </div>
   )
@@ -74,7 +110,12 @@ type GlobalItem = {
   props?: Record<string, any>
 }
 
-type OnAddPayload = { type: string; scope: 'post' | 'global'; globalSlug?: string | null }
+type OnAddPayload = {
+  type: string
+  name?: string
+  scope: 'post' | 'global'
+  globalSlug?: string | null
+}
 
 export function ModulePicker({
   postId,
@@ -124,13 +165,13 @@ export function ModulePicker({
     }
   }, [open, postType])
 
-  async function addModule(type: string) {
+  async function addModule(type: string, name?: string) {
     // If custom handler (e.g., templates), call it with scope='post'
     if (onAdd) {
       try {
         setLoading(true)
-        await Promise.resolve(onAdd({ type, scope: 'post' }))
-        toast.success(`Added ${type}`)
+        await Promise.resolve(onAdd({ type, name, scope: 'post' }))
+        toast.success(`Added ${name || type}`)
         setOpen(false)
       } catch {
         toast.error('Failed to add module')
@@ -171,7 +212,7 @@ export function ModulePicker({
     )
   }
 
-  async function addGlobal(moduleType: string, globalSlug: string | null) {
+  async function addGlobal(moduleType: string, globalSlug: string | null, name?: string) {
     if (!moduleType || !globalSlug) {
       toast.error('Invalid global module')
       return
@@ -179,8 +220,8 @@ export function ModulePicker({
     if (onAdd) {
       try {
         setLoading(true)
-        await Promise.resolve(onAdd({ type: moduleType, scope: 'global', globalSlug }))
-        toast.success(`Added global: ${globalSlug}`)
+        await Promise.resolve(onAdd({ type: moduleType, name, scope: 'global', globalSlug }))
+        toast.success(`Added global: ${name || globalSlug}`)
         setOpen(false)
       } catch {
         toast.error('Failed to add global module')
@@ -305,14 +346,14 @@ export function ModulePicker({
                             </div>
                           )}
                         </div>
-                        <button
-                          type="button"
-                          onClick={() => addModule(m.type)}
-                          className="shrink-0 inline-flex items-center rounded border border-line-medium bg-backdrop-low px-2.5 py-1.5 text-xs text-neutral-high hover:bg-backdrop-medium"
-                          disabled={loading}
-                        >
-                          Add
-                        </button>
+                           <button
+                             type="button"
+                             onClick={() => addModule(m.type, m.name)}
+                             className="shrink-0 inline-flex items-center rounded border border-line-medium bg-backdrop-low px-2.5 py-1.5 text-xs text-neutral-high hover:bg-backdrop-medium"
+                             disabled={loading}
+                           >
+                             Add
+                           </button>
                       </div>
                     )
                   })}
@@ -338,14 +379,14 @@ export function ModulePicker({
                           {g.type} {g.globalSlug ? `· ${g.globalSlug}` : ''}
                         </div>
                       </div>
-                      <button
-                        type="button"
-                        onClick={() => addGlobal(g.type, g.globalSlug)}
-                        className="shrink-0 inline-flex items-center rounded border border-line-medium bg-backdrop-low px-2.5 py-1.5 text-xs text-neutral-high hover:bg-backdrop-medium"
-                        disabled={loading}
-                      >
-                        Add
-                      </button>
+                         <button
+                           type="button"
+                           onClick={() => addGlobal(g.type, g.globalSlug, g.label)}
+                           className="shrink-0 inline-flex items-center rounded border border-line-medium bg-backdrop-low px-2.5 py-1.5 text-xs text-neutral-high hover:bg-backdrop-medium"
+                           disabled={loading}
+                         >
+                           Add
+                         </button>
                     </div>
                   ))}
                 </div>

@@ -70,6 +70,17 @@ type InlineEditorContextValue = {
   showDiffs: boolean
   toggleShowDiffs: () => void
   abVariations: Array<{ id: string; variation: string; status: string }>
+  modules: ModuleSeed[]
+  reorderModules: (newModules: ModuleSeed[]) => void
+  addModule: (payload: {
+    type: string
+    name?: string
+    scope: 'post' | 'global'
+    globalSlug?: string | null
+  }) => void
+  removeModule: (moduleId: string) => void
+  updateModuleLabel: (moduleId: string, label: string | null) => void
+  duplicateModule: (moduleId: string) => void
 }
 
 const InlineEditorContext = createContext<InlineEditorContextValue>({
@@ -88,13 +99,22 @@ const InlineEditorContext = createContext<InlineEditorContextValue>({
   showDiffs: false,
   toggleShowDiffs: () => {},
   abVariations: [],
+  modules: [],
+  reorderModules: () => {},
+  addModule: () => {},
+  removeModule: () => {},
+  updateModuleLabel: () => {},
+  duplicateModule: () => {},
 })
 
 type ModuleSeed = {
   id: string
+  type: string
+  name?: string
   scope?: 'local' | 'global' | 'static'
   globalSlug?: string | null
   globalLabel?: string | null
+  adminLabel?: string | null
   props: Record<string, any>
   sourceProps?: Record<string, any>
   sourceOverrides?: Record<string, any>
@@ -113,6 +133,7 @@ export function InlineEditorProvider({
   post,
   customFields,
   abVariations = [],
+  availableModes: availableModesProp,
 }: {
   children: ReactNode
   postId: string
@@ -120,6 +141,11 @@ export function InlineEditorProvider({
   post?: any
   customFields?: Record<string, any>
   abVariations?: Array<{ id: string; variation: string; status: string }>
+  availableModes?: {
+    hasSource: boolean
+    hasReview: boolean
+    hasAiReview: boolean
+  }
 }) {
   const page = usePage()
   const siteSettings = (page.props as any)?.siteSettings || {}
@@ -172,6 +198,19 @@ export function InlineEditorProvider({
   const [drafts, setDrafts] = useState<Record<string, DraftPatch>>({})
   const [dirtyModules, setDirtyModules] = useState<Set<string>>(new Set())
   const [showDiffs, setShowDiffs] = useState(false)
+  const [localModules, setLocalModules] = useState<ModuleSeed[]>(modules)
+  const [isStructuralDirty, setIsStructuralDirty] = useState(false)
+  const [pendingNewModules, setPendingNewModules] = useState<any[]>([])
+  const [pendingRemoved, setPendingRemoved] = useState<Set<string>>(new Set())
+
+  // Sync localModules if prop changes (e.g. after a save/reload)
+  useEffect(() => {
+    setLocalModules(modules)
+    setIsStructuralDirty(false)
+    setPendingNewModules([])
+    setPendingRemoved(new Set())
+  }, [modules])
+
   const moduleMeta = useMemo(() => {
     const map = new Map<
       string,
@@ -181,11 +220,11 @@ export function InlineEditorProvider({
         globalLabel?: string | null
       }
     >()
-    modules.forEach((m) =>
+    localModules.forEach((m) =>
       map.set(m.id, { scope: m.scope, globalSlug: m.globalSlug, globalLabel: m.globalLabel })
     )
     return map
-  }, [modules])
+  }, [localModules])
 
   // seed lookup for original props/overrides across modes
   const base = useMemo<
@@ -204,7 +243,7 @@ export function InlineEditorProvider({
     >
   >(() => {
     const out: Record<string, any> = {}
-    modules.forEach((m) => {
+    localModules.forEach((m) => {
       out[m.id] = {
         props: m.props || {},
         sourceProps: m.sourceProps || m.props || {},
@@ -217,7 +256,7 @@ export function InlineEditorProvider({
       }
     })
     return out
-  }, [modules])
+  }, [localModules])
 
   const getModeValue = useCallback(
     (moduleId: string, path: string, targetMode: Mode, fallback: any) => {
@@ -664,9 +703,112 @@ export function InlineEditorProvider({
     [isDOMElement]
   )
 
+  const reorderModules = useCallback((newModules: ModuleSeed[]) => {
+    setLocalModules(newModules)
+    setIsStructuralDirty(true)
+  }, [])
+
+  const addModule = useCallback(
+    (payload: {
+      type: string
+      name?: string
+      scope: 'post' | 'global'
+      globalSlug?: string | null
+    }) => {
+      const tempId = `temp-${Date.now()}-${Math.random().toString(36).substring(2, 9)}`
+      const nextOrderIndex = localModules.length
+
+      const newModule: ModuleSeed = {
+        id: tempId,
+        type: payload.type,
+        name: payload.name,
+        scope: payload.scope === 'post' ? 'local' : 'global',
+        globalSlug: payload.globalSlug || null,
+        props: {},
+        overrides: null,
+      }
+
+      setLocalModules((prev) => [...prev, newModule])
+      setPendingNewModules((prev) => [
+        ...prev,
+        {
+          tempId,
+          type: payload.type,
+          scope: payload.scope === 'post' ? 'local' : 'global',
+          globalSlug: payload.globalSlug || null,
+          orderIndex: nextOrderIndex,
+          props: {},
+          overrides: null,
+        },
+      ])
+      setIsStructuralDirty(true)
+    },
+    [localModules]
+  )
+
+  const removeModule = useCallback((moduleId: string) => {
+    setLocalModules((prev) => prev.filter((m) => m.id !== moduleId))
+    if (!moduleId.startsWith('temp-')) {
+      setPendingRemoved((prev) => {
+        const next = new Set(prev)
+        next.add(moduleId)
+        return next
+      })
+    } else {
+      setPendingNewModules((prev) => prev.filter((m) => m.tempId !== moduleId))
+    }
+    setIsStructuralDirty(true)
+  }, [])
+
+  const updateModuleLabel = useCallback((moduleId: string, label: string | null) => {
+    setLocalModules((prev) =>
+      prev.map((m) => (m.id === moduleId ? { ...m, adminLabel: label } : m))
+    )
+    setIsStructuralDirty(true)
+  }, [])
+
+  const duplicateModule = useCallback(
+    (moduleId: string) => {
+      const source = localModules.find((m) => m.id === moduleId)
+      if (!source) return
+
+      const tempId = `temp-${Date.now()}-${Math.random().toString(36).substring(2, 9)}`
+      const index = localModules.findIndex((m) => m.id === moduleId)
+
+      const cloned: ModuleSeed = {
+        ...source,
+        id: tempId,
+        adminLabel: source.adminLabel ? `${source.adminLabel} (Copy)` : null,
+      }
+
+      setLocalModules((prev) => {
+        const next = [...prev]
+        next.splice(index + 1, 0, cloned)
+        return next
+      })
+
+      setPendingNewModules((prev) => [
+        ...prev,
+        {
+          tempId,
+          type: source.type,
+          scope: source.scope === 'global' ? 'global' : 'local',
+          globalSlug: source.globalSlug,
+          orderIndex: index + 1,
+          props: { ...source.props },
+          overrides: source.overrides ? { ...source.overrides } : null,
+        },
+      ])
+      setIsStructuralDirty(true)
+    },
+    [localModules]
+  )
+
   const saveAll = useCallback(
     async (targetMode?: Mode) => {
-      if (!enabled || !canEdit || dirtyModules.size === 0) return
+      if (!enabled || !canEdit) return
+      if (dirtyModules.size === 0 && !isStructuralDirty) return
+
       const saveMode = targetMode || mode
       const xsrf =
         typeof document !== 'undefined'
@@ -676,8 +818,97 @@ export function InlineEditorProvider({
             })()
           : undefined
 
-      for (const moduleId of Array.from(dirtyModules)) {
-        const patch = drafts[moduleId]
+      const apiMode = saveMode === 'source' ? 'publish' : (saveMode as any)
+      const idMap = new Map<string, string>()
+
+      // 1. Structural Changes
+      if (isStructuralDirty) {
+        try {
+          // 1a. Create new modules
+          const created: Array<{ tempId: string; postModuleId: string }> = []
+          for (const pm of pendingNewModules) {
+            const res = await fetch(`/api/posts/${postId}/modules`, {
+              method: 'POST',
+              headers: {
+                'Accept': 'application/json',
+                'Content-Type': 'application/json',
+                ...(xsrf ? { 'X-XSRF-TOKEN': xsrf } : {}),
+              },
+              credentials: 'same-origin',
+              body: JSON.stringify({
+                moduleType: pm.type,
+                scope: pm.scope,
+                globalSlug: pm.globalSlug,
+                orderIndex: pm.orderIndex,
+                locked: false,
+                props: pm.props || {},
+                overrides: pm.overrides || null,
+                mode: apiMode,
+              }),
+            })
+            if (res.ok) {
+              const json = await res.json().catch(() => ({}))
+              const data = json?.data ?? json
+              if (data?.postModuleId || data?.id) {
+                const realId = String(data.postModuleId || data.id)
+                created.push({
+                  tempId: pm.tempId,
+                  postModuleId: realId,
+                })
+                idMap.set(pm.tempId, realId)
+              }
+            }
+          }
+
+          // 1b. Delete removed modules
+          for (const id of Array.from(pendingRemoved)) {
+            await fetch(`/api/post-modules/${encodeURIComponent(id)}`, {
+              method: 'DELETE',
+              headers: {
+                ...(xsrf ? { 'X-XSRF-TOKEN': xsrf } : {}),
+              },
+              credentials: 'same-origin',
+            })
+          }
+
+          // 1c. Persist Order
+          const modulesWithRealIds = localModules
+            .filter((m) => !pendingRemoved.has(m.id))
+            .map((m) => ({
+              ...m,
+              id: idMap.get(m.id) || m.id,
+            }))
+
+          const updates = modulesWithRealIds
+            .filter((m) => !m.id.startsWith('temp-'))
+            .map((m, index) =>
+              fetch(`/api/post-modules/${encodeURIComponent(m.id)}`, {
+                method: 'PUT',
+                headers: {
+                  'Accept': 'application/json',
+                  'Content-Type': 'application/json',
+                  ...(xsrf ? { 'X-XSRF-TOKEN': xsrf } : {}),
+                },
+                credentials: 'same-origin',
+                body: JSON.stringify({
+                  orderIndex: index,
+                  adminLabel: m.adminLabel,
+                  mode: apiMode,
+                }),
+              })
+            )
+          await Promise.allSettled(updates)
+        } catch (error) {
+          console.error('Failed to save structural changes:', error)
+          alert('Failed to save structural changes')
+          return
+        }
+      }
+
+      // 2. Save Field Edits
+      for (const originalModuleId of Array.from(dirtyModules)) {
+        const moduleId = idMap.get(originalModuleId) || originalModuleId
+        const patch = drafts[originalModuleId]
         if (!patch || Object.keys(patch).length === 0) continue
         const entries = Object.entries(patch)
         for (const [path, value] of entries) {
@@ -743,7 +974,19 @@ export function InlineEditorProvider({
         window.location.reload()
       }
     },
-    [canEdit, dirtyModules, drafts, enabled, mode, postId, safeJsonClone]
+    [
+      canEdit,
+      dirtyModules,
+      drafts,
+      enabled,
+      isStructuralDirty,
+      localModules,
+      mode,
+      pendingNewModules,
+      pendingRemoved,
+      postId,
+      safeJsonClone,
+    ]
   )
 
   const saveForReview = useCallback(async () => {
@@ -756,46 +999,85 @@ export function InlineEditorProvider({
     }
   }, [saveAll])
 
-  // Determine which modes are available based on module data
+  // Determine which modes are available based on post/module data.
+  // We align this with the logic in the primary Post Admin editor for consistency.
   const availableModes = useMemo(() => {
-    // Source exists if there are modules with approved props (not just AI Review)
-    // Check if modules have actual source content (props that aren't just from AI Review)
-    let hasSource = false
-    let hasReview = false
-    let hasAiReview = false
+    if (availableModesProp) return availableModesProp
 
-    for (const m of modules) {
-      // Source exists if module has props (approved content) and wasn't added via AI Review
-      if (m.props && Object.keys(m.props).length > 0 && !m.aiReviewAdded) {
-        hasSource = true
-      }
-      if (m.reviewProps && Object.keys(m.reviewProps).length > 0) hasReview = true
-      if (m.reviewOverrides && Object.keys(m.reviewOverrides).length > 0) hasReview = true
-      if (m.aiReviewProps && Object.keys(m.aiReviewProps).length > 0) hasAiReview = true
-      if (m.aiReviewOverrides && Object.keys(m.aiReviewOverrides).length > 0) hasAiReview = true
-    }
+    const canSaveForReview = permissions.includes('posts.review.save')
+    const canApproveReview = permissions.includes('posts.review.approve')
+    const canApproveAiReview = permissions.includes('posts.ai-review.approve')
 
-    // Also check if there is an atomic draft in the post itself
-    const rd = post?.reviewDraft
-    if (rd && typeof rd === 'object' && Object.keys(rd).length > 0) {
-      hasReview = true
-    }
-    const ard = post?.aiReviewDraft
-    if (ard && typeof ard === 'object' && Object.keys(ard).length > 0) {
-      hasAiReview = true
-    }
+    const hasReviewModuleContent = (modules || []).some(
+      (m) =>
+        (m.reviewProps && typeof m.reviewProps === 'object' && Object.keys(m.reviewProps).length > 0) ||
+        (m.reviewOverrides && typeof m.reviewOverrides === 'object' && Object.keys(m.reviewOverrides).length > 0) ||
+        m.reviewAdded === true
+    )
 
-    // If no modules at all, but we have some content, assume source exists
-    // This handles edge cases where modules might be empty but post has content
-    if (modules.length === 0) {
-      hasSource = false // No modules means no source
-    } else if (!hasSource && !hasReview && !hasAiReview) {
-      // If we have modules but no review/ai-review data, they must be source
-      hasSource = true
+    const hasAiReviewModuleContent = (modules || []).some(
+      (m) =>
+        (m.aiReviewProps && typeof m.aiReviewProps === 'object' && Object.keys(m.aiReviewProps).length > 0) ||
+        (m.aiReviewOverrides && typeof m.aiReviewOverrides === 'object' && Object.keys(m.aiReviewOverrides).length > 0) ||
+        m.aiReviewAdded === true
+    )
+
+    const hasReview = (() => {
+      // Align with editor.tsx: must have content AND user must have permission to see/act on it
+      const hasDraftContent = (() => {
+        if (!post?.reviewDraft || typeof post.reviewDraft !== 'object') return false
+        const keys = Object.keys(post.reviewDraft).filter((k) => k !== 'savedAt' && k !== 'savedBy')
+        return keys.length > 0
+      })()
+
+      return (hasDraftContent || hasReviewModuleContent) && (canSaveForReview || canApproveReview)
+    })()
+
+    const hasAiReview = (() => {
+      const hasDraftContent = (() => {
+        if (!post?.aiReviewDraft || typeof post.aiReviewDraft !== 'object') return false
+        const keys = Object.keys(post.aiReviewDraft).filter(
+          (k) => k !== 'savedAt' && k !== 'savedBy'
+        )
+        return keys.length > 0
+      })()
+
+      return (hasDraftContent || hasAiReviewModuleContent) && canApproveAiReview
+    })()
+
+    // Source exists if there are modules not introduced via Review/AI Review,
+    // or if the post has approved content.
+    const hasSourceModules = (modules || []).some(
+      (m) => !m.reviewAdded && !(m as any).aiReviewAdded
+    )
+
+    const hasApprovedFields = !!(
+      (post?.excerpt && post.excerpt.trim() !== '') ||
+      (post?.metaTitle && post.metaTitle.trim() !== '') ||
+      (post?.metaDescription && post.metaDescription.trim() !== '') ||
+      post?.featuredImageId ||
+      (customFields &&
+        (Array.isArray(customFields)
+          ? customFields.some((f: any) => f.value !== null && f.value !== '')
+          : Object.values(customFields).some((v) => v !== null && v !== '')))
+    )
+
+    // Optimization: If a post was created via an agent into AI Review mode,
+    // it starts with NO source modules and its post fields are just skeletons.
+    // In this case, we hide the 'Source' tab (matching editor.tsx logic).
+    let hasSource = hasSourceModules || hasApprovedFields || !!post?.id
+    if (
+      hasSource &&
+      !hasSourceModules &&
+      !hasApprovedFields &&
+      (hasReview || hasAiReview) &&
+      post?.status === 'draft'
+    ) {
+      hasSource = false
     }
 
     return { hasSource, hasReview, hasAiReview }
-  }, [modules, post])
+  }, [modules, post, customFields, permissions])
 
   // If Source is not available and we're in source mode, switch to AI Review mode
   useEffect(() => {
@@ -837,6 +1119,12 @@ export function InlineEditorProvider({
       showDiffs,
       toggleShowDiffs,
       abVariations,
+      modules: localModules,
+      reorderModules,
+      addModule,
+      removeModule,
+      updateModuleLabel,
+      duplicateModule,
     }),
     [
       enabled,
@@ -852,6 +1140,12 @@ export function InlineEditorProvider({
       showDiffs,
       toggleShowDiffs,
       abVariations,
+      localModules,
+      reorderModules,
+      addModule,
+      removeModule,
+      updateModuleLabel,
+      duplicateModule,
     ]
   )
 
@@ -863,13 +1157,19 @@ export function InlineEditorProvider({
       mode: value.mode,
       toggle: value.toggle,
       setMode: value.setMode,
-      dirty: dirtyModules.size > 0,
+      dirty: dirtyModules.size > 0 || isStructuralDirty,
       saveAll: value.saveAll,
       saveForReview,
       availableModes,
       showDiffs: value.showDiffs,
       toggleShowDiffs: value.toggleShowDiffs,
       abVariations: value.abVariations,
+      modules: localModules,
+      reorderModules,
+      addModule,
+      removeModule,
+      updateModuleLabel,
+      duplicateModule,
     })
   }, [
     value.enabled,
@@ -879,11 +1179,18 @@ export function InlineEditorProvider({
     value.setMode,
     value.saveAll,
     dirtyModules,
+    isStructuralDirty,
     saveForReview,
     availableModes,
     value.showDiffs,
     value.toggleShowDiffs,
     value.abVariations,
+    localModules,
+    reorderModules,
+    addModule,
+    removeModule,
+    updateModuleLabel,
+    duplicateModule,
   ])
 
   // Clear drafts when disabling
@@ -926,6 +1233,15 @@ function publishInlineBridge(state: {
   showDiffs: boolean
   toggleShowDiffs: () => void
   abVariations: Array<{ id: string; variation: string; status: string }>
+  modules: ModuleSeed[]
+  reorderModules: (newModules: ModuleSeed[]) => void
+  addModule: (payload: {
+    type: string
+    name?: string
+    scope: 'post' | 'global'
+    globalSlug?: string | null
+  }) => void
+  removeModule: (moduleId: string) => void
 }) {
   if (typeof window === 'undefined') return
   ;(window as any).__inlineBridge = state

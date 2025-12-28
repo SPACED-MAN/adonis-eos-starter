@@ -23,7 +23,9 @@ export interface ModuleRenderData {
   aiReviewOverrides?: Record<string, unknown> | null
   globalSlug?: string | null
   globalLabel?: string | null
+  adminLabel?: string | null
   locked?: boolean
+  name?: string
   orderIndex: number
   reviewAdded?: boolean
   reviewDeleted?: boolean
@@ -91,11 +93,21 @@ export interface PageRenderData {
     reviewDeleted?: boolean
     aiReviewAdded?: boolean
     aiReviewDeleted?: boolean
+    name?: string
+    scope?: string
+    globalSlug?: string | null
+    globalLabel?: string | null
+    adminLabel?: string | null
   }>
   seo: PostSeoData
   siteSettings: Record<string, unknown>
   customFields?: Record<string, any>
   hasReviewDraft: boolean
+  availableModes: {
+    hasSource: boolean
+    hasReview: boolean
+    hasAiReview: boolean
+  }
   breadcrumbTrail?: Array<{ label: string; url: string; current?: boolean }>
 }
 
@@ -122,30 +134,50 @@ class PostRenderingService {
 
     return rows.map((row) => {
       const module = row.moduleInstance
+      const miType = module?.type || 'unknown'
+      const config = miType !== 'unknown' && moduleRegistry.has(miType)
+        ? moduleRegistry.get(miType).getConfig()
+        : null
+
+      const reviewPropsRaw =
+        includeReviewFields && (module as any)?.reviewProps
+          ? coerceJsonObject((module as any).reviewProps)
+          : null
+      const reviewOverridesRaw =
+        includeReviewFields && row.reviewOverrides ? coerceJsonObject(row.reviewOverrides) : null
+      const aiReviewPropsRaw =
+        includeReviewFields && (module as any)?.aiReviewProps
+          ? coerceJsonObject((module as any).aiReviewProps)
+          : null
+      const aiReviewOverridesRaw =
+        includeReviewFields && (row as any).aiReviewOverrides
+          ? coerceJsonObject((row as any).aiReviewOverrides)
+          : null
+
       return {
         id: row.id,
-        type: module?.type || 'unknown',
+        type: miType,
+        name: config?.name || miType,
         scope: module?.scope || 'post',
         props: coerceJsonObject((module as any)?.props),
         overrides: coerceJsonObject(row.overrides),
         reviewProps:
-          includeReviewFields && (module as any)?.reviewProps
-            ? coerceJsonObject((module as any).reviewProps)
-            : null,
+          reviewPropsRaw && Object.keys(reviewPropsRaw).length > 0 ? reviewPropsRaw : null,
         reviewOverrides:
-          includeReviewFields && row.reviewOverrides ? coerceJsonObject(row.reviewOverrides) : null,
-        aiReviewProps:
-          includeReviewFields && (module as any)?.aiReviewProps
-            ? coerceJsonObject((module as any).aiReviewProps)
+          reviewOverridesRaw && Object.keys(reviewOverridesRaw).length > 0
+            ? reviewOverridesRaw
             : null,
+        aiReviewProps:
+          aiReviewPropsRaw && Object.keys(aiReviewPropsRaw).length > 0 ? aiReviewPropsRaw : null,
         aiReviewOverrides:
-          includeReviewFields && (row as any).aiReviewOverrides
-            ? coerceJsonObject((row as any).aiReviewOverrides)
+          aiReviewOverridesRaw && Object.keys(aiReviewOverridesRaw).length > 0
+            ? aiReviewOverridesRaw
             : null,
         locked: row.locked,
         orderIndex: row.orderIndex,
         globalSlug: module?.globalSlug || (module as any)?.global_slug || null,
         globalLabel: module?.globalLabel || (module as any)?.global_label || null,
+        adminLabel: row.adminLabel || (row as any).admin_label || null,
         reviewAdded: includeReviewFields ? row.reviewAdded || false : false,
         reviewDeleted: includeReviewFields ? row.reviewDeleted || false : false,
         aiReviewAdded: includeReviewFields ? (row as any).aiReviewAdded || false : false,
@@ -187,34 +219,12 @@ class PostRenderingService {
     }>
     resolvedMedia: Map<string, any>
   }> {
-    let {
+    const {
       wantReview = false,
       reviewDraft = null,
       draftMode = 'review',
       featuredImageId = null,
     } = options
-
-    // If not in review mode, check if we need to fall back to AI Review content
-    if (!wantReview) {
-      const hasApprovedModules = modules.some(
-        (pm) =>
-          pm.reviewAdded !== true &&
-          (pm as any).aiReviewAdded !== true &&
-          !pm.reviewDeleted &&
-          !(pm as any).aiReviewDeleted
-      )
-      const hasAiReviewContent = modules.some(
-        (pm) => (pm as any).aiReviewProps || (pm as any).aiReviewOverrides
-      )
-
-      // If no approved modules but AI Review content exists, use AI Review as fallback
-      if (!hasApprovedModules && hasAiReviewContent) {
-        wantReview = true
-        draftMode = 'ai-review'
-        // Clear reviewDraft since we're using AI Review mode
-        reviewDraft = null
-      }
-    }
 
     // Get removed module IDs from review draft
     const removedInReview = new Set<string>(
@@ -342,7 +352,7 @@ class PostRenderingService {
         }
       }
 
-      return { pm, mergedProps, module }
+      return { pm, mergedProps, module, draftModuleState }
     })
 
     // Batch resolve post references across all modules for performance
@@ -407,7 +417,7 @@ class PostRenderingService {
       return out
     }
 
-    const renderedModules = moduleStates.map(({ pm, mergedProps, module }) => {
+    const renderedModules = moduleStates.map(({ pm, mergedProps, module, draftModuleState }) => {
       const fieldSchema = module.getConfig().fieldSchema || []
       const propsWithPosts = injectResolved(mergedProps)
       let finalProps = this.injectResolvedMedia(fieldSchema, propsWithPosts, resolvedMedia)
@@ -491,7 +501,7 @@ class PostRenderingService {
               injectResolved({ ...defaultProps, ...(pm as any).reviewProps }),
               resolvedMedia
             )
-          : sourcePropsResolved
+          : null
       if (reviewPropsResolved) {
         reviewPropsResolved = applyHeroFallback(reviewPropsResolved)
       }
@@ -503,7 +513,7 @@ class PostRenderingService {
               injectResolved(filterOverrides((pm as any).reviewOverrides)),
               resolvedMedia
             )
-          : sourceOverridesResolved
+          : null
       if (reviewOverridesResolved) {
         reviewOverridesResolved = applyHeroFallback(reviewOverridesResolved)
       }
@@ -515,7 +525,7 @@ class PostRenderingService {
               injectResolved({ ...defaultProps, ...(pm as any).aiReviewProps }),
               resolvedMedia
             )
-          : reviewPropsResolved || sourcePropsResolved
+          : null
       if (aiReviewPropsResolved) {
         aiReviewPropsResolved = applyHeroFallback(aiReviewPropsResolved)
       }
@@ -527,7 +537,7 @@ class PostRenderingService {
               injectResolved(filterOverrides((pm as any).aiReviewOverrides)),
               resolvedMedia
             )
-          : reviewOverridesResolved || sourceOverridesResolved
+          : null
       if (aiReviewOverridesResolved) {
         aiReviewOverridesResolved = applyHeroFallback(aiReviewOverridesResolved)
       }
@@ -535,9 +545,11 @@ class PostRenderingService {
       return {
         id: pm.id,
         type: pm.type,
-        scope: pm.scope || 'post',
+        name: pm.name || module.getConfig().name || pm.type,
+        scope: pm.scope || 'local',
         globalSlug: pm.globalSlug || null,
         globalLabel: pm.globalLabel || null,
+        adminLabel: (draftModuleState as any)?.adminLabel || pm.adminLabel || null,
         componentName,
         renderingMode,
         props: finalProps,
@@ -825,6 +837,15 @@ class PostRenderingService {
   }
 
   /**
+   * Helper to check if a draft has meaningful content (not just metadata)
+   */
+  private hasMeaningfulContent(draft: any): boolean {
+    if (!draft || typeof draft !== 'object') return false
+    const keys = Object.keys(draft).filter((k) => k !== 'savedAt' && k !== 'savedBy')
+    return keys.length > 0
+  }
+
+  /**
    * Resolve post fields with review draft fallback
    */
   resolvePostFields(
@@ -836,6 +857,9 @@ class PostRenderingService {
   ): PostRenderData {
     const { wantReview = false, reviewDraft = null } = options
     const useReview = wantReview && reviewDraft
+
+    const rd = (post as any).reviewDraft || (post as any).review_draft || null
+    const ard = (post as any).aiReviewDraft || (post as any).ai_review_draft || null
 
     return {
       id: post.id,
@@ -868,8 +892,8 @@ class PostRenderingService {
       featuredImageId: useReview
         ? ((reviewDraft as any).featuredImageId ?? post.featuredImageId)
         : post.featuredImageId,
-      reviewDraft: (post as any).reviewDraft || (post as any).review_draft || null,
-      aiReviewDraft: (post as any).aiReviewDraft || (post as any).ai_review_draft || null,
+      reviewDraft: this.hasMeaningfulContent(rd) ? rd : null,
+      aiReviewDraft: this.hasMeaningfulContent(ard) ? ard : null,
     }
   }
 
@@ -942,6 +966,21 @@ class PostRenderingService {
 
     // Load modules
     const modulesRaw = await this.loadPostModules(post.id, { includeReviewFields: true })
+
+    // Pre-calculate available modes from ALL modules (before filtering)
+    const hasReviewModuleContent = modulesRaw.some(
+      (pm) => (pm.reviewProps && Object.keys(pm.reviewProps).length > 0) || (pm.reviewOverrides && Object.keys(pm.reviewOverrides).length > 0) || pm.reviewAdded
+    )
+    const hasAiReviewModuleContent = modulesRaw.some(
+      (pm) => (pm.aiReviewProps && Object.keys(pm.aiReviewProps).length > 0) || (pm.aiReviewOverrides && Object.keys(pm.aiReviewOverrides).length > 0) || pm.aiReviewAdded
+    )
+
+    const availableModes = {
+      hasSource: modulesRaw.some((pm) => !pm.reviewAdded && !pm.aiReviewAdded) || !!post.id,
+      hasReview: (this.hasMeaningfulContent(reviewDraft) || hasReviewModuleContent),
+      hasAiReview: (this.hasMeaningfulContent(aiReviewDraft) || hasAiReviewModuleContent),
+    }
+
     const { modules } = await this.buildModulesForView(modulesRaw, {
       wantReview,
       reviewDraft:
@@ -995,6 +1034,7 @@ class PostRenderingService {
       siteSettings: siteSettingsWithMedia as Record<string, unknown>,
       customFields,
       hasReviewDraft: Boolean(reviewDraft || aiReviewDraft),
+      availableModes,
       breadcrumbTrail,
     }
   }

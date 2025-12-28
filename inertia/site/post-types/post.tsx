@@ -1,9 +1,12 @@
-import { useEffect } from 'react'
+import { useEffect, useMemo } from 'react'
 import { Head, usePage } from '@inertiajs/react'
 import Modules from '../../modules'
 import { SiteFooter } from '../components/SiteFooter'
 import { SiteHeader } from '../components/SiteHeader'
-import { InlineEditorProvider } from '../../components/inline-edit/InlineEditorContext'
+import {
+  InlineEditorProvider,
+  useInlineEditor,
+} from '../../components/inline-edit/InlineEditorContext'
 import { InlineOverlay } from '../../components/inline-edit/InlineOverlay'
 
 interface PostPageProps {
@@ -24,12 +27,14 @@ interface PostPageProps {
   }
   abVariations?: Array<{ id: string; variation: string; status: string }>
   translations?: Array<{ id: string; locale: string; path: string }>
-  modules: Array<{
+    modules: Array<{
     id: string
     type: string
+    name?: string
     scope?: 'local' | 'global' | 'static'
     globalSlug?: string | null
     globalLabel?: string | null
+    adminLabel?: string | null
     props: Record<string, any>
     sourceProps?: Record<string, any>
     sourceOverrides?: Record<string, any>
@@ -53,12 +58,49 @@ interface PostPageProps {
     [key: string]: any
   }
   customFields?: Record<string, any>
+  availableModes?: {
+    hasSource: boolean
+    hasReview: boolean
+    hasAiReview: boolean
+  }
 }
 
 function getModuleComponent(type: string): any {
+  if (!type) return null
   const key = Object.keys(Modules).find((k) => k.toLowerCase() === type.replace(/[-_]/g, ''))
   // @ts-ignore
   return Modules[key as keyof typeof Modules] || null
+}
+
+/**
+ * Live module list that responds to context changes (e.g. reordering)
+ */
+function LiveModuleList({ postId }: { postId: string }) {
+  const { modules, enabled: isInlineEnabled } = useInlineEditor()
+
+  return (
+    <main className="overflow-x-hidden">
+      {modules.map((module) => {
+        const Component = getModuleComponent(module.type)
+        if (!Component) return null
+        return (
+          <div
+            key={module.id}
+            {...(isInlineEnabled
+              ? {
+                  'data-inline-module': module.id,
+                  'data-inline-scope': module.scope || 'local',
+                  'data-inline-global-slug': module.globalSlug || undefined,
+                  'data-inline-global-label': module.globalLabel || undefined,
+                }
+              : {})}
+          >
+            <Component {...module.props} __postId={postId} __moduleId={module.id} />
+          </div>
+        )
+      })}
+    </main>
+  )
 }
 
 export default function PostTypeDefault({
@@ -68,16 +110,40 @@ export default function PostTypeDefault({
   siteSettings,
   customFields,
   abVariations = [],
+  availableModes,
 }: PostPageProps) {
   const page = usePage()
   const currentUser = (page.props as any)?.currentUser
   const isAuthenticated =
     !!currentUser && ['admin', 'editor', 'translator'].includes(String(currentUser.role || ''))
 
+  const memoizedModules = useMemo(
+    () =>
+      modules.map((m) => ({
+        id: m.id,
+        type: m.type,
+        name: m.name,
+        scope: m.scope,
+        globalSlug: m.globalSlug,
+        globalLabel: m.globalLabel,
+        adminLabel: m.adminLabel,
+        props: m.props,
+        sourceProps: m.sourceProps,
+        sourceOverrides: m.sourceOverrides,
+        reviewProps: m.reviewProps,
+        aiReviewProps: m.aiReviewProps,
+        overrides: m.overrides,
+        reviewOverrides: m.reviewOverrides,
+        aiReviewOverrides: m.aiReviewOverrides,
+        aiReviewAdded: (m as any).aiReviewAdded,
+      })),
+    [modules]
+  )
+
   // Track A/B variation in Google Analytics dataLayer if available
   useEffect(() => {
     if (post.abVariation && typeof window !== 'undefined' && (window as any).dataLayer) {
-      ; (window as any).dataLayer.push({
+      ;(window as any).dataLayer.push({
         event: 'ab_variation_view',
         ab_variation: post.abVariation,
         ab_group_id: post.abGroupId || post.id,
@@ -128,44 +194,11 @@ export default function PostTypeDefault({
         post={post}
         customFields={customFields}
         abVariations={abVariations}
-        modules={modules.map((m) => ({
-          id: m.id,
-          scope: m.scope,
-          globalSlug: m.globalSlug,
-          globalLabel: m.globalLabel,
-          props: m.props,
-          sourceProps: m.sourceProps,
-          sourceOverrides: m.sourceOverrides,
-          reviewProps: m.reviewProps,
-          aiReviewProps: m.aiReviewProps,
-          overrides: m.overrides,
-          reviewOverrides: m.reviewOverrides,
-          aiReviewOverrides: m.aiReviewOverrides,
-          aiReviewAdded: (m as any).aiReviewAdded,
-        }))}
+        modules={memoizedModules}
+        availableModes={availableModes}
       >
         <SiteHeader />
-        <main className="overflow-x-hidden">
-          {modules.map((module) => {
-            const Component = getModuleComponent(module.type)
-            if (!Component) return null
-            return (
-              <div
-                key={module.id}
-                {...(isAuthenticated
-                  ? {
-                    'data-inline-module': module.id,
-                    'data-inline-scope': module.scope || 'local',
-                    'data-inline-global-slug': module.globalSlug || undefined,
-                    'data-inline-global-label': module.globalLabel || undefined,
-                  }
-                  : {})}
-              >
-                <Component {...module.props} __postId={post.id} __moduleId={module.id} />
-              </div>
-            )
-          })}
-        </main>
+        <LiveModuleList postId={post.id} />
         <SiteFooter />
         {isAuthenticated && <InlineOverlay />}
       </InlineEditorProvider>

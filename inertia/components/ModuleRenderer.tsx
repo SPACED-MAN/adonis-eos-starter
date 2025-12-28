@@ -94,6 +94,7 @@ function ReactModuleRenderer({
  * - 'prose' → Modules.Prose
  */
 function getModuleComponent(componentName: string): ComponentType<any> | null {
+  if (!componentName) return null
   // Convert kebab-case to PascalCase
   // 'hero-with-media' → 'HeroWithMedia'
   const pascalName = componentName
