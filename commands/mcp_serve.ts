@@ -2366,11 +2366,11 @@ function createServerInstance() {
           }
           if (/\bhero\b/.test(t)) add('hero')
           if (/\bintro\b/.test(t)) add('intro')
-          if (/\bcta\b|\bcall to action\b/.test(t)) add('cta')
+          if (/\bcta\b|\bcall to action\b|\bcallout\b/.test(t)) add('callout')
           if (/\bform\b|\blead\b|\bcontact\b/.test(t)) add('form')
           if (/\bgallery\b|\bphotos?\b|\bimages?\b/.test(t)) add('gallery')
           if (/\btestimonial(s)?\b|\breviews?\b/.test(t)) add('testimonials')
-          if (/\bfaq\b|\bquestions?\b/.test(t)) add('faq')
+          if (/\bfaq\b|\bquestions?\b|\baccordions?\b/.test(t)) add('faq')
           if (/\bpricing\b|\bplans?\b/.test(t)) add('pricing')
           if (/\blogos?\b|\bbrands?\b/.test(t)) add('logos')
           if (/\bfeatures?\b/.test(t)) add('features')
@@ -2443,7 +2443,8 @@ function createServerInstance() {
           add('faq')
           add('pricing')
           add('form')
-          add('cta')
+          add('callout')
+          add('callout')
           // append anything else
           for (const r of roleList) add(r)
           return order

@@ -22,7 +22,7 @@ export default class FormModule extends BaseModule {
       allowedScopes: ['local', 'global'],
       lockable: true,
       aiGuidance: {
-        layoutRoles: ['form', 'cta', 'lead-capture'],
+        layoutRoles: ['form', 'callout', 'cta', 'lead-capture'],
         useWhen: [
           'You need lead capture or contact submission on a page.',
           'You already have a form definition in Forms admin (referenced by formSlug).',

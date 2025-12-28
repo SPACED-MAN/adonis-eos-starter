@@ -9,8 +9,8 @@ export default class AccordionModule extends BaseModule {
 
   getConfig(): ModuleConfig {
     return {
-      type: 'accordion',
-      name: 'Accordion',
+      type: 'accordions',
+      name: 'Accordions',
       description: 'A list of collapsible content items.',
       icon: 'chevron-down',
       allowedScopes: ['local', 'global'],

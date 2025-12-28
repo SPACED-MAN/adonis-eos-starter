@@ -4,15 +4,15 @@ import type { ModuleConfig } from '#types/module_types'
 import { backgroundColorField } from './shared_fields.js'
 
 /**
- * CTA (Call to Action) Module
+ * Callout Module
  *
  * A high-impact section designed to drive conversions.
  * Features a heading, rich text description, supporting media,
  * and a list of action buttons.
  */
-export default class CtaModule extends BaseModule {
+export default class CalloutModule extends BaseModule {
   /**
-   * CTA supports hybrid rendering for animations.
+   * Callout supports hybrid rendering for animations.
    */
   getRenderingMode() {
     return 'hybrid' as const
@@ -23,14 +23,14 @@ export default class CtaModule extends BaseModule {
    */
   getConfig(): ModuleConfig {
     return {
-      type: 'cta',
-      name: 'Call to Action',
+      type: 'callout',
+      name: 'Callout',
       description: 'Engaging call-to-action block with heading, text, media, and multiple buttons',
       icon: 'megaphone',
       allowedScopes: ['local', 'global'],
       lockable: true,
       aiGuidance: {
-        layoutRoles: ['cta', 'bottom-bar', 'signup'],
+        layoutRoles: ['callout', 'cta', 'bottom-bar', 'signup'],
         useWhen: [
           'You want to prompt the user to take a specific action (sign up, buy, contact).',
           'You need a high-visibility block to highlight a single offer or message.',

@@ -1,13 +1,13 @@
 import { test } from '@japa/runner'
-import CtaModule from '#modules/cta'
+import CalloutModule from '#modules/callout'
 
-test.group('CTA Module', () => {
+test.group('Callout Module', () => {
   test('should have correct configuration', ({ assert }) => {
-    const ctaModule = new CtaModule()
-    const config = ctaModule.getConfig()
+    const calloutModule = new CalloutModule()
+    const config = calloutModule.getConfig()
 
-    assert.equal(config.type, 'cta')
-    assert.equal(config.name, 'Call to Action')
+    assert.equal(config.type, 'callout')
+    assert.equal(config.name, 'Callout')
     assert.includeMembers(config.allowedScopes, ['local', 'global'])
     assert.isTrue(config.lockable)
     assert.isDefined(config.fieldSchema)
@@ -16,26 +16,26 @@ test.group('CTA Module', () => {
   })
 
   test('should specify hybrid rendering mode', ({ assert }) => {
-    const ctaModule = new CtaModule()
-    assert.equal(ctaModule.getRenderingMode(), 'hybrid')
+    const calloutModule = new CalloutModule()
+    assert.equal(calloutModule.getRenderingMode(), 'hybrid')
   })
 
   test('should get correct component name', ({ assert }) => {
-    const ctaModule = new CtaModule()
-    assert.equal(ctaModule.getComponentName(), 'cta')
+    const calloutModule = new CalloutModule()
+    assert.equal(calloutModule.getComponentName(), 'callout')
   })
 
   test('should validate required fields', ({ assert }) => {
-    const ctaModule = new CtaModule()
+    const calloutModule = new CalloutModule()
 
     assert.doesNotThrow(() => {
-      ctaModule.validate({
+      calloutModule.validate({
         title: 'Valid Title',
       })
     })
 
     assert.throws(() => {
-      ctaModule.validate({})
+      calloutModule.validate({})
     }, 'Missing required field: title')
   })
 })

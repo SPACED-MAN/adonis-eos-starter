@@ -19,7 +19,7 @@ interface AccordionItem {
   content: any // Lexical JSON or string
 }
 
-interface AccordionProps {
+interface AccordionsProps {
   items: AccordionItem[]
   allowMultiple?: boolean
   defaultOpenIndex?: number
@@ -45,14 +45,14 @@ function renderContent(content: any): string {
   return renderLexicalToHtml(content)
 }
 
-export default function Accordion({
+export default function Accordions({
   items: initialItems,
   allowMultiple = false,
   defaultOpenIndex,
   backgroundColor = 'bg-transparent',
   __moduleId,
   _useReact,
-}: AccordionProps) {
+}: AccordionsProps) {
   const items = useInlineValue(__moduleId, 'items', initialItems) || []
   const bg = useInlineValue(__moduleId, 'backgroundColor', backgroundColor) || backgroundColor
 
@@ -169,7 +169,7 @@ export default function Accordion({
     return (
       <section
         className={`${bg} py-12 lg:py-16`}
-        data-module="accordion"
+        data-module="accordions"
         data-inline-type="select"
         data-inline-path="backgroundColor"
         data-inline-options={JSON.stringify([
@@ -198,7 +198,7 @@ export default function Accordion({
   return (
     <section
       className={`${bg} py-12 lg:py-16`}
-      data-module="accordion"
+      data-module="accordions"
       data-inline-type="select"
       data-inline-path="backgroundColor"
       data-inline-options={JSON.stringify([

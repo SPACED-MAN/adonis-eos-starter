@@ -6,7 +6,7 @@ import { MediaRenderer } from '../components/MediaRenderer'
 import { renderLexicalToHtml } from '../utils/lexical'
 import { resolveLink } from '../utils/resolve_link'
 
-interface CtaProps {
+interface CalloutProps {
   title: string
   prose?: any // Lexical JSON
   image?: {
@@ -23,7 +23,7 @@ interface CtaProps {
   _useReact?: boolean
 }
 
-export default function Cta(props: CtaProps) {
+export default function Callout(props: CalloutProps) {
   const {
     title: initialTitle,
     prose: initialProse,
@@ -256,7 +256,7 @@ export default function Cta(props: CtaProps) {
         viewport={{ once: true, margin: '-100px' }}
         variants={containerVariants}
         className={`${backgroundColor} py-16 lg:py-24 overflow-hidden`}
-        data-module="cta"
+        data-module="callout"
       >
         {renderedContent}
       </motion.section>
@@ -266,7 +266,7 @@ export default function Cta(props: CtaProps) {
   return (
     <section
       className={`${backgroundColor} py-16 lg:py-24`}
-      data-module="cta"
+      data-module="callout"
       data-inline-type="select"
       data-inline-path="backgroundColor"
       data-inline-options={JSON.stringify([
