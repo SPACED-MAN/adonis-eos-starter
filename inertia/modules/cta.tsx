@@ -1,7 +1,7 @@
 import { useMemo } from 'react'
 import { motion, type Variants } from 'framer-motion'
 import type { Button } from './types'
-import { useInlineValue } from '../components/inline-edit/InlineEditorContext'
+import { useInlineValue, useInlineField } from '../components/inline-edit/InlineEditorContext'
 import { MediaRenderer } from '../components/MediaRenderer'
 import { renderLexicalToHtml } from '../utils/lexical'
 import { resolveLink } from '../utils/resolve_link'
@@ -35,10 +35,9 @@ export default function Cta(props: CtaProps) {
     _useReact,
   } = props
 
-  const title =
-    useInlineValue(__moduleId, 'title', initialTitle) || initialTitle || 'Ready to get started?'
-  const richProse = useInlineValue(__moduleId, 'prose', initialProse)
-  const image = useInlineValue(__moduleId, 'image', initialImage)
+  const { value: title, show: showTitle, props: titleProps } = useInlineField(__moduleId, 'title', initialTitle || 'Ready to get started?', { label: 'Title' })
+  const { value: richProse, show: showProse, props: proseProps } = useInlineField(__moduleId, 'prose', initialProse, { type: 'richtext', label: 'Prose' })
+  const { value: image, show: showImage, props: imageProps } = useInlineField(__moduleId, 'image', initialImage, { type: 'media', label: 'Image' })
   const ctas = useInlineValue(__moduleId, 'ctas', initialCtas) || initialCtas
   const variant =
     useInlineValue(__moduleId, 'variant', initialVariant) || initialVariant || 'centered'
@@ -151,18 +150,19 @@ export default function Cta(props: CtaProps) {
     <div
       className={`space-y-6 ${variant === 'split-left' || variant === 'split-right' ? 'text-left' : 'text-center'}`}
     >
-      <h2
-        className={`text-3xl font-extrabold tracking-tight sm:text-4xl ${textColor}`}
-        data-inline-path="title"
-      >
-        {title}
-      </h2>
+      {showTitle && (
+        <h2
+          className={`text-3xl font-extrabold tracking-tight sm:text-4xl ${textColor}`}
+          {...titleProps}
+        >
+          {title}
+        </h2>
+      )}
 
-      {htmlProse && (
+      {showProse && (
         <div
           className={`prose max-w-none ${isDarkBg ? 'prose-invert' : ''} ${subtextColor}`}
-          data-inline-type="richtext"
-          data-inline-path="prose"
+          {...proseProps}
           dangerouslySetInnerHTML={{ __html: htmlProse }}
         />
       )}
@@ -171,19 +171,20 @@ export default function Cta(props: CtaProps) {
     </div>
   )
 
-  const imageBlock = image ? (
+  const imageBlock = showImage ? (
     <div
-      className="w-full relative overflow-hidden aspect-video"
-      data-inline-type="media"
-      data-inline-path="image"
+      className="w-full relative overflow-hidden aspect-video rounded-xl bg-backdrop-medium/30"
+      {...imageProps}
     >
-      <MediaRenderer
-        image={image}
-        alt={(typeof image === 'object' ? image.altText : null) || ''}
-        playMode={typeof image === 'object' ? image.metadata?.playMode : 'autoplay'}
-        objectFit="contain"
-        className="w-full h-full object-contain"
-      />
+      {image && (
+        <MediaRenderer
+          image={image}
+          alt={(typeof image === 'object' ? image.altText : null) || ''}
+          playMode={typeof image === 'object' ? image.metadata?.playMode : 'autoplay'}
+          objectFit="contain"
+          className="w-full h-full object-contain"
+        />
+      )}
     </div>
   ) : null
 

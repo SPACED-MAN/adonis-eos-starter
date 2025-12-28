@@ -1222,6 +1222,27 @@ export function useInlineValue(moduleId: string | undefined, path: string, fallb
   return ctx.getValue(moduleId, path, fallback)
 }
 
+/**
+ * Returns field value, enabled state, and common data-inline props.
+ */
+export function useInlineField(moduleId: string | undefined, path: string, fallback: any, options: { label?: string; type?: string } = {}) {
+  const ctx = useInlineEditor()
+  const value = moduleId ? ctx.getValue(moduleId, path, fallback) : fallback
+  const label = options.label || path
+  const type = options.type || 'text'
+  
+  return {
+    value,
+    enabled: ctx.enabled,
+    show: !!value || ctx.enabled,
+    props: {
+      'data-inline-path': path,
+      'data-inline-type': type,
+      'data-inline-label': label,
+    } as any
+  }
+}
+
 export function InlineEditToggle() {
   // Controls now rendered via SiteAdminBar to avoid overlap; keep hook available.
   return null

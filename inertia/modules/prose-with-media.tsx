@@ -1,7 +1,7 @@
 import { motion, type Variants } from 'framer-motion'
 import { FontAwesomeIcon } from '../site/lib/icons'
 import type { Button, LinkValue } from './types'
-import { useInlineValue } from '../components/inline-edit/InlineEditorContext'
+import { useInlineValue, useInlineEditor, useInlineField } from '../components/inline-edit/InlineEditorContext'
 import { resolveLink } from '../utils/resolve_link'
 import { MediaRenderer } from '../components/MediaRenderer'
 
@@ -41,9 +41,9 @@ export default function ProseWithMedia({
   __moduleId,
   _useReact,
 }: ProseWithMediaProps) {
-  const titleValue = useInlineValue(__moduleId, 'title', title)
-  const bodyValue = useInlineValue(__moduleId, 'body', body)
-  const imageValue = useInlineValue(__moduleId, 'image', image)
+  const { value: titleValue, show: showTitle, props: titleProps } = useInlineField(__moduleId, 'title', title, { label: 'Title' })
+  const { value: bodyValue, show: showBody, props: bodyProps } = useInlineField(__moduleId, 'body', body, { type: 'richtext', label: 'Body' })
+  const { value: imageValue, show: showImage, props: imageProps } = useInlineField(__moduleId, 'image', image, { type: 'media', label: 'Image' })
   const bg = useInlineValue(__moduleId, 'backgroundColor', backgroundColor) || backgroundColor
 
   const isDarkBg = bg === 'bg-neutral-high' || bg === 'bg-backdrop-high' || bg === 'bg-standout-low'
@@ -86,61 +86,59 @@ export default function ProseWithMedia({
     },
   }
 
-  const imageBlock = imageValue ? (
+  const imageBlock = showImage ? (
     <div className="w-full">
       <div
-        className="w-full overflow-hidden aspect-[4/3]"
-        data-inline-type="media"
-        data-inline-path="image"
+        className="w-full overflow-hidden aspect-[4/3] rounded-lg relative"
+        {...imageProps}
       >
-        <MediaRenderer
-          image={imageValue}
-          alt={(typeof imageValue === 'object' ? imageValue.altText : null) || ''}
-          loading="lazy"
-          decoding="async"
-          playMode={typeof imageValue === 'object' ? imageValue.metadata?.playMode : 'autoplay'}
-        />
+        {imageValue && (
+          <MediaRenderer
+            image={imageValue}
+            alt={(typeof imageValue === 'object' ? imageValue.altText : null) || ''}
+            loading="lazy"
+            decoding="async"
+            playMode={typeof imageValue === 'object' ? imageValue.metadata?.playMode : 'autoplay'}
+          />
+        )}
       </div>
     </div>
   ) : null
 
   const textContent = (
     <div className="mt-8 md:mt-0">
-      {_useReact ? (
-        <motion.h2
-          variants={textVariants}
-          className={`mb-4 text-3xl sm:text-4xl font-extrabold tracking-tight ${textColor}`}
-          data-inline-path="title"
-        >
-          {titleValue}
-        </motion.h2>
-      ) : (
-        <h2
-          className={`mb-4 text-3xl sm:text-4xl font-extrabold tracking-tight ${textColor}`}
-          data-inline-path="title"
-        >
-          {titleValue}
-        </h2>
-      )}
-      {bodyValue && (
+      {showTitle &&
+        (_useReact ? (
+          <motion.h2
+            variants={textVariants}
+            className={`mb-4 text-3xl sm:text-4xl font-extrabold tracking-tight ${textColor}`}
+            {...titleProps}
+          >
+            {titleValue}
+          </motion.h2>
+        ) : (
+          <h2
+            className={`mb-4 text-3xl sm:text-4xl font-extrabold tracking-tight ${textColor}`}
+            {...titleProps}
+          >
+            {titleValue}
+          </h2>
+        ))}
+      {showBody && (
         <>
           {_useReact ? (
             <motion.div
               variants={textVariants}
               className={`mb-6 prose prose-sm md:prose-base ${isDarkBg ? 'prose-invert' : ''} ${subtextColor}`}
               suppressHydrationWarning
-              data-inline-type="richtext"
-              data-inline-path="body"
-              data-inline-label="Body"
+              {...bodyProps}
               dangerouslySetInnerHTML={{ __html: bodyHtml }}
             />
           ) : (
             <div
               className={`mb-6 prose prose-sm md:prose-base ${isDarkBg ? 'prose-invert' : ''} ${subtextColor}`}
               suppressHydrationWarning
-              data-inline-type="richtext"
-              data-inline-path="body"
-              data-inline-label="Body"
+              {...bodyProps}
               dangerouslySetInnerHTML={{ __html: bodyHtml }}
             />
           )}

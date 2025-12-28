@@ -1,7 +1,7 @@
 import { motion } from 'framer-motion'
 import { resolveHrefAndTarget } from './hero-with-media'
 import { FontAwesomeIcon } from '../site/lib/icons'
-import { useInlineValue } from '../components/inline-edit/InlineEditorContext'
+import { useInlineValue, useInlineField } from '../components/inline-edit/InlineEditorContext'
 
 type LinkValue =
   | null
@@ -38,8 +38,8 @@ export default function Faq({
   __moduleId,
   _useReact,
 }: FaqProps) {
-  const title = useInlineValue(__moduleId, 'title', initialTitle)
-  const subtitle = useInlineValue(__moduleId, 'subtitle', initialSubtitle)
+  const { value: title, show: showTitle, props: titleProps } = useInlineField(__moduleId, 'title', initialTitle, { label: 'Title' })
+  const { value: subtitle, show: showSubtitle, props: subtitleProps } = useInlineField(__moduleId, 'subtitle', initialSubtitle, { label: 'Subtitle' })
   const items = useInlineValue(__moduleId, 'items', initialItems)
   const bg = useInlineValue(__moduleId, 'backgroundColor', backgroundColor) || backgroundColor
 
@@ -137,26 +137,27 @@ export default function Faq({
 
   const headerContent = (
     <div className="max-w-3xl mb-8 sm:mb-10">
-      {_useReact ? (
-        <motion.h2
-          initial={{ opacity: 0, x: -30 }}
-          whileInView={{ opacity: 1, x: 0 }}
-          viewport={{ once: true }}
-          transition={{ duration: 1.0 }}
-          className={`mb-4 text-3xl sm:text-4xl font-extrabold tracking-tight ${textColor}`}
-          data-inline-path="title"
-        >
-          {title}
-        </motion.h2>
-      ) : (
-        <h2
-          className={`mb-4 text-3xl sm:text-4xl font-extrabold tracking-tight ${textColor}`}
-          data-inline-path="title"
-        >
-          {title}
-        </h2>
-      )}
-      {subtitle &&
+      {showTitle &&
+        (_useReact ? (
+          <motion.h2
+            initial={{ opacity: 0, x: -30 }}
+            whileInView={{ opacity: 1, x: 0 }}
+            viewport={{ once: true }}
+            transition={{ duration: 1.0 }}
+            className={`mb-4 text-3xl sm:text-4xl font-extrabold tracking-tight ${textColor}`}
+            {...titleProps}
+          >
+            {title}
+          </motion.h2>
+        ) : (
+          <h2
+            className={`mb-4 text-3xl sm:text-4xl font-extrabold tracking-tight ${textColor}`}
+            {...titleProps}
+          >
+            {title}
+          </h2>
+        ))}
+      {showSubtitle &&
         (_useReact ? (
           <motion.p
             initial={{ opacity: 0, x: -30 }}
@@ -164,12 +165,12 @@ export default function Faq({
             viewport={{ once: true }}
             transition={{ duration: 1.0, delay: 0.15 }}
             className={`${subtextColor} text-base sm:text-lg`}
-            data-inline-path="subtitle"
+            {...subtitleProps}
           >
             {subtitle}
           </motion.p>
         ) : (
-          <p className={`${subtextColor} text-base sm:text-lg`} data-inline-path="subtitle">
+          <p className={`${subtextColor} text-base sm:text-lg`} {...subtitleProps}>
             {subtitle}
           </p>
         ))}

@@ -1,5 +1,5 @@
 import { motion } from 'framer-motion'
-import { useInlineValue } from '../components/inline-edit/InlineEditorContext'
+import { useInlineValue, useInlineField } from '../components/inline-edit/InlineEditorContext'
 
 import { renderLexicalToHtml } from '../utils/lexical'
 
@@ -37,7 +37,7 @@ export default function Prose({
   __moduleId,
   _useReact,
 }: ProseProps) {
-  const content = useInlineValue(__moduleId, 'content', initialContent)
+  const { value: content, show: showContent, props: contentProps } = useInlineField(__moduleId, 'content', initialContent, { type: 'richtext', label: 'Content' })
   const maxWidth = useInlineValue(__moduleId, 'maxWidth', initialMaxWidth)
   const fontSize = useInlineValue(__moduleId, 'fontSize', initialFontSize)
   const backgroundColor = useInlineValue(__moduleId, 'backgroundColor', initialBackground)
@@ -50,7 +50,7 @@ export default function Prose({
   // as rich text instead of showing the raw JSON to the visitor.
   let htmlContent: string
   if (content === undefined || content === null) {
-    htmlContent = '<p>Empty content</p>'
+    htmlContent = '' // Let global CSS handles placeholder
   } else if (typeof content === 'string') {
     const trimmed = content.trim()
     const looksJson = trimmed.startsWith('{') || trimmed.startsWith('[')
@@ -72,20 +72,21 @@ export default function Prose({
   const innerContent = (
     <div className="container mx-auto px-4 sm:px-6 lg:px-8">
       <div className={`w-full ${maxWidth}`}>
-        <div
-          className={`prose max-w-none ${isDarkBg ? 'prose-invert' : ''} ${fontSize} ${textColor} ${textAlign === 'center'
-              ? 'text-center'
-              : textAlign === 'right'
-                ? 'text-right'
-                : textAlign === 'justify'
-                  ? 'text-justify'
-                  : 'text-left'
-            }`}
-          suppressHydrationWarning
-          data-inline-type="richtext"
-          data-inline-path="content"
-          dangerouslySetInnerHTML={{ __html: htmlContent }}
-        />
+        {showContent && (
+          <div
+            className={`prose max-w-none ${isDarkBg ? 'prose-invert' : ''} ${fontSize} ${textColor} ${textAlign === 'center'
+                ? 'text-center'
+                : textAlign === 'right'
+                  ? 'text-right'
+                  : textAlign === 'justify'
+                    ? 'text-justify'
+                    : 'text-left'
+              }`}
+            suppressHydrationWarning
+            {...contentProps}
+            dangerouslySetInnerHTML={{ __html: htmlContent }}
+          />
+        )}
       </div>
     </div>
   )

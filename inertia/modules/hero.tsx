@@ -1,5 +1,5 @@
 import { motion } from 'framer-motion'
-import { useInlineValue } from '../components/inline-edit/InlineEditorContext'
+import { useInlineValue, useInlineField } from '../components/inline-edit/InlineEditorContext'
 
 interface HeroProps {
   title: string
@@ -16,8 +16,8 @@ export default function Hero({
   __moduleId,
   _useReact,
 }: HeroProps) {
-  const title = useInlineValue(__moduleId, 'title', initialTitle)
-  const subtitle = useInlineValue(__moduleId, 'subtitle', initialSubtitle)
+  const { value: title, show: showTitle, props: titleProps } = useInlineField(__moduleId, 'title', initialTitle, { label: 'Title' })
+  const { value: subtitle, show: showSubtitle, props: subtitleProps } = useInlineField(__moduleId, 'subtitle', initialSubtitle, { label: 'Subtitle' })
   const bg = useInlineValue(__moduleId, 'backgroundColor', backgroundColor) || backgroundColor
 
   const isDarkBg = bg === 'bg-neutral-high' || bg === 'bg-backdrop-high' || bg === 'bg-standout-low'
@@ -47,36 +47,37 @@ export default function Hero({
 
   const content = (
     <div className="max-w-5xl mx-auto px-4 sm:px-6 lg:px-12 text-center">
-      {_useReact ? (
-        <motion.h1
-          variants={itemVariants}
-          className={`mb-4 text-4xl font-extrabold tracking-tight leading-tight ${textColor} md:text-5xl lg:text-6xl`}
-          data-inline-path="title"
-        >
-          {title}
-        </motion.h1>
-      ) : (
-        <h1
-          className={`mb-4 text-4xl font-extrabold tracking-tight leading-tight ${textColor} md:text-5xl lg:text-6xl`}
-          data-inline-path="title"
-        >
-          {title}
-        </h1>
-      )}
+      {showTitle &&
+        (_useReact ? (
+          <motion.h1
+            variants={itemVariants}
+            className={`mb-4 text-4xl font-extrabold tracking-tight leading-tight ${textColor} md:text-5xl lg:text-6xl`}
+            {...titleProps}
+          >
+            {title}
+          </motion.h1>
+        ) : (
+          <h1
+            className={`mb-4 text-4xl font-extrabold tracking-tight leading-tight ${textColor} md:text-5xl lg:text-6xl`}
+            {...titleProps}
+          >
+            {title}
+          </h1>
+        ))}
 
-      {subtitle &&
+      {showSubtitle &&
         (_useReact ? (
           <motion.p
             variants={itemVariants}
             className={`mb-8 text-lg font-normal ${subtextColor} lg:text-xl sm:px-4`}
-            data-inline-path="subtitle"
+            {...subtitleProps}
           >
             {subtitle}
           </motion.p>
         ) : (
           <p
             className={`mb-8 text-lg font-normal ${subtextColor} lg:text-xl sm:px-4`}
-            data-inline-path="subtitle"
+            {...subtitleProps}
           >
             {subtitle}
           </p>

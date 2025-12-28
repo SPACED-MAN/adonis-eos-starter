@@ -466,6 +466,39 @@ export function InlineOverlay() {
           outline: 2px solid var(--color-line-inline-input-global, #f97316);
           outline-offset: 6px;
         }
+        
+        /* Empty field placeholders */
+        [data-inline-path]:empty::before,
+        [data-inline-type="richtext"]:empty::before,
+        [data-inline-type="media"]:empty::before {
+          content: "Enter " attr(data-inline-label) "...";
+          opacity: 0.3;
+          font-style: italic;
+          pointer-events: none;
+        }
+        
+        [data-inline-type="media"]:empty {
+          min-height: 100px;
+          min-width: 100px;
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          background: rgba(0,0,0,0.05);
+          border: 1px dashed rgba(0,0,0,0.2);
+          border-radius: 8px;
+        }
+
+        [data-inline-type="richtext"]:empty {
+          min-height: 80px;
+          border: 1px dashed rgba(0,0,0,0.2);
+          padding: 1rem;
+          border-radius: 8px;
+        }
+
+        .dark [data-inline-type="media"]:empty {
+          background: rgba(255,255,255,0.05);
+          border-color: rgba(255,255,255,0.2);
+        }
       `}</style>
       {mediaTarget && (
         <MediaPickerModal

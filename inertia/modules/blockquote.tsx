@@ -1,6 +1,6 @@
 import { motion } from 'framer-motion'
 import { FontAwesomeIcon } from '../site/lib/icons'
-import { useInlineValue } from '../components/inline-edit/InlineEditorContext'
+import { useInlineValue, useInlineField } from '../components/inline-edit/InlineEditorContext'
 import { MediaRenderer } from '../components/MediaRenderer'
 
 interface BlockquoteProps {
@@ -28,10 +28,10 @@ export default function Blockquote({
   __moduleId,
   _useReact,
 }: BlockquoteProps) {
-  const quote = useInlineValue(__moduleId, 'quote', initialQuote)
-  const authorName = useInlineValue(__moduleId, 'authorName', initialAuthorName)
-  const authorTitle = useInlineValue(__moduleId, 'authorTitle', initialAuthorTitle)
-  const avatar = useInlineValue(__moduleId, 'avatar', initialAvatar)
+  const { value: quote, show: showQuote, props: quoteProps } = useInlineField(__moduleId, 'quote', initialQuote, { label: 'Quote', type: 'textarea' })
+  const { value: authorName, show: showAuthorName, props: authorNameProps } = useInlineField(__moduleId, 'authorName', initialAuthorName, { label: 'Author Name' })
+  const { value: authorTitle, show: showAuthorTitle, props: authorTitleProps } = useInlineField(__moduleId, 'authorTitle', initialAuthorTitle, { label: 'Author Title' })
+  const { value: avatar, show: showAvatar, props: avatarProps } = useInlineField(__moduleId, 'avatar', initialAvatar, { type: 'media', label: 'Avatar' })
   const bg = useInlineValue(__moduleId, 'backgroundColor', backgroundColor)
 
   const isDarkBg = bg === 'bg-neutral-high' || bg === 'bg-backdrop-high' || bg === 'bg-standout-low'
@@ -57,52 +57,56 @@ export default function Blockquote({
           )}
         </div>
         <blockquote>
-          {_useReact ? (
-            <motion.p
-              initial={{ opacity: 0, scale: 0.95 }}
-              whileInView={{ opacity: 1, scale: 1 }}
-              viewport={{ once: true }}
-              transition={{ duration: 1.0, delay: 0.25 }}
-              className={`text-2xl md:text-3xl font-medium ${textColor}`}
-              data-inline-path="quote"
-              data-inline-type="textarea"
-            >
-              “{quote}”
-            </motion.p>
-          ) : (
-            <p
-              className={`text-2xl md:text-3xl font-medium ${textColor}`}
-              data-inline-path="quote"
-              data-inline-type="textarea"
-            >
-              “{quote}”
-            </p>
-          )}
+          {showQuote &&
+            (_useReact ? (
+              <motion.p
+                initial={{ opacity: 0, scale: 0.95 }}
+                whileInView={{ opacity: 1, scale: 1 }}
+                viewport={{ once: true }}
+                transition={{ duration: 1.0, delay: 0.25 }}
+                className={`text-2xl md:text-3xl font-medium ${textColor}`}
+                {...quoteProps}
+              >
+                {quote ? `“${quote}”` : ""}
+              </motion.p>
+            ) : (
+              <p
+                className={`text-2xl md:text-3xl font-medium ${textColor}`}
+                {...quoteProps}
+              >
+                {quote ? `“${quote}”` : ""}
+              </p>
+            ))}
         </blockquote>
         <figcaption className="flex items-center justify-center mt-8 space-x-4">
-          {avatar && (
-            <div className="w-14 h-14 rounded-full overflow-hidden shrink-0">
-              <MediaRenderer
-                image={avatar}
-                variant="thumb"
-                alt={(typeof avatar === 'object' ? avatar.altText : null) || authorName || ''}
-                loading="lazy"
-                decoding="async"
-                data-inline-type="media"
-                data-inline-path="avatar"
-              />
+          {showAvatar && (
+            <div
+              className={`w-14 h-14 rounded-full overflow-hidden shrink-0 relative ${!avatar ? "bg-backdrop-medium/50 border border-dashed border-line-medium" : ""}`}
+              {...avatarProps}
+            >
+              {avatar && (
+                <MediaRenderer
+                  image={avatar}
+                  variant="thumb"
+                  alt={(typeof avatar === 'object' ? avatar.altText : null) || authorName || ''}
+                  loading="lazy"
+                  decoding="async"
+                />
+              )}
             </div>
           )}
           <div
             className={`flex items-center divide-x-2 ${isDarkBg ? 'divide-backdrop-low/20' : 'divide-neutral-low/60'}`}
           >
-            <div className={`pr-3 font-medium ${textColor}`} data-inline-path="authorName">
-              {authorName}
-            </div>
-            {authorTitle && (
+            {showAuthorName && (
+              <div className={`pr-3 font-medium ${textColor}`} {...authorNameProps}>
+                {authorName}
+              </div>
+            )}
+            {showAuthorTitle && (
               <div
                 className={`pl-3 text-sm font-light ${subtextColor}`}
-                data-inline-path="authorTitle"
+                {...authorTitleProps}
               >
                 {authorTitle}
               </div>

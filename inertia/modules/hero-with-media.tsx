@@ -1,6 +1,6 @@
 import { motion, type Variants } from 'framer-motion'
 import type { Button, LinkValue } from './types'
-import { useInlineValue } from '../components/inline-edit/InlineEditorContext'
+import { useInlineValue, useInlineEditor, useInlineField } from '../components/inline-edit/InlineEditorContext'
 import { resolveLink } from '../utils/resolve_link'
 import { MediaRenderer } from '../components/MediaRenderer'
 
@@ -40,9 +40,9 @@ export default function HeroWithMedia({
   __moduleId,
   _useReact,
 }: HeroWithMediaProps) {
-  const imageValue = useInlineValue(__moduleId, 'image', image)
-  const titleValue = useInlineValue(__moduleId, 'title', title)
-  const subtitleValue = useInlineValue(__moduleId, 'subtitle', subtitle)
+  const { value: imageValue, enabled, show: showImage, props: imageProps } = useInlineField(__moduleId, 'image', image, { type: 'media', label: 'Image' })
+  const { value: titleValue, show: showTitle, props: titleProps } = useInlineField(__moduleId, 'title', title, { label: 'Title' })
+  const { value: subtitleValue, show: showSubtitle, props: subtitleProps } = useInlineField(__moduleId, 'subtitle', subtitle, { label: 'Subtitle' })
   const bg = useInlineValue(__moduleId, 'backgroundColor', backgroundColor) || backgroundColor
 
   const isDarkBg = bg === 'bg-neutral-high' || bg === 'bg-backdrop-high' || bg === 'bg-standout-low'
@@ -82,9 +82,8 @@ export default function HeroWithMedia({
 
   const imageBlockContent = (
     <div
-      className="w-full max-w-md overflow-hidden relative aspect-[4/3]"
-      data-inline-type="media"
-      data-inline-path="image"
+      className="w-full max-w-md overflow-hidden relative aspect-[4/3] bg-backdrop-medium/50 rounded-lg"
+      {...imageProps}
     >
       {imageValue && (
         <MediaRenderer
@@ -98,7 +97,7 @@ export default function HeroWithMedia({
     </div>
   )
 
-  const imageBlock = imageValue ? (
+  const imageBlock = showImage ? (
     <div className="lg:col-span-5 flex justify-center lg:justify-end">
       {_useReact ? (
         <motion.div variants={imageVariants} className="w-full">
@@ -112,36 +111,37 @@ export default function HeroWithMedia({
 
   const textBlock = (
     <div className="lg:col-span-7 space-y-6">
-      {_useReact ? (
-        <motion.h1
-          variants={textVariants}
-          className={`max-w-2xl text-4xl font-extrabold tracking-tight leading-tight sm:text-5xl xl:text-6xl ${textColor}`}
-          data-inline-path="title"
-        >
-          {titleValue}
-        </motion.h1>
-      ) : (
-        <h1
-          className={`max-w-2xl text-4xl font-extrabold tracking-tight leading-tight sm:text-5xl xl:text-6xl ${textColor}`}
-          data-inline-path="title"
-        >
-          {titleValue}
-        </h1>
-      )}
+      {showTitle &&
+        (_useReact ? (
+          <motion.h1
+            variants={textVariants}
+            className={`max-w-2xl text-4xl font-extrabold tracking-tight leading-tight sm:text-5xl xl:text-6xl ${textColor}`}
+            {...titleProps}
+          >
+            {titleValue}
+          </motion.h1>
+        ) : (
+          <h1
+            className={`max-w-2xl text-4xl font-extrabold tracking-tight leading-tight sm:text-5xl xl:text-6xl ${textColor}`}
+            {...titleProps}
+          >
+            {titleValue}
+          </h1>
+        ))}
 
-      {subtitleValue &&
+      {showSubtitle &&
         (_useReact ? (
           <motion.p
             variants={textVariants}
             className={`max-w-2xl text-lg lg:text-xl font-light ${subtextColor}`}
-            data-inline-path="subtitle"
+            {...subtitleProps}
           >
             {subtitleValue}
           </motion.p>
         ) : (
           <p
             className={`max-w-2xl text-lg lg:text-xl font-light ${subtextColor}`}
-            data-inline-path="subtitle"
+            {...subtitleProps}
           >
             {subtitleValue}
           </p>
