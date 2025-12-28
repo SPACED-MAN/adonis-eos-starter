@@ -40,6 +40,8 @@ type AISettings = {
   defaultTextModel: string | null
   defaultMediaProvider: string | null
   defaultMediaModel: string | null
+  defaultVideoProvider: string | null
+  defaultVideoModel: string | null
   options?: any
 }
 
@@ -66,6 +68,8 @@ export default function AgentsIndex() {
     defaultTextModel: 'gpt-4o',
     defaultMediaProvider: 'openai',
     defaultMediaModel: 'dall-e-3',
+    defaultVideoProvider: 'google',
+    defaultVideoModel: 'veo-2',
   })
   const [models, setModels] = useState<ProviderModels>({})
   const [providers, setProviders] = useState<string[]>([])
@@ -132,6 +136,7 @@ export default function AgentsIndex() {
 
   const textModels = models[settings.defaultTextProvider || ''] || []
   const mediaModels = models[settings.defaultMediaProvider || ''] || []
+  const videoModels = models[settings.defaultVideoProvider || ''] || []
 
   return (
     <div className="min-h-screen bg-backdrop-medium">
@@ -341,6 +346,64 @@ export default function AgentsIndex() {
                     </SelectTrigger>
                     <SelectContent>
                       {mediaModels.map((m) => (
+                        <SelectItem key={m} value={m}>
+                          {m}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+              </div>
+            </section>
+
+            <div className="border-t border-line-low" />
+
+            <section>
+              <h3 className="text-lg font-semibold mb-4">Video (Generation) Defaults</h3>
+              <p className="text-sm text-neutral-medium mb-6">
+                Global fallback for agents that do not specify a video provider/model in their
+                config file.
+              </p>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                <div className="space-y-2">
+                  <label className="text-sm font-medium text-neutral-medium">
+                    Default Provider
+                  </label>
+                  <Select
+                    value={settings.defaultVideoProvider || ''}
+                    onValueChange={(val) => {
+                      const firstModel = models[val]?.[0] || ''
+                      setSettings({
+                        ...settings,
+                        defaultVideoProvider: val,
+                        defaultVideoModel: firstModel,
+                      })
+                    }}
+                  >
+                    <SelectTrigger className="w-full">
+                      <SelectValue placeholder="Select Provider" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {providers.map((p) => (
+                        <SelectItem key={p} value={p}>
+                          {p.charAt(0).toUpperCase() + p.slice(1)}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+                <div className="space-y-2">
+                  <label className="text-sm font-medium text-neutral-medium">Default Model</label>
+                  <Select
+                    value={settings.defaultVideoModel || ''}
+                    onValueChange={(val) => setSettings({ ...settings, defaultVideoModel: val })}
+                    disabled={!settings.defaultVideoProvider}
+                  >
+                    <SelectTrigger className="w-full">
+                      <SelectValue placeholder="Select Model" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {videoModels.map((m) => (
                         <SelectItem key={m} value={m}>
                           {m}
                         </SelectItem>

@@ -1319,6 +1319,162 @@ class MCPClientService {
         return result
       }
 
+      case 'generate_video': {
+        const { prompt, description, model, aspect_ratio, duration } = params
+
+        if (!prompt || typeof prompt !== 'string') {
+          throw new Error('generate_video requires a "prompt" parameter (string)')
+        }
+
+        // Determine provider and model from agent config if available
+        let providerVideo: any = undefined
+        let modelVideo: string | undefined = model
+        let apiKey: string | undefined
+        let baseUrl: string | undefined
+
+        if (agentId) {
+          const agentDef = agentRegistry.get(agentId)
+          if (agentDef?.internal) {
+            providerVideo = agentDef.internal.providerVideo || agentDef.internal.provider
+            modelVideo = modelVideo || agentDef.internal.modelVideo || agentDef.internal.model
+            apiKey = agentDef.internal.apiKey
+            baseUrl = agentDef.internal.baseUrl
+          }
+        }
+
+        // Fallback to global defaults if not in agent config
+        if (!providerVideo || !modelVideo) {
+          const { default: aiSettingsService } = await import('#services/ai_settings_service')
+          const globalSettings = await aiSettingsService.get()
+          providerVideo = providerVideo || (globalSettings.defaultVideoProvider as any)
+          modelVideo = modelVideo || globalSettings.defaultVideoModel || undefined
+        }
+
+        // Default fallbacks if still undefined
+        providerVideo = providerVideo || 'google'
+        modelVideo = modelVideo || 'veo-2'
+
+        if (!apiKey) {
+          const envKey = `AI_PROVIDER_${providerVideo.toUpperCase()}_API_KEY`
+          apiKey = (process.env[envKey] as string | undefined) || undefined
+        }
+
+        if (!apiKey) {
+          throw new Error(
+            `API key not found for provider ${providerVideo}. Set AI_PROVIDER_${providerVideo.toUpperCase()}_API_KEY environment variable.`
+          )
+        }
+
+        const aiProviderService = (await import('#services/ai_provider_service')).default
+
+        // Call AI Provider Service to generate video
+        let videoUrl: string
+
+        try {
+          // We'll need to implement generateVideo in AIProviderService
+          const res = await (aiProviderService as any).generateVideo(
+            prompt,
+            { aspect_ratio, duration },
+            {
+              provider: providerVideo,
+              apiKey,
+              model: modelVideo,
+              baseUrl,
+            }
+          )
+          videoUrl = res.videoUrl
+        } catch (error: any) {
+          console.error(`[generate_video] ${providerVideo} generation failed`, {
+            error: error.message,
+          })
+          throw error
+        }
+
+        // Download the generated video
+        let videoBuffer: Buffer
+        let mimeType: string
+
+        try {
+          const videoResponse = await fetch(videoUrl)
+          if (!videoResponse.ok) {
+            throw new Error(`Failed to download generated video: ${videoResponse.statusText}`)
+          }
+          videoBuffer = Buffer.from(await videoResponse.arrayBuffer())
+          mimeType = videoResponse.headers.get('content-type') || 'video/mp4'
+        } catch (error: any) {
+          console.error('[generate_video] Failed to get video data', { error: error.message })
+          throw new Error(`Failed to get generated video: ${error.message}`)
+        }
+
+        // Determine file extension from mime type
+        let ext = '.mp4'
+        if (mimeType.includes('webm')) {
+          ext = '.webm'
+        }
+
+        // Save to uploads directory
+        const uploadsDir = path.join(process.cwd(), 'public', 'uploads')
+        await fs.mkdir(uploadsDir, { recursive: true })
+
+        const filename = `${crypto.randomUUID()}${ext}`
+        const destPath = path.join(uploadsDir, filename)
+        await fs.writeFile(destPath, videoBuffer)
+
+        const url = `/uploads/${filename}`
+
+        // Publish to storage
+        try {
+          await storageService.publishFile(destPath, url, mimeType)
+        } catch {
+          /* ignore publish errors; local file remains */
+        }
+
+        // Insert into media_assets table
+        const mediaId = crypto.randomUUID()
+        const now = new Date()
+
+        await db.table('media_assets').insert({
+          id: mediaId,
+          url,
+          original_filename: `generated-video-${prompt.slice(0, 50).replace(/[^a-z0-9]/gi, '-')}${ext}`,
+          mime_type: mimeType,
+          size: videoBuffer.length,
+          alt_text: prompt.slice(0, 200),
+          caption: null,
+          description: description || null,
+          categories: db.raw('ARRAY[]::text[]') as any,
+          metadata: { prompt, provider: providerVideo, model: modelVideo } as any,
+          created_at: now,
+          updated_at: now,
+        })
+
+        // Log activity
+        try {
+          const activityLogService = (await import('#services/activity_log_service')).default
+          const actorUserId = await this.resolveActorUserId(agentId)
+          await activityLogService.log({
+            action: 'media.generate_video',
+            userId: actorUserId,
+            entityType: 'media',
+            entityId: mediaId,
+            metadata: {
+              prompt,
+              provider: providerVideo,
+              model: modelVideo,
+            },
+          })
+        } catch {
+          // ignore activity logging errors
+        }
+
+        return {
+          success: true,
+          mediaId,
+          url,
+          mimeType,
+        }
+      }
+
       default:
         throw new Error(`MCP tool '${toolName}' not yet implemented in internal agent executor`)
     }

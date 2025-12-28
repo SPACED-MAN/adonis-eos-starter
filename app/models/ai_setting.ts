@@ -19,6 +19,12 @@ export default class AISetting extends BaseModel {
   @column({ columnName: 'default_media_model' })
   declare defaultMediaModel: string | null
 
+  @column({ columnName: 'default_video_provider' })
+  declare defaultVideoProvider: string | null
+
+  @column({ columnName: 'default_video_model' })
+  declare defaultVideoModel: string | null
+
   @column({
     columnName: 'options',
     prepare: (value) => (value ? JSON.stringify(value) : value),

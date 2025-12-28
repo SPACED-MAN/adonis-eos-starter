@@ -646,6 +646,80 @@ class AIProviderService {
   }
 
   /**
+   * Generate a video using the specified provider
+   */
+  async generateVideo(
+    prompt: string,
+    options: {
+      aspect_ratio?: string
+      duration?: string
+      [key: string]: any
+    } = {},
+    config: AIProviderConfig
+  ): Promise<{ videoUrl: string }> {
+    switch (config.provider) {
+      case 'google':
+        return this.generateVideoGoogle(prompt, options, config)
+      default:
+        throw new Error(`Video generation not supported for provider: ${config.provider}`)
+    }
+  }
+
+  /**
+   * Generate video using Google (Veo)
+   */
+  private async generateVideoGoogle(
+    prompt: string,
+    options: any,
+    config: AIProviderConfig
+  ): Promise<{ videoUrl: string }> {
+    const modelName = config.model || 'veo-2'
+
+    try {
+      const response = await fetch(
+        `https://generativelanguage.googleapis.com/v1beta/models/${modelName}:predict?key=${config.apiKey}`,
+        {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({
+            instances: [{ prompt }],
+            parameters: {
+              sampleCount: 1,
+              aspectRatio: options.aspect_ratio || '16:9',
+              duration: options.duration || '5s',
+              outputMimeType: 'video/mp4',
+            },
+          }),
+        }
+      )
+
+      if (!response.ok) {
+        const error = await response.text()
+        throw new Error(`Google Video Generation API error: ${response.status} ${error}`)
+      }
+
+      const data = (await response.json()) as any
+      const prediction = data.predictions?.[0]
+
+      if (prediction?.bytesBase64Encoded) {
+        return {
+          videoUrl: `data:video/mp4;base64,${prediction.bytesBase64Encoded}`,
+        }
+      }
+
+      if (prediction?.url) {
+        return { videoUrl: prediction.url }
+      }
+
+      throw new Error('Google returned no video data from predict endpoint')
+    } catch (error: any) {
+      throw new Error(`Google Video Generation failed for ${modelName}: ${error.message}`)
+    }
+  }
+
+  /**
    * Validate provider configuration
    */
   validateConfig(config: AIProviderConfig): void {

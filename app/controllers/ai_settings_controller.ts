@@ -42,6 +42,8 @@ export default class AISettingsController {
       'defaultTextModel',
       'defaultMediaProvider',
       'defaultMediaModel',
+      'defaultVideoProvider',
+      'defaultVideoModel',
       'options',
     ])
 

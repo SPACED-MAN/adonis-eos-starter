@@ -5,6 +5,8 @@ export type AISettings = {
   defaultTextModel: string | null
   defaultMediaProvider: string | null
   defaultMediaModel: string | null
+  defaultVideoProvider: string | null
+  defaultVideoModel: string | null
   options: any | null
 }
 
@@ -24,6 +26,8 @@ class AISettingsService {
       defaultTextModel: row?.defaultTextModel || 'gpt-4o',
       defaultMediaProvider: row?.defaultMediaProvider || 'openai',
       defaultMediaModel: row?.defaultMediaModel || 'dall-e-3',
+      defaultVideoProvider: row?.defaultVideoProvider || 'google',
+      defaultVideoModel: row?.defaultVideoModel || 'veo-2',
       options: row?.options || {},
     }
     this.cache = settings

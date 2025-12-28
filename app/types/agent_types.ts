@@ -55,6 +55,17 @@ export interface InternalAgentConfig {
   modelMedia?: string
 
   /**
+   * AI provider identifier for video generation (e.g., google, openai)
+   */
+  providerVideo?: AIProvider
+
+  /**
+   * Model identifier for video generation (provider-specific)
+   * Examples: 'veo-2', 'sora'
+   */
+  modelVideo?: string
+
+  /**
    * AI provider identifier (fallback)
    */
   provider?: AIProvider
