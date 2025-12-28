@@ -5,7 +5,7 @@ usage() {
   cat <<'EOF'
 sync-unstaged-changes.sh
 
-Copy ONLY *unstaged* git working-tree changes from a source repo into a destination directory,
+Copy *unstaged* and *untracked* git working-tree changes from a source repo into a destination directory,
 preserving relative paths. Deletions are mirrored as file deletions in destination.
 
 This script never deletes directories (so it will not "wipe" folder contents).
@@ -22,6 +22,7 @@ Options:
 
 Notes:
   - Unstaged changes are computed via: git diff (working tree vs index)
+  - Untracked files are computed via: git ls-files --others --exclude-standard
   - Staged changes are ignored.
 EOF
 }
@@ -164,19 +165,27 @@ fi
 #  - C100\0old\0new\0
 DIFF_STREAM=(git -C "$REPO_ROOT" diff --name-status -z)
 DIFF_QUIET=(git -C "$REPO_ROOT" diff --quiet)
+
+# Untracked files (working tree vs index), null-delimited.
+UNTRACKED_STREAM=(git -C "$REPO_ROOT" ls-files --others --exclude-standard -z)
+# Check if there are any untracked files
+UNTRACKED_COUNT=$(git -C "$REPO_ROOT" ls-files --others --exclude-standard | wc -l)
+
 if [[ -n "$PATH_PREFIX" ]]; then
   # git pathspec is relative to repo root
   DIFF_STREAM+=(-- "$PATH_PREFIX")
   DIFF_QUIET+=(-- "$PATH_PREFIX")
+  UNTRACKED_STREAM+=(-- "$PATH_PREFIX")
+  UNTRACKED_COUNT=$(git -C "$REPO_ROOT" ls-files --others --exclude-standard -- "$PATH_PREFIX" | wc -l)
 fi
 
-# Fast path: no unstaged changes
-if "${DIFF_QUIET[@]}"; then
-  log "No unstaged changes found."
+# Fast path: no unstaged changes and no untracked files
+if "${DIFF_QUIET[@]}" && [[ "$UNTRACKED_COUNT" -eq 0 ]]; then
+  log "No unstaged or untracked changes found."
   exit 0
 fi
 
-log "Applying unstaged changes..."
+log "Applying unstaged and untracked changes..."
 
 # Read NUL-delimited entries by streaming git output (avoid storing NULs in bash vars).
 while IFS= read -r -d '' status; do
@@ -224,6 +233,15 @@ while IFS= read -r -d '' status; do
       ;;
   esac
 done < <("${DIFF_STREAM[@]}")
+
+# Process untracked files
+while IFS= read -r -d '' rel_path; do
+  if ! path_allowed "$rel_path"; then
+    continue
+  fi
+  log "COPY (??): $rel_path"
+  copy_file "$rel_path"
+done < <("${UNTRACKED_STREAM[@]}")
 
 log "Done."
 
