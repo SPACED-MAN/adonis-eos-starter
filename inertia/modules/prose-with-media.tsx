@@ -46,9 +46,9 @@ export default function ProseWithMedia({
   const imageValue = useInlineValue(__moduleId, 'image', image)
   const bg = useInlineValue(__moduleId, 'backgroundColor', backgroundColor) || backgroundColor
 
-  const isDarkBg = bg === 'bg-neutral-high'
-  const textColor = isDarkBg ? 'text-backdrop-low' : 'text-neutral-high'
-  const subtextColor = isDarkBg ? 'text-backdrop-low/80' : 'text-neutral-medium'
+  const isDarkBg = bg === 'bg-neutral-high' || bg === 'bg-backdrop-high' || bg === 'bg-standout-low'
+  const textColor = isDarkBg ? 'text-on-standout' : 'text-neutral-high'
+  const subtextColor = isDarkBg ? 'text-on-standout/80' : 'text-neutral-medium'
 
   function resolveButtonHref(url: string | LinkValue): string | undefined {
     return resolveLink(url).href
@@ -165,11 +165,10 @@ export default function ProseWithMedia({
               href={href}
               target={linkTarget}
               rel={linkTarget === '_blank' ? 'noopener noreferrer' : undefined}
-              className={`inline-flex items-center font-medium rounded-lg text-sm px-5 py-2.5 transition-all active:scale-95 ${
-                isDarkBg
-                  ? 'bg-backdrop-low text-neutral-high hover:bg-backdrop-low/90'
-                  : 'text-on-standout bg-standout-medium hover:bg-standout-medium/90'
-              } focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:ring-standout-medium`}
+              className={`inline-flex items-center font-medium rounded-lg text-sm px-5 py-2.5 transition-all active:scale-95 ${isDarkBg
+                ? 'bg-backdrop-low text-neutral-high hover:bg-backdrop-low/90'
+                : 'text-on-standout bg-standout-medium hover:bg-standout-medium/90'
+                } focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:ring-standout-medium`}
             >
               {primaryCta.label}
               <FontAwesomeIcon icon="arrow-right" className="ml-2 -mr-1 text-sm" />

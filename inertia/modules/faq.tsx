@@ -8,11 +8,11 @@ type LinkValue =
   | undefined
   | string
   | {
-      kind?: 'url' | 'post'
-      url?: string
-      postId?: string | number | null
-      target?: '_self' | '_blank'
-    }
+    kind?: 'url' | 'post'
+    url?: string
+    postId?: string | number | null
+    target?: '_self' | '_blank'
+  }
 
 interface FaqItem {
   question: string
@@ -43,9 +43,9 @@ export default function Faq({
   const items = useInlineValue(__moduleId, 'items', initialItems)
   const bg = useInlineValue(__moduleId, 'backgroundColor', backgroundColor) || backgroundColor
 
-  const isDarkBg = bg === 'bg-neutral-high'
-  const textColor = isDarkBg ? 'text-backdrop-low' : 'text-neutral-high'
-  const subtextColor = isDarkBg ? 'text-backdrop-low/80' : 'text-neutral-medium'
+  const isDarkBg = bg === 'bg-neutral-high' || bg === 'bg-backdrop-high' || bg === 'bg-standout-low'
+  const textColor = isDarkBg ? 'text-on-standout' : 'text-neutral-high'
+  const subtextColor = isDarkBg ? 'text-on-standout/80' : 'text-neutral-medium'
 
   const safeItems = Array.isArray(items) ? items.filter(Boolean) : []
   if (safeItems.length === 0) return null
@@ -80,7 +80,7 @@ export default function Faq({
       : { href: undefined, target: '_self' as const }
 
     const content = (
-      <div className="mb-8 last:mb-0 h-full">
+      <div className="mb-8 h-full">
         <h3
           className={`flex items-start mb-3 text-base sm:text-lg font-semibold ${textColor}`}
           data-inline-type="object"
@@ -93,7 +93,7 @@ export default function Faq({
           ])}
         >
           <span
-            className={`mt-0.5 mr-3 inline-flex h-8 w-8 items-center justify-center rounded-full ${isDarkBg ? 'bg-backdrop-low/20 text-backdrop-low' : 'bg-backdrop-medium text-neutral-medium'} shrink-0`}
+            className={`mt-0.5 mr-3 inline-flex h-8 w-8 items-center justify-center rounded-full ${isDarkBg ? 'bg-on-standout/20 text-on-standout' : 'bg-backdrop-medium text-neutral-medium'} shrink-0`}
             aria-hidden="true"
           >
             <FontAwesomeIcon icon="circle-question" className="text-base sm:text-lg" />
@@ -112,7 +112,7 @@ export default function Faq({
                 href={link.href}
                 target={link.target}
                 rel={link.target === '_blank' ? 'noopener noreferrer' : undefined}
-                className={`font-medium ${isDarkBg ? 'text-backdrop-low hover:underline' : 'text-standout-high hover:underline'}`}
+                className={`font-medium ${isDarkBg ? 'text-on-standout hover:underline' : 'text-standout-high hover:underline'}`}
                 data-inline-type="link"
                 data-inline-path={`items.${idx}.linkUrl`}
               >

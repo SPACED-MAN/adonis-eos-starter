@@ -30,11 +30,11 @@ export default function FeaturesList({
   const features = useInlineValue(__moduleId, 'features', initialFeatures)
   const bg = useInlineValue(__moduleId, 'backgroundColor', backgroundColor) || backgroundColor
 
-  const isDarkBg = bg === 'bg-neutral-high'
-  const textColor = isDarkBg ? 'text-backdrop-low' : 'text-neutral-high'
-  const subtextColor = isDarkBg ? 'text-backdrop-low/80' : 'text-neutral-medium'
+  const isDarkBg = bg === 'bg-neutral-high' || bg === 'bg-backdrop-high' || bg === 'bg-standout-low'
+  const textColor = isDarkBg ? 'text-on-standout' : 'text-neutral-high'
+  const subtextColor = isDarkBg ? 'text-on-standout/80' : 'text-neutral-medium'
   const iconBg = isDarkBg
-    ? 'bg-backdrop-low/10 text-backdrop-low'
+    ? 'bg-on-standout/10 text-on-standout'
     : 'bg-standout-medium/10 text-standout-medium'
 
   const safeFeatures = Array.isArray(features) ? features.slice(0, 24) : []

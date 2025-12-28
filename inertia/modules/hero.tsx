@@ -20,9 +20,9 @@ export default function Hero({
   const subtitle = useInlineValue(__moduleId, 'subtitle', initialSubtitle)
   const bg = useInlineValue(__moduleId, 'backgroundColor', backgroundColor) || backgroundColor
 
-  const isDarkBg = bg === 'bg-neutral-high'
-  const textColor = isDarkBg ? 'text-backdrop-low' : 'text-neutral-high'
-  const subtextColor = isDarkBg ? 'text-backdrop-low/80' : 'text-neutral-medium'
+  const isDarkBg = bg === 'bg-neutral-high' || bg === 'bg-backdrop-high' || bg === 'bg-standout-low'
+  const textColor = isDarkBg ? 'text-on-standout' : 'text-neutral-high'
+  const subtextColor = isDarkBg ? 'text-on-standout/80' : 'text-neutral-medium'
 
   const containerVariants = {
     hidden: { opacity: 0, y: 30 },

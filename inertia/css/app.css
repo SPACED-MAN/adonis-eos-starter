@@ -15,22 +15,22 @@
   --color-standout-high: var(--color-violet-800);
   --color-on-standout: var(--color-white);
 
-  --color-neutral-low: var(--color-zinc-600);
-  --color-neutral-medium: var(--color-zinc-700);
-  --color-neutral-high: var(--color-zinc-900);
+  --color-neutral-low: var(--color-slate-600);
+  --color-neutral-medium: var(--color-slate-700);
+  --color-neutral-high: var(--color-slate-900);
 
-  --color-backdrop-low: var(--color-zinc-50);
-  --color-backdrop-medium: var(--color-zinc-100);
-  --color-backdrop-high: var(--color-zinc-300);
-  --color-backdrop-input: var(--color-zinc-100);
+  --color-backdrop-low: var(--color-slate-200);
+  --color-backdrop-medium: var(--color-slate-300);
+  --color-backdrop-high: var(--color-slate-400);
+  --color-backdrop-input: var(--color-slate-100);
 
-  --color-line-low: var(--color-zinc-400);
-  --color-line-medium: var(--color-zinc-500);
-  --color-line-high: var(--color-zinc-600);
-  --color-line-inline-input-editable: var(--color-zinc-100);
+  --color-line-low: var(--color-slate-400);
+  --color-line-medium: var(--color-slate-500);
+  --color-line-high: var(--color-slate-600);
+  --color-line-inline-input-editable: var(--color-slate-100);
   --color-line-inline-input-global: var(--color-amber-500);
-  --color-placeholder: var(--color-zinc-500);
-  --color-disabled: var(--color-zinc-300);
+  --color-placeholder: var(--color-slate-500);
+  --color-disabled: var(--color-slate-300);
 }
 
 [data-theme='admin'].dark {
@@ -63,22 +63,22 @@
   --color-standout-high: var(--color-violet-800);
   --color-on-standout: var(--color-white);
 
-  --color-neutral-low: var(--color-zinc-600);
-  --color-neutral-medium: var(--color-zinc-700);
-  --color-neutral-high: var(--color-zinc-900);
+  --color-neutral-low: var(--color-slate-600);
+  --color-neutral-medium: var(--color-slate-700);
+  --color-neutral-high: var(--color-slate-900);
 
-  --color-backdrop-low: var(--color-zinc-50);
-  --color-backdrop-medium: var(--color-zinc-100);
-  --color-backdrop-high: var(--color-zinc-300);
-  --color-backdrop-input: var(--color-zinc-100);
+  --color-backdrop-low: var(--color-slate-200);
+  --color-backdrop-medium: var(--color-slate-300);
+  --color-backdrop-high: var(--color-slate-400);
+  --color-backdrop-input: var(--color-slate-100);
 
-  --color-line-low: var(--color-zinc-400);
-  --color-line-medium: var(--color-zinc-500);
-  --color-line-high: var(--color-zinc-600);
-  --color-line-inline-input-editable: var(--color-zinc-100);
+  --color-line-low: var(--color-slate-400);
+  --color-line-medium: var(--color-slate-500);
+  --color-line-high: var(--color-slate-600);
+  --color-line-inline-input-editable: var(--color-slate-100);
   --color-line-inline-input-global: var(--color-amber-500);
-  --color-placeholder: var(--color-zinc-500);
-  --color-disabled: var(--color-zinc-300);
+  --color-placeholder: var(--color-slate-500);
+  --color-disabled: var(--color-slate-300);
 }
 
 [data-theme='site'].dark {
@@ -304,6 +304,18 @@
   max-width: none !important;
 }
 
+.prose-invert,
+.prose-invert [class*='prose-'] {
+  --tw-prose-body: var(--color-on-standout);
+  --tw-prose-headings: var(--color-on-standout);
+  --tw-prose-links: var(--color-on-standout);
+  --tw-prose-bold: var(--color-on-standout);
+  --tw-prose-bullets: var(--color-on-standout);
+  --tw-prose-quotes: var(--color-on-standout);
+  --tw-prose-code: var(--color-on-standout);
+  --tw-prose-hr: var(--color-on-standout);
+}
+
 .prose h1,
 [class*='prose-'] h1 {
   display: none !important;
@@ -322,17 +334,16 @@
 [class*='prose-'] h4,
 [class*='prose-'] h5,
 [class*='prose-'] h6 {
-  color: var(--color-neutral-high) !important;
+  color: var(--tw-prose-headings) !important;
 }
 
 .prose h2,
 [class*='prose-'] h2 {
-  font-size: 2.25rem !important;
-  font-weight: 500 !important;
+  font-size: 3rem !important;
+  font-weight: 600 !important;
   margin-top: 2.5rem !important;
   margin-bottom: 1.25rem !important;
-  line-height: 2.5rem !important;
-  color: var(--color-neutral-high) !important;
+  line-height: 3.5rem !important;
 }
 
 .prose h3,
@@ -342,7 +353,6 @@
   margin-top: 1.5rem !important;
   margin-bottom: 0.75rem !important;
   line-height: 2rem !important;
-  color: var(--color-neutral-high) !important;
 }
 
 .prose p,
@@ -350,6 +360,7 @@
   margin-top: 1rem !important;
   margin-bottom: 1rem !important;
   line-height: 1.75rem !important;
+  color: var(--tw-prose-body) !important;
 }
 
 .prose ul,
@@ -358,6 +369,7 @@
   padding-left: 1.5rem !important;
   margin-top: 1rem !important;
   margin-bottom: 1rem !important;
+  color: var(--tw-prose-body) !important;
 }
 
 .prose ol,
@@ -366,6 +378,7 @@
   padding-left: 1.5rem !important;
   margin-top: 1rem !important;
   margin-bottom: 1rem !important;
+  color: var(--tw-prose-body) !important;
 }
 
 .prose li,
@@ -381,7 +394,12 @@
   border-radius: 0.25rem !important;
   font-weight: 400 !important;
   font-family: ui-monospace, monospace !important;
-  color: var(--color-neutral-high) !important;
+  color: var(--tw-prose-code) !important;
+}
+
+.prose-invert code,
+.prose-invert [class*='prose-'] code {
+  background-color: rgba(255, 255, 255, 0.1) !important;
 }
 
 .prose code::before,
@@ -402,6 +420,12 @@
   margin-bottom: 1rem !important;
 }
 
+.prose-invert pre,
+.prose-invert [class*='prose-'] pre {
+  background-color: rgba(0, 0, 0, 0.2) !important;
+  border-color: rgba(255, 255, 255, 0.1) !important;
+}
+
 .prose pre code,
 [class*='prose-'] pre code {
   background-color: transparent !important;
@@ -409,12 +433,13 @@
   border-radius: 0 !important;
   font-size: 0.875rem !important;
   line-height: 1.5 !important;
+  color: inherit !important;
 }
 
 .prose hr,
 [class*='prose-'] hr {
   border: none !important;
-  border-top: 1px solid var(--color-line-low) !important;
+  border-top: 1px solid var(--tw-prose-hr) !important;
   margin-top: 2rem !important;
   margin-bottom: 2rem !important;
 }
@@ -424,12 +449,12 @@
 [class*='prose-'] strong,
 [class*='prose-'] b {
   font-weight: 600 !important;
-  color: var(--color-neutral-high) !important;
+  color: var(--tw-prose-bold) !important;
 }
 
 .prose a,
 [class*='prose-'] a {
-  color: var(--color-standout-high) !important;
+  color: var(--tw-prose-links) !important;
   text-decoration: underline !important;
 }
 
@@ -441,6 +466,12 @@
 /* Blockquote tweaks (light mode) */
 .prose blockquote,
 [class*='prose-'] blockquote {
-  color: var(--color-neutral-high) !important;
+  color: var(--tw-prose-quotes) !important;
   border-left-color: var(--color-line-medium) !important;
+}
+
+.prose-invert blockquote,
+.prose-invert [class*='prose-'] blockquote {
+  border-left-color: var(--color-on-standout) !important;
+  opacity: 0.8;
 }

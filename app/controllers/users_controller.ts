@@ -320,6 +320,7 @@ export default class UsersController {
     let hasProfile = false
     let profilePostId: string | undefined
     let profileThumbUrl: string | undefined
+    let profileDarkThumbUrl: string | undefined
     if (enabledForRole) {
       const row = await db.from('posts').where({ type: 'profile', author_id: me.id }).first()
       if (row) {
@@ -330,12 +331,18 @@ export default class UsersController {
           const val = await PostCustomFieldValue.query()
             .where({ postId: (row as any).id, fieldSlug: 'profile_image' })
             .first()
-          const mediaId =
+          let mediaId =
             val && (val as any).value
               ? typeof (val as any).value === 'string'
                 ? (val as any).value
                 : String((val as any).value?.id || (val as any).value)
               : null
+
+          // Fallback to featured_image_id if custom field is not set
+          if (!mediaId && (row as any).featured_image_id) {
+            mediaId = (row as any).featured_image_id
+          }
+
           if (mediaId) {
             const m = await db.from('media_assets').where('id', mediaId).first()
             if (m) {
@@ -344,6 +351,15 @@ export default class UsersController {
               const variants = Array.isArray((meta as any).variants) ? (meta as any).variants : []
               const found = variants.find((v: any) => v?.name === adminThumb)
               profileThumbUrl = found && found.url ? found.url : (m as any).url
+
+              // Check for dark variant
+              const darkThumb = `${adminThumb}-dark`
+              const foundDark = variants.find((v: any) => v?.name === darkThumb)
+              if (foundDark && foundDark.url) {
+                profileDarkThumbUrl = foundDark.url
+              } else if (meta.darkSourceUrl) {
+                profileDarkThumbUrl = meta.darkSourceUrl
+              }
             }
           }
         } catch {
@@ -351,7 +367,9 @@ export default class UsersController {
         }
       }
     }
-    return response.ok({ data: { enabledForRole, hasProfile, profilePostId, profileThumbUrl } })
+    return response.ok({
+      data: { enabledForRole, hasProfile, profilePostId, profileThumbUrl, profileDarkThumbUrl },
+    })
   }
 
   /**

@@ -28,7 +28,7 @@ yarn-error.log
 public/uploads/*
 !public/uploads/logo-eos.svg
 !public/uploads/logo-eos-dark.svg
-!public/uploads/demo-video.mp4
+!public/uploads/demo-*
 
 # Local development notes
 PROMPT-HISTORY.md

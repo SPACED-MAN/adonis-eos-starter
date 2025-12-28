@@ -45,9 +45,9 @@ export default function HeroWithMedia({
   const subtitleValue = useInlineValue(__moduleId, 'subtitle', subtitle)
   const bg = useInlineValue(__moduleId, 'backgroundColor', backgroundColor) || backgroundColor
 
-  const isDarkBg = bg === 'bg-neutral-high'
-  const textColor = isDarkBg ? 'text-backdrop-low' : 'text-neutral-high'
-  const subtextColor = isDarkBg ? 'text-backdrop-low/80' : 'text-neutral-medium'
+  const isDarkBg = bg === 'bg-neutral-high' || bg === 'bg-backdrop-high' || bg === 'bg-standout-low'
+  const textColor = isDarkBg ? 'text-on-standout' : 'text-neutral-high'
+  const subtextColor = isDarkBg ? 'text-on-standout/80' : 'text-neutral-medium'
 
   const hasCtas = Boolean(primaryCta || secondaryCta)
 
@@ -284,10 +284,10 @@ function ButtonComponent({
       ? 'bg-backdrop-low text-neutral-high hover:bg-backdrop-low/90'
       : 'bg-standout-medium text-on-standout',
     secondary: isDarkBg
-      ? 'bg-backdrop-low/10 text-backdrop-low hover:bg-backdrop-low/20'
+      ? 'bg-on-standout/10 text-on-standout hover:bg-on-standout/20'
       : 'bg-backdrop-medium hover:bg-backdrop-high text-neutral-high',
     outline: isDarkBg
-      ? 'border border-backdrop-low text-backdrop-low hover:bg-backdrop-low/10'
+      ? 'border border-on-standout text-on-standout hover:bg-on-standout/10'
       : 'border border-line-low hover:bg-backdrop-medium text-neutral-high',
   }
   const styleClasses = styleMap[style] || styleMap.primary

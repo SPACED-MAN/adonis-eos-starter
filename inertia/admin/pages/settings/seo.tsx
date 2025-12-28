@@ -250,7 +250,7 @@ export default function SeoSettingsPage() {
                   <div>
                     <div className="text-sm text-neutral-medium">Total Page Views</div>
                     <div className="text-2xl font-bold text-neutral-high">
-                      {analytics?.summary.totalViews.toLocaleString() ?? '—'}
+                      {analytics?.summary?.totalViews?.toLocaleString() ?? '—'}
                     </div>
                   </div>
                 </div>
@@ -264,7 +264,7 @@ export default function SeoSettingsPage() {
                   <div>
                     <div className="text-sm text-neutral-medium">Total Interactions</div>
                     <div className="text-2xl font-bold text-neutral-high">
-                      {analytics?.summary.totalClicks.toLocaleString() ?? '—'}
+                      {analytics?.summary?.totalClicks?.toLocaleString() ?? '—'}
                     </div>
                   </div>
                 </div>

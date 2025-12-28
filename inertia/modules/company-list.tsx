@@ -40,50 +40,50 @@ export default function CompanyList({
   const companies = useInlineValue(__moduleId, 'companies', initialCompanies)
   const bg = useInlineValue(__moduleId, 'backgroundColor', initialBackground) || initialBackground
 
-  const isDarkBg = bg === 'bg-neutral-high'
-  const textColor = isDarkBg ? 'text-backdrop-low' : 'text-neutral-high'
-  const subtextColor = isDarkBg ? 'text-backdrop-low/80' : 'text-neutral-medium'
+  const isDarkBg = bg === 'bg-neutral-high' || bg === 'bg-backdrop-high' || bg === 'bg-standout-low'
+  const textColor = isDarkBg ? 'text-on-standout' : 'text-neutral-high'
+  const subtextColor = isDarkBg ? 'text-on-standout/80' : 'text-neutral-medium'
 
   useEffect(() => {
     let cancelled = false
-    ;(async () => {
-      try {
-        const params = new URLSearchParams()
-        params.set('status', 'published')
-        params.set('limit', '50')
-        const ids = Array.isArray(companies) ? companies.filter(Boolean) : []
-        if (ids.length > 0) {
-          params.set('ids', ids.join(','))
-        }
-        const res = await fetch(`/api/companies?${params.toString()}`, {
-          credentials: 'same-origin',
-          headers: { Accept: 'application/json' },
-        })
-        if (!res.ok) {
-          throw new Error('Failed to load companies')
-        }
-        const j = await res.json().catch(() => null)
-        const list: any[] = Array.isArray(j?.data) ? j.data : []
-        if (cancelled) return
-
-        const mapped: CompanySummary[] = list.map((p: any) => {
-          return {
-            id: String(p.id),
-            title: String(p.title || 'Company'),
-            slug: String(p.slug),
-            url: String(p.url),
-            image: p.image ?? null,
-            customFields: p.customFields || {},
+      ; (async () => {
+        try {
+          const params = new URLSearchParams()
+          params.set('status', 'published')
+          params.set('limit', '50')
+          const ids = Array.isArray(companies) ? companies.filter(Boolean) : []
+          if (ids.length > 0) {
+            params.set('ids', ids.join(','))
           }
-        })
+          const res = await fetch(`/api/companies?${params.toString()}`, {
+            credentials: 'same-origin',
+            headers: { Accept: 'application/json' },
+          })
+          if (!res.ok) {
+            throw new Error('Failed to load companies')
+          }
+          const j = await res.json().catch(() => null)
+          const list: any[] = Array.isArray(j?.data) ? j.data : []
+          if (cancelled) return
 
-        setItems(mapped)
-      } catch {
-        if (!cancelled) setItems([])
-      } finally {
-        if (!cancelled) setLoading(false)
-      }
-    })()
+          const mapped: CompanySummary[] = list.map((p: any) => {
+            return {
+              id: String(p.id),
+              title: String(p.title || 'Company'),
+              slug: String(p.slug),
+              url: String(p.url),
+              image: p.image ?? null,
+              customFields: p.customFields || {},
+            }
+          })
+
+          setItems(mapped)
+        } catch {
+          if (!cancelled) setItems([])
+        } finally {
+          if (!cancelled) setLoading(false)
+        }
+      })()
     return () => {
       cancelled = true
     }
@@ -171,7 +171,7 @@ export default function CompanyList({
 
   const gridContent = (
     <div
-      className={`grid grid-cols-2 gap-8 ${subtextColor} sm:gap-12 md:grid-cols-3 lg:grid-cols-6`}
+      className={`flex flex-wrap justify-center gap-8 ${subtextColor} sm:gap-12`}
     >
       {items.map((c) => {
         const teaser = (
@@ -188,12 +188,12 @@ export default function CompanyList({
           <motion.div
             key={c.id}
             variants={itemVariants}
-            className="flex justify-center items-center"
+            className="flex justify-center items-center w-40 sm:w-48"
           >
             {teaser}
           </motion.div>
         ) : (
-          <div key={c.id} className="flex justify-center items-center">
+          <div key={c.id} className="flex justify-center items-center w-40 sm:w-48">
             {teaser}
           </div>
         )

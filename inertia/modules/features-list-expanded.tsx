@@ -42,13 +42,13 @@ export default function FeaturesListExpanded({
   const cta = useInlineValue(__moduleId, 'cta', initialCta)
   const bg = useInlineValue(__moduleId, 'backgroundColor', backgroundColor) || backgroundColor
 
-  const isDarkBg = bg === 'bg-neutral-high'
-  const textColor = isDarkBg ? 'text-backdrop-low' : 'text-neutral-high'
-  const subtextColor = isDarkBg ? 'text-backdrop-low/80' : 'text-neutral-medium'
+  const isDarkBg = bg === 'bg-neutral-high' || bg === 'bg-backdrop-high' || bg === 'bg-standout-low'
+  const textColor = isDarkBg ? 'text-on-standout' : 'text-neutral-high'
+  const subtextColor = isDarkBg ? 'text-on-standout/80' : 'text-neutral-medium'
   const iconBg = isDarkBg
-    ? 'bg-backdrop-low/10 text-backdrop-low'
+    ? 'bg-on-standout/10 text-on-standout'
     : 'bg-standout-medium/10 text-standout-medium'
-  const lineStyle = isDarkBg ? 'border-backdrop-low/10' : 'border-line-low'
+  const lineStyle = isDarkBg ? 'border-on-standout/10' : 'border-line-low'
 
   const safeFeatures = Array.isArray(features) ? features.slice(0, 12) : []
 
@@ -237,10 +237,10 @@ function SectionButton({
         ? 'bg-backdrop-low text-neutral-high'
         : 'bg-standout-medium text-on-standout',
       secondary: isDarkBg
-        ? 'bg-backdrop-low/10 text-backdrop-low hover:bg-backdrop-low/20'
+        ? 'bg-on-standout/10 text-on-standout hover:bg-on-standout/20'
         : 'bg-backdrop-medium hover:bg-backdrop-high text-neutral-high',
       outline: isDarkBg
-        ? 'border border-backdrop-low text-backdrop-low hover:bg-backdrop-low/10'
+        ? 'border border-on-standout text-on-standout hover:bg-on-standout/10'
         : 'border border-line-low hover:bg-backdrop-medium text-neutral-high',
     }[style] || 'bg-standout-medium text-on-standout'
 

@@ -7,9 +7,10 @@ import {
   SidebarMenuItem,
 } from '~/components/ui/sidebar'
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome'
-import { useEffect, useState } from 'react'
+import { useEffect, useState, useMemo } from 'react'
 import { useHasPermission } from '~/utils/permissions'
 import { useAdminPath } from '~/utils/adminPath'
+import { useTheme } from '~/utils/ThemeContext'
 import {
   faImage,
   faFileLines,
@@ -40,6 +41,7 @@ export function AdminSidebar() {
     ((page.props as any)?.currentUser?.role as string | undefined)
   const isAdmin = role === 'admin'
   const canAccessMedia = useHasPermission('media.view')
+  const { isDark } = useTheme()
   const canAccessPosts = useHasPermission('posts.edit')
   const canAccessTaxonomies = useHasPermission('taxonomies.view')
   const canAccessMenus = useHasPermission('menus.view')
@@ -67,15 +69,22 @@ export function AdminSidebar() {
     ((page.props as any)?.auth?.user?.id as number | undefined) ??
     ((page.props as any)?.currentUser?.id as number | undefined) ??
     null
-  const [avatarUrl, setAvatarUrl] = useState<string | null>(null)
+  const [profileImages, setProfileImages] = useState<{
+    light: string | null
+    dark: string | null
+  }>({ light: null, dark: null })
+
   useEffect(() => {
     let alive = true
     ;(async () => {
       try {
         const res = await fetch('/api/profile/status', { credentials: 'same-origin' })
         const j = await res.json().catch(() => ({}))
-        const u = j?.data?.profileThumbUrl
-        if (alive && typeof u === 'string' && u) setAvatarUrl(u)
+        const light = j?.data?.profileThumbUrl || null
+        const dark = j?.data?.profileDarkThumbUrl || null
+        if (alive) {
+          setProfileImages({ light, dark })
+        }
       } catch {
         /* ignore */
       }
@@ -84,14 +93,19 @@ export function AdminSidebar() {
       alive = false
     }
   }, [])
+
+  const activeAvatarUrl = useMemo(() => {
+    return isDark && profileImages.dark ? profileImages.dark : profileImages.light
+  }, [isDark, profileImages])
+
   return (
     <Sidebar>
       <SidebarContent>
         <SidebarHeader>
           <div className="flex items-center gap-2">
-            {avatarUrl ? (
+            {activeAvatarUrl ? (
               <img
-                src={avatarUrl}
+                src={activeAvatarUrl}
                 alt="Profile"
                 className="w-8 h-8 rounded-full border border-line-low object-cover"
               />

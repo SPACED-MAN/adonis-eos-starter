@@ -17,6 +17,7 @@ import {
   faExchangeAlt,
   faCloudUploadAlt,
   faFont,
+  faExternalLinkAlt,
 } from '@fortawesome/free-solid-svg-icons'
 import { AdminHeader } from '../../components/AdminHeader'
 import { AdminFooter } from '../../components/AdminFooter'
@@ -528,7 +529,7 @@ export default function MediaIndex() {
             const arr = Array.isArray(j?.data) ? j.data : []
             if (arr.length > 0) duplicateId = arr[0].id
           }
-        } catch {}
+        } catch { }
 
         if (duplicateId) {
           // ShadCN dialog prompt
@@ -1508,6 +1509,16 @@ export default function MediaIndex() {
                       className="w-4 h-4"
                     />
                     {isMediaVideo(viewing) ? 'Video Asset' : 'Image Asset'} • {viewing.id}
+                    <a
+                      href={viewing.url}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="ml-2 text-standout-medium hover:underline inline-flex items-center gap-1 normal-case"
+                      title="Open raw asset in new tab"
+                    >
+                      <FontAwesomeIcon icon={faExternalLinkAlt} className="w-2 h-2" />
+                      Full Asset
+                    </a>
                   </div>
                 </div>
                 <button
@@ -1528,16 +1539,15 @@ export default function MediaIndex() {
               </div>
               <div className="flex flex-1 min-h-0 overflow-hidden text-sm">
                 {/* Left Panel: Preview & Creative Controls */}
-                <div className="flex-1 overflow-auto p-8 bg-backdrop-medium/20 flex flex-col items-center justify-center min-h-[400px]">
+                <div className="flex-1 overflow-auto p-8 pt-35 bg-backdrop-medium/20 flex flex-col items-center justify-center min-h-[400px]">
                   {!isMediaVideo(viewing) && (
                     <div className="mb-6 flex items-center justify-center w-full">
                       <div className="inline-flex items-center p-1 bg-backdrop-medium rounded-xl border border-line-low shadow-sm">
                         <button
-                          className={`px-5 py-2 text-xs font-bold rounded-lg transition-all ${
-                            editTheme === 'light'
-                              ? 'bg-backdrop-low text-neutral-high shadow-sm ring-1 ring-black/5'
-                              : 'text-neutral-medium hover:text-neutral-high'
-                          }`}
+                          className={`px-5 py-2 text-xs font-bold rounded-lg transition-all ${editTheme === 'light'
+                            ? 'bg-backdrop-low text-neutral-high shadow-sm ring-1 ring-black/5'
+                            : 'text-neutral-medium hover:text-neutral-high'
+                            }`}
                           onClick={() => {
                             setEditTheme('light')
                             setSelectedVariantName('original')
@@ -1546,11 +1556,10 @@ export default function MediaIndex() {
                           Light Mode
                         </button>
                         <button
-                          className={`px-5 py-2 text-xs font-bold rounded-lg transition-all ${
-                            editTheme === 'dark'
-                              ? 'bg-backdrop-low text-neutral-high shadow-sm ring-1 ring-black/5'
-                              : 'text-neutral-medium hover:text-neutral-high'
-                          }`}
+                          className={`px-5 py-2 text-xs font-bold rounded-lg transition-all ${editTheme === 'dark'
+                            ? 'bg-backdrop-low text-neutral-high shadow-sm ring-1 ring-black/5'
+                            : 'text-neutral-medium hover:text-neutral-high'
+                            }`}
                           onClick={() => {
                             setEditTheme('dark')
                             const variants: any[] = Array.isArray(

@@ -718,6 +718,7 @@ export default class extends BaseSeeder {
         'translations',
         'roles-permissions',
         'seo-and-ab-testing',
+        'feedback',
       ],
       // Group all developer guides under "Developers" (ordered)
       developers: [
@@ -740,8 +741,11 @@ export default class extends BaseSeeder {
         'rbac-and-permissions',
         'deployment',
         'update-philosophy',
+        'analytics',
         'advanced-customization',
+        'global-modules',
         'user-interaction',
+        'services-and-actions',
       ],
     }
 

@@ -312,11 +312,26 @@ export default class DatabaseAdminController {
 
       const staleCacheCount = Number(staleCacheEntries?.count || 0)
 
+      // 4. Feedback
+      const feedbackResult = await db.from('feedbacks').count('* as count').first()
+      const feedbackCount = Number(feedbackResult?.count || 0)
+
+      // 5. Audit logs
+      const auditResult = await db.from('activity_logs').count('* as count').first()
+      const auditCount = Number(auditResult?.count || 0)
+
+      // 6. Agent transcripts
+      const agentResult = await db.from('agent_executions').count('* as count').first()
+      const agentCount = Number(agentResult?.count || 0)
+
       return response.ok({
         orphanedModuleInstances: orphanedCount,
         invalidPostReferences: invalidPostRefCount,
         invalidModuleReferences: invalidModuleRefCount,
         staleRenderCache: staleCacheCount,
+        feedbackCount,
+        auditCount,
+        agentCount,
         totalIssues: orphanedCount + invalidPostRefCount + invalidModuleRefCount,
       })
     } catch (error) {
@@ -344,17 +359,26 @@ export default class DatabaseAdminController {
       const cleanOrphanedModules = request.input('cleanOrphanedModules', true) !== false
       const cleanInvalidRefs = request.input('cleanInvalidRefs', true) !== false
       const clearRenderCache = request.input('clearRenderCache', false) === true
+      const cleanFeedback = request.input('cleanFeedback', false) === true
+      const cleanAuditLogs = request.input('cleanAuditLogs', false) === true
+      const cleanAgentTranscripts = request.input('cleanAgentTranscripts', false) === true
 
       const results: {
         orphanedModulesDeleted: number
         invalidPostRefsDeleted: number
         invalidModuleRefsDeleted: number
         renderCacheCleared: number
+        feedbackDeleted: number
+        auditLogsDeleted: number
+        agentTranscriptsDeleted: number
       } = {
         orphanedModulesDeleted: 0,
         invalidPostRefsDeleted: 0,
         invalidModuleRefsDeleted: 0,
         renderCacheCleared: 0,
+        feedbackDeleted: 0,
+        auditLogsDeleted: 0,
+        agentTranscriptsDeleted: 0,
       }
 
       await db.transaction(async (trx) => {
@@ -416,6 +440,24 @@ export default class DatabaseAdminController {
               render_etag: null,
             })
           results.renderCacheCleared = Number(Array.isArray(cleared) ? cleared[0] : cleared) || 0
+        }
+
+        // 4. Clean Feedback
+        if (cleanFeedback) {
+          const deleted = await trx.from('feedbacks').delete()
+          results.feedbackDeleted = Number(deleted) || 0
+        }
+
+        // 5. Clean Audit Logs
+        if (cleanAuditLogs) {
+          const deleted = await trx.from('activity_logs').delete()
+          results.auditLogsDeleted = Number(deleted) || 0
+        }
+
+        // 6. Clean Agent Transcripts
+        if (cleanAgentTranscripts) {
+          const deleted = await trx.from('agent_executions').delete()
+          results.agentTranscriptsDeleted = Number(deleted) || 0
         }
       })
 

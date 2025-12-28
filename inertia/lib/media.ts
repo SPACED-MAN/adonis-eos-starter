@@ -89,11 +89,7 @@ export function pickMediaVariantUrl(
     const largestLight = pickLargest(lightVariants)
     if (largestLight) return largestLight
 
-    // 3. Try any variant
-    const largestAny = pickLargest(allVariants)
-    if (largestAny) return largestAny
-
-    // 4. Final fallback
+    // 3. Final fallback: Use light original
     return baseUrl
   }
 }

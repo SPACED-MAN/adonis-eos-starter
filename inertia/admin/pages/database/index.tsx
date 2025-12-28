@@ -1,6 +1,7 @@
 import { Head } from '@inertiajs/react'
 import { useState, useEffect, useMemo } from 'react'
 import { toast } from 'sonner'
+import { useHasPermission } from '~/utils/permissions'
 import { AdminHeader } from '../../components/AdminHeader'
 import { AdminFooter } from '../../components/AdminFooter'
 import {
@@ -25,6 +26,9 @@ import {
   faSearch,
   faExchangeAlt,
   faInfoCircle,
+  faComments,
+  faFileLines,
+  faRobot,
 } from '@fortawesome/free-solid-svg-icons'
 import {
   AlertDialog,
@@ -153,6 +157,9 @@ export default function DatabaseIndex() {
     invalidPostReferences: number
     invalidModuleReferences: number
     staleRenderCache: number
+    feedbackCount: number
+    auditCount: number
+    agentCount: number
     totalIssues: number
   } | null>(null)
   const [loadingOptimizeStats, setLoadingOptimizeStats] = useState(false)
@@ -162,12 +169,18 @@ export default function DatabaseIndex() {
     invalidPostRefsDeleted: number
     invalidModuleRefsDeleted: number
     renderCacheCleared: number
+    feedbackDeleted: number
+    auditLogsDeleted: number
+    agentTranscriptsDeleted: number
   } | null>(null)
   const [confirmOptimizeOpen, setConfirmOptimizeOpen] = useState(false)
   const [optimizeOptions, setOptimizeOptions] = useState({
     cleanOrphanedModules: true,
     cleanInvalidRefs: true,
     clearRenderCache: false,
+    cleanFeedback: false,
+    cleanAuditLogs: false,
+    cleanAgentTranscripts: false,
   })
 
   // Export options
@@ -377,7 +390,14 @@ export default function DatabaseIndex() {
   const canOptimize =
     optimizeOptions.cleanOrphanedModules ||
     optimizeOptions.cleanInvalidRefs ||
-    optimizeOptions.clearRenderCache
+    optimizeOptions.clearRenderCache ||
+    optimizeOptions.cleanFeedback ||
+    optimizeOptions.cleanAuditLogs ||
+    optimizeOptions.cleanAgentTranscripts
+
+  const canManageAudit = useHasPermission('admin.access')
+  const canManageFeedback = useHasPermission('forms.view')
+  const canManageAgents = useHasPermission('agents.view')
 
   // Load export stats
   const loadExportStats = async () => {
@@ -574,31 +594,28 @@ export default function DatabaseIndex() {
           <nav className="flex gap-4">
             <button
               onClick={() => setActiveTab('export')}
-              className={`px-4 py-2 border-b-2 font-medium text-sm transition-colors ${
-                activeTab === 'export'
+              className={`px-4 py-2 border-b-2 font-medium text-sm transition-colors ${activeTab === 'export'
                   ? 'border-standout-medium text-standout-high'
                   : 'border-transparent text-neutral-medium hover:text-neutral-high'
-              }`}
+                }`}
             >
               Export/Import
             </button>
             <button
               onClick={() => setActiveTab('optimize')}
-              className={`px-4 py-2 border-b-2 font-medium text-sm transition-colors ${
-                activeTab === 'optimize'
+              className={`px-4 py-2 border-b-2 font-medium text-sm transition-colors ${activeTab === 'optimize'
                   ? 'border-standout-medium text-standout-high'
                   : 'border-transparent text-neutral-medium hover:text-neutral-high'
-              }`}
+                }`}
             >
               Optimize
             </button>
             <button
               onClick={() => setActiveTab('search-replace')}
-              className={`px-4 py-2 border-b-2 font-medium text-sm transition-colors ${
-                activeTab === 'search-replace'
+              className={`px-4 py-2 border-b-2 font-medium text-sm transition-colors ${activeTab === 'search-replace'
                   ? 'border-standout-medium text-standout-high'
                   : 'border-transparent text-neutral-medium hover:text-neutral-high'
-              }`}
+                }`}
             >
               Find and Replace
             </button>
@@ -662,11 +679,10 @@ export default function DatabaseIndex() {
                       return (
                         <label
                           key={type}
-                          className={`flex items-center gap-2 p-3 rounded border cursor-pointer transition ${
-                            isSelected
+                          className={`flex items-center gap-2 p-3 rounded border cursor-pointer transition ${isSelected
                               ? 'border-standout-medium bg-standout-medium/10'
                               : 'border-line-medium hover:border-line-high'
-                          }`}
+                            }`}
                         >
                           <input
                             type="checkbox"
@@ -959,11 +975,10 @@ export default function DatabaseIndex() {
                     <div className="flex items-center justify-between">
                       <h3 className="font-semibold text-neutral-dark">Import Results</h3>
                       <span
-                        className={`px-2 py-1 text-xs font-semibold rounded ${
-                          importResult.errors.length === 0
+                        className={`px-2 py-1 text-xs font-semibold rounded ${importResult.errors.length === 0
                             ? 'bg-emerald-100 text-emerald-700'
                             : 'bg-amber-100 text-amber-700'
-                        }`}
+                          }`}
                       >
                         {importResult.errors.length === 0 ? 'Success' : 'Completed with warnings'}
                       </span>
@@ -1033,11 +1048,10 @@ export default function DatabaseIndex() {
                             </TableCell>
                             <TableCell>
                               <span
-                                className={`px-2 py-1 text-xs font-semibold rounded ${
-                                  row.status === 'skipped'
+                                className={`px-2 py-1 text-xs font-semibold rounded ${row.status === 'skipped'
                                     ? 'bg-amber-100 text-amber-800'
                                     : 'bg-rose-100 text-rose-800'
-                                }`}
+                                  }`}
                               >
                                 {row.status === 'skipped' ? 'Skipped' : 'Error'}
                               </span>
@@ -1201,11 +1215,10 @@ export default function DatabaseIndex() {
                           return (
                             <label
                               key={table.name}
-                              className={`flex items-center gap-2 px-3 py-2 rounded border cursor-pointer transition ${
-                                isSelected
+                              className={`flex items-center gap-2 px-3 py-2 rounded border cursor-pointer transition ${isSelected
                                   ? 'border-standout-medium bg-standout-medium/10'
                                   : 'border-line-low hover:border-line-medium bg-backdrop-low'
-                              }`}
+                                }`}
                             >
                               <input
                                 type="checkbox"
@@ -1269,11 +1282,10 @@ export default function DatabaseIndex() {
                       }
                     }}
                     disabled={frRunning || !frSearch || frSelectedTables.length === 0}
-                    className={`px-6 py-2 rounded-lg transition disabled:opacity-50 font-bold ${
-                      frDryRun
+                    className={`px-6 py-2 rounded-lg transition disabled:opacity-50 font-bold ${frDryRun
                         ? 'bg-standout-medium text-on-standout hover:opacity-90'
                         : 'bg-rose-600 text-white hover:bg-rose-700'
-                    }`}
+                      }`}
                   >
                     {frRunning ? (
                       <>
@@ -1489,6 +1501,33 @@ export default function DatabaseIndex() {
                           Cached render HTML (can be regenerated)
                         </div>
                       </div>
+                      <div className="p-4 rounded bg-backdrop-high border border-line-medium">
+                        <div className="text-sm text-neutral-medium mb-1">Total Feedbacks</div>
+                        <div className="text-2xl font-semibold text-neutral-dark">
+                          {optimizeStats.feedbackCount.toLocaleString()}
+                        </div>
+                        <div className="text-xs text-neutral-medium mt-1">
+                          User feedback submissions
+                        </div>
+                      </div>
+                      <div className="p-4 rounded bg-backdrop-high border border-line-medium">
+                        <div className="text-sm text-neutral-medium mb-1">Total Audit Logs</div>
+                        <div className="text-2xl font-semibold text-neutral-dark">
+                          {optimizeStats.auditCount.toLocaleString()}
+                        </div>
+                        <div className="text-xs text-neutral-medium mt-1">
+                          History of system activities
+                        </div>
+                      </div>
+                      <div className="p-4 rounded bg-backdrop-high border border-line-medium">
+                        <div className="text-sm text-neutral-medium mb-1">Agent Transcripts</div>
+                        <div className="text-2xl font-semibold text-neutral-dark">
+                          {optimizeStats.agentCount.toLocaleString()}
+                        </div>
+                        <div className="text-xs text-neutral-medium mt-1">
+                          Record of AI agent executions
+                        </div>
+                      </div>
                     </div>
                   </>
                 ) : (
@@ -1565,7 +1604,7 @@ export default function DatabaseIndex() {
                             invalid reference
                             {optimizeStats.invalidPostReferences +
                               optimizeStats.invalidModuleReferences !==
-                            1
+                              1
                               ? 's'
                               : ''}{' '}
                             will be deleted
@@ -1597,6 +1636,113 @@ export default function DatabaseIndex() {
                         <p className="text-xs text-standout-medium mt-1">
                           Render cache for {optimizeStats.staleRenderCache} module
                           {optimizeStats.staleRenderCache !== 1 ? 's' : ''} will be cleared
+                        </p>
+                      )}
+                    </div>
+                  </label>
+
+                  <label
+                    className={`flex items-start gap-3 p-4 rounded border border-line-medium transition ${!canManageFeedback ? 'opacity-50 cursor-not-allowed bg-backdrop-high' : 'hover:border-line-high cursor-pointer'}`}
+                  >
+                    <input
+                      type="checkbox"
+                      checked={optimizeOptions.cleanFeedback}
+                      disabled={!canManageFeedback}
+                      onChange={(e) =>
+                        setOptimizeOptions({
+                          ...optimizeOptions,
+                          cleanFeedback: e.target.checked,
+                        })
+                      }
+                      className="mt-1 rounded"
+                    />
+                    <div className="flex-1">
+                      <div className="font-semibold text-neutral-dark mb-1">
+                        Remove User Feedback
+                      </div>
+                      <p className="text-sm text-neutral-medium">
+                        Permanently delete all user feedback submissions from the database.
+                      </p>
+                      {optimizeStats && optimizeStats.feedbackCount > 0 && (
+                        <p className="text-xs text-standout-medium mt-1">
+                          {optimizeStats.feedbackCount.toLocaleString()} feedback
+                          {optimizeStats.feedbackCount !== 1 ? 's' : ''} will be deleted
+                        </p>
+                      )}
+                      {!canManageFeedback && (
+                        <p className="text-xs text-red-500 mt-1">
+                          Insufficient permissions to manage feedback
+                        </p>
+                      )}
+                    </div>
+                  </label>
+
+                  <label
+                    className={`flex items-start gap-3 p-4 rounded border border-line-medium transition ${!canManageAudit ? 'opacity-50 cursor-not-allowed bg-backdrop-high' : 'hover:border-line-high cursor-pointer'}`}
+                  >
+                    <input
+                      type="checkbox"
+                      checked={optimizeOptions.cleanAuditLogs}
+                      disabled={!canManageAudit}
+                      onChange={(e) =>
+                        setOptimizeOptions({
+                          ...optimizeOptions,
+                          cleanAuditLogs: e.target.checked,
+                        })
+                      }
+                      className="mt-1 rounded"
+                    />
+                    <div className="flex-1">
+                      <div className="font-semibold text-neutral-dark mb-1">Remove Audit Logs</div>
+                      <p className="text-sm text-neutral-medium">
+                        Permanently delete all activity/audit logs. This can significantly reduce
+                        database size but removes historical activity data.
+                      </p>
+                      {optimizeStats && optimizeStats.auditCount > 0 && (
+                        <p className="text-xs text-standout-medium mt-1">
+                          {optimizeStats.auditCount.toLocaleString()} audit log
+                          {optimizeStats.auditCount !== 1 ? 's' : ''} will be deleted
+                        </p>
+                      )}
+                      {!canManageAudit && (
+                        <p className="text-xs text-red-500 mt-1">
+                          Insufficient permissions to manage audit logs
+                        </p>
+                      )}
+                    </div>
+                  </label>
+
+                  <label
+                    className={`flex items-start gap-3 p-4 rounded border border-line-medium transition ${!canManageAgents ? 'opacity-50 cursor-not-allowed bg-backdrop-high' : 'hover:border-line-high cursor-pointer'}`}
+                  >
+                    <input
+                      type="checkbox"
+                      checked={optimizeOptions.cleanAgentTranscripts}
+                      disabled={!canManageAgents}
+                      onChange={(e) =>
+                        setOptimizeOptions({
+                          ...optimizeOptions,
+                          cleanAgentTranscripts: e.target.checked,
+                        })
+                      }
+                      className="mt-1 rounded"
+                    />
+                    <div className="flex-1">
+                      <div className="font-semibold text-neutral-dark mb-1">
+                        Remove Agent Transcripts
+                      </div>
+                      <p className="text-sm text-neutral-medium">
+                        Permanently delete all AI agent execution transcripts and context records.
+                      </p>
+                      {optimizeStats && optimizeStats.agentCount > 0 && (
+                        <p className="text-xs text-standout-medium mt-1">
+                          {optimizeStats.agentCount.toLocaleString()} transcript
+                          {optimizeStats.agentCount !== 1 ? 's' : ''} will be deleted
+                        </p>
+                      )}
+                      {!canManageAgents && (
+                        <p className="text-xs text-red-500 mt-1">
+                          Insufficient permissions to manage agent transcripts
                         </p>
                       )}
                     </div>
@@ -1701,6 +1847,30 @@ export default function DatabaseIndex() {
                         </div>
                       </div>
                     )}
+                    {optimizeResults.feedbackDeleted > 0 && (
+                      <div className="p-4 rounded bg-backdrop-high border border-line-medium">
+                        <div className="text-sm text-neutral-medium mb-1">Feedback Deleted</div>
+                        <div className="text-2xl font-semibold text-neutral-dark">
+                          {optimizeResults.feedbackDeleted.toLocaleString()}
+                        </div>
+                      </div>
+                    )}
+                    {optimizeResults.auditLogsDeleted > 0 && (
+                      <div className="p-4 rounded bg-backdrop-high border border-line-medium">
+                        <div className="text-sm text-neutral-medium mb-1">Audit Logs Deleted</div>
+                        <div className="text-2xl font-semibold text-neutral-dark">
+                          {optimizeResults.auditLogsDeleted.toLocaleString()}
+                        </div>
+                      </div>
+                    )}
+                    {optimizeResults.agentTranscriptsDeleted > 0 && (
+                      <div className="p-4 rounded bg-backdrop-high border border-line-medium">
+                        <div className="text-sm text-neutral-medium mb-1">Transcripts Deleted</div>
+                        <div className="text-2xl font-semibold text-neutral-dark">
+                          {optimizeResults.agentTranscriptsDeleted.toLocaleString()}
+                        </div>
+                      </div>
+                    )}
                   </div>
                 </div>
               )}
@@ -1783,6 +1953,15 @@ export default function DatabaseIndex() {
               )}
               {optimizeOptions.clearRenderCache && (
                 <li>Clear render cache ({optimizeStats?.staleRenderCache || 0})</li>
+              )}
+              {optimizeOptions.cleanFeedback && (
+                <li>Remove user feedback ({optimizeStats?.feedbackCount || 0})</li>
+              )}
+              {optimizeOptions.cleanAuditLogs && (
+                <li>Remove audit logs ({optimizeStats?.auditCount || 0})</li>
+              )}
+              {optimizeOptions.cleanAgentTranscripts && (
+                <li>Remove agent transcripts ({optimizeStats?.agentCount || 0})</li>
               )}
             </ul>
             <p className="text-neutral-dark font-semibold mt-4">Proceed with optimization?</p>

@@ -3,6 +3,7 @@ import { NavItem } from './NavItem'
 import { MediaRenderer } from '../../../components/MediaRenderer'
 import { type MediaObject } from '../../../utils/useMediaUrl'
 import { LocaleSwitcher } from '../LocaleSwitcher'
+import { MobileNav } from './MobileNav'
 
 export function NavBar({
   primaryNodes,
@@ -67,6 +68,8 @@ export function NavBar({
 
           <div className="flex items-center gap-4">
             <LocaleSwitcher />
+
+            <MobileNav primaryNodes={primaryNodes} currentUser={currentUser} />
 
             {/* Auth-aware login/logout shortcut */}
             <div className="hidden md:flex items-center">

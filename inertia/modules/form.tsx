@@ -58,13 +58,13 @@ export default function FormModule({
   const [successTextOverride, setSuccessTextOverride] = useState<string | null>(null)
 
   const bg = useInlineValue(__moduleId, 'backgroundColor', backgroundColor) || backgroundColor
-  const isDarkBg = bg === 'bg-neutral-high'
-  const textColor = isDarkBg ? 'text-backdrop-low' : 'text-neutral-high'
-  const subtextColor = isDarkBg ? 'text-backdrop-low/80' : 'text-neutral-medium'
+  const isDarkBg = bg === 'bg-neutral-high' || bg === 'bg-backdrop-high' || bg === 'bg-standout-low'
+  const textColor = isDarkBg ? 'text-on-standout' : 'text-neutral-high'
+  const subtextColor = isDarkBg ? 'text-on-standout/80' : 'text-neutral-medium'
   const inputBg = isDarkBg
-    ? 'bg-backdrop-low/10 text-backdrop-low border-backdrop-low/20 placeholder:text-backdrop-low/40'
+    ? 'bg-on-standout/10 text-on-standout border-on-standout/20 placeholder:text-on-standout/40'
     : 'bg-backdrop-input text-neutral-high border-line-low'
-  const labelColor = isDarkBg ? 'text-backdrop-low' : 'text-neutral-high'
+  const labelColor = isDarkBg ? 'text-on-standout' : 'text-neutral-high'
 
   const visibleTitle = title || definition?.title || ''
 
@@ -73,29 +73,29 @@ export default function FormModule({
     setLoading(true)
     setSubmitted(false)
     setErrors({})
-    ;(async () => {
-      try {
-        const res = await fetch(`/api/forms/${encodeURIComponent(formSlug)}`, {
-          credentials: 'same-origin',
-          headers: { Accept: 'application/json' },
-        })
-        if (!res.ok) {
-          throw new Error('Failed to load form')
+      ; (async () => {
+        try {
+          const res = await fetch(`/api/forms/${encodeURIComponent(formSlug)}`, {
+            credentials: 'same-origin',
+            headers: { Accept: 'application/json' },
+          })
+          if (!res.ok) {
+            throw new Error('Failed to load form')
+          }
+          const j = await res.json().catch(() => null)
+          if (!cancelled) {
+            const def: FormDefinition | null = j?.data ?? null
+            setDefinition(def)
+            setValues({})
+          }
+        } catch {
+          if (!cancelled) {
+            setDefinition(null)
+          }
+        } finally {
+          if (!cancelled) setLoading(false)
         }
-        const j = await res.json().catch(() => null)
-        if (!cancelled) {
-          const def: FormDefinition | null = j?.data ?? null
-          setDefinition(def)
-          setValues({})
-        }
-      } catch {
-        if (!cancelled) {
-          setDefinition(null)
-        }
-      } finally {
-        if (!cancelled) setLoading(false)
-      }
-    })()
+      })()
 
     return () => {
       cancelled = true
@@ -123,7 +123,7 @@ export default function FormModule({
 
   if (loading) {
     return (
-      <section className={`${bg} py-8 lg:py-16`} data-module="form">
+      <section className={`${bg} py-8`} data-module="form">
         <div className="container mx-auto px-4 sm:px-6 lg:px-8">
           <p className={`text-sm ${subtextColor}`}>Loading form...</p>
         </div>
@@ -239,7 +239,7 @@ export default function FormModule({
                   <input
                     id={fieldId}
                     type="checkbox"
-                    className={`h-4 w-4 rounded border-line-low ${isDarkBg ? 'bg-backdrop-low/10 text-backdrop-low' : 'bg-backdrop-input text-standout-medium'} focus:ring-standout-medium/50`}
+                    className={`h-4 w-4 rounded border-line-low ${isDarkBg ? 'bg-on-standout/10 text-on-standout' : 'bg-backdrop-input text-standout-medium'} focus:ring-standout-medium/50`}
                     checked={Boolean(rawValue)}
                     onChange={(e) => handleChange(field.slug, e.target.checked)}
                   />
@@ -271,7 +271,7 @@ export default function FormModule({
             case 'multiselect':
               return (
                 <div
-                  className={`space-y-2 p-3 border ${isDarkBg ? 'border-backdrop-low/20 bg-backdrop-low/5' : 'border-line-low bg-backdrop-input/50'} rounded-md`}
+                  className={`space-y-2 p-3 border ${isDarkBg ? 'border-on-standout/20 bg-on-standout/5' : 'border-line-low bg-backdrop-input/50'} rounded-md`}
                 >
                   {(field.options || []).map((opt) => {
                     const optId = `${fieldId}-${opt.value}`
@@ -282,7 +282,7 @@ export default function FormModule({
                         <input
                           id={optId}
                           type="checkbox"
-                          className={`h-4 w-4 rounded border-line-low ${isDarkBg ? 'bg-backdrop-low/10 text-backdrop-low' : 'bg-backdrop-input text-standout-medium'} focus:ring-standout-medium/50`}
+                          className={`h-4 w-4 rounded border-line-low ${isDarkBg ? 'bg-on-standout/10 text-on-standout' : 'bg-backdrop-input text-standout-medium'} focus:ring-standout-medium/50`}
                           checked={isChecked}
                           onChange={(e) =>
                             handleMultiselectChange(field.slug, String(opt.value), e.target.checked)

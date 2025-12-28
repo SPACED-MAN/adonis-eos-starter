@@ -11,6 +11,7 @@ export default {
     './inertia/**/*.{js,jsx,ts,tsx,md,mdx}',
     './resources/views/**/*.edge',
     './app/**/*.edge',
+    './app/modules/**/*.ts',
   ],
   theme: {
     extend: {
@@ -50,11 +51,11 @@ export default {
               display: 'none',
             },
             'h2': {
-              fontSize: '2.25rem',
-              fontWeight: '500',
+              fontSize: '3rem',
+              fontWeight: '600',
               marginTop: '2.5rem',
               marginBottom: '1.25rem',
-              lineHeight: '2.5rem',
+              lineHeight: '3.5rem',
             },
             'h3': {
               fontSize: '1.5rem',

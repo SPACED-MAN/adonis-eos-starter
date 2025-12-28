@@ -34,10 +34,10 @@ export default function Blockquote({
   const avatar = useInlineValue(__moduleId, 'avatar', initialAvatar)
   const bg = useInlineValue(__moduleId, 'backgroundColor', backgroundColor)
 
-  const isDarkBg = bg === 'bg-neutral-high'
-  const textColor = isDarkBg ? 'text-backdrop-low' : 'text-neutral-high'
-  const subtextColor = isDarkBg ? 'text-backdrop-low/80' : 'text-neutral-medium'
-  const quoteIconColor = isDarkBg ? 'text-backdrop-low/40' : 'text-neutral-low'
+  const isDarkBg = bg === 'bg-neutral-high' || bg === 'bg-backdrop-high' || bg === 'bg-standout-low'
+  const textColor = isDarkBg ? 'text-on-standout' : 'text-neutral-high'
+  const subtextColor = isDarkBg ? 'text-on-standout/80' : 'text-neutral-medium'
+  const quoteIconColor = isDarkBg ? 'text-on-standout/40' : 'text-neutral-low'
 
   const content = (
     <div className="max-w-7xl px-4 mx-auto text-center">
