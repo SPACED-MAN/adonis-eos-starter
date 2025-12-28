@@ -6,6 +6,7 @@ import urlPatternService from '#services/url_pattern_service'
 import siteSettingsService from '#services/site_settings_service'
 import moduleRegistry from '#services/module_registry'
 import tokenService from '#services/token_service'
+import BaseModule from '#modules/base'
 import { robotsConfigToString, DEFAULT_ROBOTS, type PostSeoData } from '#types/seo'
 
 /**

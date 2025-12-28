@@ -1,5 +1,4 @@
 import type { HttpContext } from '@adonisjs/core/http'
-import db from '@adonisjs/lucid/services/db'
 import Post from '#models/post'
 import urlPatternService from '#services/url_pattern_service'
 import postTypeRegistry from '#services/post_type_registry'

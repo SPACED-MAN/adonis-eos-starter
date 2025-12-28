@@ -70,7 +70,8 @@ class ModuleRenderer {
     }
 
     // Render each module
-    const rendered = await Promise.all(postModules.map((pm) => this.renderModule(pm, context)))
+    const renderedRaw = await Promise.all(postModules.map((pm) => this.renderModule(pm, context)))
+    const rendered = renderedRaw.filter((r): r is ModuleRenderResult => r !== '')
 
     // Combine HTML
     const html = rendered.map((r) => r.html).join('\n')
