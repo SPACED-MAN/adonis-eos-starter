@@ -3,6 +3,7 @@ import Modules from '../../modules'
 import { SiteFooter } from '../components/SiteFooter'
 import { SiteHeader } from '../components/SiteHeader'
 import { SidebarMenu } from '../components/menu/SidebarMenu'
+import { SearchModal } from '../components/SearchModal'
 import type { TreeNode } from '../components/menu/types'
 
 interface DocumentationPageProps {
@@ -81,6 +82,7 @@ export default function DocumentationPostType({
           <div className="flex flex-col lg:flex-row gap-8">
             {/* Sidebar Navigation */}
             <aside className="lg:w-64 shrink-0">
+              <SearchModal type="documentation" placeholder="Search docs..." />
               <SidebarMenu nodes={documentationNav} currentPageId={post.id} title="Documentation" />
             </aside>
 

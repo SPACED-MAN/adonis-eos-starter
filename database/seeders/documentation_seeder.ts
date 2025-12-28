@@ -767,6 +767,7 @@ export default class extends BaseSeeder {
     const indexSubtitleMatch = indexContent.match(/^#\s+.+\n\n(.+)$/m)
     const indexSubtitle = indexSubtitleMatch ? indexSubtitleMatch[1] : null
 
+      const now = new Date()
     const overviewPost = await CreatePost.handle({
       type: 'documentation',
       locale: 'en',
@@ -777,8 +778,11 @@ export default class extends BaseSeeder {
       userId: admin.id,
     })
 
-    // Update order_index to 0 (top of list)
-    await db.from('posts').where('id', overviewPost.id).update({ order_index: 0 })
+      // Update order_index to 0 (top of list) and set published_at
+      await db
+        .from('posts')
+        .where('id', overviewPost.id)
+        .update({ order_index: 0, published_at: now })
     postIdsBySlug['overview'] = overviewPost.id
 
     console.log(`   ✓ Post created with ID: ${overviewPost.id}`)
@@ -897,7 +901,11 @@ export default class extends BaseSeeder {
       } else if (slug === 'developers') {
         finalOrderIndex = 2
       }
-      await db.from('posts').where('id', post.id).update({ order_index: finalOrderIndex })
+      const now = new Date()
+      await db
+        .from('posts')
+        .where('id', post.id)
+        .update({ order_index: finalOrderIndex, published_at: now })
 
       // Store post ID for later parent-child linking
       postIdsBySlug[slug] = post.id

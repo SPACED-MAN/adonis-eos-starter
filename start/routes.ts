@@ -49,6 +49,7 @@ router.get('/public/media/:id', [MediaController, 'showPublic'])
  * Public search (static Inertia page)
  */
 router.get('/search', [SiteSearchController, 'index'])
+router.get('/api/search/autocomplete', [SiteSearchController, 'autocomplete'])
 
 /**
  * Auth routes (admin)

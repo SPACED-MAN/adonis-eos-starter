@@ -1,4 +1,5 @@
 import type { HttpContext } from '@adonisjs/core/http'
+import db from '@adonisjs/lucid/services/db'
 import Post from '#models/post'
 import urlPatternService from '#services/url_pattern_service'
 import postTypeRegistry from '#services/post_type_registry'
@@ -86,5 +87,69 @@ export default class SiteSearchController {
       results,
       limit,
     })
+  }
+
+  /**
+   * GET /api/search/autocomplete
+   * Fast JSON search for autocomplete modals.
+   */
+  async autocomplete({ request, response }: HttpContext) {
+    const q = String(request.input('q', '')).trim()
+    const type = request.input('type')
+    const locale = request.input('locale')
+    const limit = 15
+
+    if (!q || q.length < 2) return response.ok({ results: [] })
+
+    const query = Post.query()
+      .apply((scopes) => {
+        if (locale) scopes.byLocale(locale)
+        if (type) scopes.ofType(type)
+      })
+      .where((sub) => {
+        // Be inclusive: published status, or any status if we're in dev/admin context
+        // For public search, we generally want published content.
+        sub.where('status', 'published').orWhereNotNull('published_at')
+      })
+      .where((sub) => {
+        sub
+          .whereILike('title', `%${q}%`)
+          .orWhereILike('excerpt', `%${q}%`)
+          .orWhereILike('slug', `%${q}%`)
+          .orWhereExists((builder) => {
+            builder
+              .from('post_modules')
+              .join('module_instances', 'post_modules.module_id', 'module_instances.id')
+              .whereRaw('post_modules.post_id = posts.id')
+              .where((subBuilder) => {
+                subBuilder
+                  .whereRaw('CAST(module_instances.props AS TEXT) ILIKE ?', [`%${q}%`])
+                  .orWhereRaw('CAST(post_modules.overrides AS TEXT) ILIKE ?', [`%${q}%`])
+              })
+          })
+      })
+      .orderBy('updatedAt', 'desc')
+      .limit(limit)
+
+    const rows = await query
+    const results = []
+
+    for (const p of rows) {
+      let url = `/${encodeURIComponent(p.slug)}`
+      try {
+        const maybe = await urlPatternService.buildPostPathForPost(p.id)
+        if (typeof maybe === 'string' && maybe) url = maybe
+      } catch {
+        // fallback is fine
+      }
+      results.push({
+        id: p.id,
+        title: p.title,
+        excerpt: p.excerpt,
+        url,
+      })
+    }
+
+    return response.ok({ results })
   }
 }

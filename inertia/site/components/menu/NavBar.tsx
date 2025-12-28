@@ -4,6 +4,7 @@ import { MediaRenderer } from '../../../components/MediaRenderer'
 import { type MediaObject } from '../../../utils/useMediaUrl'
 import { LocaleSwitcher } from '../LocaleSwitcher'
 import { MobileNav } from './MobileNav'
+import { SearchModal } from '../SearchModal'
 
 export function NavBar({
   primaryNodes,
@@ -43,22 +44,11 @@ export function NavBar({
           )}
         </a>
         <div className="flex-1 flex items-center justify-end gap-6">
-          {/* Public search (GET -> /search) */}
+          {/* Public search (Autocomplete Modal) */}
           {showSearch && (
-            <form action="/search" method="get" className="hidden lg:flex items-center gap-2">
-              <input
-                type="search"
-                name="q"
-                placeholder="Search…"
-                className="w-64 rounded-md border border-line-medium bg-backdrop px-3 py-2 text-sm text-neutral-high placeholder:text-neutral-low outline-none focus:ring-2 focus:ring-standout-medium/30 focus:border-standout-medium/40"
-              />
-              <button
-                type="submit"
-                className="inline-flex items-center rounded-md border border-line-medium bg-backdrop px-3 py-2 text-sm font-medium text-neutral-high hover:bg-backdrop-medium hover:text-standout-high"
-              >
-                Search
-              </button>
-            </form>
+            <div className="hidden lg:block">
+              <SearchModal variant="icon" placeholder="Search..." />
+            </div>
           )}
           <nav className="hidden md:flex items-center gap-6">
             {primaryNodes.map((n) => (
