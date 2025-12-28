@@ -51,7 +51,9 @@ export function TokenPicker({ onSelect, customFields, trigger }: TokenPickerProp
                 type="button"
                 className="flex items-center justify-center h-6.5 w-6.5 rounded-md border border-line-medium bg-backdrop-low text-neutral-medium hover:bg-backdrop-medium hover:text-neutral-high transition-colors"
               >
-                <span className="pr-0.5 text-xs font-mono tracking-[-.15em]">{'{ }'}</span>
+                <span className="pr-0.5 text-xs font-mono tracking-[-.15em] whitespace-nowrap">
+                  {'{ }'}
+                </span>
               </button>
             )}
           </PopoverTrigger>

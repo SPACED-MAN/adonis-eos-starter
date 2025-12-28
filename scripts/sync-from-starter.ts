@@ -12,8 +12,8 @@
  */
 
 import { execSync } from 'child_process'
-import { readFileSync } from 'fs'
-import { join } from 'path'
+import { readFileSync, mkdirSync, existsSync } from 'fs'
+import { join, dirname } from 'path'
 
 const STARTER_REMOTE_NAME = 'starter'
 const DEFAULT_BRANCH = 'main'
@@ -170,6 +170,59 @@ function checkConflicts(): boolean {
 }
 
 /**
+ * Ensure destination directories exist for incoming files
+ */
+function ensureDirectories(target: string, dryRun: boolean = false): void {
+  try {
+    const diff = execSync(`git diff --name-status HEAD ${STARTER_REMOTE_NAME}/${target}`, {
+      encoding: 'utf-8',
+    })
+
+    const lines = diff.split('\n').filter(Boolean)
+    for (const line of lines) {
+      const parts = line.split(/\s+/)
+      const status = parts[0]
+      // For renames (R), the new path is in parts[2]
+      const filePath = status.startsWith('R') ? parts[2] : parts[1]
+
+      if (status === 'A' || status === 'M' || status.startsWith('R')) {
+        const dir = dirname(filePath)
+        if (dir !== '.' && !existsSync(dir)) {
+          if (dryRun) {
+            console.log(`🔍 [DRY RUN] Would create directory: ${dir}`)
+          } else {
+            console.log(`📁 Creating directory: ${dir}`)
+            mkdirSync(dir, { recursive: true })
+          }
+        }
+      }
+    }
+  } catch (error) {
+    // If diff fails, it might be because there's no common ancestor yet
+    // In that case, we can try to list all files in the target
+    try {
+      const files = execSync(`git ls-tree -r --name-only ${STARTER_REMOTE_NAME}/${target}`, {
+        encoding: 'utf-8',
+      })
+      const lines = files.split('\n').filter(Boolean)
+      for (const filePath of lines) {
+        const dir = dirname(filePath)
+        if (dir !== '.' && !existsSync(dir)) {
+          if (dryRun) {
+            console.log(`🔍 [DRY RUN] Would create directory: ${dir}`)
+          } else {
+            console.log(`📁 Creating directory: ${dir}`)
+            mkdirSync(dir, { recursive: true })
+          }
+        }
+      }
+    } catch (e) {
+      // Ignore if both fail
+    }
+  }
+}
+
+/**
  * Main sync function
  */
 async function syncFromStarter(options: SyncOptions = {}): Promise<void> {
@@ -214,6 +267,9 @@ async function syncFromStarter(options: SyncOptions = {}): Promise<void> {
 
   // Show what would change
   showChanges(target)
+
+  // Ensure directories exist for incoming files
+  ensureDirectories(target, dryRun)
 
   // Perform merge
   performSubtreeMerge(target, dryRun)

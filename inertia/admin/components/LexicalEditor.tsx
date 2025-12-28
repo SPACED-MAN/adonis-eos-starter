@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useRef } from 'react'
+import { useEffect, useMemo, useRef, useState } from 'react'
 import { LexicalComposer } from '@lexical/react/LexicalComposer'
 import { RichTextPlugin } from '@lexical/react/LexicalRichTextPlugin'
 import { ContentEditable } from '@lexical/react/LexicalContentEditable'
@@ -13,6 +13,8 @@ import { ListItemNode, ListNode } from '@lexical/list'
 import { LinkNode, AutoLinkNode } from '@lexical/link'
 import { CodeNode } from '@lexical/code'
 import { HorizontalRuleNode } from '@lexical/react/LexicalHorizontalRuleNode'
+import { ButtonNode, $createButtonNode, ButtonVariant } from './lexical/ButtonNode'
+import { MediaNode, $createMediaNode } from './lexical/MediaNode'
 import {
   FORMAT_TEXT_COMMAND,
   $getSelection,
@@ -34,12 +36,32 @@ import {
   faCode,
   faMinus,
   faTerminal,
+  faLink,
+  faExternalLinkAlt,
+  faImage,
+  faChevronDown,
 } from '@fortawesome/free-solid-svg-icons'
 import { $createCodeNode } from '@lexical/code'
 import { $insertNodes, $createTextNode } from 'lexical'
 import { TokenPicker } from './ui/TokenPicker'
 import { Tooltip, TooltipContent, TooltipTrigger } from '~/components/ui/tooltip'
 import { IconProp } from '@fortawesome/fontawesome-svg-core'
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogFooter,
+} from '~/components/ui/dialog'
+import { Input } from '~/components/ui/input'
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '~/components/ui/select'
+import { MediaPickerModal } from './media/MediaPickerModal'
 
 function InitialContentPlugin({
   initialValue,
@@ -194,6 +216,7 @@ export function LexicalEditor({
         h1: 'text-2xl font-semibold mb-2',
         h2: 'text-xl font-semibold mb-2',
         h3: 'text-lg font-semibold mb-2',
+        h4: 'text-base font-semibold mb-2',
       },
       list: {
         ul: 'list-disc pl-5',
@@ -230,6 +253,8 @@ export function LexicalEditor({
         AutoLinkNode,
         CodeNode,
         HorizontalRuleNode,
+        ButtonNode,
+        MediaNode,
       ],
     }),
     [theme, editorKey]
@@ -297,8 +322,119 @@ function ToolbarButton({
   )
 }
 
-function Toolbar({ customFields }: { customFields?: Array<{ slug: string; label: string }> }) {
+function ButtonDialog({
+  isOpen,
+  onClose,
+  onSubmit,
+}: {
+  isOpen: boolean
+  onClose: () => void
+  onSubmit: (data: { label: string; url: string; variant: ButtonVariant }) => void
+}) {
+  const [label, setLabel] = useState('')
+  const [url, setUrl] = useState('')
+  const [variant, setVariant] = useState<ButtonVariant>('primary')
+
+  const handleOpenChange = (open: boolean) => {
+    if (!open) onClose()
+  }
+
+  return (
+    <Dialog open={isOpen} onOpenChange={handleOpenChange}>
+      <DialogContent className="sm:max-w-[425px]">
+        <DialogHeader>
+          <DialogTitle>Insert Button</DialogTitle>
+        </DialogHeader>
+        <div className="grid gap-4 py-4 text-neutral-high">
+          <div className="grid gap-2">
+            <span className="text-sm font-medium">Label</span>
+            <Input
+              placeholder="Button Label"
+              value={label}
+              onChange={(e) => setLabel(e.target.value)}
+            />
+          </div>
+          <div className="grid gap-2">
+            <span className="text-sm font-medium">URL</span>
+            <Input
+              placeholder="https://example.com"
+              value={url}
+              onChange={(e) => setUrl(e.target.value)}
+            />
+          </div>
+          <div className="grid gap-2">
+            <span className="text-sm font-medium">Variant</span>
+            <Select value={variant} onValueChange={(v) => setVariant(v as ButtonVariant)}>
+              <SelectTrigger>
+                <SelectValue placeholder="Select variant" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="primary">Primary</SelectItem>
+                <SelectItem value="secondary">Secondary</SelectItem>
+                <SelectItem value="outline">Outline</SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
+        </div>
+        <DialogFooter>
+          <button
+            type="button"
+            className="px-4 py-2 bg-standout-medium text-on-standout rounded hover:opacity-90"
+            onClick={() => {
+              onSubmit({ label, url, variant })
+              setLabel('')
+              setUrl('')
+              setVariant('primary')
+            }}
+          >
+            Insert
+          </button>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
+  )
+}
+
+function Toolbar({
+  customFields,
+}: {
+  customFields?: Array<{ slug: string; label: string }>
+}) {
   const [editor] = useLexicalComposerContext()
+  const [isButtonDialogOpen, setIsButtonDialogOpen] = useState(false)
+  const [isMediaPickerOpen, setIsMediaPickerOpen] = useState(false)
+
+  const handleButtonSubmit = ({
+    label,
+    url,
+    variant,
+  }: {
+    label: string
+    url: string
+    variant: ButtonVariant
+  }) => {
+    editor.update(() => {
+      const buttonNode = $createButtonNode(url, variant)
+      const textNode = $createTextNode(label || 'Button')
+      buttonNode.append(textNode)
+
+      const selection = $getSelection()
+      if ($isRangeSelection(selection)) {
+        selection.insertNodes([buttonNode])
+      } else {
+        $insertNodes([buttonNode])
+      }
+    })
+    setIsButtonDialogOpen(false)
+  }
+
+  const handleMediaSelect = (media: any) => {
+    editor.update(() => {
+      const mediaNode = $createMediaNode(media.url, media.alt, media.mimeType, media.id)
+      $insertNodes([mediaNode])
+    })
+    setIsMediaPickerOpen(false)
+  }
 
   const handleTokenSelect = (tokenName: string) => {
     editor.update(() => {
@@ -317,13 +453,13 @@ function Toolbar({ customFields }: { customFields?: Array<{ slug: string; label:
     })
   }
 
-  const setBlock = (type: 'paragraph' | 'h2' | 'h3' | 'code') => {
+  const setBlock = (type: 'paragraph' | 'h2' | 'h3' | 'h4' | 'code') => {
     editor.update(() => {
       const selection = $getSelection()
       if ($isRangeSelection(selection)) {
         if (type === 'paragraph') {
           $setBlocksType(selection, () => $createParagraphNode())
-        } else if (type === 'h2' || type === 'h3') {
+        } else if (type === 'h2' || type === 'h3' || type === 'h4') {
           $setBlocksType(selection, () => $createHeadingNode(type))
         } else if (type === 'code') {
           $setBlocksType(selection, () => $createCodeNode())
@@ -333,7 +469,7 @@ function Toolbar({ customFields }: { customFields?: Array<{ slug: string; label:
   }
 
   return (
-    <div className="flex items-center gap-1 border-b border-line-low bg-backdrop-medium px-2 py-1">
+    <div className="flex items-center gap-1 border-b border-line-low bg-backdrop-medium px-2 py-1 flex-wrap">
       <ToolbarButton
         title="Bold"
         icon={faBold}
@@ -349,20 +485,23 @@ function Toolbar({ customFields }: { customFields?: Array<{ slug: string; label:
         icon={faUnderline}
         onClick={() => editor.dispatchCommand(FORMAT_TEXT_COMMAND, 'underline')}
       />
-      <ToolbarButton
-        title="Inline Code"
-        icon={faCode}
-        onClick={() => editor.dispatchCommand(FORMAT_TEXT_COMMAND, 'code')}
-      />
-      <div className="mx-2 h-4 w-px bg-line" />
-      <ToolbarButton title="Paragraph" icon={faParagraph} onClick={() => setBlock('paragraph')} />
-      <ToolbarButton title="Heading 2" icon={faHeading} onClick={() => setBlock('h2')}>
-        H2
-      </ToolbarButton>
-      <ToolbarButton title="Heading 3" icon={faHeading} onClick={() => setBlock('h3')}>
-        H3
-      </ToolbarButton>
-      <div className="mx-2 h-4 w-px bg-line" />
+      <div className="mx-1 h-4 w-px bg-line" />
+
+      <Select onValueChange={(val) => setBlock(val as any)}>
+        <SelectTrigger className="h-7 w-[100px] text-[10px] px-2 bg-backdrop-low border-line-low">
+          <div className="flex items-center gap-1.5">
+            <FontAwesomeIcon icon={faHeading} className="text-neutral-low" />
+            <SelectValue placeholder="Heading" />
+          </div>
+        </SelectTrigger>
+        <SelectContent>
+          <SelectItem value="h2">Heading 2</SelectItem>
+          <SelectItem value="h3">Heading 3</SelectItem>
+          <SelectItem value="h4">Heading 4</SelectItem>
+        </SelectContent>
+      </Select>
+
+      <div className="mx-1 h-4 w-px bg-line" />
       <ToolbarButton
         title="Bullet List"
         icon={faListUl}
@@ -373,8 +512,18 @@ function Toolbar({ customFields }: { customFields?: Array<{ slug: string; label:
         icon={faListOl}
         onClick={() => editor.dispatchCommand(INSERT_ORDERED_LIST_COMMAND, undefined)}
       />
-      <div className="mx-2 h-4 w-px bg-line" />
+      <div className="mx-1 h-4 w-px bg-line" />
       <ToolbarButton title="Code Block" icon={faTerminal} onClick={() => setBlock('code')} />
+      <ToolbarButton
+        title="Media"
+        icon={faImage}
+        onClick={() => setIsMediaPickerOpen(true)}
+      />
+      <ToolbarButton
+        title="Button"
+        icon={faExternalLinkAlt}
+        onClick={() => setIsButtonDialogOpen(true)}
+      />
       <ToolbarButton
         title="Horizontal Rule"
         icon={faMinus}
@@ -385,8 +534,18 @@ function Toolbar({ customFields }: { customFields?: Array<{ slug: string; label:
           })
         }
       />
-      <div className="mx-2 h-4 w-px bg-line" />
+      <div className="mx-1 h-4 w-px bg-line" />
       <TokenPicker onSelect={handleTokenSelect} customFields={customFields} />
+      <ButtonDialog
+        isOpen={isButtonDialogOpen}
+        onClose={() => setIsButtonDialogOpen(false)}
+        onSubmit={handleButtonSubmit}
+      />
+      <MediaPickerModal
+        open={isMediaPickerOpen}
+        onOpenChange={setIsMediaPickerOpen}
+        onSelect={handleMediaSelect}
+      />
     </div>
   )
 }

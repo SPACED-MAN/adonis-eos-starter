@@ -125,6 +125,14 @@ function renderNode(node: LexicalNode, isInsideCode = false): string {
     case 'link':
       return renderLink(node as LinkNode, isInsideCode)
 
+    case 'lexical-button':
+    case 'button':
+      return renderButton(node, isInsideCode)
+
+    case 'lexical-media':
+    case 'media':
+      return renderMedia(node, isInsideCode)
+
     case 'text':
       return renderText(node as TextNode, isInsideCode)
 
@@ -173,6 +181,53 @@ function renderLink(node: LinkNode, isInsideCode = false): string {
 
   if (isInsideCode) return content
   return `<a href="${url}"${title}${rel}${target}>${content}</a>`
+}
+
+/**
+ * Render button
+ */
+function renderButton(node: LexicalNode, isInsideCode = false): string {
+  const url = escapeHtml(node.url || node.__url || '#')
+  const variant = node.variant || node.__variant || 'primary'
+  const content = renderChildren(node as ElementNode, isInsideCode)
+
+  if (isInsideCode) return content
+
+  const base =
+    'inline-flex items-center justify-center px-5 py-3 text-base font-medium rounded-lg transition-colors duration-200 !no-underline !not-prose'
+  const variants: Record<string, string> = {
+    primary: '!bg-standout-medium !text-on-standout hover:opacity-90',
+    secondary: '!bg-backdrop-medium hover:bg-backdrop-high !text-neutral-high',
+    outline: 'border border-line-low hover:bg-backdrop-medium !text-neutral-high',
+  }
+  const classes = `${base} ${variants[variant] || variants.primary} mb-4`
+
+  return `<a href="${url}" class="${classes}">${content}</a>`
+}
+
+/**
+ * Render media
+ */
+function renderMedia(node: LexicalNode, isInsideCode = false): string {
+  const url = escapeHtml(node.url || node.__url || '')
+  const alt = escapeHtml(node.alt || node.__alt || '')
+  const mimeType = node.mimeType || node.__mimeType || ''
+  const isVideo = mimeType.startsWith('video/') || url.toLowerCase().endsWith('.mp4')
+
+  if (isInsideCode) return url
+
+  let html = `<div class="my-8 rounded-xl overflow-hidden border border-line-low bg-backdrop-medium max-w-4xl mx-auto shadow-sm">`
+  if (isVideo) {
+    html += `<video src="${url}" class="w-full h-auto block" controls playsinline></video>`
+  } else {
+    html += `<img src="${url}" alt="${alt}" class="w-full h-auto block" loading="lazy" />`
+  }
+
+  if (alt) {
+    html += `<div class="px-4 py-3 text-sm text-neutral-medium border-t border-line-low italic bg-backdrop-low/50">${alt}</div>`
+  }
+  html += `</div>`
+  return html
 }
 
 /**
