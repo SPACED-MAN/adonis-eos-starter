@@ -624,7 +624,7 @@ function createServerInstance() {
         .string()
         .optional()
         .describe(
-          'Convenience: if provided, Adonis EOS will populate the first seeded `prose` module by converting this markdown to Lexical JSON and staging it into `content` (AI Review).'
+          'Convenience: if provided, Adonis EOS will populate the first seeded `prose` module. ONLY use this for simple, uniform content. For complex content with multiple sections, use `moduleEdits` or `add_module_to_post_ai_review` to map content to appropriate modules instead.'
         ),
       moduleGroupId: z
         .string()

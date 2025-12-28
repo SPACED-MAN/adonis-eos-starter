@@ -633,24 +633,19 @@ class MCPClientService {
         if (props && typeof props === 'object' && Object.keys(props).length > 0) {
           if (moduleRegistry.has(moduleType)) {
             const schema = moduleRegistry.getSchema(moduleType)
-            const richTextFields = schema.fieldSchema
-              .filter((f: any) => f.type === 'richtext')
-              .map((f: any) => f.slug)
-
-            const mediaFieldsWithIdStorage = schema.fieldSchema
-              .filter((f: any) => f.type === 'media' && f.config?.storeAs === 'id')
-              .map((f: any) => f.slug)
 
             // Recursive helper to process fields at any depth
-            const processFields = (obj: any, path: string[] = []) => {
+            const processObject = (obj: any, currentSchema: any[]) => {
               if (!obj || typeof obj !== 'object' || Array.isArray(obj)) return
 
               for (const key of Object.keys(obj)) {
-                const fullPath = [...path, key].join('.')
+                const field = currentSchema.find((f) => f.slug === key)
+                if (!field) continue
+
                 const val = obj[key]
 
                 // RichText handling (convert Markdown to Lexical)
-                if (richTextFields.includes(fullPath)) {
+                if (field.type === 'richtext') {
                   if (typeof val === 'string' && val.trim() !== '') {
                     const trimmed = val.trim()
                     const looksJson = trimmed.startsWith('{') || trimmed.startsWith('[')
@@ -661,20 +656,25 @@ class MCPClientService {
                 }
 
                 // Media ID flattening: if agent provides { id: "uuid" } but field wants string
-                if (mediaFieldsWithIdStorage.includes(fullPath)) {
+                if (field.type === 'media' && field.config?.storeAs === 'id') {
                   if (val && typeof val === 'object' && val.id) {
                     obj[key] = String(val.id)
                   }
                 }
 
                 // Recurse into nested objects
-                if (val && typeof val === 'object' && !Array.isArray(val)) {
-                  processFields(val, [...path, key])
+                if (field.type === 'object' && field.fields) {
+                  processObject(obj[key], field.fields)
+                }
+
+                // Recurse into repeaters
+                if (field.type === 'repeater' && field.item?.fields && Array.isArray(obj[key])) {
+                  obj[key].forEach((item: any) => processObject(item, field.item.fields))
                 }
               }
             }
 
-            processFields(props)
+            processObject(props, schema.fieldSchema)
           }
         }
 

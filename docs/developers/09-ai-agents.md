@@ -913,8 +913,9 @@ export default SeoAgent
 3. **Set appropriate limits**: Use `maxTokens` to control costs
 4. **Use MCP wisely**: Enable MCP only when agents need CMS operations
 5. **Prose Module Convention**: The system automatically detects modules with **'Prose'** in their name (e.g., `prose`, `prose-with-media`). When these modules are present, the agent is explicitly instructed to provide substantial, high-quality copy (multiple paragraphs, headings, etc.) instead of brief summaries. Use this naming convention when building modules that require significant text content.
-6. **Monitor usage**: Track API costs and usage
-7. **Test reactions**: Ensure webhooks/Slack notifications work correctly
+6. **Intelligent Layout Planning**: When creating or modifying pages from a brief, agents should use the `suggest_modules_for_layout` tool to identify the most appropriate modules (e.g., `features-list`, `faq`, `hero`) instead of defaulting to a single `prose` module. Splitting content into logical modules provides a much better user experience and better leverages the CMS's modular design.
+7. **Monitor usage**: Track API costs and usage
+8. **Test reactions**: Ensure webhooks/Slack notifications work correctly
 
 ## Global AI Settings
 
