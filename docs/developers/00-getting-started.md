@@ -101,6 +101,7 @@ adonis-eos/
 │   ├── fields/             # Custom field types (admin rendering + validation)
 │   ├── forms/              # Code-first form definitions (seed + admin)
 │   ├── helpers/            # Shared helpers (i18n, lexical rendering, reference resolution)
+│   ├── mcp/                # Project-specific MCP configuration (layout roles, seed mapping)
 │   ├── menus/              # Code-first menu definitions (seed + admin)
 │   ├── middleware/         # HTTP middleware (auth, locale, rate limit, redirects, etc.)
 │   ├── models/             # Lucid models (posts, modules, media, taxonomies, etc.)

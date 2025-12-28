@@ -20,6 +20,17 @@ export default class PricingModule extends BaseModule {
       icon: 'tags',
       allowedScopes: ['local', 'global'],
       lockable: true,
+      aiGuidance: {
+        layoutRoles: ['pricing', 'plans', 'conversion'],
+        keywords: ['pricing', 'plans', 'cost', 'subscription', 'price'],
+        useWhen: [
+          'You need to present different service tiers or product options.',
+          'The goal is to drive the user toward a specific subscription plan.',
+        ],
+        avoidWhen: [
+          'You only have a single price point; use a callout or simple prose instead.',
+        ],
+      },
       fieldSchema: [
         {
           slug: 'title',

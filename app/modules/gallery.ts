@@ -34,6 +34,7 @@ export default class GalleryModule extends BaseModule {
       lockable: true,
       aiGuidance: {
         layoutRoles: ['media', 'gallery'],
+        keywords: ['gallery', 'photos', 'images', 'visuals'],
         useWhen: [
           'You need to showcase multiple images with optional lightbox interaction.',
           'The content benefits from visual proof (portfolio, case studies, product photos).',

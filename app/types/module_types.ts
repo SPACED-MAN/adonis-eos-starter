@@ -88,6 +88,10 @@ export interface ModuleConfig {
      */
     layoutRoles?: string[]
     /**
+     * Keywords that should trigger this module/role during role inference from a brief.
+     */
+    keywords?: string[]
+    /**
      * Composition notes (how to pair with other modules, recommended ordering, etc.).
      */
     compositionNotes?: string

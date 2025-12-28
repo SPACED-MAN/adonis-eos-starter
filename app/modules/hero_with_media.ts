@@ -28,6 +28,14 @@ export default class HeroWithMediaModule extends BaseModule {
       icon: 'layout-hero-media',
       allowedScopes: ['local', 'global'],
       lockable: true,
+      aiGuidance: {
+        layoutRoles: ['hero', 'intro'],
+        keywords: ['hero', 'banner', 'image hero', 'video hero'],
+        useWhen: [
+          'You need a prominent opening section with a visual element.',
+          'The page benefits from a two-column hero layout.',
+        ],
+      },
       fieldSchema: [
         {
           slug: 'title',

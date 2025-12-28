@@ -20,6 +20,14 @@ export default class FaqModule extends BaseModule {
       icon: 'question-circle',
       allowedScopes: ['local', 'global'],
       lockable: true,
+      aiGuidance: {
+        layoutRoles: ['faq', 'body'],
+        keywords: ['faq', 'questions', 'answers', 'help'],
+        useWhen: [
+          'You need to address common concerns or technical questions.',
+          'The content follows a Q&A format.',
+        ],
+      },
       fieldSchema: [
         {
           slug: 'title',

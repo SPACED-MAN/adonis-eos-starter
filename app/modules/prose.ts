@@ -31,6 +31,7 @@ export default class ProseModule extends BaseModule {
       lockable: true,
       aiGuidance: {
         layoutRoles: ['body', 'content', 'text'],
+        keywords: ['content', 'prose', 'body', 'text', 'article'],
         useWhen: [
           'You need primary page content (headings, paragraphs, lists, links).',
           'You need a flexible section for editorial writing or documentation-style content.',

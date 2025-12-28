@@ -296,7 +296,17 @@ await User.query().select('id', 'email', 'role')
 
 MCP in Adonis EOS is **code-derived**: the server reads from your code-first registries and returns structured JSON.
 
-This section explains **where MCP context comes from** and how to update it safely.
+### Project-Specific Configuration
+
+To make the system adaptable per project, project-specific MCP behavior is managed in the **`app/mcp/`** directory.
+
+#### Layout Configuration (`app/mcp/layout_config.ts`)
+
+This file defines how AI agents should plan and populate layouts for your specific project:
+
+- **`rolePriority`**: Defines the preferred structural order of modules when suggesting a layout (e.g., `hero` first, then `features`, then `body`, etc.).
+- **`fallbackInference`**: Regular expression patterns used to "guess" layout roles from a user's brief when no specific module keywords match.
+- **`seedMapping`**: Defines how module fields should be auto-populated when a post is created from a brief (e.g., mapping the brief's title to a `hero` module's `title` field).
 
 ### Source of truth
 

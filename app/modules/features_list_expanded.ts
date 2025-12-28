@@ -19,6 +19,14 @@ export default class FeaturesListExpandedModule extends BaseModule {
       icon: 'list-check',
       allowedScopes: ['local', 'global'],
       lockable: true,
+      aiGuidance: {
+        layoutRoles: ['features', 'body', 'content', 'timeline'],
+        keywords: ['features', 'list', 'expanded', 'timeline', 'alternating'],
+        useWhen: [
+          'You want to explain a smaller number of features in more detail.',
+          'The content benefits from an alternating or timeline-like layout.',
+        ],
+      },
       fieldSchema: [
         {
           slug: 'title',

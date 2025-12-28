@@ -123,6 +123,7 @@ app/
 ├── modules/           # CMS module definitions
 ├── roles/             # RBAC role definitions
 ├── agents/            # AI agent definitions
+├── mcp/               # Project-specific MCP configuration
 └── post_types/        # Post type configurations
 
 database/

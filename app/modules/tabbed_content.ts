@@ -17,6 +17,7 @@ export default class TabbedContentModule extends BaseModule {
       lockable: true,
       aiGuidance: {
         layoutRoles: ['body', 'content', 'features'],
+        keywords: ['tabs', 'tabbed', 'features', 'comparison'],
         useWhen: [
           'You have multiple related categories of information to present.',
           'You want to save vertical space by grouping content into tabs.',

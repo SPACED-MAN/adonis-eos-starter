@@ -19,6 +19,14 @@ export default class StatisticsModule extends BaseModule {
       icon: 'chart-donut',
       allowedScopes: ['local', 'global'],
       lockable: true,
+      aiGuidance: {
+        layoutRoles: ['stats', 'metrics', 'social-proof'],
+        keywords: ['stats', 'statistics', 'metrics', 'numbers', 'data'],
+        useWhen: [
+          'You want to provide visual proof of scale, impact, or performance.',
+          'You have impressive numbers that help build trust.',
+        ],
+      },
       fieldSchema: [
         {
           slug: 'stats',

@@ -19,6 +19,14 @@ export default class ProseWithMediaModule extends BaseModule {
       icon: 'layout-text-media',
       allowedScopes: ['local', 'global'],
       lockable: true,
+      aiGuidance: {
+        layoutRoles: ['body', 'content', 'feature-explainer'],
+        keywords: ['prose', 'text', 'content', 'media', 'image', 'video'],
+        useWhen: [
+          'You want to pair editorial content with a supporting image or video.',
+          'You are explaining a specific feature or concept in detail.',
+        ],
+      },
       fieldSchema: [
         {
           slug: 'title',

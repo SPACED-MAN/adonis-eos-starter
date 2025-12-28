@@ -22,6 +22,7 @@ import previewService from '#services/preview_service'
 import taxonomyService from '#services/taxonomy_service'
 import { getUserIdForAgent } from '#services/agent_user_service'
 import { markdownToLexical } from '#helpers/markdown_to_lexical'
+import { mcpLayoutConfig } from '../app/mcp/layout_config.js'
 
 type JsonTextResult = {
   content: Array<{ type: 'text'; text: string }>
@@ -141,13 +142,13 @@ function getSystemUserId(): number | null {
   return Math.floor(n)
 }
 
-let _cachedSystemUserId: number | null | undefined
+let cachedSystemUserId: number | null | undefined
 async function resolveSystemUserId(): Promise<number | null> {
-  if (_cachedSystemUserId !== undefined) return _cachedSystemUserId
+  if (cachedSystemUserId !== undefined) return cachedSystemUserId
 
   const envId = getSystemUserId()
   if (envId) {
-    _cachedSystemUserId = envId
+    cachedSystemUserId = envId
     return envId
   }
 
@@ -155,8 +156,8 @@ async function resolveSystemUserId(): Promise<number | null> {
   try {
     const byEmail = await db.from('users').select('id').where('email', 'ai@example.com').first()
     if (byEmail?.id) {
-      _cachedSystemUserId = Number(byEmail.id)
-      return _cachedSystemUserId
+      cachedSystemUserId = Number(byEmail.id)
+      return cachedSystemUserId
     }
     const byRole = await db
       .from('users')
@@ -165,14 +166,14 @@ async function resolveSystemUserId(): Promise<number | null> {
       .orderBy('id', 'asc')
       .first()
     if (byRole?.id) {
-      _cachedSystemUserId = Number(byRole.id)
-      return _cachedSystemUserId
+      cachedSystemUserId = Number(byRole.id)
+      return cachedSystemUserId
     }
   } catch {
     // ignore DB errors; MCP tools will surface a helpful error when needed
   }
 
-  _cachedSystemUserId = null
+  cachedSystemUserId = null
   return null
 }
 
@@ -244,16 +245,16 @@ function createServerInstance() {
         // Enrich with module group context from DB (editor parity)
         const moduleGroups = cfg.moduleGroupsEnabled
           ? await db
-              .from('module_groups')
-              .where('post_type', postType)
-              .orderBy('updated_at', 'desc')
-              .select('id', 'name', 'description', 'locked', 'post_type')
+            .from('module_groups')
+            .where('post_type', postType)
+            .orderBy('updated_at', 'desc')
+            .select('id', 'name', 'description', 'locked', 'post_type')
           : []
 
         const defaultName = cfg.moduleGroup?.name
         const defaultModuleGroup = cfg.moduleGroupsEnabled
           ? moduleGroups.find((g: any) => defaultName && String(g.name) === String(defaultName)) ||
-            (moduleGroups.length === 1 ? moduleGroups[0] : null)
+          (moduleGroups.length === 1 ? moduleGroups[0] : null)
           : null
 
         return jsonResult({
@@ -798,39 +799,26 @@ function createServerInstance() {
           const alreadyEditsModule = (postModuleId: string) =>
             editsToApply.some((e) => String((e as any)?.postModuleId || '').trim() === postModuleId)
 
-          const firstHero = (seededModules as any[]).find((m: any) => String(m.type) === 'hero')
-          if (firstHero && !alreadyEditsModule(String(firstHero.postModuleId))) {
-            const heroTitle = String(title || '').trim() || mdH1 || ''
-            const heroSubtitle =
-              String(excerpt || '').trim() || (mdParas.length > 0 ? mdParas[0] : '')
-            if (heroTitle || heroSubtitle) {
-              editsToApply.push({
-                postModuleId: String(firstHero.postModuleId),
-                overrides: {
-                  ...(heroTitle ? { title: heroTitle } : {}),
-                  ...(heroSubtitle ? { subtitle: heroSubtitle } : {}),
-                },
-              })
-            }
+          const seedContext = {
+            title: title || '',
+            excerpt: excerpt || '',
+            h1: mdH1,
+            h2s: mdH2s,
+            paras: mdParas,
           }
 
-          const firstProseWithMedia = (seededModules as any[]).find(
-            (m: any) => String(m.type) === 'prose-with-media'
-          )
-          if (
-            firstProseWithMedia &&
-            !alreadyEditsModule(String(firstProseWithMedia.postModuleId))
-          ) {
-            const pwmTitle = (mdH2s[0] || '').trim()
-            const pwmBody = (mdParas[0] || '').trim()
-            if (pwmTitle || pwmBody) {
-              editsToApply.push({
-                postModuleId: String(firstProseWithMedia.postModuleId),
-                overrides: {
-                  ...(pwmTitle ? { title: pwmTitle } : {}),
-                  ...(pwmBody ? { body: pwmBody } : {}),
-                },
-              })
+          for (const mapping of mcpLayoutConfig.seedMapping) {
+            const firstOfType = (seededModules as any[]).find(
+              (m: any) => String(m.type) === mapping.type
+            )
+            if (firstOfType && !alreadyEditsModule(String(firstOfType.postModuleId))) {
+              const overrides = (mapping as any).map(seedContext)
+              if (Object.values(overrides).some((v) => !!v)) {
+                editsToApply.push({
+                  postModuleId: String(firstOfType.postModuleId),
+                  overrides,
+                })
+              }
             }
           }
         }
@@ -1635,14 +1623,14 @@ function createServerInstance() {
             id: a.id,
             name: a.name,
             description: a.description || '',
-            type: a.type,
+            type: (a as any).type,
             openEndedContext: a.openEndedContext?.enabled
               ? {
-                  enabled: true,
-                  label: a.openEndedContext.label,
-                  placeholder: a.openEndedContext.placeholder,
-                  maxChars: a.openEndedContext.maxChars,
-                }
+                enabled: true,
+                label: a.openEndedContext.label,
+                placeholder: a.openEndedContext.placeholder,
+                maxChars: a.openEndedContext.maxChars,
+              }
               : { enabled: false },
             scopes: (a.scopes || []).map((s: any) => ({
               scope: s.scope,
@@ -2364,21 +2352,34 @@ function createServerInstance() {
           const add = (r: string) => {
             if (!roles.includes(r)) roles.push(r)
           }
-          if (/\bhero\b/.test(t)) add('hero')
-          if (/\bintro\b/.test(t)) add('intro')
-          if (/\bcta\b|\bcall to action\b|\bcallout\b/.test(t)) add('callout')
-          if (/\bform\b|\blead\b|\bcontact\b/.test(t)) add('form')
-          if (/\bgallery\b|\bphotos?\b|\bimages?\b/.test(t)) add('gallery')
-          if (/\btestimonial(s)?\b|\breviews?\b/.test(t)) add('testimonials')
-          if (/\bfaq\b|\bquestions?\b|\baccordions?\b/.test(t)) add('faq')
-          if (/\bpricing\b|\bplans?\b/.test(t)) add('pricing')
-          if (/\blogos?\b|\bbrands?\b/.test(t)) add('logos')
-          if (/\bfeatures?\b/.test(t)) {
-            add('features')
-            add('tabbed-content')
+
+          for (const m of modules) {
+            const guidance = m.aiGuidance as any
+            const keywords = guidance?.keywords || []
+            const moduleRoles = guidance?.layoutRoles || []
+
+            // If brief matches any keyword, add all roles of this module
+            if (keywords.some((k: string) => t.includes(k.toLowerCase()))) {
+              moduleRoles.forEach(add)
+            }
+
+            // Also check the roles themselves as keywords
+            moduleRoles.forEach((r: string) => {
+              if (t.includes(r.toLowerCase())) {
+                add(r)
+              }
+            })
           }
-          if (/\bstat(s)?\b|\bmetrics?\b/.test(t)) add('stats')
-          if (/\bcontent\b|\bprose\b|\bbody\b/.test(t)) add('body')
+
+          // Fallback for common roles if no modules were matched yet
+          if (roles.length === 0) {
+            for (const fallback of mcpLayoutConfig.fallbackInference) {
+              if (fallback.pattern.test(t)) {
+                fallback.roles.forEach(add)
+              }
+            }
+          }
+
           return roles
         }
 
@@ -2435,20 +2436,10 @@ function createServerInstance() {
           const add = (r: string) => {
             if (roleList.includes(r) && !order.includes(r)) order.push(r)
           }
-          add('hero')
-          add('intro')
-          add('logos')
-          add('features')
-          add('body')
-          add('stats')
-          add('tabbed-content')
-          add('gallery')
-          add('testimonials')
-          add('faq')
-          add('pricing')
-          add('form')
-          add('callout')
-          add('callout')
+
+          // Preferred structural order by role from config
+          mcpLayoutConfig.rolePriority.forEach(add)
+
           // append anything else
           for (const r of roleList) add(r)
           return order
@@ -2631,7 +2622,7 @@ export default class McpServe extends BaseCommand {
     httpServer.listen(port, host, () => {
       const authMode =
         process.env.MCP_AUTH_TOKEN ||
-        (process.env.MCP_AUTH_HEADER_NAME && process.env.MCP_AUTH_HEADER_VALUE)
+          (process.env.MCP_AUTH_HEADER_NAME && process.env.MCP_AUTH_HEADER_VALUE)
           ? 'enabled'
           : 'disabled'
       this.logger.info(`MCP SSE server listening on http://${host}:${port}`)

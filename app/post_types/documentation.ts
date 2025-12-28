@@ -11,7 +11,6 @@ type PostTypeDefinition = {
   hasTags?: boolean
   hasFeaturedImage?: boolean
   urlPatterns?: Array<{ locale: string; pattern: string; isDefault?: boolean }>
-  allowedModules?: string[]
   fields?: any[]
 }
 
@@ -27,16 +26,6 @@ const documentationPostType: PostTypeDefinition = {
   hasTags: false,
   hasFeaturedImage: false,
   urlPatterns: [{ locale: 'en', pattern: '/docs/{path}', isDefault: true }],
-  allowedModules: [
-    'hero',
-    'prose',
-    'features-list',
-    'features-list-expanded',
-    'accordions',
-    'callout',
-    'blockquote',
-    'tabbed-content',
-  ],
   fields: [],
 }
 

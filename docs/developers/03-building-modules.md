@@ -89,6 +89,13 @@ export default class HeroBannerModule extends BaseModule {
       },
 
       allowedPostTypes: ['page', 'blog'],
+
+      aiGuidance: {
+        layoutRoles: ['hero', 'intro'],
+        keywords: ['hero', 'banner', 'opening'],
+        useWhen: ['You need a high-impact opening section.'],
+        compositionNotes: 'Typically the first module on a page.',
+      },
     }
   }
 }
@@ -342,6 +349,31 @@ Prevent accidental deletion:
 }
 ```
 
+### AI Guidance & Discovery
+
+To help AI agents (like Cursor or n8n) understand when and how to use your module, provide structured guidance in `getConfig()`:
+
+```typescript
+aiGuidance: {
+  // High-level roles this module can fulfill
+  layoutRoles: ['features', 'content'],
+  
+  // Keywords that trigger this module during layout planning
+  keywords: ['capabilities', 'grid', 'list'],
+  
+  // Bullets for the agent's decision making
+  useWhen: [
+    'You have a list of short features to display.',
+    'You want a compact grid layout.'
+  ],
+  
+  // Notes on pairing and placement
+  compositionNotes: 'Works well after a Hero section.'
+}
+```
+
+This information is exposed via the MCP server and used by the `suggest_modules_for_layout` tool.
+
 ## Best Practices
 
 1. **Use semantic HTML** - `<section>`, `<article>`, `<nav>`
@@ -352,6 +384,7 @@ Prevent accidental deletion:
 6. **Default props** - Provide sensible defaults
 7. **Validation** - Mark required fields
 8. **Naming Conventions** - Use the word **'Prose'** in your module `type` and `name` (e.g., `prose`, `prose-with-media`, `company-prose`) if the module is intended for long-form, rich text content. The system uses this keyword to signal AI agents that a substantial amount of copy (multiple paragraphs, headings, etc.) is expected.
+9. **AI Discovery** - Always include `aiGuidance` with relevant `keywords` and `layoutRoles`. This ensures your module is automatically suggested by the AI layout planner without needing to manually register it in core system code.
 
 ## Testing Modules
 

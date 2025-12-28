@@ -15,6 +15,15 @@ export default class AccordionModule extends BaseModule {
       icon: 'chevron-down',
       allowedScopes: ['local', 'global'],
       lockable: true,
+      aiGuidance: {
+        layoutRoles: ['faq', 'accordions', 'body'],
+        keywords: ['faq', 'questions', 'accordions', 'collapsible'],
+        useWhen: [
+          'You have a list of frequently asked questions.',
+          'You want to present content in a collapsible format to save space.',
+          'You have detailed information that only some users will need to see.',
+        ],
+      },
       fieldSchema: [
         {
           slug: 'title',

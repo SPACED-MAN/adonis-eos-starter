@@ -22,6 +22,7 @@ export default class HeroModule extends BaseModule {
       lockable: true,
       aiGuidance: {
         layoutRoles: ['hero', 'intro', 'callout', 'cta'],
+        keywords: ['hero', 'intro', 'banner'],
         useWhen: [
           'You need a strong opening section for a page (headline + supporting copy).',
           'You want a simple, centered hero without complex media layout.',

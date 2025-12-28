@@ -20,6 +20,14 @@ export default class FeaturesListModule extends BaseModule {
       icon: 'list-ul',
       allowedScopes: ['local', 'global'],
       lockable: true,
+      aiGuidance: {
+        layoutRoles: ['features', 'body', 'content'],
+        keywords: ['features', 'list', 'grid', 'capabilities'],
+        useWhen: [
+          'You have a large number of short features to list (up to 24).',
+          'You want a compact grid representation of product capabilities.',
+        ],
+      },
       fieldSchema: [
         {
           slug: 'title',

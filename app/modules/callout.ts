@@ -31,6 +31,7 @@ export default class CalloutModule extends BaseModule {
       lockable: true,
       aiGuidance: {
         layoutRoles: ['callout', 'cta', 'bottom-bar', 'signup'],
+        keywords: ['cta', 'call to action', 'callout', 'signup', 'conversion'],
         useWhen: [
           'You want to prompt the user to take a specific action (sign up, buy, contact).',
           'You need a high-visibility block to highlight a single offer or message.',
