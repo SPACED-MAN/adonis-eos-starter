@@ -286,13 +286,8 @@ export default class AgentsController {
       ...(openEndedContext ? { openEndedContext } : {}),
     })
 
-    // AI-powered agents
-    if (agent.type !== 'internal') {
-      throw new Error('Only internal (AI-powered) agents are supported.')
-    }
-
     if (!agent.internal) {
-      throw new Error('Internal agent missing configuration')
+      throw new Error('Agent missing configuration')
     }
 
     // Build execution context
@@ -612,96 +607,88 @@ export default class AgentsController {
 
       // For global agents, we need to handle the case where they want to create content
       // For now, we'll execute the agent with a minimal context
-      if (agent.type === 'internal') {
-        if (!agent.internal) {
-          return response.badRequest({ error: 'Internal agent missing configuration' })
-        }
+      if (!agent.internal) {
+        return response.badRequest({ error: 'Agent missing configuration' })
+      }
 
-        // Build execution context for global agent
-        const executionContext: AgentExecutionContext = {
-          agent,
-          scope: 'global',
-          userId: (auth.use('web').user as any)?.id,
-          data: {
-            // Global agents don't have a post context yet
-            // They might create one or work with general context
-          },
-        }
+      // Build execution context for global agent
+      const executionContext: AgentExecutionContext = {
+        agent,
+        scope: 'global',
+        userId: (auth.use('web').user as any)?.id,
+        data: {
+          // Global agents don't have a post context yet
+          // They might create one or work with general context
+        },
+      }
 
-        // Create a minimal payload for global agents
-        const payload = {
-          context: {
-            ...requestContext,
-            openEndedContext,
-          },
-        }
+      // Create a minimal payload for global agents
+      const payload = {
+        context: {
+          ...requestContext,
+          openEndedContext,
+        },
+      }
 
-        // Execute internal agent
-        const result = await internalAgentExecutor.execute(agent, executionContext, payload)
+      // Execute internal agent
+      const result = await internalAgentExecutor.execute(agent, executionContext, payload)
 
-        if (!result.success) {
-          const errorMessage = result.error?.message || 'Internal agent execution failed'
-          console.error('Global agent execution failed:', {
-            agentId,
-            error: errorMessage,
-            stack: result.error?.stack,
-          })
-          return response.badRequest({
-            error: errorMessage,
-            details: process.env.NODE_ENV === 'development' ? result.error?.stack : undefined,
-          })
-        }
-
-        const rawResponse = (result as any).rawResponse
-        const summary = (result as any).summary
-        const suggestions = result.data || {}
-
-        // For global agents, we might need to create a new post
-        // For now, we'll return the response and let the frontend handle it
-        // Save execution history for global agents
-        try {
-          const execution = await agentExecutionService.saveExecution({
-            postId: null, // Global agents don't have a post ID
-            agentId,
-            viewMode: 'ai-review', // Global agents create in AI review mode
-            userId: (auth.use('web').user as any)?.id ?? null,
-            request: openEndedContext ?? null,
-            response: {
-              rawResponse,
-              summary,
-              suggestions,
-            },
-            context: {
-              ...requestContext,
-              scope: 'global',
-            },
-            scope: 'global',
-          })
-          // Log to activity log
-          await agentExecutionService.logToActivityLog(execution, auth)
-        } catch (historyError: any) {
-          // Don't fail the request if history saving fails, but log it
-          console.error('Failed to save global agent execution history:', {
-            agentId,
-            error: historyError?.message,
-          })
-        }
-
-        const responseData: any = {
-          message: 'Agent executed successfully',
-          summary: summary || 'Agent completed. Check the response for details.',
-          rawResponse,
-          suggestions,
-        }
-
-        return response.ok(responseData)
-      } else {
-        // Only internal agents are supported
+      if (!result.success) {
+        const errorMessage = result.error?.message || 'Agent execution failed'
+        console.error('Global agent execution failed:', {
+          agentId,
+          error: errorMessage,
+          stack: result.error?.stack,
+        })
         return response.badRequest({
-          error:
-            'Only internal (AI-powered) agents are supported. For webhook-based automation, use Workflows.',
+          error: errorMessage,
+          details: process.env.NODE_ENV === 'development' ? result.error?.stack : undefined,
         })
       }
+
+      const rawResponse = (result as any).rawResponse
+      const summary = (result as any).summary
+      const suggestions = result.data || {}
+
+      // For global agents, we might need to create a new post
+      // For now, we'll return the response and let the frontend handle it
+      // Save execution history for global agents
+      try {
+        const execution = await agentExecutionService.saveExecution({
+          postId: null, // Global agents don't have a post ID
+          agentId,
+          viewMode: 'ai-review', // Global agents create in AI review mode
+          userId: (auth.use('web').user as any)?.id ?? null,
+          request: openEndedContext ?? null,
+          response: {
+            rawResponse,
+            summary,
+            suggestions,
+          },
+          context: {
+            ...requestContext,
+            scope: 'global',
+          },
+          scope: 'global',
+        })
+        // Log to activity log
+        await agentExecutionService.logToActivityLog(execution, auth)
+      } catch (historyError: any) {
+        // Don't fail the request if history saving fails, but log it
+        console.error('Failed to save global agent execution history:', {
+          agentId,
+          error: historyError?.message,
+        })
+      }
+
+      const responseData: any = {
+        message: 'Agent executed successfully',
+        summary: summary || 'Agent completed. Check the response for details.',
+        rawResponse,
+        suggestions,
+      }
+
+      return response.ok(responseData)
     } catch (e: any) {
       console.error('Global agent execution error:', {
         agentId,

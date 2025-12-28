@@ -4,11 +4,6 @@
  */
 
 /**
- * Type of agent service
- */
-export type AgentServiceType = 'internal'
-
-/**
  * Where the agent can be triggered from
  */
 export type AgentScope =
@@ -194,11 +189,6 @@ export interface AgentDefinition {
    * Description of what the agent does
    */
   description?: string
-
-  /**
-   * Agent service type
-   */
-  type: AgentServiceType
 
   /**
    * Configuration for internal agents (required)
@@ -397,6 +387,7 @@ export interface AgentReaction {
 
     // For custom handler
     handler?: string // Path to custom handler function
+    [key: string]: any
   }
 
   /**

@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react'
-import { Head } from '@inertiajs/react'
+import { Head, usePage } from '@inertiajs/react'
 import { AdminHeader } from '../../components/AdminHeader'
 import { useAdminPath } from '../../../utils/adminPath'
 import { Badge } from '../../../components/ui/badge'
@@ -30,6 +30,7 @@ import {
   faTrash,
   faDownload,
   faSearch,
+  faLock,
 } from '@fortawesome/free-solid-svg-icons'
 
 interface SecurityPosture {
@@ -73,6 +74,8 @@ interface Session {
 }
 
 export default function SecurityIndex() {
+  const { props } = usePage<any>()
+  const features = props.features || {}
   const adminPath = useAdminPath()
   const [posture, setPosture] = useState<SecurityPosture | null>(null)
   const [auditLogs, setAuditLogs] = useState<AuditLog[]>([])
@@ -94,12 +97,16 @@ export default function SecurityIndex() {
 
   useEffect(() => {
     loadPosture()
-    loadSessions()
-    loadAuditMeta()
+    if (features.activeSessions !== false) {
+      loadSessions()
+    }
+    if (features.auditLogs !== false) {
+      loadAuditMeta()
+    }
   }, [])
 
   useEffect(() => {
-    if (activeTab === 'audit') {
+    if (activeTab === 'audit' && features.auditLogs !== false) {
       loadAuditLogs()
     }
   }, [activeTab, q, actionFilter, entityTypeFilter, page, limit])
@@ -209,9 +216,14 @@ export default function SecurityIndex() {
                 activeTab === 'sessions'
                   ? 'border-standout-medium text-standout-high'
                   : 'border-transparent text-neutral-medium hover:text-neutral-high'
-              }`}
+              } ${features.activeSessions === false ? 'opacity-50 grayscale cursor-not-allowed' : ''}`}
+              title={features.activeSessions === false ? 'This feature is disabled' : ''}
+              disabled={features.activeSessions === false}
             >
               Active Sessions
+              {features.activeSessions === false && (
+                <FontAwesomeIcon icon={faLock} className="ml-2 w-3 h-3" />
+              )}
             </button>
             <button
               onClick={() => setActiveTab('audit')}
@@ -219,9 +231,14 @@ export default function SecurityIndex() {
                 activeTab === 'audit'
                   ? 'border-standout-medium text-standout-high'
                   : 'border-transparent text-neutral-medium hover:text-neutral-high'
-              }`}
+              } ${features.auditLogs === false ? 'opacity-50 grayscale cursor-not-allowed' : ''}`}
+              title={features.auditLogs === false ? 'This feature is disabled' : ''}
+              disabled={features.auditLogs === false}
             >
               Audit Logs
+              {features.auditLogs === false && (
+                <FontAwesomeIcon icon={faLock} className="ml-2 w-3 h-3" />
+              )}
             </button>
           </nav>
         </div>
@@ -276,7 +293,7 @@ export default function SecurityIndex() {
         )}
 
         {/* Sessions Tab */}
-        {activeTab === 'sessions' && (
+        {activeTab === 'sessions' && features.activeSessions !== false && (
           <div className="bg-backdrop-low rounded-lg border border-line-low p-6">
             <div className="mb-6">
               <h2 className="text-xl font-semibold text-neutral-high mb-2">Active Sessions</h2>
@@ -331,7 +348,7 @@ export default function SecurityIndex() {
         )}
 
         {/* Audit Logs Tab */}
-        {activeTab === 'audit' && (
+        {activeTab === 'audit' && features.auditLogs !== false && (
           <div className="bg-backdrop-low rounded-lg border border-line-low overflow-hidden">
             <div className="p-6 border-b border-line-low">
               <div className="flex items-center justify-between mb-6">

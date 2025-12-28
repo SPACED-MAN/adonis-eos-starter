@@ -2,6 +2,7 @@ import { router } from '@inertiajs/react'
 
 let currentPostId: string | null = null
 let isAuthenticated = false
+let isEnabled = true
 let clickBuffer: any[] = []
 let flushTimer: any = null
 
@@ -12,12 +13,25 @@ let flushTimer: any = null
 export function initAnalytics() {
   if (typeof window === 'undefined') return
 
-  // 1. Listen for page changes (including initial load)
+  // Peek at initial state if available in window.__inertiaProps or similar
+  // but Inertia usually provides this via router events.
+  // For the very first load, we can try to get it from the DOM.
+  try {
+    const el = document.getElementById('app')
+    if (el && el.dataset.page) {
+      const page = JSON.parse(el.dataset.page)
+      updateState(page)
+    }
+  } catch {
+    // ignore
+  }
+
+  // 1. Listen for page changes (including initial load if not already handled)
   router.on('success', (event) => {
     const page = event.detail.page
     updateState(page)
     
-    if (!isAuthenticated) {
+    if (isEnabled && !isAuthenticated) {
       track({
         eventType: 'view',
         postId: currentPostId,
@@ -33,7 +47,7 @@ export function initAnalytics() {
 
   // 3. Click tracking
   document.addEventListener('click', (e) => {
-    if (isAuthenticated) return
+    if (!isEnabled || isAuthenticated) return
     
     // Don't track if clicking on Admin UI elements
     const target = e.target as HTMLElement
@@ -63,7 +77,9 @@ export function initAnalytics() {
   
   // Periodic flush
   if (!flushTimer) {
-    flushTimer = setInterval(flush, 10000)
+    flushTimer = setInterval(() => {
+      if (isEnabled) flush()
+    }, 10000)
   }
 }
 
@@ -71,6 +87,7 @@ function updateState(page: any) {
   currentPostId = page.props?.post?.id || null
   const currentUser = page.props?.currentUser
   isAuthenticated = !!currentUser && ['admin', 'editor', 'translator'].includes(String(currentUser.role || ''))
+  isEnabled = page.props?.features?.analytics !== false
 }
 
 function flush() {

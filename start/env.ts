@@ -223,6 +223,15 @@ export default await Env.create(new URL('../', import.meta.url), {
 
   /*
   |----------------------------------------------------------
+  | Feature Flags
+  |----------------------------------------------------------
+  */
+  CMS_ANALYTICS_ENABLED: Env.schema.boolean.optional(),
+  CMS_AUDIT_LOGS_ENABLED: Env.schema.boolean.optional(),
+  CMS_ACTIVE_SESSIONS_ENABLED: Env.schema.boolean.optional(),
+
+  /*
+  |----------------------------------------------------------
   | Variables for configuring mail package
   |----------------------------------------------------------
   */

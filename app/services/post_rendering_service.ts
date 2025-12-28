@@ -242,21 +242,27 @@ class PostRenderingService {
         return pm.reviewAdded !== true && (pm as any).aiReviewAdded !== true
       })
 
-    const moduleStates = filtered.map((pm) => {
-      const useReviewDraft = (() => {
-        if (!wantReview) return false
-        if (draftMode === 'ai-review') return false
-        return true
-      })()
+    const moduleStates = filtered
+      .map((pm) => {
+        const useReviewDraft = (() => {
+          if (!wantReview) return false
+          if (draftMode === 'ai-review') return false
+          return true
+        })()
 
-      const useAiReviewDraft = (() => {
-        if (!wantReview) return false
-        if (draftMode === 'review') return false
-        return draftMode === 'ai-review' || (draftMode === 'auto' && !reviewDraft)
-      })()
+        const useAiReviewDraft = (() => {
+          if (!wantReview) return false
+          if (draftMode === 'review') return false
+          return draftMode === 'ai-review' || (draftMode === 'auto' && !reviewDraft)
+        })()
 
-      const module = moduleRegistry.get(pm.type)
-      const defaultProps = (module?.getConfig?.().defaultValues || {}) as Record<string, unknown>
+        if (!moduleRegistry.has(pm.type)) {
+          console.warn(`Module type '${pm.type}' is not registered. Skipping.`)
+          return null
+        }
+
+        const module = moduleRegistry.get(pm.type)
+        const defaultProps = (module?.getConfig?.().defaultValues || {}) as Record<string, unknown>
 
       const draftModulesArray = (reviewDraft as any)?.modules || []
       const draftModuleState = Array.isArray(draftModulesArray)
@@ -353,7 +359,12 @@ class PostRenderingService {
       }
 
       return { pm, mergedProps, module, draftModuleState }
-    })
+    }).filter((s) => s !== null) as Array<{
+      pm: ModuleRenderData
+      mergedProps: Record<string, unknown>
+      module: BaseModule
+      draftModuleState: any
+    }>
 
     // Batch resolve post references across all modules for performance
     const allPostIds = new Set<string>()

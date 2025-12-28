@@ -132,6 +132,18 @@ const cmsConfig = {
     /** Maximum page size */
     maxLimit: 1000,
   },
+
+  /**
+   * Feature flags
+   */
+  features: {
+    /** Enable native analytics and heatmap tracking */
+    analytics: env.get('CMS_ANALYTICS_ENABLED') ?? true,
+    /** Enable activity/audit logging */
+    auditLogs: env.get('CMS_AUDIT_LOGS_ENABLED') ?? true,
+    /** Enable active session management (admin) */
+    activeSessions: env.get('CMS_ACTIVE_SESSIONS_ENABLED') ?? true,
+  },
 }
 
 export default cmsConfig

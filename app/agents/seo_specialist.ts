@@ -10,7 +10,6 @@ const SeoSpecialistAgent: AgentDefinition = {
   id: 'seo-specialist',
   name: 'SEO Specialist',
   description: 'Optimize content for SEO and generate Schema Markup.',
-  type: 'internal',
   enabled: true,
 
   internal: {

@@ -1,6 +1,7 @@
 import type { HttpContext } from '@adonisjs/core/http'
 import db from '@adonisjs/lucid/services/db'
 import urlPatternService from '#services/url_pattern_service'
+import cmsConfig from '#config/cms'
 
 export default class AnalyticsController {
   /**
@@ -8,6 +9,9 @@ export default class AnalyticsController {
    * Tracking endpoint for public site
    */
   async track({ request, response }: HttpContext) {
+    if (!cmsConfig.features.analytics) {
+      return response.noContent()
+    }
     const payload = request.body()
     const events = Array.isArray(payload) ? payload : [payload]
 
@@ -41,6 +45,13 @@ export default class AnalyticsController {
    * Analytics summary for admin panel
    */
   async getSummary({ response }: HttpContext) {
+    if (!cmsConfig.features.analytics) {
+      return response.ok({
+        summary: { totalViews: 0, totalClicks: 0 },
+        topPosts: [],
+        statsOverTime: [],
+      })
+    }
     const views = await db
       .from('analytics_events')
       .where('event_type', 'view')
@@ -105,6 +116,9 @@ export default class AnalyticsController {
    * Heatmap data for a specific post
    */
   async getHeatmapData({ request, response }: HttpContext) {
+    if (!cmsConfig.features.analytics) {
+      return response.ok({ data: [] })
+    }
     const postId = request.input('postId')
     const eventType = request.input('eventType', 'click')
 

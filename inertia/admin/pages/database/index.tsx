@@ -154,6 +154,7 @@ export default function DatabaseIndex() {
   // Optimize state
   const [optimizeStats, setOptimizeStats] = useState<{
     orphanedModuleInstances: number
+    unsupportedModuleInstances: number
     invalidPostReferences: number
     invalidModuleReferences: number
     staleRenderCache: number
@@ -166,6 +167,7 @@ export default function DatabaseIndex() {
   const [optimizing, setOptimizing] = useState(false)
   const [optimizeResults, setOptimizeResults] = useState<{
     orphanedModulesDeleted: number
+    unsupportedModulesDeleted: number
     invalidPostRefsDeleted: number
     invalidModuleRefsDeleted: number
     renderCacheCleared: number
@@ -176,6 +178,7 @@ export default function DatabaseIndex() {
   const [confirmOptimizeOpen, setConfirmOptimizeOpen] = useState(false)
   const [optimizeOptions, setOptimizeOptions] = useState({
     cleanOrphanedModules: true,
+    cleanUnsupportedModules: true,
     cleanInvalidRefs: true,
     clearRenderCache: false,
     cleanFeedback: false,
@@ -1577,6 +1580,36 @@ export default function DatabaseIndex() {
                   <label className="flex items-start gap-3 p-4 rounded border border-line-medium hover:border-line-high transition cursor-pointer">
                     <input
                       type="checkbox"
+                      checked={optimizeOptions.cleanUnsupportedModules}
+                      onChange={(e) =>
+                        setOptimizeOptions({
+                          ...optimizeOptions,
+                          cleanUnsupportedModules: e.target.checked,
+                        })
+                      }
+                      className="mt-1 rounded"
+                    />
+                    <div className="flex-1">
+                      <div className="font-semibold text-neutral-dark mb-1">
+                        Clean Unsupported Module Instances
+                      </div>
+                      <p className="text-sm text-neutral-medium">
+                        Remove module instances whose type is no longer registered in the system
+                        (e.g., deleted code). This will also remove references to these modules in
+                        posts.
+                      </p>
+                      {optimizeStats && optimizeStats.unsupportedModuleInstances > 0 && (
+                        <p className="text-xs text-standout-medium mt-1">
+                          {optimizeStats.unsupportedModuleInstances} unsupported module
+                          {optimizeStats.unsupportedModuleInstances !== 1 ? 's' : ''} will be deleted
+                        </p>
+                      )}
+                    </div>
+                  </label>
+
+                  <label className="flex items-start gap-3 p-4 rounded border border-line-medium hover:border-line-high transition cursor-pointer">
+                    <input
+                      type="checkbox"
                       checked={optimizeOptions.cleanInvalidRefs}
                       onChange={(e) =>
                         setOptimizeOptions({
@@ -1819,6 +1852,16 @@ export default function DatabaseIndex() {
                         </div>
                       </div>
                     )}
+                    {optimizeResults.unsupportedModulesDeleted > 0 && (
+                      <div className="p-4 rounded bg-backdrop-high border border-line-medium">
+                        <div className="text-sm text-neutral-medium mb-1">
+                          Unsupported Modules Deleted
+                        </div>
+                        <div className="text-2xl font-semibold text-neutral-dark">
+                          {optimizeResults.unsupportedModulesDeleted.toLocaleString()}
+                        </div>
+                      </div>
+                    )}
                     {optimizeResults.invalidPostRefsDeleted > 0 && (
                       <div className="p-4 rounded bg-backdrop-high border border-line-medium">
                         <div className="text-sm text-neutral-medium mb-1">
@@ -1940,6 +1983,11 @@ export default function DatabaseIndex() {
               {optimizeOptions.cleanOrphanedModules && (
                 <li>
                   Clean orphaned module instances ({optimizeStats?.orphanedModuleInstances || 0})
+                </li>
+              )}
+              {optimizeOptions.cleanUnsupportedModules && (
+                <li>
+                  Clean unsupported module instances ({optimizeStats?.unsupportedModuleInstances || 0})
                 </li>
               )}
               {optimizeOptions.cleanInvalidRefs && (

@@ -1,11 +1,11 @@
-import { BaseCommand, args, flags } from '@adonisjs/core/ace'
+import { BaseCommand, args } from '@adonisjs/core/ace'
 import type { CommandOptions } from '@adonisjs/core/types/ace'
 import { mkdir, writeFile } from 'node:fs/promises'
 import { join } from 'node:path'
 
 export default class MakeAgent extends BaseCommand {
   static commandName = 'make:agent'
-  static description = 'Create a new agent definition file'
+  static description = 'Create a new internal agent definition file'
 
   static options: CommandOptions = {
     startApp: false,
@@ -13,9 +13,6 @@ export default class MakeAgent extends BaseCommand {
 
   @args.string({ description: 'Agent name (e.g., content-enhancer, seo-optimizer)' })
   declare name: string
-
-  @flags.boolean({ description: 'Create an internal agent instead of external' })
-  declare internal: boolean
 
   /**
    * Convert kebab-case to PascalCase
@@ -43,10 +40,7 @@ export default class MakeAgent extends BaseCommand {
     const agentTitle = this.toTitleCase(agentId)
     const fileName = `${agentId}.ts`
 
-    // Determine template based on type
-    const template = this.internal
-      ? this.getInternalTemplate(agentId, agentName, agentTitle)
-      : this.getExternalTemplate(agentId, agentName, agentTitle)
+    const template = this.getInternalTemplate(agentId, agentName, agentTitle)
 
     // Ensure agents directory exists
     const agentsDir = this.app.makePath('app/agents')
@@ -59,39 +53,31 @@ export default class MakeAgent extends BaseCommand {
     this.logger.success(`Agent created: ${this.colors.cyan(filePath)}`)
     this.logger.info('Next steps:')
     this.logger.info(`1. Configure agent settings in ${this.colors.cyan(`app/agents/${fileName}`)}`)
-    this.logger.info(`2. Set environment variables (if using external agent)`)
-    this.logger.info(`3. The agent will be automatically registered on next server start`)
+    this.logger.info(`2. The agent will be automatically registered on next server start`)
+    this.logger.info(`Note: For webhook-based external automation, use Workflows instead of Agents.`)
   }
 
-  private getExternalTemplate(id: string, name: string, title: string): string {
-    const envPrefix = id.toUpperCase().replace(/-/g, '_')
-
+  private getInternalTemplate(id: string, name: string, title: string): string {
     return `import type { AgentDefinition } from '#types/agent_types'
 
 /**
  * ${title} Agent
- * External webhook-based agent
+ * Internal AI service-based agent
  */
 const ${name}Agent: AgentDefinition = {
   id: '${id}',
   name: '${title}',
   description: 'Add description here',
-  type: 'external',
   enabled: true,
 
-  external: {
-    // Production webhook URL
-    url: process.env.AGENT_${envPrefix}_URL || '',
-
-    // Development webhook URL (optional)
-    devUrl: process.env.AGENT_${envPrefix}_DEV_URL,
-
-    // Authentication
-    secret: process.env.AGENT_${envPrefix}_SECRET,
-    secretHeader: 'X-Agent-Secret', // Optional: defaults to Authorization: Bearer
-
-    // Timeout in milliseconds
-    timeout: 30000,
+  internal: {
+    provider: 'openai',
+    model: 'gpt-4o',
+    systemPrompt: 'You are a helpful assistant that...',
+    options: {
+      temperature: 0.7,
+      maxTokens: 2000,
+    },
   },
 
   scopes: [
@@ -102,58 +88,9 @@ const ${name}Agent: AgentDefinition = {
     },
     // Available scopes:
     // - 'dropdown' - Shows up in the agent dropdown menu
+    // - 'global' - Floating brain icon button
+    // - 'field' - Per-field AI buttons
     // - 'post.publish' - Triggers on post publish
-    // - 'post.approve' - Triggers when approving changes (Source mode)
-    // - 'post.review.save' - Triggers when saving for review
-    // - 'post.review.approve' - Triggers when approving review draft
-    // - 'post.ai-review.save' - Triggers when saving AI review
-    // - 'post.ai-review.approve' - Triggers when approving AI review
-    // - 'form.submit' - Triggers on form submission
-  ],
-}
-
-export default ${name}Agent
-`
-  }
-
-  private getInternalTemplate(id: string, name: string, title: string): string {
-    return `import type { AgentDefinition } from '#types/agent_types'
-
-/**
- * ${title} Agent
- * Internal AI service-based agent (placeholder for future implementation)
- */
-const ${name}Agent: AgentDefinition = {
-  id: '${id}',
-  name: '${title}',
-  description: 'Add description here',
-  type: 'internal',
-  enabled: false, // Enable when internal service is implemented
-
-  internal: {
-    serviceId: 'openai', // or 'anthropic', 'custom', etc.
-    model: 'gpt-4',
-    options: {
-      temperature: 0.7,
-      maxTokens: 2000,
-      // Add other model-specific options here
-    },
-  },
-
-  scopes: [
-    {
-      scope: 'dropdown',
-      order: 100,
-      enabled: false,
-    },
-    // Available scopes:
-    // - 'dropdown' - Shows up in the agent dropdown menu
-    // - 'post.publish' - Triggers on post publish
-    // - 'post.approve' - Triggers when approving changes (Source mode)
-    // - 'post.review.save' - Triggers when saving for review
-    // - 'post.review.approve' - Triggers when approving review draft
-    // - 'post.ai-review.save' - Triggers when saving AI review
-    // - 'post.ai-review.approve' - Triggers when approving AI review
     // - 'form.submit' - Triggers on form submission
   ],
 }

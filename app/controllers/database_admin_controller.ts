@@ -3,6 +3,7 @@ import databaseExportService, { type ContentType } from '#services/database_expo
 import databaseImportService, { type ImportStrategy } from '#services/database_import_service'
 import findReplaceService from '#services/find_replace_service'
 import roleRegistry from '#services/role_registry'
+import moduleRegistry from '#services/module_registry'
 import { readFile } from 'node:fs/promises'
 import db from '@adonisjs/lucid/services/db'
 
@@ -312,6 +313,23 @@ export default class DatabaseAdminController {
 
       const staleCacheCount = Number(staleCacheEntries?.count || 0)
 
+      // Find module_instances with unsupported types
+      const allTypes = await db.from('module_instances').distinct('type').select('type')
+      const registeredTypes = moduleRegistry.getTypes()
+      const unsupportedTypes = allTypes
+        .map((row: any) => row.type)
+        .filter((type: string) => !registeredTypes.includes(type))
+
+      let unsupportedCount = 0
+      if (unsupportedTypes.length > 0) {
+        const unsupportedResult = await db
+          .from('module_instances')
+          .whereIn('type', unsupportedTypes)
+          .count('* as count')
+          .first()
+        unsupportedCount = Number(unsupportedResult?.count || 0)
+      }
+
       // 4. Feedback
       const feedbackResult = await db.from('feedbacks').count('* as count').first()
       const feedbackCount = Number(feedbackResult?.count || 0)
@@ -326,13 +344,14 @@ export default class DatabaseAdminController {
 
       return response.ok({
         orphanedModuleInstances: orphanedCount,
+        unsupportedModuleInstances: unsupportedCount,
         invalidPostReferences: invalidPostRefCount,
         invalidModuleReferences: invalidModuleRefCount,
         staleRenderCache: staleCacheCount,
         feedbackCount,
         auditCount,
         agentCount,
-        totalIssues: orphanedCount + invalidPostRefCount + invalidModuleRefCount,
+        totalIssues: orphanedCount + unsupportedCount + invalidPostRefCount + invalidModuleRefCount,
       })
     } catch (error) {
       return response.badRequest({ error: (error as Error).message })
@@ -357,6 +376,7 @@ export default class DatabaseAdminController {
 
     try {
       const cleanOrphanedModules = request.input('cleanOrphanedModules', true) !== false
+      const cleanUnsupportedModules = request.input('cleanUnsupportedModules', true) !== false
       const cleanInvalidRefs = request.input('cleanInvalidRefs', true) !== false
       const clearRenderCache = request.input('clearRenderCache', false) === true
       const cleanFeedback = request.input('cleanFeedback', false) === true
@@ -365,6 +385,7 @@ export default class DatabaseAdminController {
 
       const results: {
         orphanedModulesDeleted: number
+        unsupportedModulesDeleted: number
         invalidPostRefsDeleted: number
         invalidModuleRefsDeleted: number
         renderCacheCleared: number
@@ -373,6 +394,7 @@ export default class DatabaseAdminController {
         agentTranscriptsDeleted: number
       } = {
         orphanedModulesDeleted: 0,
+        unsupportedModulesDeleted: 0,
         invalidPostRefsDeleted: 0,
         invalidModuleRefsDeleted: 0,
         renderCacheCleared: 0,
@@ -396,6 +418,33 @@ export default class DatabaseAdminController {
           if (orphanedIds.length > 0) {
             await trx.from('module_instances').whereIn('id', orphanedIds).delete()
             results.orphanedModulesDeleted = orphanedIds.length
+          }
+        }
+
+        // 1b. Delete unsupported module_instances
+        if (cleanUnsupportedModules) {
+          const allTypes = await trx.from('module_instances').distinct('type').select('type')
+          const registeredTypes = moduleRegistry.getTypes()
+          const unsupportedTypes = allTypes
+            .map((row: any) => row.type)
+            .filter((type: string) => !registeredTypes.includes(type))
+
+          if (unsupportedTypes.length > 0) {
+            // First, delete post_modules that reference these unsupported instances to maintain integrity
+            const unsupportedInstanceRows = await trx
+              .from('module_instances')
+              .whereIn('type', unsupportedTypes)
+              .select('id')
+            const unsupportedInstanceIds = unsupportedInstanceRows.map((row: any) => row.id)
+
+            if (unsupportedInstanceIds.length > 0) {
+              await trx.from('post_modules').whereIn('module_id', unsupportedInstanceIds).delete()
+              const deleted = await trx
+                .from('module_instances')
+                .whereIn('id', unsupportedInstanceIds)
+                .delete()
+              results.unsupportedModulesDeleted = Number(deleted) || unsupportedInstanceIds.length
+            }
           }
         }
 

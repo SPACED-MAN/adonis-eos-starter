@@ -10,7 +10,6 @@ const TranslatorAgent: AgentDefinition = {
   id: 'translator',
   name: 'Translator',
   description: 'Create translations and manage multi-lingual content.',
-  type: 'internal',
   enabled: true,
 
   internal: {

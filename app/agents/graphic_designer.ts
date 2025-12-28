@@ -17,7 +17,6 @@ const GraphicDesignerAgent: AgentDefinition = {
   id: 'graphic-designer',
   name: 'Graphic Designer',
   description: 'Generate and enhance media assets with AI-powered design assistance.',
-  type: 'internal',
   enabled: true,
 
   internal: {

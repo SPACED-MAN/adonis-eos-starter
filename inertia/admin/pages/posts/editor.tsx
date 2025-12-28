@@ -4655,9 +4655,7 @@ export default function Editor({
                                   setAgentResponse(null)
                                   setAgentOpenEndedContext('')
                                   // Switch to AI Review view to see the changes
-                                  const agent = agents.find((x) => x.id === selectedAgent)
-                                  const targetMode =
-                                    (agent as any)?.type === 'internal' ? 'ai-review' : 'review'
+                                  const targetMode = 'ai-review'
 
                                   // Check for redirection if a new post/translation was created
                                   if (
@@ -4681,10 +4679,7 @@ export default function Editor({
                                   window.history.replaceState({}, '', url.toString())
                                   // Reload data to get the latest changes from the agent
                                   router.reload({
-                                    only:
-                                      targetMode === 'ai-review'
-                                        ? ['aiReviewDraft', 'post', 'modules', 'translations']
-                                        : ['reviewDraft', 'post', 'modules', 'translations'],
+                                    only: ['aiReviewDraft', 'post', 'modules', 'translations'],
                                     onSuccess: () => {
                                       // After reload, switch to the target mode
                                       setViewMode(targetMode)

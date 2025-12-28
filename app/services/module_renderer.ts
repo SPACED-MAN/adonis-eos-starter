@@ -110,6 +110,10 @@ class ModuleRenderer {
     context: ModuleRenderContext
   ) {
     // Get module from registry
+    if (!moduleRegistry.has(postModule.type)) {
+      console.warn(`[ModuleRenderer] Module type '${postModule.type}' is not registered. Skipping.`)
+      return ''
+    }
     const module = moduleRegistry.get(postModule.type)
 
     // Merge defaults + base fields + overrides
@@ -205,6 +209,12 @@ class ModuleRenderer {
     }
 
     // Get module from registry
+    if (!moduleRegistry.has(instance.type)) {
+      console.warn(
+        `[ModuleRenderer] Global module type '${instance.type}' for slug '${globalSlug}' is not registered. Skipping.`
+      )
+      return ''
+    }
     const module = moduleRegistry.get(instance.type)
 
     // Merge fields with overrides if provided

@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react'
-import { Head } from '@inertiajs/react'
+import { Head, usePage } from '@inertiajs/react'
 import { AdminHeader } from '../../components/AdminHeader'
 import { AdminFooter } from '../../components/AdminFooter'
 import { toast } from 'sonner'
@@ -26,6 +26,7 @@ import {
   faExternalLinkAlt,
   faSitemap,
   faFire,
+  faLock,
 } from '@fortawesome/free-solid-svg-icons'
 import { HeatmapModal } from '../../components/analytics/HeatmapModal'
 
@@ -70,7 +71,11 @@ const chartConfig = {
 } satisfies ChartConfig
 
 export default function SeoSettingsPage() {
-  const [activeTab, setActiveTab] = useState<'sitemap' | 'analytics'>('analytics')
+  const { props } = usePage<any>()
+  const features = props.features || {}
+  const [activeTab, setActiveTab] = useState<'sitemap' | 'analytics'>(
+    features.analytics !== false ? 'analytics' : 'sitemap'
+  )
   const [status, setStatus] = useState<SitemapStatus | null>(null)
   const [analytics, setAnalytics] = useState<AnalyticsSummary | null>(null)
   const [loading, setLoading] = useState(false)
@@ -134,15 +139,19 @@ export default function SeoSettingsPage() {
 
   useEffect(() => {
     if (activeTab === 'sitemap') loadStatus()
-    if (activeTab === 'analytics') loadAnalytics()
+    if (activeTab === 'analytics' && features.analytics !== false) loadAnalytics()
   }, [activeTab])
 
   return (
     <div className="min-h-screen bg-backdrop-medium">
-      <Head title="Analytics" />
+      <Head title={activeTab === 'analytics' ? 'Analytics' : 'SEO'} />
       <AdminHeader
-        title="Analytics"
-        description="Manage your search engine presence and track user interactions."
+        title={activeTab === 'analytics' ? 'Analytics' : 'SEO'}
+        description={
+          activeTab === 'analytics'
+            ? 'Track user interactions and hotspots.'
+            : 'Manage your search engine presence.'
+        }
       />
 
       <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
@@ -155,10 +164,15 @@ export default function SeoSettingsPage() {
                 activeTab === 'analytics'
                   ? 'border-standout-medium text-standout-high'
                   : 'border-transparent text-neutral-medium hover:text-neutral-high'
-              }`}
+              } ${features.analytics === false ? 'opacity-50 grayscale cursor-not-allowed' : ''}`}
+              title={features.analytics === false ? 'This feature is disabled' : ''}
+              disabled={features.analytics === false}
             >
               <FontAwesomeIcon icon={faFire} className="w-3.5 h-3.5" />
               Analytics
+              {features.analytics === false && (
+                <FontAwesomeIcon icon={faLock} className="ml-1 w-2.5 h-2.5" />
+              )}
             </button>
             <button
               onClick={() => setActiveTab('sitemap')}

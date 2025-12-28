@@ -10,6 +10,7 @@ import moduleRegistry from '#services/module_registry'
 import siteSettingsService from '#services/site_settings_service'
 import menuService from '#services/menu_service'
 import postRenderingService from '#services/post_rendering_service'
+import cmsConfig from '#config/cms'
 
 export default class InertiaAuthShareMiddleware {
   async handle(ctx: HttpContext, next: () => Promise<void>) {
@@ -81,6 +82,9 @@ export default class InertiaAuthShareMiddleware {
           agents: agentRegistry.list().length > 0,
           workflows: workflowRegistry.list().length > 0,
           modules: moduleRegistry.getAllConfigs().length > 0,
+          analytics: cmsConfig.features.analytics,
+          auditLogs: cmsConfig.features.auditLogs,
+          activeSessions: cmsConfig.features.activeSessions,
         },
         mediaAdmin: {
           thumbnailVariant: process.env.MEDIA_ADMIN_THUMBNAIL_VARIANT || null,

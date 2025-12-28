@@ -60,6 +60,9 @@ export function AdminSidebar() {
     agents: true,
     workflows: true,
     modules: true,
+    analytics: true,
+    auditLogs: true,
+    activeSessions: true,
   }
   const userEmail =
     ((page.props as any)?.auth?.user?.email as string | undefined) ||
@@ -212,7 +215,7 @@ export function AdminSidebar() {
                 >
                   <span className="inline-flex items-center gap-2">
                     <FontAwesomeIcon icon={faMagnifyingGlass} className="w-4 h-4" />{' '}
-                    <span>SEO/Analytics</span>
+                    <span>{features.analytics === false ? 'SEO' : 'SEO/Analytics'}</span>
                   </span>
                 </SidebarMenuItem>
                 {features.locales && (

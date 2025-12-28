@@ -16,7 +16,6 @@ const GeneralAssistantAgent: AgentDefinition = {
   id: 'general-assistant',
   name: 'General Assistant',
   description: 'Make any general request.',
-  type: 'internal',
   enabled: true, // Set to true to enable
 
   internal: {

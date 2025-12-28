@@ -1,4 +1,5 @@
 import db from '@adonisjs/lucid/services/db'
+import cmsConfig from '#config/cms'
 
 type ActivityMeta = Record<string, any> | null | undefined
 
@@ -12,6 +13,9 @@ class ActivityLogService {
     userAgent?: string | null
     metadata?: ActivityMeta
   }) {
+    if (!cmsConfig.features.auditLogs) {
+      return
+    }
     const now = new Date()
     await db.table('activity_logs').insert({
       id: (await import('node:crypto')).randomUUID(),

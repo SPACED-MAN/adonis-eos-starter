@@ -500,15 +500,12 @@ export function AgentModal({
                   onOpenChange(false)
                   // For post context, reload data
                   if (contextId && scope !== 'global') {
-                    const targetMode = agent.type === 'internal' ? 'ai-review' : 'review'
+                    const targetMode = 'ai-review'
                     const url = new URL(window.location.href)
                     url.searchParams.set('view', targetMode)
                     window.history.replaceState({}, '', url.toString())
                     router.reload({
-                      only:
-                        targetMode === 'ai-review'
-                          ? ['aiReviewDraft', 'post', 'modules']
-                          : ['reviewDraft', 'post', 'modules'],
+                      only: ['aiReviewDraft', 'post', 'modules'],
                       onSuccess: () => {
                         if (onSuccess) {
                           onSuccess(agentResponse)

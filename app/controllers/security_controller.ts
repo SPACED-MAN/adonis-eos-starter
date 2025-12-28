@@ -29,6 +29,9 @@ export default class SecurityController {
    * Get active sessions for current user
    */
   async sessions({ request, session, auth, response }: HttpContext) {
+    if (!cmsConfig.features.activeSessions) {
+      return response.ok({ data: [] })
+    }
     const user = auth.getUserOrFail()
     // Validate query params
     await request.validateUsing(securitySessionsQueryValidator)
@@ -56,6 +59,9 @@ export default class SecurityController {
    * Revoke a session (logout)
    */
   async revokeSession({ params, auth, response }: HttpContext) {
+    if (!cmsConfig.features.activeSessions) {
+      return response.badRequest({ message: 'Active sessions management is disabled' })
+    }
     auth.getUserOrFail()
     const sessionId = params.sessionId
 
@@ -75,6 +81,9 @@ export default class SecurityController {
    * Revoke all other sessions (logout everywhere except current)
    */
   async revokeAllSessions({ auth, response }: HttpContext) {
+    if (!cmsConfig.features.activeSessions) {
+      return response.badRequest({ message: 'Active sessions management is disabled' })
+    }
     auth.getUserOrFail()
     // Note: With cookie-based sessions, we can't revoke other sessions
     // This would require Redis/DB session store
@@ -89,6 +98,9 @@ export default class SecurityController {
    * Get unique actions and entity types for filters
    */
   async auditLogMeta({ response }: HttpContext) {
+    if (!cmsConfig.features.auditLogs) {
+      return response.ok({ actions: [], entityTypes: [] })
+    }
     const actions = await db.from('activity_logs').distinct('action').orderBy('action', 'asc')
     const entityTypes = await db
       .from('activity_logs')
@@ -107,6 +119,12 @@ export default class SecurityController {
    * Get audit logs with filters
    */
   async auditLogs({ request, response }: HttpContext) {
+    if (!cmsConfig.features.auditLogs) {
+      return response.ok({
+        data: [],
+        pagination: { limit: 50, offset: 0, total: 0 },
+      })
+    }
     const {
       userId,
       action,
@@ -327,6 +345,12 @@ export default class SecurityController {
    * Get login history (failed/successful logins)
    */
   async loginHistory({ request, response }: HttpContext) {
+    if (!cmsConfig.features.auditLogs) {
+      return response.ok({
+        data: [],
+        pagination: { limit: 50, offset: 0, total: 0 },
+      })
+    }
     const { limit, offset } = await request.validateUsing(loginHistoryQueryValidator)
     const effectiveLimit = limit || 50
     const effectiveOffset = offset || 0

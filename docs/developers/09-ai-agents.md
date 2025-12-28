@@ -43,7 +43,6 @@ const InternalAiAssistantAgent: AgentDefinition = {
   id: 'internal-ai-assistant',
   name: 'Internal AI Assistant',
   description: 'Built-in AI assistant powered by OpenAI',
-  type: 'internal',
   enabled: true,
 
   internal: {
@@ -195,7 +194,6 @@ In your agent file (`app/agents/your_agent.ts`), add `allowedMCPTools` inside th
 const YourAgent: AgentDefinition = {
   id: 'your-agent',
   name: 'Your Agent',
-  type: 'internal',
   enabled: true,
 
   internal: {
@@ -412,7 +410,6 @@ const SeoOptimizerAgent: AgentDefinition = {
   id: 'seo-optimizer',
   name: 'SEO Optimizer',
   description: 'Automatically generates and optimizes SEO metadata',
-  type: 'internal',
   enabled: true,
 
   internal: {
@@ -868,7 +865,6 @@ const SeoAgent: AgentDefinition = {
   id: 'seo-optimizer',
   name: 'SEO Optimizer',
   description: 'Optimizes SEO metadata using AI',
-  type: 'internal',
   enabled: true,
 
   internal: {

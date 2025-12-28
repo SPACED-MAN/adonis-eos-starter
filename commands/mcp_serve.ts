@@ -1710,11 +1710,6 @@ function createServerInstance() {
         return errorResult('Agent not available for field scope', { agentId })
       }
 
-      // Validate agent type
-      if (agent.type !== 'internal') {
-        return errorResult('Only internal agents are supported for run_field_agent', { agentId })
-      }
-
       // Server-side enforcement: only allow openEndedContext if the agent explicitly opts in
       if (openEndedContext && String(openEndedContext).trim()) {
         const enabled = agent.openEndedContext?.enabled === true

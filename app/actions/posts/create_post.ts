@@ -238,6 +238,13 @@ export default class CreatePost {
 
     const now = new Date()
     for (const [idx, tm] of groupModules.entries()) {
+      if (!moduleRegistry.has(tm.type)) {
+        console.warn(
+          `[CreatePost] Module type '${tm.type}' from module group '${moduleGroupId}' is not registered. Skipping.`
+        )
+        continue
+      }
+
       // Merge module defaults + module group defaults (module group wins)
       const defaultsFromRegistry = (moduleRegistry.get(tm.type).getConfig().defaultValues ||
         {}) as Record<string, any>
