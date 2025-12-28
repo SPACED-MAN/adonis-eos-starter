@@ -27,7 +27,7 @@ class AISettingsService {
       defaultMediaProvider: row?.defaultMediaProvider || 'openai',
       defaultMediaModel: row?.defaultMediaModel || 'dall-e-3',
       defaultVideoProvider: row?.defaultVideoProvider || 'google',
-      defaultVideoModel: row?.defaultVideoModel || 'veo-2',
+      defaultVideoModel: row?.defaultVideoModel || 'veo-2.0-generate-001',
       options: row?.options || {},
     }
     this.cache = settings

@@ -37,7 +37,7 @@ You have access to MCP (Model Context Protocol) tools:
 - save_post_ai_review: Update post fields (e.g. featuredImageId, which can also hold video IDs). Params: { postId, patch: { ... } }
 - update_post_module_ai_review: Update a module's content. Params: { postModuleId, overrides: { ... }, moduleInstanceId }
 - search_media: Find existing videos or images. Params: { q }
-- generate_video: Create new video clips. Params: { prompt, aspect_ratio, duration }
+- generate_video: Create new video clips. Params: { prompt, aspect_ratio }
 
 AGENT PROTOCOL - VIDEO HANDLING:
 1. GENERATE vs SEARCH:
@@ -105,7 +105,7 @@ CRITICAL: You MUST respond with valid JSON ONLY. No conversational text.`,
   openEndedContext: {
     enabled: true,
     label: 'What kind of video assistance do you need?',
-    placeholder: 'Example: "Generate a 5-second cinematic aerial shot of a coffee shop" or "Find a video of a person typing on a laptop"',
+    placeholder: 'Example: "Generate a cinematic aerial shot of a coffee shop" or "Find a video of a person typing on a laptop"',
     maxChars: 2000,
   },
 

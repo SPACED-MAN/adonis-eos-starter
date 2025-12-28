@@ -8,6 +8,11 @@ import { GoogleGenerativeAI } from '@google/generative-ai'
 export type AIProvider = 'openai' | 'anthropic' | 'google' | 'nanobanana'
 
 /**
+ * Model capabilities
+ */
+export type ModelCapability = 'text' | 'image' | 'video'
+
+/**
  * AI Provider Configuration
  */
 export interface AIProviderConfig {
@@ -443,6 +448,9 @@ class AIProviderService {
           'gemini-1.5-flash',
           'nano-banana-pro-preview',
           'imagen-4.0-generate-001',
+          'veo-2.0-generate-001',
+          'veo-3.0-generate-001',
+          'veo-3.1-generate-preview',
         ]
       default:
         return []
@@ -673,11 +681,12 @@ class AIProviderService {
     options: any,
     config: AIProviderConfig
   ): Promise<{ videoUrl: string }> {
-    const modelName = config.model || 'veo-2'
+    const modelName = config.model || 'veo-2.0-generate-001'
 
+    // Use predictLongRunning endpoint for Veo models
     try {
       const response = await fetch(
-        `https://generativelanguage.googleapis.com/v1beta/models/${modelName}:predict?key=${config.apiKey}`,
+        `https://generativelanguage.googleapis.com/v1beta/models/${modelName}:predictLongRunning?key=${config.apiKey}`,
         {
           method: 'POST',
           headers: {
@@ -688,8 +697,6 @@ class AIProviderService {
             parameters: {
               sampleCount: 1,
               aspectRatio: options.aspect_ratio || '16:9',
-              duration: options.duration || '5s',
-              outputMimeType: 'video/mp4',
             },
           }),
         }
@@ -700,8 +707,39 @@ class AIProviderService {
         throw new Error(`Google Video Generation API error: ${response.status} ${error}`)
       }
 
-      const data = (await response.json()) as any
-      const prediction = data.predictions?.[0]
+      let operation = (await response.json()) as any
+
+      // Poll for operation completion
+      const maxRetries = 60 // 5 minutes with 5s delay
+      let retries = 0
+
+      while (!operation.done && retries < maxRetries) {
+        await new Promise((resolve) => setTimeout(resolve, 5000))
+        retries++
+
+        const pollResponse = await fetch(
+          `https://generativelanguage.googleapis.com/v1beta/${operation.name}?key=${config.apiKey}`
+        )
+
+        if (!pollResponse.ok) {
+          const error = await pollResponse.text()
+          console.warn(`[generateVideoGoogle] Polling failed: ${pollResponse.status} ${error}`)
+          continue
+        }
+
+        operation = await pollResponse.json()
+      }
+
+      if (!operation.done) {
+        throw new Error('Google Video Generation timed out')
+      }
+
+      if (operation.error) {
+        throw new Error(`Google Video Generation failed: ${operation.error.message}`)
+      }
+
+      const responseData = operation.response
+      const prediction = responseData?.predictions?.[0]
 
       if (prediction?.bytesBase64Encoded) {
         return {
@@ -713,7 +751,7 @@ class AIProviderService {
         return { videoUrl: prediction.url }
       }
 
-      throw new Error('Google returned no video data from predict endpoint')
+      throw new Error('Google returned no video data in operation response')
     } catch (error: any) {
       throw new Error(`Google Video Generation failed for ${modelName}: ${error.message}`)
     }
@@ -740,6 +778,50 @@ class AIProviderService {
       throw new Error(
         `Invalid provider: ${config.provider}. Must be one of: ${validProviders.join(', ')}`
       )
+    }
+  }
+
+  /**
+   * Check if a model has a specific capability
+   */
+  hasCapability(provider: AIProvider, model: string, capability: ModelCapability): boolean {
+    const m = model.toLowerCase()
+
+    switch (provider) {
+      case 'openai':
+        if (capability === 'text') {
+          return m.startsWith('gpt-') || m.startsWith('o1-') || m.startsWith('o3-')
+        }
+        if (capability === 'image') {
+          return m.startsWith('dall-e-')
+        }
+        if (capability === 'video') {
+          return m.startsWith('sora')
+        }
+        return false
+
+      case 'anthropic':
+        if (capability === 'text') {
+          return m.startsWith('claude-')
+        }
+        return false
+
+      case 'google':
+        if (capability === 'text') {
+          return m.includes('gemini') || m.includes('nano-banana')
+        }
+        if (capability === 'image') {
+          return (
+            m.includes('imagen') || m.includes('gemini') || m.includes('nano-banana') || m === 'veo'
+          )
+        }
+        if (capability === 'video') {
+          return m.includes('veo')
+        }
+        return false
+
+      default:
+        return capability === 'text' // Fallback
     }
   }
 }

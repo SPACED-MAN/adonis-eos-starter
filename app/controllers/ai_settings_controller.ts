@@ -14,15 +14,31 @@ export default class AISettingsController {
     // Get available models for each provider
     const providers: AIProvider[] = ['openai', 'anthropic', 'google']
     const models: Record<string, string[]> = {}
+    const textModels: Record<string, string[]> = {}
+    const imageModels: Record<string, string[]> = {}
+    const videoModels: Record<string, string[]> = {}
 
     for (const provider of providers) {
-      models[provider] = await aiProviderService.listModels(provider)
+      const allModels = await aiProviderService.listModels(provider)
+      models[provider] = allModels
+      textModels[provider] = allModels.filter((m) =>
+        aiProviderService.hasCapability(provider, m, 'text')
+      )
+      imageModels[provider] = allModels.filter((m) =>
+        aiProviderService.hasCapability(provider, m, 'image')
+      )
+      videoModels[provider] = allModels.filter((m) =>
+        aiProviderService.hasCapability(provider, m, 'video')
+      )
     }
 
     return response.ok({
       data: {
         settings,
         models,
+        textModels,
+        imageModels,
+        videoModels,
         providers,
       },
     })

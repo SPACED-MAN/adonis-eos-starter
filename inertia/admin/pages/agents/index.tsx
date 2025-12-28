@@ -69,9 +69,11 @@ export default function AgentsIndex() {
     defaultMediaProvider: 'openai',
     defaultMediaModel: 'dall-e-3',
     defaultVideoProvider: 'google',
-    defaultVideoModel: 'veo-2',
+    defaultVideoModel: 'veo-2.0-generate-001',
   })
-  const [models, setModels] = useState<ProviderModels>({})
+  const [textModelsByProvider, setTextModelsByProvider] = useState<ProviderModels>({})
+  const [imageModelsByProvider, setImageModelsByProvider] = useState<ProviderModels>({})
+  const [videoModelsByProvider, setVideoModelsByProvider] = useState<ProviderModels>({})
   const [providers, setProviders] = useState<string[]>([])
 
   async function loadAgents() {
@@ -95,7 +97,9 @@ export default function AgentsIndex() {
       const j = await res.json().catch(() => ({}))
       if (j.data) {
         setSettings(j.data.settings)
-        setModels(j.data.models)
+        setTextModelsByProvider(j.data.textModels || {})
+        setImageModelsByProvider(j.data.imageModels || {})
+        setVideoModelsByProvider(j.data.videoModels || {})
         setProviders(j.data.providers)
       }
     } catch (error) {
@@ -134,9 +138,9 @@ export default function AgentsIndex() {
     }
   }
 
-  const textModels = models[settings.defaultTextProvider || ''] || []
-  const mediaModels = models[settings.defaultMediaProvider || ''] || []
-  const videoModels = models[settings.defaultVideoProvider || ''] || []
+  const textModels = textModelsByProvider[settings.defaultTextProvider || ''] || []
+  const mediaModels = imageModelsByProvider[settings.defaultMediaProvider || ''] || []
+  const videoModels = videoModelsByProvider[settings.defaultVideoProvider || ''] || []
 
   return (
     <div className="min-h-screen bg-backdrop-medium">
@@ -147,8 +151,8 @@ export default function AgentsIndex() {
           <button
             onClick={() => setActiveTab('overview')}
             className={`px-4 py-2 text-sm font-medium transition-colors border-b-2 ${activeTab === 'overview'
-                ? 'border-standout-medium text-standout-high'
-                : 'border-transparent text-neutral-medium hover:text-neutral-high'
+              ? 'border-standout-medium text-standout-high'
+              : 'border-transparent text-neutral-medium hover:text-neutral-high'
               }`}
           >
             System Agents
@@ -156,8 +160,8 @@ export default function AgentsIndex() {
           <button
             onClick={() => setActiveTab('settings')}
             className={`px-4 py-2 text-sm font-medium transition-colors border-b-2 ${activeTab === 'settings'
-                ? 'border-standout-medium text-standout-high'
-                : 'border-transparent text-neutral-medium hover:text-neutral-high'
+              ? 'border-standout-medium text-standout-high'
+              : 'border-transparent text-neutral-medium hover:text-neutral-high'
               }`}
           >
             AI Configuration
@@ -254,7 +258,7 @@ export default function AgentsIndex() {
                   <Select
                     value={settings.defaultTextProvider || ''}
                     onValueChange={(val) => {
-                      const firstModel = models[val]?.[0] || ''
+                      const firstModel = textModelsByProvider[val]?.[0] || ''
                       setSettings({
                         ...settings,
                         defaultTextProvider: val,
@@ -312,7 +316,7 @@ export default function AgentsIndex() {
                   <Select
                     value={settings.defaultMediaProvider || ''}
                     onValueChange={(val) => {
-                      const firstModel = models[val]?.[0] || ''
+                      const firstModel = imageModelsByProvider[val]?.[0] || ''
                       setSettings({
                         ...settings,
                         defaultMediaProvider: val,
@@ -370,7 +374,7 @@ export default function AgentsIndex() {
                   <Select
                     value={settings.defaultVideoProvider || ''}
                     onValueChange={(val) => {
-                      const firstModel = models[val]?.[0] || ''
+                      const firstModel = videoModelsByProvider[val]?.[0] || ''
                       setSettings({
                         ...settings,
                         defaultVideoProvider: val,
@@ -416,8 +420,8 @@ export default function AgentsIndex() {
               <button
                 type="button"
                 className={`px-4 py-2 text-sm font-semibold rounded-lg transition-all ${saving
-                    ? 'bg-standout-medium/50 text-on-standout/50 cursor-not-allowed'
-                    : 'bg-standout-medium text-on-standout hover:bg-standout-high active:scale-95 shadow-sm hover:shadow-md'
+                  ? 'bg-standout-medium/50 text-on-standout/50 cursor-not-allowed'
+                  : 'bg-standout-medium text-on-standout hover:bg-standout-high active:scale-95 shadow-sm hover:shadow-md'
                   }`}
                 disabled={saving}
                 onClick={saveSettings}
