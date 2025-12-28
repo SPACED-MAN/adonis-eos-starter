@@ -10,10 +10,10 @@
  * tailwind.config.js color names (e.g., bg-backdrop-low, text-neutral-high).
  */
 @theme {
-  --color-standout-low: var(--color-violet-400);
-  --color-standout-medium: var(--color-violet-600);
-  --color-standout-high: var(--color-violet-800);
-  --color-on-standout: var(--color-white);
+  --color-standout-low: var(--color-cyan-400);
+  --color-standout-medium: var(--color-cyan-600);
+  --color-standout-high: var(--color-cyan-800);
+  --color-on-standout: var(--color-black);
 
   --color-neutral-low: var(--color-slate-600);
   --color-neutral-medium: var(--color-slate-700);
@@ -34,10 +34,10 @@
 }
 
 [data-theme='admin'].dark {
-  --color-standout-low: var(--color-violet-800);
-  --color-standout-medium: var(--color-violet-500);
-  --color-standout-high: var(--color-violet-400);
-  --color-on-standout: var(--color-white);
+  --color-standout-low: var(--color-cyan-800);
+  --color-standout-medium: var(--color-cyan-500);
+  --color-standout-high: var(--color-cyan-400);
+  --color-on-standout: var(--color-black);
 
   --color-neutral-low: var(--color-zinc-400);
   --color-neutral-medium: var(--color-zinc-300);
@@ -58,10 +58,10 @@
 }
 
 [data-theme='site'] {
-  --color-standout-low: var(--color-violet-400);
-  --color-standout-medium: var(--color-violet-600);
-  --color-standout-high: var(--color-violet-800);
-  --color-on-standout: var(--color-white);
+  --color-standout-low: var(--color-cyan-400);
+  --color-standout-medium: var(--color-cyan-600);
+  --color-standout-high: var(--color-cyan-800);
+  --color-on-standout: var(--color-black);
 
   --color-neutral-low: var(--color-slate-600);
   --color-neutral-medium: var(--color-slate-700);
@@ -82,10 +82,10 @@
 }
 
 [data-theme='site'].dark {
-  --color-standout-low: var(--color-violet-800);
-  --color-standout-medium: var(--color-violet-500);
-  --color-standout-high: var(--color-violet-400);
-  --color-on-standout: var(--color-white);
+  --color-standout-low: var(--color-cyan-800);
+  --color-standout-medium: var(--color-cyan-500);
+  --color-standout-high: var(--color-cyan-400);
+  --color-on-standout: var(--color-black);
 
   --color-neutral-low: var(--color-zinc-400);
   --color-neutral-medium: var(--color-zinc-300);
