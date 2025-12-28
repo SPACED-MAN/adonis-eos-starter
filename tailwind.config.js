@@ -15,6 +15,9 @@ export default {
   ],
   theme: {
     extend: {
+      fontFamily: {
+        sans: ['Outfit', 'system-ui', 'sans-serif'],
+      },
       colors: {
         'standout': 'var(--color-standout)',
         'on-standout': 'var(--color-on-standout)',
