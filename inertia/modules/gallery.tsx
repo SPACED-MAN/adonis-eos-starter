@@ -8,7 +8,7 @@
  * No -static suffix = React component with full interactivity
  */
 
-import { useState } from 'react'
+import { useState, useEffect, useRef } from 'react'
 import { motion, AnimatePresence, type Variants } from 'framer-motion'
 import { useInlineValue } from '../components/inline-edit/InlineEditorContext'
 import { MediaRenderer } from '../components/MediaRenderer'
@@ -42,6 +42,14 @@ export default function Gallery({
 }: GalleryProps) {
   const [lightboxOpen, setLightboxOpen] = useState(false)
   const [currentIndex, setCurrentIndex] = useState(0)
+  const lightboxRef = useRef<HTMLDivElement>(null)
+
+  useEffect(() => {
+    if (lightboxOpen && lightboxRef.current) {
+      lightboxRef.current.focus()
+    }
+  }, [lightboxOpen])
+
   const bg = useInlineValue(__moduleId, 'backgroundColor', initialBackground) || initialBackground
   const imagesValue = useInlineValue(__moduleId, 'images', images) || images
 
@@ -77,6 +85,11 @@ export default function Gallery({
       : 'columns-1 sm:columns-2 md:columns-3 gap-4'
 
   // Handle keyboard navigation
+  const handleKeyDown = (e: React.KeyboardEvent) => {
+    if (e.key === 'Escape') closeLightbox()
+    if (e.key === 'ArrowRight') nextImage()
+    if (e.key === 'ArrowLeft') prevImage()
+  }
 
   const containerVariants: Variants = {
     hidden: { opacity: 0 },
@@ -182,6 +195,7 @@ export default function Gallery({
       <AnimatePresence>
         {lightboxOpen && (
           <motion.div
+            ref={lightboxRef}
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
