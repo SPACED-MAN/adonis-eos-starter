@@ -9,14 +9,14 @@ export type LinkKind = 'post' | 'url'
 
 export type LinkFieldValue =
   | {
-      kind: 'post'
-      postId: string
-      postType?: string
-      slug?: string
-      locale?: string
-      url?: string // Resolved URL path (from server)
-      target?: '_self' | '_blank'
-    }
+    kind: 'post'
+    postId: string
+    postType?: string
+    slug?: string
+    locale?: string
+    url?: string // Resolved URL path (from server)
+    target?: '_self' | '_blank'
+  }
   | { kind: 'url'; url: string; target?: '_self' | '_blank' }
   | null
 
@@ -140,8 +140,7 @@ export const LinkField: React.FC<LinkFieldProps> = ({
         }
       } else {
         setLink(null)
-        // If value is cleared, default to post mode
-        setMode('post')
+        // If value is cleared, keep the current mode
       }
     }
   }, [value])
@@ -173,70 +172,70 @@ export const LinkField: React.FC<LinkFieldProps> = ({
     let cancelled = false
     setLoading(true)
     setError(null)
-    ;(async () => {
-      try {
-        // If we have a selected post, fetch it first to ensure it's in the list
-        const selectedPostId =
-          link && link.kind === 'post' && link.postId ? String(link.postId) : ''
+      ; (async () => {
+        try {
+          // If we have a selected post, fetch it first to ensure it's in the list
+          const selectedPostId =
+            link && link.kind === 'post' && link.postId ? String(link.postId) : ''
 
-        // Fetch posts list
-        const params = new URLSearchParams()
-        params.set('status', 'published')
-        params.set('hasPermalinks', '1') // Only show linkable posts
-        if (currentLocale) params.set('locale', currentLocale)
-        params.set('limit', '200')
+          // Fetch posts list
+          const params = new URLSearchParams()
+          params.set('status', 'published')
+          params.set('hasPermalinks', '1') // Only show linkable posts
+          if (currentLocale) params.set('locale', currentLocale)
+          params.set('limit', '200')
 
-        // If we have a selected post, also fetch it specifically (in case it's not published)
-        const fetchPromises = [
-          fetch(`/api/posts?${params.toString()}`, {
-            credentials: 'same-origin',
-            headers: { Accept: 'application/json' },
-          }),
-        ]
-
-        if (selectedPostId) {
-          fetchPromises.push(
-            fetch(`/api/posts?ids=${encodeURIComponent(selectedPostId)}`, {
+          // If we have a selected post, also fetch it specifically (in case it's not published)
+          const fetchPromises = [
+            fetch(`/api/posts?${params.toString()}`, {
               credentials: 'same-origin',
               headers: { Accept: 'application/json' },
+            }),
+          ]
+
+          if (selectedPostId) {
+            fetchPromises.push(
+              fetch(`/api/posts?ids=${encodeURIComponent(selectedPostId)}`, {
+                credentials: 'same-origin',
+                headers: { Accept: 'application/json' },
+              })
+            )
+          }
+
+          const responses = await Promise.all(fetchPromises)
+          const results = await Promise.all(
+            responses.map((res) => {
+              if (!res.ok) return []
+              return res.json().catch(() => ({ data: [] }))
             })
           )
+
+          if (cancelled) return
+
+          // Combine all posts and deduplicate by id
+          const allPosts = results.flatMap((j: any) => (Array.isArray(j?.data) ? j.data : []))
+          const uniquePosts = new Map<string, any>()
+          for (const p of allPosts) {
+            uniquePosts.set(String(p.id), p)
+          }
+
+          setPosts(
+            Array.from(uniquePosts.values()).map((p: any) => ({
+              id: String(p.id),
+              title: p.title || '(untitled)',
+              slug: p.slug,
+              type: p.type,
+              locale: p.locale,
+              status: p.status,
+              url: p.url, // Include resolved URL if available
+            }))
+          )
+        } catch (e) {
+          if (!cancelled) setError('Failed to load posts')
+        } finally {
+          if (!cancelled) setLoading(false)
         }
-
-        const responses = await Promise.all(fetchPromises)
-        const results = await Promise.all(
-          responses.map((res) => {
-            if (!res.ok) return []
-            return res.json().catch(() => ({ data: [] }))
-          })
-        )
-
-        if (cancelled) return
-
-        // Combine all posts and deduplicate by id
-        const allPosts = results.flatMap((j: any) => (Array.isArray(j?.data) ? j.data : []))
-        const uniquePosts = new Map<string, any>()
-        for (const p of allPosts) {
-          uniquePosts.set(String(p.id), p)
-        }
-
-        setPosts(
-          Array.from(uniquePosts.values()).map((p: any) => ({
-            id: String(p.id),
-            title: p.title || '(untitled)',
-            slug: p.slug,
-            type: p.type,
-            locale: p.locale,
-            status: p.status,
-            url: p.url, // Include resolved URL if available
-          }))
-        )
-      } catch (e) {
-        if (!cancelled) setError('Failed to load posts')
-      } finally {
-        if (!cancelled) setLoading(false)
-      }
-    })()
+      })()
     return () => {
       cancelled = true
     }
@@ -276,14 +275,14 @@ export const LinkField: React.FC<LinkFieldProps> = ({
     query.trim().length === 0
       ? posts
       : posts.filter((p) => {
-          const needle = query.toLowerCase()
-          return (
-            (p.title || '').toLowerCase().includes(needle) ||
-            (p.slug || '').toLowerCase().includes(needle) ||
-            (p.type || '').toLowerCase().includes(needle) ||
-            (p.locale || '').toLowerCase().includes(needle)
-          )
-        })
+        const needle = query.toLowerCase()
+        return (
+          (p.title || '').toLowerCase().includes(needle) ||
+          (p.slug || '').toLowerCase().includes(needle) ||
+          (p.type || '').toLowerCase().includes(needle) ||
+          (p.locale || '').toLowerCase().includes(needle)
+        )
+      })
 
   return (
     <FormField>
@@ -366,9 +365,9 @@ export const LinkField: React.FC<LinkFieldProps> = ({
                       ? 'Loading…'
                       : selectedPostId
                         ? (() => {
-                            const p = posts.find((x) => x.id === selectedPostId)
-                            return p ? `${p.title} (${p.type}, ${p.locale})` : 'Select a post…'
-                          })()
+                          const p = posts.find((x) => x.id === selectedPostId)
+                          return p ? `${p.title} (${p.type}, ${p.locale})` : 'Select a post…'
+                        })()
                         : 'Select a post…'}
                   </span>
                   <FontAwesomeIcon
@@ -405,11 +404,10 @@ export const LinkField: React.FC<LinkFieldProps> = ({
                           <button
                             key={p.id}
                             type="button"
-                            className={`w-full text-left px-3 py-2 rounded-lg border transition-all ${
-                              isSelected
+                            className={`w-full text-left px-3 py-2 rounded-lg border transition-all ${isSelected
                                 ? 'border-standout-medium bg-standout-medium/5 ring-1 ring-standout-medium/20'
                                 : 'border-transparent hover:bg-backdrop-medium'
-                            }`}
+                              }`}
                             onClick={() => {
                               setLink({
                                 kind: 'post',
