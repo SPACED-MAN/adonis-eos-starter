@@ -8,7 +8,6 @@ import { useInlineValue } from '../components/inline-edit/InlineEditorContext'
 interface ShareProps {
   title?: string
   alignment?: 'left' | 'center' | 'right'
-  padding?: string
   backgroundColor?: string
   _useReact?: boolean
 }
@@ -37,8 +36,7 @@ interface PageProps {
 
 export default function Share({
   title = 'Share:',
-  alignment = 'left',
-  padding = 'py-8',
+  alignment = 'center',
   backgroundColor = 'bg-transparent',
   _useReact = false,
   __moduleId,
@@ -99,7 +97,7 @@ export default function Share({
     }
   }
 
-  const containerClass = `w-full ${padding} ${bg}`
+  const containerClass = `w-full py-16 lg:py-24 ${bg}`
   const alignmentClass =
     alignment === 'center'
       ? 'justify-center'

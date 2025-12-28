@@ -120,9 +120,8 @@ export default function FeaturesListExpanded({
         const isEven = idx % 2 === 0
         const featureItem = (
           <div
-            className={`flex items-center lg:w-3/5 mx-auto border-b ${lineStyle} pb-10 mb-10 sm:flex-row flex-col ${
-              !isEven ? 'sm:flex-row-reverse' : ''
-            }`}
+            className={`flex items-center lg:w-4/6 mx-auto border-b ${lineStyle} pb-10 mb-10 sm:flex-row flex-col ${!isEven ? 'sm:flex-row-reverse' : ''
+              }`}
             data-inline-type="object"
             data-inline-path={`features.${idx}`}
             data-inline-label={`Feature ${idx + 1}`}
@@ -146,9 +145,8 @@ export default function FeaturesListExpanded({
           >
             {feature.icon && (
               <div
-                className={`sm:w-32 sm:h-32 h-16 w-16 ${
-                  isEven ? 'sm:mr-10' : 'sm:ml-10'
-                } inline-flex items-center justify-center rounded-full ${iconBg} shrink-0`}
+                className={`sm:w-32 sm:h-32 h-16 w-16 ${isEven ? 'sm:mr-10' : 'sm:ml-10'
+                  } inline-flex items-center justify-center rounded-full ${iconBg} shrink-0`}
               >
                 <FontAwesomeIcon icon={feature.icon as any} size="2x" />
               </div>

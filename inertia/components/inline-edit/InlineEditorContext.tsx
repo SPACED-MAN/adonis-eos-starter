@@ -154,6 +154,16 @@ export function InlineEditorProvider({
   const [enabled, setEnabled] = useState(false)
   const [mode, setMode] = useState<Mode>('source')
 
+  // Manage body class for editor state
+  useEffect(() => {
+    if (typeof document === 'undefined') return
+    if (enabled && canEdit) {
+      document.body.classList.add('inline-editor-enabled')
+    } else {
+      document.body.classList.remove('inline-editor-enabled')
+    }
+  }, [enabled, canEdit])
+
   // Initialize mode from URL on mount
   useEffect(() => {
     if (typeof window !== 'undefined') {

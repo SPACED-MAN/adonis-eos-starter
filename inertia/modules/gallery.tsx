@@ -62,24 +62,21 @@ export default function Gallery({
     setCurrentIndex((prev) => (prev - 1 + imagesValue.length) % imagesValue.length)
   }
 
-  // Handle keyboard navigation
-  const handleKeyDown = (e: React.KeyboardEvent) => {
-    if (!lightboxOpen) return
-
-    switch (e.key) {
-      case 'Escape':
-        closeLightbox()
-        break
-      case 'ArrowRight':
-        nextImage()
-        break
-      case 'ArrowLeft':
-        prevImage()
-        break
-    }
+  const columnClasses: Record<number, string> = {
+    1: 'md:grid-cols-1',
+    2: 'md:grid-cols-2',
+    3: 'md:grid-cols-3',
+    4: 'md:grid-cols-4',
+    5: 'md:grid-cols-5',
+    6: 'md:grid-cols-6',
   }
 
-  const gridClass = layout === 'grid' ? `grid grid-cols-${columns} gap-4` : 'columns-3 gap-4'
+  const gridClass =
+    layout === 'grid'
+      ? `grid grid-cols-1 sm:grid-cols-2 ${columnClasses[columns] || 'md:grid-cols-3'} gap-4`
+      : 'columns-1 sm:columns-2 md:columns-3 gap-4'
+
+  // Handle keyboard navigation
 
   const containerVariants: Variants = {
     hidden: { opacity: 0 },
@@ -105,11 +102,9 @@ export default function Gallery({
     <div className={gridClass}>
       {imagesValue.map((item: any, idx: number) => {
         // EOS resolves the media ID to a full object.
-        // For repeater items that are media fields, 'item' itself is the media object.
-        const media = (
-          typeof item === 'object' && item !== null && (item.url || (item as any).id) ? item : null
-        ) as MediaObject | null
-        const imageSource = media || (item as any as string)
+        // For repeater items that are objects containing media fields, we need to extract the media object.
+        const media = (item?.url && typeof item.url === 'object' ? item.url : null) as MediaObject | null
+        const imageSource = media || item?.url || item
 
         const caption = media?.title || media?.caption || (item as any).caption
         const hasCaption = !!caption?.trim()
@@ -125,7 +120,7 @@ export default function Gallery({
             className="cursor-pointer overflow-hidden rounded-lg transition-all hover:ring-2 hover:ring-primary/50 aspect-square group bg-backdrop-medium relative"
             onClick={() => openLightbox(idx)}
             data-inline-type="media"
-            data-inline-path={`images[${idx}]`}
+            data-inline-path={`images[${idx}].url`}
           >
             <MediaRenderer
               image={imageSource}
@@ -231,10 +226,8 @@ export default function Gallery({
             >
               {(() => {
                 const item = imagesValue[currentIndex]
-                const media = (
-                  typeof item === 'object' && item !== null && (item.url || (item as any).id) ? item : null
-                ) as MediaObject | null
-                const imageSource = media || (item as any as string)
+                const media = (item?.url && typeof item.url === 'object' ? item.url : null) as MediaObject | null
+                const imageSource = media || item?.url || item
 
                 const caption = media?.title || media?.caption || (item as any).caption
                 const hasCaption = !!caption?.trim()
