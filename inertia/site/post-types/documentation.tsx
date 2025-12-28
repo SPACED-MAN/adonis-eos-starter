@@ -189,21 +189,21 @@ export default function DocumentationPostType({
         modules={memoizedModules}
         availableModes={availableModes}
       >
-        <SiteHeader />
+      <SiteHeader />
 
-        {/* Support Page Layout with Sidebar */}
-        <main className="bg-backdrop-low min-h-screen">
-          <div className="container mx-auto px-4 sm:px-6 lg:px-8 py-12">
-            <div className="flex flex-col lg:flex-row gap-8">
-              {/* Sidebar Navigation */}
-              <aside className="lg:w-64 shrink-0">
+      {/* Support Page Layout with Sidebar */}
+      <main className="bg-backdrop-low min-h-screen">
+        <div className="container mx-auto px-4 sm:px-6 lg:px-8 py-12">
+          <div className="flex flex-col lg:flex-row gap-8">
+            {/* Sidebar Navigation */}
+            <aside className="lg:w-64 shrink-0">
                 {showSearch && (
                   <React.Suspense
                     fallback={
                       <div className="h-10 w-full mb-6 rounded-lg border border-line-low bg-backdrop" />
                     }
                   >
-                    <SearchModal type="documentation" placeholder="Search docs..." />
+              <SearchModal type="documentation" placeholder="Search docs..." />
                   </React.Suspense>
                 )}
                 <SidebarMenu
@@ -211,23 +211,23 @@ export default function DocumentationPostType({
                   currentPageId={post.id}
                   title="Documentation"
                 />
-              </aside>
+            </aside>
 
-              {/* Main Content */}
-              <div className="flex-1 min-w-0">
-                {/* Page Title */}
-                <h1 className="text-4xl font-bold text-neutral-high mb-8 px-4 sm:px-6 lg:px-8">
-                  {post.title}
-                </h1>
+            {/* Main Content */}
+            <div className="flex-1 min-w-0">
+              {/* Page Title */}
+              <h1 className="text-4xl font-bold text-neutral-high mb-8 px-4 sm:px-6 lg:px-8">
+                {post.title}
+              </h1>
 
-                {/* Modules */}
+              {/* Modules */}
                 <LiveModuleList postId={post.id} />
-              </div>
             </div>
           </div>
-        </main>
+        </div>
+      </main>
 
-        <SiteFooter />
+      <SiteFooter />
         {isAuthenticated && <InlineOverlay />}
       </InlineEditorProvider>
     </>

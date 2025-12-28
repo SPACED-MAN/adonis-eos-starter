@@ -914,7 +914,15 @@ export function InlineEditorProvider({
         for (const [path, value] of entries) {
           let finalValue: any
           try {
-            finalValue = safeJsonClone(value)
+            // If it's a media object (from MediaPicker), extract only the ID for saving
+            const isMediaObject =
+              value &&
+              typeof value === 'object' &&
+              value.id &&
+              value.url &&
+              (value.mimeType || value.metadata)
+            
+            finalValue = isMediaObject ? value.id : safeJsonClone(value)
           } catch (e) {
             console.error('Failed to JSON-clone inline value, skipping:', { path, value }, e)
             continue

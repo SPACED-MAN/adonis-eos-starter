@@ -346,14 +346,14 @@ export function ModulePicker({
                             </div>
                           )}
                         </div>
-                           <button
-                             type="button"
+                        <button
+                          type="button"
                              onClick={() => addModule(m.type, m.name)}
-                             className="shrink-0 inline-flex items-center rounded border border-line-medium bg-backdrop-low px-2.5 py-1.5 text-xs text-neutral-high hover:bg-backdrop-medium"
-                             disabled={loading}
-                           >
-                             Add
-                           </button>
+                          className="shrink-0 inline-flex items-center rounded border border-line-medium bg-backdrop-low px-2.5 py-1.5 text-xs text-neutral-high hover:bg-backdrop-medium"
+                          disabled={loading}
+                        >
+                          Add
+                        </button>
                       </div>
                     )
                   })}
@@ -379,14 +379,14 @@ export function ModulePicker({
                           {g.type} {g.globalSlug ? `· ${g.globalSlug}` : ''}
                         </div>
                       </div>
-                         <button
-                           type="button"
+                      <button
+                        type="button"
                            onClick={() => addGlobal(g.type, g.globalSlug, g.label)}
-                           className="shrink-0 inline-flex items-center rounded border border-line-medium bg-backdrop-low px-2.5 py-1.5 text-xs text-neutral-high hover:bg-backdrop-medium"
-                           disabled={loading}
-                         >
-                           Add
-                         </button>
+                        className="shrink-0 inline-flex items-center rounded border border-line-medium bg-backdrop-low px-2.5 py-1.5 text-xs text-neutral-high hover:bg-backdrop-medium"
+                        disabled={loading}
+                      >
+                        Add
+                      </button>
                     </div>
                   ))}
                 </div>

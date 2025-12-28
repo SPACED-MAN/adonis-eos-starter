@@ -61,11 +61,11 @@ export function MobileNav({
           </SheetHeader>
           <div className="flex flex-col gap-6 py-8">
             {showSearch && (
-              <div className="px-2">
+            <div className="px-2">
                 <React.Suspense fallback={<div className="h-10 w-full" />}>
-                  <SearchModal placeholder="Search site..." variant="navbar" />
+              <SearchModal placeholder="Search site..." variant="navbar" />
                 </React.Suspense>
-              </div>
+            </div>
             )}
             <nav className="flex flex-col gap-1">
               {primaryNodes.map((node) => (

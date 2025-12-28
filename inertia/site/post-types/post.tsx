@@ -27,7 +27,7 @@ interface PostPageProps {
   }
   abVariations?: Array<{ id: string; variation: string; status: string }>
   translations?: Array<{ id: string; locale: string; path: string }>
-    modules: Array<{
+  modules: Array<{
     id: string
     type: string
     name?: string

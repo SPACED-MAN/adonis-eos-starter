@@ -43,6 +43,7 @@ export default function Gallery({
   const [lightboxOpen, setLightboxOpen] = useState(false)
   const [currentIndex, setCurrentIndex] = useState(0)
   const bg = useInlineValue(__moduleId, 'backgroundColor', initialBackground) || initialBackground
+  const imagesValue = useInlineValue(__moduleId, 'images', images) || images
 
   const openLightbox = (index: number) => {
     setCurrentIndex(index)
@@ -54,11 +55,11 @@ export default function Gallery({
   }
 
   const nextImage = () => {
-    setCurrentIndex((prev) => (prev + 1) % images.length)
+    setCurrentIndex((prev) => (prev + 1) % imagesValue.length)
   }
 
   const prevImage = () => {
-    setCurrentIndex((prev) => (prev - 1 + images.length) % images.length)
+    setCurrentIndex((prev) => (prev - 1 + imagesValue.length) % imagesValue.length)
   }
 
   // Handle keyboard navigation
@@ -102,17 +103,17 @@ export default function Gallery({
 
   const gridContent = (
     <div className={gridClass}>
-      {images.map((item, idx) => {
-        // EOS resolves the media ID to a full object. Because the field slug was 'url',
-        // item.url will be the media object if resolved, or a string if not.
+      {imagesValue.map((item: any, idx: number) => {
+        // EOS resolves the media ID to a full object.
+        // For repeater items that are media fields, 'item' itself is the media object.
         const media = (
-          typeof item.url === 'object' && item.url !== null ? item.url : null
+          typeof item === 'object' && item !== null && (item.url || (item as any).id) ? item : null
         ) as MediaObject | null
-        const imageSource = media || (item.url as string)
+        const imageSource = media || (item as any as string)
 
-        const caption = media?.title || media?.caption || item.caption
+        const caption = media?.title || media?.caption || (item as any).caption
         const hasCaption = !!caption?.trim()
-        const effectiveAlt = media?.altText || item.alt || item.altText || ''
+        const effectiveAlt = media?.altText || (item as any).alt || (item as any).altText || ''
         const altMatchesCaption = hasCaption && effectiveAlt.trim() === caption?.trim()
         const altText = altMatchesCaption
           ? `Image ${idx + 1}${hasCaption ? `: ${caption.substring(0, 50)}` : ''}`
@@ -121,8 +122,10 @@ export default function Gallery({
         const figure = (
           <figure
             key={idx}
-            className="cursor-pointer overflow-hidden rounded-lg transition-all hover:ring-2 hover:ring-primary/50 aspect-square group bg-backdrop-medium"
+            className="cursor-pointer overflow-hidden rounded-lg transition-all hover:ring-2 hover:ring-primary/50 aspect-square group bg-backdrop-medium relative"
             onClick={() => openLightbox(idx)}
+            data-inline-type="media"
+            data-inline-path={`images[${idx}]`}
           >
             <MediaRenderer
               image={imageSource}
@@ -204,7 +207,7 @@ export default function Gallery({
             </button>
 
             {/* Previous Button */}
-            {images.length > 1 && (
+            {imagesValue.length > 1 && (
               <button
                 onClick={(e) => {
                   e.stopPropagation()
@@ -227,15 +230,15 @@ export default function Gallery({
               onClick={(e) => e.stopPropagation()}
             >
               {(() => {
-                const item = images[currentIndex]
+                const item = imagesValue[currentIndex]
                 const media = (
-                  typeof item.url === 'object' && item.url !== null ? item.url : null
+                  typeof item === 'object' && item !== null && (item.url || (item as any).id) ? item : null
                 ) as MediaObject | null
-                const imageSource = media || (item.url as string)
+                const imageSource = media || (item as any as string)
 
-                const caption = media?.title || media?.caption || item.caption
+                const caption = media?.title || media?.caption || (item as any).caption
                 const hasCaption = !!caption?.trim()
-                const effectiveAlt = media?.altText || item.alt || item.altText || ''
+                const effectiveAlt = media?.altText || (item as any).alt || (item as any).altText || ''
                 const altMatchesCaption = hasCaption && effectiveAlt.trim() === caption?.trim()
                 const altText = altMatchesCaption
                   ? `Image ${currentIndex + 1}${hasCaption ? `: ${caption.substring(0, 50)}` : ''}`
@@ -260,7 +263,7 @@ export default function Gallery({
             </motion.div>
 
             {/* Next Button */}
-            {images.length > 1 && (
+            {imagesValue.length > 1 && (
               <button
                 onClick={(e) => {
                   e.stopPropagation()
@@ -275,7 +278,7 @@ export default function Gallery({
 
             {/* Image Counter */}
             <div className="absolute bottom-8 left-1/2 -translate-x-1/2 text-white/70 text-sm font-medium tracking-widest uppercase">
-              {currentIndex + 1} / {images.length}
+              {currentIndex + 1} / {imagesValue.length}
             </div>
           </motion.div>
         )}

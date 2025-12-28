@@ -474,7 +474,7 @@ export function InlineOverlay() {
             if (!open) setMediaTarget(null)
           }}
           onSelect={(item) => {
-            setValue(mediaTarget.moduleId, mediaTarget.path, item.id)
+            setValue(mediaTarget.moduleId, mediaTarget.path, item)
             setMediaTarget(null)
           }}
           allowUpload
