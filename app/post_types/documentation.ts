@@ -35,6 +35,7 @@ const documentationPostType: PostTypeDefinition = {
     'accordions',
     'callout',
     'blockquote',
+    'tabbed-content',
   ],
   fields: [],
 }

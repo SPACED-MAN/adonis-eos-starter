@@ -2373,7 +2373,10 @@ function createServerInstance() {
           if (/\bfaq\b|\bquestions?\b|\baccordions?\b/.test(t)) add('faq')
           if (/\bpricing\b|\bplans?\b/.test(t)) add('pricing')
           if (/\blogos?\b|\bbrands?\b/.test(t)) add('logos')
-          if (/\bfeatures?\b/.test(t)) add('features')
+          if (/\bfeatures?\b/.test(t)) {
+            add('features')
+            add('tabbed-content')
+          }
           if (/\bstat(s)?\b|\bmetrics?\b/.test(t)) add('stats')
           if (/\bcontent\b|\bprose\b|\bbody\b/.test(t)) add('body')
           return roles
@@ -2438,6 +2441,7 @@ function createServerInstance() {
           add('features')
           add('body')
           add('stats')
+          add('tabbed-content')
           add('gallery')
           add('testimonials')
           add('faq')

@@ -17,6 +17,20 @@ export default class AccordionModule extends BaseModule {
       lockable: true,
       fieldSchema: [
         {
+          slug: 'title',
+          type: 'text',
+          label: 'Heading',
+          required: false,
+          translatable: true,
+        },
+        {
+          slug: 'subtitle',
+          type: 'text',
+          label: 'Subtitle',
+          required: false,
+          translatable: true,
+        },
+        {
           slug: 'items',
           type: 'repeater',
           required: true,
@@ -52,6 +66,8 @@ export default class AccordionModule extends BaseModule {
         backgroundColorField,
       ],
       defaultValues: {
+        title: '',
+        subtitle: '',
         items: [
           {
             title: 'How do I use this?',
