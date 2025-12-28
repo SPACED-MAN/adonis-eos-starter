@@ -17,7 +17,7 @@ interface TabItem {
 	} | null
 }
 
-interface TabbedContentProps {
+interface TabbedFeaturesProps {
 	title?: string
 	subtitle?: string
 	tabs: TabItem[]
@@ -27,14 +27,14 @@ interface TabbedContentProps {
 	_useReact?: boolean
 }
 
-export default function TabbedContent({
+export default function TabbedFeatures({
 	title: initialTitle,
 	subtitle: initialSubtitle,
 	tabs: initialTabs = [],
 	layout: initialLayout = 'top',
 	backgroundColor: initialBackground = 'bg-transparent',
 	__moduleId,
-}: TabbedContentProps) {
+}: TabbedFeaturesProps) {
 	const { value: title, show: showTitle, props: titleProps } = useInlineField(__moduleId, 'title', initialTitle, { label: 'Title' })
 	const { value: subtitle, show: showSubtitle, props: subtitleProps } = useInlineField(__moduleId, 'subtitle', initialSubtitle, { label: 'Subtitle' })
 	const tabs = useInlineValue(__moduleId, 'tabs', initialTabs) || []
@@ -163,7 +163,7 @@ export default function TabbedContent({
 	)
 
 	return (
-		<section className={`${bg} py-20 lg:py-32 overflow-hidden`} data-module="tabbed-content">
+		<section className={`${bg} py-20 lg:py-32 overflow-hidden`} data-module="tabbed-features">
 			<div className="container mx-auto px-4 sm:px-6 lg:px-8">
 				{layout === 'top' && (
 					<>

@@ -2,22 +2,22 @@ import BaseModule from '#modules/base'
 import type { ModuleConfig } from '#types/module_types'
 import { backgroundColorField } from './shared_fields.js'
 
-export default class TabbedContentModule extends BaseModule {
+export default class TabbedFeaturesModule extends BaseModule {
   getRenderingMode() {
     return 'hybrid' as const
   }
 
   getConfig(): ModuleConfig {
     return {
-      type: 'tabbed-content',
-      name: 'Tabbed Content',
+      type: 'tabbed-features',
+      name: 'Tabbed Features',
       description: 'Switch between content sections using tabs.',
       icon: 'table-columns',
       allowedScopes: ['local', 'global'],
       lockable: true,
       aiGuidance: {
         layoutRoles: ['body', 'content', 'features'],
-        keywords: ['tabs', 'tabbed', 'features', 'comparison'],
+        keywords: ['tabs', 'tabbed', 'features', 'comparison', 'tabbed features'],
         useWhen: [
           'You have multiple related categories of information to present.',
           'You want to save vertical space by grouping content into tabs.',
