@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useState, Suspense } from 'react'
 import { router } from '@inertiajs/react'
 import { toast } from 'sonner'
 import {
@@ -14,6 +14,7 @@ import { getXsrf } from '~/utils/xsrf'
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome'
 import { faReact } from '@fortawesome/free-brands-svg-icons'
 import { Tooltip, TooltipContent, TooltipTrigger } from '~/components/ui/tooltip'
+import Modules from '~/modules'
 
 type ModuleConfig = {
   type: string
@@ -22,9 +23,56 @@ type ModuleConfig = {
   icon?: string
   category?: string
   renderingMode?: 'static' | 'react'
+  defaultValues?: Record<string, any>
 }
 
-type GlobalItem = { id: string; type: string; globalSlug: string | null; label?: string | null }
+/**
+ * Thumbnail preview of a module
+ */
+function ModuleThumbnail({
+  type,
+  defaultValues,
+}: {
+  type: string
+  defaultValues?: Record<string, any>
+}) {
+  // Convert kebab-case to PascalCase
+  const pascalName = type
+    .split('-')
+    .map((part) => part.charAt(0).toUpperCase() + part.slice(1))
+    .join('')
+
+  const Component = (Modules as any)[pascalName]
+
+  if (!Component) {
+    return (
+      <div className="w-full h-full bg-backdrop-low flex items-center justify-center text-[10px] text-neutral-low border border-line-low rounded overflow-hidden">
+        No Preview
+      </div>
+    )
+  }
+
+  return (
+    <div className="w-full h-full relative overflow-hidden bg-backdrop-low border border-line-low rounded shadow-sm">
+      <div
+        className="absolute top-0 left-0 w-[1024px] origin-top-left pointer-events-none"
+        style={{ transform: 'scale(0.25)' }}
+      >
+        <Suspense fallback={null}>
+          <Component {...(defaultValues || {})} />
+        </Suspense>
+      </div>
+    </div>
+  )
+}
+
+type GlobalItem = {
+  id: string
+  type: string
+  globalSlug: string | null
+  label?: string | null
+  props?: Record<string, any>
+}
 
 type OnAddPayload = { type: string; scope: 'post' | 'global'; globalSlug?: string | null }
 
@@ -226,16 +274,19 @@ export function ModulePicker({
                     return (
                       <div
                         key={m.type}
-                        className="px-3 py-3 hover:bg-backdrop-medium flex items-start justify-between gap-3"
+                        className="px-3 py-4 hover:bg-backdrop-medium flex items-start gap-4"
                       >
-                        <div>
+                        <div className="shrink-0 w-64 h-36">
+                          <ModuleThumbnail type={m.type} defaultValues={m.defaultValues} />
+                        </div>
+                        <div className="flex-1 min-w-0">
                           <div className="text-sm font-medium text-neutral-high flex items-center gap-2">
-                            <span>{m.name || m.type}</span>
+                            <span className="truncate">{m.name || m.type}</span>
                             {isReact && (
                               <Tooltip>
                                 <TooltipTrigger asChild>
                                   <span
-                                    className="inline-flex items-center rounded border border-line-medium bg-backdrop-low px-1.5 py-0.5 text-[10px] text-neutral-high cursor-help"
+                                    className="shrink-0 inline-flex items-center rounded border border-line-medium bg-backdrop-low px-1.5 py-0.5 text-[10px] text-neutral-high cursor-help"
                                     aria-label="React module"
                                   >
                                     <FontAwesomeIcon icon={faReact} className="mr-1 text-sky-400" />
@@ -274,10 +325,13 @@ export function ModulePicker({
                   {globals.map((g) => (
                     <div
                       key={g.id}
-                      className="px-3 py-3 hover:bg-backdrop-medium flex items-start justify-between gap-3"
+                      className="px-3 py-4 hover:bg-backdrop-medium flex items-start gap-4"
                     >
-                      <div>
-                        <div className="text-sm font-medium text-neutral-high">
+                      <div className="shrink-0 w-64 h-36">
+                        <ModuleThumbnail type={g.type} defaultValues={g.props} />
+                      </div>
+                      <div className="flex-1 min-w-0">
+                        <div className="text-sm font-medium text-neutral-high truncate">
                           {g.label || g.globalSlug || '(untitled)'}
                         </div>
                         <div className="text-xs text-neutral-low">

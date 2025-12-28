@@ -73,7 +73,9 @@ class ModuleRegistry {
    *
    * @returns Array of module configurations
    */
-  getAllConfigs(): Array<ModuleConfig & { renderingMode: 'static' | 'react' | 'hybrid' }> {
+  getAllConfigs(): Array<
+    ModuleConfig & { renderingMode: 'static' | 'react' | 'hybrid'; defaultValues: Record<string, any> }
+  > {
     return Array.from(this.modules.values()).map((module) => {
       const config = module.getConfig()
       const renderingMode =
@@ -82,6 +84,7 @@ class ModuleRegistry {
 
       return {
         ...config,
+        defaultValues: config.defaultValues || {},
         renderingMode,
       }
     })
