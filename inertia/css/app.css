@@ -411,19 +411,14 @@
 
 .prose pre,
 [class*='prose-'] pre {
-  background-color: var(--color-backdrop-medium) !important;
-  border: 1px solid var(--color-line-low) !important;
+  background-color: var(--color-neutral-high) !important;
+  color: var(--color-backdrop-input) !important;
+  border: 1px solid var(--color-line-medium) !important;
   border-radius: 0.5rem !important;
   padding: 1rem !important;
   overflow-x: auto !important;
   margin-top: 1rem !important;
   margin-bottom: 1rem !important;
-}
-
-.prose-invert pre,
-.prose-invert [class*='prose-'] pre {
-  background-color: rgba(0, 0, 0, 0.2) !important;
-  border-color: rgba(255, 255, 255, 0.1) !important;
 }
 
 .prose pre code,
@@ -434,6 +429,13 @@
   font-size: 0.875rem !important;
   line-height: 1.5 !important;
   color: inherit !important;
+}
+
+.prose-invert pre,
+.prose-invert [class*='prose-'] pre {
+  background-color: rgba(0, 0, 0, 0.4) !important;
+  border-color: rgba(255, 255, 255, 0.1) !important;
+  color: var(--color-on-standout) !important;
 }
 
 .prose hr,

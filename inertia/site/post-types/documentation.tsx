@@ -4,7 +4,11 @@ import Modules from '../../modules'
 import { SiteFooter } from '../components/SiteFooter'
 import { SiteHeader } from '../components/SiteHeader'
 import { SidebarMenu } from '../components/menu/SidebarMenu'
-import { SearchModal } from '../components/SearchModal'
+import * as React from 'react'
+
+const SearchModal = React.lazy(() =>
+  import('../components/SearchModal').then((m) => ({ default: m.SearchModal }))
+)
 import {
   InlineEditorProvider,
   useInlineEditor,
@@ -57,6 +61,10 @@ interface DocumentationPageProps {
     [key: string]: any
   }
   customFields?: Record<string, any>
+  siteSettings?: {
+    defaultMetaDescription?: string | null
+    [key: string]: any
+  }
   availableModes?: {
     hasSource: boolean
     hasReview: boolean
@@ -110,6 +118,7 @@ export default function DocumentationPostType({
   abVariations = [],
   customFields = {},
   availableModes,
+  siteSettings,
 }: DocumentationPageProps) {
   const page = usePage()
   const currentUser = (page.props as any)?.currentUser
@@ -138,6 +147,10 @@ export default function DocumentationPostType({
       })),
     [modules]
   )
+
+  const showSearch =
+    siteSettings?.customFields?.show_search !== false &&
+    siteSettings?.customFields?.show_search !== 'false'
 
   return (
     <>
@@ -184,7 +197,15 @@ export default function DocumentationPostType({
             <div className="flex flex-col lg:flex-row gap-8">
               {/* Sidebar Navigation */}
               <aside className="lg:w-64 shrink-0">
-                <SearchModal type="documentation" placeholder="Search docs..." />
+                {showSearch && (
+                  <React.Suspense
+                    fallback={
+                      <div className="h-10 w-full mb-6 rounded-lg border border-line-low bg-backdrop" />
+                    }
+                  >
+                    <SearchModal type="documentation" placeholder="Search docs..." />
+                  </React.Suspense>
+                )}
                 <SidebarMenu
                   nodes={documentationNav}
                   currentPageId={post.id}

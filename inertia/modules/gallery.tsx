@@ -240,14 +240,14 @@ export default function Gallery({
                 const altText = altMatchesCaption
                   ? `Image ${currentIndex + 1}${hasCaption ? `: ${caption.substring(0, 50)}` : ''}`
                   : effectiveAlt ||
-                    (hasCaption ? `Image ${currentIndex + 1}` : `Gallery image ${currentIndex + 1}`)
+                  (hasCaption ? `Image ${currentIndex + 1}` : `Gallery image ${currentIndex + 1}`)
 
                 return (
                   <>
                     <MediaRenderer
                       image={imageSource}
                       alt={altText}
-                      className="max-w-full max-h-[80vh] object-contain shadow-2xl rounded"
+                      className="max-w-full max-h-[80vh] object-contain shadow-2xl rounded bg-backdrop-low"
                       decoding="async"
                       key={currentIndex}
                     />

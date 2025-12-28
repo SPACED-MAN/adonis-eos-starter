@@ -10,14 +10,20 @@ import {
 } from '~/components/ui/sheet'
 import { type TreeNode } from './types'
 import { MenuItemLink } from './MenuItemLink'
-import { SearchModal } from '../SearchModal'
+import * as React from 'react'
+
+const SearchModal = React.lazy(() =>
+  import('../SearchModal').then((m) => ({ default: m.SearchModal }))
+)
 
 export function MobileNav({
   primaryNodes,
   currentUser,
+  showSearch = true,
 }: {
   primaryNodes: TreeNode[]
   currentUser?: any
+  showSearch?: boolean
 }) {
   const [open, setOpen] = useState(false)
   const [mounted, setMounted] = useState(false)
@@ -54,9 +60,13 @@ export function MobileNav({
             </SheetDescription>
           </SheetHeader>
           <div className="flex flex-col gap-6 py-8">
-            <div className="px-2">
-              <SearchModal placeholder="Search site..." variant="navbar" />
-            </div>
+            {showSearch && (
+              <div className="px-2">
+                <React.Suspense fallback={<div className="h-10 w-full" />}>
+                  <SearchModal placeholder="Search site..." variant="navbar" />
+                </React.Suspense>
+              </div>
+            )}
             <nav className="flex flex-col gap-1">
               {primaryNodes.map((node) => (
                 <div key={node.id} className="flex flex-col gap-1">

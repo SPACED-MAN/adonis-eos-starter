@@ -62,21 +62,21 @@ export function SiteAdminBar({ initialProps }: { initialProps?: any }) {
     enabled: false,
     canEdit: false,
     mode: 'source',
-    toggle: () => {},
-    setMode: () => {},
+    toggle: () => { },
+    setMode: () => { },
     dirty: false,
-    saveAll: async () => {},
-    saveForReview: async () => {},
+    saveAll: async () => { },
+    saveForReview: async () => { },
     availableModes: { hasSource: true, hasReview: false, hasAiReview: false },
     showDiffs: false,
-    toggleShowDiffs: () => {},
+    toggleShowDiffs: () => { },
     abVariations: [],
     modules: [],
-    reorderModules: () => {},
-    addModule: () => {},
-    removeModule: () => {},
-    updateModuleLabel: () => {},
-    duplicateModule: () => {},
+    reorderModules: () => { },
+    addModule: () => { },
+    removeModule: () => { },
+    updateModuleLabel: () => { },
+    duplicateModule: () => { },
   })
   const [mounted, setMounted] = useState(false)
   useEffect(() => {
@@ -261,7 +261,7 @@ export function SiteAdminBar({ initialProps }: { initialProps?: any }) {
     if (typeof context === 'string') {
       try {
         context = JSON.parse(context)
-      } catch (e) {}
+      } catch (e) { }
     }
 
     if (!context?.selector) return
@@ -347,11 +347,10 @@ export function SiteAdminBar({ initialProps }: { initialProps?: any }) {
                 <TooltipTrigger asChild>
                   <button
                     type="button"
-                    className={`px-3 py-2 text-[10px] font-bold transition-all ${
-                      v.id === post?.id
+                    className={`px-3 py-2 text-[10px] font-bold transition-all ${v.id === post?.id
                         ? 'bg-standout-medium text-on-standout shadow-inner'
                         : 'text-neutral-high hover:bg-backdrop-medium'
-                    } ${v.id !== inline.abVariations[inline.abVariations.length - 1].id ? 'border-r border-line-medium' : ''}`}
+                      } ${v.id !== inline.abVariations[inline.abVariations.length - 1].id ? 'border-r border-line-medium' : ''}`}
                     onClick={() => {
                       if (v.id === post?.id) return
                       const url = new URL(window.location.href)
@@ -417,9 +416,6 @@ export function SiteAdminBar({ initialProps }: { initialProps?: any }) {
                 <p>{inline.enabled ? 'Edits On' : 'Edits Off'}</p>
               </TooltipContent>
             </Tooltip>
-          </div>
-
-          <div className="inline-flex overflow-hidden rounded-md border border-line-medium bg-backdrop-high shadow">
             {inline.enabled && (inline.mode === 'review' || inline.mode === 'ai-review') && (
               <Tooltip>
                 <TooltipTrigger asChild>

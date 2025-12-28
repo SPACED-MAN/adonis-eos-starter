@@ -14,7 +14,7 @@ const siteFields: SiteField[] = [
   },
   { slug: 'contact_email', label: 'Contact Email', type: 'text', category: 'Contact' },
   { slug: 'footer_note', label: 'Footer Note', type: 'textarea', category: 'General' },
-  { slug: 'show_search', label: 'Show Search', type: 'boolean', category: 'General' },
+  { slug: 'show_search', label: 'Enable Search', type: 'boolean', category: 'General' },
   // Protected content access (optional; falls back to env if unset)
   {
     slug: 'protected_access_username',
