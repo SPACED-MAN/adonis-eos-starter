@@ -603,7 +603,7 @@ function FieldDialogContent({ pop, onClose, getValue, setValue }: DialogContentP
   const selectStyle =
     'w-full border border-line-medium rounded-xl px-4 py-2.5 bg-backdrop-low text-neutral-high text-sm focus:ring-2 focus:ring-standout-medium/20 focus:border-standout-medium outline-none transition-all shadow-sm appearance-none'
   const buttonStyle =
-    'w-full mt-6 bg-standout-medium text-on-standout px-4 py-3 rounded-xl font-bold shadow-lg shadow-standout-medium/20 hover:bg-standout-high transition-all flex items-center justify-center gap-2'
+    'w-full mt-6 bg-standout-medium text-on-high px-4 py-3 rounded-xl font-bold shadow-lg shadow-standout-medium/20 hover:bg-standout-high transition-all flex items-center justify-center gap-2'
   const containerStyle = 'p-4 bg-backdrop-medium/30 border border-line-low rounded-xl space-y-4'
 
   const renderControl = () => {

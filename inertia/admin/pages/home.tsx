@@ -51,7 +51,7 @@ export default function Home() {
                 You don’t have a Profile yet. Create one to manage your bio.
               </p>
               <button
-                className="px-3 py-2 text-sm border border-line-low rounded bg-standout-medium text-on-standout"
+                className="px-3 py-2 text-sm border border-line-low rounded bg-standout-medium text-on-high"
                 onClick={async () => {
                   const res = await fetch('/api/users/me/profile', {
                     method: 'POST',

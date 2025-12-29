@@ -70,7 +70,7 @@ export default function SearchPage(props: {
             <div className="sm:col-span-5 flex items-center gap-3">
               <button
                 type="submit"
-                className="inline-flex items-center rounded-md bg-standout-medium text-on-standout text-sm px-4 py-2"
+                className="inline-flex items-center rounded-md bg-standout-medium text-on-high text-sm px-4 py-2"
               >
                 Search
               </button>

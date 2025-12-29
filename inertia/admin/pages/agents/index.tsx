@@ -420,8 +420,8 @@ export default function AgentsIndex() {
               <button
                 type="button"
                 className={`px-4 py-2 text-sm font-semibold rounded-lg transition-all ${saving
-                  ? 'bg-standout-medium/50 text-on-standout/50 cursor-not-allowed'
-                  : 'bg-standout-medium text-on-standout hover:bg-standout-high active:scale-95 shadow-sm hover:shadow-md'
+                  ? 'bg-standout-medium/50 text-on-high/50 cursor-not-allowed'
+                  : 'bg-standout-medium text-on-high hover:bg-standout-high active:scale-95 shadow-sm hover:shadow-md'
                   }`}
                 disabled={saving}
                 onClick={saveSettings}

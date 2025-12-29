@@ -379,7 +379,7 @@ function ButtonDialog({
         <DialogFooter>
           <button
             type="button"
-            className="px-4 py-2 bg-standout-medium text-on-standout rounded hover:opacity-90"
+            className="px-4 py-2 bg-standout-medium text-on-high rounded hover:opacity-90"
             onClick={() => {
               onSubmit({ label, url, variant })
               setLabel('')

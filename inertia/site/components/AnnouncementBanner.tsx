@@ -39,7 +39,7 @@ export function AnnouncementBanner() {
   if (!announcementHtml || !isVisible) return null
 
   return (
-    <div className="bg-standout-medium text-on-standout py-2 px-4 relative z-[60]">
+    <div className="bg-standout-medium text-on-high py-2 px-4 relative z-[60]">
       <div className="container mx-auto flex items-center justify-between gap-4">
         <div
           className="flex-1 text-sm font-medium text-center prose prose-sm prose-invert max-w-none announcement-content"
@@ -47,7 +47,7 @@ export function AnnouncementBanner() {
         />
         <button
           onClick={() => setIsVisible(false)}
-          className="text-on-standout/80 hover:text-on-standout transition-colors p-1"
+          className="text-on-high/80 hover:text-on-high transition-colors p-1"
           aria-label="Close announcement"
         >
           <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">

@@ -44,8 +44,8 @@ export default function Faq({
   const bg = useInlineValue(__moduleId, 'backgroundColor', backgroundColor) || backgroundColor
 
   const isDarkBg = bg === 'bg-neutral-high' || bg === 'bg-backdrop-high' || bg === 'bg-standout-medium'
-  const textColor = isDarkBg ? 'text-on-standout' : 'text-neutral-high'
-  const subtextColor = isDarkBg ? 'text-on-standout/80' : 'text-neutral-medium'
+  const textColor = isDarkBg ? 'text-on-high' : 'text-neutral-high'
+  const subtextColor = isDarkBg ? 'text-on-high/80' : 'text-neutral-medium'
 
   const safeItems = Array.isArray(items) ? items.filter(Boolean) : []
   if (safeItems.length === 0) return null
@@ -93,7 +93,7 @@ export default function Faq({
           ])}
         >
           <span
-            className={`mt-0.5 mr-3 inline-flex h-8 w-8 items-center justify-center rounded-full ${isDarkBg ? 'bg-on-standout/20 text-on-standout' : 'bg-backdrop-medium text-neutral-medium'} shrink-0`}
+            className={`mt-0.5 mr-3 inline-flex h-8 w-8 items-center justify-center rounded-full ${isDarkBg ? 'bg-on-high/20 text-on-high' : 'bg-backdrop-medium text-neutral-medium'} shrink-0`}
             aria-hidden="true"
           >
             <FontAwesomeIcon icon="circle-question" className="text-base sm:text-lg" />
@@ -112,7 +112,7 @@ export default function Faq({
                 href={link.href}
                 target={link.target}
                 rel={link.target === '_blank' ? 'noopener noreferrer' : undefined}
-                className={`font-medium ${isDarkBg ? 'text-on-standout hover:underline' : 'text-standout-high hover:underline'}`}
+                className={`font-medium ${isDarkBg ? 'text-on-high hover:underline' : 'text-standout-high hover:underline'}`}
                 data-inline-type="link"
                 data-inline-path={`items.${idx}.linkUrl`}
               >

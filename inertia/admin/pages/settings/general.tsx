@@ -536,7 +536,7 @@ export default function GeneralSettings() {
           <div className="flex items-center gap-2">
             <button
               type="button"
-              className={`px-3 py-2 text-sm rounded ${saving ? 'opacity-60' : 'bg-standout-medium text-on-standout'}`}
+              className={`px-3 py-2 text-sm rounded ${saving ? 'opacity-60' : 'bg-standout-medium text-on-high'}`}
               disabled={saving}
               onClick={save}
             >

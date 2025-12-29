@@ -86,7 +86,7 @@ Themes defined in `inertia/css/app.css`:
 
 Use the named color tokens:
 
-- `bg-standout`, `text-on-standout`
+- `bg-standout`, `text-on-high`
 - `text-neutral-{low|medium|high}`
 - `bg-backdrop-{low|medium|high}`
 - `border-line`
@@ -112,7 +112,7 @@ The theme is defined in `inertia/css/app.css` using CSS custom properties.
 --neutral-high     /* Headings */
 
 --standout         /* Primary actions */
---on-standout      /* Text on standout */
+--on-high      /* Text on standout */
 
 --accent           /* Secondary actions */
 --on-accent        /* Text on accent */
@@ -126,7 +126,7 @@ These tokens are available as Tailwind classes:
 <div className="bg-backdrop-low border-line">
   <h1 className="text-neutral-high">Heading</h1>
   <p className="text-neutral-medium">Body text</p>
-  <button className="bg-standout text-on-standout">Action</button>
+  <button className="bg-standout text-on-high">Action</button>
 </div>
 ```
 
@@ -210,13 +210,13 @@ Edit `inertia/css/app.css`:
 ```css
 :root {
   --standout: 220 90% 56%; /* HSL values */
-  --on-standout: 0 0% 100%;
+  --on-high: 0 0% 100%;
 }
 
 @media (prefers-color-scheme: dark) {
   :root {
     --standout: 220 85% 65%;
-    --on-standout: 220 20% 10%;
+    --on-high: 220 20% 10%;
   }
 }
 ```
@@ -281,7 +281,7 @@ Logos are automatically swapped based on theme.
 <div className="bg-backdrop-low border border-line-low rounded">
   <h1 className="text-neutral-high">Title</h1>
   <p className="text-neutral-low">Description</p>
-  <button className="bg-standout text-on-standout rounded px-3 py-2">
+  <button className="bg-standout text-on-high rounded px-3 py-2">
     Click Me
   </button>
 </div>

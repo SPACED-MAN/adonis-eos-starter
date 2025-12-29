@@ -310,7 +310,7 @@ export function FeedbackPanel({
         <button
           onClick={handleAddFeedback}
           disabled={isAdding || !newFeedbackContent.trim()}
-          className="w-full py-2 bg-standout-medium text-on-standout rounded-xl text-sm font-bold disabled:opacity-50 flex items-center justify-center gap-2"
+          className="w-full py-2 bg-standout-medium text-on-high rounded-xl text-sm font-bold disabled:opacity-50 flex items-center justify-center gap-2"
         >
           {isAdding ? <FontAwesomeIcon icon={faSpinner} spin /> : <FontAwesomeIcon icon={faPlus} />}
           Add Feedback

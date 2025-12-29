@@ -146,7 +146,7 @@ export default function HeroBanner({
         {ctaButton && (
           <a
             href={ctaButton.url}
-            className="inline-block px-6 py-3 bg-standout text-on-standout rounded-lg hover:bg-standout/90"
+            className="inline-block px-6 py-3 bg-standout text-on-high rounded-lg hover:bg-standout/90"
           >
             {ctaButton.label}
           </a>

@@ -27,7 +27,7 @@ export function SidebarMenu({ nodes = [], currentPageId, title }: SidebarMenuPro
           href={node.customUrl || node.url || '#'}
           className={`block py-3 px-3 rounded text-xs transition-colors min-h-[48px] flex items-center ${
             isCurrent
-              ? 'bg-standout-medium text-on-standout font-medium'
+              ? 'bg-standout-medium text-on-high font-medium'
               : 'text-neutral-high hover:bg-backdrop-medium'
           }`}
           style={{ paddingLeft: `${paddingLeft}px` }}

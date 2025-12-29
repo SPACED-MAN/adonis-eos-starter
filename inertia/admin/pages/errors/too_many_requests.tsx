@@ -64,7 +64,7 @@ export default function TooManyRequests({ retryAfter }: TooManyRequestsProps) {
               className={`block w-full px-6 py-3 font-semibold rounded-lg transition-colors ${
                 countdown > 0
                   ? 'bg-neutral-low text-neutral-medium cursor-not-allowed'
-                  : 'bg-standout-medium text-on-standout hover:bg-standout-high'
+                  : 'bg-standout-medium text-on-high hover:bg-standout-high'
               }`}
             >
               Refresh Page

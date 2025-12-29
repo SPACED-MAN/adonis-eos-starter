@@ -3,7 +3,7 @@
 // - bg-backdrop-low, bg-backdrop-medium, bg-backdrop-high
 // - text-neutral-high, text-neutral-low
 // - border-border
-// - bg-standout text-on-standout
+// - bg-standout text-on-high
 // - text-standout
 /** @type {import('tailwindcss').Config} */
 export default {
@@ -19,8 +19,12 @@ export default {
         sans: ['Outfit', 'system-ui', 'sans-serif'],
       },
       colors: {
-        'standout': 'var(--color-standout)',
-        'on-standout': 'var(--color-on-standout)',
+        'standout': {
+          low: 'var(--color-standout-low)',
+          medium: 'var(--color-standout-medium)',
+          high: 'var(--color-standout-high)',
+        },
+        'on-high': 'var(--color-on-high)',
         'error': '#dc2626',
         'on-error': '#ffffff',
         'neutral': {

@@ -233,7 +233,7 @@ export default function FormsIndex({ forms, submissions, meta }: FormsIndexProps
                 <button
                   onClick={handleExport}
                   disabled={isExporting}
-                  className="flex items-center gap-2 px-4 py-2 text-sm font-medium bg-standout-medium text-on-standout rounded-md hover:bg-standout-medium/90 transition-colors disabled:opacity-50"
+                  className="flex items-center gap-2 px-4 py-2 text-sm font-medium bg-standout-medium text-on-high rounded-md hover:bg-standout-medium/90 transition-colors disabled:opacity-50"
                 >
                   {isExporting ? (
                     <FontAwesomeIcon icon={faSpinner} spin size="sm" />

@@ -48,8 +48,8 @@ export default function Pricing({
   const bg = useInlineValue(__moduleId, 'backgroundColor', backgroundColor) || backgroundColor
 
   const isDarkBg = bg === 'bg-neutral-high' || bg === 'bg-backdrop-high' || bg === 'bg-standout-medium'
-  const textColor = isDarkBg ? 'text-on-standout' : 'text-neutral-high'
-  const subtextColor = isDarkBg ? 'text-on-standout/80' : 'text-neutral-medium'
+  const textColor = isDarkBg ? 'text-on-high' : 'text-neutral-high'
+  const subtextColor = isDarkBg ? 'text-on-high/80' : 'text-neutral-medium'
 
   const safePlans = Array.isArray(plans) ? plans.slice(0, 3) : []
 
@@ -185,7 +185,7 @@ export default function Pricing({
                 href={hrefInfo.href}
                 target={hrefInfo.target}
                 rel={hrefInfo.target === '_blank' ? 'noopener noreferrer' : undefined}
-                className={`mt-auto inline-flex justify-center items-center px-5 py-2.5 text-sm font-medium rounded-lg text-on-standout bg-standout-medium hover:opacity-90 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-standout-medium/60 transition-all active:scale-95`}
+                className={`mt-auto inline-flex justify-center items-center px-5 py-2.5 text-sm font-medium rounded-lg text-on-high bg-standout-medium hover:opacity-90 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-standout-medium/60 transition-all active:scale-95`}
                 data-inline-type="link"
                 data-inline-path={`plans.${idx}.ctaUrl`}
               >

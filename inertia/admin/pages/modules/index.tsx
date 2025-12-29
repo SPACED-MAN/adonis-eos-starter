@@ -678,7 +678,7 @@ export default function GlobalModulesIndex() {
                   <h3 className="text-sm font-semibold text-neutral-high">Global Modules</h3>
                   {isAdmin && (
                     <button
-                      className="px-3 py-1.5 text-xs rounded bg-standout-medium text-on-standout cursor-pointer"
+                      className="px-3 py-1.5 text-xs rounded bg-standout-medium text-on-high cursor-pointer"
                       onClick={() => setCreateOpen(true)}
                       type="button"
                     >
@@ -906,7 +906,7 @@ export default function GlobalModulesIndex() {
                         !groupCreateForm.name.trim() ||
                         !groupCreateForm.postType.trim()
                       }
-                      className="px-3 py-2 text-sm rounded bg-standout-medium text-on-standout disabled:opacity-50"
+                      className="px-3 py-2 text-sm rounded bg-standout-medium text-on-high disabled:opacity-50"
                     >
                       {groupCreating ? 'Creating…' : 'Create Group'}
                     </button>
@@ -1038,7 +1038,7 @@ export default function GlobalModulesIndex() {
                     <div className="flex items-center gap-2">
                       <button
                         type="button"
-                        className={`px-3 py-2 text-sm rounded ${groupDirty ? 'bg-standout-medium text-on-standout' : 'border border-line-low text-neutral-medium'}`}
+                        className={`px-3 py-2 text-sm rounded ${groupDirty ? 'bg-standout-medium text-on-high' : 'border border-line-low text-neutral-medium'}`}
                         onClick={saveGroupChanges}
                         disabled={!groupDirty || groupSaving}
                       >

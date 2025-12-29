@@ -45,7 +45,7 @@ export default function ProfileIndex() {
             <div className="space-y-3">
               <p className="text-sm text-neutral-medium">You don’t have a Profile yet.</p>
               <button
-                className="px-3 py-2 text-sm border border-line-low rounded bg-standout-medium text-on-standout"
+                className="px-3 py-2 text-sm border border-line-low rounded bg-standout-medium text-on-high"
                 onClick={async () => {
                   const res = await fetch('/api/users/me/profile', {
                     method: 'POST',

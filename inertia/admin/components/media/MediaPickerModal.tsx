@@ -197,7 +197,7 @@ export function MediaPickerModal({
               <div>
                 <button
                   type="button"
-                  className={`px-3 py-2 text-sm rounded ${uploading || !file ? 'opacity-60 cursor-not-allowed' : 'bg-standout-medium text-on-standout'}`}
+                  className={`px-3 py-2 text-sm rounded ${uploading || !file ? 'opacity-60 cursor-not-allowed' : 'bg-standout-medium text-on-high'}`}
                   disabled={uploading || !file}
                   onClick={handleUpload}
                 >

@@ -266,7 +266,7 @@ export function ModulePicker({
       <button
         type="button"
         onClick={() => setOpen(true)}
-        className="inline-flex items-center gap-2 rounded-md bg-standout-medium text-on-standout text-sm px-3 py-2"
+        className="inline-flex items-center gap-2 rounded-md bg-standout-medium text-on-high text-sm px-3 py-2"
       >
         {buttonLabel}
       </button>

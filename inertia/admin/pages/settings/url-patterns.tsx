@@ -307,7 +307,7 @@ export default function UrlPatternsPage() {
                           {isAggregateDirty(postType) && (
                             <button
                               type="button"
-                              className="px-3 py-1 text-xs font-semibold rounded bg-standout-medium text-on-standout disabled:opacity-50 transition-all hover:opacity-90"
+                              className="px-3 py-1 text-xs font-semibold rounded bg-standout-medium text-on-high disabled:opacity-50 transition-all hover:opacity-90"
                               disabled={savingAggregate === postType}
                               onClick={() => saveAggregate(postType)}
                             >
@@ -338,7 +338,7 @@ export default function UrlPatternsPage() {
                               {isPatternDirty(postType, loc) && (
                                 <button
                                   type="button"
-                                  className="px-4 py-2 text-sm font-semibold rounded bg-standout-medium text-on-standout disabled:opacity-50 min-w-[100px] transition-all hover:opacity-90"
+                                  className="px-4 py-2 text-sm font-semibold rounded bg-standout-medium text-on-high disabled:opacity-50 min-w-[100px] transition-all hover:opacity-90"
                                   disabled={savingKey === key}
                                   onClick={() => save(postType, loc)}
                                 >

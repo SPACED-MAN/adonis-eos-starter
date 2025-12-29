@@ -4989,7 +4989,7 @@ export default function Editor({
                       </Select>
                       <button
                         type="button"
-                        className={`h-8 px-3 text-xs rounded-lg disabled:opacity-50 flex items-center justify-center gap-1.5 ${!isDirty || processing || isSaving ? 'border border-border text-neutral-medium' : 'bg-standout-medium text-on-standout font-medium'}`}
+                        className={`h-8 px-3 text-xs rounded-lg disabled:opacity-50 flex items-center justify-center gap-1.5 ${!isDirty || processing || isSaving ? 'border border-border text-neutral-medium' : 'bg-standout-medium text-on-high font-medium'}`}
                         disabled={
                           !isDirty ||
                           processing ||
@@ -5034,7 +5034,7 @@ export default function Editor({
                   <div className="space-y-2">
                     <button
                       type="button"
-                      className={`h-8 px-3 text-xs rounded-lg disabled:opacity-50 flex items-center justify-center gap-1.5 ${!isDirty || processing || isSaving ? 'border border-border text-neutral-medium' : 'bg-standout-medium text-on-standout font-medium'}`}
+                      className={`h-8 px-3 text-xs rounded-lg disabled:opacity-50 flex items-center justify-center gap-1.5 ${!isDirty || processing || isSaving ? 'border border-border text-neutral-medium' : 'bg-standout-medium text-on-high font-medium'}`}
                       disabled={!isDirty || processing || isSaving || !canSaveForReview}
                       onClick={async () => {
                         await executeSave('review')
@@ -5059,7 +5059,7 @@ export default function Editor({
                     <p className="text-xs text-neutral-low">AI Review is AI-generated.</p>
                     <button
                       type="button"
-                      className={`h-8 px-3 text-xs rounded-lg disabled:opacity-50 flex items-center justify-center gap-1.5 ${!isDirty || processing || isSaving ? 'border border-border text-neutral-medium' : 'bg-standout-medium text-on-standout font-medium'}`}
+                      className={`h-8 px-3 text-xs rounded-lg disabled:opacity-50 flex items-center justify-center gap-1.5 ${!isDirty || processing || isSaving ? 'border border-border text-neutral-medium' : 'bg-standout-medium text-on-high font-medium'}`}
                       disabled={!isDirty || processing || isSaving}
                       onClick={async () => {
                         await executeSave('ai-review')
@@ -5622,7 +5622,7 @@ export default function Editor({
               </button>
               <button
                 type="button"
-                className="w-full px-3 py-2 text-sm rounded bg-standout-medium text-on-standout hover:opacity-90"
+                className="w-full px-3 py-2 text-sm rounded bg-standout-medium text-on-high hover:opacity-90"
                 onClick={async () => {
                   if (!pendingImportJson) return
                   const res = await fetch(`/api/posts/${post.id}/import`, {

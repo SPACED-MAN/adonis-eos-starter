@@ -198,7 +198,7 @@ export function SearchModal({
                     <div
                       className={`mt-1 flex h-8 w-8 shrink-0 items-center justify-center rounded-md ${
                         idx === activeIndex
-                          ? 'bg-standout-medium text-on-standout'
+                          ? 'bg-standout-medium text-on-high'
                           : 'bg-backdrop-high text-neutral-medium'
                       }`}
                     >

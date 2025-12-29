@@ -44,8 +44,8 @@ export default function TabbedFeatures({
 	const [activeTab, setActiveTab] = useState(0)
 
 	const isDarkBg = bg === 'bg-neutral-high' || bg === 'bg-backdrop-high' || bg === 'bg-standout-medium'
-	const textColor = isDarkBg ? 'text-on-standout' : 'text-neutral-high'
-	const subtextColor = isDarkBg ? 'text-on-standout/80' : 'text-neutral-medium'
+	const textColor = isDarkBg ? 'text-on-high' : 'text-neutral-high'
+	const subtextColor = isDarkBg ? 'text-on-high/80' : 'text-neutral-medium'
 
 	const currentTab = tabs[activeTab] || tabs[0] || null
 	const isVertical = layout === 'left' || layout === 'right'

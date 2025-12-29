@@ -16,7 +16,7 @@ export function MegaMenuPanel({
           {menuMeta?.ctaText && menuMeta?.ctaUrl && (
             <a
               href={String(menuMeta.ctaUrl)}
-              className="inline-flex items-center px-4 py-3 text-xs rounded bg-standout-medium text-on-standout min-h-[48px]"
+              className="inline-flex items-center px-4 py-3 text-xs rounded bg-standout-medium text-on-high min-h-[48px]"
             >
               {String(menuMeta.ctaText)}
             </a>

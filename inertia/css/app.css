@@ -13,7 +13,6 @@
   --color-standout-low: var(--color-emerald-100);
   --color-standout-medium: var(--color-teal-800);
   --color-standout-high: var(--color-teal-900);
-  --color-on-standout: var(--color-white);
 
   --color-neutral-low: var(--color-slate-600);
   --color-neutral-medium: var(--color-slate-700);
@@ -23,6 +22,8 @@
   --color-backdrop-medium: var(--color-slate-200);
   --color-backdrop-high: var(--color-slate-300);
   --color-backdrop-input: var(--color-slate-100);
+
+  --color-on-high: var(--color-white);
 
   --color-line-low: var(--color-slate-300);
   --color-line-medium: var(--color-slate-400);
@@ -37,7 +38,6 @@
   --color-standout-low: var(--color-cyan-800);
   --color-standout-medium: var(--color-cyan-500);
   --color-standout-high: var(--color-cyan-400);
-  --color-on-standout: var(--color-black);
 
   --color-neutral-low: var(--color-zinc-400);
   --color-neutral-medium: var(--color-zinc-300);
@@ -47,6 +47,8 @@
   --color-backdrop-medium: var(--color-zinc-800);
   --color-backdrop-high: var(--color-zinc-700);
   --color-backdrop-input: var(--color-zinc-800);
+
+  --color-on-high: var(--color-black);
 
   --color-line-low: var(--color-zinc-800);
   --color-line-medium: var(--color-zinc-700);
@@ -61,7 +63,6 @@
   --color-standout-low: var(--color-emerald-100);
   --color-standout-medium: var(--color-teal-800);
   --color-standout-high: var(--color-teal-900);
-  --color-on-standout: var(--color-white);
 
   --color-neutral-low: var(--color-slate-600);
   --color-neutral-medium: var(--color-slate-700);
@@ -71,6 +72,8 @@
   --color-backdrop-medium: var(--color-slate-200);
   --color-backdrop-high: var(--color-slate-300);
   --color-backdrop-input: var(--color-slate-100);
+
+  --color-on-high: var(--color-white);
 
   --color-line-low: var(--color-slate-300);
   --color-line-medium: var(--color-slate-400);
@@ -85,7 +88,6 @@
   --color-standout-low: var(--color-cyan-800);
   --color-standout-medium: var(--color-cyan-500);
   --color-standout-high: var(--color-cyan-400);
-  --color-on-standout: var(--color-black);
 
   --color-neutral-low: var(--color-zinc-400);
   --color-neutral-medium: var(--color-zinc-300);
@@ -95,6 +97,8 @@
   --color-backdrop-medium: var(--color-zinc-800);
   --color-backdrop-high: var(--color-zinc-700);
   --color-backdrop-input: var(--color-zinc-800);
+
+  --color-on-high: var(--color-black);
 
   --color-line-low: var(--color-zinc-800);
   --color-line-medium: var(--color-zinc-700);
@@ -207,7 +211,7 @@
   --popover: var(--color-backdrop-low);
   --popover-foreground: var(--color-neutral-high);
   --primary: var(--color-standout-medium);
-  --primary-foreground: var(--color-on-standout);
+  --primary-foreground: var(--color-on-high);
   --secondary: var(--color-backdrop-medium);
   --secondary-foreground: var(--color-neutral-high);
   --muted: var(--color-backdrop-medium);
@@ -226,7 +230,7 @@
   --sidebar: var(--color-backdrop-low);
   --sidebar-foreground: var(--color-neutral-high);
   --sidebar-primary: var(--color-standout-medium);
-  --sidebar-primary-foreground: var(--color-on-standout);
+  --sidebar-primary-foreground: var(--color-on-high);
   --sidebar-accent: var(--color-backdrop-medium);
   --sidebar-accent-foreground: var(--color-neutral-high);
   --sidebar-border: var(--color-line-low);
@@ -241,7 +245,7 @@
   --popover: var(--color-backdrop-low);
   --popover-foreground: var(--color-neutral-high);
   --primary: var(--color-standout-medium);
-  --primary-foreground: var(--color-on-standout);
+  --primary-foreground: var(--color-on-high);
   --secondary: var(--color-backdrop-medium);
   --secondary-foreground: var(--color-neutral-high);
   --muted: var(--color-backdrop-medium);
@@ -260,7 +264,7 @@
   --sidebar: var(--color-backdrop-low);
   --sidebar-foreground: var(--color-neutral-high);
   --sidebar-primary: var(--color-standout-medium);
-  --sidebar-primary-foreground: var(--color-on-standout);
+  --sidebar-primary-foreground: var(--color-on-high);
   --sidebar-accent: var(--color-backdrop-medium);
   --sidebar-accent-foreground: var(--color-neutral-high);
   --sidebar-border: var(--color-line-low);
@@ -306,14 +310,14 @@
 
 .prose-invert,
 .prose-invert [class*='prose-'] {
-  --tw-prose-body: var(--color-on-standout);
-  --tw-prose-headings: var(--color-on-standout);
-  --tw-prose-links: var(--color-on-standout);
-  --tw-prose-bold: var(--color-on-standout);
-  --tw-prose-bullets: var(--color-on-standout);
-  --tw-prose-quotes: var(--color-on-standout);
-  --tw-prose-code: var(--color-on-standout);
-  --tw-prose-hr: var(--color-on-standout);
+  --tw-prose-body: var(--color-on-high);
+  --tw-prose-headings: var(--color-on-high);
+  --tw-prose-links: var(--color-on-high);
+  --tw-prose-bold: var(--color-on-high);
+  --tw-prose-bullets: var(--color-on-high);
+  --tw-prose-quotes: var(--color-on-high);
+  --tw-prose-code: var(--color-on-high);
+  --tw-prose-hr: var(--color-on-high);
 }
 
 .prose h1,
@@ -435,7 +439,7 @@
 .prose-invert [class*='prose-'] pre {
   background-color: rgba(0, 0, 0, 0.4) !important;
   border-color: rgba(255, 255, 255, 0.1) !important;
-  color: var(--color-on-standout) !important;
+  color: var(--color-on-high) !important;
 }
 
 .prose hr,
@@ -474,6 +478,6 @@
 
 .prose-invert blockquote,
 .prose-invert [class*='prose-'] blockquote {
-  border-left-color: var(--color-on-standout) !important;
+  border-left-color: var(--color-on-high) !important;
   opacity: 0.8;
 }

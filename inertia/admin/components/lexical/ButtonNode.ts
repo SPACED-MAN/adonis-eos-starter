@@ -101,7 +101,7 @@ export class ButtonNode extends ElementNode {
   getClasses(): string {
     const base = 'inline-flex items-center justify-center px-5 py-3 text-base font-medium rounded-lg transition-colors duration-200 !no-underline !not-prose'
     const variants = {
-      primary: '!bg-standout-medium !text-on-standout hover:opacity-90',
+      primary: '!bg-standout-medium !text-on-high hover:opacity-90',
       secondary: '!bg-backdrop-medium hover:bg-backdrop-high !text-neutral-high',
       outline: 'border border-line-low hover:bg-backdrop-medium !text-neutral-high',
     }

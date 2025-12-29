@@ -871,7 +871,7 @@ export default function MediaIndex() {
                     id="mediaUploadInput"
                   />
                   <button
-                    className="px-3 py-1.5 text-xs rounded bg-standout-medium text-on-standout disabled:opacity-50 cursor-pointer disabled:cursor-not-allowed"
+                    className="px-3 py-1.5 text-xs rounded bg-standout-medium text-on-high disabled:opacity-50 cursor-pointer disabled:cursor-not-allowed"
                     disabled={uploading}
                     onClick={() =>
                       (document.getElementById('mediaUploadInput') as HTMLInputElement)?.click()
@@ -1459,7 +1459,7 @@ export default function MediaIndex() {
                     }}
                   />
                   <button
-                    className="px-3 py-1.5 text-xs rounded bg-standout-medium text-on-standout disabled:opacity-50"
+                    className="px-3 py-1.5 text-xs rounded bg-standout-medium text-on-high disabled:opacity-50"
                     onClick={() => {
                       const v = bulkCatInput.trim()
                       if (v && !bulkCats.includes(v)) setBulkCats([...bulkCats, v])
@@ -1477,7 +1477,7 @@ export default function MediaIndex() {
                     Cancel
                   </button>
                   <button
-                    className="px-3 py-1.5 text-xs rounded bg-standout-medium text-on-standout"
+                    className="px-3 py-1.5 text-xs rounded bg-standout-medium text-on-high"
                     onClick={saveBulkCategories}
                   >
                     Save
@@ -1684,7 +1684,7 @@ export default function MediaIndex() {
                                 Cancel
                               </button>
                               <button
-                                className="px-5 py-2.5 text-xs font-bold rounded-xl bg-standout-medium text-on-standout shadow-lg shadow-standout-medium/20 hover:bg-standout-high transition-all"
+                                className="px-5 py-2.5 text-xs font-bold rounded-xl bg-standout-medium text-on-high shadow-lg shadow-standout-medium/20 hover:bg-standout-high transition-all"
                                 onClick={applyCrop}
                               >
                                 Apply Crop
@@ -1814,7 +1814,7 @@ export default function MediaIndex() {
                                 Cancel
                               </button>
                               <button
-                                className="px-5 py-2.5 text-xs font-bold rounded-xl bg-standout-medium text-on-standout shadow-lg shadow-standout-medium/20 hover:bg-standout-high transition-all"
+                                className="px-5 py-2.5 text-xs font-bold rounded-xl bg-standout-medium text-on-high shadow-lg shadow-standout-medium/20 hover:bg-standout-high transition-all"
                                 onClick={applyFocal}
                               >
                                 Save Focal Point
@@ -2091,7 +2091,7 @@ export default function MediaIndex() {
                   {/* Footer Actions */}
                   <div className="p-6 border-t border-line-low bg-backdrop-low flex flex-col gap-3">
                     <button
-                      className="w-full px-6 py-3 text-xs font-bold rounded-xl bg-standout-medium text-on-standout shadow-lg shadow-standout-medium/20 hover:bg-standout-high hover:shadow-standout-medium/30 transition-all disabled:opacity-50 flex items-center justify-center gap-2"
+                      className="w-full px-6 py-3 text-xs font-bold rounded-xl bg-standout-medium text-on-high shadow-lg shadow-standout-medium/20 hover:bg-standout-high hover:shadow-standout-medium/30 transition-all disabled:opacity-50 flex items-center justify-center gap-2"
                       disabled={savingEdit}
                       onClick={async () => {
                         if (!viewing) return

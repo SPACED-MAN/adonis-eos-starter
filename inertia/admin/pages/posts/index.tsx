@@ -742,7 +742,7 @@ export default function PostsIndexPage({}: PostsIndexProps) {
               {canCreatePost && (
                 <button
                   onClick={() => setIsCreateOpen(true)}
-                  className="px-3 py-2 text-sm border border-line-low rounded bg-standout-medium text-on-standout cursor-pointer"
+                  className="px-3 py-2 text-sm border border-line-low rounded bg-standout-medium text-on-high cursor-pointer"
                 >
                   Create New
                 </button>

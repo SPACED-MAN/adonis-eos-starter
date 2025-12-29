@@ -70,7 +70,7 @@ export default function ProtectedPage({ redirect }: { redirect?: string }) {
         </div>
         <button
           type="submit"
-          className="w-full px-3 py-2 text-sm border border-line-low rounded bg-standout-medium text-on-standout"
+          className="w-full px-3 py-2 text-sm border border-line-low rounded bg-standout-medium text-on-high"
         >
           Unlock
         </button>

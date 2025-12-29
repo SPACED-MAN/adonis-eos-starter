@@ -59,12 +59,12 @@ export default function FormModule({
 
   const bg = useInlineValue(__moduleId, 'backgroundColor', backgroundColor) || backgroundColor
   const isDarkBg = bg === 'bg-neutral-high' || bg === 'bg-backdrop-high' || bg === 'bg-standout-medium'
-  const textColor = isDarkBg ? 'text-on-standout' : 'text-neutral-high'
-  const subtextColor = isDarkBg ? 'text-on-standout/80' : 'text-neutral-medium'
+  const textColor = isDarkBg ? 'text-on-high' : 'text-neutral-high'
+  const subtextColor = isDarkBg ? 'text-on-high/80' : 'text-neutral-medium'
   const inputBg = isDarkBg
-    ? 'bg-on-standout/10 text-on-standout border-on-standout/20 placeholder:text-on-standout/40'
+    ? 'bg-on-high/10 text-on-high border-on-high/20 placeholder:text-on-high/40'
     : 'bg-backdrop-input text-neutral-high border-line-low'
-  const labelColor = isDarkBg ? 'text-on-standout' : 'text-neutral-high'
+  const labelColor = isDarkBg ? 'text-on-high' : 'text-neutral-high'
 
   const visibleTitle = title || definition?.title || ''
 
@@ -239,7 +239,7 @@ export default function FormModule({
                   <input
                     id={fieldId}
                     type="checkbox"
-                    className={`h-4 w-4 rounded border-line-low ${isDarkBg ? 'bg-on-standout/10 text-on-standout' : 'bg-backdrop-input text-standout-medium'} focus:ring-standout-medium/50`}
+                    className={`h-4 w-4 rounded border-line-low ${isDarkBg ? 'bg-on-high/10 text-on-high' : 'bg-backdrop-input text-standout-medium'} focus:ring-standout-medium/50`}
                     checked={Boolean(rawValue)}
                     onChange={(e) => handleChange(field.slug, e.target.checked)}
                   />
@@ -271,7 +271,7 @@ export default function FormModule({
             case 'multiselect':
               return (
                 <div
-                  className={`space-y-2 p-3 border ${isDarkBg ? 'border-on-standout/20 bg-on-standout/5' : 'border-line-low bg-backdrop-input/50'} rounded-md`}
+                  className={`space-y-2 p-3 border ${isDarkBg ? 'border-on-high/20 bg-on-high/5' : 'border-line-low bg-backdrop-input/50'} rounded-md`}
                 >
                   {(field.options || []).map((opt) => {
                     const optId = `${fieldId}-${opt.value}`
@@ -282,7 +282,7 @@ export default function FormModule({
                         <input
                           id={optId}
                           type="checkbox"
-                          className={`h-4 w-4 rounded border-line-low ${isDarkBg ? 'bg-on-standout/10 text-on-standout' : 'bg-backdrop-input text-standout-medium'} focus:ring-standout-medium/50`}
+                          className={`h-4 w-4 rounded border-line-low ${isDarkBg ? 'bg-on-high/10 text-on-high' : 'bg-backdrop-input text-standout-medium'} focus:ring-standout-medium/50`}
                           checked={isChecked}
                           onChange={(e) =>
                             handleMultiselectChange(field.slug, String(opt.value), e.target.checked)
@@ -396,7 +396,7 @@ export default function FormModule({
             <button
               type="submit"
               disabled={submitting}
-              className={`inline-flex items-center px-5 py-2.5 rounded-md ${isDarkBg ? 'bg-backdrop-low text-neutral-high' : 'bg-standout-medium text-on-standout'} text-sm font-medium hover:bg-standout-medium/90 disabled:opacity-60 focus:outline-none focus:ring-2 focus:ring-standout-medium/40 transition-all active:scale-95`}
+              className={`inline-flex items-center px-5 py-2.5 rounded-md ${isDarkBg ? 'bg-backdrop-low text-neutral-high' : 'bg-standout-medium text-on-high'} text-sm font-medium hover:bg-standout-medium/90 disabled:opacity-60 focus:outline-none focus:ring-2 focus:ring-standout-medium/40 transition-all active:scale-95`}
             >
               {submitting ? 'Sending...' : 'Submit'}
             </button>
@@ -409,7 +409,7 @@ export default function FormModule({
             <button
               type="submit"
               disabled={submitting}
-              className={`inline-flex items-center px-5 py-2.5 rounded-md ${isDarkBg ? 'bg-backdrop-low text-neutral-high' : 'bg-standout-medium text-on-standout'} text-sm font-medium hover:bg-standout-medium/90 disabled:opacity-60 focus:outline-none focus:ring-2 focus:ring-standout-medium/40 transition-all active:scale-95`}
+              className={`inline-flex items-center px-5 py-2.5 rounded-md ${isDarkBg ? 'bg-backdrop-low text-neutral-high' : 'bg-standout-medium text-on-high'} text-sm font-medium hover:bg-standout-medium/90 disabled:opacity-60 focus:outline-none focus:ring-2 focus:ring-standout-medium/40 transition-all active:scale-95`}
             >
               {submitting ? 'Sending...' : 'Submit'}
             </button>

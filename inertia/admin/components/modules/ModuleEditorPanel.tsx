@@ -681,7 +681,7 @@ const MediaFieldInternal = memo(
               <div className="flex items-center gap-2">
                 <button
                   type="button"
-                  className="px-3 py-1.5 text-[11px] font-semibold rounded bg-standout-medium text-on-standout hover:bg-standout-high transition-colors"
+                  className="px-3 py-1.5 text-[11px] font-semibold rounded bg-standout-medium text-on-high hover:bg-standout-high transition-colors"
                   onClick={() => setModalOpen(true)}
                 >
                   {preview ? 'Change Media' : 'Select Media'}
@@ -2499,7 +2499,7 @@ export function ModuleEditorPanel({
               {moduleItem.globalSlug && (
                 <a
                   href={`/admin/modules?tab=globals&editSlug=${moduleItem.globalSlug}`}
-                  className="inline-flex items-center gap-2 px-4 py-2 bg-standout-medium text-on-standout rounded-lg text-sm font-semibold hover:bg-standout-high transition-colors"
+                  className="inline-flex items-center gap-2 px-4 py-2 bg-standout-medium text-on-high rounded-lg text-sm font-semibold hover:bg-standout-high transition-colors"
                 >
                   Edit Global Module
                 </a>
@@ -2520,7 +2520,7 @@ export function ModuleEditorPanel({
           <div className="flex items-center justify-end gap-2 border-t border-line-low pt-4 mt-auto">
             <button
               type="button"
-              className="px-3 py-1.5 text-xs rounded bg-standout-medium text-on-standout disabled:opacity-60"
+              className="px-3 py-1.5 text-xs rounded bg-standout-medium text-on-high disabled:opacity-60"
               onClick={handleClose}
               disabled={processing || (moduleItem.scope !== 'post' && !allowGlobalEditing)}
             >

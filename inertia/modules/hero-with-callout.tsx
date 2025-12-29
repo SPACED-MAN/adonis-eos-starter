@@ -144,7 +144,7 @@ function CalloutButtons({
         className={`inline-flex justify-center items-center py-3 px-5 text-sm sm:text-base font-medium text-center rounded-lg focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:ring-standout-medium transition-all active:scale-95 ${
           isDarkBg
             ? 'bg-backdrop-low text-neutral-high hover:bg-backdrop-low/90'
-            : 'text-on-standout bg-standout-medium hover:bg-standout-medium/90'
+            : 'text-on-high bg-standout-medium hover:bg-standout-medium/90'
         }`}
         data-inline-type="object"
         data-inline-path={`callouts.${index}`}
@@ -211,8 +211,8 @@ export default function HeroWithCallout({
   const bg = useInlineValue(__moduleId, 'backgroundColor', backgroundColor) || backgroundColor
 
   const isDarkBg = bg === 'bg-neutral-high' || bg === 'bg-backdrop-high' || bg === 'bg-standout-medium'
-  const textColor = isDarkBg ? 'text-on-standout' : 'text-neutral-high'
-  const subtextColor = isDarkBg ? 'text-on-standout/80' : 'text-neutral-medium'
+  const textColor = isDarkBg ? 'text-on-high' : 'text-neutral-high'
+  const subtextColor = isDarkBg ? 'text-on-high/80' : 'text-neutral-medium'
 
   const content = (
     <div className="max-w-5xl mx-auto px-4 sm:px-6 lg:px-12 text-center">

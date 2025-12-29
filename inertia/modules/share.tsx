@@ -48,10 +48,10 @@ export default function Share({
 
   const bg = useInlineValue(__moduleId, 'backgroundColor', backgroundColor) || backgroundColor
   const isDarkBg = bg === 'bg-neutral-high' || bg === 'bg-backdrop-high' || bg === 'bg-standout-medium'
-  const textColor = isDarkBg ? 'text-on-standout' : 'text-neutral-high'
-  const subtextColor = isDarkBg ? 'text-on-standout/80' : 'text-neutral-medium'
+  const textColor = isDarkBg ? 'text-on-high' : 'text-neutral-high'
+  const subtextColor = isDarkBg ? 'text-on-high/80' : 'text-neutral-medium'
   const iconBg = isDarkBg
-    ? 'bg-on-standout/10 border-on-standout/20 text-on-standout'
+    ? 'bg-on-high/10 border-on-high/20 text-on-high'
     : 'bg-backdrop-low border-line-low text-neutral-medium'
 
   if (enabledNetworks.length === 0) return null

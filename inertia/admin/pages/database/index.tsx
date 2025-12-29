@@ -753,7 +753,7 @@ export default function DatabaseIndex() {
                   <button
                     onClick={handleExport}
                     disabled={exporting || (!exportAllTables && selectedContentTypes.length === 0)}
-                    className="px-4 py-2 bg-standout-medium text-on-standout rounded-lg hover:opacity-90 transition disabled:opacity-50 font-medium"
+                    className="px-4 py-2 bg-standout-medium text-on-high rounded-lg hover:opacity-90 transition disabled:opacity-50 font-medium"
                   >
                     {exporting ? (
                       <>
@@ -900,7 +900,7 @@ export default function DatabaseIndex() {
                         handleValidateFile(file)
                       }
                     }}
-                    className="w-full px-3 py-2 border border-line-medium rounded-lg bg-backdrop-low file:mr-4 file:py-2 file:px-4 file:rounded file:border-0 file:text-sm file:font-semibold file:bg-standout-medium file:text-on-standout hover:file:opacity-90"
+                    className="w-full px-3 py-2 border border-line-medium rounded-lg bg-backdrop-low file:mr-4 file:py-2 file:px-4 file:rounded file:border-0 file:text-sm file:font-semibold file:bg-standout-medium file:text-on-high hover:file:opacity-90"
                   />
                 </div>
 
@@ -946,7 +946,7 @@ export default function DatabaseIndex() {
                             if (file) handleImport(file)
                           }}
                           disabled={importing}
-                          className="mt-3 px-4 py-2 bg-standout-medium text-on-standout rounded-lg hover:opacity-90 transition disabled:opacity-50 font-medium"
+                          className="mt-3 px-4 py-2 bg-standout-medium text-on-high rounded-lg hover:opacity-90 transition disabled:opacity-50 font-medium"
                         >
                           {importing ? (
                             <>
@@ -1286,7 +1286,7 @@ export default function DatabaseIndex() {
                     }}
                     disabled={frRunning || !frSearch || frSelectedTables.length === 0}
                     className={`px-6 py-2 rounded-lg transition disabled:opacity-50 font-bold ${frDryRun
-                        ? 'bg-standout-medium text-on-standout hover:opacity-90'
+                        ? 'bg-standout-medium text-on-high hover:opacity-90'
                         : 'bg-rose-600 text-white hover:bg-rose-700'
                       }`}
                   >
@@ -1807,7 +1807,7 @@ export default function DatabaseIndex() {
                       !optimizeStats ||
                       optimizeStats.totalIssues === 0
                     }
-                    className="px-4 py-2 bg-standout-medium text-on-standout rounded-lg hover:opacity-90 transition disabled:opacity-50 disabled:cursor-not-allowed font-medium"
+                    className="px-4 py-2 bg-standout-medium text-on-high rounded-lg hover:opacity-90 transition disabled:opacity-50 disabled:cursor-not-allowed font-medium"
                   >
                     {optimizing ? (
                       <>
@@ -1951,7 +1951,7 @@ export default function DatabaseIndex() {
             <AlertDialogAction
               disabled={importing}
               onClick={executeImport}
-              className="bg-standout-medium text-on-standout hover:opacity-90"
+              className="bg-standout-medium text-on-high hover:opacity-90"
             >
               {importing ? 'Importing...' : 'Import'}
             </AlertDialogAction>
@@ -2019,7 +2019,7 @@ export default function DatabaseIndex() {
             <AlertDialogAction
               disabled={optimizing}
               onClick={handleOptimize}
-              className="bg-standout-medium text-on-standout hover:opacity-90"
+              className="bg-standout-medium text-on-high hover:opacity-90"
             >
               {optimizing ? 'Optimizing...' : 'Optimize'}
             </AlertDialogAction>

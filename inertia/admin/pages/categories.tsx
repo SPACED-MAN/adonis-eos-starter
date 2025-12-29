@@ -325,7 +325,7 @@ export default function CategoriesPage() {
                 placeholder="New term name"
               />
               <button
-                className="px-3 py-1.5 text-sm border border-line-low rounded bg-standout-medium text-on-standout whitespace-nowrap"
+                className="px-3 py-1.5 text-sm border border-line-low rounded bg-standout-medium text-on-high whitespace-nowrap"
                 onClick={() => createTerm(null)}
               >
                 Add term
@@ -387,7 +387,7 @@ export default function CategoriesPage() {
                   <h3 className="font-semibold text-neutral-high">Custom Fields</h3>
                   <button
                     type="button"
-                    className="px-3 py-1 text-xs bg-standout-medium text-on-standout rounded hover:opacity-90 disabled:opacity-50"
+                    className="px-3 py-1 text-xs bg-standout-medium text-on-high rounded hover:opacity-90 disabled:opacity-50"
                     onClick={saveTermCustomFields}
                     disabled={saving}
                   >

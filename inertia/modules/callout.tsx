@@ -47,8 +47,8 @@ export default function Callout(props: CalloutProps) {
     'bg-backdrop-low'
 
   const isDarkBg = backgroundColor === 'bg-neutral-high' || backgroundColor === 'bg-backdrop-high' || backgroundColor === 'bg-standout-medium'
-  const textColor = isDarkBg ? 'text-on-standout' : 'text-neutral-high'
-  const subtextColor = isDarkBg ? 'text-on-standout/80' : 'text-neutral-medium'
+  const textColor = isDarkBg ? 'text-on-high' : 'text-neutral-high'
+  const subtextColor = isDarkBg ? 'text-on-high/80' : 'text-neutral-medium'
 
   const htmlProse = useMemo(() => {
     const hasRichContent = (val: any) => {
@@ -308,12 +308,12 @@ function ButtonComponent({
   const styleMap = {
     primary: isDarkBg
       ? 'bg-white text-standout-medium hover:bg-neutral-50'
-      : 'bg-standout-medium text-on-standout hover:opacity-90',
+      : 'bg-standout-medium text-on-high hover:opacity-90',
     secondary: isDarkBg
-      ? 'bg-on-standout/10 text-on-standout hover:bg-on-standout/20'
+      ? 'bg-on-high/10 text-on-high hover:bg-on-high/20'
       : 'bg-backdrop-medium hover:bg-backdrop-high text-neutral-high',
     outline: isDarkBg
-      ? 'border border-on-standout text-on-standout hover:bg-on-standout/10'
+      ? 'border border-on-high text-on-high hover:bg-on-high/10'
       : 'border border-line-low hover:bg-backdrop-medium text-neutral-high',
   }
 

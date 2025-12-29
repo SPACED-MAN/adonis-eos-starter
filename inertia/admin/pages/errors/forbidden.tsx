@@ -24,7 +24,7 @@ export default function Forbidden({ message = 'Access denied.' }: { message?: st
               href="/admin/logout"
               method="post"
               as="button"
-              className="px-3 py-2 text-sm rounded bg-standout-medium text-on-standout"
+              className="px-3 py-2 text-sm rounded bg-standout-medium text-on-high"
             >
               Switch Account
             </Link>

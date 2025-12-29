@@ -592,7 +592,7 @@ export default function SecurityIndex() {
                     Previous
                   </button>
                   <div className="flex items-center gap-1">
-                    <span className="px-3 py-1.5 text-sm font-medium bg-standout-medium text-on-standout rounded">
+                    <span className="px-3 py-1.5 text-sm font-medium bg-standout-medium text-on-high rounded">
                       {page}
                     </span>
                     <span className="text-sm text-neutral-low px-2">

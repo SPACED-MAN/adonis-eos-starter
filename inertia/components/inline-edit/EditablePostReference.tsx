@@ -255,7 +255,7 @@ export function EditablePostReference({
               <div className="flex justify-end">
                 <button
                   type="button"
-                  className="px-3 py-1.5 rounded bg-standout-medium text-on-standout text-sm"
+                  className="px-3 py-1.5 rounded bg-standout-medium text-on-high text-sm"
                   onClick={() => setOpen(false)}
                 >
                   Close
