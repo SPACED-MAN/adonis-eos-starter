@@ -378,7 +378,7 @@ This information is exposed via the MCP server and used by the `suggest_modules_
 
 1. **Use semantic HTML** - `<section>`, `<article>`, `<nav>`
 2. **Add data attributes** - `data-module="hero-banner"` for testing
-3. **Support dark mode** - Use theme tokens
+3. **Support dark mode** - Use theme tokens and follow the **contrast level convention** (`low`, `medium`, `high`) to ensure seamless support for both light and dark site modes.
 4. **Responsive design** - Mobile-first approach
 5. **Accessibility** - ARIA labels, keyboard navigation
 6. **Default props** - Provide sensible defaults

@@ -99,23 +99,31 @@ The theme is defined in `inertia/css/app.css` using CSS custom properties.
 
 ### Color Tokens
 
+#### Contrast Levels
+
+The system uses a naming convention based on **contrast levels** rather than fixed color values. This allows for a seamless convention between light and dark site modes, as the meaning of "low contrast" or "high contrast" remains consistent even when the actual colors flip:
+
+- **low**: Low contrast against the primary surface. Typically used for the base background or subtle elements.
+- **medium**: Medium contrast. Used for elevated surfaces, secondary buttons, or supporting text.
+- **high**: High contrast. Used for primary text (headings), important borders, or prominent UI elements.
+
 #### Semantic Colors
 
 ```css
---backdrop-low      /* Light backgrounds */
---backdrop-medium   /* Medium backgrounds */
---backdrop-high     /* Elevated surfaces */
+--backdrop-low      /* Base background (Low contrast) */
+--backdrop-medium   /* Secondary background (Medium contrast) */
+--backdrop-high     /* Elevated surfaces (High contrast) */
 --line             /* Borders and dividers */
 
---neutral-low      /* Subtle text */
---neutral-medium   /* Body text */
---neutral-high     /* Headings */
+--neutral-low      /* Subtle text (Low contrast) */
+--neutral-medium   /* Body text (Medium contrast) */
+--neutral-high     /* Headings (High contrast) */
 
---standout         /* Primary actions */
---on-high      /* Text on standout */
+--standout         /* Primary action background */
+--on-high          /* Text/Icons on high-contrast backgrounds (like standout) */
 
---accent           /* Secondary actions */
---on-accent        /* Text on accent */
+--accent           /* Secondary action background */
+--on-accent        /* Text/Icons on accent background */
 ```
 
 #### Usage
