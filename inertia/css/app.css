@@ -10,22 +10,22 @@
  * tailwind.config.js color names (e.g., bg-backdrop-low, text-neutral-high).
  */
 @theme {
-  --color-standout-low: var(--color-cyan-400);
-  --color-standout-medium: var(--color-cyan-600);
-  --color-standout-high: var(--color-cyan-800);
-  --color-on-standout: var(--color-black);
+  --color-standout-low: var(--color-emerald-100);
+  --color-standout-medium: var(--color-teal-800);
+  --color-standout-high: var(--color-teal-900);
+  --color-on-standout: var(--color-white);
 
   --color-neutral-low: var(--color-slate-600);
   --color-neutral-medium: var(--color-slate-700);
-  --color-neutral-high: var(--color-slate-900);
+  --color-neutral-high: var(--color-black);
 
-  --color-backdrop-low: var(--color-slate-200);
-  --color-backdrop-medium: var(--color-slate-300);
-  --color-backdrop-high: var(--color-slate-400);
+  --color-backdrop-low: var(--color-white);
+  --color-backdrop-medium: var(--color-slate-200);
+  --color-backdrop-high: var(--color-slate-300);
   --color-backdrop-input: var(--color-slate-100);
 
-  --color-line-low: var(--color-slate-400);
-  --color-line-medium: var(--color-slate-500);
+  --color-line-low: var(--color-slate-300);
+  --color-line-medium: var(--color-slate-400);
   --color-line-high: var(--color-slate-600);
   --color-line-inline-input-editable: var(--color-slate-100);
   --color-line-inline-input-global: var(--color-amber-500);
@@ -58,22 +58,22 @@
 }
 
 [data-theme='site'] {
-  --color-standout-low: var(--color-cyan-400);
-  --color-standout-medium: var(--color-cyan-600);
-  --color-standout-high: var(--color-cyan-800);
-  --color-on-standout: var(--color-black);
+  --color-standout-low: var(--color-emerald-100);
+  --color-standout-medium: var(--color-teal-800);
+  --color-standout-high: var(--color-teal-900);
+  --color-on-standout: var(--color-white);
 
   --color-neutral-low: var(--color-slate-600);
   --color-neutral-medium: var(--color-slate-700);
-  --color-neutral-high: var(--color-slate-900);
+  --color-neutral-high: var(--color-black);
 
-  --color-backdrop-low: var(--color-slate-200);
-  --color-backdrop-medium: var(--color-slate-300);
-  --color-backdrop-high: var(--color-slate-400);
+  --color-backdrop-low: var(--color-white);
+  --color-backdrop-medium: var(--color-slate-200);
+  --color-backdrop-high: var(--color-slate-300);
   --color-backdrop-input: var(--color-slate-100);
 
-  --color-line-low: var(--color-slate-400);
-  --color-line-medium: var(--color-slate-500);
+  --color-line-low: var(--color-slate-300);
+  --color-line-medium: var(--color-slate-400);
   --color-line-high: var(--color-slate-600);
   --color-line-inline-input-editable: var(--color-slate-100);
   --color-line-inline-input-global: var(--color-amber-500);
