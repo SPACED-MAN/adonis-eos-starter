@@ -97,11 +97,10 @@ export function SidebarMenu({ nodes = [], currentPageId, title }: SidebarMenuPro
         <div className="flex items-center gap-1">
           <Link
             href={node.customUrl || node.url || '#'}
-            className={`flex-1 py-1.5 px-3 rounded text-sm transition-colors flex items-center min-h-[32px] ${
-              isCurrent
+            className={`flex-1 py-1.5 px-3 rounded text-sm transition-colors flex items-center min-h-[32px] ${isCurrent
                 ? 'bg-standout-medium text-on-high font-medium'
                 : 'text-neutral-high hover:bg-backdrop-medium'
-            }`}
+              }`}
             style={{ paddingLeft: `${12 + depth * 16}px` }}
           >
             <span className="truncate">{node.label}</span>
@@ -110,9 +109,8 @@ export function SidebarMenu({ nodes = [], currentPageId, title }: SidebarMenuPro
           {hasChildren && (
             <button
               onClick={(e) => toggleExpand(e, node.id)}
-              className={`flex shrink-0 items-center justify-center w-8 h-8 rounded hover:bg-backdrop-medium transition-colors ${
-                isExpanded ? 'text-standout-medium' : 'text-neutral-medium'
-              }`}
+              className={`flex shrink-0 items-center justify-center w-8 h-8 rounded hover:bg-backdrop-medium transition-colors ${isExpanded ? 'text-standout-medium' : 'text-neutral-medium'
+                }`}
               aria-label={isExpanded ? 'Collapse' : 'Expand'}
             >
               <FontAwesomeIcon
