@@ -62,5 +62,5 @@ This pattern ensures that developers can rely on a consistent slug in their code
 
 - **Usage Counts**: The Admin UI shows how many posts reference a specific Global Module.
 - **Deletion Protection**: A Global Module cannot be deleted if it is currently referenced by any post.
-- **Review Workflow**: Updates to Global Modules also support the [Review Workflow](13-review-workflow.md), ensuring changes are staged before going live site-wide.
+- **Review Workflow**: Updates to Global Modules also support the [Review Workflow](11-review-workflow.md), ensuring changes are staged before going live site-wide.
 

@@ -217,7 +217,7 @@ Always fill in:
 - Featured image
 - Proper heading hierarchy
 
-See the [SEO & A/B Testing](07-seo-and-ab-testing.md) for detailed best practices.
+See the [SEO & A/B Testing](../03-management/07-seo-and-ab-testing.md) for detailed best practices.
 
 ### 8. Accessibility
 
@@ -254,11 +254,11 @@ See the [SEO & A/B Testing](07-seo-and-ab-testing.md) for detailed best practice
 
 ### Managing Translations
 
-See [Internationalization guide](../developers/07-internationalization.md) for full details.
+See [Internationalization guide](../../developers/05-data/08-internationalization.md) for full details.
 
 ## Getting Help
 
-- Check [API Reference](../developers/04-api-reference.md) for technical details
-- Review [Building Modules](../developers/03-building-modules.md) for custom modules
+- Check [API Reference](../developers/05-api-reference.md) for technical details
+- Review [Building Modules](../developers/04-building-modules.md) for custom modules
 - Contact your administrator for permission issues
 - Refer to [Roles & Permissions](02-roles-permissions.md) for access questions

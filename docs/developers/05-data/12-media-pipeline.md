@@ -59,7 +59,7 @@ This means editors store a **media asset id** in props; renderers resolve it thr
 
 The media pipeline supports local and S3-compatible (specifically Cloudflare R2) storage. This is controlled by the `STORAGE_DRIVER` environment variable.
 
-For detailed configuration instructions, see the [Deployment Guide: Media Storage Options](19-deployment.md#media-storage-options).
+For detailed configuration instructions, see the [Deployment Guide: Persistent Storage](../01-getting-started/03-deployment.md#4-persistent-storage).
 
 ## AI-Generated Media
 
@@ -68,7 +68,7 @@ The media pipeline is integrated with AI agents for automated image generation:
 - **Tools**: Agents use the `generate_image` MCP tool to create new assets.
 - **Providers**: Supports OpenAI (DALL-E) and Google (Imagen).
 - **Staging**: Generated images are automatically downloaded, optimized, and saved to the CMS media library before being staged in the post's review draft.
-- **Config**: Providers and models are configured at the agent level (see `providerMedia` and `modelMedia` in the [AI Agents documentation](09-ai-agents.md)).
+- **Config**: Providers and models are configured at the agent level (see `providerMedia` and `modelMedia` in the [AI Agents documentation](06b-ai-agents.md)).
 
 ## Operational notes
 

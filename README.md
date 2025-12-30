@@ -92,6 +92,8 @@ Visit `http://localhost:3333/admin` and log in with:
 - **Editor:** `editor@example.com` / `supersecret`
 - **Translator:** `translator@example.com` / `supersecret`
 
+> **⚠️ Security Warning:** Change all default passwords immediately after initial setup and prior to deployment.
+
 > **⚠️ Security Note:** Change these default passwords immediately in production!
 
 👉 **[For Developers](docs/developers/00-getting-started.md)** - Complete setup and configuration

@@ -1,4 +1,4 @@
-# Automation & Integrations
+# Workflows and Webhooks
 
 Adonis EOS provides two complementary systems for event-driven automation: **Workflows** (code-first) and **Webhooks** (database-first).
 

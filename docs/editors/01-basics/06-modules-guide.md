@@ -255,4 +255,4 @@ A: They're the same thing! "Module" and "block" are often used interchangeably.
 
 ---
 
-**Related**: [Content Management](01-content-management.md) | [For Editors](00-quick-start.md)
+**Related**: [Content Management](01-content-management.md) | [For Editors](00-for-editors.md)

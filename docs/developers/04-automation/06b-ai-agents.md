@@ -893,7 +893,7 @@ export default SeoAgent
 4. Review AI suggestions in Review mode
 5. Approve or edit before publishing
 
-**Note**: For n8n-based SEO optimization workflows, use the [Workflows system](05-automation-and-integrations.md) instead.
+**Note**: For n8n-based SEO optimization workflows, use the [Workflows system](06a-workflows-and-webhooks.md) instead.
 
 ## Best Practices
 
@@ -977,4 +977,4 @@ Once billing is enabled, your quotas will increase. You can monitor your usage a
 
 ---
 
-**Related**: [Workflows](05-automation-and-integrations.md) | [MCP (Model Context Protocol)](10-mcp.md) | [API Reference](04-api-reference.md)
+**Related**: [Workflows](06a-workflows-and-webhooks.md) | [MCP (Model Context Protocol)](06c-mcp.md) | [API Reference](05-api-reference.md)

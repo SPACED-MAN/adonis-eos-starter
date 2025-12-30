@@ -3,7 +3,7 @@ import db from '@adonisjs/lucid/services/db'
 import CreatePost from '#actions/posts/create_post'
 import AddModuleToPost from '#actions/posts/add_module_to_post'
 import { readFile, readdir } from 'node:fs/promises'
-import { join } from 'node:path'
+import { join, dirname, resolve } from 'node:path'
 import { marked } from 'marked'
 
 export default class extends BaseSeeder {
@@ -21,9 +21,9 @@ export default class extends BaseSeeder {
   ): Promise<any> {
     // Store context for link transformation
     if (context) {
-      ;(this as any).currentFile = context.currentFile
-      ;(this as any).allFiles = context.allFiles
-      ;(this as any).postIdsBySlug = context.postIdsBySlug
+      ; (this as any).currentFile = context.currentFile
+        ; (this as any).allFiles = context.allFiles
+        ; (this as any).postIdsBySlug = context.postIdsBySlug
     }
 
     // Parse markdown tokens
@@ -321,11 +321,11 @@ export default class extends BaseSeeder {
           const originalHref = token.href
           const transformedHref = (this as any).transformLinkUrl
             ? (this as any).transformLinkUrl(
-                originalHref,
-                (this as any).currentFile,
-                (this as any).allFiles,
-                (this as any).postIdsBySlug
-              )
+              originalHref,
+              (this as any).currentFile,
+              (this as any).allFiles,
+              (this as any).postIdsBySlug
+            )
             : originalHref
 
           children.push({
@@ -572,27 +572,8 @@ export default class extends BaseSeeder {
 
     // Handle relative markdown paths (e.g., ../developers/09-ai-agents.md or developers/09-ai-agents.md)
     if (href.endsWith('.md')) {
-      // Resolve relative path
-      const currentDirPath = currentFile.dir === 'root' ? '' : currentFile.dir
-
-      let targetPath: string
-      if (href.startsWith('../')) {
-        // Parent directory (e.g., ../developers/09-ai-agents.md from editors/)
-        const parts = href.replace('../', '').split('/')
-        targetPath = join(process.cwd(), 'docs', ...parts)
-      } else if (href.startsWith('./')) {
-        // Same directory (e.g., ./09-ai-agents.md)
-        targetPath = join(process.cwd(), 'docs', currentDirPath, href.replace('./', ''))
-      } else {
-        // Relative to docs root or same directory
-        if (href.includes('/')) {
-          // Has directory (e.g., developers/09-ai-agents.md)
-          targetPath = join(process.cwd(), 'docs', href)
-        } else {
-          // Same directory (e.g., 09-ai-agents.md)
-          targetPath = join(process.cwd(), 'docs', currentDirPath, href)
-        }
-      }
+      const currentFileDir = dirname(currentFile.path)
+      const targetPath = resolve(currentFileDir, href)
 
       // Find the target file in allFiles
       const targetFile = allFiles.find((f) => {
@@ -614,9 +595,9 @@ export default class extends BaseSeeder {
 
         // Check for slug collision and apply same logic
         const dirSuffix =
-          targetFile.dir === 'developers'
+          targetFile.dir.startsWith('developers')
             ? 'developers'
-            : targetFile.dir === 'editors'
+            : targetFile.dir.startsWith('editors')
               ? 'editors'
               : 'root'
         let candidate = targetSlug
@@ -673,27 +654,32 @@ export default class extends BaseSeeder {
       console.log(`   ✓ Deleted ${existingPosts.length} existing documentation posts\n`)
     }
 
-    // Collect markdown files from all documentation directories
+    // Collect markdown files from all documentation directories recursively
     const docsPath = join(process.cwd(), 'docs')
     const allFiles: Array<{ file: string; path: string; dir: string }> = []
 
-    // Read from docs/editors/
-    try {
-      const editorsPath = join(docsPath, 'editors')
-      const editorFiles = await readdir(editorsPath)
-      for (const file of editorFiles.filter((f) => f.endsWith('.md'))) {
-        allFiles.push({ file, path: join(editorsPath, file), dir: 'editors' })
-      }
-    } catch {}
+    const scanDir = async (dir: string) => {
+      const items = await readdir(dir, { withFileTypes: true })
+      for (const item of items) {
+        const fullPath = join(dir, item.name)
+        if (item.isDirectory()) {
+          await scanDir(fullPath)
+        } else if (item.name.endsWith('.md')) {
+          // Skip the index file as it's handled separately
+          if (item.name === '00-index.md') continue
 
-    // Read from docs/developers/
-    try {
-      const developersPath = join(docsPath, 'developers')
-      const developerFiles = await readdir(developersPath)
-      for (const file of developerFiles.filter((f) => f.endsWith('.md'))) {
-        allFiles.push({ file, path: join(developersPath, file), dir: 'developers' })
+          // Determine the directory relative to docs root
+          const relPath = fullPath.replace(docsPath, '').replace(/^[/\\]/, '')
+          const parts = relPath.split(/[/\\]/)
+          // dir should be the directory part of the relative path
+          const fileDir = parts.length > 1 ? parts.slice(0, -1).join('/') : 'root'
+
+          allFiles.push({ file: item.name, path: fullPath, dir: fileDir })
+        }
       }
-    } catch {}
+    }
+
+    await scanDir(docsPath)
 
     // Sort by directory (root first) then by filename
     allFiles.sort((a, b) => {
@@ -706,46 +692,30 @@ export default class extends BaseSeeder {
 
     // Define hierarchical relationships (parent slug -> child slugs[])
     const hierarchy: Record<string, string[]> = {
-      // "Documentation" (overview) is standalone with no children
-      // "Editors" and "Developers" are top-level with their own children
-
-      // Group all editor guides under "Editors"
-      editors: [
-        'content-management',
-        'review-workflow',
-        'modules-guide',
-        'media',
-        'translations',
-        'roles-permissions',
-        'seo-and-ab-testing',
-        'feedback',
-      ],
-      // Group all developer guides under "Developers" (ordered)
-      developers: [
-        'content-management-overview',
-        'theming',
-        'building-modules',
-        'api-reference',
-        'automation-and-integrations',
-        'seo-and-routing',
-        'internationalization',
+      editors: ['basics', 'collaboration', 'management'],
+      basics: ['quick-start', 'content-management', 'modules-guide'],
+      collaboration: ['review-workflow', 'feedback', 'roles-permissions'],
+      management: ['media', 'translations', 'seo-and-ab-testing'],
+      developers: ['getting-started', 'architecture', 'extending', 'automation', 'data', 'operations'],
+      'getting-started': ['installation', 'project-structure', 'deployment', 'update-philosophy'],
+      architecture: ['concepts', 'content-management-overview', 'api-reference', 'services-and-actions'],
+      extending: ['theming', 'building-modules', 'global-modules', 'advanced-customization'],
+      automation: ['workflows-and-webhooks', 'ai-agents', 'mcp'],
+      data: [
         'taxonomies',
-        'ai-agents',
-        'mcp',
-        'cli-and-operations',
-        'review-workflow-developers',
-        'media-pipeline',
-        'preview-system',
         'menus',
         'custom-fields',
-        'rbac-and-permissions',
-        'deployment',
-        'update-philosophy',
-        'analytics',
-        'advanced-customization',
-        'global-modules',
+        'media-pipeline',
+        'seo-and-routing',
+        'internationalization',
         'user-interaction',
-        'services-and-actions',
+      ],
+      operations: [
+        'cli-and-operations',
+        'review-workflow-developers',
+        'preview-system',
+        'rbac-and-permissions',
+        'analytics',
       ],
     }
 
@@ -767,7 +737,7 @@ export default class extends BaseSeeder {
     const indexSubtitleMatch = indexContent.match(/^#\s+.+\n\n(.+)$/m)
     const indexSubtitle = indexSubtitleMatch ? indexSubtitleMatch[1] : null
 
-      const now = new Date()
+    const now = new Date()
     const overviewPost = await CreatePost.handle({
       type: 'documentation',
       locale: 'en',
@@ -778,11 +748,11 @@ export default class extends BaseSeeder {
       userId: admin.id,
     })
 
-      // Update order_index to 0 (top of list) and set published_at
-      await db
-        .from('posts')
-        .where('id', overviewPost.id)
-        .update({ order_index: 0, published_at: now })
+    // Update order_index to 0 (top of list) and set published_at
+    await db
+      .from('posts')
+      .where('id', overviewPost.id)
+      .update({ order_index: 0, published_at: now })
     postIdsBySlug['overview'] = overviewPost.id
 
     console.log(`   ✓ Post created with ID: ${overviewPost.id}`)
@@ -821,16 +791,9 @@ export default class extends BaseSeeder {
       const title = titleMatch ? titleMatch[1] : file.replace('.md', '')
 
       // Generate slug from filename (remove both numeric prefix and letter suffix)
-      let baseSlug = file
+      const baseSlug = file
         .replace(/^\d+[a-z]?-/, '') // Remove number prefix (with optional letter like 03a-)
         .replace('.md', '')
-
-      // Remap key landing pages to friendly slugs for top-level docs navigation
-      if (baseSlug === 'quick-start') {
-        baseSlug = 'editors'
-      } else if (baseSlug === 'getting-started') {
-        baseSlug = 'developers'
-      }
 
       // Store base slug to directory mapping (before collision handling)
       baseSlugToDir[baseSlug] = dir
@@ -852,7 +815,11 @@ export default class extends BaseSeeder {
        * - Prefer the "plain" slug when available.
        * - If it collides, suffix with "-developers" or "-editors" based on the source dir.
        */
-      const dirSuffix = dir === 'developers' ? 'developers' : dir === 'editors' ? 'editors' : 'root'
+      const dirSuffix = dir.startsWith('developers')
+        ? 'developers'
+        : dir.startsWith('editors')
+          ? 'editors'
+          : 'root'
       let candidate = baseSlug
       if (postIdsBySlug[candidate]) {
         candidate = `${baseSlug}-${dirSuffix}`
