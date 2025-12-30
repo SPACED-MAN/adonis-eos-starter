@@ -13,7 +13,7 @@ export default class ProseWithMediaModule extends BaseModule {
   getConfig(): ModuleConfig {
     return {
       type: 'prose-with-media',
-      name: 'Prose with Media Content',
+      name: 'Prose with Media',
       description:
         'A layout pairing narrative content with a supporting visual block. Use this for feature explainers or editorial sections. EXPECTATION: Provide a substantial amount of body copy (multiple paragraphs) to properly support the visual element.',
       icon: 'layout-text-media',

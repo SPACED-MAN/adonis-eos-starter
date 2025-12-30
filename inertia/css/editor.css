@@ -1,0 +1,80 @@
+/* =========================================================
+   Inline Editor UI & Content State Styles
+   ========================================================= */
+
+/* 
+   This file contains all styles related to the CMS inline editor.
+   It is isolated to keep the main theme and components clean.
+*/
+
+:root {
+  /* 
+     Category: Editor-Specific Tokens 
+     Defined exclusively here to maintain strict isolation.
+  */
+  --color-line-inline-input-editable: var(--color-slate-100);
+  --color-line-inline-input-global: var(--color-amber-500);
+}
+
+.dark,
+[data-theme='admin'].dark,
+[data-theme='site'].dark {
+  --color-line-inline-input-editable: var(--color-zinc-800);
+  --color-line-inline-input-global: var(--color-amber-400);
+}
+
+/* =========================================================
+   1. Inline Diff Highlights (Review / AI Modes)
+   ========================================================= */
+
+.inline-diff-review {
+  background-color: color-mix(in srgb, var(--color-amber-100) 60%, transparent);
+}
+
+.dark .inline-diff-review {
+  background-color: color-mix(in srgb, var(--color-amber-400) 35%, transparent);
+}
+
+.inline-diff-ai {
+  background-color: color-mix(in srgb, var(--color-sky-100) 60%, transparent);
+}
+
+.dark .inline-diff-ai {
+  background-color: color-mix(in srgb, var(--color-sky-400) 35%, transparent);
+}
+
+.inline-diff-add {
+  background-color: color-mix(in srgb, var(--color-amber-200) 70%, transparent);
+  border-radius: 2px;
+}
+
+.inline-diff-del {
+  background-color: color-mix(in srgb, var(--color-red-200) 70%, transparent);
+  border-radius: 2px;
+  text-decoration: line-through;
+}
+
+.dark .inline-diff-add {
+  background-color: color-mix(in srgb, var(--color-amber-500) 40%, transparent);
+}
+
+.dark .inline-diff-del {
+  background-color: color-mix(in srgb, var(--color-red-500) 40%, transparent);
+}
+
+/* =========================================================
+   2. Editor-State Specific UI
+   ========================================================= */
+
+/* Active and Hovered editable regions */
+[data-inline-active='1'],
+[data-inline-path].inline-edit-hover {
+  outline: 1px dashed var(--color-standout-medium);
+  outline-offset: 2px;
+}
+
+/* Global Module highlight */
+.inline-global-module.inline-edit-hover {
+  outline: 2px solid var(--color-line-inline-input-global);
+  outline-offset: 6px;
+}

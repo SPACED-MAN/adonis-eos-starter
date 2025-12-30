@@ -9,6 +9,7 @@ import {
 } from '~/components/ui/alert-dialog'
 import { Input } from '~/components/ui/input'
 import { MediaRenderer } from '../../../components/MediaRenderer'
+import { getMediaLabel, type MediaVariant } from '~/lib/media'
 
 type MediaItem = {
   id: string
@@ -154,7 +155,7 @@ export function MediaPickerModal({
                       onOpenChange(false)
                     }}
                     className={`group border rounded overflow-hidden ${selectedId === m.id ? 'border-standout-medium' : 'border-line-low'} bg-backdrop-low`}
-                    title={m.originalFilename || m.id}
+                    title={getMediaLabel(m)}
                   >
                     <div className="aspect-square flex items-center justify-center bg-backdrop-low dark:bg-backdrop-medium relative overflow-hidden">
                       {/* Subtle checkerboard for transparency awareness */}
@@ -168,14 +169,14 @@ export function MediaPickerModal({
                       <MediaRenderer
                         image={m}
                         variant="thumb"
-                        alt={m.originalFilename || ''}
+                        alt={getMediaLabel(m)}
                         className="w-full h-full object-cover relative z-10"
                         controls={false}
                         autoPlay={false}
                       />
                     </div>
                     <div className="p-1 text-[10px] text-neutral-medium truncate">
-                      {m.alt || m.originalFilename || m.id}
+                      {getMediaLabel(m)}
                     </div>
                   </button>
                 ))}

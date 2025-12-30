@@ -1,0 +1,217 @@
+/* =========================================================
+   Typography & Prose Component Definitions
+   ========================================================= */
+
+/* 
+   This file manages all text-related styles and the .prose 
+   component logic used for CMS content rendering.
+*/
+
+.prose,
+[class*='prose-'] {
+  /* ---------------------------------------------------------
+     1. Core Variables (Theming Integration)
+     --------------------------------------------------------- */
+  --tw-prose-body: var(--color-neutral-high);
+  --tw-prose-headings: var(--color-neutral-high);
+  --tw-prose-links: var(--color-standout-high);
+  --tw-prose-bold: var(--color-neutral-high);
+  --tw-prose-bullets: var(--color-neutral-medium);
+  --tw-prose-quotes: var(--color-neutral-medium);
+  --tw-prose-code: var(--color-neutral-high);
+  --tw-prose-hr: var(--color-line-low);
+
+  /* Layout Constraints */
+  max-width: none !important;
+  line-height: 1.75;
+  /* Default body line-height */
+
+  /* ---------------------------------------------------------
+     2. Headings
+     --------------------------------------------------------- */
+  & :is(h1, h2, h3, h4, h5, h6) {
+    color: var(--tw-prose-headings) !important;
+    font-weight: 600 !important;
+    letter-spacing: -0.025em;
+    /* Tighten for large headings */
+  }
+
+  & h1 {
+    display: none !important;
+    /* Module/Hero handles H1 */
+  }
+
+  & h2 {
+    font-size: 3rem !important;
+    margin-top: 2.5rem !important;
+    margin-bottom: 1.25rem !important;
+    line-height: 3.5rem !important;
+
+    @media (max-width: 768px) {
+      font-size: 2.25rem !important;
+    }
+  }
+
+  & h3 {
+    font-size: 1.5rem !important;
+    margin-top: 1.5rem !important;
+    margin-bottom: 0.75rem !important;
+    line-height: 2rem !important;
+  }
+
+  /* ---------------------------------------------------------
+     3. Paragraphs & Text Elements
+     --------------------------------------------------------- */
+  & p {
+    margin-top: 1rem !important;
+    margin-bottom: 1rem !important;
+    line-height: 1.75rem !important;
+    color: var(--tw-prose-body) !important;
+  }
+
+  & :is(strong, b) {
+    font-weight: 600 !important;
+    color: var(--tw-prose-bold) !important;
+  }
+
+  /* ---------------------------------------------------------
+     4. Links
+     --------------------------------------------------------- */
+  & a {
+    color: var(--tw-prose-links) !important;
+    text-decoration: underline !important;
+    transition: opacity 150ms ease;
+
+    &:hover {
+      opacity: 0.8 !important;
+    }
+  }
+
+  /* ---------------------------------------------------------
+     5. Lists (Ordered & Unordered)
+     --------------------------------------------------------- */
+  & :is(ul, ol) {
+    margin-top: 1rem !important;
+    margin-bottom: 1rem !important;
+    padding-left: 1.5rem !important;
+    color: var(--tw-prose-body) !important;
+
+    & li {
+      margin-top: 0.5rem !important;
+      margin-bottom: 0.5rem !important;
+    }
+  }
+
+  & ul {
+    list-style-type: disc !important;
+  }
+
+  & ol {
+    list-style-type: decimal !important;
+  }
+
+  /* ---------------------------------------------------------
+     6. Blockquotes
+     --------------------------------------------------------- */
+  & blockquote {
+    font-style: italic;
+    color: var(--tw-prose-quotes) !important;
+    border-left-width: 4px !important;
+    border-left-color: var(--color-line-medium) !important;
+    padding-left: 1.25em !important;
+    margin-left: 0 !important;
+    margin-right: 0 !important;
+  }
+
+  /* ---------------------------------------------------------
+     7. Code & Preformatted Text
+     --------------------------------------------------------- */
+  & code {
+    background-color: var(--color-backdrop-medium) !important;
+    color: var(--tw-prose-code) !important;
+    font-family: ui-monospace, monospace !important;
+    font-size: 0.875em !important;
+    font-weight: 400 !important;
+    padding: 0.125rem 0.25rem !important;
+    border-radius: 0.25rem !important;
+
+    &::before,
+    &::after {
+      content: '' !important;
+      /* Hide backticks from typography plugin */
+    }
+  }
+
+  & pre {
+    background-color: var(--color-neutral-high) !important;
+    color: var(--color-backdrop-input) !important;
+    border: 1px solid var(--color-line-medium) !important;
+    border-radius: 0.5rem !important;
+    padding: 1rem !important;
+    overflow-x: auto !important;
+    margin: 1rem 0 !important;
+
+    & code {
+      background-color: transparent !important;
+      color: inherit !important;
+      padding: 0 !important;
+      border-radius: 0 !important;
+      font-size: 0.875rem !important;
+      line-height: 1.5 !important;
+      color: inherit !important;
+    }
+  }
+
+  /* ---------------------------------------------------------
+     8. Miscellaneous (HR, Tables, etc.)
+     --------------------------------------------------------- */
+  & hr {
+    border: none !important;
+    border-top: 1px solid var(--tw-prose-hr) !important;
+    margin: 2rem 0 !important;
+  }
+}
+
+/* ---------------------------------------------------------
+   9. Inverted (Dark Mode) Overrides
+   --------------------------------------------------------- */
+.prose-invert,
+.prose-invert [class*='prose-'] {
+  /* 
+     For inverted prose, we want to ensure visibility on dark backgrounds.
+     We use neutral-high which correctly becomes light in dark mode.
+  */
+  --tw-prose-body: var(--color-neutral-high);
+  --tw-prose-headings: var(--color-neutral-high);
+  --tw-prose-links: var(--color-on-high);
+  --tw-prose-bold: var(--color-neutral-high);
+  --tw-prose-bullets: var(--color-neutral-medium);
+  --tw-prose-quotes: var(--color-neutral-medium);
+  --tw-prose-code: var(--color-neutral-high);
+  --tw-prose-hr: var(--color-line-low);
+
+  & blockquote {
+    border-left-color: var(--color-on-high) !important;
+    opacity: 0.8;
+  }
+
+  & code {
+    background-color: rgba(255, 255, 255, 0.1) !important;
+  }
+
+  & pre {
+    background-color: rgba(0, 0, 0, 0.4) !important;
+    border-color: rgba(255, 255, 255, 0.1) !important;
+    color: var(--color-on-high) !important;
+  }
+}
+
+/* 
+   Ensure that in global dark mode, the inverted styles don't 
+   accidentally turn text black if var(--color-on-high) is black.
+*/
+.dark .prose-invert,
+.dark [class*='prose-invert'] {
+  --tw-prose-links: var(--color-standout-high);
+  --tw-prose-body: var(--color-neutral-high);
+}

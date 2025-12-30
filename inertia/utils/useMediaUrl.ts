@@ -48,6 +48,8 @@ export function useMediaUrl(
           variant,
           {
             darkSourceUrl: image.metadata?.darkSourceUrl || (image as any).darkSourceUrl,
+            darkOptimizedUrl: image.metadata?.darkOptimizedUrl || (image as any).darkOptimizedUrl,
+            optimizedUrl: image.optimizedUrl || image.metadata?.optimizedUrl || (image as any).optimizedUrl,
             isDark,
           }
         )

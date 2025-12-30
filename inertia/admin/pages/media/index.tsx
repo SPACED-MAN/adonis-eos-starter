@@ -19,6 +19,12 @@ import {
   faFont,
   faExternalLinkAlt,
 } from '@fortawesome/free-solid-svg-icons'
+import {
+  pickMediaVariantUrl,
+  isMediaVideo,
+  getMediaLabel,
+  type MediaVariant,
+} from '~/lib/media'
 import { AdminHeader } from '../../components/AdminHeader'
 import { AdminFooter } from '../../components/AdminFooter'
 import { toast } from 'sonner'
@@ -72,11 +78,6 @@ type MediaItem = {
   metadata?: { variants?: Variant[]; playMode?: 'autoplay' | 'inline' | 'modal' } | null
 }
 
-const isMediaVideo = (m: any) => {
-  if (!m) return false
-  return m.mimeType?.startsWith('video/') || /\.(mp4|webm|ogg)$/i.test(m.url || '')
-}
-
 type PageProps = {
   mediaAdmin?: { thumbnailVariant?: string | null; modalVariant?: string | null }
   isAdmin?: boolean
@@ -114,7 +115,9 @@ export default function MediaIndex() {
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set())
   const [selectAll, setSelectAll] = useState<boolean>(false)
   const [bulkKey, setBulkKey] = useState<number>(0)
-  const [confirmBulkDelete, setConfirmBulkDelete] = useState<boolean>(false)
+  const [bulkActionToConfirm, setBulkActionToConfirm] = useState<
+    'optimize' | 'generate-missing' | 'regenerate' | 'delete' | null
+  >(null)
   const [bulkCategoriesOpen, setBulkCategoriesOpen] = useState<boolean>(false)
   const [bulkCats, setBulkCats] = useState<string[]>([])
   const [bulkCatsInitial, setBulkCatsInitial] = useState<string[]>([])
@@ -931,16 +934,10 @@ export default function MediaIndex() {
                 onValueChange={(
                   val: 'optimize' | 'generate-missing' | 'regenerate' | 'delete' | 'categories'
                 ) => {
-                  if (val === 'optimize') {
-                    applyBulk('optimize')
-                  } else if (val === 'generate-missing') {
-                    applyBulkGenerateMissing()
-                  } else if (val === 'regenerate') {
-                    applyBulkRegenerate()
-                  } else if (val === 'delete') {
-                    setConfirmBulkDelete(true)
-                  } else if (val === 'categories') {
+                  if (val === 'categories') {
                     openBulkCategories()
+                  } else {
+                    setBulkActionToConfirm(val)
                   }
                 }}
               >
@@ -1020,7 +1017,7 @@ export default function MediaIndex() {
                             <MediaRenderer
                               image={m}
                               variant="thumb"
-                              alt={m.altText || m.originalFilename}
+                              alt={getMediaLabel(m)}
                               className="w-full h-full object-contain"
                               controls={false}
                               autoPlay={false}
@@ -1028,14 +1025,17 @@ export default function MediaIndex() {
                             />
                           </div>
                           <div className="mt-2">
-                            <div className="text-xs text-neutral-high break-all">
-                              {m.altText || m.originalFilename}
+                            <div className="text-xs text-neutral-high break-all font-medium">
+                              {getMediaLabel(m)}
                             </div>
-                            <div className="text-[10px] text-neutral-low">
+                            <div className="text-[10px] text-neutral-low mt-1">
                               {m.mimeType} • {(m.size / 1024).toFixed(1)} KB
                               {typeof m.optimizedSize === 'number' && m.optimizedSize > 0 && (
                                 <> → {(m.optimizedSize / 1024).toFixed(1)} KB (WebP)</>
                               )}
+                            </div>
+                            <div className="text-[10px] text-neutral-low">
+                              File: {m.url.split('/').pop()}
                             </div>
                             <div className="text-[10px] text-neutral-low">
                               Date Added: {new Date(m.createdAt).toLocaleString()}
@@ -1200,7 +1200,7 @@ export default function MediaIndex() {
                             />
                           </TableHead>
                           <TableHead>Preview</TableHead>
-                          <TableHead>Filename</TableHead>
+                          <TableHead>Label</TableHead>
                           <TableHead>Type</TableHead>
                           <TableHead>Size</TableHead>
                           <TableHead>Optimized</TableHead>
@@ -1235,8 +1235,8 @@ export default function MediaIndex() {
                                   />
                                 </div>
                               </TableCell>
-                              <TableCell className="max-w-[240px] truncate">
-                                {m.originalFilename}
+                              <TableCell className="max-w-[240px] truncate" title={getMediaLabel(m)}>
+                                {getMediaLabel(m)}
                               </TableCell>
                               <TableCell>{m.mimeType}</TableCell>
                               <TableCell>{(m.size / 1024).toFixed(1)} KB</TableCell>
@@ -1379,27 +1379,53 @@ export default function MediaIndex() {
         </div>
 
         {/* Meta Editor modal (opens via pencil) */}
-        {/* Bulk Delete confirm */}
-        <AlertDialog open={confirmBulkDelete} onOpenChange={setConfirmBulkDelete}>
+        {/* Bulk Action confirm */}
+        <AlertDialog
+          open={bulkActionToConfirm !== null}
+          onOpenChange={(open) => {
+            if (!open) setBulkActionToConfirm(null)
+          }}
+        >
           <AlertDialogContent>
             <AlertDialogHeader>
-              <AlertDialogTitle>Delete selected media?</AlertDialogTitle>
+              <AlertDialogTitle>
+                {bulkActionToConfirm === 'delete' && 'Delete selected media?'}
+                {bulkActionToConfirm === 'optimize' && 'Optimize selected media?'}
+                {bulkActionToConfirm === 'generate-missing' && 'Generate missing variations?'}
+                {bulkActionToConfirm === 'regenerate' && 'Regenerate all variations?'}
+              </AlertDialogTitle>
               <AlertDialogDescription>
-                This will permanently delete the originals and all variants. This action cannot be
-                undone.
+                {bulkActionToConfirm === 'delete' &&
+                  'This will permanently delete the originals and all variants. This action cannot be undone.'}
+                {bulkActionToConfirm === 'optimize' &&
+                  'This will generate WebP versions for the selected images and their variants to improve performance.'}
+                {bulkActionToConfirm === 'generate-missing' &&
+                  'This will check each selected item and generate any missing light or dark mode variants.'}
+                {bulkActionToConfirm === 'regenerate' &&
+                  'This will re-generate ALL variants (light and dark) for the selected items, overwriting any existing ones.'}
               </AlertDialogDescription>
             </AlertDialogHeader>
             <AlertDialogFooter>
-              <AlertDialogCancel onClick={() => setConfirmBulkDelete(false)}>
+              <AlertDialogCancel onClick={() => setBulkActionToConfirm(null)}>
                 Cancel
               </AlertDialogCancel>
               <AlertDialogAction
                 onClick={async () => {
-                  setConfirmBulkDelete(false)
-                  await applyBulkDelete()
+                  const action = bulkActionToConfirm
+                  setBulkActionToConfirm(null)
+                  if (action === 'delete') {
+                    await applyBulkDelete()
+                  } else if (action === 'optimize') {
+                    await applyBulk('optimize')
+                  } else if (action === 'generate-missing') {
+                    await applyBulkGenerateMissing()
+                  } else if (action === 'regenerate') {
+                    await applyBulkRegenerate()
+                  }
                 }}
+                className={bulkActionToConfirm === 'delete' ? 'bg-red-600 hover:bg-red-700 text-white' : ''}
               >
-                Delete
+                {bulkActionToConfirm === 'delete' ? 'Delete' : 'Continue'}
               </AlertDialogAction>
             </AlertDialogFooter>
           </AlertDialogContent>
@@ -1499,9 +1525,7 @@ export default function MediaIndex() {
               <div className="flex items-center justify-between p-4 border-b border-line-low bg-backdrop-low">
                 <div className="flex flex-col ml-1">
                   <div className="text-sm font-bold text-neutral-high truncate max-w-md">
-                    {isMediaVideo(viewing)
-                      ? viewing.originalFilename
-                      : viewing.altText || viewing.originalFilename}
+                    {getMediaLabel(viewing)}
                   </div>
                   <div className="text-[10px] text-neutral-medium uppercase tracking-wider font-semibold flex items-center gap-2">
                     <FontAwesomeIcon
@@ -1591,7 +1615,7 @@ export default function MediaIndex() {
                         ref={imgRef}
                         url={getEditDisplayUrl(viewing, editTheme)}
                         mimeType={viewing.mimeType}
-                        alt={viewing.altText || viewing.originalFilename}
+                        alt={getMediaLabel(viewing)}
                         className="max-w-full h-auto max-h-[55vh] block"
                         controls={isMediaVideo(viewing)}
                         autoPlay={false}
@@ -2106,7 +2130,7 @@ export default function MediaIndex() {
                             },
                             credentials: 'same-origin',
                             body: JSON.stringify({
-                              altText: isMediaVideo(viewing) ? undefined : editAlt,
+                              altText: isMediaVideo(viewing) ? null : editAlt,
                               title: editTitle,
                               description: editDescription,
                               playMode: isMediaVideo(viewing) ? editPlayMode : undefined,

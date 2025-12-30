@@ -1,0 +1,136 @@
+/* =========================================================
+   Design Tokens (Source of Truth)
+   ========================================================= */
+
+/* 
+   This file is the Single Source of Truth for all design tokens.
+   It defines raw values (colors, geometry, etc.) which are then 
+   automatically discovered by Tailwind 4.
+*/
+
+@theme {
+	/* ---------------------------------------------------------
+     1. Semantic Palette (Colors)
+     --------------------------------------------------------- */
+
+	/* Category: Standout Colors */
+	--color-standout-low: var(--color-emerald-100);
+	--color-standout-medium: var(--color-teal-800);
+	--color-standout-high: var(--color-teal-900);
+	--color-on-high: var(--color-white);
+
+	/* Category: Neutral / Text Colors */
+	--color-neutral-low: var(--color-slate-600);
+	--color-neutral-medium: var(--color-slate-700);
+	--color-neutral-high: var(--color-black);
+
+	/* Category: Backdrop / Surfaces */
+	--color-backdrop-low: var(--color-white);
+	--color-backdrop-medium: var(--color-slate-200);
+	--color-backdrop-high: var(--color-slate-300);
+	--color-backdrop-input: var(--color-slate-100);
+
+	/* Category: Lines and UI */
+	--color-line-low: var(--color-slate-300);
+	--color-line-medium: var(--color-slate-400);
+	--color-line-high: var(--color-slate-600);
+	--color-placeholder: var(--color-slate-500);
+	--color-disabled: var(--color-slate-300);
+
+	/* ---------------------------------------------------------
+     2. Geometry & Token Mappings
+     --------------------------------------------------------- */
+
+	/* Category: ShadCN / Component System Token Mappings */
+	--radius: 0.35rem;
+	--background: var(--color-backdrop-low);
+	--foreground: var(--color-neutral-high);
+	--card: var(--color-backdrop-low);
+	--card-foreground: var(--color-neutral-high);
+	--popover: var(--color-backdrop-low);
+	--popover-foreground: var(--color-neutral-high);
+	--primary: var(--color-standout-medium);
+	--primary-foreground: var(--color-on-high);
+	--secondary: var(--color-backdrop-medium);
+	--secondary-foreground: var(--color-neutral-high);
+	--muted: var(--color-backdrop-medium);
+	--muted-foreground: var(--color-neutral-medium);
+	--accent: var(--color-backdrop-medium);
+	--accent-foreground: var(--color-neutral-high);
+	--destructive: var(--color-red-500);
+	--border: var(--color-line-low);
+	--input: var(--color-line-low);
+	--ring: var(--color-sky-400);
+	--chart-1: var(--color-indigo-500);
+	--chart-2: var(--color-emerald-500);
+	--chart-3: var(--color-amber-500);
+	--chart-4: var(--color-sky-900);
+	--chart-5: var(--color-pink-500);
+	--sidebar: var(--color-backdrop-low);
+	--sidebar-foreground: var(--color-neutral-high);
+	--sidebar-primary: var(--color-standout-medium);
+	--sidebar-primary-foreground: var(--color-on-high);
+	--sidebar-accent: var(--color-backdrop-medium);
+	--sidebar-accent-foreground: var(--color-neutral-high);
+	--sidebar-border: var(--color-line-low);
+	--sidebar-ring: var(--color-sky-400);
+}
+
+/* ---------------------------------------------------------
+   3. Dark Mode Overrides
+   --------------------------------------------------------- */
+
+/* 
+   These tokens are re-evaluated when the .dark class is present.
+*/
+.dark,
+[data-theme='admin'].dark,
+[data-theme='site'].dark {
+	--color-standout-low: var(--color-cyan-800);
+	--color-standout-medium: var(--color-cyan-500);
+	--color-standout-high: var(--color-cyan-400);
+	--color-on-high: var(--color-black);
+
+	--color-neutral-low: var(--color-zinc-400);
+	--color-neutral-medium: var(--color-zinc-300);
+	--color-neutral-high: var(--color-zinc-100);
+
+	--color-backdrop-low: var(--color-zinc-900);
+	--color-backdrop-medium: var(--color-zinc-800);
+	--color-backdrop-high: var(--color-zinc-700);
+	--color-backdrop-input: var(--color-zinc-800);
+
+	--color-line-low: var(--color-zinc-800);
+	--color-line-medium: var(--color-zinc-700);
+	--color-line-high: var(--color-zinc-600);
+	--color-placeholder: var(--color-zinc-500);
+	--color-disabled: var(--color-zinc-600);
+
+	/* Component System Overrides */
+	--background: var(--color-backdrop-medium);
+	--foreground: var(--color-neutral-high);
+	--card: var(--color-backdrop-low);
+	--card-foreground: var(--color-neutral-high);
+	--popover: var(--color-backdrop-low);
+	--popover-foreground: var(--color-neutral-high);
+	--primary: var(--color-standout-medium);
+	--primary-foreground: var(--color-on-high);
+	--secondary: var(--color-backdrop-medium);
+	--secondary-foreground: var(--color-neutral-high);
+	--muted: var(--color-backdrop-medium);
+	--muted-foreground: var(--color-neutral-medium);
+	--accent: var(--color-backdrop-medium);
+	--accent-foreground: var(--color-neutral-high);
+	--destructive: var(--color-orange-500);
+	--border: var(--color-line-low);
+	--input: var(--color-line-low);
+	--ring: var(--color-sky-900);
+	--sidebar: var(--color-backdrop-low);
+	--sidebar-foreground: var(--color-neutral-high);
+	--sidebar-primary: var(--color-standout-medium);
+	--sidebar-primary-foreground: var(--color-on-high);
+	--sidebar-accent: var(--color-backdrop-medium);
+	--sidebar-accent-foreground: var(--color-neutral-high);
+	--sidebar-border: var(--color-line-low);
+	--sidebar-ring: var(--color-sky-900);
+}

@@ -65,9 +65,7 @@ export const MediaRenderer = forwardRef<HTMLImageElement | HTMLVideoElement, Med
 
     const isVideo =
       (typeof mimeType === 'string' && mimeType.startsWith('video/')) ||
-      resolvedUrl.toLowerCase().endsWith('.mp4') ||
-      resolvedUrl.toLowerCase().endsWith('.webm') ||
-      resolvedUrl.toLowerCase().endsWith('.ogg')
+      /\.(mp4|webm|ogg|mov|m4v|avi)$/i.test(resolvedUrl.split('?')[0].toLowerCase())
 
     if (isVideo) {
       const isAutoplayMode = playMode === 'autoplay'

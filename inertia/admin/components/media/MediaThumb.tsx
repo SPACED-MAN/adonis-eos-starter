@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react'
 import { MediaRenderer } from '../../../components/MediaRenderer'
+import { isMediaVideo, getMediaLabel } from '~/lib/media'
 import {
   Select,
   SelectContent,
@@ -158,6 +159,7 @@ export function MediaThumb({
               image={displayData}
               url={!displayData ? fallbackUrl : undefined}
               variant="thumb"
+              alt={displayData ? getMediaLabel(displayData) : ''}
               className="w-full h-full object-cover relative z-10"
               controls={false}
               autoPlay={false}
@@ -166,44 +168,47 @@ export function MediaThumb({
             <span className="text-xs text-neutral-medium relative z-10">No media</span>
           )}
         </div>
-        {!hideActions && (
-          <div
-            className={`flex ${layout === 'vertical' ? 'flex-row' : 'flex-col sm:flex-row'} items-center gap-2`}
-          >
-            <button
-              type="button"
-              className="px-2 py-1 text-xs border border-line-medium rounded hover:bg-backdrop-medium text-neutral-medium transition-colors"
-              onClick={(e) => {
-                e.preventDefault()
-                e.stopPropagation()
-                if (onChange) onChange()
-              }}
+        <div className="flex-1 min-w-0 flex flex-col gap-1.5">
+          {displayData && (
+            <div className="text-[10px] font-medium text-neutral-high truncate" title={getMediaLabel(displayData)}>
+              {getMediaLabel(displayData)}
+            </div>
+          )}
+          {!hideActions && (
+            <div
+              className={`flex ${layout === 'vertical' ? 'flex-row' : 'flex-col sm:flex-row'} items-center gap-2`}
             >
-              {mediaId ? 'Change' : 'Choose'}
-            </button>
-            {!!mediaId && (
               <button
                 type="button"
                 className="px-2 py-1 text-xs border border-line-medium rounded hover:bg-backdrop-medium text-neutral-medium transition-colors"
                 onClick={(e) => {
                   e.preventDefault()
                   e.stopPropagation()
-                  if (onClear) onClear()
+                  if (onChange) onChange()
                 }}
               >
-                Remove
+                {mediaId ? 'Change' : 'Choose'}
               </button>
-            )}
-          </div>
-        )}
+              {!!mediaId && (
+                <button
+                  type="button"
+                  className="px-2 py-1 text-xs border border-line-medium rounded hover:bg-backdrop-medium text-neutral-medium transition-colors"
+                  onClick={(e) => {
+                    e.preventDefault()
+                    e.stopPropagation()
+                    if (onClear) onClear()
+                  }}
+                >
+                  Remove
+                </button>
+              )}
+            </div>
+          )}
+        </div>
       </div>
       {!hideActions &&
         (() => {
-          const isVideo =
-            displayData?.mimeType?.startsWith('video/') ||
-            displayData?.url?.toLowerCase().endsWith('.mp4') ||
-            displayData?.url?.toLowerCase().endsWith('.webm') ||
-            displayData?.url?.toLowerCase().endsWith('.ogg')
+          const isVideo = isMediaVideo(displayData)
 
           if (!isVideo) return null
 

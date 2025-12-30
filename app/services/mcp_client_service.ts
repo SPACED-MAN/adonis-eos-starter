@@ -1273,7 +1273,7 @@ class MCPClientService {
         await db.table('media_assets').insert({
           id: mediaId,
           url,
-          original_filename: `generated-${prompt.slice(0, 50).replace(/[^a-z0-9]/gi, '-')}${ext}`,
+          original_filename: filename,
           mime_type: mimeType,
           size: imageBuffer.length,
           alt_text: alt_text || prompt.slice(0, 200),
@@ -1436,7 +1436,7 @@ class MCPClientService {
         await db.table('media_assets').insert({
           id: mediaId,
           url,
-          original_filename: `generated-video-${prompt.slice(0, 50).replace(/[^a-z0-9]/gi, '-')}${ext}`,
+          original_filename: filename,
           mime_type: mimeType,
           size: videoBuffer.length,
           alt_text: prompt.slice(0, 200),

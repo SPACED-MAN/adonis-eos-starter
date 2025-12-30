@@ -27,6 +27,13 @@ function sanitizeBaseName(name: string): string {
 function computeDefaultAlt(fromClientName: string): string | null {
   const dot = fromClientName.lastIndexOf('.')
   const base = dot >= 0 ? fromClientName.slice(0, dot) : fromClientName
+
+  // Handle AI generated filenames from providers like Google Gemini/Imagen
+  // Gemini_Generated_Image_5195yx... -> AI Generated Image
+  if (base.startsWith('Gemini_Generated_Image_')) {
+    return 'AI Generated Image'
+  }
+
   const cleaned = base
     .replace(/[-_]+/g, ' ')
     .trim()
@@ -106,7 +113,7 @@ export default class MediaController {
 
     const clientName = (uploadFile as any).clientName as string | undefined
     const size = (uploadFile as any).size
-    const type = (uploadFile as any).type as string | undefined
+    const type = ((uploadFile as any).contentType || (uploadFile as any).type || '') as string
     if (!clientName || !size || !type) {
       return response.badRequest({ error: 'Invalid file' })
     }
@@ -118,6 +125,34 @@ export default class MediaController {
     const uploadsDir = path.join(process.cwd(), 'public', 'uploads')
     await fs.promises.mkdir(uploadsDir, { recursive: true })
     const ext = (path.extname(clientName) || '').toLowerCase()
+
+    // Normalize mime type
+    let mime = type
+    if (!mime.includes('/')) {
+      switch (ext) {
+        case '.jpg':
+        case '.jpeg':
+          mime = 'image/jpeg'
+          break
+        case '.png':
+          mime = 'image/png'
+          break
+        case '.webp':
+          mime = 'image/webp'
+          break
+        case '.gif':
+          mime = 'image/gif'
+          break
+        case '.svg':
+          mime = 'image/svg+xml'
+          break
+        case '.avif':
+          mime = 'image/avif'
+          break
+        default:
+          mime = type || 'application/octet-stream'
+      }
+    }
 
     let filename: string
     if (naming === 'original') {
@@ -170,9 +205,6 @@ export default class MediaController {
     const id = crypto.randomUUID()
     const url = `/uploads/${filename}`
 
-    // Normalize mime type
-    let mime = typeof type === 'string' ? type : ''
-
     // Publish to storage (local no-op, R2 uploads)
     try {
       await storageService.publishFile(destPath, url, mime)
@@ -203,15 +235,21 @@ export default class MediaController {
       }
     }
 
-    const effectiveAltText = altText || computeDefaultAlt(clientName)
-    // We continue to store this in the `caption` column but expose it as `title` in the API.
-    const caption = title || null
+    const isVideo =
+      mime.startsWith('video/') || /\.(mp4|webm|ogg|mov|m4v|avi)$/i.test(url.split('?')[0])
+
+    const defaultLabel = computeDefaultAlt(clientName)
+
+    // For videos, we don't use Alt Text; we use Title/Caption instead.
+    // For images, we use Alt Text as primary and Title/Caption as optional fallback.
+    const effectiveAltText = isVideo ? null : altText || defaultLabel
+    const caption = title || (isVideo ? defaultLabel : null)
     const effectiveDescription = description || null
 
     await db.table('media_assets').insert({
       id,
       url,
-      original_filename: clientName,
+      original_filename: naming === 'original' ? clientName : filename,
       mime_type: mime,
       size: Number(size),
       alt_text: effectiveAltText,
@@ -276,25 +314,34 @@ export default class MediaController {
     const { id } = params
     const { altText, title, description, categories } =
       await request.validateUsing(updateMediaValidator)
+
+    const row = await db.from('media_assets').where('id', id).first()
+    if (!row) return response.notFound({ error: 'Media not found' })
+
+    const mime = String(row.mime_type || '')
+    const url = String(row.url || '')
+    const isVideo =
+      mime.startsWith('video/') || /\.(mp4|webm|ogg|mov|m4v|avi)$/i.test(url.split('?')[0])
+
     const playMode = request.input('playMode')
     const now = new Date()
     const update: any = { updated_at: now }
-    if (altText !== undefined) update.alt_text = altText
+
+    // If it's a video, explicitly clear alt_text if it was provided as null or undefined from frontend
+    if (altText !== undefined) {
+      update.alt_text = isVideo ? null : altText
+    }
     if (title !== undefined) update.caption = title
     if (description !== undefined) update.description = description
     if (categories !== undefined) update.categories = categories
 
     if (playMode !== undefined) {
-      const row = await db.from('media_assets').where('id', id).first()
-      if (row) {
-        const meta = (row.metadata as any) || {}
-        meta.playMode = playMode
-        update.metadata = JSON.stringify(meta)
-      }
+      const meta = (row.metadata as any) || {}
+      meta.playMode = playMode
+      update.metadata = JSON.stringify(meta)
     }
 
-    const count = await db.from('media_assets').where('id', id).update(update)
-    if (!count) return response.notFound({ error: 'Media not found' })
+    await db.from('media_assets').where('id', id).update(update)
     try {
       await activityLogService.log({
         action: 'media.update',
@@ -325,68 +372,52 @@ export default class MediaController {
 
     const publicRoot = path.join(process.cwd(), 'public')
     const originalUrl = String(row.url || '')
+    const optimizedUrl = String((row as any).optimized_url || '')
 
-    // Delete original file
-    try {
-      const originalPath = path.join(publicRoot, originalUrl.replace(/^\//, ''))
-      await fs.promises.unlink(originalPath)
-    } catch {}
-    // Also remove from storage driver
-    try {
-      await storageService.deleteByUrl(originalUrl)
-    } catch {}
+    // Helper to delete a file from disk and storage
+    const deleteFile = async (url: string) => {
+      if (!url) return
+      try {
+        const p = path.join(publicRoot, url.replace(/^\//, ''))
+        await fs.promises.unlink(p)
+      } catch {}
+      try {
+        await storageService.deleteByUrl(url)
+      } catch {}
+    }
 
-    // Delete known variants from metadata (light + dark)
+    // Delete original and main optimized files
+    await deleteFile(originalUrl)
+    await deleteFile(optimizedUrl)
+
+    // Delete known variants from metadata (light + dark + optimized)
     try {
       const meta = (row as any).metadata as any
       const variants = meta && Array.isArray(meta.variants) ? meta.variants : []
       for (const v of variants) {
-        if (!v?.url || typeof v.url !== 'string') continue
-        const vUrl = String(v.url)
-        const p = path.join(publicRoot, vUrl.replace(/^\//, ''))
-        try {
-          await fs.promises.unlink(p)
-        } catch {}
-        try {
-          await storageService.deleteByUrl(vUrl)
-        } catch {}
+        await deleteFile(v?.url)
+        await deleteFile(v?.optimizedUrl)
       }
 
-      // Delete dedicated dark base if present
-      const darkSourceUrl =
-        meta && typeof meta.darkSourceUrl === 'string' ? meta.darkSourceUrl : null
-      if (darkSourceUrl) {
-        const darkPath = path.join(publicRoot, darkSourceUrl.replace(/^\//, ''))
-        try {
-          await fs.promises.unlink(darkPath)
-        } catch {}
-        try {
-          await storageService.deleteByUrl(String(darkSourceUrl))
-        } catch {}
-      }
+      // Delete dedicated dark base and its optimized version if present
+      await deleteFile(meta?.darkSourceUrl)
+      await deleteFile(meta?.darkOptimizedUrl)
     } catch {}
 
-    // Fallback: pattern-based deletion (basename.VARIANT+ext)
+    // Fallback: pattern-based deletion (basename.VARIANT+ext, basename.optimized.webp, etc.)
     try {
-      const originalPath = path.join(publicRoot, String(row.url || '').replace(/^\//, ''))
+      const originalPath = path.join(publicRoot, originalUrl.replace(/^\//, ''))
       const parsed = path.parse(originalPath)
       const dir = parsed.dir
       const base = parsed.name
-      const ext = parsed.ext
       const files = await fs.promises.readdir(dir)
       await Promise.all(
         files.map(async (f) => {
-          const isVariantPattern = f.startsWith(base + '.') && f.endsWith(ext)
-          const isDarkBase = f === `${base}-dark${ext}`
-          if (isVariantPattern || isDarkBase) {
-            try {
-              await fs.promises.unlink(path.join(dir, f))
-            } catch {}
-            try {
-              await storageService.deleteByUrl(
-                path.posix.join(String(path.posix.dirname(String(row.url || ''))), f)
-              )
-            } catch {}
+          // Match any file that starts with basename. (variants, optimized)
+          // or basename-dark. (dark variants)
+          const isRelated = f.startsWith(base + '.') || f.startsWith(base + '-dark')
+          if (isRelated && f !== parsed.base) {
+            await deleteFile(path.posix.join(path.posix.dirname(originalUrl), f))
           }
         })
       )
@@ -878,7 +909,7 @@ export default class MediaController {
 
     const clientName = (uploadFile as any).clientName as string | undefined
     const size = (uploadFile as any).size
-    const type = (uploadFile as any).type as string | undefined
+    const type = ((uploadFile as any).contentType || (uploadFile as any).type || '') as string
     if (!clientName || !size || !type) {
       return response.badRequest({ error: 'Invalid file' })
     }
@@ -907,20 +938,27 @@ export default class MediaController {
       )
       const newFilename = `${baseName}${clientExt || parsedExisting.ext}`
 
-      // Clean up old files (original + variants) before writing new one
+      // Clean up old files (original + variants + optimized) before writing new one
       try {
         const files = await fs.promises.readdir(dir)
         const oldBase = parsedExisting.name
+        
+        const deleteFile = async (f: string) => {
+          try {
+            await fs.promises.unlink(path.join(dir, f))
+          } catch {}
+          try {
+            const url = path.posix.join(path.posix.dirname(existingPublicUrl), f)
+            await storageService.deleteByUrl(url)
+          } catch {}
+        }
+
         for (const f of files) {
-          if (
-            f === parsedExisting.base ||
-            (f.startsWith(`${oldBase}.`) && f.endsWith(parsedExisting.ext))
-          ) {
-            try {
-              await fs.promises.unlink(path.join(dir, f))
-            } catch {
-              /* ignore */
-            }
+          // Match any file that starts with oldBase. (variants, optimized)
+          // or oldBase-dark. (dark variants)
+          const isRelated = f.startsWith(oldBase + '.') || f.startsWith(oldBase + '-dark')
+          if (isRelated) {
+            await deleteFile(f)
           }
         }
       } catch {
@@ -1141,14 +1179,42 @@ export default class MediaController {
     const row = await db.from('media_assets').where('id', id).first()
     if (!row) return response.notFound({ error: 'Media not found' })
     const mime = String(row.mime_type || '')
-    if (!mime.startsWith('image/')) {
+    const publicUrl: string = String(row.url)
+    const isImage = mime.startsWith('image/') || /\.(jpe?g|png|webp|gif|avif)$/i.test(publicUrl)
+    if (!isImage) {
       return response.badRequest({ error: 'Only images can be optimized' })
     }
-    const publicUrl: string = String(row.url)
     const absPath = path.join(process.cwd(), 'public', publicUrl.replace(/^\//, ''))
     try {
       const result = await mediaService.optimizeToWebp(absPath, publicUrl)
       if (!result) return response.badRequest({ error: 'Unsupported image type for optimization' })
+
+      const metadata = (row.metadata || {}) as any
+      if (Array.isArray(metadata.variants)) {
+        metadata.variants = await mediaService.optimizeVariantsToWebp(
+          metadata.variants,
+          path.join(process.cwd(), 'public')
+        )
+      }
+
+      // Also optimize dedicated dark base if present
+      if (metadata.darkSourceUrl) {
+        const darkAbsPath = path.join(
+          process.cwd(),
+          'public',
+          metadata.darkSourceUrl.replace(/^\//, '')
+        )
+        try {
+          const darkOptimized = await mediaService.optimizeToWebp(darkAbsPath, metadata.darkSourceUrl)
+          if (darkOptimized) {
+            metadata.darkOptimizedUrl = darkOptimized.optimizedUrl
+            metadata.darkOptimizedSize = darkOptimized.size
+          }
+        } catch {
+          /* ignore */
+        }
+      }
+
       const now = new Date()
       await db
         .from('media_assets')
@@ -1158,6 +1224,7 @@ export default class MediaController {
           optimized_size: Number(result.size || 0),
           optimized_at: now,
           updated_at: now,
+          metadata: JSON.stringify(metadata),
         } as any)
       try {
         await activityLogService.log({
@@ -1198,11 +1265,42 @@ export default class MediaController {
     for (const row of rows) {
       try {
         const mime = String((row as any).mime_type || '')
-        if (!mime.startsWith('image/')) continue
         const publicUrl: string = String((row as any).url)
+        const isImage = mime.startsWith('image/') || /\.(jpe?g|png|webp|gif|avif)$/i.test(publicUrl)
+        if (!isImage) continue
         const absPath = path.join(process.cwd(), 'public', publicUrl.replace(/^\//, ''))
         const result = await mediaService.optimizeToWebp(absPath, publicUrl)
         if (!result) continue
+
+        const metadata = (row.metadata || {}) as any
+        if (Array.isArray(metadata.variants)) {
+          metadata.variants = await mediaService.optimizeVariantsToWebp(
+            metadata.variants,
+            path.join(process.cwd(), 'public')
+          )
+        }
+
+        // Also optimize dedicated dark base if present
+        if (metadata.darkSourceUrl) {
+          const darkAbsPath = path.join(
+            process.cwd(),
+            'public',
+            metadata.darkSourceUrl.replace(/^\//, '')
+          )
+          try {
+            const darkOptimized = await mediaService.optimizeToWebp(
+              darkAbsPath,
+              metadata.darkSourceUrl
+            )
+            if (darkOptimized) {
+              metadata.darkOptimizedUrl = darkOptimized.optimizedUrl
+              metadata.darkOptimizedSize = darkOptimized.size
+            }
+          } catch {
+            /* ignore */
+          }
+        }
+
         await db
           .from('media_assets')
           .where('id', (row as any).id)
@@ -1211,6 +1309,7 @@ export default class MediaController {
             optimized_size: Number(result.size || 0),
             optimized_at: new Date(),
             updated_at: new Date(),
+            metadata: JSON.stringify(metadata),
           } as any)
         success++
       } catch {
@@ -1255,7 +1354,8 @@ export default class MediaController {
         const publicUrl: string = String((row as any).url)
         const isSvg =
           mime.toLowerCase() === 'image/svg+xml' || publicUrl.toLowerCase().endsWith('.svg')
-        if (!mime.startsWith('image/') || isSvg) continue
+        const isImage = mime.startsWith('image/') || /\.(jpe?g|png|webp|gif|avif)$/i.test(publicUrl)
+        if (!isImage || isSvg) continue
 
         const absPath = path.join(process.cwd(), 'public', publicUrl.replace(/^\//, ''))
         const variants = await mediaService.generateVariants(
@@ -1321,66 +1421,51 @@ export default class MediaController {
     for (const row of rows) {
       try {
         const originalUrl: string = String((row as any).url || '')
-        const originalPath = path.join(publicRoot, originalUrl.replace(/^\//, ''))
+        const optimizedUrl: string = String((row as any).optimized_url || '')
 
-        // Delete original
-        try {
-          await fs.promises.unlink(originalPath)
-        } catch {}
-        try {
-          await storageService.deleteByUrl(originalUrl)
-        } catch {}
+        // Helper to delete a file from disk and storage
+        const deleteFile = async (url: string) => {
+          if (!url) return
+          try {
+            const p = path.join(publicRoot, url.replace(/^\//, ''))
+            await fs.promises.unlink(p)
+          } catch {}
+          try {
+            await storageService.deleteByUrl(url)
+          } catch {}
+        }
+
+        // Delete original and main optimized files
+        await deleteFile(originalUrl)
+        await deleteFile(optimizedUrl)
 
         // Delete variants from metadata
         try {
           const meta = (row as any).metadata as any
           const variants = meta && Array.isArray(meta.variants) ? meta.variants : []
           for (const v of variants) {
-            if (!v?.url || typeof v.url !== 'string') continue
-            const vUrl = String(v.url)
-            const p = path.join(publicRoot, vUrl.replace(/^\//, ''))
-            try {
-              await fs.promises.unlink(p)
-            } catch {}
-            try {
-              await storageService.deleteByUrl(vUrl)
-            } catch {}
+            await deleteFile(v?.url)
+            await deleteFile(v?.optimizedUrl)
           }
 
-          // Delete dedicated dark base if present
-          const darkSourceUrl =
-            meta && typeof meta.darkSourceUrl === 'string' ? meta.darkSourceUrl : null
-          if (darkSourceUrl) {
-            const darkPath = path.join(publicRoot, darkSourceUrl.replace(/^\//, ''))
-            try {
-              await fs.promises.unlink(darkPath)
-            } catch {}
-            try {
-              await storageService.deleteByUrl(String(darkSourceUrl))
-            } catch {}
-          }
+          // Delete dedicated dark base and its optimized version if present
+          await deleteFile(meta?.darkSourceUrl)
+          await deleteFile(meta?.darkOptimizedUrl)
         } catch {}
 
         // Fallback pattern-based (variants and -dark base on disk + storage)
         try {
+          const originalPath = path.join(publicRoot, originalUrl.replace(/^\//, ''))
           const parsed = path.parse(originalPath)
           const dir = parsed.dir
           const base = parsed.name
-          const ext = parsed.ext
           const files = await fs.promises.readdir(dir)
           for (const f of files) {
-            const isVariantPattern = f.startsWith(base + '.') && f.endsWith(ext)
-            const isDarkBase = f === `${base}-dark${ext}`
-            if (isVariantPattern || isDarkBase) {
-              const diskPath = path.join(dir, f)
-              try {
-                await fs.promises.unlink(diskPath)
-              } catch {}
-              try {
-                await storageService.deleteByUrl(
-                  path.posix.join(path.posix.dirname(originalUrl), f)
-                )
-              } catch {}
+            // Match any file that starts with basename. (variants, optimized)
+            // or basename-dark. (dark variants)
+            const isRelated = f.startsWith(base + '.') || f.startsWith(base + '-dark')
+            if (isRelated && f !== parsed.base) {
+              await deleteFile(path.posix.join(path.posix.dirname(originalUrl), f))
             }
           }
         } catch {}

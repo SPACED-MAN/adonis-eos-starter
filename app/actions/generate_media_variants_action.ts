@@ -128,10 +128,22 @@ class GenerateMediaVariantsAction {
     // Map variant names for metadata tracking
     // If base filename ends with -dark and we didn't add suffix to filenames,
     // add -dark to variant names in metadata for proper light/dark distinction
-    const variantsWithProperNames =
+    let variantsWithProperNames =
       baseNameEndsWithDark && variantOptions?.nameSuffix === ''
         ? generatedVariants.map((v) => ({ ...v, name: `${v.name}-dark` }))
         : generatedVariants
+
+    // If the main image is optimized to WebP, optimize these new variants too
+    if (row.optimized_url || existingMeta.optimizedUrl) {
+      try {
+        variantsWithProperNames = await mediaService.optimizeVariantsToWebp(
+          variantsWithProperNames as any,
+          path.join(process.cwd(), 'public')
+        )
+      } catch {
+        /* ignore */
+      }
+    }
 
     // Merge with existing variants
     const existingList: Variant[] = Array.isArray(existingMeta.variants)

@@ -4,7 +4,15 @@ import sharp from 'sharp'
 import storageService from '#services/storage_service'
 
 type DerivSpec = { name: string; width?: number; height?: number; fit: 'inside' | 'cover' }
-type VariantInfo = { name: string; url: string; width?: number; height?: number; size: number }
+type VariantInfo = {
+  name: string
+  url: string
+  width?: number
+  height?: number
+  size: number
+  optimizedUrl?: string
+  optimizedSize?: number
+}
 
 function inferMimeFromExt(ext: string): string {
   const lower = (ext || '').toLowerCase()
@@ -201,6 +209,35 @@ class MediaService {
     return { optimizedPath: outPath, optimizedUrl: outUrl, size }
   }
 
+  async optimizeVariantsToWebp(
+    variants: VariantInfo[],
+    publicRoot: string
+  ): Promise<VariantInfo[]> {
+    const results: VariantInfo[] = []
+    for (const v of variants) {
+      if (!v.url) {
+        results.push(v)
+        continue
+      }
+      const absPath = path.join(publicRoot, v.url.replace(/^\//, ''))
+      try {
+        const optimized = await this.optimizeToWebp(absPath, v.url)
+        if (optimized) {
+          results.push({
+            ...v,
+            optimizedUrl: optimized.optimizedUrl,
+            optimizedSize: optimized.size,
+          } as any)
+        } else {
+          results.push(v)
+        }
+      } catch {
+        results.push(v)
+      }
+    }
+    return results
+  }
+
   async renameWithVariants(
     oldPath: string,
     oldUrl: string,
@@ -221,12 +258,20 @@ class MediaService {
     const oldBase = parsed.name
     const renamedVariants: Array<{ oldUrl: string; newUrl: string }> = []
     for (const f of files) {
-      if (f.startsWith(`${oldBase}.`) && f.endsWith(ext)) {
-        const variantName = f.slice(oldBase.length + 1, f.length - ext.length)
+      // Match any file that starts with oldBase. (variants, optimized)
+      // or oldBase-dark. (dark variants)
+      const isRelated = f.startsWith(oldBase + '.') || f.startsWith(oldBase + '-dark')
+      if (isRelated && f !== parsed.base) {
+        const suffix = f.startsWith(oldBase + '.') 
+          ? f.slice(oldBase.length) 
+          : f.slice(oldBase.length) // handles -dark cases too
+        
         const oldVarPath = path.join(dir, f)
-        const newVarName = `${newBaseName}.${variantName}${ext}`
+        const newVarName = `${newBaseName}${suffix}`
         const newVarPath = path.join(dir, newVarName)
-        await fs.rename(oldVarPath, newVarName ? newVarPath : oldVarPath)
+        
+        await fs.rename(oldVarPath, newVarPath)
+        
         const oldVarUrl = path.posix.join(path.posix.dirname(oldUrl), f)
         const newVarUrl = path.posix.join(path.posix.dirname(oldUrl), newVarName)
         renamedVariants.push({ oldUrl: oldVarUrl, newUrl: newVarUrl })
