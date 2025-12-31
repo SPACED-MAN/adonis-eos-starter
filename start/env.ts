@@ -232,6 +232,13 @@ export default await Env.create(new URL('../', import.meta.url), {
 
   /*
   |----------------------------------------------------------
+  | Seeding and Development
+  |----------------------------------------------------------
+  */
+  SEEDER_PASSWORD: Env.schema.string.optional(),
+
+  /*
+  |----------------------------------------------------------
   | Variables for configuring mail package
   |----------------------------------------------------------
   */

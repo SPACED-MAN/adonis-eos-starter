@@ -45,11 +45,21 @@ export default class ProseModule extends BaseModule {
       },
       fieldSchema: [
         {
+          slug: 'content_tab',
+          type: 'tab',
+          label: 'Content',
+        },
+        {
           slug: 'content',
           type: 'richtext', // Lexical JSON rich text editor
           required: true,
           description: 'Rich text content (Lexical JSON)',
           translatable: true,
+        },
+        {
+          slug: 'design_tab',
+          type: 'tab',
+          label: 'Design',
         },
         {
           slug: 'textAlign',

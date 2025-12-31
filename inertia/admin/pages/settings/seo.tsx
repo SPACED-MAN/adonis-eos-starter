@@ -161,7 +161,7 @@ export default function SeoSettingsPage() {
             <button
               onClick={() => setActiveTab('analytics')}
               className={`px-4 py-2 border-b-2 font-medium text-sm transition-colors flex items-center gap-2 ${activeTab === 'analytics'
-                  ? 'border-standout-medium text-standout-high'
+                  ? 'border-standout-high text-standout-high'
                   : 'border-transparent text-neutral-medium hover:text-neutral-high'
                 } ${features.analytics === false ? 'opacity-50 grayscale cursor-not-allowed' : ''}`}
               title={features.analytics === false ? 'This feature is disabled' : ''}
@@ -176,7 +176,7 @@ export default function SeoSettingsPage() {
             <button
               onClick={() => setActiveTab('sitemap')}
               className={`px-4 py-2 border-b-2 font-medium text-sm transition-colors flex items-center gap-2 ${activeTab === 'sitemap'
-                  ? 'border-standout-medium text-standout-high'
+                  ? 'border-standout-high text-standout-high'
                   : 'border-transparent text-neutral-medium hover:text-neutral-high'
                 }`}
             >
@@ -238,7 +238,7 @@ export default function SeoSettingsPage() {
                 <button
                   onClick={rebuild}
                   disabled={rebuilding}
-                  className="inline-flex h-9 items-center rounded-md bg-standout-medium px-4 text-sm font-medium text-white hover:bg-standout-medium/90 disabled:opacity-60 transition-colors"
+                  className="inline-flex h-9 items-center rounded-md bg-standout-high px-4 text-sm font-medium text-white hover:bg-standout-high/90 disabled:opacity-60 transition-colors"
                 >
                   {rebuilding ? 'Rebuilding…' : 'Rebuild sitemap'}
                 </button>

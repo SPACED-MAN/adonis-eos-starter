@@ -38,12 +38,18 @@ export default class HeroWithMediaModule extends BaseModule {
       },
       fieldSchema: [
         {
+          slug: 'content_tab',
+          type: 'tab',
+          label: 'Content',
+        },
+        {
           slug: 'title',
           type: 'text',
           label: 'Title',
           required: true,
           description: 'Main heading text',
           translatable: true,
+          isLabel: true,
         },
         {
           slug: 'subtitle',
@@ -63,16 +69,6 @@ export default class HeroWithMediaModule extends BaseModule {
             'Hero image or video (stored as media ID, resolved via the media API). Alt text is pulled from the media library.',
         },
         {
-          slug: 'imagePosition',
-          type: 'select',
-          label: 'Image Position',
-          description: 'Which side the media appears on for large screens',
-          options: [
-            { label: 'Right', value: 'right' },
-            { label: 'Left', value: 'left' },
-          ],
-        },
-        {
           slug: 'primaryCta',
           type: 'object',
           label: 'Primary CTA',
@@ -83,6 +79,7 @@ export default class HeroWithMediaModule extends BaseModule {
               type: 'text',
               label: 'Label',
               translatable: true,
+              isLabel: true,
             },
             {
               slug: 'url',
@@ -112,6 +109,7 @@ export default class HeroWithMediaModule extends BaseModule {
               type: 'text',
               label: 'Label',
               translatable: true,
+              isLabel: true,
             },
             {
               slug: 'url',
@@ -128,6 +126,21 @@ export default class HeroWithMediaModule extends BaseModule {
                 { label: 'Outline', value: 'outline' },
               ],
             },
+          ],
+        },
+        {
+          slug: 'design_tab',
+          type: 'tab',
+          label: 'Design',
+        },
+        {
+          slug: 'imagePosition',
+          type: 'select',
+          label: 'Image Position',
+          description: 'Which side the media appears on for large screens',
+          options: [
+            { label: 'Right', value: 'right' },
+            { label: 'Left', value: 'left' },
           ],
         },
         backgroundColorField,

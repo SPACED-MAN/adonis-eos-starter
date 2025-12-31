@@ -629,11 +629,11 @@ function FieldDialogContent({ pop, onClose, getValue, setValue }: DialogContentP
   const labelStyle =
     'block text-[11px] font-bold text-neutral-medium uppercase tracking-wider mt-2 mb-1.5 ml-1'
   const inputStyle =
-    'w-full border border-line-medium rounded-xl px-4 py-2.5 bg-backdrop-low text-neutral-high text-sm focus:ring-2 focus:ring-standout-medium/20 focus:border-standout-medium outline-none transition-all shadow-sm'
+    'w-full border border-line-medium rounded-xl px-4 py-2.5 bg-backdrop-low text-neutral-high text-sm focus:ring-2 focus:ring-standout-high/20 focus:border-standout-high outline-none transition-all shadow-sm'
   const selectStyle =
-    'w-full border border-line-medium rounded-xl px-4 py-2.5 bg-backdrop-low text-neutral-high text-sm focus:ring-2 focus:ring-standout-medium/20 focus:border-standout-medium outline-none transition-all shadow-sm appearance-none'
+    'w-full border border-line-medium rounded-xl px-4 py-2.5 bg-backdrop-low text-neutral-high text-sm focus:ring-2 focus:ring-standout-high/20 focus:border-standout-high outline-none transition-all shadow-sm appearance-none'
   const buttonStyle =
-    'w-full mt-6 bg-standout-medium text-on-high px-4 py-3 rounded-xl font-bold shadow-lg shadow-standout-medium/20 hover:bg-standout-high transition-all flex items-center justify-center gap-2'
+    'w-full mt-6 bg-standout-high text-on-high px-4 py-3 rounded-xl font-bold shadow-lg shadow-standout-high/20 hover:bg-standout-high transition-all flex items-center justify-center gap-2'
   const containerStyle = 'p-4 bg-backdrop-medium/30 border border-line-low rounded-xl space-y-4'
 
   const renderControl = () => {
@@ -702,7 +702,7 @@ function FieldDialogContent({ pop, onClose, getValue, setValue }: DialogContentP
                         <button
                           type="button"
                           className={`p-3 border rounded-xl hover:bg-backdrop-medium flex flex-col items-center gap-2 transition-all ${draft === val
-                            ? 'border-standout-medium bg-standout-medium/10 shadow-sm ring-1 ring-standout-medium/20'
+                            ? 'border-standout-high bg-standout-high/10 shadow-sm ring-1 ring-standout-high/20'
                             : 'border-line-low bg-backdrop-low/50'
                             }`}
                           onClick={() => {
@@ -815,13 +815,13 @@ function FieldDialogContent({ pop, onClose, getValue, setValue }: DialogContentP
                     <label
                       key={o.value}
                       className={`flex items-center gap-3 p-2.5 rounded-xl border transition-all cursor-pointer ${checked
-                        ? 'bg-standout-medium/10 border-standout-medium/30 text-neutral-high'
+                        ? 'bg-standout-high/10 border-standout-high/30 text-neutral-high'
                         : 'bg-backdrop-low border-line-medium text-neutral-medium hover:border-neutral-low'
                         }`}
                     >
                       <input
                         type="checkbox"
-                        className="w-4 h-4 rounded border-line-high text-standout-medium focus:ring-standout-medium/20"
+                        className="w-4 h-4 rounded border-line-high text-standout-high focus:ring-standout-high/20"
                         checked={checked}
                         onChange={() => {
                           const next = checked
@@ -868,7 +868,7 @@ function FieldDialogContent({ pop, onClose, getValue, setValue }: DialogContentP
               <label className="flex items-center gap-3 p-4 rounded-xl border border-line-medium bg-backdrop-low cursor-pointer hover:border-neutral-low transition-all">
                 <input
                   type="checkbox"
-                  className="w-5 h-5 rounded border-line-high text-standout-medium focus:ring-standout-medium/20"
+                  className="w-5 h-5 rounded border-line-high text-standout-high focus:ring-standout-high/20"
                   checked={checked}
                   onChange={(e) => {
                     const val = e.target.checked
@@ -1037,7 +1037,7 @@ function FieldDialogContent({ pop, onClose, getValue, setValue }: DialogContentP
                             <div key={i} className="flex items-center gap-2 group/item">
                               <input
                                 type="text"
-                                className="flex-1 border border-line-medium rounded-xl px-3 py-2 bg-backdrop-low text-neutral-high text-sm focus:ring-2 focus:ring-standout-medium/20 focus:border-standout-medium outline-none transition-all shadow-sm"
+                                className="flex-1 border border-line-medium rounded-xl px-3 py-2 bg-backdrop-low text-neutral-high text-sm focus:ring-2 focus:ring-standout-high/20 focus:border-standout-high outline-none transition-all shadow-sm"
                                 value={val}
                                 onChange={(e) => updateItem(i, e.target.value)}
                               />
@@ -1133,7 +1133,7 @@ function FieldDialogContent({ pop, onClose, getValue, setValue }: DialogContentP
                         <label className="flex items-center gap-3 p-3 rounded-xl border border-line-medium bg-backdrop-low cursor-pointer hover:border-neutral-low transition-all">
                           <input
                             type="checkbox"
-                            className="w-5 h-5 rounded border-line-high text-standout-medium focus:ring-standout-medium/20"
+                            className="w-5 h-5 rounded border-line-high text-standout-high focus:ring-standout-high/20"
                             checked={!!fieldValue}
                             onChange={(e) => updateField(field.name, e.target.checked)}
                           />

@@ -21,7 +21,7 @@ export default function NotFound() {
         <div className="space-y-3">
           <a
             href={adminPath()}
-            className="block w-full px-6 py-3 bg-standout-medium hover:bg-standout-medium/90 text-on-high font-semibold rounded-lg transition-colors"
+            className="block w-full px-6 py-3 bg-standout-high hover:bg-standout-high/90 text-on-high font-semibold rounded-lg transition-colors"
           >
             Go to Dashboard
           </a>

@@ -18,6 +18,7 @@ import {
   faCloudUploadAlt,
   faFont,
   faExternalLinkAlt,
+  faCode,
 } from '@fortawesome/free-solid-svg-icons'
 import {
   pickMediaVariantUrl,
@@ -152,6 +153,12 @@ export default function MediaIndex() {
   const [replaceUploading, setReplaceUploading] = useState<boolean>(false)
   const [darkPreviewVersion, setDarkPreviewVersion] = useState<number>(0)
 
+  const [isEditingText, setIsEditingText] = useState(false)
+  const [textContent, setTextContent] = useState('')
+  const [textLoading, setTextLoading] = useState(false)
+  const [textSaving, setTextSaving] = useState(false)
+  const [textContentVersion, setTextContentVersion] = useState(0)
+
   const page = usePage<PageProps>()
   const isAdmin = !!page.props?.isAdmin
   const preferredThumb =
@@ -192,8 +199,55 @@ export default function MediaIndex() {
       setEditPlayMode((viewing.metadata as any)?.playMode || 'autoplay')
       setEditCategories(Array.isArray(viewing.categories) ? viewing.categories : [])
       setNewFilename('')
+      setIsEditingText(false)
+      setTextContent('')
     }
   }, [viewing])
+
+  async function loadTextContent() {
+    if (!viewing) return
+    setTextLoading(true)
+    try {
+      const res = await fetch(viewing.url)
+      const text = await res.text()
+      setTextContent(text)
+      setIsEditingText(true)
+    } catch {
+      toast.error('Failed to load file content')
+    } finally {
+      setTextLoading(false)
+    }
+  }
+
+  async function saveTextContent() {
+    if (!viewing) return
+    setTextSaving(true)
+    try {
+      const res = await fetch(`/api/media/${encodeURIComponent(viewing.id)}/content`, {
+        method: 'POST',
+        headers: {
+          'Accept': 'application/json',
+          'Content-Type': 'application/json',
+          ...(xsrfFromCookie ? { 'X-XSRF-TOKEN': xsrfFromCookie } : {}),
+        },
+        body: JSON.stringify({ content: textContent }),
+        credentials: 'same-origin',
+      })
+      if (res.ok) {
+        toast.success('Content updated')
+        setIsEditingText(false)
+        setTextContentVersion((v) => v + 1)
+        await refreshMediaItem(viewing.id)
+      } else {
+        const j = await res.json().catch(() => ({}))
+        toast.error(j?.error || 'Failed to save content')
+      }
+    } catch {
+      toast.error('Failed to save content')
+    } finally {
+      setTextSaving(false)
+    }
+  }
 
   const xsrfFromCookie: string | undefined = (() => {
     if (typeof document === 'undefined') return undefined
@@ -604,9 +658,9 @@ export default function MediaIndex() {
   }
 
   async function onUpload(e: React.ChangeEvent<HTMLInputElement>) {
-    const file = e.target.files?.[0]
-    if (!file) return
-    await uploadFiles([file])
+    const files = Array.from(e.target.files || [])
+    if (!files.length) return
+    await uploadFiles(files)
     e.target.value = ''
   }
 
@@ -748,7 +802,7 @@ export default function MediaIndex() {
         // Cache‑bust dark preview so newly written files are visible immediately
         return `${urlToUse}?v=${darkPreviewVersion}`
       }
-      return m.url
+      return textContentVersion > 0 ? `${m.url}?v=${textContentVersion}` : m.url
     }
 
     const vUrl = getVariantUrlByName(m, selectedVariantName)
@@ -844,7 +898,7 @@ export default function MediaIndex() {
       <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
         <div className="bg-backdrop-low rounded-lg shadow border border-line-low p-6">
           <div
-            className={`mb-4 p-6 border-2 border-dashed rounded transition-colors ${isDragOver ? 'border-standout-medium bg-backdrop-medium' : 'border-line-high bg-backdrop-input'}`}
+            className={`mb-4 p-6 border-2 border-dashed rounded transition-colors ${isDragOver ? 'border-standout-high bg-backdrop-medium' : 'border-line-high bg-backdrop-input'}`}
             onDragOver={(e) => {
               e.preventDefault()
               setIsDragOver(true)
@@ -870,11 +924,13 @@ export default function MediaIndex() {
                     type="file"
                     onChange={onUpload}
                     disabled={uploading}
+                    multiple
+                    accept="image/*,video/*,application/json,.json,.lottie"
                     className="hidden"
                     id="mediaUploadInput"
                   />
                   <button
-                    className="px-3 py-1.5 text-xs rounded bg-standout-medium text-on-high disabled:opacity-50 cursor-pointer disabled:cursor-not-allowed"
+                    className="px-3 py-1.5 text-xs rounded bg-standout-high text-on-high disabled:opacity-50 cursor-pointer disabled:cursor-not-allowed"
                     disabled={uploading}
                     onClick={() =>
                       (document.getElementById('mediaUploadInput') as HTMLInputElement)?.click()
@@ -1129,21 +1185,15 @@ export default function MediaIndex() {
                             {/* Replace is now handled inside the integrated editor modal */}
                             {isAdmin && (
                               <AlertDialog>
-                                <Tooltip>
-                                  <TooltipTrigger asChild>
-                                    <AlertDialogTrigger asChild>
-                                      <button
-                                        className="px-3 py-1.5 text-sm border border-line-low rounded hover:bg-backdrop-medium text-danger inline-flex items-center gap-1"
-                                        aria-label="Delete"
-                                      >
-                                        <Trash2 className="w-4 h-4" />
-                                      </button>
-                                    </AlertDialogTrigger>
-                                  </TooltipTrigger>
-                                  <TooltipContent>
-                                    <p>Delete</p>
-                                  </TooltipContent>
-                                </Tooltip>
+                                <AlertDialogTrigger asChild>
+                                  <button
+                                    className="px-3 py-1.5 text-sm border border-line-low rounded hover:bg-backdrop-medium text-danger inline-flex items-center gap-1"
+                                    aria-label="Delete"
+                                    title="Delete"
+                                  >
+                                    <Trash2 className="w-4 h-4" />
+                                  </button>
+                                </AlertDialogTrigger>
                                 <AlertDialogContent>
                                   <AlertDialogHeader>
                                     <AlertDialogTitle>Delete this media?</AlertDialogTitle>
@@ -1433,7 +1483,7 @@ export default function MediaIndex() {
 
         {/* Bulk Categories modal */}
         {bulkCategoriesOpen && (
-          <div className="fixed inset-0 z-50 flex items-center justify-center">
+          <div className="fixed inset-0 z-[60] flex items-center justify-center">
             <div
               className="absolute inset-0 bg-black/70"
               onClick={() => setBulkCategoriesOpen(false)}
@@ -1485,7 +1535,7 @@ export default function MediaIndex() {
                     }}
                   />
                   <button
-                    className="px-3 py-1.5 text-xs rounded bg-standout-medium text-on-high disabled:opacity-50"
+                    className="px-3 py-1.5 text-xs rounded bg-standout-high text-on-high disabled:opacity-50"
                     onClick={() => {
                       const v = bulkCatInput.trim()
                       if (v && !bulkCats.includes(v)) setBulkCats([...bulkCats, v])
@@ -1503,7 +1553,7 @@ export default function MediaIndex() {
                     Cancel
                   </button>
                   <button
-                    className="px-3 py-1.5 text-xs rounded bg-standout-medium text-on-high"
+                    className="px-3 py-1.5 text-xs rounded bg-standout-high text-on-high"
                     onClick={saveBulkCategories}
                   >
                     Save
@@ -1516,7 +1566,7 @@ export default function MediaIndex() {
 
         {/* Single-item integrated editor modal (meta + image editing) */}
         {viewing && (
-          <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+          <div className="fixed inset-0 z-[60] flex items-center justify-center p-4">
             <div
               className="absolute inset-0 bg-black/60 backdrop-blur-sm"
               onClick={() => setViewing(null)}
@@ -1537,7 +1587,7 @@ export default function MediaIndex() {
                       href={viewing.url}
                       target="_blank"
                       rel="noopener noreferrer"
-                      className="ml-2 text-standout-medium hover:underline inline-flex items-center gap-1 normal-case"
+                      className="ml-2 text-standout-high hover:underline inline-flex items-center gap-1 normal-case"
                       title="Open raw asset in new tab"
                     >
                       <FontAwesomeIcon icon={faExternalLinkAlt} size="2xs" />
@@ -1563,8 +1613,39 @@ export default function MediaIndex() {
               </div>
               <div className="flex flex-1 min-h-0 overflow-hidden text-sm">
                 {/* Left Panel: Preview & Creative Controls */}
-                <div className="flex-1 overflow-auto p-8 pt-35 bg-backdrop-medium/20 flex flex-col items-center justify-center min-h-[400px]">
-                  {!isMediaVideo(viewing) && (
+                <div className="flex-1 overflow-auto p-8 bg-backdrop-medium/20 flex flex-col items-center justify-center min-h-[400px]">
+                  {isEditingText ? (
+                    <div className="w-full h-full flex flex-col gap-4">
+                      <div className="flex items-center justify-between">
+                        <h4 className="text-xs font-bold uppercase tracking-wider text-neutral-medium">
+                          Editing Code
+                        </h4>
+                        <div className="flex items-center gap-2">
+                          <button
+                            className="px-3 py-1.5 text-xs font-bold border border-line-medium rounded-lg hover:bg-backdrop-medium transition-all"
+                            onClick={() => setIsEditingText(false)}
+                          >
+                            Cancel
+                          </button>
+                          <button
+                            className="px-3 py-1.5 text-xs font-bold rounded-lg bg-standout-high text-on-high shadow-sm hover:bg-standout-high transition-all"
+                            onClick={saveTextContent}
+                            disabled={textSaving}
+                          >
+                            {textSaving ? 'Saving…' : 'Save Changes'}
+                          </button>
+                        </div>
+                      </div>
+                      <textarea
+                        className="flex-1 w-full p-4 font-mono text-[11px] bg-backdrop-input border border-line-medium rounded-xl outline-none focus:ring-2 focus:ring-standout-high/20 focus:border-standout-high transition-all min-h-[50vh] leading-relaxed"
+                        value={textContent}
+                        onChange={(e) => setTextContent(e.target.value)}
+                        spellCheck={false}
+                      />
+                    </div>
+                  ) : (
+                    <>
+                      {!isMediaVideo(viewing) && (
                     <div className="mb-6 flex items-center justify-center w-full">
                       <div className="inline-flex items-center p-1 bg-backdrop-medium rounded-xl border border-line-low shadow-sm">
                         <button
@@ -1624,7 +1705,7 @@ export default function MediaIndex() {
                       />
                       {cropping && cropSel && (
                         <div
-                          className="absolute border-2 border-standout-medium bg-standout-medium/10 ring-1 ring-white/50"
+                          className="absolute border-2 border-standout-high bg-standout-high/10 ring-1 ring-white/50"
                           style={{
                             left: `${cropSel.x}px`,
                             top: `${cropSel.y}px`,
@@ -1638,7 +1719,7 @@ export default function MediaIndex() {
                           className="absolute -translate-x-1/2 -translate-y-1/2 drop-shadow-md pointer-events-none"
                           style={{ left: `${focalDot.x}px`, top: `${focalDot.y}px` }}
                         >
-                          <div className="w-6 h-6 rounded-full bg-standout-medium border-2 border-white shadow-lg animate-pulse" />
+                          <div className="w-6 h-6 rounded-full bg-standout-high border-2 border-white shadow-lg animate-pulse" />
                         </div>
                       )}
                     </div>
@@ -1651,7 +1732,7 @@ export default function MediaIndex() {
                           Variation Preview
                         </span>
                         <select
-                          className="text-xs border border-line-medium bg-backdrop-low text-neutral-high px-4 py-2.5 rounded-xl focus:ring-2 focus:ring-standout-medium/20 focus:border-standout-medium outline-none transition-all min-w-[160px] shadow-sm"
+                          className="text-xs border border-line-medium bg-backdrop-low text-neutral-high px-4 py-2.5 rounded-xl focus:ring-2 focus:ring-standout-high/20 focus:border-standout-high outline-none transition-all min-w-[160px] shadow-sm"
                           value={selectedVariantName}
                           onChange={(e) => setSelectedVariantName(e.target.value)}
                         >
@@ -1708,7 +1789,7 @@ export default function MediaIndex() {
                                 Cancel
                               </button>
                               <button
-                                className="px-5 py-2.5 text-xs font-bold rounded-xl bg-standout-medium text-on-high shadow-lg shadow-standout-medium/20 hover:bg-standout-high transition-all"
+                                className="px-5 py-2.5 text-xs font-bold rounded-xl bg-standout-high text-on-high shadow-lg shadow-standout-high/20 hover:bg-standout-high transition-all"
                                 onClick={applyCrop}
                               >
                                 Apply Crop
@@ -1838,7 +1919,7 @@ export default function MediaIndex() {
                                 Cancel
                               </button>
                               <button
-                                className="px-5 py-2.5 text-xs font-bold rounded-xl bg-standout-medium text-on-high shadow-lg shadow-standout-medium/20 hover:bg-standout-high transition-all"
+                                className="px-5 py-2.5 text-xs font-bold rounded-xl bg-standout-high text-on-high shadow-lg shadow-standout-high/20 hover:bg-standout-high transition-all"
                                 onClick={applyFocal}
                               >
                                 Save Focal Point
@@ -1849,9 +1930,11 @@ export default function MediaIndex() {
                       </div>
                     </div>
                   )}
-                </div>
+                </>
+              )}
+            </div>
 
-                {/* Right Panel: Metadata & Management */}
+            {/* Right Panel: Metadata & Management */}
                 <div className="w-full max-w-[340px] flex flex-col border-l border-line-low bg-backdrop-low/50">
                   <div className="flex-1 overflow-auto p-6 space-y-8">
                     {/* General Section */}
@@ -1866,7 +1949,7 @@ export default function MediaIndex() {
                             Alt Text
                           </label>
                           <input
-                            className="w-full px-4 py-2.5 text-xs border border-line-medium rounded-xl bg-backdrop-input text-neutral-high focus:ring-2 focus:ring-standout-medium/20 focus:border-standout-medium outline-none transition-all shadow-sm"
+                            className="w-full px-4 py-2.5 text-xs border border-line-medium rounded-xl bg-backdrop-input text-neutral-high focus:ring-2 focus:ring-standout-high/20 focus:border-standout-high outline-none transition-all shadow-sm"
                             value={editAlt}
                             onChange={(e) => setEditAlt(e.target.value)}
                             placeholder="Screen reader description"
@@ -1879,7 +1962,7 @@ export default function MediaIndex() {
                           Caption / Title
                         </label>
                         <input
-                          className="w-full px-4 py-2.5 text-xs border border-line-medium rounded-xl bg-backdrop-input text-neutral-high focus:ring-2 focus:ring-standout-medium/20 focus:border-standout-medium outline-none transition-all shadow-sm"
+                          className="w-full px-4 py-2.5 text-xs border border-line-medium rounded-xl bg-backdrop-input text-neutral-high focus:ring-2 focus:ring-standout-high/20 focus:border-standout-high outline-none transition-all shadow-sm"
                           value={editTitle}
                           onChange={(e) => setEditTitle(e.target.value)}
                           placeholder="Optional display title"
@@ -1891,7 +1974,7 @@ export default function MediaIndex() {
                           Description
                         </label>
                         <textarea
-                          className="w-full px-4 py-2.5 text-xs border border-line-medium rounded-xl bg-backdrop-input text-neutral-high min-h-[90px] focus:ring-2 focus:ring-standout-medium/20 focus:border-standout-medium outline-none transition-all resize-none shadow-sm"
+                          className="w-full px-4 py-2.5 text-xs border border-line-medium rounded-xl bg-backdrop-input text-neutral-high min-h-[90px] focus:ring-2 focus:ring-standout-high/20 focus:border-standout-high outline-none transition-all resize-none shadow-sm"
                           value={editDescription}
                           onChange={(e) => setEditDescription(e.target.value)}
                           placeholder="Longer context or notes"
@@ -1942,7 +2025,7 @@ export default function MediaIndex() {
                           ))}
                         </div>
                         <input
-                          className="w-full px-4 py-2.5 text-xs border border-line-medium rounded-xl bg-backdrop-input text-neutral-high focus:ring-2 focus:ring-standout-medium/20 focus:border-standout-medium outline-none transition-all shadow-sm"
+                          className="w-full px-4 py-2.5 text-xs border border-line-medium rounded-xl bg-backdrop-input text-neutral-high focus:ring-2 focus:ring-standout-high/20 focus:border-standout-high outline-none transition-all shadow-sm"
                           placeholder="Type tag and press enter..."
                           value={newCategory}
                           onChange={(e) => setNewCategory(e.target.value)}
@@ -1964,6 +2047,31 @@ export default function MediaIndex() {
                       <h3 className="text-[10px] font-bold uppercase tracking-[0.15em] text-neutral-medium px-1">
                         Management
                       </h3>
+
+                      {(() => {
+                        const mime = (viewing?.mimeType || '').toLowerCase()
+                        const isSvg =
+                          mime === 'image/svg+xml' ||
+                          (viewing?.url || '').toLowerCase().endsWith('.svg')
+                        const isLottie =
+                          mime === 'application/json' ||
+                          (viewing?.url || '').toLowerCase().endsWith('.json') ||
+                          (viewing?.url || '').toLowerCase().endsWith('.lottie')
+                        const isEditable = isSvg || isLottie
+
+                        if (!isEditable) return null
+
+                        return (
+                          <button
+                            className="w-full px-4 py-2.5 text-[11px] font-bold rounded-xl border border-line-medium bg-backdrop-low hover:bg-backdrop-medium transition-all shadow-sm flex items-center justify-center gap-2"
+                            onClick={loadTextContent}
+                            disabled={textLoading}
+                          >
+                            <FontAwesomeIcon icon={faCode} size="sm" />
+                            {textLoading ? 'Loading…' : 'Edit Source Code'}
+                          </button>
+                        )
+                      })()}
 
                       <div className="p-4 bg-backdrop-medium/40 border border-line-low rounded-2xl space-y-4 shadow-inner">
                         <div className="text-[11px] font-bold text-neutral-high flex items-center gap-2">
@@ -2069,7 +2177,7 @@ export default function MediaIndex() {
                         </div>
                         <div className="flex flex-col gap-3">
                           <input
-                            className="px-4 py-2.5 text-[11px] border border-line-medium rounded-xl bg-backdrop-low text-neutral-high outline-none focus:ring-2 focus:ring-standout-medium/20 transition-all shadow-sm"
+                            className="px-4 py-2.5 text-[11px] border border-line-medium rounded-xl bg-backdrop-low text-neutral-high outline-none focus:ring-2 focus:ring-standout-high/20 transition-all shadow-sm"
                             placeholder="Enter new name..."
                             value={newFilename}
                             onChange={(e) => setNewFilename(e.target.value)}
@@ -2116,7 +2224,7 @@ export default function MediaIndex() {
                   {/* Footer Actions */}
                   <div className="p-6 border-t border-line-low bg-backdrop-low flex flex-col gap-3">
                     <button
-                      className="w-full px-6 py-3 text-xs font-bold rounded-xl bg-standout-medium text-on-high shadow-lg shadow-standout-medium/20 hover:bg-standout-high hover:shadow-standout-medium/30 transition-all disabled:opacity-50 flex items-center justify-center gap-2"
+                      className="w-full px-6 py-3 text-xs font-bold rounded-xl bg-standout-high text-on-high shadow-lg shadow-standout-high/20 hover:bg-standout-high hover:shadow-standout-high/30 transition-all disabled:opacity-50 flex items-center justify-center gap-2"
                       disabled={savingEdit}
                       onClick={async () => {
                         if (!viewing) return
@@ -2176,7 +2284,7 @@ export default function MediaIndex() {
 
         {/* Usage modal */}
         {usageFor && (
-          <div className="fixed inset-0 z-50 flex items-center justify-center">
+          <div className="fixed inset-0 z-[60] flex items-center justify-center">
             <div
               className="absolute inset-0 bg-black/50"
               onClick={() => {
@@ -2210,14 +2318,14 @@ export default function MediaIndex() {
                             {m.scope === 'global' ? (
                               <Link
                                 href={`/admin/modules?q=${encodeURIComponent(m.globalSlug || '')}`}
-                                className="text-standout-medium hover:underline"
+                                className="text-standout-high hover:underline"
                               >
                                 Global Module {m.type} ({m.globalSlug})
                               </Link>
                             ) : m.postId ? (
                               <Link
                                 href={`/admin/posts/${m.postId}/edit`}
-                                className="text-standout-medium hover:underline"
+                                className="text-standout-high hover:underline"
                               >
                                 Module {m.type} in "{m.postTitle || m.postId}"
                               </Link>
@@ -2240,7 +2348,7 @@ export default function MediaIndex() {
                           <li key={o.id} className="text-xs">
                             <Link
                               href={`/admin/posts/${o.postId}/edit`}
-                              className="text-standout-medium hover:underline"
+                              className="text-standout-high hover:underline"
                             >
                               PostModule in "{o.postTitle || o.postId}"
                             </Link>
@@ -2258,7 +2366,7 @@ export default function MediaIndex() {
                           <li key={p.id} className="text-xs">
                             <Link
                               href={`/admin/posts/${p.id}/edit`}
-                              className="text-standout-medium hover:underline"
+                              className="text-standout-high hover:underline"
                             >
                               {p.title || 'Untitled'} ({p.type})
                             </Link>
@@ -2275,7 +2383,7 @@ export default function MediaIndex() {
                         Used in{' '}
                         <Link
                           href="/admin/settings/general"
-                          className="text-standout-medium hover:underline"
+                          className="text-standout-high hover:underline"
                         >
                           Logo, Favicon, or Social OG settings
                         </Link>

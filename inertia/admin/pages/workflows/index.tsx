@@ -104,7 +104,7 @@ export default function WorkflowsIndex() {
                             key={idx}
                             className={`text-[10px] px-1.5 py-0.5 rounded border ${
                               t.enabled
-                                ? 'bg-standout-low text-standout-high border-standout-medium'
+                                ? 'bg-standout-low text-standout-high border-standout-high'
                                 : 'bg-backdrop-low text-neutral-low border-line-low'
                             }`}
                           >

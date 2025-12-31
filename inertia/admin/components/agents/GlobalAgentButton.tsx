@@ -50,7 +50,7 @@ export function GlobalAgentButton() {
 
   const trigger = (
     <button
-      className="fixed bottom-6 right-6 z-50 flex items-center justify-center w-12 h-12 rounded-full bg-standout-high text-on-high shadow-lg hover:bg-standout-medium hover:scale-105 active:scale-95 transition-all duration-200"
+      className="fixed bottom-6 right-6 z-50 flex items-center justify-center w-12 h-12 rounded-full bg-standout-high text-on-high shadow-lg hover:bg-standout-high hover:scale-105 active:scale-95 transition-all duration-200"
       aria-label="AI Assistant"
     >
       <FontAwesomeIcon icon={faWandMagicSparkles} className="text-xl" />
@@ -96,7 +96,7 @@ export function GlobalAgentButton() {
                     onClick={() => handleAgentClick(agent)}
                     className="w-full flex items-start gap-3 p-3 rounded-xl hover:bg-backdrop-medium text-left transition-colors group"
                   >
-                    <div className="mt-0.5 w-8 h-8 rounded-lg bg-standout-medium/10 flex items-center justify-center text-standout-medium group-hover:bg-standout-medium group-hover:text-on-high transition-colors">
+                    <div className="mt-0.5 w-8 h-8 rounded-lg bg-standout-high/10 flex items-center justify-center text-standout-high group-hover:bg-standout-high group-hover:text-on-high transition-colors">
                       <FontAwesomeIcon icon={faBrain} className="text-sm" />
                     </div>
                     <div className="flex-1 min-w-0">

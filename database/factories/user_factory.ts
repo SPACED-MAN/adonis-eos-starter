@@ -1,11 +1,12 @@
 import factory from '@adonisjs/lucid/factories'
 import User from '#models/user'
+import env from '#start/env'
 
 export const UserFactory = factory
   .define(User, ({ faker }) => {
     return {
       email: faker.internet.email().toLowerCase(),
-      password: 'supersecret',
+      password: env.get('SEEDER_PASSWORD', 'supersecret'),
       fullName: faker.person.fullName(),
       role: 'editor' as const,
     }

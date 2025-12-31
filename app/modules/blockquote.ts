@@ -21,11 +21,17 @@ export default class BlockquoteModule extends BaseModule {
       lockable: true,
       fieldSchema: [
         {
+          slug: 'content_tab',
+          type: 'tab',
+          label: 'Content',
+        },
+        {
           slug: 'quote',
           type: 'textarea',
           required: true,
           description: 'Quoted testimonial text shown in the blockquote',
           translatable: true,
+          isLabel: true,
         },
         {
           slug: 'authorName',
@@ -49,6 +55,11 @@ export default class BlockquoteModule extends BaseModule {
           config: { storeAs: 'id' },
           required: false,
           description: 'Optional avatar image for the quoted person (stored as media ID)',
+        },
+        {
+          slug: 'design_tab',
+          type: 'tab',
+          label: 'Design',
         },
         backgroundColorField,
       ],

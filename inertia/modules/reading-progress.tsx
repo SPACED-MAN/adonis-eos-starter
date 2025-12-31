@@ -35,7 +35,7 @@ export default function ReadingProgress({ height = 4, zIndex = 50 }: ReadingProg
       data-module="reading-progress"
     >
       <div
-        className="h-full bg-standout-medium transition-all duration-150 ease-out"
+        className="h-full bg-standout-high transition-all duration-150 ease-out"
         style={{ width: `${progress}%` }}
       />
     </div>

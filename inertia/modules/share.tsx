@@ -47,7 +47,7 @@ export default function Share({
   const enabledNetworks = sharingNetworks.filter((n) => n.enabled)
 
   const bg = useInlineValue(__moduleId, 'backgroundColor', backgroundColor) || backgroundColor
-  const isDarkBg = bg === 'bg-neutral-high' || bg === 'bg-backdrop-high' || bg === 'bg-standout-medium'
+  const isDarkBg = bg === 'bg-neutral-high' || bg === 'bg-backdrop-high' || bg === 'bg-standout-high'
   const textColor = isDarkBg ? 'text-on-high' : 'text-neutral-high'
   const subtextColor = isDarkBg ? 'text-on-high/80' : 'text-neutral-medium'
   const iconBg = isDarkBg
@@ -120,7 +120,7 @@ export default function Share({
               key={n.network}
               href={getShareLink(n.network) || '#'}
               onClick={(e) => handleShare(n.network, e)}
-              className={`inline-flex items-center justify-center w-10 h-10 rounded-full ${iconBg} border hover:text-standout-high hover:border-standout-medium hover:shadow-sm transition-all duration-200 group`}
+              className={`inline-flex items-center justify-center w-10 h-10 rounded-full ${iconBg} border hover:text-standout-high hover:border-standout-high hover:shadow-sm transition-all duration-200 group`}
               title={`Share on ${n.label}`}
             >
               <FontAwesomeIcon

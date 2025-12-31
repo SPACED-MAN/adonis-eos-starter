@@ -562,6 +562,7 @@ class PostRenderingService {
         globalSlug: pm.globalSlug || null,
         globalLabel: pm.globalLabel || null,
         adminLabel: (draftModuleState as any)?.adminLabel || pm.adminLabel || null,
+        label: moduleRegistry.getDynamicLabel(pm.type, finalProps),
         componentName,
         renderingMode,
         props: finalProps,

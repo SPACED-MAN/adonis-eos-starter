@@ -29,6 +29,11 @@ export default class StatisticsModule extends BaseModule {
       },
       fieldSchema: [
         {
+          slug: 'content_tab',
+          type: 'tab',
+          label: 'Content',
+        },
+        {
           slug: 'stats',
           type: 'repeater',
           required: true,
@@ -55,9 +60,15 @@ export default class StatisticsModule extends BaseModule {
                 required: true,
                 description: 'Short label describing the statistic.',
                 translatable: true,
+                isLabel: true,
               },
             ],
           },
+        },
+        {
+          slug: 'design_tab',
+          type: 'tab',
+          label: 'Design',
         },
         backgroundColorField,
       ],

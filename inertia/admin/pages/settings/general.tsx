@@ -311,7 +311,7 @@ export default function GeneralSettings() {
                   key={tab.id}
                   onClick={() => setActiveTab(tab.id as any)}
                   className={`px-4 py-2 border-b-2 font-medium text-sm transition-colors ${activeTab === tab.id
-                      ? 'border-standout-medium text-standout-high'
+                      ? 'border-standout-high text-standout-high'
                       : 'border-transparent text-neutral-medium hover:text-neutral-high'
                     }`}
                 >
@@ -611,7 +611,7 @@ export default function GeneralSettings() {
           <div className="flex items-center gap-2 pt-6 border-t border-line-low">
             <button
               type="button"
-              className={`px-3 py-2 text-sm rounded ${saving ? 'opacity-60' : 'bg-standout-medium text-on-high'}`}
+              className={`px-3 py-2 text-sm rounded ${saving ? 'opacity-60' : 'bg-standout-high text-on-high'}`}
               disabled={saving}
               onClick={save}
             >

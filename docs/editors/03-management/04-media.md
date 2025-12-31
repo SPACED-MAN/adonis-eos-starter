@@ -7,26 +7,37 @@ Learn how to upload, organize, and use images and files in your content.
 ### From the Media Library
 
 1. Navigate to **Media** in the admin sidebar
-2. Click **"Upload"** or drag files into the upload area
-3. Select one or more files from your computer
-4. Files are uploaded and processed automatically
+2. Click **"Upload"** or drag files into the upload area. You can select and upload **multiple files simultaneously**.
+3. Select files from your computer or drag them directly into the dashed dropzone.
+4. Files are uploaded and processed automatically in the background.
 
 ### From the Post Editor
 
-When editing a module that requires an image:
+When editing a module that requires an image or animation:
 
 1. Click the **"Select Media"** button
-2. Choose from existing media or upload new files
-3. Select the image you want to use
-4. Click **"Confirm"** to insert it
+2. Choose from existing media or switch to the **Upload** tab.
+3. You can drag and drop multiple files into the upload area or click the browse button.
+4. After uploading, the system automatically selects the newest item for you.
+5. Click **"Use Selected"** to insert it.
 
 ## Supported File Types
 
 - **Images**: JPG, PNG, GIF, WebP, SVG
+- **Animations**: Lottie (JSON), Animated SVG, Animated WebP
 - **Documents**: PDF (if configured)
 - **Videos**: MP4, WebM (if configured)
 
 Check with your administrator for file size limits and specific format requirements.
+
+## Animations (Lottie & SVG)
+
+The system supports high-performance vector animations:
+
+- **Lottie**: Upload `.json` or `.lottie` files. These use the Lottie player for smooth, scalable animations.
+- **Animated SVG**: Standard SVGs with CSS or SMIL animations are supported.
+- **Playback Control**: For both Lottie and Videos, you can choose between **Autoplay** (looping in the background), **Inline** (with controls), or **Modal** (opens in a full-screen player).
+- **SVG in Modals**: Even static SVGs can be configured to open in a modal player, useful for detailed diagrams or illustrations.
 
 ## Image Variants
 

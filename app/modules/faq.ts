@@ -30,11 +30,17 @@ export default class FaqModule extends BaseModule {
       },
       fieldSchema: [
         {
+          slug: 'content_tab',
+          type: 'tab',
+          label: 'Content',
+        },
+        {
           slug: 'title',
           type: 'text',
           required: true,
           description: 'Section heading shown above the FAQ grid',
           translatable: true,
+          isLabel: true,
         },
         {
           slug: 'subtitle',
@@ -58,6 +64,7 @@ export default class FaqModule extends BaseModule {
                 required: true,
                 description: 'Question text',
                 translatable: true,
+                isLabel: true,
               },
               {
                 slug: 'answer',
@@ -81,6 +88,11 @@ export default class FaqModule extends BaseModule {
               },
             ],
           },
+        },
+        {
+          slug: 'design_tab',
+          type: 'tab',
+          label: 'Design',
         },
         backgroundColorField,
       ],

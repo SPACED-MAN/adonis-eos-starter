@@ -233,7 +233,7 @@ export default function FormsIndex({ forms, submissions, meta }: FormsIndexProps
                 <button
                   onClick={handleExport}
                   disabled={isExporting}
-                  className="flex items-center gap-2 px-4 py-2 text-sm font-medium bg-standout-medium text-on-high rounded-md hover:bg-standout-medium/90 transition-colors disabled:opacity-50"
+                  className="flex items-center gap-2 px-4 py-2 text-sm font-medium bg-standout-high text-on-high rounded-md hover:bg-standout-high/90 transition-colors disabled:opacity-50"
                 >
                   {isExporting ? (
                     <FontAwesomeIcon icon={faSpinner} spin size="sm" />
@@ -300,7 +300,7 @@ export default function FormsIndex({ forms, submissions, meta }: FormsIndexProps
                         </TableCell>
                         <TableCell className="text-neutral-medium">
                           {s.abVariation ? (
-                            <span className="inline-flex items-center rounded-full bg-standout-medium/10 text-standout-medium px-2 py-0.5 text-xs font-bold">
+                            <span className="inline-flex items-center rounded-full bg-standout-high/10 text-standout-high px-2 py-0.5 text-xs font-bold">
                               {s.abVariation}
                             </span>
                           ) : (
@@ -385,7 +385,7 @@ export default function FormsIndex({ forms, submissions, meta }: FormsIndexProps
               {selectedSubmission?.createdAt &&
                 new Date(selectedSubmission.createdAt).toLocaleString()}
               {selectedSubmission?.abVariation && (
-                <span className="ml-2 inline-flex items-center rounded-full bg-standout-medium/10 text-standout-medium px-2 py-0.5 text-xs font-bold">
+                <span className="ml-2 inline-flex items-center rounded-full bg-standout-high/10 text-standout-high px-2 py-0.5 text-xs font-bold">
                   Var {selectedSubmission.abVariation}
                 </span>
               )}

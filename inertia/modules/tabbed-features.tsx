@@ -43,7 +43,7 @@ export default function TabbedFeatures({
 
 	const [activeTab, setActiveTab] = useState(0)
 
-	const isDarkBg = bg === 'bg-neutral-high' || bg === 'bg-backdrop-high' || bg === 'bg-standout-medium'
+	const isDarkBg = bg === 'bg-neutral-high' || bg === 'bg-backdrop-high' || bg === 'bg-standout-high'
 	const textColor = isDarkBg ? 'text-on-high' : 'text-neutral-high'
 	const subtextColor = isDarkBg ? 'text-on-high/80' : 'text-neutral-medium'
 
@@ -95,13 +95,13 @@ export default function TabbedFeatures({
 						{!isVertical && isActive && (
 							<motion.div
 								layoutId="activeTabUnderline"
-								className="absolute -bottom-px left-0 right-0 h-1 bg-standout-medium z-10"
+								className="absolute -bottom-px left-0 right-0 h-1 bg-standout-high z-10"
 							/>
 						)}
 						{isVertical && isActive && (
 							<motion.div
 								layoutId="activeTabIndicator"
-								className="absolute left-0 top-0 bottom-0 w-1 bg-standout-medium rounded-full"
+								className="absolute left-0 top-0 bottom-0 w-1 bg-standout-high rounded-full"
 							/>
 						)}
 					</button>

@@ -42,12 +42,12 @@ export default function FeaturesListExpanded({
   const cta = useInlineValue(__moduleId, 'cta', initialCta)
   const bg = useInlineValue(__moduleId, 'backgroundColor', backgroundColor) || backgroundColor
 
-  const isDarkBg = bg === 'bg-neutral-high' || bg === 'bg-backdrop-high' || bg === 'bg-standout-medium'
+  const isDarkBg = bg === 'bg-neutral-high' || bg === 'bg-backdrop-high' || bg === 'bg-standout-high'
   const textColor = isDarkBg ? 'text-on-high' : 'text-neutral-high'
   const subtextColor = isDarkBg ? 'text-on-high/80' : 'text-neutral-medium'
   const iconBg = isDarkBg
     ? 'bg-on-high/10 text-on-high'
-    : 'bg-standout-medium/10 text-standout-medium'
+    : 'bg-standout-high/10 text-standout-high'
   const lineStyle = isDarkBg ? 'border-on-high/10' : 'border-line-low'
 
   const safeFeatures = Array.isArray(features) ? features.slice(0, 12) : []
@@ -233,14 +233,14 @@ function SectionButton({
     {
       primary: isDarkBg
         ? 'bg-backdrop-low text-neutral-high'
-        : 'bg-standout-medium text-on-high',
+        : 'bg-standout-high text-on-high',
       secondary: isDarkBg
         ? 'bg-on-high/10 text-on-high hover:bg-on-high/20'
         : 'bg-backdrop-medium hover:bg-backdrop-high text-neutral-high',
       outline: isDarkBg
         ? 'border border-on-high text-on-high hover:bg-on-high/10'
         : 'border border-line-low hover:bg-backdrop-medium text-neutral-high',
-    }[style] || 'bg-standout-medium text-on-high'
+    }[style] || 'bg-standout-high text-on-high'
 
   const { href, target: finalTarget } = resolveHrefAndTarget(url, target)
   if (!href) return null

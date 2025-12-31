@@ -18,6 +18,8 @@ export const CUSTOM_FIELD_TYPES = [
   'slider',
   'taxonomy',
   'form-reference',
+  'tab',
+  'group',
 ] as const
 
 export type CustomFieldType = (typeof CUSTOM_FIELD_TYPES)[number]
@@ -49,4 +51,5 @@ export interface CustomFieldDefinition {
     notEquals?: any
     isVideo?: boolean
   }
+  isLabel?: boolean
 }

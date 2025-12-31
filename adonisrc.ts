@@ -130,6 +130,9 @@ export default defineConfig({
 
   assetsBundler: false,
   hooks: {
-    onBuildStarting: [() => import('@adonisjs/vite/build_hook')],
+    onBuildStarting: [
+      () => import('@adonisjs/vite/build_hook'),
+      () => import('./app/hooks/check_passwords_hook.js'),
+    ],
   },
 })

@@ -620,7 +620,7 @@ export default function GlobalModulesIndex() {
             <button
               onClick={() => setActiveTab('globals')}
               className={`px-4 py-2 border-b-2 font-medium text-sm transition-colors ${activeTab === 'globals'
-                  ? 'border-standout-medium text-standout-high'
+                  ? 'border-standout-high text-standout-high'
                   : 'border-transparent text-neutral-medium hover:text-neutral-high'
                 }`}
             >
@@ -629,7 +629,7 @@ export default function GlobalModulesIndex() {
             <button
               onClick={() => setActiveTab('groups')}
               className={`px-4 py-2 border-b-2 font-medium text-sm transition-colors ${activeTab === 'groups'
-                  ? 'border-standout-medium text-standout-high'
+                  ? 'border-standout-high text-standout-high'
                   : 'border-transparent text-neutral-medium hover:text-neutral-high'
                 }`}
             >
@@ -676,7 +676,7 @@ export default function GlobalModulesIndex() {
                   <h3 className="text-sm font-semibold text-neutral-high">Global Modules</h3>
                   {isAdmin && (
                     <button
-                      className="px-3 py-1.5 text-xs rounded bg-standout-medium text-on-high cursor-pointer"
+                      className="px-3 py-1.5 text-xs rounded bg-standout-high text-on-high cursor-pointer"
                       onClick={() => setCreateOpen(true)}
                       type="button"
                     >
@@ -714,7 +714,7 @@ export default function GlobalModulesIndex() {
                               type="button"
                               onClick={() => loadUsage(m)}
                               className={`text-xs font-semibold px-2 py-1 rounded transition-colors ${m.usageCount > 0
-                                  ? 'bg-standout-medium/10 text-standout-high hover:bg-standout-medium/20'
+                                  ? 'bg-standout-high/10 text-standout-high hover:bg-standout-high/20'
                                   : 'text-neutral-low'
                                 }`}
                             >
@@ -903,7 +903,7 @@ export default function GlobalModulesIndex() {
                         !groupCreateForm.name.trim() ||
                         !groupCreateForm.postType.trim()
                       }
-                      className="px-3 py-2 text-sm rounded bg-standout-medium text-on-high disabled:opacity-50"
+                      className="px-3 py-2 text-sm rounded bg-standout-high text-on-high disabled:opacity-50"
                     >
                       {groupCreating ? 'Creating…' : 'Create Group'}
                     </button>
@@ -1035,7 +1035,7 @@ export default function GlobalModulesIndex() {
                     <div className="flex items-center gap-2">
                       <button
                         type="button"
-                        className={`px-3 py-2 text-sm rounded ${groupDirty ? 'bg-standout-medium text-on-high' : 'border border-line-low text-neutral-medium'}`}
+                        className={`px-3 py-2 text-sm rounded ${groupDirty ? 'bg-standout-high text-on-high' : 'border border-line-low text-neutral-medium'}`}
                         onClick={saveGroupChanges}
                         disabled={!groupDirty || groupSaving}
                       >

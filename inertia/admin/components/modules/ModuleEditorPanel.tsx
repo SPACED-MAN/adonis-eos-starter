@@ -29,7 +29,32 @@ import { LinkField, type LinkFieldValue } from '~/components/forms/LinkField'
 import { MediaPickerModal } from '../media/MediaPickerModal'
 import { MediaRenderer } from '../../../components/MediaRenderer'
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome'
-import { faWandMagicSparkles } from '@fortawesome/free-solid-svg-icons'
+import {
+  faWandMagicSparkles,
+  faChevronDown,
+  faChevronRight,
+  faExpandAlt,
+  faCompressAlt,
+  faTrash,
+  faClone,
+  faGripVertical,
+} from '@fortawesome/free-solid-svg-icons'
+import {
+  DndContext,
+  PointerSensor,
+  useSensor,
+  useSensors,
+  DragEndEvent,
+  closestCenter,
+} from '@dnd-kit/core'
+import {
+  SortableContext,
+  useSortable,
+  verticalListSortingStrategy,
+  arrayMove,
+} from '@dnd-kit/sortable'
+import { CSS } from '@dnd-kit/utilities'
+import { DragHandle } from '../ui/DragHandle'
 import { iconOptions, iconMap } from '../ui/iconOptions'
 import { AgentModal, type Agent } from '../agents/AgentModal'
 import { CustomFieldDefinition } from '~/types/custom_field'
@@ -110,6 +135,7 @@ function getLabel(path: string[], field: CustomFieldDefinition): string {
   if (field.label) return field.label
   const last = path[path.length - 1]
   if (!last) return ''
+  if (/^\d+$/.test(last)) return String(parseInt(last, 10) + 1)
   return last
     .replace(/([A-Z])/g, ' $1')
     .replace(/^./, (str) => str.toUpperCase())
@@ -222,7 +248,7 @@ const AgentTrigger = ({ agents, onSelect }: { agents: Agent[]; onSelect: (a: Age
           <button
             type="button"
             onClick={() => onSelect(agents[0])}
-            className="text-neutral-low hover:text-standout-medium transition-colors"
+            className="text-neutral-low hover:text-standout-high transition-colors"
           >
             <FontAwesomeIcon icon={faWandMagicSparkles} size="sm" />
           </button>
@@ -240,7 +266,7 @@ const AgentTrigger = ({ agents, onSelect }: { agents: Agent[]; onSelect: (a: Age
           <PopoverTrigger asChild>
             <button
               type="button"
-              className="text-neutral-low hover:text-standout-medium transition-colors"
+              className="text-neutral-low hover:text-standout-high transition-colors"
             >
               <FontAwesomeIcon icon={faWandMagicSparkles} size="sm" />
             </button>
@@ -681,7 +707,7 @@ const MediaFieldInternal = memo(
               <div className="flex items-center gap-2">
                 <button
                   type="button"
-                  className="px-3 py-1.5 text-[11px] font-semibold rounded bg-standout-medium text-on-high hover:bg-standout-high transition-colors"
+                  className="px-3 py-1.5 text-[11px] font-semibold rounded bg-standout-high text-on-high hover:bg-standout-high transition-colors"
                   onClick={() => setModalOpen(true)}
                 >
                   {preview ? 'Change Media' : 'Select Media'}
@@ -860,7 +886,7 @@ const IconFieldInternal = memo(
                     <button
                       type="button"
                       className={`p-3 border rounded-lg hover:bg-backdrop-medium flex flex-col items-center gap-1 ${selectedIcon === iconItem.name
-                        ? 'border-standout-medium bg-standout-medium/10'
+                        ? 'border-standout-high bg-standout-high/10'
                         : 'border-line-low'
                         }`}
                       onClick={() => {
@@ -1742,6 +1768,127 @@ const FieldPrimitiveInternal = memo(
   }
 )
 
+const SortableRepeaterItem = memo(
+  ({
+    id,
+    idx,
+    name,
+    path,
+    field,
+    value,
+    rootId,
+    ctx,
+    isCollapsed,
+    toggleCollapse,
+    getItemLabel,
+    itemSchema,
+    onRemove,
+    onDuplicate,
+  }: any) => {
+    const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({
+      id,
+    })
+
+    const style = {
+      transform: CSS.Transform.toString(transform),
+      transition,
+      opacity: isDragging ? 0.5 : 1,
+      zIndex: isDragging ? 10 : 1,
+    }
+
+    return (
+      <div
+        ref={setNodeRef}
+        style={style}
+        className="border border-line-low rounded overflow-hidden bg-backdrop-low"
+      >
+        <div className="flex items-center justify-between gap-2 bg-backdrop-medium/30 px-3 py-1.5">
+          <div className="flex items-center gap-2 flex-1 min-w-0">
+            <DragHandle
+              {...attributes}
+              {...listeners}
+              className="opacity-40 hover:opacity-100 transition-opacity"
+            />
+            <button
+              type="button"
+              onClick={() => toggleCollapse(idx)}
+              className="flex items-center gap-2 flex-1 text-left min-w-0"
+            >
+              <span className="text-[10px] font-bold text-neutral-high uppercase tracking-wider truncate">
+                {getItemLabel(value, idx)}
+              </span>
+            </button>
+          </div>
+
+          <div className="flex items-center gap-1 shrink-0">
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <button
+                  type="button"
+                  className="p-1.5 rounded-md text-neutral-low hover:text-standout-high hover:bg-backdrop-medium transition-all"
+                  onClick={() => onDuplicate(idx)}
+                >
+                  <FontAwesomeIcon icon={faClone} className="text-[10px]" />
+                </button>
+              </TooltipTrigger>
+              <TooltipContent>
+                <p>Duplicate item</p>
+              </TooltipContent>
+            </Tooltip>
+
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <button
+                  type="button"
+                  className="p-1.5 rounded-md text-neutral-low hover:text-red-500 hover:bg-red-500/10 transition-all"
+                  onClick={() => onRemove(idx)}
+                >
+                  <FontAwesomeIcon icon={faTrash} className="text-[10px]" />
+                </button>
+              </TooltipTrigger>
+              <TooltipContent>
+                <p>Remove item</p>
+              </TooltipContent>
+            </Tooltip>
+
+            <button
+              type="button"
+              className={`p-1.5 rounded-md transition-all ${!isCollapsed ? 'bg-backdrop-medium text-neutral-high' : 'text-neutral-low hover:bg-backdrop-medium'}`}
+              onClick={() => toggleCollapse(idx)}
+            >
+              <FontAwesomeIcon
+                icon={faChevronDown}
+                className={`transition-transform duration-200 ${!isCollapsed ? 'rotate-180' : ''} text-[10px]`}
+              />
+            </button>
+          </div>
+        </div>
+        {!isCollapsed && (
+          <div className="p-3 space-y-2">
+            {itemSchema ? (
+              <FieldBySchemaInternal
+                path={[...path, String(idx)]}
+                field={{ ...itemSchema, slug: String(idx), hideLabel: true } as any}
+                value={value}
+                rootId={rootId}
+                ctx={ctx}
+              />
+            ) : (
+              <FieldPrimitiveInternal
+                path={[...path, String(idx)]}
+                field={{ name: String(idx), type: 'text', hideLabel: true } as any}
+                value={value}
+                rootId={rootId}
+                ctx={ctx}
+              />
+            )}
+          </div>
+        )}
+      </div>
+    )
+  }
+)
+
 const FieldBySchemaInternal = memo(
   ({
     path,
@@ -1780,6 +1927,7 @@ const FieldBySchemaInternal = memo(
     const type = (field as any).type as string
     const name = path.join('.')
     const label = getLabel(path, field)
+    const hideLabel = (field as any).hideLabel
 
     if (type === 'object') {
       const rawFields: any = (field as any).fields
@@ -1792,8 +1940,10 @@ const FieldBySchemaInternal = memo(
 
       if (objectFields && objectFields.length > 0) {
         return (
-          <fieldset className="border border-line-low rounded-lg mt-4 p-3">
-            <legend className="px-1 text-xs font-medium text-neutral-low">{label}</legend>
+          <div className="mt-4">
+            {!hideLabel && (
+              <legend className="px-1 text-xs font-medium text-neutral-low mb-2">{label}</legend>
+            )}
             <div className="grid grid-cols-1 gap-4">
               {objectFields.map((f) => (
                 <FieldBySchemaInternal
@@ -1806,7 +1956,7 @@ const FieldBySchemaInternal = memo(
                 />
               ))}
             </div>
-          </fieldset>
+          </div>
         )
       }
     }
@@ -1828,90 +1978,176 @@ const FieldBySchemaInternal = memo(
         }
       }
 
+      const [collapsedItems, setCollapsedItems] = useState<Set<number>>(
+        new Set(items.map((_, i) => i))
+      )
+
+      // Stable IDs for dnd-kit
+      const itemIdsRef = useRef<Map<any, string>>(new Map())
+      const itemsWithIds = useMemo(() => {
+        return items.map((it, i) => {
+          let sid = ''
+          if (it && typeof it === 'object') {
+            if (!itemIdsRef.current.has(it)) {
+              itemIdsRef.current.set(it, Math.random().toString(36).substring(7))
+            }
+            sid = itemIdsRef.current.get(it)!
+          } else {
+            sid = `primitive-${name}-${i}-${String(it)}`
+          }
+          return { sid, value: it }
+        })
+      }, [items, name])
+
+      const sensors = useSensors(
+        useSensor(PointerSensor, {
+          activationConstraint: { distance: 5 },
+        })
+      )
+
+      const handleDragEnd = (event: DragEndEvent) => {
+        const { active, over } = event
+        if (over && active.id !== over.id) {
+          const oldIndex = itemsWithIds.findIndex((it) => it.sid === active.id)
+          const newIndex = itemsWithIds.findIndex((it) => it.sid === over.id)
+          const next = ctx.syncFormToDraft()
+          const arr = [...(getByPath(next, name) || [])]
+          const newArr = arrayMove(arr, oldIndex, newIndex)
+          setByPath(next, name, newArr)
+          ctx.setDraft(next)
+          ctx.onDirty?.()
+
+          // Update collapsed items set to follow the new indices
+          setCollapsedItems((prev) => {
+            const nextCollapsed = new Set<number>()
+            prev.forEach((oldIdx) => {
+              if (oldIdx === oldIndex) {
+                nextCollapsed.add(newIndex)
+              } else if (oldIndex < oldIdx && oldIdx <= newIndex) {
+                nextCollapsed.add(oldIdx - 1)
+              } else if (newIndex <= oldIdx && oldIdx < oldIndex) {
+                nextCollapsed.add(oldIdx + 1)
+              } else {
+                nextCollapsed.add(oldIdx)
+              }
+            })
+            return nextCollapsed
+          })
+        }
+      }
+
+      const toggleCollapse = (idx: number) => {
+        setCollapsedItems((prev) => {
+          const next = new Set(prev)
+          if (next.has(idx)) next.delete(idx)
+          else next.add(idx)
+          return next
+        })
+      }
+
+      const expandAll = () => setCollapsedItems(new Set())
+      const collapseAll = () => setCollapsedItems(new Set(items.map((_, i) => i)))
+
+      const getItemLabel = (it: any, idx: number) => {
+        const baseLabel = itemSchema?.label || 'Item'
+        if (itemSchema?.type === 'object' && itemSchema.fields) {
+          const labelField = itemSchema.fields.find((f) => f.isLabel)
+          if (labelField && it && it[labelField.slug]) {
+            return `${it[labelField.slug]} (${baseLabel} ${idx + 1})`
+          }
+        }
+        return `${baseLabel} ${idx + 1}`
+      }
+
+      const handleRemove = (idx: number) => {
+        const next = ctx.syncFormToDraft()
+        const arr = [...(getByPath(next, name) || [])]
+        arr.splice(idx, 1)
+        setByPath(next, name, arr)
+        ctx.setDraft(next)
+        ctx.onDirty?.()
+      }
+
+      const handleDuplicate = (idx: number) => {
+        const next = ctx.syncFormToDraft()
+        const arr = [...(getByPath(next, name) || [])]
+        const duplicated = JSON.parse(JSON.stringify(arr[idx]))
+        arr.splice(idx + 1, 0, duplicated)
+        setByPath(next, name, arr)
+        ctx.setDraft(next)
+        ctx.onDirty?.()
+        // Expand the new item
+        setCollapsedItems((prev) => {
+          const n = new Set(prev)
+          n.delete(idx + 1)
+          return n
+        })
+      }
+
       return (
-        <fieldset className="border border-line-low rounded-lg mt-4 p-3">
-          <legend className="px-1 text-xs font-medium text-neutral-low">{label}</legend>
-          <div className="space-y-3">
-            {items.length === 0 && (
-              <p className="text-xs text-neutral-low">No items. Click “Add Item”.</p>
-            )}
-            {items.map((it, idx) => (
-              <div key={`${name}.${idx}`} className="border border-line-low rounded p-3 space-y-2">
-                <div className="flex items-center justify-between gap-2 border-b border-line-low pb-2 mb-2">
-                  <span className="text-[10px] font-bold text-neutral-low uppercase tracking-wider">
-                    Item {idx + 1}
-                  </span>
-                  <div className="flex items-center gap-2">
-                    <button
-                      type="button"
-                      className="px-2 py-1 text-[10px] uppercase font-bold text-neutral-low hover:text-red-500 transition-colors"
-                      onClick={() => {
-                        const next = ctx.syncFormToDraft()
-                        const arr = [...(getByPath(next, name) || [])]
-                        arr.splice(idx, 1)
-                        setByPath(next, name, arr)
-                        ctx.setDraft(next)
-                        ctx.onDirty?.()
-                      }}
-                    >
-                      Remove
-                    </button>
-                    <button
-                      type="button"
-                      className="px-2 py-1 text-[10px] uppercase font-bold text-neutral-low hover:text-primary disabled:opacity-30 transition-colors"
-                      disabled={idx === 0}
-                      onClick={() => {
-                        const next = ctx.syncFormToDraft()
-                        const arr = [...(getByPath(next, name) || [])]
-                        const [moved] = arr.splice(idx, 1)
-                        arr.splice(idx - 1, 0, moved)
-                        setByPath(next, name, arr)
-                        ctx.setDraft(next)
-                        ctx.onDirty?.()
-                      }}
-                    >
-                      Up
-                    </button>
-                    <button
-                      type="button"
-                      className="px-2 py-1 text-[10px] uppercase font-bold text-neutral-low hover:text-primary disabled:opacity-30 transition-colors"
-                      disabled={idx >= items.length - 1}
-                      onClick={() => {
-                        const next = ctx.syncFormToDraft()
-                        const arr = [...(getByPath(next, name) || [])]
-                        const [moved] = arr.splice(idx, 1)
-                        arr.splice(idx + 1, 0, moved)
-                        setByPath(next, name, arr)
-                        ctx.setDraft(next)
-                        ctx.onDirty?.()
-                      }}
-                    >
-                      Down
-                    </button>
-                  </div>
-                </div>
-                {itemSchema ? (
-                  <FieldBySchemaInternal
-                    path={[...path, String(idx)]}
-                    field={{ ...itemSchema, slug: String(idx), hideLabel: true } as any}
-                    value={it}
-                    rootId={rootId}
-                    ctx={ctx}
-                  />
-                ) : (
-                  <FieldPrimitiveInternal
-                    path={[...path, String(idx)]}
-                    field={{ name: String(idx), type: 'text', hideLabel: true } as any}
-                    value={it}
-                    rootId={rootId}
-                    ctx={ctx}
-                  />
-                )}
+        <fieldset className="border border-line-low rounded-lg mt-4 p-3 bg-backdrop-medium/5">
+          <div className="flex items-center justify-between mb-3 px-1">
+            <legend className="text-xs font-bold text-neutral-medium uppercase tracking-wider m-0">
+              {label}
+            </legend>
+            {items.length > 0 && (
+              <div className="flex items-center gap-3">
+                <button
+                  type="button"
+                  onClick={expandAll}
+                  className="text-[10px] uppercase font-bold text-neutral-low hover:text-standout-high transition-colors flex items-center gap-1"
+                >
+                  <FontAwesomeIcon icon={faExpandAlt} className="text-[8px]" />
+                  Expand All
+                </button>
+                <button
+                  type="button"
+                  onClick={collapseAll}
+                  className="text-[10px] uppercase font-bold text-neutral-low hover:text-standout-high transition-colors flex items-center gap-1"
+                >
+                  <FontAwesomeIcon icon={faCompressAlt} className="text-[8px]" />
+                  Collapse All
+                </button>
               </div>
-            ))}
+            )}
+          </div>
+          <div className="space-y-2">
+            {items.length === 0 && (
+              <p className="text-xs text-neutral-low italic py-2">No items. Click “Add Item”.</p>
+            )}
+            <DndContext
+              sensors={sensors}
+              collisionDetection={closestCenter}
+              onDragEnd={handleDragEnd}
+            >
+              <SortableContext
+                items={itemsWithIds.map((it) => it.sid)}
+                strategy={verticalListSortingStrategy}
+              >
+                {itemsWithIds.map((it, idx) => (
+                  <SortableRepeaterItem
+                    key={it.sid}
+                    id={it.sid}
+                    idx={idx}
+                    name={name}
+                    path={path}
+                    field={field}
+                    value={it.value}
+                    rootId={rootId}
+                    ctx={ctx}
+                    isCollapsed={collapsedItems.has(idx)}
+                    toggleCollapse={toggleCollapse}
+                    getItemLabel={getItemLabel}
+                    itemSchema={itemSchema}
+                    onRemove={handleRemove}
+                    onDuplicate={handleDuplicate}
+                  />
+                ))}
+              </SortableContext>
+            </DndContext>
             <button
               type="button"
-              className="px-3 py-1 text-xs border border-line-medium rounded hover:bg-backdrop-medium"
+              className="w-full mt-2 px-3 py-2 text-[10px] uppercase font-bold border border-dashed border-line-medium rounded-lg text-neutral-medium hover:text-standout-high hover:border-standout-high hover:bg-backdrop-medium transition-all flex items-center justify-center gap-2"
               onClick={() => {
                 const next = ctx.syncFormToDraft()
                 const arr = [...(getByPath(next, name) || [])]
@@ -1921,7 +2157,11 @@ const FieldBySchemaInternal = memo(
                   if (t === 'object') {
                     empty = {}
                       ; ((itemSchema as any).fields || []).forEach((f: any) => {
-                        empty[f.slug] = f.type === 'number' ? 0 : f.type === 'boolean' ? false : ''
+                        if (f.default !== undefined) {
+                          empty[f.slug] = f.default
+                        } else {
+                          empty[f.slug] = f.type === 'number' ? 0 : f.type === 'boolean' ? false : ''
+                        }
                       })
                   } else if (t === 'number') empty = 0
                   else if (t === 'boolean') empty = false
@@ -1931,8 +2171,15 @@ const FieldBySchemaInternal = memo(
                 setByPath(next, name, arr)
                 ctx.setDraft(next)
                 ctx.onDirty?.()
+                // Expand the new item
+                setCollapsedItems((prev) => {
+                  const n = new Set(prev)
+                  n.delete(arr.length - 1)
+                  return n
+                })
               }}
             >
+              <FontAwesomeIcon icon={faGripVertical} className="text-[8px] rotate-90" />
               Add Item
             </button>
           </div>
@@ -1963,47 +2210,138 @@ const ModuleFieldsRenderer = memo(
     fallbackDraftKeys: string[]
   }) => {
     if (schema && schema.length > 0) {
-      const groups: Record<string, CustomFieldDefinition[]> = {}
+      // Step 1: Organize fields into tabs and groups
+      type FieldGroup = {
+        label?: string
+        description?: string
+        fields: CustomFieldDefinition[]
+      }
+      type TabSection = {
+        label: string
+        groups: FieldGroup[]
+      }
+
+      const sections: TabSection[] = []
+      let currentTab: TabSection = { label: 'General', groups: [{ fields: [] }] }
+      sections.push(currentTab)
+
       schema.forEach((f) => {
-        const cat = f.category || 'General'
-        if (!groups[cat]) groups[cat] = []
-        groups[cat].push(f)
+        if (f.type === 'tab') {
+          currentTab = { label: f.label || 'Other', groups: [{ fields: [] }] }
+          sections.push(currentTab)
+        } else if (f.type === 'group') {
+          currentTab.groups.push({
+            label: f.label,
+            description: f.description,
+            fields: [],
+          })
+        } else {
+          // Normal field
+          currentTab.groups[currentTab.groups.length - 1].fields.push(f)
+        }
       })
 
-      return (
-        <>
-          {Object.entries(groups).map(([category, fields]) => (
-            <div key={category} className="mb-8 space-y-4">
-              {category !== 'General' && (
-                <h4 className="text-[11px] font-bold text-neutral-medium uppercase tracking-wider border-b border-line-low pb-2 mb-4">
-                  {category}
-                </h4>
-              )}
-              <div className="space-y-4">
-                {fields.map((f) => {
-                  const fieldName = f.slug
-                  const pendingRef = ctx.pendingInputValueRef?.current
-                  const hasPendingValue =
-                    pendingRef?.name === fieldName && pendingRef?.rootId === moduleItem.id
-                  const pendingValue = hasPendingValue && pendingRef ? pendingRef.value : null
-                  const draftValue = draft ? draft[fieldName] : undefined
-                  const valueToUse = pendingValue !== null ? pendingValue : draftValue
+      // Remove empty groups/tabs
+      const cleanedSections = sections
+        .map((s) => ({
+          ...s,
+          groups: s.groups.filter((g) => g.fields.length > 0 || g.label),
+        }))
+        .filter((s) => s.groups.length > 0)
 
-                  return (
-                    <FieldBySchemaInternal
-                      key={fieldName}
-                      path={[fieldName]}
-                      field={f}
-                      value={valueToUse}
-                      rootId={moduleItem.id}
-                      ctx={ctx}
-                    />
-                  )
-                })}
-              </div>
+      const renderGroup = (group: FieldGroup, sectionIdx: number, groupIdx: number) => (
+        <div key={`${sectionIdx}-${groupIdx}`} className="space-y-4 mb-8 last:mb-0">
+          {group.label && (
+            <div className="border-b border-line-low pb-2 mb-4">
+              <h4 className="text-[11px] font-bold text-neutral-medium uppercase tracking-wider">
+                {group.label}
+              </h4>
+              {group.description && (
+                <p className="text-[10px] text-neutral-low mt-1">{group.description}</p>
+              )}
             </div>
-          ))}
-        </>
+          )}
+          <div className="space-y-4">
+            {group.fields.map((f) => {
+              const fieldName = f.slug
+              const pendingRef = ctx.pendingInputValueRef?.current
+              const hasPendingValue =
+                pendingRef?.name === fieldName && pendingRef?.rootId === moduleItem.id
+              const pendingValue = hasPendingValue && pendingRef ? pendingRef.value : null
+              const draftValue = draft ? draft[fieldName] : undefined
+              const valueToUse = pendingValue !== null ? pendingValue : draftValue
+
+              return (
+                <FieldBySchemaInternal
+                  key={fieldName}
+                  path={[fieldName]}
+                  field={f}
+                  value={valueToUse}
+                  rootId={moduleItem.id}
+                  ctx={ctx}
+                />
+              )
+            })}
+          </div>
+        </div>
+      )
+
+      const [activeTab, setActiveTab] = useState(cleanedSections[0].label)
+
+      if (cleanedSections.length <= 1 && cleanedSections[0]?.groups.length <= 1 && !cleanedSections[0]?.groups[0]?.label) {
+        // Just a flat list of fields
+        return (
+          <div className="space-y-4">
+            {cleanedSections[0]?.groups[0]?.fields.map((f) => {
+              const fieldName = f.slug
+              const draftValue = draft ? draft[fieldName] : undefined
+              return (
+                <FieldBySchemaInternal
+                  key={fieldName}
+                  path={[fieldName]}
+                  field={f}
+                  value={draftValue}
+                  rootId={moduleItem.id}
+                  ctx={ctx}
+                />
+              )
+            })}
+          </div>
+        )
+      }
+
+      if (cleanedSections.length > 1) {
+        const currentTabSection = cleanedSections.find(s => s.label === activeTab) || cleanedSections[0]
+        return (
+          <div className="w-full">
+            <div className="border-b border-line-low mb-6">
+              <nav className="flex gap-4 overflow-x-auto no-scrollbar">
+                {cleanedSections.map((s) => (
+                  <button
+                    key={s.label}
+                    type="button"
+                    onClick={() => setActiveTab(s.label)}
+                    className={`px-4 py-2 border-b-2 font-bold text-[10px] uppercase transition-colors whitespace-nowrap ${activeTab === s.label
+                      ? 'border-standout-high text-standout-high'
+                      : 'border-transparent text-neutral-low hover:text-neutral-medium'
+                      }`}
+                  >
+                    {s.label}
+                  </button>
+                ))}
+              </nav>
+            </div>
+            <div className="space-y-8">
+              {currentTabSection.groups.map((g, gIdx) => renderGroup(g, cleanedSections.indexOf(currentTabSection), gIdx))}
+            </div>
+          </div>
+        )
+      }
+
+      return (
+        <div className="space-y-8">
+          {cleanedSections[0].groups.map((g, gIdx) => renderGroup(g, 0, gIdx))}
+        </div>
       )
     }
 
@@ -2382,12 +2720,16 @@ export function ModuleEditorPanel({
     ]
   )
 
-  const handleClose = async () => {
-    // Automatically save current draft state before closing
+  const handleSave = async () => {
+    // Manually save current draft state
     const base = moduleItem?.props || {}
     const edited = syncFormToDraft()
     const overrides = diffOverrides(base, edited)
     await onSave(overrides, edited)
+    onClose()
+  }
+
+  const handleCancel = () => {
     onClose()
   }
 
@@ -2410,20 +2752,20 @@ export function ModuleEditorPanel({
   })
 
   return createPortal(
-    <div className="fixed inset-0 z-40 flex items-center justify-center p-4 sm:p-6">
-      <div className="absolute inset-0 bg-black/40" onClick={handleClose} />
+    <div className="fixed inset-0 z-[60] flex items-center justify-center p-4 sm:p-6">
+      <div className="absolute inset-0 bg-black/40" onClick={handleCancel} />
       <div
         className="absolute right-0 top-0 h-full w-full max-w-2xl bg-backdrop-low border-l border-line-low shadow-xl flex flex-col"
         role="dialog"
         aria-modal="true"
       >
-        <div className="px-5 py-4 border-b border-line-low flex items-center justify-between">
+        <div className="px-5 py-4 border-b border-line-low flex items-center justify-between shrink-0">
           <h3 className="text-sm font-semibold text-neutral-high">
             Module Custom Fields — {moduleLabel || moduleItem.type}
           </h3>
         </div>
         {moduleItem.scope === 'global' && !allowGlobalEditing && (
-          <div className="px-5 py-3 bg-amber-500/10 border-b border-amber-500/20 text-xs text-amber-500 flex items-center justify-between">
+          <div className="px-5 py-3 bg-amber-500/10 border-b border-amber-500/20 text-xs text-amber-500 flex items-center justify-between shrink-0">
             <span>
               Global modules are shared across posts and must be edited in the global settings.
             </span>
@@ -2437,7 +2779,7 @@ export function ModuleEditorPanel({
         )}
         <form
           ref={formRef}
-          className="p-5 grid grid-cols-1 gap-5 overflow-auto"
+          className="flex-1 min-h-0 flex flex-col"
           onSubmit={(e) => e.preventDefault()}
           onChangeCapture={(e) => {
             try {
@@ -2488,47 +2830,57 @@ export function ModuleEditorPanel({
             } catch { }
           }}
         >
-          {(moduleItem.scope === 'global' ||
-            moduleItem.scope === 'static' ||
-            !!moduleItem.globalSlug) &&
-            !allowGlobalEditing ? (
-            <div className="py-12 text-center space-y-4">
-              <div className="text-neutral-low mb-2">
-                <FontAwesomeIcon icon={faWandMagicSparkles} className="text-4xl opacity-20" />
+          <div className="flex-1 overflow-auto p-5 grid grid-cols-1 gap-5">
+            {(moduleItem.scope === 'global' ||
+              moduleItem.scope === 'static' ||
+              !!moduleItem.globalSlug) &&
+              !allowGlobalEditing ? (
+              <div className="py-12 text-center space-y-4">
+                <div className="text-neutral-low mb-2">
+                  <FontAwesomeIcon icon={faWandMagicSparkles} className="text-4xl opacity-20" />
+                </div>
+                <p className="text-sm text-neutral-medium max-w-xs mx-auto">
+                  This is a {moduleItem.scope || 'global'} module. To edit its fields, please go to
+                  the Global Modules settings.
+                </p>
+                {moduleItem.globalSlug && (
+                  <a
+                    href={`/admin/modules?tab=globals&editSlug=${moduleItem.globalSlug}`}
+                    className="inline-flex items-center gap-2 px-4 py-2 bg-standout-high text-on-high rounded-lg text-sm font-semibold hover:bg-standout-high transition-colors"
+                  >
+                    Edit Global Module
+                  </a>
+                )}
               </div>
-              <p className="text-sm text-neutral-medium max-w-xs mx-auto">
-                This is a {moduleItem.scope || 'global'} module. To edit its fields, please go to
-                the Global Modules settings.
-              </p>
-              {moduleItem.globalSlug && (
-                <a
-                  href={`/admin/modules?tab=globals&editSlug=${moduleItem.globalSlug}`}
-                  className="inline-flex items-center gap-2 px-4 py-2 bg-standout-medium text-on-high rounded-lg text-sm font-semibold hover:bg-standout-high transition-colors"
-                >
-                  Edit Global Module
-                </a>
-              )}
-            </div>
-          ) : (
-            <fieldset disabled={processing} className="contents">
-              <ModuleFieldsRenderer
-                schema={schema}
-                draft={draft}
-                moduleItem={moduleItem}
-                ctx={ctx}
-                isNoFieldModule={isNoFieldModule}
-                fallbackDraftKeys={fallbackDraftKeys}
-              />
-            </fieldset>
-          )}
-          <div className="flex items-center justify-end gap-2 border-t border-line-low pt-4 mt-auto">
+            ) : (
+              <fieldset disabled={processing} className="contents">
+                <ModuleFieldsRenderer
+                  schema={schema}
+                  draft={draft}
+                  moduleItem={moduleItem}
+                  ctx={ctx}
+                  isNoFieldModule={isNoFieldModule}
+                  fallbackDraftKeys={fallbackDraftKeys}
+                />
+              </fieldset>
+            )}
+          </div>
+          <div className="flex items-center justify-end gap-2 border-t border-line-low p-5 shrink-0">
             <button
               type="button"
-              className="px-3 py-1.5 text-xs rounded bg-standout-medium text-on-high disabled:opacity-60"
-              onClick={handleClose}
+              className="px-3 py-1.5 text-xs rounded border border-line-low text-neutral-medium hover:bg-backdrop-medium transition-colors"
+              onClick={handleCancel}
+              disabled={processing}
+            >
+              Cancel
+            </button>
+            <button
+              type="button"
+              className="px-3 py-1.5 text-xs rounded bg-standout-high text-on-high hover:bg-standout-high transition-colors disabled:opacity-60"
+              onClick={handleSave}
               disabled={processing || (moduleItem.scope !== 'post' && !allowGlobalEditing)}
             >
-              Close
+              {processing ? 'Saving...' : 'Save'}
             </button>
           </div>
         </form>

@@ -39,7 +39,7 @@ export function AnnouncementBanner() {
   if (!announcementHtml || !isVisible) return null
 
   return (
-    <div className="bg-standout-medium text-on-high py-2 px-4 relative z-[60]">
+    <div className="bg-standout-high text-on-high py-2 px-4 relative z-[60]">
       <div className="container mx-auto flex items-center justify-between gap-4">
         <div
           className="flex-1 text-sm font-medium text-center prose prose-sm prose-invert max-w-none announcement-content"

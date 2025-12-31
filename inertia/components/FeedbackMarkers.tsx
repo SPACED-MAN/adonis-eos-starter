@@ -109,7 +109,7 @@ export function FeedbackMarkers({
         .feedback-marker-dot {
           width: 16px;
           height: 16px;
-          background: var(--color-standout-medium, #3b82f6);
+          background: var(--color-standout-high, #3b82f6);
           border: 2px solid #ffffff;
           border-radius: 50%;
           box-shadow: 0 2px 8px rgba(0,0,0,0.3);
@@ -120,7 +120,7 @@ export function FeedbackMarkers({
         .feedback-marker-container.is-active .feedback-marker-dot {
           background: var(--color-standout-high, #2563eb);
           transform: scale(1.4);
-          box-shadow: 0 0 15px var(--color-standout-medium);
+          box-shadow: 0 0 15px var(--color-standout-high);
         }
         .feedback-marker-container.is-active {
           z-index: 3;
@@ -131,7 +131,7 @@ export function FeedbackMarkers({
           left: 0;
           width: 100%;
           height: 100%;
-          background: var(--color-standout-medium, #3b82f6);
+          background: var(--color-standout-high, #3b82f6);
           border-radius: 50%;
           z-index: 1;
           animation: feedback-pulse-ring 2s cubic-bezier(0.24, 0, 0.38, 1) infinite;

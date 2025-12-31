@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react'
 import { FontAwesomeIcon } from '../site/lib/icons'
 import { Tooltip, TooltipContent, TooltipTrigger } from '~/components/ui/tooltip'
 import { usePage } from '@inertiajs/react'
+import { Switch } from './ui/switch'
 
 export function ThemeToggle() {
   const { props } = usePage<any>()
@@ -65,24 +66,39 @@ export function ThemeToggle() {
   }
 
   return (
-    <Tooltip>
-      <TooltipTrigger asChild>
-        <button
-          type="button"
-          onClick={toggle}
-          className="inline-flex items-center justify-center w-8.5 h-8.5 rounded-full bg-backdrop-high dark:bg-neutral-low text-neutral-high dark:text-backdrop-low hover:bg-neutral-high hover:text-backdrop-low hover:dark:bg-neutral-high hover:dark:text-backdrop-low"
-          aria-label="Toggle dark mode"
-        >
-          {mode === 'dark' ? (
-            <FontAwesomeIcon icon={['fas', 'sun']} className="text-md" />
-          ) : (
-            <FontAwesomeIcon icon={['fas', 'moon']} className="text-md" />
-          )}
-        </button>
-      </TooltipTrigger>
-      <TooltipContent>
-        <p>Switch to {mode === 'dark' ? 'light' : 'dark'} mode</p>
-      </TooltipContent>
-    </Tooltip>
+    <div className="flex items-center gap-3">
+      <Tooltip>
+        <TooltipTrigger asChild>
+          <div className="flex items-center gap-1">
+            <button
+              type="button"
+              onClick={() => mode === 'dark' && toggle()}
+              className={`transition-colors ${mode === 'light' ? 'text-standout-high' : 'text-neutral-low'}`}
+              aria-label="Light mode"
+            >
+              <FontAwesomeIcon icon={['fas', 'sun']} className="text-xs" />
+            </button>
+
+            <Switch
+              checked={mode === 'dark'}
+              onCheckedChange={toggle}
+              className="mt-0.5 data-[state=checked]:bg-backdrop-high data-[state=unchecked]:bg-backdrop-high border-line-high"
+            />
+
+            <button
+              type="button"
+              onClick={() => mode === 'light' && toggle()}
+              className={`transition-colors ${mode === 'dark' ? 'text-standout-high' : 'text-neutral-low'}`}
+              aria-label="Dark mode"
+            >
+              <FontAwesomeIcon icon={['fas', 'moon']} className="text-xs" />
+            </button>
+          </div>
+        </TooltipTrigger>
+        <TooltipContent>
+          <p>Switch to {mode === 'dark' ? 'light' : 'dark'} mode</p>
+        </TooltipContent>
+      </Tooltip>
+    </div>
   )
 }

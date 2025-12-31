@@ -45,15 +45,15 @@ export function DevTools({ data }: { data: DevToolsData }) {
             DevTools (Last: {data.method} {data.url})
           </span>
           <span className="flex items-center gap-1.5">
-            <FontAwesomeIcon icon={faClock} className="text-standout-medium" />
+            <FontAwesomeIcon icon={faClock} className="text-standout-high" />
             {data.executionTime}ms
           </span>
           <span className="flex items-center gap-1.5">
-            <FontAwesomeIcon icon={faDatabase} className="text-standout-medium" />
+            <FontAwesomeIcon icon={faDatabase} className="text-standout-high" />
             {data.queryCount} queries ({data.totalQueryDuration}ms)
           </span>
           <span className="flex items-center gap-1.5">
-            <FontAwesomeIcon icon={faMicrochip} className="text-standout-medium" />
+            <FontAwesomeIcon icon={faMicrochip} className="text-standout-high" />
             {data.memoryUsage}
           </span>
         </div>
@@ -69,7 +69,7 @@ export function DevTools({ data }: { data: DevToolsData }) {
             <button
               className={`px-4 py-2 text-xs font-medium transition-colors ${
                 activeTab === 'overview'
-                  ? 'bg-backdrop-high border-b-2 border-standout-medium'
+                  ? 'bg-backdrop-high border-b-2 border-standout-high'
                   : 'hover:bg-backdrop-high'
               }`}
               onClick={() => setActiveTab('overview')}
@@ -79,7 +79,7 @@ export function DevTools({ data }: { data: DevToolsData }) {
             <button
               className={`px-4 py-2 text-xs font-medium transition-colors ${
                 activeTab === 'queries'
-                  ? 'bg-backdrop-high border-b-2 border-standout-medium'
+                  ? 'bg-backdrop-high border-b-2 border-standout-high'
                   : 'hover:bg-backdrop-high'
               }`}
               onClick={() => setActiveTab('queries')}
@@ -120,19 +120,19 @@ export function DevTools({ data }: { data: DevToolsData }) {
                   <div className="grid grid-cols-3 gap-4">
                     <div className="p-3 rounded border border-line-low bg-backdrop-medium">
                       <div className="text-[10px] text-neutral-medium mb-1">Execution Time</div>
-                      <div className="text-lg font-bold text-standout-medium">
+                      <div className="text-lg font-bold text-standout-high">
                         {data.executionTime}ms
                       </div>
                     </div>
                     <div className="p-3 rounded border border-line-low bg-backdrop-medium">
                       <div className="text-[10px] text-neutral-medium mb-1">Total DB Time</div>
-                      <div className="text-lg font-bold text-standout-medium">
+                      <div className="text-lg font-bold text-standout-high">
                         {data.totalQueryDuration}ms
                       </div>
                     </div>
                     <div className="p-3 rounded border border-line-low bg-backdrop-medium">
                       <div className="text-[10px] text-neutral-medium mb-1">Memory Usage</div>
-                      <div className="text-lg font-bold text-standout-medium">
+                      <div className="text-lg font-bold text-standout-high">
                         {data.memoryUsage}
                       </div>
                     </div>
@@ -158,7 +158,7 @@ export function DevTools({ data }: { data: DevToolsData }) {
                           QUERY {idx + 1}
                         </span>
                         <span
-                          className={`font-bold ${q.duration > 10 ? 'text-red-500' : 'text-standout-medium'}`}
+                          className={`font-bold ${q.duration > 10 ? 'text-red-500' : 'text-standout-high'}`}
                         >
                           {q.duration.toFixed(2)}ms
                         </span>

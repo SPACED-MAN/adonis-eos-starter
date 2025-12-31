@@ -2,6 +2,14 @@ import React, { useState, forwardRef } from 'react'
 import { Dialog, DialogContent, DialogTitle } from './ui/dialog'
 import { useMediaUrl, type MediaObject } from '../utils/useMediaUrl'
 
+declare global {
+  namespace JSX {
+    interface IntrinsicElements {
+      'lottie-player': any
+    }
+  }
+}
+
 export interface MediaRendererProps {
   url?: string | null | undefined
   image?: MediaObject | string | null | undefined
@@ -67,16 +75,20 @@ export const MediaRenderer = forwardRef<HTMLImageElement | HTMLVideoElement, Med
       (typeof mimeType === 'string' && mimeType.startsWith('video/')) ||
       /\.(mp4|webm|ogg|mov|m4v|avi)$/i.test(resolvedUrl.split('?')[0].toLowerCase())
 
-    if (isVideo) {
+    const isLottie =
+      (typeof mimeType === 'string' &&
+        (mimeType === 'application/json' || mimeType === 'application/x-lottie')) ||
+      /\.(json|lottie)$/i.test(resolvedUrl.split('?')[0].toLowerCase())
+
+    const isSvg =
+      (typeof mimeType === 'string' && mimeType === 'image/svg+xml') ||
+      /\.svg$/i.test(resolvedUrl.split('?')[0].toLowerCase())
+
+    const isAnimation = isLottie || isSvg
+
+    if (isVideo || isLottie || (isSvg && playMode === 'modal')) {
       const isAutoplayMode = playMode === 'autoplay'
       const isModalMode = playMode === 'modal'
-
-      const videoProps = {
-        src: resolvedUrl,
-        className,
-        style: { objectFit },
-        playsInline,
-      }
 
       if (isModalMode) {
         return (
@@ -85,15 +97,38 @@ export const MediaRenderer = forwardRef<HTMLImageElement | HTMLVideoElement, Med
               className="relative group cursor-pointer w-full h-full"
               onClick={() => setIsModalOpen(true)}
             >
-              <video
-                {...(videoProps as any)}
-                ref={ref as React.Ref<HTMLVideoElement>}
-                autoPlay={false}
-                loop={false}
-                muted={true}
-                controls={false}
-                poster={poster || undefined}
-              />
+              {isVideo || isSvg ? (
+                isVideo ? (
+                  <video
+                    src={resolvedUrl}
+                    className={className}
+                    style={{ objectFit }}
+                    playsInline={playsInline}
+                    autoPlay={false}
+                    loop={false}
+                    muted={true}
+                    controls={false}
+                    poster={poster || undefined}
+                    ref={ref as React.Ref<HTMLVideoElement>}
+                  />
+                ) : (
+                  <img
+                    src={resolvedUrl}
+                    alt={alt || (typeof image === 'object' ? (image as any)?.altText : null) || ''}
+                    className={className}
+                    style={{ objectFit }}
+                  />
+                )
+              ) : (
+                <div className={className} style={{ objectFit }}>
+                  <lottie-player
+                    src={resolvedUrl}
+                    autoplay={false}
+                    loop={false}
+                    style={{ width: '100%', height: '100%' }}
+                  />
+                </div>
+              )}
               <div className="absolute inset-0 flex items-center justify-center bg-black/20 group-hover:bg-black/40 transition-colors">
                 <div className="w-12 h-12 flex items-center justify-center rounded-full bg-white/80 text-black shadow-lg">
                   <svg
@@ -114,38 +149,76 @@ export const MediaRenderer = forwardRef<HTMLImageElement | HTMLVideoElement, Med
                 className="max-w-4xl p-0 overflow-hidden bg-black border-none"
                 aria-describedby={undefined}
               >
-                <DialogTitle className="sr-only">Video Player</DialogTitle>
-                <video
-                  src={resolvedUrl}
-                  className="w-full h-auto max-h-[80vh]"
-                  controls
-                  autoPlay
-                  playsInline
-                />
+                <DialogTitle className="sr-only">
+                  {isVideo ? 'Video Player' : 'Animation Player'}
+                </DialogTitle>
+                {isVideo ? (
+                  <video
+                    src={resolvedUrl}
+                    className="w-full h-auto max-h-[80vh]"
+                    controls
+                    autoPlay
+                    playsInline
+                  />
+                ) : isSvg ? (
+                  <div className="w-full h-auto max-h-[80vh] flex items-center justify-center bg-white/5 p-8">
+                    <img
+                      src={resolvedUrl}
+                      alt={alt || (typeof image === 'object' ? (image as any)?.altText : null) || ''}
+                      className="max-w-full max-h-full"
+                    />
+                  </div>
+                ) : (
+                  <div className="w-full h-auto max-h-[80vh] flex items-center justify-center bg-white/5">
+                    <lottie-player
+                      src={resolvedUrl}
+                      autoplay
+                      loop
+                      controls
+                      style={{ width: '100%', height: '100%', maxWidth: '800px' }}
+                    />
+                  </div>
+                )}
               </DialogContent>
             </Dialog>
           </>
         )
       }
 
-      return (
-        <video
-          {...(videoProps as any)}
-          ref={ref as React.Ref<HTMLVideoElement>}
-          controls={initialControls ?? (isAutoplayMode ? false : true)}
-          autoPlay={initialAutoPlay ?? (isAutoplayMode ? true : false)}
-          loop={initialLoop ?? (isAutoplayMode ? true : false)}
-          muted={initialMuted ?? (isAutoplayMode ? true : false)}
-          poster={poster || undefined}
-        />
-      )
+      if (isVideo) {
+        return (
+          <video
+            src={resolvedUrl}
+            className={className}
+            style={{ objectFit }}
+            playsInline={playsInline}
+            ref={ref as React.Ref<HTMLVideoElement>}
+            controls={initialControls ?? (isAutoplayMode ? false : true)}
+            autoPlay={initialAutoPlay ?? (isAutoplayMode ? true : false)}
+            loop={initialLoop ?? (isAutoplayMode ? true : false)}
+            muted={initialMuted ?? (isAutoplayMode ? true : false)}
+            poster={poster || undefined}
+          />
+        )
+      } else {
+        return (
+          <lottie-player
+            src={resolvedUrl}
+            autoplay={initialAutoPlay ?? (isAutoplayMode ? true : false)}
+            loop={initialLoop ?? (isAutoplayMode ? true : false)}
+            controls={initialControls ?? (isAutoplayMode ? false : true)}
+            style={{ width: '100%', height: '100%', objectFit }}
+            className={className}
+          />
+        )
+      }
     }
 
     return (
       <img
         ref={ref as React.Ref<HTMLImageElement>}
         src={resolvedUrl}
-        alt={alt || (typeof image === 'object' ? image?.altText : null) || ''}
+        alt={alt || (typeof image === 'object' ? (image as any)?.altText : null) || ''}
         className={className}
         fetchPriority={fetchPriority}
         decoding={decoding}

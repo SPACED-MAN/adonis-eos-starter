@@ -41,7 +41,7 @@ export default function BlogList({
   const posts = useInlineValue(__moduleId, 'posts', initialPosts)
   const bg = useInlineValue(__moduleId, 'backgroundColor', backgroundColor) || backgroundColor
 
-  const isDarkBg = bg === 'bg-neutral-high' || bg === 'bg-backdrop-high' || bg === 'bg-standout-medium'
+  const isDarkBg = bg === 'bg-neutral-high' || bg === 'bg-backdrop-high' || bg === 'bg-standout-high'
   const textColor = isDarkBg ? 'text-on-high' : 'text-neutral-high'
   const subtextColor = isDarkBg ? 'text-on-high/80' : 'text-neutral-medium'
 

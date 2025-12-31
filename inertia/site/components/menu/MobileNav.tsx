@@ -10,6 +10,8 @@ import {
 } from '~/components/ui/sheet'
 import { type TreeNode } from './types'
 import { MenuItemLink } from './MenuItemLink'
+import { ThemeToggle } from '../../../components/ThemeToggle'
+import { cn } from '../../../components/ui/utils'
 import * as React from 'react'
 
 const SearchModal = React.lazy(() =>
@@ -18,12 +20,13 @@ const SearchModal = React.lazy(() =>
 
 export function MobileNav({
   primaryNodes,
-  currentUser,
   showSearch = true,
+  isScrolled = false,
 }: {
   primaryNodes: TreeNode[]
   currentUser?: any
   showSearch?: boolean
+  isScrolled?: boolean
 }) {
   const [open, setOpen] = useState(false)
   const [mounted, setMounted] = useState(false)
@@ -35,8 +38,13 @@ export function MobileNav({
   if (!mounted) {
     return (
       <div className="md:hidden flex items-center">
-        <button className="flex h-10 w-10 items-center justify-center rounded-md border border-line-medium bg-backdrop text-neutral-high hover:bg-backdrop-medium outline-none">
-          <Menu className="h-6 w-6" />
+        <button
+          className={cn(
+            'flex items-center justify-center rounded-md border border-line-medium bg-backdrop text-neutral-high hover:bg-backdrop-medium outline-none transition-all duration-300',
+            isScrolled ? 'h-8 w-8' : 'h-10 w-10'
+          )}
+        >
+          <Menu className={isScrolled ? 'h-5 w-5' : 'h-6 w-6'} />
           <span className="sr-only">Toggle menu</span>
         </button>
       </div>
@@ -47,8 +55,13 @@ export function MobileNav({
     <div className="md:hidden flex items-center">
       <Sheet open={open} onOpenChange={setOpen}>
         <SheetTrigger asChild>
-          <button className="flex h-10 w-10 items-center justify-center rounded-md border border-line-medium bg-backdrop text-neutral-high hover:bg-backdrop-medium outline-none focus:ring-2 focus:ring-standout-medium/30">
-            <Menu className="h-6 w-6" />
+          <button
+            className={cn(
+              'flex items-center justify-center rounded-md border border-line-medium bg-backdrop text-neutral-high hover:bg-backdrop-medium outline-none focus:ring-2 focus:ring-standout-high/30 transition-all duration-300',
+              isScrolled ? 'h-8 w-8' : 'h-10 w-10'
+            )}
+          >
+            <Menu className={isScrolled ? 'h-5 w-5' : 'h-6 w-6'} />
             <span className="sr-only">Toggle menu</span>
           </button>
         </SheetTrigger>
@@ -61,11 +74,11 @@ export function MobileNav({
           </SheetHeader>
           <div className="flex flex-col gap-6 py-8">
             {showSearch && (
-            <div className="px-2">
+              <div className="px-2">
                 <React.Suspense fallback={<div className="h-10 w-full" />}>
-              <SearchModal placeholder="Search site..." variant="navbar" />
+                  <SearchModal placeholder="Search site..." variant="navbar" />
                 </React.Suspense>
-            </div>
+              </div>
             )}
             <nav className="flex flex-col gap-1">
               {primaryNodes.map((node) => (
@@ -91,24 +104,11 @@ export function MobileNav({
               ))}
             </nav>
 
-            <hr className="border-line-low" />
-
-            <div className="flex flex-col gap-3 px-2">
-              {currentUser ? (
-                <a
-                  href="/admin"
-                  className="flex items-center justify-center rounded-md border border-line-high bg-backdrop px-4 py-3 text-base font-medium text-neutral-high hover:bg-backdrop-medium hover:text-standout-high transition-colors"
-                >
-                  Dashboard
-                </a>
-              ) : (
-                <a
-                  href="/admin/login"
-                  className="flex items-center justify-center rounded-md border border-line-high bg-backdrop px-4 py-3 text-base font-medium text-neutral-high hover:bg-backdrop-medium hover:text-standout-high transition-colors"
-                >
-                  Login
-                </a>
-              )}
+            <div className="mt-auto pt-6 border-t border-line-low">
+              <div className="flex items-center justify-between px-2">
+                <span className="text-sm font-medium text-neutral-medium">Appearance</span>
+                <ThemeToggle />
+              </div>
             </div>
           </div>
         </SheetContent>

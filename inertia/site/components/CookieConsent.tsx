@@ -72,7 +72,7 @@ export function CookieConsent() {
           <div className="flex items-center gap-3 shrink-0">
             <button
               onClick={handleAccept}
-              className="px-6 py-2.5 bg-standout-medium text-on-high text-sm font-semibold rounded-lg hover:bg-standout-high transition-colors shadow-sm"
+              className="px-6 py-2.5 bg-standout-high text-on-high text-sm font-semibold rounded-lg hover:bg-standout-high transition-colors shadow-sm"
             >
               {config.buttonText}
             </button>

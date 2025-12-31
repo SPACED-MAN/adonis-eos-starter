@@ -47,7 +47,7 @@ export function OverridesPanel({
   }
 
   return (
-    <div className="fixed inset-0 z-40">
+    <div className="fixed inset-0 z-[60]">
       <div className="absolute inset-0 bg-black/40" onClick={onClose} />
       <div className="absolute right-0 top-0 h-full w-full max-w-2xl bg-backdrop-low border-l border-line-low shadow-xl flex flex-col">
         <div className="px-5 py-4 border-b border-line-low flex items-center justify-between">
@@ -98,7 +98,7 @@ export function OverridesPanel({
           </button>
           <button
             type="button"
-            className="px-4 py-2 text-sm rounded-md bg-standout-medium text-on-high disabled:opacity-50"
+            className="px-4 py-2 text-sm rounded-md bg-standout-high text-on-high disabled:opacity-50"
             onClick={trySave}
             disabled={processing}
           >

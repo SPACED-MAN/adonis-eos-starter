@@ -37,18 +37,31 @@ export default class HeroModule extends BaseModule {
       },
       fieldSchema: [
         {
+          slug: 'content_tab',
+          type: 'tab',
+          label: 'Content',
+        },
+        {
           slug: 'title',
           type: 'text',
+          label: 'Heading',
           required: true,
           description: 'Main heading text',
           translatable: true,
+          isLabel: true,
         },
         {
           slug: 'subtitle',
           type: 'textarea',
+          label: 'Subtitle',
           required: false,
           description: 'Supporting text below the title',
           translatable: true,
+        },
+        {
+          slug: 'design_tab',
+          type: 'tab',
+          label: 'Design',
         },
         backgroundColorField,
       ],

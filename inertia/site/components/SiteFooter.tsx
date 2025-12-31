@@ -1,5 +1,4 @@
 import { useEffect, useState } from 'react'
-import { ThemeToggle } from '../../components/ThemeToggle'
 import type { MenuItem } from './menu/types'
 import { MenuItemLink } from './menu/MenuItemLink'
 import { FontAwesomeIcon, getIconProp } from '../lib/icons'
@@ -113,9 +112,6 @@ export function SiteFooter() {
           <span className="text-xs text-neutral-low">
             © {new Date().getFullYear()} {siteTitle}. All rights reserved.
           </span>
-          <div className="flex items-center gap-3">
-            <ThemeToggle />
-          </div>
         </div>
       </div>
     </footer>

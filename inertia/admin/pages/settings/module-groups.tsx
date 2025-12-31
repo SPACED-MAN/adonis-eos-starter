@@ -245,7 +245,7 @@ export default function ModuleGroupsSettingsPage() {
                       <div className="flex items-center justify-between gap-2">
                         <div className="text-neutral-high font-medium">{t.name}</div>
                         {t.isDefault && (
-                          <span className="text-[10px] bg-standout-medium text-on-high px-1.5 py-0.5 rounded uppercase font-bold">
+                          <span className="text-[10px] bg-standout-high text-on-high px-1.5 py-0.5 rounded uppercase font-bold">
                             Default
                           </span>
                         )}
@@ -355,7 +355,7 @@ export default function ModuleGroupsSettingsPage() {
       </div>
       {/* Create Module Group Modal */}
       {isCreateOpen && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center">
+        <div className="fixed inset-0 z-[60] flex items-center justify-center">
           <div className="absolute inset-0 bg-black/50" onClick={() => setIsCreateOpen(false)} />
           <div className="relative z-10 w-full max-w-md rounded-lg border border-line-low bg-backdrop-input p-6 shadow-xl">
             <div className="flex items-center justify-between mb-4">
@@ -417,7 +417,7 @@ export default function ModuleGroupsSettingsPage() {
                   Cancel
                 </button>
                 <button
-                  className="px-3 py-2 text-sm rounded bg-standout-medium text-on-high disabled:opacity-50"
+                  className="px-3 py-2 text-sm rounded bg-standout-high text-on-high disabled:opacity-50"
                   disabled={creating || !createForm.name.trim() || !createForm.postType.trim()}
                   onClick={submitCreateModuleGroup}
                   type="button"

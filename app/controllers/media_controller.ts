@@ -146,6 +146,12 @@ export default class MediaController {
         case '.svg':
           mime = 'image/svg+xml'
           break
+        case '.json':
+          mime = 'application/json'
+          break
+        case '.lottie':
+          mime = 'application/x-lottie'
+          break
         case '.avif':
           mime = 'image/avif'
           break
@@ -270,7 +276,7 @@ export default class MediaController {
         entityId: id,
         metadata: { filename: clientName, mime, size: Number(size) },
       })
-    } catch {}
+    } catch { }
 
     // Trigger media.uploaded workflows (e.g. for AI alt text generation)
     try {
@@ -350,7 +356,7 @@ export default class MediaController {
         entityId: id,
         metadata: { fields: Object.keys(update) },
       })
-    } catch {}
+    } catch { }
     return response.ok({ message: 'Updated' })
   }
 
@@ -409,10 +415,10 @@ export default class MediaController {
       try {
         const p = path.join(publicRoot, url.replace(/^\//, ''))
         await fs.promises.unlink(p)
-      } catch {}
+      } catch { }
       try {
         await storageService.deleteByUrl(url)
-      } catch {}
+      } catch { }
     }
 
     // Delete original and main optimized files
@@ -431,7 +437,7 @@ export default class MediaController {
       // Delete dedicated dark base and its optimized version if present
       await deleteFile(meta?.darkSourceUrl)
       await deleteFile(meta?.darkOptimizedUrl)
-    } catch {}
+    } catch { }
 
     // Fallback: pattern-based deletion (basename.VARIANT+ext, basename.optimized.webp, etc.)
     try {
@@ -450,7 +456,7 @@ export default class MediaController {
           }
         })
       )
-    } catch {}
+    } catch { }
 
     await db.from('media_assets').where('id', id).delete()
     try {
@@ -460,7 +466,7 @@ export default class MediaController {
         entityType: 'media',
         entityId: id,
       })
-    } catch {}
+    } catch { }
     return response.noContent()
   }
 
@@ -724,7 +730,7 @@ export default class MediaController {
           entityId: id,
           metadata: { targetVariant },
         })
-      } catch {}
+      } catch { }
       return response.ok({ data: { variants: result.variants } })
     }
 
@@ -788,7 +794,7 @@ export default class MediaController {
           entityId: id,
           metadata: { cropRect: cropArgs },
         })
-      } catch {}
+      } catch { }
       return response.ok({ data: { variants: [...result.variants, cropped] } })
     }
 
@@ -823,9 +829,69 @@ export default class MediaController {
         entityId: id,
         metadata: { specs: specs || null, cropRect: cropArgs, focalPoint },
       })
-    } catch {}
+    } catch { }
     // Return the merged list and updated metadata so the client has all variants (light + dark)
     return response.ok({ data: { variants: metadata.variants, metadata } })
+  }
+
+  /**
+   * POST /api/media/:id/content
+   * Body: { content: string }
+   */
+  async updateContent({ params, request, response, auth }: HttpContext) {
+    const role = (auth.use('web').user as any)?.role as
+      | 'admin'
+      | 'editor'
+      | 'translator'
+      | undefined
+    if (!roleRegistry.hasPermission(role, 'media.replace')) {
+      return response.forbidden({ error: 'Not allowed to edit media content' })
+    }
+    const { id } = params
+    const { content } = request.only(['content']) as { content?: string }
+    if (content === undefined) {
+      return response.badRequest({ error: 'content is required' })
+    }
+
+    const row = await db.from('media_assets').where('id', id).first()
+    if (!row) return response.notFound({ error: 'Media not found' })
+
+    const url = String(row.url)
+    const mime = String(row.mime_type || '')
+    const isSvg = mime.toLowerCase() === 'image/svg+xml' || url.toLowerCase().endsWith('.svg')
+    const isLottie =
+      mime.toLowerCase() === 'application/json' ||
+      url.toLowerCase().endsWith('.json') ||
+      url.toLowerCase().endsWith('.lottie')
+
+    if (!isSvg && !isLottie) {
+      return response.badRequest({
+        error: 'Only SVG and Lottie files support direct content editing',
+      })
+    }
+
+    const destPath = path.join(process.cwd(), 'public', url.replace(/^\//, ''))
+
+    // Safety check: ensure it's still within public/uploads
+    if (!destPath.startsWith(path.join(process.cwd(), 'public', 'uploads'))) {
+      return response.badRequest({ error: 'Invalid file path' })
+    }
+
+    await fs.promises.writeFile(destPath, content)
+
+    // Update size in DB
+    const stats = await fs.promises.stat(destPath)
+    await db.from('media_assets').where('id', id).update({
+      size: stats.size,
+      updated_at: new Date(),
+    })
+
+    // Re-publish to storage if needed
+    try {
+      await storageService.publishFile(destPath, url, mime)
+    } catch { }
+
+    return response.ok({ message: 'Content updated', size: stats.size })
   }
 
   /**
@@ -890,7 +956,7 @@ export default class MediaController {
 
     let metadata = row.metadata || {}
     if (metadata && (metadata as any).variants && Array.isArray((metadata as any).variants)) {
-      ;(metadata as any).variants = (metadata as any).variants.map((v: any) => {
+      ; (metadata as any).variants = (metadata as any).variants.map((v: any) => {
         const found = renamedVariants.find((rv) => rv.oldUrl === v.url)
         if (found) {
           return { ...v, url: found.newUrl }
@@ -941,7 +1007,7 @@ export default class MediaController {
         entityId: id,
         metadata: { oldUrl, newUrl },
       })
-    } catch {}
+    } catch { }
     return response.ok({ data: { url: newUrl } })
   }
 
@@ -1017,15 +1083,15 @@ export default class MediaController {
       try {
         const files = await fs.promises.readdir(dir)
         const oldBase = parsedExisting.name
-        
+
         const deleteFile = async (f: string) => {
           try {
             await fs.promises.unlink(path.join(dir, f))
-          } catch {}
+          } catch { }
           try {
             const url = path.posix.join(path.posix.dirname(existingPublicUrl), f)
             await storageService.deleteByUrl(url)
-          } catch {}
+          } catch { }
         }
 
         for (const f of files) {
@@ -1085,6 +1151,12 @@ export default class MediaController {
           break
         case '.svg':
           mime = 'image/svg+xml'
+          break
+        case '.json':
+          mime = 'application/json'
+          break
+        case '.lottie':
+          mime = 'application/x-lottie'
           break
         case '.avif':
           mime = 'image/avif'
@@ -1169,7 +1241,7 @@ export default class MediaController {
         entityType: 'media',
         entityId: id,
       })
-    } catch {}
+    } catch { }
     return response.ok({ message: 'Overridden' })
   }
 
@@ -1309,7 +1381,7 @@ export default class MediaController {
           entityId: id,
           metadata: { optimizedUrl: result.optimizedUrl, optimizedSize: Number(result.size || 0) },
         })
-      } catch {}
+      } catch { }
       return response.ok({
         data: { optimizedUrl: result.optimizedUrl, optimizedSize: Number(result.size || 0) },
       })
@@ -1399,7 +1471,7 @@ export default class MediaController {
         entityId: 'bulk',
         metadata: { count: success },
       })
-    } catch {}
+    } catch { }
     return response.ok({ data: { optimized: success } })
   }
 
@@ -1468,7 +1540,7 @@ export default class MediaController {
         entityId: 'bulk',
         metadata: { count: success },
       })
-    } catch {}
+    } catch { }
     return response.ok({ data: { regenerated: success } })
   }
 
@@ -1526,10 +1598,10 @@ export default class MediaController {
           try {
             const p = path.join(publicRoot, url.replace(/^\//, ''))
             await fs.promises.unlink(p)
-          } catch {}
+          } catch { }
           try {
             await storageService.deleteByUrl(url)
-          } catch {}
+          } catch { }
         }
 
         // Delete original and main optimized files
@@ -1548,7 +1620,7 @@ export default class MediaController {
           // Delete dedicated dark base and its optimized version if present
           await deleteFile(meta?.darkSourceUrl)
           await deleteFile(meta?.darkOptimizedUrl)
-        } catch {}
+        } catch { }
 
         // Fallback pattern-based (variants and -dark base on disk + storage)
         try {
@@ -1565,7 +1637,7 @@ export default class MediaController {
               await deleteFile(path.posix.join(path.posix.dirname(originalUrl), f))
             }
           }
-        } catch {}
+        } catch { }
 
         await db
           .from('media_assets')
@@ -1584,7 +1656,7 @@ export default class MediaController {
         entityId: 'bulk',
         metadata: { count: deleted, skipped, errors },
       })
-    } catch {}
+    } catch { }
     return response.ok({ data: { deleted, skipped, errors } })
   }
 
@@ -1640,7 +1712,7 @@ export default class MediaController {
         entityId: 'bulk',
         metadata: { count: updated, add: addArr, remove: removeArr },
       })
-    } catch {}
+    } catch { }
     return response.ok({ data: { updated } })
   }
 }

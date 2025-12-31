@@ -598,7 +598,7 @@ export default function DatabaseIndex() {
             <button
               onClick={() => setActiveTab('export')}
               className={`px-4 py-2 border-b-2 font-medium text-sm transition-colors ${activeTab === 'export'
-                  ? 'border-standout-medium text-standout-high'
+                  ? 'border-standout-high text-standout-high'
                   : 'border-transparent text-neutral-medium hover:text-neutral-high'
                 }`}
             >
@@ -607,7 +607,7 @@ export default function DatabaseIndex() {
             <button
               onClick={() => setActiveTab('optimize')}
               className={`px-4 py-2 border-b-2 font-medium text-sm transition-colors ${activeTab === 'optimize'
-                  ? 'border-standout-medium text-standout-high'
+                  ? 'border-standout-high text-standout-high'
                   : 'border-transparent text-neutral-medium hover:text-neutral-high'
                 }`}
             >
@@ -616,7 +616,7 @@ export default function DatabaseIndex() {
             <button
               onClick={() => setActiveTab('search-replace')}
               className={`px-4 py-2 border-b-2 font-medium text-sm transition-colors ${activeTab === 'search-replace'
-                  ? 'border-standout-medium text-standout-high'
+                  ? 'border-standout-high text-standout-high'
                   : 'border-transparent text-neutral-medium hover:text-neutral-high'
                 }`}
             >
@@ -638,7 +638,7 @@ export default function DatabaseIndex() {
               {/* Export Section */}
               <div className="bg-backdrop-medium border border-line-low rounded-lg p-6 mb-6">
                 <div className="flex items-center gap-2 mb-4">
-                  <FontAwesomeIcon icon={faDownload} className="text-standout-medium" />
+                  <FontAwesomeIcon icon={faDownload} className="text-standout-high" />
                   <h2 className="text-xl font-semibold text-neutral-dark">Export Database</h2>
                 </div>
 
@@ -683,7 +683,7 @@ export default function DatabaseIndex() {
                         <label
                           key={type}
                           className={`flex items-center gap-2 p-3 rounded border cursor-pointer transition ${isSelected
-                              ? 'border-standout-medium bg-standout-medium/10'
+                              ? 'border-standout-high bg-standout-high/10'
                               : 'border-line-medium hover:border-line-high'
                             }`}
                         >
@@ -753,7 +753,7 @@ export default function DatabaseIndex() {
                   <button
                     onClick={handleExport}
                     disabled={exporting || (!exportAllTables && selectedContentTypes.length === 0)}
-                    className="px-4 py-2 bg-standout-medium text-on-high rounded-lg hover:opacity-90 transition disabled:opacity-50 font-medium"
+                    className="px-4 py-2 bg-standout-high text-on-high rounded-lg hover:opacity-90 transition disabled:opacity-50 font-medium"
                   >
                     {exporting ? (
                       <>
@@ -815,7 +815,7 @@ export default function DatabaseIndex() {
               {/* Import Section */}
               <div className="bg-backdrop-medium border border-line-low rounded-lg p-6">
                 <div className="flex items-center gap-2 mb-4">
-                  <FontAwesomeIcon icon={faUpload} className="text-standout-medium" />
+                  <FontAwesomeIcon icon={faUpload} className="text-standout-high" />
                   <h2 className="text-xl font-semibold text-neutral-dark">Import Database</h2>
                 </div>
 
@@ -900,7 +900,7 @@ export default function DatabaseIndex() {
                         handleValidateFile(file)
                       }
                     }}
-                    className="w-full px-3 py-2 border border-line-medium rounded-lg bg-backdrop-low file:mr-4 file:py-2 file:px-4 file:rounded file:border-0 file:text-sm file:font-semibold file:bg-standout-medium file:text-on-high hover:file:opacity-90"
+                    className="w-full px-3 py-2 border border-line-medium rounded-lg bg-backdrop-low file:mr-4 file:py-2 file:px-4 file:rounded file:border-0 file:text-sm file:font-semibold file:bg-standout-high file:text-on-high hover:file:opacity-90"
                   />
                 </div>
 
@@ -946,7 +946,7 @@ export default function DatabaseIndex() {
                             if (file) handleImport(file)
                           }}
                           disabled={importing}
-                          className="mt-3 px-4 py-2 bg-standout-medium text-on-high rounded-lg hover:opacity-90 transition disabled:opacity-50 font-medium"
+                          className="mt-3 px-4 py-2 bg-standout-high text-on-high rounded-lg hover:opacity-90 transition disabled:opacity-50 font-medium"
                         >
                           {importing ? (
                             <>
@@ -1084,7 +1084,7 @@ export default function DatabaseIndex() {
                         <a
                           key={item.label}
                           href={item.href}
-                          className="block p-3 rounded border border-line-low bg-backdrop-medium hover:border-standout-medium hover:bg-standout-medium/5 transition"
+                          className="block p-3 rounded border border-line-low bg-backdrop-medium hover:border-standout-high hover:bg-standout-high/5 transition"
                           target="_blank"
                           rel="noreferrer"
                         >
@@ -1116,7 +1116,7 @@ export default function DatabaseIndex() {
               {/* Search and Replace Section */}
               <div className="bg-backdrop-medium border border-line-low rounded-lg p-6 mb-6">
                 <div className="flex items-center gap-2 mb-6">
-                  <FontAwesomeIcon icon={faExchangeAlt} className="text-standout-medium" />
+                  <FontAwesomeIcon icon={faExchangeAlt} className="text-standout-high" />
                   <h2 className="text-xl font-semibold text-neutral-dark">Find and Replace</h2>
                 </div>
 
@@ -1134,7 +1134,7 @@ export default function DatabaseIndex() {
                         value={frSearch}
                         onChange={(e) => setFrSearch(e.target.value)}
                         placeholder="Search for..."
-                        className="w-full pl-10 pr-3 py-2 border border-line-medium rounded-lg bg-backdrop-low focus:ring-standout-medium focus:border-standout-medium"
+                        className="w-full pl-10 pr-3 py-2 border border-line-medium rounded-lg bg-backdrop-low focus:ring-standout-high focus:border-standout-high"
                       />
                     </div>
                     <p className="text-xs text-neutral-medium mt-1">
@@ -1155,7 +1155,7 @@ export default function DatabaseIndex() {
                         value={frReplace}
                         onChange={(e) => setFrReplace(e.target.value)}
                         placeholder="Replace with..."
-                        className="w-full pl-10 pr-3 py-2 border border-line-medium rounded-lg bg-backdrop-low focus:ring-standout-medium focus:border-standout-medium"
+                        className="w-full pl-10 pr-3 py-2 border border-line-medium rounded-lg bg-backdrop-low focus:ring-standout-high focus:border-standout-high"
                       />
                     </div>
                     <p className="text-xs text-neutral-medium mt-1">
@@ -1171,7 +1171,7 @@ export default function DatabaseIndex() {
                       id="frCaseSensitive"
                       checked={frCaseSensitive}
                       onChange={(e) => setFrCaseSensitive(e.target.checked)}
-                      className="rounded text-standout-medium focus:ring-standout-medium h-4 w-4"
+                      className="rounded text-standout-high focus:ring-standout-high h-4 w-4"
                     />
                     <label
                       htmlFor="frCaseSensitive"
@@ -1219,7 +1219,7 @@ export default function DatabaseIndex() {
                             <label
                               key={table.name}
                               className={`flex items-center gap-2 px-3 py-2 rounded border cursor-pointer transition ${isSelected
-                                  ? 'border-standout-medium bg-standout-medium/10'
+                                  ? 'border-standout-high bg-standout-high/10'
                                   : 'border-line-low hover:border-line-medium bg-backdrop-low'
                                 }`}
                             >
@@ -1269,7 +1269,7 @@ export default function DatabaseIndex() {
                       type="checkbox"
                       checked={frDryRun}
                       onChange={(e) => setFrDryRun(e.target.checked)}
-                      className="rounded text-standout-medium focus:ring-standout-medium h-5 w-5"
+                      className="rounded text-standout-high focus:ring-standout-high h-5 w-5"
                     />
                     <span className="text-sm font-bold text-yellow-800">Enabled</span>
                   </label>
@@ -1286,7 +1286,7 @@ export default function DatabaseIndex() {
                     }}
                     disabled={frRunning || !frSearch || frSelectedTables.length === 0}
                     className={`px-6 py-2 rounded-lg transition disabled:opacity-50 font-bold ${frDryRun
-                        ? 'bg-standout-medium text-on-high hover:opacity-90'
+                        ? 'bg-standout-high text-on-high hover:opacity-90'
                         : 'bg-rose-600 text-white hover:bg-rose-700'
                       }`}
                   >
@@ -1404,7 +1404,7 @@ export default function DatabaseIndex() {
               <div className="bg-backdrop-medium border border-line-low rounded-lg p-6 mb-6">
                 <div className="flex items-center justify-between mb-4">
                   <div className="flex items-center gap-2">
-                    <FontAwesomeIcon icon={faDatabase} className="text-standout-medium" />
+                    <FontAwesomeIcon icon={faDatabase} className="text-standout-high" />
                     <h2 className="text-xl font-semibold text-neutral-dark">Database Statistics</h2>
                   </div>
                   <button
@@ -1543,7 +1543,7 @@ export default function DatabaseIndex() {
               {/* Optimization Options */}
               <div className="bg-backdrop-medium border border-line-low rounded-lg p-6 mb-6">
                 <div className="flex items-center gap-2 mb-4">
-                  <FontAwesomeIcon icon={faBroom} className="text-standout-medium" />
+                  <FontAwesomeIcon icon={faBroom} className="text-standout-high" />
                   <h2 className="text-xl font-semibold text-neutral-dark">Optimization Options</h2>
                 </div>
 
@@ -1569,7 +1569,7 @@ export default function DatabaseIndex() {
                         post_modules entries. These are safe to delete as they're not being used.
                       </p>
                       {optimizeStats && optimizeStats.orphanedModuleInstances > 0 && (
-                        <p className="text-xs text-standout-medium mt-1">
+                        <p className="text-xs text-standout-high mt-1">
                           {optimizeStats.orphanedModuleInstances} orphaned module
                           {optimizeStats.orphanedModuleInstances !== 1 ? 's' : ''} will be deleted
                         </p>
@@ -1599,7 +1599,7 @@ export default function DatabaseIndex() {
                         posts.
                       </p>
                       {optimizeStats && optimizeStats.unsupportedModuleInstances > 0 && (
-                        <p className="text-xs text-standout-medium mt-1">
+                        <p className="text-xs text-standout-high mt-1">
                           {optimizeStats.unsupportedModuleInstances} unsupported module
                           {optimizeStats.unsupportedModuleInstances !== 1 ? 's' : ''} will be deleted
                         </p>
@@ -1631,7 +1631,7 @@ export default function DatabaseIndex() {
                       {optimizeStats &&
                         (optimizeStats.invalidPostReferences > 0 ||
                           optimizeStats.invalidModuleReferences > 0) && (
-                          <p className="text-xs text-standout-medium mt-1">
+                          <p className="text-xs text-standout-high mt-1">
                             {optimizeStats.invalidPostReferences +
                               optimizeStats.invalidModuleReferences}{' '}
                             invalid reference
@@ -1666,7 +1666,7 @@ export default function DatabaseIndex() {
                         initial page loads temporarily).
                       </p>
                       {optimizeStats && optimizeStats.staleRenderCache > 0 && (
-                        <p className="text-xs text-standout-medium mt-1">
+                        <p className="text-xs text-standout-high mt-1">
                           Render cache for {optimizeStats.staleRenderCache} module
                           {optimizeStats.staleRenderCache !== 1 ? 's' : ''} will be cleared
                         </p>
@@ -1697,7 +1697,7 @@ export default function DatabaseIndex() {
                         Permanently delete all user feedback submissions from the database.
                       </p>
                       {optimizeStats && optimizeStats.feedbackCount > 0 && (
-                        <p className="text-xs text-standout-medium mt-1">
+                        <p className="text-xs text-standout-high mt-1">
                           {optimizeStats.feedbackCount.toLocaleString()} feedback
                           {optimizeStats.feedbackCount !== 1 ? 's' : ''} will be deleted
                         </p>
@@ -1732,7 +1732,7 @@ export default function DatabaseIndex() {
                         database size but removes historical activity data.
                       </p>
                       {optimizeStats && optimizeStats.auditCount > 0 && (
-                        <p className="text-xs text-standout-medium mt-1">
+                        <p className="text-xs text-standout-high mt-1">
                           {optimizeStats.auditCount.toLocaleString()} audit log
                           {optimizeStats.auditCount !== 1 ? 's' : ''} will be deleted
                         </p>
@@ -1768,7 +1768,7 @@ export default function DatabaseIndex() {
                         Permanently delete all AI agent execution transcripts and context records.
                       </p>
                       {optimizeStats && optimizeStats.agentCount > 0 && (
-                        <p className="text-xs text-standout-medium mt-1">
+                        <p className="text-xs text-standout-high mt-1">
                           {optimizeStats.agentCount.toLocaleString()} transcript
                           {optimizeStats.agentCount !== 1 ? 's' : ''} will be deleted
                         </p>
@@ -1807,7 +1807,7 @@ export default function DatabaseIndex() {
                       !optimizeStats ||
                       optimizeStats.totalIssues === 0
                     }
-                    className="px-4 py-2 bg-standout-medium text-on-high rounded-lg hover:opacity-90 transition disabled:opacity-50 disabled:cursor-not-allowed font-medium"
+                    className="px-4 py-2 bg-standout-high text-on-high rounded-lg hover:opacity-90 transition disabled:opacity-50 disabled:cursor-not-allowed font-medium"
                   >
                     {optimizing ? (
                       <>
@@ -1951,7 +1951,7 @@ export default function DatabaseIndex() {
             <AlertDialogAction
               disabled={importing}
               onClick={executeImport}
-              className="bg-standout-medium text-on-high hover:opacity-90"
+              className="bg-standout-high text-on-high hover:opacity-90"
             >
               {importing ? 'Importing...' : 'Import'}
             </AlertDialogAction>
@@ -2019,7 +2019,7 @@ export default function DatabaseIndex() {
             <AlertDialogAction
               disabled={optimizing}
               onClick={handleOptimize}
-              className="bg-standout-medium text-on-high hover:opacity-90"
+              className="bg-standout-high text-on-high hover:opacity-90"
             >
               {optimizing ? 'Optimizing...' : 'Optimize'}
             </AlertDialogAction>

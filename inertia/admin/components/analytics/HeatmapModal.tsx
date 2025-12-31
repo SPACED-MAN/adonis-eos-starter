@@ -128,7 +128,7 @@ export function HeatmapModal({ post, open, onOpenChange }: HeatmapModalProps) {
               <div className="text-center space-y-3">
                 <FontAwesomeIcon
                   icon={faSpinner}
-                  className="animate-spin text-standout-medium text-3xl"
+                  className="animate-spin text-standout-high text-3xl"
                 />
                 <p className="text-sm text-neutral-medium font-medium">
                   Loading preview and interaction data...

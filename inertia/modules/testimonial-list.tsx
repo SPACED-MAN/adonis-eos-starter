@@ -39,7 +39,7 @@ export default function TestimonialList({
   const testimonials = useInlineValue(__moduleId, 'testimonials', initialTestimonials)
   const bg = useInlineValue(__moduleId, 'backgroundColor', backgroundColor) || backgroundColor
 
-  const isDarkBg = bg === 'bg-neutral-high' || bg === 'bg-backdrop-high' || bg === 'bg-standout-medium'
+  const isDarkBg = bg === 'bg-neutral-high' || bg === 'bg-backdrop-high' || bg === 'bg-standout-high'
   const textColor = isDarkBg ? 'text-on-high' : 'text-neutral-high'
   const subtextColor = isDarkBg ? 'text-on-high/80' : 'text-neutral-medium'
 
@@ -110,23 +110,23 @@ export default function TestimonialList({
     <div className="mx-auto max-w-screen-sm mb-8 lg:mb-12">
       {showTitle &&
         (_useReact ? (
-          <motion.h2
-            initial={{ opacity: 0, y: -20 }}
-            whileInView={{ opacity: 1, y: 0 }}
-            viewport={{ once: true }}
-            transition={{ duration: 1.0 }}
-            className={`mb-4 text-3xl md:text-4xl tracking-tight font-extrabold ${textColor}`}
+        <motion.h2
+          initial={{ opacity: 0, y: -20 }}
+          whileInView={{ opacity: 1, y: 0 }}
+          viewport={{ once: true }}
+          transition={{ duration: 1.0 }}
+          className={`mb-4 text-3xl md:text-4xl tracking-tight font-extrabold ${textColor}`}
             {...titleProps}
-          >
-            {title}
-          </motion.h2>
-        ) : (
-          <h2
-            className={`mb-4 text-3xl md:text-4xl tracking-tight font-extrabold ${textColor}`}
+        >
+          {title}
+        </motion.h2>
+      ) : (
+        <h2
+          className={`mb-4 text-3xl md:text-4xl tracking-tight font-extrabold ${textColor}`}
             {...titleProps}
-          >
-            {title}
-          </h2>
+        >
+          {title}
+        </h2>
         ))}
       {showSubtitle &&
         (_useReact ? (
@@ -258,7 +258,7 @@ export default function TestimonialList({
         <div className="text-center">
           <a
             href="#"
-            className={`inline-flex items-center justify-center py-2.5 px-5 text-sm font-medium ${isDarkBg ? 'bg-backdrop-low text-neutral-high' : 'text-neutral-high bg-backdrop-high'} border border-line-low rounded-lg hover:bg-backdrop-medium focus:outline-none focus:ring-2 focus:ring-standout-medium/40`}
+            className={`inline-flex items-center justify-center py-2.5 px-5 text-sm font-medium ${isDarkBg ? 'bg-backdrop-low text-neutral-high' : 'text-neutral-high bg-backdrop-high'} border border-line-low rounded-lg hover:bg-backdrop-medium focus:outline-none focus:ring-2 focus:ring-standout-high/40`}
           >
             Show more…
           </a>

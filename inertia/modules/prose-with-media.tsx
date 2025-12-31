@@ -46,7 +46,7 @@ export default function ProseWithMedia({
   const { value: imageValue, show: showImage, props: imageProps } = useInlineField(__moduleId, 'image', image, { type: 'media', label: 'Image' })
   const bg = useInlineValue(__moduleId, 'backgroundColor', backgroundColor) || backgroundColor
 
-  const isDarkBg = bg === 'bg-neutral-high' || bg === 'bg-backdrop-high' || bg === 'bg-standout-medium'
+  const isDarkBg = bg === 'bg-neutral-high' || bg === 'bg-backdrop-high' || bg === 'bg-standout-high'
   const textColor = isDarkBg ? 'text-on-high' : 'text-neutral-high'
   const subtextColor = isDarkBg ? 'text-on-high/80' : 'text-neutral-medium'
 
@@ -98,7 +98,9 @@ export default function ProseWithMedia({
             alt={(typeof imageValue === 'object' ? imageValue.altText : null) || ''}
             loading="lazy"
             decoding="async"
+            objectFit="contain"
             playMode={typeof imageValue === 'object' ? imageValue.metadata?.playMode : 'autoplay'}
+            className="w-full h-full object-contain"
           />
         )}
       </div>
@@ -165,8 +167,8 @@ export default function ProseWithMedia({
               rel={linkTarget === '_blank' ? 'noopener noreferrer' : undefined}
               className={`inline-flex items-center font-medium rounded-lg text-sm px-5 py-2.5 transition-all active:scale-95 ${isDarkBg
                 ? 'bg-backdrop-low text-neutral-high hover:bg-backdrop-low/90'
-                : 'text-on-high bg-standout-medium hover:bg-standout-medium/90'
-                } focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:ring-standout-medium`}
+                : 'text-on-high bg-standout-high hover:bg-standout-high/90'
+                } focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:ring-standout-high`}
             >
               {primaryCta.label}
               <FontAwesomeIcon icon="arrow-right" className="ml-2 -mr-1 text-sm" />

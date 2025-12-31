@@ -150,7 +150,7 @@ export default function AgentsIndex() {
           <button
             onClick={() => setActiveTab('overview')}
             className={`px-4 py-2 text-sm font-medium transition-colors border-b-2 ${activeTab === 'overview'
-              ? 'border-standout-medium text-standout-high'
+              ? 'border-standout-high text-standout-high'
               : 'border-transparent text-neutral-medium hover:text-neutral-high'
               }`}
           >
@@ -159,7 +159,7 @@ export default function AgentsIndex() {
           <button
             onClick={() => setActiveTab('settings')}
             className={`px-4 py-2 text-sm font-medium transition-colors border-b-2 ${activeTab === 'settings'
-              ? 'border-standout-medium text-standout-high'
+              ? 'border-standout-high text-standout-high'
               : 'border-transparent text-neutral-medium hover:text-neutral-high'
               }`}
           >
@@ -417,8 +417,8 @@ export default function AgentsIndex() {
               <button
                 type="button"
                 className={`px-4 py-2 text-sm font-semibold rounded-lg transition-all ${saving
-                  ? 'bg-standout-medium/50 text-on-high/50 cursor-not-allowed'
-                  : 'bg-standout-medium text-on-high hover:bg-standout-high active:scale-95 shadow-sm hover:shadow-md'
+                  ? 'bg-standout-high/50 text-on-high/50 cursor-not-allowed'
+                  : 'bg-standout-high text-on-high hover:bg-standout-high active:scale-95 shadow-sm hover:shadow-md'
                   }`}
                 disabled={saving}
                 onClick={saveSettings}

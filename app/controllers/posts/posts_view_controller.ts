@@ -195,6 +195,7 @@ export default class PostsViewController extends BasePostsController {
                 globalLabel: mi?.globalLabel || (mi as any)?.global_label || null,
                 adminLabel: currentDraftModule?.adminLabel ?? pm.adminLabel ?? null,
                 name: moduleConfig?.name || mi?.type || 'Unknown Module',
+                label: moduleRegistry.getDynamicLabel(mi?.type, sourceProps),
               }
             })
             .sort((a, b) => {

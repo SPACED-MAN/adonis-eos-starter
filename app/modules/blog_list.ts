@@ -22,11 +22,17 @@ export default class BlogListModule extends BaseModule {
       lockable: true,
       fieldSchema: [
         {
+          slug: 'content_tab',
+          type: 'tab',
+          label: 'Content',
+        },
+        {
           slug: 'title',
           type: 'text',
           required: true,
           description: 'Section heading shown above the blog list',
           translatable: true,
+          isLabel: true,
         },
         {
           slug: 'subtitle',
@@ -45,6 +51,11 @@ export default class BlogListModule extends BaseModule {
             postTypes: ['blog'],
             allowMultiple: true,
           },
+        },
+        {
+          slug: 'design_tab',
+          type: 'tab',
+          label: 'Design',
         },
         backgroundColorField,
       ],

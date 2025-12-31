@@ -238,7 +238,7 @@ export function EditablePostReference({
                       key={p.id}
                       type="button"
                       className={`w-full text-left px-3 py-2 rounded border text-sm ${
-                        isSelected ? 'border-standout-medium bg-standout-medium/5' : 'border-border'
+                        isSelected ? 'border-standout-high bg-standout-high/5' : 'border-border'
                       } hover:bg-backdrop-low`}
                       onClick={() => toggleSelect(p.id)}
                     >
@@ -255,7 +255,7 @@ export function EditablePostReference({
               <div className="flex justify-end">
                 <button
                   type="button"
-                  className="px-3 py-1.5 rounded bg-standout-medium text-on-high text-sm"
+                  className="px-3 py-1.5 rounded bg-standout-high text-on-high text-sm"
                   onClick={() => setOpen(false)}
                 >
                   Close

@@ -20,12 +20,23 @@ export default class ShareModule extends BaseModule {
       lockable: true,
       fieldSchema: [
         {
+          slug: 'content_tab',
+          type: 'tab',
+          label: 'Content',
+        },
+        {
           slug: 'title',
           type: 'text',
           required: false,
           label: 'Label',
           description: 'Optional label beside or above the icons (e.g. "Share:")',
           translatable: true,
+          isLabel: true,
+        },
+        {
+          slug: 'design_tab',
+          type: 'tab',
+          label: 'Design',
         },
         {
           slug: 'alignment',

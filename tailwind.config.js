@@ -20,6 +20,7 @@ export default {
       },
       colors: {
         'standout': {
+          DEFAULT: 'var(--color-standout-high)',
           low: 'var(--color-standout-low)',
           medium: 'var(--color-standout-medium)',
           high: 'var(--color-standout-high)',

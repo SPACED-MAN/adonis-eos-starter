@@ -48,8 +48,9 @@ export function MediaPickerModal({
   const [items, setItems] = useState<MediaItem[]>([])
   const [loading, setLoading] = useState(false)
   const [selectedId, setSelectedId] = useState<string | null>(initialSelectedId || null)
-  const [file, setFile] = useState<File | null>(null)
+  const [files, setFiles] = useState<File[]>([])
   const [uploading, setUploading] = useState(false)
+  const [isDragOver, setIsDragOver] = useState(false)
 
   useEffect(() => {
     setSelectedId(initialSelectedId || null)
@@ -79,36 +80,71 @@ export function MediaPickerModal({
     [items, selectedId]
   )
 
-  async function handleUpload() {
-    if (!file) return
-    const form = new FormData()
-    form.append('file', file)
+  function defaultAltFromFilename(name: string): string {
+    const dot = name.lastIndexOf('.')
+    const base = dot >= 0 ? name.slice(0, dot) : name
+    return base
+      .replace(/[-_]+/g, ' ')
+      .trim()
+      .replace(/\s{2,}/g, ' ')
+  }
+
+  async function handleUpload(filesToUpload: File[] = files) {
+    if (!filesToUpload.length) return
     try {
       setUploading(true)
-      const res = await fetch('/api/media', {
-        method: 'POST',
-        body: form,
-        credentials: 'same-origin',
-        headers: {
-          ...(getXsrf() ? { 'X-XSRF-TOKEN': getXsrf()! } : {}),
-        },
-      })
-      const j = await res.json().catch(() => ({}))
-      if (!res.ok) {
-        throw new Error(j?.error || 'Upload failed')
+      for (const f of filesToUpload) {
+        const form = new FormData()
+        form.append('file', f)
+        form.append('altText', defaultAltFromFilename(f.name))
+        const res = await fetch('/api/media', {
+          method: 'POST',
+          body: form,
+          credentials: 'same-origin',
+          headers: {
+            ...(getXsrf() ? { 'X-XSRF-TOKEN': getXsrf()! } : {}),
+          },
+        })
+        const j = await res.json().catch(() => ({}))
+        if (!res.ok) {
+          throw new Error(j?.error || `Upload failed for ${f.name}`)
+        }
+        const item: MediaItem | undefined = j?.data
+        if (item?.id) {
+          setItems((prev) => [item, ...prev])
+          setSelectedId(item.id)
+        }
       }
-      const item: MediaItem | undefined = j?.data
-      if (item?.id) {
-        // refresh list, select new item, and switch to library tab
-        setItems((prev) => [item, ...prev])
-        setSelectedId(item.id)
-        setTab('library')
-      }
+      setTab('library')
+      setFiles([])
     } catch (e: any) {
       // eslint-disable-next-line no-alert
       alert(e?.message || 'Upload failed')
     } finally {
       setUploading(false)
+    }
+  }
+
+  function onDrop(e: React.DragEvent) {
+    e.preventDefault()
+    e.stopPropagation()
+    setIsDragOver(false)
+    const dt = e.dataTransfer
+    const dropped: File[] = []
+    if (dt?.items) {
+      for (let i = 0; i < dt.items.length; i++) {
+        if (dt.items[i].kind === 'file') {
+          const f = dt.items[i].getAsFile()
+          if (f) dropped.push(f)
+        }
+      }
+    } else if (dt?.files) {
+      for (let i = 0; i < dt.files.length; i++) {
+        dropped.push(dt.files[i])
+      }
+    }
+    if (dropped.length > 0) {
+      handleUpload(dropped)
     }
   }
 
@@ -154,7 +190,7 @@ export function MediaPickerModal({
                       onSelect(m)
                       onOpenChange(false)
                     }}
-                    className={`group border rounded overflow-hidden ${selectedId === m.id ? 'border-standout-medium' : 'border-line-low'} bg-backdrop-low`}
+                    className={`group border rounded overflow-hidden ${selectedId === m.id ? 'border-standout-high' : 'border-line-low'} bg-backdrop-low`}
                     title={getMediaLabel(m)}
                   >
                     <div className="aspect-square flex items-center justify-center bg-backdrop-low dark:bg-backdrop-medium relative overflow-hidden">
@@ -185,25 +221,53 @@ export function MediaPickerModal({
           )}
 
           {allowUpload && tab === 'upload' && (
-            <div className="space-y-3">
-              <div className="text-sm text-neutral-medium">Choose a file to upload</div>
-              <Input
-                type="file"
-                accept="image/*,video/*"
-                onChange={(e) => {
-                  const f = e.currentTarget.files?.[0] || null
-                  setFile(f)
-                }}
-              />
-              <div>
-                <button
-                  type="button"
-                  className={`px-3 py-2 text-sm rounded ${uploading || !file ? 'opacity-60 cursor-not-allowed' : 'bg-standout-medium text-on-high'}`}
-                  disabled={uploading || !file}
-                  onClick={handleUpload}
-                >
-                  {uploading ? 'Uploading…' : 'Upload'}
-                </button>
+            <div
+              className={`space-y-3 p-8 border-2 border-dashed rounded-lg transition-colors ${
+                isDragOver ? 'border-standout-high bg-backdrop-medium/20' : 'border-line-low'
+              }`}
+              onDragOver={(e) => {
+                e.preventDefault()
+                setIsDragOver(true)
+              }}
+              onDragLeave={() => setIsDragOver(false)}
+              onDrop={onDrop}
+            >
+              <div className="text-center">
+                <div className="text-sm text-neutral-medium mb-4">
+                  {uploading ? 'Uploading…' : 'Drag & drop files here or click to browse'}
+                </div>
+                <div className="flex justify-center">
+                  <Input
+                    type="file"
+                    accept="image/*,video/*,application/json,.json,.lottie"
+                    multiple
+                    className="max-w-xs"
+                    onChange={(e) => {
+                      const f = Array.from(e.currentTarget.files || [])
+                      setFiles(f)
+                    }}
+                    disabled={uploading}
+                  />
+                </div>
+                {files.length > 0 && (
+                  <div className="mt-4 text-xs text-neutral-medium">
+                    {files.length} file(s) selected
+                  </div>
+                )}
+                <div className="mt-6">
+                  <button
+                    type="button"
+                    className={`px-6 py-2 text-sm font-medium rounded-md shadow-sm transition-all ${
+                      uploading || files.length === 0
+                        ? 'bg-backdrop-medium text-neutral-medium cursor-not-allowed opacity-60'
+                        : 'bg-standout-high text-on-high hover:bg-standout-high active:scale-95'
+                    }`}
+                    disabled={uploading || files.length === 0}
+                    onClick={() => handleUpload()}
+                  >
+                    {uploading ? 'Uploading…' : 'Start Upload'}
+                  </button>
+                </div>
               </div>
             </div>
           )}

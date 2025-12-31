@@ -278,9 +278,9 @@ export function SiteAdminBar({ initialProps }: { initialProps?: any }) {
           el.scrollIntoView({ behavior: 'smooth', block: 'center' })
         }
 
-        el.classList.add('ring-2', 'ring-standout-medium', 'ring-offset-2')
+        el.classList.add('ring-2', 'ring-standout-high', 'ring-offset-2')
         setTimeout(() => {
-          el.classList.remove('ring-2', 'ring-standout-medium', 'ring-offset-2')
+          el.classList.remove('ring-2', 'ring-standout-high', 'ring-offset-2')
         }, 3000)
       } else if (attempts < 5) {
         attempts++
@@ -348,7 +348,7 @@ export function SiteAdminBar({ initialProps }: { initialProps?: any }) {
                   <button
                     type="button"
                     className={`px-3 py-2 text-[10px] font-bold transition-all ${v.id === post?.id
-                      ? 'bg-standout-medium text-on-high shadow-inner'
+                      ? 'bg-standout-high text-on-high shadow-inner'
                       : 'text-neutral-high hover:bg-backdrop-medium'
                       } ${v.id !== inline.abVariations[inline.abVariations.length - 1].id ? 'border-r border-line-medium' : ''}`}
                     onClick={() => {
@@ -374,7 +374,7 @@ export function SiteAdminBar({ initialProps }: { initialProps?: any }) {
             {inline.availableModes.hasSource && (
               <button
                 type="button"
-                className={`px-3 py-2 text-xs font-medium border-r border-line-medium last:border-r-0 ${inline.mode === 'source' ? 'bg-standout-medium text-on-high' : 'text-neutral-high hover:bg-backdrop-medium'}`}
+                className={`px-3 py-2 text-xs font-medium border-r border-line-medium last:border-r-0 ${inline.mode === 'source' ? 'bg-standout-high text-on-high' : 'text-neutral-high hover:bg-backdrop-medium'}`}
                 onClick={() => inline.setMode('source')}
               >
                 Source
@@ -383,7 +383,7 @@ export function SiteAdminBar({ initialProps }: { initialProps?: any }) {
             {inline.availableModes.hasReview && (
               <button
                 type="button"
-                className={`px-3 py-2 text-xs font-medium border-r border-line-medium last:border-r-0 ${inline.mode === 'review' ? 'bg-standout-medium text-on-high' : 'text-neutral-high hover:bg-backdrop-medium'}`}
+                className={`px-3 py-2 text-xs font-medium border-r border-line-medium last:border-r-0 ${inline.mode === 'review' ? 'bg-standout-high text-on-high' : 'text-neutral-high hover:bg-backdrop-medium'}`}
                 onClick={() => inline.setMode('review')}
               >
                 Review
@@ -392,7 +392,7 @@ export function SiteAdminBar({ initialProps }: { initialProps?: any }) {
             {inline.availableModes.hasAiReview && (
               <button
                 type="button"
-                className={`px-3 py-2 text-xs font-medium border-r border-line-medium last:border-r-0 ${inline.mode === 'ai-review' ? 'bg-standout-medium text-on-high' : 'text-neutral-high hover:bg-backdrop-medium'}`}
+                className={`px-3 py-2 text-xs font-medium border-r border-line-medium last:border-r-0 ${inline.mode === 'ai-review' ? 'bg-standout-high text-on-high' : 'text-neutral-high hover:bg-backdrop-medium'}`}
                 onClick={() => inline.setMode('ai-review')}
               >
                 AI Review
@@ -405,7 +405,7 @@ export function SiteAdminBar({ initialProps }: { initialProps?: any }) {
               <TooltipTrigger asChild>
                 <button
                   type="button"
-                  className={`px-3 py-2 text-xs font-medium border-r border-line-medium last:border-r-0 ${inline.enabled ? 'bg-standout-medium text-on-high' : 'text-neutral-high hover:bg-backdrop-medium'}`}
+                  className={`px-3 py-2 text-xs font-medium border-r border-line-medium last:border-r-0 ${inline.enabled ? 'bg-standout-high text-on-high' : 'text-neutral-high hover:bg-backdrop-medium'}`}
                   onClick={inline.toggle}
                   aria-label={inline.enabled ? 'Disable Inline Editing' : 'Enable Inline Editing'}
                 >
@@ -421,7 +421,7 @@ export function SiteAdminBar({ initialProps }: { initialProps?: any }) {
                 <TooltipTrigger asChild>
                   <button
                     type="button"
-                    className={`px-3 py-2 text-xs font-medium border-r border-line-medium ${inline.showDiffs ? 'bg-standout-medium text-on-high' : 'text-neutral-high hover:bg-backdrop-medium'}`}
+                    className={`px-3 py-2 text-xs font-medium border-r border-line-medium ${inline.showDiffs ? 'bg-standout-high text-on-high' : 'text-neutral-high hover:bg-backdrop-medium'}`}
                     onClick={() => inline.toggleShowDiffs()}
                     aria-label={`Highlight changes (${inline.mode === 'review' ? 'vs Source' : 'vs Review'})`}
                   >
@@ -438,7 +438,7 @@ export function SiteAdminBar({ initialProps }: { initialProps?: any }) {
                 <button
                   aria-label="Outline"
                   onClick={() => setOutlineOpen(true)}
-                  className={`px-3 py-2 text-xs font-medium border-r border-line-medium ${outlineOpen ? 'bg-standout-medium text-on-high' : 'text-neutral-high hover:bg-backdrop-medium'}`}
+                  className={`px-3 py-2 text-xs font-medium border-r border-line-medium ${outlineOpen ? 'bg-standout-high text-on-high' : 'text-neutral-high hover:bg-backdrop-medium'}`}
                 >
                   <FontAwesomeIcon icon={faListUl} />
                 </button>
@@ -452,7 +452,7 @@ export function SiteAdminBar({ initialProps }: { initialProps?: any }) {
                 <button
                   aria-label="Feedback"
                   onClick={() => setFeedbackOpen(true)}
-                  className={`px-3 py-2 text-xs font-medium border-r border-line-medium ${feedbackOpen ? 'bg-standout-medium text-on-high' : 'text-neutral-high hover:bg-backdrop-medium'}`}
+                  className={`px-3 py-2 text-xs font-medium border-r border-line-medium ${feedbackOpen ? 'bg-standout-high text-on-high' : 'text-neutral-high hover:bg-backdrop-medium'}`}
                 >
                   <FontAwesomeIcon icon={faMessage} />
                 </button>
@@ -474,7 +474,7 @@ export function SiteAdminBar({ initialProps }: { initialProps?: any }) {
           <div className="flex items-center gap-2">
             <button
               type="button"
-              className="px-3 py-2 text-xs font-medium rounded-md border border-line-medium bg-standout-medium text-on-high"
+              className="px-3 py-2 text-xs font-medium rounded-md border border-line-medium bg-standout-high text-on-high"
               onClick={() => inline.saveAll()}
             >
               Save
@@ -562,7 +562,7 @@ export function SiteAdminBar({ initialProps }: { initialProps?: any }) {
             }}
             className="w-full text-left px-4 py-2 text-[11px] font-bold hover:bg-backdrop-medium text-neutral-high flex items-center gap-2 uppercase tracking-wider"
           >
-            <FontAwesomeIcon icon={faMessage} className="text-standout-medium" />
+            <FontAwesomeIcon icon={faMessage} className="text-standout-high" />
             Add Feedback here
           </button>
         </div>
@@ -606,9 +606,9 @@ export function SiteAdminBar({ initialProps }: { initialProps?: any }) {
                 const el = document.querySelector(ctx.selector)
                 if (el) {
                   el.scrollIntoView({ behavior: 'smooth', block: 'center' })
-                  el.classList.add('ring-2', 'ring-standout-medium', 'ring-offset-2')
+                  el.classList.add('ring-2', 'ring-standout-high', 'ring-offset-2')
                   setTimeout(() => {
-                    el.classList.remove('ring-2', 'ring-standout-medium', 'ring-offset-2')
+                    el.classList.remove('ring-2', 'ring-standout-high', 'ring-offset-2')
                   }, 3000)
                 }
               }

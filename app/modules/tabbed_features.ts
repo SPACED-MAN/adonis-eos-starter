@@ -26,11 +26,17 @@ export default class TabbedFeaturesModule extends BaseModule {
       },
       fieldSchema: [
         {
+          slug: 'content_tab',
+          type: 'tab',
+          label: 'Content',
+        },
+        {
           slug: 'title',
           type: 'text',
           label: 'Heading',
           required: false,
           translatable: true,
+          isLabel: true,
         },
         {
           slug: 'subtitle',
@@ -55,6 +61,7 @@ export default class TabbedFeaturesModule extends BaseModule {
                 label: 'Tab Label',
                 required: true,
                 translatable: true,
+                isLabel: true,
               },
               {
                 slug: 'prose',
@@ -70,6 +77,11 @@ export default class TabbedFeaturesModule extends BaseModule {
               },
             ],
           },
+        },
+        {
+          slug: 'design_tab',
+          type: 'tab',
+          label: 'Design',
         },
         {
           slug: 'layout',

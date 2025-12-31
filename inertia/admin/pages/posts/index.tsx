@@ -742,7 +742,7 @@ export default function PostsIndexPage({}: PostsIndexProps) {
               {canCreatePost && (
                 <button
                   onClick={() => setIsCreateOpen(true)}
-                  className="px-3 py-2 text-sm border border-line-low rounded bg-standout-medium text-on-high cursor-pointer"
+                  className="px-3 py-2 text-sm border border-line-low rounded bg-standout-high text-on-high cursor-pointer"
                 >
                   Create New
                 </button>
@@ -1467,7 +1467,7 @@ export default function PostsIndexPage({}: PostsIndexProps) {
 
       {/* Create New Modal */}
       {isCreateOpen && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center">
+        <div className="fixed inset-0 z-[60] flex items-center justify-center">
           <div
             className="absolute inset-0 bg-black/50"
             onClick={() => {

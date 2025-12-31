@@ -45,12 +45,18 @@ export default class CalloutModule extends BaseModule {
       },
       fieldSchema: [
         {
+          slug: 'content_tab',
+          type: 'tab',
+          label: 'Content',
+        },
+        {
           slug: 'title',
           type: 'text',
           label: 'Heading',
           required: true,
           description: 'The main attention-grabbing headline',
           translatable: true,
+          isLabel: true,
         },
         {
           slug: 'prose',
@@ -84,6 +90,7 @@ export default class CalloutModule extends BaseModule {
                 label: 'Label',
                 required: true,
                 translatable: true,
+                isLabel: true,
               },
               {
                 slug: 'url',
@@ -103,6 +110,11 @@ export default class CalloutModule extends BaseModule {
               },
             ],
           },
+        },
+        {
+          slug: 'design_tab',
+          type: 'tab',
+          label: 'Design',
         },
         {
           slug: 'variant',

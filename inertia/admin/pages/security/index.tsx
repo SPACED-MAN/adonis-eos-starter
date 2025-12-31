@@ -203,7 +203,7 @@ export default function SecurityIndex() {
             <button
               onClick={() => setActiveTab('posture')}
               className={`px-4 py-2 border-b-2 font-medium text-sm transition-colors ${activeTab === 'posture'
-                ? 'border-standout-medium text-standout-high'
+                ? 'border-standout-high text-standout-high'
                 : 'border-transparent text-neutral-medium hover:text-neutral-high'
                 }`}
             >
@@ -212,7 +212,7 @@ export default function SecurityIndex() {
             <button
               onClick={() => setActiveTab('sessions')}
               className={`px-4 py-2 border-b-2 font-medium text-sm transition-colors ${activeTab === 'sessions'
-                ? 'border-standout-medium text-standout-high'
+                ? 'border-standout-high text-standout-high'
                 : 'border-transparent text-neutral-medium hover:text-neutral-high'
                 } ${features.activeSessions === false ? 'opacity-50 grayscale cursor-not-allowed' : ''}`}
               title={features.activeSessions === false ? 'This feature is disabled' : ''}
@@ -226,7 +226,7 @@ export default function SecurityIndex() {
             <button
               onClick={() => setActiveTab('audit')}
               className={`px-4 py-2 border-b-2 font-medium text-sm transition-colors ${activeTab === 'audit'
-                ? 'border-standout-medium text-standout-high'
+                ? 'border-standout-high text-standout-high'
                 : 'border-transparent text-neutral-medium hover:text-neutral-high'
                 } ${features.auditLogs === false ? 'opacity-50 grayscale cursor-not-allowed' : ''}`}
               title={features.auditLogs === false ? 'This feature is disabled' : ''}
@@ -536,7 +536,7 @@ export default function SecurityIndex() {
                         <TableCell className="text-right">
                           {log.metadata && Object.keys(log.metadata).length > 0 ? (
                             <details className="inline-block text-left">
-                              <summary className="cursor-pointer text-xs text-standout-medium hover:underline list-none">
+                              <summary className="cursor-pointer text-xs text-standout-high hover:underline list-none">
                                 View JSON
                               </summary>
                               <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-black/40 backdrop-blur-sm pointer-events-none">
@@ -590,7 +590,7 @@ export default function SecurityIndex() {
                     Previous
                   </button>
                   <div className="flex items-center gap-1">
-                    <span className="px-3 py-1.5 text-sm font-medium bg-standout-medium text-on-high rounded">
+                    <span className="px-3 py-1.5 text-sm font-medium bg-standout-high text-on-high rounded">
                       {page}
                     </span>
                     <span className="text-sm text-neutral-low px-2">

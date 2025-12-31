@@ -374,19 +374,19 @@ export function AgentModal({
                             {item.response.summary ||
                               (item.response.rawResponse
                                 ? (() => {
-                                    try {
-                                      const jsonMatch = item.response.rawResponse?.match(
-                                        /```(?:json)?\s*(\{[\s\S]*\})\s*```/
-                                      )
-                                      const jsonStr = jsonMatch
-                                        ? jsonMatch[1]
-                                        : item.response.rawResponse
-                                      const parsed = JSON.parse(jsonStr)
-                                      return parsed.summary || 'Changes applied.'
-                                    } catch {
-                                      return item.response.rawResponse || 'Changes applied.'
-                                    }
-                                  })()
+                                  try {
+                                    const jsonMatch = item.response.rawResponse?.match(
+                                      /```(?:json)?\s*(\{[\s\S]*\})\s*```/
+                                    )
+                                    const jsonStr = jsonMatch
+                                      ? jsonMatch[1]
+                                      : item.response.rawResponse
+                                    const parsed = JSON.parse(jsonStr)
+                                    return parsed.summary || 'Changes applied.'
+                                  } catch {
+                                    return item.response.rawResponse || 'Changes applied.'
+                                  }
+                                })()
                                 : 'Changes applied.')}
                           </div>
                           {item.response.applied && item.response.applied.length > 0 && (
@@ -458,7 +458,7 @@ export function AgentModal({
             {agentResponse.summary && (
               <div className="space-y-1">
                 <div className="text-xs text-neutral-medium">AI Response:</div>
-                <div className="bg-standout-light p-4 rounded-lg border border-standout-medium text-sm whitespace-pre-wrap wrap-break-word">
+                <div className="bg-standout-low p-4 rounded-lg border border-standout-high text-sm whitespace-pre-wrap wrap-break-word">
                   {agentResponse.summary}
                 </div>
               </div>
@@ -466,7 +466,7 @@ export function AgentModal({
             {!agentResponse.summary && agentResponse.rawResponse && (
               <div className="space-y-1">
                 <div className="text-xs text-neutral-medium">AI Response:</div>
-                <div className="bg-standout-light p-4 rounded-lg border border-standout-medium text-sm whitespace-pre-wrap wrap-break-word">
+                <div className="bg-standout-low p-4 rounded-lg border border-standout-high text-sm whitespace-pre-wrap wrap-break-word">
                   {(() => {
                     const raw = agentResponse.rawResponse
                     try {

@@ -45,7 +45,7 @@ export default function HeroWithMedia({
   const { value: subtitleValue, show: showSubtitle, props: subtitleProps } = useInlineField(__moduleId, 'subtitle', subtitle, { label: 'Subtitle' })
   const bg = useInlineValue(__moduleId, 'backgroundColor', backgroundColor) || backgroundColor
 
-  const isDarkBg = bg === 'bg-neutral-high' || bg === 'bg-backdrop-high' || bg === 'bg-standout-medium'
+  const isDarkBg = bg === 'bg-neutral-high' || bg === 'bg-backdrop-high' || bg === 'bg-standout-high'
   const textColor = isDarkBg ? 'text-on-high' : 'text-neutral-high'
   const subtextColor = isDarkBg ? 'text-on-high/80' : 'text-neutral-medium'
 
@@ -306,7 +306,7 @@ function ButtonComponent({
   const styleMap = {
     primary: isDarkBg
       ? 'bg-backdrop-low text-neutral-high hover:bg-backdrop-low/90'
-      : 'bg-standout-medium text-on-high',
+      : 'bg-standout-high text-on-high',
     secondary: isDarkBg
       ? 'bg-on-high/10 text-on-high hover:bg-on-high/20'
       : 'bg-backdrop-medium hover:bg-backdrop-high text-neutral-high',

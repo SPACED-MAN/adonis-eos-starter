@@ -346,6 +346,7 @@ router
     router.patch('/media/:id', [MediaController, 'update']).use(middleware.admin())
     router.delete('/media/:id', [MediaController, 'destroy']).use(middleware.admin())
     router.post('/media/:id/variants', [MediaController, 'variants']).use(middleware.admin())
+    router.post('/media/:id/content', [MediaController, 'updateContent']).use(middleware.admin())
     router.patch('/media/:id/rename', [MediaController, 'rename']).use(middleware.admin())
     // Site Settings
     router.patch('/site-settings', [SiteSettingsController, 'update']).use(middleware.admin())

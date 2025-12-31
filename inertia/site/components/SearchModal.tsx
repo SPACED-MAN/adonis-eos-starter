@@ -123,15 +123,15 @@ export function SearchModal({
 
   const triggerClasses =
     variant === 'icon'
-      ? 'flex h-10 w-10 items-center justify-center text-neutral-high hover:bg-backdrop-medium hover:text-standout-medium transition-all group outline-none'
+      ? 'flex h-10 w-10 items-center justify-center text-neutral-high hover:bg-backdrop-medium hover:text-standout-high transition-all group outline-none'
       : variant === 'navbar'
-        ? 'w-64 flex items-center gap-3 px-3 py-2 text-sm text-neutral-high bg-backdrop-low border border-line-medium rounded-md hover:border-standout-medium/50 hover:bg-backdrop-medium transition-all group shadow-sm'
-        : 'w-full flex items-center gap-3 px-3 py-2.5 mb-6 text-sm text-neutral-high bg-backdrop-low border border-line-medium rounded-lg hover:border-standout-medium/50 hover:bg-backdrop-medium transition-all group shadow-sm'
+        ? 'w-64 flex items-center gap-3 px-3 py-2 text-sm text-neutral-high bg-backdrop-low border border-line-medium rounded-md hover:border-standout-high/50 hover:bg-backdrop-medium transition-all group shadow-sm'
+        : 'w-full flex items-center gap-3 px-3 py-2.5 mb-6 text-sm text-neutral-high bg-backdrop-low border border-line-medium rounded-lg hover:border-standout-high/50 hover:bg-backdrop-medium transition-all group shadow-sm'
 
   if (!mounted) {
     return (
       <button className={triggerClasses}>
-        <FontAwesomeIcon icon={faSearch} size="sm" className="group-hover:text-standout-medium" />
+        <FontAwesomeIcon icon={faSearch} size="sm" className="group-hover:text-standout-high" />
         {variant !== 'icon' && (
           <>
             <span className="flex-1 text-left">{placeholder}</span>
@@ -147,7 +147,7 @@ export function SearchModal({
   return (
     <>
       <button onClick={() => setOpen(true)} className={triggerClasses}>
-        <FontAwesomeIcon icon={faSearch} size="sm" className="group-hover:text-standout-medium" />
+        <FontAwesomeIcon icon={faSearch} size="sm" className="group-hover:text-standout-high" />
         {variant !== 'icon' && (
           <>
             <span className="flex-1 text-left">{placeholder}</span>
@@ -176,7 +176,7 @@ export function SearchModal({
                 placeholder={placeholder}
                 className="flex-1 bg-transparent border-none outline-none text-neutral-high placeholder:text-neutral-low/60 text-base"
               />
-              {loading && <FontAwesomeIcon icon={faSpinner} spin className="text-standout-medium" />}
+              {loading && <FontAwesomeIcon icon={faSpinner} spin className="text-standout-high" />}
             </div>
           </DialogHeader>
 
@@ -190,13 +190,13 @@ export function SearchModal({
                     onClick={() => setOpen(false)}
                     onMouseEnter={() => setActiveIndex(idx)}
                     className={`flex items-start gap-4 p-3 rounded-lg transition-colors ${idx === activeIndex
-                      ? 'bg-standout-medium/10 border border-standout-medium/20'
+                      ? 'bg-standout-high/10 border border-standout-high/20'
                       : 'border border-transparent hover:bg-backdrop-medium'
                       }`}
                   >
                     <div
                       className={`mt-1 flex h-8 w-8 shrink-0 items-center justify-center rounded-md ${idx === activeIndex
-                        ? 'bg-standout-medium text-on-high'
+                        ? 'bg-standout-high text-on-high'
                         : 'bg-backdrop-high text-neutral-medium'
                         }`}
                     >
@@ -204,7 +204,7 @@ export function SearchModal({
                     </div>
                     <div className="flex-1 min-w-0">
                       <div
-                        className={`font-medium truncate ${idx === activeIndex ? 'text-standout-medium' : 'text-neutral-high'
+                        className={`font-medium truncate ${idx === activeIndex ? 'text-standout-high' : 'text-neutral-high'
                           }`}
                       >
                         {result.title}
@@ -220,7 +220,7 @@ export function SearchModal({
                       <FontAwesomeIcon
                         icon={faArrowRight}
                         size="xs"
-                        className="text-standout-medium size-3 mt-2"
+                        className="text-standout-high size-3 mt-2"
                       />
                     )}
                   </Link>

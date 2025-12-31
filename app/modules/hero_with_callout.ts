@@ -20,11 +20,17 @@ export default class HeroWithCalloutModule extends BaseModule {
       lockable: true,
       fieldSchema: [
         {
+          slug: 'content_tab',
+          type: 'tab',
+          label: 'Content',
+        },
+        {
           slug: 'title',
           type: 'text',
           required: true,
           description: 'Main heading text',
           translatable: true,
+          isLabel: true,
         },
         {
           slug: 'subtitle',
@@ -41,6 +47,7 @@ export default class HeroWithCalloutModule extends BaseModule {
           item: {
             slug: 'item',
             type: 'object',
+            label: 'Button',
             fields: [
               {
                 slug: 'label',
@@ -48,6 +55,7 @@ export default class HeroWithCalloutModule extends BaseModule {
                 required: true,
                 translatable: true,
                 description: 'Button text',
+                isLabel: true,
               },
               {
                 slug: 'url',
@@ -57,6 +65,11 @@ export default class HeroWithCalloutModule extends BaseModule {
               },
             ],
           },
+        },
+        {
+          slug: 'design_tab',
+          type: 'tab',
+          label: 'Design',
         },
         backgroundColorField,
       ],

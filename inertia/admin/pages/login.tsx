@@ -70,7 +70,7 @@ export default function Login() {
 
         <button
           type="submit"
-          className="w-full bg-standout-medium text-on-high rounded px-3 py-2 hover:bg-standout-medium disabled:opacity-50 transition-colors"
+          className="w-full bg-standout-high text-on-high rounded px-3 py-2 hover:bg-standout-high disabled:opacity-50 transition-colors"
           disabled={form.processing}
         >
           {form.processing ? 'Signing in...' : 'Sign in'}

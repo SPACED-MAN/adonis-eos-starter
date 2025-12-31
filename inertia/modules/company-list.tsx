@@ -40,7 +40,7 @@ export default function CompanyList({
   const companies = useInlineValue(__moduleId, 'companies', initialCompanies)
   const bg = useInlineValue(__moduleId, 'backgroundColor', initialBackground) || initialBackground
 
-  const isDarkBg = bg === 'bg-neutral-high' || bg === 'bg-backdrop-high' || bg === 'bg-standout-medium'
+  const isDarkBg = bg === 'bg-neutral-high' || bg === 'bg-backdrop-high' || bg === 'bg-standout-high'
   const textColor = isDarkBg ? 'text-on-high' : 'text-neutral-high'
   const subtextColor = isDarkBg ? 'text-on-high/80' : 'text-neutral-medium'
 
@@ -113,23 +113,23 @@ export default function CompanyList({
     <>
       {showTitle &&
         (_useReact ? (
-          <motion.h2
-            initial={{ opacity: 0, y: -20 }}
-            whileInView={{ opacity: 1, y: 0 }}
-            viewport={{ once: true }}
-            transition={{ duration: 0.8 }}
-            className={`mb-8 lg:mb-16 text-3xl md:text-4xl font-extrabold tracking-tight leading-tight text-center ${textColor}`}
+        <motion.h2
+          initial={{ opacity: 0, y: -20 }}
+          whileInView={{ opacity: 1, y: 0 }}
+          viewport={{ once: true }}
+          transition={{ duration: 0.8 }}
+          className={`mb-8 lg:mb-16 text-3xl md:text-4xl font-extrabold tracking-tight leading-tight text-center ${textColor}`}
             {...titleProps}
-          >
-            {title}
-          </motion.h2>
-        ) : (
-          <h2
-            className={`mb-8 lg:mb-16 text-3xl md:text-4xl font-extrabold tracking-tight leading-tight text-center ${textColor}`}
+        >
+          {title}
+        </motion.h2>
+      ) : (
+        <h2
+          className={`mb-8 lg:mb-16 text-3xl md:text-4xl font-extrabold tracking-tight leading-tight text-center ${textColor}`}
             {...titleProps}
-          >
-            {title}
-          </h2>
+        >
+          {title}
+        </h2>
         ))}
       {showSubtitle &&
         (_useReact ? (

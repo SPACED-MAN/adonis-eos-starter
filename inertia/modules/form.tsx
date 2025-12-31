@@ -58,7 +58,7 @@ export default function FormModule({
   const [successTextOverride, setSuccessTextOverride] = useState<string | null>(null)
 
   const bg = useInlineValue(__moduleId, 'backgroundColor', backgroundColor) || backgroundColor
-  const isDarkBg = bg === 'bg-neutral-high' || bg === 'bg-backdrop-high' || bg === 'bg-standout-medium'
+  const isDarkBg = bg === 'bg-neutral-high' || bg === 'bg-backdrop-high' || bg === 'bg-standout-high'
   const textColor = isDarkBg ? 'text-on-high' : 'text-neutral-high'
   const subtextColor = isDarkBg ? 'text-on-high/80' : 'text-neutral-medium'
   const inputBg = isDarkBg
@@ -223,7 +223,7 @@ export default function FormModule({
               return (
                 <textarea
                   id={fieldId}
-                  className={`block w-full rounded-md border ${inputBg} px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-standout-medium/40 transition-all`}
+                  className={`block w-full rounded-md border ${inputBg} px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-standout-high/40 transition-all`}
                   rows={4}
                   placeholder={field.placeholder}
                   value={rawValue ?? ''}
@@ -239,7 +239,7 @@ export default function FormModule({
                   <input
                     id={fieldId}
                     type="checkbox"
-                    className={`h-4 w-4 rounded border-line-low ${isDarkBg ? 'bg-on-high/10 text-on-high' : 'bg-backdrop-input text-standout-medium'} focus:ring-standout-medium/50`}
+                    className={`h-4 w-4 rounded border-line-low ${isDarkBg ? 'bg-on-high/10 text-on-high' : 'bg-backdrop-input text-standout-high'} focus:ring-standout-high/50`}
                     checked={Boolean(rawValue)}
                     onChange={(e) => handleChange(field.slug, e.target.checked)}
                   />
@@ -254,7 +254,7 @@ export default function FormModule({
               return (
                 <select
                   id={fieldId}
-                  className={`block w-full rounded-md border ${inputBg} px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-standout-medium/40 transition-all`}
+                  className={`block w-full rounded-md border ${inputBg} px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-standout-high/40 transition-all`}
                   value={rawValue ?? ''}
                   onChange={(e) => handleChange(field.slug, e.target.value)}
                   required={field.required}
@@ -282,7 +282,7 @@ export default function FormModule({
                         <input
                           id={optId}
                           type="checkbox"
-                          className={`h-4 w-4 rounded border-line-low ${isDarkBg ? 'bg-on-high/10 text-on-high' : 'bg-backdrop-input text-standout-medium'} focus:ring-standout-medium/50`}
+                          className={`h-4 w-4 rounded border-line-low ${isDarkBg ? 'bg-on-high/10 text-on-high' : 'bg-backdrop-input text-standout-high'} focus:ring-standout-high/50`}
                           checked={isChecked}
                           onChange={(e) =>
                             handleMultiselectChange(field.slug, String(opt.value), e.target.checked)
@@ -313,7 +313,7 @@ export default function FormModule({
                         ? 'text'
                         : field.type
                   }
-                  className={`block w-full rounded-md border ${inputBg} px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-standout-medium/40 transition-all`}
+                  className={`block w-full rounded-md border ${inputBg} px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-standout-high/40 transition-all`}
                   placeholder={field.placeholder}
                   value={rawValue ?? ''}
                   onChange={(e) => handleChange(field.slug, e.target.value)}
@@ -396,7 +396,7 @@ export default function FormModule({
             <button
               type="submit"
               disabled={submitting}
-              className={`inline-flex items-center px-5 py-2.5 rounded-md ${isDarkBg ? 'bg-backdrop-low text-neutral-high' : 'bg-standout-medium text-on-high'} text-sm font-medium hover:bg-standout-medium/90 disabled:opacity-60 focus:outline-none focus:ring-2 focus:ring-standout-medium/40 transition-all active:scale-95`}
+              className={`inline-flex items-center px-5 py-2.5 rounded-md ${isDarkBg ? 'bg-backdrop-low text-neutral-high' : 'bg-standout-high text-on-high'} text-sm font-medium hover:bg-standout-high/90 disabled:opacity-60 focus:outline-none focus:ring-2 focus:ring-standout-high/40 transition-all active:scale-95`}
             >
               {submitting ? 'Sending...' : 'Submit'}
             </button>
@@ -409,7 +409,7 @@ export default function FormModule({
             <button
               type="submit"
               disabled={submitting}
-              className={`inline-flex items-center px-5 py-2.5 rounded-md ${isDarkBg ? 'bg-backdrop-low text-neutral-high' : 'bg-standout-medium text-on-high'} text-sm font-medium hover:bg-standout-medium/90 disabled:opacity-60 focus:outline-none focus:ring-2 focus:ring-standout-medium/40 transition-all active:scale-95`}
+              className={`inline-flex items-center px-5 py-2.5 rounded-md ${isDarkBg ? 'bg-backdrop-low text-neutral-high' : 'bg-standout-high text-on-high'} text-sm font-medium hover:bg-standout-high/90 disabled:opacity-60 focus:outline-none focus:ring-2 focus:ring-standout-high/40 transition-all active:scale-95`}
             >
               {submitting ? 'Sending...' : 'Submit'}
             </button>

@@ -14,28 +14,29 @@
      --------------------------------------------------------- */
 
 	/* Category: Standout Colors */
-	--color-standout-low: var(--color-emerald-100);
-	--color-standout-medium: var(--color-teal-800);
-	--color-standout-high: var(--color-teal-900);
+	--color-standout-low: var(--color-teal-100);
+	--color-standout-medium: var(--color-teal-600);
+	--color-standout-high: var(--color-teal-700);
+	--color-standout: var(--color-standout-high);
 	--color-on-high: var(--color-white);
 
 	/* Category: Neutral / Text Colors */
 	--color-neutral-low: var(--color-slate-600);
-	--color-neutral-medium: var(--color-slate-700);
+	--color-neutral-medium: var(--color-slate-800);
 	--color-neutral-high: var(--color-black);
 
 	/* Category: Backdrop / Surfaces */
 	--color-backdrop-low: var(--color-white);
-	--color-backdrop-medium: var(--color-slate-200);
-	--color-backdrop-high: var(--color-slate-300);
-	--color-backdrop-input: var(--color-slate-100);
+	--color-backdrop-medium: var(--color-stone-200);
+	--color-backdrop-high: var(--color-stone-300);
+	--color-backdrop-input: var(--color-stone-100);
 
 	/* Category: Lines and UI */
-	--color-line-low: var(--color-slate-300);
-	--color-line-medium: var(--color-slate-400);
-	--color-line-high: var(--color-slate-600);
-	--color-placeholder: var(--color-slate-500);
-	--color-disabled: var(--color-slate-300);
+	--color-line-low: var(--color-stone-300);
+	--color-line-medium: var(--color-stone-400);
+	--color-line-high: var(--color-stone-600);
+	--color-placeholder: var(--color-stone-500);
+	--color-disabled: var(--color-stone-300);
 
 	/* ---------------------------------------------------------
      2. Geometry & Token Mappings
@@ -49,7 +50,7 @@
 	--card-foreground: var(--color-neutral-high);
 	--popover: var(--color-backdrop-low);
 	--popover-foreground: var(--color-neutral-high);
-	--primary: var(--color-standout-medium);
+	--primary: var(--color-standout-high);
 	--primary-foreground: var(--color-on-high);
 	--secondary: var(--color-backdrop-medium);
 	--secondary-foreground: var(--color-neutral-high);
@@ -68,7 +69,7 @@
 	--chart-5: var(--color-pink-500);
 	--sidebar: var(--color-backdrop-low);
 	--sidebar-foreground: var(--color-neutral-high);
-	--sidebar-primary: var(--color-standout-medium);
+	--sidebar-primary: var(--color-standout-high);
 	--sidebar-primary-foreground: var(--color-on-high);
 	--sidebar-accent: var(--color-backdrop-medium);
 	--sidebar-accent-foreground: var(--color-neutral-high);
@@ -86,18 +87,19 @@
 .dark,
 [data-theme='admin'].dark,
 [data-theme='site'].dark {
-	--color-standout-low: var(--color-cyan-800);
-	--color-standout-medium: var(--color-cyan-500);
-	--color-standout-high: var(--color-cyan-400);
+	--color-standout-low: var(--color-teal-950);
+	--color-standout-medium: var(--color-teal-700);
+	--color-standout-high: var(--color-teal-600);
+	--color-standout: var(--color-standout-high);
 	--color-on-high: var(--color-black);
 
 	--color-neutral-low: var(--color-zinc-400);
-	--color-neutral-medium: var(--color-zinc-300);
-	--color-neutral-high: var(--color-zinc-100);
+	--color-neutral-medium: var(--color-zinc-200);
+	--color-neutral-high: var(--color-white);
 
-	--color-backdrop-low: var(--color-zinc-900);
-	--color-backdrop-medium: var(--color-zinc-800);
-	--color-backdrop-high: var(--color-zinc-700);
+	--color-backdrop-low: var(--color-neutral-900);
+	--color-backdrop-medium: var(--color-neutral-800);
+	--color-backdrop-high: var(--color-neutral-700);
 	--color-backdrop-input: var(--color-zinc-800);
 
 	--color-line-low: var(--color-zinc-800);
@@ -113,7 +115,7 @@
 	--card-foreground: var(--color-neutral-high);
 	--popover: var(--color-backdrop-low);
 	--popover-foreground: var(--color-neutral-high);
-	--primary: var(--color-standout-medium);
+	--primary: var(--color-standout-high);
 	--primary-foreground: var(--color-on-high);
 	--secondary: var(--color-backdrop-medium);
 	--secondary-foreground: var(--color-neutral-high);
@@ -127,7 +129,7 @@
 	--ring: var(--color-sky-900);
 	--sidebar: var(--color-backdrop-low);
 	--sidebar-foreground: var(--color-neutral-high);
-	--sidebar-primary: var(--color-standout-medium);
+	--sidebar-primary: var(--color-standout-high);
 	--sidebar-primary-foreground: var(--color-on-high);
 	--sidebar-accent: var(--color-backdrop-medium);
 	--sidebar-accent-foreground: var(--color-neutral-high);

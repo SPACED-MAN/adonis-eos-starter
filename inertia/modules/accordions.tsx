@@ -59,7 +59,7 @@ export default function Accordions({
   const items = useInlineValue(__moduleId, 'items', initialItems) || []
   const bg = useInlineValue(__moduleId, 'backgroundColor', backgroundColor) || backgroundColor
 
-  const isDarkBg = bg === 'bg-neutral-high' || bg === 'bg-backdrop-high' || bg === 'bg-standout-medium'
+  const isDarkBg = bg === 'bg-neutral-high' || bg === 'bg-backdrop-high' || bg === 'bg-standout-high'
   const textColor = isDarkBg ? 'text-on-high' : 'text-neutral-high'
   const subtextColor = isDarkBg ? 'text-on-high/80' : 'text-neutral-medium'
   const itemBg = isDarkBg ? 'bg-backdrop-low/10' : 'bg-backdrop-low'
@@ -118,7 +118,7 @@ export default function Accordions({
             const htmlContent = renderContent(item.content)
 
             return (
-              <div key={index} className={`border ${itemBorder} rounded-xl overflow-hidden transition-all duration-300 ${isOpen ? 'shadow-lg ring-1 ring-standout-medium/20' : ''}`}>
+              <div key={index} className={`border ${itemBorder} rounded-xl overflow-hidden transition-all duration-300 ${isOpen ? 'shadow-lg ring-1 ring-standout-high/20' : ''}`}>
                 <button
                   onClick={() => toggleItem(index)}
                   className={`w-full flex items-center justify-between p-5 text-left ${itemBg} hover:bg-backdrop-medium/50 transition-colors`}
@@ -129,7 +129,7 @@ export default function Accordions({
                   </span>
                   <FontAwesomeIcon
                     icon="chevron-down"
-                    className={`${subtextColor} transition-transform duration-300 ${isOpen ? 'rotate-180 text-standout-medium' : ''
+                    className={`${subtextColor} transition-transform duration-300 ${isOpen ? 'rotate-180 text-standout-high' : ''
                       }`}
                     size="xs"
                   />

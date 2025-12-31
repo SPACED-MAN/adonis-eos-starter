@@ -47,7 +47,7 @@ export default function SearchPage(props: {
                 name="q"
                 defaultValue={q}
                 placeholder="Search…"
-                className="w-full rounded-md border border-line-medium bg-backdrop px-3 py-2 text-sm text-neutral-high placeholder:text-neutral-low outline-none focus:ring-2 focus:ring-standout-medium/30 focus:border-standout-medium/40"
+                className="w-full rounded-md border border-line-medium bg-backdrop px-3 py-2 text-sm text-neutral-high placeholder:text-neutral-low outline-none focus:ring-2 focus:ring-standout-high/30 focus:border-standout-high/40"
               />
             </div>
             <div className="sm:col-span-2">
@@ -57,7 +57,7 @@ export default function SearchPage(props: {
               <select
                 name="type"
                 defaultValue={type}
-                className="w-full rounded-md border border-line-medium bg-backdrop px-3 py-2 text-sm text-neutral-high outline-none focus:ring-2 focus:ring-standout-medium/30 focus:border-standout-medium/40"
+                className="w-full rounded-md border border-line-medium bg-backdrop px-3 py-2 text-sm text-neutral-high outline-none focus:ring-2 focus:ring-standout-high/30 focus:border-standout-high/40"
               >
                 <option value="">All types</option>
                 {props.postTypes.map((t) => (
@@ -70,7 +70,7 @@ export default function SearchPage(props: {
             <div className="sm:col-span-5 flex items-center gap-3">
               <button
                 type="submit"
-                className="inline-flex items-center rounded-md bg-standout-medium text-on-high text-sm px-4 py-2"
+                className="inline-flex items-center rounded-md bg-standout-high text-on-high text-sm px-4 py-2"
               >
                 Search
               </button>

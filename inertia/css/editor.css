@@ -69,7 +69,7 @@
 /* Active and Hovered editable regions */
 [data-inline-active='1'],
 [data-inline-path].inline-edit-hover {
-  outline: 1px dashed var(--color-standout-medium);
+  outline: 1px dashed var(--color-standout-high);
   outline-offset: 2px;
 }
 

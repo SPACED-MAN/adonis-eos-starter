@@ -28,6 +28,10 @@ function inferMimeFromExt(ext: string): string {
       return 'image/gif'
     case '.svg':
       return 'image/svg+xml'
+    case '.json':
+      return 'application/json'
+    case '.lottie':
+      return 'application/x-lottie'
     case '.avif':
       return 'image/avif'
     default:

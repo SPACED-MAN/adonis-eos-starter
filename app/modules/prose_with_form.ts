@@ -21,12 +21,18 @@ export default class ProseWithFormModule extends BaseModule {
       lockable: true,
       fieldSchema: [
         {
+          slug: 'content_tab',
+          type: 'tab',
+          label: 'Content',
+        },
+        {
           slug: 'heading',
           type: 'text',
           label: 'Heading',
           required: true,
           description: 'Main heading text',
           translatable: true,
+          isLabel: true,
         },
         {
           slug: 'content',
@@ -42,6 +48,11 @@ export default class ProseWithFormModule extends BaseModule {
           label: 'Form',
           required: true,
           description: 'Form to embed (e.g., contact). Choose from Forms defined in the admin.',
+        },
+        {
+          slug: 'design_tab',
+          type: 'tab',
+          label: 'Design',
         },
         {
           slug: 'layout',

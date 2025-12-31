@@ -85,11 +85,11 @@ function SortableModuleItem({
     opacity: isDragging ? 0.5 : 1,
   }
 
-  const label =
+  const displayName =
     module.globalLabel ||
     module.adminLabel ||
-    (module.name && module.name !== module.type ? module.name : null) ||
     module.label ||
+    (module.name && module.name !== module.type ? module.name : null) ||
     module.type
       .split('-')
       .map((word) => word.charAt(0).toUpperCase() + word.slice(1))
@@ -106,7 +106,7 @@ function SortableModuleItem({
       style={style}
       className={`group flex items-center gap-3 p-3 bg-backdrop-high border-b border-line-low hover:bg-backdrop-medium transition-colors ${
         isDragging
-          ? 'shadow-xl rounded-lg border border-standout-medium ring-2 ring-standout-medium/20'
+          ? 'shadow-xl rounded-lg border border-standout-high ring-2 ring-standout-high/20'
           : ''
       }`}
     >
@@ -123,7 +123,7 @@ function SortableModuleItem({
           <div className="flex items-center gap-1">
             <input
               autoFocus
-              className="flex-1 bg-backdrop-low border border-line-medium rounded px-2 py-1 text-sm text-neutral-high focus:outline-none focus:ring-1 focus:ring-standout-medium"
+              className="flex-1 bg-backdrop-low border border-line-medium rounded px-2 py-1 text-sm text-neutral-high focus:outline-none focus:ring-1 focus:ring-standout-high"
               onBlur={handleLabelSubmit}
               onChange={(e) => setEditValue(e.target.value)}
               onKeyDown={(e) => {
@@ -134,10 +134,15 @@ function SortableModuleItem({
             />
           </div>
         ) : (
-          <div className="flex items-center gap-2 group/label">
-            <div className="text-sm font-semibold text-neutral-high truncate">{label}</div>
+          <div className="flex items-center gap-2 group/label min-w-0">
+            <div className="text-sm font-semibold text-neutral-high truncate">{displayName}</div>
+            {(module.adminLabel || module.label) && (
+              <span className="text-[10px] text-neutral-medium italic shrink-0">
+                ({module.name || module.type})
+              </span>
+            )}
             <button
-              className="opacity-0 group-hover/label:opacity-100 p-1 text-neutral-low hover:text-neutral-high transition-opacity"
+              className="opacity-0 group-hover/label:opacity-100 p-1 text-neutral-low hover:text-neutral-high transition-opacity shrink-0"
               onClick={() => {
                 setEditValue(module.adminLabel || '')
                 setIsEditingLabel(true)
@@ -151,7 +156,7 @@ function SortableModuleItem({
         <div className="text-[10px] text-neutral-low uppercase tracking-wider flex items-center gap-2">
           {module.type}
           {module.globalSlug && (
-            <span className="px-1.5 py-0.5 rounded bg-standout-medium/10 text-standout-medium font-bold">
+            <span className="px-1.5 py-0.5 rounded bg-standout-high/10 text-standout-high font-bold">
               Global
             </span>
           )}
@@ -162,7 +167,7 @@ function SortableModuleItem({
         <Tooltip>
           <TooltipTrigger asChild>
             <button
-              className="p-1.5 text-neutral-low hover:text-standout-medium hover:bg-standout-medium/10 rounded-md transition-colors"
+              className="p-1.5 text-neutral-low hover:text-standout-high hover:bg-standout-high/10 rounded-md transition-colors"
               onClick={() => onJump(module.id)}
             >
               <FontAwesomeIcon icon={faEye} size="sm" />
@@ -174,7 +179,7 @@ function SortableModuleItem({
         <Tooltip>
           <TooltipTrigger asChild>
             <button
-              className="p-1.5 text-neutral-low hover:text-standout-medium hover:bg-standout-medium/10 rounded-md transition-colors"
+              className="p-1.5 text-neutral-low hover:text-standout-high hover:bg-standout-high/10 rounded-md transition-colors"
               onClick={() => onDuplicate(module.id)}
             >
               <FontAwesomeIcon icon={faClone} size="sm" />
@@ -241,9 +246,9 @@ export function ModuleOutlinePanel({
     const el = document.querySelector(`[data-inline-module="${id}"]`)
     if (el) {
       el.scrollIntoView({ behavior: 'smooth', block: 'center' })
-      el.classList.add('ring-4', 'ring-standout-medium', 'ring-offset-4', 'transition-all', 'duration-500')
+      el.classList.add('ring-4', 'ring-standout-high', 'ring-offset-4', 'transition-all', 'duration-500')
       setTimeout(() => {
-        el.classList.remove('ring-4', 'ring-standout-medium', 'ring-offset-4')
+        el.classList.remove('ring-4', 'ring-standout-high', 'ring-offset-4')
       }, 2000)
     }
   }
@@ -295,7 +300,7 @@ export function ModuleOutlinePanel({
             }}
           >
             {activeId && activeModule ? (
-              <div className="flex items-center gap-3 p-3 bg-backdrop-high border border-standout-medium rounded-lg shadow-2xl ring-2 ring-standout-medium/20 w-[425px]">
+              <div className="flex items-center gap-3 p-3 bg-backdrop-high border border-standout-high rounded-lg shadow-2xl ring-2 ring-standout-high/20 w-[425px]">
                 <div className="text-neutral-medium p-1">
                   <FontAwesomeIcon icon={faGripVertical} />
                 </div>
@@ -303,10 +308,10 @@ export function ModuleOutlinePanel({
                   <div className="text-sm font-semibold text-neutral-high truncate">
                     {activeModule.globalLabel ||
                       activeModule.adminLabel ||
+                      activeModule.label ||
                       (activeModule.name && activeModule.name !== activeModule.type
                         ? activeModule.name
                         : null) ||
-                      activeModule.label ||
                       activeModule.type
                         .split('-')
                         .map((word) => word.charAt(0).toUpperCase() + word.slice(1))

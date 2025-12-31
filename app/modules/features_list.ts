@@ -30,11 +30,17 @@ export default class FeaturesListModule extends BaseModule {
       },
       fieldSchema: [
         {
+          slug: 'content_tab',
+          type: 'tab',
+          label: 'Content',
+        },
+        {
           slug: 'title',
           type: 'text',
           required: true,
           description: 'Section heading shown above the features grid',
           translatable: true,
+          isLabel: true,
         },
         {
           slug: 'subtitle',
@@ -64,6 +70,7 @@ export default class FeaturesListModule extends BaseModule {
                 required: true,
                 description: 'Short feature title',
                 translatable: true,
+                isLabel: true,
               },
               {
                 slug: 'body',
@@ -74,6 +81,11 @@ export default class FeaturesListModule extends BaseModule {
               },
             ],
           },
+        },
+        {
+          slug: 'design_tab',
+          type: 'tab',
+          label: 'Design',
         },
         backgroundColorField,
       ],

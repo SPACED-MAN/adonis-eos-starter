@@ -1,11 +1,12 @@
 import '../css/app.css'
-import ReactDOMServer from 'react-dom/server'
+import { renderToPipeableStream } from 'react-dom/server'
 import { createInertiaApp } from '@inertiajs/react'
 import redis from '@adonisjs/redis/services/main'
 import crypto from 'node:crypto'
 import cmsConfig from '#config/cms'
 import { ThemeProvider } from '../utils/ThemeContext'
 import { TooltipProvider } from '../components/ui/tooltip'
+import { PassThrough } from 'node:stream'
 
 export default async function render(page: any) {
   const componentName = String(page?.component ?? '')
@@ -36,7 +37,33 @@ export default async function render(page: any) {
   try {
     const html = await createInertiaApp({
       page,
-      render: ReactDOMServer.renderToString,
+      render: (element) => {
+        return new Promise((resolve, reject) => {
+          let buffer = ''
+          const stream = new PassThrough()
+          stream.on('data', (chunk) => {
+            buffer += chunk
+          })
+          stream.on('end', () => {
+            resolve(buffer)
+          })
+          stream.on('error', (err) => {
+            reject(err)
+          })
+
+          const { pipe } = renderToPipeableStream(element, {
+            onAllReady() {
+              pipe(stream)
+            },
+            onShellError(err) {
+              reject(err)
+            },
+            onError(err) {
+              console.error('SSR Render Error:', err)
+            },
+          })
+        })
+      },
       resolve: (name) => {
         const sitePages = import.meta.glob('../site/pages/**/*.tsx', { eager: true })
         const adminPages = import.meta.glob('../admin/pages/**/*.tsx', { eager: true })

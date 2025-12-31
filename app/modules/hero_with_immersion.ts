@@ -37,12 +37,18 @@ export default class HeroWithImmersionModule extends BaseModule {
       },
       fieldSchema: [
         {
+          slug: 'content_tab',
+          type: 'tab',
+          label: 'Content',
+        },
+        {
           slug: 'title',
           type: 'text',
           label: 'Title',
           required: true,
           translatable: true,
           description: 'The main headline that will float in the middle layer.',
+          isLabel: true,
         },
         {
           slug: 'subtitle',
@@ -67,6 +73,11 @@ export default class HeroWithImmersionModule extends BaseModule {
             'The closest layer. Use a transparent PNG for the best parallax effect (e.g., a person or product).',
           accept: 'image/*',
           config: { storeAs: 'id' },
+        },
+        {
+          slug: 'design_tab',
+          type: 'tab',
+          label: 'Design',
         },
         {
           slug: 'imagePosition',

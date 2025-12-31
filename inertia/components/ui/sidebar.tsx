@@ -79,7 +79,7 @@ export function SidebarTrigger({
           aria-controls="admin-sidebar"
           onClick={() => setOpen(!open)}
           className={cn(
-            'inline-flex items-center rounded p-2 hover:bg-backdrop-medium text-standout-medium',
+            'inline-flex items-center rounded p-2 hover:bg-backdrop-medium text-standout-high',
             className
           )}
         >

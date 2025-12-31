@@ -4,6 +4,7 @@ Adonis EOS includes a built-in media pipeline:
 
 - uploads to storage (local or S3-compatible)
 - derivative generation (thumb/small/medium/large) via `sharp`
+- animation support for **Lottie (JSON)** and **SVG**
 - optional optimization to webp
 - category tagging + metadata for discovery
 
@@ -14,6 +15,19 @@ Adonis EOS includes a built-in media pipeline:
 - Storage: `app/services/storage_service.ts`
 - Variant generation action: `app/actions/generate_media_variants_action.ts`
 - Media field type (module props/custom fields): `app/fields/media.ts`
+- Frontend Renderer: `inertia/components/MediaRenderer.tsx`
+
+## Supported Formats & Processing
+
+### Raster Images
+JPG, PNG, WebP, GIF, AVIF are processed via `sharp` to generate size variants and optimized WebP versions.
+
+### Vector & Animations
+- **SVG**: Uploaded and served as-is. Supports dark-mode variant overrides.
+- **Lottie**: Supports `.json` and `.lottie` files. Rendered on the frontend using `@lottiefiles/lottie-player`.
+
+### Video
+MP4 and WebM support. Playback modes (autoplay, inline, modal) are stored in the media asset metadata.
 
 ## Derivatives configuration
 

@@ -48,6 +48,11 @@ export default class GalleryModule extends BaseModule {
       },
       fieldSchema: [
         {
+          slug: 'content_tab',
+          type: 'tab',
+          label: 'Content',
+        },
+        {
           slug: 'images',
           type: 'repeater',
           required: true,
@@ -65,9 +70,15 @@ export default class GalleryModule extends BaseModule {
                 config: { storeAs: 'id' },
                 description:
                   'Select an image from the media library (alt text and caption are pulled from the media record)',
+                isLabel: true,
               },
             ],
           },
+        },
+        {
+          slug: 'design_tab',
+          type: 'tab',
+          label: 'Design',
         },
         {
           slug: 'layout',

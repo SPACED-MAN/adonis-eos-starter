@@ -77,8 +77,8 @@ export function FeedbackPanel({
       const el = document.getElementById(`feedback-${highlightId}`)
       if (el) {
         el.scrollIntoView({ behavior: 'smooth', block: 'center' })
-        el.classList.add('ring-2', 'ring-standout-medium')
-        setTimeout(() => el.classList.remove('ring-2', 'ring-standout-medium'), 2000)
+        el.classList.add('ring-2', 'ring-standout-high')
+        setTimeout(() => el.classList.remove('ring-2', 'ring-standout-high'), 2000)
       }
     }
   }, [highlightId, feedbacks])
@@ -194,7 +194,7 @@ export function FeedbackPanel({
     <div className="flex flex-col h-full bg-backdrop-high">
       <div className="flex items-center justify-between p-4 border-b border-line-low">
         <h3 className="text-sm font-bold flex items-center gap-2">
-          <FontAwesomeIcon icon={faMessage} className="text-standout-medium" />
+          <FontAwesomeIcon icon={faMessage} className="text-standout-high" />
           Feedback
         </h3>
       </div>
@@ -219,7 +219,7 @@ export function FeedbackPanel({
                   onJumpToSpot(f.context, f.id)
                 }
               }}
-              className={`p-3 rounded-xl border transition-all duration-500 ${f.status === 'resolved' ? 'bg-backdrop-medium/20 border-line-low opacity-60' : 'bg-backdrop-low border-line-medium'} space-y-2 ${f.context ? 'cursor-pointer hover:border-standout-medium/50 group' : ''}`}
+              className={`p-3 rounded-xl border transition-all duration-500 ${f.status === 'resolved' ? 'bg-backdrop-medium/20 border-line-low opacity-60' : 'bg-backdrop-low border-line-medium'} space-y-2 ${f.context ? 'cursor-pointer hover:border-standout-high/50 group' : ''}`}
             >
               <div className="flex items-start justify-between">
                 <div className="flex flex-col gap-1">
@@ -241,7 +241,7 @@ export function FeedbackPanel({
                 <div className="flex items-center gap-1">
                   {f.context && onJumpToSpot && (
                     <div
-                      className="p-1.5 text-neutral-low group-hover:text-standout-medium transition-colors"
+                      className="p-1.5 text-neutral-low group-hover:text-standout-high transition-colors"
                       title="Jump to spot"
                     >
                       <FontAwesomeIcon icon={faLocationArrow} size="xs" />
@@ -289,7 +289,7 @@ export function FeedbackPanel({
             </SelectContent>
           </Select>
           {pendingContext?.selector && (
-            <div className="flex items-center gap-1.5 px-2 py-1 rounded bg-standout-medium/10 text-standout-medium text-[10px] font-bold">
+            <div className="flex items-center gap-1.5 px-2 py-1 rounded bg-standout-high/10 text-standout-high text-[10px] font-bold">
               <FontAwesomeIcon icon={faLocationArrow} size="xs" />
               Linked to spot
               <button
@@ -310,7 +310,7 @@ export function FeedbackPanel({
         <button
           onClick={handleAddFeedback}
           disabled={isAdding || !newFeedbackContent.trim()}
-          className="w-full py-2 bg-standout-medium text-on-high rounded-xl text-sm font-bold disabled:opacity-50 flex items-center justify-center gap-2"
+          className="w-full py-2 bg-standout-high text-on-high rounded-xl text-sm font-bold disabled:opacity-50 flex items-center justify-center gap-2"
         >
           {isAdding ? <FontAwesomeIcon icon={faSpinner} spin /> : <FontAwesomeIcon icon={faPlus} />}
           Add Feedback

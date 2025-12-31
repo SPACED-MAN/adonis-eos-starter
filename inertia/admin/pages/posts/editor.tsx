@@ -77,14 +77,12 @@ import {
   faSpinner,
   faLink,
   faBrain,
-  faLocationArrow,
-  faCheck,
-  faMessage,
+  faExpandAlt,
+  faCompressAlt,
 } from '@fortawesome/free-solid-svg-icons'
 import { getXsrf } from '~/utils/xsrf'
 import { LinkField, type LinkFieldValue } from '~/components/forms/LinkField'
 import { useHasPermission } from '~/utils/permissions'
-import { useMediaUrl } from '../../../utils/useMediaUrl'
 import { MediaThumb } from '../../components/media/MediaThumb'
 import { AgentModal, type Agent } from '../../components/agents/AgentModal'
 import { FeedbackPanel } from '~/components/FeedbackPanel'
@@ -275,6 +273,11 @@ interface EditorProps {
     author?: { id: number; email: string; fullName: string | null } | null
     abVariation?: string | null
     abGroupId?: string | null
+    socialTitle?: string | null
+    socialDescription?: string | null
+    socialImageId?: string | null
+    noindex?: boolean
+    nofollow?: boolean
   }
   modules: {
     id: string
@@ -323,6 +326,7 @@ interface EditorProps {
       strategy?: 'cookie' | 'query'
       variations?: Array<{ value: string; weight: number }>
     }
+    urlPatterns?: Array<{ pattern: string; type: string }>
   }
   taxonomies?: Array<{ slug: string; name: string; terms: TaxonomyTermNode[] }>
   selectedTaxonomyTermIds?: string[]
@@ -424,6 +428,8 @@ function ModuleRowBase({
     m.type
     : moduleRegistry[m.type]?.name || m.type
 
+  const labelToDisplay = m.adminLabel || m.label || moduleName
+
   const saveLabel = async () => {
     const label = localLabel.trim() || null
     setIsEditingLabel(false)
@@ -445,15 +451,18 @@ function ModuleRowBase({
           className={`group bg-backdrop-low border ${isOverlay || isDraggingModules ? '' : 'transition-all duration-200'} ${isOpen ? 'border-line-medium shadow-sm rounded-xl mb-4' : 'border-line-low rounded-lg mb-2'}`}
         >
           <div
-            className={`px-4 py-3 flex items-center justify-between gap-3 ${isOpen ? 'bg-backdrop-medium/10' : ''}`}
+            className={`px-3 py-2 flex items-center justify-between gap-2 ${isOpen ? 'bg-backdrop-medium/5' : ''}`}
           >
-            <div className="flex items-center gap-3 min-w-0 flex-1">
+            <div className="flex items-center gap-2 min-w-0 flex-1">
               <DragHandle
                 aria-label="Drag"
                 disabled={isLocked}
                 {...(isLocked ? {} : listeners)}
                 className="opacity-40 group-hover:opacity-100 transition-opacity"
               />
+              <div className="text-[10px] font-bold text-neutral-low/30 tabular-nums min-w-[14px] text-center" title={`Order: ${m.orderIndex + 1}`}>
+                {m.orderIndex + 1}
+              </div>
 
               <div className="flex flex-col min-w-0 flex-1">
                 <div className="flex items-center gap-2 group/label min-w-0">
@@ -461,7 +470,7 @@ function ModuleRowBase({
                     <div className="flex items-center gap-2 flex-1 max-w-md">
                       <input
                         autoFocus
-                        className="flex-1 px-2 py-1 text-sm font-bold bg-backdrop-low border border-standout-medium rounded-lg outline-none focus:ring-2 focus:ring-standout-medium/20"
+                        className="flex-1 px-2 py-1 text-sm font-bold bg-backdrop-low border border-standout-high rounded-lg outline-none focus:ring-2 focus:ring-standout-high/20"
                         value={localLabel}
                         onChange={(e) => setLocalLabel(e.target.value)}
                         onBlur={saveLabel}
@@ -489,10 +498,10 @@ function ModuleRowBase({
                           })
                         }
                       >
-                        {m.adminLabel || moduleName}
+                        {labelToDisplay}
                       </button>
 
-                      {m.adminLabel && (
+                      {(m.adminLabel || m.label) && (
                         <span className="text-xs text-neutral-medium italic shrink-0">
                           ({moduleName})
                         </span>
@@ -514,13 +523,6 @@ function ModuleRowBase({
                       </Tooltip>
                     </>
                   )}
-                </div>
-
-                <div className="flex items-center gap-3 mt-0.5">
-                  <div className="text-[10px] font-bold text-neutral-low uppercase tracking-wider">
-                    Order: {m.orderIndex}
-                  </div>
-                  <div className="text-[10px] text-neutral-low/50">ID: {m.id.split('-')[0]}...</div>
                 </div>
               </div>
             </div>
@@ -573,12 +575,12 @@ function ModuleRowBase({
               <Tooltip>
                 <TooltipTrigger asChild>
                   <button
-                    className="p-2 rounded-lg text-neutral-low hover:text-standout-high hover:bg-backdrop-medium transition-all"
+                    className="p-1.5 rounded-md text-neutral-low hover:text-standout-high hover:bg-backdrop-medium transition-all"
                     disabled={isLocked}
                     onClick={() => onDuplicate(m)}
                     type="button"
                   >
-                    <FontAwesomeIcon icon={faClone} size="sm" />
+                    <FontAwesomeIcon icon={faClone} className="text-xs" />
                   </button>
                 </TooltipTrigger>
                 <TooltipContent>
@@ -589,7 +591,7 @@ function ModuleRowBase({
               <Tooltip>
                 <TooltipTrigger asChild>
                   <button
-                    className="p-2 rounded-lg text-neutral-low hover:text-red-500 hover:bg-red-500/10 transition-all"
+                    className="p-1.5 rounded-md text-neutral-low hover:text-red-500 hover:bg-red-500/10 transition-all"
                     disabled={isLocked}
                     onClick={async () => {
                       if (isLocked) {
@@ -614,7 +616,7 @@ function ModuleRowBase({
                     }}
                     type="button"
                   >
-                    <FontAwesomeIcon icon={faTrash} size="sm" />
+                    <FontAwesomeIcon icon={faTrash} className="text-xs" />
                   </button>
                 </TooltipTrigger>
                 <TooltipContent>
@@ -624,7 +626,7 @@ function ModuleRowBase({
 
               <button
                 type="button"
-                className={`p-2 rounded-lg transition-all ${isOpen ? 'bg-backdrop-medium text-neutral-high' : 'text-neutral-low hover:bg-backdrop-medium'}`}
+                className={`p-1.5 rounded-md transition-all ${isOpen ? 'bg-backdrop-medium text-neutral-high' : 'text-neutral-low hover:bg-backdrop-medium'}`}
                 onClick={() => {
                   if (isOpen) {
                     const flush = moduleFlushFns.current[m.id]
@@ -649,8 +651,7 @@ function ModuleRowBase({
               >
                 <FontAwesomeIcon
                   icon={faChevronDown}
-                  className={`transition-transform duration-200 ${isOpen ? 'rotate-180' : ''}`}
-                  size="sm"
+                  className={`transition-transform duration-200 ${isOpen ? 'rotate-180' : ''} text-xs`}
                 />
               </button>
             </div>
@@ -733,7 +734,7 @@ export default function Editor({
     featuredImageId: post.featuredImageId || '',
     customFields: initialCustomFieldsData,
     taxonomyTermIds: initialTaxonomyIds,
-  })
+  } as any)
   const initialDataRef = useRef({
     title: post.title || '',
     slug: post.slug || '',
@@ -754,7 +755,7 @@ export default function Editor({
     featuredImageId: post.featuredImageId || '',
     customFields: initialCustomFieldsData,
     taxonomyTermIds: initialTaxonomyIds,
-  })
+  } as any)
   const reviewInitialRef = useRef<null | typeof initialDataRef.current>(
     reviewDraft
       ? {
@@ -3162,7 +3163,7 @@ export default function Editor({
                     </label>
                     <Input
                       type="text"
-                      className="text-lg font-semibold border-line-medium focus:ring-standout-medium/20 focus:border-standout-medium rounded-xl"
+                      className="text-lg font-semibold border-line-medium focus:ring-standout-high/20 focus:border-standout-high rounded-xl"
                       value={data.title}
                       onChange={(e) => {
                         const val = e.target.value
@@ -3187,7 +3188,7 @@ export default function Editor({
                     Excerpt
                   </label>
                   <Textarea
-                    className="border-line-medium focus:ring-standout-medium/20 focus:border-standout-medium rounded-xl min-h-[100px]"
+                    className="border-line-medium focus:ring-standout-high/20 focus:border-standout-high rounded-xl min-h-[100px]"
                     value={data.excerpt}
                     onChange={(e) => setData('excerpt', e.target.value)}
                     rows={3}
@@ -3222,7 +3223,7 @@ export default function Editor({
                                   >
                                     <FontAwesomeIcon
                                       icon={faWandMagicSparkles}
-                                      className="text-neutral-medium hover:text-standout-medium transition-colors"
+                                      className="text-neutral-medium hover:text-standout-high transition-colors"
                                     />
                                   </button>
                                 </TooltipTrigger>
@@ -3241,7 +3242,7 @@ export default function Editor({
                                       >
                                         <FontAwesomeIcon
                                           icon={faWandMagicSparkles}
-                                          className="text-neutral-medium hover:text-standout-medium transition-colors"
+                                          className="text-neutral-medium hover:text-standout-high transition-colors"
                                         />
                                       </button>
                                     </PopoverTrigger>
@@ -3270,7 +3271,7 @@ export default function Editor({
                                         }}
                                         className="w-full flex items-center gap-2.5 px-2.5 py-2 rounded-lg hover:bg-backdrop-medium text-left transition-colors"
                                       >
-                                        <div className="w-6 h-6 rounded bg-standout-medium/10 flex items-center justify-center text-standout-medium">
+                                        <div className="w-6 h-6 rounded bg-standout-high/10 flex items-center justify-center text-standout-high">
                                           <FontAwesomeIcon
                                             icon={faWandMagicSparkles}
                                             className="text-[10px]"
@@ -3371,7 +3372,7 @@ export default function Editor({
                                 return (
                                   <label
                                     key={`${tax.slug}:${String(opt.id || idx)}`}
-                                    className={`flex items-center gap-2 text-sm p-2 rounded-lg border transition-all cursor-pointer ${checked ? 'bg-standout-medium/5 border-standout-medium/20 text-neutral-high' : 'bg-backdrop-low border-line-low text-neutral-medium hover:border-line-medium'}`}
+                                    className={`flex items-center gap-2 text-sm p-2 rounded-lg border transition-all cursor-pointer ${checked ? 'bg-standout-high/5 border-standout-high/20 text-neutral-high' : 'bg-backdrop-low border-line-low text-neutral-medium hover:border-line-medium'}`}
                                   >
                                     <Checkbox
                                       checked={checked}
@@ -3495,22 +3496,23 @@ export default function Editor({
                         Modules
                       </h3>
                       {modules.length > 0 && (
-                        <div className="flex items-center gap-2">
+                        <div className="flex items-center gap-3">
                           <button
                             type="button"
                             onClick={() =>
                               setModulesAccordionOpen(new Set(modules.map((m) => m.id)))
                             }
-                            className="text-[10px] uppercase tracking-wider text-neutral-low hover:text-primary transition-colors"
+                            className="text-[10px] uppercase font-bold text-neutral-low hover:text-standout-high transition-colors flex items-center gap-1"
                           >
+                            <FontAwesomeIcon icon={faExpandAlt} className="text-[8px]" />
                             Expand All
                           </button>
-                          <span className="text-neutral-low/30 text-[10px]">|</span>
                           <button
                             type="button"
                             onClick={() => setModulesAccordionOpen(new Set())}
-                            className="text-[10px] uppercase tracking-wider text-neutral-low hover:text-primary transition-colors"
+                            className="text-[10px] uppercase font-bold text-neutral-low hover:text-standout-high transition-colors flex items-center gap-1"
                           >
+                            <FontAwesomeIcon icon={faCompressAlt} className="text-[8px]" />
                             Collapse All
                           </button>
                         </div>
@@ -3573,7 +3575,7 @@ export default function Editor({
                         </SortableContext>
                         <DragOverlay adjustScale={false} zIndex={1000}>
                           {activeModule ? (
-                            <div className="w-full max-w-4xl shadow-2xl rounded-xl overflow-hidden ring-2 ring-standout-medium/50 cursor-grabbing bg-backdrop-low">
+                            <div className="w-full max-w-4xl shadow-2xl rounded-xl overflow-hidden ring-2 ring-standout-high/50 cursor-grabbing bg-backdrop-low">
                               <ModuleRow
                                 m={activeModule}
                                 viewMode={viewMode}
@@ -3637,7 +3639,7 @@ export default function Editor({
                       <div className="flex items-center justify-between">
                         <span>Slug *</span>
                         {post.abVariation && abVariations.length > 1 && (
-                          <span className="text-[9px] text-standout-medium normal-case font-normal">
+                          <span className="text-[9px] text-standout-high normal-case font-normal">
                             Note: Variations share the primary post's public URL.
                           </span>
                         )}
@@ -3646,7 +3648,7 @@ export default function Editor({
                     <div className="relative">
                       <Input
                         type="text"
-                        className="font-mono text-sm border-line-medium focus:ring-standout-medium/20 focus:border-standout-medium rounded-xl h-11"
+                        className="font-mono text-sm border-line-medium focus:ring-standout-high/20 focus:border-standout-high rounded-xl h-11"
                         value={data.slug}
                         onChange={(e) => {
                           const v = String(e.target.value || '')
@@ -3667,7 +3669,7 @@ export default function Editor({
                       <div className="absolute right-3 top-1/2 -translate-y-1/2">
                         <FontAwesomeIcon
                           icon={faLink}
-                          className={`text-lg ${slugAuto ? 'text-standout-medium' : 'text-neutral-low opacity-20'}`}
+                          className={`text-lg ${slugAuto ? 'text-standout-high' : 'text-neutral-low opacity-20'}`}
                         />
                       </div>
                     </div>
@@ -3689,7 +3691,7 @@ export default function Editor({
                       </label>
                       <Input
                         type="text"
-                        className="border-line-medium focus:ring-standout-medium/20 focus:border-standout-medium rounded-xl h-11"
+                        className="border-line-medium focus:ring-standout-high/20 focus:border-standout-high rounded-xl h-11"
                         value={data.metaTitle}
                         onChange={(e) => setData('metaTitle', e.target.value)}
                         placeholder="Custom meta title (optional)"
@@ -3705,7 +3707,7 @@ export default function Editor({
                         Meta Description
                       </label>
                       <Textarea
-                        className="border-line-medium focus:ring-standout-medium/20 focus:border-standout-medium rounded-xl"
+                        className="border-line-medium focus:ring-standout-high/20 focus:border-standout-high rounded-xl"
                         value={data.metaDescription}
                         onChange={(e) => setData('metaDescription', e.target.value)}
                         rows={3}
@@ -3765,7 +3767,7 @@ export default function Editor({
                             </label>
                             <Input
                               type="text"
-                              className="border-line-medium focus:ring-standout-medium/20 focus:border-standout-medium rounded-xl h-10 text-sm"
+                              className="border-line-medium focus:ring-standout-high/20 focus:border-standout-high rounded-xl h-10 text-sm"
                               value={data.socialTitle}
                               onChange={(e) => setData('socialTitle', e.target.value)}
                               placeholder="Social sharing title (optional)"
@@ -3776,7 +3778,7 @@ export default function Editor({
                               Social Description
                             </label>
                             <Textarea
-                              className="border-line-medium focus:ring-standout-medium/20 focus:border-standout-medium rounded-xl text-sm"
+                              className="border-line-medium focus:ring-standout-high/20 focus:border-standout-high rounded-xl text-sm"
                               value={data.socialDescription}
                               onChange={(e) => setData('socialDescription', e.target.value)}
                               rows={3}
@@ -3899,7 +3901,7 @@ export default function Editor({
                         </label>
                         <Input
                           type="url"
-                          className="border-line-medium focus:ring-standout-medium/20 focus:border-standout-medium rounded-xl h-11 text-sm"
+                          className="border-line-medium focus:ring-standout-high/20 focus:border-standout-high rounded-xl h-11 text-sm"
                           value={data.canonicalUrl}
                           onChange={(e) => setData('canonicalUrl', e.target.value)}
                           placeholder="https://example.com/my-post"
@@ -3916,7 +3918,7 @@ export default function Editor({
                             value={data.robotsJson}
                             onChange={(e) => setData('robotsJson', e.target.value)}
                             rows={4}
-                            className="font-mono text-[11px] border-line-medium focus:ring-standout-medium/20 focus:border-standout-medium rounded-xl bg-backdrop-medium/10"
+                            className="font-mono text-[11px] border-line-medium focus:ring-standout-high/20 focus:border-standout-high rounded-xl bg-backdrop-medium/10"
                             placeholder={JSON.stringify({ index: true, follow: true }, null, 2)}
                           />
                         </div>
@@ -3930,7 +3932,7 @@ export default function Editor({
                             value={data.jsonldOverrides}
                             onChange={(e) => setData('jsonldOverrides', e.target.value)}
                             rows={4}
-                            className="font-mono text-[11px] border-line-medium focus:ring-standout-medium/20 focus:border-standout-medium rounded-xl bg-backdrop-medium/10"
+                            className="font-mono text-[11px] border-line-medium focus:ring-standout-high/20 focus:border-standout-high rounded-xl bg-backdrop-medium/10"
                             placeholder={JSON.stringify({ '@type': 'BlogPosting' }, null, 2)}
                           />
                         </div>
@@ -3989,7 +3991,7 @@ export default function Editor({
                     {selectedLocale !== post.locale && !translationsSet.has(selectedLocale) && (
                       <button
                         type="button"
-                        className="w-full py-2 text-xs font-bold uppercase tracking-wider rounded-xl border border-standout-medium/30 text-standout-medium hover:bg-standout-medium/5 transition-all flex items-center justify-center gap-2"
+                        className="w-full py-2 text-xs font-bold uppercase tracking-wider rounded-xl border border-standout-high/30 text-standout-high hover:bg-standout-high/5 transition-all flex items-center justify-center gap-2"
                         onClick={async () => {
                           const toCreate = selectedLocale
                           setIsCreatingTranslation(true)
@@ -4079,7 +4081,7 @@ export default function Editor({
                               }
                             }
                           }}
-                          className="text-[10px] font-bold text-standout-medium uppercase hover:underline"
+                          className="text-[10px] font-bold text-standout-high uppercase hover:underline"
                         >
                           Promote as Winner
                         </button>
@@ -4185,7 +4187,7 @@ export default function Editor({
                                 setPendingVariationToCreate(nextVar)
                                 setVariationCreateConfirmOpen(true)
                               }}
-                              className="flex-1 min-w-[60px] py-1.5 text-[11px] font-bold rounded-lg text-standout-medium hover:bg-standout-medium/5 transition-all"
+                              className="flex-1 min-w-[60px] py-1.5 text-[11px] font-bold rounded-lg text-standout-high hover:bg-standout-high/5 transition-all"
                             >
                               + {nextVar.value}
                             </button>
@@ -4262,7 +4264,7 @@ export default function Editor({
                         <div className="flex items-center gap-2">
                           <FontAwesomeIcon
                             icon={faWandMagicSparkles}
-                            className="w-4 h-4 text-standout-medium"
+                            className="w-4 h-4 text-standout-high"
                           />
                           <SelectValue placeholder="Select an agent..." />
                         </div>
@@ -4576,7 +4578,7 @@ export default function Editor({
                             {agentResponse.summary && (
                               <div className="space-y-1">
                                 <div className="text-xs text-neutral-medium">AI Response:</div>
-                                <div className="bg-standout-light p-4 rounded-lg border border-standout-medium text-sm whitespace-pre-wrap wrap-break-word">
+                                <div className="bg-standout-light p-4 rounded-lg border border-standout-high text-sm whitespace-pre-wrap wrap-break-word">
                                   {agentResponse.summary}
                                 </div>
                               </div>
@@ -4585,7 +4587,7 @@ export default function Editor({
                             {!agentResponse.summary && agentResponse.rawResponse && (
                               <div className="space-y-1">
                                 <div className="text-xs text-neutral-medium">AI Response:</div>
-                                <div className="bg-standout-light p-4 rounded-lg border border-standout-medium text-sm whitespace-pre-wrap wrap-break-word">
+                                <div className="bg-standout-light p-4 rounded-lg border border-standout-high text-sm whitespace-pre-wrap wrap-break-word">
                                   {(() => {
                                     const raw = agentResponse.rawResponse
                                     // Try to parse as JSON and extract summary
@@ -4986,7 +4988,7 @@ export default function Editor({
                       </Select>
                       <button
                         type="button"
-                        className={`h-8 px-3 text-xs rounded-lg disabled:opacity-50 flex items-center justify-center gap-1.5 ${!isDirty || processing || isSaving ? 'border border-border text-neutral-medium' : 'bg-standout-medium text-on-high font-medium'}`}
+                        className={`h-8 px-3 text-xs rounded-lg disabled:opacity-50 flex items-center justify-center gap-1.5 ${!isDirty || processing || isSaving ? 'border border-border text-neutral-medium' : 'bg-standout-high text-on-high font-medium'}`}
                         disabled={
                           !isDirty ||
                           processing ||
@@ -5031,7 +5033,7 @@ export default function Editor({
                   <div className="space-y-2">
                     <button
                       type="button"
-                      className={`h-8 px-3 text-xs rounded-lg disabled:opacity-50 flex items-center justify-center gap-1.5 ${!isDirty || processing || isSaving ? 'border border-border text-neutral-medium' : 'bg-standout-medium text-on-high font-medium'}`}
+                      className={`h-8 px-3 text-xs rounded-lg disabled:opacity-50 flex items-center justify-center gap-1.5 ${!isDirty || processing || isSaving ? 'border border-border text-neutral-medium' : 'bg-standout-high text-on-high font-medium'}`}
                       disabled={!isDirty || processing || isSaving || !canSaveForReview}
                       onClick={async () => {
                         await executeSave('review')
@@ -5056,7 +5058,7 @@ export default function Editor({
                     <p className="text-xs text-neutral-low">AI Review is AI-generated.</p>
                     <button
                       type="button"
-                      className={`h-8 px-3 text-xs rounded-lg disabled:opacity-50 flex items-center justify-center gap-1.5 ${!isDirty || processing || isSaving ? 'border border-border text-neutral-medium' : 'bg-standout-medium text-on-high font-medium'}`}
+                      className={`h-8 px-3 text-xs rounded-lg disabled:opacity-50 flex items-center justify-center gap-1.5 ${!isDirty || processing || isSaving ? 'border border-border text-neutral-medium' : 'bg-standout-high text-on-high font-medium'}`}
                       disabled={!isDirty || processing || isSaving}
                       onClick={async () => {
                         await executeSave('ai-review')
@@ -5563,7 +5565,7 @@ export default function Editor({
       </div>
       {/* Import Mode Modal (Admin) */}
       {isAdmin && isImportModeOpen && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center">
+        <div className="fixed inset-0 z-[60] flex items-center justify-center">
           <div
             className="absolute inset-0 bg-black/50"
             onClick={() => {
@@ -5619,7 +5621,7 @@ export default function Editor({
               </button>
               <button
                 type="button"
-                className="w-full px-3 py-2 text-sm rounded bg-standout-medium text-on-high hover:opacity-90"
+                className="w-full px-3 py-2 text-sm rounded bg-standout-high text-on-high hover:opacity-90"
                 onClick={async () => {
                   if (!pendingImportJson) return
                   const res = await fetch(`/api/posts/${post.id}/import`, {

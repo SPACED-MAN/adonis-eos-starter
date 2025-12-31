@@ -105,12 +105,12 @@ export default function HeroWithImmersion({
               className={`text-center lg:text-left space-y-8 ${imagePos === 'left' ? 'lg:order-2' : 'lg:order-1'}`}
             >
               {showTitle && (
-                <Title
-                  className="text-5xl md:text-7xl lg:text-8xl xl:text-9xl font-black text-neutral-high tracking-tighter drop-shadow-[0_10px_10px_rgba(0,0,0,0.5)] leading-[0.9]"
+              <Title
+                className="text-5xl md:text-7xl lg:text-8xl xl:text-9xl font-black text-neutral-high tracking-tighter drop-shadow-[0_10px_10px_rgba(0,0,0,0.5)] leading-[0.9]"
                   {...titleProps}
-                >
-                  {title}
-                </Title>
+              >
+                {title}
+              </Title>
               )}
               {showSubtitle && (
                 <Subtitle

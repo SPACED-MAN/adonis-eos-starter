@@ -29,12 +29,18 @@ export default class ProseWithMediaModule extends BaseModule {
       },
       fieldSchema: [
         {
+          slug: 'content_tab',
+          type: 'tab',
+          label: 'Content',
+        },
+        {
           slug: 'title',
           type: 'text',
           label: 'Title',
           required: true,
           description: 'Main heading text',
           translatable: true,
+          isLabel: true,
         },
         {
           slug: 'body',
@@ -53,16 +59,6 @@ export default class ProseWithMediaModule extends BaseModule {
           description: 'Image or video shown beside the prose (stored as media ID).',
         },
         {
-          slug: 'imagePosition',
-          type: 'select',
-          label: 'Image Position',
-          description: 'Which side the media appears on for larger screens',
-          options: [
-            { label: 'Left', value: 'left' },
-            { label: 'Right', value: 'right' },
-          ],
-        },
-        {
           slug: 'primaryCta',
           type: 'object',
           label: 'Primary CTA',
@@ -73,12 +69,28 @@ export default class ProseWithMediaModule extends BaseModule {
               type: 'text',
               label: 'Label',
               translatable: true,
+              isLabel: true,
             },
             {
               slug: 'url',
               type: 'link',
               label: 'Destination',
             },
+          ],
+        },
+        {
+          slug: 'design_tab',
+          type: 'tab',
+          label: 'Design',
+        },
+        {
+          slug: 'imagePosition',
+          type: 'select',
+          label: 'Image Position',
+          description: 'Which side the media appears on for larger screens',
+          options: [
+            { label: 'Left', value: 'left' },
+            { label: 'Right', value: 'right' },
           ],
         },
         backgroundColorField,

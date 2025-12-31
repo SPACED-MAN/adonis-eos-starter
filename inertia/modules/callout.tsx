@@ -46,7 +46,7 @@ export default function Callout(props: CalloutProps) {
     initialBackground ||
     'bg-backdrop-low'
 
-  const isDarkBg = backgroundColor === 'bg-neutral-high' || backgroundColor === 'bg-backdrop-high' || backgroundColor === 'bg-standout-medium'
+  const isDarkBg = backgroundColor === 'bg-neutral-high' || backgroundColor === 'bg-backdrop-high' || backgroundColor === 'bg-standout-high'
   const textColor = isDarkBg ? 'text-on-high' : 'text-neutral-high'
   const subtextColor = isDarkBg ? 'text-on-high/80' : 'text-neutral-medium'
 
@@ -307,8 +307,8 @@ function ButtonComponent({
 
   const styleMap = {
     primary: isDarkBg
-      ? 'bg-white text-standout-medium hover:bg-neutral-50'
-      : 'bg-standout-medium text-on-high hover:opacity-90',
+      ? 'bg-white text-standout-high hover:bg-neutral-50'
+      : 'bg-standout-high text-on-high hover:opacity-90',
     secondary: isDarkBg
       ? 'bg-on-high/10 text-on-high hover:bg-on-high/20'
       : 'bg-backdrop-medium hover:bg-backdrop-high text-neutral-high',

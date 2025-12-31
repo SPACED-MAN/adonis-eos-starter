@@ -221,7 +221,7 @@ export default function UserEdit() {
               <div className="flex items-center gap-2">
                 <button
                   type="button"
-                  className={`px-3 py-2 text-sm rounded ${saving ? 'opacity-60' : 'bg-standout-medium text-on-high'}`}
+                  className={`px-3 py-2 text-sm rounded ${saving ? 'opacity-60' : 'bg-standout-high text-on-high'}`}
                   disabled={saving}
                   onClick={save}
                 >

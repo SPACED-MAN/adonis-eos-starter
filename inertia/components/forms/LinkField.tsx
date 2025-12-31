@@ -294,7 +294,7 @@ export const LinkField: React.FC<LinkFieldProps> = ({
           <span className="text-xs font-semibold text-neutral-medium">Link to</span>
           <div className="relative">
             <select
-              className="text-xs px-3 py-1.5 border border-line-medium rounded-lg bg-backdrop-low text-neutral-high outline-none focus:ring-2 focus:ring-standout-medium/20 focus:border-standout-medium transition-all appearance-none pr-8"
+              className="text-xs px-3 py-1.5 border border-line-medium rounded-lg bg-backdrop-low text-neutral-high outline-none focus:ring-2 focus:ring-standout-high/20 focus:border-standout-high transition-all appearance-none pr-8"
               value={mode}
               onChange={(e) => {
                 const nextMode = e.target.value === 'post' ? 'post' : 'url'
@@ -327,7 +327,7 @@ export const LinkField: React.FC<LinkFieldProps> = ({
             <Input
               type="url"
               placeholder="https://example.com"
-              className="rounded-xl border-line-medium focus:ring-standout-medium/20 focus:border-standout-medium"
+              className="rounded-xl border-line-medium focus:ring-standout-high/20 focus:border-standout-high"
               value={link && link.kind === 'url' ? link.url : ''}
               onChange={(e) => {
                 const val = e.target.value
@@ -405,7 +405,7 @@ export const LinkField: React.FC<LinkFieldProps> = ({
                             key={p.id}
                             type="button"
                             className={`w-full text-left px-3 py-2 rounded-lg border transition-all ${isSelected
-                                ? 'border-standout-medium bg-standout-medium/5 ring-1 ring-standout-medium/20'
+                                ? 'border-standout-high bg-standout-high/5 ring-1 ring-standout-high/20'
                                 : 'border-transparent hover:bg-backdrop-medium'
                               }`}
                             onClick={() => {
@@ -448,7 +448,7 @@ export const LinkField: React.FC<LinkFieldProps> = ({
             <span className="text-xs font-semibold text-neutral-medium">Open in</span>
             <div className="relative">
               <select
-                className="text-xs px-3 py-1.5 border border-line-medium rounded-lg bg-backdrop-low text-neutral-high outline-none focus:ring-2 focus:ring-standout-medium/20 focus:border-standout-medium transition-all appearance-none pr-8"
+                className="text-xs px-3 py-1.5 border border-line-medium rounded-lg bg-backdrop-low text-neutral-high outline-none focus:ring-2 focus:ring-standout-high/20 focus:border-standout-high transition-all appearance-none pr-8"
                 value={currentTarget}
                 onChange={(e) => {
                   const nextTarget: '_self' | '_blank' =

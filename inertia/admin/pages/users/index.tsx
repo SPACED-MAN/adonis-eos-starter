@@ -252,7 +252,7 @@ export default function UsersIndex() {
               onClick={() => setActiveTab('list')}
               className={`px-4 py-2 border-b-2 font-medium text-sm transition-colors ${
                 activeTab === 'list'
-                  ? 'border-standout-medium text-standout-high'
+                  ? 'border-standout-high text-standout-high'
                   : 'border-transparent text-neutral-medium hover:text-neutral-high'
               }`}
             >
@@ -262,7 +262,7 @@ export default function UsersIndex() {
               onClick={() => setActiveTab('profiles')}
               className={`px-4 py-2 border-b-2 font-medium text-sm transition-colors ${
                 activeTab === 'profiles'
-                  ? 'border-standout-medium text-standout-high'
+                  ? 'border-standout-high text-standout-high'
                   : 'border-transparent text-neutral-medium hover:text-neutral-high'
               }`}
             >
@@ -285,7 +285,7 @@ export default function UsersIndex() {
                 <AlertDialog open={createOpen} onOpenChange={setCreateOpen}>
                   <AlertDialogTrigger asChild>
                     <button
-                      className="px-3 py-2 text-sm rounded bg-standout-medium text-on-high hover:opacity-90"
+                      className="px-3 py-2 text-sm rounded bg-standout-high text-on-high hover:opacity-90"
                       type="button"
                     >
                       Add user
@@ -349,7 +349,7 @@ export default function UsersIndex() {
                       </button>
                       <button
                         type="button"
-                        className="px-3 py-2 text-sm rounded bg-standout-medium text-on-high hover:opacity-90 disabled:opacity-50"
+                        className="px-3 py-2 text-sm rounded bg-standout-high text-on-high hover:opacity-90 disabled:opacity-50"
                         onClick={createUser}
                         disabled={creating}
                       >
@@ -586,7 +586,7 @@ export default function UsersIndex() {
                           <input
                             type="checkbox"
                             checked={checked}
-                            className="rounded border-line-medium text-standout-medium focus:ring-standout-medium"
+                            className="rounded border-line-medium text-standout-high focus:ring-standout-high"
                             onChange={(e) => {
                               const next = new Set(profileRolesEnabled)
                               if (e.target.checked) next.add(r.name)
@@ -606,7 +606,7 @@ export default function UsersIndex() {
                 <div className="flex items-center gap-2">
                   <button
                     type="button"
-                    className={`px-3 py-2 text-sm rounded ${profileSettingsSaving ? 'opacity-60' : 'bg-standout-medium text-on-high'}`}
+                    className={`px-3 py-2 text-sm rounded ${profileSettingsSaving ? 'opacity-60' : 'bg-standout-high text-on-high'}`}
                     disabled={profileSettingsSaving}
                     onClick={saveProfileSettings}
                   >

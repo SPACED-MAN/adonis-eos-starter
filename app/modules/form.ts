@@ -36,11 +36,17 @@ export default class FormModule extends BaseModule {
       },
       fieldSchema: [
         {
+          slug: 'content_tab',
+          type: 'tab',
+          label: 'Content',
+        },
+        {
           slug: 'title',
           type: 'text',
           required: false,
           description: 'Optional heading shown above the form',
           translatable: true,
+          isLabel: true,
         },
         {
           slug: 'subtitle',
@@ -54,6 +60,11 @@ export default class FormModule extends BaseModule {
           type: 'form-reference',
           required: true,
           description: 'Form to render (e.g., contact). Choose from Forms defined in the admin.',
+        },
+        {
+          slug: 'design_tab',
+          type: 'tab',
+          label: 'Design',
         },
         backgroundColorField,
       ],

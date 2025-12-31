@@ -47,7 +47,7 @@ export default function Pricing({
   const plans = useInlineValue(__moduleId, 'plans', initialPlans)
   const bg = useInlineValue(__moduleId, 'backgroundColor', backgroundColor) || backgroundColor
 
-  const isDarkBg = bg === 'bg-neutral-high' || bg === 'bg-backdrop-high' || bg === 'bg-standout-medium'
+  const isDarkBg = bg === 'bg-neutral-high' || bg === 'bg-backdrop-high' || bg === 'bg-standout-high'
   const textColor = isDarkBg ? 'text-on-high' : 'text-neutral-high'
   const subtextColor = isDarkBg ? 'text-on-high/80' : 'text-neutral-medium'
 
@@ -130,7 +130,7 @@ export default function Pricing({
 
         const planCard = (
           <div
-            className={`flex flex-col h-full p-6 mx-auto max-w-lg text-center ${isDarkBg ? 'bg-backdrop-low/10' : 'bg-backdrop-low'} rounded-lg border border-line-low shadow-sm xl:p-8 ${isPrimary ? 'ring-2 ring-standout-medium shadow-md' : ''
+            className={`flex flex-col h-full p-6 mx-auto max-w-lg text-center ${isDarkBg ? 'bg-backdrop-low/10' : 'bg-backdrop-low'} rounded-lg border border-line-low shadow-sm xl:p-8 ${isPrimary ? 'ring-2 ring-standout-high shadow-md' : ''
               }`}
             data-inline-type="object"
             data-inline-path={`plans.${idx}`}
@@ -184,7 +184,7 @@ export default function Pricing({
                 href={hrefInfo.href}
                 target={hrefInfo.target}
                 rel={hrefInfo.target === '_blank' ? 'noopener noreferrer' : undefined}
-                className={`mt-auto inline-flex justify-center items-center px-5 py-2.5 text-sm font-medium rounded-lg text-on-high bg-standout-medium hover:opacity-90 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-standout-medium/60 transition-all active:scale-95`}
+                className={`mt-auto inline-flex justify-center items-center px-5 py-2.5 text-sm font-medium rounded-lg text-on-high bg-standout-high hover:opacity-90 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-standout-high/60 transition-all active:scale-95`}
                 data-inline-type="link"
                 data-inline-path={`plans.${idx}.ctaUrl`}
               >

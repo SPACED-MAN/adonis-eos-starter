@@ -34,7 +34,7 @@ export default function Blockquote({
   const { value: avatar, show: showAvatar, props: avatarProps } = useInlineField(__moduleId, 'avatar', initialAvatar, { type: 'media', label: 'Avatar' })
   const bg = useInlineValue(__moduleId, 'backgroundColor', backgroundColor) || backgroundColor
 
-  const isDarkBg = bg === 'bg-neutral-high' || bg === 'bg-backdrop-high' || bg === 'bg-standout-medium'
+  const isDarkBg = bg === 'bg-neutral-high' || bg === 'bg-backdrop-high' || bg === 'bg-standout-high'
   const textColor = isDarkBg ? 'text-on-high' : 'text-neutral-high'
   const subtextColor = isDarkBg ? 'text-on-high/80' : 'text-neutral-medium'
   const quoteIconColor = isDarkBg ? 'text-on-high/40' : 'text-neutral-low'

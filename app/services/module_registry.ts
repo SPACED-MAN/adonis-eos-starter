@@ -212,6 +212,28 @@ class ModuleRegistry {
       return config.allowedPostTypes.includes(postType)
     })
   }
+
+  /**
+   * Extract a dynamic label from module fields based on field schema isLabel markers.
+   *
+   * @param type - Module type
+   * @param fields - Current module field values
+   * @returns Dynamic label string or null
+   */
+  getDynamicLabel(type: string, fields: Record<string, any>): string | null {
+    if (!this.has(type)) return null
+
+    const config = this.get(type).getConfig()
+    const labelField = config.fieldSchema?.find((f: any) => f.isLabel)
+
+    if (labelField && fields[labelField.slug]) {
+      const val = fields[labelField.slug]
+      if (typeof val === 'string' && val.trim() !== '') return val.trim()
+      if (typeof val === 'number') return String(val)
+    }
+
+    return null
+  }
 }
 
 // Export singleton instance

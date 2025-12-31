@@ -26,11 +26,17 @@ export default class AccordionModule extends BaseModule {
       },
       fieldSchema: [
         {
+          slug: 'content_tab',
+          type: 'tab',
+          label: 'Content',
+        },
+        {
           slug: 'title',
           type: 'text',
           label: 'Heading',
           required: false,
           translatable: true,
+          isLabel: true,
         },
         {
           slug: 'subtitle',
@@ -54,6 +60,7 @@ export default class AccordionModule extends BaseModule {
                 required: true,
                 description: 'Item title',
                 translatable: true,
+                isLabel: true,
               },
               {
                 slug: 'content',
@@ -64,6 +71,11 @@ export default class AccordionModule extends BaseModule {
               },
             ],
           },
+        },
+        {
+          slug: 'design_tab',
+          type: 'tab',
+          label: 'Design',
         },
         {
           slug: 'allowMultiple',
