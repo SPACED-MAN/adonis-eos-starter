@@ -34,7 +34,6 @@ export interface Agent {
     placeholder?: string
     maxChars?: number
   }
-  type?: 'internal' | 'external'
 }
 
 export interface ExecutionMeta {

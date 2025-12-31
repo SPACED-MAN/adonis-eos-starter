@@ -7,16 +7,17 @@ import type {
 } from '#services/ai_provider_service'
 import mcpClientService from '#services/mcp_client_service'
 import reactionExecutorService from '#services/reaction_executor_service'
+import agentDesignContextService from '#services/agent_design_context_service'
 
 /**
- * Internal Agent Executor Service
+ * Agent Executor Service
  *
- * Executes internal agents using AI providers and optionally MCP tools.
+ * Executes agents using AI providers and optionally MCP tools.
  * Handles message building, AI completion, MCP tool integration, and reactions.
  */
-class InternalAgentExecutor {
+class AgentExecutor {
   /**
-   * Execute an internal agent
+   * Execute an agent
    */
   async execute(
     agent: AgentDefinition,
@@ -28,8 +29,8 @@ class InternalAgentExecutor {
     error?: Error
     lastCreatedPostId?: string | null
   }> {
-    if (!agent.internal) {
-      throw new Error('Agent is not configured as internal')
+    if (!agent.llmConfig) {
+      throw new Error('Agent is not configured with LLM capabilities')
     }
 
     const startTime = Date.now()
@@ -38,11 +39,11 @@ class InternalAgentExecutor {
       const messages = await this.buildMessages(agent, context, payload)
 
       // 2. Get AI provider configuration
-      const aiConfig = await this.getAIConfig(agent.internal)
+      const aiConfig = await this.getAIConfig(agent.llmConfig)
       aiProviderService.validateConfig(aiConfig)
 
       // 3. Get completion options
-      const completionOptions = this.getCompletionOptions(agent.internal)
+      const completionOptions = this.getCompletionOptions(agent.llmConfig)
 
       // 4. First AI completion
       let aiResult = await aiProviderService.complete(messages, completionOptions, aiConfig)
@@ -65,7 +66,7 @@ class InternalAgentExecutor {
       let lastCreatedPostId: string | null = null
       const allToolResults: any[] = []
 
-      if (agent.internal.useMCP) {
+      if (agent.llmConfig.useMCP) {
         let currentTurn = 1
         const maxTurns = 10 // Increased from 6 to 10 for complex workflows
 
@@ -287,8 +288,8 @@ RESPOND WITH YOUR NEXT TOOL CALLS IN JSON FORMAT.`
 
       try {
         // Check if tool is allowed
-        if (agent.internal?.allowedMCPTools && agent.internal.allowedMCPTools.length > 0) {
-          if (!agent.internal.allowedMCPTools.includes(tool)) {
+        if (agent.llmConfig?.allowedMCPTools && agent.llmConfig.allowedMCPTools.length > 0) {
+          if (!agent.llmConfig.allowedMCPTools.includes(tool)) {
             results.push({
               tool,
               error: `Tool '${tool}' is not in the allowed list`,
@@ -367,13 +368,29 @@ RESPOND WITH YOUR NEXT TOOL CALLS IN JSON FORMAT.`
     const messages: AIMessage[] = []
 
     // System prompt
-    if (agent.internal?.systemPrompt) {
-      let systemPrompt = this.interpolateTemplate(agent.internal.systemPrompt, {
+    if (agent.llmConfig?.systemPrompt) {
+      let systemPrompt = this.interpolateTemplate(agent.llmConfig.systemPrompt, {
         agent: agent.name,
         scope: context.scope,
         ...context.data,
         ...payload,
       })
+
+      // Add dynamic design context if agent is Media-scoped
+      const isMediaScoped =
+        agent.scopes?.some((s) => s.fieldTypes?.includes('media')) ||
+        !!agent.llmConfig.providerMedia ||
+        !!agent.llmConfig.modelMedia ||
+        agent.id.toLowerCase().includes('media') ||
+        agent.id.toLowerCase().includes('graphic-designer') ||
+        agent.id.toLowerCase().includes('videographer')
+
+      if (isMediaScoped) {
+        const designContext = await agentDesignContextService.getDesignContext()
+        if (designContext) {
+          systemPrompt += `\n\n${designContext}`
+        }
+      }
 
       // Add style guide for media generation if configured
       if (agent.styleGuide) {
@@ -561,11 +578,11 @@ Only include fields that you are actually changing.`,
     }
 
     // Add MCP tools info if enabled
-    if (agent.internal?.useMCP) {
+    if (agent.llmConfig?.useMCP) {
       const availableTools = await mcpClientService.listTools()
       const allowedTools =
-        agent.internal?.allowedMCPTools && agent.internal.allowedMCPTools.length > 0
-          ? availableTools.filter((t) => agent.internal?.allowedMCPTools?.includes(t.name))
+        agent.llmConfig?.allowedMCPTools && agent.llmConfig.allowedMCPTools.length > 0
+          ? availableTools.filter((t) => agent.llmConfig?.allowedMCPTools?.includes(t.name))
           : availableTools
 
       parts.push('\n\nYou have access to the following MCP tools:')
@@ -584,7 +601,7 @@ Only include fields that you are actually changing.`,
    * Get AI provider configuration from agent config
    */
   private async getAIConfig(
-    internal: NonNullable<AgentDefinition['internal']>,
+    config: AgentConfig,
     type: 'text' | 'media' = 'text'
   ): Promise<AIProviderConfig> {
     // Determine provider and model based on type
@@ -592,11 +609,11 @@ Only include fields that you are actually changing.`,
     let model: string | undefined
 
     if (type === 'media') {
-      provider = internal.providerMedia || internal.provider
-      model = internal.modelMedia || internal.model
+      provider = config.providerMedia || config.provider
+      model = config.modelMedia || config.model
     } else {
-      provider = internal.providerText || internal.provider
-      model = internal.modelText || internal.model
+      provider = config.providerText || config.provider
+      model = config.modelText || config.model
     }
 
     // Fallback to global defaults if not in agent config
@@ -622,7 +639,7 @@ Only include fields that you are actually changing.`,
     }
 
     // Get API key from config or environment
-    let apiKey = internal.apiKey
+    let apiKey = config.apiKey
     const envKey = `AI_PROVIDER_${provider.toUpperCase()}_API_KEY`
     if (!apiKey) {
       // Try environment variable
@@ -639,8 +656,8 @@ Only include fields that you are actually changing.`,
       provider,
       apiKey,
       model,
-      baseUrl: internal.baseUrl,
-      options: internal.options,
+      baseUrl: config.baseUrl,
+      options: config.options,
     }
   }
 
@@ -648,13 +665,13 @@ Only include fields that you are actually changing.`,
    * Get completion options from agent config
    */
   private getCompletionOptions(
-    internal: NonNullable<AgentDefinition['internal']>
+    config: AgentConfig
   ): AICompletionOptions {
     return {
-      temperature: internal.options?.temperature ?? 0.7,
-      maxTokens: internal.options?.maxTokens,
-      topP: internal.options?.topP,
-      stop: internal.options?.stop,
+      temperature: config.options?.temperature ?? 0.7,
+      maxTokens: config.options?.maxTokens,
+      topP: config.options?.topP,
+      stop: config.options?.stop,
     }
   }
 
@@ -708,5 +725,5 @@ Only include fields that you are actually changing.`,
   }
 }
 
-const internalAgentExecutor = new InternalAgentExecutor()
-export default internalAgentExecutor
+const agentExecutor = new AgentExecutor()
+export default agentExecutor

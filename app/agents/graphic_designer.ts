@@ -19,7 +19,7 @@ const GraphicDesignerAgent: AgentDefinition = {
   description: 'Generate and enhance media assets with AI-powered design assistance.',
   enabled: true,
 
-  internal: {
+  llmConfig: {
     // Reasoning model (Google Gemini 2.0 Flash)
     // This high-speed model is the "brain" that understands design instructions.
     providerText: 'google',

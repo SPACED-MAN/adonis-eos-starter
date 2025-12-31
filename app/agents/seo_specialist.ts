@@ -12,7 +12,7 @@ const SeoSpecialistAgent: AgentDefinition = {
   description: 'Optimize content for SEO and generate Schema Markup.',
   enabled: true,
 
-  internal: {
+  llmConfig: {
     providerText: 'openai',
     modelText: 'gpt-4o',
     // Fallback

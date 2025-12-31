@@ -18,7 +18,7 @@ const GeneralAssistantAgent: AgentDefinition = {
   description: 'Make any general request.',
   enabled: true, // Set to true to enable
 
-  internal: {
+  llmConfig: {
     // Provider: 'openai' | 'anthropic' | 'google' | 'nanobanana'
     providerText: 'openai',
     modelText: 'gpt-4o',

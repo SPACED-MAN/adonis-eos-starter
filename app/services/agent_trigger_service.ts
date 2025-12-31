@@ -1,6 +1,6 @@
 import type { AgentScope } from '#types/agent_types'
 import agentRegistry from '#services/agent_registry'
-import internalAgentExecutor from '#services/internal_agent_executor'
+import agentExecutor from '#services/agent_executor'
 import PostSerializerService from '#services/post_serializer_service'
 
 /**
@@ -53,7 +53,7 @@ class AgentTriggerService {
         // We run these in sequence to avoid overwhelming the AI providers
         // and because some agents might depend on changes from previous ones
         // (though currently we don't re-serialize between agents in the same scope)
-        await internalAgentExecutor.execute(agent, executionContext, payload)
+        await agentExecutor.execute(agent, executionContext, payload)
       } catch (error) {
         console.error(`Failed to run automatic agent ${agent.id} for scope ${scope}:`, error)
       }

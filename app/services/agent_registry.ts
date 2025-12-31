@@ -16,8 +16,8 @@ class AgentRegistry {
     }
 
     // Validate definition
-    if (!definition.internal) {
-      throw new Error(`Agent "${definition.id}" is missing internal config`)
+    if (!definition.llmConfig) {
+      throw new Error(`Agent "${definition.id}" is missing LLM config`)
     }
 
     // Set defaults

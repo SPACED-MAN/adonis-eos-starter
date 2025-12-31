@@ -27,9 +27,9 @@ export type AgentScope =
 export type AIProvider = 'openai' | 'anthropic' | 'google'
 
 /**
- * Configuration for internal (AI service-based) agents
+ * Configuration for agents (AI service-based)
  */
-export interface InternalAgentConfig {
+export interface AgentConfig {
   /**
    * AI provider identifier for text generation (e.g., openai, anthropic, google)
    * Fallback for 'provider' if not specified.
@@ -202,9 +202,9 @@ export interface AgentDefinition {
   description?: string
 
   /**
-   * Configuration for internal agents (required)
+   * Configuration for AI service-based generation (required)
    */
-  internal: InternalAgentConfig
+  llmConfig: AgentConfig
 
   /**
    * List of scopes where this agent is available

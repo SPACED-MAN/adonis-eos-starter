@@ -1814,8 +1814,8 @@ function createServerInstance() {
           },
         }
 
-        // We need to import the internal agent executor dynamically
-        const { default: internalAgentExecutor } = await import('#services/internal_agent_executor')
+        // We need to import the agent executor dynamically
+        const { default: agentExecutor } = await import('#services/agent_executor')
 
         // Create a payload for the agent
         const canonical = await PostSerializerService.serialize(postId, 'source')
@@ -1831,14 +1831,14 @@ function createServerInstance() {
           },
         }
 
-        const result = await internalAgentExecutor.execute(
+        const result = await agentExecutor.execute(
           agent as any,
           executionContext,
           payload as any
         )
 
         if (!result.success) {
-          return errorResult('Internal agent execution failed', { message: result.error?.message })
+          return errorResult('Agent execution failed', { message: result.error?.message })
         }
 
         agentResponse = result.data

@@ -18,7 +18,7 @@ const VideographerAgent: AgentDefinition = {
   description: 'Generate and enhance video assets with AI-powered video production assistance.',
   enabled: true,
 
-  internal: {
+  llmConfig: {
     // Reasoning model (Google Gemini 2.0 Flash)
     providerText: 'google',
     modelText: 'gemini-2.0-flash',

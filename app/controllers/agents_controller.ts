@@ -6,7 +6,7 @@ import roleRegistry from '#services/role_registry'
 import RevisionService from '#services/revision_service'
 import PostSnapshotService from '#services/post_snapshot_service'
 import AgentPostPayloadDto from '#dtos/agent_post_payload_dto'
-import internalAgentExecutor from '#services/internal_agent_executor'
+import agentExecutor from '#services/agent_executor'
 import type { AgentExecutionContext, AgentScope } from '#types/agent_types'
 import moduleRegistry from '#services/module_registry'
 import agentExecutionService from '#services/agent_execution_service'
@@ -97,7 +97,6 @@ export default class AgentsController {
       id: a.id,
       name: a.name,
       description: a.description,
-      type: a.type || 'internal',
       openEndedContext: a.openEndedContext?.enabled
         ? {
             enabled: true,
@@ -286,7 +285,7 @@ export default class AgentsController {
       ...(openEndedContext ? { openEndedContext } : {}),
     })
 
-    if (!agent.internal) {
+    if (!agent.llmConfig) {
       throw new Error('Agent missing configuration')
     }
 
@@ -304,11 +303,11 @@ export default class AgentsController {
       },
     }
 
-    // Execute internal agent
-    const result = await internalAgentExecutor.execute(agent, executionContext, payload)
+    // Execute agent
+    const result = await agentExecutor.execute(agent, executionContext, payload)
 
     if (!result.success) {
-      throw result.error || new Error('Internal agent execution failed')
+      throw result.error || new Error('Agent execution failed')
     }
 
     const suggestions = result.data || {}
@@ -608,7 +607,7 @@ export default class AgentsController {
 
       // For global agents, we need to handle the case where they want to create content
       // For now, we'll execute the agent with a minimal context
-      if (!agent.internal) {
+      if (!agent.llmConfig) {
         return response.badRequest({ error: 'Agent missing configuration' })
       }
 
@@ -631,8 +630,8 @@ export default class AgentsController {
         },
       }
 
-      // Execute internal agent
-      const result = await internalAgentExecutor.execute(agent, executionContext, payload)
+      // Execute agent
+      const result = await agentExecutor.execute(agent, executionContext, payload)
 
       if (!result.success) {
         const errorMessage = result.error?.message || 'Agent execution failed'

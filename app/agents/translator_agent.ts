@@ -12,7 +12,7 @@ const TranslatorAgent: AgentDefinition = {
   description: 'Create translations and manage multi-lingual content.',
   enabled: true,
 
-  internal: {
+  llmConfig: {
     providerText: 'openai',
     modelText: 'gpt-4o',
     // Fallback

@@ -22,7 +22,6 @@ type Agent = {
   id: string
   name: string
   description: string
-  type: string
   openEndedContext: {
     enabled: boolean
     label?: string
@@ -183,7 +182,6 @@ export default function AgentsIndex() {
               <TableHeader>
                 <TableRow>
                   <TableHead>Name</TableHead>
-                  <TableHead>Type</TableHead>
                   <TableHead>Description</TableHead>
                   <TableHead>Scopes</TableHead>
                   <TableHead>Context</TableHead>
@@ -193,7 +191,7 @@ export default function AgentsIndex() {
                 {agentsLoading ? (
                   <TableRow>
                     <TableCell
-                      colSpan={5}
+                      colSpan={4}
                       className="text-center py-8 text-neutral-low animate-pulse"
                     >
                       Loading agents...
@@ -201,7 +199,7 @@ export default function AgentsIndex() {
                   </TableRow>
                 ) : agents.length === 0 ? (
                   <TableRow>
-                    <TableCell colSpan={5} className="text-center py-8 text-neutral-low">
+                    <TableCell colSpan={4} className="text-center py-8 text-neutral-low">
                       No agents found.
                     </TableCell>
                   </TableRow>
@@ -209,7 +207,6 @@ export default function AgentsIndex() {
                   agents.map((agent) => (
                     <TableRow key={agent.id}>
                       <TableCell className="font-medium">{agent.name}</TableCell>
-                      <TableCell className="capitalize">{agent.type}</TableCell>
                       <TableCell className="max-w-md text-sm text-neutral-medium">
                         {agent.description}
                       </TableCell>

@@ -13,7 +13,7 @@ Agents are file-based definitions that can:
 
 ## Agent Types
 
-### Internal Agents (AI-Powered)
+### Agents (AI-Powered)
 
 In-process AI agents that use AI providers directly (OpenAI, Anthropic, Google, Nano Banana) without external webhooks. These agents:
 
@@ -23,7 +23,7 @@ In-process AI agents that use AI providers directly (OpenAI, Anthropic, Google, 
 - **Reaction system** - Execute webhooks, Slack notifications, and more after completion
 - **Faster execution** - No network latency to external services
 
-Internal agents are ideal for:
+Agents are ideal for:
 
 - Quick content improvements
 - SEO optimization
@@ -32,20 +32,20 @@ Internal agents are ideal for:
 
 ## Creating an Agent
 
-### Internal Agent Example
+### Agent Example
 
-Here's a complete example of an internal agent:
+Here's a complete example of an agent:
 
 ```typescript
 import type { AgentDefinition } from '#types/agent_types'
 
-const InternalAiAssistantAgent: AgentDefinition = {
-  id: 'internal-ai-assistant',
-  name: 'Internal AI Assistant',
+const AiAssistantAgent: AgentDefinition = {
+  id: 'ai-assistant',
+  name: 'AI Assistant',
   description: 'Built-in AI assistant powered by OpenAI',
   enabled: true,
 
-  internal: {
+  llmConfig: {
     // Text provider: 'openai' | 'anthropic' | 'google' | 'nanobanana'
     providerText: 'openai',
     modelText: 'gpt-4o',
@@ -145,7 +145,7 @@ Even specialized media agents like the **Graphic Designer** require two distinct
 A media model cannot "think" or interact with the CMS; it requires a text-based "brain" to coordinate the workflow.
 
 ```typescript
-internal: {
+llmConfig: {
   // Reasoning model (The Brain)
   // Nano Banana is a high-speed Gemini text model
   providerText: 'google',
@@ -162,10 +162,10 @@ If `providerText`/`modelText` or `providerMedia`/`modelMedia` are missing, the s
 
 ### MCP Integration
 
-Internal agents can use MCP tools to interact with the CMS:
+Agents can use MCP tools to interact with the CMS:
 
 ```typescript
-internal: {
+llmConfig: {
   provider: 'openai',
   model: 'gpt-4',
   useMCP: true,
@@ -196,7 +196,7 @@ const YourAgent: AgentDefinition = {
   name: 'Your Agent',
   enabled: true,
 
-  internal: {
+  llmConfig: {
     provider: 'openai',
     model: 'gpt-4',
     systemPrompt: '...',
@@ -222,7 +222,7 @@ const YourAgent: AgentDefinition = {
 1. **Graphic Designer** (`app/agents/graphic_designer.ts`) - Restricted to media tools only:
 
    ```typescript
-   internal: {
+   llmConfig: {
      useMCP: true,
      allowedMCPTools: ['list_media', 'get_media', 'generate_image'],
    }
@@ -230,7 +230,7 @@ const YourAgent: AgentDefinition = {
 
 2. **General Assistant** (`app/agents/general_assistant.ts`) - Full access:
    ```typescript
-   internal: {
+   llmConfig: {
      useMCP: true,
      allowedMCPTools: [], // Empty = all tools
    }
@@ -249,7 +249,7 @@ const YourAgent: AgentDefinition = {
 The Graphic Designer agent is restricted to only media-related tools:
 
 ```typescript
-internal: {
+llmConfig: {
   provider: 'nanobanana',
   model: 'gemini-1.5-flash',
   useMCP: true,
@@ -275,7 +275,7 @@ This agent cannot:
 The General Assistant has full access to all MCP tools:
 
 ```typescript
-internal: {
+llmConfig: {
   provider: 'openai',
   model: 'gpt-4',
   useMCP: true,
@@ -412,7 +412,7 @@ const SeoOptimizerAgent: AgentDefinition = {
   description: 'Automatically generates and optimizes SEO metadata',
   enabled: true,
 
-  internal: {
+  llmConfig: {
     provider: 'openai',
     model: 'gpt-4',
     systemPrompt: 'You are an SEO expert. Optimize metadata for better search rankings.',
@@ -867,7 +867,7 @@ const SeoAgent: AgentDefinition = {
   description: 'Optimizes SEO metadata using AI',
   enabled: true,
 
-  internal: {
+  llmConfig: {
     provider: 'openai',
     model: 'gpt-4',
     systemPrompt: `You are an SEO expert. Analyze the post content and suggest optimized metaTitle and metaDescription that improve search rankings while accurately representing the content.`,
@@ -906,7 +906,7 @@ export default SeoAgent
 5. **Order execution**: Use `order` field for dependent agents
 6. **Scope appropriately**: Don't auto-run destructive agents
 
-### Internal Agents
+### Agents
 
 1. **Choose the right provider**: OpenAI for general tasks, Anthropic for complex reasoning, Google for multimodal
 2. **Optimize prompts**: Clear system prompts improve results
