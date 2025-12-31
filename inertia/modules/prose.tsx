@@ -101,6 +101,16 @@ export default function Prose({
         transition={{ duration: 1.0, ease: 'easeOut' }}
         className={`${backgroundColor} ${padding}`}
         data-module="prose"
+        data-inline-type="select"
+        data-inline-path="backgroundColor"
+        data-inline-label="Background Color"
+        data-inline-options={JSON.stringify([
+          { label: 'Transparent', value: 'bg-transparent' },
+          { label: 'Low', value: 'bg-backdrop-low' },
+          { label: 'Medium', value: 'bg-backdrop-medium' },
+          { label: 'High', value: 'bg-backdrop-high' },
+          { label: 'Dark', value: 'bg-neutral-high' },
+        ])}
       >
         {innerContent}
       </motion.section>
@@ -108,7 +118,20 @@ export default function Prose({
   }
 
   return (
-    <section className={`${backgroundColor} ${padding}`} data-module="prose">
+    <section
+      className={`${backgroundColor} ${padding}`}
+      data-module="prose"
+      data-inline-type="select"
+      data-inline-path="backgroundColor"
+      data-inline-label="Background Color"
+      data-inline-options={JSON.stringify([
+        { label: 'Transparent', value: 'bg-transparent' },
+        { label: 'Low', value: 'bg-backdrop-low' },
+        { label: 'Medium', value: 'bg-backdrop-medium' },
+        { label: 'High', value: 'bg-backdrop-high' },
+        { label: 'Dark', value: 'bg-neutral-high' },
+      ])}
+    >
       {innerContent}
     </section>
   )

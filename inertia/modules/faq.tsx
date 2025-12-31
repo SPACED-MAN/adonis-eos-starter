@@ -187,7 +187,20 @@ export default function Faq({
   )
 
   return (
-    <section className={`${bg} py-12 sm:py-16`} data-module="faq">
+    <section
+      className={`${bg} py-12 sm:py-16`}
+      data-module="faq"
+      data-inline-type="select"
+      data-inline-path="backgroundColor"
+      data-inline-label="Background Color"
+      data-inline-options={JSON.stringify([
+        { label: 'Transparent', value: 'bg-transparent' },
+        { label: 'Low', value: 'bg-backdrop-low' },
+        { label: 'Medium', value: 'bg-backdrop-medium' },
+        { label: 'High', value: 'bg-backdrop-high' },
+        { label: 'Dark', value: 'bg-neutral-high' },
+      ])}
+    >
       <div className="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8">
         {headerContent}
         {_useReact ? (

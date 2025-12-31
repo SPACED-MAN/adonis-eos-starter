@@ -1,6 +1,6 @@
 import { motion } from 'framer-motion'
 import type { LinkValue } from './types'
-import { useInlineValue } from '../components/inline-edit/InlineEditorContext'
+import { useInlineValue, useInlineField } from '../components/inline-edit/InlineEditorContext'
 import { resolveLink, resolvePostLink } from '../utils/resolve_link'
 import { useState, useEffect } from 'react'
 
@@ -205,8 +205,8 @@ export default function HeroWithCallout({
   __moduleId,
   _useReact,
 }: HeroWithCalloutProps) {
-  const title = useInlineValue(__moduleId, 'title', initialTitle)
-  const subtitle = useInlineValue(__moduleId, 'subtitle', initialSubtitle)
+  const { value: title, show: showTitle, props: titleProps } = useInlineField(__moduleId, 'title', initialTitle, { label: 'Title' })
+  const { value: subtitle, show: showSubtitle, props: subtitleProps } = useInlineField(__moduleId, 'subtitle', initialSubtitle, { label: 'Subtitle' })
   const callouts = useInlineValue(__moduleId, 'callouts', initialCallouts)
   const bg = useInlineValue(__moduleId, 'backgroundColor', backgroundColor) || backgroundColor
 
@@ -216,27 +216,28 @@ export default function HeroWithCallout({
 
   const content = (
     <div className="max-w-5xl mx-auto px-4 sm:px-6 lg:px-12 text-center">
-      {_useReact ? (
-        <motion.h1
-          initial={{ opacity: 0, y: -20 }}
-          whileInView={{ opacity: 1, y: 0 }}
-          viewport={{ once: true }}
-          transition={{ duration: 0.8, ease: 'easeOut' }}
-          className={`mb-4 text-4xl font-extrabold tracking-tight leading-tight ${textColor} md:text-5xl lg:text-6xl`}
-          data-inline-path="title"
-        >
-          {title}
-        </motion.h1>
-      ) : (
-        <h1
-          className={`mb-4 text-4xl font-extrabold tracking-tight leading-tight ${textColor} md:text-5xl lg:text-6xl`}
-          data-inline-path="title"
-        >
-          {title}
-        </h1>
-      )}
+      {showTitle &&
+        (_useReact ? (
+          <motion.h1
+            initial={{ opacity: 0, y: -20 }}
+            whileInView={{ opacity: 1, y: 0 }}
+            viewport={{ once: true }}
+            transition={{ duration: 0.8, ease: 'easeOut' }}
+            className={`mb-4 text-4xl font-extrabold tracking-tight leading-tight ${textColor} md:text-5xl lg:text-6xl`}
+            {...titleProps}
+          >
+            {title}
+          </motion.h1>
+        ) : (
+          <h1
+            className={`mb-4 text-4xl font-extrabold tracking-tight leading-tight ${textColor} md:text-5xl lg:text-6xl`}
+            {...titleProps}
+          >
+            {title}
+          </h1>
+        ))}
 
-      {subtitle &&
+      {showSubtitle &&
         (_useReact ? (
           <motion.p
             initial={{ opacity: 0 }}
@@ -244,14 +245,14 @@ export default function HeroWithCallout({
             viewport={{ once: true }}
             transition={{ duration: 0.8, delay: 0.2 }}
             className={`mb-8 text-lg font-normal ${subtextColor} lg:text-xl sm:px-4`}
-            data-inline-path="subtitle"
+            {...subtitleProps}
           >
             {subtitle}
           </motion.p>
         ) : (
           <p
             className={`mb-8 text-lg font-normal ${subtextColor} lg:text-xl sm:px-4`}
-            data-inline-path="subtitle"
+            {...subtitleProps}
           >
             {subtitle}
           </p>
@@ -272,6 +273,16 @@ export default function HeroWithCallout({
         transition={{ duration: 0.8 }}
         className={`${bg} py-12 lg:py-16`}
         data-module="hero-with-callout"
+        data-inline-type="select"
+        data-inline-path="backgroundColor"
+        data-inline-label="Background Color"
+        data-inline-options={JSON.stringify([
+          { label: 'Transparent', value: 'bg-transparent' },
+          { label: 'Low', value: 'bg-backdrop-low' },
+          { label: 'Medium', value: 'bg-backdrop-medium' },
+          { label: 'High', value: 'bg-backdrop-high' },
+          { label: 'Dark', value: 'bg-neutral-high' },
+        ])}
       >
         {content}
       </motion.section>
@@ -279,7 +290,20 @@ export default function HeroWithCallout({
   }
 
   return (
-    <section className={`${bg} py-12 lg:py-16`} data-module="hero-with-callout">
+    <section
+      className={`${bg} py-12 lg:py-16`}
+      data-module="hero-with-callout"
+      data-inline-type="select"
+      data-inline-path="backgroundColor"
+      data-inline-label="Background Color"
+      data-inline-options={JSON.stringify([
+        { label: 'Transparent', value: 'bg-transparent' },
+        { label: 'Low', value: 'bg-backdrop-low' },
+        { label: 'Medium', value: 'bg-backdrop-medium' },
+        { label: 'High', value: 'bg-backdrop-high' },
+        { label: 'Dark', value: 'bg-neutral-high' },
+      ])}
+    >
       {content}
     </section>
   )

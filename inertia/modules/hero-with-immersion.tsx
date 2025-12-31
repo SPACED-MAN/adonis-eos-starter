@@ -1,6 +1,6 @@
 import { motion, useScroll, useTransform, useSpring } from 'framer-motion'
 import { useRef } from 'react'
-import { useInlineValue } from '../components/inline-edit/InlineEditorContext'
+import { useInlineValue, useInlineField } from '../components/inline-edit/InlineEditorContext'
 import { MediaRenderer } from '../components/MediaRenderer'
 
 interface HeroWithImmersionProps {
@@ -30,8 +30,8 @@ export default function HeroWithImmersion({
 }: HeroWithImmersionProps) {
   const containerRef = useRef<HTMLElement>(null)
 
-  const title = useInlineValue(__moduleId, 'title', initialTitle)
-  const subtitle = useInlineValue(__moduleId, 'subtitle', initialSubtitle)
+  const { value: title, show: showTitle, props: titleProps } = useInlineField(__moduleId, 'title', initialTitle, { label: 'Title' })
+  const { value: subtitle, show: showSubtitle, props: subtitleProps } = useInlineField(__moduleId, 'subtitle', initialSubtitle, { label: 'Subtitle' })
   const bgImage = useInlineValue(__moduleId, 'backgroundImage', backgroundImage)
   const fgImage = useInlineValue(__moduleId, 'foregroundImage', foregroundImage)
   const imagePos = useInlineValue(__moduleId, 'imagePosition', imagePosition) || imagePosition
@@ -104,16 +104,18 @@ export default function HeroWithImmersion({
               style={isInteractive ? { y: midY, opacity } : {}}
               className={`text-center lg:text-left space-y-8 ${imagePos === 'left' ? 'lg:order-2' : 'lg:order-1'}`}
             >
-              <Title
-                className="text-5xl md:text-7xl lg:text-8xl xl:text-9xl font-black text-neutral-high tracking-tighter drop-shadow-[0_10px_10px_rgba(0,0,0,0.5)] leading-[0.9]"
-                data-inline-path="title"
-              >
-                {title}
-              </Title>
-              {subtitle && (
+              {showTitle && (
+                <Title
+                  className="text-5xl md:text-7xl lg:text-8xl xl:text-9xl font-black text-neutral-high tracking-tighter drop-shadow-[0_10px_10px_rgba(0,0,0,0.5)] leading-[0.9]"
+                  {...titleProps}
+                >
+                  {title}
+                </Title>
+              )}
+              {showSubtitle && (
                 <Subtitle
                   className="text-xl md:text-2xl lg:text-3xl text-neutral-high/90 font-medium max-w-2xl drop-shadow-md"
-                  data-inline-path="subtitle"
+                  {...subtitleProps}
                 >
                   {subtitle}
                 </Subtitle>
@@ -149,6 +151,17 @@ export default function HeroWithImmersion({
       ref={containerRef}
       className={`relative ${height} overflow-hidden ${bg}`}
       data-module="hero-with-immersion"
+      data-inline-type="select"
+      data-inline-path="backgroundColor"
+      data-inline-label="Background Color"
+      data-inline-options={JSON.stringify([
+        { label: 'Black', value: 'bg-black' },
+        { label: 'Transparent', value: 'bg-transparent' },
+        { label: 'Low', value: 'bg-backdrop-low' },
+        { label: 'Medium', value: 'bg-backdrop-medium' },
+        { label: 'High', value: 'bg-backdrop-high' },
+        { label: 'Dark', value: 'bg-neutral-high' },
+      ])}
     >
       {renderContent(!!_useReact)}
     </section>

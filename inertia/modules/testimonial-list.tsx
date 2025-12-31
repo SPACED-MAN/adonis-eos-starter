@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react'
 import { motion, type Variants } from 'framer-motion'
-import { useInlineEditor, useInlineValue } from '../components/inline-edit/InlineEditorContext'
+import { useInlineEditor, useInlineValue, useInlineField } from '../components/inline-edit/InlineEditorContext'
 import { FontAwesomeIcon } from '../site/lib/icons'
 import TestimonialTeaser from '../site/post-types/testimonial-teaser'
 import type { MediaObject } from '../utils/useMediaUrl'
@@ -34,8 +34,8 @@ export default function TestimonialList({
   const [items, setItems] = useState<TestimonialSummary[]>([])
   const [loading, setLoading] = useState(true)
   const { enabled } = useInlineEditor()
-  const title = useInlineValue(__moduleId, 'title', initialTitle)
-  const subtitle = useInlineValue(__moduleId, 'subtitle', initialSubtitle)
+  const { value: title, show: showTitle, props: titleProps } = useInlineField(__moduleId, 'title', initialTitle, { label: 'Title' })
+  const { value: subtitle, show: showSubtitle, props: subtitleProps } = useInlineField(__moduleId, 'subtitle', initialSubtitle, { label: 'Subtitle' })
   const testimonials = useInlineValue(__moduleId, 'testimonials', initialTestimonials)
   const bg = useInlineValue(__moduleId, 'backgroundColor', backgroundColor) || backgroundColor
 
@@ -108,26 +108,27 @@ export default function TestimonialList({
 
   const headerContent = (
     <div className="mx-auto max-w-screen-sm mb-8 lg:mb-12">
-      {_useReact ? (
-        <motion.h2
-          initial={{ opacity: 0, y: -20 }}
-          whileInView={{ opacity: 1, y: 0 }}
-          viewport={{ once: true }}
-          transition={{ duration: 1.0 }}
-          className={`mb-4 text-3xl md:text-4xl tracking-tight font-extrabold ${textColor}`}
-          data-inline-path="title"
-        >
-          {title}
-        </motion.h2>
-      ) : (
-        <h2
-          className={`mb-4 text-3xl md:text-4xl tracking-tight font-extrabold ${textColor}`}
-          data-inline-path="title"
-        >
-          {title}
-        </h2>
-      )}
-      {subtitle &&
+      {showTitle &&
+        (_useReact ? (
+          <motion.h2
+            initial={{ opacity: 0, y: -20 }}
+            whileInView={{ opacity: 1, y: 0 }}
+            viewport={{ once: true }}
+            transition={{ duration: 1.0 }}
+            className={`mb-4 text-3xl md:text-4xl tracking-tight font-extrabold ${textColor}`}
+            {...titleProps}
+          >
+            {title}
+          </motion.h2>
+        ) : (
+          <h2
+            className={`mb-4 text-3xl md:text-4xl tracking-tight font-extrabold ${textColor}`}
+            {...titleProps}
+          >
+            {title}
+          </h2>
+        ))}
+      {showSubtitle &&
         (_useReact ? (
           <motion.p
             initial={{ opacity: 0 }}
@@ -135,12 +136,15 @@ export default function TestimonialList({
             viewport={{ once: true }}
             transition={{ duration: 1.0, delay: 0.25 }}
             className={`mb-8 font-light ${subtextColor} sm:text-lg`}
-            data-inline-path="subtitle"
+            {...subtitleProps}
           >
             {subtitle}
           </motion.p>
         ) : (
-          <p className={`mb-8 font-light ${subtextColor} sm:text-lg`} data-inline-path="subtitle">
+          <p
+            className={`mb-8 font-light ${subtextColor} sm:text-lg`}
+            {...subtitleProps}
+          >
             {subtitle}
           </p>
         ))}
@@ -189,7 +193,20 @@ export default function TestimonialList({
 
   if (loading && items.length === 0) {
     return (
-      <section className={`${bg} py-8 lg:py-16`} data-module="testimonial-list">
+      <section
+        className={`${bg} py-8 lg:py-16`}
+        data-module="testimonial-list"
+        data-inline-type="select"
+        data-inline-path="backgroundColor"
+        data-inline-label="Background Color"
+        data-inline-options={JSON.stringify([
+          { label: 'Transparent', value: 'bg-transparent' },
+          { label: 'Low', value: 'bg-backdrop-low' },
+          { label: 'Medium', value: 'bg-backdrop-medium' },
+          { label: 'High', value: 'bg-backdrop-high' },
+          { label: 'Dark', value: 'bg-neutral-high' },
+        ])}
+      >
         <div className="container mx-auto px-4 lg:px-6">
           <div className="mx-auto max-w-screen-sm text-center mb-8">
             <h2 className={`mb-4 text-3xl md:text-4xl font-extrabold tracking-tight ${textColor}`}>
@@ -208,7 +225,20 @@ export default function TestimonialList({
   }
 
   return (
-    <section className={`${bg} py-8 lg:py-16`} data-module="testimonial-list">
+    <section
+      className={`${bg} py-8 lg:py-16`}
+      data-module="testimonial-list"
+      data-inline-type="select"
+      data-inline-path="backgroundColor"
+      data-inline-label="Background Color"
+      data-inline-options={JSON.stringify([
+        { label: 'Transparent', value: 'bg-transparent' },
+        { label: 'Low', value: 'bg-backdrop-low' },
+        { label: 'Medium', value: 'bg-backdrop-medium' },
+        { label: 'High', value: 'bg-backdrop-high' },
+        { label: 'Dark', value: 'bg-neutral-high' },
+      ])}
+    >
       <div className="container mx-auto px-4 lg:px-6 text-center">
         {headerContent}
 

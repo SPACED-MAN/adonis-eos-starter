@@ -94,6 +94,16 @@ export default function Hero({
         variants={containerVariants}
         className={`${bg} py-12 lg:py-16`}
         data-module="hero"
+        data-inline-type="select"
+        data-inline-path="backgroundColor"
+        data-inline-label="Background Color"
+        data-inline-options={JSON.stringify([
+          { label: 'Transparent', value: 'bg-transparent' },
+          { label: 'Low', value: 'bg-backdrop-low' },
+          { label: 'Medium', value: 'bg-backdrop-medium' },
+          { label: 'High', value: 'bg-backdrop-high' },
+          { label: 'Dark', value: 'bg-neutral-high' },
+        ])}
       >
         {content}
       </motion.section>
@@ -101,7 +111,20 @@ export default function Hero({
   }
 
   return (
-    <section className={`${bg} py-12 lg:py-16`} data-module="hero">
+    <section
+      className={`${bg} py-12 lg:py-16`}
+      data-module="hero"
+      data-inline-type="select"
+      data-inline-path="backgroundColor"
+      data-inline-label="Background Color"
+      data-inline-options={JSON.stringify([
+        { label: 'Transparent', value: 'bg-transparent' },
+        { label: 'Low', value: 'bg-backdrop-low' },
+        { label: 'Medium', value: 'bg-backdrop-medium' },
+        { label: 'High', value: 'bg-backdrop-high' },
+        { label: 'Dark', value: 'bg-neutral-high' },
+      ])}
+    >
       {content}
     </section>
   )

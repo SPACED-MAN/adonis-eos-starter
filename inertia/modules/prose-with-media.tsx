@@ -205,6 +205,16 @@ export default function ProseWithMedia({
         variants={containerVariants}
         className={`${bg} py-12 sm:py-16 overflow-hidden`}
         data-module="prose-with-media"
+        data-inline-type="select"
+        data-inline-path="backgroundColor"
+        data-inline-label="Background Color"
+        data-inline-options={JSON.stringify([
+          { label: 'Transparent', value: 'bg-transparent' },
+          { label: 'Low', value: 'bg-backdrop-low' },
+          { label: 'Medium', value: 'bg-backdrop-medium' },
+          { label: 'High', value: 'bg-backdrop-high' },
+          { label: 'Dark', value: 'bg-neutral-high' },
+        ])}
       >
         <div className="container mx-auto px-4 sm:px-6 lg:px-8">{content}</div>
       </motion.section>
@@ -212,7 +222,20 @@ export default function ProseWithMedia({
   }
 
   return (
-    <section className={`${bg} py-12 sm:py-16`} data-module="prose-with-media">
+    <section
+      className={`${bg} py-12 sm:py-16`}
+      data-module="prose-with-media"
+      data-inline-type="select"
+      data-inline-path="backgroundColor"
+      data-inline-label="Background Color"
+      data-inline-options={JSON.stringify([
+        { label: 'Transparent', value: 'bg-transparent' },
+        { label: 'Low', value: 'bg-backdrop-low' },
+        { label: 'Medium', value: 'bg-backdrop-medium' },
+        { label: 'High', value: 'bg-backdrop-high' },
+        { label: 'Dark', value: 'bg-neutral-high' },
+      ])}
+    >
       <div className="container mx-auto px-4 sm:px-6 lg:px-8">{content}</div>
     </section>
   )

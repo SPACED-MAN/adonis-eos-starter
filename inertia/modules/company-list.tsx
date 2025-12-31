@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react'
 import { motion, type Variants } from 'framer-motion'
-import { useInlineEditor, useInlineValue } from '../components/inline-edit/InlineEditorContext'
+import { useInlineEditor, useInlineValue, useInlineField } from '../components/inline-edit/InlineEditorContext'
 import { FontAwesomeIcon } from '../site/lib/icons'
 import CompanyTeaser from '../site/post-types/company-teaser'
 import type { MediaObject } from '../utils/useMediaUrl'
@@ -35,8 +35,8 @@ export default function CompanyList({
   const [items, setItems] = useState<CompanySummary[]>([])
   const [loading, setLoading] = useState(true)
   const { enabled } = useInlineEditor()
-  const title = useInlineValue(__moduleId, 'title', initialTitle)
-  const subtitle = useInlineValue(__moduleId, 'subtitle', initialSubtitle)
+  const { value: title, show: showTitle, props: titleProps } = useInlineField(__moduleId, 'title', initialTitle, { label: 'Title' })
+  const { value: subtitle, show: showSubtitle, props: subtitleProps } = useInlineField(__moduleId, 'subtitle', initialSubtitle, { label: 'Subtitle' })
   const companies = useInlineValue(__moduleId, 'companies', initialCompanies)
   const bg = useInlineValue(__moduleId, 'backgroundColor', initialBackground) || initialBackground
 
@@ -111,26 +111,27 @@ export default function CompanyList({
 
   const headerContent = (
     <>
-      {_useReact ? (
-        <motion.h2
-          initial={{ opacity: 0, y: -20 }}
-          whileInView={{ opacity: 1, y: 0 }}
-          viewport={{ once: true }}
-          transition={{ duration: 0.8 }}
-          className={`mb-8 lg:mb-16 text-3xl md:text-4xl font-extrabold tracking-tight leading-tight text-center ${textColor}`}
-          data-inline-path="title"
-        >
-          {title}
-        </motion.h2>
-      ) : (
-        <h2
-          className={`mb-8 lg:mb-16 text-3xl md:text-4xl font-extrabold tracking-tight leading-tight text-center ${textColor}`}
-          data-inline-path="title"
-        >
-          {title}
-        </h2>
-      )}
-      {subtitle &&
+      {showTitle &&
+        (_useReact ? (
+          <motion.h2
+            initial={{ opacity: 0, y: -20 }}
+            whileInView={{ opacity: 1, y: 0 }}
+            viewport={{ once: true }}
+            transition={{ duration: 0.8 }}
+            className={`mb-8 lg:mb-16 text-3xl md:text-4xl font-extrabold tracking-tight leading-tight text-center ${textColor}`}
+            {...titleProps}
+          >
+            {title}
+          </motion.h2>
+        ) : (
+          <h2
+            className={`mb-8 lg:mb-16 text-3xl md:text-4xl font-extrabold tracking-tight leading-tight text-center ${textColor}`}
+            {...titleProps}
+          >
+            {title}
+          </h2>
+        ))}
+      {showSubtitle &&
         (_useReact ? (
           <motion.p
             initial={{ opacity: 0 }}
@@ -138,14 +139,14 @@ export default function CompanyList({
             viewport={{ once: true }}
             transition={{ duration: 0.8, delay: 0.2 }}
             className={`max-w-2xl mx-auto mb-10 text-center font-light ${subtextColor} sm:text-xl`}
-            data-inline-path="subtitle"
+            {...subtitleProps}
           >
             {subtitle}
           </motion.p>
         ) : (
           <p
             className={`max-w-2xl mx-auto mb-10 text-center font-light ${subtextColor} sm:text-xl`}
-            data-inline-path="subtitle"
+            {...subtitleProps}
           >
             {subtitle}
           </p>
@@ -206,7 +207,16 @@ export default function CompanyList({
       <section
         className={`${bg} py-8 lg:py-16`}
         data-module="company-list"
+        data-inline-type="select"
         data-inline-path="backgroundColor"
+        data-inline-label="Background Color"
+        data-inline-options={JSON.stringify([
+          { label: 'Transparent', value: 'bg-transparent' },
+          { label: 'Low', value: 'bg-backdrop-low' },
+          { label: 'Medium', value: 'bg-backdrop-medium' },
+          { label: 'High', value: 'bg-backdrop-high' },
+          { label: 'Dark', value: 'bg-neutral-high' },
+        ])}
       >
         <div className="container mx-auto px-4 lg:px-6">
           <h2
@@ -235,6 +245,7 @@ export default function CompanyList({
       data-module="company-list"
       data-inline-type="select"
       data-inline-path="backgroundColor"
+      data-inline-label="Background Color"
       data-inline-options={JSON.stringify([
         { label: 'Transparent', value: 'bg-transparent' },
         { label: 'Low', value: 'bg-backdrop-low' },

@@ -2,7 +2,6 @@ import { useEffect, useState } from 'react'
 import { createPortal } from 'react-dom'
 import { createRoot } from 'react-dom/client'
 import {
-  faCheck,
   faChevronDown,
   faCircleQuestion,
   faArrowUp,
@@ -202,14 +201,7 @@ export function InlineOverlay() {
       const path = el.dataset.inlinePath
       const moduleId = resolveModuleId(el)
       if (!path || !moduleId) return
-      // Skip text elements that are children of link/select/icon fields (they're part of the parent control)
-      if (
-        el.closest(
-          '[data-inline-type="link"], [data-inline-type="select"], [data-inline-type="icon"], [data-inline-type="multiselect"]'
-        )
-      ) {
-        return
-      }
+
       const onEnter = () => el.classList.add('inline-edit-hover')
       const onLeave = () => el.classList.remove('inline-edit-hover')
       el.addEventListener('mouseenter', onEnter)
@@ -264,16 +256,23 @@ export function InlineOverlay() {
           }
         }
 
+        const onClick = (e: MouseEvent) => {
+          // Prevent triggering parent controls (like background select) when clicking text
+          e.stopPropagation()
+        }
+
         el.contentEditable = 'true'
         el.dataset.inlineActive = '1'
         el.addEventListener('input', onInput)
         el.addEventListener('blur', onBlur)
         el.addEventListener('keydown', onKeyDown)
+        el.addEventListener('click', onClick as any)
 
         cleanups.push(() => {
           el.removeEventListener('input', onInput)
           el.removeEventListener('blur', onBlur)
           el.removeEventListener('keydown', onKeyDown)
+          el.removeEventListener('click', onClick as any)
           el.removeAttribute('contenteditable')
           el.removeAttribute('data-inline-active')
         })
@@ -306,6 +305,16 @@ export function InlineOverlay() {
         el.classList.remove('inline-diff-ai')
       })
 
+      // Also prevent clicks on the media container itself from bubbling to parent background selectors.
+      // We attach this even if the pencil already exists, to ensure it's always active.
+      const onMediaClick = (e: MouseEvent) => {
+        // If the click hit a child that is also an editable field (like the pencil button), 
+        // we still want to stop propagation here to prevent reaching parent background selectors.
+        e.stopPropagation()
+      }
+      el.addEventListener('click', onMediaClick)
+      cleanups.push(() => el.removeEventListener('click', onMediaClick))
+
       // only add pencil when enabled
       if (enabled) {
         if (el.querySelector('.inline-media-pencil')) return
@@ -317,10 +326,17 @@ export function InlineOverlay() {
           'inline-media-pencil absolute top-2 right-2 inline-flex items-center justify-center rounded-full bg-backdrop-high/90 border border-line-medium text-neutral-high p-2 shadow hover:bg-backdrop-medium'
         btn.innerHTML =
           '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" class="w-4 h-4 fill-current"><path d="M410.3 45.25c-16.97-16.97-44.56-16.97-61.53 0L318.6 75.41l118 118l30.17-30.17c16.97-16.97 16.97-44.56 0-61.53L410.3 45.25zM289.4 104.6L65.89 328.1c-6.13 6.13-10.42 13.7-12.62 22L1.055 488.1C-1.238 496.7 6.262 504.2 14.92 501.9l137.9-52.21c8.32-2.2 15.89-6.49 22.02-12.62l223.5-223.5L289.4 104.6z"/></svg>'
-        btn.onclick = () => setMediaTarget({ moduleId, path })
+
+        const onPencilClick = (e: MouseEvent) => {
+          e.stopPropagation()
+          setMediaTarget({ moduleId, path })
+        }
+        btn.addEventListener('click', onPencilClick)
+
         el.appendChild(btn)
 
         cleanups.push(() => {
+          btn.removeEventListener('click', onPencilClick)
           btn.remove()
         })
       } else {
@@ -351,6 +367,13 @@ export function InlineOverlay() {
       const label = el.dataset.inlineLabel
       const handler = (e: Event) => {
         if (!enabled) return
+
+        // If the click hit a child that is also an editable field, ignore it here.
+        // The child's own listener will handle it.
+        const target = e.target as HTMLElement
+        const closestField = target.closest('[data-inline-path]')
+        if (closestField && closestField !== el) return
+
         e.preventDefault()
         e.stopPropagation()
         setDialogState({
@@ -419,6 +442,13 @@ export function InlineOverlay() {
       const label = el.dataset.inlineLabel
       const handler = (e: Event) => {
         if (!enabled) return
+
+        // If the click hit a child that is also an editable field, ignore it here.
+        // The child's own listener will handle it.
+        const target = e.target as HTMLElement
+        const closestField = target.closest('[data-inline-path]')
+        if (closestField && closestField !== el) return
+
         e.preventDefault()
         e.stopPropagation() // prevent navigation for anchor tags
         setDialogState({
@@ -672,8 +702,8 @@ function FieldDialogContent({ pop, onClose, getValue, setValue }: DialogContentP
                         <button
                           type="button"
                           className={`p-3 border rounded-xl hover:bg-backdrop-medium flex flex-col items-center gap-2 transition-all ${draft === val
-                              ? 'border-standout-medium bg-standout-medium/10 shadow-sm ring-1 ring-standout-medium/20'
-                              : 'border-line-low bg-backdrop-low/50'
+                            ? 'border-standout-medium bg-standout-medium/10 shadow-sm ring-1 ring-standout-medium/20'
+                            : 'border-line-low bg-backdrop-low/50'
                             }`}
                           onClick={() => {
                             setDraft(val)
@@ -785,8 +815,8 @@ function FieldDialogContent({ pop, onClose, getValue, setValue }: DialogContentP
                     <label
                       key={o.value}
                       className={`flex items-center gap-3 p-2.5 rounded-xl border transition-all cursor-pointer ${checked
-                          ? 'bg-standout-medium/10 border-standout-medium/30 text-neutral-high'
-                          : 'bg-backdrop-low border-line-medium text-neutral-medium hover:border-neutral-low'
+                        ? 'bg-standout-medium/10 border-standout-medium/30 text-neutral-high'
+                        : 'bg-backdrop-low border-line-medium text-neutral-medium hover:border-neutral-low'
                         }`}
                     >
                       <input
