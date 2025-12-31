@@ -129,8 +129,9 @@ export default function Accordions({
                   </span>
                   <FontAwesomeIcon
                     icon="chevron-down"
-                    className={`w-4 h-4 ${subtextColor} transition-transform duration-300 ${isOpen ? 'rotate-180 text-standout-medium' : ''
+                    className={`${subtextColor} transition-transform duration-300 ${isOpen ? 'rotate-180 text-standout-medium' : ''
                       }`}
+                    size="xs"
                   />
                 </button>
 

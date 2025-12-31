@@ -98,8 +98,8 @@ export function SidebarMenu({ nodes = [], currentPageId, title }: SidebarMenuPro
           <Link
             href={node.customUrl || node.url || '#'}
             className={`flex-1 py-1.5 px-3 rounded text-sm transition-colors flex items-center min-h-[32px] ${isCurrent
-                ? 'bg-standout-medium text-on-high font-medium'
-                : 'text-neutral-high hover:bg-backdrop-medium'
+              ? 'bg-standout-medium text-on-high font-medium'
+              : 'text-neutral-high hover:bg-backdrop-medium'
               }`}
             style={{ paddingLeft: `${12 + depth * 16}px` }}
           >
@@ -132,11 +132,6 @@ export function SidebarMenu({ nodes = [], currentPageId, title }: SidebarMenuPro
 
   return (
     <nav className="border border-line-low rounded-lg p-1.5 bg-backdrop-low lg:sticky lg:top-8">
-      {title && (
-        <div className="px-3 py-2 mb-1.5 text-[10px] font-bold text-neutral-medium uppercase tracking-widest border-b border-line-low/50">
-          {title}
-        </div>
-      )}
       <div className="space-y-0.5">{nodes.map((node) => renderItem(node, 0))}</div>
     </nav>
   )

@@ -1,8 +1,11 @@
 import { useEffect, useState } from 'react'
 import { FontAwesomeIcon } from '../site/lib/icons'
 import { Tooltip, TooltipContent, TooltipTrigger } from '~/components/ui/tooltip'
+import { usePage } from '@inertiajs/react'
 
 export function ThemeToggle() {
+  const { props } = usePage<any>()
+  const defaultThemeMode = props.defaultThemeMode || 'light'
   const [mode, setMode] = useState<'light' | 'dark'>('light')
 
   function getCurrentMode(): 'light' | 'dark' {
@@ -14,14 +17,17 @@ export function ThemeToggle() {
       | 'dark'
       | null
     if (stored) return stored
-    if (
-      typeof window !== 'undefined' &&
-      window.matchMedia &&
-      window.matchMedia('(prefers-color-scheme: dark)').matches
-    ) {
-      return 'dark'
+
+    if (typeof window !== 'undefined' && window.matchMedia) {
+      if (window.matchMedia('(prefers-color-scheme: dark)').matches) {
+        return 'dark'
+      }
+      if (window.matchMedia('(prefers-color-scheme: light)').matches) {
+        return 'light'
+      }
     }
-    return 'light'
+
+    return defaultThemeMode
   }
 
   useEffect(() => {

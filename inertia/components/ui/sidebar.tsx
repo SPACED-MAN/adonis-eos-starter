@@ -21,11 +21,11 @@ export function SidebarProvider({ children }: { children: React.ReactNode }) {
       } else {
         document.body.style.paddingLeft = ''
       }
-    } catch {}
+    } catch { }
     return () => {
       try {
         document.body.style.paddingLeft = ''
-      } catch {}
+      } catch { }
     }
   }, [open])
   return <SidebarContext.Provider value={{ open, setOpen }}>{children}</SidebarContext.Provider>
@@ -83,7 +83,7 @@ export function SidebarTrigger({
             className
           )}
         >
-          {children ?? <FontAwesomeIcon icon={faBarsProgress} className="w-14 h-14" size="lg" />}
+          {children ?? <FontAwesomeIcon icon={faBarsProgress} size="lg" />}
         </button>
       </TooltipTrigger>
       <TooltipContent side="right">

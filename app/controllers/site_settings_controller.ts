@@ -69,6 +69,7 @@ export default class SiteSettingsController {
       'isMaintenanceMode',
       'profileRolesEnabled',
       'socialSettings',
+      'defaultThemeMode',
     ])
     const next = await siteSettingsService.upsert({
       siteTitle: payload.siteTitle,

@@ -1099,7 +1099,7 @@ export default function MediaIndex() {
                                     }}
                                     aria-label="Optimize"
                                   >
-                                    <FontAwesomeIcon icon={faTruckArrowRight} className="w-4 h-4" />
+                                    <FontAwesomeIcon icon={faTruckArrowRight} size="sm" />
                                   </button>
                                 </TooltipTrigger>
                                 <TooltipContent>
@@ -1299,7 +1299,7 @@ export default function MediaIndex() {
                                     >
                                       <FontAwesomeIcon
                                         icon={faTruckArrowRight}
-                                        className="w-4 h-4"
+                                        size="sm"
                                       />
                                     </button>
                                   )}
@@ -1530,7 +1530,7 @@ export default function MediaIndex() {
                   <div className="text-[10px] text-neutral-medium uppercase tracking-wider font-semibold flex items-center gap-2">
                     <FontAwesomeIcon
                       icon={isMediaVideo(viewing) ? faVideo : faImage}
-                      className="w-4 h-4"
+                      size="sm"
                     />
                     {isMediaVideo(viewing) ? 'Video Asset' : 'Image Asset'} • {viewing.id}
                     <a
@@ -1540,7 +1540,7 @@ export default function MediaIndex() {
                       className="ml-2 text-standout-medium hover:underline inline-flex items-center gap-1 normal-case"
                       title="Open raw asset in new tab"
                     >
-                      <FontAwesomeIcon icon={faExternalLinkAlt} className="w-2 h-2" />
+                      <FontAwesomeIcon icon={faExternalLinkAlt} size="2xs" />
                       Full Asset
                     </a>
                   </div>
@@ -1558,7 +1558,7 @@ export default function MediaIndex() {
                     setReplaceFile(null)
                   }}
                 >
-                  <FontAwesomeIcon icon={faXmark} className="w-5 h-5" />
+                  <FontAwesomeIcon icon={faXmark} size="lg" />
                 </button>
               </div>
               <div className="flex flex-1 min-h-0 overflow-hidden text-sm">
@@ -1691,7 +1691,7 @@ export default function MediaIndex() {
                                   className="px-4 py-2.5 text-xs font-bold border border-line-medium rounded-xl hover:bg-backdrop-low hover:border-neutral-low transition-all flex items-center gap-2 shadow-sm bg-backdrop-low/50"
                                   onClick={() => setCropping(true)}
                                 >
-                                  <FontAwesomeIcon icon={faCrop} className="w-3.5 h-3.5" />
+                                  <FontAwesomeIcon icon={faCrop} size="sm" />
                                   Crop Image
                                 </button>
                               )
@@ -1730,7 +1730,7 @@ export default function MediaIndex() {
                                     className="px-4 py-2.5 text-xs font-bold border border-line-medium rounded-xl hover:bg-backdrop-low hover:border-neutral-low transition-all flex items-center gap-2 shadow-sm bg-backdrop-low/50"
                                     onClick={() => setFocalMode(true)}
                                   >
-                                    <FontAwesomeIcon icon={faCrosshairs} className="w-3.5 h-3.5" />
+                                    <FontAwesomeIcon icon={faCrosshairs} size="sm" />
                                     Focal Point
                                   </button>
                                   {(() => {
@@ -1936,7 +1936,7 @@ export default function MediaIndex() {
                                   setEditCategories((prev) => prev.filter((x) => x !== c))
                                 }
                               >
-                                <FontAwesomeIcon icon={faXmark} className="w-3.5 h-3.5" />
+                                <FontAwesomeIcon icon={faXmark} size="sm" />
                               </button>
                             </span>
                           ))}
@@ -1967,7 +1967,7 @@ export default function MediaIndex() {
 
                       <div className="p-4 bg-backdrop-medium/40 border border-line-low rounded-2xl space-y-4 shadow-inner">
                         <div className="text-[11px] font-bold text-neutral-high flex items-center gap-2">
-                          <FontAwesomeIcon icon={faExchangeAlt} className="w-3.5 h-3.5" />
+                          <FontAwesomeIcon icon={faExchangeAlt} size="sm" />
                           {editTheme === 'dark' ? 'Upload Dark Version' : 'Replace Asset Source'}
                         </div>
                         <div className="space-y-3">
@@ -1985,7 +1985,8 @@ export default function MediaIndex() {
                           >
                             <FontAwesomeIcon
                               icon={faCloudUploadAlt}
-                              className="w-6 h-6 mb-1 text-neutral-low"
+                              className="mb-1 text-neutral-low"
+                              size="xl"
                             />
                             <span className="text-[10px] font-semibold text-neutral-medium text-center">
                               {replaceFile
@@ -2063,7 +2064,7 @@ export default function MediaIndex() {
 
                       <div className="p-4 bg-backdrop-medium/40 border border-line-low rounded-2xl space-y-4 shadow-inner">
                         <div className="text-[11px] font-bold text-neutral-high flex items-center gap-2">
-                          <FontAwesomeIcon icon={faFont} className="w-3.5 h-3.5" />
+                          <FontAwesomeIcon icon={faFont} size="sm" />
                           Rename Filename
                         </div>
                         <div className="flex flex-col gap-3">

@@ -1,4 +1,4 @@
-import { useEffect, useState, useMemo } from 'react'
+import { useEffect, useState } from 'react'
 import { AdminHeader } from '../../components/AdminHeader'
 import { AdminFooter } from '../../components/AdminFooter'
 import { Input } from '../../../components/ui/input'
@@ -6,12 +6,13 @@ import { Textarea } from '../../../components/ui/textarea'
 import { Checkbox } from '../../../components/ui/checkbox'
 import { toast } from 'sonner'
 import { MediaPickerModal } from '../../components/media/MediaPickerModal'
-import { useMediaUrl } from '../../../utils/useMediaUrl'
 import { MediaRenderer } from '../../../components/MediaRenderer'
 import { CustomFieldRenderer } from '../../components/CustomFieldRenderer'
 import { Tooltip, TooltipContent, TooltipTrigger } from '~/components/ui/tooltip'
 import type { CustomFieldDefinition } from '~/types/custom_field'
 import { FontAwesomeIcon, getIconProp } from '~/site/lib/icons'
+
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '../../../components/ui/select'
 
 type SocialProfile = {
   network: string
@@ -35,6 +36,7 @@ type Settings = {
   defaultOgMediaId: string | null
   logoMediaId: string | null
   isMaintenanceMode: boolean
+  defaultThemeMode: 'light' | 'dark'
   profileRolesEnabled: string[]
   socialSettings?: {
     profiles: SocialProfile[]
@@ -51,6 +53,9 @@ function getXsrf(): string | undefined {
 }
 
 export default function GeneralSettings() {
+  const [activeTab, setActiveTab] = useState<'general' | 'seo' | 'social' | 'system' | 'fields'>(
+    'general'
+  )
   const [loading, setLoading] = useState(false)
   const [saving, setSaving] = useState(false)
   const [form, setForm] = useState<Settings>({
@@ -60,6 +65,7 @@ export default function GeneralSettings() {
     defaultOgMediaId: '',
     logoMediaId: '',
     isMaintenanceMode: false,
+    defaultThemeMode: 'light',
     profileRolesEnabled: [],
     socialSettings: {
       profiles: [],
@@ -87,49 +93,50 @@ export default function GeneralSettings() {
 
   useEffect(() => {
     let alive = true
-    ;(async () => {
-      try {
-        setLoading(true)
-        const res = await fetch('/api/site-settings', { credentials: 'same-origin' })
-        const j = await res.json().catch(() => ({}))
-        if (!alive) return
+      ; (async () => {
+        try {
+          setLoading(true)
+          const res = await fetch('/api/site-settings', { credentials: 'same-origin' })
+          const j = await res.json().catch(() => ({}))
+          if (!alive) return
 
-        // Merge fetched social settings with defaults to ensure all networks are present
-        const fetchedSocial = j?.data?.socialSettings || {}
-        const mergedProfiles = defaultProfiles.map((def) => {
-          const found = (fetchedSocial.profiles || []).find((p: any) => p.network === def.network)
-          return found ? { ...def, ...found } : def
-        })
-        const mergedSharing = defaultSharing.map((def) => {
-          const found = (fetchedSocial.sharing || []).find((s: any) => s.network === def.network)
-          return found ? { ...def, ...found } : def
-        })
+          // Merge fetched social settings with defaults to ensure all networks are present
+          const fetchedSocial = j?.data?.socialSettings || {}
+          const mergedProfiles = defaultProfiles.map((def) => {
+            const found = (fetchedSocial.profiles || []).find((p: any) => p.network === def.network)
+            return found ? { ...def, ...found } : def
+          })
+          const mergedSharing = defaultSharing.map((def) => {
+            const found = (fetchedSocial.sharing || []).find((s: any) => s.network === def.network)
+            return found ? { ...def, ...found } : def
+          })
 
-        const s: Settings = {
-          siteTitle: j?.data?.siteTitle || '',
-          defaultMetaDescription: j?.data?.defaultMetaDescription || '',
-          faviconMediaId: j?.data?.faviconMediaId || '',
-          defaultOgMediaId: j?.data?.defaultOgMediaId || '',
-          logoMediaId: j?.data?.logoMediaId || '',
-          isMaintenanceMode: !!j?.data?.isMaintenanceMode,
-          profileRolesEnabled: Array.isArray(j?.data?.profileRolesEnabled)
-            ? j.data.profileRolesEnabled
-            : [],
-          socialSettings: {
-            profiles: mergedProfiles,
-            sharing: mergedSharing,
-          },
-          customFieldDefs: Array.isArray(j?.data?.customFieldDefs) ? j.data.customFieldDefs : [],
-          customFields:
-            j?.data?.customFields && typeof j.data.customFields === 'object'
-              ? j.data.customFields
-              : {},
+          const s: Settings = {
+            siteTitle: j?.data?.siteTitle || '',
+            defaultMetaDescription: j?.data?.defaultMetaDescription || '',
+            faviconMediaId: j?.data?.faviconMediaId || '',
+            defaultOgMediaId: j?.data?.defaultOgMediaId || '',
+            logoMediaId: j?.data?.logoMediaId || '',
+            isMaintenanceMode: !!j?.data?.isMaintenanceMode,
+            defaultThemeMode: j?.data?.defaultThemeMode || 'light',
+            profileRolesEnabled: Array.isArray(j?.data?.profileRolesEnabled)
+              ? j.data.profileRolesEnabled
+              : [],
+            socialSettings: {
+              profiles: mergedProfiles,
+              sharing: mergedSharing,
+            },
+            customFieldDefs: Array.isArray(j?.data?.customFieldDefs) ? j.data.customFieldDefs : [],
+            customFields:
+              j?.data?.customFields && typeof j.data.customFields === 'object'
+                ? j.data.customFields
+                : {},
+          }
+          setForm(s)
+        } finally {
+          if (alive) setLoading(false)
         }
-        setForm(s)
-      } finally {
-        if (alive) setLoading(false)
-      }
-    })()
+      })()
     return () => {
       alive = false
     }
@@ -153,6 +160,7 @@ export default function GeneralSettings() {
           defaultOgMediaId: form.defaultOgMediaId || null,
           logoMediaId: form.logoMediaId || null,
           isMaintenanceMode: form.isMaintenanceMode,
+          defaultThemeMode: form.defaultThemeMode,
           profileRolesEnabled: form.profileRolesEnabled || [],
           socialSettings: form.socialSettings,
           customFields: form.customFields || {},
@@ -186,31 +194,31 @@ export default function GeneralSettings() {
     // Fetch media data when id changes
     useEffect(() => {
       let alive = true
-      ;(async () => {
-        try {
-          if (!id) {
+        ; (async () => {
+          try {
+            if (!id) {
+              if (alive) {
+                setMediaData(null)
+                setPreviewAlt('')
+              }
+              return
+            }
+            const res = await fetch(`/api/media/${encodeURIComponent(id)}`, {
+              credentials: 'same-origin',
+            })
+            const j = await res.json().catch(() => ({}))
+            const data = j?.data
+            if (alive) {
+              setMediaData(data || null)
+              setPreviewAlt(data?.altText || data?.originalFilename || '')
+            }
+          } catch {
             if (alive) {
               setMediaData(null)
               setPreviewAlt('')
             }
-            return
           }
-          const res = await fetch(`/api/media/${encodeURIComponent(id)}`, {
-            credentials: 'same-origin',
-          })
-          const j = await res.json().catch(() => ({}))
-          const data = j?.data
-          if (alive) {
-            setMediaData(data || null)
-            setPreviewAlt(data?.altText || data?.originalFilename || '')
-          }
-        } catch {
-          if (alive) {
-            setMediaData(null)
-            setPreviewAlt('')
-          }
-        }
-      })()
+        })()
       return () => {
         alive = false
       }
@@ -284,65 +292,105 @@ export default function GeneralSettings() {
     <div className="min-h-screen bg-backdrop-medium">
       <AdminHeader title="General Settings" />
       <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-        <div className="bg-backdrop-low rounded-lg border border-line-low p-6 space-y-6">
-          <div>
-            <label className="block text-sm font-medium text-neutral-medium mb-1">Site Title</label>
-            <Input
-              value={form.siteTitle || ''}
-              onChange={(e) => setForm({ ...form, siteTitle: e.target.value })}
-              placeholder="Site Title"
-            />
-          </div>
-          <div>
-            <label className="block text-sm font-medium text-neutral-medium mb-1">
-              Default Meta Description
-            </label>
-            <Textarea
-              value={form.defaultMetaDescription || ''}
-              onChange={(e) => setForm({ ...form, defaultMetaDescription: e.target.value })}
-              rows={3}
-              placeholder="Default meta description"
-            />
-          </div>
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-            <div>
-              <MediaIdPicker
-                label="Favicon"
-                value={form.faviconMediaId}
-                onChange={(id) => setForm({ ...form, faviconMediaId: id })}
-              />
-              <p className="text-xs text-neutral-low mt-1">
-                Derivatives should include 16x16, 32x32, and 180x180.
-              </p>
-            </div>
-            <div>
-              <MediaIdPicker
-                label="Default OG Image"
-                value={form.defaultOgMediaId}
-                onChange={(id) => setForm({ ...form, defaultOgMediaId: id })}
-              />
-            </div>
-          </div>
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-            <div>
-              <MediaIdPicker
-                label="Logo"
-                value={form.logoMediaId}
-                onChange={(id) => setForm({ ...form, logoMediaId: id })}
-              />
-              <p className="text-xs text-neutral-low mt-1">
-                Recommended SVG/PNG sized for your header. Theme-specific variants can be managed on
-                the media item.
-              </p>
-            </div>
-          </div>
+        <div className="border-b border-line-low mb-6">
+          <nav className="flex gap-4">
+            {[
+              { id: 'general', label: 'General' },
+              { id: 'seo', label: 'SEO & Meta' },
+              { id: 'social', label: 'Social' },
+              {
+                id: 'fields',
+                label: 'Site Fields',
+                hidden: !form.customFieldDefs || form.customFieldDefs.length === 0,
+              },
+              { id: 'system', label: 'System' },
+            ]
+              .filter((t) => !t.hidden)
+              .map((tab) => (
+                <button
+                  key={tab.id}
+                  onClick={() => setActiveTab(tab.id as any)}
+                  className={`px-4 py-2 border-b-2 font-medium text-sm transition-colors ${activeTab === tab.id
+                      ? 'border-standout-medium text-standout-high'
+                      : 'border-transparent text-neutral-medium hover:text-neutral-high'
+                    }`}
+                >
+                  {tab.label}
+                </button>
+              ))}
+          </nav>
+        </div>
 
-          {/* Site Custom Fields */}
-          {Array.isArray(form.customFieldDefs) && form.customFieldDefs.length > 0 && (
-            <div className="border-t border-line-low pt-6">
-              <h3 className="text-base font-semibold text-neutral-high mb-6">Site Fields</h3>
+        <div className="bg-backdrop-low rounded-lg border border-line-low p-6 space-y-6">
+          {activeTab === 'general' && (
+            <div className="space-y-6">
+              <div>
+                <label className="block text-sm font-medium text-neutral-medium mb-1">
+                  Site Title
+                </label>
+                <Input
+                  value={form.siteTitle || ''}
+                  onChange={(e) => setForm({ ...form, siteTitle: e.target.value })}
+                  placeholder="Site Title"
+                />
+              </div>
+
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                <div>
+                  <MediaIdPicker
+                    label="Logo"
+                    value={form.logoMediaId}
+                    onChange={(id) => setForm({ ...form, logoMediaId: id })}
+                  />
+                  <p className="text-xs text-neutral-low mt-1">
+                    Recommended SVG/PNG sized for your header.
+                  </p>
+                </div>
+                <div>
+                  <MediaIdPicker
+                    label="Favicon"
+                    value={form.faviconMediaId}
+                    onChange={(id) => setForm({ ...form, faviconMediaId: id })}
+                  />
+                  <p className="text-xs text-neutral-low mt-1">
+                    Should include 16x16, 32x32, and 180x180.
+                  </p>
+                </div>
+              </div>
+            </div>
+          )}
+
+          {activeTab === 'seo' && (
+            <div className="space-y-6">
+              <div>
+                <label className="block text-sm font-medium text-neutral-medium mb-1">
+                  Default Meta Description
+                </label>
+                <Textarea
+                  value={form.defaultMetaDescription || ''}
+                  onChange={(e) => setForm({ ...form, defaultMetaDescription: e.target.value })}
+                  rows={3}
+                  placeholder="Default meta description"
+                />
+              </div>
+              <div>
+                <MediaIdPicker
+                  label="Default OG Image"
+                  value={form.defaultOgMediaId}
+                  onChange={(id) => setForm({ ...form, defaultOgMediaId: id })}
+                />
+                <p className="text-xs text-neutral-low mt-1">
+                  Recommended size: 1200x630px.
+                </p>
+              </div>
+            </div>
+          )}
+
+          {activeTab === 'fields' && (
+            <div className="space-y-6">
+              <h3 className="text-base font-semibold text-neutral-high">Site Fields</h3>
               <CustomFieldRenderer
-                definitions={form.customFieldDefs}
+                definitions={form.customFieldDefs || []}
                 values={form.customFields || {}}
                 onChange={(slug, val) => {
                   setForm((prev) => ({
@@ -357,13 +405,10 @@ export default function GeneralSettings() {
             </div>
           )}
 
-          <div className="border-t border-line-low pt-6">
-            <h3 className="text-base font-semibold text-neutral-high mb-4">Social Networks</h3>
-
+          {activeTab === 'social' && (
             <div className="space-y-8">
-              {/* Social Profiles */}
               <div>
-                <h4 className="text-sm font-medium text-neutral-medium mb-3">Social Profiles</h4>
+                <h3 className="text-base font-semibold text-neutral-high mb-4">Social Profiles</h3>
                 <div className="space-y-4">
                   {form.socialSettings?.profiles.map((profile, idx) => (
                     <div
@@ -443,9 +488,8 @@ export default function GeneralSettings() {
                 </div>
               </div>
 
-              {/* Social Sharing */}
-              <div>
-                <h4 className="text-sm font-medium text-neutral-medium mb-3">Social Sharing</h4>
+              <div className="border-t border-line-low pt-8">
+                <h3 className="text-base font-semibold text-neutral-high mb-4">Social Sharing</h3>
                 <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
                   {form.socialSettings?.sharing.map((share, idx) => (
                     <div
@@ -498,42 +542,73 @@ export default function GeneralSettings() {
                     </div>
                   ))}
                 </div>
-                <p className="text-xs text-neutral-low mt-2">
-                  Icons for sharing are FontAwesome icons. Some networks (email, copy link) have
-                  special handling.
+                <p className="text-xs text-neutral-low mt-4">
+                  Icons for sharing are FontAwesome icons.
                 </p>
               </div>
             </div>
-          </div>
+          )}
 
-          <div className="border-t border-line-low pt-6">
-            <h3 className="text-base font-semibold text-neutral-high mb-4">Maintenance Mode</h3>
-            <div className="bg-amber-50 dark:bg-amber-950/20 border border-amber-200 dark:border-amber-900/50 rounded-lg p-4">
-              <div className="flex items-start gap-3">
-                <Checkbox
-                  id="maintenance-mode"
-                  checked={form.isMaintenanceMode}
-                  onCheckedChange={(checked) =>
-                    setForm({ ...form, isMaintenanceMode: checked === true })
-                  }
-                  className="mt-1"
-                />
-                <div>
-                  <label
-                    htmlFor="maintenance-mode"
-                    className="text-sm font-semibold text-amber-900 dark:text-amber-200 cursor-pointer"
-                  >
-                    Enable Maintenance Mode
+          {activeTab === 'system' && (
+            <div className="space-y-8">
+              <div>
+                <h3 className="text-base font-semibold text-neutral-high mb-4">Appearance</h3>
+                <div className="max-w-xs">
+                  <label className="block text-sm font-medium text-neutral-medium mb-2">
+                    Default Theme Mode
                   </label>
-                  <p className="text-xs text-amber-800/70 dark:text-amber-400/70 mt-1">
-                    When enabled, public visitors will see a maintenance page. Administrators and
-                    Editors can still access the site and admin panel.
+                  <Select
+                    value={form.defaultThemeMode}
+                    onValueChange={(val: 'light' | 'dark') =>
+                      setForm({ ...form, defaultThemeMode: val })
+                    }
+                  >
+                    <SelectTrigger>
+                      <SelectValue placeholder="Select default theme" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="light">Light Mode</SelectItem>
+                      <SelectItem value="dark">Dark Mode</SelectItem>
+                    </SelectContent>
+                  </Select>
+                  <p className="text-xs text-neutral-low mt-2">
+                    This mode will be used if the visitor hasn't set a preference.
                   </p>
                 </div>
               </div>
+
+              <div className="border-t border-line-low pt-8">
+                <h3 className="text-base font-semibold text-neutral-high mb-4">
+                  Maintenance Mode
+                </h3>
+                <div className="bg-amber-50 dark:bg-amber-950/20 border border-amber-200 dark:border-amber-900/50 rounded-lg p-4">
+                  <div className="flex items-start gap-3">
+                    <Checkbox
+                      id="maintenance-mode"
+                      checked={form.isMaintenanceMode}
+                      onCheckedChange={(checked) =>
+                        setForm({ ...form, isMaintenanceMode: checked === true })
+                      }
+                      className="mt-1"
+                    />
+                    <div>
+                      <label
+                        htmlFor="maintenance-mode"
+                        className="text-sm font-semibold text-amber-900 dark:text-amber-200 cursor-pointer"
+                      >
+                        Enable Maintenance Mode
+                      </label>
+                      <p className="text-xs text-amber-800/70 dark:text-amber-400/70 mt-1">
+                        When enabled, public visitors will see a maintenance page.
+                      </p>
+                    </div>
+                  </div>
+                </div>
+              </div>
             </div>
-          </div>
-          <div className="flex items-center gap-2">
+          )}
+
+          <div className="flex items-center gap-2 pt-6 border-t border-line-low">
             <button
               type="button"
               className={`px-3 py-2 text-sm rounded ${saving ? 'opacity-60' : 'bg-standout-medium text-on-high'}`}

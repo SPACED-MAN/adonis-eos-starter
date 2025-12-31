@@ -79,19 +79,19 @@ export function AdminSidebar() {
 
   useEffect(() => {
     let alive = true
-    ;(async () => {
-      try {
-        const res = await fetch('/api/profile/status', { credentials: 'same-origin' })
-        const j = await res.json().catch(() => ({}))
-        const light = j?.data?.profileThumbUrl || null
-        const dark = j?.data?.profileDarkThumbUrl || null
-        if (alive) {
-          setProfileImages({ light, dark })
+      ; (async () => {
+        try {
+          const res = await fetch('/api/profile/status', { credentials: 'same-origin' })
+          const j = await res.json().catch(() => ({}))
+          const light = j?.data?.profileThumbUrl || null
+          const dark = j?.data?.profileDarkThumbUrl || null
+          if (alive) {
+            setProfileImages({ light, dark })
+          }
+        } catch {
+          /* ignore */
         }
-      } catch {
-        /* ignore */
-      }
-    })()
+      })()
     return () => {
       alive = false
     }
@@ -131,41 +131,41 @@ export function AdminSidebar() {
         <SidebarGroup title="Content">
           <SidebarMenuItem href={adminPath()} active={isActive(adminPath())}>
             <span className="inline-flex items-center gap-2">
-              <FontAwesomeIcon icon={faGauge} className="w-4 h-4" /> <span>Dashboard</span>
+              <FontAwesomeIcon icon={faGauge} size="sm" /> <span>Dashboard</span>
             </span>
           </SidebarMenuItem>
           {canAccessMedia && (
             <SidebarMenuItem href={adminPath('media')} active={isActive(adminPath('media'))}>
               <span className="inline-flex items-center gap-2">
-                <FontAwesomeIcon icon={faImage} className="w-4 h-4" /> <span>Media</span>
+                <FontAwesomeIcon icon={faImage} size="sm" /> <span>Media</span>
               </span>
             </SidebarMenuItem>
           )}
           {canAccessPosts && (
             <SidebarMenuItem href={adminPath('posts')} active={isActive(adminPath('posts'))}>
               <span className="inline-flex items-center gap-2">
-                <FontAwesomeIcon icon={faFileLines} className="w-4 h-4" /> <span>Posts</span>
+                <FontAwesomeIcon icon={faFileLines} size="sm" /> <span>Posts</span>
               </span>
             </SidebarMenuItem>
           )}
           {canAccessGlobals && features.modules && (
             <SidebarMenuItem href={adminPath('modules')} active={isActive(adminPath('modules'))}>
               <span className="inline-flex items-center gap-2">
-                <FontAwesomeIcon icon={faCubes} className="w-4 h-4" /> <span>Modules</span>
+                <FontAwesomeIcon icon={faCubes} size="sm" /> <span>Modules</span>
               </span>
             </SidebarMenuItem>
           )}
           {canAccessForms && features.forms && (
             <SidebarMenuItem href={adminPath('forms')} active={isActive(adminPath('forms'))}>
               <span className="inline-flex items-center gap-2">
-                <FontAwesomeIcon icon={faEnvelope} className="w-4 h-4" /> <span>Forms</span>
+                <FontAwesomeIcon icon={faEnvelope} size="sm" /> <span>Forms</span>
               </span>
             </SidebarMenuItem>
           )}
           {canAccessMenus && features.menus && (
             <SidebarMenuItem href={adminPath('menus')} active={isActive(adminPath('menus'))}>
               <span className="inline-flex items-center gap-2">
-                <FontAwesomeIcon icon={faBars} className="w-4 h-4" /> <span>Menus</span>
+                <FontAwesomeIcon icon={faBars} size="sm" /> <span>Menus</span>
               </span>
             </SidebarMenuItem>
           )}
@@ -175,7 +175,7 @@ export function AdminSidebar() {
               active={isActive(adminPath('categories'))}
             >
               <span className="inline-flex items-center gap-2">
-                <FontAwesomeIcon icon={faTags} className="w-4 h-4" /> <span>Categories</span>
+                <FontAwesomeIcon icon={faTags} size="sm" /> <span>Categories</span>
               </span>
             </SidebarMenuItem>
           )}
@@ -189,7 +189,7 @@ export function AdminSidebar() {
                   active={isActive(adminPath('settings/general'))}
                 >
                   <span className="inline-flex items-center gap-2">
-                    <FontAwesomeIcon icon={faGear} className="w-4 h-4" /> <span>Site Settings</span>
+                    <FontAwesomeIcon icon={faGear} size="sm" /> <span>Site Settings</span>
                   </span>
                 </SidebarMenuItem>
                 <SidebarMenuItem
@@ -197,7 +197,7 @@ export function AdminSidebar() {
                   active={isActive(adminPath('settings/url-patterns'))}
                 >
                   <span className="inline-flex items-center gap-2">
-                    <FontAwesomeIcon icon={faRoute} className="w-4 h-4" /> <span>URL Patterns</span>
+                    <FontAwesomeIcon icon={faRoute} size="sm" /> <span>URL Patterns</span>
                   </span>
                 </SidebarMenuItem>
                 <SidebarMenuItem
@@ -205,7 +205,7 @@ export function AdminSidebar() {
                   active={isActive(adminPath('settings/redirects'))}
                 >
                   <span className="inline-flex items-center gap-2">
-                    <FontAwesomeIcon icon={faRightLeft} className="w-4 h-4" />{' '}
+                    <FontAwesomeIcon icon={faRightLeft} size="sm" />{' '}
                     <span>Redirects</span>
                   </span>
                 </SidebarMenuItem>
@@ -214,7 +214,7 @@ export function AdminSidebar() {
                   active={isActive(adminPath('settings/seo'))}
                 >
                   <span className="inline-flex items-center gap-2">
-                    <FontAwesomeIcon icon={faMagnifyingGlass} className="w-4 h-4" />{' '}
+                    <FontAwesomeIcon icon={faMagnifyingGlass} size="sm" />{' '}
                     <span>{features.analytics === false ? 'SEO' : 'SEO/Analytics'}</span>
                   </span>
                 </SidebarMenuItem>
@@ -224,7 +224,7 @@ export function AdminSidebar() {
                     active={isActive(adminPath('settings/locales'))}
                   >
                     <span className="inline-flex items-center gap-2">
-                      <FontAwesomeIcon icon={faLanguage} className="w-4 h-4" /> <span>Locales</span>
+                      <FontAwesomeIcon icon={faLanguage} size="sm" /> <span>Locales</span>
                     </span>
                   </SidebarMenuItem>
                 )}
@@ -233,7 +233,7 @@ export function AdminSidebar() {
             {canAccessUsers && (
               <SidebarMenuItem href={adminPath('users')} active={isActive(adminPath('users'))}>
                 <span className="inline-flex items-center gap-2">
-                  <FontAwesomeIcon icon={faUsers} className="w-4 h-4" /> <span>Users</span>
+                  <FontAwesomeIcon icon={faUsers} size="sm" /> <span>Users</span>
                 </span>
               </SidebarMenuItem>
             )}
@@ -244,7 +244,7 @@ export function AdminSidebar() {
             {canAccessAgents && features.agents && (
               <SidebarMenuItem href={adminPath('agents')} active={isActive(adminPath('agents'))}>
                 <span className="inline-flex items-center gap-2">
-                  <FontAwesomeIcon icon={faRobot} className="w-4 h-4" /> <span>Agents</span>
+                  <FontAwesomeIcon icon={faRobot} size="sm" /> <span>Agents</span>
                 </span>
               </SidebarMenuItem>
             )}
@@ -254,18 +254,18 @@ export function AdminSidebar() {
                 active={isActive(adminPath('workflows'))}
               >
                 <span className="inline-flex items-center gap-2">
-                  <FontAwesomeIcon icon={faTimeline} className="w-4 h-4" /> <span>Workflows</span>
+                  <FontAwesomeIcon icon={faTimeline} size="sm" /> <span>Workflows</span>
                 </span>
               </SidebarMenuItem>
             )}
             <SidebarMenuItem href={adminPath('security')} active={isActive(adminPath('security'))}>
               <span className="inline-flex items-center gap-2">
-                <FontAwesomeIcon icon={faShield} className="w-4 h-4" /> <span>Security</span>
+                <FontAwesomeIcon icon={faShield} size="sm" /> <span>Security</span>
               </span>
             </SidebarMenuItem>
             <SidebarMenuItem href={adminPath('database')} active={isActive(adminPath('database'))}>
               <span className="inline-flex items-center gap-2">
-                <FontAwesomeIcon icon={faDatabase} className="w-4 h-4" /> <span>Database</span>
+                <FontAwesomeIcon icon={faDatabase} size="sm" /> <span>Database</span>
               </span>
             </SidebarMenuItem>
           </SidebarGroup>

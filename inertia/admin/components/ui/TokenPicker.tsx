@@ -77,6 +77,7 @@ export function TokenPicker({ onSelect, customFields, trigger }: TokenPickerProp
                     <FontAwesomeIcon
                       icon={(categoryIcons as any)[category] || faCube}
                       className="w-2.5 h-2.5"
+                      size="2xs"
                     />
                     {(categoryLabels as any)[category] || category}
                   </div>

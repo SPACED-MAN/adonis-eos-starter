@@ -160,29 +160,27 @@ export default function SeoSettingsPage() {
           <nav className="flex gap-4">
             <button
               onClick={() => setActiveTab('analytics')}
-              className={`px-4 py-2 border-b-2 font-medium text-sm transition-colors flex items-center gap-2 ${
-                activeTab === 'analytics'
+              className={`px-4 py-2 border-b-2 font-medium text-sm transition-colors flex items-center gap-2 ${activeTab === 'analytics'
                   ? 'border-standout-medium text-standout-high'
                   : 'border-transparent text-neutral-medium hover:text-neutral-high'
-              } ${features.analytics === false ? 'opacity-50 grayscale cursor-not-allowed' : ''}`}
+                } ${features.analytics === false ? 'opacity-50 grayscale cursor-not-allowed' : ''}`}
               title={features.analytics === false ? 'This feature is disabled' : ''}
               disabled={features.analytics === false}
             >
-              <FontAwesomeIcon icon={faFire} className="w-3.5 h-3.5" />
+              <FontAwesomeIcon icon={faFire} size="sm" />
               Analytics
               {features.analytics === false && (
-                <FontAwesomeIcon icon={faLock} className="ml-1 w-2.5 h-2.5" />
+                <FontAwesomeIcon icon={faLock} className="ml-1" size="2xs" />
               )}
             </button>
             <button
               onClick={() => setActiveTab('sitemap')}
-              className={`px-4 py-2 border-b-2 font-medium text-sm transition-colors flex items-center gap-2 ${
-                activeTab === 'sitemap'
+              className={`px-4 py-2 border-b-2 font-medium text-sm transition-colors flex items-center gap-2 ${activeTab === 'sitemap'
                   ? 'border-standout-medium text-standout-high'
                   : 'border-transparent text-neutral-medium hover:text-neutral-high'
-              }`}
+                }`}
             >
-              <FontAwesomeIcon icon={faSitemap} className="w-3.5 h-3.5" />
+              <FontAwesomeIcon icon={faSitemap} size="sm" />
               XML Sitemap
             </button>
           </nav>
@@ -218,7 +216,7 @@ export default function SeoSettingsPage() {
                   target="_blank"
                   rel="noreferrer"
                 >
-                  <FontAwesomeIcon icon={faExternalLinkAlt} className="w-3 h-3" />
+                  <FontAwesomeIcon icon={faExternalLinkAlt} size="xs" />
                   Open
                 </a>
               </div>

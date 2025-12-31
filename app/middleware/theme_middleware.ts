@@ -1,5 +1,6 @@
 import { HttpContext } from '@adonisjs/core/http'
 import type { NextFn } from '@adonisjs/core/types/http'
+import siteSettingsService from '#services/site_settings_service'
 
 /**
  * Reads the theme mode from a plain cookie and shares it with Inertia.
@@ -7,7 +8,8 @@ import type { NextFn } from '@adonisjs/core/types/http'
  */
 export default class ThemeMiddleware {
   async handle({ request, inertia }: HttpContext, next: NextFn) {
-    const themeMode = request.plainCookie('theme-mode') || 'light'
+    const settings = await siteSettingsService.get()
+    const themeMode = request.plainCookie('theme-mode') || settings.defaultThemeMode
     inertia.share({
       isDark: themeMode === 'dark',
     })

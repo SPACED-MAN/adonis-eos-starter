@@ -7,13 +7,14 @@ import { coerceJsonObject } from '../helpers/jsonb.js'
 type TargetScope = 'props' | 'overrides'
 
 function setAtPath(obj: any, path: string, value: any) {
-  const parts = path.split('.').filter(Boolean)
+  const parts = path.split(/[.[\]]/).filter(Boolean)
   if (parts.length === 0) return
   let cur = obj
   for (let i = 0; i < parts.length - 1; i++) {
     const key = parts[i]!
+    const nextKey = parts[i + 1]!
     if (cur[key] === undefined || cur[key] === null || typeof cur[key] !== 'object') {
-      cur[key] = {}
+      cur[key] = /^\d+$/.test(nextKey) ? [] : {}
     }
     cur = cur[key]
   }
@@ -84,7 +85,7 @@ export default class InlineEditorController {
     try {
       const cfg = moduleRegistry.getSchema(row.moduleType)
       if (cfg?.fieldSchema && Array.isArray(cfg.fieldSchema)) {
-        const rootKey = path.split('.')[0]
+        const rootKey = path.split(/[.[\]]/).filter(Boolean)[0]
         const fieldExists = cfg.fieldSchema.some((f: any) => f.slug === rootKey)
         if (rootKey && !fieldExists && rootKey !== '_useReact') {
           return response.badRequest({ error: `Unknown field: ${rootKey}` })

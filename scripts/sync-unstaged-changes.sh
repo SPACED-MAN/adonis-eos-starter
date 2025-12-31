@@ -166,6 +166,11 @@ fi
 DIFF_STREAM=(git -C "$REPO_ROOT" diff --name-status -z)
 DIFF_QUIET=(git -C "$REPO_ROOT" diff --quiet)
 
+# Tracked files deleted from worktree (unstaged deletions)
+DELETED_STREAM=(git -C "$REPO_ROOT" ls-files --deleted -z)
+# Check if there are any deleted files
+DELETED_COUNT=$(git -C "$REPO_ROOT" ls-files --deleted | wc -l)
+
 # Untracked files (working tree vs index), null-delimited.
 UNTRACKED_STREAM=(git -C "$REPO_ROOT" ls-files --others --exclude-standard -z)
 # Check if there are any untracked files
@@ -175,12 +180,14 @@ if [[ -n "$PATH_PREFIX" ]]; then
   # git pathspec is relative to repo root
   DIFF_STREAM+=(-- "$PATH_PREFIX")
   DIFF_QUIET+=(-- "$PATH_PREFIX")
+  DELETED_STREAM+=(-- "$PATH_PREFIX")
+  DELETED_COUNT=$(git -C "$REPO_ROOT" ls-files --deleted -- "$PATH_PREFIX" | wc -l)
   UNTRACKED_STREAM+=(-- "$PATH_PREFIX")
   UNTRACKED_COUNT=$(git -C "$REPO_ROOT" ls-files --others --exclude-standard -- "$PATH_PREFIX" | wc -l)
 fi
 
-# Fast path: no unstaged changes and no untracked files
-if "${DIFF_QUIET[@]}" && [[ "$UNTRACKED_COUNT" -eq 0 ]]; then
+# Fast path: no unstaged changes, no untracked files, and no deleted files
+if "${DIFF_QUIET[@]}" && [[ "$UNTRACKED_COUNT" -eq 0 ]] && [[ "$DELETED_COUNT" -eq 0 ]]; then
   log "No unstaged or untracked changes found."
   exit 0
 fi
@@ -242,6 +249,15 @@ while IFS= read -r -d '' rel_path; do
   log "COPY (??): $rel_path"
   copy_file "$rel_path"
 done < <("${UNTRACKED_STREAM[@]}")
+
+# Process unstaged deletions (explicitly)
+while IFS= read -r -d '' rel_path; do
+  if ! path_allowed "$rel_path"; then
+    continue
+  fi
+  log "DELETE (missing on source): $rel_path"
+  delete_file "$rel_path"
+done < <("${DELETED_STREAM[@]}")
 
 log "Done."
 

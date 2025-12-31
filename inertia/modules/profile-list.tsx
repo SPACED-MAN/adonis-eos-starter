@@ -47,45 +47,45 @@ export default function ProfileList({
 
   useEffect(() => {
     let cancelled = false
-    ;(async () => {
-      try {
-        const params = new URLSearchParams()
-        params.set('status', 'published')
-        params.set('limit', '50')
-        const ids = Array.isArray(profiles) ? profiles.filter(Boolean) : []
-        if (ids.length > 0) {
-          params.set('ids', ids.join(','))
-        }
-        const res = await fetch(`/api/profiles?${params.toString()}`, {
-          credentials: 'same-origin',
-          headers: { Accept: 'application/json' },
-        })
-        if (!res.ok) {
-          throw new Error('Failed to load profiles')
-        }
-        const j = await res.json().catch(() => null)
-        const list: any[] = Array.isArray(j?.data) ? j.data : []
-        if (cancelled) return
-
-        const mapped: ProfileSummary[] = list.map((p: any) => {
-          return {
-            id: String(p.id),
-            name: String(p.name || 'Profile'),
-            role: (p as any).role ?? null,
-            bio: (p as any).bio ?? null,
-            slug: String(p.slug),
-            url: String(p.url),
-            image: p.image ?? null,
+      ; (async () => {
+        try {
+          const params = new URLSearchParams()
+          params.set('status', 'published')
+          params.set('limit', '50')
+          const ids = Array.isArray(profiles) ? profiles.filter(Boolean) : []
+          if (ids.length > 0) {
+            params.set('ids', ids.join(','))
           }
-        })
+          const res = await fetch(`/api/profiles?${params.toString()}`, {
+            credentials: 'same-origin',
+            headers: { Accept: 'application/json' },
+          })
+          if (!res.ok) {
+            throw new Error('Failed to load profiles')
+          }
+          const j = await res.json().catch(() => null)
+          const list: any[] = Array.isArray(j?.data) ? j.data : []
+          if (cancelled) return
 
-        setItems(mapped)
-      } catch {
-        if (!cancelled) setItems([])
-      } finally {
-        if (!cancelled) setLoading(false)
-      }
-    })()
+          const mapped: ProfileSummary[] = list.map((p: any) => {
+            return {
+              id: String(p.id),
+              name: String(p.name || 'Profile'),
+              role: (p as any).role ?? null,
+              bio: (p as any).bio ?? null,
+              slug: String(p.slug),
+              url: String(p.url),
+              image: p.image ?? null,
+            }
+          })
+
+          setItems(mapped)
+        } catch {
+          if (!cancelled) setItems([])
+        } finally {
+          if (!cancelled) setLoading(false)
+        }
+      })()
     return () => {
       cancelled = true
     }
@@ -163,7 +163,7 @@ export default function ProfileList({
             data-inline-post-type="profile"
             aria-label="Edit profiles"
           >
-            <FontAwesomeIcon icon="pencil" className="w-3 h-3" />
+            <FontAwesomeIcon icon="pencil" size="xs" />
             Edit profiles ({items.length})
           </button>
         </div>

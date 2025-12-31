@@ -8,11 +8,11 @@ type LinkValue =
   | undefined
   | string
   | {
-      kind?: 'url' | 'post'
-      url?: string
-      postId?: string | number | null
-      target?: '_self' | '_blank'
-    }
+    kind?: 'url' | 'post'
+    url?: string
+    postId?: string | number | null
+    target?: '_self' | '_blank'
+  }
 
 interface PricingPlan {
   name: string
@@ -130,9 +130,8 @@ export default function Pricing({
 
         const planCard = (
           <div
-            className={`flex flex-col h-full p-6 mx-auto max-w-lg text-center ${isDarkBg ? 'bg-backdrop-low/10' : 'bg-backdrop-low'} rounded-lg border border-line-low shadow-sm xl:p-8 ${
-              isPrimary ? 'ring-2 ring-standout-medium shadow-md' : ''
-            }`}
+            className={`flex flex-col h-full p-6 mx-auto max-w-lg text-center ${isDarkBg ? 'bg-backdrop-low/10' : 'bg-backdrop-low'} rounded-lg border border-line-low shadow-sm xl:p-8 ${isPrimary ? 'ring-2 ring-standout-medium shadow-md' : ''
+              }`}
             data-inline-type="object"
             data-inline-path={`plans.${idx}`}
             data-inline-label={`Plan ${idx + 1}`}
@@ -173,7 +172,7 @@ export default function Pricing({
                       className={`mt-0.5 inline-flex h-5 w-5 items-center justify-center rounded-full ${isDarkBg ? 'bg-success/20 text-success' : 'bg-success/10 text-success'}`}
                       aria-hidden="true"
                     >
-                      <FontAwesomeIcon icon="check" className="h-3.5 w-3.5" />
+                      <FontAwesomeIcon icon="check" size="sm" />
                     </span>
                     <span className={`text-sm sm:text-base ${textColor}`}>{f}</span>
                   </li>

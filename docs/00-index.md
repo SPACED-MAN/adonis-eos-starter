@@ -12,10 +12,10 @@ Complete guide to using and developing with Adonis EOS — a modern, headless CM
 
 - [Getting Started](developers/01-getting-started.md) - Installation and project setup
 - [Architecture](developers/02-architecture.md) - Core principles and business logic
-- [Extending the CMS](developers/03-extending.md) - Theming and custom modules
-- [Automation & AI](developers/04-automation.md) - Workflows and AI agents
-- [Content & Data](developers/05-data.md) - Taxonomies, menus, and fields
-- [Operations & Security](developers/06-operations.md) - CLI tools and access control
+- [Extending the CMS](developers/03-extending-the-cms.md) - Theming and custom modules
+- [Automation & AI](developers/04-automation-and-ai.md) - Workflows and AI agents
+- [Content & Data](developers/05-content-and-data.md) - Taxonomies, menus, and fields
+- [Operations & Security](developers/06-operations-and-security.md) - CLI tools and access control
 
 ## What is Adonis EOS?
 

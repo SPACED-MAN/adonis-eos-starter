@@ -60,6 +60,9 @@ export default class SiteSetting extends BaseModel {
   })
   declare socialSettings: any | null
 
+  @column({ columnName: 'default_theme_mode' })
+  declare defaultThemeMode: 'light' | 'dark'
+
   @column.dateTime({ autoCreate: true, columnName: 'created_at' })
   declare createdAt: DateTime
 

@@ -48,16 +48,16 @@ npm install
 
 If you're new to using the CMS, start here:
 
-👉 **[For Editors](docs/editors/00-quick-start.md)** - Learn how to create and manage content
+👉 **[For Editors](docs/editors.md)** - Learn how to create and manage content
 
 **Editor Documentation:**
 
-- [Content Management](docs/editors/01-content-management.md) - Creating and editing posts
-- [Working with Modules](docs/editors/06-modules-guide.md) - Understanding content blocks
-- [Review Workflow](docs/editors/03-review-workflow.md) - Collaboration and approval
-- [Managing Media](docs/editors/04-media.md) - Uploading and organizing images
-- [Translations](docs/editors/05-translations.md) - Multi-language content
-- [Roles & Permissions](docs/editors/02-roles-permissions.md) - Understanding your access level
+- [Content Management](docs/editors/01-basics/01-content-management.md) - Creating and editing posts
+- [Working with Modules](docs/editors/01-basics/06-modules-guide.md) - Understanding content blocks
+- [Review Workflow](docs/editors/02-collaboration/03-review-workflow.md) - Collaboration and approval
+- [Managing Media](docs/editors/03-management/04-media.md) - Uploading and organizing images
+- [Translations](docs/editors/03-management/05-translations.md) - Multi-language content
+- [Roles & Permissions](docs/editors/02-collaboration/02-roles-permissions.md) - Understanding your access level
 
 ### For Developers
 
@@ -96,18 +96,18 @@ Visit `http://localhost:3333/admin` and log in with:
 
 > **⚠️ Security Note:** Change these default passwords immediately in production!
 
-👉 **[For Developers](docs/developers/00-getting-started.md)** - Complete setup and configuration
+👉 **[For Developers](docs/developers.md)** - Complete setup and configuration
 
 **Developer Documentation:**
 
-- [API Reference](docs/developers/04-api-reference.md) - RESTful endpoints
-- [Building Modules](docs/developers/03-building-modules.md) - Creating custom content components
-- [Content Management Overview](docs/developers/01-content-management-overview.md) - Understanding the content model
-- [Theming System](docs/developers/02-theming.md) - Customizing design and colors
-- [URL Patterns, Routing & Analytics](docs/developers/06-seo-and-routing.md) - Dynamic URL generation and native analytics
-- [AI Agents](docs/developers/09-ai-agents.md) - Automated workflows and integrations
-- [Internationalization](docs/developers/07-internationalization.md) - i18n implementation
-- [Deployment Guide](docs/developers/19-deployment.md) - Production setup and best practices
+- [API Reference](docs/developers/02-architecture/05-api-reference.md) - RESTful endpoints
+- [Building Modules](docs/developers/03-extending-the-cms/04-building-modules.md) - Creating custom content components
+- [Content Management Overview](docs/developers/02-architecture/02-content-management-overview.md) - Understanding the content model
+- [Theming System](docs/developers/03-extending-the-cms/03-theming.md) - Customizing design and colors
+- [URL Patterns, Routing & Analytics](docs/developers/05-content-and-data/07-seo-and-routing.md) - Dynamic URL generation and native analytics
+- [AI Agents](docs/developers/04-automation-and-ai/06b-ai-agents.md) - Automated workflows and integrations
+- [Internationalization](docs/developers/05-content-and-data/08-internationalization.md) - i18n implementation
+- [Deployment Guide](docs/developers/01-getting-started/03-deployment.md) - Production setup and best practices
 
 ## Project Structure
 
@@ -206,7 +206,7 @@ node ace make:agent seo    # Create AI agent
 
 ## Deployment
 
-For production deployment guides, environment configuration, and hosting recommendations, see the **[Deployment Guide](docs/developers/19-deployment.md)**.
+For production deployment guides, environment configuration, and hosting recommendations, see the **[Deployment Guide](docs/developers/01-getting-started/03-deployment.md)**.
 
 **Quick Deploy:**
 

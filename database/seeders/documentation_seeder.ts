@@ -684,9 +684,13 @@ export default class extends BaseSeeder {
     // Sort by directory (root first) then by filename
     allFiles.sort((a, b) => {
       const dirOrder = { root: 0, editors: 1, developers: 2 }
-      const dirDiff =
-        dirOrder[a.dir as keyof typeof dirOrder] - dirOrder[b.dir as keyof typeof dirOrder]
-      if (dirDiff !== 0) return dirDiff
+      const aBase = a.dir.split('/')[0]
+      const bBase = b.dir.split('/')[0]
+      const aOrder = dirOrder[aBase as keyof typeof dirOrder] ?? 99
+      const bOrder = dirOrder[bBase as keyof typeof dirOrder] ?? 99
+
+      if (aOrder !== bOrder) return aOrder - bOrder
+      if (a.dir !== b.dir) return a.dir.localeCompare(b.dir)
       return a.file.localeCompare(b.file)
     })
 
@@ -696,12 +700,24 @@ export default class extends BaseSeeder {
       basics: ['quick-start', 'content-management', 'modules-guide'],
       collaboration: ['review-workflow', 'feedback', 'roles-permissions'],
       management: ['media', 'translations', 'seo-and-ab-testing'],
-      developers: ['getting-started', 'architecture', 'extending', 'automation', 'data', 'operations'],
+      developers: [
+        'getting-started',
+        'architecture',
+        'extending-the-cms',
+        'automation-and-ai',
+        'content-and-data',
+        'operations-and-security',
+      ],
       'getting-started': ['installation', 'project-structure', 'deployment', 'update-philosophy'],
-      architecture: ['concepts', 'content-management-overview', 'api-reference', 'services-and-actions'],
-      extending: ['theming', 'building-modules', 'global-modules', 'advanced-customization'],
-      automation: ['workflows-and-webhooks', 'ai-agents', 'mcp'],
-      data: [
+      architecture: [
+        'concepts',
+        'content-management-overview',
+        'api-reference',
+        'services-and-actions',
+      ],
+      'extending-the-cms': ['theming', 'building-modules', 'global-modules', 'advanced-customization'],
+      'automation-and-ai': ['workflows-and-webhooks', 'ai-agents', 'mcp'],
+      'content-and-data': [
         'taxonomies',
         'menus',
         'custom-fields',
@@ -710,7 +726,7 @@ export default class extends BaseSeeder {
         'internationalization',
         'user-interaction',
       ],
-      operations: [
+      'operations-and-security': [
         'cli-and-operations',
         'review-workflow-developers',
         'preview-system',
@@ -847,7 +863,7 @@ export default class extends BaseSeeder {
         displayTitle = 'For Developers'
       }
 
-      console.log(`✨ Creating documentation page: "${displayTitle}" (${slug})`)
+      console.log(`✨ Creating documentation page: "${displayTitle}" (${slug}) from ${file}`)
 
       // Create post using CreatePost action (parent_id will be set in second pass)
       const post = await CreatePost.handle({

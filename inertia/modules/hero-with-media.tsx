@@ -82,7 +82,7 @@ export default function HeroWithMedia({
 
   const imageBlockContent = (
     <div
-      className="w-full max-w-md overflow-hidden relative aspect-[4/3] bg-backdrop-medium/50 rounded-lg"
+      className="w-full max-w-md overflow-hidden relative aspect-[4/3]"
       {...imageProps}
     >
       {imageValue && (
@@ -91,6 +91,7 @@ export default function HeroWithMedia({
           alt={(typeof imageValue === 'object' ? imageValue.altText : null) || ''}
           fetchPriority="high"
           decoding="async"
+          objectFit="contain"
           playMode={typeof imageValue === 'object' ? imageValue.metadata?.playMode : 'autoplay'}
         />
       )}

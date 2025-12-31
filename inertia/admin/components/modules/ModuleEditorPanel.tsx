@@ -519,63 +519,63 @@ const MediaFieldInternal = memo(
       }
 
       let alive = true
-      ;(async () => {
-        try {
-          let promise = mediaMetadataLoading.get(currentVal)
-          if (!promise) {
-            promise = fetch(`/api/media/${encodeURIComponent(currentVal)}`, {
-              credentials: 'same-origin',
-            }).then((res) => {
-              if (res.status === 404) {
-                mediaMetadata404.add(currentVal)
-                throw new Error('404')
-              }
-              return res.json()
-            })
-            mediaMetadataLoading.set(currentVal, promise)
-          }
+        ; (async () => {
+          try {
+            let promise = mediaMetadataLoading.get(currentVal)
+            if (!promise) {
+              promise = fetch(`/api/media/${encodeURIComponent(currentVal)}`, {
+                credentials: 'same-origin',
+              }).then((res) => {
+                if (res.status === 404) {
+                  mediaMetadata404.add(currentVal)
+                  throw new Error('404')
+                }
+                return res.json()
+              })
+              mediaMetadataLoading.set(currentVal, promise)
+            }
 
-          const j = await promise
-          if (!j?.data) throw new Error('No data')
+            const j = await promise
+            if (!j?.data) throw new Error('No data')
 
-          const item: ModalMediaItem = {
-            id: j.data.id,
-            url: j.data.url,
-            mimeType: j.data.mimeType,
-            originalFilename: j.data.originalFilename,
-            alt: j.data.alt,
-            metadata: j.data.metadata,
-          }
-          const meta = j.data.metadata || {}
-          const variants: MediaVariant[] = Array.isArray(meta?.variants) ? meta.variants : []
-          const darkSourceUrl =
-            typeof meta.darkSourceUrl === 'string' ? meta.darkSourceUrl : undefined
-          const playMode = meta.playMode || 'autoplay'
-          const mData = {
-            baseUrl: j.data.url,
-            mimeType: j.data.mimeType,
-            variants,
-            darkSourceUrl,
-            playMode,
-          }
+            const item: ModalMediaItem = {
+              id: j.data.id,
+              url: j.data.url,
+              mimeType: j.data.mimeType,
+              originalFilename: j.data.originalFilename,
+              alt: j.data.alt,
+              metadata: j.data.metadata,
+            }
+            const meta = j.data.metadata || {}
+            const variants: MediaVariant[] = Array.isArray(meta?.variants) ? meta.variants : []
+            const darkSourceUrl =
+              typeof meta.darkSourceUrl === 'string' ? meta.darkSourceUrl : undefined
+            const playMode = meta.playMode || 'autoplay'
+            const mData = {
+              baseUrl: j.data.url,
+              mimeType: j.data.mimeType,
+              variants,
+              darkSourceUrl,
+              playMode,
+            }
 
-          mediaMetadataCache.set(currentVal, { item, mediaData: mData })
-          mediaMetadataLoading.delete(currentVal)
+            mediaMetadataCache.set(currentVal, { item, mediaData: mData })
+            mediaMetadataLoading.delete(currentVal)
 
-          if (alive) {
-            setPreview(item)
-            setMediaData(mData)
-            setLocalPlayMode(playMode)
-            ctx.setDraft((prev) => ({ ...prev }))
+            if (alive) {
+              setPreview(item)
+              setMediaData(mData)
+              setLocalPlayMode(playMode)
+              ctx.setDraft((prev) => ({ ...prev }))
+            }
+          } catch {
+            mediaMetadataLoading.delete(currentVal)
+            if (alive) {
+              setPreview(null)
+              setMediaData(null)
+            }
           }
-        } catch {
-          mediaMetadataLoading.delete(currentVal)
-          if (alive) {
-            setPreview(null)
-            setMediaData(null)
-          }
-        }
-      })()
+        })()
       return () => {
         alive = false
       }
@@ -844,7 +844,7 @@ const IconFieldInternal = memo(
             >
               {selectedIcon && iconMap[selectedIcon] ? (
                 <>
-                  <FontAwesomeIcon icon={iconMap[selectedIcon]} className="w-4 h-4" />
+                  <FontAwesomeIcon icon={iconMap[selectedIcon]} size="sm" />
                   <span>{selectedIcon}</span>
                 </>
               ) : (
@@ -859,11 +859,10 @@ const IconFieldInternal = memo(
                   <TooltipTrigger asChild>
                     <button
                       type="button"
-                      className={`p-3 border rounded-lg hover:bg-backdrop-medium flex flex-col items-center gap-1 ${
-                        selectedIcon === iconItem.name
-                          ? 'border-standout-medium bg-standout-medium/10'
-                          : 'border-line-low'
-                      }`}
+                      className={`p-3 border rounded-lg hover:bg-backdrop-medium flex flex-col items-center gap-1 ${selectedIcon === iconItem.name
+                        ? 'border-standout-medium bg-standout-medium/10'
+                        : 'border-line-low'
+                        }`}
                       onClick={() => {
                         setSelectedIcon(iconItem.name)
                         if (hiddenRef.current) {
@@ -880,7 +879,7 @@ const IconFieldInternal = memo(
                         setPickerOpen(false)
                       }}
                     >
-                      <FontAwesomeIcon icon={iconItem.icon} className="w-6 h-6" />
+                      <FontAwesomeIcon icon={iconItem.icon} size="xl" />
                       <span className="text-[10px] text-neutral-low truncate w-full text-center">
                         {iconItem.label}
                       </span>
@@ -958,21 +957,21 @@ const PostReferenceFieldInternal = memo(
 
     useEffect(() => {
       let alive = true
-      ;(async () => {
-        try {
-          const params = new URLSearchParams()
-          params.set('limit', '100')
-          params.set('sortBy', 'updated_at')
-          params.set('sortOrder', 'desc')
-          if (allowedTypes.length > 0) params.set('types', allowedTypes.join(','))
-          const r = await fetch(`/api/posts?${params.toString()}`, { credentials: 'same-origin' })
-          const j = await r.json().catch(() => ({}))
-          if (alive)
-            setOptions((j?.data || []).map((p: any) => ({ label: p.title || p.id, value: p.id })))
-        } catch {
-          if (alive) setOptions([])
-        }
-      })()
+        ; (async () => {
+          try {
+            const params = new URLSearchParams()
+            params.set('limit', '100')
+            params.set('sortBy', 'updated_at')
+            params.set('sortOrder', 'desc')
+            if (allowedTypes.length > 0) params.set('types', allowedTypes.join(','))
+            const r = await fetch(`/api/posts?${params.toString()}`, { credentials: 'same-origin' })
+            const j = await r.json().catch(() => ({}))
+            if (alive)
+              setOptions((j?.data || []).map((p: any) => ({ label: p.title || p.id, value: p.id })))
+          } catch {
+            if (alive) setOptions([])
+          }
+        })()
       return () => {
         alive = false
       }
@@ -1088,18 +1087,18 @@ const FormReferenceFieldInternal = memo(
 
     useEffect(() => {
       let alive = true
-      ;(async () => {
-        try {
-          const res = await fetch('/api/forms-definitions', { credentials: 'same-origin' })
-          const j = await res.json().catch(() => ({}))
-          if (alive)
-            setOptions(
-              (j?.data || []).map((f: any) => ({ value: String(f.slug), label: f.title || f.slug }))
-            )
-        } catch {
-          if (alive) setOptions([])
-        }
-      })()
+        ; (async () => {
+          try {
+            const res = await fetch('/api/forms-definitions', { credentials: 'same-origin' })
+            const j = await res.json().catch(() => ({}))
+            if (alive)
+              setOptions(
+                (j?.data || []).map((f: any) => ({ value: String(f.slug), label: f.title || f.slug }))
+              )
+          } catch {
+            if (alive) setOptions([])
+          }
+        })()
       return () => {
         alive = false
       }
@@ -1192,16 +1191,16 @@ const SelectFieldInternal = memo(
 
     useEffect(() => {
       let alive = true
-      ;(async () => {
-        try {
-          if (dynamicOptions.length === 0 && optionsSource === 'post-types') {
-            const r = await fetch('/api/post-types', { credentials: 'same-origin' })
-            const j = await r.json().catch(() => ({}))
-            if (alive)
-              setDynamicOptions((j?.data || []).map((t: string) => ({ label: t, value: t })))
-          }
-        } catch {}
-      })()
+        ; (async () => {
+          try {
+            if (dynamicOptions.length === 0 && optionsSource === 'post-types') {
+              const r = await fetch('/api/post-types', { credentials: 'same-origin' })
+              const j = await r.json().catch(() => ({}))
+              if (alive)
+                setDynamicOptions((j?.data || []).map((t: string) => ({ label: t, value: t })))
+            }
+          } catch { }
+        })()
       return () => {
         alive = false
       }
@@ -1442,7 +1441,7 @@ const FieldPrimitiveInternal = memo(
           setByPath(next, name, val)
           ctx.setDraft(next)
           ctx.onDirty?.()
-        } catch {}
+        } catch { }
         if (hiddenRef.current) {
           if (val === null || val === undefined) hiddenRef.current.value = ''
           else if (typeof val === 'object') hiddenRef.current.value = JSON.stringify(val)
@@ -1838,53 +1837,58 @@ const FieldBySchemaInternal = memo(
             )}
             {items.map((it, idx) => (
               <div key={`${name}.${idx}`} className="border border-line-low rounded p-3 space-y-2">
-                <div className="flex items-center justify-end gap-2">
-                  <button
-                    type="button"
-                    className="px-2 py-1 text-xs border border-line-medium rounded hover:bg-backdrop-medium"
-                    onClick={() => {
-                      const next = ctx.syncFormToDraft()
-                      const arr = [...(getByPath(next, name) || [])]
-                      arr.splice(idx, 1)
-                      setByPath(next, name, arr)
-                      ctx.setDraft(next)
-                      ctx.onDirty?.()
-                    }}
-                  >
-                    Remove
-                  </button>
-                  <button
-                    type="button"
-                    className="px-2 py-1 text-xs border border-line-medium rounded hover:bg-backdrop-medium"
-                    disabled={idx === 0}
-                    onClick={() => {
-                      const next = ctx.syncFormToDraft()
-                      const arr = [...(getByPath(next, name) || [])]
-                      const [moved] = arr.splice(idx, 1)
-                      arr.splice(idx - 1, 0, moved)
-                      setByPath(next, name, arr)
-                      ctx.setDraft(next)
-                      ctx.onDirty?.()
-                    }}
-                  >
-                    Up
-                  </button>
-                  <button
-                    type="button"
-                    className="px-2 py-1 text-xs border border-line-medium rounded hover:bg-backdrop-medium"
-                    disabled={idx >= items.length - 1}
-                    onClick={() => {
-                      const next = ctx.syncFormToDraft()
-                      const arr = [...(getByPath(next, name) || [])]
-                      const [moved] = arr.splice(idx, 1)
-                      arr.splice(idx + 1, 0, moved)
-                      setByPath(next, name, arr)
-                      ctx.setDraft(next)
-                      ctx.onDirty?.()
-                    }}
-                  >
-                    Down
-                  </button>
+                <div className="flex items-center justify-between gap-2 border-b border-line-low pb-2 mb-2">
+                  <span className="text-[10px] font-bold text-neutral-low uppercase tracking-wider">
+                    Item {idx + 1}
+                  </span>
+                  <div className="flex items-center gap-2">
+                    <button
+                      type="button"
+                      className="px-2 py-1 text-[10px] uppercase font-bold text-neutral-low hover:text-red-500 transition-colors"
+                      onClick={() => {
+                        const next = ctx.syncFormToDraft()
+                        const arr = [...(getByPath(next, name) || [])]
+                        arr.splice(idx, 1)
+                        setByPath(next, name, arr)
+                        ctx.setDraft(next)
+                        ctx.onDirty?.()
+                      }}
+                    >
+                      Remove
+                    </button>
+                    <button
+                      type="button"
+                      className="px-2 py-1 text-[10px] uppercase font-bold text-neutral-low hover:text-primary disabled:opacity-30 transition-colors"
+                      disabled={idx === 0}
+                      onClick={() => {
+                        const next = ctx.syncFormToDraft()
+                        const arr = [...(getByPath(next, name) || [])]
+                        const [moved] = arr.splice(idx, 1)
+                        arr.splice(idx - 1, 0, moved)
+                        setByPath(next, name, arr)
+                        ctx.setDraft(next)
+                        ctx.onDirty?.()
+                      }}
+                    >
+                      Up
+                    </button>
+                    <button
+                      type="button"
+                      className="px-2 py-1 text-[10px] uppercase font-bold text-neutral-low hover:text-primary disabled:opacity-30 transition-colors"
+                      disabled={idx >= items.length - 1}
+                      onClick={() => {
+                        const next = ctx.syncFormToDraft()
+                        const arr = [...(getByPath(next, name) || [])]
+                        const [moved] = arr.splice(idx, 1)
+                        arr.splice(idx + 1, 0, moved)
+                        setByPath(next, name, arr)
+                        ctx.setDraft(next)
+                        ctx.onDirty?.()
+                      }}
+                    >
+                      Down
+                    </button>
+                  </div>
                 </div>
                 {itemSchema ? (
                   <FieldBySchemaInternal
@@ -1916,9 +1920,9 @@ const FieldBySchemaInternal = memo(
                   const t = (itemSchema as any).type
                   if (t === 'object') {
                     empty = {}
-                    ;((itemSchema as any).fields || []).forEach((f: any) => {
-                      empty[f.slug] = f.type === 'number' ? 0 : f.type === 'boolean' ? false : ''
-                    })
+                      ; ((itemSchema as any).fields || []).forEach((f: any) => {
+                        empty[f.slug] = f.type === 'number' ? 0 : f.type === 'boolean' ? false : ''
+                      })
                   } else if (t === 'number') empty = 0
                   else if (t === 'boolean') empty = false
                   else if (t === 'multiselect') empty = []
@@ -2288,52 +2292,52 @@ export function ModuleEditorPanel({
   useEffect(() => {
     if (!open || !moduleItem) return
     let alive = true
-    ;(async () => {
-      try {
-        const cached = moduleSchemaCache.get(moduleItem.type)
-        if (cached) {
-          if (alive) {
-            setModuleLabel(cached.label || moduleItem.type)
-            setSchema(cached.schema)
+      ; (async () => {
+        try {
+          const cached = moduleSchemaCache.get(moduleItem.type)
+          if (cached) {
+            if (alive) {
+              setModuleLabel(cached.label || moduleItem.type)
+              setSchema(cached.schema)
+            }
+            return
           }
-          return
-        }
-        const res = await fetch(`/api/modules/${encodeURIComponent(moduleItem.type)}/schema`, {
-          credentials: 'same-origin',
-        })
-        const json = await res.json().catch(() => null)
-        const ps =
-          json?.data?.fieldSchema ||
-          json?.fieldSchema ||
-          json?.data?.propsSchema ||
-          json?.propsSchema ||
-          (json?.data?.schema
-            ? json?.data?.schema?.fieldSchema || json?.data?.schema?.propsSchema
-            : null) ||
-          null
-        const friendlyName = (json?.data && json.data.name) || json?.name || null
-        if (alive) setModuleLabel(friendlyName || moduleItem.type)
-        if (ps && typeof ps === 'object') {
-          const fields: CustomFieldDefinition[] = Object.keys(ps).map((k) => ({
-            slug: k,
-            ...(ps[k] || {}),
-          }))
-          if (alive) setSchema(fields)
-          moduleSchemaCache.set(moduleItem.type, {
-            schema: fields,
-            label: friendlyName || moduleItem.type,
+          const res = await fetch(`/api/modules/${encodeURIComponent(moduleItem.type)}/schema`, {
+            credentials: 'same-origin',
           })
-        } else {
+          const json = await res.json().catch(() => null)
+          const ps =
+            json?.data?.fieldSchema ||
+            json?.fieldSchema ||
+            json?.data?.propsSchema ||
+            json?.propsSchema ||
+            (json?.data?.schema
+              ? json?.data?.schema?.fieldSchema || json?.data?.schema?.propsSchema
+              : null) ||
+            null
+          const friendlyName = (json?.data && json.data.name) || json?.name || null
+          if (alive) setModuleLabel(friendlyName || moduleItem.type)
+          if (ps && typeof ps === 'object') {
+            const fields: CustomFieldDefinition[] = Object.keys(ps).map((k) => ({
+              slug: k,
+              ...(ps[k] || {}),
+            }))
+            if (alive) setSchema(fields)
+            moduleSchemaCache.set(moduleItem.type, {
+              schema: fields,
+              label: friendlyName || moduleItem.type,
+            })
+          } else {
+            if (alive) setSchema(null)
+            moduleSchemaCache.set(moduleItem.type, {
+              schema: null,
+              label: friendlyName || moduleItem.type,
+            })
+          }
+        } catch {
           if (alive) setSchema(null)
-          moduleSchemaCache.set(moduleItem.type, {
-            schema: null,
-            label: friendlyName || moduleItem.type,
-          })
         }
-      } catch {
-        if (alive) setSchema(null)
-      }
-    })()
+      })()
     return () => {
       alive = false
     }
@@ -2363,7 +2367,7 @@ export function ModuleEditorPanel({
       viewMode,
       customFields,
       pendingInputValueRef,
-      onDirty: () => {},
+      onDirty: () => { },
     }),
     [
       fieldComponents,
@@ -2448,7 +2452,7 @@ export function ModuleEditorPanel({
               const currentValue = (el as HTMLInputElement | HTMLTextAreaElement).value || ''
               const storedValue =
                 pendingInputValueRef.current?.name === name &&
-                pendingInputValueRef.current?.rootId === rootId
+                  pendingInputValueRef.current?.rootId === rootId
                   ? pendingInputValueRef.current.value
                   : null
               if (storedValue !== null && currentValue === storedValue) return
@@ -2481,13 +2485,13 @@ export function ModuleEditorPanel({
                 else setByPath(next, name, currentValue)
                 return next
               })
-            } catch {}
+            } catch { }
           }}
         >
           {(moduleItem.scope === 'global' ||
             moduleItem.scope === 'static' ||
             !!moduleItem.globalSlug) &&
-          !allowGlobalEditing ? (
+            !allowGlobalEditing ? (
             <div className="py-12 text-center space-y-4">
               <div className="text-neutral-low mb-2">
                 <FontAwesomeIcon icon={faWandMagicSparkles} className="text-4xl opacity-20" />
@@ -2754,50 +2758,50 @@ export const ModuleEditorInline = memo(function ModuleEditorInline({
   useEffect(() => {
     if (!moduleItem) return
     let alive = true
-    ;(async () => {
-      try {
-        const cached = moduleSchemaCache.get(moduleItem.type)
-        if (cached) {
-          if (alive) {
-            setSchema(cached.schema)
+      ; (async () => {
+        try {
+          const cached = moduleSchemaCache.get(moduleItem.type)
+          if (cached) {
+            if (alive) {
+              setSchema(cached.schema)
+            }
+            return
           }
-          return
-        }
-        const res = await fetch(`/api/modules/${encodeURIComponent(moduleItem.type)}/schema`, {
-          credentials: 'same-origin',
-        })
-        const json = await res.json().catch(() => null)
-        const ps =
-          json?.data?.fieldSchema ||
-          json?.fieldSchema ||
-          json?.data?.propsSchema ||
-          json?.propsSchema ||
-          (json?.data?.schema
-            ? json?.data?.schema?.fieldSchema || json?.data?.schema?.propsSchema
-            : null) ||
-          null
-        const friendlyName = (json?.data && json.data.name) || json?.name || null
-        if (ps && typeof ps === 'object') {
-          const fields: CustomFieldDefinition[] = Object.keys(ps).map((k) => ({
-            slug: k,
-            ...(ps[k] || {}),
-          }))
-          if (alive) setSchema(fields)
-          moduleSchemaCache.set(moduleItem.type, {
-            schema: fields,
-            label: friendlyName || moduleItem.type,
+          const res = await fetch(`/api/modules/${encodeURIComponent(moduleItem.type)}/schema`, {
+            credentials: 'same-origin',
           })
-        } else {
+          const json = await res.json().catch(() => null)
+          const ps =
+            json?.data?.fieldSchema ||
+            json?.fieldSchema ||
+            json?.data?.propsSchema ||
+            json?.propsSchema ||
+            (json?.data?.schema
+              ? json?.data?.schema?.fieldSchema || json?.data?.schema?.propsSchema
+              : null) ||
+            null
+          const friendlyName = (json?.data && json.data.name) || json?.name || null
+          if (ps && typeof ps === 'object') {
+            const fields: CustomFieldDefinition[] = Object.keys(ps).map((k) => ({
+              slug: k,
+              ...(ps[k] || {}),
+            }))
+            if (alive) setSchema(fields)
+            moduleSchemaCache.set(moduleItem.type, {
+              schema: fields,
+              label: friendlyName || moduleItem.type,
+            })
+          } else {
+            if (alive) setSchema(null)
+            moduleSchemaCache.set(moduleItem.type, {
+              schema: null,
+              label: friendlyName || moduleItem.type,
+            })
+          }
+        } catch {
           if (alive) setSchema(null)
-          moduleSchemaCache.set(moduleItem.type, {
-            schema: null,
-            label: friendlyName || moduleItem.type,
-          })
         }
-      } catch {
-        if (alive) setSchema(null)
-      }
-    })()
+      })()
     return () => {
       alive = false
     }
@@ -2888,7 +2892,7 @@ export const ModuleEditorInline = memo(function ModuleEditorInline({
             const currentValue = (el as HTMLInputElement | HTMLTextAreaElement).value || ''
             const storedValue =
               pendingInputValueRef.current?.name === name &&
-              pendingInputValueRef.current?.rootId === rootId
+                pendingInputValueRef.current?.rootId === rootId
                 ? pendingInputValueRef.current.value
                 : null
             if (storedValue !== null && currentValue === storedValue) return
@@ -2927,15 +2931,15 @@ export const ModuleEditorInline = memo(function ModuleEditorInline({
               (e as any)?.nativeEvent?.detail?.isTrusted ??
               false
             if (trusted) safeOnDirty()
-          } catch {}
+          } catch { }
         }}
         onBlurCapture={() => {
           if (autoSaveOnBlur) saveNow()
         }}
       >
         {moduleItem.scope === 'global' ||
-        moduleItem.scope === 'static' ||
-        !!moduleItem.globalSlug ? (
+          moduleItem.scope === 'static' ||
+          !!moduleItem.globalSlug ? (
           <div className="py-8 text-center bg-amber-500/5 rounded-lg border border-dashed border-amber-500/20">
             <p className="text-sm text-neutral-medium italic">
               {(moduleItem.scope || 'global').charAt(0).toUpperCase() +

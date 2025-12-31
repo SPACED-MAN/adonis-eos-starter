@@ -202,42 +202,39 @@ export default function SecurityIndex() {
           <nav className="flex gap-4">
             <button
               onClick={() => setActiveTab('posture')}
-              className={`px-4 py-2 border-b-2 font-medium text-sm transition-colors ${
-                activeTab === 'posture'
-                  ? 'border-standout-medium text-standout-high'
-                  : 'border-transparent text-neutral-medium hover:text-neutral-high'
-              }`}
+              className={`px-4 py-2 border-b-2 font-medium text-sm transition-colors ${activeTab === 'posture'
+                ? 'border-standout-medium text-standout-high'
+                : 'border-transparent text-neutral-medium hover:text-neutral-high'
+                }`}
             >
               Security Posture
             </button>
             <button
               onClick={() => setActiveTab('sessions')}
-              className={`px-4 py-2 border-b-2 font-medium text-sm transition-colors ${
-                activeTab === 'sessions'
-                  ? 'border-standout-medium text-standout-high'
-                  : 'border-transparent text-neutral-medium hover:text-neutral-high'
-              } ${features.activeSessions === false ? 'opacity-50 grayscale cursor-not-allowed' : ''}`}
+              className={`px-4 py-2 border-b-2 font-medium text-sm transition-colors ${activeTab === 'sessions'
+                ? 'border-standout-medium text-standout-high'
+                : 'border-transparent text-neutral-medium hover:text-neutral-high'
+                } ${features.activeSessions === false ? 'opacity-50 grayscale cursor-not-allowed' : ''}`}
               title={features.activeSessions === false ? 'This feature is disabled' : ''}
               disabled={features.activeSessions === false}
             >
               Active Sessions
               {features.activeSessions === false && (
-                <FontAwesomeIcon icon={faLock} className="ml-2 w-3 h-3" />
+                <FontAwesomeIcon icon={faLock} size="xs" className="ml-2" />
               )}
             </button>
             <button
               onClick={() => setActiveTab('audit')}
-              className={`px-4 py-2 border-b-2 font-medium text-sm transition-colors ${
-                activeTab === 'audit'
-                  ? 'border-standout-medium text-standout-high'
-                  : 'border-transparent text-neutral-medium hover:text-neutral-high'
-              } ${features.auditLogs === false ? 'opacity-50 grayscale cursor-not-allowed' : ''}`}
+              className={`px-4 py-2 border-b-2 font-medium text-sm transition-colors ${activeTab === 'audit'
+                ? 'border-standout-medium text-standout-high'
+                : 'border-transparent text-neutral-medium hover:text-neutral-high'
+                } ${features.auditLogs === false ? 'opacity-50 grayscale cursor-not-allowed' : ''}`}
               title={features.auditLogs === false ? 'This feature is disabled' : ''}
               disabled={features.auditLogs === false}
             >
               Audit Logs
               {features.auditLogs === false && (
-                <FontAwesomeIcon icon={faLock} className="ml-2 w-3 h-3" />
+                <FontAwesomeIcon icon={faLock} size="xs" className="ml-2" />
               )}
             </button>
           </nav>
@@ -317,7 +314,7 @@ export default function SecurityIndex() {
                         <div>IP: {session.ip || 'N/A'}</div>
                         <div>User Agent: {session.userAgent || 'N/A'}</div>
                         <div className="flex items-center gap-1">
-                          <FontAwesomeIcon icon={faClock} className="w-3 h-3" />
+                          <FontAwesomeIcon icon={faClock} size="xs" />
                           Last activity: {new Date(session.lastActivity).toLocaleString()}
                         </div>
                       </div>
@@ -337,7 +334,7 @@ export default function SecurityIndex() {
                           }
                         }}
                       >
-                        <FontAwesomeIcon icon={faTrash} className="w-4 h-4" />
+                        <FontAwesomeIcon icon={faTrash} size="sm" />
                       </button>
                     )}
                   </div>
@@ -380,7 +377,7 @@ export default function SecurityIndex() {
                     }
                   }}
                 >
-                  <FontAwesomeIcon icon={faDownload} className="w-4 h-4" />
+                  <FontAwesomeIcon icon={faDownload} size="sm" />
                   Export
                 </button>
               </div>
@@ -399,7 +396,8 @@ export default function SecurityIndex() {
                   />
                   <FontAwesomeIcon
                     icon={faSearch}
-                    className="absolute left-3 top-1/2 -translate-y-1/2 text-neutral-low w-3.5 h-3.5"
+                    size="sm"
+                    className="absolute left-3 top-1/2 -translate-y-1/2 text-neutral-low"
                   />
                 </div>
 

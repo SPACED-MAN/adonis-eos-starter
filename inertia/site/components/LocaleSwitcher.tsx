@@ -38,7 +38,7 @@ export function LocaleSwitcher({ className = '' }: LocaleSwitcherProps) {
       >
         <SelectTrigger className="h-9 gap-2 px-3 py-2 border-line-medium bg-backdrop hover:bg-backdrop-medium transition-colors text-sm font-medium text-neutral-high min-w-[80px]">
           <div className="flex items-center gap-2">
-            <FontAwesomeIcon icon={faGlobe} className="text-neutral-medium size-3.5" />
+            <FontAwesomeIcon icon={faGlobe} size="sm" className="text-neutral-medium" />
             <SelectValue placeholder={currentLocale.toUpperCase()}>
               {currentLocale.toUpperCase()}
             </SelectValue>

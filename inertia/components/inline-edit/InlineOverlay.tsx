@@ -172,7 +172,7 @@ export function InlineOverlay() {
       const iconContainer = document.createElement('span')
       iconContainer.className = 'w-4 h-4'
       const root = createRoot(iconContainer)
-      root.render(<FontAwesomeIcon icon="globe" className="w-4 h-4" />)
+      root.render(<FontAwesomeIcon icon="globe" size="sm" />)
       const textSpan = document.createElement('span')
       textSpan.textContent = `Edit ${labelText}`
       link.appendChild(iconContainer)
@@ -671,17 +671,16 @@ function FieldDialogContent({ pop, onClose, getValue, setValue }: DialogContentP
                       <TooltipTrigger asChild>
                         <button
                           type="button"
-                          className={`p-3 border rounded-xl hover:bg-backdrop-medium flex flex-col items-center gap-2 transition-all ${
-                            draft === val
+                          className={`p-3 border rounded-xl hover:bg-backdrop-medium flex flex-col items-center gap-2 transition-all ${draft === val
                               ? 'border-standout-medium bg-standout-medium/10 shadow-sm ring-1 ring-standout-medium/20'
                               : 'border-line-low bg-backdrop-low/50'
-                          }`}
+                            }`}
                           onClick={() => {
                             setDraft(val)
                             setValue(moduleId, path, val)
                           }}
                         >
-                          <FontAwesomeIcon icon={icon as any} className="w-6 h-6" />
+                          <FontAwesomeIcon icon={icon as any} size="xl" />
                           <span className="text-[10px] font-medium text-neutral-medium truncate w-full text-center">
                             {o.label}
                           </span>
@@ -722,7 +721,7 @@ function FieldDialogContent({ pop, onClose, getValue, setValue }: DialogContentP
                   })}
                 </select>
                 <div className="absolute right-4 top-1/2 -translate-y-1/2 pointer-events-none text-neutral-low">
-                  <FontAwesomeIcon icon={faChevronDown} className="w-4 h-4" />
+                  <FontAwesomeIcon icon={faChevronDown} size="sm" />
                 </div>
               </div>
             </div>
@@ -785,11 +784,10 @@ function FieldDialogContent({ pop, onClose, getValue, setValue }: DialogContentP
                   return (
                     <label
                       key={o.value}
-                      className={`flex items-center gap-3 p-2.5 rounded-xl border transition-all cursor-pointer ${
-                        checked
+                      className={`flex items-center gap-3 p-2.5 rounded-xl border transition-all cursor-pointer ${checked
                           ? 'bg-standout-medium/10 border-standout-medium/30 text-neutral-high'
                           : 'bg-backdrop-low border-line-medium text-neutral-medium hover:border-neutral-low'
-                      }`}
+                        }`}
                     >
                       <input
                         type="checkbox"
@@ -969,7 +967,7 @@ function FieldDialogContent({ pop, onClose, getValue, setValue }: DialogContentP
                             ))}
                           </select>
                           <div className="absolute right-4 top-1/2 -translate-y-1/2 pointer-events-none text-neutral-low">
-                            <FontAwesomeIcon icon={faChevronDown} className="w-4 h-4" />
+                            <FontAwesomeIcon icon={faChevronDown} size="sm" />
                           </div>
                         </div>
                       </div>
@@ -1022,7 +1020,7 @@ function FieldDialogContent({ pop, onClose, getValue, setValue }: DialogContentP
                                       onClick={() => moveItem(i, -1)}
                                       aria-label="Move up"
                                     >
-                                      <FontAwesomeIcon icon={faArrowUp} className="w-4 h-4" />
+                                      <FontAwesomeIcon icon={faArrowUp} size="sm" />
                                     </button>
                                   </TooltipTrigger>
                                   <TooltipContent>
@@ -1038,7 +1036,7 @@ function FieldDialogContent({ pop, onClose, getValue, setValue }: DialogContentP
                                       onClick={() => moveItem(i, 1)}
                                       aria-label="Move down"
                                     >
-                                      <FontAwesomeIcon icon={faArrowDown} className="w-4 h-4" />
+                                      <FontAwesomeIcon icon={faArrowDown} size="sm" />
                                     </button>
                                   </TooltipTrigger>
                                   <TooltipContent>
@@ -1054,7 +1052,7 @@ function FieldDialogContent({ pop, onClose, getValue, setValue }: DialogContentP
                                       onClick={() => removeItem(i)}
                                       aria-label="Remove"
                                     >
-                                      <FontAwesomeIcon icon={faTrash} className="w-4 h-4" />
+                                      <FontAwesomeIcon icon={faTrash} size="sm" />
                                     </button>
                                   </TooltipTrigger>
                                   <TooltipContent>
@@ -1069,7 +1067,7 @@ function FieldDialogContent({ pop, onClose, getValue, setValue }: DialogContentP
                             className="w-full py-2.5 text-xs font-bold rounded-xl border border-dashed border-line-high text-neutral-medium hover:border-neutral-low hover:bg-backdrop-medium transition-all flex items-center justify-center gap-2 mt-2"
                             onClick={addItem}
                           >
-                            <FontAwesomeIcon icon={faPlus} className="w-4 h-4" />
+                            <FontAwesomeIcon icon={faPlus} size="sm" />
                             Add {field.label} Item
                           </button>
                         </div>

@@ -54,5 +54,5 @@ After seeding the database (`node ace db:seed`), you can log in with the followi
 
 ## Project Structure
 
-Refer to the [Project Structure](./02-content-management-overview.md) guide for a detailed breakdown of the codebase.
+Refer to the [Project Structure](../02-architecture/02-content-management-overview.md) guide for a detailed breakdown of the codebase.
 

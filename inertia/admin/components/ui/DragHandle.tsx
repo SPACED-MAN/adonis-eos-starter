@@ -24,7 +24,7 @@ export function DragHandle({ className, disabled, ...props }: DragHandleProps) {
       )}
       {...props}
     >
-      <FontAwesomeIcon icon={faGripVertical} className="h-4 w-4" />
+      <FontAwesomeIcon icon={faGripVertical} size="sm" />
     </button>
   )
 }

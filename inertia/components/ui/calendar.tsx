@@ -16,7 +16,7 @@ export function Calendar(props: any) {
           onClick={onPreviousClick}
           aria-label="Previous month"
         >
-          <FontAwesomeIcon icon={faChevronLeft} className="h-4 w-4" />
+          <FontAwesomeIcon icon={faChevronLeft} size="sm" />
         </button>
         <button
           type="button"
@@ -24,7 +24,7 @@ export function Calendar(props: any) {
           onClick={onNextClick}
           aria-label="Next month"
         >
-          <FontAwesomeIcon icon={faChevronRight} className="h-4 w-4" />
+          <FontAwesomeIcon icon={faChevronRight} size="sm" />
         </button>
       </div>
     )

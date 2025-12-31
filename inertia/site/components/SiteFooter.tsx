@@ -18,7 +18,7 @@ export function SiteFooter() {
   const logoUrl = useMediaUrl(logoMedia)
 
   useEffect(() => {
-    ;(async () => {
+    ; (async () => {
       try {
         const res = await fetch('/api/menus/by-slug/footer?locale=en', {
           credentials: 'same-origin',
@@ -36,7 +36,7 @@ export function SiteFooter() {
   }, [])
 
   useEffect(() => {
-    ;(async () => {
+    ; (async () => {
       try {
         const res = await fetch('/api/site-settings', { credentials: 'same-origin' })
         const j = await res.json().catch(() => ({}))
@@ -91,7 +91,7 @@ export function SiteFooter() {
                 className="text-neutral-low hover:text-standout-high transition-colors"
                 title={profile.label}
               >
-                <FontAwesomeIcon icon={getIconProp(profile.icon)} className="w-5 h-5" />
+                <FontAwesomeIcon icon={getIconProp(profile.icon)} size="lg" />
               </a>
             ))}
           </div>

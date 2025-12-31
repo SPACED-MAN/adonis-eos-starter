@@ -21,8 +21,34 @@
         // Detect theme context (admin vs site) from URL
         const isAdmin = window.location.pathname.startsWith("/admin");
         const theme = isAdmin ? "admin" : "site";
+        
+        // Site-wide default from settings
+        const defaultTheme = "{{ page.props.defaultThemeMode || 'light' }}";
+
         // Detect dark mode preference
-        const isDark = localStorage.getItem("theme-mode") === "dark" || !localStorage.getItem("theme-mode") && window.matchMedia("(prefers-color-scheme: dark)").matches;
+        // 1. Check localStorage
+        const stored = localStorage.getItem("theme-mode");
+        let isDark = false;
+        
+        if (stored === "dark") {
+          isDark = true;
+        } else if (stored === "light") {
+          isDark = false;
+        } else {
+          // 2. Check system preferences
+          const mDark = window.matchMedia("(prefers-color-scheme: dark)");
+          const mLight = window.matchMedia("(prefers-color-scheme: light)");
+          
+          if (mDark.matches) {
+            isDark = true;
+          } else if (mLight.matches) {
+            isDark = false;
+          } else {
+            // 3. Fallback to site default if no system preference is detected
+            isDark = defaultTheme === "dark";
+          }
+        }
+
         // Apply theme to html element before page renders (class strategy)
         const root = document.documentElement;
         root.setAttribute("data-theme", theme);

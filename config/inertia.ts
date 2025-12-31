@@ -36,6 +36,15 @@ const inertiaConfig = defineConfig({
           return 'EOS'
         }
       }),
+    defaultThemeMode: (ctx) =>
+      ctx.inertia.always(async () => {
+        try {
+          const site = await siteSettingsService.get()
+          return (site.defaultThemeMode as 'light' | 'dark') || 'light'
+        } catch {
+          return 'light'
+        }
+      }),
     adminPathPrefix: () => getAdminPathPrefix(),
   },
 

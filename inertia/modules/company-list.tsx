@@ -161,7 +161,7 @@ export default function CompanyList({
             data-inline-post-type="company"
             aria-label="Edit companies"
           >
-            <FontAwesomeIcon icon="pencil" className="w-3 h-3" />
+            <FontAwesomeIcon icon="pencil" size="xs" />
             Edit companies ({items.length})
           </button>
         </div>

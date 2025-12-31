@@ -24,6 +24,7 @@ type SiteSettings = {
       enabled: boolean
     }>
   } | null
+  defaultThemeMode: 'light' | 'dark'
   customFields?: Record<string, any>
 }
 
@@ -48,6 +49,7 @@ class SiteSettingsService {
       isMaintenanceMode: !!row?.isMaintenanceMode,
       profileRolesEnabled: Array.isArray(row?.profileRolesEnabled) ? row.profileRolesEnabled : [],
       socialSettings: row?.socialSettings || { profiles: [], sharing: [] },
+      defaultThemeMode: row?.defaultThemeMode || 'light',
       customFields,
     }
     this.cache = settings
@@ -72,6 +74,7 @@ class SiteSettingsService {
           isMaintenanceMode: !!currentRow.isMaintenanceMode,
           profileRolesEnabled: currentRow.profileRolesEnabled || [],
           socialSettings: currentRow.socialSettings || { profiles: [], sharing: [] },
+          defaultThemeMode: currentRow.defaultThemeMode || 'light',
         }
       : await this.get()
 
@@ -90,6 +93,7 @@ class SiteSettingsService {
         'isMaintenanceMode' in payload ? !!payload.isMaintenanceMode : current.isMaintenanceMode,
       profileRolesEnabled: payload.profileRolesEnabled ?? current.profileRolesEnabled ?? [],
       socialSettings: payload.socialSettings ?? current.socialSettings,
+      defaultThemeMode: payload.defaultThemeMode ?? current.defaultThemeMode,
     }
     if (currentRow) {
       currentRow.merge({
@@ -101,6 +105,7 @@ class SiteSettingsService {
         isMaintenanceMode: next.isMaintenanceMode,
         profileRolesEnabled: next.profileRolesEnabled,
         socialSettings: next.socialSettings,
+        defaultThemeMode: next.defaultThemeMode,
       })
       await currentRow.save()
     } else {
@@ -113,6 +118,7 @@ class SiteSettingsService {
         isMaintenanceMode: next.isMaintenanceMode,
         profileRolesEnabled: next.profileRolesEnabled,
         socialSettings: next.socialSettings,
+        defaultThemeMode: next.defaultThemeMode,
       })
     }
     this.clearCache()

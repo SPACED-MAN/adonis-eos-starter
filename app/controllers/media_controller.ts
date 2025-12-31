@@ -370,6 +370,35 @@ export default class MediaController {
     const row = await db.from('media_assets').where('id', id).first()
     if (!row) return response.notFound({ error: 'Media not found' })
 
+    const url = String(row.url || '')
+
+    // Safety check: Don't delete if in use
+    const dbUsage = await this.getUsageInternal(id, url)
+    const codebaseUsage = await this.getCodebaseUsage(url)
+    const inUse =
+      dbUsage.inModules.length > 0 ||
+      dbUsage.inOverrides.length > 0 ||
+      dbUsage.inPosts.length > 0 ||
+      dbUsage.inSettings ||
+      codebaseUsage.length > 0
+
+    if (inUse) {
+      let message = 'This media is currently in use and cannot be deleted.'
+      if (dbUsage.inSettings) {
+        message = 'This media is used in Site Settings (Logo/Favicon) and cannot be deleted.'
+      } else if (codebaseUsage.length > 0) {
+        message = `This media is referenced in source code (${codebaseUsage[0]}${codebaseUsage.length > 1 ? ', etc.' : ''}) and cannot be deleted.`
+      }
+
+      return response.conflict({
+        error: message,
+        usage: {
+          ...dbUsage,
+          inCodebase: codebaseUsage,
+        },
+      })
+    }
+
     const publicRoot = path.join(process.cwd(), 'public')
     const originalUrl = String(row.url || '')
     const optimizedUrl = String((row as any).optimized_url || '')
@@ -436,21 +465,13 @@ export default class MediaController {
   }
 
   /**
-   * GET /api/media/:id/where-used
-   * Returns a list of post/module references containing this media URL
+   * Internal helper to find all database references to a media item
    */
-  async whereUsed({ params, response }: HttpContext) {
-    const { id } = params
-    const row = await db.from('media_assets').where('id', id).first()
-    if (!row) return response.notFound({ error: 'Media not found' })
-    const url = String(row.url || '')
-    if (!url) return response.ok({ data: [] })
-
+  private async getUsageInternal(id: string, url: string) {
     const likeUrl = `%${url}%`
     const likeId = `%${id}%`
 
     // 1. Modules (Global or Local)
-    // For local modules, we try to find the post they belong to
     const inModulesRaw = await db
       .from('module_instances')
       .leftJoin('post_modules', 'module_instances.id', 'post_modules.module_id')
@@ -514,23 +535,77 @@ export default class MediaController {
       .orWhere('default_og_media_id', id)
       .select('id')
 
+    return {
+      inModules: inModulesRaw.map((m: any) => ({
+        id: m.id,
+        type: m.type,
+        scope: m.scope,
+        globalSlug: m.globalSlug,
+        postId: m.postId,
+        postTitle: m.postTitle,
+      })),
+      inOverrides: inOverridesRaw.map((o: any) => ({
+        id: o.id,
+        postId: o.postId,
+        postTitle: o.postTitle,
+      })),
+      inPosts: inPosts.map((p: any) => ({ id: p.id, title: p.title, type: p.type })),
+      inSettings: inSettings.length > 0,
+    }
+  }
+
+  /**
+   * Internal helper to check if a media item (URL) is referenced in the inertia source code
+   */
+  private async getCodebaseUsage(url: string): Promise<string[]> {
+    const filename = path.basename(url)
+    if (!filename) return []
+
+    // Only check if it's potentially used in source code (CSS/TSX/Edge)
+    const searchPaths = [
+      path.join(process.cwd(), 'inertia'),
+      path.join(process.cwd(), 'resources', 'views'),
+      path.join(process.cwd(), 'app'),
+    ]
+    try {
+      const { exec } = await import('node:child_process')
+      const { promisify } = await import('node:util')
+      const execAsync = promisify(exec)
+
+      // Use grep to find occurrences. 
+      // We look for the filename itself to catch most references.
+      // -l flag returns only filenames.
+      const pathsArg = searchPaths.map((p) => `"${p}"`).join(' ')
+      const { stdout } = await execAsync(`grep -rl "${filename}" ${pathsArg} || true`)
+      return stdout
+        .split('\n')
+        .map((line) => line.trim())
+        .filter(Boolean)
+        .filter((p) => !p.includes('node_modules'))
+        .map((p) => path.relative(process.cwd(), p))
+    } catch {
+      return []
+    }
+  }
+
+  /**
+   * GET /api/media/:id/where-used
+   * Returns a list of post/module references containing this media URL
+   */
+  async whereUsed({ params, response }: HttpContext) {
+    const { id } = params
+    const row = await db.from('media_assets').where('id', id).first()
+    if (!row) return response.notFound({ error: 'Media not found' })
+    const url = String(row.url || '')
+    if (!url) return response.ok({ data: [] })
+
+    const dbUsage = await this.getUsageInternal(id, url)
+    const codebaseUsage = await this.getCodebaseUsage(url)
+
     return response.ok({
       data: {
-        inModules: inModulesRaw.map((m: any) => ({
-          id: m.id,
-          type: m.type,
-          scope: m.scope,
-          globalSlug: m.globalSlug,
-          postId: m.postId,
-          postTitle: m.postTitle,
-        })),
-        inOverrides: inOverridesRaw.map((o: any) => ({
-          id: o.id,
-          postId: o.postId,
-          postTitle: o.postTitle,
-        })),
-        inPosts: inPosts.map((p: any) => ({ id: p.id, title: p.title, type: p.type })),
-        inSettings: inSettings.length > 0,
+        ...dbUsage,
+        inCodebase: codebaseUsage,
       },
     })
   }
@@ -1418,9 +1493,31 @@ export default class MediaController {
     const rows = await db.from('media_assets').whereIn('id', ids)
     const publicRoot = path.join(process.cwd(), 'public')
     let deleted = 0
+    let skipped = 0
+    const errors: string[] = []
+
     for (const row of rows) {
       try {
-        const originalUrl: string = String((row as any).url || '')
+        const id = String((row as any).id)
+        const url = String((row as any).url || '')
+
+        // Usage check
+        const dbUsage = await this.getUsageInternal(id, url)
+        const codebaseUsage = await this.getCodebaseUsage(url)
+        const inUse =
+          dbUsage.inModules.length > 0 ||
+          dbUsage.inOverrides.length > 0 ||
+          dbUsage.inPosts.length > 0 ||
+          dbUsage.inSettings ||
+          codebaseUsage.length > 0
+
+        if (inUse) {
+          skipped++
+          errors.push(`${path.basename(url)} is in use`)
+          continue
+        }
+
+        const originalUrl: string = url
         const optimizedUrl: string = String((row as any).optimized_url || '')
 
         // Helper to delete a file from disk and storage
@@ -1485,10 +1582,10 @@ export default class MediaController {
         userId: (auth.use('web').user as any)?.id ?? null,
         entityType: 'media',
         entityId: 'bulk',
-        metadata: { count: deleted },
+        metadata: { count: deleted, skipped, errors },
       })
     } catch {}
-    return response.ok({ data: { deleted } })
+    return response.ok({ data: { deleted, skipped, errors } })
   }
 
   /**

@@ -40,7 +40,8 @@ export default function Prose({
   const { value: content, show: showContent, props: contentProps } = useInlineField(__moduleId, 'content', initialContent, { type: 'richtext', label: 'Content' })
   const maxWidth = useInlineValue(__moduleId, 'maxWidth', initialMaxWidth)
   const fontSize = useInlineValue(__moduleId, 'fontSize', initialFontSize)
-  const backgroundColor = useInlineValue(__moduleId, 'backgroundColor', initialBackground)
+  const backgroundColor =
+    useInlineValue(__moduleId, 'backgroundColor', initialBackground) || initialBackground
   const isDarkBg = backgroundColor === 'bg-neutral-high' || backgroundColor === 'bg-backdrop-high' || backgroundColor === 'bg-standout-medium'
   const textColor = isDarkBg ? 'text-on-high' : initialTextColor
   const textAlign = useInlineValue(__moduleId, 'textAlign', initialTextAlign)

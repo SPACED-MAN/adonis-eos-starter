@@ -426,10 +426,10 @@ export default function GlobalModulesIndex() {
       setGroupDirty(false)
       const regList = Array.isArray(regJson?.data)
         ? regJson.data.map((m: any) => ({
-            type: m.type,
-            name: m.name || m.type,
-            renderingMode: m.renderingMode,
-          }))
+          type: m.type,
+          name: m.name || m.type,
+          renderingMode: m.renderingMode,
+        }))
         : []
       setGroupRegistry(regList)
       // keep existing globals list for labels; reuse loaded globals
@@ -619,21 +619,19 @@ export default function GlobalModulesIndex() {
           <nav className="flex gap-4">
             <button
               onClick={() => setActiveTab('globals')}
-              className={`px-4 py-2 border-b-2 font-medium text-sm transition-colors ${
-                activeTab === 'globals'
+              className={`px-4 py-2 border-b-2 font-medium text-sm transition-colors ${activeTab === 'globals'
                   ? 'border-standout-medium text-standout-high'
                   : 'border-transparent text-neutral-medium hover:text-neutral-high'
-              }`}
+                }`}
             >
               Globals
             </button>
             <button
               onClick={() => setActiveTab('groups')}
-              className={`px-4 py-2 border-b-2 font-medium text-sm transition-colors ${
-                activeTab === 'groups'
+              className={`px-4 py-2 border-b-2 font-medium text-sm transition-colors ${activeTab === 'groups'
                   ? 'border-standout-medium text-standout-high'
                   : 'border-transparent text-neutral-medium hover:text-neutral-high'
-              }`}
+                }`}
             >
               Groups
             </button>
@@ -715,11 +713,10 @@ export default function GlobalModulesIndex() {
                             <button
                               type="button"
                               onClick={() => loadUsage(m)}
-                              className={`text-xs font-semibold px-2 py-1 rounded transition-colors ${
-                                m.usageCount > 0
+                              className={`text-xs font-semibold px-2 py-1 rounded transition-colors ${m.usageCount > 0
                                   ? 'bg-standout-medium/10 text-standout-high hover:bg-standout-medium/20'
                                   : 'text-neutral-low'
-                              }`}
+                                }`}
                             >
                               {m.usageCount}
                             </button>
@@ -952,7 +949,7 @@ export default function GlobalModulesIndex() {
                                     }}
                                     className="opacity-40 group-hover/label:opacity-100 p-1 rounded-md hover:bg-backdrop-medium text-neutral-low hover:text-neutral-high transition-all"
                                   >
-                                    <FontAwesomeIcon icon={faPencil} className="w-3 h-3" />
+                                    <FontAwesomeIcon icon={faPencil} size="xs" />
                                   </button>
                                 </TooltipTrigger>
                                 <TooltipContent>
@@ -1023,7 +1020,7 @@ export default function GlobalModulesIndex() {
                                   }}
                                   className="opacity-40 group-hover/label:opacity-100 p-1 rounded-md hover:bg-backdrop-medium text-neutral-low hover:text-neutral-high transition-all"
                                 >
-                                  <FontAwesomeIcon icon={faPencil} className="w-3.5 h-3.5" />
+                                  <FontAwesomeIcon icon={faPencil} size="sm" />
                                 </button>
                               </TooltipTrigger>
                               <TooltipContent>
@@ -1099,9 +1096,9 @@ export default function GlobalModulesIndex() {
                                       <div className="text-sm font-medium text-neutral-high flex items-center gap-1">
                                         {m.scope === 'global'
                                           ? slugToLabel.get(String(m.globalSlug || '')) ||
-                                            String(m.globalSlug || '')
+                                          String(m.globalSlug || '')
                                           : groupRegistry.find((r) => r.type === m.type)?.name ||
-                                            m.type}
+                                          m.type}
                                       </div>
                                       <div className="text-xs text-neutral-low">
                                         {m.scope === 'global' ? (
@@ -1116,24 +1113,24 @@ export default function GlobalModulesIndex() {
                                   <div className="flex items-center gap-2">
                                     {groupRegistry.find((r) => r.type === m.type)?.renderingMode ===
                                       'react' && (
-                                      <Tooltip>
-                                        <TooltipTrigger asChild>
-                                          <span
-                                            className="inline-flex items-center rounded border border-line-medium bg-backdrop-low px-2 py-1 text-xs text-neutral-high cursor-help"
-                                            aria-label="React module"
-                                          >
-                                            <FontAwesomeIcon
-                                              icon={faReact}
-                                              className="mr-1 text-sky-400"
-                                            />
-                                            React
-                                          </span>
-                                        </TooltipTrigger>
-                                        <TooltipContent>
-                                          <p>React module (client-side interactivity)</p>
-                                        </TooltipContent>
-                                      </Tooltip>
-                                    )}
+                                        <Tooltip>
+                                          <TooltipTrigger asChild>
+                                            <span
+                                              className="inline-flex items-center rounded border border-line-medium bg-backdrop-low px-2 py-1 text-xs text-neutral-high cursor-help"
+                                              aria-label="React module"
+                                            >
+                                              <FontAwesomeIcon
+                                                icon={faReact}
+                                                className="mr-1 text-sky-400"
+                                              />
+                                              React
+                                            </span>
+                                          </TooltipTrigger>
+                                          <TooltipContent>
+                                            <p>React module (client-side interactivity)</p>
+                                          </TooltipContent>
+                                        </Tooltip>
+                                      )}
                                     {m.scope === 'global' && (
                                       <Tooltip>
                                         <TooltipTrigger asChild>
@@ -1269,11 +1266,10 @@ export default function GlobalModulesIndex() {
                         <span>{post.locale.toUpperCase()}</span>
                         <span>•</span>
                         <span
-                          className={`px-1.5 py-0.5 rounded-full text-[9px] font-bold uppercase ${
-                            post.status === 'published'
+                          className={`px-1.5 py-0.5 rounded-full text-[9px] font-bold uppercase ${post.status === 'published'
                               ? 'bg-green-100 text-green-700'
                               : 'bg-yellow-100 text-yellow-700'
-                          }`}
+                            }`}
                         >
                           {post.status}
                         </span>

@@ -111,17 +111,22 @@ export function CustomFieldRenderer({
                 key={idx}
                 className="relative group p-4 bg-backdrop-medium/5 rounded-lg border border-line-low"
               >
-                <button
-                  type="button"
-                  className="absolute top-2 right-2 p-1 text-neutral-low hover:text-danger opacity-0 group-hover:opacity-100 transition-opacity"
-                  onClick={() => {
-                    const nextItems = [...items]
-                    nextItems.splice(idx, 1)
-                    handleChange(nextItems)
-                  }}
-                >
-                  Remove
-                </button>
+                <div className="flex items-center justify-between mb-4 border-b border-line-low pb-2">
+                  <span className="text-[10px] font-bold text-neutral-low uppercase tracking-wider">
+                    Item {idx + 1}
+                  </span>
+                  <button
+                    type="button"
+                    className="text-[10px] uppercase font-bold text-neutral-low hover:text-red-500 transition-colors"
+                    onClick={() => {
+                      const nextItems = [...items]
+                      nextItems.splice(idx, 1)
+                      handleChange(nextItems)
+                    }}
+                  >
+                    Remove
+                  </button>
+                </div>
                 <CustomFieldRenderer
                   definitions={f.item?.type === 'object' ? f.item.fields || [] : [f.item!]}
                   values={f.item?.type === 'object' ? itemVal || {} : { [f.item!.slug]: itemVal }}

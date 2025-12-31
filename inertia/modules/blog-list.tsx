@@ -47,43 +47,43 @@ export default function BlogList({
 
   useEffect(() => {
     let cancelled = false
-    ;(async () => {
-      try {
-        const params = new URLSearchParams()
-        params.set('status', 'published')
-        params.set('limit', '20')
-        const ids = Array.isArray(posts) ? posts.filter(Boolean) : []
-        if (ids.length > 0) {
-          params.set('ids', ids.join(','))
-        }
-        const res = await fetch(`/api/blogs?${params.toString()}`, {
-          credentials: 'same-origin',
-          headers: { Accept: 'application/json' },
-        })
-        if (!res.ok) {
-          throw new Error('Failed to load blog posts')
-        }
-        const j = await res.json().catch(() => null)
-        const list: any[] = Array.isArray(j?.data) ? j.data : []
-        if (cancelled) return
+      ; (async () => {
+        try {
+          const params = new URLSearchParams()
+          params.set('status', 'published')
+          params.set('limit', '20')
+          const ids = Array.isArray(posts) ? posts.filter(Boolean) : []
+          if (ids.length > 0) {
+            params.set('ids', ids.join(','))
+          }
+          const res = await fetch(`/api/blogs?${params.toString()}`, {
+            credentials: 'same-origin',
+            headers: { Accept: 'application/json' },
+          })
+          if (!res.ok) {
+            throw new Error('Failed to load blog posts')
+          }
+          const j = await res.json().catch(() => null)
+          const list: any[] = Array.isArray(j?.data) ? j.data : []
+          if (cancelled) return
 
-        const mapped: BlogSummary[] = list.map((p: any) => ({
-          id: String(p.id),
-          title: String(p.title || 'Untitled'),
-          slug: String(p.slug),
-          url: String(p.url),
-          excerpt: (p as any).excerpt ?? null,
-          updatedAt: (p as any).updatedAt ?? null,
-          image: p.image ?? null,
-        }))
+          const mapped: BlogSummary[] = list.map((p: any) => ({
+            id: String(p.id),
+            title: String(p.title || 'Untitled'),
+            slug: String(p.slug),
+            url: String(p.url),
+            excerpt: (p as any).excerpt ?? null,
+            updatedAt: (p as any).updatedAt ?? null,
+            image: p.image ?? null,
+          }))
 
-        setItems(mapped)
-      } catch {
-        if (!cancelled) setItems([])
-      } finally {
-        if (!cancelled) setLoading(false)
-      }
-    })()
+          setItems(mapped)
+        } catch {
+          if (!cancelled) setItems([])
+        } finally {
+          if (!cancelled) setLoading(false)
+        }
+      })()
     return () => {
       cancelled = true
     }
@@ -157,7 +157,7 @@ export default function BlogList({
             data-inline-post-type="blog"
             aria-label="Edit posts"
           >
-            <FontAwesomeIcon icon="pencil" className="w-3 h-3" />
+            <FontAwesomeIcon icon="pencil" size="xs" />
             Edit posts ({items.length})
           </button>
         </div>

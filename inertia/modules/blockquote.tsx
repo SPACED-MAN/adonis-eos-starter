@@ -32,7 +32,7 @@ export default function Blockquote({
   const { value: authorName, show: showAuthorName, props: authorNameProps } = useInlineField(__moduleId, 'authorName', initialAuthorName, { label: 'Author Name' })
   const { value: authorTitle, show: showAuthorTitle, props: authorTitleProps } = useInlineField(__moduleId, 'authorTitle', initialAuthorTitle, { label: 'Author Title' })
   const { value: avatar, show: showAvatar, props: avatarProps } = useInlineField(__moduleId, 'avatar', initialAvatar, { type: 'media', label: 'Avatar' })
-  const bg = useInlineValue(__moduleId, 'backgroundColor', backgroundColor)
+  const bg = useInlineValue(__moduleId, 'backgroundColor', backgroundColor) || backgroundColor
 
   const isDarkBg = bg === 'bg-neutral-high' || bg === 'bg-backdrop-high' || bg === 'bg-standout-medium'
   const textColor = isDarkBg ? 'text-on-high' : 'text-neutral-high'

@@ -39,7 +39,8 @@ export default function CompanyTeaser({ title, image, url, customFields }: Compa
               <div className="flex items-start justify-center gap-1.5 px-2">
                 <FontAwesomeIcon
                   icon="location-dot"
-                  className="w-2.5 h-2.5 mt-0.5 flex-shrink-0 text-neutral-low"
+                  size="xs"
+                  className="mt-0.5 flex-shrink-0 text-neutral-low"
                 />
                 <span className="line-clamp-2">{address}</span>
               </div>
@@ -48,7 +49,8 @@ export default function CompanyTeaser({ title, image, url, customFields }: Compa
               <div className="flex items-center justify-center gap-1.5 px-2">
                 <FontAwesomeIcon
                   icon="phone"
-                  className="w-2.5 h-2.5 flex-shrink-0 text-neutral-low"
+                  size="xs"
+                  className="flex-shrink-0 text-neutral-low"
                 />
                 <span>{phone}</span>
               </div>

@@ -323,7 +323,7 @@ export function SiteAdminBar({ initialProps }: { initialProps?: any }) {
           >
             <SelectTrigger className="h-9 w-20 gap-2 px-2 border-line-medium bg-backdrop-high shadow text-xs font-bold text-neutral-high min-w-[80px]">
               <div className="flex items-center gap-1.5">
-                <FontAwesomeIcon icon={faGlobe} className="text-neutral-medium size-3" />
+                <FontAwesomeIcon icon={faGlobe} size="xs" className="text-neutral-medium size-3" />
                 <SelectValue placeholder={(post?.locale || 'en').toUpperCase()}>
                   {(post?.locale || 'en').toUpperCase()}
                 </SelectValue>
@@ -348,8 +348,8 @@ export function SiteAdminBar({ initialProps }: { initialProps?: any }) {
                   <button
                     type="button"
                     className={`px-3 py-2 text-[10px] font-bold transition-all ${v.id === post?.id
-                        ? 'bg-standout-medium text-on-high shadow-inner'
-                        : 'text-neutral-high hover:bg-backdrop-medium'
+                      ? 'bg-standout-medium text-on-high shadow-inner'
+                      : 'text-neutral-high hover:bg-backdrop-medium'
                       } ${v.id !== inline.abVariations[inline.abVariations.length - 1].id ? 'border-r border-line-medium' : ''}`}
                     onClick={() => {
                       if (v.id === post?.id) return

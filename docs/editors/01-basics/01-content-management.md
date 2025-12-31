@@ -258,7 +258,7 @@ See [Internationalization guide](../../developers/05-data/08-internationalizatio
 
 ## Getting Help
 
-- Check [API Reference](../developers/05-api-reference.md) for technical details
-- Review [Building Modules](../developers/04-building-modules.md) for custom modules
+- Check [API Reference](../../developers/02-architecture/05-api-reference.md) for technical details
+- Review [Building Modules](../../developers/03-extending-the-cms/04-building-modules.md) for custom modules
 - Contact your administrator for permission issues
 - Refer to [Roles & Permissions](02-roles-permissions.md) for access questions

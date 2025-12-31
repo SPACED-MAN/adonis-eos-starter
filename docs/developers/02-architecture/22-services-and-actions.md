@@ -68,5 +68,5 @@ When adding a new feature:
 
 ## 4. Lifecycle Hooks
 
-Many actions trigger events that are picked up by the [Workflows](06a-workflows-and-webhooks.md) system. Always ensure that major mutations trigger the corresponding event to maintain system-wide automation.
+Many actions trigger events that are picked up by the [Workflows](../../developers/04-automation-and-ai/06a-workflows-and-webhooks.md) system. Always ensure that major mutations trigger the corresponding event to maintain system-wide automation.
 

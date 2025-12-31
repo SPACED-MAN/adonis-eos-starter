@@ -125,7 +125,8 @@ export default function Share({
             >
               <FontAwesomeIcon
                 icon={getIconProp(n.icon)}
-                className="w-4 h-4 transition-transform group-hover:scale-110"
+                className="transition-transform group-hover:scale-110"
+                size="xs"
               />
             </a>
           )

@@ -27,7 +27,7 @@ export const LabelWithDescription = ({
                 type="button"
                 className="text-neutral-low hover:text-neutral-high transition-colors"
               >
-                <FontAwesomeIcon icon={faCircleInfo} className="w-3 h-3" />
+                <FontAwesomeIcon icon={faCircleInfo} size="xs" />
               </button>
             </TooltipTrigger>
             <TooltipContent className="max-w-xs text-xs font-normal normal-case tracking-normal">
