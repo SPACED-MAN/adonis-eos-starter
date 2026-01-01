@@ -14,6 +14,8 @@ interface ProfileListProps {
   // IDs of Profile posts selected via post-reference field; if empty, show all profiles.
   profiles?: string[] | null
   theme?: string
+  backgroundImage?: any
+  backgroundTint?: boolean
   __moduleId?: string
   _useReact?: boolean
 }
@@ -33,6 +35,8 @@ export default function ProfileList({
   subtitle: initialSubtitle,
   profiles: initialProfiles,
   theme: initialTheme = 'low',
+  backgroundImage: initialBackgroundImage,
+  backgroundTint: initialBackgroundTint,
   __moduleId,
   _useReact,
 }: ProfileListProps) {
@@ -43,6 +47,8 @@ export default function ProfileList({
   const subtitle = useInlineValue(__moduleId, 'subtitle', initialSubtitle)
   const profiles = useInlineValue(__moduleId, 'profiles', initialProfiles)
   const theme = useInlineValue(__moduleId, 'theme', initialTheme) || initialTheme
+  const backgroundImage = useInlineValue(__moduleId, 'backgroundImage', initialBackgroundImage)
+  const backgroundTint = useInlineValue(__moduleId, 'backgroundTint', initialBackgroundTint)
 
   const styles = getSectionStyles(theme)
   const textColor = styles.textColor
@@ -204,12 +210,17 @@ export default function ProfileList({
       <section
         className={`${styles.containerClasses} py-12 lg:py-16 relative overflow-hidden`}
         data-module="profile-list"
-        data-inline-type="select"
+        data-inline-type="background"
         data-inline-path="theme"
-        data-inline-label="Theme"
+        data-inline-label="Background & Theme"
         data-inline-options={JSON.stringify(THEME_OPTIONS)}
       >
-        <SectionBackground component={styles.backgroundComponent} />
+        <SectionBackground
+          component={styles.backgroundComponent}
+          backgroundImage={backgroundImage}
+          backgroundTint={backgroundTint}
+          isInteractive={_useReact}
+        />
         <div className="container mx-auto px-4 sm:px-6 lg:px-8 relative z-10">
           <div className="max-w-screen-sm mx-auto text-center mb-8">
             <h2 className={`mb-2 text-3xl font-extrabold tracking-tight ${textColor}`}>{title}</h2>
@@ -234,7 +245,12 @@ export default function ProfileList({
       data-inline-label="Theme"
       data-inline-options={JSON.stringify(THEME_OPTIONS)}
     >
-      <SectionBackground component={styles.backgroundComponent} />
+      <SectionBackground
+        component={styles.backgroundComponent}
+        backgroundImage={backgroundImage}
+        backgroundTint={backgroundTint}
+        isInteractive={_useReact}
+      />
       <div className="container mx-auto px-4 sm:px-6 lg:px-8 relative z-10">
         {headerContent}
         {_useReact ? (

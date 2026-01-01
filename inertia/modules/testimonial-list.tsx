@@ -14,6 +14,8 @@ interface TestimonialListProps {
   // IDs of Testimonial posts selected via post-reference field; if empty, show all.
   testimonials?: string[] | null
   theme?: string
+  backgroundImage?: any
+  backgroundTint?: boolean
   __moduleId?: string
   _useReact?: boolean
 }
@@ -31,6 +33,8 @@ export default function TestimonialList({
   subtitle: initialSubtitle,
   testimonials: initialTestimonials,
   theme: initialTheme = 'low',
+  backgroundImage: initialBackgroundImage,
+  backgroundTint: initialBackgroundTint,
   __moduleId,
   _useReact,
 }: TestimonialListProps) {
@@ -41,6 +45,8 @@ export default function TestimonialList({
   const { value: subtitle, show: showSubtitle, props: subtitleProps } = useInlineField(__moduleId, 'subtitle', initialSubtitle, { label: 'Subtitle' })
   const testimonials = useInlineValue(__moduleId, 'testimonials', initialTestimonials)
   const theme = useInlineValue(__moduleId, 'theme', initialTheme) || initialTheme
+  const backgroundImage = useInlineValue(__moduleId, 'backgroundImage', initialBackgroundImage)
+  const backgroundTint = useInlineValue(__moduleId, 'backgroundTint', initialBackgroundTint)
 
   const styles = getSectionStyles(theme)
   const textColor = styles.textColor
@@ -199,12 +205,17 @@ export default function TestimonialList({
       <section
         className={`${styles.containerClasses} py-8 lg:py-16 relative overflow-hidden`}
         data-module="testimonial-list"
-        data-inline-type="select"
+        data-inline-type="background"
         data-inline-path="theme"
-        data-inline-label="Theme"
+        data-inline-label="Background & Theme"
         data-inline-options={JSON.stringify(THEME_OPTIONS)}
       >
-        <SectionBackground component={styles.backgroundComponent} />
+        <SectionBackground
+          component={styles.backgroundComponent}
+          backgroundImage={backgroundImage}
+          backgroundTint={backgroundTint}
+          isInteractive={_useReact}
+        />
         <div className="container mx-auto px-4 lg:px-6 relative z-10">
           <div className="mx-auto max-w-screen-sm text-center mb-8">
             <h2 className={`mb-4 text-3xl md:text-4xl font-extrabold tracking-tight ${textColor}`}>
@@ -231,10 +242,14 @@ export default function TestimonialList({
       data-inline-label="Theme"
       data-inline-options={JSON.stringify(THEME_OPTIONS)}
     >
-      <SectionBackground component={styles.backgroundComponent} />
+      <SectionBackground
+        component={styles.backgroundComponent}
+        backgroundImage={backgroundImage}
+        backgroundTint={backgroundTint}
+        isInteractive={_useReact}
+      />
       <div className="container mx-auto px-4 lg:px-6 text-center relative z-10">
         {headerContent}
-
         {_useReact ? (
           <motion.div
             initial="hidden"
@@ -247,7 +262,6 @@ export default function TestimonialList({
         ) : (
           gridContent
         )}
-
         <div className="text-center">
           <a
             href="#"

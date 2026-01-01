@@ -14,6 +14,8 @@ interface StatItem {
 interface StatisticsProps {
   stats: StatItem[]
   theme?: string
+  backgroundImage?: any
+  backgroundTint?: boolean
   _useReact?: boolean
 }
 
@@ -57,12 +59,16 @@ function Counter({
 export default function Statistics({
   stats,
   theme: initialTheme = 'low',
+  backgroundImage: initialBackgroundImage,
+  backgroundTint: initialBackgroundTint,
   _useReact,
   __moduleId,
 }: StatisticsProps & { __moduleId?: string }) {
   const [hasEntered, setHasEntered] = useState(false)
   const sectionRef = useRef<HTMLElement | null>(null)
   const theme = useInlineValue(__moduleId, 'theme', initialTheme) || initialTheme
+  const backgroundImage = useInlineValue(__moduleId, 'backgroundImage', initialBackgroundImage)
+  const backgroundTint = useInlineValue(__moduleId, 'backgroundTint', initialBackgroundTint)
 
   const styles = getSectionStyles(theme)
   const textColor = styles.textColor
@@ -161,12 +167,17 @@ export default function Statistics({
         variants={containerVariants}
         className={`${styles.containerClasses} py-12 lg:py-16 relative overflow-hidden`}
         data-module="statistics"
-        data-inline-type="select"
+        data-inline-type="background"
         data-inline-path="theme"
-        data-inline-label="Theme"
+        data-inline-label="Background & Theme"
         data-inline-options={JSON.stringify(THEME_OPTIONS)}
       >
-        <SectionBackground component={styles.backgroundComponent} />
+        <SectionBackground
+          component={styles.backgroundComponent}
+          backgroundImage={backgroundImage}
+          backgroundTint={backgroundTint}
+          isInteractive={_useReact}
+        />
         <div className="relative z-10">{content}</div>
       </motion.section>
     )
@@ -182,7 +193,12 @@ export default function Statistics({
       data-inline-label="Theme"
       data-inline-options={JSON.stringify(THEME_OPTIONS)}
     >
-      <SectionBackground component={styles.backgroundComponent} />
+      <SectionBackground
+        component={styles.backgroundComponent}
+        backgroundImage={backgroundImage}
+        backgroundTint={backgroundTint}
+        isInteractive={_useReact}
+      />
       <div className="relative z-10">{content}</div>
     </section>
   )

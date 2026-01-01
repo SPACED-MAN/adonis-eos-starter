@@ -99,13 +99,34 @@ This keeps content consistent, prevents design drift, and aligns with the editor
 
 ### Media Usage in Modules
 
-- **Always resolve media from the media library**, never hardcode CDN URLs or static paths in modules.
-- **When rendering images on the frontend**, always request an appropriate size/variant (e.g., `thumb`, `hero`, `wide`) for performance.
-- Variant selection logic should use a shared helper (e.g., a `pickMediaVariantUrl`-style function) that:
-  - Prefers a requested size if available.
-  - Falls back to the next-best size (usually the next-largest) when the exact size is missing.
-  - Is aware of light vs dark image variants so dark mode uses dark images when present.
-- Do **not** reimplement media-variant selection per module; reuse the shared helper for consistency and better caching.
+- **Always store media as IDs**: Use `config: { storeAs: 'id' }` in your `fieldSchema`. This is critical for light/dark mode and optimization support. See [Media Handling Guidelines](./media_handling.md) for full details.
+- **Never hardcode CDN URLs**: Always resolve media from the media library.
+- **Use standard components**: Always render media using `MediaRenderer` or the `useMediaUrl` hook.
+
+### Conditional Visibility (showIf)
+
+Modules support showing or hiding fields based on the value of other fields. This is defined using the `showIf` property in the field schema.
+
+```typescript
+{
+  slug: 'theme',
+  type: 'select',
+  options: [{ label: 'Media', value: 'media' }, ...]
+},
+{
+  slug: 'backgroundImage',
+  type: 'media',
+  showIf: {
+    field: 'theme',
+    equals: 'media'
+  }
+}
+```
+
+**Key Implementation Rules:**
+1.  **Reactivity**: The Admin Panel and Inline Editor are optimized to react to these changes immediately. Ensure your custom fields trigger `onChange` events properly.
+2.  **Field Grouping**: When multiple fields share a condition, wrap them in a `type: 'group'` to keep the UI clean.
+3.  **Frontend Isolation**: Fields following a conditional group are automatically isolated into new groups to prevent them from being hidden by the preceding group's logic.
 
 ---
 
@@ -609,6 +630,39 @@ console.log(module.validate(props)) // See validation result
 - **Don't hardcode content** - Make it configurable
 - **Don't skip validation** - Always define schema
 - **Don't forget JSON-LD** - Add structured data when applicable
+
+### Frontend Inline Editing
+
+To enable the hover-and-edit functionality on the public site:
+
+1.  **Data Attributes**: Components must include `data-inline-*` attributes on their container.
+2.  **Unified Editors**: For complex field groups like "Background & Theme", use the specialized `background` type.
+    ```tsx
+    <section
+      data-module="my-module"
+      data-inline-type="background"
+      data-inline-path="theme"
+      data-inline-label="Background & Theme"
+      data-inline-options={JSON.stringify(THEME_OPTIONS)}
+    >
+    ```
+3.  **Hooks**: Use `useInlineValue` to ensure the component re-renders immediately when the user changes a value in the overlay.
+
+---
+
+## Interactivity & Animations
+
+### Framer Motion Best Practices
+
+When adding animations to modules (e.g., when `_useReact` is true):
+
+1.  **Viewport Triggers**: Use `viewport={{ once: true }}` for most scroll animations. Avoid aggressive `margin` values (like `-100px`) unless a specific "pop-in" effect is desired, as they can prevent animations from triggering on small screens or specific layouts.
+2.  **Type Safety**: Always use `as const` for `ease` strings to match Framer Motion's internal types.
+    ```tsx
+    transition={{ duration: 1, ease: 'easeOut' as const }}
+    ```
+3.  **Performance**: Keep animations lightweight. Use `SectionBackground` for complex background effects to keep the core module component focused on content.
+4.  **Parallax**: For parallax effects, use `useScroll` and `useTransform` to bind motion to scroll progress rather than simple entry animations.
 
 ---
 

@@ -12,6 +12,8 @@ interface ShareProps {
   title?: string
   alignment?: 'left' | 'center' | 'right'
   theme?: string
+  backgroundImage?: any
+  backgroundTint?: boolean
   _useReact?: boolean
 }
 
@@ -41,6 +43,8 @@ export default function Share({
   title = 'Share:',
   alignment = 'center',
   theme: initialTheme = 'transparent',
+  backgroundImage: initialBackgroundImage,
+  backgroundTint: initialBackgroundTint,
   _useReact = false,
   __moduleId,
 }: ShareProps & { __moduleId?: string }) {
@@ -50,6 +54,8 @@ export default function Share({
   const enabledNetworks = sharingNetworks.filter((n) => n.enabled)
 
   const theme = useInlineValue(__moduleId, 'theme', initialTheme) || initialTheme
+  const backgroundImage = useInlineValue(__moduleId, 'backgroundImage', initialBackgroundImage)
+  const backgroundTint = useInlineValue(__moduleId, 'backgroundTint', initialBackgroundTint)
   const styles = getSectionStyles(theme)
   const textColor = styles.textColor
   const subtextColor = styles.subtextColor
@@ -157,12 +163,17 @@ export default function Share({
     <section
       className={`w-full py-16 lg:py-24 ${styles.containerClasses} relative overflow-hidden`}
       data-module="share"
-      data-inline-type="select"
+      data-inline-type="background"
       data-inline-path="theme"
-      data-inline-label="Theme"
+      data-inline-label="Background & Theme"
       data-inline-options={JSON.stringify(THEME_OPTIONS)}
     >
-      <SectionBackground component={styles.backgroundComponent} />
+      <SectionBackground
+        component={styles.backgroundComponent}
+        backgroundImage={backgroundImage}
+        backgroundTint={backgroundTint}
+        isInteractive={_useReact}
+      />
       <div className="container mx-auto px-4 sm:px-6 lg:px-8">{content}</div>
     </section>
   )

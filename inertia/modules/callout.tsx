@@ -22,6 +22,8 @@ interface CalloutProps {
   ctas?: Button[]
   variant?: 'centered' | 'split-left' | 'split-right'
   theme?: string
+  backgroundImage?: any
+  backgroundTint?: boolean
   __moduleId?: string
   _useReact?: boolean
 }
@@ -34,6 +36,8 @@ export default function Callout(props: CalloutProps) {
     ctas: initialCtas = [],
     variant: initialVariant = 'centered',
     theme: initialTheme = 'low',
+    backgroundImage: initialBackgroundImage,
+    backgroundTint: initialBackgroundTint,
     __moduleId,
     _useReact,
   } = props
@@ -48,6 +52,8 @@ export default function Callout(props: CalloutProps) {
     useInlineValue(__moduleId, 'theme', initialTheme) ||
     initialTheme ||
     'low'
+  const backgroundImage = useInlineValue(__moduleId, 'backgroundImage', initialBackgroundImage)
+  const backgroundTint = useInlineValue(__moduleId, 'backgroundTint', initialBackgroundTint)
 
   const styles = getSectionStyles(theme)
   const textColor = styles.textColor
@@ -261,12 +267,17 @@ export default function Callout(props: CalloutProps) {
         variants={containerVariants}
         className={`${styles.containerClasses} py-16 lg:py-24 relative overflow-hidden`}
         data-module="callout"
-        data-inline-type="select"
+        data-inline-type="background"
         data-inline-path="theme"
-        data-inline-label="Theme"
+        data-inline-label="Background & Theme"
         data-inline-options={JSON.stringify(THEME_OPTIONS)}
       >
-        <SectionBackground component={styles.backgroundComponent} />
+        <SectionBackground
+          component={styles.backgroundComponent}
+          backgroundImage={backgroundImage}
+          backgroundTint={backgroundTint}
+          isInteractive={_useReact}
+        />
         <div className="relative z-10">
           {renderedContent}
         </div>
@@ -283,7 +294,12 @@ export default function Callout(props: CalloutProps) {
       data-inline-label="Theme"
       data-inline-options={JSON.stringify(THEME_OPTIONS)}
     >
-      <SectionBackground component={styles.backgroundComponent} />
+      <SectionBackground
+        component={styles.backgroundComponent}
+        backgroundImage={backgroundImage}
+        backgroundTint={backgroundTint}
+        isInteractive={_useReact}
+      />
       <div className="relative z-10">
         {renderedContent}
       </div>

@@ -14,6 +14,8 @@ interface CompanyListProps {
   // IDs of Company posts selected via post-reference field; if empty, show all.
   companies?: string[] | null
   theme?: string
+  backgroundImage?: any
+  backgroundTint?: boolean
   __moduleId?: string
   _useReact?: boolean
 }
@@ -32,6 +34,8 @@ export default function CompanyList({
   subtitle: initialSubtitle,
   companies: initialCompanies,
   theme: initialTheme = 'low',
+  backgroundImage: initialBackgroundImage,
+  backgroundTint: initialBackgroundTint,
   __moduleId,
   _useReact,
 }: CompanyListProps) {
@@ -42,6 +46,8 @@ export default function CompanyList({
   const { value: subtitle, show: showSubtitle, props: subtitleProps } = useInlineField(__moduleId, 'subtitle', initialSubtitle, { label: 'Subtitle' })
   const companies = useInlineValue(__moduleId, 'companies', initialCompanies)
   const theme = useInlineValue(__moduleId, 'theme', initialTheme) || initialTheme
+  const backgroundImage = useInlineValue(__moduleId, 'backgroundImage', initialBackgroundImage)
+  const backgroundTint = useInlineValue(__moduleId, 'backgroundTint', initialBackgroundTint)
 
   const styles = getSectionStyles(theme)
   const textColor = styles.textColor
@@ -210,12 +216,17 @@ export default function CompanyList({
       <section
         className={`${styles.containerClasses} py-8 lg:py-16 relative overflow-hidden`}
         data-module="company-list"
-        data-inline-type="select"
+        data-inline-type="background"
         data-inline-path="theme"
-        data-inline-label="Theme"
+        data-inline-label="Background & Theme"
         data-inline-options={JSON.stringify(THEME_OPTIONS)}
       >
-        <SectionBackground component={styles.backgroundComponent} />
+        <SectionBackground
+          component={styles.backgroundComponent}
+          backgroundImage={backgroundImage}
+          backgroundTint={backgroundTint}
+          isInteractive={_useReact}
+        />
         <div className="container mx-auto px-4 lg:px-6 relative z-10">
           <h2
             className={`mb-4 lg:mb-8 text-3xl md:text-4xl font-extrabold tracking-tight text-center ${textColor}`}
@@ -246,7 +257,12 @@ export default function CompanyList({
       data-inline-label="Theme"
       data-inline-options={JSON.stringify(THEME_OPTIONS)}
     >
-      <SectionBackground component={styles.backgroundComponent} />
+      <SectionBackground
+        component={styles.backgroundComponent}
+        backgroundImage={backgroundImage}
+        backgroundTint={backgroundTint}
+        isInteractive={_useReact}
+      />
       <div className="container mx-auto px-4 lg:px-6 relative z-10">
         {headerContent}
         {_useReact ? (

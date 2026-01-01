@@ -21,30 +21,37 @@ interface TabItem {
 }
 
 interface TabbedFeaturesProps {
-	title?: string
-	subtitle?: string
-	tabs: TabItem[]
-	layout?: 'top' | 'left' | 'right'
-	theme?: string
-	__moduleId?: string
-	_useReact?: boolean
+  title?: string
+  subtitle?: string
+  tabs: TabItem[]
+  layout?: 'top' | 'left' | 'right'
+  theme?: string
+  backgroundImage?: any
+  backgroundTint?: boolean
+  __moduleId?: string
+  _useReact?: boolean
 }
 
 export default function TabbedFeatures({
-	title: initialTitle,
-	subtitle: initialSubtitle,
-	tabs: initialTabs = [],
-	layout: initialLayout = 'top',
-	theme: initialTheme = 'transparent',
-	__moduleId,
+  title: initialTitle,
+  subtitle: initialSubtitle,
+  tabs: initialTabs = [],
+  layout: initialLayout = 'top',
+  theme: initialTheme = 'transparent',
+  backgroundImage: initialBackgroundImage,
+  backgroundTint: initialBackgroundTint,
+  __moduleId,
+  _useReact,
 }: TabbedFeaturesProps) {
-	const { value: title, show: showTitle, props: titleProps } = useInlineField(__moduleId, 'title', initialTitle, { label: 'Title' })
-	const { value: subtitle, show: showSubtitle, props: subtitleProps } = useInlineField(__moduleId, 'subtitle', initialSubtitle, { label: 'Subtitle' })
-	const tabs = useInlineValue(__moduleId, 'tabs', initialTabs) || []
-	const layout = useInlineValue(__moduleId, 'layout', initialLayout) || 'top'
-	const theme = useInlineValue(__moduleId, 'theme', initialTheme) || initialTheme
+  const { value: title, show: showTitle, props: titleProps } = useInlineField(__moduleId, 'title', initialTitle, { label: 'Title' })
+  const { value: subtitle, show: showSubtitle, props: subtitleProps } = useInlineField(__moduleId, 'subtitle', initialSubtitle, { label: 'Subtitle' })
+  const tabs = useInlineValue(__moduleId, 'tabs', initialTabs) || []
+  const layout = useInlineValue(__moduleId, 'layout', initialLayout) || 'top'
+  const theme = useInlineValue(__moduleId, 'theme', initialTheme) || initialTheme
+  const backgroundImage = useInlineValue(__moduleId, 'backgroundImage', initialBackgroundImage)
+  const backgroundTint = useInlineValue(__moduleId, 'backgroundTint', initialBackgroundTint)
 
-	const styles = getSectionStyles(theme)
+  const styles = getSectionStyles(theme)
 	const textColor = styles.textColor
 	const subtextColor = styles.subtextColor
 
@@ -168,12 +175,17 @@ export default function TabbedFeatures({
 		<section
 			className={`${styles.containerClasses} py-20 lg:py-32 overflow-hidden relative`}
 			data-module="tabbed-features"
-			data-inline-type="select"
+			data-inline-type="background"
 			data-inline-path="theme"
-			data-inline-label="Theme"
+			data-inline-label="Background & Theme"
 			data-inline-options={JSON.stringify(THEME_OPTIONS)}
 		>
-			<SectionBackground component={styles.backgroundComponent} />
+			<SectionBackground
+        component={styles.backgroundComponent}
+        backgroundImage={backgroundImage}
+        backgroundTint={backgroundTint}
+        isInteractive={_useReact}
+      />
 			<div className="container mx-auto px-4 sm:px-6 lg:px-8 relative z-10">
 				{layout === 'top' && (
 					<>

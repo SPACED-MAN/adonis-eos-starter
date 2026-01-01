@@ -31,6 +31,8 @@ interface GalleryProps {
   layout?: 'grid' | 'masonry'
   columns?: number
   theme?: string
+  backgroundImage?: any
+  backgroundTint?: boolean
   __moduleId?: string
   _useReact?: boolean
 }
@@ -40,6 +42,8 @@ export default function Gallery({
   layout = 'grid',
   columns = 3,
   theme: initialTheme = 'transparent',
+  backgroundImage: initialBackgroundImage,
+  backgroundTint: initialBackgroundTint,
   __moduleId,
   _useReact,
 }: GalleryProps) {
@@ -54,6 +58,9 @@ export default function Gallery({
   }, [lightboxOpen])
 
   const theme = useInlineValue(__moduleId, 'theme', initialTheme) || initialTheme
+  const backgroundImage = useInlineValue(__moduleId, 'backgroundImage', initialBackgroundImage)
+  const backgroundTint = useInlineValue(__moduleId, 'backgroundTint', initialBackgroundTint)
+
   const styles = getSectionStyles(theme)
   const imagesValue = useInlineValue(__moduleId, 'images', images) || images
 
@@ -169,12 +176,17 @@ export default function Gallery({
     <section
       className={`${styles.containerClasses} py-12 lg:py-16 relative overflow-hidden`}
       data-module="gallery"
-      data-inline-type="select"
+      data-inline-type="background"
       data-inline-path="theme"
-      data-inline-label="Theme"
+      data-inline-label="Background & Theme"
       data-inline-options={JSON.stringify(THEME_OPTIONS)}
     >
-      <SectionBackground component={styles.backgroundComponent} />
+      <SectionBackground
+        component={styles.backgroundComponent}
+        backgroundImage={backgroundImage}
+        backgroundTint={backgroundTint}
+        isInteractive={_useReact}
+      />
       <div className="container mx-auto px-4 sm:px-6 lg:px-8 relative z-10">
         {/* Gallery Grid */}
         {_useReact ? (

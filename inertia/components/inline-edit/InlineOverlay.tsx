@@ -27,6 +27,11 @@ type ObjectField = {
   type: string
   label: string
   options?: Array<{ label: string; value: any }>
+  showIf?: {
+    field: string
+    equals?: any
+    notEquals?: any
+  }
 }
 
 type PopoverState = {
@@ -605,9 +610,12 @@ function formatPathLabel(path: string): string {
 
 function FieldDialogContent({ pop, onClose, getValue, setValue }: DialogContentProps) {
   const { moduleId, path, type, options, multi, fields } = pop
-  const currentValFromCtx = getValue(moduleId, path, null)
+  
+  // For 'background' type, we don't have a single value, we manage multiple
+  const currentValFromCtx = type === 'background' ? null : getValue(moduleId, path, null)
 
   const [draft, setDraft] = useState<any>(() => {
+    if (type === 'background') return null
     if (multi && Array.isArray(currentValFromCtx)) return currentValFromCtx
     if (type === 'object' && (!currentValFromCtx || typeof currentValFromCtx !== 'object'))
       return {}
@@ -616,6 +624,7 @@ function FieldDialogContent({ pop, onClose, getValue, setValue }: DialogContentP
 
   // Keep local draft in sync with context (essential for first-edit reactivity and external updates)
   useEffect(() => {
+    if (type === 'background') return
     const isObject = type === 'object'
     const normalizedCtx =
       isObject && (!currentValFromCtx || typeof currentValFromCtx !== 'object')
@@ -638,6 +647,92 @@ function FieldDialogContent({ pop, onClose, getValue, setValue }: DialogContentP
 
   const renderControl = () => {
     switch (type) {
+      case 'background': {
+        const currentTheme = getValue(moduleId, 'theme', 'low')
+        const currentBg = getValue(moduleId, 'backgroundImage', null)
+        const currentTint = getValue(moduleId, 'backgroundTint', false)
+
+        return (
+          <div className="space-y-6">
+            <div className={containerStyle}>
+              <div className="space-y-1.5">
+                <label className={labelStyle}>Theme</label>
+                <div className="relative">
+                  <select
+                    className={selectStyle}
+                    value={currentTheme ?? ''}
+                    onChange={(e) => setValue(moduleId, 'theme', e.target.value)}
+                  >
+                    {(options || []).map((o) => (
+                      <option key={o.value} value={o.value}>
+                        {o.label}
+                      </option>
+                    ))}
+                  </select>
+                  <div className="absolute right-4 top-1/2 -translate-y-1/2 pointer-events-none text-neutral-low">
+                    <FontAwesomeIcon icon={faChevronDown} size="sm" />
+                  </div>
+                </div>
+              </div>
+
+              {currentTheme === 'media' && (
+                <>
+                  <div className="space-y-1.5 pt-4 border-t border-line-low/50">
+                    <label className={labelStyle}>Background Image</label>
+                    <div className="flex items-center gap-4">
+                      <div className="w-20 h-20 rounded-xl bg-backdrop-medium/50 border border-line-low overflow-hidden relative group">
+                        {currentBg ? (
+                          <MediaRenderer
+                            image={currentBg}
+                            variant="thumb"
+                            className="w-full h-full object-cover"
+                          />
+                        ) : (
+                          <div className="w-full h-full flex items-center justify-center text-neutral-low">
+                            <FontAwesomeIcon icon="image" size="lg" />
+                          </div>
+                        )}
+                      </div>
+                      <button
+                        type="button"
+                        className="px-4 py-2 text-xs font-bold rounded-lg border border-line-medium hover:bg-backdrop-medium text-neutral-high transition-all"
+                        onClick={() => {
+                          setMediaTarget({ moduleId, path: 'backgroundImage' })
+                        }}
+                      >
+                        {currentBg ? 'Change' : 'Select'} Image
+                      </button>
+                      {currentBg && (
+                        <button
+                          type="button"
+                          className="p-2 text-neutral-low hover:text-red-500 transition-colors"
+                          onClick={() => setValue(moduleId, 'backgroundImage', null)}
+                        >
+                          <FontAwesomeIcon icon={faTrash} size="sm" />
+                        </button>
+                      )}
+                    </div>
+                  </div>
+
+                  <div className="space-y-1.5 pt-4 border-t border-line-low/50">
+                    <label className="flex items-center gap-3 p-3 rounded-xl border border-line-medium bg-backdrop-low cursor-pointer hover:border-neutral-low transition-all">
+                      <input
+                        type="checkbox"
+                        className="w-5 h-5 rounded border-line-high text-standout-high focus:ring-standout-high/20"
+                        checked={!!currentTint}
+                        onChange={(e) => setValue(moduleId, 'backgroundTint', e.target.checked)}
+                      />
+                      <span className="text-xs font-bold text-neutral-high uppercase tracking-wider">
+                        Apply Tint Overlay
+                      </span>
+                    </label>
+                  </div>
+                </>
+              )}
+            </div>
+          </div>
+        )
+      }
       case 'richtext': {
         return (
           <div className="space-y-4">
@@ -923,6 +1018,18 @@ function FieldDialogContent({ pop, onClose, getValue, setValue }: DialogContentP
             <div className={containerStyle}>
               {fields.map((field) => {
                 const fieldValue = obj[field.name]
+
+                // Conditional visibility check
+                if (field.showIf) {
+                  const depValue = obj[field.showIf.field]
+                  if (field.showIf.equals !== undefined && depValue !== field.showIf.equals) {
+                    return null
+                  }
+                  if (field.showIf.notEquals !== undefined && depValue === field.showIf.notEquals) {
+                    return null
+                  }
+                }
+
                 switch (field.type) {
                   case 'text':
                   case 'textarea':
@@ -1141,6 +1248,48 @@ function FieldDialogContent({ pop, onClose, getValue, setValue }: DialogContentP
                             {field.label}
                           </span>
                         </label>
+                      </div>
+                    )
+                  case 'media':
+                    return (
+                      <div
+                        key={field.name}
+                        className="space-y-1.5 pt-2 border-t border-line-low/50"
+                      >
+                        <label className={labelStyle}>{field.label}</label>
+                        <div className="flex items-center gap-4">
+                          <div className="w-20 h-20 rounded-xl bg-backdrop-medium/50 border border-line-low overflow-hidden relative group">
+                            {fieldValue ? (
+                              <MediaRenderer
+                                image={fieldValue}
+                                variant="thumb"
+                                className="w-full h-full object-cover"
+                              />
+                            ) : (
+                              <div className="w-full h-full flex items-center justify-center text-neutral-low">
+                                <FontAwesomeIcon icon="image" size="lg" />
+                              </div>
+                            )}
+                          </div>
+                          <button
+                            type="button"
+                            className="px-4 py-2 text-xs font-bold rounded-lg border border-line-medium hover:bg-backdrop-medium text-neutral-high transition-all"
+                            onClick={() => {
+                              setMediaTarget({ moduleId, path: `${path}.${field.name}` })
+                            }}
+                          >
+                            {fieldValue ? 'Change' : 'Select'} Image
+                          </button>
+                          {fieldValue && (
+                            <button
+                              type="button"
+                              className="p-2 text-neutral-low hover:text-red-500 transition-colors"
+                              onClick={() => updateField(field.name, null)}
+                            >
+                              <FontAwesomeIcon icon={faTrash} size="sm" />
+                            </button>
+                          )}
+                        </div>
                       </div>
                     )
                   default:

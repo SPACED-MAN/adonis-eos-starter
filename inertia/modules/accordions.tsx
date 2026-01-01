@@ -28,6 +28,8 @@ interface AccordionsProps {
   items: AccordionItem[]
   allowMultiple?: boolean
   theme?: string
+  backgroundImage?: any
+  backgroundTint?: boolean
   __moduleId?: string
   _useReact?: boolean
 }
@@ -55,12 +57,17 @@ export default function Accordions({
   items: initialItems = [],
   allowMultiple = false,
   theme: initialTheme = 'transparent',
+  backgroundImage: initialBackgroundImage,
+  backgroundTint: initialBackgroundTint,
   __moduleId,
+  _useReact,
 }: AccordionsProps) {
   const { value: title, show: showTitle, props: titleProps } = useInlineField(__moduleId, 'title', initialTitle, { label: 'Title' })
   const { value: subtitle, show: showSubtitle, props: subtitleProps } = useInlineField(__moduleId, 'subtitle', initialSubtitle, { label: 'Subtitle' })
   const items = useInlineValue(__moduleId, 'items', initialItems) || []
   const theme = useInlineValue(__moduleId, 'theme', initialTheme) || initialTheme
+  const backgroundImage = useInlineValue(__moduleId, 'backgroundImage', initialBackgroundImage)
+  const backgroundTint = useInlineValue(__moduleId, 'backgroundTint', initialBackgroundTint)
 
   const styles = getSectionStyles(theme)
   const textColor = styles.textColor
@@ -89,12 +96,17 @@ export default function Accordions({
     <section
       className={`${styles.containerClasses} py-16 lg:py-24 relative overflow-hidden`}
       data-module="accordions"
-      data-inline-type="select"
+      data-inline-type="background"
       data-inline-path="theme"
-      data-inline-label="Theme"
+      data-inline-label="Background & Theme"
       data-inline-options={JSON.stringify(THEME_OPTIONS)}
     >
-      <SectionBackground component={styles.backgroundComponent} />
+      <SectionBackground
+        component={styles.backgroundComponent}
+        backgroundImage={backgroundImage}
+        backgroundTint={backgroundTint}
+        isInteractive={_useReact}
+      />
       <div className="container mx-auto px-4 sm:px-6 lg:px-8 max-w-3xl relative z-10">
         {(showTitle || showSubtitle) && (
           <div className="mb-12 text-center">

@@ -511,19 +511,29 @@ const MediaFieldInternal = memo(
       mimeType?: string
       variants: MediaVariant[]
       darkSourceUrl?: string
+      darkOptimizedUrl?: string
       playMode?: 'autoplay' | 'inline' | 'modal'
     } | null>(null)
     const [localPlayMode, setLocalPlayMode] = useState<'autoplay' | 'inline' | 'modal'>('autoplay')
 
     useEffect(() => {
-      if (
-        !storeAsId ||
-        !currentVal ||
-        !/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(currentVal)
-      ) {
-        if (!storeAsId && typeof value === 'string' && value) {
+      // If we have a full object with a URL, we can at least show a preview immediately
+      if (value && typeof value === 'object' && value.url) {
+        setPreview({
+          id: value.id || '',
+          url: value.url,
+          mimeType: value.mimeType,
+          originalFilename: value.originalFilename || value.url.split('/').pop(),
+          alt: value.alt || value.altText,
+          metadata: value.metadata,
+        })
+      }
+
+      const uuidRegex = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i
+      if (!currentVal || !uuidRegex.test(currentVal)) {
+        if (typeof value === 'string' && value && !uuidRegex.test(value)) {
           setPreview({ id: '', url: value, originalFilename: value, alt: null })
-        } else {
+        } else if (!value || (typeof value === 'object' && !value.url)) {
           setPreview(null)
         }
         setMediaData(null)
@@ -576,12 +586,15 @@ const MediaFieldInternal = memo(
             const variants: MediaVariant[] = Array.isArray(meta?.variants) ? meta.variants : []
             const darkSourceUrl =
               typeof meta.darkSourceUrl === 'string' ? meta.darkSourceUrl : undefined
+            const darkOptimizedUrl =
+              typeof meta.darkOptimizedUrl === 'string' ? meta.darkOptimizedUrl : undefined
             const playMode = meta.playMode || 'autoplay'
             const mData = {
               baseUrl: j.data.url,
               mimeType: j.data.mimeType,
               variants,
               darkSourceUrl,
+              darkOptimizedUrl,
               playMode,
             }
 
@@ -592,7 +605,7 @@ const MediaFieldInternal = memo(
               setPreview(item)
               setMediaData(mData)
               setLocalPlayMode(playMode)
-              ctx.setDraft((prev) => ({ ...prev }))
+              // No need to trigger a full re-render here as we just updated state
             }
           } catch {
             mediaMetadataLoading.delete(currentVal)
@@ -1776,7 +1789,6 @@ const SortableRepeaterItem = memo(
     idx,
     name,
     path,
-    field,
     value,
     rootId,
     ctx,
@@ -2211,6 +2223,8 @@ const ModuleFieldsRenderer = memo(
     isNoFieldModule: boolean
     fallbackDraftKeys: string[]
   }) => {
+    // DEBUG: console.log('[ModuleFieldsRenderer] render', { draft })
+
     if (schema && schema.length > 0) {
       // Helper function to check showIf conditions
       const checkShowIf = (field: CustomFieldDefinition, draftValues: Record<string, any>): boolean => {
@@ -2221,6 +2235,8 @@ const ModuleFieldsRenderer = memo(
         if (!depPath) return true // No field specified, show by default
 
         const depValue = getByPath(draftValues, depPath)
+
+        // DEBUG: console.log(`[checkShowIf] Field: ${field.slug}, depPath: ${depPath}, depValue:`, depValue, 'showIf:', showIf)
 
         if (showIf.isVideo === true) {
           // Note: isVideo check would need media metadata cache access
@@ -2306,11 +2322,8 @@ const ModuleFieldsRenderer = memo(
             type: 'group',
             showIf: group.showIf,
           } as CustomFieldDefinition
-          // Use latestDraft.current directly (same approach as FieldBySchemaInternal)
-          // FieldBySchemaInternal uses ctx.latestDraft.current directly without fallback
-          // We need to ensure we're reading from the same source
-          // If latestDraft.current is undefined/null, use draft as fallback (for initial render)
-          const draftValues = ctx.latestDraft.current ?? draft ?? {}
+          // Use the draft from props, which is the most reliable source for a child component
+          const draftValues = draft ?? {}
           const shouldShow = checkShowIf(groupField, draftValues)
           // Only show the group if the condition is met
           if (!shouldShow) {
@@ -2754,7 +2767,18 @@ export function ModuleEditorPanel({
   const ctx: EditorFieldCtx = useMemo(
     () => ({
       latestDraft,
-      setDraft,
+      setDraft: (val: any) => {
+        if (typeof val === 'function') {
+          setDraft((prev) => {
+            const next = val(prev)
+            latestDraft.current = next
+            return next
+          })
+        } else {
+          latestDraft.current = val
+          setDraft(val)
+        }
+      },
       fieldComponents,
       supportedFieldTypes,
       pascalFromType,
@@ -2822,7 +2846,7 @@ export function ModuleEditorPanel({
   })
 
   return createPortal(
-    <div className="fixed inset-0 z-[60] flex items-center justify-center p-4 sm:p-6">
+    <div className="fixed inset-0 z-60 flex items-center justify-center p-4 sm:p-6">
       <div className="absolute inset-0 bg-black/40" onClick={handleCancel} />
       <div
         className="absolute right-0 top-0 h-full w-full max-w-2xl bg-backdrop-low border-l border-line-low shadow-xl flex flex-col"
@@ -2895,6 +2919,9 @@ export function ModuleEditorPanel({
                 } else if ((el as HTMLInputElement).dataset?.bool === '1')
                   setByPath(next, name, currentValue === 'true')
                 else setByPath(next, name, currentValue)
+
+                // Update latestDraft.current immediately so showIf conditions can read the new value
+                latestDraft.current = next
                 return next
               })
             } catch { }
@@ -3232,7 +3259,19 @@ export const ModuleEditorInline = memo(function ModuleEditorInline({
   const ctx: EditorFieldCtx = useMemo(
     () => ({
       latestDraft,
-      setDraft,
+      setDraft: (val: any) => {
+        if (typeof val === 'function') {
+          setDraft((prev) => {
+            const next = val(prev)
+            // Ensure latestDraft is updated before the next render cycle
+            latestDraft.current = next
+            return next
+          })
+        } else {
+          latestDraft.current = val
+          setDraft(val)
+        }
+      },
       fieldComponents,
       supportedFieldTypes,
       pascalFromType,
@@ -3343,6 +3382,9 @@ export const ModuleEditorInline = memo(function ModuleEditorInline({
               } else if ((el as HTMLInputElement).dataset?.bool === '1')
                 setByPath(next, name, currentValue === 'true')
               else setByPath(next, name, currentValue)
+
+              // Update latestDraft.current immediately so showIf conditions can read the new value
+              latestDraft.current = next
               return next
             })
             // Only consider real user-originated events as "dirty". Programmatic events from hydration
@@ -3353,7 +3395,9 @@ export const ModuleEditorInline = memo(function ModuleEditorInline({
               (e as any)?.nativeEvent?.detail?.isTrusted ??
               false
             if (trusted) safeOnDirty()
-          } catch { }
+          } catch (err) {
+            console.error('[ModuleEditorInline] onChangeCapture error:', err)
+          }
         }}
         onBlurCapture={() => {
           if (autoSaveOnBlur) saveNow()

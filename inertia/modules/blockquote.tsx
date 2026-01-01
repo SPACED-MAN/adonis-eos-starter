@@ -18,6 +18,8 @@ interface BlockquoteProps {
     metadata?: any
   } | null // media object
   theme?: string
+  backgroundImage?: any
+  backgroundTint?: boolean
   __moduleId?: string
   _useReact?: boolean
 }
@@ -28,6 +30,8 @@ export default function Blockquote({
   authorTitle: initialAuthorTitle,
   avatar: initialAvatar,
   theme: initialTheme = 'low',
+  backgroundImage: initialBackgroundImage,
+  backgroundTint: initialBackgroundTint,
   __moduleId,
   _useReact,
 }: BlockquoteProps) {
@@ -36,6 +40,8 @@ export default function Blockquote({
   const { value: authorTitle, show: showAuthorTitle, props: authorTitleProps } = useInlineField(__moduleId, 'authorTitle', initialAuthorTitle, { label: 'Author Title' })
   const { value: avatar, show: showAvatar, props: avatarProps } = useInlineField(__moduleId, 'avatar', initialAvatar, { type: 'media', label: 'Avatar' })
   const theme = useInlineValue(__moduleId, 'theme', initialTheme) || initialTheme
+  const backgroundImage = useInlineValue(__moduleId, 'backgroundImage', initialBackgroundImage)
+  const backgroundTint = useInlineValue(__moduleId, 'backgroundTint', initialBackgroundTint)
 
   const styles = getSectionStyles(theme)
   const textColor = styles.textColor
@@ -129,12 +135,17 @@ export default function Blockquote({
         transition={{ duration: 1.0, ease: 'easeOut' }}
         className={`${styles.containerClasses} py-8 lg:py-16 relative overflow-hidden`}
         data-module="blockquote"
-        data-inline-type="select"
+        data-inline-type="background"
         data-inline-path="theme"
-        data-inline-label="Theme"
+        data-inline-label="Background & Theme"
         data-inline-options={JSON.stringify(THEME_OPTIONS)}
       >
-        <SectionBackground component={styles.backgroundComponent} />
+        <SectionBackground
+          component={styles.backgroundComponent}
+          backgroundImage={backgroundImage}
+          backgroundTint={backgroundTint}
+          isInteractive={_useReact}
+        />
         <div className="relative z-10">
           {content}
         </div>
@@ -144,14 +155,19 @@ export default function Blockquote({
 
   return (
     <section
-      className={`${styles.containerClasses} py-8 lg:py-16 relative overflow-hidden`}
+      className={`${styles.containerClasses} py-16 lg:py-24 relative overflow-hidden`}
       data-module="blockquote"
       data-inline-type="select"
       data-inline-path="theme"
       data-inline-label="Theme"
       data-inline-options={JSON.stringify(THEME_OPTIONS)}
     >
-      <SectionBackground component={styles.backgroundComponent} />
+      <SectionBackground
+        component={styles.backgroundComponent}
+        backgroundImage={backgroundImage}
+        backgroundTint={backgroundTint}
+        isInteractive={_useReact}
+      />
       <div className="relative z-10">
         {content}
       </div>

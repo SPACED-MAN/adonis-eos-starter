@@ -49,7 +49,13 @@ export default function MediaField({ value, onChange, storeAs = 'object' }: Prop
           } else if (storeAs === 'url') {
             onChange(m.url)
           } else {
-            onChange({ id: m.id, url: m.url })
+            // Include enough metadata for useMediaUrl to work without a DB round-trip
+            onChange({
+              id: m.id,
+              url: m.url,
+              mimeType: m.mimeType,
+              metadata: m.metadata,
+            })
           }
           setOpen(false)
         }}

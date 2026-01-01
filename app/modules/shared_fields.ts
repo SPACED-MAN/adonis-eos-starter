@@ -92,6 +92,7 @@ export const mediaBackgroundFields: CustomFieldDefinition[] = [
     type: 'media',
     label: 'Background Image',
     required: false,
+    config: { storeAs: 'id' },
     description: 'Background image to display behind the content',
   },
   {

@@ -38,6 +38,12 @@ export function useMediaUrl(
     let resolved: any = null
 
     if (typeof image === 'string') {
+      const uuidRegex = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i
+      if (uuidRegex.test(image)) {
+        // If it's a raw UUID string, it means it's not resolved yet.
+        // We return null so the renderer doesn't try to use it as a URL.
+        return null
+      }
       resolved = image
     } else if (typeof image === 'object' && image !== null) {
       const url = image.url || (image as any).baseUrl

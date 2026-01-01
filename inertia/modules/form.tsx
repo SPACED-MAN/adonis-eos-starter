@@ -40,6 +40,8 @@ interface FormModuleProps {
   formSlug: string
   __postId?: string
   theme?: string
+  backgroundImage?: any
+  backgroundTint?: boolean
   _useReact?: boolean
 }
 
@@ -49,6 +51,8 @@ export default function FormModule({
   formSlug,
   __postId,
   theme: initialTheme = 'low',
+  backgroundImage: initialBackgroundImage,
+  backgroundTint: initialBackgroundTint,
   _useReact,
   __moduleId,
 }: FormModuleProps & { __moduleId?: string }) {
@@ -61,6 +65,8 @@ export default function FormModule({
   const [successTextOverride, setSuccessTextOverride] = useState<string | null>(null)
 
   const theme = useInlineValue(__moduleId, 'theme', initialTheme) || initialTheme
+  const backgroundImage = useInlineValue(__moduleId, 'backgroundImage', initialBackgroundImage)
+  const backgroundTint = useInlineValue(__moduleId, 'backgroundTint', initialBackgroundTint)
   const styles = getSectionStyles(theme)
   const textColor = styles.textColor
   const subtextColor = styles.subtextColor
@@ -130,7 +136,12 @@ export default function FormModule({
         className={`${styles.containerClasses} py-8 relative overflow-hidden`}
         data-module="form"
       >
-        <SectionBackground component={styles.backgroundComponent} />
+        <SectionBackground
+          component={styles.backgroundComponent}
+          backgroundImage={backgroundImage}
+          backgroundTint={backgroundTint}
+          isInteractive={_useReact}
+        />
         <div className="container mx-auto px-4 sm:px-6 lg:px-8 relative z-10">
           <p className={`text-sm ${subtextColor}`}>Loading form...</p>
         </div>
@@ -430,12 +441,17 @@ export default function FormModule({
     <section
       className={`${styles.containerClasses} py-8 lg:py-16 relative overflow-hidden`}
       data-module="form"
-      data-inline-type="select"
+      data-inline-type="background"
       data-inline-path="theme"
-      data-inline-label="Theme"
+      data-inline-label="Background & Theme"
       data-inline-options={JSON.stringify(THEME_OPTIONS)}
     >
-      <SectionBackground component={styles.backgroundComponent} />
+      <SectionBackground
+        component={styles.backgroundComponent}
+        backgroundImage={backgroundImage}
+        backgroundTint={backgroundTint}
+        isInteractive={_useReact}
+      />
       <div className="container mx-auto px-4 sm:px-6 lg:px-8 max-w-xl relative z-10">{formBody}</div>
     </section>
   )

@@ -4,6 +4,8 @@ import { renderLexicalToHtml } from '../utils/lexical'
 import { getSectionStyles } from '../utils/colors'
 import { SectionBackground } from '../components/SectionBackground'
 
+import { THEME_OPTIONS } from '#modules/shared_fields'
+
 interface LexicalJSON {
   root: {
     type: string
@@ -22,6 +24,8 @@ interface ProseProps {
   textColor?: string // Tailwind class
   textAlign?: 'left' | 'center' | 'right' | 'justify' // Alignment inside prose
   padding?: string // Tailwind class
+  backgroundImage?: any
+  backgroundTint?: boolean
   __moduleId?: string
   _useReact?: boolean
 }
@@ -35,6 +39,8 @@ export default function Prose({
   textColor: initialTextColor = 'text-neutral-high',
   textAlign: initialTextAlign = 'left',
   padding: initialPadding = 'py-12',
+  backgroundImage: initialBackgroundImage,
+  backgroundTint: initialBackgroundTint,
   __moduleId,
   _useReact,
 }: ProseProps) {
@@ -43,6 +49,8 @@ export default function Prose({
   const fontSize = useInlineValue(__moduleId, 'fontSize', initialFontSize)
   const theme =
     useInlineValue(__moduleId, 'theme', initialTheme) || initialTheme
+  const backgroundImage = useInlineValue(__moduleId, 'backgroundImage', initialBackgroundImage)
+  const backgroundTint = useInlineValue(__moduleId, 'backgroundTint', initialBackgroundTint)
 
   const styles = getSectionStyles(theme)
   const textColor = styles.inverted ? styles.textColor : initialTextColor
@@ -105,16 +113,37 @@ export default function Prose({
         transition={{ duration: 1.0, ease: 'easeOut' }}
         className={sectionClasses}
         data-module="prose"
+        data-inline-type="background"
+        data-inline-path="theme"
+        data-inline-label="Background & Theme"
+        data-inline-options={JSON.stringify(THEME_OPTIONS)}
       >
-        <SectionBackground component={styles.backgroundComponent} />
+        <SectionBackground
+          component={styles.backgroundComponent}
+          backgroundImage={backgroundImage}
+          backgroundTint={backgroundTint}
+          isInteractive={_useReact}
+        />
         {innerContent}
       </motion.section>
     )
   }
 
   return (
-    <section className={sectionClasses} data-module="prose">
-      <SectionBackground component={styles.backgroundComponent} />
+    <section
+      className={sectionClasses}
+      data-module="prose"
+      data-inline-type="background"
+      data-inline-path="theme"
+      data-inline-label="Background & Theme"
+      data-inline-options={JSON.stringify(THEME_OPTIONS)}
+    >
+      <SectionBackground
+        component={styles.backgroundComponent}
+        backgroundImage={backgroundImage}
+        backgroundTint={backgroundTint}
+        isInteractive={_useReact}
+      />
       {innerContent}
     </section>
   )

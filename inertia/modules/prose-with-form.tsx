@@ -19,6 +19,8 @@ interface ProseWithFormProps {
   formSlug: string
   layout?: 'form-right' | 'form-left'
   theme?: string
+  backgroundImage?: any
+  backgroundTint?: boolean
   __moduleId?: string
   _useReact?: boolean
 }
@@ -29,12 +31,16 @@ export default function ProseWithForm({
   formSlug,
   layout = 'form-right',
   theme: initialTheme = 'low',
+  backgroundImage: initialBackgroundImage,
+  backgroundTint: initialBackgroundTint,
   __moduleId,
   _useReact,
 }: ProseWithFormProps) {
   const headingValue = useInlineValue(__moduleId, 'heading', heading)
   const contentValue = useInlineValue(__moduleId, 'content', initialContent)
   const theme = useInlineValue(__moduleId, 'theme', initialTheme) || initialTheme
+  const backgroundImage = useInlineValue(__moduleId, 'backgroundImage', initialBackgroundImage)
+  const backgroundTint = useInlineValue(__moduleId, 'backgroundTint', initialBackgroundTint)
 
   const styles = getSectionStyles(theme)
   const textColor = styles.textColor
@@ -146,12 +152,17 @@ export default function ProseWithForm({
         variants={containerVariants}
         className={`${styles.containerClasses} py-12 sm:py-16 overflow-hidden relative`}
         data-module="prose-with-form"
-        data-inline-type="select"
+        data-inline-type="background"
         data-inline-path="theme"
-        data-inline-label="Theme"
+        data-inline-label="Background & Theme"
         data-inline-options={JSON.stringify(THEME_OPTIONS)}
       >
-        <SectionBackground component={styles.backgroundComponent} />
+        <SectionBackground
+          component={styles.backgroundComponent}
+          backgroundImage={backgroundImage}
+          backgroundTint={backgroundTint}
+          isInteractive={_useReact}
+        />
         <div className="container mx-auto px-4 sm:px-6 lg:px-8 relative z-10">{content}</div>
       </motion.section>
     )
@@ -166,7 +177,12 @@ export default function ProseWithForm({
       data-inline-label="Theme"
       data-inline-options={JSON.stringify(THEME_OPTIONS)}
     >
-      <SectionBackground component={styles.backgroundComponent} />
+      <SectionBackground
+        component={styles.backgroundComponent}
+        backgroundImage={backgroundImage}
+        backgroundTint={backgroundTint}
+        isInteractive={_useReact}
+      />
       <div className="container mx-auto px-4 sm:px-6 lg:px-8 relative z-10">{content}</div>
     </section>
   )

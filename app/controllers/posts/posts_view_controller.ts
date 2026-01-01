@@ -99,6 +99,9 @@ export default class PostsViewController extends BasePostsController {
             mimeType: asset.mime_type,
             altText: asset.alt_text,
             metadata: asset.metadata || {},
+            optimizedUrl: asset.optimized_url,
+            darkSourceUrl: asset.metadata?.darkSourceUrl,
+            darkOptimizedUrl: asset.metadata?.darkOptimizedUrl,
           }
         }
       }

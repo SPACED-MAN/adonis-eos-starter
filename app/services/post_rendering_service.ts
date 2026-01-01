@@ -1149,6 +1149,10 @@ class PostRenderingService {
           mimeType: asset.mimeType,
           altText: asset.altText,
           metadata: asset.metadata || {},
+          optimizedUrl: asset.optimizedUrl,
+          // Explicitly expose dark mode properties if they exist in metadata
+          darkSourceUrl: asset.metadata?.darkSourceUrl,
+          darkOptimizedUrl: asset.metadata?.darkOptimizedUrl,
         })
       })
     } catch (e) {
