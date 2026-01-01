@@ -1,6 +1,6 @@
 import BaseModule from '#modules/base'
 import type { ModuleConfig } from '#types/module_types'
-import { themeField } from './shared_fields.js'
+import { themeField, mediaBackgroundFields } from './shared_fields.js'
 
 export default class ProseWithFormModule extends BaseModule {
   /**
@@ -65,6 +65,7 @@ export default class ProseWithFormModule extends BaseModule {
           ],
         },
         themeField,
+        ...mediaBackgroundFields,
       ],
       defaultValues: {
         heading: "Let's talk about your next project.",

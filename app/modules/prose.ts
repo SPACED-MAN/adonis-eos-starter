@@ -1,6 +1,6 @@
 import BaseModule from '#modules/base'
 import type { ModuleConfig } from '#types/module_types'
-import { themeField } from './shared_fields.js'
+import { themeField, mediaBackgroundFields } from './shared_fields.js'
 
 /**
  * Prose Module
@@ -75,6 +75,7 @@ export default class ProseModule extends BaseModule {
           ],
         },
         themeField,
+        ...mediaBackgroundFields,
         // Note: Other visual classes (font size, colors, padding) remain fixed in code for consistency.
       ],
       defaultValues: {

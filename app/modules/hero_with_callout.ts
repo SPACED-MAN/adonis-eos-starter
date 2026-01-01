@@ -1,6 +1,6 @@
 import BaseModule from '#modules/base'
 import type { ModuleConfig } from '#types/module_types'
-import { themeField } from './shared_fields.js'
+import { themeField, mediaBackgroundFields } from './shared_fields.js'
 
 export default class HeroWithCalloutModule extends BaseModule {
   /**
@@ -72,6 +72,7 @@ export default class HeroWithCalloutModule extends BaseModule {
           label: 'Design',
         },
         themeField,
+        ...mediaBackgroundFields,
       ],
       defaultValues: {
         title: "We invest in the world's potential",

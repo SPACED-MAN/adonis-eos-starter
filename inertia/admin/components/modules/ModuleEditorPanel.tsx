@@ -1465,6 +1465,8 @@ const FieldPrimitiveInternal = memo(
         try {
           const next = { ...(ctx.latestDraft.current || {}) }
           setByPath(next, name, val)
+          // Update latestDraft.current immediately so showIf conditions can read the new value
+          ctx.latestDraft.current = next
           ctx.setDraft(next)
           ctx.onDirty?.()
         } catch { }
@@ -2210,11 +2212,38 @@ const ModuleFieldsRenderer = memo(
     fallbackDraftKeys: string[]
   }) => {
     if (schema && schema.length > 0) {
+      // Helper function to check showIf conditions
+      const checkShowIf = (field: CustomFieldDefinition, draftValues: Record<string, any>): boolean => {
+        const showIf = (field as any).showIf
+        if (!showIf || typeof showIf !== 'object') return true
+
+        const depPath = showIf.field
+        if (!depPath) return true // No field specified, show by default
+
+        const depValue = getByPath(draftValues, depPath)
+
+        if (showIf.isVideo === true) {
+          // Note: isVideo check would need media metadata cache access
+          // For now, we'll skip this check in groups or implement if needed
+          return true
+        } else if (showIf.equals !== undefined) {
+          // Return true only if the values match exactly (strict equality)
+          return depValue === showIf.equals
+        } else if (showIf.notEquals !== undefined) {
+          // Return true only if the values don't match
+          return depValue !== showIf.notEquals
+        }
+
+        // If showIf is defined but no condition matches, default to showing (shouldn't happen in practice)
+        return true
+      }
+
       // Step 1: Organize fields into tabs and groups
       type FieldGroup = {
         label?: string
         description?: string
         fields: CustomFieldDefinition[]
+        showIf?: CustomFieldDefinition['showIf']
       }
       type TabSection = {
         label: string
@@ -2230,61 +2259,102 @@ const ModuleFieldsRenderer = memo(
           currentTab = { label: f.label || 'Other', groups: [{ fields: [] }] }
           sections.push(currentTab)
         } else if (f.type === 'group') {
+          // If the last group is empty and has no label/showIf, remove it before adding the new group
+          // This cleans up any empty default groups
+          const lastGroup = currentTab.groups[currentTab.groups.length - 1]
+          if (lastGroup.fields.length === 0 && !lastGroup.label && !lastGroup.showIf) {
+            currentTab.groups.pop()
+          }
+          // Add the group
           currentTab.groups.push({
             label: f.label,
             description: f.description,
             fields: [],
+            showIf: f.showIf,
           })
         } else {
           // Normal field
-          currentTab.groups[currentTab.groups.length - 1].fields.push(f)
+          const lastGroup = currentTab.groups[currentTab.groups.length - 1]
+
+          // SPECIAL CASE: If this is the "Add Interactivity" field (_useReact)
+          // and the current group has a showIf condition, move it to a new default group
+          // so it's not hidden along with the conditional group.
+          if (f.slug === '_useReact' && lastGroup.showIf) {
+            currentTab.groups.push({ fields: [f] })
+          } else {
+            // Otherwise, add to the current group
+            lastGroup.fields.push(f)
+          }
         }
       })
 
-      // Remove empty groups/tabs
+      // Remove empty groups/tabs (but keep groups with showIf even if empty, they'll be filtered at render time)
       const cleanedSections = sections
         .map((s) => ({
           ...s,
-          groups: s.groups.filter((g) => g.fields.length > 0 || g.label),
+          groups: s.groups.filter((g) => g.fields.length > 0 || g.label || g.showIf),
         }))
         .filter((s) => s.groups.length > 0)
 
-      const renderGroup = (group: FieldGroup, sectionIdx: number, groupIdx: number) => (
-        <div key={`${sectionIdx}-${groupIdx}`} className="space-y-4 mb-8 last:mb-0">
-          {group.label && (
-            <div className="border-b border-line-low pb-2 mb-4">
-              <h4 className="text-[11px] font-bold text-neutral-medium uppercase tracking-wider">
-                {group.label}
-              </h4>
-              {group.description && (
-                <p className="text-[10px] text-neutral-low mt-1">{group.description}</p>
-              )}
-            </div>
-          )}
-          <div className="space-y-4">
-            {group.fields.map((f) => {
-              const fieldName = f.slug
-              const pendingRef = ctx.pendingInputValueRef?.current
-              const hasPendingValue =
-                pendingRef?.name === fieldName && pendingRef?.rootId === moduleItem.id
-              const pendingValue = hasPendingValue && pendingRef ? pendingRef.value : null
-              const draftValue = draft ? draft[fieldName] : undefined
-              const valueToUse = pendingValue !== null ? pendingValue : draftValue
+      const renderGroup = (group: FieldGroup, sectionIdx: number, groupIdx: number) => {
+        // Check showIf condition for the group
+        // Use ctx.latestDraft.current directly (same as FieldBySchemaInternal) to get the most up-to-date value
+        // This is updated immediately when fields change via handleChange, before the state update triggers a re-render
+        if (group.showIf && typeof group.showIf === 'object') {
+          const groupField: CustomFieldDefinition = {
+            slug: `__group_${sectionIdx}_${groupIdx}`,
+            type: 'group',
+            showIf: group.showIf,
+          } as CustomFieldDefinition
+          // Use latestDraft.current directly (same approach as FieldBySchemaInternal)
+          // FieldBySchemaInternal uses ctx.latestDraft.current directly without fallback
+          // We need to ensure we're reading from the same source
+          // If latestDraft.current is undefined/null, use draft as fallback (for initial render)
+          const draftValues = ctx.latestDraft.current ?? draft ?? {}
+          const shouldShow = checkShowIf(groupField, draftValues)
+          // Only show the group if the condition is met
+          if (!shouldShow) {
+            return null
+          }
+        }
 
-              return (
-                <FieldBySchemaInternal
-                  key={fieldName}
-                  path={[fieldName]}
-                  field={f}
-                  value={valueToUse}
-                  rootId={moduleItem.id}
-                  ctx={ctx}
-                />
-              )
-            })}
+        return (
+          <div key={`${sectionIdx}-${groupIdx}`} className="space-y-4 mb-8 last:mb-0">
+            {group.label && (
+              <div className="border-b border-line-low pb-2 mb-4">
+                <h4 className="text-[11px] font-bold text-neutral-medium uppercase tracking-wider">
+                  {group.label}
+                </h4>
+                {group.description && (
+                  <p className="text-[10px] text-neutral-low mt-1">{group.description}</p>
+                )}
+              </div>
+            )}
+            <div className="space-y-4">
+              {group.fields.map((f) => {
+                const fieldName = f.slug
+                const pendingRef = ctx.pendingInputValueRef?.current
+                const hasPendingValue =
+                  pendingRef?.name === fieldName && pendingRef?.rootId === moduleItem.id
+                const pendingValue = hasPendingValue && pendingRef ? pendingRef.value : null
+                const draftValue = draft ? draft[fieldName] : undefined
+                const valueToUse = pendingValue !== null ? pendingValue : draftValue
+
+                return (
+                  <FieldBySchemaInternal
+                    key={fieldName}
+                    path={[fieldName]}
+                    field={f}
+                    value={valueToUse}
+                    rootId={moduleItem.id}
+                    ctx={ctx}
+                  />
+                )
+              })}
+            </div>
           </div>
-        </div>
-      )
+        )
+      }
 
       const [activeTab, setActiveTab] = useState(cleanedSections[0].label)
 

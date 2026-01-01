@@ -1,6 +1,6 @@
 import BaseModule from '#modules/base'
 import type { ModuleConfig } from '#types/module_types'
-import { themeField } from './shared_fields.js'
+import { themeField, mediaBackgroundFields } from './shared_fields.js'
 
 /**
  * Gallery Module
@@ -97,6 +97,7 @@ export default class GalleryModule extends BaseModule {
           description: 'Number of columns for grid layout',
         },
         themeField,
+        ...mediaBackgroundFields,
       ],
       defaultValues: {
         images: [],

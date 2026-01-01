@@ -1,6 +1,6 @@
 import BaseModule from '#modules/base'
 import type { ModuleConfig } from '#types/module_types'
-import { themeField } from './shared_fields.js'
+import { themeField, mediaBackgroundFields } from './shared_fields.js'
 
 /**
  * Hero with Media Module
@@ -144,6 +144,7 @@ export default class HeroWithMediaModule extends BaseModule {
           ],
         },
         themeField,
+        ...mediaBackgroundFields,
       ],
       defaultValues: {
         title: 'Payments tool for software companies',

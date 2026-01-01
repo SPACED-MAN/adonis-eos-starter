@@ -1,7 +1,7 @@
 import BaseModule from '#modules/base'
 import type { ModuleConfig } from '#types/module_types'
 
-import { themeField } from './shared_fields.js'
+import { themeField, mediaBackgroundFields } from './shared_fields.js'
 
 /**
  * Callout Module
@@ -127,6 +127,7 @@ export default class CalloutModule extends BaseModule {
           ],
         },
         themeField,
+        ...mediaBackgroundFields,
       ],
       defaultValues: {
         title: 'Ready to get started?',

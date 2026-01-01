@@ -1,6 +1,6 @@
 import BaseModule from '#modules/base'
 import type { ModuleConfig } from '#types/module_types'
-import { themeField } from './shared_fields.js'
+import { themeField, mediaBackgroundFields } from './shared_fields.js'
 
 export default class ProfileListModule extends BaseModule {
   /**
@@ -57,6 +57,7 @@ export default class ProfileListModule extends BaseModule {
           label: 'Design',
         },
         themeField,
+        ...mediaBackgroundFields,
       ],
       defaultValues: {
         title: 'Our Team',

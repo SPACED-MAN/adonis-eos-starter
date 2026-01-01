@@ -1,6 +1,6 @@
 import BaseModule from '#modules/base'
 import type { ModuleConfig } from '#types/module_types'
-import { themeField } from './shared_fields.js'
+import { themeField, mediaBackgroundFields } from './shared_fields.js'
 
 export default class AccordionModule extends BaseModule {
   getRenderingMode() {
@@ -85,6 +85,7 @@ export default class AccordionModule extends BaseModule {
           description: 'Whether multiple items can be open at the same time',
         },
         themeField,
+        ...mediaBackgroundFields,
       ],
       defaultValues: {
         title: '',

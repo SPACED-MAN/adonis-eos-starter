@@ -10,6 +10,7 @@ export const THEME_OPTIONS = [
   { label: 'High', value: 'high' },
   { label: 'Standout', value: 'standout-low' },
   { label: 'SVG Mesh', value: 'svg-mesh' },
+  { label: 'Media', value: 'media' },
 ] as const
 
 /**
@@ -29,7 +30,12 @@ export const THEME_STYLES: Record<
   'medium': { classes: 'bg-backdrop-medium text-neutral-high', inverted: false },
   'high': { classes: 'bg-backdrop-high text-neutral-high', inverted: false },
   'standout-low': { classes: 'bg-standout-low text-neutral-high', inverted: false },
-  'svg-mesh': { classes: 'bg-backdrop-low text-neutral-high', inverted: false, component: 'SvgMesh' },
+  'svg-mesh': {
+    classes: 'bg-backdrop-low text-neutral-high',
+    inverted: false,
+    component: 'SvgMesh',
+  },
+  'media': { classes: 'bg-transparent text-neutral-high', inverted: false },
 }
 
 /**
@@ -66,3 +72,35 @@ export const mediaMaskField: CustomFieldDefinition = {
   required: false,
   description: 'Apply a custom shape to the media block',
 }
+
+/**
+ * Standard media background group and fields
+ */
+export const mediaBackgroundFields: CustomFieldDefinition[] = [
+  {
+    slug: 'media_background_group',
+    type: 'group',
+    label: 'Media Background',
+    description: 'Background image and tint settings for Media theme',
+    showIf: {
+      field: 'theme',
+      equals: 'media',
+    },
+  },
+  {
+    slug: 'backgroundImage',
+    type: 'media',
+    label: 'Background Image',
+    required: false,
+    description: 'Background image to display behind the content',
+  },
+  {
+    slug: 'backgroundTint',
+    type: 'boolean',
+    label: 'Background Tint',
+    required: false,
+    description:
+      'Apply a light tint in light mode and dark tint in dark mode to improve text visibility over the background image',
+    default: false,
+  },
+]

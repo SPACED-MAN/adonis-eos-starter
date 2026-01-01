@@ -1,6 +1,6 @@
 import BaseModule from '#modules/base'
 import type { ModuleConfig } from '#types/module_types'
-import { themeField } from './shared_fields.js'
+import { themeField, mediaBackgroundFields } from './shared_fields.js'
 
 export default class ProseWithMediaModule extends BaseModule {
   /**
@@ -94,6 +94,7 @@ export default class ProseWithMediaModule extends BaseModule {
           ],
         },
         themeField,
+        ...mediaBackgroundFields,
       ],
       defaultValues: {
         title: "Let's create more tools and ideas that bring us together.",
