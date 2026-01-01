@@ -105,3 +105,27 @@ export const mediaBackgroundFields: CustomFieldDefinition[] = [
     default: false,
   },
 ]
+
+/**
+ * Standard media fit options
+ */
+export const MEDIA_FIT_OPTIONS = [
+  { label: 'Cover', value: 'cover' },
+  { label: 'Contain', value: 'contain' },
+  { label: 'Fill', value: 'fill' },
+  { label: 'Scale Down', value: 'scale-down' },
+  { label: 'None', value: 'none' },
+] as const
+
+/**
+ * Standard media fit options field
+ */
+export const mediaFitField: CustomFieldDefinition = {
+  slug: 'objectFit',
+  type: 'select',
+  label: 'Media Fit',
+  options: [...MEDIA_FIT_OPTIONS],
+  required: false,
+  description: 'How the media should fit within its container',
+  default: 'cover',
+}

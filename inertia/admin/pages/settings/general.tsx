@@ -1,11 +1,13 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useState, useMemo } from 'react'
 import { AdminHeader } from '../../components/AdminHeader'
 import { AdminFooter } from '../../components/AdminFooter'
+import { useUnsavedChanges } from '~/hooks/useUnsavedChanges'
 import { Input } from '../../../components/ui/input'
 import { Textarea } from '../../../components/ui/textarea'
 import { Checkbox } from '../../../components/ui/checkbox'
 import { toast } from 'sonner'
 import { MediaPickerModal } from '../../components/media/MediaPickerModal'
+import { MediaIdPicker } from '../../components/media/MediaIdPicker'
 import { MediaRenderer } from '../../../components/MediaRenderer'
 import { CustomFieldRenderer } from '../../components/CustomFieldRenderer'
 import { Tooltip, TooltipContent, TooltipTrigger } from '~/components/ui/tooltip'
@@ -31,9 +33,7 @@ type SocialSharing = {
 
 type Settings = {
   siteTitle: string
-  defaultMetaDescription: string | null
   faviconMediaId: string | null
-  defaultOgMediaId: string | null
   logoMediaId: string | null
   isMaintenanceMode: boolean
   defaultThemeMode: 'light' | 'dark'
@@ -53,16 +53,15 @@ function getXsrf(): string | undefined {
 }
 
 export default function GeneralSettings() {
-  const [activeTab, setActiveTab] = useState<'general' | 'seo' | 'social' | 'system' | 'fields'>(
-    'general'
-  )
+  const [activeTab, setActiveTab] = useState<
+    'general' | 'seo' | 'social' | 'system' | 'fields' | 'announcement' | 'security' | 'privacy'
+  >('general')
   const [loading, setLoading] = useState(false)
   const [saving, setSaving] = useState(false)
+  const [initialForm, setInitialForm] = useState<Settings | null>(null)
   const [form, setForm] = useState<Settings>({
     siteTitle: '',
-    defaultMetaDescription: '',
     faviconMediaId: '',
-    defaultOgMediaId: '',
     logoMediaId: '',
     isMaintenanceMode: false,
     defaultThemeMode: 'light',
@@ -74,6 +73,14 @@ export default function GeneralSettings() {
     customFieldDefs: [],
     customFields: {},
   })
+
+  const isDirty = useMemo(() => {
+    if (!initialForm) return false
+    // Only compare relevant fields, ignoring internal metadata if any
+    return JSON.stringify(form) !== JSON.stringify(initialForm)
+  }, [form, initialForm])
+
+  useUnsavedChanges(isDirty)
 
   const defaultProfiles: SocialProfile[] = [
     { network: 'facebook', label: 'Facebook', icon: 'facebook-f', url: '', enabled: false },
@@ -113,9 +120,7 @@ export default function GeneralSettings() {
 
           const s: Settings = {
             siteTitle: j?.data?.siteTitle || '',
-            defaultMetaDescription: j?.data?.defaultMetaDescription || '',
             faviconMediaId: j?.data?.faviconMediaId || '',
-            defaultOgMediaId: j?.data?.defaultOgMediaId || '',
             logoMediaId: j?.data?.logoMediaId || '',
             isMaintenanceMode: !!j?.data?.isMaintenanceMode,
             defaultThemeMode: j?.data?.defaultThemeMode || 'light',
@@ -133,6 +138,7 @@ export default function GeneralSettings() {
                 : {},
           }
           setForm(s)
+          setInitialForm(JSON.parse(JSON.stringify(s)))
         } finally {
           if (alive) setLoading(false)
         }
@@ -155,10 +161,8 @@ export default function GeneralSettings() {
         credentials: 'same-origin',
         body: JSON.stringify({
           siteTitle: form.siteTitle,
-          defaultMetaDescription: form.defaultMetaDescription,
-          faviconMediaId: form.faviconMediaId || null,
-          defaultOgMediaId: form.defaultOgMediaId || null,
           logoMediaId: form.logoMediaId || null,
+          faviconMediaId: form.faviconMediaId || null,
           isMaintenanceMode: form.isMaintenanceMode,
           defaultThemeMode: form.defaultThemeMode,
           profileRolesEnabled: form.profileRolesEnabled || [],
@@ -168,6 +172,7 @@ export default function GeneralSettings() {
       })
       if (res.ok) {
         toast.success('Settings saved')
+        setInitialForm(JSON.parse(JSON.stringify(form)))
       } else {
         const j = await res.json().catch(() => ({}))
         toast.error(j?.error || 'Failed to save')
@@ -177,131 +182,31 @@ export default function GeneralSettings() {
     }
   }
 
-  function MediaIdPicker({
-    label,
-    value,
-    onChange,
-  }: {
-    label: string
-    value: string | null
-    onChange: (id: string | null) => void
-  }) {
-    const [open, setOpen] = useState(false)
-    const [previewAlt, setPreviewAlt] = useState<string>('')
-    const [mediaData, setMediaData] = useState<any | null>(null)
-    const id = value || ''
-
-    // Fetch media data when id changes
-    useEffect(() => {
-      let alive = true
-        ; (async () => {
-          try {
-            if (!id) {
-              if (alive) {
-                setMediaData(null)
-                setPreviewAlt('')
-              }
-              return
-            }
-            const res = await fetch(`/api/media/${encodeURIComponent(id)}`, {
-              credentials: 'same-origin',
-            })
-            const j = await res.json().catch(() => ({}))
-            const data = j?.data
-            if (alive) {
-              setMediaData(data || null)
-              setPreviewAlt(data?.altText || data?.originalFilename || '')
-            }
-          } catch {
-            if (alive) {
-              setMediaData(null)
-              setPreviewAlt('')
-            }
-          }
-        })()
-      return () => {
-        alive = false
-      }
-    }, [id])
-
-    return (
-      <div>
-        <label className="block text-sm font-medium text-neutral-medium mb-1">{label}</label>
-        <div className="flex items-start gap-3">
-          <div className="min-w-[72px]">
-            {mediaData ? (
-              <div className="w-[72px] h-[72px] border border-line-medium rounded overflow-hidden bg-backdrop-low dark:bg-backdrop-medium relative flex items-center justify-center">
-                {/* Subtle checkerboard for transparency awareness */}
-                <div
-                  className="absolute inset-0 opacity-[0.03] dark:opacity-[0.05] pointer-events-none"
-                  style={{
-                    backgroundImage: `url("data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAABAAAAAQCAYAAAAf8/9hAAAAMUlEQVQ4T2NkYGAQYcAP3uAnRowBoEMBAQQWBgZAiM0E0DAAwiAsQD8LYYByDMc8EBIAVScG6S+69Z0AAAAASUVORK5CYII=")`,
-                    backgroundSize: '8px 8px',
-                  }}
-                />
-                <MediaRenderer
-                  image={mediaData}
-                  variant="thumb"
-                  alt={previewAlt}
-                  className="w-full h-full object-cover relative z-10"
-                />
-              </div>
-            ) : (
-              <div className="w-[72px] h-[72px] border border-dashed border-line-high rounded flex items-center justify-center text-[10px] text-neutral-medium">
-                No image
-              </div>
-            )}
-          </div>
-          <div className="flex-1">
-            <div className="mt-1 flex items-center gap-2">
-              <button
-                type="button"
-                className="px-2 py-1 text-xs border border-line-medium rounded hover:bg-backdrop-medium text-neutral-medium"
-                onClick={() => setOpen(true)}
-              >
-                {id ? 'Change' : 'Choose'}
-              </button>
-              {id && (
-                <button
-                  type="button"
-                  className="px-2 py-1 text-xs border border-line-medium rounded hover:bg-backdrop-medium text-neutral-medium"
-                  onClick={() => onChange(null)}
-                >
-                  Clear
-                </button>
-              )}
-              {previewAlt && (
-                <div className="text-[11px] text-neutral-low truncate max-w-[240px]">
-                  {previewAlt}
-                </div>
-              )}
-            </div>
-          </div>
-        </div>
-        <MediaPickerModal
-          open={open}
-          onOpenChange={setOpen}
-          initialSelectedId={id || undefined}
-          onSelect={(m) => onChange(m.id)}
-        />
-      </div>
-    )
-  }
-
   return (
     <div className="min-h-screen bg-backdrop-medium">
       <AdminHeader title="General Settings" />
       <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
         <div className="border-b border-line-low mb-6">
-          <nav className="flex gap-4">
+          <nav className="flex gap-4 flex-wrap">
             {[
               { id: 'general', label: 'General' },
-              { id: 'seo', label: 'SEO & Meta' },
+              {
+                id: 'announcement',
+                label: 'Announcement',
+                hidden: !form.customFieldDefs?.some((f) => f.category === 'Announcement'),
+              },
               { id: 'social', label: 'Social' },
               {
+                id: 'privacy',
+                label: 'Privacy',
+                hidden: !form.customFieldDefs?.some((f) => f.category === 'Privacy'),
+              },
+              {
                 id: 'fields',
-                label: 'Site Fields',
-                hidden: !form.customFieldDefs || form.customFieldDefs.length === 0,
+                label: 'Other Fields',
+                hidden: !form.customFieldDefs?.some(
+                  (f) => !['Announcement', 'Security', 'Privacy', 'General', 'Contact'].includes(f.category || '')
+                ),
               },
               { id: 'system', label: 'System' },
             ]
@@ -311,8 +216,8 @@ export default function GeneralSettings() {
                   key={tab.id}
                   onClick={() => setActiveTab(tab.id as any)}
                   className={`px-4 py-2 border-b-2 font-medium text-sm transition-colors ${activeTab === tab.id
-                      ? 'border-standout-high text-standout-high'
-                      : 'border-transparent text-neutral-medium hover:text-neutral-high'
+                    ? 'border-standout-high text-standout-high'
+                    : 'border-transparent text-neutral-medium hover:text-neutral-high'
                     }`}
                 >
                   {tab.label}
@@ -357,40 +262,80 @@ export default function GeneralSettings() {
                   </p>
                 </div>
               </div>
+
+              <div className="pt-6 border-t border-line-low">
+                <CustomFieldRenderer
+                  definitions={
+                    form.customFieldDefs?.filter((f) => ['General', 'Contact'].includes(f.category || '')) || []
+                  }
+                  values={form.customFields || {}}
+                  onChange={(slug, val) => {
+                    setForm((prev) => ({
+                      ...prev,
+                      customFields: {
+                        ...(prev.customFields || {}),
+                        [slug]: val,
+                      },
+                    }))
+                  }}
+                />
+              </div>
             </div>
           )}
 
-          {activeTab === 'seo' && (
+          {activeTab === 'announcement' && (
             <div className="space-y-6">
-              <div>
-                <label className="block text-sm font-medium text-neutral-medium mb-1">
-                  Default Meta Description
-                </label>
-                <Textarea
-                  value={form.defaultMetaDescription || ''}
-                  onChange={(e) => setForm({ ...form, defaultMetaDescription: e.target.value })}
-                  rows={3}
-                  placeholder="Default meta description"
-                />
-              </div>
-              <div>
-                <MediaIdPicker
-                  label="Default OG Image"
-                  value={form.defaultOgMediaId}
-                  onChange={(id) => setForm({ ...form, defaultOgMediaId: id })}
-                />
-                <p className="text-xs text-neutral-low mt-1">
-                  Recommended size: 1200x630px.
-                </p>
-              </div>
+              <h3 className="text-base font-semibold text-neutral-high">Site Announcement</h3>
+              <p className="text-sm text-neutral-low -mt-4">
+                Configure the banner displayed at the top of your site pages.
+              </p>
+              <CustomFieldRenderer
+                definitions={form.customFieldDefs?.filter((f) => f.category === 'Announcement') || []}
+                values={form.customFields || {}}
+                onChange={(slug, val) => {
+                  setForm((prev) => ({
+                    ...prev,
+                    customFields: {
+                      ...(prev.customFields || {}),
+                      [slug]: val,
+                    },
+                  }))
+                }}
+              />
+            </div>
+          )}
+
+          {activeTab === 'privacy' && (
+            <div className="space-y-6">
+              <h3 className="text-base font-semibold text-neutral-high">Privacy & Consent</h3>
+              <p className="text-sm text-neutral-low -mt-4">
+                Manage cookie consent and visitor privacy settings.
+              </p>
+              <CustomFieldRenderer
+                definitions={form.customFieldDefs?.filter((f) => f.category === 'Privacy') || []}
+                values={form.customFields || {}}
+                onChange={(slug, val) => {
+                  setForm((prev) => ({
+                    ...prev,
+                    customFields: {
+                      ...(prev.customFields || {}),
+                      [slug]: val,
+                    },
+                  }))
+                }}
+              />
             </div>
           )}
 
           {activeTab === 'fields' && (
             <div className="space-y-6">
-              <h3 className="text-base font-semibold text-neutral-high">Site Fields</h3>
+              <h3 className="text-base font-semibold text-neutral-high">Miscellaneous Fields</h3>
               <CustomFieldRenderer
-                definitions={form.customFieldDefs || []}
+                definitions={
+                  form.customFieldDefs?.filter(
+                    (f) => !['Announcement', 'Security', 'Privacy', 'General', 'Contact'].includes(f.category || '')
+                  ) || []
+                }
                 values={form.customFields || {}}
                 onChange={(slug, val) => {
                   setForm((prev) => ({

@@ -114,7 +114,10 @@ class HierarchyService {
       .select(fields)
       .where('type', type)
       .where('locale', locale)
-      .where('status', status)
+
+    if (status && status !== 'all') {
+      query.where('status', status)
+    }
     // Don't pre-sort - order_index is for sorting WITHIN each hierarchy level,
     // not globally. Sorting happens in buildHierarchy() at each level.
 

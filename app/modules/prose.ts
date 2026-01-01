@@ -50,6 +50,15 @@ export default class ProseModule extends BaseModule {
           label: 'Content',
         },
         {
+          slug: 'title',
+          type: 'text',
+          label: 'Title',
+          required: false,
+          description: 'Optional section heading',
+          translatable: true,
+          isLabel: true,
+        },
+        {
           slug: 'content',
           type: 'richtext', // Lexical JSON rich text editor
           required: true,
@@ -79,6 +88,7 @@ export default class ProseModule extends BaseModule {
         // Note: Other visual classes (font size, colors, padding) remain fixed in code for consistency.
       ],
       defaultValues: {
+        title: '',
         content: {
           root: {
             type: 'root',

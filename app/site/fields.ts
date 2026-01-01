@@ -9,7 +9,7 @@ const siteFields: SiteField[] = [
     slug: 'announcement',
     label: 'Site Announcement',
     type: 'richtext',
-    category: 'General',
+    category: 'Announcement',
     description: 'Displays a banner at the top of every page if content is provided.',
   },
   { slug: 'contact_email', label: 'Contact Email', type: 'text', category: 'Contact' },

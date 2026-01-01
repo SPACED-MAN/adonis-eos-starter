@@ -1,7 +1,9 @@
 // Posts admin index page
 // This file owns the full implementation for the Posts list/admin UI.
-import { Head, Link, usePage } from '@inertiajs/react'
+import { Head, Link, usePage, router } from '@inertiajs/react'
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome'
+import { toast } from 'sonner'
+import { useConfirm } from '~/components/ConfirmDialogProvider'
 import { faTurnUp, faMessage } from '@fortawesome/free-solid-svg-icons'
 import { useEffect, useMemo, useState } from 'react'
 import { AdminHeader } from '../../components/AdminHeader'
@@ -52,6 +54,7 @@ import { BulkAgentModal } from '../../components/agents/BulkAgentModal'
 interface PostsIndexProps {}
 
 export default function PostsIndexPage({}: PostsIndexProps) {
+  const { confirm, alert } = useConfirm()
   // Entire implementation moved here from the former dashboard.tsx
   const inertiaPage = usePage()
   const role: string | undefined =
@@ -322,7 +325,10 @@ export default function PostsIndexPage({}: PostsIndexProps) {
   async function createNew(typeArg?: string, templateId?: string) {
     const type = typeArg || postType || (postTypes[0] || '').toString()
     if (!type) {
-      alert('Select a post type first')
+      alert({
+        title: 'Post Type Required',
+        description: 'Select a post type first',
+      })
       return
     }
     const slug = `untitled-${type}-${Date.now()}`
@@ -348,11 +354,14 @@ export default function PostsIndexPage({}: PostsIndexProps) {
       const json = await res.json().catch(() => ({}))
       const id = json?.data?.id
       if (id) {
-        window.location.href = `/admin/posts/${id}/edit`
+        router.visit(`/admin/posts/${id}/edit`)
         return
       }
     }
-    alert('Failed to create post')
+    alert({
+      title: 'Error',
+      description: 'Failed to create post',
+    })
   }
 
   async function handleTypeSelect(type: string) {
@@ -419,7 +428,10 @@ export default function PostsIndexPage({}: PostsIndexProps) {
       await fetchPosts(action === 'delete')
     } else {
       const err = await res.json().catch(() => ({}))
-      alert(err?.error || 'Bulk action failed')
+      alert({
+        title: 'Error',
+        description: err?.error || 'Bulk action failed',
+      })
     }
   }
 

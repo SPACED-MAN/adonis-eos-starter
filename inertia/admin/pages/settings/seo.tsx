@@ -27,8 +27,12 @@ import {
   faSitemap,
   faFire,
   faLock,
+  faGlobe,
 } from '@fortawesome/free-solid-svg-icons'
 import { HeatmapModal } from '../../components/analytics/HeatmapModal'
+import { Textarea } from '~/components/ui/textarea'
+import { MediaIdPicker } from '../../components/media/MediaIdPicker'
+import type { CustomFieldDefinition } from '~/types/custom_field'
 
 type SitemapStatus = {
   sitemapUrl: string
@@ -73,16 +77,25 @@ const chartConfig = {
 export default function SeoSettingsPage() {
   const { props } = usePage<any>()
   const features = props.features || {}
-  const [activeTab, setActiveTab] = useState<'sitemap' | 'analytics'>(
+  const [activeTab, setActiveTab] = useState<'sitemap' | 'analytics' | 'meta'>(
     features.analytics !== false ? 'analytics' : 'sitemap'
   )
   const [status, setStatus] = useState<SitemapStatus | null>(null)
   const [analytics, setAnalytics] = useState<AnalyticsSummary | null>(null)
   const [loading, setLoading] = useState(false)
+  const [savingSettings, setSavingSettings] = useState(false)
   const [rebuilding, setRebuilding] = useState(false)
   const [loadingAnalytics, setLoadingAnalytics] = useState(false)
   const [selectedPostForHeatmap, setSelectedPostForHeatmap] = useState<AnalyticsPost | null>(null)
   const [heatmapOpen, setHeatmapOpen] = useState(false)
+
+  const [siteSettings, setSiteSettings] = useState<{
+    defaultMetaDescription: string | null
+    defaultOgMediaId: string | null
+  }>({
+    defaultMetaDescription: '',
+    defaultOgMediaId: '',
+  })
 
   const xsrfFromCookie: string | undefined = (() => {
     if (typeof document === 'undefined') return undefined
@@ -116,6 +129,47 @@ export default function SeoSettingsPage() {
     }
   }
 
+  async function loadSiteSettings() {
+    try {
+      const res = await fetch('/api/site-settings', { credentials: 'same-origin' })
+      const j = await res.json()
+      setSiteSettings({
+        defaultMetaDescription: j?.data?.defaultMetaDescription || '',
+        defaultOgMediaId: j?.data?.defaultOgMediaId || '',
+      })
+    } catch (err) {
+      console.error('Failed to load site settings', err)
+    }
+  }
+
+  async function saveSiteSettings() {
+    try {
+      setSavingSettings(true)
+      const res = await fetch('/api/site-settings', {
+        method: 'PATCH',
+        headers: {
+          'Accept': 'application/json',
+          'Content-Type': 'application/json',
+          ...(xsrfFromCookie ? { 'X-XSRF-TOKEN': xsrfFromCookie } : {}),
+        },
+        credentials: 'same-origin',
+        body: JSON.stringify({
+          defaultMetaDescription: siteSettings.defaultMetaDescription,
+          defaultOgMediaId: siteSettings.defaultOgMediaId,
+        }),
+      })
+      if (res.ok) {
+        toast.success('Global meta settings saved')
+      } else {
+        toast.error('Failed to save settings')
+      }
+    } catch (err) {
+      toast.error('Error saving settings')
+    } finally {
+      setSavingSettings(false)
+    }
+  }
+
   async function rebuild() {
     setRebuilding(true)
     try {
@@ -138,6 +192,7 @@ export default function SeoSettingsPage() {
   }
 
   useEffect(() => {
+    loadSiteSettings()
     if (activeTab === 'sitemap') loadStatus()
     if (activeTab === 'analytics' && features.analytics !== false) loadAnalytics()
   }, [activeTab])
@@ -182,6 +237,16 @@ export default function SeoSettingsPage() {
             >
               <FontAwesomeIcon icon={faSitemap} size="sm" />
               XML Sitemap
+            </button>
+            <button
+              onClick={() => setActiveTab('meta')}
+              className={`px-4 py-2 border-b-2 font-medium text-sm transition-colors flex items-center gap-2 ${activeTab === 'meta'
+                  ? 'border-standout-high text-standout-high'
+                  : 'border-transparent text-neutral-medium hover:text-neutral-high'
+                }`}
+            >
+              <FontAwesomeIcon icon={faGlobe} size="sm" />
+              Global Meta
             </button>
           </nav>
         </div>
@@ -396,6 +461,62 @@ export default function SeoSettingsPage() {
                 </TableBody>
               </Table>
             </section>
+          </div>
+        )}
+        {activeTab === 'meta' && (
+          <div className="space-y-6">
+            <div className="bg-backdrop-low rounded-lg border border-line-low p-6">
+              <h3 className="text-lg font-semibold text-neutral-high mb-2">Global Metadata</h3>
+              <p className="text-sm text-neutral-medium mb-6">
+                Default SEO values used across the site when individual posts don't provide overrides.
+              </p>
+
+              <div className="space-y-6 max-w-2xl">
+                <div>
+                  <label className="block text-sm font-medium text-neutral-medium mb-1">
+                    Default Meta Description
+                  </label>
+                  <Textarea
+                    value={siteSettings.defaultMetaDescription || ''}
+                    onChange={(e) =>
+                      setSiteSettings((prev) => ({
+                        ...prev,
+                        defaultMetaDescription: e.target.value,
+                      }))
+                    }
+                    rows={3}
+                    placeholder="Default meta description"
+                  />
+                </div>
+
+                <div>
+                  <MediaIdPicker
+                    label="Default OG Image"
+                    value={siteSettings.defaultOgMediaId}
+                    onChange={(id) =>
+                      setSiteSettings((prev) => ({ ...prev, defaultOgMediaId: id }))
+                    }
+                  />
+                  <p className="text-xs text-neutral-low mt-1">
+                    Recommended size: 1200x630px. This image is shown when links to your site are shared on social media.
+                  </p>
+                </div>
+
+                <div className="mt-8 pt-6 border-t border-line-low">
+                  <button
+                    type="button"
+                    onClick={saveSiteSettings}
+                    disabled={savingSettings}
+                    className={`px-4 py-2 text-sm font-medium rounded-md shadow-sm transition-colors ${savingSettings
+                        ? 'bg-neutral-low text-neutral-medium cursor-not-allowed opacity-50'
+                        : 'bg-standout-high text-on-high hover:bg-standout-high/90'
+                      }`}
+                  >
+                    {savingSettings ? 'Saving...' : 'Save Meta Settings'}
+                  </button>
+                </div>
+              </div>
+            </div>
           </div>
         )}
       </main>

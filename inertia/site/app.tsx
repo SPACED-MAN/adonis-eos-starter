@@ -9,6 +9,7 @@ import { SiteAdminBar } from './components/SiteAdminBar'
 import { initAnalytics } from './utils/analytics'
 import { ThemeProvider } from '../utils/ThemeContext'
 import { TooltipProvider } from '~/components/ui/tooltip'
+import { ConfirmDialogProvider } from '~/components/ConfirmDialogProvider'
 
 let appName = import.meta.env.VITE_APP_NAME || 'EOS'
 
@@ -28,6 +29,7 @@ createInertiaApp({
   },
 
   setup({ el, App, props }) {
+    initAnalytics()
     // Prefer the DB-backed site title when available (shared via Inertia props)
     const initialSiteTitle = (props.initialPage?.props as any)?.siteTitle
     if (initialSiteTitle) {
@@ -35,19 +37,18 @@ createInertiaApp({
     }
 
     const initialIsDark = (props.initialPage?.props as any)?.isDark
-
     const currentUser = (props.initialPage?.props as any)?.currentUser
     const isAuthenticated =
       !!currentUser && ['admin', 'editor', 'translator'].includes(String(currentUser.role || ''))
-
-    initAnalytics()
 
     hydrateRoot(
       el,
       <ThemeProvider initialIsDark={initialIsDark}>
         <TooltipProvider>
-          <App {...props} />
-          {isAuthenticated && <SiteAdminBar initialProps={props.initialPage.props} />}
+          <ConfirmDialogProvider>
+            <App {...props} />
+            {isAuthenticated && <SiteAdminBar initialProps={props.initialPage.props} />}
+          </ConfirmDialogProvider>
         </TooltipProvider>
       </ThemeProvider>
     )

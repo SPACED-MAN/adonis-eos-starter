@@ -14,6 +14,7 @@ import { MediaPickerModal } from '../../admin/components/media/MediaPickerModal'
 import { useInlineEditor } from './InlineEditorContext'
 import { LinkField, type LinkFieldValue } from '../forms/LinkField'
 import { LexicalEditor } from '../../admin/components/LexicalEditor'
+import { MediaRenderer } from '../MediaRenderer'
 import { FontAwesomeIcon } from '../../site/lib/icons'
 import { iconOptions } from '../../admin/components/ui/iconOptions'
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '../ui/dialog'
@@ -570,6 +571,7 @@ export function InlineOverlay() {
                   onClose={() => setDialogState(null)}
                   getValue={getValue}
                   setValue={setValue}
+                  setMediaTarget={setMediaTarget}
                 />
               </div>
             </div>
@@ -595,6 +597,7 @@ type DialogContentProps = {
   onClose: () => void
   getValue: (moduleId: string, path: string, fallback: any) => any
   setValue: (moduleId: string, path: string, value: any) => void
+  setMediaTarget: (target: { moduleId: string; path: string } | null) => void
 }
 
 // Helper to format camelCase path to Title Case with spaces
@@ -608,7 +611,7 @@ function formatPathLabel(path: string): string {
     .trim()
 }
 
-function FieldDialogContent({ pop, onClose, getValue, setValue }: DialogContentProps) {
+function FieldDialogContent({ pop, onClose, getValue, setValue, setMediaTarget }: DialogContentProps) {
   const { moduleId, path, type, options, multi, fields } = pop
   
   // For 'background' type, we don't have a single value, we manage multiple
@@ -680,12 +683,15 @@ function FieldDialogContent({ pop, onClose, getValue, setValue }: DialogContentP
                   <div className="space-y-1.5 pt-4 border-t border-line-low/50">
                     <label className={labelStyle}>Background Image</label>
                     <div className="flex items-center gap-4">
-                      <div className="w-20 h-20 rounded-xl bg-backdrop-medium/50 border border-line-low overflow-hidden relative group">
+                      <div
+                        className="w-20 h-20 rounded-xl bg-backdrop-medium/50 border border-line-low overflow-hidden relative group cursor-pointer hover:border-neutral-low transition-all"
+                        onClick={() => setMediaTarget({ moduleId, path: 'backgroundImage' })}
+                      >
                         {currentBg ? (
                           <MediaRenderer
                             image={currentBg}
                             variant="thumb"
-                            className="w-full h-full object-cover"
+                            className="w-full h-full object-cover group-hover:opacity-80 transition-opacity"
                           />
                         ) : (
                           <div className="w-full h-full flex items-center justify-center text-neutral-low">
@@ -1258,12 +1264,15 @@ function FieldDialogContent({ pop, onClose, getValue, setValue }: DialogContentP
                       >
                         <label className={labelStyle}>{field.label}</label>
                         <div className="flex items-center gap-4">
-                          <div className="w-20 h-20 rounded-xl bg-backdrop-medium/50 border border-line-low overflow-hidden relative group">
+                          <div
+                            className="w-20 h-20 rounded-xl bg-backdrop-medium/50 border border-line-low overflow-hidden relative group cursor-pointer hover:border-neutral-low transition-all"
+                            onClick={() => setMediaTarget({ moduleId, path: `${path}.${field.name}` })}
+                          >
                             {fieldValue ? (
                               <MediaRenderer
                                 image={fieldValue}
                                 variant="thumb"
-                                className="w-full h-full object-cover"
+                                className="w-full h-full object-cover group-hover:opacity-80 transition-opacity"
                               />
                             ) : (
                               <div className="w-full h-full flex items-center justify-center text-neutral-low">

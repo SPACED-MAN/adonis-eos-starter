@@ -1,8 +1,9 @@
 import * as React from 'react'
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome'
-import { faChevronDown, faSearch } from '@fortawesome/free-solid-svg-icons'
+import { faChevronDown, faSearch, faExternalLinkAlt, faCircleExclamation } from '@fortawesome/free-solid-svg-icons'
 import { Input } from '~/components/ui/input'
 import { Popover, PopoverContent, PopoverTrigger } from '~/components/ui/popover'
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '~/components/ui/tooltip'
 import { FormField, FormLabel, FormHelper } from './field'
 
 export type LinkKind = 'post' | 'url'
@@ -289,113 +290,187 @@ export const LinkField: React.FC<LinkFieldProps> = ({
       <FormLabel className="block text-[11px] font-bold text-neutral-medium uppercase tracking-wider mt-2 mb-1.5 ml-1">
         {label}
       </FormLabel>
-      <div className="space-y-4">
-        <div className="flex items-center gap-2">
-          <span className="text-xs font-semibold text-neutral-medium">Link to</span>
-          <div className="relative">
-            <select
-              className="text-xs px-3 py-1.5 border border-line-medium rounded-lg bg-backdrop-low text-neutral-high outline-none focus:ring-2 focus:ring-standout-high/20 focus:border-standout-high transition-all appearance-none pr-8"
-              value={mode}
-              onChange={(e) => {
-                const nextMode = e.target.value === 'post' ? 'post' : 'url'
-                setMode(nextMode)
+      <div className="bg-backdrop-medium/20 border border-line-medium rounded-2xl p-3 space-y-3 shadow-sm">
+        {/* Row 1: Mode Selector & Target Toggle */}
+        <div className="flex items-center gap-3">
+          <div className="flex-1 flex p-1 bg-backdrop-medium/40 rounded-xl max-w-[200px]">
+            <button
+              type="button"
+              className={`flex-1 px-3 py-1.5 text-[10px] font-bold uppercase tracking-wider rounded-lg transition-all ${
+                mode === 'post'
+                  ? 'bg-backdrop-low text-neutral-high shadow-sm'
+                  : 'text-neutral-low hover:text-neutral-medium'
+              }`}
+              onClick={() => {
+                setMode('post')
                 const prevTarget = link && (link as any).target === '_blank' ? '_blank' : '_self'
-                if (nextMode === 'url') {
-                  const currentUrl = link && link.kind === 'url' ? link.url : ''
-                  setLink(currentUrl ? { kind: 'url', url: currentUrl, target: prevTarget } : null)
+                if (link && link.kind === 'post') {
+                  setLink({ ...link, target: prevTarget })
                 } else {
-                  // switch to post mode, but keep previous selection if any
-                  if (link && link.kind === 'post') {
-                    setLink({ ...link, target: prevTarget })
-                  } else {
-                    setLink(null)
-                  }
+                  setLink(null)
                 }
               }}
             >
-              <option value="post">Post</option>
-              <option value="url">Custom URL (external only)</option>
-            </select>
-            <div className="absolute right-2 top-1/2 -translate-y-1/2 pointer-events-none text-neutral-low">
-              <FontAwesomeIcon icon={faChevronDown} className="text-neutral-medium" />
-            </div>
+              Post
+            </button>
+            <button
+              type="button"
+              className={`flex-1 px-3 py-1.5 text-[10px] font-bold uppercase tracking-wider rounded-lg transition-all ${
+                mode === 'url'
+                  ? 'bg-backdrop-low text-neutral-high shadow-sm'
+                  : 'text-neutral-low hover:text-neutral-medium'
+              }`}
+              onClick={() => {
+                setMode('url')
+                const prevTarget = link && (link as any).target === '_blank' ? '_blank' : '_self'
+                const currentUrl = link && link.kind === 'url' ? link.url : ''
+                setLink(currentUrl ? { kind: 'url', url: currentUrl, target: prevTarget } : null)
+              }}
+            >
+              URL
+            </button>
+          </div>
+
+          <div className="ml-auto">
+            <TooltipProvider>
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      const nextTarget = currentTarget === '_blank' ? '_self' : '_blank'
+                      setLink((prev) => {
+                        if (!prev) return prev
+                        return { ...prev, target: nextTarget }
+                      })
+                    }}
+                    className={`flex items-center justify-center w-9 h-9 rounded-xl border transition-all ${
+                      currentTarget === '_blank'
+                        ? 'bg-standout-high/10 border-standout-high/30 text-standout-high shadow-inner'
+                        : 'bg-backdrop-low border-line-medium text-neutral-medium hover:border-neutral-low shadow-sm'
+                    }`}
+                  >
+                    <FontAwesomeIcon icon={faExternalLinkAlt} className="size-3.5" />
+                  </button>
+                </TooltipTrigger>
+                <TooltipContent>
+                  <p>{currentTarget === '_blank' ? 'Opens in New Tab' : 'Opens in Same Tab'}</p>
+                </TooltipContent>
+              </Tooltip>
+            </TooltipProvider>
           </div>
         </div>
 
-        {mode === 'url' ? (
-          <div className="space-y-1.5">
-            <Input
-              type="url"
-              placeholder="https://example.com"
-              className="rounded-xl border-line-medium focus:ring-standout-high/20 focus:border-standout-high"
-              value={link && link.kind === 'url' ? link.url : ''}
-              onChange={(e) => {
-                const val = e.target.value
-                const validationError = validateUrl(val)
-                setUrlError(validationError)
+        {/* Row 2: Destination Input */}
+        <div className="relative">
+          {mode === 'url' ? (
+            <div className="relative">
+              <Input
+                type="url"
+                placeholder="https://example.com"
+                className={`rounded-xl border-line-medium focus:ring-standout-high/20 focus:border-standout-high h-[42px] bg-backdrop-low shadow-inner pl-4 pr-10 transition-all ${
+                  urlError ? 'border-danger ring-1 ring-danger/20' : ''
+                }`}
+                value={link && link.kind === 'url' ? link.url : ''}
+                onChange={(e) => {
+                  const val = e.target.value
+                  const validationError = validateUrl(val)
+                  setUrlError(validationError)
 
-                setLink((prev) => {
-                  const baseTarget = prev && (prev as any).target === '_blank' ? '_blank' : '_self'
-                  const trimmed = val.trim()
-                  // Only set the link if validation passes
-                  if (validationError) return prev
-                  return trimmed ? { kind: 'url', url: trimmed, target: baseTarget } : null
-                })
-              }}
-            />
-            {urlError ? (
-              <FormHelper className="text-danger ml-1">{urlError}</FormHelper>
-            ) : (
-              <FormHelper className="ml-1 opacity-70">
-                Enter a full URL. Use this for external destinations only. For internal links, use
-                &quot;Post&quot;.
-              </FormHelper>
-            )}
-          </div>
-        ) : (
-          <div className="space-y-1.5">
+                  setLink((prev) => {
+                    const baseTarget = prev && (prev as any).target === '_blank' ? '_blank' : '_self'
+                    const trimmed = val.trim()
+                    if (validationError) return prev
+                    return trimmed ? { kind: 'url', url: trimmed, target: baseTarget } : null
+                  })
+                }}
+              />
+              {urlError && (
+                <div className="absolute right-3 top-1/2 -translate-y-1/2 text-danger">
+                  <TooltipProvider>
+                    <Tooltip>
+                      <TooltipTrigger asChild>
+                        <div>
+                          <FontAwesomeIcon icon={faCircleExclamation} className="size-4" />
+                        </div>
+                      </TooltipTrigger>
+                      <TooltipContent className="bg-danger text-white border-none">
+                        <p>{urlError}</p>
+                      </TooltipContent>
+                    </Tooltip>
+                  </TooltipProvider>
+                </div>
+              )}
+            </div>
+          ) : (
             <Popover>
               <PopoverTrigger asChild>
                 <button
                   type="button"
-                  className="w-full text-left px-4 py-2.5 border border-line-medium rounded-xl bg-backdrop-low text-neutral-high hover:bg-backdrop-medium transition-all shadow-sm flex items-center justify-between group"
+                  className={`w-full text-left px-4 h-[42px] border rounded-xl bg-backdrop-low text-neutral-high hover:bg-backdrop-medium transition-all shadow-sm flex items-center justify-between group overflow-hidden ${
+                    selectedPostId ? 'border-standout-high/30' : 'border-line-medium'
+                  }`}
                 >
-                  <span className="truncate">
-                    {loading
-                      ? 'Loading…'
-                      : selectedPostId
-                        ? (() => {
-                          const p = posts.find((x) => x.id === selectedPostId)
-                          return p ? `${p.title} (${p.type}, ${p.locale})` : 'Select a post…'
-                        })()
-                        : 'Select a post…'}
-                  </span>
-                  <FontAwesomeIcon
-                    icon={faSearch}
-                    className="text-neutral-low group-hover:text-neutral-medium transition-colors"
-                  />
+                  <div className="flex items-center gap-2 min-w-0 flex-1">
+                    {loading ? (
+                      <div className="w-3.5 h-3.5 border-2 border-standout-high/30 border-t-standout-high rounded-full animate-spin shrink-0" />
+                    ) : (
+                      <FontAwesomeIcon
+                        icon={faSearch}
+                        className={`size-3.5 shrink-0 transition-colors ${
+                          selectedPostId ? 'text-standout-high' : 'text-neutral-low/60 group-hover:text-neutral-medium'
+                        }`}
+                      />
+                    )}
+                    <span className="truncate text-sm font-medium">
+                      {loading
+                        ? 'Syncing posts…'
+                        : selectedPostId
+                          ? (() => {
+                            const p = posts.find((x) => x.id === selectedPostId)
+                            return p ? p.title : 'Selected post missing'
+                          })()
+                          : 'Select destination post…'}
+                    </span>
+                  </div>
+                  <div className="ml-2 flex items-center gap-1.5 shrink-0">
+                    {selectedPostId && (() => {
+                      const p = posts.find((x) => x.id === selectedPostId)
+                      if (!p) return null
+                      return (
+                        <div className="px-1.5 py-0.5 bg-standout-high/10 rounded text-[9px] font-bold text-standout-high uppercase tracking-tight">
+                          {p.type}
+                        </div>
+                      )
+                    })()}
+                    <FontAwesomeIcon icon={faChevronDown} size="xs" className="text-neutral-low/40" />
+                  </div>
                 </button>
               </PopoverTrigger>
-              <PopoverContent className="w-96 p-2 rounded-2xl border-line-low shadow-2xl bg-backdrop-low">
-                <div className="space-y-2">
+              <PopoverContent className="w-[450px] p-2 rounded-2xl border-line-low shadow-2xl bg-backdrop-low z-[100]" align="start">
+                <div className="space-y-3 p-1">
                   <div className="relative">
                     <Input
                       type="text"
-                      placeholder="Search posts… (title, slug, type, locale)"
+                      placeholder="Search title, slug, or post type…"
                       value={query}
                       onChange={(e) => setQuery(e.target.value)}
-                      className="h-9 text-xs rounded-lg pl-9"
+                      className="h-11 text-sm rounded-xl pl-11 bg-backdrop-medium/30 border-none focus:ring-2 focus:ring-standout-high/20"
                     />
-                    <div className="absolute left-3 top-1/2 -translate-y-1/2 text-neutral-low">
-                      <FontAwesomeIcon icon={faSearch} />
+                    <div className="absolute left-4 top-1/2 -translate-y-1/2 text-neutral-low/60">
+                      <FontAwesomeIcon icon={faSearch} size="sm" />
                     </div>
                   </div>
-                  <div className="max-h-64 overflow-auto space-y-1 pr-1 custom-scrollbar">
+                  <div className="max-h-[350px] overflow-auto space-y-1.5 pr-1 custom-scrollbar">
                     {loading ? (
-                      <div className="text-xs text-neutral-low p-4 text-center">Loading…</div>
+                      <div className="text-xs text-neutral-low p-12 text-center flex flex-col items-center gap-3">
+                        <div className="w-6 h-6 border-2 border-standout-high/30 border-t-standout-high rounded-full animate-spin" />
+                        <span className="font-medium tracking-wide uppercase text-[10px]">Searching…</span>
+                      </div>
                     ) : filteredPosts.length === 0 ? (
-                      <div className="text-xs text-neutral-low p-4 text-center">
-                        No posts found.
+                      <div className="text-xs text-neutral-low p-12 text-center flex flex-col items-center gap-2">
+                        <FontAwesomeIcon icon={faSearch} size="lg" className="opacity-20 mb-2" />
+                        <p>No posts found matching &quot;{query}&quot;</p>
                       </div>
                     ) : (
                       filteredPosts.map((p) => {
@@ -404,7 +479,7 @@ export const LinkField: React.FC<LinkFieldProps> = ({
                           <button
                             key={p.id}
                             type="button"
-                            className={`w-full text-left px-3 py-2 rounded-lg border transition-all ${isSelected
+                            className={`w-full text-left px-4 py-3 rounded-xl border transition-all ${isSelected
                                 ? 'border-standout-high bg-standout-high/5 ring-1 ring-standout-high/20'
                                 : 'border-transparent hover:bg-backdrop-medium'
                               }`}
@@ -415,13 +490,19 @@ export const LinkField: React.FC<LinkFieldProps> = ({
                                 postType: p.type,
                                 slug: p.slug,
                                 locale: p.locale,
-                                url: p.url, // Store the resolved URL if available
+                                url: p.url,
                               })
                             }}
                           >
-                            <div className="text-sm font-semibold text-neutral-high">{p.title}</div>
-                            <div className="text-[10px] text-neutral-low font-medium uppercase tracking-tight mt-0.5">
-                              {p.type} · {p.locale} · {p.slug}
+                            <div className="text-sm font-bold text-neutral-high flex items-center justify-between">
+                              {p.title}
+                              {isSelected && <div className="w-2 h-2 rounded-full bg-standout-high" />}
+                            </div>
+                            <div className="text-[10px] text-neutral-low font-bold uppercase tracking-wider mt-1.5 flex items-center gap-2 overflow-hidden">
+                              <span className="px-2 py-0.5 bg-backdrop-medium rounded text-neutral-medium whitespace-nowrap">{p.type}</span>
+                              <span className="opacity-30">/</span>
+                              <span className="truncate opacity-70">{p.slug}</span>
+                              <span className="ml-auto opacity-50">{p.locale}</span>
                             </div>
                           </button>
                         )
@@ -431,49 +512,26 @@ export const LinkField: React.FC<LinkFieldProps> = ({
                 </div>
               </PopoverContent>
             </Popover>
-            {error ? (
-              <FormHelper className="text-danger ml-1">{error}</FormHelper>
-            ) : (
-              <FormHelper className="ml-1 opacity-70">
-                Choose an existing post. The actual URL will be generated from the post&apos;s
-                permalink pattern.
+          )}
+        </div>
+
+        {/* Global Helper Text / Current URL Info */}
+        {(helperText || (link as any)?.url) && (
+          <div className="pt-2 flex flex-col gap-1.5">
+            {helperText && (
+              <FormHelper className="text-[10px] text-neutral-medium/70 italic leading-snug ml-1">
+                {helperText}
               </FormHelper>
+            )}
+            {link?.kind === 'post' && (link as any).url && (
+              <div className="flex items-center gap-1.5 ml-1 overflow-hidden">
+                <div className="w-1 h-1 rounded-full bg-standout-high/40" />
+                <span className="text-[9px] font-bold text-neutral-low uppercase tracking-wider whitespace-nowrap">Resolves to:</span>
+                <span className="text-[9px] font-medium text-neutral-medium truncate">{(link as any).url}</span>
+              </div>
             )}
           </div>
         )}
-
-        {/* Target selection */}
-        <div className="space-y-1.5 pt-2 border-t border-line-low/50">
-          <div className="flex items-center gap-2">
-            <span className="text-xs font-semibold text-neutral-medium">Open in</span>
-            <div className="relative">
-              <select
-                className="text-xs px-3 py-1.5 border border-line-medium rounded-lg bg-backdrop-low text-neutral-high outline-none focus:ring-2 focus:ring-standout-high/20 focus:border-standout-high transition-all appearance-none pr-8"
-                value={currentTarget}
-                onChange={(e) => {
-                  const nextTarget: '_self' | '_blank' =
-                    e.target.value === '_blank' ? '_blank' : '_self'
-                  setLink((prev) => {
-                    if (!prev) return prev
-                    return { ...prev, target: nextTarget }
-                  })
-                }}
-              >
-                <option value="_self">Same tab</option>
-                <option value="_blank">New tab</option>
-              </select>
-              <div className="absolute right-2 top-1/2 -translate-y-1/2 pointer-events-none text-neutral-low">
-                <FontAwesomeIcon icon={faChevronDown} className="text-neutral-medium" />
-              </div>
-            </div>
-          </div>
-          <FormHelper className="ml-1 opacity-70">
-            Use a new tab for outbound links or flows that temporarily take visitors away from the
-            site.
-          </FormHelper>
-        </div>
-
-        {helperText && <FormHelper className="ml-1">{helperText}</FormHelper>}
       </div>
     </FormField>
   )

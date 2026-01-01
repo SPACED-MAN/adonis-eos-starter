@@ -7,8 +7,10 @@ import {
   useCallback,
   useEffect,
 } from 'react'
-import { usePage } from '@inertiajs/react'
+import { usePage, router } from '@inertiajs/react'
+import { toast } from 'sonner'
 import { TokenService } from '../../lib/tokens'
+import { useUnsavedChanges, bypassUnsavedChanges } from '~/hooks/useUnsavedChanges'
 
 type Mode = 'source' | 'review' | 'ai-review'
 type DraftPatch = Record<string, any> // path -> value
@@ -66,12 +68,16 @@ type InlineEditorContextValue = {
   setValue: (moduleId: string, path: string, value: any) => void
   isGlobalModule: (moduleId: string) => boolean
   dirtyModules: Set<string>
+  isDirty: boolean
   saveAll: () => Promise<void>
   showDiffs: boolean
   toggleShowDiffs: () => void
   abVariations: Array<{ id: string; variation: string; status: string }>
   modules: ModuleSeed[]
-  reorderModules: (newModules: ModuleSeed[]) => void
+  post?: any
+  translations?: any[]
+  isSaving: boolean
+  getValue: (moduleId: string, path: string, fallback: any) => any
   addModule: (payload: {
     type: string
     name?: string
@@ -100,6 +106,9 @@ const InlineEditorContext = createContext<InlineEditorContextValue>({
   toggleShowDiffs: () => {},
   abVariations: [],
   modules: [],
+  post: undefined,
+  translations: undefined,
+  isSaving: false,
   reorderModules: () => {},
   addModule: () => {},
   removeModule: () => {},
@@ -131,6 +140,7 @@ export function InlineEditorProvider({
   postId,
   modules,
   post,
+  translations,
   customFields,
   abVariations = [],
   availableModes: availableModesProp,
@@ -139,6 +149,7 @@ export function InlineEditorProvider({
   postId: string
   modules: ModuleSeed[]
   post?: any
+  translations?: any[]
   customFields?: Record<string, any>
   abVariations?: Array<{ id: string; variation: string; status: string }>
   availableModes?: {
@@ -201,7 +212,7 @@ export function InlineEditorProvider({
         url.searchParams.set('view', m)
         window.history.pushState({}, '', url.toString())
         // Trigger a reload to get the new version's content from the server
-        window.location.reload()
+        router.reload()
       }
     }
   }, [])
@@ -210,15 +221,26 @@ export function InlineEditorProvider({
   const [showDiffs, setShowDiffs] = useState(false)
   const [localModules, setLocalModules] = useState<ModuleSeed[]>(modules)
   const [isStructuralDirty, setIsStructuralDirty] = useState(false)
+  const [isSaving, setIsSaving] = useState(false)
   const [pendingNewModules, setPendingNewModules] = useState<any[]>([])
   const [pendingRemoved, setPendingRemoved] = useState<Set<string>>(new Set())
 
   // Sync localModules if prop changes (e.g. after a save/reload)
   useEffect(() => {
-    setLocalModules(modules)
-    setIsStructuralDirty(false)
-    setPendingNewModules([])
-    setPendingRemoved(new Set())
+    // We only want to sync from props if we aren't currently dirty,
+    // or if the set of modules (by ID) has fundamentally changed (e.g. external update).
+    // Comparing sorted IDs tells us if the MEMBERSHIP changed, ignoring order.
+    const currentMembership = [...localModules].map(m => m.id).sort().join(',')
+    const newMembership = [...modules].map(m => m.id).sort().join(',')
+    
+    const membershipChanged = currentMembership !== newMembership
+    
+    if (membershipChanged || !isStructuralDirty) {
+      setLocalModules(modules)
+      setIsStructuralDirty(false)
+      setPendingNewModules([])
+      setPendingRemoved(new Set())
+    }
   }, [modules])
 
   const moduleMeta = useMemo(() => {
@@ -817,8 +839,11 @@ export function InlineEditorProvider({
   const saveAll = useCallback(
     async (targetMode?: Mode) => {
       if (!enabled || !canEdit) return
-      if (dirtyModules.size === 0 && !isStructuralDirty) return
+      
+      const hasStructuralChanges = isStructuralDirty || pendingNewModules.length > 0 || pendingRemoved.size > 0
+      if (dirtyModules.size === 0 && !hasStructuralChanges) return
 
+      setIsSaving(true)
       const saveMode = targetMode || mode
       const xsrf =
         typeof document !== 'undefined'
@@ -832,7 +857,7 @@ export function InlineEditorProvider({
       const idMap = new Map<string, string>()
 
       // 1. Structural Changes
-      if (isStructuralDirty) {
+      if (hasStructuralChanges) {
         try {
           // 1a. Create new modules
           const created: Array<{ tempId: string; postModuleId: string }> = []
@@ -907,10 +932,11 @@ export function InlineEditorProvider({
                 }),
               })
             )
-          await Promise.allSettled(updates)
+          await Promise.all(updates)
         } catch (error) {
           console.error('Failed to save structural changes:', error)
-          alert('Failed to save structural changes')
+          toast.error('Failed to save structural changes')
+          setIsSaving(false)
           return
         }
       }
@@ -967,14 +993,12 @@ export function InlineEditorProvider({
             })
             if (!res.ok) {
               const j = await res.json().catch(() => ({}))
-              // eslint-disable-next-line no-alert
-              alert(j?.error || 'Failed to save changes')
+              toast.error(j?.error || 'Failed to save changes')
               return
             }
           } catch (error) {
             console.error('Failed to save inline edit:', error)
-            // eslint-disable-next-line no-alert
-            alert(error instanceof Error ? error.message : 'Failed to save changes (invalid data)')
+            toast.error(error instanceof Error ? error.message : 'Failed to save changes (invalid data)')
             return
           }
           // Apply to base cache so UI reflects without refresh
@@ -986,11 +1010,16 @@ export function InlineEditorProvider({
       // on success, clear drafts/dirties
       setDrafts({})
       setDirtyModules(new Set())
+      setIsStructuralDirty(false)
+      setPendingNewModules([])
+      setPendingRemoved(new Set())
+      setIsSaving(false)
+
+      // Bypass the unsaved changes guard because we just saved successfully
+      bypassUnsavedChanges(true)
 
       // Quick fix: refresh the page so server-side rendered content (meta tags, etc.) reflects the update
-      if (typeof window !== 'undefined') {
-        window.location.reload()
-      }
+      router.reload()
     },
     [
       canEdit,
@@ -1009,11 +1038,13 @@ export function InlineEditorProvider({
 
   const saveForReview = useCallback(async () => {
     await saveAll('review')
+    // Bypass guard for the following visit
+    bypassUnsavedChanges(true)
     // Redirect to review version on the frontend
     if (typeof window !== 'undefined') {
       const url = new URL(window.location.href)
       url.searchParams.set('view', 'review')
-      window.location.href = url.toString()
+      router.visit(url.toString())
     }
   }, [saveAll])
 
@@ -1133,11 +1164,14 @@ export function InlineEditorProvider({
         return false
       },
       dirtyModules,
+      isDirty: dirtyModules.size > 0 || isStructuralDirty || pendingNewModules.length > 0 || pendingRemoved.size > 0,
       saveAll,
       showDiffs,
       toggleShowDiffs,
       abVariations,
       modules: localModules,
+      post,
+      translations,
       reorderModules,
       addModule,
       removeModule,
@@ -1154,11 +1188,16 @@ export function InlineEditorProvider({
       setValue,
       moduleMeta,
       dirtyModules,
+      isStructuralDirty,
+      pendingNewModules,
+      pendingRemoved,
       saveAll,
       showDiffs,
       toggleShowDiffs,
       abVariations,
       localModules,
+      post,
+      translations,
       reorderModules,
       addModule,
       removeModule,
@@ -1175,7 +1214,8 @@ export function InlineEditorProvider({
       mode: value.mode,
       toggle: value.toggle,
       setMode: value.setMode,
-      dirty: dirtyModules.size > 0 || isStructuralDirty,
+      dirty: value.isDirty,
+      isSaving,
       saveAll: value.saveAll,
       saveForReview,
       availableModes,
@@ -1183,6 +1223,9 @@ export function InlineEditorProvider({
       toggleShowDiffs: value.toggleShowDiffs,
       abVariations: value.abVariations,
       modules: localModules,
+      post,
+      translations,
+      getValue: value.getValue,
       reorderModules,
       addModule,
       removeModule,
@@ -1195,15 +1238,17 @@ export function InlineEditorProvider({
     value.mode,
     value.toggle,
     value.setMode,
+    value.isDirty,
     value.saveAll,
-    dirtyModules,
-    isStructuralDirty,
+    isSaving,
     saveForReview,
     availableModes,
     value.showDiffs,
     value.toggleShowDiffs,
     value.abVariations,
     localModules,
+    post,
+    translations,
     reorderModules,
     addModule,
     removeModule,
@@ -1218,6 +1263,9 @@ export function InlineEditorProvider({
       setDirtyModules(new Set())
     }
   }, [enabled])
+
+  // Navigation guard for unsaved changes
+  useUnsavedChanges(value.isDirty)
 
   return <InlineEditorContext.Provider value={value}>{children}</InlineEditorContext.Provider>
 }
@@ -1266,6 +1314,7 @@ function publishInlineBridge(state: {
   toggle: () => void
   setMode: (m: Mode) => void
   dirty: boolean
+  isSaving: boolean
   saveAll: () => Promise<void>
   saveForReview: () => Promise<void>
   availableModes: { hasSource: boolean; hasReview: boolean; hasAiReview: boolean }
@@ -1273,6 +1322,9 @@ function publishInlineBridge(state: {
   toggleShowDiffs: () => void
   abVariations: Array<{ id: string; variation: string; status: string }>
   modules: ModuleSeed[]
+  post?: any
+  translations?: any[]
+  getValue: (moduleId: string, path: string, fallback: any) => any
   reorderModules: (newModules: ModuleSeed[]) => void
   addModule: (payload: {
     type: string

@@ -1,7 +1,8 @@
 import { useEffect, useState } from 'react'
-import { usePage } from '@inertiajs/react'
+import { usePage, router } from '@inertiajs/react'
 import { AdminHeader } from '../../components/AdminHeader'
 import { AdminFooter } from '../../components/AdminFooter'
+import { bypassUnsavedChanges } from '~/hooks/useUnsavedChanges'
 import { Input } from '../../../components/ui/input'
 import {
   Select,
@@ -453,7 +454,10 @@ export default function UsersIndex() {
                                     }
                                     pid = cj?.id || null
                                   }
-                                  if (pid) window.location.href = `/admin/posts/${pid}/edit`
+                                  if (pid) {
+                                    bypassUnsavedChanges(true)
+                                    router.visit(`/admin/posts/${pid}/edit`)
+                                  }
                                 } catch {
                                   toast.error('Failed to open profile')
                                 }

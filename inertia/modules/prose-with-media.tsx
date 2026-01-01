@@ -7,7 +7,7 @@ import { MediaRenderer } from '../components/MediaRenderer'
 import { renderLexicalToHtml } from '../utils/lexical'
 import { getSectionStyles } from '../utils/colors'
 import { SectionBackground } from '../components/SectionBackground'
-import { THEME_OPTIONS } from '#modules/shared_fields'
+import { THEME_OPTIONS, MEDIA_FIT_OPTIONS } from '#modules/shared_fields'
 
 interface LexicalJSON {
   root: {
@@ -27,6 +27,7 @@ interface ProseWithMediaProps {
     metadata?: any
   } | null // media object
   imagePosition?: 'left' | 'right'
+  objectFit?: 'cover' | 'contain' | 'fill' | 'none' | 'scale-down'
   primaryCta?: Button | null
   theme?: string
   backgroundImage?: any
@@ -40,6 +41,7 @@ export default function ProseWithMedia({
   body,
   image,
   imagePosition = 'left',
+  objectFit: initialObjectFit = 'contain',
   primaryCta,
   theme: initialTheme = 'low',
   backgroundImage: initialBackgroundImage,
@@ -50,6 +52,7 @@ export default function ProseWithMedia({
   const { value: titleValue, show: showTitle, props: titleProps } = useInlineField(__moduleId, 'title', title, { label: 'Title' })
   const { value: bodyValue, show: showBody, props: bodyProps } = useInlineField(__moduleId, 'body', body, { type: 'richtext', label: 'Body' })
   const { value: imageValue, show: showImage, props: imageProps } = useInlineField(__moduleId, 'image', image, { type: 'media', label: 'Image' })
+  const objectFit = useInlineValue(__moduleId, 'objectFit', initialObjectFit)
   const theme = useInlineValue(__moduleId, 'theme', initialTheme) || initialTheme
   const backgroundImage = useInlineValue(__moduleId, 'backgroundImage', initialBackgroundImage)
   const backgroundTint = useInlineValue(__moduleId, 'backgroundTint', initialBackgroundTint)
@@ -98,19 +101,24 @@ export default function ProseWithMedia({
     <div className="w-full">
       <div
         className="w-full overflow-hidden aspect-[4/3] rounded-lg relative"
-        {...imageProps}
+        data-inline-type="select"
+        data-inline-path="objectFit"
+        data-inline-label="Media Fit"
+        data-inline-options={JSON.stringify(MEDIA_FIT_OPTIONS)}
       >
-        {imageValue && (
-          <MediaRenderer
-            image={imageValue}
-            alt={(typeof imageValue === 'object' ? imageValue.altText : null) || ''}
-            loading="lazy"
-            decoding="async"
-            objectFit="contain"
-            playMode={typeof imageValue === 'object' ? imageValue.metadata?.playMode : 'autoplay'}
-            className="w-full h-full object-contain"
-          />
-        )}
+        <div {...imageProps} className="w-full h-full">
+          {imageValue && (
+            <MediaRenderer
+              image={imageValue}
+              alt={(typeof imageValue === 'object' ? imageValue.altText : null) || ''}
+              loading="lazy"
+              decoding="async"
+              objectFit={objectFit}
+              playMode={typeof imageValue === 'object' ? imageValue.metadata?.playMode : 'autoplay'}
+              className="w-full h-full"
+            />
+          )}
+        </div>
       </div>
     </div>
   ) : null

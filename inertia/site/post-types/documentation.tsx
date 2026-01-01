@@ -29,6 +29,7 @@ interface DocumentationPageProps {
     status: string
   }
   abVariations?: Array<{ id: string; variation: string; status: string }>
+  translations?: Array<{ id: string; locale: string; path: string }>
   modules: Array<{
     id: string
     type: string
@@ -116,6 +117,7 @@ export default function DocumentationPostType({
   documentationNav = [],
   seo,
   abVariations = [],
+  translations = [],
   customFields = {},
   availableModes,
   siteSettings,
@@ -184,6 +186,7 @@ export default function DocumentationPostType({
       <InlineEditorProvider
         postId={post.id}
         post={post}
+        translations={translations}
         customFields={customFields}
         abVariations={abVariations}
         modules={memoizedModules}

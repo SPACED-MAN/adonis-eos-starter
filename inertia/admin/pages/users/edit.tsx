@@ -1,7 +1,8 @@
-import { useEffect, useState } from 'react'
-import { Head, usePage } from '@inertiajs/react'
+import { useEffect, useState, useMemo } from 'react'
+import { Head, usePage, router } from '@inertiajs/react'
 import { AdminHeader } from '../../components/AdminHeader'
 import { AdminFooter } from '../../components/AdminFooter'
+import { useUnsavedChanges, bypassUnsavedChanges } from '~/hooks/useUnsavedChanges'
 import { Input } from '../../../components/ui/input'
 import {
   Select,
@@ -29,7 +30,19 @@ export default function UserEdit() {
   const [email, setEmail] = useState('')
   const [username, setUsername] = useState('')
   const [role, setRole] = useState<Role>('editor' as Role)
+  const [initialData, setInitialData] = useState<{ email: string; username: string; role: Role } | null>(null)
   const [newPassword, setNewPassword] = useState('')
+
+  const isDirty = useMemo(() => {
+    if (!initialData) return false
+    return (
+      email !== initialData.email ||
+      username !== initialData.username ||
+      role !== initialData.role
+    )
+  }, [email, username, role, initialData])
+
+  useUnsavedChanges(isDirty)
   const [siteSettings, setSiteSettings] = useState<{ profileRolesEnabled?: string[] } | null>(null)
   const [profileLoading, setProfileLoading] = useState(false)
   const [profileId, setProfileId] = useState<string | null>(null)
@@ -49,9 +62,13 @@ export default function UserEdit() {
           Array.isArray(j?.data) ? j.data : []
         const found = list.find((u) => String((u as any).id) === String(userId))
         if (alive && found) {
-          setEmail((found as any).email || '')
-          setUsername(((found as any).username || '') as string)
-          setRole(((found as any).role || 'editor') as Role)
+          const e = (found as any).email || ''
+          const u = ((found as any).username || '') as string
+          const r = ((found as any).role || 'editor') as Role
+          setEmail(e)
+          setUsername(u)
+          setRole(r)
+          setInitialData({ email: e, username: u, role: r })
         }
         // Load site settings for profile enablement
         try {
@@ -136,6 +153,7 @@ export default function UserEdit() {
         toast.error(msg)
         return
       }
+      setInitialData({ email, username, role })
       toast.success('User saved')
     } finally {
       setSaving(false)
@@ -352,7 +370,8 @@ export default function UserEdit() {
                                 return
                               }
                               toast.success('Profile created')
-                              window.location.href = `/admin/posts/${j.id}/edit`
+                              bypassUnsavedChanges(true)
+                              router.visit(`/admin/posts/${j.id}/edit`)
                             } catch {
                               toast.error('Failed to create profile')
                             }

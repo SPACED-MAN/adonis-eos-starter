@@ -45,7 +45,7 @@ export default class InertiaAuthShareMiddleware {
       // Site settings and primary menu for SSR header
       const siteSettings = await siteSettingsService.get()
       const locale = ctx.request.header('accept-language')?.split(',')[0]?.split('-')[0] || 'en'
-      const primaryMenu = await menuService.getBySlug('primary', locale)
+      const primaryMenu = await menuService.getBySlug('primary', locale, { permissions })
 
       // Pre-resolve media for site settings if not already done by service
       const siteMediaIds = new Set<string>()

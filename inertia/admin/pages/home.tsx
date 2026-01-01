@@ -1,7 +1,8 @@
 import { useEffect, useState } from 'react'
-import { Head } from '@inertiajs/react'
+import { Head, router } from '@inertiajs/react'
 import { AdminHeader } from '../components/AdminHeader'
 import { AdminFooter } from '../components/AdminFooter'
+import { toast } from 'sonner'
 
 function getXsrf(): string | undefined {
   if (typeof document === 'undefined') return undefined
@@ -64,11 +65,11 @@ export default function Home() {
                   })
                   const j = await res.json().catch(() => ({}))
                   if (res.ok && j?.id) {
-                    window.location.href = `/admin/posts/${j.id}/edit`
+                    router.visit(`/admin/posts/${j.id}/edit`)
                   } else if (res.ok && profilePostId) {
-                    window.location.href = `/admin/posts/${profilePostId}/edit`
+                    router.visit(`/admin/posts/${profilePostId}/edit`)
                   } else {
-                    alert(j?.error || 'Failed to create profile')
+                    toast.error(j?.error || 'Failed to create profile')
                   }
                 }}
               >

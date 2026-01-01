@@ -15,7 +15,7 @@ import { MediaRenderer } from '../components/MediaRenderer'
 import type { MediaObject } from '../utils/useMediaUrl'
 import { getSectionStyles } from '../utils/colors'
 import { SectionBackground } from '../components/SectionBackground'
-import { THEME_OPTIONS } from '#modules/shared_fields'
+import { THEME_OPTIONS, MEDIA_FIT_OPTIONS } from '#modules/shared_fields'
 
 interface GalleryProps {
   images: Array<{
@@ -30,6 +30,7 @@ interface GalleryProps {
   }>
   layout?: 'grid' | 'masonry'
   columns?: number
+  objectFit?: 'cover' | 'contain' | 'fill' | 'none' | 'scale-down'
   theme?: string
   backgroundImage?: any
   backgroundTint?: boolean
@@ -41,6 +42,7 @@ export default function Gallery({
   images = [],
   layout = 'grid',
   columns = 3,
+  objectFit: initialObjectFit = 'cover',
   theme: initialTheme = 'transparent',
   backgroundImage: initialBackgroundImage,
   backgroundTint: initialBackgroundTint,
@@ -58,6 +60,7 @@ export default function Gallery({
   }, [lightboxOpen])
 
   const theme = useInlineValue(__moduleId, 'theme', initialTheme) || initialTheme
+  const objectFit = useInlineValue(__moduleId, 'objectFit', initialObjectFit)
   const backgroundImage = useInlineValue(__moduleId, 'backgroundImage', initialBackgroundImage)
   const backgroundTint = useInlineValue(__moduleId, 'backgroundTint', initialBackgroundTint)
 
@@ -143,16 +146,25 @@ export default function Gallery({
             key={idx}
             className="cursor-pointer overflow-hidden rounded-lg transition-all hover:ring-2 hover:ring-primary/50 aspect-square group bg-backdrop-medium relative"
             onClick={() => openLightbox(idx)}
-            data-inline-type="media"
-            data-inline-path={`images[${idx}].url`}
+            data-inline-type="select"
+            data-inline-path="objectFit"
+            data-inline-label="Media Fit"
+            data-inline-options={JSON.stringify(MEDIA_FIT_OPTIONS)}
           >
-            <MediaRenderer
-              image={imageSource}
-              alt={altText}
-              className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-110"
-              loading="lazy"
-              decoding="async"
-            />
+            <div
+              className="w-full h-full"
+              data-inline-type="media"
+              data-inline-path={`images[${idx}].url`}
+            >
+              <MediaRenderer
+                image={imageSource}
+                alt={altText}
+                className="w-full h-full transition-transform duration-500 group-hover:scale-110"
+                loading="lazy"
+                decoding="async"
+                objectFit={objectFit}
+              />
+            </div>
             {hasCaption && (
               <figcaption className="p-2 text-sm text-neutral-low truncate bg-backdrop-high/80">
                 {caption}

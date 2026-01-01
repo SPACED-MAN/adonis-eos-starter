@@ -8,6 +8,7 @@ import {
   AlertDialogAction,
 } from '~/components/ui/alert-dialog'
 import { Input } from '~/components/ui/input'
+import { toast } from 'sonner'
 import { MediaRenderer } from '../../../components/MediaRenderer'
 import { getMediaLabel, type MediaVariant } from '~/lib/media'
 
@@ -118,8 +119,7 @@ export function MediaPickerModal({
       setTab('library')
       setFiles([])
     } catch (e: any) {
-      // eslint-disable-next-line no-alert
-      alert(e?.message || 'Upload failed')
+      toast.error(e?.message || 'Upload failed')
     } finally {
       setUploading(false)
     }

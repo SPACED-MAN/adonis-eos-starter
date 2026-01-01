@@ -108,6 +108,7 @@ export default function PostTypeDefault({
   modules,
   seo,
   siteSettings,
+  translations = [],
   customFields,
   abVariations = [],
   availableModes,
@@ -192,6 +193,7 @@ export default function PostTypeDefault({
       <InlineEditorProvider
         postId={post.id}
         post={post}
+        translations={translations}
         customFields={customFields}
         abVariations={abVariations}
         modules={memoizedModules}

@@ -1,9 +1,12 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useState, useMemo } from 'react'
 import { Head, usePage } from '@inertiajs/react'
 import { AdminHeader } from '../../components/AdminHeader'
 import { useAdminPath } from '../../../utils/adminPath'
 import { Badge } from '../../../components/ui/badge'
 import { Input } from '../../../components/ui/input'
+import { toast } from 'sonner'
+import { CustomFieldRenderer } from '../../components/CustomFieldRenderer'
+import type { CustomFieldDefinition } from '~/types/custom_field'
 import {
   Select,
   SelectContent,
@@ -73,6 +76,12 @@ interface Session {
   lastActivity: string
 }
 
+function getXsrf(): string | undefined {
+  if (typeof document === 'undefined') return undefined
+  const m = document.cookie.match(/(?:^|; )XSRF-TOKEN=([^;]+)/)
+  return m ? decodeURIComponent(m[1]) : undefined
+}
+
 export default function SecurityIndex() {
   const { props } = usePage<any>()
   const features = props.features || {}
@@ -81,7 +90,16 @@ export default function SecurityIndex() {
   const [auditLogs, setAuditLogs] = useState<AuditLog[]>([])
   const [sessions, setSessions] = useState<Session[]>([])
   const [loading, setLoading] = useState(true)
+  const [savingSettings, setSavingSettings] = useState(false)
   const [activeTab, setActiveTab] = useState('posture')
+
+  const [siteSettings, setSiteSettings] = useState<{
+    customFieldDefs: CustomFieldDefinition[]
+    customFields: Record<string, any>
+  }>({
+    customFieldDefs: [],
+    customFields: {},
+  })
 
   // Audit filters state
   const [q, setQ] = useState('')
@@ -97,6 +115,7 @@ export default function SecurityIndex() {
 
   useEffect(() => {
     loadPosture()
+    loadSiteSettings()
     if (features.activeSessions !== false) {
       loadSessions()
     }
@@ -120,6 +139,46 @@ export default function SecurityIndex() {
       console.error('Failed to load security posture', err)
     } finally {
       setLoading(false)
+    }
+  }
+
+  async function loadSiteSettings() {
+    try {
+      const res = await fetch('/api/site-settings', { credentials: 'same-origin' })
+      const j = await res.json()
+      setSiteSettings({
+        customFieldDefs: Array.isArray(j?.data?.customFieldDefs) ? j.data.customFieldDefs : [],
+        customFields: j?.data?.customFields || {},
+      })
+    } catch (err) {
+      console.error('Failed to load site settings', err)
+    }
+  }
+
+  async function saveSecuritySettings() {
+    try {
+      setSavingSettings(true)
+      const res = await fetch('/api/site-settings', {
+        method: 'PATCH',
+        headers: {
+          'Accept': 'application/json',
+          'Content-Type': 'application/json',
+          ...(getXsrf() ? { 'X-XSRF-TOKEN': getXsrf()! } : {}),
+        },
+        credentials: 'same-origin',
+        body: JSON.stringify({
+          customFields: siteSettings.customFields,
+        }),
+      })
+      if (res.ok) {
+        toast.success('Security settings saved')
+      } else {
+        toast.error('Failed to save security settings')
+      }
+    } catch (err) {
+      toast.error('Error saving security settings')
+    } finally {
+      setSavingSettings(false)
     }
   }
 
@@ -236,6 +295,15 @@ export default function SecurityIndex() {
               {features.auditLogs === false && (
                 <FontAwesomeIcon icon={faLock} size="xs" className="ml-2" />
               )}
+            </button>
+            <button
+              onClick={() => setActiveTab('protection')}
+              className={`px-4 py-2 border-b-2 font-medium text-sm transition-colors ${activeTab === 'protection'
+                ? 'border-standout-high text-standout-high'
+                : 'border-transparent text-neutral-medium hover:text-neutral-high'
+                }`}
+            >
+              Content Protection
             </button>
           </nav>
         </div>
@@ -607,6 +675,43 @@ export default function SecurityIndex() {
                 </div>
               </div>
             )}
+          </div>
+        )}
+        {activeTab === 'protection' && (
+          <div className="space-y-6">
+            <div className="bg-backdrop-low rounded-lg border border-line-low p-6">
+              <h3 className="text-lg font-semibold text-neutral-high mb-2">Content Protection</h3>
+              <p className="text-sm text-neutral-medium mb-6">
+                Credentials for accessing posts with 'Protected' status. These values are used site-wide for all protected content.
+              </p>
+
+              <div className="max-w-md">
+                <CustomFieldRenderer
+                  definitions={siteSettings.customFieldDefs.filter((f) => f.category === 'Security')}
+                  values={siteSettings.customFields}
+                  onChange={(slug, val) =>
+                    setSiteSettings((prev) => ({
+                      ...prev,
+                      customFields: { ...prev.customFields, [slug]: val },
+                    }))
+                  }
+                />
+
+                <div className="mt-8 pt-6 border-t border-line-low">
+                  <button
+                    type="button"
+                    onClick={saveSecuritySettings}
+                    disabled={savingSettings}
+                    className={`px-4 py-2 text-sm font-medium rounded-md shadow-sm transition-colors ${savingSettings
+                      ? 'bg-neutral-low text-neutral-medium cursor-not-allowed opacity-50'
+                      : 'bg-standout-high text-on-high hover:bg-standout-high/90'
+                      }`}
+                  >
+                    {savingSettings ? 'Saving...' : 'Save Protection Settings'}
+                  </button>
+                </div>
+              </div>
+            </div>
           </div>
         )}
       </main>

@@ -3,11 +3,11 @@ import { Head } from '@inertiajs/react'
 
 export default function Maintenance({ siteTitle }: { siteTitle?: string }) {
   return (
-    <div className="min-h-screen bg-neutral-50 flex flex-col items-center justify-center p-6 text-center">
+    <div className="min-h-screen bg-background flex flex-col items-center justify-center p-6 text-center">
       <Head title={`Under Maintenance - ${siteTitle || 'Site'}`} />
 
-      <div className="max-w-md w-full bg-white shadow-xl rounded-2xl p-8 md:p-12 border border-neutral-200">
-        <div className="w-20 h-20 bg-amber-100 text-amber-600 rounded-full flex items-center justify-center mx-auto mb-6">
+      <div className="max-w-md w-full bg-card shadow-xl rounded-2xl p-8 md:p-12 border border-line-low">
+        <div className="w-20 h-20 bg-standout-low text-standout-high rounded-full flex items-center justify-center mx-auto mb-6">
           <svg
             xmlns="http://www.w3.org/2000/svg"
             fill="none"
@@ -24,14 +24,14 @@ export default function Maintenance({ siteTitle }: { siteTitle?: string }) {
           </svg>
         </div>
 
-        <h1 className="text-3xl font-bold text-neutral-900 mb-4">Under Maintenance</h1>
+        <h1 className="text-3xl font-bold text-neutral-high mb-4">Under Maintenance</h1>
 
-        <p className="text-neutral-600 leading-relaxed">
+        <p className="text-neutral-medium leading-relaxed">
           {siteTitle || 'Our site'} is currently undergoing scheduled maintenance to improve our
           services. We'll be back online shortly. Thank you for your patience!
         </p>
 
-        <div className="pt-8 mt-8 border-t border-neutral-100 text-neutral-400 text-sm">
+        <div className="pt-8 mt-8 border-t border-line-low text-neutral-low text-sm">
           &copy; {new Date().getFullYear()} {siteTitle || 'Site'}
         </div>
       </div>

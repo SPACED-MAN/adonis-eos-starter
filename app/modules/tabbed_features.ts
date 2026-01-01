@@ -1,6 +1,6 @@
 import BaseModule from '#modules/base'
 import type { ModuleConfig } from '#types/module_types'
-import { themeField, mediaBackgroundFields } from './shared_fields.js'
+import { themeField, mediaBackgroundFields, mediaFitField } from './shared_fields.js'
 
 export default class TabbedFeaturesModule extends BaseModule {
   getRenderingMode() {
@@ -93,6 +93,7 @@ export default class TabbedFeaturesModule extends BaseModule {
             { label: 'Right', value: 'right' },
           ],
         },
+        mediaFitField,
         themeField,
         ...mediaBackgroundFields,
       ],
@@ -108,6 +109,7 @@ export default class TabbedFeaturesModule extends BaseModule {
           },
         ],
         layout: 'top',
+        objectFit: 'contain',
         theme: 'transparent',
       },
       allowedPostTypes: [],

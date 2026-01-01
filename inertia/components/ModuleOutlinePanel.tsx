@@ -38,10 +38,12 @@ interface Module {
   adminLabel?: string | null
   globalSlug?: string | null
   globalLabel?: string | null
+  props?: Record<string, any>
 }
 
 interface ModuleOutlinePanelProps {
   modules: Module[]
+  getValue?: (moduleId: string, path: string, fallback: any) => any
   postType: string
   postId?: string
   onReorder: (modules: Module[]) => void
@@ -59,12 +61,14 @@ interface ModuleOutlinePanelProps {
 
 function SortableModuleItem({
   module,
+  getValue,
   onRemove,
   onJump,
   onUpdateLabel,
   onDuplicate,
 }: {
   module: Module
+  getValue?: (moduleId: string, path: string, fallback: any) => any
   onRemove: (id: string) => void
   onJump: (id: string) => void
   onUpdateLabel: (id: string, label: string | null) => void
@@ -85,9 +89,23 @@ function SortableModuleItem({
     opacity: isDragging ? 0.5 : 1,
   }
 
+  // Try to find a dynamic label from common title/name fields in draft props
+  const dynamicLabel = (() => {
+    if (!getValue) return null
+    // Try common field names that are often used as labels
+    const candidates = ['title', 'name', 'heading', 'label', 'heading_text']
+    for (const key of candidates) {
+      const val = getValue(module.id, key, null)
+      if (typeof val === 'string' && val.trim() !== '') return val.trim()
+      if (typeof val === 'number') return String(val)
+    }
+    return null
+  })()
+
   const displayName =
     module.globalLabel ||
     module.adminLabel ||
+    dynamicLabel ||
     module.label ||
     (module.name && module.name !== module.type ? module.name : null) ||
     module.type
@@ -206,6 +224,7 @@ function SortableModuleItem({
 
 export function ModuleOutlinePanel({
   modules,
+  getValue,
   postType,
   postId,
   onReorder,
@@ -279,6 +298,7 @@ export function ModuleOutlinePanel({
                 <SortableModuleItem
                   key={m.id}
                   module={m}
+                  getValue={getValue}
                   onRemove={onRemoveModule}
                   onJump={handleJumpToModule}
                   onUpdateLabel={onUpdateLabel}
@@ -308,6 +328,16 @@ export function ModuleOutlinePanel({
                   <div className="text-sm font-semibold text-neutral-high truncate">
                     {activeModule.globalLabel ||
                       activeModule.adminLabel ||
+                      (() => {
+                        if (!getValue) return null
+                        const candidates = ['title', 'name', 'heading', 'label', 'heading_text']
+                        for (const key of candidates) {
+                          const val = getValue(activeModule.id, key, null)
+                          if (typeof val === 'string' && val.trim() !== '') return val.trim()
+                          if (typeof val === 'number') return String(val)
+                        }
+                        return null
+                      })() ||
                       activeModule.label ||
                       (activeModule.name && activeModule.name !== activeModule.type
                         ? activeModule.name

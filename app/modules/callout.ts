@@ -1,7 +1,7 @@
 import BaseModule from '#modules/base'
 import type { ModuleConfig } from '#types/module_types'
 
-import { themeField, mediaBackgroundFields } from './shared_fields.js'
+import { themeField, mediaBackgroundFields, mediaFitField } from './shared_fields.js'
 
 /**
  * Callout Module
@@ -126,6 +126,7 @@ export default class CalloutModule extends BaseModule {
             { label: 'Split (Image Right)', value: 'split-right' },
           ],
         },
+        mediaFitField,
         themeField,
         ...mediaBackgroundFields,
       ],
@@ -137,6 +138,7 @@ export default class CalloutModule extends BaseModule {
           { label: 'View Documentation', url: '#', style: 'outline' },
         ],
         variant: 'centered',
+        objectFit: 'cover',
         theme: 'low',
       },
       allowedPostTypes: [],

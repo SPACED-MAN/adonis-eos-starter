@@ -1,6 +1,6 @@
 import BaseModule from '#modules/base'
 import type { ModuleConfig } from '#types/module_types'
-import { themeField, mediaBackgroundFields } from './shared_fields.js'
+import { themeField, mediaBackgroundFields, mediaFitField } from './shared_fields.js'
 
 /**
  * Gallery Module
@@ -96,6 +96,7 @@ export default class GalleryModule extends BaseModule {
           max: 6,
           description: 'Number of columns for grid layout',
         },
+        mediaFitField,
         themeField,
         ...mediaBackgroundFields,
       ],
@@ -103,6 +104,7 @@ export default class GalleryModule extends BaseModule {
         images: [],
         layout: 'grid',
         columns: 3,
+        objectFit: 'cover',
         theme: 'transparent',
       },
       allowedPostTypes: [], // Available for all post types

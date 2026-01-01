@@ -5,7 +5,7 @@ import { resolveLink } from '../utils/resolve_link'
 import { MediaRenderer } from '../components/MediaRenderer'
 import { getSectionStyles } from '../utils/colors'
 import { SectionBackground } from '../components/SectionBackground'
-import { THEME_OPTIONS } from '#modules/shared_fields'
+import { THEME_OPTIONS, MEDIA_FIT_OPTIONS } from '#modules/shared_fields'
 
 interface HeroWithMediaProps {
   title: string
@@ -18,6 +18,7 @@ interface HeroWithMediaProps {
     metadata?: any
   } | null // media object
   imagePosition?: 'left' | 'right'
+  objectFit?: 'cover' | 'contain' | 'fill' | 'none' | 'scale-down'
   primaryCta?: Button | null
   secondaryCta?: Button | null
   theme?: string
@@ -39,6 +40,7 @@ export default function HeroWithMedia({
   subtitle,
   image,
   imagePosition = 'right',
+  objectFit: initialObjectFit = 'contain',
   primaryCta,
   secondaryCta,
   theme: initialTheme = 'low',
@@ -48,6 +50,7 @@ export default function HeroWithMedia({
   _useReact,
 }: HeroWithMediaProps) {
   const { value: imageValue, enabled, show: showImage, props: imageProps } = useInlineField(__moduleId, 'image', image, { type: 'media', label: 'Image' })
+  const objectFit = useInlineValue(__moduleId, 'objectFit', initialObjectFit)
   const { value: titleValue, show: showTitle, props: titleProps } = useInlineField(__moduleId, 'title', title, { label: 'Title' })
   const { value: subtitleValue, show: showSubtitle, props: subtitleProps } = useInlineField(__moduleId, 'subtitle', subtitle, { label: 'Subtitle' })
   const theme = useInlineValue(__moduleId, 'theme', initialTheme) || initialTheme
@@ -92,18 +95,23 @@ export default function HeroWithMedia({
   const imageBlockContent = (
     <div
       className="w-full max-w-md overflow-hidden relative aspect-[4/3]"
-      {...imageProps}
+      data-inline-type="select"
+      data-inline-path="objectFit"
+      data-inline-label="Media Fit"
+      data-inline-options={JSON.stringify(MEDIA_FIT_OPTIONS)}
     >
-      {imageValue && (
-        <MediaRenderer
-          image={imageValue}
-          alt={(typeof imageValue === 'object' ? imageValue.altText : null) || ''}
-          fetchPriority="high"
-          decoding="async"
-          objectFit="contain"
-          playMode={typeof imageValue === 'object' ? imageValue.metadata?.playMode : 'autoplay'}
-        />
-      )}
+      <div {...imageProps} className="w-full h-full">
+        {imageValue && (
+          <MediaRenderer
+            image={imageValue}
+            alt={(typeof imageValue === 'object' ? imageValue.altText : null) || ''}
+            fetchPriority="high"
+            decoding="async"
+            objectFit={objectFit}
+            playMode={typeof imageValue === 'object' ? imageValue.metadata?.playMode : 'autoplay'}
+          />
+        )}
+      </div>
     </div>
   )
 

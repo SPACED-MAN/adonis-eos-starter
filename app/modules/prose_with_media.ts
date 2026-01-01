@@ -1,6 +1,6 @@
 import BaseModule from '#modules/base'
 import type { ModuleConfig } from '#types/module_types'
-import { themeField, mediaBackgroundFields } from './shared_fields.js'
+import { themeField, mediaBackgroundFields, mediaFitField } from './shared_fields.js'
 
 export default class ProseWithMediaModule extends BaseModule {
   /**
@@ -93,6 +93,7 @@ export default class ProseWithMediaModule extends BaseModule {
             { label: 'Right', value: 'right' },
           ],
         },
+        mediaFitField,
         themeField,
         ...mediaBackgroundFields,
       ],
@@ -116,6 +117,7 @@ export default class ProseWithMediaModule extends BaseModule {
         },
         image: null,
         imagePosition: 'left',
+        objectFit: 'contain',
         primaryCta: {
           label: 'Get started',
           url: '#',

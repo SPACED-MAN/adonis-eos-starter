@@ -2,6 +2,7 @@ import { useEffect, useMemo, useState } from 'react'
 import { Head } from '@inertiajs/react'
 import { AdminHeader } from '../../components/AdminHeader'
 import { AdminFooter } from '../../components/AdminFooter'
+import { toast } from 'sonner'
 import { Checkbox } from '~/components/ui/checkbox'
 import {
   Select,
@@ -143,8 +144,9 @@ export default function ModuleGroupsSettingsPage() {
         await loadModuleGroups()
         setIsCreateOpen(false)
         setCreateForm({ name: '', postType: postTypes[0] || '', isDefault: false })
+        toast.success('Module group created')
       } else {
-        alert('Failed to create module group')
+        toast.error('Failed to create module group')
       }
     } finally {
       setCreating(false)
@@ -165,11 +167,12 @@ export default function ModuleGroupsSettingsPage() {
       })
       if (res.ok) {
         await loadModuleGroups()
+        toast.success('Module group updated')
       } else {
-        alert('Failed to update module group')
+        toast.error('Failed to update module group')
       }
     } catch {
-      alert('Error updating module group')
+      toast.error('Error updating module group')
     }
   }
 
@@ -188,8 +191,9 @@ export default function ModuleGroupsSettingsPage() {
     if (res.ok) {
       await loadModules(selectedId)
       setPickerOpen(false)
+      toast.success('Module added')
     } else {
-      alert('Failed to add module')
+      toast.error('Failed to add module')
     }
   }
 
@@ -204,8 +208,9 @@ export default function ModuleGroupsSettingsPage() {
     })
     if (res.status === 204) {
       await loadModules(selectedId)
+      toast.success('Module removed')
     } else {
-      alert('Failed to remove module')
+      toast.error('Failed to remove module')
     }
   }
 

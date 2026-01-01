@@ -8,6 +8,7 @@ import { resolvePageComponent } from '@adonisjs/inertia/helpers'
 import { Toaster } from '../components/ui/sonner'
 import { ThemeProvider } from '../utils/ThemeContext'
 import { TooltipProvider } from '~/components/ui/tooltip'
+import { ConfirmDialogProvider } from '~/components/ConfirmDialogProvider'
 
 let appName = import.meta.env.VITE_APP_NAME || 'EOS'
 
@@ -40,8 +41,10 @@ createInertiaApp({
     const app = (
       <ThemeProvider initialIsDark={initialIsDark}>
         <TooltipProvider>
-          <App {...props} />
-          <Toaster />
+          <ConfirmDialogProvider>
+            <App {...props} />
+            <Toaster />
+          </ConfirmDialogProvider>
         </TooltipProvider>
       </ThemeProvider>
     )

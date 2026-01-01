@@ -1,6 +1,6 @@
 import BaseModule from '#modules/base'
 import type { ModuleConfig } from '#types/module_types'
-import { themeField, mediaBackgroundFields } from './shared_fields.js'
+import { themeField, mediaBackgroundFields, mediaFitField } from './shared_fields.js'
 
 /**
  * Hero with Media Module
@@ -143,6 +143,7 @@ export default class HeroWithMediaModule extends BaseModule {
             { label: 'Left', value: 'left' },
           ],
         },
+        mediaFitField,
         themeField,
         ...mediaBackgroundFields,
       ],
@@ -152,6 +153,7 @@ export default class HeroWithMediaModule extends BaseModule {
           'From checkout to global sales tax compliance, companies around the world use this platform to simplify their payment stack.',
         image: null,
         imagePosition: 'right',
+        objectFit: 'contain',
         primaryCta: {
           label: 'Get started',
           url: '#',

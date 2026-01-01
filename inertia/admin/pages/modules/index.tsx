@@ -2,6 +2,7 @@ import { useEffect, useMemo, useState } from 'react'
 import { AdminHeader } from '../../components/AdminHeader'
 import { AdminFooter } from '../../components/AdminFooter'
 import { toast } from 'sonner'
+import { useConfirm } from '~/components/ConfirmDialogProvider'
 import { usePage, Link } from '@inertiajs/react'
 import { useAdminPath } from '~/utils/adminPath'
 import { FormField, FormLabel } from '../../../components/forms/field'
@@ -104,6 +105,7 @@ function formatGroupName(g: ModuleGroup | null): string {
 }
 
 export default function GlobalModulesIndex() {
+  const { confirm } = useConfirm()
   const page = usePage<{ isAdmin?: boolean }>()
   const adminPath = useAdminPath()
   const isAdmin = !!page.props?.isAdmin
@@ -348,7 +350,11 @@ export default function GlobalModulesIndex() {
       toast.error('Only admins can delete module groups')
       return
     }
-    const ok = window.confirm('Delete this module group? This cannot be undone.')
+    const ok = await confirm({
+      title: 'Delete Module Group?',
+      description: 'Are you sure you want to delete this module group? This action cannot be undone.',
+      variant: 'destructive',
+    })
     if (!ok) return
     try {
       const res = await fetch(`/api/module-groups/${encodeURIComponent(id)}`, {

@@ -1,4 +1,5 @@
-import React, { useState, forwardRef } from 'react'
+import React, { useState, forwardRef, useRef } from 'react'
+import { useInView } from 'framer-motion'
 import { Dialog, DialogContent, DialogTitle } from './ui/dialog'
 import { useMediaUrl, type MediaObject } from '../utils/useMediaUrl'
 
@@ -53,6 +54,9 @@ export const MediaRenderer = forwardRef<HTMLImageElement | HTMLVideoElement, Med
     },
     ref
   ) => {
+    const internalRef = useRef<any>(null)
+    const combinedRef = (ref as any) || internalRef
+    const isInView = useInView(combinedRef, { once: true, margin: '0px 0px -100px 0px' })
     const [isModalOpen, setIsModalOpen] = useState(false)
 
     // Resolve URL seamlessly if an image object is provided, otherwise fall back to explicit url
@@ -192,9 +196,9 @@ export const MediaRenderer = forwardRef<HTMLImageElement | HTMLVideoElement, Med
             className={className}
             style={{ objectFit }}
             playsInline={playsInline}
-            ref={ref as React.Ref<HTMLVideoElement>}
+            ref={combinedRef}
             controls={initialControls ?? (isAutoplayMode ? false : true)}
-            autoPlay={initialAutoPlay ?? (isAutoplayMode ? true : false)}
+            autoPlay={initialAutoPlay ?? (isAutoplayMode ? (isInView ? true : false) : false)}
             loop={initialLoop ?? (isAutoplayMode ? true : false)}
             muted={initialMuted ?? (isAutoplayMode ? true : false)}
             poster={poster || undefined}
@@ -204,7 +208,7 @@ export const MediaRenderer = forwardRef<HTMLImageElement | HTMLVideoElement, Med
         return (
           <lottie-player
             src={resolvedUrl}
-            autoplay={initialAutoPlay ?? (isAutoplayMode ? true : false)}
+            autoplay={initialAutoPlay ?? (isAutoplayMode ? (isInView ? true : false) : false)}
             loop={initialLoop ?? (isAutoplayMode ? true : false)}
             controls={initialControls ?? (isAutoplayMode ? false : true)}
             style={{ width: '100%', height: '100%', objectFit }}
@@ -216,7 +220,8 @@ export const MediaRenderer = forwardRef<HTMLImageElement | HTMLVideoElement, Med
 
     return (
       <img
-        ref={ref as React.Ref<HTMLImageElement>}
+        ref={combinedRef}
+        key={isSvg ? (isInView ? 'in-view' : 'out-of-view') : undefined}
         src={resolvedUrl}
         alt={alt || (typeof image === 'object' ? (image as any)?.altText : null) || ''}
         className={className}

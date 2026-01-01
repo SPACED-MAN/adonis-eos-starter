@@ -2,6 +2,7 @@ import { useEffect, useMemo, useRef, useState } from 'react'
 import { Head } from '@inertiajs/react'
 import { AdminHeader } from '../../components/AdminHeader'
 import { AdminFooter } from '../../components/AdminFooter'
+import { useUnsavedChanges } from '~/hooks/useUnsavedChanges'
 import { toast } from 'sonner'
 import { Checkbox } from '../../../components/ui/checkbox'
 import { CustomFieldRenderer } from '../../components/CustomFieldRenderer'
@@ -108,6 +109,7 @@ export default function MenusIndex() {
 
   const [menuTemplate, setMenuTemplate] = useState<string | null>(null)
   const [menuMeta, setMenuMeta] = useState<Record<string, any>>({})
+  const [initialMenuMeta, setInitialMenuMeta] = useState<Record<string, any>>({})
   const [templates, setTemplates] = useState<
     Array<{
       slug: string
@@ -117,6 +119,12 @@ export default function MenusIndex() {
     }>
   >([])
   const [savingMenuMeta, setSavingMenuMeta] = useState<boolean>(false)
+
+  const isDirty = useMemo(() => {
+    return JSON.stringify(menuMeta) !== JSON.stringify(initialMenuMeta)
+  }, [menuMeta, initialMenuMeta])
+
+  useUnsavedChanges(isDirty)
   const xsrfFromCookie: string | undefined = (() => {
     if (typeof document === 'undefined') return undefined
     const m = document.cookie.match(/(?:^|; )XSRF-TOKEN=([^;]+)/)
@@ -229,7 +237,9 @@ export default function MenusIndex() {
       setSelectedMenuSlug(fallbackSlug)
     }
     setMenuTemplate((j?.data?.template as string | null) ?? null)
-    setMenuMeta((j?.data?.meta as Record<string, any>) ?? {})
+    const meta = (j?.data?.meta as Record<string, any>) ?? {}
+    setMenuMeta(meta)
+    setInitialMenuMeta(JSON.parse(JSON.stringify(meta)))
   }
 
   useEffect(() => {
@@ -755,6 +765,7 @@ export default function MenusIndex() {
                                   throw new Error(j?.error || 'Save failed')
                                 }
                                 toast.success('Menu settings saved')
+                                setInitialMenuMeta(JSON.parse(JSON.stringify(menuMeta)))
                                 await loadMenu(selectedMenuId, editingLocale)
                               } catch (e: any) {
                                 toast.error(String(e.message || e))

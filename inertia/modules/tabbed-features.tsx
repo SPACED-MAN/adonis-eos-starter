@@ -6,7 +6,7 @@ import { renderLexicalToHtml } from '../utils/lexical'
 import { FontAwesomeIcon } from '../site/lib/icons'
 import { getSectionStyles } from '../utils/colors'
 import { SectionBackground } from '../components/SectionBackground'
-import { THEME_OPTIONS } from '#modules/shared_fields'
+import { THEME_OPTIONS, MEDIA_FIT_OPTIONS } from '#modules/shared_fields'
 
 interface TabItem {
 	label: string
@@ -25,6 +25,7 @@ interface TabbedFeaturesProps {
   subtitle?: string
   tabs: TabItem[]
   layout?: 'top' | 'left' | 'right'
+  objectFit?: 'cover' | 'contain' | 'fill' | 'none' | 'scale-down'
   theme?: string
   backgroundImage?: any
   backgroundTint?: boolean
@@ -37,6 +38,7 @@ export default function TabbedFeatures({
   subtitle: initialSubtitle,
   tabs: initialTabs = [],
   layout: initialLayout = 'top',
+  objectFit: initialObjectFit = 'contain',
   theme: initialTheme = 'transparent',
   backgroundImage: initialBackgroundImage,
   backgroundTint: initialBackgroundTint,
@@ -47,6 +49,7 @@ export default function TabbedFeatures({
   const { value: subtitle, show: showSubtitle, props: subtitleProps } = useInlineField(__moduleId, 'subtitle', initialSubtitle, { label: 'Subtitle' })
   const tabs = useInlineValue(__moduleId, 'tabs', initialTabs) || []
   const layout = useInlineValue(__moduleId, 'layout', initialLayout) || 'top'
+  const objectFit = useInlineValue(__moduleId, 'objectFit', initialObjectFit)
   const theme = useInlineValue(__moduleId, 'theme', initialTheme) || initialTheme
   const backgroundImage = useInlineValue(__moduleId, 'backgroundImage', initialBackgroundImage)
   const backgroundTint = useInlineValue(__moduleId, 'backgroundTint', initialBackgroundTint)
@@ -137,14 +140,23 @@ export default function TabbedFeatures({
 								animate={{ opacity: 1, y: 0 }}
 								transition={{ delay: 0.1, duration: 0.6 }}
 								className="relative aspect-video rounded-3xl overflow-hidden shadow-2xl border border-line-low bg-backdrop-high group"
-								data-inline-type="media"
-								data-inline-path={`tabs[${activeTab}].image`}
+								data-inline-type="select"
+								data-inline-path="objectFit"
+								data-inline-label="Media Fit"
+								data-inline-options={JSON.stringify(MEDIA_FIT_OPTIONS)}
 							>
-								<MediaRenderer
-									image={currentTab.image}
-									alt={currentTab.image.altText || currentTab.label}
-									className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-105"
-								/>
+								<div
+									className="w-full h-full"
+									data-inline-type="media"
+									data-inline-path={`tabs[${activeTab}].image`}
+								>
+									<MediaRenderer
+										image={currentTab.image}
+										alt={currentTab.image.altText || currentTab.label}
+										objectFit={objectFit}
+										className="w-full h-full transition-transform duration-700 group-hover:scale-105"
+									/>
+								</div>
 								<div className="absolute inset-0 bg-linear-to-t from-black/20 to-transparent pointer-events-none" />
 							</motion.div>
 						</div>

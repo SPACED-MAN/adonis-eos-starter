@@ -14,6 +14,7 @@ interface LexicalJSON {
 }
 
 interface ProseProps {
+  title?: string
   // Lexical JSON or pre-rendered HTML.
   // Note: content can be missing/undefined for older or partially-staged drafts;
   // the renderer must be resilient to avoid SSR 500s.
@@ -31,6 +32,7 @@ interface ProseProps {
 }
 
 export default function Prose({
+  title: initialTitle,
   content: initialContent,
   // Default to full width so prose fills whatever container it's placed in.
   maxWidth: initialMaxWidth = 'max-w-none',
@@ -44,6 +46,7 @@ export default function Prose({
   __moduleId,
   _useReact,
 }: ProseProps) {
+  const { value: title, show: showTitle, props: titleProps } = useInlineField(__moduleId, 'title', initialTitle, { label: 'Title' })
   const { value: content, show: showContent, props: contentProps } = useInlineField(__moduleId, 'content', initialContent, { type: 'richtext', label: 'Content' })
   const maxWidth = useInlineValue(__moduleId, 'maxWidth', initialMaxWidth)
   const fontSize = useInlineValue(__moduleId, 'fontSize', initialFontSize)
@@ -83,12 +86,25 @@ export default function Prose({
   const innerContent = (
     <div className="container mx-auto px-4 sm:px-6 lg:px-8 relative z-10">
       <div className={`w-full ${maxWidth}`}>
-        {showContent && (
-          <div
-            className={`prose max-w-none ${styles.proseInvert} ${fontSize} ${textColor} ${textAlign === 'center'
+        {showTitle && title && (
+          <h2
+            className={`text-3xl font-extrabold tracking-tight mb-8 ${textColor} ${textAlign === 'center'
               ? 'text-center'
               : textAlign === 'right'
                 ? 'text-right'
+                : 'text-left'
+              }`}
+            {...titleProps}
+          >
+            {title}
+          </h2>
+        )}
+        {showContent && (
+          <div
+            className={`prose max-w-none ${styles.proseInvert} ${fontSize} ${textColor} ${textAlign === 'center'
+              ? 'text-center [&_ul]:inline-block [&_ol]:inline-block [&_ul]:text-left [&_ol]:text-left [&_li]:text-left'
+              : textAlign === 'right'
+                ? 'text-right list-inside'
                 : textAlign === 'justify'
                   ? 'text-justify'
                   : 'text-left'

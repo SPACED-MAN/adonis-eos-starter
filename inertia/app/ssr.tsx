@@ -6,6 +6,7 @@ import crypto from 'node:crypto'
 import cmsConfig from '#config/cms'
 import { ThemeProvider } from '../utils/ThemeContext'
 import { TooltipProvider } from '../components/ui/tooltip'
+import { ConfirmDialogProvider } from '../components/ConfirmDialogProvider'
 import { PassThrough } from 'node:stream'
 
 export default async function render(page: any) {
@@ -97,7 +98,9 @@ export default async function render(page: any) {
         return (
           <ThemeProvider initialIsDark={initialIsDark}>
             <TooltipProvider>
-              <App {...props} />
+              <ConfirmDialogProvider>
+                <App {...props} />
+              </ConfirmDialogProvider>
             </TooltipProvider>
           </ThemeProvider>
         )

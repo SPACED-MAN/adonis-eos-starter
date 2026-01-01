@@ -2,6 +2,8 @@ import { useEffect, useMemo, useState } from 'react'
 import { Head } from '@inertiajs/react'
 import { AdminHeader } from '../components/AdminHeader'
 import { AdminFooter } from '../components/AdminFooter'
+import { useUnsavedChanges } from '~/hooks/useUnsavedChanges'
+import { useConfirm } from '~/components/ConfirmDialogProvider'
 import { Input } from '../../components/ui/input'
 import {
   Select,
@@ -60,6 +62,7 @@ function getXsrf(): string | undefined {
 }
 
 export default function CategoriesPage() {
+  const { confirm } = useConfirm()
   const [taxonomies, setTaxonomies] = useState<Taxonomy[]>([])
   const [selectedTaxonomy, setSelectedTaxonomy] = useState<string>('') // slug
   const [terms, setTerms] = useState<TermNode[]>([])
@@ -80,6 +83,13 @@ export default function CategoriesPage() {
   const [editingTerm, setEditingTerm] = useState<TermNode | null>(null)
   const [editingTermDraft, setEditingTermDraft] = useState<Record<string, any>>({})
   const [saving, setSaving] = useState(false)
+
+  const isDirty = useMemo(() => {
+    if (!editingTerm) return false
+    return JSON.stringify(editingTermDraft) !== JSON.stringify(editingTerm.customFields || {})
+  }, [editingTerm, editingTermDraft])
+
+  useUnsavedChanges(isDirty)
 
   const sensors = useSensors(useSensor(PointerSensor, { activationConstraint: { distance: 4 } }))
 
@@ -232,7 +242,12 @@ export default function CategoriesPage() {
   }
 
   async function deleteTerm(termId: string) {
-    if (!confirm('Delete this term?')) return
+    const ok = await confirm({
+      title: 'Delete Term?',
+      description: 'Are you sure you want to delete this term? This action cannot be undone.',
+      variant: 'destructive',
+    })
+    if (!ok) return
     const res = await fetch(`/api/taxonomy-terms/${encodeURIComponent(termId)}`, {
       method: 'DELETE',
       headers: {

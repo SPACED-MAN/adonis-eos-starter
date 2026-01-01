@@ -6,6 +6,7 @@ import postTypeConfigService from '#services/post_type_config_service'
 import postRenderingService from '#services/post_rendering_service'
 import previewService from '#services/preview_service'
 import postTypeViewService from '#services/post_type_view_service'
+import roleRegistry from '#services/role_registry'
 import taxonomyService from '#services/taxonomy_service'
 import activityLogService from '#services/activity_log_service'
 import BasePostsController from './base_posts_controller.js'
@@ -750,7 +751,12 @@ export default class PostsViewController extends BasePostsController {
       })
 
       // Get post-type-specific additional props (delegated to service)
-      const additionalProps = await postTypeViewService.getAdditionalProps(post)
+      const user = auth.use('web').user
+      const role = (user as any)?.role
+      const roleDefinition = role ? roleRegistry.get(role) : null
+      const permissions = roleDefinition?.permissions || []
+
+      const additionalProps = await postTypeViewService.getAdditionalProps(post, { permissions })
 
       // Load variations if user is authenticated and A/B testing is enabled
       let abVariations: Array<{ id: string; variation: string; status: string }> = []

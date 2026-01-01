@@ -45,6 +45,8 @@ type InlineBridge = {
   toggleShowDiffs: () => void
   abVariations: Array<{ id: string; variation: string; status: string }>
   modules: any[]
+  isSaving: boolean
+  getValue: (moduleId: string, path: string, fallback: any) => any
   reorderModules: (newModules: any[]) => void
   addModule: (payload: {
     type: string
@@ -55,6 +57,8 @@ type InlineBridge = {
   removeModule: (moduleId: string) => void
   updateModuleLabel: (moduleId: string, label: string | null) => void
   duplicateModule: (moduleId: string) => void
+  post?: any
+  translations?: any[]
 }
 
 export function SiteAdminBar({ initialProps }: { initialProps?: any }) {
@@ -72,6 +76,8 @@ export function SiteAdminBar({ initialProps }: { initialProps?: any }) {
     toggleShowDiffs: () => { },
     abVariations: [],
     modules: [],
+    isSaving: false,
+    getValue: (_m, _p, f) => f,
     reorderModules: () => { },
     addModule: () => { },
     removeModule: () => { },
@@ -94,6 +100,9 @@ export function SiteAdminBar({ initialProps }: { initialProps?: any }) {
     window.addEventListener('inline:state', handler as EventListener)
     return () => window.removeEventListener('inline:state', handler as EventListener)
   }, [])
+
+  const isSaveEnabled = inline.dirty
+  const isSaving = inline.isSaving
 
   const getProps = () => {
     if (typeof window === 'undefined') return initialProps || {}
@@ -130,8 +139,8 @@ export function SiteAdminBar({ initialProps }: { initialProps?: any }) {
   }, [])
 
   const currentUser = (props as any)?.currentUser
-  const post = (props as any)?.post
-  const translations = (props as any)?.translations || []
+  const post = inline.post || (props as any)?.post
+  const translations = inline.translations || (props as any)?.translations || []
   const devToolsData = (props as any)?.devTools
 
   const isAdmin = !!(currentUser && currentUser.role === 'admin')
@@ -317,7 +326,7 @@ export function SiteAdminBar({ initialProps }: { initialProps?: any }) {
               if (targetId === post?.id) return
               const target = translations.find((t: any) => t.id === targetId)
               if (target?.path) {
-                window.location.href = target.path
+                router.visit(target.path)
               }
             }}
           >
@@ -355,7 +364,7 @@ export function SiteAdminBar({ initialProps }: { initialProps?: any }) {
                       if (v.id === post?.id) return
                       const url = new URL(window.location.href)
                       url.searchParams.set('variation_id', v.id)
-                      window.location.href = url.toString()
+                      router.visit(url.toString())
                     }}
                   >
                     Var {v.variation}
@@ -403,17 +412,28 @@ export function SiteAdminBar({ initialProps }: { initialProps?: any }) {
           <div className="inline-flex overflow-hidden rounded-md border border-line-medium bg-backdrop-high shadow">
             <Tooltip>
               <TooltipTrigger asChild>
-                <button
-                  type="button"
-                  className={`px-3 py-2 text-xs font-medium border-r border-line-medium last:border-r-0 ${inline.enabled ? 'bg-standout-high text-on-high' : 'text-neutral-high hover:bg-backdrop-medium'}`}
-                  onClick={inline.toggle}
-                  aria-label={inline.enabled ? 'Disable Inline Editing' : 'Enable Inline Editing'}
-                >
-                  <FontAwesomeIcon icon={faPencil} />
-                </button>
+                <div className="flex">
+                  <button
+                    type="button"
+                    className={`px-3 py-2 text-xs font-medium border-r border-line-medium last:border-r-0 ${inline.enabled ? 'bg-standout-high text-on-high' : 'text-neutral-high hover:bg-backdrop-medium'} ${inline.enabled && isSaveEnabled ? 'opacity-50 cursor-not-allowed' : ''}`}
+                    onClick={() => {
+                      if (inline.enabled && isSaveEnabled) return
+                      inline.toggle()
+                    }}
+                    aria-label={inline.enabled ? 'Disable Inline Editing' : 'Enable Inline Editing'}
+                  >
+                    <FontAwesomeIcon icon={faPencil} />
+                  </button>
+                </div>
               </TooltipTrigger>
               <TooltipContent>
-                <p>{inline.enabled ? 'Edits On' : 'Edits Off'}</p>
+                <p>
+                  {inline.enabled && isSaveEnabled
+                    ? 'Save changes to disable editing'
+                    : inline.enabled
+                      ? 'Edits On'
+                      : 'Edits Off'}
+                </p>
               </TooltipContent>
             </Tooltip>
             {inline.enabled && (inline.mode === 'review' || inline.mode === 'ai-review') && (
@@ -433,20 +453,22 @@ export function SiteAdminBar({ initialProps }: { initialProps?: any }) {
                 </TooltipContent>
               </Tooltip>
             )}
-            <Tooltip>
-              <TooltipTrigger asChild>
-                <button
-                  aria-label="Outline"
-                  onClick={() => setOutlineOpen(true)}
-                  className={`px-3 py-2 text-xs font-medium border-r border-line-medium ${outlineOpen ? 'bg-standout-high text-on-high' : 'text-neutral-high hover:bg-backdrop-medium'}`}
-                >
-                  <FontAwesomeIcon icon={faListUl} />
-                </button>
-              </TooltipTrigger>
-              <TooltipContent>
-                <p>Page Outline</p>
-              </TooltipContent>
-            </Tooltip>
+            {inline.enabled && (
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <button
+                    aria-label="Outline"
+                    onClick={() => setOutlineOpen(true)}
+                    className={`px-3 py-2 text-xs font-medium border-r border-line-medium ${outlineOpen ? 'bg-standout-high text-on-high' : 'text-neutral-high hover:bg-backdrop-medium'}`}
+                  >
+                    <FontAwesomeIcon icon={faListUl} />
+                  </button>
+                </TooltipTrigger>
+                <TooltipContent>
+                  <p>Page Outline</p>
+                </TooltipContent>
+              </Tooltip>
+            )}
             <Tooltip>
               <TooltipTrigger asChild>
                 <button
@@ -470,22 +492,31 @@ export function SiteAdminBar({ initialProps }: { initialProps?: any }) {
             </button>
           </div>
         </div>
-        {inline.dirty && inline.canEdit && (
+        {inline.enabled && inline.canEdit && (isSaveEnabled || isSaving) && (
           <div className="flex items-center gap-2">
             <button
               type="button"
-              className="px-3 py-2 text-xs font-medium rounded-md border border-line-medium bg-standout-high text-on-high"
+              disabled={isSaving}
+              className={`px-3 py-2 text-xs font-medium rounded-md border transition-all flex items-center gap-2 bg-standout-high text-on-high border-line-medium shadow-md hover:bg-standout-high/90 ${isSaving ? 'opacity-80 cursor-wait' : ''}`}
               onClick={() => inline.saveAll()}
             >
-              Save
+              {isSaving ? (
+                <>
+                  <FontAwesomeIcon icon="spinner" className="animate-spin" />
+                  Saving...
+                </>
+              ) : (
+                'Save Changes'
+              )}
             </button>
             {inline.mode === 'source' && !inline.availableModes.hasReview && (
               <button
                 type="button"
-                className={`px-3 py-2 text-xs font-medium rounded-md border border-line-medium bg-backdrop-high text-neutral-high hover:bg-backdrop-medium`}
+                disabled={isSaving}
+                className={`px-3 py-2 text-xs font-medium rounded-md border transition-all bg-backdrop-high text-neutral-high border-line-medium hover:bg-backdrop-medium shadow-md ${isSaving ? 'opacity-80 cursor-wait' : ''}`}
                 onClick={() => inline.saveForReview()}
               >
-                Save for Review
+                {isSaving ? 'Saving...' : 'Save for Review'}
               </button>
             )}
           </div>
@@ -636,6 +667,7 @@ export function SiteAdminBar({ initialProps }: { initialProps?: any }) {
           </SheetHeader>
           <ModuleOutlinePanel
             modules={inline.modules}
+            getValue={inline.getValue}
             postType={post?.type}
             postId={post?.id}
             onReorder={(newModules) => inline.reorderModules(newModules)}

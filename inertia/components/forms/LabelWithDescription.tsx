@@ -20,21 +20,19 @@ export const LabelWithDescription = ({
     <div className="flex items-center gap-1.5">
       <FormLabel className="mt-0 mb-0.5">{label}</FormLabel>
       {description && (
-        <TooltipProvider>
-          <Tooltip>
-            <TooltipTrigger asChild>
-              <button
-                type="button"
-                className="text-neutral-low hover:text-neutral-high transition-colors"
-              >
-                <FontAwesomeIcon icon={faCircleInfo} size="xs" />
-              </button>
-            </TooltipTrigger>
-            <TooltipContent className="max-w-xs text-xs font-normal normal-case tracking-normal">
-              {description}
-            </TooltipContent>
-          </Tooltip>
-        </TooltipProvider>
+        <Tooltip>
+          <TooltipTrigger asChild>
+            <button
+              type="button"
+              className="text-neutral-low hover:text-neutral-high transition-colors"
+            >
+              <FontAwesomeIcon icon={faCircleInfo} size="xs" />
+            </button>
+          </TooltipTrigger>
+          <TooltipContent className="max-w-xs text-xs font-normal normal-case tracking-normal">
+            {description}
+          </TooltipContent>
+        </Tooltip>
       )}
     </div>
   )

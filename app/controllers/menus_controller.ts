@@ -253,10 +253,18 @@ export default class MenusController {
    * GET /api/menus/by-slug/:slug
    * Optional: ?locale=xx
    */
-  async bySlug({ params, request, response }: HttpContext) {
+  async bySlug({ params, request, response, auth }: HttpContext) {
     const slug = String(params.slug || '').trim()
     const locale = String(request.input('locale', 'en') || 'en')
-    const data = await menuService.getBySlug(slug, locale)
+
+    // Get permissions from auth
+    await auth.use('web').check().catch(() => {})
+    const user = auth.use('web').user
+    const role = (user as any)?.role
+    const roleDefinition = role ? roleRegistry.get(role) : null
+    const permissions = roleDefinition?.permissions || []
+
+    const data = await menuService.getBySlug(slug, locale, { permissions })
     if (!data) return response.notFound({ error: 'Menu not found' })
     return response.ok({ data })
   }

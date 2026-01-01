@@ -7,7 +7,7 @@ import { renderLexicalToHtml } from '../utils/lexical'
 import { resolveLink } from '../utils/resolve_link'
 import { getSectionStyles } from '../utils/colors'
 import { SectionBackground } from '../components/SectionBackground'
-import { THEME_OPTIONS } from '#modules/shared_fields'
+import { THEME_OPTIONS, MEDIA_FIT_OPTIONS } from '#modules/shared_fields'
 
 interface CalloutProps {
   title: string
@@ -21,6 +21,7 @@ interface CalloutProps {
   } | null
   ctas?: Button[]
   variant?: 'centered' | 'split-left' | 'split-right'
+  objectFit?: 'cover' | 'contain' | 'fill' | 'none' | 'scale-down'
   theme?: string
   backgroundImage?: any
   backgroundTint?: boolean
@@ -35,6 +36,7 @@ export default function Callout(props: CalloutProps) {
     image: initialImage,
     ctas: initialCtas = [],
     variant: initialVariant = 'centered',
+    objectFit: initialObjectFit = 'cover',
     theme: initialTheme = 'low',
     backgroundImage: initialBackgroundImage,
     backgroundTint: initialBackgroundTint,
@@ -45,6 +47,7 @@ export default function Callout(props: CalloutProps) {
   const { value: title, show: showTitle, props: titleProps } = useInlineField(__moduleId, 'title', initialTitle || 'Ready to get started?', { label: 'Title' })
   const { value: richProse, show: showProse, props: proseProps } = useInlineField(__moduleId, 'prose', initialProse, { type: 'richtext', label: 'Prose' })
   const { value: image, show: showImage, props: imageProps } = useInlineField(__moduleId, 'image', initialImage, { type: 'media', label: 'Image' })
+  const objectFit = useInlineValue(__moduleId, 'objectFit', initialObjectFit)
   const ctas = useInlineValue(__moduleId, 'ctas', initialCtas) || initialCtas
   const variant =
     useInlineValue(__moduleId, 'variant', initialVariant) || initialVariant || 'centered'
@@ -171,7 +174,11 @@ export default function Callout(props: CalloutProps) {
 
       {showProse && (
         <div
-          className={`prose max-w-none ${styles.proseInvert} ${subtextColor}`}
+          className={`prose max-w-none ${styles.proseInvert} ${subtextColor} ${
+            variant === 'centered'
+              ? 'text-center [&_ul]:inline-block [&_ol]:inline-block [&_ul]:text-left [&_ol]:text-left [&_li]:text-left'
+              : ''
+          }`}
           {...proseProps}
           dangerouslySetInnerHTML={{ __html: htmlProse }}
         />
@@ -184,17 +191,22 @@ export default function Callout(props: CalloutProps) {
   const imageBlock = showImage ? (
     <div
       className="w-full relative overflow-hidden aspect-video rounded-xl bg-backdrop-medium/30"
-      {...imageProps}
+      data-inline-type="select"
+      data-inline-path="objectFit"
+      data-inline-label="Media Fit"
+      data-inline-options={JSON.stringify(MEDIA_FIT_OPTIONS)}
     >
-      {image && (
-        <MediaRenderer
-          image={image}
-          alt={(typeof image === 'object' ? image.altText : null) || ''}
-          playMode={typeof image === 'object' ? image.metadata?.playMode : 'autoplay'}
-          objectFit="contain"
-          className="w-full h-full object-contain"
-        />
-      )}
+      <div {...imageProps} className="w-full h-full">
+        {image && (
+          <MediaRenderer
+            image={image}
+            alt={(typeof image === 'object' ? image.altText : null) || ''}
+            playMode={typeof image === 'object' ? image.metadata?.playMode : 'autoplay'}
+            objectFit={objectFit}
+            className="w-full h-full"
+          />
+        )}
+      </div>
     </div>
   ) : null
 

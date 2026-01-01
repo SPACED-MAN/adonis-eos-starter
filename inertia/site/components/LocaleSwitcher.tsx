@@ -1,6 +1,7 @@
-import { usePage } from '@inertiajs/react'
+import { usePage, router } from '@inertiajs/react'
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome'
 import { faGlobe } from '@fortawesome/free-solid-svg-icons'
+import { bypassUnsavedChanges } from '~/hooks/useUnsavedChanges'
 import {
   Select,
   SelectContent,
@@ -32,7 +33,8 @@ export function LocaleSwitcher({ className = '' }: LocaleSwitcherProps) {
           if (targetId === currentPost?.id) return
           const target = translations.find((t: any) => t.id === targetId)
           if (target?.path) {
-            window.location.href = target.path
+            bypassUnsavedChanges(true)
+            router.visit(target.path)
           }
         }}
       >

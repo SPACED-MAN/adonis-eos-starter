@@ -1,7 +1,9 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useState, useMemo } from 'react'
 import { Head } from '@inertiajs/react'
 import { AdminHeader } from '../../components/AdminHeader'
 import { AdminFooter } from '../../components/AdminFooter'
+import { useUnsavedChanges } from '~/hooks/useUnsavedChanges'
+import { useConfirm } from '~/components/ConfirmDialogProvider'
 import {
   AlertDialog,
   AlertDialogAction,
@@ -46,6 +48,7 @@ function getXsrfToken(): string | undefined {
 }
 
 export default function RedirectsPage() {
+  const { confirm, alert } = useConfirm()
   const [items, setItems] = useState<Redirect[]>([])
   const [postTypes, setPostTypes] = useState<string[]>([])
   const [typeFilter, setTypeFilter] = useState<string>('')
@@ -60,6 +63,14 @@ export default function RedirectsPage() {
     toPath: '',
     httpStatus: 301,
   })
+
+  const isDirty = useMemo(() => {
+    const settingDirty = autoRedirectEnabled !== savedAutoRedirectEnabled
+    const formDirty = form.fromPath !== '' || form.toPath !== ''
+    return settingDirty || formDirty
+  }, [autoRedirectEnabled, savedAutoRedirectEnabled, form])
+
+  useUnsavedChanges(isDirty)
 
   useEffect(() => {
     let mounted = true
@@ -138,7 +149,10 @@ export default function RedirectsPage() {
 
   async function createRedirect() {
     if (!form.fromPath || !form.toPath) {
-      alert('fromPath and toPath are required')
+      alert({
+        title: 'Validation Error',
+        description: 'fromPath and toPath are required',
+      })
       return
     }
     const inferredLocale = inferLocale(form.fromPath) ?? inferLocale(form.toPath)
@@ -161,20 +175,28 @@ export default function RedirectsPage() {
       })
       if (!res.ok) {
         const err = await res.json().catch(() => ({}))
-        alert(err?.error || 'Failed to create redirect')
+        alert({
+          title: 'Error',
+          description: err?.error || 'Failed to create redirect',
+        })
         return
       }
       const json = await res.json()
       setItems((prev) => [json.data, ...prev])
       setForm({ fromPath: '', toPath: '', httpStatus: 301 })
-      alert('Redirect created')
+      toast.success('Redirect created')
     } finally {
       setCreating(false)
     }
   }
 
   async function remove(id: string) {
-    if (!confirm('Delete this redirect?')) return
+    const ok = await confirm({
+      title: 'Delete Redirect?',
+      description: 'Are you sure you want to delete this redirect?',
+      variant: 'destructive',
+    })
+    if (!ok) return
     const res = await fetch(`/api/redirects/${encodeURIComponent(id)}`, {
       method: 'DELETE',
       headers: {
@@ -185,7 +207,10 @@ export default function RedirectsPage() {
     if (res.status === 204) {
       setItems((prev) => prev.filter((r) => r.id !== id))
     } else {
-      alert('Failed to delete redirect')
+      alert({
+        title: 'Error',
+        description: 'Failed to delete redirect',
+      })
     }
   }
 

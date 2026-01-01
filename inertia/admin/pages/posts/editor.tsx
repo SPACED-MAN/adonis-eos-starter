@@ -5,6 +5,8 @@
  */
 
 import { useForm, usePage, router } from '@inertiajs/react'
+import { useUnsavedChanges, bypassUnsavedChanges } from '~/hooks/useUnsavedChanges'
+import { useConfirm } from '~/components/ConfirmDialogProvider'
 import { AdminHeader } from '../../components/AdminHeader'
 import { AdminFooter } from '../../components/AdminFooter'
 import { Input } from '~/components/ui/input'
@@ -428,7 +430,24 @@ function ModuleRowBase({
     m.type
     : moduleRegistry[m.type]?.name || m.type
 
-  const labelToDisplay = m.adminLabel || m.label || moduleName
+  const labelToDisplay = useMemo(() => {
+    if (m.adminLabel) return m.adminLabel
+    if (m.label) return m.label
+
+    // Try to find a dynamic label from props for common fields
+    const candidates = ['title', 'name', 'heading', 'label', 'heading_text']
+    const props = m.props || {}
+    const overrides = m.overrides || {}
+    const merged = { ...props, ...overrides }
+
+    for (const key of candidates) {
+      const val = merged[key]
+      if (typeof val === 'string' && val.trim() !== '') return val.trim()
+      if (typeof val === 'number') return String(val)
+    }
+
+    return moduleName
+  }, [m.adminLabel, m.label, m.props, m.overrides, moduleName])
 
   const saveLabel = async () => {
     const label = localLabel.trim() || null
@@ -700,6 +719,7 @@ export default function Editor({
   selectedTaxonomyTermIds = [],
   fieldTypes = [],
 }: EditorProps) {
+  const { confirm } = useConfirm()
   const hasFieldPermission = useHasPermission('agents.field')
   const initialTaxonomyIds = useMemo(
     () =>
@@ -1548,7 +1568,8 @@ export default function Editor({
         // Reload to get fresh data from server, preserving the current view mode
         const currentUrl = new URL(window.location.href)
         currentUrl.searchParams.set('view', 'source')
-        window.location.href = currentUrl.toString()
+        bypassUnsavedChanges(true)
+        router.visit(currentUrl.toString())
       } else {
         if ((res as any).type === 'opaqueredirect' || (res.status >= 300 && res.status < 400)) {
           console.error('Save got redirected', { status: res.status, type: (res as any).type })
@@ -1598,7 +1619,8 @@ export default function Editor({
       if (data?.promoted === false) {
         toast.info(data.message || 'No changes were found to promote.')
         // Force reload anyway to stay in sync with server state
-        window.location.reload()
+        bypassUnsavedChanges(true)
+        router.reload()
       } else {
         toast.success(
           data?.message ||
@@ -1606,7 +1628,8 @@ export default function Editor({
             ? 'AI Review promoted to Review'
             : 'Review promoted to Source')
         )
-        window.location.reload()
+        bypassUnsavedChanges(true)
+        router.reload()
       }
       return
     }
@@ -1626,6 +1649,7 @@ export default function Editor({
     })
     if (res.ok) {
       toast.success('Post deleted successfully')
+      bypassUnsavedChanges(true)
       router.visit('/admin/posts')
       return
     }
@@ -1688,6 +1712,8 @@ export default function Editor({
     hasStructuralChanges,
     modulesEnabled,
   ])
+
+  useUnsavedChanges(isDirty)
   const [pathPattern, setPathPattern] = useState<string | null>(null)
   const [supportedLocales, setSupportedLocales] = useState<string[]>([])
   const [selectedLocale, setSelectedLocale] = useState<string>(post.locale)
@@ -2019,6 +2045,7 @@ export default function Editor({
       // Redirect to Review tab if we're not already there
       const url = new URL(window.location.href)
       url.searchParams.set('view', 'review')
+      bypassUnsavedChanges(true)
       router.visit(url.toString(), {
         preserveScroll: true,
         only: ['reviewDraft', 'post', 'modules'],
@@ -2069,6 +2096,7 @@ export default function Editor({
       // Redirect to AI Review tab if we're not already there
       const url = new URL(window.location.href)
       url.searchParams.set('view', 'ai-review')
+      bypassUnsavedChanges(true)
       router.visit(url.toString(), {
         preserveScroll: true,
         only: ['aiReviewDraft', 'post', 'modules'],
@@ -3966,7 +3994,8 @@ export default function Editor({
                         if (nextLocale === post.locale) return
                         const target = translations?.find((t) => t.locale === nextLocale)
                         if (target) {
-                          window.location.href = `/admin/posts/${target.id}/edit`
+                          bypassUnsavedChanges(true)
+                          router.visit(`/admin/posts/${target.id}/edit`)
                         }
                       }}
                     >
@@ -4022,11 +4051,13 @@ export default function Editor({
                               // Navigate to the new translation
                               // We use view=ai-review because the agent likely put content there
                               setTimeout(() => {
-                                window.location.href = `/admin/posts/${newId}/edit${translationAgents.length > 0 ? '?view=ai-review' : ''}`
+                                bypassUnsavedChanges(true)
+                                router.visit(`/admin/posts/${newId}/edit${translationAgents.length > 0 ? '?view=ai-review' : ''}`)
                               }, 500)
                             } else {
                               setTimeout(() => {
-                                window.location.reload()
+                                bypassUnsavedChanges(true)
+                                router.reload()
                               }, 1000)
                             }
                           } catch (err: any) {
@@ -4056,11 +4087,12 @@ export default function Editor({
                         <button
                           type="button"
                           onClick={async () => {
-                            if (
-                              confirm(
-                                `Promote Variation ${post.abVariation} as the winner? This will replace the main post content with this variation and end the A/B test.`
-                              )
-                            ) {
+                            const ok = await confirm({
+                              title: 'Promote Variation?',
+                              description: `Promote Variation ${post.abVariation} as the winner? This will replace the main post content with this variation and end the A/B test.`,
+                              variant: 'destructive',
+                            })
+                            if (ok) {
                               try {
                                 const res = await fetch(`/api/posts/${post.id}/promote-variation`, {
                                   method: 'POST',
@@ -4072,7 +4104,8 @@ export default function Editor({
                                 const j = await res.json()
                                 if (res.ok) {
                                   toast.success('Variation promoted successfully!')
-                                  window.location.href = `/admin/posts/${j.id}/edit`
+                                  bypassUnsavedChanges(true)
+                                  router.visit(`/admin/posts/${j.id}/edit`)
                                 } else {
                                   toast.error(j.error || 'Failed to promote variation')
                                 }
@@ -5466,7 +5499,8 @@ export default function Editor({
                     if (viewMode !== 'source') {
                       url.searchParams.set('inline_mode', viewMode)
                     }
-                    window.location.href = url.toString()
+                    bypassUnsavedChanges(true)
+                    router.visit(url.toString())
                   }
                 }}
               />
@@ -5685,7 +5719,8 @@ export default function Editor({
                       j.message ||
                       `Variation ${pendingVariationToCreate.value} created for all locales`
                     )
-                    window.location.href = `/admin/posts/${j.id}/edit`
+                    bypassUnsavedChanges(true)
+                    router.visit(`/admin/posts/${j.id}/edit`)
                   } else {
                     toast.error(j.error || 'Failed to create variation')
                   }
@@ -5733,10 +5768,11 @@ export default function Editor({
                   const j = await res.json()
                   if (res.ok) {
                     toast.success(j.message || 'Variation deleted')
+                    bypassUnsavedChanges(true)
                     if (j.remainingPostId) {
-                      window.location.href = `/admin/posts/${j.remainingPostId}/edit`
+                      router.visit(`/admin/posts/${j.remainingPostId}/edit`)
                     } else {
-                      window.location.reload()
+                      router.reload()
                     }
                   } else {
                     toast.error(j.error || 'Failed to delete variation')

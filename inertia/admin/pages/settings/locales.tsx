@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react'
 import { Head } from '@inertiajs/react'
 import { AdminHeader } from '../../components/AdminHeader'
 import { AdminFooter } from '../../components/AdminFooter'
+import { useConfirm } from '~/components/ConfirmDialogProvider'
 import {
   Table,
   TableBody,
@@ -20,6 +21,7 @@ function getXsrfToken(): string | undefined {
 }
 
 export default function LocalesPage() {
+  const { confirm } = useConfirm()
   const [rows, setRows] = useState<LocaleRow[]>([])
   const [loading, setLoading] = useState(false)
   const [updating, setUpdating] = useState<string | null>(null)
@@ -82,7 +84,12 @@ export default function LocalesPage() {
   }
 
   async function removeLocale(code: string) {
-    if (!confirm(`Delete locale "${code}" and all associated posts? This cannot be undone.`)) return
+    const ok = await confirm({
+      title: 'Delete Locale?',
+      description: `Are you sure you want to delete the locale "${code.toUpperCase()}" and all associated posts? This action cannot be undone.`,
+      variant: 'destructive',
+    })
+    if (!ok) return
     setUpdating(code)
     try {
       const res = await fetch(`/api/locales/${encodeURIComponent(code)}`, {

@@ -78,8 +78,9 @@ function InitialContentPlugin({
 
   useEffect(() => {
     // Only run if the key has changed or we haven't initialized yet
-    if (initializedKeyRef.current === editorKey && editorKey !== undefined) return
-    initializedKeyRef.current = editorKey || 'default'
+    const currentKey = editorKey || 'default'
+    if (initializedKeyRef.current === currentKey) return
+    initializedKeyRef.current = currentKey
 
     try {
       let candidate: any = initialValue
@@ -279,6 +280,10 @@ export function LexicalEditor({
           onChange={(state) => {
             try {
               const json = state.toJSON()
+              // Deep compare to avoid redundant onChange calls
+              if (JSON.stringify(json) === JSON.stringify(value)) {
+                return
+              }
               onChange(json)
             } catch {
               // ignore

@@ -27,6 +27,7 @@ import {
 } from '../../../components/ui/select'
 import { Checkbox } from '../../../components/ui/checkbox'
 import { toast } from 'sonner'
+import { useConfirm } from '~/components/ConfirmDialogProvider'
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome'
 import { faDownload, faTrash, faSpinner, faSearch } from '@fortawesome/free-solid-svg-icons'
 
@@ -58,6 +59,7 @@ interface FormsIndexProps {
 }
 
 export default function FormsIndex({ forms, submissions, meta }: FormsIndexProps) {
+  const { confirm } = useConfirm()
   const [selectedSubmission, setSelectedSubmission] = useState<FormSubmissionSummary | null>(null)
   const [isDeleting, setIsDeleting] = useState<string | boolean>(false)
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set())
@@ -88,7 +90,12 @@ export default function FormsIndex({ forms, submissions, meta }: FormsIndexProps
   }, [q])
 
   const handleDelete = async (id: string) => {
-    if (!confirm('Are you sure you want to delete this submission?')) return
+    const ok = await confirm({
+      title: 'Delete Submission?',
+      description: 'Are you sure you want to delete this submission? This action cannot be undone.',
+      variant: 'destructive',
+    })
+    if (!ok) return
     setIsDeleting(id)
     try {
       await router.delete(`/api/forms-submissions/${id}`, {
@@ -111,7 +118,12 @@ export default function FormsIndex({ forms, submissions, meta }: FormsIndexProps
 
   const handleBulkDelete = async () => {
     if (selectedIds.size === 0) return
-    if (!confirm(`Are you sure you want to delete ${selectedIds.size} submissions?`)) return
+    const ok = await confirm({
+      title: 'Delete Submissions?',
+      description: `Are you sure you want to delete ${selectedIds.size} submissions? This action cannot be undone.`,
+      variant: 'destructive',
+    })
+    if (!ok) return
 
     setIsDeleting(true)
     try {
