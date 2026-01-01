@@ -3,6 +3,9 @@ import type { LinkValue } from './types'
 import { useInlineValue, useInlineField } from '../components/inline-edit/InlineEditorContext'
 import { resolveLink, resolvePostLink } from '../utils/resolve_link'
 import { useState, useEffect } from 'react'
+import { getSectionStyles } from '../utils/colors'
+import { SectionBackground } from '../components/SectionBackground'
+import { THEME_OPTIONS } from '#modules/shared_fields'
 
 interface CalloutButton {
   label?: string
@@ -14,7 +17,7 @@ interface HeroWithCalloutProps {
   title: string
   subtitle?: string | null
   callouts?: CalloutButton[] | null
-  backgroundColor?: string
+  theme?: string
   __moduleId?: string
   _useReact?: boolean
 }
@@ -35,11 +38,11 @@ function getLinkTarget(
 function CalloutButtons({
   callouts,
   _useReact,
-  isDarkBg,
+  inverted,
 }: {
   callouts: CalloutButton[]
   _useReact?: boolean
-  isDarkBg?: boolean
+  inverted?: boolean
 }) {
   const [resolvedLinks, setResolvedLinks] = useState<Map<number, string>>(new Map())
 
@@ -142,7 +145,7 @@ function CalloutButtons({
         target={linkTarget}
         rel={linkTarget === '_blank' ? 'noopener noreferrer' : undefined}
         className={`inline-flex justify-center items-center py-3 px-5 text-sm sm:text-base font-medium text-center rounded-lg focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:ring-standout-high transition-all active:scale-95 ${
-          isDarkBg
+          inverted
             ? 'bg-backdrop-low text-neutral-high hover:bg-backdrop-low/90'
             : 'text-on-high bg-standout-high hover:bg-standout-high/90'
         }`}
@@ -201,18 +204,18 @@ export default function HeroWithCallout({
   title: initialTitle,
   subtitle: initialSubtitle,
   callouts: initialCallouts,
-  backgroundColor = 'bg-backdrop-low',
+  theme: initialTheme = 'low',
   __moduleId,
   _useReact,
 }: HeroWithCalloutProps) {
   const { value: title, show: showTitle, props: titleProps } = useInlineField(__moduleId, 'title', initialTitle, { label: 'Title' })
   const { value: subtitle, show: showSubtitle, props: subtitleProps } = useInlineField(__moduleId, 'subtitle', initialSubtitle, { label: 'Subtitle' })
   const callouts = useInlineValue(__moduleId, 'callouts', initialCallouts)
-  const bg = useInlineValue(__moduleId, 'backgroundColor', backgroundColor) || backgroundColor
+  const theme = useInlineValue(__moduleId, 'theme', initialTheme) || initialTheme
 
-  const isDarkBg = bg === 'bg-neutral-high' || bg === 'bg-backdrop-high' || bg === 'bg-standout-high'
-  const textColor = isDarkBg ? 'text-on-high' : 'text-neutral-high'
-  const subtextColor = isDarkBg ? 'text-on-high/80' : 'text-neutral-medium'
+  const styles = getSectionStyles(theme)
+  const textColor = styles.textColor
+  const subtextColor = styles.subtextColor
 
   const content = (
     <div className="max-w-5xl mx-auto px-4 sm:px-6 lg:px-12 text-center">
@@ -259,7 +262,7 @@ export default function HeroWithCallout({
         ))}
 
       {callouts && callouts.length > 0 && (
-        <CalloutButtons callouts={callouts} _useReact={_useReact} isDarkBg={isDarkBg} />
+        <CalloutButtons callouts={callouts} _useReact={_useReact} inverted={styles.inverted} />
       )}
     </div>
   )
@@ -271,40 +274,34 @@ export default function HeroWithCallout({
         whileInView={{ opacity: 1 }}
         viewport={{ once: true, margin: '-100px' }}
         transition={{ duration: 0.8 }}
-        className={`${bg} py-12 lg:py-16`}
+        className={`${styles.containerClasses} py-12 lg:py-16 relative overflow-hidden`}
         data-module="hero-with-callout"
         data-inline-type="select"
-        data-inline-path="backgroundColor"
-        data-inline-label="Background Color"
-        data-inline-options={JSON.stringify([
-          { label: 'Transparent', value: 'bg-transparent' },
-          { label: 'Low', value: 'bg-backdrop-low' },
-          { label: 'Medium', value: 'bg-backdrop-medium' },
-          { label: 'High', value: 'bg-backdrop-high' },
-          { label: 'Dark', value: 'bg-neutral-high' },
-        ])}
+        data-inline-path="theme"
+        data-inline-label="Theme"
+        data-inline-options={JSON.stringify(THEME_OPTIONS)}
       >
-        {content}
+        <SectionBackground component={styles.backgroundComponent} />
+        <div className="relative z-10">
+          {content}
+        </div>
       </motion.section>
     )
   }
 
   return (
     <section
-      className={`${bg} py-12 lg:py-16`}
+      className={`${styles.containerClasses} py-12 lg:py-16 relative overflow-hidden`}
       data-module="hero-with-callout"
       data-inline-type="select"
-      data-inline-path="backgroundColor"
-      data-inline-label="Background Color"
-      data-inline-options={JSON.stringify([
-        { label: 'Transparent', value: 'bg-transparent' },
-        { label: 'Low', value: 'bg-backdrop-low' },
-        { label: 'Medium', value: 'bg-backdrop-medium' },
-        { label: 'High', value: 'bg-backdrop-high' },
-        { label: 'Dark', value: 'bg-neutral-high' },
-      ])}
+      data-inline-path="theme"
+      data-inline-label="Theme"
+      data-inline-options={JSON.stringify(THEME_OPTIONS)}
     >
-      {content}
+      <SectionBackground component={styles.backgroundComponent} />
+      <div className="relative z-10">
+        {content}
+      </div>
     </section>
   )
 }

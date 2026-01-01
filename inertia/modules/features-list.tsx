@@ -1,6 +1,9 @@
 import { motion } from 'framer-motion'
 import { FontAwesomeIcon } from '../site/lib/icons'
 import { useInlineValue } from '../components/inline-edit/InlineEditorContext'
+import { getSectionStyles } from '../utils/colors'
+import { SectionBackground } from '../components/SectionBackground'
+import { THEME_OPTIONS } from '#modules/shared_fields'
 
 interface FeatureItem {
   icon?: string | null
@@ -12,7 +15,7 @@ interface FeaturesListProps {
   title: string
   subtitle?: string | null
   features: FeatureItem[]
-  backgroundColor?: string
+  theme?: string
   __moduleId?: string
   _useReact?: boolean
 }
@@ -21,19 +24,19 @@ export default function FeaturesList({
   title: initialTitle,
   subtitle: initialSubtitle,
   features: initialFeatures,
-  backgroundColor = 'bg-backdrop-low',
+  theme: initialTheme = 'low',
   __moduleId,
   _useReact,
 }: FeaturesListProps) {
   const title = useInlineValue(__moduleId, 'title', initialTitle)
   const subtitle = useInlineValue(__moduleId, 'subtitle', initialSubtitle)
   const features = useInlineValue(__moduleId, 'features', initialFeatures)
-  const bg = useInlineValue(__moduleId, 'backgroundColor', backgroundColor) || backgroundColor
+  const theme = useInlineValue(__moduleId, 'theme', initialTheme) || initialTheme
 
-  const isDarkBg = bg === 'bg-neutral-high' || bg === 'bg-backdrop-high' || bg === 'bg-standout-high'
-  const textColor = isDarkBg ? 'text-on-high' : 'text-neutral-high'
-  const subtextColor = isDarkBg ? 'text-on-high/80' : 'text-neutral-medium'
-  const iconBg = isDarkBg
+  const styles = getSectionStyles(theme)
+  const textColor = styles.textColor
+  const subtextColor = styles.subtextColor
+  const iconBg = styles.inverted
     ? 'bg-on-high/10 text-on-high'
     : 'bg-standout-high/10 text-standout-high'
 
@@ -163,8 +166,16 @@ export default function FeaturesList({
   )
 
   return (
-    <section className={`${bg} py-12 sm:py-16`} data-module="features-list">
-      <div className="container mx-auto px-4 sm:px-6 lg:px-8">
+    <section
+      className={`${styles.containerClasses} py-12 sm:py-16 relative overflow-hidden`}
+      data-module="features-list"
+      data-inline-type="select"
+      data-inline-path="theme"
+      data-inline-label="Theme"
+      data-inline-options={JSON.stringify(THEME_OPTIONS)}
+    >
+      <SectionBackground component={styles.backgroundComponent} />
+      <div className="container mx-auto px-4 sm:px-6 lg:px-8 relative z-10">
         {headerContent}
         {_useReact ? (
           <motion.div

@@ -1,7 +1,7 @@
 import BaseModule from '#modules/base'
 import type { ModuleConfig } from '#types/module_types'
 
-import { backgroundColorField } from './shared_fields.js'
+import { themeField } from './shared_fields.js'
 
 /**
  * Callout Module
@@ -126,7 +126,7 @@ export default class CalloutModule extends BaseModule {
             { label: 'Split (Image Right)', value: 'split-right' },
           ],
         },
-        backgroundColorField,
+        themeField,
       ],
       defaultValues: {
         title: 'Ready to get started?',
@@ -136,7 +136,7 @@ export default class CalloutModule extends BaseModule {
           { label: 'View Documentation', url: '#', style: 'outline' },
         ],
         variant: 'centered',
-        backgroundColor: 'bg-backdrop-low',
+        theme: 'low',
       },
       allowedPostTypes: [],
     }

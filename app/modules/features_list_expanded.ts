@@ -1,6 +1,6 @@
 import BaseModule from '#modules/base'
 import type { ModuleConfig } from '#types/module_types'
-import { backgroundColorField } from './shared_fields.js'
+import { themeField } from './shared_fields.js'
 
 export default class FeaturesListExpandedModule extends BaseModule {
   /**
@@ -116,7 +116,7 @@ export default class FeaturesListExpandedModule extends BaseModule {
           type: 'tab',
           label: 'Design',
         },
-        backgroundColorField,
+        themeField,
       ],
       defaultValues: {
         title: 'Built for growing teams and ambitious roadmaps',
@@ -144,7 +144,7 @@ export default class FeaturesListExpandedModule extends BaseModule {
           url: { kind: 'url', url: '#', target: '_self' },
           style: 'primary',
         },
-        backgroundColor: 'bg-backdrop-low',
+        theme: 'low',
       },
       allowedPostTypes: [],
     }

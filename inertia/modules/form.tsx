@@ -1,6 +1,9 @@
 import { useEffect, useState, FormEvent } from 'react'
 import { motion } from 'framer-motion'
 import { useInlineValue } from '../components/inline-edit/InlineEditorContext'
+import { getSectionStyles } from '../utils/colors'
+import { SectionBackground } from '../components/SectionBackground'
+import { THEME_OPTIONS } from '#modules/shared_fields'
 
 type FormFieldType =
   | 'text'
@@ -36,7 +39,7 @@ interface FormModuleProps {
   subtitle?: string | null
   formSlug: string
   __postId?: string
-  backgroundColor?: string
+  theme?: string
   _useReact?: boolean
 }
 
@@ -45,7 +48,7 @@ export default function FormModule({
   subtitle,
   formSlug,
   __postId,
-  backgroundColor = 'bg-backdrop-low',
+  theme: initialTheme = 'low',
   _useReact,
   __moduleId,
 }: FormModuleProps & { __moduleId?: string }) {
@@ -57,14 +60,14 @@ export default function FormModule({
   const [submitted, setSubmitted] = useState(false)
   const [successTextOverride, setSuccessTextOverride] = useState<string | null>(null)
 
-  const bg = useInlineValue(__moduleId, 'backgroundColor', backgroundColor) || backgroundColor
-  const isDarkBg = bg === 'bg-neutral-high' || bg === 'bg-backdrop-high' || bg === 'bg-standout-high'
-  const textColor = isDarkBg ? 'text-on-high' : 'text-neutral-high'
-  const subtextColor = isDarkBg ? 'text-on-high/80' : 'text-neutral-medium'
-  const inputBg = isDarkBg
+  const theme = useInlineValue(__moduleId, 'theme', initialTheme) || initialTheme
+  const styles = getSectionStyles(theme)
+  const textColor = styles.textColor
+  const subtextColor = styles.subtextColor
+  const inputBg = styles.inverted
     ? 'bg-on-high/10 text-on-high border-on-high/20 placeholder:text-on-high/40'
     : 'bg-backdrop-input text-neutral-high border-line-low'
-  const labelColor = isDarkBg ? 'text-on-high' : 'text-neutral-high'
+  const labelColor = styles.inverted ? 'text-on-high' : 'text-neutral-high'
 
   const visibleTitle = title || definition?.title || ''
 
@@ -123,8 +126,12 @@ export default function FormModule({
 
   if (loading) {
     return (
-      <section className={`${bg} py-8`} data-module="form">
-        <div className="container mx-auto px-4 sm:px-6 lg:px-8">
+      <section
+        className={`${styles.containerClasses} py-8 relative overflow-hidden`}
+        data-module="form"
+      >
+        <SectionBackground component={styles.backgroundComponent} />
+        <div className="container mx-auto px-4 sm:px-6 lg:px-8 relative z-10">
           <p className={`text-sm ${subtextColor}`}>Loading form...</p>
         </div>
       </section>
@@ -239,7 +246,7 @@ export default function FormModule({
                   <input
                     id={fieldId}
                     type="checkbox"
-                    className={`h-4 w-4 rounded border-line-low ${isDarkBg ? 'bg-on-high/10 text-on-high' : 'bg-backdrop-input text-standout-high'} focus:ring-standout-high/50`}
+                    className={`h-4 w-4 rounded border-line-low ${styles.inverted ? 'bg-on-high/10 text-on-high' : 'bg-backdrop-input text-standout-high'} focus:ring-standout-high/50`}
                     checked={Boolean(rawValue)}
                     onChange={(e) => handleChange(field.slug, e.target.checked)}
                   />
@@ -271,7 +278,7 @@ export default function FormModule({
             case 'multiselect':
               return (
                 <div
-                  className={`space-y-2 p-3 border ${isDarkBg ? 'border-on-high/20 bg-on-high/5' : 'border-line-low bg-backdrop-input/50'} rounded-md`}
+                  className={`space-y-2 p-3 border ${styles.inverted ? 'border-on-high/20 bg-on-high/5' : 'border-line-low bg-backdrop-input/50'} rounded-md`}
                 >
                   {(field.options || []).map((opt) => {
                     const optId = `${fieldId}-${opt.value}`
@@ -282,7 +289,7 @@ export default function FormModule({
                         <input
                           id={optId}
                           type="checkbox"
-                          className={`h-4 w-4 rounded border-line-low ${isDarkBg ? 'bg-on-high/10 text-on-high' : 'bg-backdrop-input text-standout-high'} focus:ring-standout-high/50`}
+                          className={`h-4 w-4 rounded border-line-low ${styles.inverted ? 'bg-on-high/10 text-on-high' : 'bg-backdrop-input text-standout-high'} focus:ring-standout-high/50`}
                           checked={isChecked}
                           onChange={(e) =>
                             handleMultiselectChange(field.slug, String(opt.value), e.target.checked)
@@ -396,7 +403,7 @@ export default function FormModule({
             <button
               type="submit"
               disabled={submitting}
-              className={`inline-flex items-center px-5 py-2.5 rounded-md ${isDarkBg ? 'bg-backdrop-low text-neutral-high' : 'bg-standout-high text-on-high'} text-sm font-medium hover:bg-standout-high/90 disabled:opacity-60 focus:outline-none focus:ring-2 focus:ring-standout-high/40 transition-all active:scale-95`}
+              className={`inline-flex items-center px-5 py-2.5 rounded-md ${styles.inverted ? 'bg-backdrop-low text-neutral-high' : 'bg-standout-high text-on-high'} text-sm font-medium hover:bg-standout-high/90 disabled:opacity-60 focus:outline-none focus:ring-2 focus:ring-standout-high/40 transition-all active:scale-95`}
             >
               {submitting ? 'Sending...' : 'Submit'}
             </button>
@@ -409,7 +416,7 @@ export default function FormModule({
             <button
               type="submit"
               disabled={submitting}
-              className={`inline-flex items-center px-5 py-2.5 rounded-md ${isDarkBg ? 'bg-backdrop-low text-neutral-high' : 'bg-standout-high text-on-high'} text-sm font-medium hover:bg-standout-high/90 disabled:opacity-60 focus:outline-none focus:ring-2 focus:ring-standout-high/40 transition-all active:scale-95`}
+              className={`inline-flex items-center px-5 py-2.5 rounded-md ${styles.inverted ? 'bg-backdrop-low text-neutral-high' : 'bg-standout-high text-on-high'} text-sm font-medium hover:bg-standout-high/90 disabled:opacity-60 focus:outline-none focus:ring-2 focus:ring-standout-high/40 transition-all active:scale-95`}
             >
               {submitting ? 'Sending...' : 'Submit'}
             </button>
@@ -421,19 +428,15 @@ export default function FormModule({
 
   return (
     <section
-      className={`${bg} py-8 lg:py-16`}
+      className={`${styles.containerClasses} py-8 lg:py-16 relative overflow-hidden`}
       data-module="form"
       data-inline-type="select"
-      data-inline-path="backgroundColor"
-      data-inline-options={JSON.stringify([
-        { label: 'Transparent', value: 'bg-transparent' },
-        { label: 'Low', value: 'bg-backdrop-low' },
-        { label: 'Medium', value: 'bg-backdrop-medium' },
-        { label: 'High', value: 'bg-backdrop-high' },
-        { label: 'Dark', value: 'bg-neutral-high' },
-      ])}
+      data-inline-path="theme"
+      data-inline-label="Theme"
+      data-inline-options={JSON.stringify(THEME_OPTIONS)}
     >
-      <div className="container mx-auto px-4 sm:px-6 lg:px-8 max-w-xl">{formBody}</div>
+      <SectionBackground component={styles.backgroundComponent} />
+      <div className="container mx-auto px-4 sm:px-6 lg:px-8 max-w-xl relative z-10">{formBody}</div>
     </section>
   )
 }

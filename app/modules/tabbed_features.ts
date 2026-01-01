@@ -1,6 +1,6 @@
 import BaseModule from '#modules/base'
 import type { ModuleConfig } from '#types/module_types'
-import { backgroundColorField } from './shared_fields.js'
+import { themeField } from './shared_fields.js'
 
 export default class TabbedFeaturesModule extends BaseModule {
   getRenderingMode() {
@@ -93,7 +93,7 @@ export default class TabbedFeaturesModule extends BaseModule {
             { label: 'Right', value: 'right' },
           ],
         },
-        backgroundColorField,
+        themeField,
       ],
       defaultValues: {
         tabs: [
@@ -107,7 +107,7 @@ export default class TabbedFeaturesModule extends BaseModule {
           },
         ],
         layout: 'top',
-        backgroundColor: 'bg-transparent',
+        theme: 'transparent',
       },
       allowedPostTypes: [],
     }

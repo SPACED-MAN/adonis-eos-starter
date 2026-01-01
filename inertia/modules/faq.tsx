@@ -2,6 +2,9 @@ import { motion } from 'framer-motion'
 import { resolveHrefAndTarget } from './hero-with-media'
 import { FontAwesomeIcon } from '../site/lib/icons'
 import { useInlineValue, useInlineField } from '../components/inline-edit/InlineEditorContext'
+import { getSectionStyles } from '../utils/colors'
+import { SectionBackground } from '../components/SectionBackground'
+import { THEME_OPTIONS } from '#modules/shared_fields'
 
 type LinkValue =
   | null
@@ -25,7 +28,7 @@ interface FaqProps {
   title: string
   subtitle?: string | null
   items: FaqItem[]
-  backgroundColor?: string
+  theme?: string
   __moduleId?: string
   _useReact?: boolean
 }
@@ -34,18 +37,18 @@ export default function Faq({
   title: initialTitle,
   subtitle: initialSubtitle,
   items: initialItems,
-  backgroundColor = 'bg-backdrop-low',
+  theme: initialTheme = 'low',
   __moduleId,
   _useReact,
 }: FaqProps) {
   const { value: title, show: showTitle, props: titleProps } = useInlineField(__moduleId, 'title', initialTitle, { label: 'Title' })
   const { value: subtitle, show: showSubtitle, props: subtitleProps } = useInlineField(__moduleId, 'subtitle', initialSubtitle, { label: 'Subtitle' })
   const items = useInlineValue(__moduleId, 'items', initialItems)
-  const bg = useInlineValue(__moduleId, 'backgroundColor', backgroundColor) || backgroundColor
+  const theme = useInlineValue(__moduleId, 'theme', initialTheme) || initialTheme
 
-  const isDarkBg = bg === 'bg-neutral-high' || bg === 'bg-backdrop-high' || bg === 'bg-standout-high'
-  const textColor = isDarkBg ? 'text-on-high' : 'text-neutral-high'
-  const subtextColor = isDarkBg ? 'text-on-high/80' : 'text-neutral-medium'
+  const styles = getSectionStyles(theme)
+  const textColor = styles.textColor
+  const subtextColor = styles.subtextColor
 
   const safeItems = Array.isArray(items) ? items.filter(Boolean) : []
   if (safeItems.length === 0) return null
@@ -93,7 +96,7 @@ export default function Faq({
           ])}
         >
           <span
-            className={`mt-0.5 mr-3 inline-flex h-8 w-8 items-center justify-center rounded-full ${isDarkBg ? 'bg-on-high/20 text-on-high' : 'bg-backdrop-medium text-neutral-medium'} shrink-0`}
+            className={`mt-0.5 mr-3 inline-flex h-8 w-8 items-center justify-center rounded-full ${styles.inverted ? 'bg-on-high/20 text-on-high' : 'bg-backdrop-medium text-neutral-medium'} shrink-0`}
             aria-hidden="true"
           >
             <FontAwesomeIcon icon="circle-question" className="text-base sm:text-lg" />
@@ -112,7 +115,7 @@ export default function Faq({
                 href={link.href}
                 target={link.target}
                 rel={link.target === '_blank' ? 'noopener noreferrer' : undefined}
-                className={`font-medium ${isDarkBg ? 'text-on-high hover:underline' : 'text-standout-high hover:underline'}`}
+                className={`font-medium ${styles.inverted ? 'text-on-high hover:underline' : 'text-standout-high hover:underline'}`}
                 data-inline-type="link"
                 data-inline-path={`items.${idx}.linkUrl`}
               >
@@ -179,7 +182,7 @@ export default function Faq({
 
   const columnsContent = (
     <div
-      className={`grid gap-10 border-t ${isDarkBg ? 'border-line-low/20' : 'border-line-low'} pt-8 md:grid-cols-2 md:gap-12`}
+      className={`grid gap-10 border-t ${styles.inverted ? 'border-line-low/20' : 'border-line-low'} pt-8 md:grid-cols-2 md:gap-12`}
     >
       <div>{left.map((item, idx) => renderItem(item, idx))}</div>
       <div>{right.map((item, idx) => renderItem(item, midpoint + idx))}</div>
@@ -188,20 +191,15 @@ export default function Faq({
 
   return (
     <section
-      className={`${bg} py-12 sm:py-16`}
+      className={`${styles.containerClasses} py-12 sm:py-16 relative overflow-hidden`}
       data-module="faq"
       data-inline-type="select"
-      data-inline-path="backgroundColor"
-      data-inline-label="Background Color"
-      data-inline-options={JSON.stringify([
-        { label: 'Transparent', value: 'bg-transparent' },
-        { label: 'Low', value: 'bg-backdrop-low' },
-        { label: 'Medium', value: 'bg-backdrop-medium' },
-        { label: 'High', value: 'bg-backdrop-high' },
-        { label: 'Dark', value: 'bg-neutral-high' },
-      ])}
+      data-inline-path="theme"
+      data-inline-label="Theme"
+      data-inline-options={JSON.stringify(THEME_OPTIONS)}
     >
-      <div className="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8">
+      <SectionBackground component={styles.backgroundComponent} />
+      <div className="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8 relative z-10">
         {headerContent}
         {_useReact ? (
           <motion.div

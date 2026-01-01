@@ -2,6 +2,9 @@ import { motion, useScroll, useTransform, useSpring } from 'framer-motion'
 import { useRef } from 'react'
 import { useInlineValue, useInlineField } from '../components/inline-edit/InlineEditorContext'
 import { MediaRenderer } from '../components/MediaRenderer'
+import { getSectionStyles } from '../utils/colors'
+import { SectionBackground } from '../components/SectionBackground'
+import { THEME_OPTIONS } from '#modules/shared_fields'
 
 interface HeroWithImmersionProps {
   title: string
@@ -11,7 +14,7 @@ interface HeroWithImmersionProps {
   imagePosition?: 'left' | 'right'
   height?: string
   parallaxIntensity?: 'subtle' | 'moderate' | 'dramatic'
-  backgroundColor?: string
+  theme?: string
   __moduleId?: string
   _useReact?: boolean
 }
@@ -24,7 +27,7 @@ export default function HeroWithImmersion({
   imagePosition = 'right',
   height = 'h-screen',
   parallaxIntensity = 'moderate',
-  backgroundColor = 'bg-black',
+  theme: initialTheme = 'high',
   __moduleId,
   _useReact,
 }: HeroWithImmersionProps) {
@@ -36,7 +39,8 @@ export default function HeroWithImmersion({
   const fgImage = useInlineValue(__moduleId, 'foregroundImage', foregroundImage)
   const imagePos = useInlineValue(__moduleId, 'imagePosition', imagePosition) || imagePosition
   const intensityValue = useInlineValue(__moduleId, 'parallaxIntensity', parallaxIntensity)
-  const bg = useInlineValue(__moduleId, 'backgroundColor', backgroundColor) || backgroundColor
+  const theme = useInlineValue(__moduleId, 'theme', initialTheme) || initialTheme
+  const styles = getSectionStyles(theme)
 
   const { scrollYProgress } = useScroll({
     target: containerRef,
@@ -90,7 +94,7 @@ export default function HeroWithImmersion({
               fetchPriority="high"
             />
           ) : (
-            <div className={`w-full h-full ${bg}`} />
+            <div className={`w-full h-full ${styles.containerClasses}`} />
           )}
           <div className="absolute inset-0 bg-black/40" />
         </Background>
@@ -149,20 +153,14 @@ export default function HeroWithImmersion({
   return (
     <section
       ref={containerRef}
-      className={`relative ${height} overflow-hidden ${bg}`}
+      className={`relative ${height} overflow-hidden ${styles.containerClasses}`}
       data-module="hero-with-immersion"
       data-inline-type="select"
-      data-inline-path="backgroundColor"
-      data-inline-label="Background Color"
-      data-inline-options={JSON.stringify([
-        { label: 'Black', value: 'bg-black' },
-        { label: 'Transparent', value: 'bg-transparent' },
-        { label: 'Low', value: 'bg-backdrop-low' },
-        { label: 'Medium', value: 'bg-backdrop-medium' },
-        { label: 'High', value: 'bg-backdrop-high' },
-        { label: 'Dark', value: 'bg-neutral-high' },
-      ])}
+      data-inline-path="theme"
+      data-inline-label="Theme"
+      data-inline-options={JSON.stringify(THEME_OPTIONS)}
     >
+      <SectionBackground component={styles.backgroundComponent} />
       {renderContent(!!_useReact)}
     </section>
   )

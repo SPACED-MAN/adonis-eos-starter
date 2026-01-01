@@ -1,6 +1,6 @@
 import BaseModule from '#modules/base'
 import type { ModuleConfig } from '#types/module_types'
-import { backgroundColorField } from './shared_fields.js'
+import { themeField } from './shared_fields.js'
 
 export default class HeroWithCalloutModule extends BaseModule {
   /**
@@ -71,7 +71,7 @@ export default class HeroWithCalloutModule extends BaseModule {
           type: 'tab',
           label: 'Design',
         },
-        backgroundColorField,
+        themeField,
       ],
       defaultValues: {
         title: "We invest in the world's potential",
@@ -83,7 +83,7 @@ export default class HeroWithCalloutModule extends BaseModule {
             url: '#',
           },
         ],
-        backgroundColor: 'bg-backdrop-low',
+        theme: 'low',
       },
       allowedPostTypes: [],
     }

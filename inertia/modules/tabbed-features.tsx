@@ -4,6 +4,9 @@ import { useInlineValue, useInlineField } from '../components/inline-edit/Inline
 import { MediaRenderer } from '../components/MediaRenderer'
 import { renderLexicalToHtml } from '../utils/lexical'
 import { FontAwesomeIcon } from '../site/lib/icons'
+import { getSectionStyles } from '../utils/colors'
+import { SectionBackground } from '../components/SectionBackground'
+import { THEME_OPTIONS } from '#modules/shared_fields'
 
 interface TabItem {
 	label: string
@@ -22,7 +25,7 @@ interface TabbedFeaturesProps {
 	subtitle?: string
 	tabs: TabItem[]
 	layout?: 'top' | 'left' | 'right'
-	backgroundColor?: string
+	theme?: string
 	__moduleId?: string
 	_useReact?: boolean
 }
@@ -32,21 +35,20 @@ export default function TabbedFeatures({
 	subtitle: initialSubtitle,
 	tabs: initialTabs = [],
 	layout: initialLayout = 'top',
-	backgroundColor: initialBackground = 'bg-transparent',
+	theme: initialTheme = 'transparent',
 	__moduleId,
 }: TabbedFeaturesProps) {
 	const { value: title, show: showTitle, props: titleProps } = useInlineField(__moduleId, 'title', initialTitle, { label: 'Title' })
 	const { value: subtitle, show: showSubtitle, props: subtitleProps } = useInlineField(__moduleId, 'subtitle', initialSubtitle, { label: 'Subtitle' })
 	const tabs = useInlineValue(__moduleId, 'tabs', initialTabs) || []
 	const layout = useInlineValue(__moduleId, 'layout', initialLayout) || 'top'
-	const bg = useInlineValue(__moduleId, 'backgroundColor', initialBackground) || initialBackground
+	const theme = useInlineValue(__moduleId, 'theme', initialTheme) || initialTheme
+
+	const styles = getSectionStyles(theme)
+	const textColor = styles.textColor
+	const subtextColor = styles.subtextColor
 
 	const [activeTab, setActiveTab] = useState(0)
-
-	const isDarkBg = bg === 'bg-neutral-high' || bg === 'bg-backdrop-high' || bg === 'bg-standout-high'
-	const textColor = isDarkBg ? 'text-on-high' : 'text-neutral-high'
-	const subtextColor = isDarkBg ? 'text-on-high/80' : 'text-neutral-medium'
-
 	const currentTab = tabs[activeTab] || tabs[0] || null
 	const isVertical = layout === 'left' || layout === 'right'
 
@@ -146,7 +148,7 @@ export default function TabbedFeatures({
 							<div className="space-y-6">
 								{currentTab.prose && (
 									<div
-										className={`prose prose-lg max-w-none ${isDarkBg ? 'prose-invert' : ''} ${subtextColor}`}
+										className={`prose prose-lg max-w-none ${styles.proseInvert} ${subtextColor}`}
 										dangerouslySetInnerHTML={{
 											__html: renderLexicalToHtml(currentTab.prose),
 										}}
@@ -163,8 +165,16 @@ export default function TabbedFeatures({
 	)
 
 	return (
-		<section className={`${bg} py-20 lg:py-32 overflow-hidden`} data-module="tabbed-features">
-			<div className="container mx-auto px-4 sm:px-6 lg:px-8">
+		<section
+			className={`${styles.containerClasses} py-20 lg:py-32 overflow-hidden relative`}
+			data-module="tabbed-features"
+			data-inline-type="select"
+			data-inline-path="theme"
+			data-inline-label="Theme"
+			data-inline-options={JSON.stringify(THEME_OPTIONS)}
+		>
+			<SectionBackground component={styles.backgroundComponent} />
+			<div className="container mx-auto px-4 sm:px-6 lg:px-8 relative z-10">
 				{layout === 'top' && (
 					<>
 						{header}

@@ -13,6 +13,9 @@ import { motion, AnimatePresence } from 'framer-motion'
 import { FontAwesomeIcon } from '../site/lib/icons'
 import { useInlineValue, useInlineField } from '../components/inline-edit/InlineEditorContext'
 import { renderLexicalToHtml } from '../utils/lexical'
+import { getSectionStyles } from '../utils/colors'
+import { SectionBackground } from '../components/SectionBackground'
+import { THEME_OPTIONS } from '#modules/shared_fields'
 
 interface AccordionItem {
   title: string
@@ -24,7 +27,7 @@ interface AccordionsProps {
   subtitle?: string
   items: AccordionItem[]
   allowMultiple?: boolean
-  backgroundColor?: string
+  theme?: string
   __moduleId?: string
   _useReact?: boolean
 }
@@ -51,19 +54,19 @@ export default function Accordions({
   subtitle: initialSubtitle,
   items: initialItems = [],
   allowMultiple = false,
-  backgroundColor = 'bg-transparent',
+  theme: initialTheme = 'transparent',
   __moduleId,
 }: AccordionsProps) {
   const { value: title, show: showTitle, props: titleProps } = useInlineField(__moduleId, 'title', initialTitle, { label: 'Title' })
   const { value: subtitle, show: showSubtitle, props: subtitleProps } = useInlineField(__moduleId, 'subtitle', initialSubtitle, { label: 'Subtitle' })
   const items = useInlineValue(__moduleId, 'items', initialItems) || []
-  const bg = useInlineValue(__moduleId, 'backgroundColor', backgroundColor) || backgroundColor
+  const theme = useInlineValue(__moduleId, 'theme', initialTheme) || initialTheme
 
-  const isDarkBg = bg === 'bg-neutral-high' || bg === 'bg-backdrop-high' || bg === 'bg-standout-high'
-  const textColor = isDarkBg ? 'text-on-high' : 'text-neutral-high'
-  const subtextColor = isDarkBg ? 'text-on-high/80' : 'text-neutral-medium'
-  const itemBg = isDarkBg ? 'bg-backdrop-low/10' : 'bg-backdrop-low'
-  const itemBorder = isDarkBg ? 'border-backdrop-low/20' : 'border-border'
+  const styles = getSectionStyles(theme)
+  const textColor = styles.textColor
+  const subtextColor = styles.subtextColor
+  const itemBg = styles.inverted ? 'bg-backdrop-low/10' : 'bg-backdrop-low'
+  const itemBorder = styles.inverted ? 'border-backdrop-low/20' : 'border-border'
 
   const [openIndices, setOpenIndices] = useState<Set<number>>(new Set())
 
@@ -84,19 +87,15 @@ export default function Accordions({
 
   return (
     <section
-      className={`${bg} py-16 lg:py-24`}
+      className={`${styles.containerClasses} py-16 lg:py-24 relative overflow-hidden`}
       data-module="accordions"
       data-inline-type="select"
-      data-inline-path="backgroundColor"
-      data-inline-options={JSON.stringify([
-        { label: 'Transparent', value: 'bg-transparent' },
-        { label: 'Low', value: 'bg-backdrop-low' },
-        { label: 'Medium', value: 'bg-backdrop-medium' },
-        { label: 'High', value: 'bg-backdrop-high' },
-        { label: 'Dark', value: 'bg-neutral-high' },
-      ])}
+      data-inline-path="theme"
+      data-inline-label="Theme"
+      data-inline-options={JSON.stringify(THEME_OPTIONS)}
     >
-      <div className="container mx-auto px-4 sm:px-6 lg:px-8 max-w-3xl">
+      <SectionBackground component={styles.backgroundComponent} />
+      <div className="container mx-auto px-4 sm:px-6 lg:px-8 max-w-3xl relative z-10">
         {(showTitle || showSubtitle) && (
           <div className="mb-12 text-center">
             {showTitle && (
@@ -146,7 +145,7 @@ export default function Accordions({
                     >
                       <div className={`p-6 ${itemBg} border-t ${itemBorder}`}>
                         <div
-                          className={`${subtextColor} prose prose-sm md:prose-base max-w-none ${isDarkBg ? 'prose-invert' : ''}`}
+                          className={`${subtextColor} prose prose-sm md:prose-base max-w-none ${styles.proseInvert}`}
                           data-inline-type="richtext"
                           data-inline-path={`items.${index}.content`}
                           dangerouslySetInnerHTML={{ __html: htmlContent }}

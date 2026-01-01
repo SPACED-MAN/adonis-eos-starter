@@ -2,6 +2,9 @@ import { motion } from 'framer-motion'
 import { FontAwesomeIcon } from '../site/lib/icons'
 import { useInlineValue, useInlineField } from '../components/inline-edit/InlineEditorContext'
 import { MediaRenderer } from '../components/MediaRenderer'
+import { getSectionStyles } from '../utils/colors'
+import { SectionBackground } from '../components/SectionBackground'
+import { THEME_OPTIONS } from '#modules/shared_fields'
 
 interface BlockquoteProps {
   quote: string
@@ -14,7 +17,7 @@ interface BlockquoteProps {
     altText?: string
     metadata?: any
   } | null // media object
-  backgroundColor?: string
+  theme?: string
   __moduleId?: string
   _useReact?: boolean
 }
@@ -24,7 +27,7 @@ export default function Blockquote({
   authorName: initialAuthorName,
   authorTitle: initialAuthorTitle,
   avatar: initialAvatar,
-  backgroundColor = 'bg-backdrop-low',
+  theme: initialTheme = 'low',
   __moduleId,
   _useReact,
 }: BlockquoteProps) {
@@ -32,12 +35,12 @@ export default function Blockquote({
   const { value: authorName, show: showAuthorName, props: authorNameProps } = useInlineField(__moduleId, 'authorName', initialAuthorName, { label: 'Author Name' })
   const { value: authorTitle, show: showAuthorTitle, props: authorTitleProps } = useInlineField(__moduleId, 'authorTitle', initialAuthorTitle, { label: 'Author Title' })
   const { value: avatar, show: showAvatar, props: avatarProps } = useInlineField(__moduleId, 'avatar', initialAvatar, { type: 'media', label: 'Avatar' })
-  const bg = useInlineValue(__moduleId, 'backgroundColor', backgroundColor) || backgroundColor
+  const theme = useInlineValue(__moduleId, 'theme', initialTheme) || initialTheme
 
-  const isDarkBg = bg === 'bg-neutral-high' || bg === 'bg-backdrop-high' || bg === 'bg-standout-high'
-  const textColor = isDarkBg ? 'text-on-high' : 'text-neutral-high'
-  const subtextColor = isDarkBg ? 'text-on-high/80' : 'text-neutral-medium'
-  const quoteIconColor = isDarkBg ? 'text-on-high/40' : 'text-neutral-low'
+  const styles = getSectionStyles(theme)
+  const textColor = styles.textColor
+  const subtextColor = styles.subtextColor
+  const quoteIconColor = styles.quoteIconColor
 
   const content = (
     <div className="max-w-7xl px-4 mx-auto text-center">
@@ -96,7 +99,7 @@ export default function Blockquote({
             </div>
           )}
           <div
-            className={`flex items-center divide-x-2 ${isDarkBg ? 'divide-backdrop-low/20' : 'divide-neutral-low/60'}`}
+            className={`flex items-center divide-x-2 ${styles.inverted ? 'divide-backdrop-low/20' : 'divide-neutral-low/60'}`}
           >
             {showAuthorName && (
               <div className={`pr-3 font-medium ${textColor}`} {...authorNameProps}>
@@ -124,40 +127,34 @@ export default function Blockquote({
         whileInView={{ opacity: 1, y: 0 }}
         viewport={{ once: true, margin: '-100px' }}
         transition={{ duration: 1.0, ease: 'easeOut' }}
-        className={`${bg} py-8 lg:py-16`}
+        className={`${styles.containerClasses} py-8 lg:py-16 relative overflow-hidden`}
         data-module="blockquote"
         data-inline-type="select"
-        data-inline-path="backgroundColor"
-        data-inline-label="Background Color"
-        data-inline-options={JSON.stringify([
-          { label: 'Transparent', value: 'bg-transparent' },
-          { label: 'Low', value: 'bg-backdrop-low' },
-          { label: 'Medium', value: 'bg-backdrop-medium' },
-          { label: 'High', value: 'bg-backdrop-high' },
-          { label: 'Dark', value: 'bg-neutral-high' },
-        ])}
+        data-inline-path="theme"
+        data-inline-label="Theme"
+        data-inline-options={JSON.stringify(THEME_OPTIONS)}
       >
-        {content}
+        <SectionBackground component={styles.backgroundComponent} />
+        <div className="relative z-10">
+          {content}
+        </div>
       </motion.section>
     )
   }
 
   return (
     <section
-      className={`${bg} py-8 lg:py-16`}
+      className={`${styles.containerClasses} py-8 lg:py-16 relative overflow-hidden`}
       data-module="blockquote"
       data-inline-type="select"
-      data-inline-path="backgroundColor"
-      data-inline-label="Background Color"
-      data-inline-options={JSON.stringify([
-        { label: 'Transparent', value: 'bg-transparent' },
-        { label: 'Low', value: 'bg-backdrop-low' },
-        { label: 'Medium', value: 'bg-backdrop-medium' },
-        { label: 'High', value: 'bg-backdrop-high' },
-        { label: 'Dark', value: 'bg-neutral-high' },
-      ])}
+      data-inline-path="theme"
+      data-inline-label="Theme"
+      data-inline-options={JSON.stringify(THEME_OPTIONS)}
     >
-      {content}
+      <SectionBackground component={styles.backgroundComponent} />
+      <div className="relative z-10">
+        {content}
+      </div>
     </section>
   )
 }

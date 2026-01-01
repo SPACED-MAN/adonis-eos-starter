@@ -4,13 +4,16 @@ import { useInlineEditor, useInlineValue, useInlineField } from '../components/i
 import { FontAwesomeIcon } from '../site/lib/icons'
 import CompanyTeaser from '../site/post-types/company-teaser'
 import type { MediaObject } from '../utils/useMediaUrl'
+import { getSectionStyles } from '../utils/colors'
+import { SectionBackground } from '../components/SectionBackground'
+import { THEME_OPTIONS } from '#modules/shared_fields'
 
 interface CompanyListProps {
   title: string
   subtitle?: string | null
   // IDs of Company posts selected via post-reference field; if empty, show all.
   companies?: string[] | null
-  backgroundColor?: string
+  theme?: string
   __moduleId?: string
   _useReact?: boolean
 }
@@ -28,7 +31,7 @@ export default function CompanyList({
   title: initialTitle,
   subtitle: initialSubtitle,
   companies: initialCompanies,
-  backgroundColor: initialBackground = 'bg-backdrop-low',
+  theme: initialTheme = 'low',
   __moduleId,
   _useReact,
 }: CompanyListProps) {
@@ -38,11 +41,11 @@ export default function CompanyList({
   const { value: title, show: showTitle, props: titleProps } = useInlineField(__moduleId, 'title', initialTitle, { label: 'Title' })
   const { value: subtitle, show: showSubtitle, props: subtitleProps } = useInlineField(__moduleId, 'subtitle', initialSubtitle, { label: 'Subtitle' })
   const companies = useInlineValue(__moduleId, 'companies', initialCompanies)
-  const bg = useInlineValue(__moduleId, 'backgroundColor', initialBackground) || initialBackground
+  const theme = useInlineValue(__moduleId, 'theme', initialTheme) || initialTheme
 
-  const isDarkBg = bg === 'bg-neutral-high' || bg === 'bg-backdrop-high' || bg === 'bg-standout-high'
-  const textColor = isDarkBg ? 'text-on-high' : 'text-neutral-high'
-  const subtextColor = isDarkBg ? 'text-on-high/80' : 'text-neutral-medium'
+  const styles = getSectionStyles(theme)
+  const textColor = styles.textColor
+  const subtextColor = styles.subtextColor
 
   useEffect(() => {
     let cancelled = false
@@ -113,23 +116,23 @@ export default function CompanyList({
     <>
       {showTitle &&
         (_useReact ? (
-        <motion.h2
-          initial={{ opacity: 0, y: -20 }}
-          whileInView={{ opacity: 1, y: 0 }}
-          viewport={{ once: true }}
-          transition={{ duration: 0.8 }}
-          className={`mb-8 lg:mb-16 text-3xl md:text-4xl font-extrabold tracking-tight leading-tight text-center ${textColor}`}
+          <motion.h2
+            initial={{ opacity: 0, y: -20 }}
+            whileInView={{ opacity: 1, y: 0 }}
+            viewport={{ once: true }}
+            transition={{ duration: 0.8 }}
+            className={`mb-8 lg:mb-16 text-3xl md:text-4xl font-extrabold tracking-tight leading-tight text-center ${textColor}`}
             {...titleProps}
-        >
-          {title}
-        </motion.h2>
-      ) : (
-        <h2
-          className={`mb-8 lg:mb-16 text-3xl md:text-4xl font-extrabold tracking-tight leading-tight text-center ${textColor}`}
+          >
+            {title}
+          </motion.h2>
+        ) : (
+          <h2
+            className={`mb-8 lg:mb-16 text-3xl md:text-4xl font-extrabold tracking-tight leading-tight text-center ${textColor}`}
             {...titleProps}
-        >
-          {title}
-        </h2>
+          >
+            {title}
+          </h2>
         ))}
       {showSubtitle &&
         (_useReact ? (
@@ -205,20 +208,15 @@ export default function CompanyList({
   if (loading && items.length === 0) {
     return (
       <section
-        className={`${bg} py-8 lg:py-16`}
+        className={`${styles.containerClasses} py-8 lg:py-16 relative overflow-hidden`}
         data-module="company-list"
         data-inline-type="select"
-        data-inline-path="backgroundColor"
-        data-inline-label="Background Color"
-        data-inline-options={JSON.stringify([
-          { label: 'Transparent', value: 'bg-transparent' },
-          { label: 'Low', value: 'bg-backdrop-low' },
-          { label: 'Medium', value: 'bg-backdrop-medium' },
-          { label: 'High', value: 'bg-backdrop-high' },
-          { label: 'Dark', value: 'bg-neutral-high' },
-        ])}
+        data-inline-path="theme"
+        data-inline-label="Theme"
+        data-inline-options={JSON.stringify(THEME_OPTIONS)}
       >
-        <div className="container mx-auto px-4 lg:px-6">
+        <SectionBackground component={styles.backgroundComponent} />
+        <div className="container mx-auto px-4 lg:px-6 relative z-10">
           <h2
             className={`mb-4 lg:mb-8 text-3xl md:text-4xl font-extrabold tracking-tight text-center ${textColor}`}
           >
@@ -241,20 +239,15 @@ export default function CompanyList({
 
   return (
     <section
-      className={`${bg} py-8 lg:py-16`}
+      className={`${styles.containerClasses} py-8 lg:py-16 relative overflow-hidden`}
       data-module="company-list"
       data-inline-type="select"
-      data-inline-path="backgroundColor"
-      data-inline-label="Background Color"
-      data-inline-options={JSON.stringify([
-        { label: 'Transparent', value: 'bg-transparent' },
-        { label: 'Low', value: 'bg-backdrop-low' },
-        { label: 'Medium', value: 'bg-backdrop-medium' },
-        { label: 'High', value: 'bg-backdrop-high' },
-        { label: 'Dark', value: 'bg-neutral-high' },
-      ])}
+      data-inline-path="theme"
+      data-inline-label="Theme"
+      data-inline-options={JSON.stringify(THEME_OPTIONS)}
     >
-      <div className="container mx-auto px-4 lg:px-6">
+      <SectionBackground component={styles.backgroundComponent} />
+      <div className="container mx-auto px-4 lg:px-6 relative z-10">
         {headerContent}
         {_useReact ? (
           <motion.div

@@ -13,6 +13,9 @@ import { motion, AnimatePresence, type Variants } from 'framer-motion'
 import { useInlineValue } from '../components/inline-edit/InlineEditorContext'
 import { MediaRenderer } from '../components/MediaRenderer'
 import type { MediaObject } from '../utils/useMediaUrl'
+import { getSectionStyles } from '../utils/colors'
+import { SectionBackground } from '../components/SectionBackground'
+import { THEME_OPTIONS } from '#modules/shared_fields'
 
 interface GalleryProps {
   images: Array<{
@@ -27,7 +30,7 @@ interface GalleryProps {
   }>
   layout?: 'grid' | 'masonry'
   columns?: number
-  backgroundColor?: string
+  theme?: string
   __moduleId?: string
   _useReact?: boolean
 }
@@ -36,7 +39,7 @@ export default function Gallery({
   images = [],
   layout = 'grid',
   columns = 3,
-  backgroundColor: initialBackground = 'bg-transparent',
+  theme: initialTheme = 'transparent',
   __moduleId,
   _useReact,
 }: GalleryProps) {
@@ -50,7 +53,8 @@ export default function Gallery({
     }
   }, [lightboxOpen])
 
-  const bg = useInlineValue(__moduleId, 'backgroundColor', initialBackground) || initialBackground
+  const theme = useInlineValue(__moduleId, 'theme', initialTheme) || initialTheme
+  const styles = getSectionStyles(theme)
   const imagesValue = useInlineValue(__moduleId, 'images', images) || images
 
   const openLightbox = (index: number) => {
@@ -163,19 +167,15 @@ export default function Gallery({
 
   return (
     <section
-      className={`${bg} py-12 lg:py-16`}
+      className={`${styles.containerClasses} py-12 lg:py-16 relative overflow-hidden`}
       data-module="gallery"
       data-inline-type="select"
-      data-inline-path="backgroundColor"
-      data-inline-options={JSON.stringify([
-        { label: 'Transparent', value: 'bg-transparent' },
-        { label: 'Low', value: 'bg-backdrop-low' },
-        { label: 'Medium', value: 'bg-backdrop-medium' },
-        { label: 'High', value: 'bg-backdrop-high' },
-        { label: 'Dark', value: 'bg-neutral-high' },
-      ])}
+      data-inline-path="theme"
+      data-inline-label="Theme"
+      data-inline-options={JSON.stringify(THEME_OPTIONS)}
     >
-      <div className="container mx-auto px-4 sm:px-6 lg:px-8">
+      <SectionBackground component={styles.backgroundComponent} />
+      <div className="container mx-auto px-4 sm:px-6 lg:px-8 relative z-10">
         {/* Gallery Grid */}
         {_useReact ? (
           <motion.div

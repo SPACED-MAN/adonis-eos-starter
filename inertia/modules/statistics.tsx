@@ -1,6 +1,9 @@
 import { useEffect, useRef, useState } from 'react'
 import { motion, useSpring, useTransform, animate } from 'framer-motion'
 import { useInlineValue } from '../components/inline-edit/InlineEditorContext'
+import { getSectionStyles } from '../utils/colors'
+import { SectionBackground } from '../components/SectionBackground'
+import { THEME_OPTIONS } from '#modules/shared_fields'
 
 interface StatItem {
   value: number
@@ -10,7 +13,7 @@ interface StatItem {
 
 interface StatisticsProps {
   stats: StatItem[]
-  backgroundColor?: string
+  theme?: string
   _useReact?: boolean
 }
 
@@ -53,17 +56,17 @@ function Counter({
 
 export default function Statistics({
   stats,
-  backgroundColor = 'bg-backdrop-low',
+  theme: initialTheme = 'low',
   _useReact,
   __moduleId,
 }: StatisticsProps & { __moduleId?: string }) {
   const [hasEntered, setHasEntered] = useState(false)
   const sectionRef = useRef<HTMLElement | null>(null)
-  const bg = useInlineValue(__moduleId, 'backgroundColor', backgroundColor) || backgroundColor
+  const theme = useInlineValue(__moduleId, 'theme', initialTheme) || initialTheme
 
-  const isDarkBg = bg === 'bg-neutral-high' || bg === 'bg-backdrop-high' || bg === 'bg-standout-high'
-  const textColor = isDarkBg ? 'text-on-high' : 'text-neutral-high'
-  const subtextColor = isDarkBg ? 'text-on-high/80' : 'text-neutral-medium'
+  const styles = getSectionStyles(theme)
+  const textColor = styles.textColor
+  const subtextColor = styles.subtextColor
 
   useEffect(() => {
     if (!_useReact) return
@@ -156,17 +159,31 @@ export default function Statistics({
         whileInView="visible"
         viewport={{ once: true, margin: '-100px' }}
         variants={containerVariants}
-        className={`${bg} py-12 lg:py-16`}
+        className={`${styles.containerClasses} py-12 lg:py-16 relative overflow-hidden`}
         data-module="statistics"
+        data-inline-type="select"
+        data-inline-path="theme"
+        data-inline-label="Theme"
+        data-inline-options={JSON.stringify(THEME_OPTIONS)}
       >
-        {content}
+        <SectionBackground component={styles.backgroundComponent} />
+        <div className="relative z-10">{content}</div>
       </motion.section>
     )
   }
 
   return (
-    <section ref={sectionRef} className={`${bg} py-12 lg:py-16`} data-module="statistics">
-      {content}
+    <section
+      ref={sectionRef}
+      className={`${styles.containerClasses} py-12 lg:py-16 relative overflow-hidden`}
+      data-module="statistics"
+      data-inline-type="select"
+      data-inline-path="theme"
+      data-inline-label="Theme"
+      data-inline-options={JSON.stringify(THEME_OPTIONS)}
+    >
+      <SectionBackground component={styles.backgroundComponent} />
+      <div className="relative z-10">{content}</div>
     </section>
   )
 }

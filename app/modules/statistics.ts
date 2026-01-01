@@ -1,6 +1,6 @@
 import BaseModule from '#modules/base'
 import type { ModuleConfig } from '#types/module_types'
-import { backgroundColorField } from './shared_fields.js'
+import { themeField } from './shared_fields.js'
 
 export default class StatisticsModule extends BaseModule {
   /**
@@ -70,7 +70,7 @@ export default class StatisticsModule extends BaseModule {
           type: 'tab',
           label: 'Design',
         },
-        backgroundColorField,
+        themeField,
       ],
       defaultValues: {
         stats: [
@@ -78,7 +78,7 @@ export default class StatisticsModule extends BaseModule {
           { value: 1_000_000_000, suffix: 'B+', label: 'contributors' },
           { value: 4_000_000, suffix: 'M+', label: 'organizations' },
         ],
-        backgroundColor: 'bg-backdrop-low',
+        theme: 'low',
       },
       allowedPostTypes: [],
     }

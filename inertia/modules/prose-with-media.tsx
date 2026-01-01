@@ -4,8 +4,10 @@ import type { Button, LinkValue } from './types'
 import { useInlineValue, useInlineEditor, useInlineField } from '../components/inline-edit/InlineEditorContext'
 import { resolveLink } from '../utils/resolve_link'
 import { MediaRenderer } from '../components/MediaRenderer'
-
 import { renderLexicalToHtml } from '../utils/lexical'
+import { getSectionStyles } from '../utils/colors'
+import { SectionBackground } from '../components/SectionBackground'
+import { THEME_OPTIONS } from '#modules/shared_fields'
 
 interface LexicalJSON {
   root: {
@@ -26,7 +28,7 @@ interface ProseWithMediaProps {
   } | null // media object
   imagePosition?: 'left' | 'right'
   primaryCta?: Button | null
-  backgroundColor?: string
+  theme?: string
   __moduleId?: string
   _useReact?: boolean
 }
@@ -37,18 +39,18 @@ export default function ProseWithMedia({
   image,
   imagePosition = 'left',
   primaryCta,
-  backgroundColor = 'bg-backdrop-low',
+  theme: initialTheme = 'low',
   __moduleId,
   _useReact,
 }: ProseWithMediaProps) {
   const { value: titleValue, show: showTitle, props: titleProps } = useInlineField(__moduleId, 'title', title, { label: 'Title' })
   const { value: bodyValue, show: showBody, props: bodyProps } = useInlineField(__moduleId, 'body', body, { type: 'richtext', label: 'Body' })
   const { value: imageValue, show: showImage, props: imageProps } = useInlineField(__moduleId, 'image', image, { type: 'media', label: 'Image' })
-  const bg = useInlineValue(__moduleId, 'backgroundColor', backgroundColor) || backgroundColor
+  const theme = useInlineValue(__moduleId, 'theme', initialTheme) || initialTheme
 
-  const isDarkBg = bg === 'bg-neutral-high' || bg === 'bg-backdrop-high' || bg === 'bg-standout-high'
-  const textColor = isDarkBg ? 'text-on-high' : 'text-neutral-high'
-  const subtextColor = isDarkBg ? 'text-on-high/80' : 'text-neutral-medium'
+  const styles = getSectionStyles(theme)
+  const textColor = styles.textColor
+  const subtextColor = styles.subtextColor
 
   function resolveButtonHref(url: string | LinkValue): string | undefined {
     return resolveLink(url).href
@@ -131,14 +133,14 @@ export default function ProseWithMedia({
           {_useReact ? (
             <motion.div
               variants={textVariants}
-              className={`mb-6 prose prose-sm md:prose-base ${isDarkBg ? 'prose-invert' : ''} ${subtextColor}`}
+              className={`mb-6 prose prose-sm md:prose-base ${styles.proseInvert} ${subtextColor}`}
               suppressHydrationWarning
               {...bodyProps}
               dangerouslySetInnerHTML={{ __html: bodyHtml }}
             />
           ) : (
             <div
-              className={`mb-6 prose prose-sm md:prose-base ${isDarkBg ? 'prose-invert' : ''} ${subtextColor}`}
+              className={`mb-6 prose prose-sm md:prose-base ${styles.proseInvert} ${subtextColor}`}
               suppressHydrationWarning
               {...bodyProps}
               dangerouslySetInnerHTML={{ __html: bodyHtml }}
@@ -165,7 +167,7 @@ export default function ProseWithMedia({
               href={href}
               target={linkTarget}
               rel={linkTarget === '_blank' ? 'noopener noreferrer' : undefined}
-              className={`inline-flex items-center font-medium rounded-lg text-sm px-5 py-2.5 transition-all active:scale-95 ${isDarkBg
+              className={`inline-flex items-center font-medium rounded-lg text-sm px-5 py-2.5 transition-all active:scale-95 ${styles.inverted
                 ? 'bg-backdrop-low text-neutral-high hover:bg-backdrop-low/90'
                 : 'text-on-high bg-standout-high hover:bg-standout-high/90'
                 } focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:ring-standout-high`}
@@ -205,40 +207,30 @@ export default function ProseWithMedia({
         whileInView="visible"
         viewport={{ once: true, margin: '-100px' }}
         variants={containerVariants}
-        className={`${bg} py-12 sm:py-16 overflow-hidden`}
+        className={`${styles.containerClasses} py-12 sm:py-16 overflow-hidden relative`}
         data-module="prose-with-media"
         data-inline-type="select"
-        data-inline-path="backgroundColor"
-        data-inline-label="Background Color"
-        data-inline-options={JSON.stringify([
-          { label: 'Transparent', value: 'bg-transparent' },
-          { label: 'Low', value: 'bg-backdrop-low' },
-          { label: 'Medium', value: 'bg-backdrop-medium' },
-          { label: 'High', value: 'bg-backdrop-high' },
-          { label: 'Dark', value: 'bg-neutral-high' },
-        ])}
+        data-inline-path="theme"
+        data-inline-label="Theme"
+        data-inline-options={JSON.stringify(THEME_OPTIONS)}
       >
-        <div className="container mx-auto px-4 sm:px-6 lg:px-8">{content}</div>
+        <SectionBackground component={styles.backgroundComponent} />
+        <div className="container mx-auto px-4 sm:px-6 lg:px-8 relative z-10">{content}</div>
       </motion.section>
     )
   }
 
   return (
     <section
-      className={`${bg} py-12 sm:py-16`}
+      className={`${styles.containerClasses} py-12 sm:py-16 relative overflow-hidden`}
       data-module="prose-with-media"
       data-inline-type="select"
-      data-inline-path="backgroundColor"
-      data-inline-label="Background Color"
-      data-inline-options={JSON.stringify([
-        { label: 'Transparent', value: 'bg-transparent' },
-        { label: 'Low', value: 'bg-backdrop-low' },
-        { label: 'Medium', value: 'bg-backdrop-medium' },
-        { label: 'High', value: 'bg-backdrop-high' },
-        { label: 'Dark', value: 'bg-neutral-high' },
-      ])}
+      data-inline-path="theme"
+      data-inline-label="Theme"
+      data-inline-options={JSON.stringify(THEME_OPTIONS)}
     >
-      <div className="container mx-auto px-4 sm:px-6 lg:px-8">{content}</div>
+      <SectionBackground component={styles.backgroundComponent} />
+      <div className="container mx-auto px-4 sm:px-6 lg:px-8 relative z-10">{content}</div>
     </section>
   )
 }

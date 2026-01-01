@@ -1,6 +1,6 @@
 import BaseModule from '#modules/base'
 import type { ModuleConfig } from '#types/module_types'
-import { backgroundColorField } from './shared_fields.js'
+import { themeField } from './shared_fields.js'
 
 export default class TestimonialListModule extends BaseModule {
   /**
@@ -57,14 +57,14 @@ export default class TestimonialListModule extends BaseModule {
           type: 'tab',
           label: 'Design',
         },
-        backgroundColorField,
+        themeField,
       ],
       defaultValues: {
         title: 'Testimonials',
         subtitle:
           'Hear from customers and partners. Testimonials are pulled from the Testimonial post type so they stay in sync.',
         testimonials: [],
-        backgroundColor: 'bg-backdrop-low',
+        theme: 'low',
       },
       // Typically used on pages and blogs
       allowedPostTypes: ['page', 'blog'],

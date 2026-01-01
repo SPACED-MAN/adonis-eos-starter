@@ -1,6 +1,6 @@
 import BaseModule from '#modules/base'
 import type { ModuleConfig } from '#types/module_types'
-import { backgroundColorField } from './shared_fields.js'
+import { themeField } from './shared_fields.js'
 
 export default class ProfileListModule extends BaseModule {
   /**
@@ -56,14 +56,14 @@ export default class ProfileListModule extends BaseModule {
           type: 'tab',
           label: 'Design',
         },
-        backgroundColorField,
+        themeField,
       ],
       defaultValues: {
         title: 'Our Team',
         subtitle:
           'Meet the people behind the work. Profiles are pulled from the Profile post type so they sync automatically.',
         profiles: [],
-        backgroundColor: 'bg-backdrop-low',
+        theme: 'low',
       },
       allowedPostTypes: ['page', 'blog'],
     }

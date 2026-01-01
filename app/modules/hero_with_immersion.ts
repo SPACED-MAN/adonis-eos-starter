@@ -1,6 +1,6 @@
 import BaseModule from '#modules/base'
 import type { ModuleConfig } from '#types/module_types'
-import { backgroundColorField } from './shared_fields.js'
+import { themeField } from './shared_fields.js'
 
 export default class HeroWithImmersionModule extends BaseModule {
   /**
@@ -111,7 +111,7 @@ export default class HeroWithImmersionModule extends BaseModule {
             { label: 'Dramatic', value: 'dramatic' },
           ],
         },
-        backgroundColorField,
+        themeField,
       ],
       defaultValues: {
         title: 'Experience the Depth',
@@ -119,7 +119,7 @@ export default class HeroWithImmersionModule extends BaseModule {
         imagePosition: 'right',
         height: 'h-screen',
         parallaxIntensity: 'moderate',
-        backgroundColor: 'bg-black',
+        theme: 'high',
       },
       allowedPostTypes: [],
     }

@@ -1,6 +1,6 @@
 import BaseModule from '#modules/base'
 import type { ModuleConfig } from '#types/module_types'
-import { backgroundColorField } from './shared_fields.js'
+import { themeField } from './shared_fields.js'
 
 /**
  * Hero with Media Module
@@ -143,7 +143,7 @@ export default class HeroWithMediaModule extends BaseModule {
             { label: 'Left', value: 'left' },
           ],
         },
-        backgroundColorField,
+        themeField,
       ],
       defaultValues: {
         title: 'Payments tool for software companies',
@@ -161,7 +161,7 @@ export default class HeroWithMediaModule extends BaseModule {
           url: '#',
           style: 'outline',
         },
-        backgroundColor: 'bg-backdrop-low',
+        theme: 'low',
       },
       allowedPostTypes: [], // Available for all post types
     }

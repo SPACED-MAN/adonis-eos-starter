@@ -4,13 +4,16 @@ import { useInlineEditor, useInlineValue } from '../components/inline-edit/Inlin
 import { FontAwesomeIcon } from '../site/lib/icons'
 import BlogTeaser from '../site/post-types/blog-teaser'
 import type { MediaObject } from '../utils/useMediaUrl'
+import { getSectionStyles } from '../utils/colors'
+import { SectionBackground } from '../components/SectionBackground'
+import { THEME_OPTIONS } from '#modules/shared_fields'
 
 interface BlogListProps {
   title: string
   subtitle?: string | null
   // IDs of Blog posts selected via post-reference field; if empty, show all.
   posts?: string[] | null
-  backgroundColor?: string
+  theme?: string
   __moduleId?: string
   _useReact?: boolean
 }
@@ -29,7 +32,7 @@ export default function BlogList({
   title: initialTitle,
   subtitle: initialSubtitle,
   posts: initialPosts,
-  backgroundColor = 'bg-backdrop-low',
+  theme: initialTheme = 'low',
   __moduleId,
   _useReact,
 }: BlogListProps) {
@@ -39,11 +42,11 @@ export default function BlogList({
   const title = useInlineValue(__moduleId, 'title', initialTitle)
   const subtitle = useInlineValue(__moduleId, 'subtitle', initialSubtitle)
   const posts = useInlineValue(__moduleId, 'posts', initialPosts)
-  const bg = useInlineValue(__moduleId, 'backgroundColor', backgroundColor) || backgroundColor
+  const theme = useInlineValue(__moduleId, 'theme', initialTheme) || initialTheme
 
-  const isDarkBg = bg === 'bg-neutral-high' || bg === 'bg-backdrop-high' || bg === 'bg-standout-high'
-  const textColor = isDarkBg ? 'text-on-high' : 'text-neutral-high'
-  const subtextColor = isDarkBg ? 'text-on-high/80' : 'text-neutral-medium'
+  const styles = getSectionStyles(theme)
+  const textColor = styles.textColor
+  const subtextColor = styles.subtextColor
 
   useEffect(() => {
     let cancelled = false
@@ -193,11 +196,15 @@ export default function BlogList({
   if (loading && items.length === 0) {
     return (
       <section
-        className={`${bg} py-12 lg:py-16`}
+        className={`${styles.containerClasses} py-12 lg:py-16 relative overflow-hidden`}
         data-module="blog-list"
-        data-inline-path="backgroundColor"
+        data-inline-type="select"
+        data-inline-path="theme"
+        data-inline-label="Theme"
+        data-inline-options={JSON.stringify(THEME_OPTIONS)}
       >
-        <div className="container mx-auto px-4 sm:px-6 lg:px-8">
+        <SectionBackground component={styles.backgroundComponent} />
+        <div className="container mx-auto px-4 sm:px-6 lg:px-8 relative z-10">
           <div className="max-w-screen-sm mx-auto text-center mb-8">
             <h2 className={`mb-2 text-3xl lg:text-4xl font-extrabold tracking-tight ${textColor}`}>
               {title}
@@ -216,19 +223,15 @@ export default function BlogList({
 
   return (
     <section
-      className={`${bg} py-12 lg:py-16`}
+      className={`${styles.containerClasses} py-12 lg:py-16 relative overflow-hidden`}
       data-module="blog-list"
       data-inline-type="select"
-      data-inline-path="backgroundColor"
-      data-inline-options={JSON.stringify([
-        { label: 'Transparent', value: 'bg-transparent' },
-        { label: 'Low', value: 'bg-backdrop-low' },
-        { label: 'Medium', value: 'bg-backdrop-medium' },
-        { label: 'High', value: 'bg-backdrop-high' },
-        { label: 'Dark', value: 'bg-neutral-high' },
-      ])}
+      data-inline-path="theme"
+      data-inline-label="Theme"
+      data-inline-options={JSON.stringify(THEME_OPTIONS)}
     >
-      <div className="container mx-auto px-4 sm:px-6 lg:px-8">
+      <SectionBackground component={styles.backgroundComponent} />
+      <div className="container mx-auto px-4 sm:px-6 lg:px-8 relative z-10">
         {headerContent}
         {_useReact ? (
           <motion.div

@@ -1,6 +1,6 @@
 import BaseModule from '#modules/base'
 import type { ModuleConfig } from '#types/module_types'
-import { backgroundColorField } from './shared_fields.js'
+import { themeField } from './shared_fields.js'
 
 export default class BlockquoteModule extends BaseModule {
   /**
@@ -61,7 +61,7 @@ export default class BlockquoteModule extends BaseModule {
           type: 'tab',
           label: 'Design',
         },
-        backgroundColorField,
+        themeField,
       ],
       defaultValues: {
         quote:
@@ -69,7 +69,7 @@ export default class BlockquoteModule extends BaseModule {
         authorName: 'Michael Gough',
         authorTitle: 'CEO at Google',
         avatar: null,
-        backgroundColor: 'bg-backdrop-low',
+        theme: 'low',
       },
       // Available for all post types by default
       allowedPostTypes: [],

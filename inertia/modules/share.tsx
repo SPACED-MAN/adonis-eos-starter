@@ -4,11 +4,14 @@ import { FontAwesomeIcon, getIconProp } from '../site/lib/icons'
 import { toast } from 'sonner'
 import { motion } from 'framer-motion'
 import { useInlineValue } from '../components/inline-edit/InlineEditorContext'
+import { getSectionStyles } from '../utils/colors'
+import { SectionBackground } from '../components/SectionBackground'
+import { THEME_OPTIONS } from '#modules/shared_fields'
 
 interface ShareProps {
   title?: string
   alignment?: 'left' | 'center' | 'right'
-  backgroundColor?: string
+  theme?: string
   _useReact?: boolean
 }
 
@@ -37,7 +40,7 @@ interface PageProps {
 export default function Share({
   title = 'Share:',
   alignment = 'center',
-  backgroundColor = 'bg-transparent',
+  theme: initialTheme = 'transparent',
   _useReact = false,
   __moduleId,
 }: ShareProps & { __moduleId?: string }) {
@@ -46,11 +49,11 @@ export default function Share({
   const sharingNetworks = siteSettings?.socialSettings?.sharing || []
   const enabledNetworks = sharingNetworks.filter((n) => n.enabled)
 
-  const bg = useInlineValue(__moduleId, 'backgroundColor', backgroundColor) || backgroundColor
-  const isDarkBg = bg === 'bg-neutral-high' || bg === 'bg-backdrop-high' || bg === 'bg-standout-high'
-  const textColor = isDarkBg ? 'text-on-high' : 'text-neutral-high'
-  const subtextColor = isDarkBg ? 'text-on-high/80' : 'text-neutral-medium'
-  const iconBg = isDarkBg
+  const theme = useInlineValue(__moduleId, 'theme', initialTheme) || initialTheme
+  const styles = getSectionStyles(theme)
+  const textColor = styles.textColor
+  const subtextColor = styles.subtextColor
+  const iconBg = styles.inverted
     ? 'bg-on-high/10 border-on-high/20 text-on-high'
     : 'bg-backdrop-low border-line-low text-neutral-medium'
 
@@ -97,7 +100,6 @@ export default function Share({
     }
   }
 
-  const containerClass = `w-full py-16 lg:py-24 ${bg}`
   const alignmentClass =
     alignment === 'center'
       ? 'justify-center'
@@ -106,7 +108,7 @@ export default function Share({
         : 'justify-start'
 
   const content = (
-    <div className={`flex flex-wrap items-center ${alignmentClass} gap-4`}>
+    <div className={`flex flex-wrap items-center ${alignmentClass} gap-4 relative z-10`}>
       {title && (
         <span className={`text-sm font-bold uppercase tracking-wider ${subtextColor} mr-2`}>
           {title}
@@ -152,7 +154,15 @@ export default function Share({
   )
 
   return (
-    <section className={containerClass} data-module="share">
+    <section
+      className={`w-full py-16 lg:py-24 ${styles.containerClasses} relative overflow-hidden`}
+      data-module="share"
+      data-inline-type="select"
+      data-inline-path="theme"
+      data-inline-label="Theme"
+      data-inline-options={JSON.stringify(THEME_OPTIONS)}
+    >
+      <SectionBackground component={styles.backgroundComponent} />
       <div className="container mx-auto px-4 sm:px-6 lg:px-8">{content}</div>
     </section>
   )

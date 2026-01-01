@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react'
+import { getSectionStyles } from '../utils/colors'
 
 interface ReadingProgressProps {
   height?: number
@@ -7,6 +8,7 @@ interface ReadingProgressProps {
 
 export default function ReadingProgress({ height = 4, zIndex = 50 }: ReadingProgressProps) {
   const [progress, setProgress] = useState(0)
+  const styles = getSectionStyles('transparent')
 
   useEffect(() => {
     const handleScroll = () => {

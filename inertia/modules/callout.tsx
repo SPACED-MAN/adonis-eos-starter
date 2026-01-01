@@ -5,6 +5,9 @@ import { useInlineValue, useInlineField } from '../components/inline-edit/Inline
 import { MediaRenderer } from '../components/MediaRenderer'
 import { renderLexicalToHtml } from '../utils/lexical'
 import { resolveLink } from '../utils/resolve_link'
+import { getSectionStyles } from '../utils/colors'
+import { SectionBackground } from '../components/SectionBackground'
+import { THEME_OPTIONS } from '#modules/shared_fields'
 
 interface CalloutProps {
   title: string
@@ -18,7 +21,7 @@ interface CalloutProps {
   } | null
   ctas?: Button[]
   variant?: 'centered' | 'split-left' | 'split-right'
-  backgroundColor?: string
+  theme?: string
   __moduleId?: string
   _useReact?: boolean
 }
@@ -30,7 +33,7 @@ export default function Callout(props: CalloutProps) {
     image: initialImage,
     ctas: initialCtas = [],
     variant: initialVariant = 'centered',
-    backgroundColor: initialBackground = 'bg-backdrop-low',
+    theme: initialTheme = 'low',
     __moduleId,
     _useReact,
   } = props
@@ -41,14 +44,15 @@ export default function Callout(props: CalloutProps) {
   const ctas = useInlineValue(__moduleId, 'ctas', initialCtas) || initialCtas
   const variant =
     useInlineValue(__moduleId, 'variant', initialVariant) || initialVariant || 'centered'
-  const backgroundColor =
-    useInlineValue(__moduleId, 'backgroundColor', initialBackground) ||
-    initialBackground ||
-    'bg-backdrop-low'
+  const theme =
+    useInlineValue(__moduleId, 'theme', initialTheme) ||
+    initialTheme ||
+    'low'
 
-  const isDarkBg = backgroundColor === 'bg-neutral-high' || backgroundColor === 'bg-backdrop-high' || backgroundColor === 'bg-standout-high'
-  const textColor = isDarkBg ? 'text-on-high' : 'text-neutral-high'
-  const subtextColor = isDarkBg ? 'text-on-high/80' : 'text-neutral-medium'
+  const styles = getSectionStyles(theme)
+  const textColor = styles.textColor
+  const subtextColor = styles.subtextColor
+  const inverted = styles.inverted
 
   const htmlProse = useMemo(() => {
     const hasRichContent = (val: any) => {
@@ -139,7 +143,7 @@ export default function Callout(props: CalloutProps) {
             {...cta}
             idx={idx}
             moduleId={__moduleId}
-            isDarkBg={isDarkBg}
+            inverted={inverted}
           />
         ))}
       </div>
@@ -161,7 +165,7 @@ export default function Callout(props: CalloutProps) {
 
       {showProse && (
         <div
-          className={`prose max-w-none ${isDarkBg ? 'prose-invert' : ''} ${subtextColor}`}
+          className={`prose max-w-none ${styles.proseInvert} ${subtextColor}`}
           {...proseProps}
           dangerouslySetInnerHTML={{ __html: htmlProse }}
         />
@@ -255,29 +259,34 @@ export default function Callout(props: CalloutProps) {
         whileInView="visible"
         viewport={{ once: true, margin: '-100px' }}
         variants={containerVariants}
-        className={`${backgroundColor} py-16 lg:py-24 overflow-hidden`}
+        className={`${styles.containerClasses} py-16 lg:py-24 relative overflow-hidden`}
         data-module="callout"
+        data-inline-type="select"
+        data-inline-path="theme"
+        data-inline-label="Theme"
+        data-inline-options={JSON.stringify(THEME_OPTIONS)}
       >
-        {renderedContent}
+        <SectionBackground component={styles.backgroundComponent} />
+        <div className="relative z-10">
+          {renderedContent}
+        </div>
       </motion.section>
     )
   }
 
   return (
     <section
-      className={`${backgroundColor} py-16 lg:py-24`}
+      className={`${styles.containerClasses} py-16 lg:py-24 relative overflow-hidden`}
       data-module="callout"
       data-inline-type="select"
-      data-inline-path="backgroundColor"
-      data-inline-options={JSON.stringify([
-        { label: 'Transparent', value: 'bg-transparent' },
-        { label: 'Low', value: 'bg-backdrop-low' },
-        { label: 'Medium', value: 'bg-backdrop-medium' },
-        { label: 'High', value: 'bg-backdrop-high' },
-        { label: 'Dark', value: 'bg-neutral-high' },
-      ])}
+      data-inline-path="theme"
+      data-inline-label="Theme"
+      data-inline-options={JSON.stringify(THEME_OPTIONS)}
     >
-      {renderedContent}
+      <SectionBackground component={styles.backgroundComponent} />
+      <div className="relative z-10">
+        {renderedContent}
+      </div>
     </section>
   )
 }
@@ -290,8 +299,8 @@ function ButtonComponent({
   rel,
   idx,
   moduleId,
-  isDarkBg,
-}: Button & { idx: number; moduleId?: string; isDarkBg?: boolean }) {
+  inverted,
+}: Button & { idx: number; moduleId?: string; inverted?: boolean }) {
   const repeaterObj = useInlineValue(moduleId, `ctas[${idx}]`, {
     label: initialLabel,
     url: initialUrl,
@@ -306,13 +315,13 @@ function ButtonComponent({
   if (!href) return null
 
   const styleMap = {
-    primary: isDarkBg
+    primary: inverted
       ? 'bg-white text-standout-high hover:bg-neutral-50'
       : 'bg-standout-high text-on-high hover:opacity-90',
-    secondary: isDarkBg
+    secondary: inverted
       ? 'bg-on-high/10 text-on-high hover:bg-on-high/20'
       : 'bg-backdrop-medium hover:bg-backdrop-high text-neutral-high',
-    outline: isDarkBg
+    outline: inverted
       ? 'border border-on-high text-on-high hover:bg-on-high/10'
       : 'border border-line-low hover:bg-backdrop-medium text-neutral-high',
   }

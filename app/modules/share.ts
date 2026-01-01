@@ -1,6 +1,6 @@
 import BaseModule from '#modules/base'
 import type { ModuleConfig } from '#types/module_types'
-import { backgroundColorField } from './shared_fields.js'
+import { themeField } from './shared_fields.js'
 
 export default class ShareModule extends BaseModule {
   /**
@@ -50,12 +50,12 @@ export default class ShareModule extends BaseModule {
           ],
           default: 'left',
         },
-        backgroundColorField,
+        themeField,
       ],
       defaultValues: {
         title: 'Share:',
         alignment: 'center',
-        backgroundColor: 'bg-transparent',
+        theme: 'transparent',
       },
       allowedPostTypes: [],
     }

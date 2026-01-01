@@ -3,6 +3,9 @@ import type { Button, LinkValue } from './types'
 import { useInlineValue, useInlineEditor, useInlineField } from '../components/inline-edit/InlineEditorContext'
 import { resolveLink } from '../utils/resolve_link'
 import { MediaRenderer } from '../components/MediaRenderer'
+import { getSectionStyles } from '../utils/colors'
+import { SectionBackground } from '../components/SectionBackground'
+import { THEME_OPTIONS } from '#modules/shared_fields'
 
 interface HeroWithMediaProps {
   title: string
@@ -17,7 +20,7 @@ interface HeroWithMediaProps {
   imagePosition?: 'left' | 'right'
   primaryCta?: Button | null
   secondaryCta?: Button | null
-  backgroundColor?: string
+  theme?: string
   __moduleId?: string
   _useReact?: boolean
 }
@@ -36,18 +39,18 @@ export default function HeroWithMedia({
   imagePosition = 'right',
   primaryCta,
   secondaryCta,
-  backgroundColor = 'bg-backdrop-low',
+  theme: initialTheme = 'low',
   __moduleId,
   _useReact,
 }: HeroWithMediaProps) {
   const { value: imageValue, enabled, show: showImage, props: imageProps } = useInlineField(__moduleId, 'image', image, { type: 'media', label: 'Image' })
   const { value: titleValue, show: showTitle, props: titleProps } = useInlineField(__moduleId, 'title', title, { label: 'Title' })
   const { value: subtitleValue, show: showSubtitle, props: subtitleProps } = useInlineField(__moduleId, 'subtitle', subtitle, { label: 'Subtitle' })
-  const bg = useInlineValue(__moduleId, 'backgroundColor', backgroundColor) || backgroundColor
+  const theme = useInlineValue(__moduleId, 'theme', initialTheme) || initialTheme
 
-  const isDarkBg = bg === 'bg-neutral-high' || bg === 'bg-backdrop-high' || bg === 'bg-standout-high'
-  const textColor = isDarkBg ? 'text-on-high' : 'text-neutral-high'
-  const subtextColor = isDarkBg ? 'text-on-high/80' : 'text-neutral-medium'
+  const styles = getSectionStyles(theme)
+  const textColor = styles.textColor
+  const subtextColor = styles.subtextColor
 
   const hasCtas = Boolean(primaryCta || secondaryCta)
 
@@ -159,7 +162,7 @@ export default function HeroWithMedia({
                     moduleId={__moduleId}
                     inlineObjectPath="primaryCta"
                     inlineObjectLabel="Primary CTA"
-                    isDarkBg={isDarkBg}
+                    inverted={styles.inverted}
                   />
                 </motion.div>
               )}
@@ -170,7 +173,7 @@ export default function HeroWithMedia({
                     moduleId={__moduleId}
                     inlineObjectPath="secondaryCta"
                     inlineObjectLabel="Secondary CTA"
-                    isDarkBg={isDarkBg}
+                    inverted={styles.inverted}
                   />
                 </motion.div>
               )}
@@ -183,7 +186,7 @@ export default function HeroWithMedia({
                   moduleId={__moduleId}
                   inlineObjectPath="primaryCta"
                   inlineObjectLabel="Primary CTA"
-                  isDarkBg={isDarkBg}
+                  inverted={styles.inverted}
                 />
               )}
               {secondaryCta && (
@@ -192,7 +195,7 @@ export default function HeroWithMedia({
                   moduleId={__moduleId}
                   inlineObjectPath="secondaryCta"
                   inlineObjectLabel="Secondary CTA"
-                  isDarkBg={isDarkBg}
+                  inverted={styles.inverted}
                 />
               )}
             </>
@@ -209,20 +212,15 @@ export default function HeroWithMedia({
         whileInView="visible"
         viewport={{ once: true, margin: '-100px' }}
         variants={containerVariants}
-        className={`${bg} py-12 lg:py-16 overflow-hidden`}
+        className={`${styles.containerClasses} py-12 lg:py-16 relative overflow-hidden`}
         data-module="hero-with-media"
         data-inline-type="select"
-        data-inline-path="backgroundColor"
-        data-inline-label="Background Color"
-        data-inline-options={JSON.stringify([
-          { label: 'Transparent', value: 'bg-transparent' },
-          { label: 'Low', value: 'bg-backdrop-low' },
-          { label: 'Medium', value: 'bg-backdrop-medium' },
-          { label: 'High', value: 'bg-backdrop-high' },
-          { label: 'Dark', value: 'bg-neutral-high' },
-        ])}
+        data-inline-path="theme"
+        data-inline-label="Theme"
+        data-inline-options={JSON.stringify(THEME_OPTIONS)}
       >
-        <div className="container mx-auto px-4 sm:px-6 lg:px-8">
+        <SectionBackground component={styles.backgroundComponent} />
+        <div className="container mx-auto px-4 sm:px-6 lg:px-8 relative z-10">
           <div className="grid lg:grid-cols-12 gap-8 items-center">
             {imagePosition === 'left' && imageBlock}
             {textBlock}
@@ -235,20 +233,15 @@ export default function HeroWithMedia({
 
   return (
     <section
-      className={`${bg} py-12 lg:py-16`}
+      className={`${styles.containerClasses} py-12 lg:py-16 relative overflow-hidden`}
       data-module="hero-with-media"
       data-inline-type="select"
-      data-inline-path="backgroundColor"
-      data-inline-label="Background Color"
-      data-inline-options={JSON.stringify([
-        { label: 'Transparent', value: 'bg-transparent' },
-        { label: 'Low', value: 'bg-backdrop-low' },
-        { label: 'Medium', value: 'bg-backdrop-medium' },
-        { label: 'High', value: 'bg-backdrop-high' },
-        { label: 'Dark', value: 'bg-neutral-high' },
-      ])}
+      data-inline-path="theme"
+      data-inline-label="Theme"
+      data-inline-options={JSON.stringify(THEME_OPTIONS)}
     >
-      <div className="container mx-auto px-4 sm:px-6 lg:px-8">
+      <SectionBackground component={styles.backgroundComponent} />
+      <div className="container mx-auto px-4 sm:px-6 lg:px-8 relative z-10">
         <div className="grid lg:grid-cols-12 gap-8 items-center">
           {imagePosition === 'left' && imageBlock}
           {textBlock}
@@ -279,7 +272,7 @@ interface ButtonComponentProps extends Button {
   moduleId?: string
   inlineObjectPath?: string
   inlineObjectLabel?: string
-  isDarkBg?: boolean
+  inverted?: boolean
 }
 
 function ButtonComponent({
@@ -291,7 +284,7 @@ function ButtonComponent({
   moduleId,
   inlineObjectPath,
   inlineObjectLabel,
-  isDarkBg,
+  inverted,
 }: ButtonComponentProps) {
   // Use inline values so edits reflect immediately
   const obj = useInlineValue(moduleId, inlineObjectPath || '', {
@@ -304,13 +297,13 @@ function ButtonComponent({
   const style: 'primary' | 'secondary' | 'outline' = obj?.style ?? initialStyle
 
   const styleMap = {
-    primary: isDarkBg
+    primary: inverted
       ? 'bg-backdrop-low text-neutral-high hover:bg-backdrop-low/90'
       : 'bg-standout-high text-on-high',
-    secondary: isDarkBg
+    secondary: inverted
       ? 'bg-on-high/10 text-on-high hover:bg-on-high/20'
       : 'bg-backdrop-medium hover:bg-backdrop-high text-neutral-high',
-    outline: isDarkBg
+    outline: inverted
       ? 'border border-on-high text-on-high hover:bg-on-high/10'
       : 'border border-line-low hover:bg-backdrop-medium text-neutral-high',
   }

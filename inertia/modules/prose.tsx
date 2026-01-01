@@ -1,7 +1,8 @@
 import { motion } from 'framer-motion'
 import { useInlineValue, useInlineField } from '../components/inline-edit/InlineEditorContext'
-
 import { renderLexicalToHtml } from '../utils/lexical'
+import { getSectionStyles } from '../utils/colors'
+import { SectionBackground } from '../components/SectionBackground'
 
 interface LexicalJSON {
   root: {
@@ -17,7 +18,7 @@ interface ProseProps {
   content?: LexicalJSON | string | null
   maxWidth?: string // Tailwind class (e.g., 'max-w-4xl')
   fontSize?: string // Tailwind class (e.g., 'text-base')
-  backgroundColor?: string // Tailwind class
+  theme?: string // Tailwind class
   textColor?: string // Tailwind class
   textAlign?: 'left' | 'center' | 'right' | 'justify' // Alignment inside prose
   padding?: string // Tailwind class
@@ -30,7 +31,7 @@ export default function Prose({
   // Default to full width so prose fills whatever container it's placed in.
   maxWidth: initialMaxWidth = 'max-w-none',
   fontSize: initialFontSize = 'text-base',
-  backgroundColor: initialBackground = 'bg-transparent',
+  theme: initialTheme = 'transparent',
   textColor: initialTextColor = 'text-neutral-high',
   textAlign: initialTextAlign = 'left',
   padding: initialPadding = 'py-12',
@@ -40,10 +41,11 @@ export default function Prose({
   const { value: content, show: showContent, props: contentProps } = useInlineField(__moduleId, 'content', initialContent, { type: 'richtext', label: 'Content' })
   const maxWidth = useInlineValue(__moduleId, 'maxWidth', initialMaxWidth)
   const fontSize = useInlineValue(__moduleId, 'fontSize', initialFontSize)
-  const backgroundColor =
-    useInlineValue(__moduleId, 'backgroundColor', initialBackground) || initialBackground
-  const isDarkBg = backgroundColor === 'bg-neutral-high' || backgroundColor === 'bg-backdrop-high' || backgroundColor === 'bg-standout-high'
-  const textColor = isDarkBg ? 'text-on-high' : initialTextColor
+  const theme =
+    useInlineValue(__moduleId, 'theme', initialTheme) || initialTheme
+
+  const styles = getSectionStyles(theme)
+  const textColor = styles.inverted ? styles.textColor : initialTextColor
   const textAlign = useInlineValue(__moduleId, 'textAlign', initialTextAlign)
   const padding = useInlineValue(__moduleId, 'padding', initialPadding)
 
@@ -71,17 +73,17 @@ export default function Prose({
   }
 
   const innerContent = (
-    <div className="container mx-auto px-4 sm:px-6 lg:px-8">
+    <div className="container mx-auto px-4 sm:px-6 lg:px-8 relative z-10">
       <div className={`w-full ${maxWidth}`}>
         {showContent && (
           <div
-            className={`prose max-w-none ${isDarkBg ? 'prose-invert' : ''} ${fontSize} ${textColor} ${textAlign === 'center'
-                ? 'text-center'
-                : textAlign === 'right'
-                  ? 'text-right'
-                  : textAlign === 'justify'
-                    ? 'text-justify'
-                    : 'text-left'
+            className={`prose max-w-none ${styles.proseInvert} ${fontSize} ${textColor} ${textAlign === 'center'
+              ? 'text-center'
+              : textAlign === 'right'
+                ? 'text-right'
+                : textAlign === 'justify'
+                  ? 'text-justify'
+                  : 'text-left'
               }`}
             suppressHydrationWarning
             {...contentProps}
@@ -92,6 +94,8 @@ export default function Prose({
     </div>
   )
 
+  const sectionClasses = `${styles.containerClasses} ${padding} relative overflow-hidden`
+
   if (_useReact) {
     return (
       <motion.section
@@ -99,39 +103,18 @@ export default function Prose({
         whileInView={{ opacity: 1, y: 0 }}
         viewport={{ once: true, margin: '-100px' }}
         transition={{ duration: 1.0, ease: 'easeOut' }}
-        className={`${backgroundColor} ${padding}`}
+        className={sectionClasses}
         data-module="prose"
-        data-inline-type="select"
-        data-inline-path="backgroundColor"
-        data-inline-label="Background Color"
-        data-inline-options={JSON.stringify([
-          { label: 'Transparent', value: 'bg-transparent' },
-          { label: 'Low', value: 'bg-backdrop-low' },
-          { label: 'Medium', value: 'bg-backdrop-medium' },
-          { label: 'High', value: 'bg-backdrop-high' },
-          { label: 'Dark', value: 'bg-neutral-high' },
-        ])}
       >
+        <SectionBackground component={styles.backgroundComponent} />
         {innerContent}
       </motion.section>
     )
   }
 
   return (
-    <section
-      className={`${backgroundColor} ${padding}`}
-      data-module="prose"
-      data-inline-type="select"
-      data-inline-path="backgroundColor"
-      data-inline-label="Background Color"
-      data-inline-options={JSON.stringify([
-        { label: 'Transparent', value: 'bg-transparent' },
-        { label: 'Low', value: 'bg-backdrop-low' },
-        { label: 'Medium', value: 'bg-backdrop-medium' },
-        { label: 'High', value: 'bg-backdrop-high' },
-        { label: 'Dark', value: 'bg-neutral-high' },
-      ])}
-    >
+    <section className={sectionClasses} data-module="prose">
+      <SectionBackground component={styles.backgroundComponent} />
       {innerContent}
     </section>
   )

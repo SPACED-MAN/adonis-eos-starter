@@ -1,6 +1,6 @@
 import BaseModule from '#modules/base'
 import type { ModuleConfig } from '#types/module_types'
-import { backgroundColorField } from './shared_fields.js'
+import { themeField } from './shared_fields.js'
 
 export default class ProseWithFormModule extends BaseModule {
   /**
@@ -64,7 +64,7 @@ export default class ProseWithFormModule extends BaseModule {
             { label: 'Form on left', value: 'form-left' },
           ],
         },
-        backgroundColorField,
+        themeField,
       ],
       defaultValues: {
         heading: "Let's talk about your next project.",
@@ -97,7 +97,7 @@ export default class ProseWithFormModule extends BaseModule {
         },
         formSlug: 'contact',
         layout: 'form-right',
-        backgroundColor: 'bg-backdrop-low',
+        theme: 'low',
       },
       allowedPostTypes: ['page', 'blog'],
     }

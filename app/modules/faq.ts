@@ -1,6 +1,6 @@
 import BaseModule from '#modules/base'
 import type { ModuleConfig } from '#types/module_types'
-import { backgroundColorField } from './shared_fields.js'
+import { themeField } from './shared_fields.js'
 
 export default class FaqModule extends BaseModule {
   /**
@@ -94,7 +94,7 @@ export default class FaqModule extends BaseModule {
           type: 'tab',
           label: 'Design',
         },
-        backgroundColorField,
+        themeField,
       ],
       defaultValues: {
         title: 'Frequently asked questions',
@@ -136,7 +136,7 @@ export default class FaqModule extends BaseModule {
               'In most cases you can use the kit in open-source projects, as long as the project is not a direct replacement for this product (for example, a competing UI kit or page-builder).',
           },
         ],
-        backgroundColor: 'bg-backdrop-low',
+        theme: 'low',
       },
       allowedPostTypes: [],
     }

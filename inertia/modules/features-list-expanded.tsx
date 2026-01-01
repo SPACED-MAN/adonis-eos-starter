@@ -3,6 +3,9 @@ import { FontAwesomeIcon } from '../site/lib/icons'
 import { useInlineValue } from '../components/inline-edit/InlineEditorContext'
 import type { Button, LinkValue } from './types'
 import { resolveLink } from '../utils/resolve_link'
+import { getSectionStyles } from '../utils/colors'
+import { SectionBackground } from '../components/SectionBackground'
+import { THEME_OPTIONS } from '#modules/shared_fields'
 
 interface ExpandedFeatureItem {
   icon?: string | null
@@ -15,7 +18,7 @@ interface FeaturesListExpandedProps {
   subtitle?: string | null
   features: ExpandedFeatureItem[]
   cta?: Button | null
-  backgroundColor?: string
+  theme?: string
   __moduleId?: string
   _useReact?: boolean
 }
@@ -32,7 +35,7 @@ export default function FeaturesListExpanded({
   subtitle: initialSubtitle,
   features: initialFeatures,
   cta: initialCta,
-  backgroundColor = 'bg-backdrop-low',
+  theme: initialTheme = 'low',
   __moduleId,
   _useReact,
 }: FeaturesListExpandedProps) {
@@ -40,15 +43,16 @@ export default function FeaturesListExpanded({
   const subtitle = useInlineValue(__moduleId, 'subtitle', initialSubtitle)
   const features = useInlineValue(__moduleId, 'features', initialFeatures)
   const cta = useInlineValue(__moduleId, 'cta', initialCta)
-  const bg = useInlineValue(__moduleId, 'backgroundColor', backgroundColor) || backgroundColor
+  const theme = useInlineValue(__moduleId, 'theme', initialTheme) || initialTheme
 
-  const isDarkBg = bg === 'bg-neutral-high' || bg === 'bg-backdrop-high' || bg === 'bg-standout-high'
-  const textColor = isDarkBg ? 'text-on-high' : 'text-neutral-high'
-  const subtextColor = isDarkBg ? 'text-on-high/80' : 'text-neutral-medium'
-  const iconBg = isDarkBg
+  const styles = getSectionStyles(theme)
+  const textColor = styles.textColor
+  const subtextColor = styles.subtextColor
+  const inverted = styles.inverted
+  const iconBg = inverted
     ? 'bg-on-high/10 text-on-high'
     : 'bg-standout-high/10 text-standout-high'
-  const lineStyle = isDarkBg ? 'border-on-high/10' : 'border-line-low'
+  const lineStyle = inverted ? 'border-on-high/10' : 'border-line-low'
 
   const safeFeatures = Array.isArray(features) ? features.slice(0, 12) : []
 
@@ -185,8 +189,16 @@ export default function FeaturesListExpanded({
   )
 
   return (
-    <section className={`${bg} py-12 sm:py-16`} data-module="features-list-expanded">
-      <div className="container mx-auto px-4 sm:px-6 lg:px-8">
+    <section
+      className={`${styles.containerClasses} py-12 sm:py-16 relative overflow-hidden`}
+      data-module="features-list-expanded"
+      data-inline-type="select"
+      data-inline-path="theme"
+      data-inline-label="Theme"
+      data-inline-options={JSON.stringify(THEME_OPTIONS)}
+    >
+      <SectionBackground component={styles.backgroundComponent} />
+      <div className="container mx-auto px-4 sm:px-6 lg:px-8 relative z-10">
         {headerContent}
 
         {_useReact ? (
@@ -211,7 +223,7 @@ export default function FeaturesListExpanded({
             rel={cta?.rel}
             inlinePath="cta"
             _useReact={_useReact}
-            isDarkBg={isDarkBg}
+            inverted={inverted}
           />
         )}
       </div>
@@ -227,17 +239,17 @@ function SectionButton({
   rel,
   inlinePath,
   _useReact,
-  isDarkBg,
-}: Button & { inlinePath?: string; _useReact?: boolean; isDarkBg?: boolean }) {
+  inverted,
+}: Button & { inlinePath?: string; _useReact?: boolean; inverted?: boolean }) {
   const styleClasses =
     {
-      primary: isDarkBg
+      primary: inverted
         ? 'bg-backdrop-low text-neutral-high'
         : 'bg-standout-high text-on-high',
-      secondary: isDarkBg
+      secondary: inverted
         ? 'bg-on-high/10 text-on-high hover:bg-on-high/20'
         : 'bg-backdrop-medium hover:bg-backdrop-high text-neutral-high',
-      outline: isDarkBg
+      outline: inverted
         ? 'border border-on-high text-on-high hover:bg-on-high/10'
         : 'border border-line-low hover:bg-backdrop-medium text-neutral-high',
     }[style] || 'bg-standout-high text-on-high'

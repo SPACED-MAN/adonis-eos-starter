@@ -2,6 +2,9 @@ import { motion } from 'framer-motion'
 import { resolveHrefAndTarget } from './hero-with-media'
 import { FontAwesomeIcon } from '../site/lib/icons'
 import { useInlineValue } from '../components/inline-edit/InlineEditorContext'
+import { getSectionStyles } from '../utils/colors'
+import { SectionBackground } from '../components/SectionBackground'
+import { THEME_OPTIONS } from '#modules/shared_fields'
 
 type LinkValue =
   | null
@@ -29,7 +32,7 @@ interface PricingProps {
   title: string
   subtitle?: string | null
   plans: PricingPlan[]
-  backgroundColor?: string
+  theme?: string
   __moduleId?: string
   _useReact?: boolean
 }
@@ -38,18 +41,18 @@ export default function Pricing({
   title: initialTitle,
   subtitle: initialSubtitle,
   plans: initialPlans,
-  backgroundColor = 'bg-backdrop-low',
+  theme: initialTheme = 'low',
   __moduleId,
   _useReact,
 }: PricingProps) {
   const title = useInlineValue(__moduleId, 'title', initialTitle)
   const subtitle = useInlineValue(__moduleId, 'subtitle', initialSubtitle)
   const plans = useInlineValue(__moduleId, 'plans', initialPlans)
-  const bg = useInlineValue(__moduleId, 'backgroundColor', backgroundColor) || backgroundColor
+  const theme = useInlineValue(__moduleId, 'theme', initialTheme) || initialTheme
 
-  const isDarkBg = bg === 'bg-neutral-high' || bg === 'bg-backdrop-high' || bg === 'bg-standout-high'
-  const textColor = isDarkBg ? 'text-on-high' : 'text-neutral-high'
-  const subtextColor = isDarkBg ? 'text-on-high/80' : 'text-neutral-medium'
+  const styles = getSectionStyles(theme)
+  const textColor = styles.textColor
+  const subtextColor = styles.subtextColor
 
   const safePlans = Array.isArray(plans) ? plans.slice(0, 3) : []
 
@@ -130,7 +133,7 @@ export default function Pricing({
 
         const planCard = (
           <div
-            className={`flex flex-col h-full p-6 mx-auto max-w-lg text-center ${isDarkBg ? 'bg-backdrop-low/10' : 'bg-backdrop-low'} rounded-lg border border-line-low shadow-sm xl:p-8 ${isPrimary ? 'ring-2 ring-standout-high shadow-md' : ''
+            className={`flex flex-col h-full p-6 mx-auto max-w-lg text-center ${styles.inverted ? 'bg-backdrop-low/10' : 'bg-backdrop-low'} rounded-lg border border-line-low shadow-sm xl:p-8 ${isPrimary ? 'ring-2 ring-standout-high shadow-md' : ''
               }`}
             data-inline-type="object"
             data-inline-path={`plans.${idx}`}
@@ -169,7 +172,7 @@ export default function Pricing({
                 {plan.features!.map((f: string, fi: number) => (
                   <li key={fi} className="flex items-start space-x-3">
                     <span
-                      className={`mt-0.5 inline-flex h-5 w-5 items-center justify-center rounded-full ${isDarkBg ? 'bg-success/20 text-success' : 'bg-success/10 text-success'}`}
+                      className={`mt-0.5 inline-flex h-5 w-5 items-center justify-center rounded-full ${styles.inverted ? 'bg-success/20 text-success' : 'bg-success/10 text-success'}`}
                       aria-hidden="true"
                     >
                       <FontAwesomeIcon icon="check" size="sm" />
@@ -208,8 +211,16 @@ export default function Pricing({
   )
 
   return (
-    <section className={`${bg} py-12 sm:py-16`} data-module="pricing">
-      <div className="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8">
+    <section
+      className={`${styles.containerClasses} py-12 sm:py-16 relative overflow-hidden`}
+      data-module="pricing"
+      data-inline-type="select"
+      data-inline-path="theme"
+      data-inline-label="Theme"
+      data-inline-options={JSON.stringify(THEME_OPTIONS)}
+    >
+      <SectionBackground component={styles.backgroundComponent} />
+      <div className="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8 relative z-10">
         {headerContent}
         {_useReact ? (
           <motion.div

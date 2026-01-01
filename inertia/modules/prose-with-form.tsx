@@ -1,8 +1,10 @@
 import { motion } from 'framer-motion'
 import FormModule from './form'
 import { useInlineValue } from '../components/inline-edit/InlineEditorContext'
-
 import { renderLexicalToHtml } from '../utils/lexical'
+import { getSectionStyles } from '../utils/colors'
+import { SectionBackground } from '../components/SectionBackground'
+import { THEME_OPTIONS } from '#modules/shared_fields'
 
 interface LexicalJSON {
   root: {
@@ -16,7 +18,7 @@ interface ProseWithFormProps {
   content?: LexicalJSON | string | null
   formSlug: string
   layout?: 'form-right' | 'form-left'
-  backgroundColor?: string
+  theme?: string
   __moduleId?: string
   _useReact?: boolean
 }
@@ -26,17 +28,17 @@ export default function ProseWithForm({
   content: initialContent,
   formSlug,
   layout = 'form-right',
-  backgroundColor = 'bg-backdrop-low',
+  theme: initialTheme = 'low',
   __moduleId,
   _useReact,
 }: ProseWithFormProps) {
   const headingValue = useInlineValue(__moduleId, 'heading', heading)
   const contentValue = useInlineValue(__moduleId, 'content', initialContent)
-  const bg = useInlineValue(__moduleId, 'backgroundColor', backgroundColor) || backgroundColor
+  const theme = useInlineValue(__moduleId, 'theme', initialTheme) || initialTheme
 
-  const isDarkBg = bg === 'bg-neutral-high' || bg === 'bg-backdrop-high' || bg === 'bg-standout-high'
-  const textColor = isDarkBg ? 'text-on-high' : 'text-neutral-high'
-  const subtextColor = isDarkBg ? 'text-on-high/80' : 'text-neutral-medium'
+  const styles = getSectionStyles(theme)
+  const textColor = styles.textColor
+  const subtextColor = styles.subtextColor
 
   const isFormRight = layout === 'form-right'
 
@@ -80,7 +82,7 @@ export default function ProseWithForm({
       </h2>
       {contentValue && (
         <div
-          className={`prose prose-sm md:prose-base ${isDarkBg ? 'prose-invert' : ''} ${subtextColor} max-w-none`}
+          className={`prose prose-sm md:prose-base ${styles.proseInvert} ${subtextColor} max-w-none`}
           suppressHydrationWarning
           data-inline-type="richtext"
           data-inline-path="content"
@@ -96,7 +98,7 @@ export default function ProseWithForm({
         title={null}
         subtitle={null}
         formSlug={formSlug}
-        backgroundColor="bg-transparent"
+        theme="transparent"
       />
     </div>
   )
@@ -142,29 +144,30 @@ export default function ProseWithForm({
         whileInView="visible"
         viewport={{ once: true, margin: '-100px' }}
         variants={containerVariants}
-        className={`${bg} py-12 sm:py-16 overflow-hidden`}
+        className={`${styles.containerClasses} py-12 sm:py-16 overflow-hidden relative`}
         data-module="prose-with-form"
+        data-inline-type="select"
+        data-inline-path="theme"
+        data-inline-label="Theme"
+        data-inline-options={JSON.stringify(THEME_OPTIONS)}
       >
-        <div className="container mx-auto px-4 sm:px-6 lg:px-8">{content}</div>
+        <SectionBackground component={styles.backgroundComponent} />
+        <div className="container mx-auto px-4 sm:px-6 lg:px-8 relative z-10">{content}</div>
       </motion.section>
     )
   }
 
   return (
     <section
-      className={`${bg} py-12 sm:py-16`}
+      className={`${styles.containerClasses} py-12 sm:py-16 relative overflow-hidden`}
       data-module="prose-with-form"
       data-inline-type="select"
-      data-inline-path="backgroundColor"
-      data-inline-options={JSON.stringify([
-        { label: 'Transparent', value: 'bg-transparent' },
-        { label: 'Low', value: 'bg-backdrop-low' },
-        { label: 'Medium', value: 'bg-backdrop-medium' },
-        { label: 'High', value: 'bg-backdrop-high' },
-        { label: 'Dark', value: 'bg-neutral-high' },
-      ])}
+      data-inline-path="theme"
+      data-inline-label="Theme"
+      data-inline-options={JSON.stringify(THEME_OPTIONS)}
     >
-      <div className="container mx-auto px-4 sm:px-6 lg:px-8">{content}</div>
+      <SectionBackground component={styles.backgroundComponent} />
+      <div className="container mx-auto px-4 sm:px-6 lg:px-8 relative z-10">{content}</div>
     </section>
   )
 }

@@ -1,6 +1,6 @@
 import BaseModule from '#modules/base'
 import type { ModuleConfig } from '#types/module_types'
-import { backgroundColorField } from './shared_fields.js'
+import { themeField } from './shared_fields.js'
 
 export default class HeroModule extends BaseModule {
   /**
@@ -63,13 +63,13 @@ export default class HeroModule extends BaseModule {
           type: 'tab',
           label: 'Design',
         },
-        backgroundColorField,
+        themeField,
       ],
       defaultValues: {
         title: "We invest in the world's potential",
         subtitle:
           'We focus on markets where technology, innovation, and capital can unlock long-term value and drive durable growth.',
-        backgroundColor: 'bg-backdrop-low',
+        theme: 'low',
       },
       allowedPostTypes: [],
     }

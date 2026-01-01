@@ -1,6 +1,6 @@
 import BaseModule from '#modules/base'
 import type { ModuleConfig } from '#types/module_types'
-import { backgroundColorField } from './shared_fields.js'
+import { themeField } from './shared_fields.js'
 
 export default class BlogListModule extends BaseModule {
   /**
@@ -57,14 +57,14 @@ export default class BlogListModule extends BaseModule {
           type: 'tab',
           label: 'Design',
         },
-        backgroundColorField,
+        themeField,
       ],
       defaultValues: {
         title: 'Our Blog',
         subtitle:
           'Insights, stories, and updates from the team. Blog posts are pulled from the Blog post type so they stay in sync.',
         posts: [],
-        backgroundColor: 'bg-backdrop-low',
+        theme: 'low',
       },
       allowedPostTypes: ['page', 'blog'],
     }

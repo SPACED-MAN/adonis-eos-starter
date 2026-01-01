@@ -9,6 +9,7 @@
  */
 
 import { usePage } from '@inertiajs/react'
+import { getSectionStyles } from '../utils/colors'
 
 // ============================================================================
 // CONFIGURATION - Edit these values to customize breadcrumb behavior
@@ -23,9 +24,6 @@ const BREADCRUMB_CONFIG = {
   // Separator style between items
   // Options: 'chevron' (›), 'slash' (/), 'arrow' (→)
   separator: 'chevron' as 'chevron' | 'slash' | 'arrow',
-
-  // Background color class
-  backgroundColor: 'bg-backdrop-low',
 
   // Container max width (Tailwind classes)
   containerClass: 'max-w-7xl',
@@ -52,6 +50,8 @@ export default function Breadcrumb() {
   const { props } = usePage<PageProps>()
   const breadcrumbTrail = props.breadcrumbTrail || []
 
+  const styles = getSectionStyles('low')
+
   const separatorMap = {
     chevron: '›',
     slash: '/',
@@ -76,7 +76,7 @@ export default function Breadcrumb() {
 
   return (
     <nav
-      className={`${BREADCRUMB_CONFIG.backgroundColor} py-3 border-b border-line-low`}
+      className={`${styles.containerClasses} py-3 border-b border-line-low`}
       data-module="breadcrumb"
       aria-label="Breadcrumb"
     >
@@ -89,18 +89,18 @@ export default function Breadcrumb() {
             return (
               <li key={index} className="flex items-center">
                 {index > 0 && (
-                  <span className="text-neutral-low mx-2" aria-hidden="true">
+                  <span className={`${styles.subtextColor} mx-2`} aria-hidden="true">
                     {separatorSymbol}
                   </span>
                 )}
                 {isCurrent ? (
-                  <span className="text-neutral-medium font-medium" aria-current="page">
+                  <span className={`${styles.textColor} font-medium`} aria-current="page">
                     {item.label}
                   </span>
                 ) : (
                   <a
                     href={item.url}
-                    className="text-neutral-high hover:text-standout-high transition-colors"
+                    className={`${styles.textColor} hover:text-standout-high transition-colors`}
                   >
                     {item.label}
                   </a>

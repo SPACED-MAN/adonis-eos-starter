@@ -1,6 +1,6 @@
 import BaseModule from '#modules/base'
 import type { ModuleConfig } from '#types/module_types'
-import { backgroundColorField } from './shared_fields.js'
+import { themeField } from './shared_fields.js'
 
 export default class CompanyListModule extends BaseModule {
   /**
@@ -57,13 +57,13 @@ export default class CompanyListModule extends BaseModule {
           type: 'tab',
           label: 'Design',
         },
-        backgroundColorField,
+        themeField,
       ],
       defaultValues: {
         title: 'You’ll be in good company',
         subtitle: 'Logos and names of customers or partners, managed via the Company post type.',
         companies: [],
-        backgroundColor: 'bg-backdrop-low',
+        theme: 'low',
       },
       allowedPostTypes: ['page', 'blog'],
     }

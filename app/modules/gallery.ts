@@ -1,6 +1,6 @@
 import BaseModule from '#modules/base'
 import type { ModuleConfig } from '#types/module_types'
-import { backgroundColorField } from './shared_fields.js'
+import { themeField } from './shared_fields.js'
 
 /**
  * Gallery Module
@@ -96,13 +96,13 @@ export default class GalleryModule extends BaseModule {
           max: 6,
           description: 'Number of columns for grid layout',
         },
-        backgroundColorField,
+        themeField,
       ],
       defaultValues: {
         images: [],
         layout: 'grid',
         columns: 3,
-        backgroundColor: 'bg-backdrop-low',
+        theme: 'transparent',
       },
       allowedPostTypes: [], // Available for all post types
     }

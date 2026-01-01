@@ -4,13 +4,16 @@ import { useInlineEditor, useInlineValue, useInlineField } from '../components/i
 import { FontAwesomeIcon } from '../site/lib/icons'
 import TestimonialTeaser from '../site/post-types/testimonial-teaser'
 import type { MediaObject } from '../utils/useMediaUrl'
+import { getSectionStyles } from '../utils/colors'
+import { SectionBackground } from '../components/SectionBackground'
+import { THEME_OPTIONS } from '#modules/shared_fields'
 
 interface TestimonialListProps {
   title: string
   subtitle?: string | null
   // IDs of Testimonial posts selected via post-reference field; if empty, show all.
   testimonials?: string[] | null
-  backgroundColor?: string
+  theme?: string
   __moduleId?: string
   _useReact?: boolean
 }
@@ -27,7 +30,7 @@ export default function TestimonialList({
   title: initialTitle,
   subtitle: initialSubtitle,
   testimonials: initialTestimonials,
-  backgroundColor = 'bg-backdrop-low',
+  theme: initialTheme = 'low',
   __moduleId,
   _useReact,
 }: TestimonialListProps) {
@@ -37,11 +40,11 @@ export default function TestimonialList({
   const { value: title, show: showTitle, props: titleProps } = useInlineField(__moduleId, 'title', initialTitle, { label: 'Title' })
   const { value: subtitle, show: showSubtitle, props: subtitleProps } = useInlineField(__moduleId, 'subtitle', initialSubtitle, { label: 'Subtitle' })
   const testimonials = useInlineValue(__moduleId, 'testimonials', initialTestimonials)
-  const bg = useInlineValue(__moduleId, 'backgroundColor', backgroundColor) || backgroundColor
+  const theme = useInlineValue(__moduleId, 'theme', initialTheme) || initialTheme
 
-  const isDarkBg = bg === 'bg-neutral-high' || bg === 'bg-backdrop-high' || bg === 'bg-standout-high'
-  const textColor = isDarkBg ? 'text-on-high' : 'text-neutral-high'
-  const subtextColor = isDarkBg ? 'text-on-high/80' : 'text-neutral-medium'
+  const styles = getSectionStyles(theme)
+  const textColor = styles.textColor
+  const subtextColor = styles.subtextColor
 
   useEffect(() => {
     let cancelled = false
@@ -194,20 +197,15 @@ export default function TestimonialList({
   if (loading && items.length === 0) {
     return (
       <section
-        className={`${bg} py-8 lg:py-16`}
+        className={`${styles.containerClasses} py-8 lg:py-16 relative overflow-hidden`}
         data-module="testimonial-list"
         data-inline-type="select"
-        data-inline-path="backgroundColor"
-        data-inline-label="Background Color"
-        data-inline-options={JSON.stringify([
-          { label: 'Transparent', value: 'bg-transparent' },
-          { label: 'Low', value: 'bg-backdrop-low' },
-          { label: 'Medium', value: 'bg-backdrop-medium' },
-          { label: 'High', value: 'bg-backdrop-high' },
-          { label: 'Dark', value: 'bg-neutral-high' },
-        ])}
+        data-inline-path="theme"
+        data-inline-label="Theme"
+        data-inline-options={JSON.stringify(THEME_OPTIONS)}
       >
-        <div className="container mx-auto px-4 lg:px-6">
+        <SectionBackground component={styles.backgroundComponent} />
+        <div className="container mx-auto px-4 lg:px-6 relative z-10">
           <div className="mx-auto max-w-screen-sm text-center mb-8">
             <h2 className={`mb-4 text-3xl md:text-4xl font-extrabold tracking-tight ${textColor}`}>
               {title}
@@ -226,20 +224,15 @@ export default function TestimonialList({
 
   return (
     <section
-      className={`${bg} py-8 lg:py-16`}
+      className={`${styles.containerClasses} py-8 lg:py-16 relative overflow-hidden`}
       data-module="testimonial-list"
       data-inline-type="select"
-      data-inline-path="backgroundColor"
-      data-inline-label="Background Color"
-      data-inline-options={JSON.stringify([
-        { label: 'Transparent', value: 'bg-transparent' },
-        { label: 'Low', value: 'bg-backdrop-low' },
-        { label: 'Medium', value: 'bg-backdrop-medium' },
-        { label: 'High', value: 'bg-backdrop-high' },
-        { label: 'Dark', value: 'bg-neutral-high' },
-      ])}
+      data-inline-path="theme"
+      data-inline-label="Theme"
+      data-inline-options={JSON.stringify(THEME_OPTIONS)}
     >
-      <div className="container mx-auto px-4 lg:px-6 text-center">
+      <SectionBackground component={styles.backgroundComponent} />
+      <div className="container mx-auto px-4 lg:px-6 text-center relative z-10">
         {headerContent}
 
         {_useReact ? (
@@ -258,7 +251,7 @@ export default function TestimonialList({
         <div className="text-center">
           <a
             href="#"
-            className={`inline-flex items-center justify-center py-2.5 px-5 text-sm font-medium ${isDarkBg ? 'bg-backdrop-low text-neutral-high' : 'text-neutral-high bg-backdrop-high'} border border-line-low rounded-lg hover:bg-backdrop-medium focus:outline-none focus:ring-2 focus:ring-standout-high/40`}
+            className={`inline-flex items-center justify-center py-2.5 px-5 text-sm font-medium ${styles.inverted ? 'bg-backdrop-low text-neutral-high' : 'text-neutral-high bg-backdrop-high'} border border-line-low rounded-lg hover:bg-backdrop-medium focus:outline-none focus:ring-2 focus:ring-standout-high/40`}
           >
             Show more…
           </a>
