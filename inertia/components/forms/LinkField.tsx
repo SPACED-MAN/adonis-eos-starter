@@ -287,7 +287,7 @@ export const LinkField: React.FC<LinkFieldProps> = ({
 
   return (
     <FormField>
-      <FormLabel className="block text-[11px] font-bold text-neutral-medium uppercase tracking-wider mt-2 mb-1.5 ml-1">
+      <FormLabel className="block text-[12px] font-bold text-neutral-medium uppercase tracking-wider mt-2 mb-1.5 ml-1">
         {label}
       </FormLabel>
       <div className="bg-backdrop-medium/20 border border-line-medium rounded-2xl p-3 space-y-3 shadow-sm">

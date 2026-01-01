@@ -13,7 +13,7 @@ export const FormLabel = React.forwardRef<HTMLLabelElement, FormLabelProps>(
       <label
         ref={ref}
         className={cn(
-          'block text-[11px] font-bold text-neutral-medium uppercase tracking-wider mt-2 mb-1.5 ml-1',
+          'block text-[12px] font-bold text-neutral-medium uppercase tracking-wider mt-2 mb-1.5 ml-1',
           className
         )}
         {...props}

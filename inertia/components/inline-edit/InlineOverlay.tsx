@@ -560,8 +560,8 @@ export function InlineOverlay() {
         >
           {dialogState && (
             <div className="bg-backdrop-low rounded-2xl border border-line-low shadow-2xl overflow-hidden flex flex-col">
-              <DialogHeader className="px-6 py-4 border-b border-line-low bg-backdrop-low">
-                <DialogTitle className="text-base font-bold text-neutral-high">
+              <DialogHeader className="px-6 py-5 border-b border-line-low bg-backdrop-low">
+                <DialogTitle className="text-xl font-extrabold text-neutral-high tracking-tight">
                   {dialogState.label || formatPathLabel(dialogState.path)}
                 </DialogTitle>
               </DialogHeader>
@@ -613,7 +613,7 @@ function formatPathLabel(path: string): string {
 
 function FieldDialogContent({ pop, onClose, getValue, setValue, setMediaTarget }: DialogContentProps) {
   const { moduleId, path, type, options, multi, fields } = pop
-  
+
   // For 'background' type, we don't have a single value, we manage multiple
   const currentValFromCtx = type === 'background' ? null : getValue(moduleId, path, null)
 
@@ -639,7 +639,7 @@ function FieldDialogContent({ pop, onClose, getValue, setValue, setMediaTarget }
   }, [currentValFromCtx, type])
 
   const labelStyle =
-    'block text-[11px] font-bold text-neutral-medium uppercase tracking-wider mt-2 mb-1.5 ml-1'
+    'block text-[12px] font-bold text-neutral-medium uppercase tracking-wider mt-2 mb-1.5 ml-1'
   const inputStyle =
     'w-full border border-line-medium rounded-xl px-4 py-2.5 bg-backdrop-low text-neutral-high text-sm focus:ring-2 focus:ring-standout-high/20 focus:border-standout-high outline-none transition-all shadow-sm'
   const selectStyle =

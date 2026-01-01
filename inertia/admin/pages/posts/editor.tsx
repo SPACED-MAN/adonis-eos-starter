@@ -3186,7 +3186,7 @@ export default function Editor({
                 {/* Title */}
                 {(uiConfig?.hideCoreFields || []).includes('title') ? null : (
                   <div>
-                    <label className="block text-[11px] font-bold text-neutral-medium uppercase tracking-wider mt-2 mb-1.5 ml-1">
+                    <label className="block text-[12px] font-bold text-neutral-medium uppercase tracking-wider mt-2 mb-1.5 ml-1">
                       Title *
                     </label>
                     <Input
@@ -3212,7 +3212,7 @@ export default function Editor({
 
                 {/* Excerpt */}
                 <div>
-                  <label className="block text-[11px] font-bold text-neutral-medium uppercase tracking-wider mt-2 mb-1.5 ml-1">
+                  <label className="block text-[12px] font-bold text-neutral-medium uppercase tracking-wider mt-2 mb-1.5 ml-1">
                     Excerpt
                   </label>
                   <Textarea
@@ -3230,7 +3230,7 @@ export default function Editor({
                 {/* Featured Image (core) */}
                 {uiConfig?.featuredImage?.enabled && (
                   <div className="group max-w-70">
-                    <label className="block text-[11px] font-bold text-neutral-medium uppercase tracking-wider mt-2 mb-1.5 ml-1">
+                    <label className="block text-[12px] font-bold text-neutral-medium uppercase tracking-wider mt-2 mb-1.5 ml-1">
                       <div className="flex items-center justify-between">
                         <span className="inline-flex items-center gap-1.5">
                           <Star className="w-3.5 h-3.5 text-amber-500" aria-hidden="true" />
@@ -3367,7 +3367,7 @@ export default function Editor({
                 {/* Categories (Taxonomies) */}
                 {taxonomyOptions.length > 0 && (
                   <div className="space-y-6">
-                    <div className="text-[11px] font-bold text-neutral-medium uppercase tracking-wider mb-2 ml-1">
+                    <div className="text-[12px] font-bold text-neutral-medium uppercase tracking-wider mb-2 ml-1">
                       Categories
                     </div>
                     {taxonomyOptions.map((tax) => {
@@ -3520,7 +3520,7 @@ export default function Editor({
                 <div className="mt-6">
                   <div className="flex items-center justify-between mb-4">
                     <div className="flex items-center gap-4">
-                      <h3 className="text-[11px] font-bold text-neutral-medium uppercase tracking-wider">
+                      <h3 className="text-[12px] font-bold text-neutral-medium uppercase tracking-wider">
                         Modules
                       </h3>
                       {modules.length > 0 && (
@@ -3663,7 +3663,7 @@ export default function Editor({
                 <div className="space-y-6">
                   {/* Slug */}
                   <div>
-                    <label className="block text-[11px] font-bold text-neutral-medium uppercase tracking-wider mt-2 mb-1.5 ml-1">
+                    <label className="block text-[12px] font-bold text-neutral-medium uppercase tracking-wider mt-2 mb-1.5 ml-1">
                       <div className="flex items-center justify-between">
                         <span>Slug *</span>
                         {post.abVariation && abVariations.length > 1 && (
@@ -3714,7 +3714,7 @@ export default function Editor({
                   <div className="grid grid-cols-1 gap-6">
                     {/* Meta Title */}
                     <div>
-                      <label className="block text-[11px] font-bold text-neutral-medium uppercase tracking-wider mt-2 mb-1.5 ml-1">
+                      <label className="block text-[12px] font-bold text-neutral-medium uppercase tracking-wider mt-2 mb-1.5 ml-1">
                         Meta Title
                       </label>
                       <Input
@@ -3731,7 +3731,7 @@ export default function Editor({
 
                     {/* Meta Description */}
                     <div>
-                      <label className="block text-[11px] font-bold text-neutral-medium uppercase tracking-wider mt-2 mb-1.5 ml-1">
+                      <label className="block text-[12px] font-bold text-neutral-medium uppercase tracking-wider mt-2 mb-1.5 ml-1">
                         Meta Description
                       </label>
                       <Textarea
@@ -3748,7 +3748,7 @@ export default function Editor({
 
                     {/* Robots Toggles */}
                     <div className="pt-4 border-t border-line-low">
-                      <label className="block text-[11px] font-bold text-neutral-medium uppercase tracking-wider mb-3 ml-1">
+                      <label className="block text-[12px] font-bold text-neutral-medium uppercase tracking-wider mb-3 ml-1">
                         Search Engine Visibility
                       </label>
                       <div className="flex gap-6 ml-1">
@@ -3783,7 +3783,7 @@ export default function Editor({
 
                     {/* Social Media Preview / Settings */}
                     <div className="pt-6 border-t border-line-low space-y-4">
-                      <label className="block text-[11px] font-bold text-neutral-medium uppercase tracking-wider mb-2 ml-1">
+                      <label className="block text-[12px] font-bold text-neutral-medium uppercase tracking-wider mb-2 ml-1">
                         Social Media
                       </label>
 
@@ -3850,7 +3850,7 @@ export default function Editor({
 
                     {/* SEO Previews */}
                     <div className="pt-8 border-t border-line-low space-y-6">
-                      <label className="block text-[11px] font-bold text-neutral-medium uppercase tracking-wider mb-2 ml-1">
+                      <label className="block text-[12px] font-bold text-neutral-medium uppercase tracking-wider mb-2 ml-1">
                         Previews
                       </label>
 
@@ -3924,7 +3924,7 @@ export default function Editor({
                     <div className="mt-6 space-y-6">
                       {/* Canonical URL */}
                       <div>
-                        <label className="block text-[11px] font-bold text-neutral-medium uppercase tracking-wider mt-2 mb-1.5 ml-1">
+                        <label className="block text-[12px] font-bold text-neutral-medium uppercase tracking-wider mt-2 mb-1.5 ml-1">
                           Canonical URL
                         </label>
                         <Input
@@ -3939,7 +3939,7 @@ export default function Editor({
                       <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                         {/* Robots JSON */}
                         <div>
-                          <label className="block text-[11px] font-bold text-neutral-medium uppercase tracking-wider mt-2 mb-1.5 ml-1">
+                          <label className="block text-[12px] font-bold text-neutral-medium uppercase tracking-wider mt-2 mb-1.5 ml-1">
                             Robots (JSON)
                           </label>
                           <Textarea
@@ -3953,7 +3953,7 @@ export default function Editor({
 
                         {/* JSON-LD Overrides */}
                         <div>
-                          <label className="block text-[11px] font-bold text-neutral-medium uppercase tracking-wider mt-2 mb-1.5 ml-1">
+                          <label className="block text-[12px] font-bold text-neutral-medium uppercase tracking-wider mt-2 mb-1.5 ml-1">
                             JSON-LD Overrides
                           </label>
                           <Textarea
@@ -3976,7 +3976,7 @@ export default function Editor({
           <div className="space-y-8">
             {/* Actions */}
             <div className="bg-backdrop-low rounded-2xl shadow-sm p-6 border border-line-low">
-              <h3 className="text-[11px] font-bold text-neutral-medium uppercase tracking-wider mb-6 ml-1">
+              <h3 className="text-[12px] font-bold text-neutral-medium uppercase tracking-wider mb-6 ml-1">
                 Actions
               </h3>
 

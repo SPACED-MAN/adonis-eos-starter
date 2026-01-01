@@ -1956,7 +1956,9 @@ const FieldBySchemaInternal = memo(
         return (
           <div className="mt-4">
             {!hideLabel && (
-              <legend className="px-1 text-xs font-medium text-neutral-low mb-2">{label}</legend>
+              <legend className="px-1 text-[13px] font-extrabold text-neutral-high mb-3 uppercase tracking-wider">
+                {label}
+              </legend>
             )}
             <div className="grid grid-cols-1 gap-4">
               {objectFields.map((f) => (
@@ -2101,7 +2103,7 @@ const FieldBySchemaInternal = memo(
       return (
         <fieldset className="border border-line-low rounded-lg mt-4 p-3 bg-backdrop-medium/5">
           <div className="flex items-center justify-between mb-3 px-1">
-            <legend className="text-xs font-bold text-neutral-medium uppercase tracking-wider m-0">
+            <legend className="text-[13px] font-extrabold text-neutral-high uppercase tracking-wider m-0">
               {label}
             </legend>
             {items.length > 0 && (
@@ -2335,7 +2337,7 @@ const ModuleFieldsRenderer = memo(
           <div key={`${sectionIdx}-${groupIdx}`} className="space-y-4 mb-8 last:mb-0">
             {group.label && (
               <div className="border-b border-line-low pb-2 mb-4">
-                <h4 className="text-[11px] font-bold text-neutral-medium uppercase tracking-wider">
+                <h4 className="text-[12px] font-bold text-neutral-medium uppercase tracking-wider">
                   {group.label}
                 </h4>
                 {group.description && (

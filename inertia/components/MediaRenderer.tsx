@@ -1,4 +1,4 @@
-import React, { useState, forwardRef, useRef } from 'react'
+import React, { useState, forwardRef, useRef, useEffect } from 'react'
 import { useInView } from 'framer-motion'
 import { Dialog, DialogContent, DialogTitle } from './ui/dialog'
 import { useMediaUrl, type MediaObject } from '../utils/useMediaUrl'
@@ -79,6 +79,20 @@ export const MediaRenderer = forwardRef<HTMLImageElement | HTMLVideoElement, Med
       (typeof mimeType === 'string' && mimeType.startsWith('video/')) ||
       /\.(mp4|webm|ogg|mov|m4v|avi)$/i.test(resolvedUrl.split('?')[0].toLowerCase())
 
+    const isAutoplayMode = playMode === 'autoplay'
+
+    useEffect(() => {
+      if (isVideo && isAutoplayMode && isInView && combinedRef.current) {
+        // Explicitly set muted and loop properties to ensure autoplay is allowed by browser policies
+        combinedRef.current.muted = true
+        combinedRef.current.loop = true
+        combinedRef.current.play().catch((err) => {
+          // Fallback or ignore: browsers might still block it if no user interaction
+          console.warn('[MediaRenderer] Autoplay failed:', err)
+        })
+      }
+    }, [isInView, isVideo, isAutoplayMode])
+
     const isLottie =
       (typeof mimeType === 'string' &&
         (mimeType === 'application/json' || mimeType === 'application/x-lottie')) ||
@@ -91,7 +105,6 @@ export const MediaRenderer = forwardRef<HTMLImageElement | HTMLVideoElement, Med
     const isAnimation = isLottie || isSvg
 
     if (isVideo || isLottie || (isSvg && playMode === 'modal')) {
-      const isAutoplayMode = playMode === 'autoplay'
       const isModalMode = playMode === 'modal'
 
       if (isModalMode) {
