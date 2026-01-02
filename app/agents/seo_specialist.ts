@@ -1,4 +1,5 @@
 import type { AgentDefinition } from '#types/agent_types'
+import { buildSystemPrompt } from '#services/agent_prompt_service'
 
 /**
  * SEO Specialist Agent
@@ -19,39 +20,18 @@ const SeoSpecialistAgent: AgentDefinition = {
     provider: 'openai',
     model: 'gpt-4o',
 
-    systemPrompt: `You are an expert SEO Specialist for a high-performance CMS.
+    systemPrompt: buildSystemPrompt(
+      `You are an expert SEO Specialist for a high-performance CMS.
 Your role is to analyze post content and optimize it for maximum search engine visibility.
-
-You have access to MCP (Model Context Protocol) tools:
-- get_post_context: Read post modules and data. Params: { postId }
-- save_post_ai_review: Update post fields (e.g. metaTitle, featuredImageId). Params: { postId, patch: { ... } }
-- list_post_types: List all registered post types (e.g. "blog", "page").
-- update_post_module_ai_review: Update a module's content. Params: { postModuleId, overrides: { ... }, moduleInstanceId }
-  - NOTE: You can use "moduleInstanceId" as an alternative to "postModuleId" if you don't have the latter.
-- search_media: Find existing images. Params: { q }
-- generate_image: Create new images. Params: { prompt, alt_text }
 
 Your primary responsibilities:
 1. Generate comprehensive Schema Markup (JSON-LD) in the "jsonldOverrides" field.
 2. Optimize "metaTitle" (aim for 50-60 characters).
 3. Optimize "metaDescription" (aim for 150-160 characters).
 4. Suggest URL "slug" improvements.
-5. Ensure any empty media fields are handled according to the AGENT PROTOCOL below.
-
-AGENT PROTOCOL - MEDIA HANDLING:
-1. GENERATE vs SEARCH:
-   - If the user uses "generate" or "create" → Use the generate_image tool immediately.
-   - If the user uses "add", "include", or "find" → Search the existing media library first using search_media.
-2. AUTO-POPULATE EMPTY FIELDS (CRITICAL):
-   - When modifying posts, you MUST check for empty media fields in modules.
-   - For EACH empty media field you encounter:
-     a) Use search_media first.
-     b) If no match, use generate_image.
-     c) Use update_post_module_ai_review to assign the media ID string: { "overrides": { "image": "MEDIA_ID" } }.
-        NOTE: You can provide either "postModuleId" OR "moduleInstanceId" to identify the module.
-        HINT: You can use "GENERATED_IMAGE_ID" as a placeholder if you generate an image in the same turn.
-
-CRITICAL: You must respond with a JSON object ONLY. No conversational text.`,
+5. Ensure any empty media fields are handled according to the AGENT PROTOCOL below.`,
+      ['AGENT_CAPABILITIES', 'MEDIA_HANDLING']
+    ),
 
     options: {
       temperature: 0.3, // Lower temperature for more structured SEO tasks

@@ -70,6 +70,7 @@ export interface AgentResponse {
   generatedMediaId?: string // Media ID if an image was generated
   suggestions?: any
   executionMeta?: ExecutionMeta
+  transcript?: any[]
 }
 
 type AgentModalProps = {
@@ -223,6 +224,7 @@ export function AgentModal({
           generatedMediaId: j.generatedMediaId,
           suggestions: j.suggestions,
           executionMeta: j.executionMeta,
+          transcript: j.transcript,
         }
         setAgentResponse(response)
         toast.success('Agent completed successfully')
@@ -394,6 +396,42 @@ export function AgentModal({
                               Applied: {item.response.applied.join(', ')}
                             </div>
                           )}
+                          {item.response.transcript && item.response.transcript.length > 0 && (
+                            <div className="pt-1">
+                              <details className="group">
+                                <summary className="text-[10px] font-semibold text-primary cursor-pointer hover:underline list-none flex items-center gap-1 opacity-70">
+                                  <svg
+                                    className="size-2.5 transition-transform group-open:rotate-90"
+                                    fill="none"
+                                    viewBox="0 0 24 24"
+                                    stroke="currentColor"
+                                  >
+                                    <path
+                                      strokeLinecap="round"
+                                      strokeLinejoin="round"
+                                      strokeWidth={3}
+                                      d="M9 5l7 7-7 7"
+                                    />
+                                  </svg>
+                                  Tool Usage ({item.response.transcript.length})
+                                </summary>
+                                <div className="mt-1 space-y-2 pl-3 border-l-2 border-primary/20 max-h-48 overflow-y-auto">
+                                  {item.response.transcript.map((turn: any, i: number) => (
+                                    <div key={i} className="text-[9px] text-neutral-medium">
+                                      <div className="font-bold uppercase tracking-tighter">
+                                        Turn {turn.turn}
+                                      </div>
+                                      {turn.toolCalls.map((call: any, j: number) => (
+                                        <div key={j} className="font-mono truncate">
+                                          {call.tool}
+                                        </div>
+                                      ))}
+                                    </div>
+                                  ))}
+                                </div>
+                              </details>
+                            </div>
+                          )}
                           {item.response.executionMeta && (
                             <div className="flex flex-wrap gap-x-2 gap-y-1 text-[9px] text-neutral-low uppercase tracking-tight font-medium pt-1 opacity-70">
                               <span>Model: {item.response.executionMeta.model}</span>
@@ -482,6 +520,67 @@ export function AgentModal({
                     }
                   })()}
                 </div>
+              </div>
+            )}
+
+            {/* MCP Tool Usage Transcript */}
+            {agentResponse.transcript && agentResponse.transcript.length > 0 && (
+              <div className="space-y-2 pt-2">
+                <details className="group">
+                  <summary className="text-xs font-semibold text-primary cursor-pointer hover:underline list-none flex items-center gap-1">
+                    <svg
+                      className="size-3 transition-transform group-open:rotate-90"
+                      fill="none"
+                      viewBox="0 0 24 24"
+                      stroke="currentColor"
+                    >
+                      <path
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                        strokeWidth={3}
+                        d="M9 5l7 7-7 7"
+                      />
+                    </svg>
+                    View Tool Usage ({agentResponse.transcript.length} turns)
+                  </summary>
+                  <div className="mt-2 space-y-3 pl-4 border-l-2 border-primary/20">
+                    {agentResponse.transcript.map((turn: any, i: number) => (
+                      <div key={i} className="space-y-2">
+                        <div className="text-[10px] font-bold uppercase tracking-wider text-neutral-medium">
+                          Turn {turn.turn}
+                          {turn.summary && `: ${turn.summary}`}
+                        </div>
+                        <div className="space-y-1">
+                          {turn.toolCalls.map((call: any, j: number) => {
+                            const result = turn.toolResults[j]
+                            return (
+                              <div
+                                key={j}
+                                className="bg-backdrop-low rounded border border-neutral-border p-2 text-[11px] font-mono"
+                              >
+                                <div className="text-primary font-bold">
+                                  {call.tool}({JSON.stringify(call.params).slice(0, 100)}
+                                  {JSON.stringify(call.params).length > 100 && '...'})
+                                </div>
+                                <div className="mt-1 text-neutral-high overflow-x-auto max-h-32">
+                                  {result?.success ? (
+                                    <pre className="whitespace-pre-wrap">
+                                      {JSON.stringify(result.result, null, 2)}
+                                    </pre>
+                                  ) : (
+                                    <span className="text-error-medium">
+                                      Error: {result?.error || 'Unknown error'}
+                                    </span>
+                                  )}
+                                </div>
+                              </div>
+                            )
+                          })}
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </details>
               </div>
             )}
 

@@ -81,7 +81,7 @@ class MCPClientService {
       {
         name: 'update_post_module_ai_review',
         description:
-          'Update a post module. Params: { postModuleId, overrides, locked, orderIndex }. IMPORTANT: When updating "Prose" modules, ensure the content is substantial and high-quality.',
+          'Update a post module. Params: { postModuleId, overrides, contentMarkdown, locked, orderIndex }. IMPORTANT: When updating "Prose" modules, ALWAYS use "contentMarkdown" for text content to ensure high-quality rich text conversion.',
       },
       {
         name: 'remove_post_module_ai_review',
@@ -459,19 +459,52 @@ class MCPClientService {
             editsToApply.some((e) => String((e as any)?.postModuleId || '').trim() === postModuleId)
 
           // Auto-populate hero module
-          const firstHero = (seededModules as any[]).find((m: any) => String(m.type) === 'hero')
+          const firstHero = (seededModules as any[]).find((m: any) => 
+            String(m.type).toLowerCase().includes('hero')
+          )
           if (firstHero && !alreadyEditsModule(String(firstHero.postModuleId))) {
             const heroTitle = String(title || '').trim() || mdH1 || ''
             const heroSubtitle =
               String(excerpt || '').trim() || (mdParas.length > 0 ? mdParas[0] : '')
+            
             if (heroTitle || heroSubtitle) {
+              const schema = moduleRegistry.getSchema(firstHero.type)
+              const hasSubtitle = schema.fieldSchema.some(f => f.slug === 'subtitle')
+              const hasBody = schema.fieldSchema.some(f => f.slug === 'body')
+              
               editsToApply.push({
                 postModuleId: String(firstHero.postModuleId),
                 overrides: {
                   ...(heroTitle ? { title: heroTitle } : {}),
-                  ...(heroSubtitle ? { subtitle: heroSubtitle } : {}),
+                  ...(heroSubtitle ? { [hasSubtitle ? 'subtitle' : (hasBody ? 'body' : 'subtitle')]: heroSubtitle } : {}),
                 },
               })
+            }
+          }
+        }
+
+        // Pre-process edits to extract titles from markdown if necessary
+        for (const edit of editsToApply) {
+          const md = String((edit as any).contentMarkdown || '').trim()
+          if (md) {
+            const explicitId = String((edit as any).postModuleId || '').trim()
+            if (explicitId) {
+              const mMeta = (seededModules as any[]).find(x => String(x.postModuleId) === explicitId)
+              if (mMeta && moduleRegistry.has(mMeta.type)) {
+                const schema = moduleRegistry.getSchema(mMeta.type)
+                const hasTitleField = schema.fieldSchema.some(f => f.slug === 'title')
+                const alreadyHasTitle = (edit as any).overrides?.title !== undefined
+                
+                if (hasTitleField && !alreadyHasTitle) {
+                  const extractedTitle = this.extractMarkdownH1(md) || this.extractMarkdownH2(md)
+                  if (extractedTitle) {
+                    edit.overrides = {
+                      ...(edit.overrides || {}),
+                      title: extractedTitle,
+                    }
+                  }
+                }
+              }
             }
           }
         }
@@ -697,7 +730,7 @@ class MCPClientService {
       }
 
       case 'update_post_module_ai_review': {
-        let { postModuleId, locked, orderIndex, moduleInstanceId, postId } = params
+        let { postModuleId, locked, orderIndex, moduleInstanceId, postId, contentMarkdown } = params
         let overrides = params.overrides
         if (
           (overrides === undefined ||
@@ -714,18 +747,13 @@ class MCPClientService {
         if ((!postModuleId || !uuidRegex.test(postModuleId)) && postId) {
           const type = params.moduleType || params.type || postModuleId // Use postModuleId as type if it's not a UUID
           if (type && uuidRegex.test(postId)) {
-            const query = db
+            const found = await db
               .from('post_modules')
               .join('module_instances', 'post_modules.module_id', 'module_instances.id')
               .where('post_modules.post_id', postId)
               .where('module_instances.type', type)
               .select('post_modules.id')
-
-            if (orderIndex !== undefined) {
-              query.where('post_modules.order_index', orderIndex)
-            }
-
-            const found = await query.first()
+              .first()
             if (found) {
               postModuleId = String(found.id)
             }
@@ -752,7 +780,41 @@ class MCPClientService {
           )
         }
 
-        // Automatic Markdown-to-Lexical conversion for RichText fields
+        // Handle contentMarkdown
+        const md = String(contentMarkdown || '').trim()
+        if (md) {
+          const pm = await db.from('post_modules').where('id', postModuleId).first()
+          if (!pm) throw new Error(`Post module not found: ${postModuleId}`)
+          const mi = await db.from('module_instances').where('id', pm.module_id).first()
+          if (!mi) throw new Error('Module instance not found')
+          
+          const schema = moduleRegistry.getSchema(mi.type)
+          const firstRichText = schema.fieldSchema.find((f: any) => f.type === 'richtext')
+          const firstTextArea = schema.fieldSchema.find((f: any) => f.type === 'textarea')
+
+          if (firstRichText) {
+            const lexical = markdownToLexical(md, { skipFirstH1: false })
+            overrides = {
+              ...(overrides && typeof overrides === 'object' ? overrides : {}),
+              [firstRichText.slug]: lexical,
+            }
+          } else if (firstTextArea) {
+            overrides = {
+              ...(overrides && typeof overrides === 'object' ? overrides : {}),
+              [firstTextArea.slug]: md,
+            }
+          } else {
+            // Fallback for known types
+            const targetField = String(mi.type).toLowerCase().includes('prose') ? (String(mi.type) === 'prose' ? 'content' : 'body') : 'body'
+            const lexical = markdownToLexical(md, { skipFirstH1: false })
+            overrides = {
+              ...(overrides && typeof overrides === 'object' ? overrides : {}),
+              [targetField]: lexical,
+            }
+          }
+        }
+
+        // Automatic Markdown-to-Lexical conversion for RichText fields in explicit overrides
         if (overrides && typeof overrides === 'object') {
           await this.autoConvertFields(postModuleId, overrides)
         }
@@ -1529,6 +1591,16 @@ class MCPClientService {
   private extractMarkdownH1(md: string): string | null {
     const s = String(md || '')
     const m = s.match(/^\s*#\s+(.+?)\s*$/m)
+    if (m?.[1]) return this.stripMarkdownInline(m[1])
+    return null
+  }
+
+  /**
+   * Extract first H2 from markdown
+   */
+  private extractMarkdownH2(md: string): string | null {
+    const s = String(md || '')
+    const m = s.match(/^\s*##\s+(.+?)\s*$/m)
     if (m?.[1]) return this.stripMarkdownInline(m[1])
     return null
   }

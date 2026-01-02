@@ -613,36 +613,36 @@ function createServerInstance() {
 
   server.tool(
     'create_post_ai_review',
-    'Create a new post and stage its first content into ai_review_draft. The live post remains as draft until a human approves.',
+    'Create a new post and stage its first content into ai_review_draft. Use this tool for articles, blog posts, and pages. High-quality content is expected.',
     {
-      type: z.string().min(1),
+      type: z.string().min(1).describe('Post type slug (e.g. "blog", "page")'),
       locale: z.string().min(1).default('en'),
-      slug: z.string().min(1),
-      title: z.string().min(1),
-      excerpt: z.string().optional(),
+      slug: z.string().min(1).describe('URL-friendly slug'),
+      title: z.string().min(1).describe('Professional title'),
+      excerpt: z.string().optional().describe('Short summary for listing pages'),
       contentMarkdown: z
         .string()
         .optional()
         .describe(
-          'Convenience: if provided, Adonis EOS will populate the first seeded `prose` module. ONLY use this for simple, uniform content. For complex content with multiple sections, use `moduleEdits` or `add_module_to_post_ai_review` to map content to appropriate modules instead.'
+          'Provide high-quality, substantial markdown for the body content. Use at least 3-4 paragraphs for prose modules.'
         ),
       moduleGroupId: z
         .string()
         .optional()
         .describe(
-          'Optional module group id to seed modules from (overrides default post type module group).'
+          'Optional module group id to seed modules from.'
         ),
       moduleGroupName: z
         .string()
         .optional()
         .describe(
-          'Optional module group name to seed modules from (looked up by {post_type,type}+name). If provided, takes precedence over moduleGroupId.'
+          'Optional module group name to seed modules from.'
         ),
       moduleEdits: z
         .array(moduleEditSchema)
         .optional()
         .describe(
-          'Optional module edits to apply immediately after creation (AI Review). Useful for populating seeded template modules.'
+          'Optional module edits to apply immediately after creation.'
         ),
       agentId: z.string().optional(),
       agentName: z.string().optional(),
@@ -1089,15 +1089,29 @@ function createServerInstance() {
 
   server.tool(
     'update_post_module_ai_review',
-    'Update a post module as an AI Review change (writes to ai_review_props/ai_review_overrides).',
+    'Update a post module\'s content. For global modules, this only adds overrides for the current post and does NOT modify the global component for other posts.',
     {
-      postModuleId: z.string().min(1),
-      overrides: z.record(z.any()).nullable().optional(),
+      postModuleId: z.string().min(1).describe('The post module instance ID'),
+      overrides: z.record(z.any()).nullable().optional().describe('Content updates (title, body, image, etc.)'),
+      contentMarkdown: z.string().optional().describe('Convenience for prose modules: provide markdown and it will be converted to Lexical JSON and applied to the main content field.'),
       locked: z.boolean().optional(),
       orderIndex: z.number().int().optional(),
     },
-    async ({ postModuleId, overrides, locked, orderIndex }) => {
+    async ({ postModuleId, overrides, contentMarkdown, locked, orderIndex }) => {
       try {
+        // Safety: Prevent modification of global properties that shouldn't be touched by AI
+        if (overrides) {
+          const restrictedFields = ['globalSlug', 'global_slug', 'scope', 'type']
+          for (const field of restrictedFields) {
+            if (field in overrides) {
+              return errorResult(`Cannot modify '${field}' via update_post_module_ai_review.`, {
+                postModuleId,
+                hint: 'Restricted field modification attempted.',
+              })
+            }
+          }
+        }
+
         // Locked modules are structural constraints from module groups and should not be changed by agents.
         // If an agent could unlock a module, it could then remove it, defeating the "locked modules must stay" contract.
         if (locked !== undefined) {
@@ -1106,9 +1120,50 @@ function createServerInstance() {
             hint: 'Locked modules must remain locked. Populate content via `overrides` (or use `contentMarkdown` for prose).',
           })
         }
+
+        let finalOverrides = overrides === undefined ? undefined : overrides
+
+        const md = String(contentMarkdown || '').trim()
+        if (md) {
+          // Identify the module type to determine the correct field for markdown
+          const row = await db
+            .from('post_modules as pm')
+            .join('module_instances as mi', 'pm.module_id', 'mi.id')
+            .where('pm.id', postModuleId)
+            .select('mi.type')
+            .first()
+
+          if (!row) return errorResult('Post module not found', { postModuleId })
+
+          const schema = moduleRegistry.getSchema(String(row.type))
+          const firstRichText = schema.fieldSchema.find((f: any) => f.type === 'richtext')
+          const firstTextArea = schema.fieldSchema.find((f: any) => f.type === 'textarea')
+          
+          if (firstRichText) {
+            const lexical = markdownToLexical(md, { skipFirstH1: false })
+            finalOverrides = {
+              ...(finalOverrides || {}),
+              [firstRichText.slug]: lexical,
+            }
+          } else if (firstTextArea) {
+            finalOverrides = {
+              ...(finalOverrides || {}),
+              [firstTextArea.slug]: md,
+            }
+          } else {
+            // Fallback for known types if schema doesn't clearly identify a text field
+            const targetField = String(row.type).toLowerCase().includes('prose') ? (String(row.type) === 'prose' ? 'content' : 'body') : 'body'
+            const lexical = markdownToLexical(md, { skipFirstH1: false })
+            finalOverrides = {
+              ...(finalOverrides || {}),
+              [targetField]: lexical,
+            }
+          }
+        }
+
         const updated = await UpdatePostModule.handle({
           postModuleId,
-          overrides: overrides === undefined ? undefined : overrides,
+          overrides: finalOverrides,
           orderIndex,
           mode: 'ai-review',
         })

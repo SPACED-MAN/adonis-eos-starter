@@ -65,6 +65,7 @@ class AgentExecutor {
       // 5. Handle multi-turn tool execution if MCP is enabled
       let lastCreatedPostId: string | null = null
       const allToolResults: any[] = []
+      const transcript: any[] = []
 
       if (agent.llmConfig.useMCP) {
         let currentTurn = 1
@@ -88,6 +89,13 @@ class AgentExecutor {
             // Execute tools for this turn
             const toolResults = await this.executeTools(agent, parsed.tool_calls)
             allToolResults.push(...toolResults)
+
+            transcript.push({
+              turn: currentTurn,
+              summary: parsed.summary || null,
+              toolCalls: parsed.tool_calls,
+              toolResults: toolResults,
+            })
 
             // Check if any tool was create_post_ai_review or create_translation_ai_review
             const creationTool = toolResults.find(
@@ -235,6 +243,7 @@ RESPOND WITH YOUR NEXT TOOL CALLS IN JSON FORMAT.`
         summary: summary || this.extractNaturalSummary(finalContent, parsedResult),
         lastCreatedPostId,
         executionMeta,
+        transcript,
       }
 
       if (agent.reactions && agent.reactions.length > 0) {
@@ -280,8 +289,23 @@ RESPOND WITH YOUR NEXT TOOL CALLS IN JSON FORMAT.`
    */
   private async executeTools(agent: AgentDefinition, toolCalls: any[]): Promise<any[]> {
     const results: any[] = []
+    const mediaTools = ['generate_image', 'generate_video']
+    
+    // Sort tool calls so that media generation happens first.
+    // This allows placeholders like GENERATED_IMAGE_ID to be resolved for other tools in the SAME turn.
+    const sortedToolCalls = [...toolCalls].sort((a, b) => {
+      const aIsMedia = mediaTools.includes(a.tool || a.tool_name)
+      const bIsMedia = mediaTools.includes(b.tool || b.tool_name)
+      if (aIsMedia && !bIsMedia) return -1
+      if (!aIsMedia && bIsMedia) return 1
+      return 0
+    })
 
-    for (const toolCall of toolCalls) {
+    // We'll map the results back to the original order at the end if needed,
+    // but the transcript usually follows execution order.
+    // For simplicity, we just execute them in the sorted order.
+
+    for (const toolCall of sortedToolCalls) {
       const tool = toolCall.tool || toolCall.tool_name
       let params = toolCall.params || toolCall.arguments
       if (!tool || !params) continue
@@ -314,6 +338,14 @@ RESPOND WITH YOUR NEXT TOOL CALLS IN JSON FORMAT.`
               // Also support the generic one for the most recent image
               generatedMediaMap.set('GENERATED_IMAGE_ID', r.result.mediaId)
               generatedMediaMap.set('mediaId from generate_image result', r.result.mediaId)
+            }
+            if (
+              (r.tool === 'generate_video' || r.tool_name === 'generate_video') &&
+              r.success &&
+              r.result?.mediaId
+            ) {
+              generatedMediaMap.set(`GENERATED_VIDEO_ID_${idx}`, r.result.mediaId)
+              generatedMediaMap.set('GENERATED_VIDEO_ID', r.result.mediaId)
             }
           })
 
@@ -369,7 +401,23 @@ RESPOND WITH YOUR NEXT TOOL CALLS IN JSON FORMAT.`
 
     // System prompt
     if (agent.llmConfig?.systemPrompt) {
-      let systemPrompt = this.interpolateTemplate(agent.llmConfig.systemPrompt, {
+      const styleGuide = agent.styleGuide
+        ? `\n\nSTYLE GUIDE & GUARDRAILS:
+- Design Style: ${agent.styleGuide.designStyle || 'N/A'}
+- Color Palette: ${agent.styleGuide.colorPalette || 'N/A'}
+- Design Treatments: ${agent.styleGuide.designTreatments?.join(', ') || 'N/A'}
+- Notes: ${agent.styleGuide.notes || 'N/A'}`
+        : ''
+
+      const writingStyle = agent.writingStyle
+        ? `\n\nWRITING STYLE:
+- Tone: ${agent.writingStyle.tone || 'N/A'}
+- Voice: ${agent.writingStyle.voice || 'N/A'}
+- Conventions: ${agent.writingStyle.conventions?.join(', ') || 'N/A'}
+- Notes: ${agent.writingStyle.notes || 'N/A'}`
+        : ''
+
+      let systemPrompt = this.interpolateTemplate(agent.llmConfig.systemPrompt + styleGuide + writingStyle, {
         agent: agent.name,
         scope: context.scope,
         ...context.data,

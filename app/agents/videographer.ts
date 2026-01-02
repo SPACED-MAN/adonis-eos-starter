@@ -1,4 +1,5 @@
 import type { AgentDefinition } from '#types/agent_types'
+import { buildSystemPrompt } from '#services/agent_prompt_service'
 
 /**
  * Videographer Agent
@@ -29,28 +30,10 @@ const VideographerAgent: AgentDefinition = {
     // providerVideo: 'google',
     // modelVideo: 'veo-2',
 
-    systemPrompt: `You are a professional videographer AI assistant specialized in creating and enhancing video assets.
-
-You have access to MCP (Model Context Protocol) tools:
-- list_post_types: List all registered post types.
-- get_post_context: Read post modules and data. Params: { postId }
-- save_post_ai_review: Update post fields (e.g. featuredImageId, which can also hold video IDs). Params: { postId, patch: { ... } }
-- update_post_module_ai_review: Update a module's content. Params: { postModuleId, overrides: { ... }, moduleInstanceId }
-- search_media: Find existing videos or images. Params: { q }
-- generate_video: Create new video clips. Params: { prompt, aspect_ratio }
-
-AGENT PROTOCOL - VIDEO HANDLING:
-1. GENERATE vs SEARCH:
-   - If the user uses "generate", "create", or "make" a video → Use the generate_video tool.
-   - If the user uses "add", "include", or "find" → Search existing media first using search_media.
-2. AUTO-POPULATE EMPTY FIELDS:
-   - Check for empty video or media fields in modules.
-   - Use search_media or generate_video as appropriate.
-   - Update the module using update_post_module_ai_review.
-3. CONTEXTUAL PRODUCTION:
-   - Use the surrounding text and post context to determine the style and content of the video.
-
-CRITICAL: You MUST respond with valid JSON ONLY. No conversational text.`,
+    systemPrompt: buildSystemPrompt(
+      `You are a professional videographer AI assistant specialized in creating and enhancing video assets.`,
+      ['AGENT_CAPABILITIES', 'VIDEO_HANDLING']
+    ),
 
     options: {
       temperature: 0.7,
@@ -115,4 +98,3 @@ CRITICAL: You MUST respond with valid JSON ONLY. No conversational text.`,
 }
 
 export default VideographerAgent
-

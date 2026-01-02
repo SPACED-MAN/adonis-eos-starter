@@ -515,6 +515,7 @@ export default class AgentsController {
       applied,
       suggestions,
       executionMeta: (result as any).executionMeta,
+      transcript: (result as any).transcript,
     }
 
     if (isRedirecting) responseData.redirectPostId = redirectPostId
@@ -530,7 +531,13 @@ export default class AgentsController {
         viewMode,
         userId: (auth.use('web').user as any)?.id ?? null,
         request: openEndedContext ?? null,
-        response: { rawResponse, summary, applied, executionMeta: (result as any).executionMeta },
+        response: {
+          rawResponse,
+          summary,
+          applied,
+          executionMeta: (result as any).executionMeta,
+          transcript: (result as any).transcript,
+        },
         context: ctx,
         scope: scope || 'dropdown',
       })
@@ -665,6 +672,7 @@ export default class AgentsController {
             summary,
             suggestions,
             executionMeta: (result as any).executionMeta,
+            transcript: (result as any).transcript,
           },
           context: {
             ...requestContext,
@@ -688,6 +696,7 @@ export default class AgentsController {
         rawResponse,
         suggestions,
         executionMeta: (result as any).executionMeta,
+        transcript: (result as any).transcript,
       }
 
       return response.ok(responseData)
