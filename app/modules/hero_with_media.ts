@@ -69,64 +69,39 @@ export default class HeroWithMediaModule extends BaseModule {
             'Hero image or video (stored as media ID, resolved via the media API). Alt text is pulled from the media library.',
         },
         {
-          slug: 'primaryCta',
-          type: 'object',
-          label: 'Primary CTA',
-          description: 'Main call-to-action button',
-          fields: [
-            {
-              slug: 'label',
-              type: 'text',
-              label: 'Label',
-              translatable: true,
-              isLabel: true,
-            },
-            {
-              slug: 'url',
-              type: 'link',
-              label: 'Destination',
-            },
-            {
-              slug: 'style',
-              type: 'select',
-              label: 'Style',
-              options: [
-                { label: 'Primary', value: 'primary' },
-                { label: 'Secondary', value: 'secondary' },
-                { label: 'Outline', value: 'outline' },
-              ],
-            },
-          ],
-        },
-        {
-          slug: 'secondaryCta',
-          type: 'object',
-          label: 'Secondary CTA',
-          description: 'Secondary call-to-action button',
-          fields: [
-            {
-              slug: 'label',
-              type: 'text',
-              label: 'Label',
-              translatable: true,
-              isLabel: true,
-            },
-            {
-              slug: 'url',
-              type: 'link',
-              label: 'Destination',
-            },
-            {
-              slug: 'style',
-              type: 'select',
-              label: 'Style',
-              options: [
-                { label: 'Primary', value: 'primary' },
-                { label: 'Secondary', value: 'secondary' },
-                { label: 'Outline', value: 'outline' },
-              ],
-            },
-          ],
+          slug: 'ctas',
+          type: 'repeater',
+          label: 'Buttons',
+          description: 'One or more call-to-action buttons',
+          item: {
+            slug: 'cta',
+            type: 'object',
+            label: 'Button',
+            fields: [
+              {
+                slug: 'label',
+                type: 'text',
+                label: 'Label',
+                translatable: true,
+                isLabel: true,
+              },
+              {
+                slug: 'url',
+                type: 'link',
+                label: 'Destination',
+              },
+              {
+                slug: 'style',
+                type: 'select',
+                label: 'Style',
+                options: [
+                  { label: 'Primary', value: 'primary' },
+                  { label: 'Secondary', value: 'secondary' },
+                  { label: 'Outline', value: 'outline' },
+                ],
+              },
+            ],
+          },
         },
         {
           slug: 'design_tab',
@@ -154,16 +129,18 @@ export default class HeroWithMediaModule extends BaseModule {
         image: null,
         imagePosition: 'right',
         objectFit: 'contain',
-        primaryCta: {
-          label: 'Get started',
-          url: '#',
-          style: 'primary',
-        },
-        secondaryCta: {
-          label: 'Speak to Sales',
-          url: '#',
-          style: 'outline',
-        },
+        ctas: [
+          {
+            label: 'Get started',
+            url: '#',
+            style: 'primary',
+          },
+          {
+            label: 'Speak to Sales',
+            url: '#',
+            style: 'outline',
+          },
+        ],
         theme: 'low',
       },
       allowedPostTypes: [], // Available for all post types

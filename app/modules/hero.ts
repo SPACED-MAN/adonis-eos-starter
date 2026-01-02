@@ -59,6 +59,41 @@ export default class HeroModule extends BaseModule {
           translatable: true,
         },
         {
+          slug: 'ctas',
+          type: 'repeater',
+          label: 'Buttons',
+          description: 'One or more call-to-action buttons',
+          item: {
+            slug: 'cta',
+            type: 'object',
+            label: 'Button',
+            fields: [
+              {
+                slug: 'label',
+                type: 'text',
+                label: 'Label',
+                translatable: true,
+                isLabel: true,
+              },
+              {
+                slug: 'url',
+                type: 'link',
+                label: 'Destination',
+              },
+              {
+                slug: 'style',
+                type: 'select',
+                label: 'Style',
+                options: [
+                  { label: 'Primary', value: 'primary' },
+                  { label: 'Secondary', value: 'secondary' },
+                  { label: 'Outline', value: 'outline' },
+                ],
+              },
+            ],
+          },
+        },
+        {
           slug: 'design_tab',
           type: 'tab',
           label: 'Design',
@@ -70,6 +105,13 @@ export default class HeroModule extends BaseModule {
         title: "We invest in the world's potential",
         subtitle:
           'We focus on markets where technology, innovation, and capital can unlock long-term value and drive durable growth.',
+        ctas: [
+          {
+            label: 'Get started',
+            url: '#',
+            style: 'primary',
+          },
+        ],
         theme: 'low',
       },
       allowedPostTypes: [],

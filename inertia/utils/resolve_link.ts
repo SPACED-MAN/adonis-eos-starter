@@ -6,15 +6,18 @@
  */
 
 import type { LinkValue } from '../modules/types'
+import { slugify, getModuleAnchors } from './strings'
 
 export interface ResolvedLink {
   href?: string
   target: '_self' | '_blank'
+  moduleId?: string
 }
 
 export function resolveLink(
   url: string | LinkValue | null | undefined,
-  explicitTarget?: '_self' | '_blank'
+  explicitTarget?: '_self' | '_blank',
+  modules?: Array<{ id: string; type: string; adminLabel?: string | null }>
 ): ResolvedLink {
   let href: string | undefined
   let target: '_self' | '_blank' = '_self'
@@ -27,7 +30,7 @@ export function resolveLink(
     if (trimmed.startsWith('{') && trimmed.includes('"kind"')) {
       try {
         const parsed = JSON.parse(trimmed)
-        return resolveLink(parsed, explicitTarget)
+        return resolveLink(parsed, explicitTarget, modules)
       } catch {
         return { href: undefined, target: explicitTarget || '_self' }
       }
@@ -43,6 +46,22 @@ export function resolveLink(
     // Only trust server-resolved URL patterns (url field). If missing, caller may fetch/resolve.
     href = url.url || undefined
     target = url.target === '_blank' ? '_blank' : '_self'
+  } else if (url.kind === 'anchor') {
+    href = url.anchor
+    const moduleId = (url as any).moduleId
+
+    // If we have the target module ID and the list of modules, resolve the slug dynamically
+    if (moduleId && modules) {
+      const anchors = getModuleAnchors(modules)
+      const dynamicAnchor = anchors.get(moduleId)
+      if (dynamicAnchor) {
+        href = dynamicAnchor
+      }
+    }
+
+    target = url.target === '_blank' ? '_blank' : '_self'
+    if (explicitTarget) target = explicitTarget
+    return { href, target, moduleId }
   }
 
   if (explicitTarget) target = explicitTarget

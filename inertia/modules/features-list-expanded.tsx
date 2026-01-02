@@ -1,10 +1,10 @@
-import { motion } from 'framer-motion'
+import { motion, type Variants } from 'framer-motion'
 import { FontAwesomeIcon } from '../site/lib/icons'
 import { useInlineValue } from '../components/inline-edit/InlineEditorContext'
-import type { Button, LinkValue } from './types'
-import { resolveLink } from '../utils/resolve_link'
+import type { Button } from './types'
 import { getSectionStyles } from '../utils/colors'
 import { SectionBackground } from '../components/SectionBackground'
+import { SiteLink } from '../site/components/SiteLink'
 import { THEME_OPTIONS } from '#modules/shared_fields'
 
 interface ExpandedFeatureItem {
@@ -17,7 +17,7 @@ interface FeaturesListExpandedProps {
   title: string
   subtitle?: string | null
   features: ExpandedFeatureItem[]
-  cta?: Button | null
+  ctas?: Button[] | null
   theme?: string
   backgroundImage?: any
   backgroundTint?: boolean
@@ -25,18 +25,11 @@ interface FeaturesListExpandedProps {
   _useReact?: boolean
 }
 
-function resolveHrefAndTarget(
-  url: string | LinkValue,
-  explicitTarget?: '_self' | '_blank'
-): { href?: string; target: '_self' | '_blank' } {
-  return resolveLink(url, explicitTarget)
-}
-
 export default function FeaturesListExpanded({
   title: initialTitle,
   subtitle: initialSubtitle,
   features: initialFeatures,
-  cta: initialCta,
+  ctas: initialCtas,
   theme: initialTheme = 'low',
   backgroundImage: initialBackgroundImage,
   backgroundTint: initialBackgroundTint,
@@ -46,7 +39,7 @@ export default function FeaturesListExpanded({
   const title = useInlineValue(__moduleId, 'title', initialTitle)
   const subtitle = useInlineValue(__moduleId, 'subtitle', initialSubtitle)
   const features = useInlineValue(__moduleId, 'features', initialFeatures)
-  const cta = useInlineValue(__moduleId, 'cta', initialCta)
+  const ctas = useInlineValue(__moduleId, 'ctas', initialCtas)
   const theme = useInlineValue(__moduleId, 'theme', initialTheme) || initialTheme
   const backgroundImage = useInlineValue(__moduleId, 'backgroundImage', initialBackgroundImage)
   const backgroundTint = useInlineValue(__moduleId, 'backgroundTint', initialBackgroundTint)
@@ -62,9 +55,9 @@ export default function FeaturesListExpanded({
 
   const safeFeatures = Array.isArray(features) ? features.slice(0, 12) : []
 
-  const hasCta = Boolean(cta && cta.label && cta.url)
+  const hasCtas = Boolean(ctas && ctas.length > 0)
 
-  const containerVariants = {
+  const containerVariants: Variants = {
     hidden: { opacity: 0 },
     visible: {
       opacity: 1,
@@ -74,7 +67,7 @@ export default function FeaturesListExpanded({
     },
   }
 
-  const itemVariants = (isEven: boolean) => ({
+  const itemVariants = (isEven: boolean): Variants => ({
     hidden: { opacity: 0, x: isEven ? -30 : 30 },
     visible: {
       opacity: 1,
@@ -204,11 +197,10 @@ export default function FeaturesListExpanded({
       data-inline-options={JSON.stringify(THEME_OPTIONS)}
     >
       <SectionBackground
-          component={styles.backgroundComponent}
-          backgroundImage={backgroundImage}
-          backgroundTint={backgroundTint}
-          isInteractive={_useReact}
-        />
+        backgroundImage={backgroundImage}
+        backgroundTint={backgroundTint}
+        isInteractive={_useReact}
+      />
       <div className="container mx-auto px-4 sm:px-6 lg:px-8 relative z-10">
         {headerContent}
 
@@ -225,17 +217,19 @@ export default function FeaturesListExpanded({
           featuresList
         )}
 
-        {hasCta && cta && (
-          <SectionButton
-            label={cta?.label}
-            url={cta?.url}
-            style={cta?.style || 'primary'}
-            target={cta?.target}
-            rel={cta?.rel}
-            inlinePath="cta"
-            _useReact={_useReact}
-            inverted={inverted}
-          />
+        {hasCtas && (
+          <div className="flex flex-wrap justify-center items-center gap-4 mt-12">
+            {ctas?.map((cta: Button, index: number) => (
+              <SectionButton
+                key={index}
+                {...cta}
+                inlinePath={`ctas.${index}`}
+                inlineLabel={`Button ${index + 1}`}
+                _useReact={_useReact}
+                inverted={inverted}
+              />
+            ))}
+          </div>
         )}
       </div>
     </section>
@@ -247,16 +241,19 @@ function SectionButton({
   url,
   style = 'primary',
   target,
-  rel,
   inlinePath,
+  inlineLabel,
   _useReact,
   inverted,
-}: Button & { inlinePath?: string; _useReact?: boolean; inverted?: boolean }) {
+}: Button & {
+  inlinePath?: string
+  inlineLabel?: string
+  _useReact?: boolean
+  inverted?: boolean
+}) {
   const styleClasses =
     {
-      primary: inverted
-        ? 'bg-backdrop-low text-neutral-high'
-        : 'bg-standout-high text-on-high',
+      primary: inverted ? 'bg-backdrop-low text-neutral-high' : 'bg-standout-high text-on-high',
       secondary: inverted
         ? 'bg-on-high/10 text-on-high hover:bg-on-high/20'
         : 'bg-backdrop-medium hover:bg-backdrop-high text-neutral-high',
@@ -265,36 +262,43 @@ function SectionButton({
         : 'border border-line-low hover:bg-backdrop-medium text-neutral-high',
     }[style] || 'bg-standout-high text-on-high'
 
-  const { href, target: finalTarget } = resolveHrefAndTarget(url, target)
-  if (!href) return null
-
   const btn = (
-    <a
-      href={href}
-      target={finalTarget}
-      rel={finalTarget === '_blank' ? 'noopener noreferrer' : rel}
+    <SiteLink
+      url={url}
+      explicitTarget={target}
       className={`inline-flex items-center justify-center px-8 py-3 text-base font-medium rounded-lg transition-all duration-200 ${styleClasses} active:scale-95`}
-      data-inline-type="link"
-      data-inline-path={inlinePath ? `${inlinePath}.url` : undefined}
+      data-inline-type="object"
+      data-inline-path={inlinePath}
+      data-inline-label={inlineLabel}
+      data-inline-fields={JSON.stringify([
+        { name: 'label', type: 'text', label: 'Label' },
+        { name: 'url', type: 'link', label: 'Destination' },
+        {
+          name: 'style',
+          type: 'select',
+          label: 'Style',
+          options: [
+            { label: 'Primary', value: 'primary' },
+            { label: 'Secondary', value: 'secondary' },
+            { label: 'Outline', value: 'outline' },
+          ],
+        },
+      ])}
     >
-      <span data-inline-path={inlinePath ? `${inlinePath}.label` : undefined}>{label}</span>
-    </a>
+      {label}
+    </SiteLink>
   )
 
+  if (!_useReact) return btn
+
   return (
-    <div className="flex justify-center mt-12">
-      {_useReact ? (
-        <motion.div
-          initial={{ opacity: 0, scale: 0.9 }}
-          whileInView={{ opacity: 1, scale: 1 }}
-          viewport={{ once: true }}
-          transition={{ duration: 0.8, delay: 0.4 }}
-        >
-          {btn}
-        </motion.div>
-      ) : (
-        btn
-      )}
-    </div>
+    <motion.div
+      initial={{ opacity: 0, scale: 0.9 }}
+      whileInView={{ opacity: 1, scale: 1 }}
+      viewport={{ once: true }}
+      transition={{ duration: 0.8, delay: 0.4 }}
+    >
+      {btn}
+    </motion.div>
   )
 }

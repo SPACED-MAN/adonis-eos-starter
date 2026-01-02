@@ -108,17 +108,39 @@ export default class PricingModule extends BaseModule {
                 description: 'Highlights this plan as primary (slightly stronger visual emphasis)',
               },
               {
-                slug: 'ctaLabel',
-                type: 'text',
-                required: false,
-                description: 'Label for the call-to-action button',
-                translatable: true,
-              },
-              {
-                slug: 'ctaUrl',
-                type: 'link',
-                required: false,
-                description: 'Destination for the call-to-action button',
+                slug: 'ctas',
+                type: 'repeater',
+                label: 'Buttons',
+                description: 'Call-to-action buttons for this plan',
+                item: {
+                  slug: 'cta',
+                  type: 'object',
+                  label: 'Button',
+                  fields: [
+                    {
+                      slug: 'label',
+                      type: 'text',
+                      label: 'Label',
+                      translatable: true,
+                      isLabel: true,
+                    },
+                    {
+                      slug: 'url',
+                      type: 'link',
+                      label: 'Destination',
+                    },
+                    {
+                      slug: 'style',
+                      type: 'select',
+                      label: 'Style',
+                      options: [
+                        { label: 'Primary', value: 'primary' },
+                        { label: 'Secondary', value: 'secondary' },
+                        { label: 'Outline', value: 'outline' },
+                      ],
+                    },
+                  ],
+                },
               },
             ],
           },
@@ -149,7 +171,13 @@ export default class PricingModule extends BaseModule {
               'Free updates: 6 months',
             ],
             primary: false,
-            ctaLabel: 'Get started',
+            ctas: [
+              {
+                label: 'Get started',
+                url: '#',
+                style: 'primary',
+              },
+            ],
           },
           {
             name: 'Company',
@@ -164,7 +192,13 @@ export default class PricingModule extends BaseModule {
               'Free updates: 24 months',
             ],
             primary: true,
-            ctaLabel: 'Get started',
+            ctas: [
+              {
+                label: 'Get started',
+                url: '#',
+                style: 'primary',
+              },
+            ],
           },
           {
             name: 'Enterprise',
@@ -179,7 +213,13 @@ export default class PricingModule extends BaseModule {
               'Free updates: 36 months',
             ],
             primary: false,
-            ctaLabel: 'Get started',
+            ctas: [
+              {
+                label: 'Get started',
+                url: '#',
+                style: 'primary',
+              },
+            ],
           },
         ],
         theme: 'low',

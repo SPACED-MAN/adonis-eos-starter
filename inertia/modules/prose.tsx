@@ -135,7 +135,6 @@ export default function Prose({
         data-inline-options={JSON.stringify(THEME_OPTIONS)}
       >
         <SectionBackground
-          component={styles.backgroundComponent}
           backgroundImage={backgroundImage}
           backgroundTint={backgroundTint}
           isInteractive={_useReact}
@@ -155,7 +154,6 @@ export default function Prose({
       data-inline-options={JSON.stringify(THEME_OPTIONS)}
     >
       <SectionBackground
-        component={styles.backgroundComponent}
         backgroundImage={backgroundImage}
         backgroundTint={backgroundTint}
         isInteractive={_useReact}

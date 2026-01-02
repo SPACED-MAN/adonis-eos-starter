@@ -2,6 +2,7 @@ import type { HttpContext } from '@adonisjs/core/http'
 import db from '@adonisjs/lucid/services/db'
 import roleRegistry from '#services/role_registry'
 import moduleRegistry from '#services/module_registry'
+import PostSnapshotService from '#services/post_snapshot_service'
 import { coerceJsonObject } from '../helpers/jsonb.js'
 
 type TargetScope = 'props' | 'overrides'
@@ -126,6 +127,16 @@ export default class InlineEditorController {
         .from('module_instances')
         .where('id', row.moduleInstanceId)
         .update(update as any)
+
+      // Refresh atomic draft to keep everything in sync
+      if (mode === 'review' || mode === 'ai-review') {
+        try {
+          await PostSnapshotService.refreshAtomicDraft(postId, mode)
+        } catch (e) {
+          console.error('Failed to refresh atomic draft after inline edit:', e)
+        }
+      }
+
       return response.ok({ scope: target, props: next })
     }
 
@@ -151,6 +162,16 @@ export default class InlineEditorController {
       .from('post_modules')
       .where('id', moduleId)
       .update(update as any)
+
+    // Refresh atomic draft to keep everything in sync
+    if (mode === 'review' || mode === 'ai-review') {
+      try {
+        await PostSnapshotService.refreshAtomicDraft(postId, mode)
+      } catch (e) {
+        console.error('Failed to refresh atomic draft after inline edit:', e)
+      }
+    }
+
     return response.ok({ scope: target, overrides: nextOverrides })
   }
 }

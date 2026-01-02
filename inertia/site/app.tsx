@@ -2,6 +2,7 @@
 /// <reference path="../../config/inertia.ts" />
 
 import '../css/app.css'
+import './lib/icons'
 import { hydrateRoot } from 'react-dom/client'
 import { createInertiaApp } from '@inertiajs/react'
 import { resolvePageComponent } from '@adonisjs/inertia/helpers'

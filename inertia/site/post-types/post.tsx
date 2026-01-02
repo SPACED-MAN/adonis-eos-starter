@@ -3,6 +3,8 @@ import { Head, usePage } from '@inertiajs/react'
 import Modules from '../../modules'
 import { SiteFooter } from '../components/SiteFooter'
 import { SiteHeader } from '../components/SiteHeader'
+import { slugify, getModuleAnchors } from '~/utils/strings'
+import { useAnchorScroll } from '../hooks/useAnchorScroll'
 import {
   InlineEditorProvider,
   useInlineEditor,
@@ -78,14 +80,19 @@ function getModuleComponent(type: string): any {
 function LiveModuleList({ postId }: { postId: string }) {
   const { modules, enabled: isInlineEnabled } = useInlineEditor()
 
+  const anchors = useMemo(() => getModuleAnchors(modules), [modules])
+
   return (
     <main className="overflow-x-hidden">
       {modules.map((module) => {
         const Component = getModuleComponent(module.type)
         if (!Component) return null
+        const anchor = anchors.get(module.id)?.replace('#', '')
         return (
           <div
             key={module.id}
+            id={anchor}
+            data-module-id={module.id}
             {...(isInlineEnabled
               ? {
                   'data-inline-module': module.id,

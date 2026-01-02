@@ -82,34 +82,39 @@ export default class FeaturesListExpandedModule extends BaseModule {
           },
         },
         {
-          slug: 'cta',
-          type: 'object',
-          label: 'Section CTA',
-          description: 'Optional call-to-action button rendered below the feature list',
-          fields: [
-            {
-              slug: 'label',
-              type: 'text',
-              label: 'Label',
-              translatable: true,
-              isLabel: true,
-            },
-            {
-              slug: 'url',
-              type: 'link',
-              label: 'Destination',
-            },
-            {
-              slug: 'style',
-              type: 'select',
-              label: 'Style',
-              options: [
-                { label: 'Primary', value: 'primary' },
-                { label: 'Secondary', value: 'secondary' },
-                { label: 'Outline', value: 'outline' },
-              ],
-            },
-          ],
+          slug: 'ctas',
+          type: 'repeater',
+          label: 'Buttons',
+          description: 'Optional call-to-action buttons rendered below the feature list',
+          item: {
+            slug: 'cta',
+            type: 'object',
+            label: 'Button',
+            fields: [
+              {
+                slug: 'label',
+                type: 'text',
+                label: 'Label',
+                translatable: true,
+                isLabel: true,
+              },
+              {
+                slug: 'url',
+                type: 'link',
+                label: 'Destination',
+              },
+              {
+                slug: 'style',
+                type: 'select',
+                label: 'Style',
+                options: [
+                  { label: 'Primary', value: 'primary' },
+                  { label: 'Secondary', value: 'secondary' },
+                  { label: 'Outline', value: 'outline' },
+                ],
+              },
+            ],
+          },
         },
         {
           slug: 'design_tab',
@@ -140,11 +145,13 @@ export default class FeaturesListExpandedModule extends BaseModule {
             body: 'Give marketing, sales, and operations a shared source of truth so everyone stays aligned on what ships next.',
           },
         ],
-        cta: {
-          label: 'Explore all features',
-          url: { kind: 'url', url: '#', target: '_self' },
-          style: 'primary',
-        },
+        ctas: [
+          {
+            label: 'Explore all features',
+            url: { kind: 'url', url: '#', target: '_self' },
+            style: 'primary',
+          },
+        ],
         theme: 'low',
       },
       allowedPostTypes: [],

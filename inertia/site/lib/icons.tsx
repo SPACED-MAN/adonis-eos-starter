@@ -1,4 +1,5 @@
-import { library } from '@fortawesome/fontawesome-svg-core'
+import { library, config } from '@fortawesome/fontawesome-svg-core'
+import '@fortawesome/fontawesome-svg-core/styles.css'
 import {
   faArrowRight,
   faBullhorn,
@@ -69,6 +70,9 @@ import {
   faYoutube,
 } from '@fortawesome/free-brands-svg-icons'
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome'
+
+// Prevent Font Awesome from adding its CSS since we did it manually above:
+config.autoAddCss = false
 
 // Register a curated set of icons we actually use in the site so string names can resolve.
 library.add(

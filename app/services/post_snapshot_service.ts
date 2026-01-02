@@ -330,29 +330,54 @@ export default class PostSnapshotService {
   ): Promise<void> {
     const column = mode === 'review' ? 'review_draft' : 'ai_review_draft'
 
-    // We update the JSON column
-    await db
-      .from('posts')
-      .where('id', postId)
-      .update({
-        [column]: {
-          ...snapshot.post,
-          modules: snapshot.modules,
-          savedAt: new Date().toISOString(),
-          savedBy: mode === 'ai-review' ? 'AI Agent' : 'User',
-        },
-        updated_at: new Date(),
-      })
-
-    // Update granular columns for the editor interface
     await db.transaction(async (trx) => {
+      // 1. Update the JSON column
+      await trx
+        .from('posts')
+        .where('id', postId)
+        .update({
+          [column]: {
+            ...snapshot.post,
+            modules: snapshot.modules,
+            savedAt: new Date().toISOString(),
+            savedBy: mode === 'ai-review' ? 'AI Agent' : 'User',
+          },
+          updated_at: new Date(),
+        })
+
+      // 2. Update granular columns for the editor interface
       const propsCol = mode === 'review' ? 'review_props' : 'ai_review_props'
       const overridesCol = mode === 'review' ? 'review_overrides' : 'ai_review_overrides'
-      const uuidRegex = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i
+      const deletedCol = mode === 'review' ? 'review_deleted' : 'ai_review_deleted'
+      const uuidRegex = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i
+
+      const snapshotPostModuleIds = new Set(
+        snapshot.modules.map((m) => m.postModuleId).filter((id) => id && uuidRegex.test(id))
+      )
+
+      // Mark missing modules as deleted in this draft mode
+      if (snapshotPostModuleIds.size === 0) {
+        await trx
+          .from('post_modules')
+          .where('post_id', postId)
+          .update({ [deletedCol]: true, updated_at: new Date() })
+      } else {
+        await trx
+          .from('post_modules')
+          .where('post_id', postId)
+          .whereNotIn('id', Array.from(snapshotPostModuleIds))
+          .update({ [deletedCol]: true, updated_at: new Date() })
+
+        // Ensure present modules are NOT marked as deleted
+        await trx
+          .from('post_modules')
+          .where('post_id', postId)
+          .whereIn('id', Array.from(snapshotPostModuleIds))
+          .update({ [deletedCol]: false, updated_at: new Date() })
+      }
 
       for (const m of snapshot.modules) {
         // Only update granular columns if we have valid UUIDs.
-        // New modules created during this save cycle will have their props set by AddModuleToPost.
         if (m.moduleInstanceId && uuidRegex.test(m.moduleInstanceId)) {
           if (m.scope === 'post' || m.scope === 'local') {
             await trx

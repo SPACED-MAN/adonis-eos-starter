@@ -4,9 +4,9 @@ import type { Button } from './types'
 import { useInlineValue, useInlineField } from '../components/inline-edit/InlineEditorContext'
 import { MediaRenderer } from '../components/MediaRenderer'
 import { renderLexicalToHtml } from '../utils/lexical'
-import { resolveLink } from '../utils/resolve_link'
 import { getSectionStyles } from '../utils/colors'
 import { SectionBackground } from '../components/SectionBackground'
+import { SiteLink } from '../site/components/SiteLink'
 import { THEME_OPTIONS, MEDIA_FIT_OPTIONS } from '#modules/shared_fields'
 
 interface CalloutProps {
@@ -285,7 +285,6 @@ export default function Callout(props: CalloutProps) {
         data-inline-options={JSON.stringify(THEME_OPTIONS)}
       >
         <SectionBackground
-          component={styles.backgroundComponent}
           backgroundImage={backgroundImage}
           backgroundTint={backgroundTint}
           isInteractive={_useReact}
@@ -307,7 +306,6 @@ export default function Callout(props: CalloutProps) {
       data-inline-options={JSON.stringify(THEME_OPTIONS)}
     >
       <SectionBackground
-        component={styles.backgroundComponent}
         backgroundImage={backgroundImage}
         backgroundTint={backgroundTint}
         isInteractive={_useReact}
@@ -339,9 +337,6 @@ function ButtonComponent({
   const url = repeaterObj?.url ?? initialUrl
   const style = repeaterObj?.style ?? initialStyle
 
-  const { href, target: finalTarget } = resolveLink(url, target)
-  if (!href) return null
-
   const styleMap = {
     primary: inverted
       ? 'bg-white text-standout-high hover:bg-neutral-50'
@@ -372,16 +367,15 @@ function ButtonComponent({
   ])
 
   return (
-    <a
-      href={href}
-      target={finalTarget}
-      rel={finalTarget === '_blank' ? 'noopener noreferrer' : rel}
+    <SiteLink
+      url={url}
+      explicitTarget={target}
       className={`inline-flex items-center justify-center px-6 py-3 text-base font-semibold rounded-xl transition-all duration-200 ${styleClasses}`}
       data-inline-type="object"
       data-inline-path={`ctas[${idx}]`}
       data-inline-fields={ctaFields}
     >
       {label}
-    </a>
+    </SiteLink>
   )
 }

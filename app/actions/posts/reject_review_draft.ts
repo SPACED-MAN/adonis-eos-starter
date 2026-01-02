@@ -10,7 +10,6 @@ type RejectReviewDraftParams = {
 
 export default class RejectReviewDraft {
   static async handle({ postId, userId, mode }: RejectReviewDraftParams): Promise<void> {
-    console.log(`[RejectReviewDraft] Rejecting ${mode} for post ${postId}`)
     await RevisionService.recordActiveVersionsSnapshot({
       postId,
       mode,
@@ -33,12 +32,11 @@ export default class RejectReviewDraft {
     // 3. Handle module-level rejections
     await db.transaction(async (trx) => {
       // 3a. Delete modules that were ADDED in this draft mode
-      const deletedCount = await trx
+      await trx
         .from('post_modules')
         .where('post_id', postId)
         .andWhere(addedField, true)
         .delete()
-      console.log(`[RejectReviewDraft] Deleted ${deletedCount} modules added in ${mode}`)
 
       // 3b. Clear overrides and reset deletion flags for remaining modules
       await trx

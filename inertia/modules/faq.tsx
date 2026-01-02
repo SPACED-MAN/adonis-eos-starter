@@ -1,5 +1,5 @@
 import { motion } from 'framer-motion'
-import { resolveHrefAndTarget } from './hero-with-media'
+import { SiteLink } from '../site/components/SiteLink'
 import { FontAwesomeIcon } from '../site/lib/icons'
 import { useInlineValue, useInlineField } from '../components/inline-edit/InlineEditorContext'
 import { getSectionStyles } from '../utils/colors'
@@ -84,9 +84,6 @@ export default function Faq({
 
   const renderItem = (item: FaqItem, idx: number) => {
     const hasLink = !!item.linkLabel && !!item.linkUrl
-    const link = hasLink
-      ? resolveHrefAndTarget(item.linkUrl!)
-      : { href: undefined, target: '_self' as const }
 
     const content = (
       <div className="mb-8 h-full">
@@ -114,19 +111,17 @@ export default function Faq({
           data-inline-path={`items.${idx}.answer`}
         >
           {item.answer}
-          {hasLink && link.href && (
+          {hasLink && (
             <>
               {' '}
-              <a
-                href={link.href}
-                target={link.target}
-                rel={link.target === '_blank' ? 'noopener noreferrer' : undefined}
+              <SiteLink
+                url={item.linkUrl!}
                 className={`font-medium ${styles.inverted ? 'text-on-high hover:underline' : 'text-standout-high hover:underline'}`}
                 data-inline-type="link"
                 data-inline-path={`items.${idx}.linkUrl`}
               >
                 <span data-inline-path={`items.${idx}.linkLabel`}>{item.linkLabel}</span>
-              </a>
+              </SiteLink>
             </>
           )}
         </p>
@@ -205,7 +200,6 @@ export default function Faq({
       data-inline-options={JSON.stringify(THEME_OPTIONS)}
     >
       <SectionBackground
-        component={styles.backgroundComponent}
         backgroundImage={backgroundImage}
         backgroundTint={backgroundTint}
         isInteractive={_useReact}

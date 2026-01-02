@@ -1,6 +1,7 @@
 import db from '@adonisjs/lucid/services/db'
 import { DateTime } from 'luxon'
 import dbConfig from '#config/database'
+import env from '#start/env'
 
 /**
  * Export format version for compatibility checking
@@ -280,7 +281,13 @@ class DatabaseExportService {
   getExportFilename(options: ExportOptions = {}): string {
     const timestamp = DateTime.now().toFormat('yyyy-MM-dd_HHmmss')
     const suffix = options.contentTypes ? `-${options.contentTypes.join('-')}` : ''
-    return `adonis-eos-export${suffix}_${timestamp}.json`
+    const appName = (env.get('APP_NAME') || 'adonis-eos')
+      .toLowerCase()
+      .replace(/[^a-z0-9]+/g, '-')
+      .replace(/^-+|-+$/g, '')
+    const nodeEnv = env.get('NODE_ENV', 'unknown')
+
+    return `${appName}-export-${nodeEnv}${suffix}_${timestamp}.json`
   }
 
   /**

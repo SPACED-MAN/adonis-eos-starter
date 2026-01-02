@@ -47,8 +47,17 @@ type PopoverState = {
 }
 
 export function InlineOverlay() {
-  const { enabled, canEdit, getValue, getModeValue, setValue, mode, isGlobalModule, showDiffs } =
-    useInlineEditor()
+  const {
+    enabled,
+    canEdit,
+    getValue,
+    getModeValue,
+    setValue,
+    mode,
+    isGlobalModule,
+    showDiffs,
+    modules,
+  } = useInlineEditor()
   const [mounted, setMounted] = useState(false)
   useEffect(() => setMounted(true), [])
   const [mediaTarget, setMediaTarget] = useState<{ moduleId: string; path: string } | null>(null)
@@ -782,6 +791,7 @@ function FieldDialogContent({ pop, onClose, getValue, setValue, setMediaTarget }
                   setDraft(val)
                   setValue(moduleId, path, val)
                 }}
+                modules={modules}
               />
             </div>
           </div>

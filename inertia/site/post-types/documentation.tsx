@@ -4,6 +4,8 @@ import Modules from '../../modules'
 import { SiteFooter } from '../components/SiteFooter'
 import { SiteHeader } from '../components/SiteHeader'
 import { SidebarMenu } from '../components/menu/SidebarMenu'
+import { slugify, getModuleAnchors } from '~/utils/strings'
+import { useAnchorScroll } from '../hooks/useAnchorScroll'
 import * as React from 'react'
 
 const SearchModal = React.lazy(() =>
@@ -86,14 +88,19 @@ function getModuleComponent(type: string): any {
 function LiveModuleList({ postId }: { postId: string }) {
   const { modules, enabled: isInlineEnabled } = useInlineEditor()
 
+  const anchors = React.useMemo(() => getModuleAnchors(modules), [modules])
+
   return (
     <div className="space-y-0">
       {modules.map((module) => {
         const Component = getModuleComponent(module.type)
         if (!Component) return null
+        const anchor = anchors.get(module.id)?.replace('#', '')
         return (
           <div
             key={module.id}
+            id={anchor}
+            data-module-id={module.id}
             {...(isInlineEnabled
               ? {
                   'data-inline-module': module.id,

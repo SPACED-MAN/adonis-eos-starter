@@ -1,12 +1,15 @@
 import { motion } from 'framer-motion'
+import type { Button } from './types'
 import { useInlineValue, useInlineField } from '../components/inline-edit/InlineEditorContext'
 import { getSectionStyles } from '../utils/colors'
 import { SectionBackground } from '../components/SectionBackground'
+import { SiteLink } from '../site/components/SiteLink'
 import { THEME_OPTIONS } from '#modules/shared_fields'
 
 interface HeroProps {
   title: string
   subtitle?: string | null
+  ctas?: Button[] | null
   theme?: string
   backgroundImage?: any
   backgroundTint?: boolean
@@ -17,6 +20,7 @@ interface HeroProps {
 export default function Hero({
   title: initialTitle,
   subtitle: initialSubtitle,
+  ctas: initialCtas,
   theme: initialTheme = 'low',
   backgroundImage: initialBackgroundImage,
   backgroundTint: initialBackgroundTint,
@@ -25,6 +29,7 @@ export default function Hero({
 }: HeroProps) {
   const { value: title, show: showTitle, props: titleProps } = useInlineField(__moduleId, 'title', initialTitle, { label: 'Title' })
   const { value: subtitle, show: showSubtitle, props: subtitleProps } = useInlineField(__moduleId, 'subtitle', initialSubtitle, { label: 'Subtitle' })
+  const ctas = useInlineValue(__moduleId, 'ctas', initialCtas)
   const theme = useInlineValue(__moduleId, 'theme', initialTheme) || initialTheme
   const backgroundImage = useInlineValue(__moduleId, 'backgroundImage', initialBackgroundImage)
   const backgroundTint = useInlineValue(__moduleId, 'backgroundTint', initialBackgroundTint)
@@ -32,6 +37,8 @@ export default function Hero({
   const styles = getSectionStyles(theme)
   const textColor = styles.textColor
   const subtextColor = styles.subtextColor
+
+  const hasCtas = Boolean(ctas && ctas.length > 0)
 
   const containerVariants = {
     hidden: { opacity: 0, y: 30 },
@@ -91,6 +98,33 @@ export default function Hero({
             {subtitle}
           </p>
         ))}
+
+      {hasCtas && (
+        <div className="flex flex-col space-y-4 sm:flex-row sm:justify-center sm:space-y-0 sm:space-x-4">
+          {ctas?.map((cta, index) => (
+            _useReact ? (
+              <motion.div key={index} variants={itemVariants}>
+                <ButtonComponent
+                  {...cta}
+                  moduleId={__moduleId}
+                  inlineObjectPath={`ctas.${index}`}
+                  inlineObjectLabel={`Button ${index + 1}`}
+                  inverted={styles.inverted}
+                />
+              </motion.div>
+            ) : (
+              <ButtonComponent
+                key={index}
+                {...cta}
+                moduleId={__moduleId}
+                inlineObjectPath={`ctas.${index}`}
+                inlineObjectLabel={`Button ${index + 1}`}
+                inverted={styles.inverted}
+              />
+            )
+          ))}
+        </div>
+      )}
     </div>
   )
 
@@ -109,7 +143,6 @@ export default function Hero({
         data-inline-options={JSON.stringify(THEME_OPTIONS)}
       >
         <SectionBackground
-          component={styles.backgroundComponent}
           backgroundImage={backgroundImage}
           backgroundTint={backgroundTint}
           isInteractive={_useReact}
@@ -129,12 +162,83 @@ export default function Hero({
       data-inline-options={JSON.stringify(THEME_OPTIONS)}
     >
       <SectionBackground
-        component={styles.backgroundComponent}
         backgroundImage={backgroundImage}
         backgroundTint={backgroundTint}
         isInteractive={_useReact}
       />
       {content}
     </section>
+  )
+}
+
+// Define the CTA object schema for inline editing
+const ctaObjectFields = JSON.stringify([
+  { name: 'label', type: 'text', label: 'Label' },
+  { name: 'url', type: 'link', label: 'Destination' },
+  {
+    name: 'style',
+    type: 'select',
+    label: 'Style',
+    options: [
+      { label: 'Primary', value: 'primary' },
+      { label: 'Secondary', value: 'secondary' },
+      { label: 'Outline', value: 'outline' },
+    ],
+  },
+])
+
+interface ButtonComponentProps extends Button {
+  moduleId?: string
+  inlineObjectPath?: string
+  inlineObjectLabel?: string
+  inverted?: boolean
+}
+
+function ButtonComponent({
+  label: initialLabel,
+  url: initialUrl,
+  style: initialStyle = 'primary',
+  target,
+  rel,
+  moduleId,
+  inlineObjectPath,
+  inlineObjectLabel,
+  inverted,
+}: ButtonComponentProps) {
+  // Use inline values so edits reflect immediately
+  const obj = useInlineValue(moduleId, inlineObjectPath || '', {
+    label: initialLabel,
+    url: initialUrl,
+    style: initialStyle,
+  })
+  const label = obj?.label ?? initialLabel
+  const url = obj?.url ?? initialUrl
+  const style: 'primary' | 'secondary' | 'outline' = obj?.style ?? initialStyle
+
+  const styleMap = {
+    primary: inverted
+      ? 'bg-backdrop-low text-neutral-high hover:bg-backdrop-low/90'
+      : 'bg-standout-high text-on-high hover:bg-standout-high/90',
+    secondary: inverted
+      ? 'bg-on-high/10 text-on-high hover:bg-on-high/20'
+      : 'bg-backdrop-medium hover:bg-backdrop-high text-neutral-high',
+    outline: inverted
+      ? 'border border-on-high text-on-high hover:bg-on-high/10'
+      : 'border border-line-low hover:bg-backdrop-medium text-neutral-high',
+  }
+  const styleClasses = styleMap[style] || styleMap.primary
+
+  return (
+    <SiteLink
+      url={url}
+      explicitTarget={target}
+      className={`inline-flex items-center justify-center px-5 py-3 text-base font-medium rounded-lg transition-all active:scale-95 ${styleClasses} focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:ring-standout-high relative group`}
+      data-inline-type="object"
+      data-inline-path={inlineObjectPath}
+      data-inline-label={inlineObjectLabel}
+      data-inline-fields={ctaObjectFields}
+    >
+      {label}
+    </SiteLink>
   )
 }

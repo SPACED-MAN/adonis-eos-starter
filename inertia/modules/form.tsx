@@ -137,7 +137,6 @@ export default function FormModule({
         data-module="form"
       >
         <SectionBackground
-          component={styles.backgroundComponent}
           backgroundImage={backgroundImage}
           backgroundTint={backgroundTint}
           isInteractive={_useReact}
@@ -447,7 +446,6 @@ export default function FormModule({
       data-inline-options={JSON.stringify(THEME_OPTIONS)}
     >
       <SectionBackground
-        component={styles.backgroundComponent}
         backgroundImage={backgroundImage}
         backgroundTint={backgroundTint}
         isInteractive={_useReact}

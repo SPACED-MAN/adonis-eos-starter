@@ -172,6 +172,11 @@ export function CustomFieldRenderer({
         translatable: _translatable,
         config,
         value: _value,
+        isLabel: _isLabel,
+        category: _category,
+        showIf: _showIf,
+        item: _item,
+        fields: _fields,
         ...rest
       } = f
 

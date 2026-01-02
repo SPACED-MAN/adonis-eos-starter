@@ -69,10 +69,18 @@ export default class PostSerializerService {
       throw new Error('Post not found')
     }
     // Load modules with their instances, including review/ai-review props
-    const moduleRows = await db
+    const query = db
       .from('post_modules')
       .join('module_instances', 'post_modules.module_id', 'module_instances.id')
       .where('post_modules.post_id', postId)
+
+    if (mode === 'review') {
+      query.where('post_modules.review_deleted', false)
+    } else if (mode === 'ai-review') {
+      query.where('post_modules.ai_review_deleted', false)
+    }
+
+    const moduleRows = await query
       .select(
         'post_modules.id as postModuleId',
         'post_modules.order_index as orderIndex',

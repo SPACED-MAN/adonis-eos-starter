@@ -15,6 +15,7 @@ export type LinkValue =
       target?: '_self' | '_blank'
     }
   | { kind: 'url'; url: string; target?: '_self' | '_blank' }
+  | { kind: 'anchor'; anchor: string; moduleId?: string; target?: '_self' | '_blank' }
 
 export interface Button {
   label: string

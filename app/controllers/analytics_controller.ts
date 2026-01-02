@@ -29,9 +29,6 @@ export default class AnalyticsController {
     if (toInsert.length > 0) {
       try {
         await db.table('analytics_events').insert(toInsert)
-        if (process.env.NODE_ENV === 'development') {
-          console.log(`[Analytics] Logged ${toInsert.length} events`)
-        }
       } catch (e) {
         console.error('[Analytics] Failed to insert events:', e)
       }

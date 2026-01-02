@@ -1,18 +1,8 @@
 import React, { useRef } from 'react'
 import { motion, useScroll, useTransform, useSpring } from 'framer-motion'
-import SvgMesh from './SvgMesh'
 import { MediaRenderer } from './MediaRenderer'
 
-/**
- * Map of specialized background components that can be triggered by variants.
- */
-const BACKGROUND_COMPONENTS: Record<string, React.FC> = {
-	SvgMesh: SvgMesh,
-}
-
 interface SectionBackgroundProps {
-	/** The name of the specialized component to render (from metadata) */
-	component?: string
 	/** Background image/video to display */
 	backgroundImage?: any
 	/** Whether to apply a tint overlay */
@@ -22,11 +12,9 @@ interface SectionBackgroundProps {
 }
 
 /**
- * Renders specialized background animations/components for a section.
- * Used for DRY implementation of complex background styles.
+ * Renders background images/videos and tint overlays for a section.
  */
 export const SectionBackground: React.FC<SectionBackgroundProps> = ({
-	component,
 	backgroundImage,
 	backgroundTint,
 	isInteractive,
@@ -70,19 +58,12 @@ export const SectionBackground: React.FC<SectionBackgroundProps> = ({
 			ref={containerRef}
 			className="absolute inset-0 pointer-events-none overflow-hidden z-0"
 		>
-			{/* 1. Specialized Background Component (e.g. SvgMesh) */}
-			{component && BACKGROUND_COMPONENTS[component] && (
-				<div className="absolute inset-0">
-					{React.createElement(BACKGROUND_COMPONENTS[component])}
-				</div>
-			)}
-
-			{/* 2. Media Background */}
+			{/* 1. Media Background */}
 			{mediaBackground}
 
-			{/* 3. Tint Overlay */}
+			{/* 2. Tint Overlay */}
 			{backgroundTint && (
-				<div className="absolute inset-0 bg-backdrop-high/20 dark:bg-black/40 z-[1]" />
+				<div className="absolute inset-0 bg-backdrop-high/20 dark:bg-black/40 z-1" />
 			)}
 		</div>
 	)

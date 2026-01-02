@@ -9,7 +9,6 @@ export const THEME_OPTIONS = [
   { label: 'Medium', value: 'medium' },
   { label: 'High', value: 'high' },
   { label: 'Standout', value: 'standout-low' },
-  { label: 'SVG Mesh', value: 'svg-mesh' },
   { label: 'Media', value: 'media' },
 ] as const
 
@@ -22,7 +21,6 @@ export const THEME_STYLES: Record<
   {
     classes: string
     inverted: boolean
-    component?: string
   }
 > = {
   'transparent': { classes: 'bg-transparent text-neutral-high', inverted: false },
@@ -30,11 +28,6 @@ export const THEME_STYLES: Record<
   'medium': { classes: 'bg-backdrop-medium text-neutral-high', inverted: false },
   'high': { classes: 'bg-backdrop-high text-neutral-high', inverted: false },
   'standout-low': { classes: 'bg-standout-low text-neutral-high', inverted: false },
-  'svg-mesh': {
-    classes: 'bg-backdrop-low text-neutral-high',
-    inverted: false,
-    component: 'SvgMesh',
-  },
   'media': { classes: 'bg-transparent text-neutral-high', inverted: false },
 }
 
@@ -56,21 +49,6 @@ export const themeField: CustomFieldDefinition = {
   options: [...THEME_OPTIONS],
   required: false,
   description: 'Section visual theme',
-}
-
-/**
- * Standard media mask options
- */
-export const mediaMaskField: CustomFieldDefinition = {
-  slug: 'maskShape',
-  type: 'select',
-  label: 'Media Mask',
-  options: [
-    { label: 'None', value: 'none' },
-    { label: 'Checkmark', value: 'checkmark' },
-  ],
-  required: false,
-  description: 'Apply a custom shape to the media block',
 }
 
 /**

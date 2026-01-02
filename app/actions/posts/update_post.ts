@@ -204,6 +204,7 @@ export default class UpdatePost {
 
     await post.save()
 
+    // 3. Update taxonomy assignments if provided
     if (taxonomyTermIds) {
       await ApplyPostTaxonomyAssignments.handle({
         postId: post.id,
@@ -212,12 +213,15 @@ export default class UpdatePost {
       })
     }
 
-    // Auto-update canonical URL if slug changed or if it's not set and wasn't explicitly provided
+    // 4. Auto-update canonical URL if slug changed or if it's not set and wasn't explicitly provided.
+    // We do this AFTER the first save so buildPostPathForPost can read the latest slug/hierarchy from DB.
     if ((slug && post.slug !== slug) || (canonicalUrl === undefined && !post.canonicalUrl)) {
       try {
         const newCanonicalPath = await urlPatternService.buildPostPathForPost(post.id)
-        post.canonicalUrl = newCanonicalPath
-        await post.save()
+        if (newCanonicalPath && newCanonicalPath !== post.canonicalUrl) {
+          post.canonicalUrl = newCanonicalPath
+          await post.save()
+        }
       } catch {
         // If canonical URL generation fails, continue without it
       }

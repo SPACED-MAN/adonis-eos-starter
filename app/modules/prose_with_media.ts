@@ -59,24 +59,39 @@ export default class ProseWithMediaModule extends BaseModule {
           description: 'Image or video shown beside the prose (stored as media ID).',
         },
         {
-          slug: 'primaryCta',
-          type: 'object',
-          label: 'Primary CTA',
-          description: 'Main call-to-action button beneath the prose',
-          fields: [
-            {
-              slug: 'label',
-              type: 'text',
-              label: 'Label',
-              translatable: true,
-              isLabel: true,
-            },
-            {
-              slug: 'url',
-              type: 'link',
-              label: 'Destination',
-            },
-          ],
+          slug: 'ctas',
+          type: 'repeater',
+          label: 'Buttons',
+          description: 'One or more call-to-action buttons beneath the prose',
+          item: {
+            slug: 'cta',
+            type: 'object',
+            label: 'Button',
+            fields: [
+              {
+                slug: 'label',
+                type: 'text',
+                label: 'Label',
+                translatable: true,
+                isLabel: true,
+              },
+              {
+                slug: 'url',
+                type: 'link',
+                label: 'Destination',
+              },
+              {
+                slug: 'style',
+                type: 'select',
+                label: 'Style',
+                options: [
+                  { label: 'Primary', value: 'primary' },
+                  { label: 'Secondary', value: 'secondary' },
+                  { label: 'Outline', value: 'outline' },
+                ],
+              },
+            ],
+          },
         },
         {
           slug: 'design_tab',
@@ -118,10 +133,13 @@ export default class ProseWithMediaModule extends BaseModule {
         image: null,
         imagePosition: 'left',
         objectFit: 'contain',
-        primaryCta: {
-          label: 'Get started',
-          url: '#',
-        },
+        ctas: [
+          {
+            label: 'Get started',
+            url: '#',
+            style: 'primary',
+          },
+        ],
         theme: 'low',
       },
       allowedPostTypes: [],

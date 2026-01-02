@@ -13,9 +13,16 @@ const linkField: FieldTypeConfig = {
   }),
   valueSchema: z
     .object({
-      href: z.string(),
+      href: z.string().optional(),
+      anchor: z.string().optional(),
+      kind: z.enum(['post', 'url', 'anchor']).optional(),
       label: z.string().optional(),
       target: z.enum(['_self', '_blank']).optional(),
+      postId: z.union([z.string(), z.number()]).optional(),
+      postType: z.string().optional(),
+      slug: z.string().optional(),
+      locale: z.string().optional(),
+      url: z.string().optional(),
     })
     .or(z.string())
     .nullable(),

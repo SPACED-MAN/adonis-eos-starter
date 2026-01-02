@@ -1,5 +1,5 @@
 import { motion } from 'framer-motion'
-import { resolveHrefAndTarget } from './hero-with-media'
+import { SiteLink } from '../site/components/SiteLink'
 import { FontAwesomeIcon } from '../site/lib/icons'
 import { useInlineValue } from '../components/inline-edit/InlineEditorContext'
 import { getSectionStyles } from '../utils/colors'
@@ -24,8 +24,7 @@ interface PricingPlan {
   period?: string | null
   features?: string[]
   primary?: boolean
-  ctaLabel?: string | null
-  ctaUrl?: LinkValue
+  ctas?: Button[] | null
 }
 
 interface PricingProps {
@@ -134,8 +133,7 @@ export default function Pricing({
       {safePlans.map((plan, idx) => {
         const isPrimary = !!plan.primary
         const hasFeatures = Array.isArray(plan.features) && plan.features.length > 0
-        const hrefInfo = resolveHrefAndTarget(plan.ctaUrl)
-        const hasCta = !!plan.ctaLabel && !!hrefInfo.href
+        const hasCtas = Array.isArray(plan.ctas) && plan.ctas.length > 0
 
         const planCard = (
           <div
@@ -150,8 +148,6 @@ export default function Pricing({
               { name: 'price', type: 'text', label: 'Price' },
               { name: 'period', type: 'text', label: 'Period' },
               { name: 'features', type: 'repeater-text', label: 'Features (one per line)' },
-              { name: 'ctaLabel', type: 'text', label: 'CTA Label' },
-              { name: 'ctaUrl', type: 'link', label: 'CTA Link' },
               { name: 'primary', type: 'boolean', label: 'Highlight' },
             ])}
           >
@@ -188,17 +184,17 @@ export default function Pricing({
                 ))}
               </ul>
             )}
-            {hasCta && (
-              <a
-                href={hrefInfo.href}
-                target={hrefInfo.target}
-                rel={hrefInfo.target === '_blank' ? 'noopener noreferrer' : undefined}
-                className={`mt-auto inline-flex justify-center items-center px-5 py-2.5 text-sm font-medium rounded-lg text-on-high bg-standout-high hover:opacity-90 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-standout-high/60 transition-all active:scale-95`}
-                data-inline-type="link"
-                data-inline-path={`plans.${idx}.ctaUrl`}
-              >
-                <span data-inline-path={`plans.${idx}.ctaLabel`}>{plan.ctaLabel}</span>
-              </a>
+            {hasCtas && (
+              <div className="mt-auto space-y-3">
+                {plan.ctas!.map((cta, ci) => (
+                  <PlanButton
+                    key={ci}
+                    {...cta}
+                    inlineObjectPath={`plans.${idx}.ctas.${ci}`}
+                    inlineObjectLabel={`Button ${ci + 1}`}
+                  />
+                ))}
+              </div>
             )}
           </div>
         )
@@ -226,7 +222,6 @@ export default function Pricing({
       data-inline-options={JSON.stringify(THEME_OPTIONS)}
     >
       <SectionBackground
-        component={styles.backgroundComponent}
         backgroundImage={backgroundImage}
         backgroundTint={backgroundTint}
         isInteractive={_useReact}
@@ -247,5 +242,51 @@ export default function Pricing({
         )}
       </div>
     </section>
+  )
+}
+
+function PlanButton({
+  label,
+  url,
+  style = 'primary',
+  target,
+  inlineObjectPath,
+  inlineObjectLabel,
+}: Button & {
+  inlineObjectPath?: string
+  inlineObjectLabel?: string
+}) {
+  const styleClasses =
+    {
+      primary: 'text-on-high bg-standout-high hover:opacity-90',
+      secondary: 'bg-backdrop-medium hover:bg-backdrop-high text-neutral-high',
+      outline: 'border border-line-low hover:bg-backdrop-medium text-neutral-high',
+    }[style] || 'text-on-high bg-standout-high hover:opacity-90'
+
+  return (
+    <SiteLink
+      url={url}
+      explicitTarget={target}
+      className={`w-full inline-flex justify-center items-center px-5 py-2.5 text-sm font-medium rounded-lg focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-standout-high/60 transition-all active:scale-95 ${styleClasses}`}
+      data-inline-type="object"
+      data-inline-path={inlineObjectPath}
+      data-inline-label={inlineObjectLabel}
+      data-inline-fields={JSON.stringify([
+        { name: 'label', type: 'text', label: 'Label' },
+        { name: 'url', type: 'link', label: 'Destination' },
+        {
+          name: 'style',
+          type: 'select',
+          label: 'Style',
+          options: [
+            { label: 'Primary', value: 'primary' },
+            { label: 'Secondary', value: 'secondary' },
+            { label: 'Outline', value: 'outline' },
+          ],
+        },
+      ])}
+    >
+      {label}
+    </SiteLink>
   )
 }

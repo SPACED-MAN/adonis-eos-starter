@@ -28,6 +28,10 @@
    Base Global Styles
    ========================================================= */
 @layer base {
+  html {
+    scroll-behavior: smooth;
+  }
+
   * {
     @apply border-border outline-ring/50;
   }
@@ -46,5 +50,10 @@
   a:disabled,
   [disabled] {
     cursor: not-allowed;
+  }
+
+  /* Support for anchor links with sticky header */
+  [id], [data-module-id] {
+    scroll-margin-top: 6rem;
   }
 }

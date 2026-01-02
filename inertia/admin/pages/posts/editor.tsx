@@ -40,6 +40,7 @@ import {
   useMemo,
   useRef,
   useState,
+  memo,
 } from 'react'
 import { toast } from 'sonner'
 import { humanizeSlug } from '~/utils/strings'
@@ -149,6 +150,7 @@ const InlineModuleEditor = function InlineModuleEditor({
   onStage,
   onMarkDirty,
   customFields = [],
+  allModules = [],
 }: {
   module: {
     id: string
@@ -179,6 +181,7 @@ const InlineModuleEditor = function InlineModuleEditor({
   ) => void
   onMarkDirty: (mode: 'source' | 'review' | 'ai-review', moduleId: string) => void
   customFields?: Array<{ slug: string; label: string }>
+  allModules?: any[]
 }) {
   const onDirty = useCallback(
     () => onMarkDirty(viewMode, module.id),
@@ -220,20 +223,33 @@ const InlineModuleEditor = function InlineModuleEditor({
     return merged
   }, [viewMode, module.overrides, module.reviewOverrides, module.aiReviewOverrides])
 
+  const moduleItem = useMemo(() => ({
+    id: module.id,
+    moduleInstanceId: module.moduleInstanceId,
+    type: module.type,
+    scope: module.scope,
+    props: effectiveProps,
+    overrides: effectiveOverrides,
+    locked: module.locked,
+    orderIndex: module.orderIndex,
+    globalSlug: (module as any).globalSlug || null,
+    adminLabel: module.adminLabel || null,
+  }), [
+    module.id,
+    module.moduleInstanceId,
+    module.type,
+    module.scope,
+    effectiveProps,
+    effectiveOverrides,
+    module.locked,
+    module.orderIndex,
+    (module as any).globalSlug,
+    module.adminLabel
+  ])
+
   return (
     <ModuleEditorInline
-      moduleItem={{
-        id: module.id,
-        moduleInstanceId: module.moduleInstanceId,
-        type: module.type,
-        scope: module.scope,
-        props: effectiveProps,
-        overrides: effectiveOverrides,
-        locked: module.locked,
-        orderIndex: module.orderIndex,
-        globalSlug: (module as any).globalSlug || null,
-        adminLabel: module.adminLabel || null,
-      }}
+      moduleItem={moduleItem}
       postId={postId}
       moduleInstanceId={module.moduleInstanceId}
       viewMode={viewMode}
@@ -245,6 +261,7 @@ const InlineModuleEditor = function InlineModuleEditor({
       registerFlush={onRegisterFlush}
       onSave={onSave}
       customFields={customFields}
+      allModules={allModules}
     />
   )
 }
@@ -384,6 +401,7 @@ function ModuleRowBase({
   customFields = [],
   isOverlay = false,
   lastUpdateKey = 0,
+  allModules = [],
 }: {
   m: any
   viewMode: 'source' | 'review' | 'ai-review'
@@ -411,6 +429,7 @@ function ModuleRowBase({
   customFields?: Array<{ slug: string; label: string }>
   isOverlay?: boolean
   lastUpdateKey?: number
+  allModules?: any[]
 }) {
   const isOpen = modulesAccordionOpen.has(m.id) && !isOverlay
   const isLocked = m.locked
@@ -431,23 +450,14 @@ function ModuleRowBase({
     : moduleRegistry[m.type]?.name || m.type
 
   const labelToDisplay = useMemo(() => {
+    // For global modules, always use the global module label
+    if (!isLocal) return moduleName
+
     if (m.adminLabel) return m.adminLabel
     if (m.label) return m.label
 
-    // Try to find a dynamic label from props for common fields
-    const candidates = ['title', 'name', 'heading', 'label', 'heading_text']
-    const props = m.props || {}
-    const overrides = m.overrides || {}
-    const merged = { ...props, ...overrides }
-
-    for (const key of candidates) {
-      const val = merged[key]
-      if (typeof val === 'string' && val.trim() !== '') return val.trim()
-      if (typeof val === 'number') return String(val)
-    }
-
     return moduleName
-  }, [m.adminLabel, m.label, m.props, m.overrides, moduleName])
+  }, [isLocal, m.adminLabel, m.label, moduleName])
 
   const saveLabel = async () => {
     const label = localLabel.trim() || null
@@ -520,26 +530,28 @@ function ModuleRowBase({
                         {labelToDisplay}
                       </button>
 
-                      {(m.adminLabel || m.label) && (
+                      {isLocal && (m.adminLabel || m.label) && (
                         <span className="text-xs text-neutral-medium italic shrink-0">
                           ({moduleName})
                         </span>
                       )}
 
-                      <Tooltip>
-                        <TooltipTrigger asChild>
-                          <button
-                            type="button"
-                            onClick={() => setIsEditingLabel(true)}
-                            className="opacity-40 group-hover/label:opacity-100 p-1 rounded-md hover:bg-backdrop-medium text-neutral-low hover:text-neutral-high transition-all"
-                          >
-                            <FontAwesomeIcon icon={faPencil} size="xs" />
-                          </button>
-                        </TooltipTrigger>
-                        <TooltipContent>
-                          <p>Edit label</p>
-                        </TooltipContent>
-                      </Tooltip>
+                      {isLocal && (
+                        <Tooltip>
+                          <TooltipTrigger asChild>
+                            <button
+                              type="button"
+                              onClick={() => setIsEditingLabel(true)}
+                              className="opacity-40 group-hover/label:opacity-100 p-1 rounded-md hover:bg-backdrop-medium text-neutral-low hover:text-neutral-high transition-all"
+                            >
+                              <FontAwesomeIcon icon={faPencil} size="xs" />
+                            </button>
+                          </TooltipTrigger>
+                          <TooltipContent>
+                            <p>Edit label</p>
+                          </TooltipContent>
+                        </Tooltip>
+                      )}
                     </>
                   )}
                 </div>
@@ -694,6 +706,7 @@ function ModuleRowBase({
                   onStage={stageModuleEdits}
                   onMarkDirty={markModuleDirty}
                   customFields={customFields}
+                  allModules={allModules}
                 />
               )}
             </div>
@@ -704,7 +717,7 @@ function ModuleRowBase({
   )
 }
 
-const ModuleRow = ModuleRowBase
+const ModuleRow = memo(ModuleRowBase)
 
 export default function Editor({
   post,
@@ -902,21 +915,14 @@ export default function Editor({
           | HTMLSelectElement
           | null
         if (el) {
-          requestAnimationFrame(() => {
-            try {
-              // Avoid scrolling while restoring focus (supported by modern browsers)
-              ; (el as any).focus?.({ preventScroll: true })
-              if (
-                (el instanceof HTMLInputElement || el instanceof HTMLTextAreaElement) &&
-                restore.selectionStart != null &&
-                restore.selectionEnd != null
-              ) {
-                el.setSelectionRange(restore.selectionStart, restore.selectionEnd)
-              }
-            } catch {
-              /* ignore */
-            }
-          })
+          // Restore focus synchronously if possible. requestAnimationFrame can cause "jumbled" input
+          // if character events arrive between the render and the animation frame.
+          try {
+            // Avoid scrolling while restoring focus (supported by modern browsers)
+            ; (el as any).focus?.({ preventScroll: true })
+          } catch {
+            /* ignore */
+          }
         }
       }
     } catch {
@@ -953,11 +959,15 @@ export default function Editor({
     } catch {
       // ignore
     }
-    setUnstagedDirtyModulesByMode((prev) => {
-      const bucket = prev[mode] || {}
-      if (bucket[moduleId]) return prev
-      return { ...prev, [mode]: { ...bucket, [moduleId]: true } }
-    })
+    // Use a small delay for the dirty state update. This prevents the heavy Post Editor
+    // re-render from "freezing" the UI during the very first keystroke in a module.
+    setTimeout(() => {
+      setUnstagedDirtyModulesByMode((prev) => {
+        const bucket = prev[mode] || {}
+        if (bucket[moduleId]) return prev
+        return { ...prev, [mode]: { ...bucket, [moduleId]: true } }
+      })
+    }, 10)
   }, [])
   const registerModuleFlush = useCallback(
     (moduleId: string, flush: (() => Promise<void>) | null) => {
@@ -1276,13 +1286,14 @@ export default function Editor({
   }, [modules, post, hasReviewBaseline, hasAiReviewBaseline, modulesEnabled, initialCustomFields])
 
   const initialViewMode: 'source' | 'review' | 'ai-review' = useMemo(() => {
-    // Check URL parameter first to preserve view mode across reloads
+    // Check URL parameter first to preserve view mode across reloads,
+    // but ONLY if the requested version actually exists.
     if (typeof window !== 'undefined') {
       const urlParams = new URLSearchParams(window.location.search)
       const viewParam = urlParams.get('view')
-      if (viewParam === 'source' || viewParam === 'review' || viewParam === 'ai-review') {
-        return viewParam as 'source' | 'review' | 'ai-review'
-      }
+      if (viewParam === 'source' && hasSourceBaseline) return 'source'
+      if (viewParam === 'review' && hasReviewBaseline) return 'review'
+      if (viewParam === 'ai-review' && hasAiReviewBaseline) return 'ai-review'
     }
     // Fallback to baseline-based logic: land on most "active" draft version if source is skeleton
     if (hasAiReviewBaseline && !hasSourceBaseline) return 'ai-review'
@@ -1403,7 +1414,13 @@ export default function Editor({
 
       const buildDraftSnapshot = (snapshotTarget: 'review' | 'ai-review', modulesList?: any[]) => {
         // Use the provided list or raw modules array.
-        const list = modulesList || modules
+        const removals = snapshotTarget === 'review' ? pendingReviewRemoved : pendingAiReviewRemoved
+        const alreadyDeleted = snapshotTarget === 'review' ? 'reviewDeleted' : 'aiReviewDeleted'
+
+        const list = (modulesList || modules).filter(
+          (m) => !removals.has(m.id) && !(m as any)[alreadyDeleted]
+        )
+
         return list.map((m) => {
           const pending = pendingModulesByModeRef.current[viewMode][m.id]
           const isLocal = m.scope === 'post' || m.scope === 'local'
@@ -1779,7 +1796,6 @@ export default function Editor({
                 gMap.set(g.globalSlug, (g as any).label || g.globalSlug)
               }
             })
-            console.log('[PostEditor] Global labels loaded:', Array.from(gMap.entries()))
             if (!cancelled) setGlobalSlugToLabel(gMap)
           } catch {
             /* ignore */
@@ -2013,16 +2029,18 @@ export default function Editor({
       customFields: Array.isArray((data as any).customFields) ? (data as any).customFields : [],
       reviewModuleRemovals: Array.from(pendingReviewRemoved),
       // Include full module state in the draft snapshot for "dependable" JSON-based storage
-      modules:
-        modulesOverride ||
-        modules.map((m) => {
-          const isLocal = m.scope === 'post' || m.scope === 'local'
-          return {
-            ...m,
-            props: isLocal ? (m.reviewProps ?? m.props ?? {}) : {},
-            overrides: !isLocal ? (m.reviewOverrides ?? m.overrides ?? null) : null,
-          }
-        }),
+      modules: modulesOverride
+        ? modulesOverride
+        : modules
+          .filter((m) => !pendingReviewRemoved.has(m.id) && !m.reviewDeleted)
+          .map((m) => {
+            const isLocal = m.scope === 'post' || m.scope === 'local'
+            return {
+              ...m,
+              props: isLocal ? (m.reviewProps ?? m.props ?? {}) : {},
+              overrides: !isLocal ? (m.reviewOverrides ?? m.overrides ?? null) : null,
+            }
+          }),
     }
     const res = await fetch(`/api/posts/${post.id}`, {
       method: 'PUT',
@@ -2062,18 +2080,20 @@ export default function Editor({
       customFields: Array.isArray((data as any).customFields) ? (data as any).customFields : [],
       aiReviewModuleRemovals: Array.from(pendingAiReviewRemoved),
       // Include full module state in the draft snapshot for "dependable" JSON-based storage
-      modules:
-        modulesOverride ||
-        modules.map((m) => {
-          const isLocal = m.scope === 'post' || m.scope === 'local'
-          return {
-            ...m,
-            props: isLocal ? (m.aiReviewProps ?? m.reviewProps ?? m.props ?? {}) : {},
-            overrides: !isLocal
-              ? (m.aiReviewOverrides ?? m.reviewOverrides ?? m.overrides ?? null)
-              : null,
-          }
-        }),
+      modules: modulesOverride
+        ? modulesOverride
+        : modules
+          .filter((m) => !pendingAiReviewRemoved.has(m.id) && !m.aiReviewDeleted)
+          .map((m) => {
+            const isLocal = m.scope === 'post' || m.scope === 'local'
+            return {
+              ...m,
+              props: isLocal ? (m.aiReviewProps ?? m.reviewProps ?? m.props ?? {}) : {},
+              overrides: !isLocal
+                ? (m.aiReviewOverrides ?? m.reviewOverrides ?? m.overrides ?? null)
+                : null,
+            }
+          }),
     }
     const res = await fetch(`/api/posts/${post.id}`, {
       method: 'PUT',
@@ -3597,6 +3617,7 @@ export default function Editor({
                                 postId={post.id}
                                 customFields={initialCustomFields || []}
                                 lastUpdateKey={lastUpdateKey}
+                                allModules={sortedModules}
                               />
                             ))}
                           </ul>
@@ -3626,6 +3647,7 @@ export default function Editor({
                                 customFields={initialCustomFields || []}
                                 isOverlay={true}
                                 lastUpdateKey={lastUpdateKey}
+                                allModules={sortedModules}
                               />
                             </div>
                           ) : null}
@@ -5230,7 +5252,10 @@ export default function Editor({
                                       : 'Review discarded')
                                   )
                                   setRejectConfirmOpen(false)
-                                  window.location.reload()
+                                  // Redirect to source view by removing the view param
+                                  const url = new URL(window.location.href)
+                                  url.searchParams.delete('view')
+                                  window.location.href = url.pathname + url.search
                                 } else {
                                   const err = await res.json().catch(() => null)
                                   console.error('Reject failed:', res.status, err)
@@ -5599,7 +5624,7 @@ export default function Editor({
       </div>
       {/* Import Mode Modal (Admin) */}
       {isAdmin && isImportModeOpen && (
-        <div className="fixed inset-0 z-[60] flex items-center justify-center">
+        <div className="fixed inset-0 z-60 flex items-center justify-center">
           <div
             className="absolute inset-0 bg-black/50"
             onClick={() => {

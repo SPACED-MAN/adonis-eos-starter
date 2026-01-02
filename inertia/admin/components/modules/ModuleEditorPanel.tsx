@@ -32,7 +32,6 @@ import { FontAwesomeIcon } from '@fortawesome/react-fontawesome'
 import {
   faWandMagicSparkles,
   faChevronDown,
-  faChevronRight,
   faExpandAlt,
   faCompressAlt,
   faTrash,
@@ -216,6 +215,7 @@ type EditorFieldCtx = {
   moduleInstanceId?: string
   moduleType?: string
   moduleItem?: ModuleListItem | null
+  allModules?: ModuleListItem[]
   fieldAgents: Agent[]
   setSelectedFieldAgent: (agent: Agent | null) => void
   setAgentModalOpen: (open: boolean) => void
@@ -224,6 +224,7 @@ type EditorFieldCtx = {
   viewMode?: 'source' | 'review' | 'ai-review'
   customFields: Array<{ slug: string; label: string }>
   onDirty?: () => void
+  loadingSchema?: boolean
   pendingInputValueRef?: React.MutableRefObject<{
     name: string
     value: string
@@ -231,6 +232,22 @@ type EditorFieldCtx = {
     cursorPos: number
   } | null>
 }
+
+// --------------------------------------------------------------------------
+// Global cache for field components
+// --------------------------------------------------------------------------
+const fieldComponents: Record<string, any> = {}
+const fieldComponentsRaw = import.meta.glob('../../fields/*.tsx', { eager: true }) as Record<
+  string,
+  { default: any }
+>
+Object.entries(fieldComponentsRaw).forEach(([p, mod]) => {
+  const nm = p
+    .split('/')
+    .pop()
+    ?.replace(/\.\w+$/, '')
+  if (nm && mod?.default) fieldComponents[nm] = mod.default
+})
 
 // --------------------------------------------------------------------------
 // Global cache for media metadata
@@ -1451,6 +1468,13 @@ const FieldPrimitiveInternal = memo(
     ctx: EditorFieldCtx
   }) => {
     const name = path.join('.')
+
+    // Check if there's a pending value for this specific field path.
+    // This is critical for preventing "jumbled" input during heavy re-renders.
+    const pendingRef = ctx.pendingInputValueRef?.current
+    const hasPendingValue = pendingRef?.name === name && pendingRef?.rootId === rootId
+    const valueToUse = hasPendingValue && pendingRef ? pendingRef.value : value
+
     const hideLabel = (field as any).hideLabel === true
     const label = hideLabel ? '' : getLabel(path, field)
     const type = (field as any).type as string
@@ -1513,13 +1537,20 @@ const FieldPrimitiveInternal = memo(
         aiGuidance: _aig,
         defaultValue: _dv,
         description: _desc,
+        isLabel: _il,
+        category: _cat,
+        translatable: _trans,
+        config: _conf,
         ...domSafeCfg
       } = cfg
 
       const props: Record<string, any> = {
-        value: value ?? null,
+        value: valueToUse ?? null,
         onChange: handleChange,
         ...domSafeCfg,
+      }
+      if (type === 'link') {
+        props.allModules = ctx.allModules
       }
       props.name = name
       props['data-root-id'] = rootId
@@ -1555,18 +1586,18 @@ const FieldPrimitiveInternal = memo(
             name={name}
             data-root-id={rootId}
             defaultValue={
-              value === null || value === undefined
+              valueToUse === null || valueToUse === undefined
                 ? ''
-                : typeof value === 'object'
-                  ? JSON.stringify(value)
-                  : typeof value === 'boolean'
-                    ? value
+                : typeof valueToUse === 'object'
+                  ? JSON.stringify(valueToUse)
+                  : typeof valueToUse === 'boolean'
+                    ? valueToUse
                       ? 'true'
                       : 'false'
-                    : String(value)
+                    : String(valueToUse)
             }
             data-bool={type === 'boolean' ? '1' : undefined}
-            data-json={isPlainObject(value) || Array.isArray(value) ? '1' : undefined}
+            data-json={isPlainObject(valueToUse) || Array.isArray(valueToUse) ? '1' : undefined}
           />
         </FormField>
       )
@@ -1582,7 +1613,7 @@ const FieldPrimitiveInternal = memo(
           label={label}
           rootId={rootId}
           hideLabel={hideLabel}
-          initial={typeof value === 'string' ? value : ''}
+          initial={typeof valueToUse === 'string' ? valueToUse : ''}
           ctx={ctx}
           field={field}
           matchingAgents={matchingAgents}
@@ -1593,7 +1624,7 @@ const FieldPrimitiveInternal = memo(
         <SliderFieldInternal
           name={name}
           label={label}
-          value={value}
+          value={valueToUse}
           rootId={rootId}
           hideLabel={hideLabel}
           field={field}
@@ -1606,7 +1637,7 @@ const FieldPrimitiveInternal = memo(
         <MediaFieldInternal
           name={name}
           label={label}
-          value={value}
+          value={valueToUse}
           hideLabel={hideLabel}
           field={field}
           ctx={ctx}
@@ -1618,7 +1649,7 @@ const FieldPrimitiveInternal = memo(
         <IconFieldInternal
           name={name}
           label={label}
-          value={value}
+          value={valueToUse}
           rootId={rootId}
           hideLabel={hideLabel}
           ctx={ctx}
@@ -1631,7 +1662,7 @@ const FieldPrimitiveInternal = memo(
         <PostReferenceFieldInternal
           name={name}
           label={label}
-          value={value}
+          value={valueToUse}
           rootId={rootId}
           hideLabel={hideLabel}
           field={field}
@@ -1940,6 +1971,13 @@ const FieldBySchemaInternal = memo(
 
     const type = (field as any).type as string
     const name = path.join('.')
+
+    // Check if there's a pending value for this specific field path.
+    // This is critical for preventing "jumbled" input during heavy re-renders.
+    const pendingRef = ctx.pendingInputValueRef?.current
+    const hasPendingValue = pendingRef?.name === name && pendingRef?.rootId === rootId
+    const valueToUse = hasPendingValue && pendingRef ? pendingRef.value : value
+
     const label = getLabel(path, field)
     const hideLabel = (field as any).hideLabel
 
@@ -1966,7 +2004,7 @@ const FieldBySchemaInternal = memo(
                   key={`${name}.${f.slug}`}
                   path={[...path, f.slug]}
                   field={f}
-                  value={value ? value[f.slug] : undefined}
+                  value={valueToUse ? valueToUse[f.slug] : undefined}
                   rootId={rootId}
                   ctx={ctx}
                 />
@@ -1978,7 +2016,7 @@ const FieldBySchemaInternal = memo(
     }
 
     if (type === 'repeater' || type === 'array') {
-      const items: any[] = Array.isArray(value) ? value : []
+      const items: any[] = Array.isArray(valueToUse) ? valueToUse : []
       const rawItemSchema: CustomFieldDefinition | undefined = (field as any).item
       const rawItemsDef: any = (field as any).items
       let itemSchema: CustomFieldDefinition | undefined = rawItemSchema
@@ -2225,7 +2263,6 @@ const ModuleFieldsRenderer = memo(
     isNoFieldModule: boolean
     fallbackDraftKeys: string[]
   }) => {
-    // DEBUG: console.log('[ModuleFieldsRenderer] render', { draft })
 
     if (schema && schema.length > 0) {
       // Helper function to check showIf conditions
@@ -2237,8 +2274,6 @@ const ModuleFieldsRenderer = memo(
         if (!depPath) return true // No field specified, show by default
 
         const depValue = getByPath(draftValues, depPath)
-
-        // DEBUG: console.log(`[checkShowIf] Field: ${field.slug}, depPath: ${depPath}, depValue:`, depValue, 'showIf:', showIf)
 
         if (showIf.isVideo === true) {
           // Note: isVideo check would need media metadata cache access
@@ -2256,63 +2291,55 @@ const ModuleFieldsRenderer = memo(
         return true
       }
 
-      // Step 1: Organize fields into tabs and groups
-      type FieldGroup = {
-        label?: string
-        description?: string
-        fields: CustomFieldDefinition[]
-        showIf?: CustomFieldDefinition['showIf']
-      }
-      type TabSection = {
-        label: string
-        groups: FieldGroup[]
-      }
-
-      const sections: TabSection[] = []
-      let currentTab: TabSection = { label: 'General', groups: [{ fields: [] }] }
-      sections.push(currentTab)
-
-      schema.forEach((f) => {
-        if (f.type === 'tab') {
-          currentTab = { label: f.label || 'Other', groups: [{ fields: [] }] }
-          sections.push(currentTab)
-        } else if (f.type === 'group') {
-          // If the last group is empty and has no label/showIf, remove it before adding the new group
-          // This cleans up any empty default groups
-          const lastGroup = currentTab.groups[currentTab.groups.length - 1]
-          if (lastGroup.fields.length === 0 && !lastGroup.label && !lastGroup.showIf) {
-            currentTab.groups.pop()
-          }
-          // Add the group
-          currentTab.groups.push({
-            label: f.label,
-            description: f.description,
-            fields: [],
-            showIf: f.showIf,
-          })
-        } else {
-          // Normal field
-          const lastGroup = currentTab.groups[currentTab.groups.length - 1]
-
-          // SPECIAL CASE: If this is the "Add Interactivity" field (_useReact)
-          // and the current group has a showIf condition, move it to a new default group
-          // so it's not hidden along with the conditional group.
-          if (f.slug === '_useReact' && lastGroup.showIf) {
-            currentTab.groups.push({ fields: [f] })
-          } else {
-            // Otherwise, add to the current group
-            lastGroup.fields.push(f)
-          }
+      // Organize fields into tabs and groups
+      const cleanedSections = useMemo(() => {
+        type FieldGroup = {
+          label?: string
+          description?: string
+          fields: CustomFieldDefinition[]
+          showIf?: CustomFieldDefinition['showIf']
         }
-      })
+        type TabSection = {
+          label: string
+          groups: FieldGroup[]
+        }
 
-      // Remove empty groups/tabs (but keep groups with showIf even if empty, they'll be filtered at render time)
-      const cleanedSections = sections
-        .map((s) => ({
-          ...s,
-          groups: s.groups.filter((g) => g.fields.length > 0 || g.label || g.showIf),
-        }))
-        .filter((s) => s.groups.length > 0)
+        const sections: TabSection[] = []
+        let currentTab: TabSection = { label: 'General', groups: [{ fields: [] }] }
+        sections.push(currentTab)
+
+        schema.forEach((f) => {
+          if (f.type === 'tab') {
+            currentTab = { label: f.label || 'Other', groups: [{ fields: [] }] }
+            sections.push(currentTab)
+          } else if (f.type === 'group') {
+            const lastGroup = currentTab.groups[currentTab.groups.length - 1]
+            if (lastGroup.fields.length === 0 && !lastGroup.label && !lastGroup.showIf) {
+              currentTab.groups.pop()
+            }
+            currentTab.groups.push({
+              label: f.label,
+              description: f.description,
+              fields: [],
+              showIf: f.showIf,
+            })
+          } else {
+            const lastGroup = currentTab.groups[currentTab.groups.length - 1]
+            if (f.slug === '_useReact' && lastGroup.showIf) {
+              currentTab.groups.push({ fields: [f] })
+            } else {
+              lastGroup.fields.push(f)
+            }
+          }
+        })
+
+        return sections
+          .map((s) => ({
+            ...s,
+            groups: s.groups.filter((g) => g.fields.length > 0 || g.label || g.showIf),
+          }))
+          .filter((s) => s.groups.length > 0)
+      }, [schema])
 
       const renderGroup = (group: FieldGroup, sectionIdx: number, groupIdx: number) => {
         // Check showIf condition for the group
@@ -2348,19 +2375,12 @@ const ModuleFieldsRenderer = memo(
             <div className="space-y-4">
               {group.fields.map((f) => {
                 const fieldName = f.slug
-                const pendingRef = ctx.pendingInputValueRef?.current
-                const hasPendingValue =
-                  pendingRef?.name === fieldName && pendingRef?.rootId === moduleItem.id
-                const pendingValue = hasPendingValue && pendingRef ? pendingRef.value : null
-                const draftValue = draft ? draft[fieldName] : undefined
-                const valueToUse = pendingValue !== null ? pendingValue : draftValue
-
                 return (
                   <FieldBySchemaInternal
                     key={fieldName}
                     path={[fieldName]}
                     field={f}
-                    value={valueToUse}
+                    value={draft ? draft[fieldName] : undefined}
                     rootId={moduleItem.id}
                     ctx={ctx}
                   />
@@ -2379,13 +2399,12 @@ const ModuleFieldsRenderer = memo(
           <div className="space-y-4">
             {cleanedSections[0]?.groups[0]?.fields.map((f) => {
               const fieldName = f.slug
-              const draftValue = draft ? draft[fieldName] : undefined
               return (
                 <FieldBySchemaInternal
                   key={fieldName}
                   path={[fieldName]}
                   field={f}
-                  value={draftValue}
+                  value={draft ? draft[fieldName] : undefined}
                   rootId={moduleItem.id}
                   ctx={ctx}
                 />
@@ -2430,6 +2449,19 @@ const ModuleFieldsRenderer = memo(
       )
     }
 
+    if (ctx.loadingSchema) {
+      return (
+        <div className="space-y-6 py-4 animate-pulse">
+          {[1, 2, 3].map((i) => (
+            <div key={i} className="space-y-2">
+              <div className="h-3 bg-neutral-low/10 rounded w-24" />
+              <div className="h-10 bg-neutral-low/10 rounded w-full" />
+            </div>
+          ))}
+        </div>
+      )
+    }
+
     if (isNoFieldModule || (fallbackDraftKeys && fallbackDraftKeys.length === 0)) {
       return <p className="text-sm text-neutral-low">No editable fields.</p>
     }
@@ -2437,11 +2469,17 @@ const ModuleFieldsRenderer = memo(
     return (
       <>
         {fallbackDraftKeys.map((key) => {
-          const rawVal = draft[key]
+          const draftValue = draft ? draft[key] : undefined
+
           if (key === 'content') {
-            let initial: any = rawVal
-            if (typeof rawVal === 'string') {
-              const trimmed = rawVal.trim()
+            let initial: any = draftValue
+            const pendingRef = ctx.pendingInputValueRef?.current
+            const hasPendingValue =
+              pendingRef?.name === key && pendingRef?.rootId === moduleItem.id
+            if (hasPendingValue && pendingRef) initial = pendingRef.value
+
+            if (typeof initial === 'string') {
+              const trimmed = initial.trim()
               if (trimmed.startsWith('{') || trimmed.startsWith('[')) {
                 try {
                   initial = JSON.parse(trimmed)
@@ -2479,13 +2517,13 @@ const ModuleFieldsRenderer = memo(
               </div>
             )
           }
-          if (isPlainObject(rawVal) || Array.isArray(rawVal)) {
+          if (isPlainObject(draftValue) || Array.isArray(draftValue)) {
             return (
               <div key={key}>
                 <label className="block text-sm font-medium text-neutral-medium mb-1">{key}</label>
                 <textarea
                   className="w-full px-3 py-2 min-h-[140px] border border-border rounded-lg bg-backdrop-low text-neutral-high font-mono text-xs"
-                  defaultValue={JSON.stringify(rawVal, null, 2)}
+                  defaultValue={JSON.stringify(draftValue, null, 2)}
                   onBlur={(e) => {
                     try {
                       const parsed = JSON.parse(e.target.value || 'null')
@@ -2509,14 +2547,14 @@ const ModuleFieldsRenderer = memo(
                 {
                   name: key,
                   type:
-                    typeof rawVal === 'number'
+                    typeof draftValue === 'number'
                       ? 'number'
-                      : typeof rawVal === 'boolean'
+                      : typeof draftValue === 'boolean'
                         ? 'boolean'
                         : 'text',
                 } as any
               }
-              value={rawVal}
+              value={draftValue}
               rootId={moduleItem.id}
               ctx={ctx}
             />
@@ -2538,6 +2576,7 @@ export function ModuleEditorPanel({
   viewMode,
   customFields = [],
   allowGlobalEditing = false,
+  allModules = [],
 }: {
   open: boolean
   moduleItem: ModuleListItem | null
@@ -2552,6 +2591,7 @@ export function ModuleEditorPanel({
   viewMode?: 'source' | 'review' | 'ai-review'
   customFields?: Array<{ slug: string; label: string }>
   allowGlobalEditing?: boolean
+  allModules?: ModuleListItem[]
 }) {
   const merged = useMemo(
     () => (moduleItem ? mergeFields(moduleItem.props || {}, moduleItem.overrides || null) : {}),
@@ -2562,7 +2602,9 @@ export function ModuleEditorPanel({
     const cached = moduleItem ? moduleSchemaCache.get(moduleItem.type) : null
     return cached ? cached.schema : null
   })
-
+  const [loadingSchema, setLoadingSchema] = useState(() => {
+    return moduleItem ? !moduleSchemaCache.has(moduleItem.type) : false
+  })
   // Merge default values into draft if it's a global module being edited directly
   useEffect(() => {
     if (allowGlobalEditing && schema && schema.length > 0) {
@@ -2590,22 +2632,6 @@ export function ModuleEditorPanel({
   const [agentFieldKey, setAgentFieldKey] = useState<string>('')
   const [agentFieldType, setAgentFieldType] = useState<string>('')
   const fieldAgents = useMemo(() => [], []) // Placeholder
-
-  const fieldComponents = useMemo(() => {
-    const modules = import.meta.glob('../../fields/*.tsx', { eager: true }) as Record<
-      string,
-      { default: any }
-    >
-    const map: Record<string, any> = {}
-    Object.entries(modules).forEach(([p, mod]) => {
-      const nm = p
-        .split('/')
-        .pop()
-        ?.replace(/\.\w+$/, '')
-      if (nm && mod?.default) map[nm] = mod.default
-    })
-    return map
-  }, [])
 
   const pascalFromType = useCallback((t?: string | null) => {
     if (!t || typeof t !== 'string') return ''
@@ -2681,10 +2707,17 @@ export function ModuleEditorPanel({
         | HTMLTextAreaElement
         | HTMLSelectElement
         | null
-      if (el && el.value !== value) {
-        el.value = value
-        if (el instanceof HTMLInputElement || el instanceof HTMLTextAreaElement)
-          el.setSelectionRange(cursorPos, cursorPos)
+      if (el) {
+        if (el.value !== value) {
+          el.value = value
+        }
+        if (el instanceof HTMLInputElement || el instanceof HTMLTextAreaElement) {
+          // Always restore cursor if we have a pending value, as re-renders can mangle it
+          // even if the value itself is correct.
+          if (el.selectionStart !== cursorPos || el.selectionEnd !== cursorPos) {
+            el.setSelectionRange(cursorPos, cursorPos)
+          }
+        }
       }
       const currentDraftValue = draft ? draft[name] : undefined
       const lastRestored = lastRestoredDraftRef.current
@@ -2722,9 +2755,11 @@ export function ModuleEditorPanel({
             if (alive) {
               setModuleLabel(cached.label || moduleItem.type)
               setSchema(cached.schema)
+              setLoadingSchema(false)
             }
             return
           }
+          if (alive) setLoadingSchema(true)
           const res = await fetch(`/api/modules/${encodeURIComponent(moduleItem.type)}/schema`, {
             credentials: 'same-origin',
           })
@@ -2739,7 +2774,10 @@ export function ModuleEditorPanel({
               : null) ||
             null
           const friendlyName = (json?.data && json.data.name) || json?.name || null
-          if (alive) setModuleLabel(friendlyName || moduleItem.type)
+          if (alive) {
+            setModuleLabel(friendlyName || moduleItem.type)
+            setLoadingSchema(false)
+          }
           if (ps && typeof ps === 'object') {
             const fields: CustomFieldDefinition[] = Object.keys(ps).map((k) => ({
               slug: k,
@@ -2758,7 +2796,10 @@ export function ModuleEditorPanel({
             })
           }
         } catch {
-          if (alive) setSchema(null)
+          if (alive) {
+            setSchema(null)
+            setLoadingSchema(false)
+          }
         }
       })()
     return () => {
@@ -2793,6 +2834,7 @@ export function ModuleEditorPanel({
       moduleInstanceId,
       moduleType: moduleItem?.type,
       moduleItem,
+      allModules,
       fieldAgents,
       setSelectedFieldAgent,
       setAgentModalOpen,
@@ -2800,6 +2842,7 @@ export function ModuleEditorPanel({
       setAgentFieldType,
       viewMode,
       customFields,
+      loadingSchema,
       pendingInputValueRef,
       onDirty: () => { },
     }),
@@ -2813,6 +2856,7 @@ export function ModuleEditorPanel({
       fieldAgents,
       viewMode,
       customFields,
+      allModules,
     ]
   )
 
@@ -2835,17 +2879,6 @@ export function ModuleEditorPanel({
   const fallbackDraftKeys = Object.keys(draft || {}).filter(
     (k) => k !== 'type' && k !== 'properties'
   )
-
-  // Debug log to see why global module fields might be visible
-  console.log('[ModuleEditorPanel] Rendering:', {
-    type: moduleItem.type,
-    scope: moduleItem.scope,
-    globalSlug: moduleItem.globalSlug,
-    allowGlobalEditing,
-    shouldHideFields:
-      (moduleItem.scope === 'global' || moduleItem.scope === 'static' || !!moduleItem.globalSlug) &&
-      !allowGlobalEditing,
-  })
 
   return createPortal(
     <div className="fixed inset-0 z-60 flex items-center justify-center p-4 sm:p-6">
@@ -2884,6 +2917,7 @@ export function ModuleEditorPanel({
                 | HTMLTextAreaElement
                 | HTMLSelectElement
                 | null
+              if (el?.type === 'hidden') return
               const name = el?.getAttribute?.('name') || ''
               const rootId = el?.getAttribute?.('data-root-id') || moduleItem?.id || ''
               if (!name) return
@@ -3020,6 +3054,7 @@ export const ModuleEditorInline = memo(function ModuleEditorInline({
   registerFlush,
   className = '',
   customFields = [],
+  allModules = [],
 }: {
   moduleItem: ModuleListItem
   onSave: (
@@ -3036,6 +3071,7 @@ export const ModuleEditorInline = memo(function ModuleEditorInline({
   registerFlush?: (flush: (() => Promise<void>) | null) => void
   className?: string
   customFields?: Array<{ slug: string; label: string }>
+  allModules?: ModuleListItem[]
 }) {
   const merged = useMemo(
     () => (moduleItem ? mergeFields(moduleItem.props || {}, moduleItem.overrides || null) : {}),
@@ -3054,20 +3090,42 @@ export const ModuleEditorInline = memo(function ModuleEditorInline({
     return () => clearTimeout(id)
   }, [])
 
-  const safeOnDirty = useCallback(() => {
+  const [dirtyTimer, setDirtyTimer] = useState<number | null>(null)
+  const triggerDirty = useCallback(() => {
     if (suppressDirtyRef.current) return
-    onDirty?.()
-  }, [onDirty])
+    if (dirtyTimer) window.clearTimeout(dirtyTimer)
+    const id = window.setTimeout(() => {
+      onDirty?.()
+      setDirtyTimer(null)
+    }, 500)
+    setDirtyTimer(id as any)
+  }, [dirtyTimer, onDirty])
+
+  // Clear timer on unmount
+  useEffect(() => {
+    return () => {
+      if (dirtyTimer) window.clearTimeout(dirtyTimer)
+    }
+  }, [dirtyTimer])
+
+  const safeOnDirty = useCallback(() => {
+    triggerDirty()
+  }, [triggerDirty])
 
   // If the incoming merged props change AND we are not locally edited, sync draft to match.
   // This keeps the editor aligned after reloads/saves without stomping in-progress typing.
   useEffect(() => {
     // If the user has unsaved local edits, do not overwrite.
-    const locallyEdited = JSON.stringify(draft || {}) !== JSON.stringify(merged || {})
+    // Use latestDraft.current instead of draft from state to avoid stale closure issues.
+    // Also check pendingInputValueRef to ensure we don't overwrite while the user is typing.
+    const locallyEdited =
+      pendingInputValueRef.current !== null ||
+      JSON.stringify(latestDraft.current || {}) !== JSON.stringify(merged || {})
     if (locallyEdited) return
 
     suppressDirtyRef.current = true
     setDraft(merged)
+    latestDraft.current = merged
     const id = setTimeout(() => {
       suppressDirtyRef.current = false
     }, 0)
@@ -3077,6 +3135,9 @@ export const ModuleEditorInline = memo(function ModuleEditorInline({
   const [schema, setSchema] = useState<CustomFieldDefinition[] | null>(() => {
     const cached = moduleItem ? moduleSchemaCache.get(moduleItem.type) : null
     return cached ? cached.schema : null
+  })
+  const [loadingSchema, setLoadingSchema] = useState(() => {
+    return moduleItem ? !moduleSchemaCache.has(moduleItem.type) : false
   })
 
   const formRef = useRef<HTMLDivElement | null>(null)
@@ -3091,22 +3152,6 @@ export const ModuleEditorInline = memo(function ModuleEditorInline({
     cursorPos: number
   } | null>(null)
   const lastRestoredDraftRef = useRef<{ name: string; value: string } | null>(null)
-
-  const fieldComponents = useMemo(() => {
-    const modules = import.meta.glob('../../fields/*.tsx', { eager: true }) as Record<
-      string,
-      { default: any }
-    >
-    const map: Record<string, any> = {}
-    Object.entries(modules).forEach(([p, mod]) => {
-      const nm = p
-        .split('/')
-        .pop()
-        ?.replace(/\.\w+$/, '')
-      if (nm && mod?.default) map[nm] = mod.default
-    })
-    return map
-  }, [])
 
   const pascalFromType = useCallback((t?: string | null) => {
     if (!t || typeof t !== 'string') return ''
@@ -3175,10 +3220,17 @@ export const ModuleEditorInline = memo(function ModuleEditorInline({
         | HTMLTextAreaElement
         | HTMLSelectElement
         | null
-      if (el && el.value !== value) {
-        el.value = value
-        if (el instanceof HTMLInputElement || el instanceof HTMLTextAreaElement)
-          el.setSelectionRange(cursorPos, cursorPos)
+      if (el) {
+        if (el.value !== value) {
+          el.value = value
+        }
+        if (el instanceof HTMLInputElement || el instanceof HTMLTextAreaElement) {
+          // Always restore cursor if we have a pending value, as re-renders can mangle it
+          // even if the value itself is correct.
+          if (el.selectionStart !== cursorPos || el.selectionEnd !== cursorPos) {
+            el.setSelectionRange(cursorPos, cursorPos)
+          }
+        }
       }
       const currentDraftValue = draft ? draft[name] : undefined
       const lastRestored = lastRestoredDraftRef.current
@@ -3215,9 +3267,11 @@ export const ModuleEditorInline = memo(function ModuleEditorInline({
           if (cached) {
             if (alive) {
               setSchema(cached.schema)
+              setLoadingSchema(false)
             }
             return
           }
+          if (alive) setLoadingSchema(true)
           const res = await fetch(`/api/modules/${encodeURIComponent(moduleItem.type)}/schema`, {
             credentials: 'same-origin',
           })
@@ -3232,6 +3286,7 @@ export const ModuleEditorInline = memo(function ModuleEditorInline({
               : null) ||
             null
           const friendlyName = (json?.data && json.data.name) || json?.name || null
+          if (alive) setLoadingSchema(false)
           if (ps && typeof ps === 'object') {
             const fields: CustomFieldDefinition[] = Object.keys(ps).map((k) => ({
               slug: k,
@@ -3250,7 +3305,10 @@ export const ModuleEditorInline = memo(function ModuleEditorInline({
             })
           }
         } catch {
-          if (alive) setSchema(null)
+          if (alive) {
+            setSchema(null)
+            setLoadingSchema(false)
+          }
         }
       })()
     return () => {
@@ -3286,6 +3344,7 @@ export const ModuleEditorInline = memo(function ModuleEditorInline({
       moduleInstanceId,
       moduleType: moduleItem?.type,
       moduleItem,
+      allModules,
       fieldAgents,
       setSelectedFieldAgent,
       setAgentModalOpen,
@@ -3294,6 +3353,7 @@ export const ModuleEditorInline = memo(function ModuleEditorInline({
       viewMode,
       customFields,
       onDirty: safeOnDirty,
+      loadingSchema,
       pendingInputValueRef,
     }),
     [
@@ -3308,6 +3368,8 @@ export const ModuleEditorInline = memo(function ModuleEditorInline({
       viewMode,
       customFields,
       onDirty,
+      allModules,
+      loadingSchema,
     ]
   )
 
@@ -3349,6 +3411,7 @@ export const ModuleEditorInline = memo(function ModuleEditorInline({
         onChangeCapture={(e) => {
           try {
             const el = e.target as HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement | null
+            if (el?.type === 'hidden') return
             const name = el?.getAttribute?.('name') || ''
             const rootId = el?.getAttribute?.('data-root-id') || moduleItem?.id || ''
             if (!name) return

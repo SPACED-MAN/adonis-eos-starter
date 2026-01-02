@@ -121,21 +121,19 @@ export default class PostsCrudController extends BasePostsController {
 
     try {
       const requestedMode = String(request.input('mode') || '').toLowerCase()
-      console.log(`[PostsCrudController.update] ID: ${id}, Mode: ${requestedMode}`)
 
+      // Handle decision modes EARLY before full validation
       if (
         requestedMode === 'approve' ||
         requestedMode === 'approve-ai-review' ||
         requestedMode === 'reject-review' ||
         requestedMode === 'reject-ai-review'
       ) {
-        console.log(`[PostsCrudController.update] Routing to decision: ${requestedMode}`)
         const currentPost = await Post.findOrFail(id)
         const postType = currentPost.type
 
         if (requestedMode === 'approve') {
           if (!roleRegistry.hasPermission(role, 'posts.review.approve', postType)) {
-            console.log(`[PostsCrudController.update] Permission denied for approve`)
             return this.response.forbidden(response, 'Not allowed to approve review')
           }
           return this.approveReviewDraft(id, auth, response)
@@ -143,7 +141,6 @@ export default class PostsCrudController extends BasePostsController {
 
         if (requestedMode === 'approve-ai-review') {
           if (!roleRegistry.hasPermission(role, 'posts.ai-review.approve', postType)) {
-            console.log(`[PostsCrudController.update] Permission denied for approve-ai-review`)
             return this.response.forbidden(response, 'Not allowed to approve AI review')
           }
           return this.approveAiReviewDraft(id, auth, response)
@@ -151,7 +148,6 @@ export default class PostsCrudController extends BasePostsController {
 
         if (requestedMode === 'reject-review') {
           if (!roleRegistry.hasPermission(role, 'posts.review.approve', postType)) {
-            console.log(`[PostsCrudController.update] Permission denied for reject-review`)
             return this.response.forbidden(response, 'Not allowed to reject review')
           }
           return this.rejectReviewDraft(id, auth, response)
@@ -159,20 +155,18 @@ export default class PostsCrudController extends BasePostsController {
 
         if (requestedMode === 'reject-ai-review') {
           if (!roleRegistry.hasPermission(role, 'posts.ai-review.approve', postType)) {
-            console.log(`[PostsCrudController.update] Permission denied for reject-ai-review`)
             return this.response.forbidden(response, 'Not allowed to reject AI review')
           }
           return this.rejectAiReviewDraft(id, auth, response)
         }
       }
 
-      console.log(`[PostsCrudController.update] Standard update path`)
       const payload = await request.validateUsing(updatePostValidator)
-      const saveMode = String(payload.mode || 'publish').toLowerCase()
+      const saveMode = String(payload.mode || requestedMode || 'publish').toLowerCase()
       const currentPost = await Post.findOrFail(id)
       const postType = currentPost.type
 
-      // Handle review mode
+      // Handle draft save modes
       if (saveMode === 'review') {
         if (!roleRegistry.hasPermission(role, 'posts.review.save', postType)) {
           return this.response.forbidden(response, 'Not allowed to save for review')
@@ -180,42 +174,11 @@ export default class PostsCrudController extends BasePostsController {
         return this.saveReviewDraft(id, payload, auth, response)
       }
 
-      // Handle AI review mode
       if (saveMode === 'ai-review') {
         if (!roleRegistry.hasPermission(role, 'posts.ai-review.save', postType)) {
           return this.response.forbidden(response, 'Not allowed to save for AI review')
         }
         return this.saveAiReviewDraft(id, payload, auth, response)
-      }
-
-      // Handle approve mode
-      if (saveMode === 'approve') {
-        if (!roleRegistry.hasPermission(role, 'posts.review.approve', postType)) {
-          return this.response.forbidden(response, 'Not allowed to approve review')
-        }
-        return this.approveReviewDraft(id, auth, response)
-      }
-
-      // Handle approve AI review mode
-      if (saveMode === 'approve-ai-review') {
-        if (!roleRegistry.hasPermission(role, 'posts.ai-review.approve', postType)) {
-          return this.response.forbidden(response, 'Not allowed to approve AI review')
-        }
-        return this.approveAiReviewDraft(id, auth, response)
-      }
-      // Handle reject review mode
-      if (saveMode === 'reject-review') {
-        if (!roleRegistry.hasPermission(role, 'posts.review.approve', postType)) {
-          return this.response.forbidden(response, 'Not allowed to reject review')
-        }
-        return this.rejectReviewDraft(id, auth, response)
-      }
-      // Handle reject AI review mode
-      if (saveMode === 'reject-ai-review') {
-        if (!roleRegistry.hasPermission(role, 'posts.ai-review.approve', postType)) {
-          return this.response.forbidden(response, 'Not allowed to reject AI review')
-        }
-        return this.rejectAiReviewDraft(id, auth, response)
       }
 
       // Authorization check for status changes
@@ -248,8 +211,8 @@ export default class PostsCrudController extends BasePostsController {
         socialTitle: (payload as any).socialTitle,
         socialDescription: (payload as any).socialDescription,
         socialImageId: (payload as any).socialImageId,
-        noindex: (payload as any).noindex ?? false,
-        nofollow: (payload as any).nofollow ?? false,
+        noindex: (payload as any).noindex,
+        nofollow: (payload as any).nofollow,
         canonicalUrl: payload.canonicalUrl,
         robotsJson,
         jsonldOverrides,

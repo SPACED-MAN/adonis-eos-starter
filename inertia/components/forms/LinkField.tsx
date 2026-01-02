@@ -4,9 +4,18 @@ import { faChevronDown, faSearch, faExternalLinkAlt, faCircleExclamation } from 
 import { Input } from '~/components/ui/input'
 import { Popover, PopoverContent, PopoverTrigger } from '~/components/ui/popover'
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '~/components/ui/tooltip'
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '~/components/ui/select'
 import { FormField, FormLabel, FormHelper } from './field'
 
-export type LinkKind = 'post' | 'url'
+import { humanizeSlug, slugify, getModuleAnchors } from '~/utils/strings'
+
+export type LinkKind = 'post' | 'url' | 'anchor'
 
 export type LinkFieldValue =
   | {
@@ -19,6 +28,7 @@ export type LinkFieldValue =
     target?: '_self' | '_blank'
   }
   | { kind: 'url'; url: string; target?: '_self' | '_blank' }
+  | { kind: 'anchor'; anchor: string; moduleId?: string; target?: '_self' | '_blank' }
   | null
 
 type PostOption = {
@@ -69,6 +79,14 @@ function normalizeLinkValue(raw: any): LinkFieldValue {
         target: anyVal.target === '_blank' ? '_blank' : '_self',
       }
     }
+    if (anyVal.kind === 'anchor' && (anyVal.anchor || anyVal.moduleId)) {
+      return {
+        kind: 'anchor',
+        anchor: String(anyVal.anchor || ''),
+        moduleId: anyVal.moduleId ? String(anyVal.moduleId) : undefined,
+        target: anyVal.target === '_blank' ? '_blank' : '_self',
+      }
+    }
     // Also support shapes like { url } or { postId }
     if (anyVal.url) {
       const url = String(anyVal.url).trim()
@@ -94,12 +112,19 @@ function normalizeLinkValue(raw: any): LinkFieldValue {
   return null
 }
 
+export interface LinkModuleOption {
+  id: string
+  type: string
+  adminLabel?: string | null
+}
+
 export interface LinkFieldProps {
   label: string
   value: any
   onChange: (val: LinkFieldValue) => void
   currentLocale?: string
   helperText?: string
+  modules?: LinkModuleOption[]
 }
 
 export const LinkField: React.FC<LinkFieldProps> = ({
@@ -108,10 +133,15 @@ export const LinkField: React.FC<LinkFieldProps> = ({
   onChange,
   currentLocale,
   helperText,
+  modules = [],
 }) => {
   const initial = React.useMemo(() => normalizeLinkValue(value), [value])
-  // Default to 'post' mode unless explicitly set to 'url'
-  const [mode, setMode] = React.useState<LinkKind>(initial?.kind === 'url' ? 'url' : 'post')
+  // Default mode selection
+  const [mode, setMode] = React.useState<LinkKind>(() => {
+    if (initial?.kind === 'url') return 'url'
+    if (initial?.kind === 'anchor') return 'anchor'
+    return 'post'
+  })
   const [link, setLink] = React.useState<LinkFieldValue>(initial)
   const [posts, setPosts] = React.useState<PostOption[]>([])
   const [query, setQuery] = React.useState('')
@@ -136,6 +166,8 @@ export const LinkField: React.FC<LinkFieldProps> = ({
         // Update mode based on normalized value
         if (normalized.kind === 'url') {
           setMode('url')
+        } else if (normalized.kind === 'anchor') {
+          setMode('anchor')
         } else if (normalized.kind === 'post') {
           setMode('post')
         }
@@ -245,6 +277,8 @@ export const LinkField: React.FC<LinkFieldProps> = ({
   const selectedPostId: string | '' =
     link && link.kind === 'post' && link.postId ? String(link.postId) : ''
 
+  const anchors = React.useMemo(() => getModuleAnchors(modules), [modules])
+
   const currentTarget: '_self' | '_blank' =
     link && (link as any).target === '_blank' ? '_blank' : '_self'
 
@@ -293,7 +327,11 @@ export const LinkField: React.FC<LinkFieldProps> = ({
       <div className="bg-backdrop-medium/20 border border-line-medium rounded-2xl p-3 space-y-3 shadow-sm">
         {/* Row 1: Mode Selector & Target Toggle */}
         <div className="flex items-center gap-3">
-          <div className="flex-1 flex p-1 bg-backdrop-medium/40 rounded-xl max-w-[200px]">
+          <div
+            className={`flex-1 flex p-1 bg-backdrop-medium/40 rounded-xl ${
+              modules.length > 0 ? 'max-w-[260px]' : 'max-w-[200px]'
+            }`}
+          >
             <button
               type="button"
               className={`flex-1 px-3 py-1.5 text-[10px] font-bold uppercase tracking-wider rounded-lg transition-all ${
@@ -329,36 +367,60 @@ export const LinkField: React.FC<LinkFieldProps> = ({
             >
               URL
             </button>
+            {modules.length > 0 && (
+              <button
+                type="button"
+                className={`flex-1 px-3 py-1.5 text-[10px] font-bold uppercase tracking-wider rounded-lg transition-all ${
+                  mode === 'anchor'
+                    ? 'bg-backdrop-low text-neutral-high shadow-sm'
+                    : 'text-neutral-low hover:text-neutral-medium'
+                }`}
+                onClick={() => {
+                  setMode('anchor')
+                  const prevTarget = link && (link as any).target === '_blank' ? '_blank' : '_self'
+                  const currentAnchor = link && link.kind === 'anchor' ? link.anchor : ''
+                  setLink(
+                    currentAnchor
+                      ? { kind: 'anchor', anchor: currentAnchor, target: prevTarget }
+                      : null
+                  )
+                }}
+              >
+                Anchor
+              </button>
+            )}
           </div>
 
-          <div className="ml-auto">
-            <TooltipProvider>
-              <Tooltip>
-                <TooltipTrigger asChild>
-                  <button
-                    type="button"
-                    onClick={() => {
-                      const nextTarget = currentTarget === '_blank' ? '_self' : '_blank'
-                      setLink((prev) => {
-                        if (!prev) return prev
-                        return { ...prev, target: nextTarget }
-                      })
-                    }}
-                    className={`flex items-center justify-center w-9 h-9 rounded-xl border transition-all ${
-                      currentTarget === '_blank'
-                        ? 'bg-standout-high/10 border-standout-high/30 text-standout-high shadow-inner'
-                        : 'bg-backdrop-low border-line-medium text-neutral-medium hover:border-neutral-low shadow-sm'
-                    }`}
-                  >
-                    <FontAwesomeIcon icon={faExternalLinkAlt} className="size-3.5" />
-                  </button>
-                </TooltipTrigger>
-                <TooltipContent>
-                  <p>{currentTarget === '_blank' ? 'Opens in New Tab' : 'Opens in Same Tab'}</p>
-                </TooltipContent>
-              </Tooltip>
-            </TooltipProvider>
-          </div>
+          {mode !== 'anchor' && (
+            <div className="ml-auto">
+              <TooltipProvider>
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        const nextTarget = currentTarget === '_blank' ? '_self' : '_blank'
+                        setLink((prev) => {
+                          if (!prev) return prev
+                          return { ...prev, target: nextTarget }
+                        })
+                      }}
+                      className={`flex items-center justify-center w-9 h-9 rounded-xl border transition-all ${
+                        currentTarget === '_blank'
+                          ? 'bg-standout-high/10 border-standout-high/30 text-standout-high shadow-inner'
+                          : 'bg-backdrop-low border-line-medium text-neutral-medium hover:border-neutral-low shadow-sm'
+                      }`}
+                    >
+                      <FontAwesomeIcon icon={faExternalLinkAlt} className="size-3.5" />
+                    </button>
+                  </TooltipTrigger>
+                  <TooltipContent>
+                    <p>{currentTarget === '_blank' ? 'Opens in New Tab' : 'Opens in Same Tab'}</p>
+                  </TooltipContent>
+                </Tooltip>
+              </TooltipProvider>
+            </div>
+          )}
         </div>
 
         {/* Row 2: Destination Input */}
@@ -402,6 +464,54 @@ export const LinkField: React.FC<LinkFieldProps> = ({
                 </div>
               )}
             </div>
+          ) : mode === 'anchor' ? (
+            <Select
+              value={link && link.kind === 'anchor' ? link.anchor : ''}
+              onValueChange={(val) => {
+                const selectedModule = modules.find((m) => {
+                  const anchor = anchors.get(m.id)
+                  return anchor === val
+                })
+                setLink((prev) => {
+                  const baseTarget = prev && (prev as any).target === '_blank' ? '_blank' : '_self'
+                  return val
+                    ? {
+                        kind: 'anchor',
+                        anchor: val,
+                        moduleId: selectedModule?.id,
+                        target: baseTarget,
+                      }
+                    : null
+                })
+              }}
+            >
+              <SelectTrigger className="w-full h-[42px] rounded-xl border-line-medium bg-backdrop-low shadow-sm focus:ring-standout-high/20 focus:border-standout-high">
+                <SelectValue placeholder="Select a module anchor…" />
+              </SelectTrigger>
+              <SelectContent className="bg-backdrop-low border-line-low rounded-xl shadow-xl z-100">
+                {modules.map((m) => {
+                  const label = m.adminLabel || humanizeSlug(m.type)
+                  const anchor = anchors.get(m.id) || `#${slugify(m.adminLabel || m.type)}`
+                  return (
+                    <SelectItem
+                      key={m.id}
+                      value={anchor}
+                      className="focus:bg-backdrop-medium rounded-lg"
+                    >
+                      <div className="flex flex-col">
+                        <span className="text-sm font-medium">{label}</span>
+                        <span className="text-[10px] text-neutral-low font-mono">{anchor}</span>
+                      </div>
+                    </SelectItem>
+                  )
+                })}
+                {modules.length === 0 && (
+                  <div className="p-4 text-center text-xs text-neutral-low italic">
+                    No modules found on this page
+                  </div>
+                )}
+              </SelectContent>
+            </Select>
           ) : (
             <Popover>
               <PopoverTrigger asChild>

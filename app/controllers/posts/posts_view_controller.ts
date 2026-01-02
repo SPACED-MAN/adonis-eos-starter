@@ -86,6 +86,7 @@ export default class PostsViewController extends BasePostsController {
       let activeFeaturedImageId = post.featuredImageId
       const currentDraft =
         activeViewMode === 'ai-review' ? ard : activeViewMode === 'review' ? rd : null
+
       if (currentDraft && (currentDraft as any).featuredImageId !== undefined) {
         activeFeaturedImageId = (currentDraft as any).featuredImageId
       }
@@ -130,6 +131,10 @@ export default class PostsViewController extends BasePostsController {
 
               const isLocal = mi?.scope === 'post'
 
+              // Check if deleted in draft
+              const isReviewDeleted = activeViewMode === 'review' && Array.isArray(rd.modules) && !rdModule
+              const isAiReviewDeleted = activeViewMode === 'ai-review' && Array.isArray(ard.modules) && !ardModule
+
               // Helper to merge defaults and resolve hero fallbacks
               const prepareProps = (p: any) => {
                 const merged = { ...defaultProps, ...coerceJsonObject(p) }
@@ -152,23 +157,28 @@ export default class PostsViewController extends BasePostsController {
 
               // Resolve props for each mode
               const sourceProps = isLocal ? coerceJsonObject(mi?.props) : {}
+              
+              const granularRevProps = isLocal ? coerceJsonObject(mi?.reviewProps ?? (mi as any)?.review_props) : {}
               const reviewProps = isLocal
-                ? rdModule?.props || coerceJsonObject(mi?.reviewProps ?? (mi as any)?.review_props)
+                ? Object.keys(granularRevProps).length > 0 ? granularRevProps : (rdModule?.props || {})
                 : {}
+                
+              const granularAiRevProps = isLocal ? coerceJsonObject(mi?.aiReviewProps ?? (mi as any)?.ai_review_props) : {}
               const aiReviewProps = isLocal
-                ? ardModule?.props ||
-                  coerceJsonObject(mi?.aiReviewProps ?? (mi as any)?.ai_review_props)
+                ? Object.keys(granularAiRevProps).length > 0 ? granularAiRevProps : (ardModule?.props || {})
                 : {}
 
               // Resolve overrides for each mode (global modules only)
               const sourceOverrides = !isLocal ? coerceJsonObject(pm.overrides) : null
+              
+              const granularRevOverrides = !isLocal ? coerceJsonObject((pm as any).reviewOverrides ?? (pm as any).review_overrides) : null
               const reviewOverrides = !isLocal
-                ? rdModule?.overrides ||
-                  coerceJsonObject((pm as any).reviewOverrides ?? (pm as any).review_overrides)
+                ? (granularRevOverrides && Object.keys(granularRevOverrides).length > 0) ? granularRevOverrides : (rdModule?.overrides || null)
                 : null
+                
+              const granularAiRevOverrides = !isLocal ? coerceJsonObject((pm as any).aiReviewOverrides ?? (pm as any).ai_review_overrides) : null
               const aiReviewOverrides = !isLocal
-                ? ardModule?.overrides ||
-                  coerceJsonObject((pm as any).aiReviewOverrides ?? (pm as any).ai_review_overrides)
+                ? (granularAiRevOverrides && Object.keys(granularAiRevOverrides).length > 0) ? granularAiRevOverrides : (ardModule?.overrides || null)
                 : null
 
               return {
@@ -190,9 +200,9 @@ export default class PostsViewController extends BasePostsController {
                     ? prepareProps(aiReviewOverrides)
                     : null,
                 reviewAdded: !!((pm as any).reviewAdded || (pm as any).review_added),
-                reviewDeleted: !!((pm as any).reviewDeleted || (pm as any).review_deleted),
+                reviewDeleted: isReviewDeleted || !!((pm as any).reviewDeleted || (pm as any).review_deleted),
                 aiReviewAdded: !!((pm as any).aiReviewAdded || (pm as any).ai_review_added),
-                aiReviewDeleted: !!((pm as any).aiReviewDeleted || (pm as any).ai_review_deleted),
+                aiReviewDeleted: isAiReviewDeleted || !!((pm as any).aiReviewDeleted || (pm as any).ai_review_deleted),
                 locked: pm.locked,
                 orderIndex: pm.orderIndex,
                 globalSlug: mi?.globalSlug || (mi as any)?.global_slug || null,
@@ -202,27 +212,83 @@ export default class PostsViewController extends BasePostsController {
                 label: moduleRegistry.getDynamicLabel(mi?.type, sourceProps),
               }
             })
-            .sort((a, b) => {
-              // If in Review/AI Review mode, respect the order in the draft snapshot if it exists
-              if (
-                (activeViewMode === 'review' || activeViewMode === 'ai-review') &&
-                Array.isArray(currentDraftModules) &&
-                currentDraftModules.length > 0
-              ) {
-                const idxA = currentDraftModules.findIndex(
-                  (dm: any) => dm.id === a.id || dm.postModuleId === a.id
-                )
-                const idxB = currentDraftModules.findIndex(
-                  (dm: any) => dm.id === b.id || dm.postModuleId === b.id
-                )
-                if (idxA >= 0 && idxB >= 0) return idxA - idxB
-                if (idxA >= 0) return -1
-                if (idxB >= 0) return 1
-              }
-              // Fallback to table-based ordering (already applied by query, but keep sort for stability)
-              return (a.orderIndex ?? 0) - (b.orderIndex ?? 0)
-            })
         : []
+
+      // ATOMIC DRAFT ENHANCEMENT:
+      // Include modules that ONLY exist in the draft (newly added in Review/AI Review).
+      // This ensures they don't disappear from the editor UI after a page refresh.
+      if (modulesEnabled && (activeViewMode === 'review' || activeViewMode === 'ai-review')) {
+        const existingPmIds = new Set(editorModules.map((m) => m.id))
+        const draftOnlyModules = currentDraftModules
+          .filter((dm: any) => {
+            const id = dm.postModuleId || dm.id
+            return id && !existingPmIds.has(id)
+          })
+          .map((dm: any) => {
+            const moduleConfig = moduleRegistry.has(dm.type)
+              ? moduleRegistry.get(dm.type).getConfig()
+              : null
+            const defaultValues = moduleConfig?.defaultValues || {}
+            const isLocal = dm.scope === 'post' || dm.scope === 'local'
+
+            const prepareProps = (p: any) => {
+              return { ...defaultValues, ...coerceJsonObject(p) }
+            }
+
+            return {
+              id: dm.postModuleId || dm.id,
+              moduleInstanceId: dm.moduleInstanceId || dm.moduleId,
+              type: dm.type,
+              scope: dm.scope === 'post' ? 'local' : dm.scope,
+              props: isLocal ? prepareProps(dm.props) : {},
+              reviewProps:
+                activeViewMode === 'review' && isLocal ? prepareProps(dm.props) : null,
+              aiReviewProps:
+                activeViewMode === 'ai-review' && isLocal ? prepareProps(dm.props) : null,
+              overrides: !isLocal ? prepareProps(dm.overrides) : null,
+              reviewOverrides:
+                activeViewMode === 'review' && !isLocal ? prepareProps(dm.overrides) : null,
+              aiReviewOverrides:
+                activeViewMode === 'ai-review' && !isLocal ? prepareProps(dm.overrides) : null,
+              reviewAdded: activeViewMode === 'review',
+              reviewDeleted: false,
+              aiReviewAdded: activeViewMode === 'ai-review',
+              aiReviewDeleted: false,
+              locked: !!dm.locked,
+              orderIndex: dm.orderIndex,
+              globalSlug: dm.globalSlug || null,
+              globalLabel: dm.globalLabel || null,
+              adminLabel: dm.adminLabel || null,
+              name: moduleConfig?.name || dm.type || 'Unknown Module',
+              label: moduleRegistry.getDynamicLabel(dm.type, dm.props || {}),
+            }
+          })
+
+        editorModules.push(...draftOnlyModules)
+      }
+
+      // Sort final list
+      if (modulesEnabled) {
+        editorModules.sort((a, b) => {
+          // If in Review/AI Review mode, respect the order in the draft snapshot if it exists
+          if (
+            (activeViewMode === 'review' || activeViewMode === 'ai-review') &&
+            Array.isArray(currentDraftModules) &&
+            currentDraftModules.length > 0
+          ) {
+            const idxA = currentDraftModules.findIndex(
+              (dm: any) => dm.id === a.id || dm.postModuleId === a.id
+            )
+            const idxB = currentDraftModules.findIndex(
+              (dm: any) => dm.id === b.id || dm.postModuleId === b.id
+            )
+            if (idxA >= 0 && idxB >= 0) return idxA - idxB
+            if (idxA >= 0) return -1
+            if (idxB >= 0) return 1
+          }
+          return (a.orderIndex ?? 0) - (b.orderIndex ?? 0)
+        })
+      }
 
       // (No debug logging)
 

@@ -87,23 +87,9 @@ router.post(adminPath('logout'), [AuthController, 'logout']).use(middleware.auth
 /**
  * Admin home (protected)
  */
-const Post = () => import('#models/post')
+const DashboardController = () => import('#controllers/dashboard_controller')
 router
-  .get(adminPath(), async ({ inertia }) => {
-    const PostModel = await Post()
-    const posts = await PostModel.default.query().orderBy('updated_at', 'desc').limit(10)
-
-    return inertia.render('admin/home', {
-      posts: posts.map((p) => ({
-        id: p.id,
-        title: p.title,
-        slug: p.slug,
-        status: p.status,
-        locale: p.locale,
-        updatedAt: p.updatedAt.toISO(),
-      })),
-    })
-  })
+  .get(adminPath(), [DashboardController, 'index'])
   .use(middleware.auth())
 
 /**

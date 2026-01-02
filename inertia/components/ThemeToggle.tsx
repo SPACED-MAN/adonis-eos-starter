@@ -69,29 +69,34 @@ export function ThemeToggle() {
     <div className="flex items-center gap-3">
       <Tooltip>
         <TooltipTrigger asChild>
-          <div className="flex items-center gap-1">
+          <div className="flex items-center gap-2" role="group" aria-label="Theme selection">
             <button
               type="button"
               onClick={() => mode === 'dark' && toggle()}
-              className={`transition-colors ${mode === 'light' ? 'text-standout-high' : 'text-neutral-low'}`}
-              aria-label="Light mode"
+              className={`flex h-11 w-11 items-center justify-center rounded-md transition-colors ${
+                mode === 'light' ? 'text-standout-high' : 'text-neutral-low'
+              } hover:bg-backdrop-high/5`}
+              aria-label="Switch to light mode"
             >
-              <FontAwesomeIcon icon={['fas', 'sun']} className="text-xs" />
+              <FontAwesomeIcon icon={['fas', 'sun']} className="text-sm" />
             </button>
 
             <Switch
               checked={mode === 'dark'}
               onCheckedChange={toggle}
+              aria-label="Toggle dark mode"
               className="mt-0.5 data-[state=checked]:bg-backdrop-high data-[state=unchecked]:bg-backdrop-high border-line-high"
             />
 
             <button
               type="button"
               onClick={() => mode === 'light' && toggle()}
-              className={`transition-colors ${mode === 'dark' ? 'text-standout-high' : 'text-neutral-low'}`}
-              aria-label="Dark mode"
+              className={`flex h-11 w-11 items-center justify-center rounded-md transition-colors ${
+                mode === 'dark' ? 'text-standout-high' : 'text-neutral-low'
+              } hover:bg-backdrop-high/5`}
+              aria-label="Switch to dark mode"
             >
-              <FontAwesomeIcon icon={['fas', 'moon']} className="text-xs" />
+              <FontAwesomeIcon icon={['fas', 'moon']} className="text-sm" />
             </button>
           </div>
         </TooltipTrigger>

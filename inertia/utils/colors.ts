@@ -12,8 +12,6 @@ export function getSectionStyles(variant?: string) {
 		containerClasses: meta.classes,
 		/** Theme flags */
 		inverted: meta.inverted,
-		/** Optional special background component name */
-		backgroundComponent: meta.component,
 
 		/** Derived semantic text colors */
 		textColor: meta.inverted ? 'text-on-high' : 'text-neutral-high',

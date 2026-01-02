@@ -1,10 +1,10 @@
 import { motion, type Variants } from 'framer-motion'
 import type { Button, LinkValue } from './types'
 import { useInlineValue, useInlineEditor, useInlineField } from '../components/inline-edit/InlineEditorContext'
-import { resolveLink } from '../utils/resolve_link'
 import { MediaRenderer } from '../components/MediaRenderer'
 import { getSectionStyles } from '../utils/colors'
 import { SectionBackground } from '../components/SectionBackground'
+import { SiteLink } from '../site/components/SiteLink'
 import { THEME_OPTIONS, MEDIA_FIT_OPTIONS } from '#modules/shared_fields'
 
 interface HeroWithMediaProps {
@@ -19,20 +19,12 @@ interface HeroWithMediaProps {
   } | null // media object
   imagePosition?: 'left' | 'right'
   objectFit?: 'cover' | 'contain' | 'fill' | 'none' | 'scale-down'
-  primaryCta?: Button | null
-  secondaryCta?: Button | null
+  ctas?: Button[] | null
   theme?: string
   backgroundImage?: any
   backgroundTint?: boolean
   __moduleId?: string
   _useReact?: boolean
-}
-
-export function resolveHrefAndTarget(
-  url: string | LinkValue,
-  explicitTarget?: '_self' | '_blank'
-): { href?: string; target: '_self' | '_blank' } {
-  return resolveLink(url, explicitTarget)
 }
 
 export default function HeroWithMedia({
@@ -41,8 +33,7 @@ export default function HeroWithMedia({
   image,
   imagePosition = 'right',
   objectFit: initialObjectFit = 'contain',
-  primaryCta,
-  secondaryCta,
+  ctas: initialCtas,
   theme: initialTheme = 'low',
   backgroundImage: initialBackgroundImage,
   backgroundTint: initialBackgroundTint,
@@ -53,6 +44,7 @@ export default function HeroWithMedia({
   const objectFit = useInlineValue(__moduleId, 'objectFit', initialObjectFit)
   const { value: titleValue, show: showTitle, props: titleProps } = useInlineField(__moduleId, 'title', title, { label: 'Title' })
   const { value: subtitleValue, show: showSubtitle, props: subtitleProps } = useInlineField(__moduleId, 'subtitle', subtitle, { label: 'Subtitle' })
+  const ctas = useInlineValue(__moduleId, 'ctas', initialCtas)
   const theme = useInlineValue(__moduleId, 'theme', initialTheme) || initialTheme
   const backgroundImage = useInlineValue(__moduleId, 'backgroundImage', initialBackgroundImage)
   const backgroundTint = useInlineValue(__moduleId, 'backgroundTint', initialBackgroundTint)
@@ -61,7 +53,7 @@ export default function HeroWithMedia({
   const textColor = styles.textColor
   const subtextColor = styles.subtextColor
 
-  const hasCtas = Boolean(primaryCta || secondaryCta)
+  const hasCtas = Boolean(ctas && ctas.length > 0)
 
   const containerVariants: Variants = {
     hidden: { opacity: 0 },
@@ -94,7 +86,7 @@ export default function HeroWithMedia({
 
   const imageBlockContent = (
     <div
-      className="w-full max-w-md overflow-hidden relative aspect-[4/3]"
+      className="w-full max-w-md overflow-hidden relative aspect-4/3"
       data-inline-type="select"
       data-inline-path="objectFit"
       data-inline-label="Media Fit"
@@ -167,53 +159,28 @@ export default function HeroWithMedia({
 
       {hasCtas && (
         <div className="flex flex-wrap items-center gap-4">
-          {_useReact ? (
-            <>
-              {primaryCta && (
-                <motion.div variants={textVariants}>
-                  <ButtonComponent
-                    {...primaryCta}
-                    moduleId={__moduleId}
-                    inlineObjectPath="primaryCta"
-                    inlineObjectLabel="Primary CTA"
-                    inverted={styles.inverted}
-                  />
-                </motion.div>
-              )}
-              {secondaryCta && (
-                <motion.div variants={textVariants}>
-                  <ButtonComponent
-                    {...secondaryCta}
-                    moduleId={__moduleId}
-                    inlineObjectPath="secondaryCta"
-                    inlineObjectLabel="Secondary CTA"
-                    inverted={styles.inverted}
-                  />
-                </motion.div>
-              )}
-            </>
-          ) : (
-            <>
-              {primaryCta && (
+          {ctas?.map((cta, index) => (
+            _useReact ? (
+              <motion.div key={index} variants={textVariants}>
                 <ButtonComponent
-                  {...primaryCta}
+                  {...cta}
                   moduleId={__moduleId}
-                  inlineObjectPath="primaryCta"
-                  inlineObjectLabel="Primary CTA"
+                  inlineObjectPath={`ctas.${index}`}
+                  inlineObjectLabel={`Button ${index + 1}`}
                   inverted={styles.inverted}
                 />
-              )}
-              {secondaryCta && (
-                <ButtonComponent
-                  {...secondaryCta}
-                  moduleId={__moduleId}
-                  inlineObjectPath="secondaryCta"
-                  inlineObjectLabel="Secondary CTA"
-                  inverted={styles.inverted}
-                />
-              )}
-            </>
-          )}
+              </motion.div>
+            ) : (
+              <ButtonComponent
+                key={index}
+                {...cta}
+                moduleId={__moduleId}
+                inlineObjectPath={`ctas.${index}`}
+                inlineObjectLabel={`Button ${index + 1}`}
+                inverted={styles.inverted}
+              />
+            )
+          ))}
         </div>
       )}
     </div>
@@ -234,7 +201,6 @@ export default function HeroWithMedia({
         data-inline-options={JSON.stringify(THEME_OPTIONS)}
       >
         <SectionBackground
-          component={styles.backgroundComponent}
           backgroundImage={backgroundImage}
           backgroundTint={backgroundTint}
           isInteractive={_useReact}
@@ -260,7 +226,6 @@ export default function HeroWithMedia({
       data-inline-options={JSON.stringify(THEME_OPTIONS)}
     >
       <SectionBackground
-        component={styles.backgroundComponent}
         backgroundImage={backgroundImage}
         backgroundTint={backgroundTint}
         isInteractive={_useReact}
@@ -333,14 +298,10 @@ function ButtonComponent({
   }
   const styleClasses = styleMap[style] || styleMap.primary
 
-  const { href, target: finalTarget } = resolveHrefAndTarget(url, target)
-  if (!href) return null
-
   return (
-    <a
-      href={href}
-      target={finalTarget}
-      rel={finalTarget === '_blank' ? 'noopener noreferrer' : rel}
+    <SiteLink
+      url={url}
+      explicitTarget={target}
       className={`inline-flex items-center justify-center px-5 py-3 text-base font-medium rounded-lg transition-colors duration-200 ${styleClasses} relative group`}
       data-inline-type="object"
       data-inline-path={inlineObjectPath}
@@ -348,6 +309,6 @@ function ButtonComponent({
       data-inline-fields={ctaObjectFields}
     >
       {label}
-    </a>
+    </SiteLink>
   )
 }
